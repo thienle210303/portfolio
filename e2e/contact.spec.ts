@@ -80,3 +80,52 @@ test("the honeypot field is present and not reachable by Tab", async ({ page }) 
   await expect(honeypot).not.toBeFocused();
   await expect(form.getByRole("button", { name: "Open email app" })).toBeFocused();
 });
+
+/**
+ * The one-field "ask me to reach out" path that sits above the full form.
+ *
+ * It exists so a visitor can start a conversation without composing one, so
+ * what matters here is that it stays operable and honest: it must never claim
+ * to have sent something it did not, and its direct links must go where they
+ * say. Delivery itself is not exercised — the suite runs without Resend
+ * configured, which is exactly the mailto-fallback state the site ships in.
+ */
+test.describe("quick connect", () => {
+  test("offers email, GitHub and LinkedIn as direct one-tap links", async ({ page }) => {
+    await page.goto("/");
+    const quick = page.locator("#contact form").first();
+
+    // Email is a real mailto, not a JS handler.
+    const mailto = page.locator('#contact a[href^="mailto:"]').first();
+    await expect(mailto).toBeVisible();
+
+    for (const name of [/^GitHub/, /^LinkedIn/]) {
+      const link = page.locator("#contact").getByRole("link", { name });
+      await expect(link.first()).toHaveAttribute("rel", "noopener noreferrer");
+      await expect(link.first()).toHaveAttribute("target", "_blank");
+    }
+
+    await expect(quick.getByPlaceholder("Email or phone number")).toBeVisible();
+  });
+
+  test("rejects an empty submission without claiming to have sent anything", async ({ page }) => {
+    await page.goto("/");
+    const field = page.getByPlaceholder("Email or phone number");
+    await field.scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: "Ask me to reach out" }).click();
+
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByText(/Enter an email address or a phone number/)).toBeVisible();
+    await expect(page.getByText(/I'll be in touch/)).toHaveCount(0);
+  });
+
+  test("the field advertises exactly one autofill purpose", async ({ page }) => {
+    await page.goto("/");
+    const field = page.getByPlaceholder("Email or phone number");
+    // The autocomplete spec allows one field-name token, so the field cannot
+    // claim both purposes — `email tel` is invalid and axe fails it under
+    // 1.3.5. Pinned here because the temptation to "helpfully" add `tel` back
+    // is real.
+    await expect(field).toHaveAttribute("autocomplete", "email");
+  });
+});

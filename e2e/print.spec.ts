@@ -18,8 +18,14 @@ test("the site header is not visible in print", async ({ page }) => {
   await expect(page.locator("header.no-print")).toBeHidden();
 });
 
-test("the contact form is not visible in print", async ({ page }) => {
-  await expect(page.locator("#contact form")).toBeHidden();
+test("no contact form is visible in print", async ({ page }) => {
+  // Two of them now — the one-field quick-connect and the full form — so this
+  // asserts over every match rather than assuming a single one.
+  const forms = page.locator("#contact form");
+  expect(await forms.count()).toBeGreaterThan(0);
+  for (const form of await forms.all()) {
+    await expect(form).toBeHidden();
+  }
 });
 
 test("the closing section is not visible in print", async ({ page }) => {
