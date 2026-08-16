@@ -95,8 +95,19 @@ export default function SiteNav() {
 
     document.addEventListener("keydown", onKeyDown);
 
+    // If the viewport crosses into the desktop breakpoint while open (a
+    // resize or orientation change), the toggle and panel both disappear
+    // via `lg:hidden` — close the menu too, so the scroll lock above
+    // doesn't get stranded on with no visible control left to release it.
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    function onDesktopChange(event: MediaQueryListEvent) {
+      if (event.matches) setOpen(false);
+    }
+    desktopQuery.addEventListener("change", onDesktopChange);
+
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      desktopQuery.removeEventListener("change", onDesktopChange);
       body.style.position = previousStyle.position;
       body.style.top = previousStyle.top;
       body.style.left = previousStyle.left;
@@ -176,7 +187,15 @@ export default function SiteNav() {
           ref={panelRef}
           className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-ink lg:hidden"
         >
-          <nav aria-label="Mobile" className="shell py-6">
+          <nav
+            aria-label="Mobile"
+            className="shell py-6"
+            style={{
+              paddingLeft: "max(var(--gutter), env(safe-area-inset-left))",
+              paddingRight: "max(var(--gutter), env(safe-area-inset-right))",
+              paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+            }}
+          >
             <ul>
               {navItems.map((item) => {
                 const isActive = item.sectionId === activeId;
