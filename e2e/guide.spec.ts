@@ -419,6 +419,28 @@ test.describe("the cats report the model's state", () => {
     expect(scaleY).toBeLessThan(1);
   });
 
+  test("reopening the panel shows the model's real state, not the Enable button again", async ({
+    page,
+  }) => {
+    // Regression: the model's state used to live in the panel's own `useState`,
+    // so closing the guide unmounted it and reopening offered a ~25 MB download
+    // that had already happened. The session now outlives the panel.
+    await stallModelDownload(page);
+
+    await openGuide(page);
+    const enable = page.getByRole("button", { name: /enable meaning-based search/i });
+    await enable.click();
+    await expect(page.getByText(/downloading the model/i)).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await openGuide(page);
+    // Still mid-download, and no second offer to download it.
+    await expect(page.getByText(/downloading the model/i)).toBeVisible();
+    await expect(enable).toHaveCount(0);
+  });
+
   test("under reduced motion the posture still changes but the tail does not flick", async ({
     page,
   }) => {

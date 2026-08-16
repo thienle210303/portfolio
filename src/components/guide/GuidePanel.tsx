@@ -4,15 +4,11 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CornerDownLeft, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { LAUNCHER_ATTRIBUTE } from "./guideFocus";
-import { setWorking } from "./guideStore";
+import { startSemanticSession } from "./semanticSession";
+import { useSemanticSession } from "./useGuideState";
 import { runGuideAction } from "@/lib/guide/actions";
 import { blendHits, searchIndex } from "@/lib/guide/match";
-import {
-  createSemanticSearcher,
-  MODEL_DOWNLOAD_LABEL,
-  type SemanticProgress,
-  type SemanticSearcher,
-} from "@/lib/guide/semantic";
+import { MODEL_DOWNLOAD_LABEL } from "@/lib/guide/semantic";
 import type { GuideHit, GuideIndex } from "@/lib/guide/types";
 
 interface GuidePanelProps {
@@ -27,12 +23,6 @@ interface GuidePanelProps {
   readonly onDismissForever: () => void;
   readonly panelId: string;
 }
-
-type SemanticState =
-  | { readonly status: "off" }
-  | { readonly status: "loading"; readonly progress: SemanticProgress }
-  | { readonly status: "ready"; readonly searcher: SemanticSearcher }
-  | { readonly status: "failed" };
 
 /** Keystroke settling time before a semantic query runs. Lexical is
  *  synchronous and needs none; encoding a query does. */
@@ -78,7 +68,8 @@ export function GuidePanel({
   panelId,
 }: GuidePanelProps) {
   const [query, setQuery] = useState("");
-  const [semantic, setSemantic] = useState<SemanticState>({ status: "off" });
+  // Read from the shared store, not owned here: the model outlives this panel.
+  const semantic = useSemanticSession();
   const [semanticResult, setSemanticResult] = useState<Tagged<readonly GuideHit[]> | null>(null);
   const [actionMessage, setActionMessage] = useState<Tagged<string> | null>(null);
 
@@ -223,22 +214,11 @@ export function GuidePanel({
   }
 
   function enableSemantic() {
-    if (!index || semantic.status === "loading" || semantic.status === "ready") return;
-    setSemantic({ status: "loading", progress: { phase: "downloading", percent: null } });
-    // Published to the store, not just local state, so the cats in the margin
-    // can report it — and so they keep reporting it if this panel is closed
-    // mid-download. `setWorking` is a plain module call, so it still lands
-    // after this component unmounts, which the `finally` below relies on.
-    setWorking(true);
-
-    void createSemanticSearcher(index, (progress) => {
-      setSemantic((current) =>
-        current.status === "loading" ? { status: "loading", progress } : current,
-      );
-    })
-      .then((searcher) => setSemantic({ status: "ready", searcher }))
-      .catch(() => setSemantic({ status: "failed" }))
-      .finally(() => setWorking(false));
+    if (!index) return;
+    // Everything else — the guard against double-starting, progress reporting,
+    // and settling to ready or failed — belongs to the session store, so it all
+    // keeps working if this panel unmounts mid-download.
+    startSemanticSession(index);
   }
 
   /* --- Render ----------------------------------------------------------- */
