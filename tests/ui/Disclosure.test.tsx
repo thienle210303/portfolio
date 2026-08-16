@@ -149,34 +149,67 @@ describe("Disclosure", () => {
       uninstall();
     });
 
-    it("is excluded from the accessibility tree while collapsed (SPEC section 2)", () => {
-      render(
+    it("is excluded from the accessibility tree while collapsed, but stays in the DOM for print (SPEC section 2)", () => {
+      const { container } = render(
         <Disclosure id="d6" summary="More detail">
           <p>Secret detail text</p>
+          <button type="button">Inner action</button>
         </Disclosure>,
       );
 
-      // Collapsed by default (defaultOpen defaults to false). Note this is
-      // deliberately NOT `queryByText(...).not.toBeInTheDocument()`: reading
-      // testing-library's own source (dist/queries/text.js) shows
-      // `getByText`/`queryByText` have no hidden-state filtering at all --
-      // only `getByRole` consults `isInaccessible` (dist/role-helpers.js),
-      // which checks `display`, the `hidden` attribute, `aria-hidden`, AND
-      // computed `visibility`. `toBeVisible()` (jest-dom) is the matcher
-      // that actually inspects visibility/display/hidden, so it is the
-      // correct tool for this assertion.
+      // Collapsed by default (defaultOpen defaults to false).
+      //
+      // This is deliberately NOT `queryByText(...).not.toBeInTheDocument()`.
+      // Two independent reasons:
+      //  1. `getByText`/`queryByText` have no hidden-state filtering at all
+      //     (confirmed by reading dist/queries/text.js: no `hidden` option,
+      //     no call to `isInaccessible`/`isSubtreeInaccessible` anywhere in
+      //     that file -- only dist/queries/role.js consults those, via its
+      //     `hidden` option). A `queryByText(...).not.toBeInTheDocument()`
+      //     assertion here would not be exercising visibility at all.
+      //  2. The content is *supposed* to remain in the DOM while collapsed
+      //     -- that is the whole reason this component uses a CSS
+      //     visibility flip instead of unmounting: `data-print-expand` on
+      //     the region lets the print stylesheet force it open regardless
+      //     of on-screen state. Asserting it is absent from the document
+      //     would assert against that intended, correct design.
       const paragraph = screen.getByText("Secret detail text");
+
+      // What must actually be true: not visible, not reachable via an
+      // accessible role. First, confirm the stylesheet installed by this
+      // describe block is actually being resolved by jsdom for this exact
+      // nested structure (region > visibility-wrapper > pt-2 div > child) --
+      // asserted directly, not just inferred from `toBeVisible()` passing.
+      expect(getComputedStyle(paragraph).visibility).toBe("hidden");
+
+      // jest-dom's `toBeVisible()` explicitly checks computed `visibility`
+      // (among other things), so this is the correct matcher for "not
+      // visible" -- unlike `queryByText`, it exercises the real mechanism.
       expect(paragraph).not.toBeVisible();
 
-      // And via the role-aware, hidden-state-filtering query directly, from
-      // the opposite direction: with `hidden: false` (the default), the
-      // trigger is still discoverable (it's never hidden)...
+      // Accessibility-tree exclusion specifically, via the query that is
+      // actually hidden-state-aware: `getByRole` -> `isInaccessible`, which
+      // checks computed `visibility` (role-helpers.js line ~67: "since
+      // visibility is inherited we can exit early"). `hidden: false` is the
+      // default; spelled out for clarity.
+      expect(
+        screen.queryByRole("button", { name: "Inner action", hidden: false }),
+      ).not.toBeInTheDocument();
+
+      // Proving that exclusion is a visibility filter and not that the
+      // button failed to render at all, via a plain DOM query rather than
+      // re-querying by role+name with `hidden: true`: per the AccName spec,
+      // a hidden element's own *computed name* also resolves to "" (not
+      // just its role-list membership), so `hidden: true` alone does not
+      // make it findable again by `name` -- that is a second, independent
+      // testing-library/AccName subtlety, not a re-run of the same check.
+      const innerButton = container.querySelector("button:not([aria-expanded])");
+      expect(innerButton).not.toBeNull();
+      expect(innerButton).toHaveTextContent("Inner action");
+      expect(innerButton).not.toBeVisible();
+
+      // And the trigger itself is never hidden, collapsed or not.
       expect(screen.getByRole("button", { name: /More detail/i })).toBeInTheDocument();
-      // ...but nothing with an accessible role inside the collapsed region
-      // is -- there is no accessible "paragraph"/generic content role
-      // reachable there while collapsed (getByRole is accessibility-tree
-      // aware, unlike getByText).
-      expect(screen.queryByRole("region", { hidden: false })).not.toBeInTheDocument();
     });
 
     it("is exposed to the accessibility tree once expanded", async () => {
