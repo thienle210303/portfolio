@@ -101,13 +101,16 @@ export const socialLinks = [
   },
 ] satisfies readonly SocialLink[];
 
+// Order must match the render order in src/app/page.tsx: the nav doubles as
+// the page's table of contents, and a nav that lists sections in a different
+// order than the page scrolls through them is actively misleading.
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
   { id: "nav-philosophy", sectionId: "philosophy", label: "Philosophy" },
   { id: "nav-work", sectionId: "work", label: "Work" },
-  { id: "nav-lab", sectionId: "lab", label: "AI Workflow Lab" },
   { id: "nav-journey", sectionId: "journey", label: "Journey" },
   { id: "nav-resume", sectionId: "resume", label: "Résumé" },
+  { id: "nav-lab", sectionId: "lab", label: "AI Workflow Lab" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 

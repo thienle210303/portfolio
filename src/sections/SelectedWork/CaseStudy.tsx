@@ -22,6 +22,7 @@ import { Tag } from "@/components/ui/Tag";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import WorkflowDiagram from "./WorkflowDiagram";
+import MetricHighlights from "./MetricHighlights";
 import MetricTable from "./MetricTable";
 
 const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]";
@@ -205,7 +206,25 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
           </div>
         ) : null}
 
-        {project.proof.length > 0 ? (
+        {/*
+          Figures, not prose bullets.
+
+          This slot used to hold the first three `proof` sentences. Someone
+          scanning the section is deciding whether to open the case study, and
+          that decision is answered by a number far faster than by a sentence —
+          so the measured results come up out of the disclosure and the prose
+          stays inside it, where a reader who has already decided to read will
+          find every proof line in full.
+
+          Projects without metrics keep the prose: for those, the sentences are
+          the only evidence there is, and showing nothing would be worse.
+        */}
+        {project.metrics && project.metrics.length > 0 ? (
+          <MetricHighlights
+            metrics={project.metrics}
+            label={`Measured results — ${project.title}`}
+          />
+        ) : project.proof.length > 0 ? (
           <div className="mt-5">
             <p id={proofLabelId} className={MICRO_LABEL_CLASS}>
               Proof

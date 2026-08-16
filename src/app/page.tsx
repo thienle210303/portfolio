@@ -19,12 +19,27 @@ export default function Home() {
 
   return (
     <>
+      {/*
+        Order is an argument about what a visitor needs, in what order.
+
+        Who he is, how he works, what he built, where he has been, the formal
+        record, then the specialist material, then how to reach him.
+
+        The AI Workflow Lab used to sit between Selected Work and the career
+        timeline. It is the single largest section on the page — 24% of the
+        scroll, more than Selected Work — and putting it there split the career
+        story down the middle: proof, a long detour into agent experiments,
+        then back to the timeline. It now follows the résumé, so the three
+        career sections read as one arc and the deepest, most specialist
+        material sits at the end where an interested reader will still find it
+        and a hiring manager can stop before it.
+      */}
       <Hero />
       <Philosophy />
       <SelectedWork />
-      <AIWorkflowLab />
       <CareerJourney />
       <ResumeExplorer />
+      <AIWorkflowLab />
       <Contact emailDeliveryConfigured={emailDeliveryConfigured} />
       <Closing />
     </>
