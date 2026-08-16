@@ -3,7 +3,7 @@
 /**
  * Focus restoration for the guide.
  *
- * There are two launchers — the margin creature (≥64rem) and the compact
+ * There are two launchers — the margin cats (≥64rem) and the compact
  * header button (<64rem) — and exactly one is visible at any width. Which one
  * to return focus to on close therefore depends on the viewport, and asking
  * the DOM is both simpler and more reliable than threading the opener through

@@ -275,20 +275,57 @@
   }
 
   /* ---------------------------------------------------------------------- */
-  /* Site guide — the margin creature                                       */
+  /* Site guide — the two margin cats                                       */
   /*                                                                        */
   /* Lives in the left gutter and never over content. Below the `lg`        */
-  /* breakpoint the lane is not rendered at all (see SiteGuide.tsx): a      */
-  /* creature walking around a 320px screen is pure annoyance, so there it  */
-  /* collapses to an ordinary button instead.                              */
+  /* breakpoint the lane is not rendered at all (see SiteGuide.tsx): cats   */
+  /* walking around a 320px screen are pure annoyance, so there the guide   */
+  /* collapses to an ordinary button instead.                               */
   /*                                                                        */
-  /* Colour is `--fg` / `--fg-subtle` only. `useLaneTone` toggles           */
-  /* `.on-light` on the lane as it passes over light sections, which        */
-  /* repoints those aliases — including `--ring-color`, so the focus ring   */
-  /* stays visible on both tones without a second rule.                    */
+  /* `useLaneTone` toggles `.on-light` on the lane as it passes over light  */
+  /* sections, which repoints `--ring-color` so the focus ring stays        */
+  /* visible on both tones without a second rule. The cats themselves need  */
+  /* no flip — see the fills below.                                         */
   /* ---------------------------------------------------------------------- */
 
   .guide-lane {
+    /*
+     * The cats' fills. These are the only colours on this site, and the
+     * ten-token palette rule at the top of this file is deliberately *not*
+     * amended to admit them: they are declared here, scoped to the lane, so
+     * they are illustration rather than part of the design system. Nothing
+     * outside this component can reach them and no UI chrome inherits them.
+     * To go back to monochrome, point the two body fills at
+     * `var(--fg-subtle)` and the glove at `var(--fg)`; nothing else changes.
+     *
+     * Chosen so both coats clear the 3:1 non-text contrast floor (WCAG 2.2
+     * §1.4.11) against `--color-ink` *and* `--color-paper`, measured at the
+     * resting opacity below rather than at full strength:
+     *
+     *   grey  #71706c → 3.18:1 on ink, 3.36:1 on paper
+     *   tabby #7d7466 → 3.42:1 on ink, 3.14:1 on paper
+     *
+     * That is why the cats need no `.on-light` flip, and why the resting
+     * opacity is 0.85 and not the 0.7 an earlier draft used — at 0.7 both coats
+     * fell to ~2.6:1 and failed on both backgrounds. The tabby is also why the
+     * coat is #7d7466 rather than the slightly warmer #837a6b the photographs
+     * suggest: that one measures 2.95:1 on paper and just misses.
+     */
+    /* Coat colours, taken from photographs of the two actual cats. */
+    --guide-cat-grey: #71706c;
+    --guide-cat-tabby: #7d7466;
+    /* 3.44:1 against the tabby coat, so stripes and tail rings read at 2px. */
+    --guide-cat-stripe: #26221b;
+    /* Paws, chin and chest patches: 4.6:1 on the tabby, 5.0:1 on the grey. On
+       the light sections this lands close to the page colour, so white fur
+       reads as white rather than as a bright patch — which is what white fur on
+       cream paper does anyway. The coat still carries the silhouette. */
+    --guide-cat-white: #ffffff;
+    /* The real eye colours, lightened until each clears 3:1 against its own
+       coat (3.10:1 and 3.49:1). A saturated iris at ~2px just goes muddy. */
+    --guide-cat-eye-tabby: #cfd9a8;
+    --guide-cat-eye-grey: #f0d69a;
+
     position: fixed;
     top: 0;
     left: 0;
@@ -328,61 +365,103 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* 2.75rem === 44px, the minimum target size (WCAG 2.2 §2.5.8). The fox
-       inside is smaller; the padding is the target. */
-    width: 2.75rem;
-    height: 2.75rem;
-    color: var(--fg-subtle);
-    /* At rest it is deliberately understated — present, not competing. Full
-       contrast arrives on hover or focus, i.e. once it is being addressed. */
-    opacity: 0.7;
-    transition:
-      color 200ms ease,
-      opacity 200ms ease;
+    /* Tall enough for two stacked cats. Comfortably past the 24×24 minimum
+       target size (WCAG 2.2 §2.5.8 AA); the width stays inside `--gutter` at
+       every breakpoint the lane renders at. */
+    width: 2.875rem;
+    height: 4rem;
+    /* Understated at rest — present, not competing — but no lower than 0.85,
+       which is the floor the cats' contrast depends on (see .guide-lane).
+       Full strength arrives on hover or focus, i.e. once it is addressed. */
+    opacity: 0.85;
+    transition: opacity 200ms ease;
   }
 
   .guide-launcher:hover,
   .guide-launcher:focus-visible,
   .guide-launcher[aria-expanded="true"] {
-    color: var(--fg);
     opacity: 1;
   }
 
-  .guide-fox {
-    width: 2.125rem;
+  .guide-cats {
+    width: 2.875rem;
     height: auto;
+  }
+
+  /* Body, tail, legs and head all paint with `currentColor`, so one
+     declaration per cat sets the whole animal. */
+  .guide-cat {
     fill: currentColor;
   }
 
-  .guide-fox-head {
-    transform-box: view-box;
-    /* The neck joint, in viewBox units. */
-    transform-origin: 26px 21.5px;
+  .guide-cat--grey {
+    color: var(--guide-cat-grey);
+  }
+
+  .guide-cat--tabby {
+    color: var(--guide-cat-tabby);
+  }
+
+  .guide-cat-white {
+    fill: var(--guide-cat-white);
+  }
+
+  .guide-cat-stripe {
+    fill: var(--guide-cat-stripe);
+  }
+
+  .guide-cat--grey .guide-cat-eye {
+    fill: var(--guide-cat-eye-grey);
+  }
+
+  .guide-cat--tabby .guide-cat-eye {
+    fill: var(--guide-cat-eye-tabby);
+  }
+
+  .guide-cat-head {
+    /* `fill-box`, not `view-box`: the two cats sit at different offsets inside
+       one shared viewBox, so a single origin in viewBox units would only be
+       correct for one of them. Relative to each head's own box it is the neck
+       for both. */
+    transform-box: fill-box;
+    transform-origin: 14% 84%;
     transform: rotate(var(--guide-gaze, 0deg));
   }
 
-  .guide-fox-legs {
+  /* The follower turns a little less than the leader. Two heads snapping to
+     the identical angle reads as one rig driving both; slightly different
+     amounts read as two animals noticing the same thing. */
+  .guide-cat--tabby .guide-cat-head {
+    transform: rotate(calc(var(--guide-gaze, 0deg) * 0.8));
+  }
+
+  .guide-cat-legs {
     transform-box: fill-box;
     /* Pivot at the hip line, i.e. the top of each leg group's own box. */
     transform-origin: 50% 0%;
   }
 
   /*
-   * `data-walking` is set by the motion hook only while the creature's
-   * position is actually changing, and cleared ~200ms after the last scroll
-   * tick. There is no idle animation anywhere in this file — every movement
-   * the creature makes is a direct response to a scroll or a pointer move.
+   * `data-walking` is set by the motion hook only while the cats' position is
+   * actually changing, and cleared ~200ms after the last scroll tick. There is
+   * no idle animation anywhere in this file — every movement they make is a
+   * direct response to a scroll or a pointer move.
    *
    * The global `prefers-reduced-motion` block above also neutralises these
    * animations, and the hook additionally never sets `data-walking` when
    * motion is suppressed. Both belts are deliberate.
    */
-  .guide-lane[data-walking="true"] .guide-fox-legs--near {
+  .guide-lane[data-walking="true"] .guide-cat-legs--near {
     animation: guide-step 340ms steps(1) infinite;
   }
 
-  .guide-lane[data-walking="true"] .guide-fox-legs--far {
+  .guide-lane[data-walking="true"] .guide-cat-legs--far {
     animation: guide-step 340ms steps(1) infinite reverse;
+  }
+
+  /* The follower's stride is offset, so the two cats are never in lockstep. */
+  .guide-lane[data-walking="true"] .guide-cat--tabby .guide-cat-legs {
+    animation-delay: 120ms;
   }
 
   @keyframes guide-step {

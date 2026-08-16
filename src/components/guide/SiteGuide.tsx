@@ -10,8 +10,9 @@ import { usePrefersReducedMotion, useCreatureMotion, useLaneTone } from "./useCr
 import type { GuideIndex } from "@/lib/guide/types";
 
 /**
- * The site guide: a fox in the left margin that doubles as a reading-position
- * indicator and a search-and-navigate launcher.
+ * The site guide: two cats in the left margin — a blue one leading, a tabby
+ * following — that double as a reading-position indicator and a
+ * search-and-navigate launcher.
  *
  * ## The rules it is built to keep
  *
@@ -29,15 +30,16 @@ import type { GuideIndex } from "@/lib/guide/types";
  *
  * ## Position as information
  *
- * The creature's height in the lane tracks progress through the document, so
- * it is a scroll indicator that happens to be an animal. That is what earns it
- * a permanent place on the page: it reports something rather than decorating.
+ * Their height in the lane tracks progress through the document, so they are a
+ * scroll indicator that happens to be a pair of animals. That is what earns
+ * them a permanent place on the page: they report something rather than
+ * decorating.
  *
  * ## Below `lg`
  *
- * The lane is `display: none` under 64rem (see globals.css) — a creature
- * roaming a 320px screen is pure annoyance, and there is no gutter to put it
- * in. `GuideLauncherCompact` in the site header covers those widths instead,
+ * The lane is `display: none` under 64rem (see globals.css) — cats roaming a
+ * 320px screen are pure annoyance, and there is no gutter to put them in.
+ * `GuideLauncherCompact` in the site header covers those widths instead,
  * driving this same panel through the shared store.
  */
 export function SiteGuide() {
@@ -51,7 +53,7 @@ export function SiteGuide() {
   const panelId = useId();
 
   // Reports `true` for the hydration render regardless of the real setting,
-  // so the creature's first painted state is always the still one.
+  // so the cats' first painted state is always the still one.
   const motionAllowed = !usePrefersReducedMotion();
 
   useLaneTone(laneRef);

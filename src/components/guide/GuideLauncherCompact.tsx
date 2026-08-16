@@ -8,13 +8,13 @@ import { useGuideDismissed, useGuideOpen } from "./useGuideState";
 /**
  * The guide's launcher below `lg`, sitting in the site header.
  *
- * Under 64rem there is no gutter to hold a creature and no sensible way for
- * one to walk around a phone screen without becoming exactly the nuisance this
+ * Under 64rem there is no gutter to hold the cats and no sensible way for them
+ * to walk around a phone screen without becoming exactly the nuisance this
  * whole feature is designed not to be. So at those widths the guide drops its
  * body and keeps its usefulness: an ordinary icon button, in the header, that
  * opens the same panel.
  *
- * A compass rather than a fox — at 18px in a row of chrome, a silhouetted
+ * A compass rather than a cat — at 18px in a row of chrome, a silhouetted
  * animal reads as a smudge, and pretending otherwise would be decoration for
  * its own sake.
  */

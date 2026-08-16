@@ -3,7 +3,7 @@
 /**
  * State for the site guide, as a tiny external store.
  *
- * Three components in **different React trees** need this: the creature in the
+ * Three components in **different React trees** need this: the cats in the
  * left margin (rendered at the end of the layout), the compact launcher in the
  * site header, and the "bring it back" control in the footer. Context would
  * mean hoisting a provider around the entire document; `useSyncExternalStore`

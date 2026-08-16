@@ -6,8 +6,8 @@ import { useEffect, useSyncExternalStore, type RefObject } from "react";
  * The creature's three reactive behaviours, as three hooks:
  *
  *  - `usePrefersReducedMotion` — the motion gate.
- *  - `useLaneTone` — keeps the creature legible against whatever is behind
- *    it. Runs **always**, including under reduced motion, because it is a
+ *  - `useLaneTone` — keeps the focus ring legible against whatever is behind
+ *    the lane. Runs **always**, including under reduced motion, because it is a
  *    contrast concern rather than an animation one.
  *  - `useCreatureMotion` — position and gaze. Runs only when motion is
  *    allowed.
@@ -100,19 +100,21 @@ export function usePrefersReducedMotion(): boolean {
 }
 
 /**
- * Keeps the creature readable against the section behind it.
+ * Keeps the lane's focus ring readable against the section behind it.
  *
- * It is `position: fixed`, so it floats over sections of different tones —
- * dark for most of the page, light across the AI Workflow Lab and the closing
- * panel — and a single fixed colour would vanish against one of them.
- *
- * Rather than duplicate the tone table that already lives in the section
+ * The lane is `position: fixed`, so it floats over sections of different tones
+ * — dark for most of the page, light across the AI Workflow Lab and the closing
+ * panel. Rather than duplicate the tone table that already lives in the section
  * components, this reads it back off the DOM: a light section is exactly one
  * carrying `.on-light` (applied by `<Section tone="paper">`). It then toggles
- * that same class on the creature, which repoints `--fg`, `--fg-subtle` and
- * `--ring-color` for everything inside it — focus ring included. There is no
- * creature-specific palette, by design. Change a section's tone and this
- * follows with no edit here.
+ * that same class on the lane, which repoints `--ring-color` for everything
+ * inside it. Change a section's tone and this follows with no edit here.
+ *
+ * The cats' own fills deliberately do *not* depend on this: both body colours
+ * clear 3:1 against ink and paper alike (see globals.css), so they stay legible
+ * on either background without a flip. This exists purely so the focus
+ * indicator never lands light-on-light — which is why it keeps running even
+ * under reduced motion, where the cats themselves are pinned.
  */
 export function useLaneTone(ref: RefObject<HTMLElement | null>): void {
   useEffect(() => {

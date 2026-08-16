@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Result } from "axe-core";
 
 /**
- * The site guide — the margin creature and its search panel.
+ * The site guide — the two margin cats and their search panel.
  *
  * The behavioural promises this suite exists to hold, in the order they matter:
  *
@@ -137,14 +137,14 @@ test.describe("restraint", () => {
       await expect(lane).toBeVisible();
       await expect(compact).toBeHidden();
     } else {
-      // A creature walking around a phone screen is pure annoyance, so below
-      // `lg` the guide keeps its usefulness and drops its body.
+      // Cats walking around a phone screen are pure annoyance, so below `lg`
+      // the guide keeps its usefulness and drops its bodies.
       await expect(lane).toBeHidden();
       await expect(compact).toBeVisible();
     }
   });
 
-  test("the creature stays inside the gutter, never over the text column", async ({ page }) => {
+  test("the cats stay inside the gutter, never over the text column", async ({ page }) => {
     test.skip(!isDesktop(page), "the lane only renders at lg and above");
 
     const laneBox = await page.locator(".guide-lane").boundingBox();
@@ -293,7 +293,7 @@ test.describe("keyboard", () => {
     // Regression: the panel closes on outside `pointerdown`, and a launcher is
     // technically outside it. Without an explicit exemption the panel closed on
     // pointerdown and the launcher's own click handler then saw `open === false`
-    // and reopened it, so the fox could never be clicked shut.
+    // and reopened it, so the cats could never be clicked shut.
     const launcher = await openGuide(page);
 
     await launcher.click();
@@ -324,7 +324,7 @@ test.describe("dismissal", () => {
 });
 
 test.describe("reduced motion", () => {
-  test("the creature does not move at all", async ({ page }) => {
+  test("the cats do not move at all", async ({ page }) => {
     test.skip(!isDesktop(page), "the lane only renders at lg and above");
 
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -335,7 +335,7 @@ test.describe("reduced motion", () => {
     // Wait for the hook to park it before sampling. Reading immediately after
     // reload caught `--guide-y` still unset, so the comparison below was ""
     // against "" — it would have passed for the wrong reason even if the
-    // creature were moving freely.
+    // cats were moving freely.
     await expect
       .poll(async () => lane.evaluate((el) => el.style.getPropertyValue("--guide-y")))
       .not.toBe("");
@@ -363,8 +363,8 @@ test.describe("reduced motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();
 
-    // Contrast is not motion. A pinned creature still has light sections
-    // scrolling underneath it, so the tone sync must keep running.
+    // Contrast is not motion. A pinned lane still has light sections scrolling
+    // underneath it, so the focus-ring tone sync must keep running.
     const lane = page.locator(".guide-lane");
     await page.evaluate(() => {
       const lab = document.getElementById("lab");
@@ -414,14 +414,14 @@ test.describe("accessibility", () => {
     expect(results.violations, formatViolations(results.violations)).toEqual([]);
   });
 
-  test("the creature is decorative to assistive tech; the button carries the name", async ({
+  test("the cats are decorative to assistive tech; the button carries the name", async ({
     page,
   }) => {
     test.skip(!isDesktop(page), "the lane only renders at lg and above");
 
-    // The fox is an ornament. Its meaning lives in the button's accessible
+    // The cats are an ornament. Their meaning lives in the button's accessible
     // name, so the SVG must not be announced separately.
-    await expect(page.locator(".guide-fox")).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator(".guide-cats")).toHaveAttribute("aria-hidden", "true");
     await expect(visibleLauncher(page)).toHaveAccessibleName(/site guide/i);
   });
 });

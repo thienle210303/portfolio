@@ -1,89 +1,236 @@
 "use client";
 
 /**
- * The margin creature: a fox, in silhouette, about 34px tall.
+ * The margin creatures: Thien's two cats, padding down the gutter in single
+ * file. Both a little fat.
  *
- * ## Why a silhouette
+ * Drawn from photographs of the actual animals, which is why the two are not
+ * mirror images of each other:
  *
- * At this size an outline drawing turns to mud — the strokes converge and it
- * reads as a smudge rather than an animal. A filled silhouette stays crisp at
- * any size and sits correctly alongside Instrument Serif and hairline rules:
- * it is a printer's ornament, not a cartoon. The single eye is punched out
- * with an SVG mask rather than painted, so it shows the section behind it and
- * needs no knowledge of the current background colour.
+ *  - **The grey one** (cat-fancy "blue") is solid grey with white patches on
+ *    the chest and belly, amber eyes, and *grey* paws.
+ *  - **The tabby** is a grey-brown mackerel with near-black stripes, a heavily
+ *    ringed tail, green eyes, a white chin, and white paws.
  *
- * ## Why it always faces right
+ * The white-gloved feet therefore belong to the tabby only. Giving both cats
+ * gloves was the first reading of the brief, but the photos are unambiguous:
+ * the grey one's feet are the same grey as the rest of him.
  *
- * It lives in the left gutter, so the text is always to its right and the
- * pointer effectively always is too. Facing the content means it never needs
- * to flip, which removes the one piece of state that would have made it
- * twitchy. It reads as attending to the page rather than to itself.
+ * ## Why silhouettes with flat fills
  *
- * Colour comes entirely from `--fg` / `--fg-subtle`, so the `.on-light` class
- * toggled by `useLaneTone` flips it against light sections with no palette
- * of its own.
+ * At this size an outline drawing turns to mud: the strokes converge and it
+ * reads as a smudge rather than an animal. Filled shapes stay crisp at any size
+ * and sit correctly alongside Instrument Serif and hairline rules.
+ *
+ * ## Why they always face right
+ *
+ * They live in the left gutter, so the text is always to their right and the
+ * pointer effectively always is too. Facing the content means they never need to
+ * flip, which removes the one piece of state that would have made them twitchy.
+ *
+ * ## About the colour
+ *
+ * These are the only coloured things on this site, and the palette rule in
+ * globals.css ("the exact ten tokens, no other colour is allowed") is
+ * deliberately not amended to admit them: the cat fills are scoped to
+ * `.guide-lane` rather than registered in `@theme`, because they are
+ * *illustration*, not part of the design system. Nothing else can reach them and
+ * no UI chrome inherits them. Both body colours clear the 3:1 non-text contrast
+ * floor against `--color-ink` **and** `--color-paper` at the resting opacity, so
+ * they stay legible on either background with no tone flip. globals.css carries
+ * the measured ratios.
  */
 
-/** Unique per document — there is exactly one creature, so a constant is fine. */
-const EYE_MASK_ID = "guide-fox-eye-mask";
+/** The tail, as its own constant so the clip path and the drawn shape cannot
+ *  drift apart — the tail rings depend on them being identical. */
+const TAIL =
+  "M8.5 18C4.5 17.5 1.8 14 2.4 9.2C2.7 6.2 4.6 4.8 6.1 5.7C4.3 8.4 5 14 8.2 15.6C9.7 16.4 9.9 17.4 8.5 18Z";
+
+/** Likewise the body: markings are clipped to it rather than hand-fitted. */
+const BODY =
+  "M7.5 15.5C7.5 9.5 12.4 6.2 18.6 6.2C25.2 6.2 30 9.6 30 15.5C30 21 25.2 24.5 18.6 24.5C12 24.5 7.5 21 7.5 15.5Z";
+
+interface CatProps {
+  /** Placement inside the shared viewBox. */
+  readonly transform: string;
+  readonly variant: "grey" | "tabby";
+}
+
+/**
+ * One cat, drawn in a local ~38×30 box facing right.
+ *
+ * Three things about these coordinates are load-bearing, all of them lessons
+ * from looking at earlier drafts at 10× magnification:
+ *
+ *  - **Ears are part of the head outline**, not triangles laid on top of a
+ *    circle. Separate ear shapes leave the dome curving down between them, and
+ *    that valley plus two points reads as a crown, not as ears.
+ *  - **Legs extend below the body's bottom edge**, and the paws overlap the
+ *    legs. With the legs fully hidden behind the belly, the paws floated as
+ *    four unattached pills.
+ *  - **The head overlaps the body by ~3 units.** Any less and it looks pasted
+ *    on; there is no neck to bridge a gap at this scale.
+ *
+ * Markings (stripes, tail rings, white patches) are drawn inside a `clipPath`
+ * built from the same body and tail paths. That is what lets a stripe be a
+ * plain rectangle that still follows the animal's contour — hand-fitting them
+ * to the curve was both fiddly and prone to poking out past the silhouette.
+ *
+ * Paint order matters: tail behind everything, then the far pair of legs, then
+ * the body over their tops, then markings, then the near pair in front of the
+ * belly, then the head.
+ */
+function Cat({ transform, variant }: CatProps) {
+  const tabby = variant === "tabby";
+  // One cat of each variant exists, so a per-variant constant is unique enough.
+  const clipId = `guide-cat-clip-${variant}`;
+
+  return (
+    <g transform={transform} className={`guide-cat guide-cat--${variant}`}>
+      <defs>
+        <clipPath id={clipId}>
+          <path d={TAIL} />
+          <path d={BODY} />
+        </clipPath>
+      </defs>
+
+      <path d={TAIL} />
+
+      <g className="guide-cat-legs guide-cat-legs--far">
+        <rect x="10.7" y="20" width="3.6" height="7.2" rx="1.8" />
+        <rect x="21.2" y="20" width="3.6" height="7.2" rx="1.8" />
+        {/* Paws: white on the tabby, plain body grey on the grey one. */}
+        <rect
+          className={tabby ? "guide-cat-white" : undefined}
+          x="10.2"
+          y="26"
+          width="4.6"
+          height="3.4"
+          rx="1.7"
+        />
+        <rect
+          className={tabby ? "guide-cat-white" : undefined}
+          x="20.7"
+          y="26"
+          width="4.6"
+          height="3.4"
+          rx="1.7"
+        />
+      </g>
+
+      {/* Deliberately wide and low — these cats are a little fat. */}
+      <path d={BODY} />
+
+      <g clipPath={`url(#${clipId})`}>
+        {tabby ? (
+          <>
+            {/*
+              Mackerel stripes: vertical bars from the spine down the flank.
+              They start above the body's top edge and are trimmed by the clip,
+              so each one ends exactly on the contour.
+            */}
+            <g className="guide-cat-stripe">
+              <rect x="11.2" y="4" width="1.9" height="11" rx="0.95" />
+              <rect x="14.4" y="4" width="1.9" height="12" rx="0.95" />
+              <rect x="17.6" y="4" width="1.9" height="12.5" rx="0.95" />
+              <rect x="20.8" y="4" width="1.9" height="12" rx="0.95" />
+              <rect x="24" y="4" width="1.9" height="10.5" rx="0.95" />
+              {/* Tail rings — the tabby's most recognisable marking. */}
+              <rect x="0.5" y="6.6" width="9" height="1.7" rx="0.85" />
+              <rect x="0.5" y="10.2" width="9" height="1.7" rx="0.85" />
+              <rect x="0.5" y="13.8" width="9" height="1.7" rx="0.85" />
+            </g>
+          </>
+        ) : (
+          <>
+            {/*
+              Two white patches along the underside.
+
+              Their x-positions are chosen to land in the gaps *between* the
+              near pair of legs (which are painted after this group and would
+              otherwise hide them — the first attempt put the chest patch
+              directly behind the front leg and almost nothing showed). They
+              also run off the bottom of the silhouette, so the clip trims them
+              against the contour and they read as belly markings rather than
+              as spots floating on the flank.
+            */}
+            <g className="guide-cat-white">
+              <ellipse cx="22" cy="23" rx="3" ry="2.4" />
+              <ellipse cx="12.8" cy="22.4" rx="2" ry="1.8" />
+            </g>
+          </>
+        )}
+      </g>
+
+      <g className="guide-cat-legs guide-cat-legs--near">
+        <rect x="15.2" y="20" width="3.6" height="7.2" rx="1.8" />
+        <rect x="25.2" y="20" width="3.6" height="7.2" rx="1.8" />
+        <rect
+          className={tabby ? "guide-cat-white" : undefined}
+          x="14.7"
+          y="26"
+          width="4.6"
+          height="3.4"
+          rx="1.7"
+        />
+        <rect
+          className={tabby ? "guide-cat-white" : undefined}
+          x="24.7"
+          y="26"
+          width="4.6"
+          height="3.4"
+          rx="1.7"
+        />
+      </g>
+
+      {/*
+        The only part that responds to the pointer. It rotates about the neck,
+        clamped to ±14° by the motion hook — enough to read as "it looked at
+        you", little enough that it never looks dislocated. Everything inside
+        rotates with it, which is why the chin patch is placed within the head
+        outline rather than clipped to the body above.
+      */}
+      <g className="guide-cat-head">
+        <path d="M26.9 13.2C26.9 10.6 27.4 8.8 28.2 7.6L27.8 2.6L32.2 6.6L35.8 3L37.6 8.2C38.6 9.4 39.2 10.9 39.2 12.5C39.2 15.9 36.4 18.7 33 18.7C29.5 18.7 26.9 16 26.9 13.2Z" />
+        {/* A small white chin, not a cheek blob — the photographs show a
+            patch under the muzzle, and at this size anything larger takes over
+            the whole face. */}
+        {tabby ? (
+          <ellipse className="guide-cat-white" cx="34.6" cy="17.4" rx="1.5" ry="1.1" />
+        ) : null}
+        {/*
+          Painted rather than punched out with a mask: a light iris on a
+          mid-tone body reads as an eye on either background, whereas a hole
+          would show the page through and invert between sections. Tinted pale
+          green for the tabby and pale amber for the grey one — the real eye
+          colours, lightened until they clear 3:1 against their own coat, since
+          a saturated iris at this size just goes muddy.
+        */}
+        <ellipse className="guide-cat-eye" cx="34.6" cy="11.4" rx="1.5" ry="1.65" />
+      </g>
+    </g>
+  );
+}
 
 export function GuideCreature() {
   return (
     <svg
-      viewBox="0 0 40 44"
-      className="guide-fox"
+      viewBox="0 0 45 62"
+      className="guide-cats"
       role="presentation"
       aria-hidden="true"
       focusable="false"
     >
-      <defs>
-        {/*
-          White keeps, black cuts. The eye is therefore a real hole rather
-          than a dot painted in a guessed background colour — which matters
-          because this element floats over both ink and paper sections.
-        */}
-        <mask id={EYE_MASK_ID}>
-          <rect x="0" y="0" width="40" height="44" fill="#fff" />
-          <circle cx="31.6" cy="17.4" r="1.15" fill="#000" />
-        </mask>
-      </defs>
-
-      {/* Tail first, so the body overlaps its root rather than the reverse. */}
-      <path
-        className="guide-fox-tail"
-        d="M13 28C7.5 26.5 3 21.5 4 13.5C4.4 9.6 7 7.4 9 8.6C6.8 12.2 7.4 20 11 23.4C12.6 24.9 13.6 26.4 13 28Z"
-      />
-
       {/*
-        Legs sit behind the body so the joins never show. Two groups, offset
-        in the walk cycle, which at this scale is the only leg animation that
-        actually registers — anything more detailed is invisible.
+        Stacked rather than side by side. The lane is only as wide as `--gutter`
+        (51px at the narrowest width it renders at), which cannot hold two cats
+        abreast at a size where paws and stripes are still legible. In file, each
+        gets the full width — and two cats walking down a margin together is the
+        better picture anyway. The x-offset keeps them from looking like one
+        sprite stamped twice.
       */}
-      <g className="guide-fox-legs guide-fox-legs--far">
-        <rect x="14.2" y="27" width="2.2" height="13" rx="1.1" />
-        <rect x="23.2" y="27" width="2.2" height="13" rx="1.1" />
-      </g>
-      <g className="guide-fox-legs guide-fox-legs--near">
-        <rect x="17.6" y="27" width="2.2" height="13" rx="1.1" />
-        <rect x="26.4" y="27" width="2.2" height="13" rx="1.1" />
-      </g>
-
-      <path
-        className="guide-fox-body"
-        d="M12 24.5C12 21.2 15.6 19.4 20.4 19.4C24.6 19.4 27.6 20.6 29 22.8L29 28.4C26.4 30.8 22.4 31.8 18.4 31.8C14.4 31.8 12 29.2 12 24.5Z"
-      />
-
-      {/*
-        The head is the only part that responds to the pointer. It rotates
-        about the neck joint, clamped to ±14° by the motion hook, which is
-        enough to read as "it looked at you" and little enough that it never
-        looks dislocated.
-      */}
-      <g className="guide-fox-head" mask={`url(#${EYE_MASK_ID})`}>
-        <path d="M25.6 14.6L24.6 7.2L30.4 11.6Z" />
-        <path d="M30.6 12.4L32.6 5.8L35.8 12.8Z" />
-        <path d="M24.5 22.5C23.4 17.4 25.4 12.8 29.2 12.8C32.6 12.8 34.8 15.2 35.4 18.2L39.2 19.8L35.4 21.4C34.4 24.6 31.4 26.2 28.4 25.6C26.2 25.1 25 24 24.5 22.5Z" />
-      </g>
+      <Cat variant="grey" transform="translate(0 0)" />
+      <Cat variant="tabby" transform="translate(5 31)" />
     </svg>
   );
 }

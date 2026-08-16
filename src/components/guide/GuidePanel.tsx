@@ -195,7 +195,7 @@ export function GuidePanel({
       // A launcher is "outside" the panel but must not be treated as an
       // outside click: this handler runs on pointerdown and would close the
       // panel *before* the launcher's own click handler fired, which would
-      // then see `open === false` and immediately reopen it. Clicking the fox
+      // then see `open === false` and immediately reopen it. Clicking the cats
       // to close the panel would visibly flicker and stay open. The launcher
       // owns its own toggle; this bows out.
       if (event.target instanceof Element && event.target.closest(`[${LAUNCHER_ATTRIBUTE}]`)) {
@@ -247,10 +247,9 @@ export function GuidePanel({
         // z-60 clears the sticky header (z-50): a dialog that slid under the
         // page chrome would look like a rendering fault.
         "no-print fixed bottom-6 z-[60] flex w-[min(24rem,calc(100vw-2rem))] flex-col",
-        // Starts exactly where the creature lane ends, so the panel sits beside
-        // the fox rather than on top of it — covering your own launcher looks
-        // like a bug, and keeping it visible makes the relationship between the
-        // two obvious. Read from `--gutter` because the lane's width *is*
+        // Starts exactly where the cats' lane ends, so the panel sits beside
+        // them rather than on top — covering your own launcher looks like a bug,
+        // and keeping them visible makes the relationship obvious. Read from `--gutter` because the lane's width *is*
         // `--gutter`; a hardcoded offset here was correct at 1024px and wrong
         // by 20px at 1600px, where the gutter grows to its 5rem maximum.
         "left-4 lg:left-[var(--gutter)]",
