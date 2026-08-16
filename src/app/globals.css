@@ -638,11 +638,18 @@
     background-attachment: local, scroll;
   }
 
+  /*
+   * The recurring micro-label. Tracking came down from 0.18em because this
+   * class lands in roughly sixty-five places — section eyebrows, timeline
+   * labels, metric sources, the learning log's "I used to think" pairs — and
+   * at that width every one of them read as a shout. 0.1em still separates
+   * the uppercase forms without turning a label into a banner.
+   */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: var(--step--1);
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.1em;
     color: var(--fg-subtle);
   }
 

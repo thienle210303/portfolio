@@ -26,8 +26,15 @@ import MetricTable from "./MetricTable";
 
 const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]";
 
+/*
+ * The six-part arc — Problem, Constraint, Decision, Build, Proof, Lesson —
+ * repeated once per case study, so thirty of these render on the page. Set in
+ * bold uppercase mono at step-1 they were thirty shouts; in the display serif
+ * they read as what they are, headings, and they give the type system a
+ * mid-range voice it was missing between the section headline and body copy.
+ */
 const H4_CLASS =
-  "font-mono text-[length:var(--step-1)] font-bold uppercase tracking-[0.1em] text-[color:var(--fg)]";
+  "font-display text-[length:var(--step-1)] leading-snug text-[color:var(--fg)]";
 
 /** The site's recurring mono/uppercase micro-label treatment — same class
  * `<Section>`'s own eyebrow uses, reused here for sub-labels within a case
@@ -172,7 +179,7 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
         </h3>
 
         {entry ? (
-          <p className="wrap-anywhere mt-3 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+          <p className="wrap-anywhere mt-3 eyebrow">
             {entry.organization} · {entry.dateRange}
           </p>
         ) : null}

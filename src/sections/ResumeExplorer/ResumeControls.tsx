@@ -53,7 +53,7 @@ export default function ResumeControls({
   return (
     <div className="no-print space-y-8">
       <div>
-        <h3 className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+        <h3 className="eyebrow">
           Lens
         </h3>
         <FilterGroup
@@ -72,7 +72,7 @@ export default function ResumeControls({
       </div>
 
       <div>
-        <h3 className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+        <h3 className="eyebrow">
           Detail level
         </h3>
         <div role="group" aria-label="Résumé detail level" className="mt-3 flex gap-2">
