@@ -902,8 +902,13 @@ export const projects = [
       "A fixed academic term with a team delivering together.",
       "Recommendations had to be grounded in real-time vehicle data, not model recall.",
     ],
+    // Sourced from portfolio-v2, which records the capstone role as
+    // "Project Manager & Full-stack Developer". Do not put a [NEEDS INPUT]
+    // marker in this field: `responsibility` is a required `string`, not a
+    // `Maybe<string>`, so `resolved()` does not apply and a marker here
+    // renders straight into the page.
     responsibility:
-      "Built as the senior capstone project. [NEEDS INPUT: your specific role and division of work on the capstone team]",
+      "Project manager and full-stack developer on the capstone team.",
 
     decisions: [
       "Ground the chatbot's recommendations in real-time vehicle data rather than relying on the model's own knowledge.",
