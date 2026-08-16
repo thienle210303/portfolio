@@ -8,10 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "contrast": "node scripts/contrast.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "verify": "pnpm typecheck && pnpm lint && pnpm contrast && pnpm test && pnpm build",
     "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {

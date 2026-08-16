@@ -52,16 +52,22 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   sm: "px-4 py-2 text-[length:var(--step--1)]",
 };
 
-// Colours are drawn from the semantic aliases (not the raw --color-*
-// tokens) so every variant stays legible regardless of which section tone
-// (`ink`, `charcoal`, or `.on-light` `paper`) the button is placed in.
+// Colours are drawn from the semantic aliases (never the raw --color-* tokens)
+// so every variant stays legible in either theme and in any of the three
+// section tones, with no per-tone branch here.
+//
+// `primary` fills with --accent rather than --fg. That is the one place the
+// blue is allowed to carry a whole element, and it is what makes the single
+// most important control on each screen the only saturated thing on it.
+// --fg-inverse is its partner on purpose: the pair clears 7:1 in both themes,
+// where a hardcoded white would fail against night's lighter accent.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "border-[color:var(--fg)] bg-[color:var(--fg)] text-[color:var(--fg-inverse)] hover:bg-transparent hover:text-[color:var(--fg)]",
+    "border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)] hover:border-[color:var(--accent-strong)] hover:bg-[color:var(--accent-strong)] hover:text-[color:var(--ground)]",
   secondary:
-    "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--fg)]",
+    "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]",
   quiet:
-    "border-transparent bg-transparent px-1 text-[color:var(--fg)] underline-offset-4 hover:underline focus-visible:underline",
+    "border-transparent bg-transparent px-1 text-[color:var(--fg)] underline-offset-4 hover:text-[color:var(--accent)] hover:underline focus-visible:underline",
 };
 
 /** Renders `<a>` or `<button>` depending on whether `href` is supplied.

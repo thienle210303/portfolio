@@ -7,8 +7,8 @@ interface TagProps {
 }
 
 /** A small, non-interactive mono/uppercase chip with a hairline border.
- * Tone-adaptive (uses the semantic aliases) so it reads correctly on both
- * dark and `.on-light` sections. */
+ * Styled entirely through the semantic aliases, so it reads correctly in both
+ * themes and in all three section tones without a branch. */
 export function Tag({ children, className }: TagProps) {
   return (
     <span

@@ -21,15 +21,31 @@
  * (identity, the hidden divider, the code artifact) simply stack as a
  * single flex column in source order: nothing is hidden, only reflowed.
  */
-import { Section } from "@/components/ui/Section";
+import { Section, type RailNote } from "@/components/ui/Section";
+import { careerEntries, profile } from "@/content/portfolio";
 import HeroIdentity from "./HeroIdentity";
 import HeroCodeArtifact from "./HeroCodeArtifact";
 
 const HEADING_ID = "hero-heading";
 
+// The current role is read from careerEntries — the same list the timeline and
+// the résumé read — rather than restated here, so the hero cannot be the one
+// place on the site still naming a former employer.
+const currentRole = [...careerEntries]
+  .filter((entry) => entry.type === "work")
+  .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
+
+const RAIL: readonly RailNote[] = [
+  ...(currentRole
+    ? [{ term: "Now", detail: `${currentRole.role}, ${currentRole.organization}` }]
+    : []),
+  { term: "Holds", detail: profile.philosophy },
+  { term: "Reach me", detail: profile.email },
+];
+
 export default function Hero() {
   return (
-    <Section id="about" labelledBy={HEADING_ID} tone="ink">
+    <Section id="about" labelledBy={HEADING_ID} tone="base" rail={RAIL}>
       <div className="flex min-h-[100svh] flex-col justify-center">
         <div className="flex flex-col gap-y-16 lg:grid lg:grid-cols-[minmax(0,7fr)_1px_minmax(0,5fr)] lg:items-stretch lg:gap-x-10 lg:gap-y-0">
           <div className="min-w-0">

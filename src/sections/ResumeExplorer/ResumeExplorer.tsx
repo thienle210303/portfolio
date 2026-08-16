@@ -1,4 +1,4 @@
-import { Section } from "@/components/ui/Section";
+import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
   achievements,
@@ -20,9 +20,22 @@ import ResumeExplorerClient from "./ResumeExplorerClient";
  * and hands it down to `ResumeExplorerClient`, which owns the lens/depth
  * filtering state — this component itself takes no props and holds none.
  */
+const RAIL: readonly RailNote[] = [
+  { term: "Lenses", detail: `${resumeLenses.length}, filterable` },
+  { term: "Skills", detail: `${skillCategories.length} categories` },
+  { term: "Credentials", detail: `${education.length} education · ${certifications.length} certifications` },
+  { term: "Also", detail: "Prints to a clean one-pager" },
+];
+
 export default function ResumeExplorer() {
   return (
-    <Section id="resume" labelledBy="resume-heading" eyebrow="06 / RÉSUMÉ" tone="charcoal">
+    <Section
+      id="resume"
+      labelledBy="resume-heading"
+      eyebrow="Résumé"
+      tone="deep"
+      rail={RAIL}
+    >
       {/* Paper only. Printing drops every other section, including the hero
           that normally carries the name and contact details, so without
           this the printed résumé would be anonymous. Hidden on screen

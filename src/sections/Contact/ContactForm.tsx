@@ -34,7 +34,7 @@ const HONEYPOT_STYLE: CSSProperties = {
 };
 
 const FIELD_CLASS =
-  "min-h-11 w-full border bg-surface px-3 py-2 text-[length:var(--step-0)] text-paper";
+  "min-h-11 w-full border bg-surface px-3 py-2 text-[length:var(--step-0)] text-fg";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -164,19 +164,19 @@ function FieldLabel({
   return (
     <label
       htmlFor={htmlFor}
-      className="text-[length:var(--step--1)] font-medium uppercase tracking-[0.08em] text-muted"
+      className="text-[length:var(--step--1)] font-medium uppercase tracking-[0.08em] text-fg-muted"
     >
       {children}
       {required ? (
         <>
-          <span aria-hidden="true" className="ml-0.5 text-paper">
+          <span aria-hidden="true" className="ml-0.5 text-fg">
             *
           </span>
           <VisuallyHidden> required</VisuallyHidden>
         </>
       ) : null}
       {optional ? (
-        <span className="ml-1.5 font-normal normal-case tracking-normal text-silver">(optional)</span>
+        <span className="ml-1.5 font-normal normal-case tracking-normal text-fg-subtle">(optional)</span>
       ) : null}
     </label>
   );
@@ -185,7 +185,7 @@ function FieldLabel({
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="flex items-start gap-1.5 text-[length:var(--step--1)] text-paper">
+    <p id={id} className="flex items-start gap-1.5 text-[length:var(--step--1)] text-fg">
       <CircleAlert aria-hidden="true" focusable="false" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       <span>{message}</span>
     </p>
@@ -373,10 +373,10 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
   return (
     <>
       {referredProjectTitle ? (
-        <p className="mb-6 flex items-start gap-2 border border-hairline bg-surface px-4 py-3 text-[length:var(--step--1)] text-muted">
+        <p className="mb-6 flex items-start gap-2 border border-rule bg-surface px-4 py-3 text-[length:var(--step--1)] text-fg-muted">
           <span>
             Carried over from the case study you were reading —{" "}
-            <span className="wrap-anywhere text-paper">&ldquo;{referredProjectTitle}&rdquo;</span> — mentioned
+            <span className="wrap-anywhere text-fg">&ldquo;{referredProjectTitle}&rdquo;</span> — mentioned
             below once you pick a reason. Feel free to change anything.
           </span>
         </p>
@@ -391,8 +391,8 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
       />
 
       {!emailDeliveryConfigured ? (
-        <p className="mt-8 flex items-start gap-2 border border-hairline bg-surface px-4 py-3 text-[length:var(--step--1)] text-muted">
-          <TriangleAlert aria-hidden="true" focusable="false" className="mt-0.5 h-4 w-4 shrink-0 text-silver" />
+        <p className="mt-8 flex items-start gap-2 border border-rule bg-surface px-4 py-3 text-[length:var(--step--1)] text-fg-muted">
+          <TriangleAlert aria-hidden="true" focusable="false" className="mt-0.5 h-4 w-4 shrink-0 text-fg-subtle" />
           <span>
             Direct sending isn&rsquo;t configured on this site yet — submitting this form opens your own email
             app with the message prefilled instead, so nothing is sent until you send it yourself from there.
@@ -417,7 +417,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
             onBlur={() => handleFieldBlur("name", state.name)}
             aria-invalid={fieldErrors.name ? "true" : undefined}
             aria-describedby={fieldErrors.name ? "contact-name-error" : undefined}
-            className={cn(FIELD_CLASS, fieldErrors.name ? "border-paper" : "border-hairline")}
+            className={cn(FIELD_CLASS, fieldErrors.name ? "border-fg" : "border-rule")}
           />
           <FieldError id="contact-name-error" message={fieldErrors.name} />
         </div>
@@ -438,7 +438,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
             onBlur={() => handleFieldBlur("email", state.email)}
             aria-invalid={fieldErrors.email ? "true" : undefined}
             aria-describedby={fieldErrors.email ? "contact-email-error" : undefined}
-            className={cn(FIELD_CLASS, fieldErrors.email ? "border-paper" : "border-hairline")}
+            className={cn(FIELD_CLASS, fieldErrors.email ? "border-fg" : "border-rule")}
           />
           <FieldError id="contact-email-error" message={fieldErrors.email} />
         </div>
@@ -458,7 +458,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
             onBlur={() => handleFieldBlur("company", state.company)}
             aria-invalid={fieldErrors.company ? "true" : undefined}
             aria-describedby={fieldErrors.company ? "contact-company-error" : undefined}
-            className={cn(FIELD_CLASS, fieldErrors.company ? "border-paper" : "border-hairline")}
+            className={cn(FIELD_CLASS, fieldErrors.company ? "border-fg" : "border-rule")}
           />
           <FieldError id="contact-company-error" message={fieldErrors.company} />
         </div>
@@ -476,7 +476,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
             onBlur={() => handleFieldBlur("reason", state.reason)}
             aria-invalid={fieldErrors.reason ? "true" : undefined}
             aria-describedby={fieldErrors.reason ? "contact-reason-error" : undefined}
-            className={cn(FIELD_CLASS, fieldErrors.reason ? "border-paper" : "border-hairline")}
+            className={cn(FIELD_CLASS, fieldErrors.reason ? "border-fg" : "border-rule")}
           >
             <option value="">Choose a reason</option>
             {hasCustomReason ? <option value={state.reason}>{state.reason}</option> : null}
@@ -504,7 +504,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
             onBlur={() => handleFieldBlur("message", state.message)}
             aria-invalid={fieldErrors.message ? "true" : undefined}
             aria-describedby={fieldErrors.message ? "contact-message-error" : undefined}
-            className={cn(FIELD_CLASS, "resize-y", fieldErrors.message ? "border-paper" : "border-hairline")}
+            className={cn(FIELD_CLASS, "resize-y", fieldErrors.message ? "border-fg" : "border-rule")}
           />
           <FieldError id="contact-message-error" message={fieldErrors.message} />
         </div>
@@ -552,8 +552,8 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
           <p
             role="status"
             className={cn(
-              "flex items-center gap-2 text-[length:var(--step--1)] text-paper",
-              infoMessage && "border border-hairline bg-surface px-4 py-3"
+              "flex items-center gap-2 text-[length:var(--step--1)] text-fg",
+              infoMessage && "border border-rule bg-surface px-4 py-3"
             )}
           >
             {infoMessage ? (
@@ -568,8 +568,8 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
         <p
           role="alert"
           className={cn(
-            "flex items-start gap-2 text-[length:var(--step--1)] text-paper",
-            errorMessage && "border border-hairline bg-surface px-4 py-3"
+            "flex items-start gap-2 text-[length:var(--step--1)] text-fg",
+            errorMessage && "border border-rule bg-surface px-4 py-3"
           )}
         >
           {errorMessage ? (

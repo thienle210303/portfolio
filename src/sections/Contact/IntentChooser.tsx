@@ -36,8 +36,8 @@ export default function IntentChooser({
 }: IntentChooserProps) {
   return (
     <fieldset className="m-0 border-0 p-0">
-      <legend id={legendId} className="mb-4 text-[length:var(--step-0)] font-medium text-paper">
-        What brings you here? <span className="font-normal text-silver">(optional starting point)</span>
+      <legend id={legendId} className="mb-4 text-[length:var(--step-0)] font-medium text-fg">
+        What brings you here? <span className="font-normal text-fg-subtle">(optional starting point)</span>
       </legend>
       <div className="grid gap-3 sm:grid-cols-2">
         {intents.map((intent) => {
@@ -47,7 +47,7 @@ export default function IntentChooser({
               key={intent.id}
               className={cn(
                 "flex min-h-11 cursor-pointer flex-col gap-1.5 border p-4 transition-colors duration-150",
-                checked ? "border-paper bg-surface" : "border-hairline hover:border-muted"
+                checked ? "border-fg bg-surface" : "border-rule hover:border-fg-muted"
               )}
             >
               <span className="flex items-center gap-3">
@@ -57,11 +57,11 @@ export default function IntentChooser({
                   value={intent.id}
                   checked={checked}
                   onChange={() => onSelect(intent)}
-                  className="h-4 w-4 shrink-0 accent-paper"
+                  className="h-4 w-4 shrink-0 accent-[color:var(--accent)]"
                 />
-                <span className="text-[length:var(--step-0)] font-medium text-paper">{intent.label}</span>
+                <span className="text-[length:var(--step-0)] font-medium text-fg">{intent.label}</span>
               </span>
-              <span className="pl-7 text-[length:var(--step--1)] text-muted">{intent.description}</span>
+              <span className="pl-7 text-[length:var(--step--1)] text-fg-muted">{intent.description}</span>
             </label>
           );
         })}

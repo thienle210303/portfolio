@@ -1,5 +1,5 @@
 import { Info } from "lucide-react";
-import { Section } from "@/components/ui/Section";
+import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { formatIsoDate, stripNeedsInput } from "@/lib/content";
 import { aiTools } from "@/content/portfolio";
@@ -24,6 +24,19 @@ const sortedExperiments = [...experiments].sort((a, b) =>
   a.sortKey > b.sortKey ? -1 : a.sortKey < b.sortKey ? 1 : 0,
 );
 
+// The rail states how many experiments have produced a verified result and how
+// many have not, computed from `verification` itself rather than from `status`.
+// That ordering is deliberate: `status` is a label someone types, `verification`
+// is the evidence, and the honest number is the one the evidence supports.
+const verified = experiments.filter((experiment) => experiment.verification.length > 0).length;
+
+const RAIL: readonly RailNote[] = [
+  { term: "Experiments", detail: `${experiments.length}` },
+  { term: "With results", detail: `${verified} verified · ${experiments.length - verified} still open` },
+  { term: "Runs live", detail: "Nothing on this page" },
+  { term: "Last updated", detail: formatIsoDate(LAB_LAST_UPDATED) },
+];
+
 /**
  * AI Workflow Lab (SECTIONS.md §4). A Server Component -- the only client
  * island anywhere in this section is `WorkflowExplorer`. Every fact here
@@ -36,7 +49,13 @@ export default function AIWorkflowLab() {
   const [staticNotice, ...restIntro] = labIntro;
 
   return (
-    <Section id="lab" labelledBy={HEADING_ID} eyebrow="04 / AI WORKFLOW LAB" tone="paper">
+    <Section
+      id="lab"
+      labelledBy={HEADING_ID}
+      eyebrow="AI Workflow Lab"
+      tone="deep"
+      rail={RAIL}
+    >
       <SectionHeading id={HEADING_ID} lead={stripNeedsInput(labPositioning)}>
         AI Workflow Lab
       </SectionHeading>

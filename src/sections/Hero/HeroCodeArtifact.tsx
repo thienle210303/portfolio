@@ -6,12 +6,12 @@
  * panel, so at most one CodeBlock is ever in the DOM at once, matching that
  * component's own documented filename-uniqueness assumption.
  *
- * The wrapper below uses the raw --color-hairline/--color-surface tokens
- * (the `border-hairline`/`bg-surface` utilities), not the semantic
- * `--rule-color`/`.on-light` aliases — matching CodeBlock's own documented
- * choice to always render as a fixed dark panel regardless of section tone,
- * since the whole artifact (tabs + code) reads as one dark "window" and
- * Hero itself is always tone="ink" besides.
+ * The wrapper styles against the semantic aliases (`border-rule`/`bg-surface`),
+ * so the whole artifact — tabs and code together — reads as one raised panel
+ * that follows the active theme and the hero's tone. It deliberately shares
+ * `--surface` with the CodeBlock inside it rather than stepping to a different
+ * fill: two nested surfaces a half-step apart would read as a rendering fault
+ * rather than as structure.
  */
 import { codeTabs } from "@/content/portfolio";
 import { Tabs } from "@/components/ui/Tabs";
@@ -25,7 +25,7 @@ export default function HeroCodeArtifact() {
   }));
 
   return (
-    <div className="min-w-0 border border-hairline bg-surface p-6">
+    <div className="min-w-0 border border-rule bg-surface p-6">
       <Tabs label="Code artifact tabs" tabs={tabs} idPrefix="hero-code" />
     </div>
   );

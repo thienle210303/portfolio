@@ -25,7 +25,7 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
   const otherLinks = socialLinks.filter((link) => link.platform !== "Email");
 
   return (
-    <Section id="contact" labelledBy="contact-heading" eyebrow="07 / CONTACT" tone="ink">
+    <Section id="contact" labelledBy="contact-heading" eyebrow="Contact" tone="contrast">
       <SectionHeading
         id="contact-heading"
         lead="Pick whatever best describes why you're here, or skip straight to the form — everything stays editable before anything goes anywhere."
@@ -42,16 +42,16 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
         </div>
 
         <aside className="lg:col-span-5" aria-labelledby="contact-alternatives-heading">
-          <h3 id="contact-alternatives-heading" className="text-[length:var(--step-0)] font-medium text-paper">
+          <h3 id="contact-alternatives-heading" className="text-[length:var(--step-0)] font-medium text-fg">
             Prefer another way?
           </h3>
 
-          <div className="mt-6 flex flex-col gap-6 border border-hairline bg-surface p-6">
+          <div className="mt-6 flex flex-col gap-6 border border-rule bg-surface p-6">
             {emailLink ? (
               <div className="flex flex-col gap-2">
-                <span className="text-[length:var(--step--1)] uppercase tracking-[0.08em] text-muted">Email</span>
+                <span className="text-[length:var(--step--1)] uppercase tracking-[0.08em] text-fg-muted">Email</span>
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="wrap-anywhere text-[length:var(--step-0)] text-paper">{emailLink.handle}</span>
+                  <span className="wrap-anywhere text-[length:var(--step-0)] text-fg">{emailLink.handle}</span>
                   <CopyButton value={emailLink.handle} label="Copy email address" />
                 </div>
               </div>
@@ -59,7 +59,7 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
 
             {otherLinks.length > 0 ? (
               <div className="flex flex-col gap-3">
-                <span className="text-[length:var(--step--1)] uppercase tracking-[0.08em] text-muted">
+                <span className="text-[length:var(--step--1)] uppercase tracking-[0.08em] text-fg-muted">
                   Elsewhere
                 </span>
                 <ul className="flex flex-col gap-3">
@@ -67,10 +67,10 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
                     <li key={link.id}>
                       <ExternalLink
                         href={link.href}
-                        className="inline-flex min-h-11 flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--step-0)] text-paper"
+                        className="inline-flex min-h-11 flex-wrap items-center gap-x-2 gap-y-1 text-[length:var(--step-0)] text-fg"
                       >
                         {link.label}
-                        <span className="wrap-anywhere text-[length:var(--step--1)] text-silver">
+                        <span className="wrap-anywhere text-[length:var(--step--1)] text-fg-subtle">
                           {link.handle}
                         </span>
                       </ExternalLink>

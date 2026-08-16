@@ -8,6 +8,12 @@ philosophy, six case studies, an AI Workflow Lab with a dated learning log, a
 career timeline, an interactive résumé, and a contact experience that starts from
 what the visitor actually came to say.
 
+Visually it is **Blueprint**: a cool paper ground ruled with a faint measurement
+grid, one blue reserved for annotation and measured values, and a margin rail
+down each section carrying the counts, dates and sources the content layer
+already guarantees. It ships in two themes — day and night — and the design
+survives both. See [Design system](#design-system) below.
+
 **Positioning:** *I engineer software that turns complex work into clear,
 reliable systems.*
 **Recurring idea:** *Unsolved is not the same as unsolvable.*
@@ -25,12 +31,75 @@ reliable systems.*
 | Icons | **lucide-react** | Lightweight, tree-shaken |
 | Validation | **Zod** | Server-side contact validation |
 | Email | **Resend** | Optional — the form degrades honestly without it |
-| Fonts | **next/font** | Instrument Serif, Inter, JetBrains Mono, self-hosted, `display: swap` |
+| Fonts | **next/font** | Newsreader, IBM Plex Sans, IBM Plex Mono, self-hosted, `display: swap` |
 | Tests | **Vitest** + Testing Library, **Playwright** | Component behaviour and real-viewport smoke tests |
 | Package manager | **pnpm** | Exclusively — do not introduce another lockfile |
 
 No database, no CMS, no state-management library, no component library. Every
 component in `src/components` and `src/sections` is written for this site.
+
+---
+
+## Design system
+
+Two independent axes, both defined in `src/app/globals.css`.
+
+**Theme** — `day` or `night`, the visitor's choice. An inline script in
+`layout.tsx` resolves it (stored preference, else `prefers-color-scheme`) and
+stamps `data-theme` on `<html>` *before first paint*, so there is no flash and
+no hydration guessing. `globals.css` additionally carries a
+`prefers-color-scheme` fallback for the case where that script never runs.
+
+Night is not a mirror of day. In day, `tone="contrast"` is a true inversion — a
+paper site closing on two ink chapters. Mirroring that would make night's
+contrast sections full paper, a bright full-width flash for someone who asked
+for a dark page, so in night `contrast` *deepens* to a raised panel instead.
+
+**Tone** — `base`, `deep` or `contrast`, set per `<Section>`. The tone class
+repoints the semantic aliases and paints nothing itself.
+
+### Styling a component
+
+Use the semantic aliases, never a raw `--color-*` token and never a literal:
+
+| Alias | Utility | For |
+|---|---|---|
+| `--fg` | `text-fg` | primary text |
+| `--fg-muted` | `text-fg-muted` | secondary text |
+| `--fg-subtle` | `text-fg-subtle` | eyebrows, counts, sources |
+| `--fg-inverse` | `text-fg-inverse` | text on an `--accent` fill |
+| `--ground` | `bg-ground` | the section's own ground |
+| `--surface` | `bg-surface` | raised panels: cards, code, the rail |
+| `--accent` | `text-accent` / `bg-accent` | links, measured values, primary control |
+| `--rule-color` | `border-rule` | 1px borders |
+
+This is what lets one component render correctly across two themes × three
+tones with no per-tone branch anywhere. A raw token freezes it into one.
+
+### The margin rail
+
+`<Section rail={…} />` renders a `<dl>` of annotations in an 11rem left margin
+at ≥1024px, stacking after the body as endnotes below that. Every note must be
+a fact **computed from the content layer** — a count, a date, a source — never
+a restatement of the prose beside it, and never a fact that exists nowhere
+else. `SelectedWork` and `AIWorkflowLab` are the reference examples.
+
+Philosophy deliberately has no rail: `ProblemSolvingLoop` lays out nine
+columns, and surrendering the margin drops each to ~127px.
+
+### Colour and contrast
+
+Blue is the only hue in the palette, reserved for annotation, links, measured
+values and the single primary control per screen — never decoration.
+
+`pnpm contrast` measures every pairing the design can produce, regenerates
+[`docs/contrast.md`](docs/contrast.md), and **exits non-zero below 4.5:1**. It
+runs inside `pnpm verify`. AA is the floor for all of them, including small
+mono text, where the large-text 3:1 allowance does not apply.
+
+One trap worth knowing: check tertiary tones against `--color-paper-deep`, not
+`--color-paper`. The original `#5f6b72` passed at 4.79:1 on the base ground and
+failed at 4.44:1 on the half-step-darker one.
 
 ---
 
@@ -52,10 +121,11 @@ pnpm dev            # http://localhost:3000
 | `pnpm start` | Serve the production build |
 | `pnpm lint` | ESLint (Next.js core-web-vitals + TypeScript) |
 | `pnpm typecheck` | `tsc --noEmit`, strict |
+| `pnpm contrast` | Re-measures every palette pairing; regenerates `docs/contrast.md`; fails below AA |
 | `pnpm test` | Vitest component/unit tests, single run |
 | `pnpm test:watch` | Vitest in watch mode |
 | `pnpm test:e2e` | Playwright browser + responsive tests |
-| `pnpm verify` | typecheck → lint → test → build, in order |
+| `pnpm verify` | typecheck → lint → contrast → test → build, in order |
 
 `pnpm test:e2e` starts its own dev server. If you already have one running on
 port 3000 it will reuse it.
@@ -262,6 +332,11 @@ The Playwright suite checks for horizontal overflow at **320, 375, 390, 768,
 1024 and 1440px**, keyboard navigation, mobile-menu focus restoration, and
 reduced-motion behaviour.
 
+`e2e/axe.spec.ts` audits **both themes** — the night theme is set the way a
+visitor sets it, by seeding `localStorage` before the document runs so the
+inline theme script is the thing under test — plus the `deep` and `contrast`
+tones, which are where a contrast regression is likeliest to hide.
+
 Run everything the way CI would:
 
 ```bash
@@ -284,6 +359,8 @@ src/
   types/          the contracts content is checked against
   hooks/          small client-side hooks
   lib/            pure helpers (cn, highlight, content)
+docs/             generated contrast table
+scripts/          contrast measurement, screenshots
 tests/            Vitest component tests
 e2e/              Playwright specs
 public/           résumé PDF
@@ -301,6 +378,10 @@ skip link, visible focus indicators everywhere, full keyboard access, no
 hover-only information, no colour-only status, accessible tabs/accordions/filters,
 focus restoration when the mobile menu closes, `aria-live` form feedback, and
 `prefers-reduced-motion` support.
+
+Contrast is enforced by a script rather than by review: `pnpm contrast` fails
+the build below 4.5:1 on any pairing in either theme. The measured table lives
+in [`docs/contrast.md`](docs/contrast.md).
 
 Performance targets are Lighthouse 90+/95+/95+/95+. That is a design constraint,
 not an afterthought — it is why there is no motion library, no icon font, no

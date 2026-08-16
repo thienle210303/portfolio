@@ -21,9 +21,38 @@ reference: [README.md](README.md).
   constraints, not afterthoughts — they're why there's no motion library, no
   icon font, and why sections render on the server by default.
 
+## The design system ("Blueprint")
+
+Two axes, and they must stay independent. Read the theme block in
+`src/app/globals.css` before touching colour.
+
+- **Theme** (`day` | `night`) is the visitor's choice, stamped on `<html>` as
+  `data-theme` by an inline script before first paint.
+- **Tone** (`base` | `deep` | `contrast`) is the author's choice per
+  `<Section>`. It repoints the semantic aliases; it does not paint anything
+  itself.
+
+Rules that keep that working:
+
+- **Components style against the semantic aliases only** — `text-fg`,
+  `text-fg-muted`, `border-rule`, `bg-surface`, `text-accent`, `bg-ground`.
+  Never a raw `--color-*` token, never a literal hex. A raw token freezes a
+  component into one theme and one tone, which is exactly the bug the alias
+  layer exists to prevent.
+- **Blue is the only hue**, and it is reserved for annotation, links, measured
+  values and the single primary control per screen. It is never decoration.
+- **The margin rail carries facts already true in the content layer** —
+  counts, dates, sources, computed from the data. It never restates the prose
+  beside it, and it never holds a fact that exists nowhere else.
+- Changing any palette token means re-running `pnpm contrast`, which
+  regenerates `docs/contrast.md` and **fails if any pairing drops below
+  4.5:1**. Check tertiary tones against `--color-paper-deep`, not
+  `--color-paper` — the half-step-darker ground is where they fail first.
+
 ## Before calling anything done
 
-Run `pnpm verify` (typecheck → lint → test → build). For UI changes, also run
-`pnpm dev` and check the change in a real browser, then run `pnpm test:e2e`
-(Playwright + axe-core) — it checks keyboard nav, focus restoration, reduced
-motion, and horizontal overflow at 320–1440px.
+Run `pnpm verify` (typecheck → lint → contrast → test → build). For UI changes,
+also run `pnpm dev` and check the change in a real browser **in both themes**,
+then run `pnpm test:e2e` (Playwright + axe-core) — it audits both themes and
+all three tones, and checks keyboard nav, focus restoration, reduced motion,
+and horizontal overflow at 320–1440px.
