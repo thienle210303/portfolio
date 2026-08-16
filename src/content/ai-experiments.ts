@@ -278,22 +278,28 @@ export const experiments = [
       "Missing facts must surface as explicit markers in the content source, never as invented values or visible placeholder text.",
     ],
     verification: [
-      "TypeScript strict type checking.",
-      "ESLint with the Next.js core-web-vitals ruleset.",
-      "Component tests covering navigation, filters, disclosures, tabs and form validation.",
-      "Browser smoke tests at 320, 375, 390, 768, 1024 and 1440px checking for horizontal overflow.",
-      "A production build.",
+      "TypeScript strict type checking — clean.",
+      "ESLint with the Next.js core-web-vitals ruleset — clean.",
+      "147 component and unit tests covering navigation, filters, disclosures, tabs, form validation and the content helpers.",
+      "140 browser tests across 320, 375, 390, 768, 1024 and 1440px plus simulated 200% zoom, checking horizontal overflow, keyboard paths, focus restoration and hydration warnings.",
+      "A production build — eight routes, page prerendered as static content.",
     ],
+    outcome:
+      "The site was built and the full chain passes. The interesting result was not that it worked, but which checks actually caught things. Type checking and linting caught nothing an experienced reviewer wouldn't have: the defects that mattered were found by tests that exercised real behaviour. The browser suite found a broken skip link — activating it scrolled the page but left keyboard focus stranded, because a fragment link cannot focus an element without a tabindex. Everything else about that page was correct, and nothing short of driving a real browser would have noticed.",
+    effortComparison:
+      "Not measured. Wall-clock time is not a fair comparison here, because a solo build would not have produced the specification, the review rounds, or the browser suite that found the skip-link defect. [NEEDS INPUT: if you want a figure here, we would need a comparable feature built without agents.]",
     limitation:
-      "The agent's PDF reader could not open the résumé and needed a fallback text extractor before any content work could start. Nothing downstream was possible until that was solved.",
+      "The agent's PDF reader could not open the résumé and needed a fallback text extractor before any content work could start. Nothing downstream was possible until that was solved. Three agents were also killed mid-task by an output limit, each having written nothing at all — a full budget spent on work that never reached disk.",
     humanCorrections: [
       "The previous portfolios used Yarn and Vite; the agent had to be told the stack was a requirement, not a migration to reason about.",
       "Skill proficiency percentages from the old site were dropped — they were never measured, so they were decoration presented as data.",
       "The résumé and the older portfolio disagree on two award dates; the agent flagged the conflict for a human rather than picking one.",
       "Descriptions of internal work were pulled back from operational detail to the level of decisions and lessons.",
+      "A test asserted that collapsed content was absent from the page. It wasn't a bug — the content stays in the DOM deliberately so the print stylesheet can expand it. Taken at face value, 'make the failing test pass' would have broken printing to satisfy a wrong assertion.",
+      "Another test froze a defect as the expectation: it recorded a run-together screen-reader label as correct because that was what the code produced at the time. The observation was accurate; treating it as the contract was the error.",
     ],
     lesson:
-      "Separating the content layer from the components did most of the work. Once facts had exactly one home and a type that permitted 'not known yet', fabrication became the awkward path rather than the convenient one.",
+      "Separating the content layer from the components did most of the work. Once facts had exactly one home and a type that permitted 'not known yet', fabrication became the awkward path rather than the convenient one. The sharper lesson came from the tests: twice, a suite asserted what the code did rather than what it should do, and a green run would have certified a defect. Verification is only worth what its assertions are worth, and that part does not delegate.",
     nextExperiment:
       "Run the same specification through a second tool and compare where each one chose to invent rather than ask.",
     sources: [
