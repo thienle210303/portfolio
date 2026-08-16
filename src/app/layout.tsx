@@ -117,7 +117,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="bg-ink text-paper">
         <SkipLink />
         <SiteHeader />
-        <main id="main">{children}</main>
+        {/* tabIndex={-1} is load-bearing, not decoration. Fragment
+            navigation only scrolls; it cannot move focus to a
+            non-interactive element. Without this the skip link and both
+            "Back to top" controls scroll the page while leaving keyboard
+            focus stranded where it was, which defeats the point of a skip
+            link entirely. Verified by e2e/navigation.spec.ts. */}
+        <main id="main" tabIndex={-1}>
+          {children}
+        </main>
         <SiteFooter />
         <script
           type="application/ld+json"

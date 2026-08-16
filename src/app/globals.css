@@ -132,6 +132,23 @@
     border-radius: 2px;
   }
 
+  /*
+   * `<main>` carries tabindex="-1" purely so the skip link and the "Back to
+   * top" controls can move focus, not just scroll. It is a landing point,
+   * never a control: it is not in the tab order and cannot be reached by
+   * tabbing. Drawing the standard ring around it would outline the entire
+   * page, which reads as a rendering fault rather than a focus indicator.
+   *
+   * This is the one deliberate exception to the rule above. It does not
+   * weaken 2.4.7, which governs keyboard-operable components — and the
+   * skip itself is still perceivable, because focus genuinely moves and
+   * assistive technology announces the new location.
+   */
+  main:focus,
+  main:focus-visible {
+    outline: none;
+  }
+
   /* Selection — inverted per section tone so it never disappears against
      a same-tone background. */
   ::selection {
