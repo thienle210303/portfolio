@@ -16,8 +16,7 @@ interface MetricTableProps {
   readonly caption: string;
 }
 
-const HEADER_CELL_CLASS =
-  "eyebrow border-b border-[color:var(--rule-color)] px-4 py-2.5 text-left tracking-[0.08em]";
+const HEADER_CELL_CLASS = "eyebrow border-b border-[color:var(--rule-color)] px-4 py-2.5 text-left";
 
 export default function MetricTable({ metrics, caption }: MetricTableProps) {
   if (metrics.length === 0) return null;

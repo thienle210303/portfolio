@@ -2,7 +2,7 @@ import Section from "@/components/ui/Section";
 import SectionHeading from "@/components/ui/SectionHeading";
 import CopyButton from "@/components/ui/CopyButton";
 import ExternalLink from "@/components/ui/ExternalLink";
-import { profile, socialLinks } from "@/content/portfolio";
+import { socialLinks } from "@/content/portfolio";
 import ContactForm from "./ContactForm";
 
 /**

@@ -140,10 +140,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     return respond({ ok: true }, 200);
   }
 
-  const configured = Boolean(
-    process.env.RESEND_API_KEY && process.env.CONTACT_TO_EMAIL && process.env.CONTACT_FROM_EMAIL
-  );
-  if (!configured) {
+  // Re-checked independently of `page.tsx`'s own boolean — read directly
+  // into locals (rather than a `Boolean(a && b && c)` check discarded
+  // afterwards) so TypeScript itself proves every value below is a real
+  // string, with no cast required.
+  const apiKey = process.env.RESEND_API_KEY;
+  const toEmail = process.env.CONTACT_TO_EMAIL;
+  const fromEmail = process.env.CONTACT_FROM_EMAIL;
+  if (!apiKey || !toEmail || !fromEmail) {
     return respond({ ok: false, reason: "not-configured" }, 503);
   }
 
@@ -173,15 +177,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
   const { name, email, company, reason, message } = parsed.data;
 
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = new Resend(apiKey);
 
     const subject = reason ? `Portfolio contact — ${reason}` : "New message from your portfolio site";
     const textLines = [message, "", "—", `Name: ${name}`, `Email: ${email}`];
     if (company) textLines.push(`Company: ${company}`);
 
     const { error } = await resend.emails.send({
-      from: process.env.CONTACT_FROM_EMAIL as string,
-      to: process.env.CONTACT_TO_EMAIL as string,
+      from: fromEmail,
+      to: toEmail,
       replyTo: email,
       subject,
       text: textLines.join("\n"),
