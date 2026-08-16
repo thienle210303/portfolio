@@ -20,6 +20,7 @@ test.describe("ask this site", () => {
   test("answers a suggested question with sourced, linked evidence", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     await page.getByRole("button", { name: "What does he do at DoorDash?" }).click();
 
@@ -38,6 +39,11 @@ test.describe("ask this site", () => {
   test("says so plainly when the site has no answer, and invents nothing", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/");
+    // Wait for hydration before typing. Without this the Enter key lands on a
+    // form React has not attached to yet, the browser performs its own native
+    // submit, and the assertion below fails against a freshly reloaded page —
+    // the failure log shows a navigation to "/?" rather than a missing string.
+    await page.waitForLoadState("networkidle");
 
     await page.getByPlaceholder("or ask your own").fill("what is the capital of France");
     await page.keyboard.press("Enter");
@@ -62,6 +68,7 @@ test.describe("ask this site", () => {
   test("every suggested question is a live control, not a dead one", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     const suggestions = page.locator("#lab ul li button");
     const count = await suggestions.count();
@@ -80,6 +87,7 @@ test.describe("ask this site", () => {
   test("is keyboard operable end to end", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     const field = page.getByPlaceholder("or ask your own");
     await field.focus();

@@ -46,12 +46,14 @@ test.describe("full-page audit", () => {
   test("zero WCAG violations at a mobile viewport", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "run once, at a representative mobile width");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await auditHasNoViolations(page);
   });
 
   test("zero WCAG violations at a desktop viewport", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once, at a representative desktop width");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await auditHasNoViolations(page);
   });
 });
@@ -60,6 +62,7 @@ test.describe("interactive states", () => {
   test("zero WCAG violations with the mobile menu open", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "mobile-menu-only state; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: /Open menu/ }).click();
     await expect(page.getByRole("navigation", { name: "Mobile" })).toBeVisible();
     await auditHasNoViolations(page);
@@ -68,6 +71,7 @@ test.describe("interactive states", () => {
   test("zero WCAG violations with a case-study disclosure expanded", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     const trigger = page.locator("#work").getByRole("button", { name: /Read the full case study/ }).first();
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -85,12 +89,14 @@ test.describe("off-base section tones", () => {
   test("AI Workflow Lab (#lab, tone deep) has zero WCAG violations", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await auditHasNoViolations(page, "#lab");
   });
 
   test("closing section (#closing, tone contrast) has zero WCAG violations", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await auditHasNoViolations(page, "#closing");
   });
 });
@@ -115,18 +121,21 @@ test.describe("night theme", () => {
   test("stamps data-theme before paint", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "theme resolution is viewport-independent");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await expect(page.locator("html")).toHaveAttribute("data-theme", "night");
   });
 
   test("zero WCAG violations across the full page", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await auditHasNoViolations(page);
   });
 
   test("zero WCAG violations in the deep and contrast tones", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await auditHasNoViolations(page, "#lab");
     await auditHasNoViolations(page, "#closing");
   });

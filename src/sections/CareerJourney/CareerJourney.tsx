@@ -11,6 +11,7 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { careerEntries } from "@/content/portfolio";
+import KnowledgeTree from "./KnowledgeTree";
 import Timeline from "./Timeline";
 
 const HEADING_ID = "journey-heading";
@@ -39,6 +40,11 @@ export default function CareerJourney() {
       <div className="mt-12 md:mt-16">
         <Timeline entries={careerEntries} />
       </div>
+
+      {/* The timeline answers "when". This answers "what does it add up to" —
+          the same entries regrouped by the kind of work, with the technologies
+          each one actually used hanging off it. */}
+      <KnowledgeTree />
     </Section>
   );
 }

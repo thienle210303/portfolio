@@ -27,6 +27,7 @@ test.describe("companion", () => {
   test("opens and closes its toolkit, and Escape returns focus to the cat", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     const cat = catButton(page);
     await expect(cat).toHaveAttribute("aria-expanded", "false");
@@ -43,6 +44,7 @@ test.describe("companion", () => {
   test("is reachable and operable by keyboard alone", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     const cat = catButton(page);
     await cat.focus();
@@ -62,6 +64,7 @@ test.describe("companion", () => {
   test("every toolkit action also exists elsewhere on the page", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "content is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await catButton(page).click();
 
     const panel = page.locator("#companion-actions");
@@ -87,6 +90,7 @@ test.describe("companion", () => {
   test("can be dismissed for good, and stays gone across a reload", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     await catButton(page).click();
     await page.getByRole("button", { name: /send the cat away/i }).click();
@@ -106,6 +110,7 @@ test.describe("companion", () => {
     });
     const page = await context.newPage();
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     const cat = catButton(page);
     const before = await cat.boundingBox();
@@ -126,6 +131,7 @@ test.describe("companion", () => {
   test("adds no WCAG violations with its toolkit open", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await catButton(page).click();
 
     const results = await new AxeBuilder({ page })
@@ -140,6 +146,7 @@ test.describe("companion", () => {
   test("is not printed", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "print CSS is viewport-independent; run once");
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     await page.emulateMedia({ media: "print" });
     await expect(catButton(page)).toBeHidden();
   });

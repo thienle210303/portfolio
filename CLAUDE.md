@@ -49,6 +49,20 @@ Rules that keep that working:
   4.5:1**. Check tertiary tones against `--color-paper-deep`, not
   `--color-paper` — the half-step-darker ground is where they fail first.
 
+## Changing what the site says
+
+Everything factual lives in `src/content/portfolio.ts` and
+`src/content/ai-experiments.ts`; components read from them and never restate a
+fact. One career entry feeds the timeline, the résumé, the knowledge tree and
+the hero's "Now" line at once. Practical recipes — adding a metric, adding a
+role, attaching a case study — are in [docs/editing.md](docs/editing.md).
+
+The knowledge tree draws only authored relationships (`lenses`,
+`technologies`). Do not make it infer edges by matching skill names against
+technology strings: the two vocabularies only overlap 17 of 38 ways, so loose
+matching invents links and strict matching claims real skills were never used.
+`tests/lib/knowledge-tree.test.ts` enforces this.
+
 ## Before calling anything done
 
 Run `pnpm verify` (typecheck → lint → contrast → test → build). For UI changes,
