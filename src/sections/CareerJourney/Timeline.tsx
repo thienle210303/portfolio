@@ -118,7 +118,12 @@ export default function Timeline({ entries }: TimelineProps) {
         ) : (
           <ol role="list" aria-label="Career timeline">
             {filtered.map((entry, index) => (
-              <TimelineEntry key={entry.id} entry={entry} isLast={index === filtered.length - 1} />
+              <TimelineEntry
+                key={entry.id}
+                entry={entry}
+                isFirst={index === 0}
+                isLast={index === filtered.length - 1}
+              />
             ))}
           </ol>
         )}

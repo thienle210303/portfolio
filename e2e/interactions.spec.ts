@@ -37,17 +37,60 @@ test.describe("AI Workflow Lab stages", () => {
 
 /** Bottom of entry i's drawn connector line vs. top of entry i+1's dot — the
  * true start/end of visible "ink", independent of the box model around it. */
+/**
+ * Vertical holes in the timeline's connector, in pixels.
+ *
+ * Measures segment-to-segment, not segment-to-next-dot. Each entry draws
+ * its own segment and entries after the first begin at the top of their
+ * box rather than at their marker, so the span between one segment's end
+ * and the next marker is covered by that next entry's own segment. Judging
+ * continuity against the marker therefore reports a phantom 8px break at
+ * every boundary while the rendered line is unbroken.
+ *
+ * The invariant that actually matters is that no vertical span between the
+ * first and last marker is left undrawn, so that is what this measures:
+ * every segment's rect, sorted, with the hole before each one.
+ */
 async function connectorGapsPx(list: Locator): Promise<number[]> {
   return list.evaluate((listEl) => {
     const items = Array.from(listEl.children) as HTMLElement[];
+    const segments = items
+      .map((item) => item.querySelector(':scope > [aria-hidden="true"] > .w-px'))
+      .filter((el): el is Element => el !== null)
+      .map((el) => el.getBoundingClientRect())
+      .sort((a, b) => a.top - b.top);
+
     const gaps: number[] = [];
-    for (let i = 0; i < items.length - 1; i++) {
-      const line = items[i].querySelector(':scope > [aria-hidden="true"] > .w-px');
-      const dot = items[i + 1].querySelector(':scope > [aria-hidden="true"] > .rounded-full');
-      if (!line || !dot) continue;
-      gaps.push(dot.getBoundingClientRect().top - line.getBoundingClientRect().bottom);
+    for (let i = 0; i < segments.length - 1; i++) {
+      gaps.push(segments[i + 1].top - segments[i].bottom);
     }
     return gaps;
+  });
+}
+
+/**
+ * True when the drawn connector starts no lower than the first marker and
+ * ends no higher than the last — i.e. it neither stubs above the first dot
+ * nor dangles past the last one after filtering.
+ */
+async function connectorSpansMarkers(list: Locator): Promise<boolean> {
+  return list.evaluate((listEl) => {
+    const items = Array.from(listEl.children) as HTMLElement[];
+    const rect = (el: Element | null) => (el ? el.getBoundingClientRect() : null);
+    const dots = items
+      .map((i) => rect(i.querySelector(':scope > [aria-hidden="true"] > .rounded-full')))
+      .filter((r): r is DOMRect => r !== null);
+    const segs = items
+      .map((i) => rect(i.querySelector(':scope > [aria-hidden="true"] > .w-px')))
+      .filter((r): r is DOMRect => r !== null)
+      .sort((a, b) => a.top - b.top);
+    if (dots.length < 2 || segs.length === 0) return true;
+
+    const firstDot = dots[0];
+    const lastDot = dots[dots.length - 1];
+    const top = segs[0].top;
+    const bottom = segs[segs.length - 1].bottom;
+    return top >= firstDot.top - 1 && bottom <= lastDot.bottom + 1;
   });
 }
 
@@ -71,6 +114,10 @@ test.describe("career timeline filters", () => {
         for (const gap of await connectorGapsPx(list)) {
           expect(gap, `filter "${label}": connector line has a ${gap.toFixed(1)}px gap`).toBeLessThanOrEqual(1);
         }
+        expect(
+          await connectorSpansMarkers(list),
+          `filter "${label}": connector must not stub above the first marker or dangle past the last`,
+        ).toBe(true);
       }
     }
   });

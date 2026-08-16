@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { formatIsoDate, stripNeedsInput } from "@/lib/content";
 import { Tag } from "@/components/ui/Tag";
 import type { LearningLog as LearningLogData } from "@/types/portfolio";
@@ -64,16 +65,23 @@ export function LearningLog({ learningLog }: LearningLogProps) {
       {changedMyThinking.length > 0 ? (
         <div className="mt-10">
           <SubHeading id="lab-changed-thinking-heading">What changed my thinking</SubHeading>
+          {/*
+            The grid lives on the <dl> itself and each statement is its own
+            <div><dt><dd></div> group. A <dl> permits exactly one level of
+            <div> around a dt/dd group — an earlier version nested a column
+            div inside a row div, which broke the content model and tripped
+            three axe rules (dlitem, definition-list, only-dlitems) because
+            the dt/dd no longer had a <dl> ancestor. Two columns of a pair
+            sit on one grid row, so their shared bottom border still reads
+            as a single rule.
+          */}
           <dl
-            className="mt-4 border-t border-[color:var(--rule-color)]"
+            className="mt-4 grid gap-x-10 border-t border-[color:var(--rule-color)] sm:grid-cols-2"
             aria-labelledby="lab-changed-thinking-heading"
           >
             {changedMyThinking.map((pair, index) => (
-              <div
-                key={index}
-                className="grid gap-4 border-b border-[color:var(--rule-color)] py-5 sm:grid-cols-2 sm:gap-10"
-              >
-                <div>
+              <Fragment key={index}>
+                <div className="border-b border-[color:var(--rule-color)] py-5">
                   <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
                     I used to think
                   </dt>
@@ -81,7 +89,7 @@ export function LearningLog({ learningLog }: LearningLogProps) {
                     {pair.before}
                   </dd>
                 </div>
-                <div>
+                <div className="border-b border-[color:var(--rule-color)] py-5">
                   <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
                     Now I think
                   </dt>
@@ -89,7 +97,7 @@ export function LearningLog({ learningLog }: LearningLogProps) {
                     {pair.after}
                   </dd>
                 </div>
-              </div>
+              </Fragment>
             ))}
           </dl>
         </div>

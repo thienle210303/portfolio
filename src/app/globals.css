@@ -174,8 +174,20 @@
     *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      transition-delay: 0s !important;
+      /*
+       * `transition: none`, not the conventional `transition-duration:
+       * 0.01ms`. That convention exists so `transitionend` still fires;
+       * nothing here listens for it, and the near-zero duration is not
+       * free — it keeps the transition *asynchronous*.
+       *
+       * Disclosure deliberately opens with a synchronous (`duration-0`)
+       * flip so content is focusable the instant it expands. Forcing
+       * 0.01ms turned that back into a real async transition, and a Tab
+       * pressed immediately after opening a disclosure missed its
+       * content. Reduced motion was making keyboard follow-through less
+       * reliable, which is precisely backwards.
+       */
+      transition: none !important;
       scroll-behavior: auto !important;
     }
   }

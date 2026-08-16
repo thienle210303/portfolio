@@ -75,13 +75,17 @@ function LeadIn({ label, children }: LeadInProps) {
 
 interface TimelineEntryProps {
   readonly entry: CareerEntry;
-  /** True for the last entry in the *currently filtered* list — suppresses
-   * this entry's own connector segment so the line never dangles past the
-   * final visible marker, before or after filtering. */
+  /** True for the first entry in the *currently filtered* list. The segment
+   * then starts at this entry's own marker rather than at the top of its
+   * box, so no stub hangs above the first dot. */
+  readonly isFirst: boolean;
+  /** True for the last entry in the *currently filtered* list. The segment
+   * stops at this entry's marker instead of running to the bottom of its
+   * box, so nothing dangles past the final dot. */
   readonly isLast: boolean;
 }
 
-export function TimelineEntry({ entry, isLast }: TimelineEntryProps) {
+export function TimelineEntry({ entry, isFirst, isLast }: TimelineEntryProps) {
   const locationOrMode = resolved(entry.locationOrMode);
   const learned = resolved(entry.learned);
   const [headlineImpact, ...restImpact] = entry.impact;
@@ -101,17 +105,35 @@ export function TimelineEntry({ entry, isLast }: TimelineEntryProps) {
       aria-labelledby={headingId}
       className="relative py-8 pl-10 md:grid md:grid-cols-[9rem_1fr] md:gap-x-10 md:py-10 md:pl-0"
     >
-      {/* Decorative connector, anchored to this <li>'s own box (including
-         its padding) so it bridges seamlessly into the next entry with no
-         gap — see Timeline.tsx for the full anchoring rationale. */}
+      {/*
+        Decorative connector, anchored to this <li>'s own box including its
+        padding, so consecutive segments meet with no seam.
+
+        The segment must start at the top of the box rather than at the
+        marker, except on the first entry. An earlier version ran every
+        segment from the marker (top-2) to the bottom of the box, which
+        left the top 8px of every entry undrawn — a visible break at every
+        boundary down the whole timeline.
+
+        Ends are handled by position, not by suppression: the first segment
+        starts at its marker so nothing juts above it, and the last stops
+        at its marker so nothing dangles below. Both are computed against
+        the *filtered* list, so the line stays correct as filters change.
+      */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 left-4 md:left-[10.25rem]"
       >
         <span className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full bg-[color:var(--rule-color)]" />
-        {!isLast ? (
-          <span className="absolute left-1/2 top-2 bottom-0 w-px -translate-x-1/2 bg-[color:var(--rule-color)]" />
-        ) : null}
+        {isFirst && isLast ? null : (
+          <span
+            className={cn(
+              "absolute left-1/2 w-px -translate-x-1/2 bg-[color:var(--rule-color)]",
+              isFirst ? "top-2" : "top-0",
+              isLast ? "h-2" : "bottom-0",
+            )}
+          />
+        )}
       </div>
 
       <div>
