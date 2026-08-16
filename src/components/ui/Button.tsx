@@ -10,6 +10,18 @@ interface ButtonSharedProps {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
   readonly className?: string;
+  /**
+   * Arbitrary `data-*` attributes pass straight through to the rendered
+   * `<a>`/`<button>` (or `<ExternalLink>`'s own `<a>`) unchanged — for DOM
+   * hooks a section needs (analytics, CSS attribute selectors, a
+   * cross-section querying contract) that have nothing to do with how
+   * Button itself behaves. This is deliberately narrow: it only ever
+   * matches literal `data-*` keys, so a real typo like `varaint` is still
+   * rejected. Anything Button itself needs to reason about — anything that
+   * changes what gets rendered — belongs in a real, named prop instead,
+   * not a data attribute read back out of the DOM.
+   */
+  readonly [key: `data-${string}`]: string | number | boolean | undefined;
 }
 
 interface ButtonAsLinkProps

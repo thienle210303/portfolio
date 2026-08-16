@@ -144,7 +144,13 @@
     color: var(--color-paper);
   }
 
-  /* Reduced motion — SPEC §2, global and unconditional. */
+  /* Reduced motion — SPEC §2, global and unconditional. transition-delay is
+     an addition beyond SPEC's literal list: Disclosure's visibility flip
+     (see that component) uses a delay to keep collapsed content out of the
+     tab order only once it has finished collapsing. Without also zeroing
+     the delay here, reduced-motion users would get an instant height
+     collapse but still sit through the original delay before the content
+     left the tab order — a lingering reachable-but-invisible window. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -152,6 +158,7 @@
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      transition-delay: 0s !important;
       scroll-behavior: auto !important;
     }
   }
@@ -327,15 +334,20 @@
   }
 
   /* Disclosure regions render fully open in print regardless of on-screen
-     expanded state. */
+     expanded state, including restoring visibility on the inner wrapper
+     Disclosure uses to pull collapsed content out of the tab order
+     on-screen (see that component) — without this, a collapsed case study
+     would still print blank. */
   [data-print-expand] {
     display: block !important;
     grid-template-rows: 1fr !important;
     overflow: visible !important;
+    visibility: visible !important;
   }
 
   [data-print-expand] * {
     overflow: visible !important;
+    visibility: visible !important;
   }
 
   /* Code panels: unwrap rather than force horizontal scrolling on paper. */
