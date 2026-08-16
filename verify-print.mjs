@@ -1,0 +1,17 @@
+import { chromium } from '@playwright/test';
+const OUT='/tmp/claude-0/-home-user-portfolio/2d0d34ac-2ff9-55f3-b689-20dc60d4a33e/scratchpad/shots';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const p = await b.newPage({ viewport:{width:1440,height:900} });
+await p.goto('http://localhost:3100/', { waitUntil:'networkidle' });
+await p.evaluate(()=>document.fonts.ready);
+await p.emulateMedia({ media:'print' });
+await p.waitForTimeout(700);
+const h = await p.evaluate(()=>document.documentElement.scrollHeight);
+const shown = await p.evaluate(()=>Array.from(document.querySelectorAll('main > section')).filter(s=>getComputedStyle(s).display!=='none').map(s=>s.id));
+console.log('print height px:', h, '~A4 pages:', Math.ceil(h/1123));
+console.log('sections shown in print:', shown.join(', ') || 'NONE');
+console.log('identity header visible:', await p.locator('.print-only').first().isVisible());
+const t = await p.locator('#resume').innerText();
+console.log('resume mentions DoorDash:', t.includes('DoorDash'), '| Education:', t.includes('South Carolina'));
+await p.screenshot({ path:`${OUT}/print-fixed-1440.png`, fullPage:true });
+await b.close();
