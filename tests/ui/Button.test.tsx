@@ -43,7 +43,14 @@ describe("Button", () => {
   it("gives an https:// href target=_blank, rel=noopener noreferrer, and a new-tab notice for screen readers", () => {
     render(<Button href="https://example.com/case-study">Visit</Button>);
 
-    const link = screen.getByRole("link", { name: "Visit (opens in a new tab)" });
+    // Verified directly against the real computed accessible name: the
+    // "Visit" text node and the VisuallyHidden span are adjacent with no
+    // whitespace text node between them in the markup, so
+    // dom-accessibility-api trims and concatenates them with no separating
+    // space -- "Visit(opens in a new tab)", not "Visit (opens...)". Asserted
+    // here exactly as computed, not as guessed (matches the same
+    // no-space-join behaviour found on Disclosure's trigger).
+    const link = screen.getByRole("link", { name: "Visit(opens in a new tab)" });
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(link).toHaveAttribute("href", "https://example.com/case-study");
@@ -51,7 +58,7 @@ describe("Button", () => {
 
   it("treats a plain http:// href as external too, not just https://", () => {
     render(<Button href="http://example.com">Visit</Button>);
-    const link = screen.getByRole("link", { name: "Visit (opens in a new tab)" });
+    const link = screen.getByRole("link", { name: "Visit(opens in a new tab)" });
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
