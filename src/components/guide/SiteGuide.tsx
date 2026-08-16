@@ -5,7 +5,7 @@ import GuideCreature from "./GuideCreature";
 import GuidePanel from "./GuidePanel";
 import { focusVisibleLauncher, LAUNCHER_ATTRIBUTE } from "./guideFocus";
 import { setDismissed, setOpen } from "./guideStore";
-import { useGuideDismissed, useGuideOpen } from "./useGuideState";
+import { useGuideDismissed, useGuideOpen, useGuideWorking } from "./useGuideState";
 import { usePrefersReducedMotion, useCreatureMotion, useLaneTone } from "./useCreatureMotion";
 import type { GuideIndex } from "@/lib/guide/types";
 
@@ -45,6 +45,7 @@ import type { GuideIndex } from "@/lib/guide/types";
 export function SiteGuide() {
   const dismissed = useGuideDismissed();
   const open = useGuideOpen();
+  const working = useGuideWorking();
 
   const [index, setIndex] = useState<GuideIndex | null>(null);
   const [indexError, setIndexError] = useState(false);
@@ -118,7 +119,17 @@ export function SiteGuide() {
 
   return (
     <>
-      <div ref={laneRef} className="guide-lane no-print">
+      <div
+        ref={laneRef}
+        className="guide-lane no-print"
+        // The one animation on this page that is not a direct response to a
+        // scroll or a pointer move — and the exception is deliberate. The
+        // visitor started this by clicking the opt-in, and a posture that
+        // reports "still working" is progress feedback, exactly like a spinner,
+        // rather than an attract loop. It stops the moment the work does. See
+        // globals.css for the reduced-motion handling.
+        data-guide-state={working ? "working" : undefined}
+      >
         <button
           type="button"
           className="guide-launcher"

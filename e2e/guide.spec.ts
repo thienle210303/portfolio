@@ -375,6 +375,79 @@ test.describe("reduced motion", () => {
   });
 });
 
+test.describe("the cats report the model's state", () => {
+  /**
+   * Holds the Hub request open so `working` stays true for the duration of the
+   * assertions. Scoped to the absolute model host on purpose: a looser pattern
+   * matching "huggingface" anywhere would also catch the dev-server chunk URL
+   * (Turbopack names it after the package), the dynamic import would fail, and
+   * the state would flip straight back to idle — making the test pass or fail
+   * on a race rather than on behaviour.
+   */
+  async function stallModelDownload(page: Page) {
+    await page.route("https://huggingface.co/**", () => {
+      // Intentionally never fulfilled or aborted.
+    });
+  }
+
+  test("they take a settled posture while the model loads, and hold it after the panel closes", async ({
+    page,
+  }) => {
+    test.skip(!isDesktop(page), "the lane only renders at lg and above");
+
+    await stallModelDownload(page);
+    const lane = page.locator(".guide-lane");
+
+    // Idle: no state attribute at all, so the default is genuinely "nothing".
+    await expect(lane).not.toHaveAttribute("data-guide-state", "working");
+
+    await openGuide(page);
+    await page.getByRole("button", { name: /enable meaning-based search/i }).click();
+    await expect(lane).toHaveAttribute("data-guide-state", "working");
+
+    // The load outlives the panel. Closing it must not make the cats look idle
+    // while work is still happening — this is why the flag lives in the store
+    // rather than in the panel's own state.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(lane).toHaveAttribute("data-guide-state", "working");
+
+    // And the posture is a real transform, not just an attribute.
+    const scaleY = await page
+      .locator(".guide-cat--grey .guide-cat-pose")
+      .evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).d);
+    expect(scaleY).toBeLessThan(1);
+  });
+
+  test("under reduced motion the posture still changes but the tail does not flick", async ({
+    page,
+  }) => {
+    test.skip(!isDesktop(page), "the lane only renders at lg and above");
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await stallModelDownload(page);
+
+    await openGuide(page);
+    await page.getByRole("button", { name: /enable meaning-based search/i }).click();
+    await expect(page.locator(".guide-lane")).toHaveAttribute("data-guide-state", "working");
+
+    // The split that makes this defensible: the pose is *information* and
+    // survives, the movement is decoration and does not.
+    const pose = await page
+      .locator(".guide-cat--grey .guide-cat-pose")
+      .evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).d);
+    expect(pose, "the settled posture still applies").toBeLessThan(1);
+
+    const tailDuration = await page
+      .locator(".guide-cat--grey .guide-cat-tail")
+      .evaluate((el) => getComputedStyle(el).animationDuration);
+    // The global reduced-motion block clamps this to ~0.01ms.
+    expect(Number.parseFloat(tailDuration)).toBeLessThan(0.01);
+  });
+});
+
 test.describe("layout safety", () => {
   test("adds no horizontal overflow, panel open or closed", async ({ page }) => {
     const overflow = async () =>

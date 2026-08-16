@@ -10,13 +10,18 @@
  * over a module-scope store is the smaller answer, and it gives cross-tab
  * behaviour for free via the `storage` event.
  *
- * Two pieces of state, with deliberately different lifetimes:
+ * Three pieces of state, with deliberately different lifetimes:
  *
  *  - `dismissed` — persisted. **One dismissal is permanent.** Not "until
  *    reload", not "for this session". A visitor who closes the guide should
  *    never see it reappear on its own.
  *  - `open` — ephemeral. Never persisted, so the guide is never open on
  *    arrival. It cannot greet anyone.
+ *  - `working` — ephemeral. True while the opt-in embedding model is
+ *    downloading or encoding. It lives here rather than in the panel because
+ *    the *cats* are what report it, and they are in a different tree — and
+ *    because the load outlives the panel: closing the panel mid-download must
+ *    not make the cats look idle while work is still happening.
  *
  * Snapshots are primitives rather than an object, because `useSyncExternalStore`
  * compares them by identity — returning a fresh object from `getSnapshot`
@@ -29,6 +34,7 @@ const listeners = new Set<() => void>();
 
 let dismissed = false;
 let open = false;
+let working = false;
 let hydratedFromStorage = false;
 
 function readStorage(): boolean {
@@ -82,6 +88,10 @@ export function getOpen(): boolean {
   return open;
 }
 
+export function getWorking(): boolean {
+  return working;
+}
+
 /**
  * Server snapshots. `dismissed` is always `false` — the server cannot know,
  * and rendering the guide then removing it on hydration is the correct failure
@@ -96,9 +106,23 @@ export function getOpenServerSnapshot(): boolean {
   return false;
 }
 
+export function getWorkingServerSnapshot(): boolean {
+  return false;
+}
+
 export function setOpen(next: boolean): void {
   if (open === next) return;
   open = next;
+  emit();
+}
+
+/**
+ * Set while the local embedding model loads, cleared when it settles either
+ * way. Deliberately *not* cleared when the panel closes — see the note above.
+ */
+export function setWorking(next: boolean): void {
+  if (working === next) return;
+  working = next;
   emit();
 }
 

@@ -459,9 +459,93 @@
     animation: guide-step 340ms steps(1) infinite reverse;
   }
 
+  /*
+   * A shallow squash on each step, anchored at the feet. Without it the legs
+   * swing under a body that hangs perfectly still, which reads as a puppet.
+   * 0.9 user units is roughly 0.9px at the shipped size — anything smaller is
+   * sub-pixel and therefore invisible.
+   */
+  .guide-cat-bob {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+  }
+
+  .guide-lane[data-walking="true"] .guide-cat-bob {
+    animation: guide-bob 340ms ease-in-out infinite;
+  }
+
+  @keyframes guide-bob {
+    0%,
+    100% {
+      transform: translateY(0) scaleY(1);
+    }
+    50% {
+      transform: translateY(0.9px) scaleY(0.96);
+    }
+  }
+
   /* The follower's stride is offset, so the two cats are never in lockstep. */
-  .guide-lane[data-walking="true"] .guide-cat--tabby .guide-cat-legs {
+  .guide-lane[data-walking="true"] .guide-cat--tabby .guide-cat-legs,
+  .guide-lane[data-walking="true"] .guide-cat--tabby .guide-cat-bob {
     animation-delay: 120ms;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* The "working" posture                                                  */
+  /*                                                                        */
+  /* `data-guide-state="working"` is set while the opt-in embedding model is */
+  /* downloading or encoding. The cats settle onto their haunches and their  */
+  /* tails start flicking, and they stand back up when it finishes.          */
+  /*                                                                        */
+  /* This is the one animation on the page that is not a direct response to  */
+  /* a scroll or a pointer move, and the exception is deliberate: the        */
+  /* visitor started the work by clicking the opt-in, and a posture that     */
+  /* reports "still going" is progress feedback in the same sense a spinner  */
+  /* is — not an attract loop. It stops the moment the work does.            */
+  /*                                                                        */
+  /* Under reduced motion the *posture* still changes (it is information,    */
+  /* and a static pose is not motion) while the tail flick is neutralised by */
+  /* the global `prefers-reduced-motion` block above. That split is the      */
+  /* point: the state stays legible, the movement goes away.                 */
+  /* ---------------------------------------------------------------------- */
+
+  .guide-cat-pose {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transition: transform 420ms ease;
+  }
+
+  .guide-lane[data-guide-state="working"] .guide-cat-pose {
+    transform: translateY(1.4px) scaleY(0.9);
+  }
+
+  .guide-cat-tail {
+    transform-box: fill-box;
+    /* The base of the tail, where it meets the rump — so the tip is what
+       sweeps. Percentages, because `fill-box` resolves them against the tail's
+       own bounding box and both cats then get the same pivot. */
+    transform-origin: 88% 89%;
+  }
+
+  .guide-lane[data-guide-state="working"] .guide-cat-tail {
+    animation: guide-tail-flick 1600ms ease-in-out infinite;
+  }
+
+  .guide-lane[data-guide-state="working"] .guide-cat--tabby .guide-cat-tail {
+    animation-delay: 260ms;
+  }
+
+  @keyframes guide-tail-flick {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    30% {
+      transform: rotate(-11deg);
+    }
+    60% {
+      transform: rotate(5deg);
+    }
   }
 
   @keyframes guide-step {

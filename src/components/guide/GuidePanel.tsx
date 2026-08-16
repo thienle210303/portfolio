@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CornerDownLeft, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { LAUNCHER_ATTRIBUTE } from "./guideFocus";
+import { setWorking } from "./guideStore";
 import { runGuideAction } from "@/lib/guide/actions";
 import { blendHits, searchIndex } from "@/lib/guide/match";
 import {
@@ -224,6 +225,11 @@ export function GuidePanel({
   function enableSemantic() {
     if (!index || semantic.status === "loading" || semantic.status === "ready") return;
     setSemantic({ status: "loading", progress: { phase: "downloading", percent: null } });
+    // Published to the store, not just local state, so the cats in the margin
+    // can report it — and so they keep reporting it if this panel is closed
+    // mid-download. `setWorking` is a plain module call, so it still lands
+    // after this component unmounts, which the `finally` below relies on.
+    setWorking(true);
 
     void createSemanticSearcher(index, (progress) => {
       setSemantic((current) =>
@@ -231,7 +237,8 @@ export function GuidePanel({
       );
     })
       .then((searcher) => setSemantic({ status: "ready", searcher }))
-      .catch(() => setSemantic({ status: "failed" }));
+      .catch(() => setSemantic({ status: "failed" }))
+      .finally(() => setWorking(false));
   }
 
   /* --- Render ----------------------------------------------------------- */

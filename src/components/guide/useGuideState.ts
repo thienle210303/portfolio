@@ -6,6 +6,8 @@ import {
   getDismissedServerSnapshot,
   getOpen,
   getOpenServerSnapshot,
+  getWorking,
+  getWorkingServerSnapshot,
   subscribeToGuide,
 } from "./guideStore";
 
@@ -17,4 +19,9 @@ export function useGuideDismissed(): boolean {
 /** Whether the guide's panel is currently open. */
 export function useGuideOpen(): boolean {
   return useSyncExternalStore(subscribeToGuide, getOpen, getOpenServerSnapshot);
+}
+
+/** Whether the opt-in embedding model is currently downloading or encoding. */
+export function useGuideWorking(): boolean {
+  return useSyncExternalStore(subscribeToGuide, getWorking, getWorkingServerSnapshot);
 }
