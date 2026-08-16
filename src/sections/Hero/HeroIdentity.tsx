@@ -11,14 +11,13 @@
  * rendering a marker, not just guarded by a runtime check. Once real values
  * are supplied, this exact code renders the metadata row with no changes.
  *
- * `profile.resumePdf` is a root-relative path ("/thien-le-resume.pdf"), not
- * an absolute http(s) URL, so Button's own external-link detection (see
- * Button.tsx: `href.startsWith("http")`) never routes it through
- * ExternalLink even though this action must always open in a new tab.
- * ExternalLink is used directly instead, hand-styled to match Button's own
- * secondary/md recipe — the same technique SelectedWork/CaseStudy.tsx uses
- * for its own out-of-band "Discuss this project" link.
+ * "Open résumé" points at /resume, the résumé *view*, rather than straight at
+ * the PDF. The view offers the download itself, so this keeps the visitor on
+ * the site by default and still gets them the file in one more click — and it
+ * means a phone, where a downloaded PDF is an awkward thing to receive
+ * unasked, shows a readable page instead.
  */
+import Link from "next/link";
 import { profile, socialLinks } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 import { Button } from "@/components/ui/Button";
@@ -83,11 +82,9 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
 
       <div className="mt-8 flex flex-wrap items-center gap-4">
         <Button href="#work">Explore my work</Button>
-        {profile.resumePdf ? (
-          <ExternalLink href={profile.resumePdf} className={RESUME_LINK_CLASS}>
-            Open résumé
-          </ExternalLink>
-        ) : null}
+        <Link href="/resume" className={RESUME_LINK_CLASS}>
+          Open résumé
+        </Link>
         <Button href="#contact" variant="quiet">
           Contact me
         </Button>

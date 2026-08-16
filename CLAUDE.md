@@ -51,6 +51,10 @@ Rules that keep that working:
 
 ## Changing what the site says
 
+There is no résumé section on the page — it is a route, `/resume`, that reads
+the same content. Do not reintroduce it as a section: it was almost entirely a
+second rendering of the timeline and the case studies.
+
 Everything factual lives in `src/content/portfolio.ts` and
 `src/content/ai-experiments.ts`; components read from them and never restate a
 fact. One career entry feeds the timeline, the résumé, the knowledge tree and

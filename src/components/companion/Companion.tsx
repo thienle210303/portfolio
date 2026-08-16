@@ -46,7 +46,7 @@ interface Point {
 
 /** Actions the cat carries. Every one of these exists elsewhere on the page
  *  too — the toolkit is a shortcut, never the only route. */
-const JUMP_TO = ["work", "journey", "resume", "contact"] as const;
+const JUMP_TO = ["work", "journey", "skills", "contact"] as const;
 
 /* -------------------------------------------------------------------------- */
 /* External state                                                              */
@@ -404,7 +404,7 @@ export function Companion() {
               return (
                 <a
                   key={item.id}
-                  href={`#${item.sectionId}`}
+                  href={`/#${item.sectionId}`}
                   onClick={() => setOpen(false)}
                   className="flex min-h-11 items-center px-3 text-[length:var(--step--1)] text-fg hover:text-accent"
                 >

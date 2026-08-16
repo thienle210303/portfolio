@@ -777,48 +777,25 @@
   }
 
   /*
-   * Printing serves the résumé and nothing else.
+   * Printing.
    *
-   * The "Print" control lives inside the résumé section, so a résumé is
-   * what a reader expects on paper. Printing the whole page instead
-   * produced roughly fifty pages — every section, with every disclosure
-   * forced open by the rule below — with the actual résumé buried near
-   * the end.
+   * This used to read `main > section:not(#resume) { display: none }` — print
+   * the résumé section, hide the rest of the page around it. There is no
+   * résumé section any more: it lived at /resume now, as a page you view or
+   * download rather than a 5,000px thing to scroll past. Left as it was, that
+   * rule would match *every* section and print a blank sheet.
    *
-   * The rule is deliberately subtractive: drop every top-level section,
-   * then put the résumé back. A section added later is therefore excluded
-   * automatically instead of silently joining the printout.
+   * So printing is now per-route and needs no surgery:
+   *
+   *   /resume  is already a single column of plain sections with nothing
+   *            collapsed, so it prints as-is. Only its screen chrome — the
+   *            back link and the download button, both `.no-print` — comes
+   *            out.
+   *   /        prints the page itself. Nobody asks for that often, but a
+   *            blank sheet is the one outcome that is definitely wrong.
+   *
+   * Everything below applies to both.
    */
-  main > section:not(#resume) {
-    display: none !important;
-  }
-
-  /* Screen-only spacing and tone on the one section that does print. */
-  #resume {
-    padding-block: 0 !important;
-    border-top: 0 !important;
-  }
-
-  /* The section eyebrow ("06 / RÉSUMÉ") is navigation furniture for the
-     page, meaningless on a printed résumé. Scoped to the Section
-     primitive's own eyebrow so group labels inside the résumé survive. */
-  #resume > .shell > .eyebrow {
-    display: none !important;
-  }
-
-  /* Collapse the two-pane explorer. The controls column is hidden for
-     print, but its grid track is not, so without this the résumé body
-     prints indented from its own heading by the width of a column that
-     is not there. */
-  .resume-layout {
-    display: block !important;
-  }
-
-  /* Shown only on paper — the identity block that makes the printed
-     résumé attributable, since the hero it normally lives in is gone. */
-  .print-only {
-    display: revert !important;
-  }
 
   /* Cross-agent contract: wrap each résumé entry (or any block that must
      not straddle a page break) in className="print-avoid-break". */

@@ -171,9 +171,11 @@ function buildDocuments(): Document[] {
   for (const school of education) {
     docs.push({
       text: `${school.credential}, ${school.institution} (${school.dateRange}).`,
-      source: "Résumé — education",
-      sectionId: "resume",
-      sectionLabel: "Résumé",
+      // Education is a timeline entry, and #resume is no longer a section on
+      // the page — linking there would be a dead anchor.
+      source: "Education",
+      sectionId: "journey",
+      sectionLabel: "Journey",
       label: `${school.institution} ${school.credential} education degree study university`,
     });
   }

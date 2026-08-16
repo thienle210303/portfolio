@@ -70,8 +70,9 @@ test.describe("companion", () => {
     const panel = page.locator("#companion-actions");
 
     // Section jumps resolve to real sections.
-    for (const id of ["work", "journey", "resume", "contact"]) {
-      const link = panel.locator(`a[href="#${id}"]`);
+    // Root-relative, so the toolkit works from /resume as well as from home.
+    for (const id of ["work", "journey", "skills", "contact"]) {
+      const link = panel.locator(`a[href="/#${id}"]`);
       await expect(link).toHaveCount(1);
       await expect(page.locator(`#${id}`)).toHaveCount(1);
     }

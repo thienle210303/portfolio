@@ -109,7 +109,7 @@ export const navItems = [
   { id: "nav-philosophy", sectionId: "philosophy", label: "Philosophy" },
   { id: "nav-work", sectionId: "work", label: "Work" },
   { id: "nav-journey", sectionId: "journey", label: "Journey" },
-  { id: "nav-resume", sectionId: "resume", label: "Résumé" },
+  { id: "nav-skills", sectionId: "skills", label: "Skills" },
   { id: "nav-lab", sectionId: "lab", label: "AI Workflow Lab" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];

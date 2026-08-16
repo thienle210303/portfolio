@@ -136,6 +136,17 @@ export default function SiteNav() {
     };
   }, [open]);
 
+  /*
+   * Hrefs are root-relative (`/#work`), not bare fragments (`#work`).
+   *
+   * The header renders on /resume too, where none of these sections exist. A
+   * bare fragment there just rewrites the hash and goes nowhere; the
+   * root-relative form navigates home and lands on the section. On the home
+   * page the handler below intercepts before the browser ever follows the
+   * href, so the smooth scroll and focus move are unchanged — and when the
+   * target is genuinely absent it deliberately does not preventDefault, which
+   * is what lets the browser do the right thing instead.
+   */
   function handleNavLinkClick(sectionId: string) {
     return (event: ReactMouseEvent<HTMLAnchorElement>) => {
       const target = document.getElementById(sectionId);
@@ -183,7 +194,7 @@ export default function SiteNav() {
             return (
               <li key={item.id}>
                 <a
-                  href={`#${item.sectionId}`}
+                  href={`/#${item.sectionId}`}
                   aria-current={isActive ? "true" : undefined}
                   onClick={handleNavLinkClick(item.sectionId)}
                   className={cn(
@@ -237,7 +248,7 @@ export default function SiteNav() {
                 return (
                   <li key={item.id} className="border-b border-rule first:border-t">
                     <a
-                      href={`#${item.sectionId}`}
+                      href={`/#${item.sectionId}`}
                       aria-current={isActive ? "true" : undefined}
                       onClick={handleNavLinkClick(item.sectionId)}
                       className={cn(

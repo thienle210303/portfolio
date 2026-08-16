@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { codeTabs, resumeLenses } from "../src/content/portfolio";
+import { codeTabs } from "../src/content/portfolio";
 import { workflowStages, experiments } from "../src/content/ai-experiments";
 
 // Matches the `lg:` breakpoint (1024px) that switches the workflow explorer
@@ -128,33 +128,22 @@ test.describe("career journey", () => {
   });
 });
 
-test.describe("résumé explorer", () => {
-  test("lens filter and Quick Scan / Deep Dive both change rendered content; Reset is disabled at defaults", async ({
-    page,
-  }) => {
-    const resume = page.locator("#resume");
-    const resetButton = resume.getByRole("button", { name: "Reset filters" });
-    await expect(resetButton).toBeDisabled();
+test.describe("skills", () => {
+  test("renders every category with its evidence, and rates nothing", async ({ page }) => {
+    const skills = page.locator("#skills");
+    await expect(skills).toBeVisible();
 
-    // Depth toggle: "Responsibilities" only renders in Deep Dive.
-    const responsibilities = resume.getByText("Responsibilities", { exact: true });
-    await expect(responsibilities).toHaveCount(0);
-    const depthGroup = resume.getByRole("group", { name: "Résumé detail level" });
-    await depthGroup.getByRole("button", { name: "Deep Dive" }).click();
-    await expect(responsibilities.first()).toBeVisible();
-    await expect(resetButton).toBeEnabled();
+    // Skills moved here when the résumé section was removed; this is now the
+    // only place on the page they appear, so an empty render would silently
+    // lose content rather than merely look wrong.
+    const categories = skills.locator("ul > li > h3");
+    expect(await categories.count()).toBeGreaterThan(0);
 
-    // Lens filter: the announced result count changes.
-    const status = resume.getByRole("status").filter({ hasText: "Showing" });
-    const beforeLensText = await status.textContent();
-    await resume
-      .getByRole("radiogroup", { name: "Filter résumé by lens" })
-      .getByRole("radio", { name: resumeLenses[0].label })
-      .click();
-    await expect(status).not.toHaveText(beforeLensText ?? "");
-
-    await resetButton.click();
-    await expect(resetButton).toBeDisabled();
-    await expect(depthGroup.getByRole("button", { name: "Quick Scan" })).toHaveAttribute("aria-pressed", "true");
+    // No self-assigned proficiency. Checked as *rating widgets* rather than as
+    // "no percentages anywhere" — an evidence line legitimately reads "92%
+    // accuracy", which is a sourced measurement, not a rating of himself.
+    await expect(skills.locator('[role="progressbar"], meter, progress')).toHaveCount(0);
+    await expect(skills.getByText(/\d\s*\/\s*(5|10)\b/)).toHaveCount(0);
+    await expect(skills.getByText(/★|⭐/)).toHaveCount(0);
   });
 });

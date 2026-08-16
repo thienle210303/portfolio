@@ -58,8 +58,8 @@ case study never ends up with no evidence in it.
 Add an entry to `careerEntries`. One entry feeds all of:
 
 - the **Journey** timeline
-- the **Résumé** explorer
 - the **knowledge tree** ("How it maps together")
+- the **résumé** at `/resume`
 - "Ask this site"
 - the hero's "Now" line, which reads the most recent `type: "work"` entry — so
   changing jobs is one edit, not a hunt
@@ -77,6 +77,24 @@ still on the timeline; it just does not appear in the tree.
 To attach a case study to a role, set the project's `careerEntryId` to that
 entry's `id`. That is also what supplies the employer and dates shown under the
 case-study title, so those can never drift apart from the timeline.
+
+## Where the résumé lives
+
+There is no résumé *section* on the home page. There was, and it was a
+5,000px second telling of the page around it — the experience is the Journey
+timeline, the projects are Selected Work, the education and every award are
+already timeline entries. Only skills and certifications were unique to it, and
+those are now the Skills section.
+
+So the résumé is `/resume`: a page to read, print, or download. It reads the
+same `careerEntries`, `projects`, `skillCategories`, `education`,
+`certifications` and `achievements` as the rest of the site, so it can never
+disagree with the home page. Editing any of those updates both.
+
+The downloadable PDF is a separate artefact at `public/thien-le-resume.pdf`,
+pointed to by `profile.resumePdf`. **It does not regenerate itself** — if you
+change a role or a metric, update the PDF too, or the download will contradict
+the page. `Ctrl/Cmd+P` on `/resume` produces a clean copy to replace it with.
 
 ## A note on the knowledge tree
 
