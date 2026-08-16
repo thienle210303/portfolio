@@ -43,14 +43,13 @@ describe("Button", () => {
   it("gives an https:// href target=_blank, rel=noopener noreferrer, and a new-tab notice for screen readers", () => {
     render(<Button href="https://example.com/case-study">Visit</Button>);
 
-    // Verified directly against the real computed accessible name: the
-    // "Visit" text node and the VisuallyHidden span are adjacent with no
-    // whitespace text node between them in the markup, so
-    // dom-accessibility-api trims and concatenates them with no separating
-    // space -- "Visit(opens in a new tab)", not "Visit (opens...)". Asserted
-    // here exactly as computed, not as guessed (matches the same
-    // no-space-join behaviour found on Disclosure's trigger).
-    const link = screen.getByRole("link", { name: "Visit(opens in a new tab)" });
+    // The intended contract: the visible label and the visually hidden
+    // "(opens in a new tab)" suffix must read as two separate words in the
+    // computed accessible name, not run together as one. ExternalLink
+    // enforces this with a sibling text-node space (not whitespace written
+    // inside VisuallyHidden, which accessible-name computation would trim
+    // away before concatenation).
+    const link = screen.getByRole("link", { name: "Visit (opens in a new tab)" });
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(link).toHaveAttribute("href", "https://example.com/case-study");

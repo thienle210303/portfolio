@@ -39,17 +39,56 @@ describe("formatIsoDate", () => {
     }
   });
 
-  it("does not calendar-validate the day: an out-of-range day is formatted, not rejected", () => {
-    // Documents actual, current behaviour precisely (this is not the "never
-    // throws" contract being violated -- it isn't -- it is a narrower
-    // validation than "unchanged if malformed" might suggest). The shape
-    // regex only requires two digit characters for the day, and
-    // `Number.isNaN` can never be true for a string that already matched
-    // `\d{2}`, so a day of "00" formats using the literal number rather than
-    // being treated as out-of-shape. Content is trusted/authored, so this is
-    // low risk in practice, but it means this function is not a full
-    // calendar validator -- only a shape-and-month-range one.
-    expect(formatIsoDate("2026-08-00")).toBe("0 August 2026");
+  describe("calendar validation: the day is checked against the real length of its month", () => {
+    // A plausible-looking wrong date (e.g. "0 August 2026") is worse than
+    // echoing the raw ISO string, because it reads as correct and slips past
+    // review. The day is checked against the actual month length -- including
+    // the Feb 29 leap-year boundary -- not just the two-digit string shape.
+
+    it("rejects day 00 (below the valid range) -- returns the input unchanged", () => {
+      expect(formatIsoDate("2026-08-00")).toBe("2026-08-00");
+    });
+
+    it("rejects a day past the end of a 28-day February in a non-leap year", () => {
+      expect(formatIsoDate("2026-02-30")).toBe("2026-02-30");
+    });
+
+    it("rejects Feb 29 in a non-leap year", () => {
+      expect(formatIsoDate("2026-02-29")).toBe("2026-02-29"); // 2026 is not a leap year
+    });
+
+    it("accepts Feb 29 in a leap year", () => {
+      expect(formatIsoDate("2024-02-29")).toBe("29 February 2024"); // 2024 is a leap year
+    });
+
+    it("accepts Feb 28 in a non-leap year (the real boundary, not merely 'close to 29')", () => {
+      expect(formatIsoDate("2026-02-28")).toBe("28 February 2026");
+    });
+
+    it("rejects day 31 in a 30-day month", () => {
+      expect(formatIsoDate("2026-04-31")).toBe("2026-04-31"); // April has 30 days
+    });
+
+    it("accepts the exact last valid day of a 30-day month", () => {
+      expect(formatIsoDate("2026-04-30")).toBe("30 April 2026");
+    });
+
+    it("accepts the exact last valid day of a 31-day month", () => {
+      expect(formatIsoDate("2026-01-31")).toBe("31 January 2026");
+    });
+
+    it("never throws on any day-zero or day-overflow input", () => {
+      const dayValidationCases = [
+        "2026-08-00",
+        "2026-02-30",
+        "2026-02-29",
+        "2026-04-31",
+        "2026-08-99",
+      ];
+      for (const input of dayValidationCases) {
+        expect(() => formatIsoDate(input)).not.toThrow();
+      }
+    });
   });
 
   describe("determinism / locale- and timezone-independence", () => {
