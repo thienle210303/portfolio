@@ -79,6 +79,13 @@ export function Disclosure({
           focusable="false"
           className={cn("h-4 w-4 shrink-0 transition-transform duration-200", open && "rotate-180")}
         />
+        {/* Explicit text-node space, not decorative whitespace: a space
+            written *inside* VisuallyHidden's own text gets trimmed when its
+            contribution to the accessible name is computed in isolation, so
+            it never reaches the announced name. A sibling text node does.
+            Without this the trigger announces as one run-on word, e.g.
+            "Case study titleRead more". Verified against
+            dom-accessibility-api — do not move this inside VisuallyHidden. */}
         {" "}
         <VisuallyHidden>{open ? collapseLabel : expandLabel}</VisuallyHidden>
       </button>
