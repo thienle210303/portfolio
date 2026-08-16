@@ -154,7 +154,7 @@ export function ExperimentEntry({ experiment, tools, stages }: ExperimentEntryPr
             <li key={tool.id}>
               <ExternalLink
                 href={tool.href}
-                className="inline-flex min-h-11 items-center border border-[color:var(--rule-color)] px-3 text-[length:var(--step--1)] text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]"
+                className="wrap-anywhere inline-flex min-h-11 items-center border border-[color:var(--rule-color)] px-3 text-[length:var(--step--1)] text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]"
               >
                 {stripNeedsInput(tool.name)}
               </ExternalLink>
@@ -224,7 +224,7 @@ export function ExperimentEntry({ experiment, tools, stages }: ExperimentEntryPr
                     <li key={source.href}>
                       <ExternalLink
                         href={source.href}
-                        className="wrap-anywhere text-[length:var(--step-0)] text-[color:var(--fg)] underline underline-offset-4 hover:no-underline"
+                        className="wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step-0)] text-[color:var(--fg)] underline underline-offset-4 hover:no-underline"
                       >
                         {stripNeedsInput(source.label)}
                       </ExternalLink>

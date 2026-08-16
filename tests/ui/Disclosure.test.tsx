@@ -75,19 +75,20 @@ describe("Disclosure", () => {
       </Disclosure>,
     );
 
-    // Verified directly against the real computed accname (dom-accessibility-api
-    // does not insert a space between these two adjacent inline nodes since
-    // there is no whitespace text node between them in the markup): the
-    // trigger's accessible name is "Read the case studyRead more", not
-    // "...study Read more". Asserted here exactly as computed, not as guessed.
+    // The intended contract: the visible summary and the visually hidden
+    // expand/collapse label must read as separate words in the computed
+    // accessible name, not run together as one. Disclosure enforces this
+    // with a sibling text-node space before VisuallyHidden (not whitespace
+    // written inside it, which accessible-name computation would trim away
+    // before concatenation).
     expect(
-      screen.getByRole("button", { name: "Read the case studyRead more" }),
+      screen.getByRole("button", { name: "Read the case study Read more" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Read the case studyRead more" }));
+    await user.click(screen.getByRole("button", { name: "Read the case study Read more" }));
 
     expect(
-      screen.getByRole("button", { name: "Read the case studyShow less" }),
+      screen.getByRole("button", { name: "Read the case study Show less" }),
     ).toBeInTheDocument();
   });
 
@@ -105,13 +106,13 @@ describe("Disclosure", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Case studyExpand case study" }),
+      screen.getByRole("button", { name: "Case study Expand case study" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Case studyExpand case study" }));
+    await user.click(screen.getByRole("button", { name: "Case study Expand case study" }));
 
     expect(
-      screen.getByRole("button", { name: "Case studyCollapse case study" }),
+      screen.getByRole("button", { name: "Case study Collapse case study" }),
     ).toBeInTheDocument();
   });
 

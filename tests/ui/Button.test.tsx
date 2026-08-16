@@ -57,7 +57,7 @@ describe("Button", () => {
 
   it("treats a plain http:// href as external too, not just https://", () => {
     render(<Button href="http://example.com">Visit</Button>);
-    const link = screen.getByRole("link", { name: "Visit(opens in a new tab)" });
+    const link = screen.getByRole("link", { name: "Visit (opens in a new tab)" });
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });

@@ -51,7 +51,7 @@ const LI_CLASS =
 const NUMERAL_CLASS =
   "relative z-10 flex h-8 w-8 flex-none items-center justify-center border border-[color:var(--rule-color)] bg-charcoal font-mono text-[length:var(--step--1)] text-[color:var(--fg-subtle)]";
 
-export function ProblemSolvingLoop({ steps }: ProblemSolvingLoopProps) {
+export default function ProblemSolvingLoop({ steps }: ProblemSolvingLoopProps) {
   return (
     <div>
       <p id={LABEL_ID} className="eyebrow">
@@ -77,5 +77,3 @@ export function ProblemSolvingLoop({ steps }: ProblemSolvingLoopProps) {
     </div>
   );
 }
-
-export default ProblemSolvingLoop;
