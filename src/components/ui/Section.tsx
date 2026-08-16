@@ -91,7 +91,7 @@ export function Section({
         {hasRail ? (
           <div className="rail-layout">
             <div className="min-w-0 lg:order-2">{children}</div>
-            <dl className="rail rail-sticky no-print lg:order-1">
+            <dl className="rail no-print lg:order-1">
               {rail.map((note) => (
                 <div key={note.term}>
                   <dt>{note.term}</dt>

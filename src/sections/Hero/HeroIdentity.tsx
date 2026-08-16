@@ -93,7 +93,13 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
         </Button>
       </div>
 
-      <ul role="list" aria-label="Social links" className="mt-8 flex flex-wrap gap-x-6 gap-y-3">
+      {/*
+        `gap-y-0` is not an oversight. Each link already carries `min-h-11` for
+        its 44px tap target, so on a phone — where these always wrap to one per
+        row — a vertical gap on top of that stacked to ~170px of near-empty
+        column. The rows sit flush; the tap targets are untouched.
+      */}
+      <ul role="list" aria-label="Social links" className="mt-8 flex flex-wrap gap-x-6 gap-y-0">
         {socialLinks.map((link) => (
           <li key={link.id}>
             {link.external ? (

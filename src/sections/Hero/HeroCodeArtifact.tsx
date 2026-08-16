@@ -25,7 +25,7 @@ export default function HeroCodeArtifact() {
   }));
 
   return (
-    <div className="min-w-0 border border-rule bg-surface p-6">
+    <div className="min-w-0 border border-rule bg-surface p-4">
       <Tabs label="Code artifact tabs" tabs={tabs} idPrefix="hero-code" />
     </div>
   );

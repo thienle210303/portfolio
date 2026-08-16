@@ -113,10 +113,29 @@
     --step-2: clamp(1.5rem, 1.36rem + 0.68vw, 2rem);
     --step-3: clamp(1.9rem, 1.62rem + 1.4vw, 2.9rem);
     --step-4: clamp(2.4rem, 1.86rem + 2.7vw, 4.2rem);
-    --step-5: clamp(3rem, 1.9rem + 5.5vw, 6.5rem);
+    /*
+     * Used by exactly one element: the hero <h1>. Its ceiling came down from
+     * 6.5rem because that element no longer spans the page — the margin rail
+     * takes a column, leaving the identity around 470px wide, and a 104px face
+     * in a 470px column broke the headline across five ragged lines. At
+     * 4.25rem the same headline sets in two or three, and the `max-w-[18ch]`
+     * on the element finally does something instead of never binding.
+     */
+    --step-5: clamp(2.75rem, 1.9rem + 3.4vw, 4.25rem);
 
     --gutter: clamp(1.25rem, 5vw, 5rem);
-    --section-y: clamp(5rem, 11vw, 10rem);
+    /*
+     * Section block padding. Two adjacent sections each contribute this, so
+     * the real gap between one section's last line and the next section's
+     * eyebrow is double what it looks like here — which is why the ceiling is
+     * 6.5rem and not the 10rem it started at. At 10rem, 1440px viewports were
+     * showing ~316px of empty ground between sections, and the margin rail,
+     * being taller than nothing, ended up hanging beside that emptiness.
+     */
+    --section-y: clamp(3.5rem, 7vw, 6.5rem);
+    /* Height of the sticky header. Referenced by anything that has to reason
+       about the space actually left on screen, so the two cannot drift. */
+    --header-h: 4rem;
     --rule: 1px;
   }
 
@@ -469,32 +488,21 @@
   }
 
   /*
-   * Long-form reading. Newsreader carries the prose while Plex Sans keeps the
-   * UI — nav, buttons, filters, chips — so the two never compete for the same
-   * job. `opsz` is set to the low end of the axis here because this is body
-   * copy; display sizes let it run up on their own via .display-type.
+   * There is deliberately no `.reading` / `.display-type` pair here.
+   *
+   * Headings already compose `font-display` with a step from the type scale at
+   * the point of use, which is the established pattern across every section,
+   * and Newsreader is variable on `opsz` — with `font-optical-sizing: auto`
+   * being the browser default, a 4rem headline and a 1rem note already get the
+   * right optical size without anything being declared. A wrapper class would
+   * only have restated the size in a second place.
    */
-  .reading {
-    font-family: var(--font-display);
-    font-size: var(--step-1);
-    line-height: 1.62;
-    font-variation-settings: "opsz" 16;
-  }
-
-  .display-type {
-    font-family: var(--font-display);
-    font-weight: 400;
-    line-height: 1.04;
-    letter-spacing: -0.015em;
-    font-variation-settings: "opsz" 72;
-    text-wrap: balance;
-  }
 
   /*
    * The margin rail — the device this direction is named for.
    *
    * Below 1024px it is not a margin at all: it stacks after the section body
-   * as an endnote block, because an 11rem column of 11px mono on a phone is
+   * as an endnote block, because a 10rem column of 11px mono on a phone is
    * unreadable. The markup is identical at both widths — only the grid
    * placement changes — so nothing is hidden from assistive technology, and
    * DOM order puts the section's substance ahead of its annotations either
@@ -507,16 +515,21 @@
 
   @media (min-width: 1024px) {
     .rail-layout {
-      grid-template-columns: 11rem minmax(0, 1fr);
-      gap: 3.5rem;
+      grid-template-columns: 10rem minmax(0, 1fr);
+      gap: 3rem;
       align-items: start;
     }
-
-    .rail-sticky {
-      position: sticky;
-      top: 6rem;
-    }
   }
+
+  /*
+   * The rail is deliberately NOT sticky.
+   *
+   * It was, and it looked wrong: a section is far taller than its handful of
+   * annotations, so the rail would detach, ride down the viewport, and end up
+   * parked beside the section's closing whitespace with nothing to annotate.
+   * A note in the margin of a drawing sits level with the thing it describes.
+   * Static keeps that true and removes a moving part.
+   */
 
   .rail {
     display: flex;
@@ -611,7 +624,7 @@
       right center,
       right center;
     background-size:
-      2rem 100%,
+      3rem 100%,
       3rem 100%;
     background-repeat: no-repeat;
     background-attachment: local, scroll;
