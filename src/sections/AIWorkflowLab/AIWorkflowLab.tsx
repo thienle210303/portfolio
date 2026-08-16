@@ -11,6 +11,7 @@ import {
   learningLog,
   workflowStages,
 } from "@/content/ai-experiments";
+import AskThisSite from "./AskThisSite";
 import { WorkflowExplorer } from "./WorkflowExplorer";
 import { ExperimentEntry } from "./ExperimentEntry";
 import { LearningLog } from "./LearningLog";
@@ -101,6 +102,14 @@ export default function AIWorkflowLab() {
       <p className="mt-6 font-mono text-[length:var(--step--1)] text-[color:var(--fg-subtle)]">
         Last updated <time dateTime={LAB_LAST_UPDATED}>{formatIsoDate(LAB_LAST_UPDATED)}</time>
       </p>
+
+      {/* Directly under the "nothing here executes an agent" notice on
+          purpose: this is the one thing on the page that answers back, and a
+          reader should meet it while that claim is still on screen — it holds
+          precisely because there is no model behind this box. */}
+      <div className="mt-12">
+        <AskThisSite />
+      </div>
 
       <div className="mt-16 sm:mt-20">
         <h3
