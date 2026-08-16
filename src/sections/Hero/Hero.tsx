@@ -44,7 +44,13 @@ const RAIL: readonly RailNote[] = [
 
 export default function Hero() {
   return (
-    <Section id="about" labelledBy={HEADING_ID} tone="base" rail={RAIL}>
+    <Section
+      id="about"
+      labelledBy={HEADING_ID}
+      tone="base"
+      rail={RAIL}
+      className="blueprint-grid"
+    >
       {/*
         The floor subtracts the sticky header and this section's own block
         padding, which the old flat `100svh` did not. Those three stack, so the

@@ -457,13 +457,21 @@
   }
 
   /*
-   * The measurement grid. `background-attachment: fixed` is deliberate: the
-   * grid then belongs to the page rather than to each section, so the ruling
-   * runs continuously behind every tone change instead of restarting at each
-   * section boundary and betraying where the boxes are.
+   * The measurement grid — deliberately scoped to the hero alone, not applied
+   * page-wide.
    *
-   * Suppressed under `prefers-reduced-transparency` and in print — on paper
-   * it is just toner.
+   * It ran behind every section once, and behind six long case studies and a
+   * full résumé it stopped being texture and started being noise competing
+   * with the text. Establishing the ruling under the hero and then dropping it
+   * says the same thing with one gesture instead of eight: the drawing paper
+   * introduces the work, then gets out of its way.
+   *
+   * `background-attachment: fixed` still matters here — it keeps the ruling
+   * aligned to the viewport rather than to the element, so it reads as paper
+   * the page sits on rather than as a texture bolted to one box.
+   *
+   * Suppressed under `prefers-reduced-transparency` and in print, where it is
+   * just toner.
    */
   .blueprint-grid {
     background-image:

@@ -5,6 +5,7 @@ import { careerEntries, education, profile, socialLinks, SITE_URL } from "@/cont
 import SkipLink from "@/components/layout/SkipLink";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import Companion from "@/components/companion/Companion";
 import "./globals.css";
 
 // Newsreader is variable on both `opsz` and `wght`, which is the reason it is
@@ -159,6 +160,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        <Companion />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}

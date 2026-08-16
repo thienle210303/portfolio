@@ -73,14 +73,10 @@ export function Section({
       id={id}
       aria-labelledby={labelledBy}
       className={cn(
-        // `blueprint-grid` has to be on the section, not only on <body>: each
-        // section paints its own opaque `bg-ground`, which would otherwise
-        // cover the body's ruling completely. A background-image always paints
-        // over its element's own background-color, so the two compose here —
-        // and because the grid is attached `fixed`, it stays aligned to the
-        // viewport and reads as one continuous ruling running behind every
-        // tone change rather than restarting at each section boundary.
-        "blueprint-grid hairline-t scroll-mt-20 bg-ground py-[var(--section-y)]",
+        // No ruled grid here by default — see the note on `.blueprint-grid` in
+        // globals.css. Only the hero opts in, by passing the class through
+        // `className`.
+        "hairline-t scroll-mt-20 bg-ground py-[var(--section-y)]",
         TONE_CLASS[tone],
         className,
       )}
