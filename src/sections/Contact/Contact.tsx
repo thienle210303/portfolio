@@ -34,7 +34,10 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
       </SectionHeading>
 
       <div className="mt-12 grid gap-12 lg:grid-cols-12 lg:gap-x-10">
-        <div className="lg:col-span-7">
+        {/* Screen-only: a printed résumé should not carry a dead form. The
+            contact details in the aside beside it do still print, since
+            those are useful on paper. */}
+        <div className="no-print lg:col-span-7">
           <ContactForm emailDeliveryConfigured={emailDeliveryConfigured} />
         </div>
 

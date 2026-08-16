@@ -26,7 +26,13 @@ export default function Closing() {
   const otherLinks = socialLinks.filter((link) => link.platform !== "Email");
 
   return (
-    <Section id="closing" labelledBy="closing-heading" eyebrow="08 / CLOSING" tone="paper">
+    <Section
+      id="closing"
+      labelledBy="closing-heading"
+      eyebrow="08 / CLOSING"
+      tone="paper"
+      className="no-print"
+    >
       <SectionHeading id="closing-heading">{closing.heading}</SectionHeading>
 
       <p className="max-w-[68ch] text-[length:var(--step-1)] text-muted-light">{closing.body}</p>

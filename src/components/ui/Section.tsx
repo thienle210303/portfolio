@@ -10,6 +10,8 @@ interface SectionProps {
   readonly labelledBy: string;
   readonly eyebrow?: string;
   readonly tone?: SectionTone;
+  /** Merged onto the <section>. Used for print opt-outs (`no-print`). */
+  readonly className?: string;
   readonly children: ReactNode;
 }
 
@@ -24,7 +26,14 @@ const TONE_BACKGROUND: Record<SectionTone, string> = {
  * container, and the mono eyebrow pattern. `tone="paper"` additionally
  * applies `.on-light`, flipping every semantic colour alias used by
  * anything nested inside. */
-export function Section({ id, labelledBy, eyebrow, tone = "ink", children }: SectionProps) {
+export function Section({
+  id,
+  labelledBy,
+  eyebrow,
+  tone = "ink",
+  className,
+  children,
+}: SectionProps) {
   return (
     <section
       id={id}
@@ -33,6 +42,7 @@ export function Section({ id, labelledBy, eyebrow, tone = "ink", children }: Sec
         "hairline-t scroll-mt-20 py-[var(--section-y)]",
         TONE_BACKGROUND[tone],
         tone === "paper" && "on-light",
+        className,
       )}
     >
       <div className="shell">
