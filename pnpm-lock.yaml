@@ -13,7 +13,7 @@ importers:
         version: 1.31.0(react@19.2.8)
       next:
         specifier: 16.3.1
-        version: 16.3.1(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.3.1(@babel/core@7.29.7)(@playwright/test@1.62.1)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -27,61 +27,12 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@tailwindcss/postcss':
-        specifier: ^4
-        version: 4.3.3
-      '@types/node':
-        specifier: ^20
-        version: 20.19.43
-      '@types/react':
-        specifier: ^19
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: ^19
-        version: 19.2.4(@types/react@19.2.18)
-      eslint:
-        specifier: ^9
-        version: 9.39.5(jiti@2.7.0)
-      eslint-config-next:
-        specifier: 16.3.1
-        version: 16.3.1(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
-      tailwindcss:
-        specifier: ^4
-        version: 4.3.3
-      typescript:
-        specifier: ^5
-        version: 5.9.3
-
-  node_modules/.pnpm/next@16.3.1_@babel+core@7.29.7_@types+node@20.19.43_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/next:
-    dependencies:
-      '@next/env':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@swc/helpers':
-        specifier: 0.5.23
-        version: 0.5.23
-      baseline-browser-mapping:
-        specifier: ^2.9.19
-        version: 2.11.14
-      caniuse-lite:
-        specifier: ^1.0.30001579
-        version: 1.0.30001809
-      postcss:
-        specifier: 8.5.23
-        version: 8.5.23
-      react:
-        specifier: ^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0
-        version: 19.2.8
-      react-dom:
-        specifier: ^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0
-        version: 19.2.8(react@19.2.8)
-      styled-jsx:
-        specifier: 5.1.6
-        version: 5.1.6(react@19.2.8)
-    devDependencies:
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.3.3
       '@testing-library/jest-dom':
         specifier: ^7.0.1
         version: 7.0.1(@testing-library/dom@10.4.1)(vitest@4.1.10(@types/node@20.19.43)(jsdom@30.0.1)(vite@8.2.1(@types/node@20.19.43)(jiti@2.7.0)))
@@ -91,46 +42,39 @@ importers:
       '@testing-library/user-event':
         specifier: ^14.6.4
         version: 14.6.4(@testing-library/dom@10.4.1)
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      '@types/react':
+        specifier: ^19
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.4(@types/react@19.2.18)
       '@vitejs/plugin-react':
         specifier: ^6.0.5
         version: 6.0.5(vite@8.2.1(@types/node@20.19.43)(jiti@2.7.0))
+      eslint:
+        specifier: ^9
+        version: 9.39.5(jiti@2.7.0)
+      eslint-config-next:
+        specifier: 16.3.1
+        version: 16.3.1(@typescript-eslint/parser@8.67.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1
+      tailwindcss:
+        specifier: ^4
+        version: 4.3.3
+      typescript:
+        specifier: ^5
+        version: 5.9.3
       vite-tsconfig-paths:
         specifier: ^6.1.1
         version: 6.1.1(typescript@5.9.3)(vite@8.2.1(@types/node@20.19.43)(jiti@2.7.0))
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@20.19.43)(jsdom@30.0.1)(vite@8.2.1(@types/node@20.19.43)(jiti@2.7.0))
-    optionalDependencies:
-      '@next/swc-darwin-arm64':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@next/swc-darwin-x64':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@next/swc-linux-arm64-gnu':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@next/swc-linux-arm64-musl':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@next/swc-linux-x64-gnu':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@next/swc-linux-x64-musl':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@next/swc-win32-arm64-msvc':
-        specifier: 16.3.1
-        version: 16.3.1
-      '@next/swc-win32-x64-msvc':
-        specifier: 16.3.1
-        version: 16.3.1
-      sharp:
-        specifier: ^0.35.3
-        version: 0.35.3(@types/node@20.19.43)
 
 packages:
 
@@ -4744,7 +4688,7 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next@16.3.1(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  next@16.3.1(@babel/core@7.29.7)(@playwright/test@1.62.1)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       '@next/env': 16.3.1
       '@swc/helpers': 0.5.23
@@ -4763,6 +4707,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.3.1
       '@next/swc-win32-arm64-msvc': 16.3.1
       '@next/swc-win32-x64-msvc': 16.3.1
+      '@playwright/test': 1.62.1
       sharp: 0.35.3(@types/node@20.19.43)
     transitivePeerDependencies:
       - '@babel/core'
@@ -5196,11 +5141,6 @@ snapshots:
       react: 19.2.8
     optionalDependencies:
       '@babel/core': 7.29.7
-
-  styled-jsx@5.1.6(react@19.2.8):
-    dependencies:
-      client-only: 0.0.1
-      react: 19.2.8
 
   supports-color@7.2.0:
     dependencies:

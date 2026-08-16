@@ -14,7 +14,10 @@ interface ButtonSharedProps {
 
 interface ButtonAsLinkProps
   extends ButtonSharedProps,
-    Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children" | "href"> {
+    Omit<
+      AnchorHTMLAttributes<HTMLAnchorElement>,
+      "className" | "children" | "href" | "target" | "rel"
+    > {
   readonly href: string;
 }
 
@@ -54,32 +57,32 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
  * new-tab behaviour and notice are never duplicated. All variants/sizes
  * meet the 44px minimum tap target. */
 export function Button(props: ButtonProps) {
-  const { children, variant = "primary", size = "md", className } = props;
+  const { children, variant = "primary", size = "md", className, ...rest } = props;
   const classes = cn(BASE_CLASSES, SIZE_CLASSES[size], VARIANT_CLASSES[variant], className);
 
-  if (props.href !== undefined) {
-    const { href, children: _children, variant: _v, size: _s, className: _c, ...rest } = props;
+  if (rest.href !== undefined) {
+    const { href, ...anchorRest } = rest;
     const isExternal = href.startsWith("http");
 
     if (isExternal) {
       return (
-        <ExternalLink href={href} className={classes} {...rest}>
+        <ExternalLink href={href} className={classes} {...anchorRest}>
           {children}
         </ExternalLink>
       );
     }
 
     return (
-      <a href={href} className={classes} {...rest}>
+      <a href={href} className={classes} {...anchorRest}>
         {children}
       </a>
     );
   }
 
-  const { href: _href, children: _children, variant: _v, size: _s, className: _c, type, ...rest } = props;
+  const { type, ...buttonRest } = rest;
 
   return (
-    <button type={type ?? "button"} className={classes} {...rest}>
+    <button type={type ?? "button"} className={classes} {...buttonRest}>
       {children}
     </button>
   );
