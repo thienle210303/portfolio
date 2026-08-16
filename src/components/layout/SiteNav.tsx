@@ -40,6 +40,10 @@ export default function SiteNav() {
   const activeId = useActiveSection(SECTION_IDS);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  // Set by handleNavLinkClick when a link is activated while the scroll
+  // lock below is active. Read (and cleared) by that same lock's cleanup —
+  // see the comments in both places for why this hand-off exists.
+  const pendingScrollIdRef = useRef<string | null>(null);
 
   // Everything that only matters while the mobile menu is open: lock
   // background scroll (restored without a jump on close), move focus into
@@ -112,7 +116,23 @@ export default function SiteNav() {
       body.style.top = previousStyle.top;
       body.style.left = previousStyle.left;
       body.style.width = previousStyle.width;
-      window.scrollTo(0, scrollY);
+
+      // A nav link was activated while locked (see handleNavLinkClick
+      // below): `body` had no scrollable overflow at that moment, so its
+      // scrollIntoView call was a no-op, and the real scroll has to happen
+      // here instead, now that normal flow — and therefore scrolling — is
+      // restored. Skip the old-position restore in that case; doing both
+      // would scroll to the target and then immediately scroll back.
+      const pendingId = pendingScrollIdRef.current;
+      if (pendingId) {
+        pendingScrollIdRef.current = null;
+        document.getElementById(pendingId)?.scrollIntoView({
+          behavior: prefersReducedMotion() ? "auto" : "smooth",
+          block: "start",
+        });
+      } else {
+        window.scrollTo(0, scrollY);
+      }
     };
   }, [open]);
 
@@ -121,16 +141,31 @@ export default function SiteNav() {
       const target = document.getElementById(sectionId);
       if (target) {
         event.preventDefault();
-        target.scrollIntoView({
-          behavior: prefersReducedMotion() ? "auto" : "smooth",
-          block: "start",
-        });
+
         // Sections aren't natively focusable; make the destination a valid
         // programmatic focus target so keyboard/SR users land where the
-        // page visually moved to, instead of losing their place.
+        // page visually moved to, instead of losing their place. Focusing
+        // never scrolls on its own (`preventScroll`), so this is always
+        // safe to do immediately, independent of the branch below.
         if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
         target.focus({ preventScroll: true });
         window.history.pushState(null, "", `#${sectionId}`);
+
+        if (open) {
+          // The mobile scroll lock has put `body` at `position: fixed`
+          // (see the effect above), which leaves nothing for the document
+          // to scroll — calling scrollIntoView here would silently do
+          // nothing. Hand the target off to the lock's own cleanup
+          // instead, which fires once `body` is back in normal flow
+          // (triggered by setOpen(false) below).
+          pendingScrollIdRef.current = sectionId;
+        } else {
+          // Desktop: no scroll lock in play, so scroll immediately.
+          target.scrollIntoView({
+            behavior: prefersReducedMotion() ? "auto" : "smooth",
+            block: "start",
+          });
+        }
       }
       // Escape restores focus to the toggle button (nothing navigated);
       // a link click already moved focus to the destination section above,

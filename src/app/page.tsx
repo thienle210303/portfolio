@@ -11,8 +11,8 @@ export default function Home() {
   // Server-only check: this reads process.env directly in a Server
   // Component, so the three secrets never enter the client bundle — only
   // the resulting boolean is passed down as a prop. Contact uses it to
-  // decide whether to submit through the server action or fall back to an
-  // "open the visitor's email app" (mailto:) flow.
+  // decide whether to submit through the /api/contact Route Handler or
+  // fall back to an "open the visitor's email app" (mailto:) flow.
   const emailDeliveryConfigured = Boolean(
     process.env.RESEND_API_KEY && process.env.CONTACT_TO_EMAIL && process.env.CONTACT_FROM_EMAIL
   );

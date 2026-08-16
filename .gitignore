@@ -37,6 +37,7 @@ yarn-error.log*
 
 # scratch space used while building; not part of the project
 .agent*-scratch/
+.tw-verify*/
 
 # vercel
 .vercel
