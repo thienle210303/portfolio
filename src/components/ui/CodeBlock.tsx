@@ -45,7 +45,7 @@ export function CodeBlock({ code, filename, summary, className }: CodeBlockProps
         role="region"
         aria-label={filename}
         aria-describedby={summaryId}
-        className="max-w-full overflow-x-auto p-4 [-webkit-overflow-scrolling:touch]"
+        className="code-scroll max-w-full overflow-x-auto p-4 [-webkit-overflow-scrolling:touch]"
       >
         <code className="font-mono text-[length:var(--step--1)] leading-relaxed">
           {tokens.map((token, index) => (

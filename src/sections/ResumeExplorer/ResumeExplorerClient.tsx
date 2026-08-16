@@ -123,8 +123,12 @@ export default function ResumeExplorerClient({
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-[280px_1fr] lg:items-start lg:gap-12">
-      <div className="lg:sticky lg:top-24 lg:max-h-[calc(100svh-6rem)] lg:overflow-y-auto">
+    // `resume-layout` is a stable hook for the print stylesheet, which
+    // collapses this to a single column. Without it the hidden controls
+    // column keeps its 280px grid track and the printed résumé sits
+    // indented from its own heading.
+    <div className="resume-layout lg:grid lg:grid-cols-[280px_1fr] lg:items-start lg:gap-12">
+      <div className="no-print lg:sticky lg:top-24 lg:max-h-[calc(100svh-6rem)] lg:overflow-y-auto">
         <ResumeControls
           lensOptions={lensOptions}
           lens={lens}
@@ -141,10 +145,13 @@ export default function ResumeExplorerClient({
       </div>
 
       <div className="mt-10 space-y-10 lg:mt-0">
+        {/* Screen-only: this announces filter results to assistive tech.
+            On paper there is no filtering, so a "showing all N entries"
+            line is noise at the top of a résumé. */}
         <p
           role="status"
           aria-live="polite"
-          className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.06em] text-[color:var(--fg-subtle)]"
+          className="no-print font-mono text-[length:var(--step--1)] uppercase tracking-[0.06em] text-[color:var(--fg-subtle)]"
         >
           {resultText}
         </p>

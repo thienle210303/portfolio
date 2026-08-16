@@ -220,6 +220,40 @@
     overflow-wrap: anywhere;
   }
 
+  /* Hidden on screen; the print stylesheet reveals it. Used for the
+     printed résumé's identity header, which would be redundant on screen
+     because the hero already carries the name and contact details. */
+  .print-only {
+    display: none;
+  }
+
+  /*
+   * Scroll affordance for horizontally scrollable code.
+   *
+   * The panel is allowed to scroll sideways, but with a hard edge and no
+   * cue the clipped line simply reads as broken. This paints a scrim at
+   * the right edge that disappears once you reach the end.
+   *
+   * It is CSS-only and needs no JavaScript: the first layer is attached
+   * `local` so it travels with the content and parks over the scrim at
+   * the very end, while the scrim itself is attached `scroll` and stays
+   * pinned to the visible edge. Monochrome by construction — it is drawn
+   * from the surface and ink tokens, never a colour.
+   */
+  .code-scroll {
+    background-image:
+      linear-gradient(to left, var(--color-surface), var(--color-surface)),
+      linear-gradient(to left, rgba(8, 8, 8, 0.75), rgba(8, 8, 8, 0));
+    background-position:
+      right center,
+      right center;
+    background-size:
+      2rem 100%,
+      3rem 100%;
+    background-repeat: no-repeat;
+    background-attachment: local, scroll;
+  }
+
   .eyebrow {
     font-family: var(--font-mono);
     font-size: var(--step--1);
@@ -342,6 +376,50 @@
   body > header,
   body > footer {
     display: none !important;
+  }
+
+  /*
+   * Printing serves the résumé and nothing else.
+   *
+   * The "Print" control lives inside the résumé section, so a résumé is
+   * what a reader expects on paper. Printing the whole page instead
+   * produced roughly fifty pages — every section, with every disclosure
+   * forced open by the rule below — with the actual résumé buried near
+   * the end.
+   *
+   * The rule is deliberately subtractive: drop every top-level section,
+   * then put the résumé back. A section added later is therefore excluded
+   * automatically instead of silently joining the printout.
+   */
+  main > section:not(#resume) {
+    display: none !important;
+  }
+
+  /* Screen-only spacing and tone on the one section that does print. */
+  #resume {
+    padding-block: 0 !important;
+    border-top: 0 !important;
+  }
+
+  /* The section eyebrow ("06 / RÉSUMÉ") is navigation furniture for the
+     page, meaningless on a printed résumé. Scoped to the Section
+     primitive's own eyebrow so group labels inside the résumé survive. */
+  #resume > .shell > .eyebrow {
+    display: none !important;
+  }
+
+  /* Collapse the two-pane explorer. The controls column is hidden for
+     print, but its grid track is not, so without this the résumé body
+     prints indented from its own heading by the width of a column that
+     is not there. */
+  .resume-layout {
+    display: block !important;
+  }
+
+  /* Shown only on paper — the identity block that makes the printed
+     résumé attributable, since the hero it normally lives in is gone. */
+  .print-only {
+    display: revert !important;
   }
 
   /* Cross-agent contract: wrap each résumé entry (or any block that must
