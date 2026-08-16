@@ -42,3 +42,5 @@ export function Section({ id, labelledBy, eyebrow, tone = "ink", children }: Sec
     </section>
   );
 }
+
+export default Section;

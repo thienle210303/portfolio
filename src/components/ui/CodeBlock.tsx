@@ -64,3 +64,5 @@ export function CodeBlock({ code, filename, summary, className }: CodeBlockProps
     </figure>
   );
 }
+
+export default CodeBlock;

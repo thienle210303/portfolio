@@ -8,24 +8,34 @@
  * so the résumé, timeline and this case study cannot drift apart. Optional
  * fields that are genuinely absent on a given project render nothing: no
  * empty heading, no placeholder.
+ *
+ * Colour comes exclusively from the semantic aliases (--fg / --fg-muted /
+ * --fg-subtle / --rule-color) defined in globals.css, matching every shared
+ * primitive — never the raw --color-* tokens.
  */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { careerEntryById } from "@/content/portfolio";
 import { resolved, type Project } from "@/types/portfolio";
-import Disclosure from "@/components/ui/Disclosure";
-import Tag from "@/components/ui/Tag";
-import ExternalLink from "@/components/ui/ExternalLink";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { Tag } from "@/components/ui/Tag";
+import { ExternalLink } from "@/components/ui/ExternalLink";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import WorkflowDiagram from "./WorkflowDiagram";
 import MetricTable from "./MetricTable";
 
-const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-muted";
+const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]";
 
 const H4_CLASS =
-  "font-mono text-[length:var(--step-1)] font-bold uppercase tracking-[0.1em] text-paper";
+  "font-mono text-[length:var(--step-1)] font-bold uppercase tracking-[0.1em] text-[color:var(--fg)]";
 
-const MICRO_LABEL_CLASS =
-  "font-mono text-[length:var(--step--1)] font-bold uppercase tracking-[0.08em] text-silver";
+/** The site's recurring mono/uppercase micro-label treatment — same class
+ * `<Section>`'s own eyebrow uses, reused here for sub-labels within a case
+ * study so the typographic motif stays consistent at every depth. */
+const MICRO_LABEL_CLASS = "eyebrow";
+
+const BULLET_ITEM_CLASS =
+  "wrap-anywhere relative pl-5 before:absolute before:left-0 before:top-[0.7em] before:h-[5px] before:w-[5px] before:rounded-full before:bg-[color:var(--fg-subtle)] before:content-['']";
 
 /* -------------------------------------------------------------------------- */
 /* Small local helpers — deep-dive presentation only, not shared elsewhere    */
@@ -44,14 +54,7 @@ function ProseList({ items, ariaLabel }: ProseListProps) {
   return (
     <ul role="list" aria-label={ariaLabel} className="space-y-2.5">
       {items.map((item) => (
-        <li
-          key={item}
-          className={cn(
-            "wrap-anywhere relative pl-5",
-            PROSE_CLASS,
-            "before:absolute before:left-0 before:top-[0.7em] before:h-[5px] before:w-[5px] before:rounded-full before:bg-silver before:content-['']"
-          )}
-        >
+        <li key={item} className={cn(BULLET_ITEM_CLASS, PROSE_CLASS)}>
           {item}
         </li>
       ))}
@@ -99,7 +102,7 @@ interface FailureAsideProps {
  * recorded failure. Most don't, and render nothing here. */
 function FailureAside({ whatFailed, failureLesson }: FailureAsideProps) {
   return (
-    <aside className="border border-hairline p-5">
+    <aside className="border border-[color:var(--rule-color)] p-5">
       <h5 className={MICRO_LABEL_CLASS}>What failed, and what it taught me</h5>
       <p className={cn(PROSE_CLASS, "mt-3")}>{whatFailed}</p>
       <p className={cn(PROSE_CLASS, "mt-3")}>{failureLesson}</p>
@@ -111,7 +114,7 @@ function FailureAside({ whatFailed, failureLesson }: FailureAsideProps) {
  * yet. Never a TODO — always the author's own words. */
 function InProgressNote({ note }: { readonly note: string }) {
   return (
-    <div className="mt-6 border border-hairline p-4">
+    <div className="mt-6 border border-[color:var(--rule-color)] p-4">
       <p className={MICRO_LABEL_CLASS}>Case study in progress</p>
       <p className={cn(PROSE_CLASS, "mt-2")}>{note}</p>
     </div>
@@ -135,20 +138,27 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
   const techLabelId = `${project.id}-tech-label`;
   const proofLabelId = `${project.id}-proof-label`;
 
-  // Embedding the title in every variant of the trigger text guarantees the
-  // Disclosure's accessible name distinguishes this project's trigger from
-  // the other five, however the (not-yet-written) primitive ends up wiring
-  // `summary` / `expandLabel` / `collapseLabel` together internally.
-  const expandLabel = `Read the full case study — ${project.title}`;
-  const collapseLabel = `Collapse case study — ${project.title}`;
+  // Disclosure's trigger keeps `summary` visible at all times (state is
+  // conveyed by an icon + hidden text, not by the visible label changing) —
+  // so the project title lives in `summary` itself, guaranteeing every one
+  // of the six triggers has a distinguishable accessible name regardless of
+  // open/closed state. `expandLabel`/`collapseLabel` still carry the
+  // "read/collapse" verb pair SECTIONS.md asks for, appended to the
+  // accessible name only, matching Disclosure's own documented contract.
+  const disclosureSummary = (
+    <>
+      Read the full case study
+      <VisuallyHidden> — {project.title}</VisuallyHidden>
+    </>
+  );
 
   return (
     <article
       aria-labelledby={titleId}
-      className="border-t border-hairline py-12 first:border-t-0 first:pt-0 md:grid md:grid-cols-12 md:gap-x-8 md:py-16"
+      className="border-t border-[color:var(--rule-color)] py-12 first:border-t-0 first:pt-0 md:grid md:grid-cols-12 md:gap-x-8 md:py-16"
     >
       <div className="md:col-span-2 md:col-start-1" aria-hidden="true">
-        <p className="font-mono text-[length:var(--step-0)] text-silver">
+        <p className="font-mono text-[length:var(--step-0)] text-[color:var(--fg-subtle)]">
           {String(index + 1).padStart(2, "0")}
         </p>
       </div>
@@ -156,19 +166,18 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
       <div className="mt-5 md:col-span-10 md:col-start-3 md:mt-0">
         <h3
           id={titleId}
-          className="text-[length:var(--step-3)] font-normal leading-[1.05] tracking-[-0.02em] text-paper"
-          style={{ fontFamily: "var(--font-display)" }}
+          className="font-display text-[length:var(--step-3)] font-normal leading-[1.05] tracking-[-0.02em] text-[color:var(--fg)]"
         >
           {project.title}
         </h3>
 
         {entry ? (
-          <p className="wrap-anywhere mt-3 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-silver">
+          <p className="wrap-anywhere mt-3 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
             {entry.organization} · {entry.dateRange}
           </p>
         ) : null}
 
-        <p className="mt-4 max-w-[68ch] text-[length:var(--step-1)] leading-[1.6] text-paper">
+        <p className="prose-measure mt-4 text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg)]">
           {project.tagline}
         </p>
 
@@ -199,8 +208,8 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
                 <li
                   key={item}
                   className={cn(
-                    "wrap-anywhere relative pl-5 text-[length:var(--step-0)] leading-[1.6] text-paper",
-                    "before:absolute before:left-0 before:top-[0.7em] before:h-[5px] before:w-[5px] before:rounded-full before:bg-silver before:content-['']"
+                    BULLET_ITEM_CLASS,
+                    "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg)]",
                   )}
                 >
                   {item}
@@ -217,25 +226,34 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
           {project.source ? (
             <ExternalLink href={project.source.href}>{project.source.label}</ExternalLink>
           ) : null}
+          {/*
+           * Deliberately a plain <a>, not the shared Button primitive.
+           * Contact listens for `document.querySelectorAll("a[data-project-title]")`
+           * clicks — Button's typed prop union has no room for an arbitrary
+           * data-* attribute, and this specific link is a cross-agent
+           * contract that must not depend on how a component I don't own
+           * forwards props. Styled to match Button's secondary/sm recipe by
+           * hand so it's visually indistinguishable from a real one.
+           */}
           <a
             href="#contact"
             data-project-title={project.title}
-            className="inline-flex min-h-[44px] items-center border border-hairline px-4 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-paper transition-colors duration-150 hover:bg-surface"
+            className="inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-4 py-2 font-sans text-[length:var(--step--1)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]"
           >
             Discuss this project
-            <span className="sr-only"> — {project.title}</span>
+            <VisuallyHidden> — {project.title}</VisuallyHidden>
           </a>
         </div>
 
         <div className="mt-6">
           <Disclosure
             id={`case-study-${project.id}`}
-            summary={expandLabel}
-            expandLabel={expandLabel}
-            collapseLabel={collapseLabel}
+            summary={disclosureSummary}
+            expandLabel="Expand"
+            collapseLabel="Collapse"
             defaultOpen={false}
           >
-            <div className="divide-y divide-hairline">
+            <div className="divide-y divide-[color:var(--rule-color)]">
               <SectionBlock heading="Problem">
                 <p className={PROSE_CLASS}>{project.problem}</p>
                 <p className={PROSE_CLASS}>{project.whyItMattered}</p>

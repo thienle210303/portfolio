@@ -74,3 +74,5 @@ export function Disclosure({
     </div>
   );
 }
+
+export default Disclosure;

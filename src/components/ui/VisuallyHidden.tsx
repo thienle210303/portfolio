@@ -18,3 +18,5 @@ export function VisuallyHidden({ children, as: Component = "span", id, className
     </Component>
   );
 }
+
+export default VisuallyHidden;

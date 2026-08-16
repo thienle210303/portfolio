@@ -5,7 +5,8 @@
  * computed or invented; every cell is a verbatim content string.
  *
  * The table scrolls inside its own labelled region so a narrow viewport
- * never causes page-level horizontal overflow.
+ * never causes page-level horizontal overflow. Styled against the semantic
+ * aliases in globals.css, matching every shared primitive.
  */
 import type { MetricComparison } from "@/types/portfolio";
 
@@ -15,6 +16,9 @@ interface MetricTableProps {
   readonly caption: string;
 }
 
+const HEADER_CELL_CLASS =
+  "eyebrow border-b border-[color:var(--rule-color)] px-4 py-2.5 text-left tracking-[0.08em]";
+
 export default function MetricTable({ metrics, caption }: MetricTableProps) {
   if (metrics.length === 0) return null;
 
@@ -23,57 +27,45 @@ export default function MetricTable({ metrics, caption }: MetricTableProps) {
       role="region"
       aria-label={caption}
       tabIndex={0}
-      className="mt-4 overflow-x-auto border border-hairline"
+      className="mt-4 overflow-x-auto border border-[color:var(--rule-color)]"
       style={{ WebkitOverflowScrolling: "touch" }}
     >
       <table className="w-full min-w-[34rem] border-collapse">
-        <caption className="border-b border-hairline px-4 py-3 text-left font-mono text-[length:var(--step--1)] uppercase tracking-[0.14em] text-silver">
+        <caption className="eyebrow border-b border-[color:var(--rule-color)] px-4 py-3 text-left">
           {caption}
         </caption>
         <thead>
           <tr>
-            <th
-              scope="col"
-              className="border-b border-hairline px-4 py-2.5 text-left font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-silver"
-            >
+            <th scope="col" className={HEADER_CELL_CLASS}>
               Metric
             </th>
-            <th
-              scope="col"
-              className="border-b border-hairline px-4 py-2.5 text-left font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-silver"
-            >
+            <th scope="col" className={HEADER_CELL_CLASS}>
               Before
             </th>
-            <th
-              scope="col"
-              className="border-b border-hairline px-4 py-2.5 text-left font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-silver"
-            >
+            <th scope="col" className={HEADER_CELL_CLASS}>
               After
             </th>
-            <th
-              scope="col"
-              className="border-b border-hairline px-4 py-2.5 text-left font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-silver"
-            >
+            <th scope="col" className={HEADER_CELL_CLASS}>
               Source
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-hairline">
+        <tbody className="divide-y divide-[color:var(--rule-color)]">
           {metrics.map((metric) => (
             <tr key={metric.label}>
               <th
                 scope="row"
-                className="wrap-anywhere px-4 py-3 text-left text-[length:var(--step-0)] font-normal text-paper"
+                className="wrap-anywhere px-4 py-3 text-left text-[length:var(--step-0)] font-normal text-[color:var(--fg)]"
               >
                 {metric.label}
               </th>
-              <td className="wrap-anywhere px-4 py-3 text-[length:var(--step-0)] text-muted">
+              <td className="wrap-anywhere px-4 py-3 text-[length:var(--step-0)] text-[color:var(--fg-muted)]">
                 {metric.before}
               </td>
-              <td className="wrap-anywhere px-4 py-3 font-mono text-[length:var(--step-0)] text-paper">
+              <td className="wrap-anywhere px-4 py-3 font-mono text-[length:var(--step-0)] text-[color:var(--fg)]">
                 {metric.after}
               </td>
-              <td className="wrap-anywhere px-4 py-3 text-[length:var(--step--1)] text-silver">
+              <td className="wrap-anywhere px-4 py-3 text-[length:var(--step--1)] text-[color:var(--fg-subtle)]">
                 {metric.source}
               </td>
             </tr>

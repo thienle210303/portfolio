@@ -30,3 +30,5 @@ export function SectionHeading({ id, children, lead }: SectionHeadingProps) {
     </>
   );
 }
+
+export default SectionHeading;

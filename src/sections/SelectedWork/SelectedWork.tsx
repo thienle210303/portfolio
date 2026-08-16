@@ -14,8 +14,8 @@
  * the "never invent a fact" rule. Flagging the discrepancy for whoever owns
  * the content file.
  */
-import Section from "@/components/ui/Section";
-import SectionHeading from "@/components/ui/SectionHeading";
+import { Section } from "@/components/ui/Section";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { projects } from "@/content/portfolio";
 import CaseStudy from "./CaseStudy";
 

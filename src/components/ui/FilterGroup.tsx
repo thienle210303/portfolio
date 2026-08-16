@@ -105,3 +105,5 @@ export function FilterGroup({ label, options, value, onChange, idPrefix, classNa
     </div>
   );
 }
+
+export default FilterGroup;

@@ -78,3 +78,5 @@ export function CopyButton({ value, label, copiedLabel = "Copied", className }: 
     </span>
   );
 }
+
+export default CopyButton;

@@ -24,13 +24,29 @@
  * `variable` option. This block only registers those same names as Tailwind
  * theme keys so `font-display` / `font-sans` / `font-mono` utilities exist.
  *
- * `inline` matters here: it makes generated utilities reference the
- * next/font-provided variable directly. Because next/font's own declaration
- * is unlayered CSS while everything @theme emits lives in Tailwind's
- * `theme` cascade layer, the unlayered next/font value always wins the
- * cascade regardless of source order, so this is safe even though the
- * left- and right-hand sides share a name. Generic fallbacks after the
- * var() keep this resilient if that variable is ever missing.
+ * The right-hand side is self-referential — `--font-display: var(--font-display), ...`
+ * — and that is intentional, not a typo. It is safe ONLY because next/font's
+ * own declaration (wherever layout.tsx applies `.variable`) is unlayered
+ * CSS, while everything @theme emits — including this block — lives inside
+ * Tailwind's `theme` cascade layer. Per the CSS Cascade Layers spec,
+ * unlayered author styles always outrank layered ones regardless of source
+ * order, so next/font's real value wins the cascade every time and this
+ * declaration's own self-reference is never the one actually evaluated.
+ * `inline` matters here too: it makes the generated utilities reference the
+ * variable directly rather than through a second layer of indirection.
+ *
+ * IMPORTANT, read before "fixing" this: the ", ui-serif, Georgia, ..." text
+ * after each var() is NOT a working fallback and must not be read as one —
+ * it is plain comma-separated text sitting outside the var()'s own argument
+ * list, not var()'s `(name, fallback)` form. If next/font's variable were
+ * ever genuinely missing, the self-reference becomes a real cycle: CSS
+ * invalidates the WHOLE declaration at computed-value time and does not
+ * fall through to the next comma-separated font — there is no browser path
+ * that ever reaches "ui-serif". That chain is kept only to document what a
+ * real fallback stack would look like; it is inert in every failure mode
+ * today. The only thing keeping fonts working is the identical name on both
+ * sides plus the cascade-layer priority above — do not rename this variable
+ * away from what layout.tsx passes to next/font's `variable` option.
  */
 @theme inline {
   --font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
@@ -287,13 +303,20 @@
 
   /* Cross-agent contract: any element that should never print — the site
      header, mobile menu, the contact form, the closing section, or
-     anything else — should carry className="no-print". header/footer/form
-     are also hidden by tag as a safety net since those landmarks are
-     guaranteed unique by SPEC §2 regardless of which agent renders them. */
+     anything else — should carry className="no-print". That is the only
+     reliable mechanism and the one every agent should reach for.
+     `body > header` / `body > footer` are an additional, narrowly-scoped
+     safety net for just the two page-level landmarks (SPEC §2 guarantees
+     exactly one of each, direct children of <body> in the App Router
+     layout) — deliberately NOT bare `header`/`footer`/`form` selectors,
+     which would also match a semantic <header> or <footer> nested inside
+     a résumé entry or case-study <article>/<section> and silently delete
+     it from the one output this stylesheet exists to serve. A contact
+     <form>, if ever wrapped in one, must opt out via .no-print rather
+     than relying on a tag selector here. */
   .no-print,
-  header,
-  footer,
-  form {
+  body > header,
+  body > footer {
     display: none !important;
   }
 

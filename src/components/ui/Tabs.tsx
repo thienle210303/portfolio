@@ -105,3 +105,5 @@ export function Tabs({ label, tabs, idPrefix }: TabsProps) {
     </div>
   );
 }
+
+export default Tabs;

@@ -21,3 +21,5 @@ export function Tag({ children, className }: TagProps) {
     </span>
   );
 }
+
+export default Tag;

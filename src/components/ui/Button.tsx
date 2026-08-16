@@ -87,3 +87,5 @@ export function Button(props: ButtonProps) {
     </button>
   );
 }
+
+export default Button;
