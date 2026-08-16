@@ -1,4 +1,5 @@
 import { profile } from "@/content/portfolio";
+import GuideLauncherCompact from "@/components/guide/GuideLauncherCompact";
 import SiteNav from "./SiteNav";
 
 /**
@@ -31,6 +32,9 @@ export default function SiteHeader() {
         </a>
 
         <div className="flex items-center gap-3 lg:gap-6">
+          {/* Only renders below `lg`, where the margin creature has no gutter
+              to live in. See GuideLauncherCompact. */}
+          <GuideLauncherCompact />
           <SiteNav />
           <a
             href="#contact"

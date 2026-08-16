@@ -275,6 +275,129 @@
   }
 
   /* ---------------------------------------------------------------------- */
+  /* Site guide — the margin creature                                       */
+  /*                                                                        */
+  /* Lives in the left gutter and never over content. Below the `lg`        */
+  /* breakpoint the lane is not rendered at all (see SiteGuide.tsx): a      */
+  /* creature walking around a 320px screen is pure annoyance, so there it  */
+  /* collapses to an ordinary button instead.                              */
+  /*                                                                        */
+  /* Colour is `--fg` / `--fg-subtle` only. `useLaneTone` toggles           */
+  /* `.on-light` on the lane as it passes over light sections, which        */
+  /* repoints those aliases — including `--ring-color`, so the focus ring   */
+  /* stays visible on both tones without a second rule.                    */
+  /* ---------------------------------------------------------------------- */
+
+  .guide-lane {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    display: none;
+    /*
+     * The lane *is* the gutter, rather than a fixed width that approximates
+     * it. A hardcoded 3.25rem overlapped the text column by 0.8px at exactly
+     * 1024px, where `clamp(1.25rem, 5vw, 5rem)` resolves to 51.2px — caught by
+     * the e2e assertion that the lane ends before the `<h1>` begins. Deriving
+     * it from the same token makes "never over content" true by construction
+     * at every width instead of at the widths someone happened to check.
+     *
+     * At the narrowest width this lane renders (64rem) the gutter is 51.2px,
+     * which still clears the 44px minimum target inside it.
+     */
+    width: var(--gutter);
+    justify-content: center;
+    /*
+     * Driven by the rAF loop in useCreatureMotion, which already eases the
+     * value. A CSS transition on top of that would double-smooth it and
+     * leave the creature lagging visibly behind the scroll.
+     */
+    transform: translateY(var(--guide-y, 30vh));
+  }
+
+  /* 64rem === Tailwind's `lg`. Matched by the breakpoint check in
+     SiteGuide.tsx, which must agree with this or the creature and the
+     fallback button can both render at once. */
+  @media (min-width: 64rem) {
+    .guide-lane {
+      display: flex;
+    }
+  }
+
+  .guide-launcher {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 2.75rem === 44px, the minimum target size (WCAG 2.2 §2.5.8). The fox
+       inside is smaller; the padding is the target. */
+    width: 2.75rem;
+    height: 2.75rem;
+    color: var(--fg-subtle);
+    /* At rest it is deliberately understated — present, not competing. Full
+       contrast arrives on hover or focus, i.e. once it is being addressed. */
+    opacity: 0.7;
+    transition:
+      color 200ms ease,
+      opacity 200ms ease;
+  }
+
+  .guide-launcher:hover,
+  .guide-launcher:focus-visible,
+  .guide-launcher[aria-expanded="true"] {
+    color: var(--fg);
+    opacity: 1;
+  }
+
+  .guide-fox {
+    width: 2.125rem;
+    height: auto;
+    fill: currentColor;
+  }
+
+  .guide-fox-head {
+    transform-box: view-box;
+    /* The neck joint, in viewBox units. */
+    transform-origin: 26px 21.5px;
+    transform: rotate(var(--guide-gaze, 0deg));
+  }
+
+  .guide-fox-legs {
+    transform-box: fill-box;
+    /* Pivot at the hip line, i.e. the top of each leg group's own box. */
+    transform-origin: 50% 0%;
+  }
+
+  /*
+   * `data-walking` is set by the motion hook only while the creature's
+   * position is actually changing, and cleared ~200ms after the last scroll
+   * tick. There is no idle animation anywhere in this file — every movement
+   * the creature makes is a direct response to a scroll or a pointer move.
+   *
+   * The global `prefers-reduced-motion` block above also neutralises these
+   * animations, and the hook additionally never sets `data-walking` when
+   * motion is suppressed. Both belts are deliberate.
+   */
+  .guide-lane[data-walking="true"] .guide-fox-legs--near {
+    animation: guide-step 340ms steps(1) infinite;
+  }
+
+  .guide-lane[data-walking="true"] .guide-fox-legs--far {
+    animation: guide-step 340ms steps(1) infinite reverse;
+  }
+
+  @keyframes guide-step {
+    0% {
+      transform: rotate(-7deg);
+    }
+    50% {
+      transform: rotate(7deg);
+    }
+    100% {
+      transform: rotate(-7deg);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* Screen-reader-only utilities                                           */
   /* ---------------------------------------------------------------------- */
 

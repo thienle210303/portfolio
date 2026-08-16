@@ -8,9 +8,15 @@
  * count on every change, copying the pattern from `CareerJourney/Timeline.tsx`.
  *
  * No URL state: it was optional in the brief and adds a hydration-mismatch
- * and history-pollution risk that isn't worth it for a same-page filter.
+ * and history-pollution risk that isn't worth it for a same-page filter. That
+ * still holds — `lens` now lives in a module-scope store (./lensStore) rather
+ * than in `useState` purely so the site guide can offer "show the résumé
+ * through the X lens" as a command. The store keeps both properties this note
+ * was protecting: its initial value is a constant on server and client alike,
+ * and nothing touches history. `depth` has no such external driver and stays
+ * ordinary component state.
  */
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type {
   Achievement,
   CareerEntry,
@@ -24,6 +30,7 @@ import type {
   SkillCategory,
 } from "@/types/portfolio";
 import type { FilterOption } from "@/components/ui/FilterGroup";
+import { getLens, getLensServerSnapshot, setLens, subscribeToLens } from "./lensStore";
 import ResumeControls from "./ResumeControls";
 import ResumeSkills from "./ResumeSkills";
 import ResumeEntries from "./ResumeEntries";
@@ -70,7 +77,7 @@ export default function ResumeExplorerClient({
   certifications,
   achievements,
 }: ResumeExplorerClientProps) {
-  const [lens, setLens] = useState<ResumeLensId | "all">("all");
+  const lens = useSyncExternalStore(subscribeToLens, getLens, getLensServerSnapshot);
   const [depth, setDepth] = useState<ResumeDepth>("quick-scan");
 
   const workEntriesAll = sortByKeyDescending(careerEntries.filter((entry) => entry.type === "work"));

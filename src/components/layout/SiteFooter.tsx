@@ -1,3 +1,4 @@
+import GuideRevive from "@/components/guide/GuideRevive";
 import { profile, socialLinks } from "@/content/portfolio";
 
 /**
@@ -10,9 +11,13 @@ import { profile, socialLinks } from "@/content/portfolio";
 const COPYRIGHT_YEAR = 2026;
 
 /**
- * Server Component — no interactivity needed. "Back to top" is a plain
- * anchor to `#main`, so it (and everything else here) keeps working with
- * JavaScript disabled.
+ * Server Component. "Back to top" is a plain anchor to `#main`, so it keeps
+ * working with JavaScript disabled.
+ *
+ * The one client island here is `GuideRevive`, which renders nothing unless
+ * the visitor has dismissed the site guide — so with JavaScript off, or for
+ * anyone who never dismissed it, this footer is exactly the static markup it
+ * was before.
  */
 export default function SiteFooter() {
   const email = socialLinks.find((link) => link.platform === "Email");
@@ -47,6 +52,8 @@ export default function SiteFooter() {
               </li>
             ))}
           </ul>
+
+          <GuideRevive />
         </div>
 
         <div className="flex flex-col items-start gap-4 sm:items-end">

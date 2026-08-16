@@ -5,6 +5,7 @@ import { careerEntries, education, profile, socialLinks, SITE_URL } from "@/cont
 import SkipLink from "@/components/layout/SkipLink";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import SiteGuide from "@/components/guide/SiteGuide";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -127,6 +128,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        {/* Last in the DOM on purpose: it is a fixed-position enhancement that
+            sits outside every landmark, so putting it here keeps it out of the
+            reading order and out of <main>. It renders nothing until hydrated
+            and nothing at all once dismissed. */}
+        <SiteGuide />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
