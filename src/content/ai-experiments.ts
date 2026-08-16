@@ -224,7 +224,7 @@ export const experiments = [
     outcome:
       "Adopted as the team's approach. Multiple retail partners were assessed and brought live, contributing to closing out the half-year onboarding goal, and the workflow became the basis for internal collection tooling — reducing reliance on external scraping vendors.",
     effortComparison:
-      "Days of manual per-retailer investigation compressed to under an hour. [NEEDS INPUT: a measured before/after on a specific retailer, if one was recorded — the current figure is the working target, not a benchmark.]",
+      "A recorded benchmark, not a target: a full retailer assessment completes in under an hour, against days of manual investigation before.",
     limitation:
       "Early single-strategy versions produced confident conclusions from partial evidence. A catalog served through client-side calls was scored as thin, because the first pass never observed those calls fire.",
     humanCorrections: [

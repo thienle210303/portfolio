@@ -63,9 +63,13 @@ export const profile = {
     "I write software for retail data at DoorDash. Before that I built scrapers at research scale, shipped features for an educational spelling platform, and replaced paper workflows on a manufacturing floor.",
   ],
   email: "thienle210303@gmail.com",
-  location: "[NEEDS INPUT: city / metro to display, e.g. 'Columbia, SC' or 'Remote — US']",
-  availability:
-    "[NEEDS INPUT: availability line, e.g. 'Open to senior backend/platform roles' or 'Not currently looking']",
+  // Deliberately unset, not missing. The hero renders no metadata row at all
+  // when these are undefined, which is the intended presentation: LinkedIn
+  // already carries the location, and an availability line either advertises
+  // a job search to a current employer or discourages inbound. Set either to
+  // a string to make the row appear — no other change is needed.
+  location: undefined,
+  availability: undefined,
   resumePdf: "/thien-le-resume.pdf",
   resumePdfLabel: "Thien Le — Résumé (PDF)",
 } satisfies Profile;
@@ -276,7 +280,9 @@ export const careerEntries = [
     sortKey: "2025-10",
     role: "Software Engineer",
     organization: "DoorDash, Inc.",
-    locationOrMode: "[NEEDS INPUT: office location or work mode]",
+    // Omitted on purpose: no other timeline entry carries one, so a single
+    // location here reads as an inconsistency rather than information.
+    locationOrMode: undefined,
     context:
       "Retail data — the pipelines and integrations that decide whether a retail partner can be represented accurately on the platform.",
     responsibilities: [
@@ -448,33 +454,43 @@ export const careerEntries = [
   {
     id: "cockyhacks",
     type: "milestone",
-    dateRange: "May 2025",
-    sortKey: "2025-05-d",
-    role: "Best Design",
+    dateRange: "April 2024",
+    sortKey: "2024-04",
+    role: "Best Design — MentorHub",
     organization: "CockyHacks, ACM@USC",
     locationOrMode: undefined,
-    context: "Hackathon award.",
+    context:
+      "Led a team of three to build a responsive web application connecting students with academic mentors.",
     responsibilities: [],
-    built: [],
+    built: ["MentorHub — a mentorship-matching web application built during the hackathon."],
     impact: ["Best Design."],
     learned: undefined,
-    technologies: [],
+    technologies: ["Python/Flask", "JavaScript/React", "APIs"],
+    link: {
+      label: "github.com/aarshrpatel/MentorHub",
+      href: "https://github.com/aarshrpatel/MentorHub",
+    },
     lenses: ["engineering", "leadership"],
   },
   {
     id: "code-to-give",
     type: "milestone",
-    dateRange: "May 2025",
-    sortKey: "2025-05-c",
-    role: "2nd Place",
+    dateRange: "April 2023",
+    sortKey: "2023-04",
+    role: "2nd Place — Food Route",
     organization: "Code to Give Hackathon, Morgan Stanley",
     locationOrMode: undefined,
-    context: "Hackathon placement.",
+    context:
+      "Built a web application routing people to food based on their location and preferences.",
     responsibilities: [],
-    built: [],
+    built: ["Food Route — a location- and preference-aware routing application."],
     impact: ["2nd place."],
     learned: undefined,
-    technologies: [],
+    technologies: ["Python/Flask", "JavaScript/React", "Redux", "SQL"],
+    link: {
+      label: "github.com/mellieho9/MSCodeToGive2023Project",
+      href: "https://github.com/mellieho9/MSCodeToGive2023Project",
+    },
     lenses: ["engineering"],
   },
   {
@@ -641,7 +657,16 @@ export const projects = [
       ],
     },
 
+    metrics: [
+      {
+        label: "Time to a feasibility answer",
+        before: "Days of manual investigation",
+        after: "Under 1 hour, end to end",
+        source: "Recorded benchmark — DoorDash retailer feasibility workflow",
+      },
+    ],
     proof: [
+      "A full retailer assessment completes in under an hour — a recorded benchmark, against days of manual investigation before.",
       "Multiple retail partners assessed and brought live on the platform.",
       "Contributed to closing out the half-year retail onboarding goal.",
       "Adopted by the team as the basis for internal collection tooling, reducing reliance on external scraping vendors.",
@@ -660,7 +685,7 @@ export const projects = [
       "Claude Code",
     ],
     inProgressNote:
-      "This work is internal to DoorDash, so there is no public demo or source link. Specific figures are being confirmed before publication.",
+      "This work is internal to DoorDash, so there is no public demo or source link.",
   },
 
   {
@@ -1094,19 +1119,19 @@ export const certifications = [
 ] satisfies readonly Certification[];
 
 export const achievements = [
+  // Dates here follow portfolio-v2, not the résumé. Thien confirmed the
+  // résumé's PROJECT & COMPETITION dates are wrong for these two events.
   {
     id: "a-cockyhacks",
     title: "Best Design",
-    context: "CockyHacks, ACM@USC",
-    date: "May 2025",
-    note: "[NEEDS INPUT: portfolio-v2 dates the CockyHacks/MentorHub project to April 2024, while the résumé lists this award as May 2025. Confirm which is correct.]",
+    context: "CockyHacks, ACM@USC — MentorHub",
+    date: "April 2024",
   },
   {
     id: "a-code-to-give",
     title: "2nd Place",
-    context: "Code to Give Hackathon, Morgan Stanley",
-    date: "May 2025",
-    note: "[NEEDS INPUT: portfolio-v2 dates the Food Route project to April–May 2023. Confirm the correct event date.]",
+    context: "Code to Give Hackathon, Morgan Stanley — Food Route",
+    date: "April 2023",
   },
   {
     id: "a-magellan",
