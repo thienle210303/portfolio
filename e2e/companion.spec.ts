@@ -249,6 +249,7 @@ test.describe("companion", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await companionAwake(page);
 
     // While the cats are on, the footer carries no trace of the recovery
     // control at all — it is the one control that only makes sense once
@@ -277,14 +278,16 @@ test.describe("companion", () => {
     // One click, and they are roaming again — no reload required, because
     // it writes through the same store `Companion` itself is subscribed to.
     await footerRecovery(page).click();
-    await expect(catButton(page)).toBeVisible();
+    // Generous timeout: remounting the whole companion under full-suite
+    // worker load can outrun the 5s default without anything being wrong.
+    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
     await expect(footerRecovery(page)).toHaveCount(0);
 
     // And the preference sticks: a visitor who used this route back does not
     // find the cats off again on their next load.
     await page.reload();
     await page.waitForLoadState("networkidle");
-    await expect(catButton(page)).toBeVisible();
+    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
     await expect(footerRecovery(page)).toHaveCount(0);
 
     // Put them back off for the rest of this test, which continues to
@@ -517,6 +520,7 @@ test.describe("companion", () => {
      * exactly why the suite was green while the owner was watching two cats
      * leave the screen for the rest of a visit.
      */
+    await companionAwake(page);
     await page.mouse.move(760, 600);
     let lastTickAt = Date.now();
     for (let tick = 0; tick < 20; tick += 1) {
