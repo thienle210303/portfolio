@@ -117,11 +117,44 @@ question rather than silently changing it.
 
 | WP | Owner | Items | Files | Status |
 | --- | --- | --- | --- | --- |
-| A | Opus | FB-4(cat), FB-5, FB-6, FB-7, FB-8(nap) | `src/components/companion/*`, `e2e/companion.spec.ts` | In progress |
-| B | Sonnet | FB-1, FB-4(tone) | `src/sections/Contact/*` | In progress |
-| C | Sonnet | FB-2 | `src/sections/Hero/*` | In progress |
-| D | Opus | FB-3 | `src/sections/SelectedWork/*` | In progress |
-| E | Sonnet | FB-8(root) | `src/sections/CareerJourney/KnowledgeTree.tsx` | In progress |
+| A | Opus | FB-4(cat), FB-5, FB-6, FB-7, FB-8(nap) | `src/components/companion/*`, `e2e/companion.spec.ts` | Implemented · verified |
+| B | Sonnet | FB-1, FB-4(tone) | `src/sections/Contact/*` | Implemented · verified |
+| C | Sonnet | FB-2 | `src/sections/Hero/*` | Implemented · verified |
+| D | Opus | FB-3 | `src/sections/SelectedWork/*` | Implemented · verified |
+| E | Sonnet | FB-8(root) | `src/sections/CareerJourney/KnowledgeTree.tsx` | Implemented · verified |
+
+## Integration log (2026-08-17)
+
+Verified: `pnpm verify` green (typecheck, lint, contrast, 183 unit tests,
+production build) and the full Playwright matrix — 283 tests across six
+viewports, both themes, all tones, axe audits — green. Visual pass done in a
+real browser at 1440/390 in day and night.
+
+Two integration defects found and fixed by the lead:
+
+- **320px @ 200% zoom horizontal overflow.** The rail's `<dd>` can hold an
+  unbreakable token (the hero's email address) whose min-content width
+  stretched the whole endnote column below 1024px; a lens row then placed a
+  flex item past the viewport edge — scrollable overflow where plain text
+  would only be ink. Rail details and lens labels now `wrap-anywhere`
+  (`Section.tsx`, `HeroAbout.tsx`).
+- **Flaky companion spec.** The two-cats placement assertion sampled
+  `style.transform` once, racing the first animation frame under full-suite
+  load; it now polls for the settled state.
+
+Follow-ups (not blocking, for a future pass):
+
+- Reduced-motion/touch visitors get the cats pinned to the bottom-right
+  corner (pre-existing placement), where they can sit over the footer's
+  copyright line at the very bottom of the page. Worth a nudge or a footer
+  safe-area.
+- `scripts/screenshots.mjs` still shoots a `#resume` section and a
+  "Deep Dive" control that no longer exist since the résumé became a route;
+  the script needs a refresh before its next use.
+
+Open question for Thien (unchanged): keep the single annotation blue, or go
+truly zero-hue? Blue is currently load-bearing for links, measured values and
+the primary control, and every pairing is contrast-checked.
 
 **Cross-package contract (owned by the lead):** an element may declare
 `data-cat-nap` (optionally `data-cat-nap="id"`). When the pointer rests on it

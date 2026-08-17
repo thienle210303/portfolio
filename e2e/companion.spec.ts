@@ -107,17 +107,26 @@ test.describe("companion", () => {
     // *positions* are not asserted — the tabby is deliberately erratic.
     await expect(page.locator("[data-companion] svg")).toHaveCount(2);
 
-    const placement = await page.evaluate(() => {
-      const wrappers = Array.from(document.querySelectorAll("[data-companion] svg")).map(
-        (svg) => svg.closest("[data-companion] > *") as HTMLElement | null,
-      );
-      return {
-        distinct: new Set(wrappers).size,
-        positioned: wrappers.filter((el) => el?.style.transform.includes("translate3d")).length,
-      };
-    });
-    expect(placement.distinct).toBe(2);
-    expect(placement.positioned).toBe(2);
+    // Polled, not sampled once: the transforms are written by the first
+    // animation frames after hydration, and under full-suite worker load that
+    // first frame can land after networkidle. What is asserted is the settled
+    // state, so waiting for it is correct rather than lenient.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const wrappers = Array.from(
+              document.querySelectorAll("[data-companion] svg"),
+            ).map((svg) => svg.closest("[data-companion] > *") as HTMLElement | null);
+            return {
+              distinct: new Set(wrappers).size,
+              positioned: wrappers.filter((el) => el?.style.transform.includes("translate3d"))
+                .length,
+            };
+          }),
+        { timeout: 10_000 },
+      )
+      .toEqual({ distinct: 2, positioned: 2 });
   });
 
   test("sends the cats to a visible resting box, which brings them back", async ({ page }) => {
