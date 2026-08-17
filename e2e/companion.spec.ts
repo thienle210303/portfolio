@@ -433,11 +433,22 @@ test.describe("companion", () => {
      * leave the screen for the rest of a visit.
      */
     await page.mouse.move(760, 600);
+    let lastTickAt = Date.now();
     for (let tick = 0; tick < 20; tick += 1) {
       await page.mouse.wheel(0, 420);
       await page.waitForTimeout(800);
       // Not polled at the end: the claim is that they never go, so it has to
       // hold on every step past the threshold, not just once it has passed.
+      //
+      // Unless the harness itself stalled. Under full-suite worker load a
+      // tick can arrive seconds late, and a long-enough gap in scroll events
+      // IS the product's definition of "nobody is here" — the bed engaging
+      // then is correct behaviour, not the bug. So a late tick re-establishes
+      // presence and skips its assertion instead of failing on the product
+      // doing what it should.
+      const gap = Date.now() - lastTickAt;
+      lastTickAt = Date.now();
+      if (gap > 8_000) continue;
       await expect(bed).toHaveCount(0);
     }
 
