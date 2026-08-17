@@ -18,6 +18,11 @@ import QuickConnect from "./QuickConnect";
  * `emailDeliveryConfigured` is computed once, server-side, in `page.tsx`
  * from the three Resend env vars. Only this boolean crosses to the client;
  * nothing here ever references `process.env` directly.
+ *
+ * Tone is `deep`, not `contrast`. A full inversion right where visitors do
+ * their most form-focused reading read as disconnected from the rest of the
+ * page rather than as a deliberate chapter break — that device stays
+ * reserved for `Closing`, the page's one true contrast section.
  */
 
 interface ContactProps {
@@ -26,7 +31,7 @@ interface ContactProps {
 
 export default function Contact({ emailDeliveryConfigured }: ContactProps) {
   return (
-    <Section id="contact" labelledBy="contact-heading" eyebrow="Contact" tone="contrast">
+    <Section id="contact" labelledBy="contact-heading" eyebrow="Contact" tone="deep">
       <SectionHeading
         id="contact-heading"
         lead="Take a link, leave a number, or write properly — whichever suits. Nothing is sent until you send it."
