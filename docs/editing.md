@@ -58,7 +58,7 @@ case study never ends up with no evidence in it.
 Add an entry to `careerEntries`. One entry feeds all of:
 
 - the **Journey** timeline
-- the **knowledge tree** ("How it maps together")
+- the **knowledge tree** ("The career tree")
 - the **résumé** at `/resume`
 - "Ask this site"
 - the hero's "Now" line, which reads the most recent `type: "work"` entry — so
