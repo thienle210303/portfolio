@@ -91,7 +91,13 @@ export function Section({
               {rail.map((note) => (
                 <div key={note.term}>
                   <dt>{note.term}</dt>
-                  <dd>{note.detail}</dd>
+                  {/* `wrap-anywhere` because a rail detail can be an email
+                      address or a URL — an unbreakable token whose min-content
+                      width otherwise stretches the whole endnote column below
+                      1024px. At 320px under 200% zoom that stretched column is
+                      what decides whether the page scrolls sideways
+                      (e2e/responsive.spec.ts). */}
+                  <dd className="wrap-anywhere">{note.detail}</dd>
                 </div>
               ))}
             </dl>

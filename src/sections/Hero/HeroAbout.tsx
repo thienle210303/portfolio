@@ -113,8 +113,19 @@ export default function HeroAbout() {
               <p className="eyebrow">Where it shows up</p>
               <ul role="list" className="mt-3 flex flex-col gap-3">
                 {LENSES.map((lens) => (
-                  <li key={lens.id} className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0">
+                  // `flex-wrap` so the count can drop under the label when
+                  // the row runs out of room instead of being pushed past the
+                  // viewport edge — a flex item forced outside is scrollable
+                  // overflow even where plain text would only be ink.
+                  <li key={lens.id} className="flex flex-wrap items-baseline justify-between gap-3">
+                    {/* `wrap-anywhere` is load-bearing, not defensive: at 320px
+                        under 200% zoom (a 160px layout viewport) these rows'
+                        min-content width — longest word plus the count — is
+                        what decides whether the whole page scrolls sideways.
+                        A box overflowing a flex row is scrollable overflow,
+                        unlike a long word overflowing a paragraph, which is
+                        only ink. e2e/responsive.spec.ts holds the line here. */}
+                    <span className="wrap-anywhere min-w-0">
                       <span className="block text-[length:var(--step--1)] text-[color:var(--fg)]">
                         {lens.label}
                       </span>
