@@ -316,8 +316,66 @@ environment is incomplete, so the client can fall back to the email-app flow.
 ### Site URL
 
 `SITE_URL` in `src/content/portfolio.ts` drives `metadataBase`, the canonical
-URL, Open Graph tags, JSON-LD and the sitemap. Update it when the real domain is
-live.
+URL, Open Graph tags, JSON-LD and the sitemap. It resolves in this order:
+
+| Source | When it wins |
+|---|---|
+| `NEXT_PUBLIC_SITE_URL` | always, if set — this is the one to set on your host |
+| `NEXT_PUBLIC_VERCEL_URL` | on a deployment that exposes its own hostname |
+| the literal in `portfolio.ts` | everywhere else, including local dev |
+
+The middle rung exists so a preview deployment describes *itself*. Without it,
+every preview publishes canonical URLs and a sitemap claiming to be production.
+
+This one is deliberately `NEXT_PUBLIC_` — unlike the contact variables, it is
+public information (it is printed in the page's own `<head>`), and it must
+resolve to the same string on the server and in the browser or the two disagree
+about what page this is.
+
+---
+
+## Deploying
+
+The app is a stock Next.js App Router build with one dynamic route
+(`/api/contact`); everything else prerenders. Vercel is the path of least
+resistance — import the repo, and it detects Next.js and pnpm from
+`pnpm-lock.yaml` on its own. No `vercel.json` is needed, and there isn't one:
+an empty config file only overrides detection that is already correct.
+
+1. **Import the repository** on Vercel. Leave the framework preset, build
+   command and output directory alone.
+2. **Set the environment variables** (Project → Settings → Environment
+   Variables):
+
+   | Variable | Environments | Notes |
+   |---|---|---|
+   | `NEXT_PUBLIC_SITE_URL` | Production | your real domain, e.g. `https://thienle.dev` |
+   | `RESEND_API_KEY` | Production (+ Preview to test it) | omit and the form falls back to `mailto:` |
+   | `CONTACT_TO_EMAIL` | same as above | |
+   | `CONTACT_FROM_EMAIL` | same as above | must be on a domain verified in Resend |
+
+   The three contact variables are all-or-nothing: with any one missing the
+   route returns `503 { reason: "not-configured" }` and the UI switches to the
+   email-app flow. That is a working site, not a broken one — so it is safe to
+   deploy before Resend is set up.
+3. **Add the domain** (Project → Settings → Domains) and point DNS at it. Then
+   set `NEXT_PUBLIC_SITE_URL` to it and redeploy, so canonical URLs, the
+   sitemap and the JSON-LD all agree with where the site actually is.
+
+Two things to know before it is live:
+
+- **The rate limiter in `/api/contact` is per-instance and in memory.** A cold
+  start resets it, and concurrent instances do not share a count. It is a
+  courtesy throttle, not a security boundary; the honeypot, the Zod schema and
+  the length limits are what actually protect the endpoint. If the form ever
+  attracts real abuse, move the counter to a shared store.
+- **The résumé PDF is a static file**, not a render of `/resume`. See
+  [Replacing the résumé PDF](#replacing-the-résumé-pdf) — deploying does not
+  regenerate it.
+
+Nothing about the app is Vercel-specific: `pnpm build && pnpm start` runs it
+anywhere Node 20.9+ does, and with the contact route removed it would export
+statically.
 
 ---
 
