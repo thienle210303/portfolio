@@ -189,3 +189,17 @@ declares the attribute on the tree root. No other package touches either side.
 - Both themes, all three tones; 320–1440px without horizontal overflow.
 - Keyboard + reduced-motion paths for every new interaction.
 - No raw `--color-*` tokens, no new dependencies, no npm/yarn lockfiles.
+
+## Round 3 (2026-08-17)
+
+| Item | Verdict | Outcome |
+| --- | --- | --- |
+| More playful cat actions (toys/laser) | Accepted; laser declined (palette rule — no hue for decoration) | Yarn-ball scene (bat, roll, chase) + moth scene (track, pounce), line-drawn, minutes apart, idle-gated, clear-spot probed, absent under reduced motion/touch |
+| "Send away" → bed wording | Accepted | "Send the cats to bed" everywhere incl. accessible name |
+| Remove "Off" from bed | Accepted (reverses part of round 1 at owner's call) | Bed has one wake control; permanent off lives in the toolkit only |
+| Snoring | Accepted | Drifting mono z's over sleeping cats; display:none under reduced motion (repo's first CSS module carries the keyframes) |
+| Contact business card | Accepted | Two panes >=1024px: contact column left, sticky identity card right (serif name, title, philosophy, ruled email/GitHub/LinkedIn block, giant quiet monogram); card prints; stacks card-first below 1024px |
+
+Verified: pnpm verify green (typecheck, lint, contrast, 183 unit tests, build
+including the new CSS module) and the full Playwright matrix 282 passed / 0
+failed, both themes, all viewports.
