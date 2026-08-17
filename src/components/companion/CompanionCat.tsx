@@ -1,5 +1,6 @@
 /**
- * The companions' bodies: two cats, drawn as single-weight line drawings.
+ * The companions' bodies: one cat per instance, drawn as a single-weight line
+ * drawing.
  *
  * Drawn from photographs of Thien's actual animals, which is why the pair are
  * not mirror images of each other:
@@ -11,7 +12,13 @@
  *
  * Both are deliberately wide and low. They are a little fat.
  *
- * ## How the two coats are told apart without adding a single colour
+ * This file used to draw both of them inside one 92-wide viewBox, which meant
+ * they shared a pose, a phase and a position by construction — two animals that
+ * could only ever be one sprite stamped twice. Each cat is its own element now
+ * and `Companion` positions them independently; the only thing they still share
+ * is this drawing and the rAF loop that drives it.
+ *
+ * ## How the coats are told apart without adding a single colour
  *
  * The obvious way to draw a grey cat next to a brown tabby is two coat colours,
  * and that would mean amending the ten-token palette rule in `globals.css` for
@@ -28,25 +35,22 @@
  * single exception, inherited from the original drawing, is the eye — it uses
  * `--accent`, the one detail worth spending the site's colour licence on.
  *
+ * The police cat is the same drawing again — the grey one's wash, none of the
+ * tabby's markings — plus a cap. A third coat would have needed a third way of
+ * filling a silhouette, and there isn't one that stays inside the palette.
+ *
  * Each pose is one continuous contour wherever it can be. A silhouette drawn as
  * one line survives being scaled down far better than the same shape assembled
  * from a dozen separate strokes, which is the size this is actually seen at.
  *
- * Purely presentational and `aria-hidden`: `Companion` owns the button, the
- * accessible name and every behaviour.
+ * Purely presentational and `aria-hidden`: `Companion` owns the buttons, the
+ * accessible names and every behaviour.
  */
 
-/**
- * One cat is drawn in a local 50×42 box; the pair sit side by side in a 92-wide
- * one. They are placed with a gap rather than nose-to-tail on purpose — the
- * tabby has no fill, so an overlap would show the leader's tail crossing her
- * face as a tangle of hairlines rather than as depth.
- */
-export const CAT_W = 92;
+/** One cat's local drawing box. Everything the contours reach stays inside it,
+ *  including the tail at full sway. */
+export const CAT_W = 50;
 export const CAT_H = 42;
-
-/** Where the leading cat's local box starts inside the pair's viewBox. */
-const LEAD_X = 46;
 
 /**
  * The grey coat. High enough to read as a solid-coated animal beside the
@@ -55,11 +59,17 @@ const LEAD_X = 46;
  */
 const COAT_WASH = 0.42;
 
+export type CatPose = "sit" | "walk" | "sleep";
+export type CatVariant = "grey" | "tabby" | "police";
+
 interface CompanionCatProps {
-  readonly pose: "sit" | "walk" | "sleep";
+  readonly variant: CatVariant;
+  readonly pose: CatPose;
   /** 0..1 through the current cycle. Drives tail sway and the walk gait. */
   readonly phase: number;
   readonly blinking: boolean;
+  /** Drawn smaller inside the resting box. 1 everywhere else. */
+  readonly scale?: number;
 }
 
 const STROKE = {
@@ -102,6 +112,21 @@ const SLEEP_BODY = `M 12.5 34 C 6 31, 6 22.5, 13.5 20 C 21 17.5, 31.5 19, 35 24 
    C 20 35.9, 15.5 35.4, 12.5 34 Z`;
 
 /**
+ * The cap, drawn between the two ear tips and sitting on the skull line the
+ * `HEAD` contour already establishes (y ≈ 8.2–9.2 across x 35–41.5). It is the
+ * police cat's only distinguishing mark, so it has to read at 50px wide: a
+ * crown, the band under it and a peak thrown forward over the eye — three
+ * strokes, no fill, same weight as the animal it sits on.
+ *
+ * Only drawn on the standing poses. The police cat escorts and leaves; it never
+ * curls up, and a cap positioned for an upright head lands in mid-air once the
+ * body lies down.
+ */
+const CAP_CROWN = "M 33.6 9.2 C 34.6 5.2, 41.4 5, 42.6 9.4";
+const CAP_BAND = "M 33 9.5 L 43.2 9.7";
+const CAP_PEAK = "M 42.4 9.6 L 46.8 10.9";
+
+/**
  * Walk-cycle legs: the hip each one hangs from, and which way its foot swings.
  * Front and back pairs oppose each other, which is what makes four straight
  * lines read as a gait rather than as a table.
@@ -113,13 +138,6 @@ const WALK_LEGS = [
   { x: 15.6, y: 29.4, dir: 1 },
 ] as const;
 
-interface CatProps {
-  readonly pose: "sit" | "walk" | "sleep";
-  readonly phase: number;
-  readonly blinking: boolean;
-  readonly variant: "grey" | "tabby";
-}
-
 /**
  * One cat, in its own local 50×42 box, facing right.
  *
@@ -129,13 +147,22 @@ interface CatProps {
  * can stay this simple. Each is positioned per pose, because a stripe that
  * follows the spine while the cat is sitting is in mid-air once it lies down.
  */
-function Cat({ pose, phase, blinking, variant }: CatProps) {
+function Cat({ pose, phase, blinking, variant }: Omit<CompanionCatProps, "scale">) {
   const tabby = variant === "tabby";
   const sway = Math.sin(phase * Math.PI * 2);
 
   /** The solid coat. Applied to the body contour only — never to the tail or
    *  the legs, which are open strokes that a fill would close into blobs. */
   const coat = tabby ? STROKE : { ...STROKE, fill: "currentColor", fillOpacity: COAT_WASH };
+
+  const cap =
+    variant === "police" ? (
+      <g {...STROKE}>
+        <path d={CAP_CROWN} />
+        <path d={CAP_BAND} />
+        <path d={CAP_PEAK} />
+      </g>
+    ) : null;
 
   const face = (
     <>
@@ -197,6 +224,7 @@ function Cat({ pose, phase, blinking, variant }: CatProps) {
           </g>
         ) : null}
         {face}
+        {cap}
         {/*
           Four legs, and — on the tabby — four white socks.
 
@@ -248,6 +276,7 @@ function Cat({ pose, phase, blinking, variant }: CatProps) {
         </g>
       ) : null}
       {face}
+      {cap}
       {/* Seated, only the front legs show — so the tabby gets two boots, sat
           on the body's own bottom edge rather than hanging below it. */}
       <path {...STROKE} d={`M 34.5 ${tabby ? 33.4 : 36.5} L 34.5 26.5`} />
@@ -261,30 +290,16 @@ function Cat({ pose, phase, blinking, variant }: CatProps) {
   );
 }
 
-export function CompanionCat({ pose, phase, blinking }: CompanionCatProps) {
+export function CompanionCat({ variant, pose, phase, blinking, scale = 1 }: CompanionCatProps) {
   return (
     <svg
       viewBox={`0 0 ${CAT_W} ${CAT_H}`}
-      width={CAT_W}
-      height={CAT_H}
+      width={CAT_W * scale}
+      height={CAT_H * scale}
       aria-hidden="true"
       focusable="false"
     >
-      {/*
-        The tabby follows, so she is drawn on the left — the pair face right,
-        and `Companion` flips the whole group when they turn around, which keeps
-        the follower behind the leader in both directions.
-
-        Her gait runs half a cycle out of step with his. Two cats walking in
-        perfect lockstep read as one sprite stamped twice, and that half-phase
-        offset is the single cheapest thing that makes them two animals.
-      */}
-      <g transform="translate(0 0)">
-        <Cat variant="tabby" pose={pose} phase={(phase + 0.5) % 1} blinking={blinking} />
-      </g>
-      <g transform={`translate(${LEAD_X} 0)`}>
-        <Cat variant="grey" pose={pose} phase={phase} blinking={blinking} />
-      </g>
+      <Cat variant={variant} pose={pose} phase={phase} blinking={blinking} />
     </svg>
   );
 }
