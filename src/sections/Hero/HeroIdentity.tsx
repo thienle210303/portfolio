@@ -1,8 +1,13 @@
 /**
  * Hero identity column: the eyebrow (name + title), the page's single <h1>
  * (profile.headline), the intro paragraph, an optional location/availability
- * metadata row, the three hero actions, the social links row, and finally
- * the About paragraphs beneath that fold-line content (SECTIONS.md §1).
+ * metadata row, the three hero actions, and the social links row.
+ *
+ * The About paragraphs used to render at the bottom of this column, but at
+ * >=1360px that made them a lone narrow stack beside a large empty area once
+ * the code artifact ended (FB-2). They now render in `HeroAbout`, a
+ * full-width band `Hero` places below the fold instead of inside this
+ * column — same content, same `<Section id="about">`, different composition.
  *
  * `location`/`availability` are `Maybe<string>` and currently hold literal
  * `[NEEDS INPUT: ...]` markers in content. `resolved()` is typed so those
@@ -27,9 +32,6 @@ interface HeroIdentityProps {
   /** Must match the id passed as the enclosing <Section>'s `labelledBy`. */
   readonly headingId: string;
 }
-
-const PROSE_CLASS =
-  "prose-measure text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]";
 
 const RESUME_LINK_CLASS =
   "inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-6 py-2.5 font-sans text-[length:var(--step-0)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]";
@@ -111,19 +113,6 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
           </li>
         ))}
       </ul>
-
-      {profile.about.length > 0 ? (
-        <div className="mt-16 border-t border-[color:var(--rule-color)] pt-10 lg:mt-20">
-          <p className="eyebrow">About</p>
-          <div className="mt-4 space-y-4">
-            {profile.about.map((paragraph) => (
-              <p key={paragraph} className={PROSE_CLASS}>
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
