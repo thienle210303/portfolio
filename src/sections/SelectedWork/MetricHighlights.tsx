@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import type { MetricComparison } from "@/types/portfolio";
 
 /**
@@ -24,21 +25,33 @@ import type { MetricComparison } from "@/types/portfolio";
 
 interface MetricHighlightsProps {
   readonly metrics: readonly MetricComparison[];
-  /** Labels the group for assistive technology, e.g. "Measured results — …". */
-  readonly label: string;
+  /** id of the visible group label the `<ul>` points at. */
+  readonly labelId: string;
+  /** Appended to the group's accessible name, visually hidden: five groups
+   *  all announced as "Measured results" are indistinguishable in a screen
+   *  reader's list of them. */
+  readonly projectTitle: string;
 }
 
 /** More than three abreast stops being scannable and starts being a table,
  *  which is what the disclosure already contains. */
 const MAX_SHOWN = 3;
 
-/** Columns follow the number of figures. A fixed three-column grid left one
- *  filled cell beside two empty ones — which read as a rendering fault, not as
- *  restraint. */
+/**
+ * Columns follow the number of figures. A fixed three-column grid left one
+ * filled cell beside two empty ones — which read as a rendering fault, not as
+ * restraint.
+ *
+ * The step back to a single column at `lg` is not a whim: from 1024px the
+ * section spends a fixed 10rem on the case-study index (SelectedWork.tsx),
+ * and three figures in what remains set "Under 1 hour, end to end" as four
+ * ragged lines — which is no longer a figure. Full width until `xl`, where
+ * the column is wide enough to hold them abreast again.
+ */
 const COLUMNS: Record<number, string> = {
   1: "sm:grid-cols-1",
-  2: "sm:grid-cols-2",
-  3: "sm:grid-cols-3",
+  2: "sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2",
+  3: "sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3",
 };
 
 /**
@@ -54,7 +67,11 @@ function figureSize(value: string): string {
   return "text-[length:var(--step-1)] tracking-[-0.01em]";
 }
 
-export default function MetricHighlights({ metrics, label }: MetricHighlightsProps) {
+export default function MetricHighlights({
+  metrics,
+  labelId,
+  projectTitle,
+}: MetricHighlightsProps) {
   if (metrics.length === 0) return null;
 
   const shown = metrics.slice(0, MAX_SHOWN);
@@ -63,18 +80,35 @@ export default function MetricHighlights({ metrics, label }: MetricHighlightsPro
   const sources = [...new Set(shown.map((metric) => metric.source))];
 
   return (
-    <div className="mt-6">
+    <div className="mt-8">
+      {/* Labelled in the same micro-type as "Technologies" and "Proof", so
+          the row's three annotated blocks stay one system. What lifts this
+          one is the panel below it, not a louder label. */}
+      <p id={labelId} className="eyebrow">
+        Measured results
+        {/* Explicit text-node space, not decorative whitespace — see the same
+            note in Disclosure and ExternalLink. A space written inside
+            VisuallyHidden is trimmed when that element's contribution to the
+            accessible name is computed, so the name would announce as
+            "Measured results— …". A sibling text node survives. */}
+        {" "}
+        <VisuallyHidden>— {projectTitle}</VisuallyHidden>
+      </p>
       <ul
-        aria-label={label}
+        aria-labelledby={labelId}
         className={cn(
-          "grid gap-px border border-[color:var(--rule-color)] bg-[color:var(--rule-color)]",
+          "mt-3 grid gap-px border border-[color:var(--rule-color)] bg-[color:var(--rule-color)]",
           COLUMNS[shown.length] ?? "sm:grid-cols-3",
         )}
       >
         {shown.map((metric) => (
           <li
             key={metric.label}
-            className="flex flex-col gap-1 bg-[color:var(--ground)] px-4 py-4"
+            // `--surface`, not `--ground`: the figures are the section's
+            // evidence, and lifting them onto the same raised paper the cards
+            // and code panel use is what separates proof from the prose
+            // around it — without spending a second colour to do it.
+            className="flex flex-col gap-1.5 bg-[color:var(--surface)] px-5 py-5"
           >
             <span
               className={cn(

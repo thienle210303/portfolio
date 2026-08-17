@@ -1,7 +1,23 @@
 /**
- * One project row: the always-visible "recruiter view" card, plus the full
- * Problem -> Constraint -> Decision -> Build -> Proof -> Lesson deep dive
- * inside a shared Disclosure.
+ * One project row: a masthead (index numeral, where and when, title,
+ * tagline), the measured proof, the metadata, and the full Problem ->
+ * Constraint -> Decision -> Build -> Proof -> Lesson deep dive inside a
+ * shared Disclosure.
+ *
+ * The row opens like a chapter rather than a card. The numeral is set at
+ * display size against the rule that separates this row from the one above,
+ * and organisation and dates rise to sit on its baseline — provenance is the
+ * first thing a reader wants and it used to be printed under the title. What
+ * follows is ordered by what answers "did this work?" soonest: figures,
+ * then the technologies, then the actions, then the deep dive.
+ *
+ * The numeral no longer occupies a 2/12 gutter. That column is what pays for
+ * the case-study index beside the list (see SelectedWork.tsx), and a numeral
+ * locked into the masthead has more presence than one parked in a margin.
+ *
+ * `id` + `tabindex="-1"` are the jump-target contract with that index: it
+ * scrolls here and moves focus here. `scroll-mt-*` is what keeps the landing
+ * clear of the sticky header and, below 1024px, of the docked index row.
  *
  * Every fact is read from the `Project` object or, for organisation and
  * dates, looked up once via `careerEntryById` — never restated as a literal
@@ -21,6 +37,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { Tag } from "@/components/ui/Tag";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
+import { caseStudyAnchorId, caseStudyNumeral } from "./anchors";
 import WorkflowDiagram from "./WorkflowDiagram";
 import MetricHighlights from "./MetricHighlights";
 import MetricTable from "./MetricTable";
@@ -41,6 +58,15 @@ const H4_CLASS =
  * `<Section>`'s own eyebrow uses, reused here for sub-labels within a case
  * study so the typographic motif stays consistent at every depth. */
 const MICRO_LABEL_CLASS = "eyebrow";
+
+/** Text link for a demo or a repository. Underlined `--fg`, matching how
+ *  every other section sets an inline link (see ExperimentEntry,
+ *  TimelineEntry); `min-h-11` buys the tap target without touching the type
+ *  size. These used to render with no class at all, which left them in the
+ *  browser's default link colour — the one colour on the page belonging to
+ *  no palette. */
+const TEXT_LINK_CLASS =
+  "wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step--1)] text-[color:var(--fg)] underline underline-offset-4 hover:no-underline";
 
 const BULLET_ITEM_CLASS =
   "wrap-anywhere relative pl-5 before:absolute before:left-0 before:top-[0.7em] before:h-[5px] before:w-[5px] before:rounded-full before:bg-[color:var(--fg-subtle)] before:content-['']";
@@ -145,6 +171,7 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
   const titleId = `${project.id}-title`;
   const techLabelId = `${project.id}-tech-label`;
   const proofLabelId = `${project.id}-proof-label`;
+  const metricsLabelId = `${project.id}-metrics-label`;
 
   // Disclosure's trigger keeps `summary` visible at all times (state is
   // conveyed by an icon + hidden text, not by the visible label changing) —
@@ -153,180 +180,224 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
   // open/closed state. `expandLabel`/`collapseLabel` still carry the
   // "read/collapse" verb pair SECTIONS.md asks for, appended to the
   // accessible name only, matching Disclosure's own documented contract.
+  //
+  // The visible label is set in the display serif at the same step as the
+  // deep dive's own headings, so the trigger reads as the entrance to a
+  // chapter rather than as one more line of body copy. The wording is a
+  // contract: four e2e specs find this trigger by an accessible name
+  // starting "Read the full case study" — restyle it freely, do not rename it.
   const disclosureSummary = (
-    <>
+    <span className="font-display text-[length:var(--step-1)] leading-snug text-[color:var(--fg)]">
       Read the full case study
-      <VisuallyHidden> — {project.title}</VisuallyHidden>
-    </>
+      {/* Explicit text-node space — a space inside VisuallyHidden is trimmed
+          out of the computed name, which announced this as "case study—
+          Title". Disclosure and ExternalLink both document the same trap. */}
+      {" "}
+      <VisuallyHidden>— {project.title}</VisuallyHidden>
+    </span>
   );
 
   return (
     <article
+      id={caseStudyAnchorId(project.id)}
+      // Focus target for the case-study index, which moves focus here after
+      // scrolling. Programmatic only — negative tabindex keeps the article
+      // itself out of the tab order.
+      tabIndex={-1}
       aria-labelledby={titleId}
-      className="border-t border-[color:var(--rule-color)] py-12 first:border-t-0 first:pt-0 md:grid md:grid-cols-12 md:gap-x-8 md:py-16"
+      // Landing offset for that jump: 4rem of sticky header plus, below
+      // 1024px, the docked index row (~3.5rem) and a little air. Written as
+      // scale steps rather than calc() for the same reason `Section` writes
+      // `scroll-mt-20` — one class, no arbitrary-value arithmetic.
+      className="scroll-mt-36 border-t border-[color:var(--rule-color)] py-14 first:border-t-0 first:pt-0 md:py-20 lg:scroll-mt-24"
     >
-      <div className="md:col-span-2 md:col-start-1" aria-hidden="true">
-        <p className="font-mono text-[length:var(--step-0)] text-[color:var(--fg-subtle)]">
-          {String(index + 1).padStart(2, "0")}
-        </p>
-      </div>
+      <header>
+        {/*
+          The chapter opener. The numeral is structural, not informative —
+          the index announces position, and the <article> is named by its
+          <h3> — so it is hidden from assistive technology and free to be
+          large. Baseline-aligned with the provenance line, which is why they
+          share a row rather than being stacked.
+        */}
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <p
+            aria-hidden="true"
+            className="font-mono text-[length:var(--step-4)] leading-[0.85] tracking-[-0.03em] text-[color:var(--fg-subtle)]"
+          >
+            {caseStudyNumeral(index)}
+          </p>
+          {entry ? (
+            <p className="wrap-anywhere eyebrow">
+              {entry.organization} · {entry.dateRange}
+            </p>
+          ) : null}
+        </div>
 
-      <div className="mt-5 md:col-span-10 md:col-start-3 md:mt-0">
         <h3
           id={titleId}
-          className="font-display text-[length:var(--step-3)] font-normal leading-[1.05] tracking-[-0.02em] text-[color:var(--fg)]"
+          className="mt-4 font-display text-[length:var(--step-3)] font-normal leading-[1.05] tracking-[-0.02em] text-[color:var(--fg)]"
         >
           {project.title}
         </h3>
 
-        {entry ? (
-          <p className="wrap-anywhere mt-3 eyebrow">
-            {entry.organization} · {entry.dateRange}
-          </p>
-        ) : null}
-
         <p className="prose-measure mt-4 text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg)]">
           {project.tagline}
         </p>
+      </header>
 
-        {project.technologies.length > 0 ? (
-          <div className="mt-5">
-            <p id={techLabelId} className={MICRO_LABEL_CLASS}>
-              Technologies
-            </p>
-            <ul role="list" aria-labelledby={techLabelId} className="mt-2.5 flex flex-wrap gap-2">
-              {project.technologies.map((tech) => (
-                <li key={tech}>
-                  <Tag>
-                    <span className="wrap-anywhere">{tech}</span>
-                  </Tag>
-                </li>
-              ))}
-            </ul>
-          </div>
+      {/*
+        Figures, not prose bullets — and they come before the metadata now.
+
+        This slot used to hold the first three `proof` sentences. Someone
+        scanning the section is deciding whether to open the case study, and
+        that decision is answered by a number far faster than by a sentence —
+        so the measured results come up out of the disclosure and the prose
+        stays inside it, where a reader who has already decided to read will
+        find every proof line in full. Sitting them directly under the tagline
+        puts the section's evidence where the eye already is, ahead of the
+        technology list, which is metadata rather than proof.
+
+        Projects without metrics keep the prose: for those, the sentences are
+        the only evidence there is, and showing nothing would be worse.
+      */}
+      {project.metrics && project.metrics.length > 0 ? (
+        <MetricHighlights
+          metrics={project.metrics}
+          labelId={metricsLabelId}
+          projectTitle={project.title}
+        />
+      ) : project.proof.length > 0 ? (
+        <div className="mt-8">
+          <p id={proofLabelId} className={MICRO_LABEL_CLASS}>
+            Proof
+          </p>
+          <ul role="list" aria-labelledby={proofLabelId} className="mt-3 space-y-2.5">
+            {project.proof.slice(0, 3).map((item) => (
+              <li
+                key={item}
+                className={cn(
+                  BULLET_ITEM_CLASS,
+                  "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg)]",
+                )}
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {project.technologies.length > 0 ? (
+        <div className="mt-8">
+          <p id={techLabelId} className={MICRO_LABEL_CLASS}>
+            Technologies
+          </p>
+          <ul role="list" aria-labelledby={techLabelId} className="mt-3 flex flex-wrap gap-2">
+            {project.technologies.map((tech) => (
+              <li key={tech}>
+                <Tag>
+                  <span className="wrap-anywhere">{tech}</span>
+                </Tag>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-1">
+        {project.demo ? (
+          <ExternalLink href={project.demo.href} className={TEXT_LINK_CLASS}>
+            {project.demo.label}
+          </ExternalLink>
         ) : null}
-
+        {project.source ? (
+          <ExternalLink href={project.source.href} className={TEXT_LINK_CLASS}>
+            {project.source.label}
+          </ExternalLink>
+        ) : null}
         {/*
-          Figures, not prose bullets.
+         * Deliberately a plain <a>, not the shared Button primitive.
+         * Contact listens for `document.querySelectorAll("a[data-project-title]")`
+         * clicks — Button's typed prop union has no room for an arbitrary
+         * data-* attribute, and this specific link is a cross-agent
+         * contract that must not depend on how a component I don't own
+         * forwards props. Styled to match Button's secondary/sm recipe by
+         * hand so it's visually indistinguishable from a real one.
+         */}
+        <a
+          href="#contact"
+          data-project-title={project.title}
+          className="inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-4 py-2 font-sans text-[length:var(--step--1)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]"
+        >
+          Discuss this project
+          {" "}
+          <VisuallyHidden>— {project.title}</VisuallyHidden>
+        </a>
+      </div>
 
-          This slot used to hold the first three `proof` sentences. Someone
-          scanning the section is deciding whether to open the case study, and
-          that decision is answered by a number far faster than by a sentence —
-          so the measured results come up out of the disclosure and the prose
-          stays inside it, where a reader who has already decided to read will
-          find every proof line in full.
+      {/*
+        The deep dive reads as a panel you open, not as a line you click: the
+        trigger and everything it reveals share one bordered box, and the box
+        answers the pointer. The `:has()` selector is scoped to the direct
+        child button so a control *inside* an expanded case study never lights
+        up the frame around it.
+      */}
+      <div className="mt-8">
+        <Disclosure
+          id={`case-study-${project.id}`}
+          summary={disclosureSummary}
+          expandLabel="Expand"
+          collapseLabel="Collapse"
+          defaultOpen={false}
+          className="border border-[color:var(--rule-color)] px-4 pb-2 transition-colors duration-200 [&:has(>button:hover)]:border-[color:var(--fg)] md:px-6"
+        >
+          <div className="divide-y divide-[color:var(--rule-color)]">
+            <SectionBlock heading="Problem">
+              <p className={PROSE_CLASS}>{project.problem}</p>
+              <p className={PROSE_CLASS}>{project.whyItMattered}</p>
+              {assumption ? <LeadIn label="What people assumed">{assumption}</LeadIn> : null}
+            </SectionBlock>
 
-          Projects without metrics keep the prose: for those, the sentences are
-          the only evidence there is, and showing nothing would be worse.
-        */}
-        {project.metrics && project.metrics.length > 0 ? (
-          <MetricHighlights
-            metrics={project.metrics}
-            label={`Measured results — ${project.title}`}
-          />
-        ) : project.proof.length > 0 ? (
-          <div className="mt-5">
-            <p id={proofLabelId} className={MICRO_LABEL_CLASS}>
-              Proof
-            </p>
-            <ul role="list" aria-labelledby={proofLabelId} className="mt-2.5 space-y-2.5">
-              {project.proof.slice(0, 3).map((item) => (
-                <li
-                  key={item}
-                  className={cn(
-                    BULLET_ITEM_CLASS,
-                    "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg)]",
-                  )}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+            <SectionBlock heading="Constraint">
+              <ProseList items={project.constraints} ariaLabel="Constraints" />
+              <LeadIn label="My responsibility">{project.responsibility}</LeadIn>
+            </SectionBlock>
 
-        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-          {project.demo ? (
-            <ExternalLink href={project.demo.href}>{project.demo.label}</ExternalLink>
-          ) : null}
-          {project.source ? (
-            <ExternalLink href={project.source.href}>{project.source.label}</ExternalLink>
-          ) : null}
-          {/*
-           * Deliberately a plain <a>, not the shared Button primitive.
-           * Contact listens for `document.querySelectorAll("a[data-project-title]")`
-           * clicks — Button's typed prop union has no room for an arbitrary
-           * data-* attribute, and this specific link is a cross-agent
-           * contract that must not depend on how a component I don't own
-           * forwards props. Styled to match Button's secondary/sm recipe by
-           * hand so it's visually indistinguishable from a real one.
-           */}
-          <a
-            href="#contact"
-            data-project-title={project.title}
-            className="inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-4 py-2 font-sans text-[length:var(--step--1)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]"
-          >
-            Discuss this project
-            <VisuallyHidden> — {project.title}</VisuallyHidden>
-          </a>
-        </div>
-
-        <div className="mt-6">
-          <Disclosure
-            id={`case-study-${project.id}`}
-            summary={disclosureSummary}
-            expandLabel="Expand"
-            collapseLabel="Collapse"
-            defaultOpen={false}
-          >
-            <div className="divide-y divide-[color:var(--rule-color)]">
-              <SectionBlock heading="Problem">
-                <p className={PROSE_CLASS}>{project.problem}</p>
-                <p className={PROSE_CLASS}>{project.whyItMattered}</p>
-                {assumption ? <LeadIn label="What people assumed">{assumption}</LeadIn> : null}
-              </SectionBlock>
-
-              <SectionBlock heading="Constraint">
-                <ProseList items={project.constraints} ariaLabel="Constraints" />
-                <LeadIn label="My responsibility">{project.responsibility}</LeadIn>
-              </SectionBlock>
-
-              <SectionBlock heading="Decision">
-                <ProseList items={project.decisions} ariaLabel="Decisions" />
-                {project.pathsExplored.length > 0 ? (
-                  <div>
-                    <p className={MICRO_LABEL_CLASS}>Paths explored</p>
-                    <div className="mt-2.5">
-                      <ProseList items={project.pathsExplored} ariaLabel="Paths explored" />
-                    </div>
+            <SectionBlock heading="Decision">
+              <ProseList items={project.decisions} ariaLabel="Decisions" />
+              {project.pathsExplored.length > 0 ? (
+                <div>
+                  <p className={MICRO_LABEL_CLASS}>Paths explored</p>
+                  <div className="mt-2.5">
+                    <ProseList items={project.pathsExplored} ariaLabel="Paths explored" />
                   </div>
-                ) : null}
-                {project.whatFailed && project.failureLesson ? (
-                  <FailureAside whatFailed={project.whatFailed} failureLesson={project.failureLesson} />
-                ) : null}
-              </SectionBlock>
+                </div>
+              ) : null}
+              {project.whatFailed && project.failureLesson ? (
+                <FailureAside whatFailed={project.whatFailed} failureLesson={project.failureLesson} />
+              ) : null}
+            </SectionBlock>
 
-              <SectionBlock heading="Build">
-                <ProseList items={project.built} ariaLabel="What I built" />
-                {project.workflow ? <WorkflowDiagram diagram={project.workflow} /> : null}
-              </SectionBlock>
+            <SectionBlock heading="Build">
+              <ProseList items={project.built} ariaLabel="What I built" />
+              {project.workflow ? <WorkflowDiagram diagram={project.workflow} /> : null}
+            </SectionBlock>
 
-              <SectionBlock heading="Proof">
-                <ProseList items={project.proof} ariaLabel="Proof" />
-                {project.metrics && project.metrics.length > 0 ? (
-                  <MetricTable metrics={project.metrics} caption={`Metrics — ${project.title}`} />
-                ) : null}
-              </SectionBlock>
+            <SectionBlock heading="Proof">
+              <ProseList items={project.proof} ariaLabel="Proof" />
+              {project.metrics && project.metrics.length > 0 ? (
+                <MetricTable metrics={project.metrics} caption={`Metrics — ${project.title}`} />
+              ) : null}
+            </SectionBlock>
 
-              <SectionBlock heading="Lesson">
-                <p className={PROSE_CLASS}>{project.learned}</p>
-                <LeadIn label="The next question I'd explore">{project.nextQuestion}</LeadIn>
-              </SectionBlock>
-            </div>
+            <SectionBlock heading="Lesson">
+              <p className={PROSE_CLASS}>{project.learned}</p>
+              <LeadIn label="The next question I'd explore">{project.nextQuestion}</LeadIn>
+            </SectionBlock>
+          </div>
 
-            {project.inProgressNote ? <InProgressNote note={project.inProgressNote} /> : null}
-          </Disclosure>
-        </div>
+          {project.inProgressNote ? <InProgressNote note={project.inProgressNote} /> : null}
+        </Disclosure>
       </div>
     </article>
   );
