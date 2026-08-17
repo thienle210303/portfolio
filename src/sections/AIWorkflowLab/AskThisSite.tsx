@@ -35,7 +35,10 @@ import { ANSWER_FILENAME, answerLiteral, describeAnswerLiteral } from "./answer-
  * flourish, and it is built to stay one: prose is the first tab and the default,
  * the code adds no field the prose card does not already show, and it is
  * generated from `answer()`'s output rather than from anything new (see
- * `./answer-code.ts`).
+ * `./answer-code.ts`). The Code tab opens on a one-line caption above the
+ * panel — the same claim as this comment, in visitor-facing words, not a new
+ * one — so the tab reads as a deliberate feature rather than a bare view
+ * switch.
  *
  * The shared `Tabs` primitive carries it, for two reasons beyond the keyboard
  * support it already has tested. Tabs is the exact semantic — one thing, two
@@ -55,6 +58,11 @@ import { ANSWER_FILENAME, answerLiteral, describeAnswerLiteral } from "./answer-
 
 const NOTHING_FOUND =
   "Nothing on this page answers that. Everything here is drawn from what's actually written in the sections above — if it isn't there, I'd rather say so than guess.";
+
+/** Shown before the first question — the results region's resting state,
+ *  rather than a blank gap under the form. */
+const IDLE_HINT =
+  "No question asked yet. Pick one above, or type your own, and the answer will land here — sourced, and linked back to the page it came from.";
 
 /** The prose reading: quoted evidence, its source, and a way back to it. */
 function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
@@ -92,11 +100,25 @@ function CodeAnswer({
   readonly results: readonly Answer[];
 }) {
   return (
-    <CodeBlock
-      code={answerLiteral(question, results)}
-      filename={ANSWER_FILENAME}
-      summary={describeAnswerLiteral(results)}
-    />
+    <div>
+      {/* The eyebrow + one-line caption are what turn this into a labelled
+          sub-section rather than a bare panel behind a tab. The line names
+          what the panel already is — the same words as the Prose tab, in a
+          different shape — and adds no claim beyond that (see the file-level
+          doc comment above). */}
+      <p className="eyebrow">This answer, as data</p>
+      <p className="prose-measure mt-2 text-[length:var(--step--1)] leading-relaxed text-fg-muted">
+        The exact sentences from the Prose tab, written out as the TypeScript object they already
+        are.
+      </p>
+      <div className="mt-4">
+        <CodeBlock
+          code={answerLiteral(question, results)}
+          filename={ANSWER_FILENAME}
+          summary={describeAnswerLiteral(results)}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -134,27 +156,30 @@ export default function AskThisSite() {
           the site, you get told so.
         </p>
 
-        <ul className="mt-5 flex flex-wrap gap-2">
-          {SUGGESTED_QUESTIONS.map((question) => (
-            <li key={question}>
-              <button
-                type="button"
-                onClick={() => ask(question)}
-                className={cn(
-                  "min-h-11 border border-rule px-3 py-1.5 text-left text-[length:var(--step--1)]",
-                  "text-fg-muted transition-colors duration-200",
-                  "hover:border-accent hover:text-accent",
-                  asked === question && "border-accent text-accent",
-                )}
-              >
-                {question}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-6">
+          <p className="eyebrow">Try asking</p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {SUGGESTED_QUESTIONS.map((question) => (
+              <li key={question}>
+                <button
+                  type="button"
+                  onClick={() => ask(question)}
+                  className={cn(
+                    "min-h-11 border border-rule px-3 py-1.5 text-left text-[length:var(--step--1)]",
+                    "text-fg-muted transition-colors duration-200",
+                    "hover:border-accent hover:text-accent",
+                    asked === question && "border-accent text-accent",
+                  )}
+                >
+                  {question}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <form
-          className="mt-5"
+          className="mt-6"
           onSubmit={(event) => {
             event.preventDefault();
             ask(query);
@@ -191,9 +216,21 @@ export default function AskThisSite() {
 
         {/* Live region is always present, so an answer arriving into it is
             announced rather than missed. Exactly one rendering of the answer
-            ever sits inside it — see the note on Tabs at the top of the file. */}
-        <div id={resultsId} aria-live="polite" className="mt-6 min-w-0">
-          {asked === null ? null : results.length === 0 ? (
+            ever sits inside it — see the note on Tabs at the top of the file.
+            The hairline above frames it as its own sub-section from first
+            paint, with a resting-state line rather than a blank gap under
+            the form, so the panel reads as one deliberate instrument rather
+            than a prompt with an afterthought bolted underneath. */}
+        <div
+          id={resultsId}
+          aria-live="polite"
+          className="mt-8 min-w-0 border-t border-rule pt-6"
+        >
+          {asked === null ? (
+            <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-subtle">
+              {IDLE_HINT}
+            </p>
+          ) : results.length === 0 ? (
             <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
               {NOTHING_FOUND}
             </p>
