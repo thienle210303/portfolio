@@ -290,6 +290,11 @@ export function findClearSpot(want: Point, home: Point, avoid?: Point): Point {
   return clampToViewport(home);
 }
 
+/** The three scopes a section can be in. `tone-base` is the same alias set the
+ *  root already carries, so it is only listed to stop `closest` walking past a
+ *  base section into something outside it. */
+const TONES = ".tone-contrast,.tone-deep,.tone-base";
+
 /**
  * Repoint a cat's own semantic aliases at whatever section it is currently over.
  *
@@ -302,11 +307,21 @@ export function findClearSpot(want: Point, home: Point, avoid?: Point): Point {
  * token, no second palette, and it stays correct in both themes because the
  * theme decides what "loud" resolves to.
  *
+ * `tone-deep` is sampled as well as `tone-contrast`, and it did not have to be
+ * until round 5. The line work reads fine on either quiet ground, so for four
+ * rounds only the loud one mattered. Then the cats became opaque: they knock
+ * themselves out of the page in `var(--ground)`, and `--ground` on a `deep`
+ * section is a visible half-step darker than the base one (`#e3e8ec` against
+ * `#edf0f2`). A cat carrying the base ground across Philosophy, Skills or
+ * Contact would be a paler cat-shaped patch on a darker page — which is the
+ * same class of bug as the transparent cat, arrived at from the other side.
+ *
  * Written straight to the DOM rather than through React state: it changes with
  * position, and position is deliberately not in React.
  */
 export function syncTone(node: HTMLElement | null, at: Point): void {
   if (!node) return;
-  const behind = elementBehind(at.x, at.y);
-  node.classList.toggle("tone-contrast", behind?.closest(".tone-contrast") != null);
+  const zone = elementBehind(at.x, at.y)?.closest(TONES) ?? null;
+  node.classList.toggle("tone-contrast", zone?.classList.contains("tone-contrast") === true);
+  node.classList.toggle("tone-deep", zone?.classList.contains("tone-deep") === true);
 }

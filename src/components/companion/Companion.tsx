@@ -5,12 +5,20 @@ import { profile } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import CompanionCat, { CAT_H, CAT_W, type CatPose } from "./CompanionCat";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
-import RestingBox, { BED_H, BED_INSET, BED_W, IdleBed } from "./RestingBox";
+import RestingBox, {
+  BOX_SLOT,
+  CLUSTER_H,
+  CLUSTER_INSET,
+  CLUSTER_W,
+  IdleFurniture,
+  KICK_SLOT,
+  PAPER_SLOT,
+} from "./RestingBox";
 import ToolkitPanel, { PANEL_ID } from "./ToolkitPanel";
 import {
   advancePlay,
   openPlay,
-  pickToy,
+  pickScene,
   scheduleNextPlay,
   PLAY_RETRY,
   type Play,
@@ -53,7 +61,7 @@ import {
  *     and tracks the pointer; the tabby follows *him*, on her own clock, and
  *     stops to watch the cursor or wander off when it suits her.
  *  5. Anything it does of its own accord is *rare*. The idle flourishes are
- *     tens of seconds apart and the toys — see companion-play — are minutes
+ *     tens of seconds apart and the scenes — see companion-play — are minutes
  *     apart, can only start while the cats are already settled and the visitor
  *     is not doing anything, and end on the frame the pointer moves. A
  *     companion that performs on a schedule you can feel is a companion you
@@ -64,7 +72,11 @@ import {
  *     every target and every position now goes through. The third was social
  *     rather than geometric: after a while they simply stopped following and
  *     went quiet wherever they were standing, which reads as a bug even when
- *     the cat is right there. Now they go to bed, in the corner, visibly.
+ *     the cat is right there. Now they go to the corner, visibly. The fourth
+ *     was optical and lasted four rounds: they were *transparent*, so two cats
+ *     crossing the hero headline had the words running straight through their
+ *     bodies. Every drawing on this layer now knocks the page out underneath
+ *     itself in `var(--ground)` — see the note in `CompanionCat`.
  *
  * On touch devices there is no cursor to follow, so the roaming behaviour is
  * skipped entirely and both cats simply rest in the corner as a toolkit button.
@@ -100,6 +112,9 @@ const LEAD_SPEED = 4.4;
  *  escort has a ~2.5s budget and the walk can start anywhere on screen. */
 const ESCORT_SPEED = 7.5;
 const POLICE_SPEED = 8;
+/** A cat that has decided to bolt. Only the chase scene asks for this, and only
+ *  for the two beats it lasts. */
+const DASH_SPEED = 8.6;
 
 /**
  * The follower's speed curve. See `followTarget` and `ramp` below — between
@@ -116,19 +131,23 @@ const FOLLOW_RANGE = 200;
 const FOLLOW_ACCEL = 0.34;
 const FOLLOW_BRAKE = 0.5;
 
-/* ---------------------------------------------------------------- the bed --
+/* ------------------------------------------------------------ the corner --
  *
  * Two sleeps, and the difference between them is the whole point:
  *
  *  - `CompanionMode === "resting"` is a **preference**. The visitor asked for
  *    the cats to be put away, it is written to localStorage under "companion",
- *    it survives a reload, and only the box's own "Wake the cats" button undoes
- *    it. That flow owns `RestingBox`, and it is the only one that touches
+ *    it survives a reload, and only the corner's own "Wake the cats" button
+ *    undoes it. That flow owns `RestingBox`, and it is the only one that touches
  *    storage.
  *  - Idle sleep — everything below — is a **moment**. Nobody has done anything
  *    for `SLEEP_AFTER`, so instead of dozing off in whatever margin they
- *    happened to be standing in, they walk to the corner bed and curl up in it.
- *    Nothing is written anywhere: reload and they roam, exactly as before.
+ *    happened to be standing in, they walk to the corner and settle into the
+ *    furniture. Nothing is written anywhere: reload and they roam, exactly as
+ *    before.
+ *
+ * Both sleeps end up in the same three pieces of furniture and the same two
+ * slots — see `RestingBox`, which owns the geometry both of them read.
  *
  * "Nobody has done anything" is deliberately wider than "the pointer has not
  * moved", and the difference is the whole of `lastSignRef`. Reading a long page
@@ -143,6 +162,34 @@ const FOLLOW_BRAKE = 0.5;
  * to say so.
  */
 type Bed = "walking" | "asleep" | null;
+
+/**
+ * How the pair go to bed, decided once when they set off for the corner.
+ *
+ * They always end up in the wrong furniture — the carton and the sheet of paper,
+ * with the bed left empty — because that is the joke and a joke that only lands
+ * a third of the time is a bug the rest of the time. The rare part is the
+ * detour: now and again the tabby stops at the bed on her way past, shoves it,
+ * and *then* goes to lie on the paper.
+ *
+ * `at` is when she arrived at the bed, and it is what turns a position into a
+ * sequence: nothing about the shove can start until she is standing next to the
+ * thing she is shoving.
+ */
+interface SleepPlan {
+  readonly kick: boolean;
+  phase: "kick" | "settle";
+  at: number;
+}
+
+/** How long she spends booting the bed, and how far into that the bed actually
+ *  moves — the shove has to land after the paw is already out, or the furniture
+ *  jumps before anything touches it. */
+const KICK_MS = 760;
+const KICK_HIT = 260;
+/** How often the detour happens at all. Rare enough that a visitor who sees it
+ *  twice has been here a while. */
+const KICK_ODDS = 0.22;
 
 /** How near the pointer must come before a cat asleep in the bed will get up,
  *  and how far it must travel anywhere else to have the same effect. A twitch
@@ -308,50 +355,72 @@ function followHome(home: Point): Point {
   return clampToViewport({ x: home.x - CAT_W - FOLLOW_GAP, y: home.y });
 }
 
-/** Their two places in the resting box, spread across it rather than stacked. */
-function slotsForBox(rect: DOMRect): Spots {
-  const y = rect.top + rect.height / 2 - CAT_H / 2;
+/**
+ * The furniture cluster, in viewport coordinates. Computed from the same four
+ * numbers the element is positioned with, so the cats cannot miss their own
+ * box.
+ */
+function clusterBox(): { left: number; top: number } {
   return {
-    lead: clampToViewport({ x: rect.right - CAT_W - 4, y }),
-    follow: clampToViewport({ x: rect.left + 4, y }),
-  };
-}
-
-/** The idle bed, in viewport coordinates. Computed from the same three numbers
- *  the element is positioned with, so the cats cannot miss their own bed. */
-function bedBox(): { left: number; top: number } {
-  return {
-    left: Math.max(0, viewport().width - BED_INSET - BED_W),
-    top: Math.max(0, viewport().height - BED_INSET - BED_H),
+    left: Math.max(0, viewport().width - CLUSTER_INSET - CLUSTER_W),
+    top: Math.max(0, viewport().height - CLUSTER_INSET - CLUSTER_H),
   };
 }
 
 /**
- * Their two places on the mat: the tabby on the left, the grey one on the
- * right, which is the order the resting box prints them in.
- *
  * The lead's slot is pulled back by the hit-target margin its button carries
  * around the drawing, because that transform positions the *button* and not the
  * animal inside it. Everywhere else on the page four pixels of drift between
- * two roaming cats is invisible; sharing a 112px bed, it is not.
+ * two roaming cats is invisible; wedged into a 44px carton, it is not.
+ *
+ * Only the idle path needs it: mid-escort the grey one is no longer a control,
+ * so he is drawn in a bare box with no margin at all — which is why
+ * `slotsForBox` below does not subtract it.
  */
 const LEAD_PAD_X = 4;
 const LEAD_PAD_Y = 3;
 
-function bedSlots(): Spots {
-  const box = bedBox();
-  const y = box.top + (BED_H - CAT_H) / 2;
+/**
+ * Where the two of them actually sleep — and it is not the bed.
+ *
+ * The grey one takes the carton and the tabby takes the sheet of paper, always,
+ * because the joke is about the furniture rather than about which animal gets
+ * which piece: randomising it would only make the corner look unstable between
+ * naps. What *is* occasionally different is how she gets there — see the kick
+ * spot below.
+ */
+function sleepSlots(pad: boolean): Spots {
+  const box = clusterBox();
   return {
-    lead: clampToViewport({ x: box.left + BED_W / 2 - LEAD_PAD_X, y: y - LEAD_PAD_Y }),
-    follow: clampToViewport({ x: box.left + BED_W / 2 - CAT_W, y }),
+    lead: clampToViewport({
+      x: box.left + BOX_SLOT.x - (pad ? LEAD_PAD_X : 0),
+      y: box.top + BOX_SLOT.y - (pad ? LEAD_PAD_Y : 0),
+    }),
+    follow: clampToViewport({ x: box.left + PAPER_SLOT.x, y: box.top + PAPER_SLOT.y }),
   };
 }
 
-/** Distance from a point to the bed's edge, zero inside it. */
+/** Their two places in the resting box, which draws the same cluster at the
+ *  same offsets — so the escort walks them exactly where the drawing that
+ *  replaces them will be. */
+function slotsForBox(rect: DOMRect): Spots {
+  return {
+    lead: clampToViewport({ x: rect.left + BOX_SLOT.x, y: rect.top + BOX_SLOT.y }),
+    follow: clampToViewport({ x: rect.left + PAPER_SLOT.x, y: rect.top + PAPER_SLOT.y }),
+  };
+}
+
+/** Where the tabby stands to shove the bed out of her way. */
+function kickSpot(): Point {
+  const box = clusterBox();
+  return clampToViewport({ x: box.left + KICK_SLOT.x, y: box.top + KICK_SLOT.y });
+}
+
+/** Distance from a point to the cluster's edge, zero inside it. */
 function nearBed(point: Point): boolean {
-  const box = bedBox();
-  const dx = Math.max(box.left - point.x, 0, point.x - (box.left + BED_W));
-  const dy = Math.max(box.top - point.y, 0, point.y - (box.top + BED_H));
+  const box = clusterBox();
+  const dx = Math.max(box.left - point.x, 0, point.x - (box.left + CLUSTER_W));
+  const dy = Math.max(box.top - point.y, 0, point.y - (box.top + CLUSTER_H));
   return Math.hypot(dx, dy) < BED_WAKE_NEAR;
 }
 
@@ -541,8 +610,12 @@ export function Companion() {
   const [copied, setCopied] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
   const [bed, setBed] = useState<Bed>(null);
-  /** Which toy is on the page, if any. The only part of a play React knows
-   *  about: everything else it does is a transform written per frame. */
+  /** The bed has been booted out of the way. React owns this one because it is
+   *  a CSS transition on a piece of furniture, not a per-frame position. */
+  const [shoved, setShoved] = useState(false);
+  /** Which prop is on the page, if any. The only part of a play React knows
+   *  about: everything else it does is a transform written per frame. The chase
+   *  has no prop at all, and stays null throughout. */
   const [toy, setToy] = useState<ToyKind | null>(null);
   const [frame, setFrame] = useState<Frame>(INITIAL_FRAME);
 
@@ -554,7 +627,11 @@ export function Companion() {
   const toySpin = useRef<SVGGElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  /** The two halves of the idle furniture — everything behind the animals, and
+   *  the carton's front panel in front of them. Both are opaque line work on the
+   *  fixed layer, so both need the tone sample. */
   const matRef = useRef<HTMLDivElement>(null);
+  const matFrontRef = useRef<HTMLDivElement>(null);
   const wakeButtonRef = useRef<HTMLButtonElement>(null);
 
   const lead = useRef<Mover>(mover(0));
@@ -591,6 +668,9 @@ export function Companion() {
    *  can both read it. The *loop* owns the value; everything else asks it to
    *  reconsider by resetting the idle clock. */
   const bedRef = useRef<Bed>(null);
+  /** How this particular bedtime goes. Rolled once, when they set off. */
+  const sleepPlan = useRef<SleepPlan | null>(null);
+  const shovedRef = useRef(false);
   /** Pointer distance accumulated since they curled up. */
   const travelRef = useRef(0);
   const napRef = useRef<Nap | null>(null);
@@ -626,6 +706,12 @@ export function Companion() {
     if (!playRef.current) return;
     playAt.current = scheduleNextPlay(now);
     playRef.current = null;
+    // The spots they settled on before the scene are stale the moment a scene
+    // moves them, and two of them do: a chase can finish a viewport away from
+    // where it started, and cats that then walked all the way back to their old
+    // spot would be undoing the scene in front of the visitor. Cleared here so
+    // the next frame re-probes from wherever they actually are.
+    settleSpots.current = null;
     setToy(null);
   }, []);
 
@@ -959,18 +1045,22 @@ export function Companion() {
       /* -------------------------------------------------------------- play -- */
 
       /**
-       * A toy, on the rare frame every condition lines up.
+       * A scene, on the rare frame every condition lines up.
        *
-       * The list of things that end a scene is longer than the list that starts
-       * one, and that asymmetry is the design: the cats' first duty is to the
+       * The list of things that end one is longer than the list that starts one,
+       * and that asymmetry is the design: the cats' first duty is to the
        * visitor, so anything with a claim on them — the escort, a nap spot, the
-       * toolkit, or simply the pointer moving again — drops the toy on the frame
-       * it appears rather than finishing the beat.
+       * toolkit, or simply the pointer moving again — drops the scene on the
+       * frame it appears rather than finishing the beat. That holds for the
+       * scenes with no prop as much as for the ones with: a chase abandoned
+       * mid-sprint just leaves two cats going back to trailing the cursor.
        */
       if (playRef.current && (forced !== null || !parked)) endPlay(now);
       if (playAt.current === 0) playAt.current = scheduleNextPlay(now);
 
-      const scene = playRef.current ? advancePlay(playRef.current, now) : null;
+      // The grey one's live position goes in because one scene — the gift —
+      // hangs its prop off his mouth while the loop is the thing moving him.
+      const scene = playRef.current ? advancePlay(playRef.current, now, grey.pos) : null;
       if (scene?.done) endPlay(now);
       /** Non-null only while a scene is actually mid-flight. */
       const beat: PlayBeat | null = scene && !scene.done ? scene : null;
@@ -983,9 +1073,10 @@ export function Companion() {
        * see is two cats in a bed they never sent them to.
        *
        * A running scene holds the bed off. Play can only *start* inside the
-       * window between settling and dozing, but the last beat of a yarn ball
-       * can outlive it, and two cats walking away from a toy mid-roll to go to
-       * bed is the one way this could read as broken.
+       * window between settling and dozing, but the last beat of a yarn ball —
+       * or of a bowl the pair are still eating out of — can outlive it, and two
+       * cats walking away mid-scene to go to bed is the one way this could read
+       * as broken.
        */
       const wantsBed = !forced && pointer !== null && aloneFor > SLEEP_AFTER && !beat;
 
@@ -1004,10 +1095,12 @@ export function Companion() {
         tabby.pose !== "walk" &&
         now > playAt.current
       ) {
-        const opened = openPlay(pickToy(), grey.pos, grey.facing, now);
+        const opened = openPlay(pickScene(), grey.pos, tabby.pos, grey.facing, now);
         if (opened) {
           playRef.current = opened;
-          setToy(opened.kind);
+          // Null for the chase, which is two cats and no props — the one scene
+          // that mounts nothing at all.
+          setToy(opened.prop);
         } else {
           playAt.current = now + PLAY_RETRY;
         }
@@ -1017,6 +1110,9 @@ export function Companion() {
 
       let leadWant: Point;
       let followWant: Point;
+      /** True only on the frames the tabby is actually booting the bed, which
+       *  is the one thing that outranks "everybody is asleep" below. */
+      let kicking = false;
 
       if (run) {
         leadWant = run.slots.lead;
@@ -1049,20 +1145,42 @@ export function Companion() {
               });
         followWant = grey.pos;
       } else if (wantsBed) {
-        // Bored, and going somewhere about it. No content probe: the bed *is*
+        // Bored, and going somewhere about it. No content probe: the corner *is*
         // the destination, it is the companion's own furniture, and it is drawn
-        // in the corner the toolkit and the resting box already own.
-        const slots = bedSlots();
+        // where the toolkit and the resting box already are.
+        const plan = (sleepPlan.current ??= {
+          kick: Math.random() < KICK_ODDS,
+          phase: "kick",
+          at: 0,
+        });
+        const slots = sleepSlots(true);
         leadWant = slots.lead;
-        followWant = slots.follow;
+        if (plan.kick && plan.phase === "kick") {
+          // The detour. She walks to the bed first, and only once she is
+          // standing next to it does anything happen to it.
+          const spot = kickSpot();
+          followWant = spot;
+          if (distance(tabby.pos, spot) < 4) {
+            if (plan.at === 0) plan.at = now;
+            kicking = true;
+            if (!shovedRef.current && now - plan.at > KICK_HIT) {
+              shovedRef.current = true;
+              setShoved(true);
+            }
+            if (now - plan.at > KICK_MS) plan.phase = "settle";
+          }
+        } else {
+          followWant = slots.follow;
+        }
       } else if (beat) {
-        // Playing. The grey one holds the spot he settled on — he bats the
-        // thing and then watches it go, which is what a cat that has already
-        // decided where it is sitting does. Only the tabby travels, and only
-        // as far as the toy, which was probed before the scene opened.
+        // Playing. Where the cats go is the scene's business now: the toy scenes
+        // leave the lead on the spot he settled on and only move the tabby,
+        // while the bowl walks both of them over and the chase runs them halfway
+        // across the page. Every position a scene can name was probed against
+        // the page before it opened.
         const rest = settled();
-        leadWant = rest.lead;
-        followWant = beat.chase ?? rest.follow;
+        leadWant = beat.leadTo ?? rest.lead;
+        followWant = beat.followTo ?? rest.follow;
       } else if (!pointer || aloneFor > SLEEP_AFTER) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
@@ -1077,7 +1195,11 @@ export function Companion() {
 
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
-      const leadStep = advance(grey.pos, leadWant, run ? ESCORT_SPEED : LEAD_SPEED);
+      const leadStep = advance(
+        grey.pos,
+        leadWant,
+        run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : LEAD_SPEED,
+      );
       if (leadStep > 0.3) {
         calmIdle(grey, now);
         grey.pose = "walk";
@@ -1147,15 +1269,28 @@ export function Companion() {
         tabby.engaged = true;
         tabby.moodUntil = 0;
         // Walking to a place rather than after an animal, so there is no gap to
-        // subtract: she is allowed to arrive.
-        followWish = followTarget(distance(tabby.pos, followWant), 0);
+        // subtract: she is allowed to arrive. A dash skips the curve outright —
+        // the whole read of a bolting cat is that she is already flat out — and
+        // only the acceleration limiter still applies.
+        followWish = beat?.dash
+          ? DASH_SPEED
+          : followTarget(distance(tabby.pos, followWant), 0);
       }
 
       tabby.speed = ramp(tabby.speed, followWish);
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
       const followStep = advance(tabby.pos, followWant, tabby.speed);
-      if (followStep > 0.3) {
+      if (kicking && followStep <= 0.3) {
+        // Outranks the sleep branch below, which would otherwise have her curled
+        // up before the paw ever landed: by the time she reaches the bed the
+        // idle clock is well past the threshold that says "asleep".
+        calmIdle(tabby, now);
+        tabby.pose = "bat";
+        // The cluster is always to her right — the kick spot is off its left
+        // edge — so the shove runs away from her and into the corner.
+        tabby.facing = 1;
+      } else if (followStep > 0.3) {
         calmIdle(tabby, now);
         tabby.pose = "walk";
       } else if (beat) {
@@ -1252,13 +1387,18 @@ export function Companion() {
         // repointing: a toy that stayed root-coloured would vanish over a
         // contrast section exactly as the cats used to.
         if (beat) syncTone(toyNode.current, beat.focus);
-        // The mat is opaque furniture on the same fixed layer, so it has the
-        // cats' problem: a `bg-surface` box coloured from the root scope sitting
-        // over a `contrast` section. A scroll resets `lastTone` and wakes the
-        // loop for one frame, which is all this needs even once they are asleep.
-        if (matRef.current) {
-          const box = bedBox();
-          syncTone(matRef.current, { x: box.left + BED_W / 2, y: box.top + BED_H / 2 });
+        // The furniture is opaque line work on the same fixed layer, so it has
+        // the cats' problem twice over: the strokes have to be visible over a
+        // `contrast` section, and the knockout under them has to be that
+        // section's own ground. Both layers, because the carton's front panel is
+        // a separate element sitting in front of the animals. A scroll resets
+        // `lastTone` and wakes the loop for one frame, which is all this needs
+        // even once they are asleep.
+        if (matRef.current || matFrontRef.current) {
+          const box = clusterBox();
+          const at = { x: box.left + CLUSTER_W / 2, y: box.top + CLUSTER_H / 2 };
+          syncTone(matRef.current, at);
+          syncTone(matFrontRef.current, at);
         }
       }
 
@@ -1274,7 +1414,16 @@ export function Companion() {
       const nextBed: Bed = wantsBed ? (asleep && !busy ? "asleep" : "walking") : null;
       if (nextBed !== bedRef.current) {
         bedRef.current = nextBed;
-        if (!nextBed) travelRef.current = 0;
+        if (!nextBed) {
+          travelRef.current = 0;
+          // A new bedtime rolls its own detour, and the bed goes back where it
+          // belongs: the shove is part of a nap, not a fact about the corner.
+          sleepPlan.current = null;
+          if (shovedRef.current) {
+            shovedRef.current = false;
+            setShoved(false);
+          }
+        }
         setBed(nextBed);
       }
 
@@ -1399,9 +1548,12 @@ export function Companion() {
       // another tab — is a fresh start, and cats returning to a roaming page
       // should not arrive already fourteen seconds bored.
       bedRef.current = null;
+      sleepPlan.current = null;
+      shovedRef.current = false;
       travelRef.current = 0;
       lastMoveRef.current = performance.now();
       setBed(null);
+      setShoved(false);
       // Nor does a toy. It is only ever advanced from inside this loop, so one
       // left behind would be a drawing stopped mid-roll on the page.
       endPlay();
@@ -1536,9 +1688,12 @@ export function Companion() {
    *  the resting box and walk straight into the bed again. */
   function clearBed() {
     bedRef.current = null;
+    sleepPlan.current = null;
+    shovedRef.current = false;
     travelRef.current = 0;
     lastMoveRef.current = performance.now();
     setBed(null);
+    setShoved(false);
   }
 
   function sendToBed() {
@@ -1602,11 +1757,19 @@ export function Companion() {
     // `data-companion` is how the placement probes recognise the cats' own
     // furniture and look straight through it — see companion-space.
     <div data-companion="" className="no-print pointer-events-none fixed inset-0 z-40">
-      {/* Drawn before the cats on purpose: they sleep *on* the mat, so it has
-          to be underneath them in paint order. Roaming only — the resting box
+      {/* Drawn before the cats on purpose: they sleep *in* this furniture, so
+          the bed, the paper and the back of the carton have to be underneath
+          them in paint order. The carton's front panel is a second element
+          further down, after the animals — which is the only way a cat can be
+          inside a box in a drawing with no depth. Roaming only: the resting box
           below occupies the same corner and the two never coexist. */}
       {roams && mode === "roam" && bed ? (
-        <IdleBed asleep={bed === "asleep"} containerRef={matRef} />
+        <IdleFurniture
+          layer="back"
+          asleep={bed === "asleep"}
+          shoved={shoved}
+          containerRef={matRef}
+        />
       ) : null}
 
       {/* The toy, under the cats in paint order so a paw lands on top of it.
@@ -1682,6 +1845,18 @@ export function Companion() {
             <CompanionCat variant="tabby" {...frame.follow} />
           </span>
         </div>
+      ) : null}
+
+      {/* The front of the carton, over the animal wedged into it. Pure scenery
+          and `pointer-events-none`, so the lead cat underneath is still the
+          quick-actions button across every pixel of it. */}
+      {roams && mode === "roam" && bed ? (
+        <IdleFurniture
+          layer="front"
+          asleep={bed === "asleep"}
+          shoved={shoved}
+          containerRef={matFrontRef}
+        />
       ) : null}
 
       {roams && escort ? (

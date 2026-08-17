@@ -18,13 +18,24 @@ import AxeBuilder from "@axe-core/playwright";
  * them" and "somewhere you can find them" are the two ways this feature has
  * actually failed a visitor, and neither is cosmetic.
  *
- * The toys are the same call taken one step further. A scene opens minutes
- * apart, only while the visitor is idle, and never at all without a roaming
- * loop — so waiting for one would mean minutes of real time per worker for a
- * decoration whose failure mode is "a line drawing appears". What *is* asserted
- * is the two places it could hurt somebody: it is absent under reduced motion,
- * and its absence is a hard guarantee rather than a probability, because the
- * loop that runs it does not exist there.
+ * The scenes are the same call taken one step further. One opens minutes apart,
+ * only while the visitor is idle, and never at all without a roaming loop — so
+ * waiting for one would mean minutes of real time per worker for a decoration
+ * whose failure mode is "a line drawing appears". What *is* asserted is the two
+ * places it could hurt somebody: it is absent under reduced motion, and its
+ * absence is a hard guarantee rather than a probability, because the loop that
+ * runs it does not exist there.
+ *
+ * ## Counting cats
+ *
+ * `[data-companion] svg` used to mean "a cat", because cats were the only thing
+ * the companion drew. They are not any more: the corner furniture — a bed, a
+ * cardboard box and a sheet of paper — and the props are line drawings in the
+ * same technique on the same layer. So the assertions that are about *animals*
+ * say `svg[data-cat]`, and the two that are about anything the companion paints
+ * over somebody's page — never off-screen, never behind the header — keep the
+ * wider selector on purpose. The furniture obeys the same clamps the cats do,
+ * and those tests are where that is proved.
  */
 
 const DESKTOP_WIDTH = 1440;
@@ -123,7 +134,7 @@ test.describe("companion", () => {
     // Two separately positioned elements is the whole point of FB-6: one
     // element containing both cats cannot give them different behaviour. Their
     // *positions* are not asserted — the tabby is deliberately erratic.
-    await expect(page.locator("[data-companion] svg")).toHaveCount(2);
+    await expect(page.locator("[data-companion] svg[data-cat]")).toHaveCount(2);
 
     // Polled, not sampled once: the transforms are written by the first
     // animation frames after hydration, and under full-suite worker load that
@@ -134,7 +145,7 @@ test.describe("companion", () => {
         () =>
           page.evaluate(() => {
             const wrappers = Array.from(
-              document.querySelectorAll("[data-companion] svg"),
+              document.querySelectorAll("[data-companion] svg[data-cat]"),
             ).map((svg) => svg.closest("[data-companion] > *") as HTMLElement | null);
             return {
               distinct: new Set(wrappers).size,
@@ -176,17 +187,25 @@ test.describe("companion", () => {
 
     // Sleeping cats snore, and it is decoration all the way down: hidden from
     // assistive technology, and never a target. Asserted after the reload
-    // rather than straight after the dismissal, because the box only fills
+    // rather than straight after the dismissal, because the corner only fills
     // once the escort has finished walking them into it.
+    //
+    // Two streams now, not one: the pair no longer share a bed. One of them is
+    // wedged in the cardboard box and the other is flat out on a sheet of
+    // paper, a good 60px apart, and a single "z" rising between them would be
+    // coming out of the empty bed.
     const snore = page.locator("[data-cat-snore]");
-    await expect(snore).toHaveCount(1);
-    await expect(snore).toHaveAttribute("aria-hidden", "true");
+    await expect(snore).toHaveCount(2);
+    for (const one of await snore.all()) {
+      await expect(one).toHaveAttribute("aria-hidden", "true");
+    }
     expect(
-      await page.evaluate(() => {
-        const el = document.querySelector("[data-cat-snore]");
-        return el ? window.getComputedStyle(el).pointerEvents : "missing";
-      }),
-    ).toBe("none");
+      await page.evaluate(() =>
+        Array.from(document.querySelectorAll("[data-cat-snore]")).map(
+          (el) => window.getComputedStyle(el).pointerEvents,
+        ),
+      ),
+    ).toEqual(["none", "none"]);
 
     // And the way back exists, which is the entire point of FB-5.
     await restingBox(page).click();
@@ -284,7 +303,12 @@ test.describe("companion", () => {
           page.evaluate(() => {
             const readable =
               "p,h1,h2,h3,h4,h5,h6,li,dt,dd,blockquote,pre,code,figure,table,a,button,input,textarea,select,label";
-            return Array.from(document.querySelectorAll("[data-companion] svg")).flatMap((svg) => {
+            // Animals only. This rule has always been about where a *cat* comes
+            // to rest; the corner furniture is placed rather than probed, and it
+            // lives where the toolkit panel and the resting box already do.
+            return Array.from(
+              document.querySelectorAll("[data-companion] svg[data-cat]"),
+            ).flatMap((svg) => {
               const rect = svg.getBoundingClientRect();
               // The feet and the belly, which is where a cat actually rests.
               const points: Array<[number, number]> = [
@@ -316,6 +340,10 @@ test.describe("companion", () => {
     // header is `sticky top-0 z-50` over a companion layer at `z-40`, and it is
     // opaque; `overflow-x: clip` on the document means a cat past an edge does
     // not even produce a scrollbar to hint at where it went.
+    //
+    // Deliberately every svg the companion paints, not just the animals: the
+    // corner furniture is line work on the same fixed layer and is subject to
+    // exactly the same clamps.
     const hidden = () =>
       page.evaluate(() => {
         const header = document.querySelector("header")?.getBoundingClientRect();
@@ -363,19 +391,43 @@ test.describe("companion", () => {
     // so a page nobody has touched keeps the old corner behaviour.
     await page.mouse.move(600, 400);
 
+    // `[data-cat-bed]` is the whole corner now — the bed, the cardboard box and
+    // the sheet of paper — and it is carried by the layer drawn *behind* the
+    // animals, so it stays exactly one element. The carton's front panel is a
+    // second element with its own hook, because it has to paint over the cat
+    // wedged into the box.
     const bed = page.locator("[data-cat-bed]");
     await expect(bed).toBeVisible({ timeout: 40_000 });
+    await expect(page.locator("[data-cat-bed-front]")).toHaveCount(1);
 
-    // Both of them end up inside it. This is the whole point of the bed: cats
-    // that go quiet somewhere expected read as cats, and cats that go quiet in
-    // whatever margin they were standing in read as a bug.
+    // The furniture is bigger than the bed it replaced, and it is placed rather
+    // than probed — so the one thing that has to hold is that all of it is still
+    // on the screen.
+    expect(
+      await page.evaluate(() => {
+        const r = document.querySelector("[data-cat-bed]")!.getBoundingClientRect();
+        return (
+          r.left >= 0 &&
+          r.top >= 0 &&
+          r.right <= document.documentElement.clientWidth &&
+          r.bottom <= document.documentElement.clientHeight
+        );
+      }),
+    ).toBe(true);
+
+    // Both of them end up inside it — in the wrong furniture, which is the joke,
+    // but inside it. This is the whole point of the corner: cats that go quiet
+    // somewhere expected read as cats, and cats that go quiet in whatever margin
+    // they were standing in read as a bug.
     await expect
       .poll(
         () =>
           page.evaluate(() => {
             const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
             if (!box) return -1;
-            return Array.from(document.querySelectorAll("[data-companion] svg")).filter((svg) => {
+            return Array.from(
+              document.querySelectorAll("[data-companion] svg[data-cat]"),
+            ).filter((svg) => {
               const r = svg.getBoundingClientRect();
               return (
                 r.left < box.left - 4 ||
@@ -461,7 +513,9 @@ test.describe("companion", () => {
           page.evaluate(() => {
             const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
             if (!box) return -1;
-            return Array.from(document.querySelectorAll("[data-companion] svg")).filter((svg) => {
+            return Array.from(
+              document.querySelectorAll("[data-companion] svg[data-cat]"),
+            ).filter((svg) => {
               const r = svg.getBoundingClientRect();
               return (
                 r.left < box.left - 4 ||
@@ -533,13 +587,14 @@ test.describe("companion", () => {
 
     expect(before).not.toBeNull();
     expect(after).toEqual(before);
-    // Nothing to play with either: toys are scenes the roaming loop acts out,
-    // and there is no roaming loop here.
+    // Nothing to play with either: props belong to scenes the roaming loop acts
+    // out, and there is no roaming loop here.
     await expect(page.locator("[data-cat-toy]")).toHaveCount(0);
-    // No idle bed either: it belongs to the roaming layer, which does not exist
-    // here, and a bed appearing under a pair of cats that never walked to it
-    // would be pure decoration.
+    // No idle furniture either: it belongs to the roaming layer, which does not
+    // exist here, and a corner full of furniture appearing under a pair of cats
+    // that never walked to it would be pure decoration.
     await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+    await expect(page.locator("[data-cat-bed-front]")).toHaveCount(0);
     // Still fully usable — they are parked, not removed.
     await cat.click();
     await expect(cat).toHaveAttribute("aria-expanded", "true");
@@ -549,8 +604,13 @@ test.describe("companion", () => {
     await page.getByRole("button", { name: /send the cats to bed/i }).click();
     await expect(restingBox(page)).toBeVisible();
     await expect(catButton(page)).toHaveCount(0);
-    // No third cat anywhere: the police escort is skipped entirely here.
-    await expect(page.locator("[data-companion] svg")).toHaveCount(2);
+    // No third cat anywhere: the police escort is skipped entirely here. Counted
+    // as animals rather than as drawings, because the corner they land in is
+    // three more drawings on its own.
+    await expect(page.locator("[data-companion] svg[data-cat]")).toHaveCount(2);
+    // And the whole cluster is still one control with one name, which the
+    // reduced-motion path reaches without any of the walking.
+    await expect(page.locator("[data-companion] button")).toHaveCount(1);
 
     // The snore is removed rather than slowed. The global reduced-motion rule
     // collapses animations to 0.01ms, which would park these three glyphs at

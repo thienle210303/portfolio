@@ -1,7 +1,8 @@
 /**
- * The things the cats occasionally play with: a ball of yarn and a moth.
+ * The things the cats occasionally play with: a ball of yarn, a moth, and a
+ * food bowl.
  *
- * ## Why neither of them is a laser dot
+ * ## Why none of them is a laser dot
  *
  * The obvious toy is a laser pointer, and a laser pointer is a red dot. This
  * site has exactly one hue — the annotation blue — and `CLAUDE.md` reserves it
@@ -11,10 +12,19 @@
  * the site's one meaningful colour on a cat toy — so a visitor scanning for the
  * next link would find a bouncing spot instead.
  *
- * So the toys are drawn the way the cats are: `currentColor`, one stroke
- * weight, no fill. They inherit theme and tone from whatever they are lying
- * over exactly as the animals do, they cost no token, and at 24px they read as
- * line drawings rather than as UI.
+ * So the props are drawn the way the cats are: `currentColor`, one stroke
+ * weight, and the same ground knockout underneath. They inherit theme and tone
+ * from whatever they are lying over exactly as the animals do, they cost no
+ * token, and at 24px they read as line drawings rather than as UI.
+ *
+ * ## Why they are opaque
+ *
+ * Same reason the cats are, and the same technique — see the long note in
+ * `CompanionCat`. A yarn ball you can read the hero headline through is a hole
+ * in the page, not a ball. Each prop declares its closed regions, which the mask
+ * fills with `var(--ground)`, and its open strokes, which it backs with a wider
+ * ground stroke. The windings on the ball and the antennae on the moth are drawn
+ * *on* regions the mask has already covered, so they are ink only.
  *
  * ## Why the moving parts are groups rather than props
  *
@@ -41,16 +51,16 @@
 
 import type { Ref } from "react";
 
-/** One toy's local drawing box. Wide enough that the yarn's tail fits on
+/** One prop's local drawing box. Wide enough that the yarn's tail fits on
  *  *either* side of the ball, because flipping it is how the tail trails the
  *  roll — and an SVG root clips its own overflow, so a tail that only fits
  *  facing right would simply vanish rolling left. */
 export const TOY_W = 24;
 export const TOY_H = 20;
 
-export type ToyKind = "yarn" | "moth";
+export type ToyKind = "yarn" | "moth" | "bowl";
 
-/** The cats' stroke, to the tenth. A toy drawn at a different weight reads as
+/** The cats' stroke, to the tenth. A prop drawn at a different weight reads as
  *  a different illustration lying next to the animals rather than as part of
  *  the same drawing. */
 const STROKE = {
@@ -60,6 +70,16 @@ const STROKE = {
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
+
+/** The knockout, to the same numbers `CompanionCat` uses. */
+const MASK_LINE = {
+  fill: "none",
+  stroke: "var(--ground)",
+  strokeWidth: 3,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+const MASK_AREA = { ...MASK_LINE, fill: "var(--ground)" } as const;
 
 /** The ball's centre, and the point both of the yarn's groups turn about. */
 const BALL = { x: 12, y: 10, r: 6.4 } as const;
@@ -92,15 +112,51 @@ const WING_ORIGIN = {
   transformOrigin: `${BALL.x}px 10px`,
 } as const;
 
+/**
+ * The bowl.
+ *
+ * Drawn low and wide and sitting on the same floor line the cats' feet rest on,
+ * because the whole read of the eating scene is two heads coming down to meet
+ * it. A tall bowl would need the cats to stand, and a standing cat is a pose
+ * this drawing does not have.
+ *
+ * The mound of food is what stops it reading as an empty dish — and it is a
+ * single arc, because at 20px across, kibble drawn as kibble is noise.
+ */
+const BOWL_RIM = "M 2.6 11.4 C 2.6 8.8, 6.8 7.4, 12 7.4 C 17.2 7.4, 21.4 8.8, 21.4 11.4";
+const BOWL_BODY =
+  "M 2.6 11.4 C 3.2 15.8, 6.8 18.2, 12 18.2 C 17.2 18.2, 20.8 15.8, 21.4 11.4 C 21.4 13.6, 17.2 15, 12 15 C 6.8 15, 2.6 13.6, 2.6 11.4 Z";
+const BOWL_FOOD = "M 6.4 9.6 C 8 6.2, 16 6.2, 17.6 9.6 C 15.4 11, 8.6 11, 6.4 9.6 Z";
+
 interface CompanionToyProps {
   readonly kind: ToyKind;
   /** The direction/flutter group. Written once a frame by the companion loop. */
   readonly artRef?: Ref<SVGGElement>;
-  /** The yarn's roll. Never rendered for the moth, which does not roll. */
+  /** The yarn's roll. Never rendered for the moth or the bowl, neither of which
+   *  rolls. */
   readonly spinRef?: Ref<SVGGElement>;
 }
 
 export function CompanionToy({ kind, artRef, spinRef }: CompanionToyProps) {
+  if (kind === "bowl") {
+    return (
+      <svg
+        viewBox={`0 0 ${TOY_W} ${TOY_H}`}
+        width={TOY_W}
+        height={TOY_H}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path {...MASK_AREA} d={BOWL_BODY} />
+        <path {...MASK_AREA} d={BOWL_FOOD} />
+        <path {...MASK_LINE} d={BOWL_RIM} />
+        <path {...STROKE} d={BOWL_FOOD} />
+        <path {...STROKE} d={BOWL_BODY} />
+        <path {...STROKE} d={BOWL_RIM} />
+      </svg>
+    );
+  }
+
   return (
     <svg
       viewBox={`0 0 ${TOY_W} ${TOY_H}`}
@@ -112,9 +168,11 @@ export function CompanionToy({ kind, artRef, spinRef }: CompanionToyProps) {
       {kind === "yarn" ? (
         <>
           <g ref={artRef} style={SPIN_ORIGIN}>
+            <path {...MASK_LINE} d={YARN_TAIL} />
             <path {...STROKE} d={YARN_TAIL} />
           </g>
           <g ref={spinRef} style={SPIN_ORIGIN}>
+            <circle {...MASK_AREA} cx={BALL.x} cy={BALL.y} r={BALL.r} />
             <circle {...STROKE} cx={BALL.x} cy={BALL.y} r={BALL.r} />
             <path {...STROKE} d={WIND_A} />
             <path {...STROKE} d={WIND_B} />
@@ -122,10 +180,18 @@ export function CompanionToy({ kind, artRef, spinRef }: CompanionToyProps) {
         </>
       ) : (
         <>
+          {/* The wings knock out and draw inside the one group the loop
+              squashes, so the mask beats with the wing rather than staying
+              spread behind a folded one. */}
           <g ref={artRef} style={WING_ORIGIN}>
+            <path {...MASK_AREA} d={MOTH_WING_L} />
+            <path {...MASK_AREA} d={MOTH_WING_R} />
             <path {...STROKE} d={MOTH_WING_L} />
             <path {...STROKE} d={MOTH_WING_R} />
           </g>
+          <path {...MASK_AREA} d={MOTH_BODY} />
+          <path {...MASK_LINE} d={MOTH_ANTENNA_L} />
+          <path {...MASK_LINE} d={MOTH_ANTENNA_R} />
           <path {...STROKE} d={MOTH_BODY} />
           <path {...STROKE} d={MOTH_ANTENNA_L} />
           <path {...STROKE} d={MOTH_ANTENNA_R} />

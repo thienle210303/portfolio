@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 /**
  * The companions' bodies: one cat per instance, drawn as a single-weight line
  * drawing.
@@ -43,6 +45,30 @@
  * one line survives being scaled down far better than the same shape assembled
  * from a dozen separate strokes, which is the size this is actually seen at.
  *
+ * ## Why every pose is described as data rather than drawn straight to JSX
+ *
+ * Because each pose has to be drawn *twice*. Round 5's first note is that the
+ * cats were transparent: two animals walking over the hero headline with the
+ * words legible straight through their bodies, which reads as a rendering fault
+ * rather than as a drawing. The fix is the oldest one in illustration — knock
+ * the shape out of what is behind it — and it needs a copy of the whole animal
+ * in the page's own ground colour, laid down before the line work.
+ *
+ * That copy cannot be made by re-filling the drawing wholesale: half of a cat is
+ * *open* strokes. A tail is a hooked curve, and filling it auto-closes the hook
+ * across its own opening, so a naive fill paints a crescent of ground where
+ * nothing is drawn — invisible over empty ground, and a bite taken out of the
+ * text everywhere else. So each pose declares which of its parts are closed
+ * silhouettes (filled), which are open strokes (backed by a wider ground stroke,
+ * never filled), and which are markings that lie *on* a body the mask has
+ * already covered and must not be masked at all. `Silhouette` and `LineWork`
+ * then render the same list twice.
+ *
+ * The mask's stroke is wider than the ink's, which leaves a hairline of ground
+ * around the whole animal. That is deliberate: it is the margin that keeps a
+ * descender from touching the outline, and it is exactly what a cel-drawn
+ * character has always had.
+ *
  * Purely presentational and `aria-hidden`: `Companion` owns the buttons, the
  * accessible names and every behaviour.
  */
@@ -56,22 +82,29 @@ export const CAT_H = 42;
  * The grey coat. High enough to read as a solid-coated animal beside the
  * tabby's bare outline, low enough that the contour and the markings still
  * carry the drawing rather than being swallowed by it.
+ *
+ * It is a translucent wash over an *opaque* ground fill, which is why it can
+ * stay translucent: the mask below it has already taken the page out.
  */
 const COAT_WASH = 0.42;
 
 /**
- * Six poses out of four contours.
+ * Seven poses out of five contours.
  *
  * `sit`, `walk` and `sleep` are the three shapes an animal this size can hold
  * and still be read; `stretch` is the fourth, and it earns its own contour
  * because a stretch is a change of *silhouette* — the whole point of it is the
  * hollowed back and the raised rump, and nothing short of a new outline says
- * that. `groom` and `bat` deliberately do not get one: both are a sitting cat
- * doing something with one front paw, and re-drawing the body for them would
- * only invite the two sitting shapes to drift apart. They are the sit contour
- * with a different foreleg, which is also exactly what they are in life.
+ * that. `eat` is the fifth, on the same argument: a cat with its nose in a bowl
+ * is a cat whose head has left the top of the drawing, and no rearrangement of
+ * the sitting contour says that.
+ *
+ * `groom` and `bat` deliberately do not get one: both are a sitting cat doing
+ * something with one front paw, and re-drawing the body for them would only
+ * invite the two sitting shapes to drift apart. They are the sit contour with a
+ * different foreleg, which is also exactly what they are in life.
  */
-export type CatPose = "sit" | "walk" | "sleep" | "stretch" | "groom" | "bat";
+export type CatPose = "sit" | "walk" | "sleep" | "stretch" | "groom" | "bat" | "eat";
 export type CatVariant = "grey" | "tabby" | "police";
 
 interface CompanionCatProps {
@@ -100,28 +133,80 @@ const STROKE = {
   strokeLinejoin: "round",
 } as const;
 
-/** Head, both ears and the brow, shared by the upright contours so the cats
- *  cannot drift into looking like different animals between poses. `flick` tips
- *  the near ear out and back; at 0 this is the original path, unchanged. */
-function head(flick: number): string {
-  return `L 29.5 5 L 35 9 C 37 8.2, 39.5 8.2, 41.5 9.2 L ${44 + flick * 2.4} ${
-    3 + flick * 2.2
-  } L 45.5 10.5 C 47 13, 46.5 17.5, 43.5 19.5`;
-}
+/**
+ * The knockout, in the page's own ground.
+ *
+ * `--ground` and not a token, a hex or `bg-ground`: it is the semantic alias, so
+ * it follows the theme *and* whichever tone class the companion's wrapper is
+ * currently carrying — which `syncTone` sets from the section the animal happens
+ * to be flying over. Over empty ground that makes the mask invisible by
+ * construction; over a headline it takes the headline out.
+ *
+ * The stroke is nearly twice the ink's so the mask reaches a hairline past every
+ * contour it is laid under. Anything narrower and the anti-aliased edge of the
+ * text creeps out from behind the outline.
+ */
+const MASK_STROKE = 3;
+const MASK_LINE = {
+  fill: "none",
+  stroke: "var(--ground)",
+  strokeWidth: MASK_STROKE,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+const MASK_AREA = { ...MASK_LINE, fill: "var(--ground)" } as const;
 
-/** The same head, dropped and pushed forward for the stretch — the identical
- *  ears, brow and muzzle, translated by (-3, +15), so the animal mid-stretch is
- *  recognisably the animal that was sitting a second ago. */
-const HEAD_DROP = { x: -3, y: 15 } as const;
-
-function headLow(flick: number): string {
-  return `L 26.5 20 L 32 24 C 34 23.2, 36.5 23.2, 38.5 24.2 L ${41 + flick * 2.4} ${
-    18 + flick * 2.2
-  } L 42.5 25.5 C 44 28, 43.5 32.5, 40.5 34.5`;
-}
+/** Boots and paw pads, at the two sizes the drawing has always used them. */
+const PAD_RX = 2.1;
+const PAD_RY = 1.5;
 
 /**
- * The four body contours.
+ * One drawn part, and what the ground mask underneath is allowed to do with it.
+ *
+ * The distinction between `area` and `line` is the whole reason this is data:
+ * `fill` on an open path silently closes it, and half the parts of a cat are
+ * open on purpose.
+ */
+type Part =
+  /** A closed silhouette. The mask fills it and traces its outline; the ink
+   *  draws the contour, carrying the coat wash unless `bare` says otherwise.
+   *  Contours that are left open below are ones whose implied closing chord was
+   *  checked to run *inside* the filled region — a fill there adds no area the
+   *  outline does not already enclose. */
+  | { readonly kind: "area"; readonly d: string; readonly bare?: boolean }
+  /** An open stroke: a tail, a leg, a foreleg reaching out. The mask lays a
+   *  wider ground stroke under it and never fills it. */
+  | { readonly kind: "line"; readonly d: string }
+  /** A boot or a paw pad. Filled by the mask — the tabby's socks have to hide
+   *  text like the rest of her — and stroked by the ink. */
+  | { readonly kind: "pad"; readonly cx: number; readonly cy: number; readonly r?: number }
+  /** A coat marking, or a line on the face. Ink only: it lies *on* a body the
+   *  mask has already covered, and a ground stroke under a stripe would erase
+   *  the coat the stripe is drawn on. */
+  | { readonly kind: "mark"; readonly d: string };
+
+/** Head, both ears and the brow, shared by the upright contours so the cats
+ *  cannot drift into looking like different animals between poses. `flick` tips
+ *  the near ear out and back; at 0, 0, 0 this is the original path, unchanged.
+ *  `dx`/`dy` are what let a dropped head stay recognisably the same head. */
+function head(flick: number, dx = 0, dy = 0): string {
+  return `L ${29.5 + dx} ${5 + dy} L ${35 + dx} ${9 + dy} C ${37 + dx} ${8.2 + dy}, ${
+    39.5 + dx
+  } ${8.2 + dy}, ${41.5 + dx} ${9.2 + dy} L ${44 + dx + flick * 2.4} ${
+    3 + dy + flick * 2.2
+  } L ${45.5 + dx} ${10.5 + dy} C ${47 + dx} ${13 + dy}, ${46.5 + dx} ${17.5 + dy}, ${
+    43.5 + dx
+  } ${19.5 + dy}`;
+}
+
+/** The same head, dropped and pushed forward for the stretch, and dropped a
+ *  shorter way for the bowl — the identical ears, brow and muzzle, so the animal
+ *  mid-stretch is recognisably the animal that was sitting a second ago. */
+const HEAD_DROP = { x: -3, y: 15 } as const;
+const HEAD_EAT = { x: 0.5, y: 9 } as const;
+
+/**
+ * The five body contours.
  *
  * Each is the outline main's single cat used, with the belly dropped and the
  * chest pushed out — the brief is two fat cats, and the original was drawn
@@ -147,9 +232,26 @@ function walkBody(flick: number): string {
  */
 function stretchBody(flick: number): string {
   return `M 8.5 30.5 C 6 24.5, 8.5 18, 15 17.6
-   C 20.5 17.2, 24.5 21.5, 26 27 ${headLow(flick)}
+   C 20.5 17.2, 24.5 21.5, 26 27 ${head(flick, HEAD_DROP.x, HEAD_DROP.y)}
    C 38.5 36.4, 30 36.8, 20 36
    C 12.5 35.4, 9.5 32.8, 8.5 30.5 Z`;
+}
+
+/**
+ * Eating: haunches down, shoulders forward, head lowered to about a third of
+ * the way up the drawing — which is where a bowl standing on the same floor the
+ * cat is sitting on puts its rim.
+ *
+ * The neck is the part that had to be drawn rather than borrowed. Dropping the
+ * head alone leaves an animal whose skull has detached from its shoulders, so
+ * the back runs further forward and further down before it turns up into the
+ * near ear, and the ear keeps its full height off that lower base — a short ear
+ * on a lowered head reads as a different, rounder animal.
+ */
+function eatBody(flick: number): string {
+  return `M 11 23 C 5.2 26, 5.5 33.5, 11.5 34.5 C 11.5 27, 15 23, 21.5 22
+   C 25.5 21.4, 28.5 21.8, 29.5 21 ${head(flick, HEAD_EAT.x, HEAD_EAT.y)}
+   C 43 30.5, 42.6 33, 42.6 36.5 L 19.5 36.5 C 11.5 36.5, 9.5 36, 11.5 34.5`;
 }
 
 /**
@@ -180,12 +282,19 @@ const SLEEP_BODY = `M 12.5 34 C 6 31, 6 22.5, 13.5 20 C 21 17.5, 31.5 19, 35 24 
    C 48 25.5, 47.5 29.5, 44.5 31.2 C 40.5 33.4, 33 35 26 35.5
    C 20 35.9, 15.5 35.4, 12.5 34 Z`;
 
+/** Tail wrapped around the front paws, the way a cat closes the circle. */
+const SLEEP_TAIL = "M 12.5 34 C 7.5 36.5, 13.5 39, 21.5 38 C 27.5 37.3, 33 36.4, 36 35.4";
+
 /**
  * The cap, drawn between the two ear tips and sitting on the skull line the
- * `HEAD` contour already establishes (y ≈ 8.2–9.2 across x 35–41.5). It is the
+ * `head` contour already establishes (y ≈ 8.2–9.2 across x 35–41.5). It is the
  * police cat's only distinguishing mark, so it has to read at 50px wide: a
  * crown, the band under it and a peak thrown forward over the eye — three
  * strokes, no fill, same weight as the animal it sits on.
+ *
+ * The crown is the one part of the cap that leaves the head's own silhouette, so
+ * it is the one part the mask has to treat as an area; the band and the peak lie
+ * on ground the skull has already knocked out.
  *
  * Only drawn on the standing poses. The police cat escorts and leaves; it never
  * curls up, and a cap positioned for an upright head lands in mid-air once the
@@ -207,14 +316,87 @@ const WALK_LEGS = [
   { x: 15.6, y: 29.4, dir: 1 },
 ] as const;
 
+/** The seated tail, which carries all of a still cat's movement. `drop` shifts
+ *  its root for the eating pose, whose haunch sits a unit lower. */
+function sitTail(lash: number, drop = 0): string {
+  return `M 11.5 ${33.5 + drop} C 3.5 ${34 + drop}, ${1 + lash * 0.9} ${25 - lash}, ${
+    6.5 + lash * 1.6
+  } ${20.5 - lash * 1.2}
+    C ${8.5 + lash * 1.6} ${18.9 - lash}, ${10.5 + lash} ${19.6 - lash * 0.8},
+    ${10.5 + lash * 0.6} ${21.6 - lash * 0.5}`;
+}
+
+/* -------------------------------------------------------------------------- */
+/* The two passes                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** The knockout: every part of the animal in the page's ground, laid down
+ *  before a single line of it is drawn. */
+function Silhouette({ parts }: { readonly parts: readonly Part[] }) {
+  return (
+    <g>
+      {parts.map((part, index) => {
+        if (part.kind === "area") return <path key={index} {...MASK_AREA} d={part.d} />;
+        if (part.kind === "line") return <path key={index} {...MASK_LINE} d={part.d} />;
+        if (part.kind === "pad") {
+          return (
+            <ellipse
+              key={index}
+              {...MASK_AREA}
+              cx={part.cx}
+              cy={part.cy}
+              rx={part.r ?? PAD_RX}
+              ry={PAD_RY}
+            />
+          );
+        }
+        return null;
+      })}
+    </g>
+  );
+}
+
+/** The drawing itself, on top of its own knockout. */
+function LineWork({
+  parts,
+  coat,
+}: {
+  readonly parts: readonly Part[];
+  readonly coat: Record<string, unknown>;
+}) {
+  return (
+    <g>
+      {parts.map((part, index) => {
+        if (part.kind === "area") {
+          return <path key={index} {...(part.bare ? STROKE : coat)} d={part.d} />;
+        }
+        if (part.kind === "pad") {
+          return (
+            <ellipse
+              key={index}
+              {...STROKE}
+              cx={part.cx}
+              cy={part.cy}
+              rx={part.r ?? PAD_RX}
+              ry={PAD_RY}
+            />
+          );
+        }
+        return <path key={index} {...STROKE} d={part.d} />;
+      })}
+    </g>
+  );
+}
+
 /**
  * One cat, in its own local 50×42 box, facing right.
  *
  * The tabby's markings are plain short strokes rather than shapes fitted to the
- * contour. In a drawing with no fill there is nothing for a marking to spill
- * out of, so they only have to be placed inside the body — which is why they
- * can stay this simple. Each is positioned per pose, because a stripe that
- * follows the spine while the cat is sitting is in mid-air once it lies down.
+ * contour. In a drawing whose only fill is the knockout there is nothing for a
+ * marking to spill out of, so they only have to be placed inside the body —
+ * which is why they can stay this simple. Each is positioned per pose, because a
+ * stripe that follows the spine while the cat is sitting is in mid-air once it
+ * lies down.
  */
 function Cat({ pose, phase, blinking, variant, flick = 0 }: Omit<CompanionCatProps, "scale">) {
   const tabby = variant === "tabby";
@@ -226,22 +408,15 @@ function Cat({ pose, phase, blinking, variant, flick = 0 }: Omit<CompanionCatPro
    *  and it has room to move. */
   const lash = sway * (1 + flick * 0.6);
 
-  /** The solid coat. Applied to the body contour only — never to the tail or
+  /** The solid coat. Applied to the closed contours only — never to the tail or
    *  the legs, which are open strokes that a fill would close into blobs. */
   const coat = tabby ? STROKE : { ...STROKE, fill: "currentColor", fillOpacity: COAT_WASH };
 
-  const cap =
-    variant === "police" ? (
-      <g {...STROKE}>
-        <path d={CAP_CROWN} />
-        <path d={CAP_BAND} />
-        <path d={CAP_PEAK} />
-      </g>
-    ) : null;
-
   /** One eye, one muzzle line, positioned relative to the upright head so the
-   *  stretch can reuse them by passing the head's own offset. */
-  const faceAt = (shut: boolean, dx = 0, dy = 0) => (
+   *  dropped-head poses can reuse them by passing the head's own offset. Drawn
+   *  outside the part list because the eye is the drawing's one piece of colour,
+   *  and it sits on a skull the mask has already knocked out. */
+  const faceAt = (shut: boolean, dx = 0, dy = 0): ReactNode => (
     <>
       {shut ? (
         <path {...STROKE} d={`M ${39.6 + dx} ${14.2 + dy} q 1.4 1.2 2.8 0`} />
@@ -252,201 +427,214 @@ function Cat({ pose, phase, blinking, variant, flick = 0 }: Omit<CompanionCatPro
     </>
   );
 
-  const face = faceAt(blinking);
+  const parts: Part[] = [];
+  let face: ReactNode = null;
+
+  const cap = (): void => {
+    if (variant !== "police") return;
+    parts.push({ kind: "area", d: CAP_CROWN, bare: true });
+    parts.push({ kind: "line", d: CAP_BAND });
+    parts.push({ kind: "line", d: CAP_PEAK });
+  };
 
   if (pose === "sleep") {
-    return (
-      <g>
-        <path {...coat} d={SLEEP_BODY} />
-        {/* Tail wrapped around the front paws, the way a cat closes the circle. */}
-        <path {...STROKE} d="M 12.5 34 C 7.5 36.5, 13.5 39, 21.5 38 C 27.5 37.3, 33 36.4, 36 35.4" />
-        {tabby ? (
-          <g {...STROKE}>
-            {/* Rings across the curled tail, and stripes over the shoulder —
-                the only part of a sleeping cat's back that still faces up. */}
-            <path d="M 16.5 37.6 L 17.2 35.4" />
-            <path d="M 21.5 38 L 22 35.6" />
-            <path d="M 26.5 37.4 L 27 35.2" />
-            <path d="M 17 22.5 L 15.5 26" />
-            <path d="M 22 21 L 20.5 24.5" />
-            <path d="M 27 20.6 L 26 24" />
-          </g>
-        ) : null}
-        <path {...STROKE} d="M 43.4 26 q 1.8 1.3 3.4 0" />
-      </g>
-    );
-  }
-
-  if (pose === "stretch") {
-    return (
-      <g>
-        <path {...coat} d={stretchBody(flick)} />
-        {/* Tail up and back over the raised rump — the counterweight that stops
-            a hollowed back reading as a cat that has been stepped on. */}
-        <path
-          {...STROKE}
-          d={`M 8.5 30.5 C 3.5 28, ${2.2 + lash} ${21 - lash}, ${5.5 + lash * 1.6} ${16.5 - lash}`}
-        />
-        {tabby ? (
-          <g {...STROKE}>
-            {/* Striping follows the new spine; the old sit/walk placements sit
-                in mid-air once the back changes shape. */}
-            <path d="M 15.5 19 L 15 23.4" />
-            <path d="M 19.5 19.4 L 19 23.8" />
-            <path d="M 23.5 22 L 23.2 26" />
-            <path d={`M ${4 + lash * 0.8} 24.5 l 2.4 0.8`} />
-            <path d={`M ${2.8 + lash * 1.2} 20 l 2.4 0.9`} />
-          </g>
-        ) : null}
-        {faceAt(blinking, HEAD_DROP.x, HEAD_DROP.y)}
-        {/* No cap: the police cat escorts and leaves, it never stretches, and a
-            cap placed for an upright head lands in mid-air on this one. */}
-        {STRETCH_LEGS.map(({ x, y, fx, fy }) => {
-          const toeX = x + (fx - x) * 0.78;
-          const toeY = y + (fy - y) * 0.78;
-          return tabby ? (
-            <g key={x}>
-              <path {...STROKE} d={`M ${x} ${y} L ${toeX.toFixed(2)} ${toeY.toFixed(2)}`} />
-              <ellipse {...STROKE} cx={fx} cy={fy} rx={2.1} ry={1.5} />
-            </g>
-          ) : (
-            <path key={x} {...STROKE} d={`M ${x} ${y} L ${fx} ${fy}`} />
-          );
-        })}
-      </g>
-    );
-  }
-
-  if (pose === "walk") {
+    parts.push({ kind: "area", d: SLEEP_BODY });
+    parts.push({ kind: "line", d: SLEEP_TAIL });
+    if (tabby) {
+      // Rings across the curled tail, and stripes over the shoulder — the only
+      // part of a sleeping cat's back that still faces up.
+      for (const d of [
+        "M 16.5 37.6 L 17.2 35.4",
+        "M 21.5 38 L 22 35.6",
+        "M 26.5 37.4 L 27 35.2",
+        "M 17 22.5 L 15.5 26",
+        "M 22 21 L 20.5 24.5",
+        "M 27 20.6 L 26 24",
+      ]) {
+        parts.push({ kind: "mark", d });
+      }
+    }
+    parts.push({ kind: "mark", d: "M 43.4 26 q 1.8 1.3 3.4 0" });
+  } else if (pose === "stretch") {
+    parts.push({ kind: "area", d: stretchBody(flick) });
+    // Tail up and back over the raised rump — the counterweight that stops a
+    // hollowed back reading as a cat that has been stepped on.
+    parts.push({
+      kind: "line",
+      d: `M 8.5 30.5 C 3.5 28, ${2.2 + lash} ${21 - lash}, ${5.5 + lash * 1.6} ${16.5 - lash}`,
+    });
+    // No cap: the police cat escorts and leaves, it never stretches, and a cap
+    // placed for an upright head lands in mid-air on this one.
+    for (const { x, y, fx, fy } of STRETCH_LEGS) {
+      if (tabby) {
+        const toeX = x + (fx - x) * 0.78;
+        const toeY = y + (fy - y) * 0.78;
+        parts.push({ kind: "line", d: `M ${x} ${y} L ${toeX.toFixed(2)} ${toeY.toFixed(2)}` });
+        parts.push({ kind: "pad", cx: fx, cy: fy });
+      } else {
+        parts.push({ kind: "line", d: `M ${x} ${y} L ${fx} ${fy}` });
+      }
+    }
+    if (tabby) {
+      // Striping follows the new spine; the old sit/walk placements sit in
+      // mid-air once the back changes shape.
+      for (const d of [
+        "M 15.5 19 L 15 23.4",
+        "M 19.5 19.4 L 19 23.8",
+        "M 23.5 22 L 23.2 26",
+        `M ${4 + lash * 0.8} 24.5 l 2.4 0.8`,
+        `M ${2.8 + lash * 1.2} 20 l 2.4 0.9`,
+      ]) {
+        parts.push({ kind: "mark", d });
+      }
+    }
+    face = faceAt(blinking, HEAD_DROP.x, HEAD_DROP.y);
+  } else if (pose === "walk") {
     // Front and back pairs swing in opposition, which is what makes four
     // straight lines read as a gait rather than as a table.
     const swing = sway * 2;
-    return (
-      <g>
-        <path {...coat} d={walkBody(flick)} />
-        <path
-          {...STROKE}
-          d={`M 13.5 25.5 C ${6.5 + sway} ${23.5 - sway}, ${4 + sway * 1.5} ${16 - sway},
-              ${8.5 + sway * 2} ${13 - sway}`}
-        />
-        {tabby ? (
-          <g {...STROKE}>
-            {/* Mackerel striping: short bars dropping from the spine down the
-                flank, thinning towards the hips the way the real coat does. */}
-            <path d="M 18 19.4 L 17 24" />
-            <path d="M 22 18.2 L 21 23.6" />
-            <path d="M 26 17.8 L 25.2 23" />
-            <path d="M 30.5 18.6 L 30 22.6" />
-            {/* Tail rings, following the sway so they stay on the tail. */}
-            <path d={`M ${9.5 + sway * 0.6} ${23.4 - sway * 0.6} l 2.6 -1`} />
-            <path d={`M ${6 + sway * 1.2} ${19 - sway * 0.9} l 2.6 -1.1`} />
-          </g>
-        ) : null}
-        {face}
-        {cap}
-        {/*
-          Four legs, and — on the tabby — four white socks.
+    parts.push({ kind: "area", d: walkBody(flick) });
+    parts.push({
+      kind: "line",
+      d: `M 13.5 25.5 C ${6.5 + sway} ${23.5 - sway}, ${4 + sway * 1.5} ${16 - sway},
+          ${8.5 + sway * 2} ${13 - sway}`,
+    });
+    /*
+      Four legs, and — on the tabby — four white socks.
 
-          The socks were first drawn as a cuff line across each ankle, on the
-          theory that in an unfilled drawing a line is all it takes to mark a
-          change of colour. At this size it isn't: a horizontal rule crossing a
-          vertical leg reads as a tick mark, and four of them read as hash
-          marks. A small closed boot at the foot is unambiguous instead, so the
-          tabby's legs stop short of the ground and the boot carries the last
-          two units. The grey one keeps full-length legs and no boot, because
-          the photographs are clear that his feet are the same grey as the rest
-          of him — the wash on his body simply runs all the way down.
-        */}
-        {WALK_LEGS.map(({ x, y, dir }) => {
-          const foot = x + dir * swing;
-          return tabby ? (
-            <g key={x}>
-              <path {...STROKE} d={`M ${x} ${y} L ${foot} 33.2`} />
-              <ellipse {...STROKE} cx={foot} cy={34.7} rx={2.1} ry={1.5} />
-            </g>
-          ) : (
-            <path key={x} {...STROKE} d={`M ${x} ${y} L ${foot} 36`} />
-          );
-        })}
-      </g>
-    );
+      The socks were first drawn as a cuff line across each ankle, on the theory
+      that in an unfilled drawing a line is all it takes to mark a change of
+      colour. At this size it isn't: a horizontal rule crossing a vertical leg
+      reads as a tick mark, and four of them read as hash marks. A small closed
+      boot at the foot is unambiguous instead, so the tabby's legs stop short of
+      the ground and the boot carries the last two units. The grey one keeps
+      full-length legs and no boot, because the photographs are clear that his
+      feet are the same grey as the rest of him — the wash on his body simply
+      runs all the way down.
+    */
+    for (const { x, y, dir } of WALK_LEGS) {
+      const foot = x + dir * swing;
+      if (tabby) {
+        parts.push({ kind: "line", d: `M ${x} ${y} L ${foot} 33.2` });
+        parts.push({ kind: "pad", cx: foot, cy: 34.7 });
+      } else {
+        parts.push({ kind: "line", d: `M ${x} ${y} L ${foot} 36` });
+      }
+    }
+    if (tabby) {
+      // Mackerel striping: short bars dropping from the spine down the flank,
+      // thinning towards the hips the way the real coat does, then tail rings
+      // that follow the sway so they stay on the tail.
+      for (const d of [
+        "M 18 19.4 L 17 24",
+        "M 22 18.2 L 21 23.6",
+        "M 26 17.8 L 25.2 23",
+        "M 30.5 18.6 L 30 22.6",
+        `M ${9.5 + sway * 0.6} ${23.4 - sway * 0.6} l 2.6 -1`,
+        `M ${6 + sway * 1.2} ${19 - sway * 0.9} l 2.6 -1.1`,
+      ]) {
+        parts.push({ kind: "mark", d });
+      }
+    }
+    cap();
+    face = faceAt(blinking);
+  } else if (pose === "eat") {
+    parts.push({ kind: "area", d: eatBody(flick) });
+    parts.push({ kind: "line", d: sitTail(lash, 1) });
+    // Two forelegs braced under a chest that has come forward over the bowl.
+    parts.push({ kind: "line", d: `M 35.5 ${tabby ? 33.4 : 36.5} L 36 30` });
+    parts.push({ kind: "line", d: `M 40.5 ${tabby ? 33.4 : 36.5} L 40.5 31` });
+    if (tabby) {
+      parts.push({ kind: "pad", cx: 35.5, cy: 35, r: 2.2 });
+      parts.push({ kind: "pad", cx: 40.5, cy: 35, r: 2.2 });
+      for (const d of [
+        "M 16 25 L 14.5 28.5",
+        "M 20 22.6 L 18.5 26.2",
+        "M 24.5 22 L 23.5 25.6",
+        `M ${4.4 + lash * 0.5} 31.5 l 2.4 0.9`,
+        `M ${2.2 + lash * 0.8} 27 l 2.5 0.6`,
+      ]) {
+        parts.push({ kind: "mark", d });
+      }
+    }
+    // No cap, for the same reason the stretch has none: the police cat escorts
+    // and leaves, it is never at the bowl, and a cap placed for an upright head
+    // floats in mid-air over a lowered one.
+    // Eyes half on the food: a cat at a bowl is not looking at you either.
+    face = faceAt(blinking, HEAD_EAT.x, HEAD_EAT.y);
+  } else {
+    /*
+     * Sitting, and the two things a sitting cat does with a front paw.
+     *
+     * `groom` washes: the near foreleg comes up to the muzzle and the eyes shut,
+     * because a cat cleaning itself is never looking at you. `bat` reaches: the
+     * same leg goes out low and forward, patting at whatever is in front of it —
+     * which, for the tabby, is the grey one's tail.
+     *
+     * Both keep the far leg and boot exactly where the plain sit has them, so
+     * the animal is visibly the same animal doing one thing differently.
+     */
+    const grooming = pose === "groom";
+    const batting = pose === "bat";
+    /** The batting paw pats back and forth off the same phase that sways the
+     *  tail, so a batting cat has one rhythm rather than two. Carried high
+     *  enough to clear the chest: a reach at belly height disappears inside the
+     *  grey one's coat wash and reads as a stub. */
+    const paw = 45.2 + sway * 1.5;
+
+    parts.push({ kind: "area", d: sitBody(flick) });
+    // The tail is the cat's whole emotional range while it is sitting still, so
+    // it carries all of the idle movement and the body carries none.
+    parts.push({ kind: "line", d: sitTail(lash) });
+
+    // Seated, only the front legs show — so the tabby gets two boots, sat on the
+    // body's own bottom edge rather than hanging below it.
+    if (grooming) {
+      // Bent at the elbow and carried out before it comes up, so it reads as a
+      // leg rather than a rod, and it finishes at the *mouth* — a paw that stops
+      // at the eye is a cat poking itself in the eye.
+      parts.push({ kind: "line", d: `M 34.6 30.4 C 39 29, 43.5 25, ${tabby ? 43.1 : 43.4} 20` });
+      if (tabby) parts.push({ kind: "pad", cx: 43, cy: 18.9, r: 1.9 });
+    } else if (batting) {
+      parts.push({
+        kind: "line",
+        d: `M 34.5 29.5 C 38.5 28.8, 42 27.6, ${(tabby ? paw - 1.6 : paw).toFixed(2)} 26.8`,
+      });
+      if (tabby) parts.push({ kind: "pad", cx: Number(paw.toFixed(2)), cy: 26.9, r: 1.9 });
+    } else {
+      parts.push({ kind: "line", d: `M 34.5 ${tabby ? 33.4 : 36.5} L 34.5 26.5` });
+    }
+    if (tabby) {
+      if (!grooming && !batting) parts.push({ kind: "pad", cx: 34.5, cy: 35, r: 2.2 });
+      parts.push({ kind: "pad", cx: 39.4, cy: 35, r: 2.2 });
+    }
+    // The grey one has no boots, so his far leg has to be drawn for the two busy
+    // poses or he sits on one leg.
+    if (!tabby && (grooming || batting)) {
+      parts.push({ kind: "line", d: "M 39.4 36.5 L 39.4 27" });
+    }
+    if (tabby) {
+      // Stripes down the back and haunch while seated, then two rings near the
+      // tail's base, which is the part that stays put.
+      for (const d of [
+        "M 15.5 23.5 L 13.8 27",
+        "M 19 20.6 L 17 24.4",
+        "M 23.5 19 L 22 23",
+        `M ${4.4 + lash * 0.5} ${30.5} l 2.4 0.9`,
+        `M ${2.2 + lash * 0.8} ${26} l 2.5 0.6`,
+      ]) {
+        parts.push({ kind: "mark", d });
+      }
+    }
+    cap();
+    face = faceAt(grooming || blinking);
   }
-
-  /*
-   * Sitting, and the two things a sitting cat does with a front paw.
-   *
-   * `groom` washes: the near foreleg comes up to the muzzle and the eyes shut,
-   * because a cat cleaning itself is never looking at you. `bat` reaches: the
-   * same leg goes out low and forward, patting at whatever is in front of it —
-   * which, for the tabby, is the grey one's tail.
-   *
-   * Both keep the far leg and boot exactly where the plain sit has them, so the
-   * animal is visibly the same animal doing one thing differently.
-   */
-  const grooming = pose === "groom";
-  const batting = pose === "bat";
-  /** The batting paw pats back and forth off the same phase that sways the
-   *  tail, so a batting cat has one rhythm rather than two. Carried high enough
-   *  to clear the chest: a reach at belly height disappears inside the grey
-   *  one's coat wash and reads as a stub. */
-  const paw = 45.2 + sway * 1.5;
 
   return (
     <g>
-      <path {...coat} d={sitBody(flick)} />
-      {/* The tail is the cat's whole emotional range while it is sitting still,
-          so it carries all of the idle movement and the body carries none. */}
-      <path
-        {...STROKE}
-        d={`M 11.5 33.5 C 3.5 34, ${1 + lash * 0.9} ${25 - lash}, ${6.5 + lash * 1.6} ${20.5 - lash * 1.2}
-            C ${8.5 + lash * 1.6} ${18.9 - lash}, ${10.5 + lash} ${19.6 - lash * 0.8},
-            ${10.5 + lash * 0.6} ${21.6 - lash * 0.5}`}
-      />
-      {tabby ? (
-        <g {...STROKE}>
-          {/* Stripes down the back and haunch while seated. */}
-          <path d="M 15.5 23.5 L 13.8 27" />
-          <path d="M 19 20.6 L 17 24.4" />
-          <path d="M 23.5 19 L 22 23" />
-          {/* Two rings near the tail's base, which is the part that stays put. */}
-          <path d={`M ${4.4 + lash * 0.5} ${30.5} l 2.4 0.9`} />
-          <path d={`M ${2.2 + lash * 0.8} ${26} l 2.5 0.6`} />
-        </g>
-      ) : null}
-      {faceAt(grooming || blinking)}
-      {cap}
-      {/* Seated, only the front legs show — so the tabby gets two boots, sat
-          on the body's own bottom edge rather than hanging below it. */}
-      {grooming ? (
-        // Bent at the elbow and carried out before it comes up, so it reads as
-        // a leg rather than a rod, and it finishes at the *mouth* — a paw that
-        // stops at the eye is a cat poking itself in the eye.
-        <>
-          <path {...STROKE} d={`M 34.6 30.4 C 39 29, 43.5 25, ${tabby ? 43.1 : 43.4} 20` } />
-          {tabby ? <ellipse {...STROKE} cx="43" cy="18.9" rx="1.9" ry="1.4" /> : null}
-        </>
-      ) : batting ? (
-        <>
-          <path
-            {...STROKE}
-            d={`M 34.5 29.5 C 38.5 28.8, 42 27.6, ${(tabby ? paw - 1.6 : paw).toFixed(2)} 26.8`}
-          />
-          {tabby ? <ellipse {...STROKE} cx={paw.toFixed(2)} cy={26.9} rx={1.9} ry={1.4} /> : null}
-        </>
-      ) : (
-        <path {...STROKE} d={`M 34.5 ${tabby ? 33.4 : 36.5} L 34.5 26.5`} />
-      )}
-      {tabby ? (
-        <g {...STROKE}>
-          {grooming || batting ? null : <ellipse cx="34.5" cy="35" rx="2.2" ry="1.5" />}
-          <ellipse cx="39.4" cy="35" rx="2.2" ry="1.5" />
-        </g>
-      ) : null}
-      {/* The grey one has no boots, so his far leg has to be drawn for the two
-          busy poses or he sits on one leg. */}
-      {!tabby && (grooming || batting) ? (
-        <path {...STROKE} d="M 39.4 36.5 L 39.4 27" />
-      ) : null}
+      <Silhouette parts={parts} />
+      <LineWork parts={parts} coat={coat} />
+      {face}
     </g>
   );
 }
@@ -461,6 +649,11 @@ export function CompanionCat({
 }: CompanionCatProps) {
   return (
     <svg
+      // Marks a cat as a cat. The companion layer now draws furniture and toys
+      // in the same technique, so "every svg under [data-companion]" stopped
+      // meaning "every cat" — and the specs that count animals need to keep
+      // counting animals.
+      data-cat=""
       viewBox={`0 0 ${CAT_W} ${CAT_H}`}
       width={CAT_W * scale}
       height={CAT_H * scale}
