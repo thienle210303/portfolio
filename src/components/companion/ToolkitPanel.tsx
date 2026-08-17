@@ -9,8 +9,12 @@ import { cn } from "@/lib/cn";
  *
  * Every action in here also exists in the header, the hero or the contact
  * section. That is the rule the whole companion depends on: it is a shortcut,
- * never the only route, which is what makes it safe to send the cats away and
+ * never the only route, which is what makes it safe to send the cats to bed and
  * safe to remove them entirely.
+ *
+ * It is also the only place the permanent exit lives. The resting box used to
+ * carry a copy of it; the bed is furniture now, and furniture does not offer to
+ * delete the animals asleep on it.
  *
  * Split out from `Companion` because it has nothing to do with the animation —
  * no position, no frame, no timing. It is ordinary markup with ordinary
@@ -29,7 +33,7 @@ interface ToolkitPanelProps {
   readonly onCopyEmail: () => void;
   /** Closes the panel — a jump inside a single page leaves it hanging open. */
   readonly onNavigate: () => void;
-  readonly onSendAway: () => void;
+  readonly onSendToBed: () => void;
   readonly onTurnOff: () => void;
   readonly panelRef?: Ref<HTMLDivElement>;
 }
@@ -38,7 +42,7 @@ export function ToolkitPanel({
   copied,
   onCopyEmail,
   onNavigate,
-  onSendAway,
+  onSendToBed,
   onTurnOff,
   panelRef,
 }: ToolkitPanelProps) {
@@ -128,16 +132,21 @@ export function ToolkitPanel({
         ) : null}
       </div>
 
-      {/* Two exits, not one. "Away" is reversible and shows you where they
-          went; "off" is the preference. Conflating them is what made the old
-          single control a trapdoor. */}
+      {/* Two exits, not one, and the copy is what tells them apart. "To bed" is
+          reversible and names the place you will find them — the box in the
+          corner, one click from awake. "Off" is the preference, and it is the
+          only one of the two with no way back. Conflating them is what made the
+          old single control a trapdoor, and "away", which is where the first
+          one used to send them, was still vague enough to sound like the
+          second. This panel is now the only place the permanent one lives:
+          the bed itself carries a single control, and it wakes them. */}
       <div className="mt-2 flex flex-col border-t border-rule">
         <button
           type="button"
-          onClick={onSendAway}
+          onClick={onSendToBed}
           className="flex min-h-11 items-center px-3 text-left font-mono text-[0.62rem] uppercase tracking-[0.14em] text-fg-subtle hover:text-fg"
         >
-          Send the cats away
+          Send the cats to bed
         </button>
         <button
           type="button"

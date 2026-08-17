@@ -4,8 +4,18 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { profile } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import CompanionCat, { CAT_H, CAT_W, type CatPose } from "./CompanionCat";
+import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, { BED_H, BED_INSET, BED_W, IdleBed } from "./RestingBox";
 import ToolkitPanel, { PANEL_ID } from "./ToolkitPanel";
+import {
+  advancePlay,
+  openPlay,
+  pickToy,
+  scheduleNextPlay,
+  PLAY_RETRY,
+  type Play,
+  type PlayBeat,
+} from "./companion-play";
 import { setCompanionMode, useCompanionMode } from "./companion-state";
 import {
   clamp,
@@ -42,7 +52,13 @@ import {
  *     no amount of drawing makes that read as two animals. The grey one leads
  *     and tracks the pointer; the tabby follows *him*, on her own clock, and
  *     stops to watch the cursor or wander off when it suits her.
- *  5. It is always somewhere you can find it. Two ways a cat used to become
+ *  5. Anything it does of its own accord is *rare*. The idle flourishes are
+ *     tens of seconds apart and the toys — see companion-play — are minutes
+ *     apart, can only start while the cats are already settled and the visitor
+ *     is not doing anything, and end on the frame the pointer moves. A
+ *     companion that performs on a schedule you can feel is a companion you
+ *     watch instead of reading the page.
+ *  6. It is always somewhere you can find it. Two ways a cat used to become
  *     invisible — off the viewport edge, and behind the opaque sticky header
  *     the companion layer sits under — are answered in companion-space, which
  *     every target and every position now goes through. The third was social
@@ -510,11 +526,17 @@ export function Companion() {
   const [copied, setCopied] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
   const [bed, setBed] = useState<Bed>(null);
+  /** Which toy is on the page, if any. The only part of a play React knows
+   *  about: everything else it does is a transform written per frame. */
+  const [toy, setToy] = useState<ToyKind | null>(null);
   const [frame, setFrame] = useState<Frame>(INITIAL_FRAME);
 
   const leadNode = useRef<HTMLElement | null>(null);
   const followNode = useRef<HTMLElement | null>(null);
   const policeNode = useRef<HTMLElement | null>(null);
+  const toyNode = useRef<HTMLDivElement | null>(null);
+  const toyArt = useRef<SVGGElement | null>(null);
+  const toySpin = useRef<SVGGElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const matRef = useRef<HTMLDivElement>(null);
@@ -539,6 +561,11 @@ export function Companion() {
   const napRef = useRef<Nap | null>(null);
   const napPointer = useRef<Element | null>(null);
   const napFocus = useRef<Element | null>(null);
+  /** The running scene, and the earliest the next one may start. Both live
+   *  above the loop effect so a mode change does not hand a returning visitor
+   *  a toy immediately, or reset a timer they have already half waited out. */
+  const playRef = useRef<Play | null>(null);
+  const playAt = useRef(0);
   /** Content-avoiding rest spots, resolved once per settle rather than per
    *  frame. Cleared whenever the page underneath them can have moved. */
   const settleSpots = useRef<Spots | null>(null);
@@ -553,6 +580,19 @@ export function Companion() {
   const restart = useRef<(() => void) | null>(null);
 
   const wake = useCallback(() => restart.current?.(), []);
+
+  /** Put the toy away, whatever it was doing. Every exit from a play goes
+   *  through here, including the ones that are not about the toy at all — the
+   *  toolkit opening, the mode changing, the loop being torn down — because a
+   *  toy left mounted with nothing advancing it is a drawing frozen on the
+   *  page. `playAt` is re-rolled here rather than at the start of a scene, so
+   *  an interrupted play does not immediately try again. */
+  const endPlay = useCallback((now = performance.now()) => {
+    if (!playRef.current) return;
+    playAt.current = scheduleNextPlay(now);
+    playRef.current = null;
+    setToy(null);
+  }, []);
 
   useEffect(() => {
     openRef.current = open;
@@ -628,6 +668,19 @@ export function Companion() {
   const attachPolice = useCallback((node: HTMLElement | null) => {
     policeNode.current = node;
     if (node && escortRef.current) paint(node, escortRef.current.police.pos);
+  }, []);
+
+  /** Same reasoning as the cats' own ref callbacks: a toy positioned in an
+   *  effect gets one frame at the top-left origin first, and a yarn ball
+   *  appearing in the corner of the page before it jumps to the cat is worse
+   *  than no yarn ball. It also enters at zero opacity, so the fade the scene
+   *  scripts starts from the right place. */
+  const attachToy = useCallback((node: HTMLDivElement | null) => {
+    toyNode.current = node;
+    const play = playRef.current;
+    if (!node || !play) return;
+    paint(node, play.pos);
+    node.style.opacity = play.opacity.toFixed(3);
   }, []);
 
   /* ------------------------------------------------------------- pointer -- */
@@ -796,6 +849,18 @@ export function Companion() {
       return { lead: spot, follow: findClearSpot(followAnchor, followHome(home), spot) };
     }
 
+    /** Where the pair are currently parked, resolved once per settle rather
+     *  than per frame — probing the page costs hit tests. Two branches want
+     *  the same answer now: holding station with the pointer stopped, and
+     *  holding it while a toy is out. */
+    function settled(): Spots {
+      settleSpots.current ??= restSpots(grey.pos, {
+        x: grey.pos.x - CAT_W - FOLLOW_GAP,
+        y: grey.pos.y,
+      });
+      return settleSpots.current;
+    }
+
     function tickBlink(cat: Mover, now: number): boolean {
       if (cat.blinkAt === 0) cat.blinkAt = now + 1800 + Math.random() * 4200;
       else if (now > cat.blinkAt) {
@@ -843,14 +908,63 @@ export function Companion() {
       const parked = !forced && (!pointer || idleFor > SETTLE_AFTER);
       /** Non-null only while the lead is actually chasing something. */
       const chase = !forced && !parked ? pointer : null;
-      const dozing = forced === "escort" || forced === "nap" || idleFor > SLEEP_AFTER;
+
+      /* -------------------------------------------------------------- play -- */
+
+      /**
+       * A toy, on the rare frame every condition lines up.
+       *
+       * The list of things that end a scene is longer than the list that starts
+       * one, and that asymmetry is the design: the cats' first duty is to the
+       * visitor, so anything with a claim on them — the escort, a nap spot, the
+       * toolkit, or simply the pointer moving again — drops the toy on the frame
+       * it appears rather than finishing the beat.
+       */
+      if (playRef.current && (forced !== null || !parked)) endPlay(now);
+      if (playAt.current === 0) playAt.current = scheduleNextPlay(now);
+
+      const scene = playRef.current ? advancePlay(playRef.current, now) : null;
+      if (scene?.done) endPlay(now);
+      /** Non-null only while a scene is actually mid-flight. */
+      const beat: PlayBeat | null = scene && !scene.done ? scene : null;
+
+      const dozing = forced === "escort" || forced === "nap" || (idleFor > SLEEP_AFTER && !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a
        * fresh page load is already "idle" and the first thing a visitor would
        * see is two cats in a bed they never sent them to.
+       *
+       * A running scene holds the bed off. Play can only *start* inside the
+       * window between settling and dozing, but the last beat of a yarn ball
+       * can outlive it, and two cats walking away from a toy mid-roll to go to
+       * bed is the one way this could read as broken.
        */
-      const wantsBed = !forced && pointer !== null && idleFor > SLEEP_AFTER;
+      const wantsBed = !forced && pointer !== null && idleFor > SLEEP_AFTER && !beat;
+
+      // Starting one is the last thing considered, and the narrowest: settled,
+      // standing still, nobody around, not on the way to bed, and the clock is
+      // up. `openPlay` may still decline — a page with no whitespace near the
+      // cats has nowhere safe for this — in which case it backs off rather than
+      // re-probing the layout on the next frame.
+      if (
+        !beat &&
+        !forced &&
+        parked &&
+        !wantsBed &&
+        pointer !== null &&
+        grey.pose !== "walk" &&
+        tabby.pose !== "walk" &&
+        now > playAt.current
+      ) {
+        const opened = openPlay(pickToy(), grey.pos, grey.facing, now);
+        if (opened) {
+          playRef.current = opened;
+          setToy(opened.kind);
+        } else {
+          playAt.current = now + PLAY_RETRY;
+        }
+      }
 
       /* ------------------------------------------------------------ lead -- */
 
@@ -894,6 +1008,14 @@ export function Companion() {
         const slots = bedSlots();
         leadWant = slots.lead;
         followWant = slots.follow;
+      } else if (beat) {
+        // Playing. The grey one holds the spot he settled on — he bats the
+        // thing and then watches it go, which is what a cat that has already
+        // decided where it is sitting does. Only the tabby travels, and only
+        // as far as the toy, which was probed before the scene opened.
+        const rest = settled();
+        leadWant = rest.lead;
+        followWant = beat.chase ?? rest.follow;
       } else if (!pointer || idleFor > SLEEP_AFTER) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
@@ -901,14 +1023,9 @@ export function Companion() {
       } else {
         // Pointer has stopped: hold station rather than creeping closer — but
         // hold it somewhere they are allowed to sleep.
-        if (!settleSpots.current) {
-          settleSpots.current = restSpots(grey.pos, {
-            x: grey.pos.x - CAT_W - FOLLOW_GAP,
-            y: grey.pos.y,
-          });
-        }
-        leadWant = settleSpots.current.lead;
-        followWant = settleSpots.current.follow;
+        const rest = settled();
+        leadWant = rest.lead;
+        followWant = rest.follow;
       }
 
       const leadDx = leadWant.x - grey.pos.x;
@@ -917,6 +1034,12 @@ export function Companion() {
       if (leadStep > 0.3) {
         calmIdle(grey, now);
         grey.pose = "walk";
+      } else if (beat) {
+        // The scene outranks whatever he was doing with himself: a cat that
+        // starts washing halfway through swatting a ball of yarn is two cats.
+        calmIdle(grey, now);
+        grey.pose = beat.leadPose ?? "sit";
+        grey.facing = beat.focus.x > grey.pos.x + CAT_W / 2 ? 1 : -1;
       } else if (dozing) {
         calmIdle(grey, now);
         grey.pose = "sleep";
@@ -988,6 +1111,10 @@ export function Companion() {
       if (followStep > 0.3) {
         calmIdle(tabby, now);
         tabby.pose = "walk";
+      } else if (beat) {
+        calmIdle(tabby, now);
+        tabby.pose = beat.followPose ?? "sit";
+        tabby.facing = beat.focus.x > tabby.pos.x + CAT_W / 2 ? 1 : -1;
       } else if (dozing) {
         calmIdle(tabby, now);
         tabby.pose = "sleep";
@@ -1055,11 +1182,29 @@ export function Companion() {
       paint(followNode.current, tabby.pos);
       if (run) paint(policeNode.current, run.police.pos);
 
+      // The toy, on the same terms as the cats: position, fade and the one
+      // moving part all go straight to the node. Nothing about a scene is worth
+      // a re-render except the fact that it exists.
+      const live = beat ? playRef.current : null;
+      if (live) {
+        paint(toyNode.current, live.pos);
+        if (toyNode.current) toyNode.current.style.opacity = live.opacity.toFixed(3);
+        if (toyArt.current) {
+          toyArt.current.style.transform =
+            live.kind === "moth" ? `scaleX(${live.flap.toFixed(3)})` : `scaleX(${live.facing})`;
+        }
+        if (toySpin.current) toySpin.current.style.transform = `rotate(${live.spin.toFixed(1)}deg)`;
+      }
+
       if (now - lastTone.current > TONE_INTERVAL) {
         lastTone.current = now;
         syncTone(leadNode.current, centreOf(grey.pos));
         syncTone(followNode.current, centreOf(tabby.pos));
         if (run) syncTone(policeNode.current, centreOf(run.police.pos));
+        // Line work on the same fixed layer as the cats, so it needs the same
+        // repointing: a toy that stayed root-coloured would vanish over a
+        // contrast section exactly as the cats used to.
+        if (beat) syncTone(toyNode.current, beat.focus);
         // The mat is opaque furniture on the same fixed layer, so it has the
         // cats' problem: a `bg-surface` box coloured from the root scope sitting
         // over a `contrast` section. A scroll resets `lastTone` and wakes the
@@ -1142,6 +1287,13 @@ export function Companion() {
         settleSpots.current = null;
         homeSpots.current = null;
         lastTone.current = 0;
+        // A scene's clearance was probed against the layout as it stood when it
+        // opened, and this is the event that says that layout has moved. The
+        // cats re-probe and shuffle; a toy cannot, so it goes. Scrolling is
+        // also the one thing a visitor can do that never reaches the pointer
+        // handler, so without this a play could carry on over the prose it is
+        // now sitting on.
+        endPlay();
         wake();
       }, 250);
     };
@@ -1162,13 +1314,16 @@ export function Companion() {
       travelRef.current = 0;
       lastMoveRef.current = performance.now();
       setBed(null);
+      // Nor does a toy. It is only ever advanced from inside this loop, so one
+      // left behind would be a drawing stopped mid-roll on the page.
+      endPlay();
       window.clearTimeout(recheck);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", onPageMoved);
       window.removeEventListener("resize", onPageMoved);
     };
-  }, [loopActive, wake]);
+  }, [loopActive, wake, endPlay]);
 
   /* -------------------------------------------------------------- escort -- */
 
@@ -1298,9 +1453,10 @@ export function Companion() {
     setBed(null);
   }
 
-  function sendAway() {
+  function sendToBed() {
     setOpen(false);
     clearBed();
+    endPlay();
     focusWish.current = "box";
     // The escort is theatre. Without a roaming layer there is nothing to
     // escort, so touch and reduced-motion visitors land straight in the box.
@@ -1326,6 +1482,7 @@ export function Companion() {
     escortRef.current = null;
     setEscort(null);
     clearBed();
+    endPlay();
     // Nothing companion-related is left to hold focus, so hand it to the
     // document's own landing point rather than dropping it on <body>.
     document.getElementById("main")?.focus();
@@ -1362,6 +1519,24 @@ export function Companion() {
           below occupies the same corner and the two never coexist. */}
       {roams && mode === "roam" && bed ? (
         <IdleBed asleep={bed === "asleep"} containerRef={matRef} />
+      ) : null}
+
+      {/* The toy, under the cats in paint order so a paw lands on top of it.
+          Decoration in the strictest sense: no accessible name, no pointer
+          events (it inherits `none` from the root and says so anyway), and no
+          state that outlives the scene — the whole element is gone the moment
+          the play ends. Roaming only; there is no scene to play without a
+          loop to run it. */}
+      {roams && mode === "roam" && toy ? (
+        <div
+          ref={attachToy}
+          data-cat-toy=""
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0"
+          style={{ width: TOY_W, height: TOY_H }}
+        >
+          <CompanionToy kind={toy} artRef={toyArt} spinRef={toySpin} />
+        </div>
       ) : null}
 
       {mode === "roam" ? (
@@ -1442,17 +1617,19 @@ export function Companion() {
           copied={copied}
           onCopyEmail={copyEmail}
           onNavigate={() => setOpen(false)}
-          onSendAway={sendAway}
+          onSendToBed={sendToBed}
           onTurnOff={turnOff}
           panelRef={panelRef}
         />
       ) : null}
 
+      {/* The bed carries one control — waking them. Turning the cats off used
+          to be a second button here; it is now the toolkit's alone, so the bed
+          is only ever a bed. */}
       {mode === "resting" ? (
         <RestingBox
           occupied={escort !== "herding"}
           onWake={wakeCats}
-          onTurnOff={turnOff}
           containerRef={boxRef}
           wakeRef={wakeButtonRef}
         />

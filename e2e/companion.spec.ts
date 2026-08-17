@@ -17,6 +17,14 @@ import AxeBuilder from "@axe-core/playwright";
  * two exceptions below are not about how the cats look: "somewhere you can see
  * them" and "somewhere you can find them" are the two ways this feature has
  * actually failed a visitor, and neither is cosmetic.
+ *
+ * The toys are the same call taken one step further. A scene opens minutes
+ * apart, only while the visitor is idle, and never at all without a roaming
+ * loop — so waiting for one would mean minutes of real time per worker for a
+ * decoration whose failure mode is "a line drawing appears". What *is* asserted
+ * is the two places it could hurt somebody: it is absent under reduced motion,
+ * and its absence is a hard guarantee rather than a probability, because the
+ * loop that runs it does not exist there.
  */
 
 const DESKTOP_WIDTH = 1440;
@@ -139,7 +147,7 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
 
     await catButton(page).click();
-    await page.getByRole("button", { name: /send the cats away/i }).click();
+    await page.getByRole("button", { name: /send the cats to bed/i }).click();
 
     // Gone from roaming, but not gone: the bed is a real, labelled control and
     // focus has followed the visitor into it.
@@ -147,11 +155,32 @@ test.describe("companion", () => {
     await expect(restingBox(page)).toBeVisible();
     await expect(restingBox(page)).toBeFocused();
 
+    // And it is the *only* control on the bed. "Turn the cats off" used to sit
+    // beside it; the owner asked for the bed to be just the bed, so the
+    // permanent exit lives in the toolkit alone. A second button reappearing
+    // here is the regression this asserts.
+    await expect(page.getByRole("button", { name: /turn the cats off/i })).toHaveCount(0);
+    await expect(page.locator("[data-companion] button")).toHaveCount(1);
+
     // Survives a reload — this is a preference, not a session quirk.
     await page.reload();
     await page.waitForLoadState("networkidle");
     await expect(catButton(page)).toHaveCount(0);
     await expect(restingBox(page)).toBeVisible();
+
+    // Sleeping cats snore, and it is decoration all the way down: hidden from
+    // assistive technology, and never a target. Asserted after the reload
+    // rather than straight after the dismissal, because the box only fills
+    // once the escort has finished walking them into it.
+    const snore = page.locator("[data-cat-snore]");
+    await expect(snore).toHaveCount(1);
+    await expect(snore).toHaveAttribute("aria-hidden", "true");
+    expect(
+      await page.evaluate(() => {
+        const el = document.querySelector("[data-cat-snore]");
+        return el ? window.getComputedStyle(el).pointerEvents : "missing";
+      }),
+    ).toBe("none");
 
     // And the way back exists, which is the entire point of FB-5.
     await restingBox(page).click();
@@ -162,7 +191,7 @@ test.describe("companion", () => {
     await expect(catButton(page)).toBeVisible();
   });
 
-  test("can be turned off for good, from the toolkit and from the box", async ({ page }) => {
+  test("can be turned off for good, from the toolkit", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -182,14 +211,17 @@ test.describe("companion", () => {
     // Nothing else on the page depends on them: contact routes still resolve.
     await expect(page.locator("#contact")).toBeVisible();
 
-    // The same escape hatch is reachable from the bed, without waking them
-    // first — a visitor who wants them gone should never have to let them out.
+    // There used to be a second route to the same action, on the bed itself,
+    // so a visitor could remove the cats without waking them. It is gone by the
+    // owner's request — the bed is furniture, not a control panel — which makes
+    // the toolkit above the single source of the permanent exit. The cost is
+    // one click to wake them first, and the wake control is asserted by the
+    // resting-box test; what matters here is that the bed no longer offers it.
     await page.evaluate(() => window.localStorage.setItem("companion", "resting"));
     await page.reload();
     await page.waitForLoadState("networkidle");
     await expect(restingBox(page)).toBeVisible();
-    await page.getByRole("button", { name: /turn the cats off/i }).click();
-    await expect(page.locator("[data-companion]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /turn the cats off/i })).toHaveCount(0);
   });
 
   test("never comes to rest on top of readable content", async ({ page }) => {
@@ -354,6 +386,9 @@ test.describe("companion", () => {
 
     expect(before).not.toBeNull();
     expect(after).toEqual(before);
+    // Nothing to play with either: toys are scenes the roaming loop acts out,
+    // and there is no roaming loop here.
+    await expect(page.locator("[data-cat-toy]")).toHaveCount(0);
     // No idle bed either: it belongs to the roaming layer, which does not exist
     // here, and a bed appearing under a pair of cats that never walked to it
     // would be pure decoration.
@@ -364,11 +399,22 @@ test.describe("companion", () => {
 
     // And the dismissal still works, without any of the escort theatrics: the
     // cats are in the box the moment the action is taken.
-    await page.getByRole("button", { name: /send the cats away/i }).click();
+    await page.getByRole("button", { name: /send the cats to bed/i }).click();
     await expect(restingBox(page)).toBeVisible();
     await expect(catButton(page)).toHaveCount(0);
     // No third cat anywhere: the police escort is skipped entirely here.
     await expect(page.locator("[data-companion] svg")).toHaveCount(2);
+
+    // The snore is removed rather than slowed. The global reduced-motion rule
+    // collapses animations to 0.01ms, which would park these three glyphs at
+    // their last keyframe instead of taking them off the page — so this asserts
+    // the companion's own stylesheet, not the global one.
+    expect(
+      await page.evaluate(() => {
+        const el = document.querySelector("[data-cat-snore]");
+        return el ? window.getComputedStyle(el).display : "missing";
+      }),
+    ).toBe("none");
 
     await context.close();
   });
