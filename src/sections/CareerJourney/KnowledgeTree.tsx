@@ -1,6 +1,6 @@
 import { profile } from "@/content/portfolio";
 import { buildKnowledgeTree, totalTechnologies } from "@/lib/knowledge-tree";
-import { DrawnTree } from "./DrawnTree";
+import { DrawnTree, GroundHatch, RootSystem } from "./DrawnTree";
 import { KnowledgeTreeList } from "./KnowledgeTreeList";
 
 /**
@@ -27,7 +27,16 @@ import { KnowledgeTreeList } from "./KnowledgeTreeList";
  *
  * Below 1024px the tree is `KnowledgeTreeList` — the indented disclosure list
  * that has always been here. At 1024px and up it is `DrawnTree` — a genuinely
- * drawn tree with a trunk, boughs and leaves.
+ * drawn tree with a tapering trunk, boughs, meandering twigs and leaves, a
+ * ground line and a root system.
+ *
+ * The drawing is assembled from three exports of DrawnTree.tsx rather than
+ * one, because the tree grows *through* the root panel: the canopy is above
+ * it, the ground line is the panel's own top border, and the roots are below
+ * it. `<DrawnTree>` renders everything above ground; `<GroundHatch>` hatches
+ * the underside of that border from inside the panel; `<RootSystem>` follows
+ * the panel. All three are `hidden lg:block`, so below 1024px the list
+ * presentation is on its own with no fragment of a drawing left behind.
  *
  * They are two presentations of one dataset, and exactly one of them is ever
  * displayed. That matters more than it looks: `display: none` removes a
@@ -91,11 +100,14 @@ export default function KnowledgeTree() {
         {/* The root: Thien himself, the foundation the branches grow out of.
             `profile.name` / `profile.philosophy` and the tree's own computed
             totals — never retyped here. Centred at >=1024px, where it becomes
-            the plinth the trunk stands on. */}
+            the plinth the trunk stands on — and its own top border becomes the
+            ground line the trunk grows from, which is why `GroundHatch` only
+            has to say which side of that line is earth. */}
         <div
           data-cat-nap
           className="relative order-1 border border-rule bg-surface px-5 py-6 sm:px-6 lg:order-2 lg:px-8 lg:py-8 lg:text-center"
         >
+          <GroundHatch className="hidden lg:block" />
           <p className="eyebrow">Root</p>
           <p className="mt-2 font-display text-[length:var(--step-2)] tracking-[-0.01em] text-fg">
             {profile.name}
@@ -117,6 +129,12 @@ export default function KnowledgeTree() {
             className="absolute -bottom-6 left-0 h-6 w-px bg-rule lg:hidden"
           />
         </div>
+
+        {/* The roots, below the plinth — the drawing's answer to the trunk
+            and boughs above it, and the only part of the tree that is
+            argument rather than data. Drawing-only, so it is hidden wherever
+            the list presentation is showing. */}
+        <RootSystem className="hidden lg:order-3 lg:block" />
 
         <KnowledgeTreeList tree={TREE} className="order-2 mt-6 lg:hidden" />
       </div>
