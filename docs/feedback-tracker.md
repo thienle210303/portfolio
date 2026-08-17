@@ -156,6 +156,26 @@ Open question for Thien (unchanged): keep the single annotation blue, or go
 truly zero-hue? Blue is currently load-bearing for links, measured values and
 the primary control, and every pairing is contrast-checked.
 
+## Round 2 (2026-08-17, after PR #4 opened)
+
+| # | Item | Verdict | Package |
+| --- | --- | --- | --- |
+| FB2-1 | Rails sticky within section on laptop | Accepted — reverses a documented round-0 decision at the owner's call | F |
+| FB2-2 | Remove hero social links | Accepted — Contact cards + footer already carry them | F |
+| FB2-3 | Loop → decision graph | Accepted, assumed target = Philosophy problem-solving loop; drawn with nodes, decision diamonds, labelled branches, dashed loop-back — authored wording only | H |
+| FB2-4 | "Do we need the AI Workflow Lab?" | Recommendation: keep — it evidences the agentic-workflow skills FB2-3/5 ask to showcase; awaiting owner decision before any removal | — |
+| FB2-5 | Real drawn career tree | Accepted — desktop drawing (root plinth, trunk, paired boughs, openable leaves); mobile/AT keep the accessible list; authored edges only | I |
+| FB2-6 | Cats disappear ("jail") | Accepted + real bug found: header (z-50) paints over companion (z-40) and placement offered the header band as clear; safe-area measured, per-frame clamp, idle sleep now walks to a visible corner bed (transient, never persisted) | G |
+| FB2-7 | Follower speed jerk + more actions | Accepted — continuous eased speed with acceleration limiter; stretch/groom/bat/flick idle poses, sparse | G |
+| FB2-8 | Closing keeps only Get in touch + Back to top | Accepted — footer below carries the links once | F |
+
+Diagram note for Thien: the Test fork rejoins at Learn because the authored
+content says learning happens on both outcomes; a routing fork (failure skips
+Learn) would need a new authored sentence. Tree notes: the crown is honestly
+lopsided (12 of 25 leaves under Software engineering — retag `lenses` in
+`portfolio.ts` to rebalance); four milestone leaves open thin (no
+technologies/case study authored).
+
 **Cross-package contract (owned by the lead):** an element may declare
 `data-cat-nap` (optionally `data-cat-nap="id"`). When the pointer rests on it
 (or it receives focus-visible) for ~600ms, the companion cats walk to its
