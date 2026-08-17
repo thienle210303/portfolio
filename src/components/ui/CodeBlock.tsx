@@ -45,12 +45,31 @@ export function CodeBlock({ code, filename, summary, className }: CodeBlockProps
           {filename}
         </span>
       </figcaption>
+      {/*
+       * Long lines wrap instead of scrolling sideways: `whitespace-pre-wrap`
+       * keeps the preformatted line breaks/indentation but lets the line
+       * itself break, and `wrap-anywhere` (`overflow-wrap: anywhere`) is the
+       * belt-and-braces part — it lets a single unbreakable token (a long
+       * hash, URL, or identifier with no spaces) break mid-token rather than
+       * stretch this panel, and the panel, past the viewport.
+       *
+       * A hanging indent for wrapped continuation lines (padding-left +
+       * negative text-indent) was considered and dropped: `text-indent`
+       * only offsets the very first line of the whole block, and the
+       * standards-track fix for "reset it after every hard break" —
+       * `text-indent: <len> each-line` — isn't implemented in
+       * Chromium/WebKit, so it would silently no-op on most engines. The
+       * alternative, indenting per source line, needs each line to be its
+       * own block box, which means splitting on the `\n`s embedded inside
+       * token values (a blank-line run is one `whitespace` token; a block
+       * comment is one `comment` token spanning several lines) — exactly
+       * the token-span markup this change is asked to leave untouched.
+       */}
       <pre
-        tabIndex={0}
         role="region"
         aria-label={filename}
         aria-describedby={summaryId}
-        className="code-scroll max-w-full overflow-x-auto p-4 [-webkit-overflow-scrolling:touch]"
+        className="max-w-full whitespace-pre-wrap wrap-anywhere p-4"
       >
         <code className="font-mono text-[length:var(--step--1)] leading-relaxed">
           {tokens.map((token, index) => (

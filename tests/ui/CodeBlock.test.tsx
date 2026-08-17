@@ -17,7 +17,7 @@ describe("CodeBlock", () => {
     expect(pre?.querySelector("code")).not.toBeNull();
   });
 
-  it("gives the scrollable region an accessible name equal to the filename", () => {
+  it("gives the region an accessible name equal to the filename", () => {
     render(<CodeBlock code={SAMPLE_CODE} filename="example.ts" summary="Example summary" />);
     expect(screen.getByRole("region", { name: "example.ts" })).toBeInTheDocument();
   });
@@ -92,8 +92,34 @@ describe("CodeBlock", () => {
     expect(screen.getByRole("region", { name: "empty.ts" })).toBeInTheDocument();
   });
 
-  it("is keyboard-focusable so keyboard users can scroll it (tabIndex=0 on the scrollable region)", () => {
+  it("wraps long lines instead of scrolling sideways (whitespace-pre-wrap + wrap-anywhere on the region)", () => {
     render(<CodeBlock code={SAMPLE_CODE} filename="example.ts" summary="Example summary" />);
-    expect(screen.getByRole("region", { name: "example.ts" })).toHaveAttribute("tabindex", "0");
+    const region = screen.getByRole("region", { name: "example.ts" });
+    expect(region).toHaveClass("whitespace-pre-wrap");
+    // `wrap-anywhere` is a project-defined utility (globals.css), not a
+    // built-in Tailwind class — it's the belt-and-braces part that lets a
+    // single unbreakable token break mid-token rather than widen the panel.
+    expect(region).toHaveClass("wrap-anywhere");
+  });
+
+  it("carries no horizontal-scroll affordance now that lines wrap (no .code-scroll scrim, no overflow-x-auto, no scroll-only tab stop)", () => {
+    render(<CodeBlock code={SAMPLE_CODE} filename="example.ts" summary="Example summary" />);
+    const region = screen.getByRole("region", { name: "example.ts" });
+    expect(region).not.toHaveClass("code-scroll");
+    expect(region).not.toHaveClass("overflow-x-auto");
+    // There is nothing left to scroll inside the region, so it no longer
+    // needs its own tab stop — the page's ordinary scroll/tab order carries
+    // it now, the same as any other static content.
+    expect(region).not.toHaveAttribute("tabindex");
+  });
+
+  it("preserves the round-trip guarantee for a single long unbreakable token, the case wrapping exists to handle", () => {
+    const longToken = "a".repeat(200);
+    const codeWithLongToken = `const ${longToken} = 1;`;
+    const { container } = render(
+      <CodeBlock code={codeWithLongToken} filename="long.ts" summary="Long token summary" />,
+    );
+    const codeEl = container.querySelector("code");
+    expect(codeEl?.textContent).toBe(codeWithLongToken);
   });
 });

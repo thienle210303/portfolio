@@ -627,31 +627,14 @@
   }
 
   /*
-   * Scroll affordance for horizontally scrollable code.
-   *
-   * The panel is allowed to scroll sideways, but with a hard edge and no
-   * cue the clipped line simply reads as broken. This paints a scrim at
-   * the right edge that disappears once you reach the end.
-   *
-   * It is CSS-only and needs no JavaScript: the first layer is attached
-   * `local` so it travels with the content and parks over the scrim at
-   * the very end, while the scrim itself is attached `scroll` and stays
-   * pinned to the visible edge. Monochrome by construction — it is drawn
-   * from the surface and ink tokens, never a colour.
+   * `.code-scroll` (the scrim for horizontally scrollable code) was removed
+   * here: CodeBlock now wraps long lines (`whitespace-pre-wrap` +
+   * `wrap-anywhere`) instead of scrolling them sideways, so there is nothing
+   * left to paint an edge-of-scroll cue for. It was the sole consumer of the
+   * `--code-scrim` / `--q-code-scrim` / `--l-code-scrim` theme tokens above;
+   * those are left in place as they're outside this change's scope, but
+   * they're now unused and a future pass can remove them.
    */
-  .code-scroll {
-    background-image:
-      linear-gradient(to left, var(--surface), var(--surface)),
-      linear-gradient(to left, var(--code-scrim), transparent);
-    background-position:
-      right center,
-      right center;
-    background-size:
-      3rem 100%,
-      3rem 100%;
-    background-repeat: no-repeat;
-    background-attachment: local, scroll;
-  }
 
   /*
    * The recurring micro-label. Tracking came down from 0.18em because this
