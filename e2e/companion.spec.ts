@@ -61,6 +61,33 @@ function footerRecovery(page: Page) {
   return page.getByRole("button", { name: /bring the cats back/i });
 }
 
+/**
+ * Wait until the roaming loop is demonstrably live — both cats positioned by
+ * their first animation frames. The pointer listener attaches in the same
+ * mount commit as the loop, so once this holds, a synthetic mouse move cannot
+ * race the handler. Without it, a `mouse.move` fired immediately after
+ * networkidle can land ~80ms before hydration finishes attaching the effect,
+ * and the test's one presence stamp silently evaporates — which is exactly
+ * how three of these tests flaked on a warm dev server.
+ */
+async function companionAwake(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).filter(
+              (svg) => {
+                const el = svg.closest("[data-companion] > *") as HTMLElement | null;
+                return el?.style.transform.includes("translate3d") ?? false;
+              },
+            ).length,
+        ),
+      { timeout: 10_000 },
+    )
+    .toBe(2);
+}
+
 test.describe("companion", () => {
   test("opens and closes its toolkit, and Escape returns focus to the cat", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
@@ -287,6 +314,8 @@ test.describe("companion", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
+    await companionAwake(page);
+
     // Park the pointer in the middle of the hero's prose and let them settle.
     // Passing overlap while they walk is fine and deliberate; what must never
     // happen is a cat asleep on a paragraph — so this polls rather than waiting
@@ -362,6 +391,8 @@ test.describe("companion", () => {
           .map((r) => `${Math.round(r.left)},${Math.round(r.top)}`);
       });
 
+    await companionAwake(page);
+
     // Walk the pointer up into the chrome and leave it there. Crossing the
     // header while they move is fine; ending up under it is not.
     await page.mouse.move(700, 500);
@@ -386,6 +417,8 @@ test.describe("companion", () => {
     test.setTimeout(90_000);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+
+    await companionAwake(page);
 
     // One move, then nothing. Idle sleep is gated on a pointer having existed,
     // so a page nobody has touched keeps the old corner behaviour.
