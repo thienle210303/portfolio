@@ -31,12 +31,13 @@ const HEADING_ID = "philosophy-heading";
 /*
  * Deliberately no `rail` here, unlike every other section.
  *
- * ProblemSolvingLoop lays its nine steps out as nine columns at >=1024px, and
- * surrendering an 11rem margin plus its gap drops each column to roughly 127px
- * — narrow enough that headings like "Question assumptions" break across three
- * lines and the row stops scanning. The rail also had the least to say here:
- * its notes would have been counts of the two lists rendered directly below
- * it, which is annotation restating the page rather than adding to it.
+ * The original reason was width — ProblemSolvingLoop used to lay its nine
+ * steps out as nine columns at >=1024px, and surrendering an 11rem margin
+ * dropped each column to roughly 127px. That reason expired when the loop
+ * became a vertical graph, but the other one did not, and it was always the
+ * stronger of the two: the rail's notes here would have been counts of the two
+ * lists rendered directly below it, which is annotation restating the page
+ * rather than adding to it.
  */
 export default function Philosophy() {
   return (
