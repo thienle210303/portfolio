@@ -215,3 +215,15 @@ failed, both themes, all viewports.
 Verified: pnpm verify green; full Playwright matrix run by the regression
 agent on this tree (284 passed; one mid-run environmental flake re-passed);
 contact + companion specs re-run clean at integration (61/61).
+
+## Round 5 (2026-08-17)
+
+| Item | Verdict | Outcome |
+| --- | --- | --- |
+| Cats transparent over text | Accepted — real defect (outline tabby, 0.42-wash grey) | Every companion drawing (poses, toys, furniture, police) renders a ground-filled silhouette under its ink, built from typed parts so open strokes get underlays, not auto-closed fills; tone sampler learned the deep ground. Known limit: knockout is section ground, not card surface — transient-only by content avoidance |
+| Invest in playful behavior (eating, play) | Accepted | Three new scenes: shared bowl with a shouldering-off, chase ending in feigned innocence, yarn gift; new eat pose and dash flag; frequency raised (90s+rand180s), all idle/clear-spot/reduced-motion gates unchanged |
+| Sleep furniture comedy | Accepted | Corner cluster: empty bed + carton (grey overflows it, front flap layered over him) + paper sheet (tabby flops); 22% pre-bedtime bed-kick variant; one Wake button, two snore streams; reduced motion gets the static scene |
+
+Verified: pnpm verify green (188 unit tests, build); full Playwright matrix
+285 passed / 0 failed; agent additionally verified companion e2e against the
+production build and re-ran responsive + axe clean.
