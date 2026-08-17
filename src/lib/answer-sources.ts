@@ -1,4 +1,11 @@
-import { careerEntryById, careerEntries, education, projects, profile } from "@/content/portfolio";
+import {
+  careerEntryById,
+  careerEntries,
+  education,
+  projects,
+  profile,
+  skillCategories,
+} from "@/content/portfolio";
 import { experiments } from "@/content/ai-experiments";
 import { resolved, type Project } from "@/types/portfolio";
 
@@ -16,6 +23,9 @@ import { resolved, type Project } from "@/types/portfolio";
 export { careerEntries, education, profile };
 
 export interface IndexableProject {
+  /** Carried through so `answers.ts` can attach the search aliases in
+   *  `src/content/answer-expansion.ts`, which are keyed by content id. */
+  readonly id: string;
   readonly title: string;
   readonly organization: string | undefined;
   readonly problem: string;
@@ -27,6 +37,7 @@ export interface IndexableProject {
 
 function toIndexable(project: Project): IndexableProject {
   return {
+    id: project.id,
     title: project.title,
     organization: careerEntryById(project.careerEntryId)?.organization,
     problem: project.problem,
@@ -45,6 +56,7 @@ function toIndexable(project: Project): IndexableProject {
 export const projectsIndexable: readonly IndexableProject[] = projects.map(toIndexable);
 
 export interface IndexableExperiment {
+  readonly id: string;
   readonly title: string;
   readonly status: string;
   readonly question: string;
@@ -54,6 +66,7 @@ export interface IndexableExperiment {
 }
 
 export const experimentsIndexable: readonly IndexableExperiment[] = experiments.map((experiment) => ({
+  id: experiment.id,
   title: experiment.title,
   status: experiment.status,
   question: experiment.question,
@@ -61,6 +74,7 @@ export const experimentsIndexable: readonly IndexableExperiment[] = experiments.
 }));
 
 export interface IndexableCareerEntry {
+  readonly id: string;
   readonly role: string;
   readonly organization: string;
   readonly dateRange: string;
@@ -69,13 +83,34 @@ export interface IndexableCareerEntry {
    *  entry has to a summary. `impact` lines are indexed separately. */
   readonly summary: string | undefined;
   readonly impact: readonly string[];
+  /** What the role taught him. Reads as the answer to "what did you learn",
+   *  which is among the most likely questions a visitor types. */
+  readonly learned: string | undefined;
 }
 
 export const careerIndexable: readonly IndexableCareerEntry[] = careerEntries.map((entry) => ({
+  id: entry.id,
   role: entry.role,
   organization: entry.organization,
   dateRange: entry.dateRange,
   type: entry.type,
   summary: resolved(entry.context),
   impact: entry.impact,
+  learned: resolved(entry.learned),
+}));
+
+export interface IndexableSkillCategory {
+  readonly id: string;
+  readonly label: string;
+  readonly skills: readonly string[];
+  /** Where each skill was actually used. This is the answerable half — a bare
+   *  list of technology names is a fact about the page, not an answer. */
+  readonly evidence: string;
+}
+
+export const skillsIndexable: readonly IndexableSkillCategory[] = skillCategories.map((category) => ({
+  id: category.id,
+  label: category.label,
+  skills: category.skills,
+  evidence: category.evidence,
 }));

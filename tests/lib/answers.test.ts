@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { answer, SUGGESTED_QUESTIONS } from "@/lib/answers";
-import { careerIndexable, education, profile, projectsIndexable } from "@/lib/answer-sources";
+import {
+  careerIndexable,
+  education,
+  experimentsIndexable,
+  profile,
+  projectsIndexable,
+  skillsIndexable,
+} from "@/lib/answer-sources";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -21,9 +28,25 @@ const CORPUS = new Set<string>([
     ...project.proof,
     ...project.metrics.map((m) => `${m.label}: ${m.before} → ${m.after}.`),
   ]),
-  ...careerIndexable.flatMap((entry) => (entry.summary ? [entry.summary] : [])),
+  // Lab experiments were missing from this list entirely, and the index has
+  // always been able to return them — the vacuous assertion above is why nobody
+  // noticed.
+  ...experimentsIndexable.flatMap((experiment) => [
+    experiment.question,
+    ...experiment.verification,
+  ]),
+  ...careerIndexable.flatMap((entry) => [
+    ...(entry.summary ? [entry.summary] : []),
+    ...entry.impact,
+    ...(entry.learned ? [entry.learned] : []),
+  ]),
   ...education.map((school) => `${school.credential}, ${school.institution} (${school.dateRange}).`),
+  ...skillsIndexable.map((category) => category.evidence),
 ]);
+
+/** Sections an answer may link into. `resume` is deliberately absent: the résumé
+ *  is its own route now, so `#resume` would be a dead anchor. */
+const LINKABLE_SECTIONS = /^(about|philosophy|work|lab|journey|skills)$/;
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {
@@ -41,12 +64,18 @@ describe("answer", () => {
       for (const result of answer(probe, 5)) {
         // The whole anti-fabrication guarantee in one assertion: nothing is
         // generated, so nothing can be invented.
+        //
+        // This used to read `CORPUS.has(result.text) || result.text.length > 0`,
+        // which passes for any non-empty string — so the assertion that was
+        // meant to be the load-bearing one in this file actually checked
+        // nothing. Membership has to be asserted on its own, which in turn means
+        // CORPUS must list every document type the index builds.
         expect(
-          CORPUS.has(result.text) || result.text.length > 0,
+          CORPUS.has(result.text),
           `"${result.text}" was not drawn verbatim from content`,
         ).toBe(true);
         expect(result.source.trim()).not.toBe("");
-        expect(result.sectionId).toMatch(/^(about|philosophy|work|lab|journey|resume)$/);
+        expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
       }
     }
   });
