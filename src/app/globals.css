@@ -1,21 +1,68 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------- */
-/* Palette — the exact ten tokens from SPEC §1. No other colour is allowed.   */
-/* Registered via @theme so bg-ink, text-paper, border-hairline etc. work.    */
+/* Palette — "Blueprint". Fourteen raw tokens and nothing else.               */
+/*                                                                            */
+/* The ground is a cool paper rather than a warm cream: every neutral here is */
+/* biased toward the accent blue, so paper, hairline and ink read as one      */
+/* family instead of a grey that happens to sit near a blue. Blue is the only */
+/* hue, and it is reserved for annotation, links and measured values — it is  */
+/* never decoration.                                                          */
+/*                                                                            */
+/* The night group is not a second palette, it is the same drawing on a dark  */
+/* table — which is why it needs its own accent rather than reusing #1e4e8c,  */
+/* a 2.2:1 smear on a dark ground. Every pairing is checked in                */
+/* docs/contrast.md.                                                          */
+/*                                                                            */
+/* Components must NOT reach for these directly — style against the semantic  */
+/* aliases (--fg, --rule-color, …) registered further down, which is what     */
+/* makes a section's tone flip everything nested inside it for free.          */
 /* -------------------------------------------------------------------------- */
 
 @theme {
-  --color-ink: #080808;
-  --color-charcoal: #141414;
-  --color-surface: #1b1b1b;
-  --color-paper: #f3f1eb;
-  --color-muted: #aaa9a3;
-  --color-silver: #969691;
-  --color-hairline: #2a2a2a;
-  --color-ink-light: #111111;
-  --color-muted-light: #5a5a55;
-  --color-hairline-light: #d8d5cc;
+  /* Day — paper side */
+  --color-paper: #edf0f2;
+  --color-paper-deep: #e3e8ec;
+  --color-card: #ffffff;
+  --color-ink: #12181c;
+  --color-slate: #47535b;
+  --color-slate-soft: #5b666d;
+  --color-line: #d2dadf;
+  --color-blue: #1e4e8c;
+  --color-blue-deep: #16395f;
+
+  /* Night — the same drawing on a dark table. Not a generic dark mode: the
+     ground keeps the blue bias, and the accent moves rather than the identity. */
+  --color-night: #0c1114;
+  --color-night-deep: #111a21;
+  --color-night-card: #16202a;
+  --color-night-raised: #1d2833;
+  --color-mist: #9aa6ae;
+  --color-mist-soft: #7e8a93;
+  --color-line-night: #24313b;
+  --color-blue-bright: #7fa9dc;
+}
+
+/*
+ * Semantic aliases registered as Tailwind theme colours, so `text-fg`,
+ * `border-rule`, `bg-surface`, `text-accent` etc. exist as utilities and
+ * resolve against whichever tone scope the element happens to sit in.
+ *
+ * `inline` is required: without it the generated utility would freeze the
+ * alias's value at the point @theme is evaluated — i.e. always the day theme's
+ * quiet scope — and both the theme switch and `.tone-contrast` would silently
+ * stop working.
+ */
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-inverse: var(--fg-inverse);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-rule: var(--rule-color);
 }
 
 /*
@@ -66,38 +113,246 @@
     --step-2: clamp(1.5rem, 1.36rem + 0.68vw, 2rem);
     --step-3: clamp(1.9rem, 1.62rem + 1.4vw, 2.9rem);
     --step-4: clamp(2.4rem, 1.86rem + 2.7vw, 4.2rem);
-    --step-5: clamp(3rem, 1.9rem + 5.5vw, 6.5rem);
+    /*
+     * Used by exactly one element: the hero <h1>. Its ceiling came down from
+     * 6.5rem because that element no longer spans the page — the margin rail
+     * takes a column, leaving the identity around 470px wide, and a 104px face
+     * in a 470px column broke the headline across five ragged lines. At
+     * 4.25rem the same headline sets in two or three, and the `max-w-[18ch]`
+     * on the element finally does something instead of never binding.
+     */
+    --step-5: clamp(2.75rem, 1.9rem + 3.4vw, 4.25rem);
 
     --gutter: clamp(1.25rem, 5vw, 5rem);
-    --section-y: clamp(5rem, 11vw, 10rem);
+    /*
+     * Section block padding. Two adjacent sections each contribute this, so
+     * the real gap between one section's last line and the next section's
+     * eyebrow is double what it looks like here — which is why the ceiling is
+     * 6.5rem and not the 10rem it started at. At 10rem, 1440px viewports were
+     * showing ~316px of empty ground between sections, and the margin rail,
+     * being taller than nothing, ended up hanging beside that emptiness.
+     */
+    --section-y: clamp(3.5rem, 7vw, 6.5rem);
+    /* Height of the sticky header. Referenced by anything that has to reason
+       about the space actually left on screen, so the two cannot drift. */
+    --header-h: 4rem;
     --rule: 1px;
   }
 
-  /*
-   * Semantic aliases. Components style themselves against these, never the
-   * raw --color-* tokens (CodeBlock is the one deliberate exception — see
-   * its own file — because it is a fixed dark "panel" regardless of the
-   * section it sits in, and the palette has no light-surface equivalent).
-   *
-   *   --fg          primary text / foreground
-   *   --fg-muted    secondary text
-   *   --fg-subtle   tertiary text / metadata (eyebrows, low-emphasis counts)
-   *   --fg-inverse  the tone that reads *on top of* a --fg-coloured fill
-   *                 (used by Button's primary/"filled" variant)
-   *   --rule-color  1px borders
-   *   --ring-color  focus-visible outline
-   *
-   * .on-light (applied by <Section tone="paper">) repoints all six to the
-   * light-section values so nested components flip automatically with zero
-   * per-element overrides.
-   */
+  /* ---------------------------------------------------------------------- */
+  /* Theme and tone                                                          */
+  /*                                                                         */
+  /* Two independent axes, and keeping them independent is the whole trick:  */
+  /*                                                                         */
+  /*   THEME (day | night) is the visitor's choice. It decides which two     */
+  /*     grounds "quiet" and "loud" resolve to.                              */
+  /*   TONE  (base | deep | contrast) is the author's choice per section.    */
+  /*     `base` and `deep` are two quiet grounds a half-step apart;          */
+  /*     `contrast` is the chapter that breaks away from them. What breaking */
+  /*     away means is the theme's business, not the section's — see the     */
+  /*     night block below, where it deepens rather than inverts.            */
+  /*                                                                         */
+  /* A theme therefore only ever redefines the --q-* (quiet) and --l-* (loud)*/
+  /* sets below. The tone classes further down map those onto the --fg /     */
+  /* --rule-color / --accent aliases every component styles against, so a    */
+  /* component never learns which theme or tone it is in. Adding a third     */
+  /* theme means adding one block here and nothing else anywhere.            */
+  /*                                                                         */
+  /* Contrast for every pairing below is recorded in docs/contrast.md; the   */
+  /* lowest is 4.66:1 against AA's 4.5 floor.                                */
+  /* ---------------------------------------------------------------------- */
+
   :root {
-    --fg: var(--color-paper);
-    --fg-muted: var(--color-muted);
-    --fg-subtle: var(--color-silver);
-    --fg-inverse: var(--color-ink);
-    --rule-color: var(--color-hairline);
-    --ring-color: var(--color-paper);
+    color-scheme: light;
+
+    --ground-quiet: var(--color-paper);
+    --ground-quiet-deep: var(--color-paper-deep);
+    --ground-loud: var(--color-ink);
+
+    /* Reading against a paper ground. */
+    --q-surface: var(--color-card);
+    --q-fg: var(--color-ink);
+    --q-fg-muted: var(--color-slate);
+    --q-fg-subtle: var(--color-slate-soft);
+    --q-fg-inverse: var(--color-paper);
+    --q-accent: var(--color-blue);
+    --q-accent-strong: var(--color-blue-deep);
+    --q-rule: var(--color-line);
+
+    /* Reading against an ink ground. */
+    --l-surface: var(--color-night-card);
+    --l-fg: var(--color-paper);
+    --l-fg-muted: var(--color-mist);
+    --l-fg-subtle: var(--color-mist-soft);
+    --l-fg-inverse: var(--color-ink);
+    --l-accent: var(--color-blue-bright);
+    --l-accent-strong: var(--color-paper);
+    --l-rule: var(--color-line-night);
+
+    /* The grid the whole direction is named for. Drawn from the accent at a
+       low alpha rather than from a grey, so it belongs to the palette — and
+       carried per set, because the same rgba over paper and over ink are two
+       very different amounts of visible line. */
+    /* Each is drawn from the accent that scope actually uses, so the ruling is
+       always the lighter blue on a dark ground and the darker blue on paper —
+       swapping them makes the grid vanish rather than merely soften. */
+    --q-grid: rgba(30, 78, 140, 0.06);
+    --l-grid: rgba(127, 169, 220, 0.08);
+    --grid-step: 26px;
+
+    /* The fade at the right edge of a horizontally scrollable code panel.
+       Paired with each surface, not with the theme: it has to darken toward
+       whichever ground the panel is actually drawn on. */
+    --q-code-scrim: rgba(18, 24, 28, 0.18);
+    --l-code-scrim: rgba(0, 0, 0, 0.6);
+  }
+
+  /*
+   * Night is NOT a mirror of day, and the asymmetry is the considered part.
+   *
+   * In day, `tone="contrast"` is a true inversion: a paper site closing on two
+   * ink chapters. Mirroring that would make night's contrast sections full
+   * paper — a bright, full-width flash for someone who explicitly asked for a
+   * dark page. So in night, `contrast` deepens instead of inverting: the loud
+   * ground is a raised, bluer panel a clear step off the base, which still
+   * reads as a chapter change without ever leaving the dark.
+   *
+   * The consequence is that night's quiet and loud text sets are close to each
+   * other, and that is correct — in night the ground carries the chapter
+   * change, not the text.
+   *
+   * Three states, not two, and the duplication below is what buys the third.
+   * The inline script in layout.tsx normally resolves the OS preference and
+   * stamps a concrete `data-theme` before first paint, so `[data-theme="night"]`
+   * is the selector that does the work in practice. The media query is the
+   * no-JS path: with nothing stamped, a dark-preferring visitor still gets
+   * night. It is guarded with `:not([data-theme="day"])` so that an explicit
+   * choice of day still beats a dark OS.
+   *
+   * Keep the two blocks identical. They cannot be merged into one selector
+   * list — a media query is a different nesting context, not a selector.
+   */
+  :root[data-theme="night"] {
+    color-scheme: dark;
+
+    --ground-quiet: var(--color-night);
+    --ground-quiet-deep: var(--color-night-deep);
+    --ground-loud: var(--color-night-card);
+
+    --q-surface: var(--color-night-card);
+    --q-fg: var(--color-paper);
+    --q-fg-muted: var(--color-mist);
+    --q-fg-subtle: var(--color-mist-soft);
+    --q-fg-inverse: var(--color-ink);
+    --q-accent: var(--color-blue-bright);
+    --q-accent-strong: var(--color-paper);
+    --q-rule: var(--color-line-night);
+    --q-code-scrim: rgba(0, 0, 0, 0.6);
+    --l-code-scrim: rgba(18, 24, 28, 0.18);
+
+    --l-surface: var(--color-night-raised);
+    --l-fg: var(--color-paper);
+    --l-fg-muted: var(--color-mist);
+    /* --color-mist, not mist-soft: on the raised surface mist-soft lands at
+       4.23:1, under the AA floor. There is no readable third step here, so
+       subtle collapses onto muted rather than inventing an unreadable one. */
+    --l-fg-subtle: var(--color-mist);
+    --l-fg-inverse: var(--color-ink);
+    --l-accent: var(--color-blue-bright);
+    --l-accent-strong: var(--color-paper);
+    --l-rule: var(--color-line-night);
+
+    --q-grid: rgba(127, 169, 220, 0.07);
+    --l-grid: rgba(127, 169, 220, 0.09);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="day"]) {
+      color-scheme: dark;
+
+      --ground-quiet: var(--color-night);
+      --ground-quiet-deep: var(--color-night-deep);
+      --ground-loud: var(--color-night-card);
+
+      --q-surface: var(--color-night-card);
+      --q-fg: var(--color-paper);
+      --q-fg-muted: var(--color-mist);
+      --q-fg-subtle: var(--color-mist-soft);
+      --q-fg-inverse: var(--color-ink);
+      --q-accent: var(--color-blue-bright);
+      --q-accent-strong: var(--color-paper);
+      --q-rule: var(--color-line-night);
+      --q-code-scrim: rgba(0, 0, 0, 0.6);
+      --l-code-scrim: rgba(18, 24, 28, 0.18);
+
+      --l-surface: var(--color-night-raised);
+      --l-fg: var(--color-paper);
+      --l-fg-muted: var(--color-mist);
+      /* --color-mist, not mist-soft: on the raised surface mist-soft lands at
+         4.23:1, under the AA floor. There is no readable third step here, so
+         subtle collapses onto muted rather than inventing an unreadable one. */
+      --l-fg-subtle: var(--color-mist);
+      --l-fg-inverse: var(--color-ink);
+      --l-accent: var(--color-blue-bright);
+      --l-accent-strong: var(--color-paper);
+      --l-rule: var(--color-line-night);
+
+      --q-grid: rgba(127, 169, 220, 0.07);
+      --l-grid: rgba(127, 169, 220, 0.09);
+    }
+  }
+
+  /*
+   * Semantic aliases. Components style themselves against these and never
+   * against a raw --color-* token or a --q- / --l- set, which is what lets
+   * one component render correctly in two themes × three tones.
+   *
+   *   --fg           primary text
+   *   --fg-muted     secondary text
+   *   --fg-subtle    tertiary text / metadata (eyebrows, counts, sources)
+   *   --fg-inverse   the tone that reads on top of an --fg-coloured fill
+   *   --surface      raised panels: cards, the code figure, the rail
+   *   --accent       links, measured values, the margin rail's labels
+   *   --rule-color   1px borders
+   *   --ring-color   focus-visible outline
+   *
+   * :root carries the quiet set so that anything rendered outside a Section
+   * (the header, the footer, the skip link) is styled rather than unstyled.
+   */
+  :root,
+  .tone-base,
+  .tone-deep {
+    --ground: var(--ground-quiet);
+    --surface: var(--q-surface);
+    --fg: var(--q-fg);
+    --fg-muted: var(--q-fg-muted);
+    --fg-subtle: var(--q-fg-subtle);
+    --fg-inverse: var(--q-fg-inverse);
+    --accent: var(--q-accent);
+    --accent-strong: var(--q-accent-strong);
+    --rule-color: var(--q-rule);
+    --ring-color: var(--q-accent);
+    --grid-line: var(--q-grid);
+    --code-scrim: var(--q-code-scrim);
+  }
+
+  .tone-deep {
+    --ground: var(--ground-quiet-deep);
+  }
+
+  .tone-contrast {
+    --ground: var(--ground-loud);
+    --surface: var(--l-surface);
+    --fg: var(--l-fg);
+    --fg-muted: var(--l-fg-muted);
+    --fg-subtle: var(--l-fg-subtle);
+    --fg-inverse: var(--l-fg-inverse);
+    --accent: var(--l-accent);
+    --accent-strong: var(--l-accent-strong);
+    --rule-color: var(--l-rule);
+    --ring-color: var(--l-accent);
+    --grid-line: var(--l-grid);
+    --code-scrim: var(--l-code-scrim);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -117,7 +372,7 @@
   }
 
   body {
-    background-color: var(--color-ink);
+    background-color: var(--ground);
     color: var(--fg);
     font-family: var(--font-sans);
     text-rendering: optimizeLegibility;
@@ -149,16 +404,11 @@
     outline: none;
   }
 
-  /* Selection — inverted per section tone so it never disappears against
-     a same-tone background. */
+  /* Selection — drawn from the scope's own aliases, so it inverts correctly
+     in either theme and in either tone without a per-scope override. */
   ::selection {
-    background-color: var(--color-paper);
-    color: var(--color-ink);
-  }
-
-  .on-light ::selection {
-    background-color: var(--color-ink-light);
-    color: var(--color-paper);
+    background-color: var(--fg);
+    color: var(--fg-inverse);
   }
 
   /* Reduced motion — SPEC §2, global and unconditional. transition-delay is
@@ -206,18 +456,35 @@
     padding-inline-end: max(var(--gutter), env(safe-area-inset-right));
   }
 
-  /* Applied by <Section tone="paper">. Redefines the semantic aliases —
-     never override individual elements to "go light". */
-  .on-light {
-    --fg: var(--color-ink-light);
-    --fg-muted: var(--color-muted-light);
-    /* No distinct light-section tertiary tone exists in the ten-token
-       palette, so --fg-subtle collapses onto --fg-muted here rather than
-       inventing an eleventh colour. See Agent 1A's report. */
-    --fg-subtle: var(--color-muted-light);
-    --fg-inverse: var(--color-paper);
-    --rule-color: var(--color-hairline-light);
-    --ring-color: var(--color-ink-light);
+  /*
+   * The measurement grid — deliberately scoped to the hero alone, not applied
+   * page-wide.
+   *
+   * It ran behind every section once, and behind six long case studies and a
+   * full résumé it stopped being texture and started being noise competing
+   * with the text. Establishing the ruling under the hero and then dropping it
+   * says the same thing with one gesture instead of eight: the drawing paper
+   * introduces the work, then gets out of its way.
+   *
+   * `background-attachment: fixed` still matters here — it keeps the ruling
+   * aligned to the viewport rather than to the element, so it reads as paper
+   * the page sits on rather than as a texture bolted to one box.
+   *
+   * Suppressed under `prefers-reduced-transparency` and in print, where it is
+   * just toner.
+   */
+  .blueprint-grid {
+    background-image:
+      linear-gradient(to right, var(--grid-line) var(--rule), transparent var(--rule)),
+      linear-gradient(to bottom, var(--grid-line) var(--rule), transparent var(--rule));
+    background-size: var(--grid-step) var(--grid-step);
+    background-attachment: fixed;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .blueprint-grid {
+      background-image: none;
+    }
   }
 
   .hairline-t {
@@ -226,6 +493,111 @@
 
   .prose-measure {
     max-width: 68ch;
+  }
+
+  /*
+   * There is deliberately no `.reading` / `.display-type` pair here.
+   *
+   * Headings already compose `font-display` with a step from the type scale at
+   * the point of use, which is the established pattern across every section,
+   * and Newsreader is variable on `opsz` — with `font-optical-sizing: auto`
+   * being the browser default, a 4rem headline and a 1rem note already get the
+   * right optical size without anything being declared. A wrapper class would
+   * only have restated the size in a second place.
+   */
+
+  /*
+   * The margin rail — the device this direction is named for.
+   *
+   * Below 1024px it is not a margin at all: it stacks after the section body
+   * as an endnote block, because a 10rem column of 11px mono on a phone is
+   * unreadable. The markup is identical at both widths — only the grid
+   * placement changes — so nothing is hidden from assistive technology, and
+   * DOM order puts the section's substance ahead of its annotations either
+   * way.
+   */
+  .rail-layout {
+    display: grid;
+    gap: 2rem;
+  }
+
+  @media (min-width: 1024px) {
+    .rail-layout {
+      grid-template-columns: 10rem minmax(0, 1fr);
+      gap: 3rem;
+      align-items: start;
+    }
+  }
+
+  /*
+   * The rail is deliberately NOT sticky.
+   *
+   * It was, and it looked wrong: a section is far taller than its handful of
+   * annotations, so the rail would detach, ride down the viewport, and end up
+   * parked beside the section's closing whitespace with nothing to annotate.
+   * A note in the margin of a drawing sits level with the thing it describes.
+   * Static keeps that true and removes a moving part.
+   */
+
+  .rail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    border-top: var(--rule) solid var(--accent);
+    padding-top: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    line-height: 1.6;
+    color: var(--fg-muted);
+  }
+
+  .rail dt {
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.62rem;
+  }
+
+  .rail dd {
+    margin: 0;
+  }
+
+  /*
+   * Theme-toggle faces. Only one is ever in the DOM's accessibility tree,
+   * because `display: none` removes it — which is what keeps the button's
+   * accessible name unambiguous without any JS-managed aria-label.
+   *
+   * Both selectors have to account for the un-stamped state: with no
+   * `data-theme` attribute (script blocked), a dark-preferring visitor is
+   * rendering night via the media query above, so the button must show the
+   * "switch to day" face to match what they are actually looking at.
+   */
+  .theme-day-only,
+  .theme-night-only {
+    display: none;
+  }
+
+  .theme-day-only {
+    display: inline-flex;
+  }
+
+  :root[data-theme="night"] .theme-day-only {
+    display: none;
+  }
+
+  :root[data-theme="night"] .theme-night-only {
+    display: inline-flex;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="day"]) .theme-day-only {
+      display: none;
+    }
+
+    :root:not([data-theme="day"]) .theme-night-only {
+      display: inline-flex;
+    }
   }
 
   .wrap-anywhere {
@@ -254,23 +626,30 @@
    */
   .code-scroll {
     background-image:
-      linear-gradient(to left, var(--color-surface), var(--color-surface)),
-      linear-gradient(to left, rgba(8, 8, 8, 0.75), rgba(8, 8, 8, 0));
+      linear-gradient(to left, var(--surface), var(--surface)),
+      linear-gradient(to left, var(--code-scrim), transparent);
     background-position:
       right center,
       right center;
     background-size:
-      2rem 100%,
+      3rem 100%,
       3rem 100%;
     background-repeat: no-repeat;
     background-attachment: local, scroll;
   }
 
+  /*
+   * The recurring micro-label. Tracking came down from 0.18em because this
+   * class lands in roughly sixty-five places — section eyebrows, timeline
+   * labels, metric sources, the learning log's "I used to think" pairs — and
+   * at that width every one of them read as a shout. 0.1em still separates
+   * the uppercase forms without turning a label into a banner.
+   */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: var(--step--1);
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.1em;
     color: var(--fg-subtle);
   }
 
@@ -316,42 +695,49 @@
   }
 
   /* ---------------------------------------------------------------------- */
-  /* Code token colours (CodeBlock) — SPEC §7.                              */
-  /* Deliberately the raw dark tokens, not the semantic aliases: the code   */
-  /* panel (--color-surface) is a fixed dark artifact regardless of the     */
-  /* section tone it sits in, and the palette has no light-surface token.   */
-  /* Colour is never the only signal — weight/style pairs with every kind.  */
+  /* Code token colours (CodeBlock).                                        */
+  /*                                                                        */
+  /* These were raw dark tokens back when the code panel was a fixed dark   */
+  /* artifact. It no longer is — it sits on --surface and flips with theme  */
+  /* and tone like everything else — so these must be the semantic aliases  */
+  /* or the panel renders dark-on-white the moment the theme changes.       */
+  /*                                                                        */
+  /* Colour is never the only signal: weight/style pairs with every kind,   */
+  /* so the panel still parses in greyscale and in print.                   */
   /* ---------------------------------------------------------------------- */
 
   [data-token="keyword"] {
-    color: var(--color-paper);
-    font-weight: 700;
+    color: var(--fg);
+    font-weight: 600;
   }
 
   [data-token="property"] {
-    color: var(--color-paper);
+    color: var(--fg);
   }
 
+  /* Strings take the accent. It is the one place blue appears at any volume,
+     and it is legitimate: a string literal in this content is always a real
+     quoted claim from the profile. */
   [data-token="string"] {
-    color: var(--color-silver);
+    color: var(--accent);
     font-style: italic;
   }
 
   [data-token="comment"] {
-    color: var(--color-silver);
+    color: var(--fg-subtle);
     font-style: italic;
   }
 
   [data-token="punctuation"] {
-    color: var(--color-muted);
+    color: var(--fg-muted);
   }
 
   [data-token="identifier"] {
-    color: var(--color-muted);
+    color: var(--fg-muted);
   }
 
   [data-token="plain"] {
-    color: var(--color-muted);
+    color: var(--fg-muted);
   }
 }
 
@@ -391,48 +777,25 @@
   }
 
   /*
-   * Printing serves the résumé and nothing else.
+   * Printing.
    *
-   * The "Print" control lives inside the résumé section, so a résumé is
-   * what a reader expects on paper. Printing the whole page instead
-   * produced roughly fifty pages — every section, with every disclosure
-   * forced open by the rule below — with the actual résumé buried near
-   * the end.
+   * This used to read `main > section:not(#resume) { display: none }` — print
+   * the résumé section, hide the rest of the page around it. There is no
+   * résumé section any more: it lived at /resume now, as a page you view or
+   * download rather than a 5,000px thing to scroll past. Left as it was, that
+   * rule would match *every* section and print a blank sheet.
    *
-   * The rule is deliberately subtractive: drop every top-level section,
-   * then put the résumé back. A section added later is therefore excluded
-   * automatically instead of silently joining the printout.
+   * So printing is now per-route and needs no surgery:
+   *
+   *   /resume  is already a single column of plain sections with nothing
+   *            collapsed, so it prints as-is. Only its screen chrome — the
+   *            back link and the download button, both `.no-print` — comes
+   *            out.
+   *   /        prints the page itself. Nobody asks for that often, but a
+   *            blank sheet is the one outcome that is definitely wrong.
+   *
+   * Everything below applies to both.
    */
-  main > section:not(#resume) {
-    display: none !important;
-  }
-
-  /* Screen-only spacing and tone on the one section that does print. */
-  #resume {
-    padding-block: 0 !important;
-    border-top: 0 !important;
-  }
-
-  /* The section eyebrow ("06 / RÉSUMÉ") is navigation furniture for the
-     page, meaningless on a printed résumé. Scoped to the Section
-     primitive's own eyebrow so group labels inside the résumé survive. */
-  #resume > .shell > .eyebrow {
-    display: none !important;
-  }
-
-  /* Collapse the two-pane explorer. The controls column is hidden for
-     print, but its grid track is not, so without this the résumé body
-     prints indented from its own heading by the width of a column that
-     is not there. */
-  .resume-layout {
-    display: block !important;
-  }
-
-  /* Shown only on paper — the identity block that makes the printed
-     résumé attributable, since the hero it normally lives in is gone. */
-  .print-only {
-    display: revert !important;
-  }
 
   /* Cross-agent contract: wrap each résumé entry (or any block that must
      not straddle a page break) in className="print-avoid-break". */

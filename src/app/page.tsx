@@ -3,7 +3,7 @@ import Philosophy from "@/sections/Philosophy/Philosophy";
 import SelectedWork from "@/sections/SelectedWork/SelectedWork";
 import AIWorkflowLab from "@/sections/AIWorkflowLab/AIWorkflowLab";
 import CareerJourney from "@/sections/CareerJourney/CareerJourney";
-import ResumeExplorer from "@/sections/ResumeExplorer/ResumeExplorer";
+import Skills from "@/sections/Skills/Skills";
 import Contact from "@/sections/Contact/Contact";
 import Closing from "@/sections/Footer/Closing";
 
@@ -19,12 +19,32 @@ export default function Home() {
 
   return (
     <>
+      {/*
+        Order is an argument about what a visitor needs, in what order.
+
+        Who he is, how he works, what he built, where he has been, the formal
+        record, then the specialist material, then how to reach him.
+
+        The AI Workflow Lab used to sit between Selected Work and the career
+        timeline. It is the single largest section on the page and putting it
+        there split the career story down the middle: proof, a long detour into
+        agent experiments, then back to the timeline. It now comes last of the
+        substantive sections, where an interested reader still finds it and a
+        hiring manager can stop before it.
+
+        There is deliberately no résumé section. It was a 5,000px second
+        telling of this same page — the experience is the timeline, the
+        projects are Selected Work, the education and every award are already
+        timeline entries. Only skills and certifications were unique to it, and
+        those are now their own section. The résumé lives at /resume as a view
+        to read or download, which is what a résumé is.
+      */}
       <Hero />
       <Philosophy />
       <SelectedWork />
-      <AIWorkflowLab />
       <CareerJourney />
-      <ResumeExplorer />
+      <Skills />
+      <AIWorkflowLab />
       <Contact emailDeliveryConfigured={emailDeliveryConfigured} />
       <Closing />
     </>

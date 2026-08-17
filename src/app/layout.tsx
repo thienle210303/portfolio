@@ -1,28 +1,36 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
 import { cn } from "@/lib/cn";
 import { careerEntries, education, profile, socialLinks, SITE_URL } from "@/content/portfolio";
 import SkipLink from "@/components/layout/SkipLink";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import Companion from "@/components/companion/Companion";
 import "./globals.css";
 
-const instrumentSerif = Instrument_Serif({
-  weight: ["400"],
+// Newsreader is variable on both `opsz` and `wght`, which is the reason it is
+// here: the same family sets a 4rem headline and a 400-word case study without
+// a second display face. Do not pin `weight` — that would collapse the
+// variation axes the type scale relies on.
+const newsreader = Newsreader({
   style: ["normal", "italic"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
 });
 
-const inter = Inter({
+// Plex Sans and Plex Mono ship as static faces, so the weights actually used
+// have to be listed. Keep these lists minimal — every entry is a file the
+// visitor downloads.
+const plexSans = IBM_Plex_Sans({
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  weight: ["400", "700"],
+const plexMono = IBM_Plex_Mono({
+  weight: ["400", "600"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-mono",
@@ -111,10 +119,35 @@ const personJsonLd = {
   ...(almaMater ? { alumniOf: { "@type": "CollegeOrUniversity", name: almaMater } } : {}),
 };
 
+/**
+ * Resolves the theme and stamps it on <html> before the browser paints, so a
+ * night-theme visitor never sees a white flash on load. It has to be an inline
+ * synchronous script in the document — anything deferred, hydrated or bundled
+ * runs after first paint, which is exactly the frame this exists to prevent.
+ *
+ * Stored preference wins; with none, the OS preference is resolved here rather
+ * than left to CSS, so the attribute is always concrete and the toggle only
+ * ever has one state to read. globals.css keeps a `prefers-color-scheme`
+ * fallback for the case where this script does not run at all.
+ */
+const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");document.documentElement.dataset.theme=s==="day"||s==="night"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"night":"day")}catch(e){}})()`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={cn(instrumentSerif.variable, inter.variable, jetbrainsMono.variable)}>
-      <body className="bg-ink text-paper">
+    <html
+      lang="en"
+      // Scoped to this one element and required, not a workaround: THEME_SCRIPT
+      // deliberately writes `data-theme` onto <html> before React hydrates, so
+      // the server markup and the client DOM genuinely differ by that attribute
+      // and always will. Suppression does not extend to any child, so a real
+      // mismatch anywhere inside the tree still surfaces.
+      suppressHydrationWarning
+      className={cn(newsreader.variable, plexSans.variable, plexMono.variable)}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
+      <body className="blueprint-grid bg-ground text-fg">
         <SkipLink />
         <SiteHeader />
         {/* tabIndex={-1} is load-bearing, not decoration. Fragment
@@ -127,6 +160,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        <Companion />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}

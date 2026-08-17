@@ -19,13 +19,13 @@ export default function SiteFooter() {
   const externalLinks = socialLinks.filter((link) => link.platform !== "Email");
 
   return (
-    <footer className="border-t border-hairline bg-ink text-paper">
+    <footer className="border-t border-rule bg-ground text-fg">
       <div className="shell flex flex-col gap-8 py-12 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-4">
           {email ? (
             <a
               href={email.href}
-              className="wrap-anywhere inline-flex min-h-11 w-fit items-center text-[length:var(--step-0)] text-paper"
+              className="wrap-anywhere inline-flex min-h-11 w-fit items-center text-[length:var(--step-0)] text-fg"
             >
               {email.handle}
             </a>
@@ -38,10 +38,10 @@ export default function SiteFooter() {
                   href={link.href}
                   target={link.external ? "_blank" : undefined}
                   rel={link.external ? "noopener noreferrer" : undefined}
-                  className="inline-flex min-h-11 items-center gap-2 text-[length:var(--step--1)] text-muted transition-colors duration-150 hover:text-paper"
+                  className="inline-flex min-h-11 items-center gap-2 text-[length:var(--step--1)] text-fg-muted transition-colors duration-150 hover:text-fg"
                 >
                   {link.label}
-                  <span className="text-silver">{link.handle}</span>
+                  <span className="text-fg-subtle">{link.handle}</span>
                   {link.external ? <span className="sr-only"> (opens in a new tab)</span> : null}
                 </a>
               </li>
@@ -52,11 +52,11 @@ export default function SiteFooter() {
         <div className="flex flex-col items-start gap-4 sm:items-end">
           <a
             href="#main"
-            className="inline-flex min-h-11 items-center border border-hairline px-4 text-[length:var(--step--1)] uppercase tracking-[0.14em] text-paper"
+            className="inline-flex min-h-11 items-center border border-rule px-4 text-[length:var(--step--1)] uppercase tracking-[0.14em] text-fg"
           >
             Back to top
           </a>
-          <p className="text-[length:var(--step--1)] text-silver">
+          <p className="text-[length:var(--step--1)] text-fg-subtle">
             © {COPYRIGHT_YEAR} {profile.name}
           </p>
         </div>

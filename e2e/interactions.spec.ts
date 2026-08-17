@@ -1,5 +1,4 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { resumeLenses } from "../src/content/portfolio";
 import { workflowStages } from "../src/content/ai-experiments";
 
 const DESKTOP_MIN_WIDTH = 1024;
@@ -9,7 +8,13 @@ function viewportWidth(page: Page): number {
 }
 
 test.beforeEach(async ({ page }) => {
+  // Playwright retries clicks until an element is actionable, but it dispatches
+  // key presses immediately and reads the DOM immediately. Both race React's
+  // hydration on a page this long, which is how a suite that passed became
+  // intermittently red once sections were reordered. Waiting for the network to
+  // settle is the closest available "the islands are live now" signal.
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
 });
 
 test.describe("AI Workflow Lab stages", () => {
@@ -120,62 +125,6 @@ test.describe("career timeline filters", () => {
         ).toBe(true);
       }
     }
-  });
-});
-
-test.describe("résumé lens x depth", () => {
-  const GROUP_IDS = ["resume-group-experience", "resume-group-skills", "resume-group-milestones"];
-
-  test("all 12 lens x depth combinations avoid an unexplained empty pane; Deep Dive shows more than Quick Scan", async ({
-    page,
-  }) => {
-    const resume = page.locator("#resume");
-    const lensGroup = resume.getByRole("radiogroup", { name: "Filter résumé by lens" });
-    const depthGroup = resume.getByRole("group", { name: "Résumé detail level" });
-    const pane = resume.getByRole("status").filter({ hasText: "Showing" }).locator("xpath=..");
-
-    for (const lensLabel of ["All", ...resumeLenses.map((lens) => lens.label)]) {
-      await lensGroup.getByRole("radio", { name: lensLabel }).click();
-
-      for (const groupId of GROUP_IDS) {
-        const panel = page.locator(`#${groupId}-panel`);
-        const hasEntries = (await panel.locator('[role="list"] > *').count()) > 0;
-        const hasExplanation = (await panel.getByText(/match this lens/).count()) > 0;
-        expect(hasEntries || hasExplanation, `lens "${lensLabel}": #${groupId} is empty with no explanation`).toBe(
-          true,
-        );
-      }
-
-      await depthGroup.getByRole("button", { name: "Quick Scan" }).click();
-      const quickLength = (await pane.innerText()).length;
-      await depthGroup.getByRole("button", { name: "Deep Dive" }).click();
-      const deepLength = (await pane.innerText()).length;
-      expect(deepLength, `lens "${lensLabel}": Deep Dive should show more than Quick Scan`).toBeGreaterThan(
-        quickLength,
-      );
-    }
-  });
-
-  test("reset returns lens and depth to their defaults and becomes disabled", async ({ page }) => {
-    const resume = page.locator("#resume");
-    const resetButton = resume.getByRole("button", { name: "Reset filters" });
-    await expect(resetButton).toBeDisabled();
-
-    await resume
-      .getByRole("radiogroup", { name: "Filter résumé by lens" })
-      .getByRole("radio", { name: resumeLenses[0].label })
-      .click();
-    await resume.getByRole("group", { name: "Résumé detail level" }).getByRole("button", { name: "Deep Dive" }).click();
-    await expect(resetButton).toBeEnabled();
-
-    await resetButton.click();
-    await expect(resetButton).toBeDisabled();
-    await expect(
-      resume.getByRole("radiogroup", { name: "Filter résumé by lens" }).getByRole("radio", { name: "All" }),
-    ).toHaveAttribute("aria-checked", "true");
-    await expect(
-      resume.getByRole("group", { name: "Résumé detail level" }).getByRole("button", { name: "Quick Scan" }),
-    ).toHaveAttribute("aria-pressed", "true");
   });
 });
 

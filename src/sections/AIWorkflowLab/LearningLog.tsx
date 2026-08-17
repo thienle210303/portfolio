@@ -15,7 +15,7 @@ function SubHeading({ id, children }: { id: string; children: string }) {
   return (
     <h4
       id={id}
-      className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]"
+      className="eyebrow"
     >
       {children}
     </h4>
@@ -82,7 +82,7 @@ export function LearningLog({ learningLog }: LearningLogProps) {
             {changedMyThinking.map((pair, index) => (
               <Fragment key={index}>
                 <div className="border-b border-[color:var(--rule-color)] py-5">
-                  <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+                  <dt className="eyebrow">
                     I used to think
                   </dt>
                   <dd className="mt-2 text-[length:var(--step-0)] leading-relaxed text-[color:var(--fg-muted)]">
@@ -90,7 +90,7 @@ export function LearningLog({ learningLog }: LearningLogProps) {
                   </dd>
                 </div>
                 <div className="border-b border-[color:var(--rule-color)] py-5">
-                  <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+                  <dt className="eyebrow">
                     Now I think
                   </dt>
                   <dd className="mt-2 text-[length:var(--step-0)] leading-relaxed text-[color:var(--fg)]">

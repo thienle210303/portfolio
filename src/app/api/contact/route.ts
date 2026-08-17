@@ -30,6 +30,28 @@ const REASON_MAX = 120;
 const MESSAGE_MIN = 10;
 const MESSAGE_MAX = 5000;
 
+const CONTACT_MAX = 200;
+
+/**
+ * Deliberately loose. This field accepts an email address *or* a phone number,
+ * and the only job of the pattern is to reject obvious rubbish — not to decide
+ * what a valid phone number looks like, which varies by country and is a
+ * famously bad thing to be strict about. A visitor who mistypes their own
+ * number is best served by a human noticing, not by a regex refusing them.
+ */
+const PHONE_SHAPE = /^[+(]?[\d][\d\s().+-]{5,}$/;
+
+const callbackSchema = z.object({
+  contact: z
+    .string()
+    .min(1, "Enter an email address or a phone number.")
+    .max(CONTACT_MAX, `Keep it under ${CONTACT_MAX} characters.`)
+    .refine(
+      (value) => z.email().safeParse(value).success || PHONE_SHAPE.test(value),
+      "Enter an email address or a phone number so I can reply.",
+    ),
+});
+
 const contactSchema = z.object({
   name: z
     .string()
@@ -46,8 +68,33 @@ const contactSchema = z.object({
     .max(MESSAGE_MAX, `Keep your message under ${MESSAGE_MAX} characters.`),
 });
 
-type ContactField = keyof z.infer<typeof contactSchema>;
+type ContactField = keyof z.infer<typeof contactSchema> | keyof z.infer<typeof callbackSchema>;
 type FieldErrors = Partial<Record<ContactField, string>>;
+
+const CONTACT_FIELDS: readonly ContactField[] = [
+  "name",
+  "email",
+  "company",
+  "reason",
+  "message",
+  "contact",
+];
+
+function isContactField(value: unknown): value is ContactField {
+  return typeof value === "string" && (CONTACT_FIELDS as readonly string[]).includes(value);
+}
+
+/** First message per field is enough for a form that validates one field's
+ *  worth of rules at a time. */
+function collectFieldErrors(issues: readonly z.core.$ZodIssue[]): FieldErrors {
+  const fieldErrors: FieldErrors = {};
+  for (const issue of issues) {
+    const field = issue.path[0];
+    if (!isContactField(field)) continue;
+    if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+  }
+  return fieldErrors;
+}
 
 /**
  * Every possible response this route returns. Kept as a single exhaustive
@@ -151,6 +198,51 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     return respond({ ok: false, reason: "not-configured" }, 503);
   }
 
+  /*
+   * Two shapes, one endpoint. `intent: "callback"` is the quick path — a
+   * visitor leaves nothing but a way to reach them, which is the smallest
+   * amount of typing that still produces something actionable. Everything
+   * before this point (rate limiting, the honeypot, the config re-check) is
+   * shared, because none of it depends on which shape arrived.
+   */
+  if (asString(body.intent) === "callback") {
+    const parsed = callbackSchema.safeParse({ contact: asString(body.contact) });
+    if (!parsed.success) {
+      return respond(
+        { ok: false, reason: "invalid", fieldErrors: collectFieldErrors(parsed.error.issues) },
+        400,
+      );
+    }
+
+    const { contact } = parsed.data;
+    // Only set replyTo when the visitor left an address; Resend rejects a
+    // phone number there, which would turn a good submission into a 502.
+    const replyTo = z.email().safeParse(contact).success ? contact : undefined;
+
+    try {
+      const { error } = await new Resend(apiKey).emails.send({
+        from: fromEmail,
+        to: toEmail,
+        ...(replyTo ? { replyTo } : {}),
+        subject: "Portfolio — someone asked you to reach out",
+        text: [
+          "Someone left their details on your site and asked you to get in touch.",
+          "",
+          `Reach them at: ${contact}`,
+        ].join("\n"),
+      });
+
+      if (error) {
+        console.error("[contact] Resend rejected the callback:", error.name, error.message);
+        return respond({ ok: false, reason: "send-failed" }, 502);
+      }
+      return respond({ ok: true }, 200);
+    } catch (caught) {
+      console.error("[contact] Unexpected failure sending the callback:", caught);
+      return respond({ ok: false, reason: "send-failed" }, 502);
+    }
+  }
+
   const parsed = contactSchema.safeParse({
     name: asString(body.name),
     email: asString(body.email),
@@ -160,18 +252,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
   });
 
   if (!parsed.success) {
-    const fieldErrors: FieldErrors = {};
-    for (const issue of parsed.error.issues) {
-      const field = issue.path[0];
-      if (typeof field !== "string") continue;
-      if (field !== "name" && field !== "email" && field !== "company" && field !== "reason" && field !== "message") {
-        continue;
-      }
-      // First message per field is enough for a form that validates one
-      // field's worth of rules at a time.
-      if (!fieldErrors[field]) fieldErrors[field] = issue.message;
-    }
-    return respond({ ok: false, reason: "invalid", fieldErrors }, 400);
+    return respond(
+      { ok: false, reason: "invalid", fieldErrors: collectFieldErrors(parsed.error.issues) },
+      400,
+    );
   }
 
   const { name, email, company, reason, message } = parsed.data;

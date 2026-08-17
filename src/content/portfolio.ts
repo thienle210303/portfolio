@@ -12,6 +12,7 @@
  * and is omitted from the rendered UI rather than guessed at.
  */
 
+import { resolveSiteUrl } from "@/lib/site-url";
 import type {
   Achievement,
   AiTool,
@@ -35,10 +36,19 @@ import type {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Update this when the site gets its real domain. It drives metadataBase,
+ * The domain the site describes itself as living at. It drives metadataBase,
  * canonical URLs, the sitemap and JSON-LD.
+ *
+ * The literal below is the fallback — change it when the real domain changes.
+ * A deployment can override it without a code change by setting
+ * `NEXT_PUBLIC_SITE_URL`, and a preview deployment falls back to its own
+ * hostname so it never claims to be production. See `resolveSiteUrl`.
  */
-export const SITE_URL = "https://thienle.dev";
+export const SITE_URL = resolveSiteUrl(
+  process.env.NEXT_PUBLIC_SITE_URL,
+  process.env.NEXT_PUBLIC_VERCEL_URL,
+  "https://thienle.dev",
+);
 
 /* -------------------------------------------------------------------------- */
 /* Profile                                                                     */
@@ -101,13 +111,16 @@ export const socialLinks = [
   },
 ] satisfies readonly SocialLink[];
 
+// Order must match the render order in src/app/page.tsx: the nav doubles as
+// the page's table of contents, and a nav that lists sections in a different
+// order than the page scrolls through them is actively misleading.
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
   { id: "nav-philosophy", sectionId: "philosophy", label: "Philosophy" },
   { id: "nav-work", sectionId: "work", label: "Work" },
-  { id: "nav-lab", sectionId: "lab", label: "AI Workflow Lab" },
   { id: "nav-journey", sectionId: "journey", label: "Journey" },
-  { id: "nav-resume", sectionId: "resume", label: "Résumé" },
+  { id: "nav-skills", sectionId: "skills", label: "Skills" },
+  { id: "nav-lab", sectionId: "lab", label: "AI Workflow Lab" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 

@@ -5,18 +5,15 @@ import ExternalLink from "@/components/ui/ExternalLink";
 import { closing, socialLinks } from "@/content/portfolio";
 
 /**
- * Server Component, tone `paper` — the second and last warm off-white
- * section on the page. `Section` applies `.on-light` for this tone, which
- * (per SPEC.md §1/§2) is responsible for flipping every shared-primitive
- * colour, including the focus ring, so `Button`/`SectionHeading`/
- * `ExternalLink` below need no special handling here.
+ * Server Component, tone `contrast` — the page's closing chapter, and one of
+ * only two sections that invert against the active theme (Contact is the
+ * other). Ending on the inverted ground gives the two calls to action a
+ * ground of their own to sit on after a long light read.
  *
- * Text and borders this file draws itself (not through a shared primitive)
- * use the explicit "-light" tokens from the palette table directly —
- * `text-ink-light` / `text-muted-light` / `border-hairline-light` — rather
- * than relying on any implicit cross-tone flip, so this section's contrast
- * is correct by construction regardless of exactly how that flip is
- * implemented elsewhere.
+ * Everything here — this file's own text and borders as much as the shared
+ * `Button` / `SectionHeading` / `ExternalLink` primitives — styles against the
+ * semantic aliases, so the inversion is handled entirely by the tone class on
+ * <Section> and nothing below needs a per-tone branch.
  *
  * The copyright line lives in `SiteFooter`; it is deliberately not repeated
  * here.
@@ -29,13 +26,13 @@ export default function Closing() {
     <Section
       id="closing"
       labelledBy="closing-heading"
-      eyebrow="08 / CLOSING"
-      tone="paper"
+      eyebrow="Closing"
+      tone="contrast"
       className="no-print"
     >
       <SectionHeading id="closing-heading">{closing.heading}</SectionHeading>
 
-      <p className="max-w-[68ch] text-[length:var(--step-1)] text-muted-light">{closing.body}</p>
+      <p className="max-w-[68ch] text-[length:var(--step-1)] text-fg-muted">{closing.body}</p>
 
       <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
         <Button href="#contact" variant="primary" size="md">
@@ -49,7 +46,7 @@ export default function Closing() {
         {emailLink ? (
           <a
             href={emailLink.href}
-            className="wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step-0)] text-ink-light"
+            className="wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step-0)] text-fg"
           >
             {emailLink.handle}
           </a>
@@ -61,10 +58,10 @@ export default function Closing() {
               <li key={link.id}>
                 <ExternalLink
                   href={link.href}
-                  className="inline-flex min-h-11 items-center gap-2 text-[length:var(--step--1)] text-ink-light"
+                  className="inline-flex min-h-11 items-center gap-2 text-[length:var(--step--1)] text-fg"
                 >
                   {link.label}
-                  <span className="wrap-anywhere text-muted-light">{link.handle}</span>
+                  <span className="wrap-anywhere text-fg-muted">{link.handle}</span>
                 </ExternalLink>
               </li>
             ))}
