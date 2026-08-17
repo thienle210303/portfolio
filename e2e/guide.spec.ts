@@ -93,40 +93,35 @@ test.describe("restraint", () => {
     expect(requests, "the index must not be fetched until the guide is opened").toEqual([]);
   });
 
-  test("nothing leaves this origin, and no model weights load, without opting in", async ({
-    page,
-  }) => {
-    // Tier 1's promise is "runs in this browser, nothing is sent anywhere", and
-    // Tier 0's is that it costs nothing. Both reduce to: until a visitor clicks
-    // the opt-in, there is no cross-origin traffic and no model payload.
-    //
-    // Deliberately asserted on request *hosts* and `.wasm`, not on chunk URLs.
-    // The dynamic import in semantic.ts does code-split the ~500 KB library out
-    // of the initial load — verified against a production build (`pnpm build &&
-    // pnpm start` requests zero ML chunks on load) — but this suite runs against
-    // `pnpm dev`, where Turbopack serves that chunk eagerly under a URL
-    // containing the package name. Asserting on chunk names here would fail on a
-    // dev-only bundling detail while proving nothing a visitor experiences.
+  test("nothing ever leaves this origin, and no model is ever fetched", async ({ page }) => {
+    // This used to be scoped to "before the visitor opts in", because there was
+    // an opt-in embedding model to opt into. The model is gone — the eval showed
+    // lexical retrieval finding a correct passage in the top 3 for 97.7% of
+    // realistic queries without it — so the claim is now unconditional: no
+    // third-party request, no wasm, no weights, ever, no matter what is typed.
     const offOrigin: string[] = [];
-    const weights: string[] = [];
+    const heavy: string[] = [];
     page.on("request", (request) => {
       const url = request.url();
       if (!url.startsWith("http://localhost:")) offOrigin.push(url);
-      if (/\.wasm(\?|$)|\.onnx(\?|$)/i.test(url)) weights.push(url);
+      if (/\.wasm(\?|$)|\.onnx(\?|$)/i.test(url)) heavy.push(url);
     });
 
     await page.reload();
     await page.waitForLoadState("networkidle");
     expect(offOrigin, "no third-party requests on page load").toEqual([]);
-    expect(weights, "no model weights on page load").toEqual([]);
+    expect(heavy, "no model payload on page load").toEqual([]);
 
     await openGuide(page);
     await page.getByRole("textbox", { name: /search this page/i }).fill("scrapers");
     await expect(page.getByRole("dialog").locator("ul > li").first()).toBeVisible();
 
-    // Searching works, and still nothing has been fetched from anywhere else.
+    await page.getByRole("textbox", { name: /search this page/i }).fill("how do you stop bots");
+    await expect(page.getByRole("dialog").locator("ul > li").first()).toBeVisible();
+
+    // Paraphrase search works, and still nothing has been fetched from anywhere.
     expect(offOrigin, "no third-party requests from searching").toEqual([]);
-    expect(weights, "no model weights from searching").toEqual([]);
+    expect(heavy, "no model payload from searching").toEqual([]);
   });
 
   test("exactly one launcher is operable at any width", async ({ page }) => {
@@ -372,101 +367,6 @@ test.describe("reduced motion", () => {
     });
     await page.waitForTimeout(400);
     await expect(lane).toHaveClass(/on-light/);
-  });
-});
-
-test.describe("the cats report the model's state", () => {
-  /**
-   * Holds the Hub request open so `working` stays true for the duration of the
-   * assertions. Scoped to the absolute model host on purpose: a looser pattern
-   * matching "huggingface" anywhere would also catch the dev-server chunk URL
-   * (Turbopack names it after the package), the dynamic import would fail, and
-   * the state would flip straight back to idle — making the test pass or fail
-   * on a race rather than on behaviour.
-   */
-  async function stallModelDownload(page: Page) {
-    await page.route("https://huggingface.co/**", () => {
-      // Intentionally never fulfilled or aborted.
-    });
-  }
-
-  test("they take a settled posture while the model loads, and hold it after the panel closes", async ({
-    page,
-  }) => {
-    test.skip(!isDesktop(page), "the lane only renders at lg and above");
-
-    await stallModelDownload(page);
-    const lane = page.locator(".guide-lane");
-
-    // Idle: no state attribute at all, so the default is genuinely "nothing".
-    await expect(lane).not.toHaveAttribute("data-guide-state", "working");
-
-    await openGuide(page);
-    await page.getByRole("button", { name: /enable meaning-based search/i }).click();
-    await expect(lane).toHaveAttribute("data-guide-state", "working");
-
-    // The load outlives the panel. Closing it must not make the cats look idle
-    // while work is still happening — this is why the flag lives in the store
-    // rather than in the panel's own state.
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(lane).toHaveAttribute("data-guide-state", "working");
-
-    // And the posture is a real transform, not just an attribute.
-    const scaleY = await page
-      .locator(".guide-cat--grey .guide-cat-pose")
-      .evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).d);
-    expect(scaleY).toBeLessThan(1);
-  });
-
-  test("reopening the panel shows the model's real state, not the Enable button again", async ({
-    page,
-  }) => {
-    // Regression: the model's state used to live in the panel's own `useState`,
-    // so closing the guide unmounted it and reopening offered a ~25 MB download
-    // that had already happened. The session now outlives the panel.
-    await stallModelDownload(page);
-
-    await openGuide(page);
-    const enable = page.getByRole("button", { name: /enable meaning-based search/i });
-    await enable.click();
-    await expect(page.getByText(/downloading the model/i)).toBeVisible();
-
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-
-    await openGuide(page);
-    // Still mid-download, and no second offer to download it.
-    await expect(page.getByText(/downloading the model/i)).toBeVisible();
-    await expect(enable).toHaveCount(0);
-  });
-
-  test("under reduced motion the posture still changes but the tail does not flick", async ({
-    page,
-  }) => {
-    test.skip(!isDesktop(page), "the lane only renders at lg and above");
-
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-    await stallModelDownload(page);
-
-    await openGuide(page);
-    await page.getByRole("button", { name: /enable meaning-based search/i }).click();
-    await expect(page.locator(".guide-lane")).toHaveAttribute("data-guide-state", "working");
-
-    // The split that makes this defensible: the pose is *information* and
-    // survives, the movement is decoration and does not.
-    const pose = await page
-      .locator(".guide-cat--grey .guide-cat-pose")
-      .evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).d);
-    expect(pose, "the settled posture still applies").toBeLessThan(1);
-
-    const tailDuration = await page
-      .locator(".guide-cat--grey .guide-cat-tail")
-      .evaluate((el) => getComputedStyle(el).animationDuration);
-    // The global reduced-motion block clamps this to ~0.01ms.
-    expect(Number.parseFloat(tailDuration)).toBeLessThan(0.01);
   });
 });
 

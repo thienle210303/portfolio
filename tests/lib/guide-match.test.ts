@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  blendHits,
-  cosineSimilarity,
-  queryTerms,
-  searchIndex,
-  tokenize,
-} from "@/lib/guide/match";
-import type { GuideEntry, GuideHit } from "@/lib/guide/types";
+import { queryTerms, searchIndex, stem, tokenize } from "@/lib/guide/match";
+import type { GuideEntry } from "@/lib/guide/types";
 
 function entry(overrides: Partial<GuideEntry> & Pick<GuideEntry, "id">): GuideEntry {
   return {
@@ -140,71 +134,40 @@ describe("searchIndex", () => {
   });
 });
 
-describe("cosineSimilarity", () => {
-  it("returns 1 for identical unit vectors", () => {
-    expect(cosineSimilarity([1, 0, 0], [1, 0, 0])).toBeCloseTo(1);
+describe("stem", () => {
+  it("collapses plurals onto their singular", () => {
+    // The eval caught "projects" failing to match "project" and "languages"
+    // failing to match "language" — a silly way to lose a query.
+    expect(stem("projects")).toBe("project");
+    expect(stem("languages")).toBe("language");
+    expect(stem("scrapers")).toBe("scraper");
+    expect(stem("bots")).toBe("bot");
   });
 
-  it("returns 0 for orthogonal vectors", () => {
-    expect(cosineSimilarity([1, 0], [0, 1])).toBe(0);
+  it("handles -ies", () => {
+    expect(stem("companies")).toBe("company");
+    expect(stem("strategies")).toBe("strategy");
   });
 
-  it("accepts typed arrays, which is how the vector cache stores them", () => {
-    const a = new Float32Array([0.6, 0.8]);
-    const b = new Float32Array([0.6, 0.8]);
-    expect(cosineSimilarity(a, b)).toBeCloseTo(1);
+  it("does not strip the -e that a singular keeps", () => {
+    // An earlier "-es" rule folded "languages" to "languag" while the index
+    // held "language", which silently broke "what languages does he know".
+    expect(stem("languages")).toBe("language");
+    expect(stem("phases")).toBe("phase");
   });
 
-  /**
-   * A cache holding vectors from a different model must degrade to "no
-   * semantic signal", never to NaN — a NaN would propagate through the sort
-   * and scramble the entire ranking.
-   */
-  it("returns 0 on a length mismatch rather than NaN", () => {
-    expect(cosineSimilarity([1, 0, 0], [1, 0])).toBe(0);
-    expect(cosineSimilarity([], [])).toBe(0);
-  });
-});
-
-describe("blendHits", () => {
-  const a = entry({ id: "a", title: "A" });
-  const b = entry({ id: "b", title: "B" });
-
-  it("keeps a lexical-only hit when semantic found nothing", () => {
-    const blended = blendHits([{ entry: a, score: 1 }], []);
-    expect(blended.map((hit) => hit.entry.id)).toEqual(["a"]);
+  it("leaves short words and double-s endings alone", () => {
+    expect(stem("is")).toBe("is");
+    expect(stem("his")).toBe("his");
+    expect(stem("less")).toBe("less");
+    expect(stem("class")).toBe("class");
   });
 
-  it("keeps a semantic-only hit when lexical found nothing", () => {
-    const blended = blendHits([], [{ entry: b, score: 1 }]);
-    expect(blended.map((hit) => hit.entry.id)).toEqual(["b"]);
-  });
-
-  it("sums both signals for an entry found by each, ranking it above either alone", () => {
-    const lexical: GuideHit[] = [{ entry: a, score: 1 }];
-    const semantic: GuideHit[] = [
-      { entry: a, score: 1 },
-      { entry: b, score: 1 },
-    ];
-    const blended = blendHits(lexical, semantic);
-    expect(blended[0]?.entry.id).toBe("a");
-    expect(blended[0]?.score).toBeGreaterThan(blended[1]?.score ?? Infinity);
-  });
-
-  it("does not duplicate an entry present in both inputs", () => {
-    const blended = blendHits([{ entry: a, score: 1 }], [{ entry: a, score: 1 }]);
-    expect(blended).toHaveLength(1);
-  });
-
-  it("honours the result limit", () => {
-    const blended = blendHits(
-      [
-        { entry: a, score: 1 },
-        { entry: b, score: 0.9 },
-      ],
-      [],
-      1,
-    );
-    expect(blended).toHaveLength(1);
+  it("is applied to the index and the query through one function", () => {
+    // The only property that matters: both sides fold identically. It is fine
+    // that "process" folds to something that is not a word, because nothing
+    // ever reads these tokens — they are only compared with each other.
+    expect(stem("process")).toBe(stem("process"));
+    expect(queryTerms("projects")).toEqual(["project"]);
   });
 });

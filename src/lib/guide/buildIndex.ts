@@ -38,6 +38,7 @@ import {
   learningLog,
   workflowStages,
 } from "@/content/ai-experiments";
+import { sectionExpansions, subjectExpansions } from "@/content/guide-expansion";
 import { isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
 import type { GuideEntry, GuideIndex } from "./types";
 
@@ -90,14 +91,19 @@ class EntryCollector {
     quote: string | undefined;
     keywords?: readonly string[];
     weight?: number;
+    /**
+     * Content id of the thing this entry describes — a project, a career entry,
+     * a skill category. Used to look up search aliases in
+     * `@/content/guide-expansion`; omit it and the entry simply gets none.
+     */
+    subject?: string;
   }): void {
     if (args.quote === undefined) return;
     const quote = stripNeedsInput(args.quote);
     if (quote.length === 0) return;
 
-    // A duplicate id would make React keys collide in the results list and
-    // make the Tier 1 vector cache ambiguous. Surfacing it at build time is
-    // far better than either.
+    // A duplicate id would make React keys collide in the results list.
+    // Surfacing it at build time is far better than debugging it in a browser.
     if (this.seenIds.has(args.id)) {
       throw new Error(`Duplicate guide entry id: ${args.id}`);
     }
@@ -109,7 +115,7 @@ class EntryCollector {
       source: SECTION_LABEL[args.sectionId],
       title: stripNeedsInput(args.title),
       quote,
-      keywords: (args.keywords ?? []).filter((keyword) => !isEntirelyNeedsInput(keyword)),
+      keywords: expandKeywords(args.keywords, args.sectionId, args.subject),
       // Omitted rather than written as 1, so the shipped JSON only carries the
       // field for the minority of entries that are actually promoted.
       ...(args.weight === undefined ? {} : { weight: args.weight }),
@@ -124,6 +130,7 @@ class EntryCollector {
     title: string;
     quotes: readonly (string | undefined)[];
     keywords?: readonly string[];
+    subject?: string;
   }): void {
     args.quotes.forEach((quote, index) => {
       this.content({
@@ -132,21 +139,48 @@ class EntryCollector {
         title: args.title,
         quote,
         keywords: args.keywords,
+        subject: args.subject,
       });
     });
   }
 
-  command(entry: GuideEntry): void {
+  command(entry: GuideEntry, sectionId?: SectionId, subject?: string): void {
     if (this.seenIds.has(entry.id)) {
       throw new Error(`Duplicate guide entry id: ${entry.id}`);
     }
     this.seenIds.add(entry.id);
-    this.entries.push(entry);
+    this.entries.push(
+      sectionId
+        ? { ...entry, keywords: expandKeywords(entry.keywords, sectionId, subject) }
+        : entry,
+    );
   }
 
   all(): readonly GuideEntry[] {
     return this.entries;
   }
+}
+
+/**
+ * An entry's searchable keywords: those the caller supplied, plus the section's
+ * aliases, plus the subject's.
+ *
+ * The result is deduplicated and only ever feeds matching — `keywords` are never
+ * rendered, which is what lets aliases exist at all without touching the "every
+ * result is a verbatim quote" guarantee.
+ */
+function expandKeywords(
+  supplied: readonly string[] | undefined,
+  sectionId: SectionId,
+  subject?: string,
+): string[] {
+  const terms = [
+    ...(supplied ?? []),
+    ...(sectionExpansions[sectionId] ?? []),
+    ...(subject ? subjectExpansions[subject] ?? [] : []),
+  ].filter((keyword) => !isEntirelyNeedsInput(keyword));
+
+  return [...new Set(terms)];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -227,6 +261,7 @@ export function buildGuideIndex(): GuideIndex {
     title: "Core belief",
     quote: profile.philosophy,
     keywords: ["impossible", "unsolvable", "belief", "motto"],
+    weight: PRIMARY,
   });
   collect.contentList({
     idPrefix: "philosophy-intro",
@@ -244,6 +279,7 @@ export function buildGuideIndex(): GuideIndex {
       quote: principle.summary,
       keywords: ["principle", "how i work"],
       weight: PRIMARY,
+      subject: principle.id,
     });
     collect.content({
       id: `principle-${principle.id}-detail`,
@@ -251,6 +287,7 @@ export function buildGuideIndex(): GuideIndex {
       title: principle.title,
       quote: principle.detail,
       keywords: ["principle", "how i work"],
+      subject: principle.id,
     });
     collect.content({
       id: `principle-${principle.id}-evidence`,
@@ -258,6 +295,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${principle.title} — ${principle.evidence.context}`,
       quote: principle.evidence.body,
       keywords: ["evidence", "example", principle.evidence.context],
+      subject: principle.id,
     });
   }
 
@@ -293,6 +331,7 @@ export function buildGuideIndex(): GuideIndex {
       quote: project.tagline,
       keywords,
       weight: PRIMARY,
+      subject: project.id,
     });
     collect.content({
       id: `project-${project.id}-problem`,
@@ -300,6 +339,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — the problem`,
       quote: project.problem,
       keywords,
+      subject: project.id,
     });
     collect.content({
       id: `project-${project.id}-mattered`,
@@ -307,6 +347,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — why it mattered`,
       quote: project.whyItMattered,
       keywords,
+      subject: project.id,
     });
     collect.content({
       id: `project-${project.id}-assumption`,
@@ -314,6 +355,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — the assumption challenged`,
       quote: project.assumption,
       keywords,
+      subject: project.id,
     });
     collect.content({
       id: `project-${project.id}-failed`,
@@ -321,6 +363,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — what failed`,
       quote: project.whatFailed,
       keywords: [...keywords, "failure", "mistake", "went wrong"],
+      subject: project.id,
     });
     collect.content({
       id: `project-${project.id}-failure-lesson`,
@@ -328,6 +371,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — what the failure taught`,
       quote: project.failureLesson,
       keywords: [...keywords, "failure", "lesson"],
+      subject: project.id,
     });
     collect.content({
       id: `project-${project.id}-learned`,
@@ -335,13 +379,15 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — what I learned`,
       quote: project.learned,
       keywords: [...keywords, "lesson", "takeaway"],
+      subject: project.id,
     });
     collect.content({
       id: `project-${project.id}-next`,
       sectionId: "work",
       title: `${project.title} — the open question`,
       quote: project.nextQuestion,
-      keywords: [...keywords, "open question", "next"],
+      keywords: [...keywords, "open question", "next", "differently", "hindsight", "again"],
+      subject: project.id,
     });
     collect.contentList({
       idPrefix: `project-${project.id}-decision`,
@@ -349,6 +395,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — a decision`,
       quotes: project.decisions,
       keywords: [...keywords, "decision", "tradeoff"],
+      subject: project.id,
     });
     collect.contentList({
       idPrefix: `project-${project.id}-explored`,
@@ -356,6 +403,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — a path explored`,
       quotes: project.pathsExplored,
       keywords: [...keywords, "alternative", "path", "tried"],
+      subject: project.id,
     });
     collect.contentList({
       idPrefix: `project-${project.id}-proof`,
@@ -363,6 +411,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${project.title} — result`,
       quotes: project.proof,
       keywords: [...keywords, "result", "impact", "outcome", "metric"],
+      subject: project.id,
     });
   }
 
@@ -386,6 +435,7 @@ export function buildGuideIndex(): GuideIndex {
       quote: entry.context,
       keywords,
       weight: PRIMARY,
+      subject: entry.id,
     });
     collect.content({
       id: `career-${entry.id}-learned`,
@@ -393,6 +443,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${entry.organization} — what I learned`,
       quote: entry.learned,
       keywords: [...keywords, "lesson"],
+      subject: entry.id,
     });
     collect.contentList({
       idPrefix: `career-${entry.id}-impact`,
@@ -400,6 +451,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${entry.organization} — impact`,
       quotes: entry.impact,
       keywords: [...keywords, "impact", "result", "metric", "achievement"],
+      subject: entry.id,
     });
     collect.contentList({
       idPrefix: `career-${entry.id}-built`,
@@ -407,6 +459,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${entry.organization} — built`,
       quotes: entry.built,
       keywords: [...keywords, "built", "shipped"],
+      subject: entry.id,
     });
   }
 
@@ -433,7 +486,7 @@ export function buildGuideIndex(): GuideIndex {
       quote: lens.description,
       keywords: ["cv", "resume", "filter", "lens", "show", "only", lens.label],
       action: { kind: "resume-lens", lensId: lens.id },
-    });
+    }, "resume", `lens-${lens.id}`);
   }
   for (const category of skillCategories) {
     collect.content({
@@ -442,6 +495,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `Skills — ${category.label}`,
       quote: category.evidence,
       keywords: [...category.skills, "skills", "technologies", "stack", "experience with"],
+      subject: category.id,
     });
   }
   for (const achievement of achievements) {
@@ -499,6 +553,7 @@ export function buildGuideIndex(): GuideIndex {
       quote: experiment.question,
       keywords,
       weight: PRIMARY,
+      subject: experiment.id,
     });
     collect.content({
       id: `experiment-${experiment.id}-hypothesis`,
@@ -506,6 +561,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${experiment.title} — hypothesis`,
       quote: experiment.hypothesis,
       keywords,
+      subject: experiment.id,
     });
     collect.content({
       id: `experiment-${experiment.id}-outcome`,
@@ -513,6 +569,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${experiment.title} — outcome`,
       quote: experiment.outcome,
       keywords: [...keywords, "outcome", "result"],
+      subject: experiment.id,
     });
     collect.content({
       id: `experiment-${experiment.id}-limitation`,
@@ -520,6 +577,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${experiment.title} — limitation`,
       quote: experiment.limitation,
       keywords: [...keywords, "limitation", "caveat"],
+      subject: experiment.id,
     });
     collect.content({
       id: `experiment-${experiment.id}-lesson`,
@@ -527,6 +585,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${experiment.title} — lesson`,
       quote: experiment.lesson,
       keywords: [...keywords, "lesson"],
+      subject: experiment.id,
     });
     collect.content({
       id: `experiment-${experiment.id}-next`,
@@ -534,6 +593,7 @@ export function buildGuideIndex(): GuideIndex {
       title: `${experiment.title} — next experiment`,
       quote: experiment.nextExperiment,
       keywords: [...keywords, "next"],
+      subject: experiment.id,
     });
   }
 
@@ -543,6 +603,7 @@ export function buildGuideIndex(): GuideIndex {
     title: "Exploring now",
     quotes: learningLog.exploringNow,
     keywords: ["current", "exploring", "learning", "now"],
+    subject: "learning-log",
   });
   collect.contentList({
     idPrefix: "log-next",
@@ -550,6 +611,7 @@ export function buildGuideIndex(): GuideIndex {
     title: "Want to test next",
     quotes: learningLog.wantToTestNext,
     keywords: ["next", "todo", "plan"],
+    subject: "learning-log",
   });
   learningLog.changedMyThinking.forEach((change, index) => {
     collect.content({
@@ -588,9 +650,9 @@ export function buildGuideIndex(): GuideIndex {
       source: "Navigate",
       title: `Go to ${label}`,
       quote: `Scrolls to the ${label} section and moves keyboard focus there.`,
-      keywords: ["go", "goto", "jump", "navigate", "show", "take me", "open", label],
+      keywords: ["goto", "jump", "navigate", "show", "take me", "open", label],
       action: { kind: "goto", sectionId },
-    });
+    }, sectionId as SectionId);
   }
 
   collect.command({
@@ -601,7 +663,7 @@ export function buildGuideIndex(): GuideIndex {
     quote: `Copies ${profile.email} to your clipboard.`,
     keywords: ["copy", "email", "address", "contact", "reach", "get in touch", profile.email],
     action: { kind: "copy-email" },
-  });
+  }, "contact");
 
   collect.command({
     id: "command-print-resume",
@@ -611,7 +673,7 @@ export function buildGuideIndex(): GuideIndex {
     quote: "Opens your browser's print dialog with only the résumé on the page.",
     keywords: ["print", "resume", "cv", "paper", "pdf"],
     action: { kind: "print-resume" },
-  });
+  }, "resume");
 
   collect.command({
     id: "command-download-resume",
@@ -621,7 +683,7 @@ export function buildGuideIndex(): GuideIndex {
     quote: `Opens ${profile.resumePdfLabel} in a new tab.`,
     keywords: ["download", "pdf", "resume", "cv", "save"],
     action: { kind: "download-resume" },
-  });
+  }, "resume");
 
   const entries = collect.all();
   return { revision: fingerprint(entries), entries };

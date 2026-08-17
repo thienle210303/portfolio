@@ -17,10 +17,7 @@
  *    never see it reappear on its own.
  *  - `open` — ephemeral. Never persisted, so the guide is never open on
  *    arrival. It cannot greet anyone.
- *
- * The embedding model's state deliberately does *not* live here — see
- * ./semanticSession, which owns it and derives "is it working" from it rather
- * than tracking a second boolean that could disagree.
+
  *
  * Snapshots are primitives rather than an object, because `useSyncExternalStore`
  * compares them by identity — returning a fresh object from `getSnapshot`

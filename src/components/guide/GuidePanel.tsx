@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ArrowRight, CornerDownLeft, X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { LAUNCHER_ATTRIBUTE } from "./guideFocus";
-import { startSemanticSession } from "./semanticSession";
-import { useSemanticSession } from "./useGuideState";
 import { runGuideAction } from "@/lib/guide/actions";
-import { blendHits, searchIndex } from "@/lib/guide/match";
-import { MODEL_DOWNLOAD_LABEL } from "@/lib/guide/semantic";
+import { searchIndex } from "@/lib/guide/match";
 import type { GuideHit, GuideIndex } from "@/lib/guide/types";
 
 interface GuidePanelProps {
@@ -24,16 +21,11 @@ interface GuidePanelProps {
   readonly panelId: string;
 }
 
-/** Keystroke settling time before a semantic query runs. Lexical is
- *  synchronous and needs none; encoding a query does. */
-const SEMANTIC_DEBOUNCE_MS = 220;
-
 /**
- * Async results tagged with the query that produced them.
+ * An async result tagged with the query that produced it.
  *
- * Both of the panel's asynchronous outputs — semantic hits and an action's
- * confirmation message — become stale the moment the visitor types again.
- * Tagging them lets staleness be *derived* during render (`tag === query`)
+ * An action's confirmation message goes stale the moment the visitor types
+ * again. Tagging it lets staleness be *derived* during render (`tag === query`)
  * rather than cleared by an effect, which is both fewer renders and harder to
  * get wrong: there is no ordering in which a stale value can be displayed.
  */
@@ -68,9 +60,6 @@ export function GuidePanel({
   panelId,
 }: GuidePanelProps) {
   const [query, setQuery] = useState("");
-  // Read from the shared store, not owned here: the model outlives this panel.
-  const semantic = useSemanticSession();
-  const [semanticResult, setSemanticResult] = useState<Tagged<readonly GuideHit[]> | null>(null);
   const [actionMessage, setActionMessage] = useState<Tagged<string> | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -81,47 +70,18 @@ export function GuidePanel({
 
   /* --- Retrieval -------------------------------------------------------- */
 
-  // Lexical is pure and fast enough to run inline on every render; memoising
-  // on [query, index] is all the throttling it needs.
-  const lexicalHits = useMemo(
+  /**
+   * One lexical pass, run inline on every keystroke.
+   *
+   * It needs no debounce and no worker: it is pure synchronous scoring over 240
+   * entries with each entry's search surface memoised, which is fast enough that
+   * throttling it would only add latency. `tests/lib/guide-retrieval.test.ts`
+   * records what it scores and why there is no model behind it.
+   */
+  const hits = useMemo(
     () => (index ? searchIndex(index.entries, query) : []),
     [index, query],
   );
-
-  const hits = useMemo(() => {
-    // Semantic hits count only while they still describe the current query.
-    // Derived inside the memo rather than above it so the fresh `[]` on a
-    // stale-or-absent result does not re-key the memo on every render.
-    const semanticHits = semanticResult?.query === trimmed ? semanticResult.value : [];
-    return semanticHits.length > 0 ? blendHits(lexicalHits, semanticHits) : lexicalHits;
-  }, [lexicalHits, semanticResult, trimmed]);
-
-  // Semantic pass, debounced and cancellable. Runs *in addition* to the lexical
-  // pass, never instead of it — `blendHits` keeps exact-term matches
-  // competitive, which matters because technology names are both the most
-  // likely query and the encoder's weakest spot.
-  useEffect(() => {
-    // No state is written on these paths: a stale result is already excluded by
-    // the tag check above, so there is nothing to clear.
-    if (semantic.status !== "ready" || trimmed.length === 0) return;
-
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      void semantic.searcher
-        .search(trimmed)
-        .then((results) => {
-          if (!cancelled) setSemanticResult({ query: trimmed, value: results });
-        })
-        .catch(() => {
-          if (!cancelled) setSemanticResult({ query: trimmed, value: [] });
-        });
-    }, SEMANTIC_DEBOUNCE_MS);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [trimmed, semantic]);
 
   /* --- Announcement ----------------------------------------------------- */
 
@@ -211,14 +171,6 @@ export function GuidePanel({
     // has already placed focus on the destination section, and the default
     // restore-to-launcher would drag it straight back out — see ActionOutcome.
     if (outcome.close) onClose({ restoreFocus: !outcome.keepFocus });
-  }
-
-  function enableSemantic() {
-    if (!index) return;
-    // Everything else — the guard against double-starting, progress reporting,
-    // and settling to ready or failed — belongs to the session store, so it all
-    // keeps working if this panel unmounts mid-download.
-    startSemanticSession(index);
   }
 
   /* --- Render ----------------------------------------------------------- */
@@ -359,56 +311,6 @@ export function GuidePanel({
           ) : null}
         </ul>
       ) : null}
-
-      {/* --- Tier 1 opt-in ------------------------------------------------ */}
-
-      <div className="flex-none border-t border-hairline px-4 py-3">
-        {semantic.status === "off" ? (
-          <>
-            <button
-              type="button"
-              onClick={enableSemantic}
-              disabled={!index}
-              className="inline-flex min-h-11 items-center gap-2 border border-hairline px-3 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-paper transition-colors duration-150 hover:border-muted disabled:opacity-50"
-            >
-              <CornerDownLeft aria-hidden="true" focusable="false" size={14} />
-              Enable meaning-based search
-            </button>
-            {/*
-              Three facts, kept short. Earlier copy said the same thing in a
-              paragraph and pushed the panel to nearly full viewport height,
-              which undercut the whole point of a guide that stays out of the
-              way. Brevity here is a design constraint, not a style preference
-              — but none of the three disclosures may be dropped to get it.
-            */}
-            <p className="mt-2 text-[length:var(--step--1)] leading-relaxed text-silver">
-              {MODEL_DOWNLOAD_LABEL} · runs in this browser, nothing is sent
-              anywhere · finds passages, never writes answers.
-            </p>
-          </>
-        ) : null}
-
-        {semantic.status === "loading" ? (
-          <p className="text-[length:var(--step--1)] text-muted">
-            {semantic.progress.phase === "downloading"
-              ? `Downloading the model${semantic.progress.percent === null ? "" : ` — ${semantic.progress.percent}%`}…`
-              : `Indexing this page locally${semantic.progress.percent === null ? "" : ` — ${semantic.progress.percent}%`}…`}
-          </p>
-        ) : null}
-
-        {semantic.status === "ready" ? (
-          <p className="text-[length:var(--step--1)] text-muted">
-            Meaning-based search is on, running locally in this browser.
-          </p>
-        ) : null}
-
-        {semantic.status === "failed" ? (
-          <p className="text-[length:var(--step--1)] text-muted">
-            The model could not be loaded, so search is still keyword-based.
-            Everything else works as before.
-          </p>
-        ) : null}
-      </div>
 
       <div className="flex-none border-t border-hairline px-4 py-2">
         <button

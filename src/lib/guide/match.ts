@@ -1,11 +1,11 @@
 /**
- * Tier 0 retrieval: lexical scoring over the guide index.
+ * Retrieval: lexical scoring over the guide index.
  *
- * This is the default and it ships with no model, no network call beyond the
- * index JSON itself, and no dependency. Tier 1 (semantic) is an opt-in layer
- * *on top* of this — never a replacement — so a visitor who declines the
- * download still gets a working guide, and the two paths return the same
- * `GuideHit` shape.
+ * This is the whole retriever. It ships with no model, no WASM, no network call
+ * beyond the index JSON itself, and no dependency — and on this corpus it finds
+ * a correct passage in the top 3 for 97.7% of realistic queries. An opt-in
+ * embedding model used to sit on top of it; `tests/lib/guide-retrieval.test.ts`
+ * records the measurements that removed it.
  *
  * Everything here is pure and synchronous, which is what makes it directly
  * unit-testable against the real content index.
@@ -13,9 +13,16 @@
 
 import type { GuideEntry, GuideHit } from "./types";
 
-/** Words too common in this corpus to carry signal. Deliberately short — an
- *  aggressive stop list starts eating real queries ("what failed", "no
- *  results"), and the scoring below already discounts ubiquitous terms. */
+/**
+ * Words that carry no retrieval signal here.
+ *
+ * Grown deliberately, not speculatively: every pronoun and auxiliary below was
+ * observed diluting a real eval query. "can he lead or manage other engineers"
+ * has six terms of which four can never match anything, and under a
+ * coverage-based gate that dilution is what decides whether the query returns
+ * results at all. Content words are never added — "work", "build" and "tests"
+ * all stay, however common they look.
+ */
 const STOP_WORDS = new Set([
   "a",
   "an",
@@ -52,10 +59,45 @@ const STOP_WORDS = new Set([
   "when",
   "where",
   "which",
-  "who",
+  // "who" is deliberately absent. It is a real keyword on the profile entries,
+  // and stop-listing it made "who is he" — about the most likely opening query
+  // on a personal site — tokenise to nothing at all.
   "with",
   "you",
   "your",
+  // Pronouns and auxiliaries, from observed queries.
+  "he",
+  "him",
+  "his",
+  "she",
+  "her",
+  "they",
+  "them",
+  "their",
+  "can",
+  "could",
+  "should",
+  "would",
+  "did",
+  "any",
+  "some",
+  "about",
+  "other",
+  "there",
+  "these",
+  "those",
+  "just",
+  "ever",
+  "anything",
+  "something",
+  "much",
+  "many",
+  "more",
+  "most",
+  "very",
+  "really",
+  "tell",
+  "get",
 ]);
 
 /**
@@ -67,7 +109,11 @@ const STOP_WORDS = new Set([
 const IMPERATIVE_TERMS = new Set([
   "copy",
   "download",
-  "go",
+  // Deliberately NOT "go". It reads as an imperative in "go to contact" and as
+  // ordinary prose in "where did he go to school", "did anything go wrong" and
+  // "how did it go" — and since the boost is 2.5x and every `goto` command
+  // matches the word, one stray "go" was filling all five result slots with
+  // navigation. "goto" as a single token is unambiguous; the bare verb is not.
   "goto",
   "jump",
   "navigate",
@@ -90,17 +136,36 @@ const MIN_PREFIX_LENGTH = 4;
 /** Multiplier applied to command entries when the query reads as an order. */
 const COMMAND_BOOST = 2.5;
 /**
- * Fraction of the query's terms an entry must match to count as a hit.
+ * Multiplier applied to command entries when the query does *not* read as an
+ * order — i.e. it is a question.
  *
- * This is a *coverage* gate, deliberately separate from the score used for
- * ranking. An earlier version thresholded the normalised score instead, which
- * was subtly broken: a one-word query matching only an entry's quote scored
- * 1/6 of the theoretical ceiling and fell under the floor, so "collection"
- * — an obviously reasonable query — returned nothing at all. Coverage asks the
- * question that actually matters ("did we match what was asked?") and leaves
- * "how well" to the ordering.
+ * Commands match strongly by construction: "Go to Philosophy" carries the
+ * section word in its title, its keywords and its description, so a bare
+ * "what is his philosophy" scored it 6.0 against 2.0 for the passage that
+ * actually answers the question. Someone asking a question wants to read the
+ * answer; the navigation option should still be offered, just not first.
  */
-const MIN_QUERY_COVERAGE = 0.5;
+const NON_IMPERATIVE_COMMAND_FACTOR = 0.5;
+/**
+ * How many of a query's terms an entry must match to count as a hit at all.
+ *
+ * Deliberately an absolute count, not a fraction. A fractional gate (this was
+ * 50% coverage) is length-blind, and that turned out to be actively destructive
+ * on natural-language queries: "did anything go wrong on the projects" carries
+ * five terms of which only two can ever match, lands at 0.4, and was filtered
+ * out entirely — the eval showed it returning *zero* results, not bad ones. The
+ * longer and more conversational the question, the more filler dilutes it, so a
+ * percentage punishes exactly the queries a guide most needs to answer.
+ *
+ * One matched term is enough for a short query, where there is little else to
+ * go on and precision comes from the term being specific ("mendix", "who").
+ * Two are required past that, which is what keeps the must-be-empty cases empty
+ * — "kubernetes helm operator" matches nothing, and a long query that grazes a
+ * single filler-ish word should not resurrect a whole passage.
+ */
+function requiredMatches(termCount: number): number {
+  return termCount <= 2 ? 1 : 2;
+}
 
 export const DEFAULT_RESULT_LIMIT = 6;
 
@@ -126,10 +191,47 @@ export function tokenize(text: string): string[] {
     .filter((token) => token.length > 0);
 }
 
-/** Query tokens worth scoring: stop words dropped, duplicates collapsed. */
+/**
+ * Collapses a token's plural form onto its singular.
+ *
+ * Deliberately crude — plurals only, no verb forms. It exists because the eval
+ * showed "projects" failing to match "project" and "languages" failing to match
+ * "language", which is a silly way to lose a query. It is applied to the index
+ * and the query through the same function, so the two can never disagree; that
+ * symmetry is the only property that actually matters here. It is fine that
+ * "process" folds to "proces" — nothing reads these tokens, they are only ever
+ * compared with each other.
+ *
+ * Verb forms ("blocked", "getting") are left to the expansion keywords in
+ * ./expansion, where a human decides the mapping instead of a suffix rule
+ * guessing at it.
+ */
+export function stem(token: string): string {
+  if (token.length > 4 && token.endsWith("ies")) return `${token.slice(0, -3)}y`;
+  // Only a trailing "s" — deliberately *not* a "-es" rule.
+  //
+  // English cannot tell "buses" → "bus" from "languages" → "language" by
+  // suffix, and an "-es" rule broke the second: "languages" folded to
+  // "languag" while the index held "language", so "what languages does he
+  // know" stopped matching. Since every plural that actually occurs in this
+  // corpus is a plain "-s" (projects, scrapers, records, frameworks,
+  // datasets, awards), the simpler rule is the more correct one here.
+  if (token.length > 3 && token.endsWith("s") && !token.endsWith("ss")) {
+    return token.slice(0, -1);
+  }
+  return token;
+}
+
+/** Tokenised, stop-worded and stemmed. The one normalisation both sides use. */
+function normalize(text: string): string[] {
+  return tokenize(text)
+    .filter((token) => !STOP_WORDS.has(token))
+    .map(stem);
+}
+
+/** Query tokens worth scoring: stop words dropped, stemmed, duplicates collapsed. */
 export function queryTerms(query: string): string[] {
-  const terms = tokenize(query).filter((token) => !STOP_WORDS.has(token));
-  return [...new Set(terms)];
+  return [...new Set(normalize(query))];
 }
 
 interface SearchSurface {
@@ -152,9 +254,11 @@ function surfaceFor(entry: GuideEntry): SearchSurface {
   const cached = surfaceCache.get(entry);
   if (cached) return cached;
 
-  const titleTokens = new Set(tokenize(entry.title));
-  const keywordTokens = new Set(tokenize(entry.keywords.join(" ")));
-  const quoteTokens = new Set(tokenize(entry.quote));
+  // `normalize`, not `tokenize` — the query side is stemmed and stop-worded, so
+  // the index side must be too or the two vocabularies silently diverge.
+  const titleTokens = new Set(normalize(entry.title));
+  const keywordTokens = new Set(normalize(entry.keywords.join(" ")));
+  const quoteTokens = new Set(normalize(entry.quote));
   const surface: SearchSurface = {
     titleTokens,
     keywordTokens,
@@ -210,7 +314,9 @@ function scoreEntry(
   // queries of different lengths and does not penalise short entries.
   let score = (total / terms.length) * (entry.weight ?? 1);
 
-  if (entry.kind === "command" && imperative) score *= COMMAND_BOOST;
+  if (entry.kind === "command") {
+    score *= imperative ? COMMAND_BOOST : NON_IMPERATIVE_COMMAND_FACTOR;
+  }
 
   return { score, matched };
 }
@@ -230,11 +336,12 @@ export function searchIndex(
   if (terms.length === 0) return [];
 
   const imperative = terms.some((term) => IMPERATIVE_TERMS.has(term));
+  const required = requiredMatches(terms.length);
 
   const hits: GuideHit[] = [];
   for (const entry of entries) {
     const { score, matched } = scoreEntry(entry, terms, imperative);
-    if (matched / terms.length >= MIN_QUERY_COVERAGE) hits.push({ entry, score });
+    if (matched >= required) hits.push({ entry, score });
   }
 
   // Ties broken by id so ordering is deterministic across runs — otherwise
@@ -242,55 +349,4 @@ export function searchIndex(
   // tests become flaky for no real reason.
   hits.sort((a, b) => b.score - a.score || a.entry.id.localeCompare(b.entry.id));
   return hits.slice(0, limit);
-}
-
-/**
- * Cosine similarity between two equal-length, already L2-normalised vectors.
- * Used by Tier 1; lives here so both retrieval paths share one module.
- *
- * Normalisation is the caller's job (the embedding pipeline does it), so this
- * is a plain dot product — but it returns 0 rather than NaN on a length
- * mismatch, because a cache holding vectors from a different model must
- * degrade to "no semantic signal", not poison the ranking.
- */
-export function cosineSimilarity(a: ArrayLike<number>, b: ArrayLike<number>): number {
-  if (a.length === 0 || a.length !== b.length) return 0;
-  let dot = 0;
-  for (let index = 0; index < a.length; index += 1) {
-    dot += (a[index] as number) * (b[index] as number);
-  }
-  return dot;
-}
-
-/**
- * Blends semantic similarity with the lexical score.
- *
- * Semantic-only ranking is worse than it sounds on a corpus this small: exact
- * technology names ("Mendix", "Damerau–Levenshtein") are precisely what
- * visitors type and precisely what a 22M-parameter sentence encoder is
- * weakest at. Keeping lexical signal in the blend means an exact term match
- * still wins, while paraphrases ("how do you handle flaky scrapers") get
- * found at all.
- */
-export function blendHits(
-  lexical: readonly GuideHit[],
-  semantic: readonly GuideHit[],
-  limit: number = DEFAULT_RESULT_LIMIT,
-): GuideHit[] {
-  const byId = new Map<string, GuideHit>();
-
-  for (const hit of semantic) {
-    byId.set(hit.entry.id, { entry: hit.entry, score: hit.score * 0.6 });
-  }
-  for (const hit of lexical) {
-    const existing = byId.get(hit.entry.id);
-    byId.set(hit.entry.id, {
-      entry: hit.entry,
-      score: (existing?.score ?? 0) + hit.score * 0.4,
-    });
-  }
-
-  return [...byId.values()]
-    .sort((a, b) => b.score - a.score || a.entry.id.localeCompare(b.entry.id))
-    .slice(0, limit);
 }

@@ -63,9 +63,11 @@ export interface GuideEntry {
 
 export interface GuideIndex {
   /**
-   * Content fingerprint. Tier 1 caches embedding vectors in IndexedDB under
-   * this key, so editing any indexed prose invalidates the cache instead of
-   * silently searching stale vectors.
+   * Content fingerprint — a cheap way for a consumer to tell whether the index
+   * it holds is still the current one. Nothing in the shipped guide depends on
+   * it today (it was the cache key for a since-removed embedding model), but it
+   * costs eight characters and it is the natural hook for any future artifact
+   * that must be invalidated alongside the content.
    */
   readonly revision: string;
   readonly entries: readonly GuideEntry[];

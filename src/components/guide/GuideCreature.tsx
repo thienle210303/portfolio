@@ -81,16 +81,12 @@ interface CatProps {
  * the body over their tops, then markings, then the near pair in front of the
  * belly, then the head.
  *
- * ## The two animation wrappers
+ * ## The animation wrapper
  *
- * A cat can be walking *and* waiting at the same time — the visitor scrolls
- * while the model downloads — and one element cannot carry both transforms. So
- * `guide-cat-pose` owns the settled "working" crouch and `guide-cat-bob` owns
- * the walk-cycle squash, one animation each.
- *
- * Neither may live on the outer `.guide-cat`: that element carries its placement
- * as an SVG `transform` *presentation attribute*, and any CSS transform would
- * override it outright, stacking both cats at the origin.
+ * `guide-cat-bob` exists so the walk-cycle squash has somewhere to live that is
+ * not the outer `.guide-cat`: that element carries its placement as an SVG
+ * `transform` *presentation attribute*, and any CSS transform on it would
+ * override that outright, stacking both cats at the origin.
  */
 function Cat({ transform, variant }: CatProps) {
   const tabby = variant === "tabby";
@@ -111,135 +107,134 @@ function Cat({ transform, variant }: CatProps) {
         </clipPath>
       </defs>
 
-      <g className="guide-cat-pose">
-        <g className="guide-cat-bob">
+      <g className="guide-cat-bob">
+        {/*
+          The tail and its rings, grouped so they move as one.
+
+          The rings are clipped by a path declared *inside* this group rather
+          than by the shared body clip. `userSpaceOnUse` resolves a clip in the
+          coordinate system of the element referencing it, so a clip referenced
+          from outside would stay put if this group were ever transformed — that
+          is exactly what happened when the tail had a flick animation: the rings
+          hung in the air beside it. Keeping the relationship local means the
+          grouping stays correct if the tail is ever animated again.
+        */}
+        <g className="guide-cat-tail">
+          <path d={TAIL} />
+          {tabby ? (
+            <g className="guide-cat-stripe" clipPath={`url(#${tailClipId})`}>
+              {/* Kept inside the tail's own bounding box, so the group's box
+                  remains the tail's for any future `fill-box` transform. */}
+              <rect x="2.6" y="7.2" width="8" height="1.7" rx="0.85" />
+              <rect x="2.6" y="10.6" width="8" height="1.7" rx="0.85" />
+              <rect x="2.6" y="14" width="8" height="1.7" rx="0.85" />
+            </g>
+          ) : null}
+        </g>
+
+        <g className="guide-cat-legs guide-cat-legs--far">
+          <rect x="10.7" y="20" width="3.6" height="7.2" rx="1.8" />
+          <rect x="21.2" y="20" width="3.6" height="7.2" rx="1.8" />
+          {/* Paws: white on the tabby, plain grey on the grey one. */}
+          <rect
+            className={tabby ? "guide-cat-white" : undefined}
+            x="10.2"
+            y="26"
+            width="4.6"
+            height="3.4"
+            rx="1.7"
+          />
+          <rect
+            className={tabby ? "guide-cat-white" : undefined}
+            x="20.7"
+            y="26"
+            width="4.6"
+            height="3.4"
+            rx="1.7"
+          />
+        </g>
+
+        {/* Deliberately wide and low — these cats are a little fat. */}
+        <path d={BODY} />
+
+        <g clipPath={`url(#${bodyClipId})`}>
+          {tabby ? (
+            <g className="guide-cat-stripe">
+              {/*
+                Mackerel stripes: vertical bars from the spine down the flank.
+                They start above the body's top edge and are trimmed by the
+                clip, so each one ends exactly on the contour.
+              */}
+              <rect x="11.2" y="4" width="1.9" height="11" rx="0.95" />
+              <rect x="14.4" y="4" width="1.9" height="12" rx="0.95" />
+              <rect x="17.6" y="4" width="1.9" height="12.5" rx="0.95" />
+              <rect x="20.8" y="4" width="1.9" height="12" rx="0.95" />
+              <rect x="24" y="4" width="1.9" height="10.5" rx="0.95" />
+            </g>
+          ) : (
+            <g className="guide-cat-white">
+              {/*
+                Two white patches along the underside.
+
+                Their x-positions land in the gaps *between* the near pair of
+                legs, which are painted after this group and would otherwise
+                hide them — the first attempt put the chest patch directly
+                behind the front leg and almost nothing showed. They also run
+                off the bottom of the silhouette, so the clip trims them
+                against the contour and they read as belly markings rather than
+                as spots floating on the flank.
+              */}
+              <ellipse cx="22" cy="23" rx="3" ry="2.4" />
+              <ellipse cx="12.8" cy="22.4" rx="2" ry="1.8" />
+            </g>
+          )}
+        </g>
+
+        <g className="guide-cat-legs guide-cat-legs--near">
+          <rect x="15.2" y="20" width="3.6" height="7.2" rx="1.8" />
+          <rect x="25.2" y="20" width="3.6" height="7.2" rx="1.8" />
+          <rect
+            className={tabby ? "guide-cat-white" : undefined}
+            x="14.7"
+            y="26"
+            width="4.6"
+            height="3.4"
+            rx="1.7"
+          />
+          <rect
+            className={tabby ? "guide-cat-white" : undefined}
+            x="24.7"
+            y="26"
+            width="4.6"
+            height="3.4"
+            rx="1.7"
+          />
+        </g>
+
+        {/*
+          The only part that responds to the pointer. It rotates about the
+          neck, clamped to ±14° by the motion hook — enough to read as "it
+          looked at you", little enough that it never looks dislocated.
+          Everything inside rotates with it, which is why the chin patch sits
+          within the head outline rather than being clipped to the body above.
+        */}
+        <g className="guide-cat-head">
+          <path d="M26.9 13.2C26.9 10.6 27.4 8.8 28.2 7.6L27.8 2.6L32.2 6.6L35.8 3L37.6 8.2C38.6 9.4 39.2 10.9 39.2 12.5C39.2 15.9 36.4 18.7 33 18.7C29.5 18.7 26.9 16 26.9 13.2Z" />
+          {/* A small white chin, not a cheek blob — the photographs show a
+              patch under the muzzle, and at this size anything larger takes
+              over the whole face. */}
+          {tabby ? (
+            <ellipse className="guide-cat-white" cx="34.6" cy="17.4" rx="1.5" ry="1.1" />
+          ) : null}
           {/*
-            The tail and its rings rotate together as one group.
-
-            The rings must be clipped by a path *inside* this group, not by the
-            shared body clip: `userSpaceOnUse` resolves a clip in the coordinate
-            system of the element referencing it, so a clip referenced from out
-            here would stay put while the tail swung away from it — which is
-            exactly what happened on the first attempt, rings hanging in the air
-            beside a flicking tail.
+            Painted rather than punched out with a mask: a light iris on a
+            mid-tone body reads as an eye on either background, whereas a hole
+            would show the page through and invert between sections. Tinted
+            pale green for the tabby and pale amber for the grey one — the real
+            eye colours, lightened until they clear 3:1 against their own coat,
+            since a saturated iris at this size just goes muddy.
           */}
-          <g className="guide-cat-tail">
-            <path d={TAIL} />
-            {tabby ? (
-              <g className="guide-cat-stripe" clipPath={`url(#${tailClipId})`}>
-                {/* Kept inside the tail's own bounding box so the group's box —
-                    and therefore the `fill-box` pivot below — stays the tail's. */}
-                <rect x="2.6" y="7.2" width="8" height="1.7" rx="0.85" />
-                <rect x="2.6" y="10.6" width="8" height="1.7" rx="0.85" />
-                <rect x="2.6" y="14" width="8" height="1.7" rx="0.85" />
-              </g>
-            ) : null}
-          </g>
-
-          <g className="guide-cat-legs guide-cat-legs--far">
-            <rect x="10.7" y="20" width="3.6" height="7.2" rx="1.8" />
-            <rect x="21.2" y="20" width="3.6" height="7.2" rx="1.8" />
-            {/* Paws: white on the tabby, plain grey on the grey one. */}
-            <rect
-              className={tabby ? "guide-cat-white" : undefined}
-              x="10.2"
-              y="26"
-              width="4.6"
-              height="3.4"
-              rx="1.7"
-            />
-            <rect
-              className={tabby ? "guide-cat-white" : undefined}
-              x="20.7"
-              y="26"
-              width="4.6"
-              height="3.4"
-              rx="1.7"
-            />
-          </g>
-
-          {/* Deliberately wide and low — these cats are a little fat. */}
-          <path d={BODY} />
-
-          <g clipPath={`url(#${bodyClipId})`}>
-            {tabby ? (
-              <g className="guide-cat-stripe">
-                {/*
-                  Mackerel stripes: vertical bars from the spine down the flank.
-                  They start above the body's top edge and are trimmed by the
-                  clip, so each one ends exactly on the contour.
-                */}
-                <rect x="11.2" y="4" width="1.9" height="11" rx="0.95" />
-                <rect x="14.4" y="4" width="1.9" height="12" rx="0.95" />
-                <rect x="17.6" y="4" width="1.9" height="12.5" rx="0.95" />
-                <rect x="20.8" y="4" width="1.9" height="12" rx="0.95" />
-                <rect x="24" y="4" width="1.9" height="10.5" rx="0.95" />
-              </g>
-            ) : (
-              <g className="guide-cat-white">
-                {/*
-                  Two white patches along the underside.
-
-                  Their x-positions land in the gaps *between* the near pair of
-                  legs, which are painted after this group and would otherwise
-                  hide them — the first attempt put the chest patch directly
-                  behind the front leg and almost nothing showed. They also run
-                  off the bottom of the silhouette, so the clip trims them
-                  against the contour and they read as belly markings rather than
-                  as spots floating on the flank.
-                */}
-                <ellipse cx="22" cy="23" rx="3" ry="2.4" />
-                <ellipse cx="12.8" cy="22.4" rx="2" ry="1.8" />
-              </g>
-            )}
-          </g>
-
-          <g className="guide-cat-legs guide-cat-legs--near">
-            <rect x="15.2" y="20" width="3.6" height="7.2" rx="1.8" />
-            <rect x="25.2" y="20" width="3.6" height="7.2" rx="1.8" />
-            <rect
-              className={tabby ? "guide-cat-white" : undefined}
-              x="14.7"
-              y="26"
-              width="4.6"
-              height="3.4"
-              rx="1.7"
-            />
-            <rect
-              className={tabby ? "guide-cat-white" : undefined}
-              x="24.7"
-              y="26"
-              width="4.6"
-              height="3.4"
-              rx="1.7"
-            />
-          </g>
-
-          {/*
-            The only part that responds to the pointer. It rotates about the
-            neck, clamped to ±14° by the motion hook — enough to read as "it
-            looked at you", little enough that it never looks dislocated.
-            Everything inside rotates with it, which is why the chin patch sits
-            within the head outline rather than being clipped to the body above.
-          */}
-          <g className="guide-cat-head">
-            <path d="M26.9 13.2C26.9 10.6 27.4 8.8 28.2 7.6L27.8 2.6L32.2 6.6L35.8 3L37.6 8.2C38.6 9.4 39.2 10.9 39.2 12.5C39.2 15.9 36.4 18.7 33 18.7C29.5 18.7 26.9 16 26.9 13.2Z" />
-            {/* A small white chin, not a cheek blob — the photographs show a
-                patch under the muzzle, and at this size anything larger takes
-                over the whole face. */}
-            {tabby ? (
-              <ellipse className="guide-cat-white" cx="34.6" cy="17.4" rx="1.5" ry="1.1" />
-            ) : null}
-            {/*
-              Painted rather than punched out with a mask: a light iris on a
-              mid-tone body reads as an eye on either background, whereas a hole
-              would show the page through and invert between sections. Tinted
-              pale green for the tabby and pale amber for the grey one — the real
-              eye colours, lightened until they clear 3:1 against their own coat,
-              since a saturated iris at this size just goes muddy.
-            */}
-            <ellipse className="guide-cat-eye" cx="34.6" cy="11.4" rx="1.5" ry="1.65" />
-          </g>
+          <ellipse className="guide-cat-eye" cx="34.6" cy="11.4" rx="1.5" ry="1.65" />
         </g>
       </g>
     </g>
