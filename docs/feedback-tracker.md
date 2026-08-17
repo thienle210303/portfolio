@@ -203,3 +203,15 @@ declares the attribute on the tree root. No other package touches either side.
 Verified: pnpm verify green (typecheck, lint, contrast, 183 unit tests, build
 including the new CSS module) and the full Playwright matrix 282 passed / 0
 failed, both themes, all viewports.
+
+## Round 4 (2026-08-17)
+
+| Item | Verdict | Outcome |
+| --- | --- | --- |
+| Business card "awful" | Accepted — two real defects (copy button clipped off the card edge; email wrapped mid-address) plus a settings-list composition | Rewritten as true card geometry: name/title lockup, philosophy line, bottom-anchored ruled contact block, corner-cropped monogram; email owns its line, copy control on its own row; measured zero-overflow at 320-1440px, both themes. Note: 9/8 ratio, not 3/2 — CopyButton's fixed 44px height is the constraint; a compact CopyButton variant is the future unlock |
+| Cats no longer on screen | Accepted — reproduced as a real regression | The idle clock only counted pointer movement, so a wheel-scrolling reader was "absent": bed at 14s, and scrolling never woke them. Scroll/resize/keydown/pointerdown now stamp presence; wake unthrottled; resize clamps synchronously (second bug: sleeping cats stranded off-viewport ~280ms after resize). New 34s reading-visitor e2e spec with negative control |
+| Ask-this-site code snippet | Accepted | Prose/Code tabs on each answer; the code view renders the identical strings as a TypeScript literal through the shared CodeBlock (no score, no new claims); generator round-trip verified byte-for-byte; two e2e tests added |
+
+Verified: pnpm verify green; full Playwright matrix run by the regression
+agent on this tree (284 passed; one mid-run environmental flake re-passed);
+contact + companion specs re-run clean at integration (61/61).
