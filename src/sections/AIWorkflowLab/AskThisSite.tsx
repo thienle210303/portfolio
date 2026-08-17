@@ -3,7 +3,10 @@
 import { useId, useState } from "react";
 import { CornerDownLeft } from "lucide-react";
 import { answer, SUGGESTED_QUESTIONS, type Answer } from "@/lib/answers";
+import { CodeBlock } from "@/components/ui/CodeBlock";
+import { Tabs } from "@/components/ui/Tabs";
 import { cn } from "@/lib/cn";
+import { ANSWER_FILENAME, answerLiteral, describeAnswerLiteral } from "./answer-code";
 
 /**
  * "Ask this site" — a grounded question box over the portfolio's own content.
@@ -24,14 +27,83 @@ import { cn } from "@/lib/cn";
  * The common case needs no typing at all: five real questions sit above the
  * field as one-tap buttons, and a test asserts each of them actually returns
  * something rather than shipping a dead control.
+ *
+ * ## The second view
+ *
+ * An answer can also be read as the object it already is — the same strings,
+ * rendered through the hero's own CodeBlock as a TypeScript literal. It is a
+ * flourish, and it is built to stay one: prose is the first tab and the default,
+ * the code adds no field the prose card does not already show, and it is
+ * generated from `answer()`'s output rather than from anything new (see
+ * `./answer-code.ts`).
+ *
+ * The shared `Tabs` primitive carries it, for two reasons beyond the keyboard
+ * support it already has tested. Tabs is the exact semantic — one thing, two
+ * renderings, one at a time — where a `FilterGroup` radiogroup is for narrowing
+ * a set and would have to invent a per-option count to fit its API. And Tabs
+ * mounts only the active panel, so the view you are not reading is genuinely
+ * gone from the DOM: a screen reader is never handed the same answer twice,
+ * which a merely-hidden second copy would do.
+ *
+ * That single-panel rule is also what keeps the live region honest. An arriving
+ * answer inserts exactly one rendering of itself into the polite region below,
+ * so it is announced once rather than once per view. Switching view afterwards
+ * is a deliberate act by the reader, and announces only the panel they asked
+ * for — the tab strip itself stays mounted between questions, so it is never
+ * re-read either.
  */
 
 const NOTHING_FOUND =
   "Nothing on this page answers that. Everything here is drawn from what's actually written in the sections above — if it isn't there, I'd rather say so than guess.";
 
+/** The prose reading: quoted evidence, its source, and a way back to it. */
+function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
+  return (
+    <ol className="flex flex-col gap-5">
+      {results.map((result) => (
+        <li key={result.text} className="border-l-2 border-accent pl-4">
+          <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg">
+            {result.text}
+          </p>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="eyebrow">{result.source}</span>
+            <a
+              href={`#${result.sectionId}`}
+              className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
+            >
+              Read it in {result.sectionLabel} &rarr;
+            </a>
+          </p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/**
+ * The code reading. A component rather than an inline element so the literal is
+ * only built when this tab is the one being rendered.
+ */
+function CodeAnswer({
+  question,
+  results,
+}: {
+  readonly question: string;
+  readonly results: readonly Answer[];
+}) {
+  return (
+    <CodeBlock
+      code={answerLiteral(question, results)}
+      filename={ANSWER_FILENAME}
+      summary={describeAnswerLiteral(results)}
+    />
+  );
+}
+
 export default function AskThisSite() {
   const fieldId = useId();
   const resultsId = useId();
+  const viewId = useId();
   const [query, setQuery] = useState("");
   const [asked, setAsked] = useState<string | null>(null);
   const [results, setResults] = useState<readonly Answer[]>([]);
@@ -118,31 +190,30 @@ export default function AskThisSite() {
         </form>
 
         {/* Live region is always present, so an answer arriving into it is
-            announced rather than missed. */}
-        <div id={resultsId} aria-live="polite" className="mt-6">
+            announced rather than missed. Exactly one rendering of the answer
+            ever sits inside it — see the note on Tabs at the top of the file. */}
+        <div id={resultsId} aria-live="polite" className="mt-6 min-w-0">
           {asked === null ? null : results.length === 0 ? (
             <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
               {NOTHING_FOUND}
             </p>
           ) : (
-            <ol className="flex flex-col gap-5">
-              {results.map((result) => (
-                <li key={result.text} className="border-l-2 border-accent pl-4">
-                  <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg">
-                    {result.text}
-                  </p>
-                  <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="eyebrow">{result.source}</span>
-                    <a
-                      href={`#${result.sectionId}`}
-                      className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
-                    >
-                      Read it in {result.sectionLabel} &rarr;
-                    </a>
-                  </p>
-                </li>
-              ))}
-            </ol>
+            <Tabs
+              label="Answer view"
+              idPrefix={`${viewId}-answer-view`}
+              tabs={[
+                {
+                  id: "prose",
+                  label: "Prose",
+                  panel: <ProseAnswers results={results} />,
+                },
+                {
+                  id: "code",
+                  label: "Code",
+                  panel: <CodeAnswer question={asked} results={results} />,
+                },
+              ]}
+            />
           )}
         </div>
       </div>
