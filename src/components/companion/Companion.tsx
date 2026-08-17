@@ -82,7 +82,15 @@ const LEAD_SPACE = 96;
 const FOLLOW_GAP = 26;
 const FOLLOW_SLACK = 58;
 
-/** Pointer-idle time before the cats settle, then before they go to bed, in ms. */
+/**
+ * How long before the cats settle, then before they go to bed, in ms.
+ *
+ * Two thresholds measuring two different things, which is the whole reason they
+ * read off two different clocks below. Settling is about the *pointer* holding
+ * still: there is nothing to trail, so stop trailing it. Going to bed is about
+ * the *visitor* being gone — and a visitor reading a long page holds the mouse
+ * perfectly still for minutes while scrolling through it.
+ */
 const SETTLE_AFTER = 2400;
 const SLEEP_AFTER = 14000;
 
@@ -117,10 +125,17 @@ const FOLLOW_BRAKE = 0.5;
  *    it survives a reload, and only the box's own "Wake the cats" button undoes
  *    it. That flow owns `RestingBox`, and it is the only one that touches
  *    storage.
- *  - Idle sleep — everything below — is a **moment**. The cats have had nothing
- *    to do for `SLEEP_AFTER`, so instead of dozing off in whatever margin they
+ *  - Idle sleep — everything below — is a **moment**. Nobody has done anything
+ *    for `SLEEP_AFTER`, so instead of dozing off in whatever margin they
  *    happened to be standing in, they walk to the corner bed and curl up in it.
  *    Nothing is written anywhere: reload and they roam, exactly as before.
+ *
+ * "Nobody has done anything" is deliberately wider than "the pointer has not
+ * moved", and the difference is the whole of `lastSignRef`. Reading a long page
+ * is scrolling it with the mouse held still, so on the pointer clock a visitor
+ * halfway down the page reads as absent — the cats would leave for the corner
+ * while somebody was plainly still there, and nothing they could do short of
+ * moving the mouse would bring them back.
  *
  * It exists because the old behaviour looked like a bug. The cats simply left,
  * quietly, to wherever the placement probe had put them — which was correct and
@@ -551,6 +566,26 @@ export function Companion() {
   const placed = useRef(false);
   const pointerRef = useRef<Point | null>(null);
   const lastMoveRef = useRef(0);
+  /**
+   * The last moment anybody was demonstrably *here*, which is not the same
+   * question as when the pointer last moved and must not be answered by the
+   * same clock.
+   *
+   * Reading a page is scrolling it, and a wheel turned under a stationary mouse
+   * fires no pointer event at all — so on the pointer clock alone, a visitor
+   * three paragraphs into the page has been "idle" the whole time. They watched
+   * the cats walk off to the corner and go to sleep while they were reading,
+   * and no amount of further scrolling brought them back, because the only
+   * thing that ends the idle sleep is the pointer handler and the pointer never
+   * moved. That is how two cats leave the screen for the rest of a visit.
+   *
+   * So the bed reads this clock instead: a scroll, a resize, a key or a click
+   * all stamp it, and only the *settle* threshold — which really is about the
+   * pointer holding still — stays on `lastMoveRef`. Never read directly: the
+   * later of the two is what "alone" means, so the existing resets that write
+   * `lastMoveRef` keep working untouched.
+   */
+  const lastSignRef = useRef(0);
   const escortRef = useRef<EscortRun | null>(null);
   /** The idle bed, mirrored out of React so the loop and the pointer handler
    *  can both read it. The *loop* owns the value; everything else asks it to
@@ -717,9 +752,15 @@ export function Companion() {
 
     // A click anywhere — including on the bed itself, which is the one the
     // visitor is most likely to try — and any keystroke, which is the keyboard
-    // equivalent for a visitor who never moves a pointer at all.
+    // equivalent for a visitor who never moves a pointer at all. Both stamp the
+    // presence clock whether or not the cats are in the bed: somebody typing is
+    // somebody here, and the cats should not walk off mid-sentence. Only the
+    // pair already asleep get the full `rouse`, which is the one that also puts
+    // the pointer clock back and sends them chasing again.
     const onPoke = () => {
+      lastSignRef.current = performance.now();
       if (bedRef.current) rouse();
+      else wake();
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -875,7 +916,13 @@ export function Companion() {
       if (!running) return;
 
       const now = performance.now();
+      /** How long the pointer has held still — what "settle" is measured on. */
       const idleFor = now - lastMoveRef.current;
+      /** How long *nobody* has done anything: no pointer, no scroll, no key,
+       *  no resize. What "go to bed" is measured on. Never shorter than
+       *  `idleFor`, so every existing reset of the pointer clock still counts
+       *  as a sign of life without having to say so twice. */
+      const aloneFor = now - Math.max(lastMoveRef.current, lastSignRef.current);
       const pointer = pointerRef.current;
       const run = escortRef.current;
       const home = homeSpot();
@@ -928,7 +975,7 @@ export function Companion() {
       /** Non-null only while a scene is actually mid-flight. */
       const beat: PlayBeat | null = scene && !scene.done ? scene : null;
 
-      const dozing = forced === "escort" || forced === "nap" || (idleFor > SLEEP_AFTER && !beat);
+      const dozing = forced === "escort" || forced === "nap" || (aloneFor > SLEEP_AFTER && !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a
@@ -940,7 +987,7 @@ export function Companion() {
        * can outlive it, and two cats walking away from a toy mid-roll to go to
        * bed is the one way this could read as broken.
        */
-      const wantsBed = !forced && pointer !== null && idleFor > SLEEP_AFTER && !beat;
+      const wantsBed = !forced && pointer !== null && aloneFor > SLEEP_AFTER && !beat;
 
       // Starting one is the last thing considered, and the narrowest: settled,
       // standing still, nobody around, not on the way to bed, and the clock is
@@ -1016,7 +1063,7 @@ export function Companion() {
         const rest = settled();
         leadWant = rest.lead;
         followWant = beat.chase ?? rest.follow;
-      } else if (!pointer || idleFor > SLEEP_AFTER) {
+      } else if (!pointer || aloneFor > SLEEP_AFTER) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
         followWant = homeSpots.current.follow;
@@ -1273,11 +1320,52 @@ export function Companion() {
       }
     };
 
-    // Anything that moves the page under a sleeping cat invalidates the spot it
-    // chose. Throttled hard: re-probing is cheap but not free, and a scroll
-    // fires far more often than a cat needs to reconsider.
+    /**
+     * The page moved under them: scrolled, or resized.
+     *
+     * Three separate jobs, and they do *not* share an urgency, which is why the
+     * throttle no longer wraps the whole handler:
+     *
+     *  1. Somebody is here. Scrolling and resizing are the two things a visitor
+     *     does that never reach the pointer handler — a wheel turned under a
+     *     stationary mouse fires no pointer event at all — so this is the only
+     *     place the presence clock can be stamped for a reader. Unthrottled,
+     *     because it is one assignment, and because a stamp that arrives 250ms
+     *     late is a stamp that can miss.
+     *  2. Get a frame running. Two sleeping cats have no frames, and every
+     *     clamp, every target and every decision below lives inside one. This
+     *     is what walks them back out of the bed.
+     *  3. Re-probe. The hit tests behind the resting spots and the tone sample
+     *     cost real work, and a scroll fires far more often than a cat needs to
+     *     reconsider where it is sitting — so that half stays throttled hard.
+     *
+     * A resize is the exception that has to jump the throttle: it changes the
+     * box `keepInView` clamps against, and until the new box is measured a
+     * frame will happily re-clamp a cat to the *old* viewport. Waiting 250ms
+     * for that is a quarter-second of two cats outside the window — which, with
+     * `overflow-x: clip` on the document, is a quarter-second of nothing there
+     * at all.
+     */
     let recheck = 0;
-    const onPageMoved = () => {
+    const onPageMoved = (resized: boolean) => {
+      lastSignRef.current = performance.now();
+      if (resized) {
+        refreshSafeArea();
+        settleSpots.current = null;
+        homeSpots.current = null;
+        // Clamped and painted here rather than left to `wake()`: a resize event
+        // lands after layout and before the next paint, so correcting the
+        // transforms inside the handler means the first frame the visitor sees
+        // at the new size already has both cats inside it. Handing it to the
+        // loop instead costs one painted frame of two cats outside the window
+        // — and if they were asleep, the loop was not running at all, so it
+        // cost a quarter of a second of them.
+        keepInView(grey.pos);
+        keepInView(tabby.pos);
+        paint(leadNode.current, grey.pos);
+        paint(followNode.current, tabby.pos);
+      }
+      wake();
       if (recheck) return;
       recheck = window.setTimeout(() => {
         recheck = 0;
@@ -1289,21 +1377,21 @@ export function Companion() {
         lastTone.current = 0;
         // A scene's clearance was probed against the layout as it stood when it
         // opened, and this is the event that says that layout has moved. The
-        // cats re-probe and shuffle; a toy cannot, so it goes. Scrolling is
-        // also the one thing a visitor can do that never reaches the pointer
-        // handler, so without this a play could carry on over the prose it is
-        // now sitting on.
+        // cats re-probe and shuffle; a toy cannot, so it goes.
         endPlay();
         wake();
       }, 250);
     };
 
+    const onScroll = () => onPageMoved(false);
+    const onResize = () => onPageMoved(true);
+
     restart.current = start;
     refreshSafeArea();
     start();
     document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("scroll", onPageMoved, { passive: true });
-    window.addEventListener("resize", onPageMoved);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
     return () => {
       stop();
       // Idle sleep does not outlive the loop that owns it. Whatever put the
@@ -1320,8 +1408,8 @@ export function Companion() {
       window.clearTimeout(recheck);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("scroll", onPageMoved);
-      window.removeEventListener("resize", onPageMoved);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
     };
   }, [loopActive, wake, endPlay]);
 

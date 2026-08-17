@@ -368,6 +368,103 @@ test.describe("companion", () => {
     await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
   });
 
+  test("stays with a visitor who is reading, and comes back when the page moves", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Real time again, and for the same reason as the test above: this is the
+    // fourteen-second threshold seen from the other side.
+    test.setTimeout(120_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const bed = page.locator("[data-cat-bed]");
+
+    /*
+     * Reading a page is scrolling it with the mouse held still, and that is the
+     * shape of the bug this covers: a wheel turned under a stationary pointer
+     * fires no pointer event at all, so on a pointer-only idle clock a visitor
+     * three paragraphs down reads as absent. The cats walked off to the corner
+     * and went to sleep while somebody was plainly there, and no amount of
+     * further scrolling brought them back — the pointer handler owned the only
+     * way out of the bed, and the pointer never moved.
+     *
+     * Every other test in this file drives the cats with the mouse, which is
+     * exactly why the suite was green while the owner was watching two cats
+     * leave the screen for the rest of a visit.
+     */
+    await page.mouse.move(760, 600);
+    for (let tick = 0; tick < 20; tick += 1) {
+      await page.mouse.wheel(0, 420);
+      await page.waitForTimeout(800);
+      // Not polled at the end: the claim is that they never go, so it has to
+      // hold on every step past the threshold, not just once it has passed.
+      await expect(bed).toHaveCount(0);
+    }
+
+    // Now actually leave. The bed is a real behaviour, not a thing to suppress
+    // — it just has to mean "nobody is here" rather than "the mouse is still".
+    await expect(bed).toBeVisible({ timeout: 40_000 });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
+            if (!box) return -1;
+            return Array.from(document.querySelectorAll("[data-companion] svg")).filter((svg) => {
+              const r = svg.getBoundingClientRect();
+              return (
+                r.left < box.left - 4 ||
+                r.right > box.right + 4 ||
+                r.top < box.top - 4 ||
+                r.bottom > box.bottom + 4
+              );
+            }).length;
+          }),
+        { timeout: 30_000, message: "a cat never made it into the bed" },
+      )
+      .toBe(0);
+
+    /*
+     * Two sleeping cats have no animation frames, and the clamp that keeps a
+     * cat inside the viewport only runs inside one. So the moment the viewport
+     * changes underneath them is the moment nothing is holding them in it —
+     * counted in frames rather than milliseconds, because the failure was a
+     * quarter of a second of two cats outside a window that, with
+     * `overflow-x: clip` on the document, shows nothing at all where they went.
+     */
+    await page.evaluate(() => {
+      const seen: string[] = [];
+      (window as unknown as { __companionOffScreen: string[] }).__companionOffScreen = seen;
+      const watch = () => {
+        const width = document.documentElement.clientWidth;
+        const height = document.documentElement.clientHeight;
+        for (const svg of document.querySelectorAll("[data-companion] svg")) {
+          const r = svg.getBoundingClientRect();
+          if (r.left < -1 || r.top < -1 || r.right > width + 1 || r.bottom > height + 1) {
+            seen.push(`${Math.round(r.left)},${Math.round(r.top)} in ${width}x${height}`);
+          }
+        }
+        requestAnimationFrame(watch);
+      };
+      requestAnimationFrame(watch);
+    });
+
+    await page.setViewportSize({ width: 980, height: 700 });
+    await page.waitForTimeout(600);
+
+    // And scrolling gets them up, which is the half a visitor actually feels:
+    // the page moved, so somebody is here, so the cats are back.
+    await page.mouse.wheel(0, 500);
+    await expect(bed).toHaveCount(0, { timeout: 3_000 });
+
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __companionOffScreen: string[] }).__companionOffScreen,
+      ),
+    ).toEqual([]);
+  });
+
   test("does not roam when the visitor asks for reduced motion", async ({ browser }) => {
     const context = await browser.newContext({
       viewport: { width: DESKTOP_WIDTH, height: 900 },
