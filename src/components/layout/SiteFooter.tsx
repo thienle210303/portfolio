@@ -1,4 +1,5 @@
 import { profile, socialLinks } from "@/content/portfolio";
+import CompanionRecoveryLink from "./CompanionRecoveryLink";
 
 /**
  * Hardcoded rather than `new Date().getFullYear()` — computing the year
@@ -10,9 +11,11 @@ import { profile, socialLinks } from "@/content/portfolio";
 const COPYRIGHT_YEAR = 2026;
 
 /**
- * Server Component — no interactivity needed. "Back to top" is a plain
- * anchor to `#main`, so it (and everything else here) keeps working with
- * JavaScript disabled.
+ * Server Component. "Back to top" is a plain anchor to `#main`, so it (and
+ * every link here) keeps working with JavaScript disabled. The one
+ * exception is `CompanionRecoveryLink`, a tiny client island rendered
+ * below — see that file for why it has to be one, and why it stays absent
+ * (not merely hidden) on every load except the one it exists for.
  */
 export default function SiteFooter() {
   const email = socialLinks.find((link) => link.platform === "Email");
@@ -59,6 +62,7 @@ export default function SiteFooter() {
           <p className="text-[length:var(--step--1)] text-fg-subtle">
             © {COPYRIGHT_YEAR} {profile.name}
           </p>
+          <CompanionRecoveryLink />
         </div>
       </div>
     </footer>

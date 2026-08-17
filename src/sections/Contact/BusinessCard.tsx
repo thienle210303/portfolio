@@ -10,8 +10,8 @@ import { cn } from "@/lib/cn";
  * what used to be QuickConnect's three separate link cards.
  *
  * Geometry, not a settings list: at >=1024px the card holds a true
- * landscape card aspect ratio (`lg:aspect-[9/8]`, chosen — see the
- * measurement note below `CARD_ASPECT` — to be the shortest box the
+ * landscape card aspect ratio (`lg:aspect-[5/4]`, chosen — see the
+ * measurement note below `CARD_ASPECT` — to be the flattest box the
  * content still clears at both `22rem` and `24rem`, the widths Contact.tsx
  * actually gives it) and every element is anchored to a corner or edge the
  * way a printed card is composed: name + title lock up top-left, the
@@ -23,21 +23,18 @@ import { cn } from "@/lib/cn";
  * "this only works once it has room."
  *
  * The email is the one line on the card that must never wrap mid-address:
- * it gets a `whitespace-nowrap` line entirely to itself, sized at
- * `step--1` (the type scale's smallest step), which measures short enough
- * to clear even a 320px stacked card with room to spare. Copy sits
- * *beneath* it, right-aligned, rather than beside it — `CopyButton` (see
- * that file) always renders a full visible label ("Copy email address")
- * with its own `min-h-11` pill chrome and has no compact/icon-only
- * presentation to opt into, and that label's natural width plus a
- * `whitespace-nowrap` email's natural width do not both fit on one line at
- * any width this card ever renders at — putting them in the same flex row
- * is the exact defect the owner rejected (the button clipped mid-word,
- * which is what happens when a `shrink-0` sibling refuses to yield and a
- * flex row has nowhere else to put the pressure). Its own row removes the
- * contest entirely: at >=1024px it sits well inside the card on one line;
- * on a narrow phone, a wrapped two-line label is still fully inside the
- * card, which is what "no overflow" actually requires.
+ * it gets `overflow-hidden text-ellipsis whitespace-nowrap` so a width this
+ * card never actually hits would elide it rather than break it mid-word.
+ * Copy sits *beside* it now, not beneath: `CopyButton`'s `variant="icon"`
+ * (see that file) drops the visible label down to icon size while keeping
+ * `min-h-11 min-w-11` for the tap target and the full name on `aria-label`,
+ * which is what makes one row wide enough for both — `min-w-0 flex-1` on
+ * the email and `shrink-0` on the button so the button, not the address,
+ * always keeps its shape. That single row is the height this card gave
+ * back: the old stacked email-then-button pair cost roughly the button's
+ * own `min-h-11` *twice over* (once for the button's row, once for the
+ * email's row above it); collapsing them to one row costs it once, which is
+ * the entire reason a flatter ratio is reachable at all.
  *
  * GitHub and LinkedIn stay one link per row spanning its full width, not a
  * label beside a separate "View" affordance, because the platform name has
@@ -74,22 +71,44 @@ interface BusinessCardProps {
 }
 
 /**
- * `9/8` (1.125:1) rather than a print ratio like `85/55` (~1.545:1) or the
- * classic `7/4` (1.75:1). Measured by rendering the card's real content
- * (compiled CSS + the actual IBM Plex Mono / Newsreader faces, headless)
- * at `aspect-auto` and reading its natural height: ~295px at `22rem`
- * (Contact's `lg` column, 352px) and ~297px at `24rem` (`xl`, 384px) — the
- * two widths barely move because almost everything is already one line.
- * `9/8` renders at 312.9px tall at 352px wide, an ~18px margin over that
- * floor, and considerably more at 384px since a fixed ratio only grows
- * taller as the column widens. A closer-to-print ratio (`3/2`, `7/4`)
- * looked better in isolation but ran the contact block through the bottom
- * padding at `22rem` — this card is carrying a `CopyButton` whose own
- * `min-h-11` alone accounts for 44 of those ~295px, which a printed card
- * never has to. `9/8` is the honest shape for that content, not the most
- * dramatic one; still unmistakably landscape, not square.
+ * `5/4` (1.25:1) — flatter than the previous `9/8` (1.125:1), still short
+ * of the `3/2` (1.5:1) this round's brief named as a target, and rejected
+ * in favour of it for a measured reason, not a cautious one.
+ *
+ * Re-measured the same way as before: the card's real content (compiled
+ * CSS + the actual IBM Plex Mono / Newsreader faces, headless) rendered at
+ * `aspect-auto`, reading its natural height. Collapsing the copy control
+ * onto the email's own row (see the file comment) brought that floor down
+ * from ~295px to **271.7px** at `22rem` (Contact's `lg` column, 352px) and
+ * **273.8px** at `24rem` (`xl`, 384px) — the entire saving is the row the
+ * card no longer has, not any single element shrinking.
+ *
+ * `3/2` was tried first, since that was the brief. It renders at 234.7px
+ * at 352px wide — 37px short of the 271.7px floor — and still comes up
+ * 16.8px short even at 384px, unlike the old `9/8` case where only the
+ * narrower width was ever the binding constraint. Short by that much, the
+ * ruled contact block does not clip at the card's outer edge (nothing
+ * literally leaves the box) — it eats straight through the bottom padding
+ * instead, which is the same family of defect as the "copy button clipped
+ * mid-word" regression this card was already rewritten to fix once. A
+ * bottom row flush against the card's border is that defect with a softer
+ * name, so "fits" here means clearing the full declared `p-6`/`sm:p-7`,
+ * not just clearing the border.
+ *
+ * That floor was then bisected rather than guessed at a second time:
+ * `7/5` (251.4px, −19.3px into the padding), `4/3` (264px, −6.7px), `21/16`
+ * (268.2px, −2.5px) all still cut into it; `13/10` (270.8px) lands within
+ * 0.1px of the floor, i.e. exactly the knife-edge — one browser's worth of
+ * font-hinting or sub-pixel rounding away from being the regression again,
+ * not a ratio to ship. `9/7` (273.8px) is the first one with real air under
+ * it, but only ~3px — plausible headroom for a build with the real
+ * (non-approximated) fonts and a different rendering engine, not a margin
+ * anyone should have to trust. `5/4` (281.6px at 352px, 307.2px at 384px)
+ * is the first stop past that with a margin in the same neighbourhood as
+ * the old `9/8` case (~10px, next to that one's ~18px) — flatter than
+ * before, and still honestly clear of the floor rather than balanced on it.
  */
-const CARD_ASPECT = "lg:aspect-[9/8]";
+const CARD_ASPECT = "lg:aspect-[5/4]";
 
 const LINK_ROW_CLASS =
   "group flex items-baseline justify-between gap-3 py-1 text-fg transition-colors duration-200";
@@ -136,18 +155,21 @@ export default function BusinessCard({ className }: BusinessCardProps) {
       </div>
 
       <div className="relative mt-4 space-y-2 border-t border-rule pt-3 font-mono text-[length:var(--step--1)] leading-snug">
-        <div>
+        {/* Beside, not beneath — see the file-level comment. The compact
+            `CopyButton` is what makes one row enough for both. */}
+        <div className="flex items-center justify-between gap-2">
           <a
             href={`mailto:${profile.email}`}
-            className="block w-fit max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-fg underline-offset-4 hover:text-accent hover:underline"
+            className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-fg underline-offset-4 hover:text-accent hover:underline"
           >
             {profile.email}
           </a>
-          {/* Beneath, not beside — see the file-level comment for why the
-              same row as the email is exactly the defect being fixed. */}
-          <div className="mt-1 flex justify-end">
-            <CopyButton value={profile.email} label="Copy email address" />
-          </div>
+          <CopyButton
+            value={profile.email}
+            label="Copy email address"
+            variant="icon"
+            className="shrink-0"
+          />
         </div>
 
         {github ? (

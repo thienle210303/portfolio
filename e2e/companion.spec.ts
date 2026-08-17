@@ -44,6 +44,12 @@ function restingBox(page: Page) {
   return page.getByRole("button", { name: /wake the cats/i });
 }
 
+/** The footer's one-way-back control, present only while the cats are off
+ *  for good — see CompanionRecoveryLink.tsx. */
+function footerRecovery(page: Page) {
+  return page.getByRole("button", { name: /bring the cats back/i });
+}
+
 test.describe("companion", () => {
   test("opens and closes its toolkit, and Escape returns focus to the cat", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
@@ -191,10 +197,17 @@ test.describe("companion", () => {
     await expect(catButton(page)).toBeVisible();
   });
 
-  test("can be turned off for good, from the toolkit", async ({ page }) => {
+  test("can be turned off for good, from the toolkit, and the footer can bring them back", async ({
+    page,
+  }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+
+    // While the cats are on, the footer carries no trace of the recovery
+    // control at all — it is the one control that only makes sense once
+    // they are gone.
+    await expect(footerRecovery(page)).toHaveCount(0);
 
     await catButton(page).click();
     await page.getByRole("button", { name: /turn the cats off/i }).click();
@@ -204,8 +217,34 @@ test.describe("companion", () => {
     await expect(restingBox(page)).toHaveCount(0);
     await expect(page.locator("[data-companion]")).toHaveCount(0);
 
+    // This is the entire point of FB-5 all over again: "off" used to strand
+    // a visitor with nothing on the page to click. The footer is now that
+    // route back, appearing the moment there is nothing else left to bring
+    // them back with.
+    await expect(footerRecovery(page)).toBeVisible();
+
     await page.reload();
     await page.waitForLoadState("networkidle");
+    await expect(page.locator("[data-companion]")).toHaveCount(0);
+    await expect(footerRecovery(page)).toBeVisible();
+
+    // One click, and they are roaming again — no reload required, because
+    // it writes through the same store `Companion` itself is subscribed to.
+    await footerRecovery(page).click();
+    await expect(catButton(page)).toBeVisible();
+    await expect(footerRecovery(page)).toHaveCount(0);
+
+    // And the preference sticks: a visitor who used this route back does not
+    // find the cats off again on their next load.
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    await expect(footerRecovery(page)).toHaveCount(0);
+
+    // Put them back off for the rest of this test, which continues to
+    // exercise the toolkit's own permanent-exit behaviour.
+    await catButton(page).click();
+    await page.getByRole("button", { name: /turn the cats off/i }).click();
     await expect(page.locator("[data-companion]")).toHaveCount(0);
 
     // Nothing else on the page depends on them: contact routes still resolve.
