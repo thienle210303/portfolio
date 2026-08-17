@@ -20,11 +20,10 @@
  * Every numeral badge sits at `z-10` above the rail behind it, so the line
  * reads as passing through a sequence of beads, never across text.
  *
- * `bg-charcoal` on the numeral badge is the one deliberate raw-token use
- * here: Philosophy's <Section tone> is permanently "charcoal" (see
- * Philosophy.tsx), never `.on-light`, so the badge only ever has to
- * occlude that one fixed background — the same reasoning globals.css gives
- * for CodeBlock's fixed dark panel.
+ * The numeral badge is filled with `bg-surface` rather than the section's own
+ * ground. It has to occlude the rail passing behind it, so it needs a real
+ * fill — and `--surface` is the alias that stays one readable step off the
+ * ground in both themes, which a raw token would not.
  */
 import { cn } from "@/lib/cn";
 import type { LoopStep } from "@/types/portfolio";
@@ -49,7 +48,7 @@ const LI_CLASS =
   "relative flex items-start gap-4 lg:min-w-0 lg:flex-1 lg:flex-col lg:items-stretch lg:gap-3";
 
 const NUMERAL_CLASS =
-  "relative z-10 flex h-8 w-8 flex-none items-center justify-center border border-[color:var(--rule-color)] bg-charcoal font-mono text-[length:var(--step--1)] text-[color:var(--fg-subtle)]";
+  "relative z-10 flex h-8 w-8 flex-none items-center justify-center border border-[color:var(--rule-color)] bg-surface font-mono text-[length:var(--step--1)] text-[color:var(--fg-subtle)]";
 
 export default function ProblemSolvingLoop({ steps }: ProblemSolvingLoopProps) {
   return (

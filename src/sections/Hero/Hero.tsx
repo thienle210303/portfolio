@@ -1,49 +1,97 @@
 /**
- * Hero — id="about", tone ink, the page's single <h1>, and the only section
- * in the whole site allowed a viewport-height unit (SECTIONS.md §1). Server
- * Component: HeroCodeArtifact's only interactive piece is the shared Tabs
- * primitive, which already supplies its own "use client" boundary, so
- * nothing here needs one.
+ * Hero — id="about", the page's single <h1>, and the only section anywhere on
+ * the site allowed a viewport-height unit (SECTIONS.md §1). Server Component:
+ * HeroCodeArtifact's only interactive piece is the shared Tabs primitive,
+ * which supplies its own "use client" boundary, so nothing here needs one.
  *
- * `Section` (src/components/ui/Section.tsx) has a fixed prop surface with no
- * `className` passthrough on the `<section>` it renders, so the
- * `min-height: 100svh` floor and vertical centring live on a wrapper
- * rendered inside its `.shell` children slot instead. Section's own
- * `py-[var(--section-y)]` block padding stacks on top of that floor, so the
- * section's real rendered height is always >= 100svh, never less — this is
- * the only viewport-height unit anywhere on the site, and it is `svh`, not
- * `vh`, per SPEC §3.
+ * `Section` has a fixed prop surface with no `className` passthrough on the
+ * `<section>` it renders, so the height floor and vertical centring live on a
+ * wrapper inside its children slot instead. That wrapper subtracts the sticky
+ * header and Section's own block padding from `100svh` rather than ignoring
+ * them, so the hero occupies one screen instead of a screen plus chrome. It is
+ * `svh`, not `vh`, per SPEC §3.
  *
- * Desktop (>=1024px): an asymmetrical 7/5 split — identity left, a 1px
- * hairline rule, code artifact right — via an explicit 3-column grid so the
- * ratio is exact rather than approximated with flex-basis percentages.
- * Below 1024px the grid utilities never apply, so the three children
- * (identity, the hidden divider, the code artifact) simply stack as a
- * single flex column in source order: nothing is hidden, only reflowed.
+ * Layout, widest to narrowest — all reflow, nothing is ever hidden:
+ *
+ *   >=1360px  margin rail | identity | hairline | code artifact
+ *   >=1024px  margin rail | identity above code artifact
+ *    <1024px  identity, code artifact, then the rail as endnotes
+ *
+ * The two magic numbers in the split are explained at the point of use below;
+ * both come from measurement, not from the breakpoint scale.
  */
-import { Section } from "@/components/ui/Section";
+import { Section, type RailNote } from "@/components/ui/Section";
+import { careerEntries, profile } from "@/content/portfolio";
 import HeroIdentity from "./HeroIdentity";
 import HeroCodeArtifact from "./HeroCodeArtifact";
 
 const HEADING_ID = "hero-heading";
 
+// The current role is read from careerEntries — the same list the timeline and
+// the résumé read — rather than restated here, so the hero cannot be the one
+// place on the site still naming a former employer.
+const currentRole = [...careerEntries]
+  .filter((entry) => entry.type === "work")
+  .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
+
+const RAIL: readonly RailNote[] = [
+  ...(currentRole
+    ? [{ term: "Now", detail: `${currentRole.role}, ${currentRole.organization}` }]
+    : []),
+  { term: "Holds", detail: profile.philosophy },
+  { term: "Reach me", detail: profile.email },
+];
+
 export default function Hero() {
   return (
-    <Section id="about" labelledBy={HEADING_ID} tone="ink">
-      <div className="flex min-h-[100svh] flex-col justify-center">
-        <div className="flex flex-col gap-y-16 lg:grid lg:grid-cols-[minmax(0,7fr)_1px_minmax(0,5fr)] lg:items-stretch lg:gap-x-10 lg:gap-y-0">
+    <Section
+      id="about"
+      labelledBy={HEADING_ID}
+      tone="base"
+      rail={RAIL}
+      className="blueprint-grid"
+    >
+      {/*
+        The floor subtracts the sticky header and this section's own block
+        padding, which the old flat `100svh` did not. Those three stack, so the
+        hero was reserving a full viewport *plus* ~380px of chrome and padding
+        and then centring inside it — which is where the empty band under
+        "Scroll" came from.
+      */}
+      <div className="flex min-h-[calc(100svh-var(--header-h)-var(--section-y)*2)] flex-col justify-center">
+        {/*
+          Two deliberate numbers here, both driven by measurement rather than
+          by the breakpoint scale.
+
+          1360px, not `lg` or `xl`: the margin rail already spends a column, so
+          a three-column hero needs roughly 1360px before the two content
+          columns are worth having. At 1024 the old `lg` split left the
+          identity too narrow to set the headline and squeezed the code panel
+          to ~200px, clipping every line; at 1280 it was still five lines and
+          ~380px. Below 1360 the rail keeps its margin and identity/code stack
+          in the remaining column, which is what already reads well at 1024.
+
+          5.25/6.75 favouring the code, not the old 7/5 favouring the identity:
+          the longest line in the artifact is ~48 monospace characters and
+          needs ~494px of inner width. The identity column can give that up —
+          prose reflows, a code line does not.
+        */}
+        <div className="flex flex-col gap-y-14 min-[1360px]:grid min-[1360px]:grid-cols-[minmax(0,5.25fr)_1px_minmax(0,6.75fr)] min-[1360px]:items-stretch min-[1360px]:gap-x-10 min-[1360px]:gap-y-0">
           <div className="min-w-0">
             <HeroIdentity headingId={HEADING_ID} />
           </div>
 
-          <div aria-hidden="true" className="hidden bg-[color:var(--rule-color)] lg:block" />
+          <div
+            aria-hidden="true"
+            className="hidden bg-[color:var(--rule-color)] min-[1360px]:block"
+          />
 
           <div className="min-w-0">
             <HeroCodeArtifact />
           </div>
         </div>
 
-        <div className="mt-16 flex items-center gap-3 lg:mt-24">
+        <div className="mt-14 flex items-center gap-3">
           <span aria-hidden="true" className="h-px w-10 bg-[color:var(--rule-color)]" />
           <span className="eyebrow">Scroll</span>
         </div>

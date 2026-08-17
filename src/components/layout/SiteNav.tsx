@@ -28,7 +28,7 @@ function ActiveIndicator({ active }: { active: boolean }) {
     <span
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-x-0 -bottom-px h-px bg-paper transition-opacity duration-150",
+        "pointer-events-none absolute inset-x-0 -bottom-px h-px bg-accent transition-opacity duration-150",
         active ? "opacity-100" : "opacity-0"
       )}
     />
@@ -136,6 +136,17 @@ export default function SiteNav() {
     };
   }, [open]);
 
+  /*
+   * Hrefs are root-relative (`/#work`), not bare fragments (`#work`).
+   *
+   * The header renders on /resume too, where none of these sections exist. A
+   * bare fragment there just rewrites the hash and goes nowhere; the
+   * root-relative form navigates home and lands on the section. On the home
+   * page the handler below intercepts before the browser ever follows the
+   * href, so the smooth scroll and focus move are unchanged — and when the
+   * target is genuinely absent it deliberately does not preventDefault, which
+   * is what lets the browser do the right thing instead.
+   */
   function handleNavLinkClick(sectionId: string) {
     return (event: ReactMouseEvent<HTMLAnchorElement>) => {
       const target = document.getElementById(sectionId);
@@ -183,12 +194,12 @@ export default function SiteNav() {
             return (
               <li key={item.id}>
                 <a
-                  href={`#${item.sectionId}`}
+                  href={`/#${item.sectionId}`}
                   aria-current={isActive ? "true" : undefined}
                   onClick={handleNavLinkClick(item.sectionId)}
                   className={cn(
                     "relative inline-flex min-h-11 items-center py-2 text-[length:var(--step--1)] transition-colors duration-150",
-                    isActive ? "text-paper" : "text-muted hover:text-paper"
+                    isActive ? "text-fg" : "text-fg-muted hover:text-fg"
                   )}
                 >
                   {item.label}
@@ -207,7 +218,7 @@ export default function SiteNav() {
         aria-controls={MOBILE_PANEL_ID}
         aria-label={open ? "Close menu" : "Open menu"}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-11 w-11 items-center justify-center border border-hairline text-paper lg:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center border border-rule text-fg lg:hidden"
       >
         {open ? (
           <X aria-hidden="true" focusable="false" size={20} />
@@ -220,7 +231,7 @@ export default function SiteNav() {
         <div
           id={MOBILE_PANEL_ID}
           ref={panelRef}
-          className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-ink lg:hidden"
+          className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-ground lg:hidden"
         >
           <nav
             aria-label="Mobile"
@@ -235,21 +246,21 @@ export default function SiteNav() {
               {navItems.map((item) => {
                 const isActive = item.sectionId === activeId;
                 return (
-                  <li key={item.id} className="border-b border-hairline first:border-t">
+                  <li key={item.id} className="border-b border-rule first:border-t">
                     <a
-                      href={`#${item.sectionId}`}
+                      href={`/#${item.sectionId}`}
                       aria-current={isActive ? "true" : undefined}
                       onClick={handleNavLinkClick(item.sectionId)}
                       className={cn(
                         "flex min-h-11 items-center justify-between py-3 text-[length:var(--step-1)]",
-                        isActive ? "text-paper" : "text-muted"
+                        isActive ? "text-fg" : "text-fg-muted"
                       )}
                     >
                       {item.label}
                       <span
                         aria-hidden="true"
                         className={cn(
-                          "h-px w-6 bg-paper transition-opacity duration-150",
+                          "h-px w-6 bg-fg transition-opacity duration-150",
                           isActive ? "opacity-100" : "opacity-0"
                         )}
                       />

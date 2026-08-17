@@ -1,10 +1,10 @@
 /**
- * Search vocabulary for the guide — document expansion, checked in.
+ * Search vocabulary for "Ask this site" — document expansion, checked in.
  *
  * ## What this is
  *
  * The classic fix for vocabulary mismatch is doc2query: run a model over each
- * passage, have it predict questions the passage answers, and append the
+ * passage, have it predict the questions that passage answers, and append the
  * predicted terms to the index. The gain comes from *term injection* — putting
  * words into a document's search surface that a reader would use but the author
  * did not.
@@ -14,7 +14,7 @@
  *
  *  - **The runtime stays empty.** No model, no build-time inference, no API key,
  *    no network during `next build`. The whole benefit lands in the existing
- *    17 KB index and the existing lexical matcher.
+ *    index and the existing ranking function.
  *  - **Builds stay deterministic**, which a generation step would not be.
  *  - **It is reviewable in a diff**, which matters on a site whose content file
  *    opens by declaring itself the single source of truth for everything
@@ -23,37 +23,38 @@
  * ## The rule these terms live under
  *
  * **A term here is a search alias, never a claim.** These strings are merged
- * into an entry's `keywords`, which are matched against but never rendered.
- * They may not enter `quote`, so the guide's central promise — every result is a
- * passage from the site, word for word — is untouched by anything in this file.
+ * into a document's `label`, which is matched against but never rendered. They
+ * may not enter an answer's `text`, so the feature's central promise — every
+ * answer is a sentence from the site, word for word — is untouched by anything
+ * in this file.
  *
  * So "blocked", "banned" and "captcha" are legitimate aliases for prose about
  * evading detection. "Kubernetes" would not be, however much someone might
  * search for it.
  *
+ * ## One rule about scope, learned from getting it wrong
+ *
+ * **A subject's aliases must describe the subject, never one of its fields.**
+ *
+ * "wrong" and "mistake" started out under `dd-feasibility-agent`. Because
+ * subject aliases are inherited by every document derived from that subject, the
+ * word "wrong" landed on all of that project's passages — including the problem
+ * statement, which then outranked the passage that actually discusses the
+ * mistake. Field-specific vocabulary belongs on the field, in `buildDocuments`,
+ * where only the relevant document gets it.
+ *
  * ## Honest limitation
  *
- * These terms and the eval set in `tests/fixtures/guide-eval.ts` were written by
- * the same hand, which is the classic way to score well on a benchmark while
+ * These terms and the eval set in `tests/fixtures/answers-eval.ts` were written
+ * by the same hand, which is the classic way to score well on a benchmark while
  * changing nothing for real visitors. The eval is the weaker half: it is worth
  * more once its queries come from someone who did not write the aliases.
  */
 
 /**
- * Keyed by the content id that `buildIndex` is already iterating — a project id,
- * a career-entry id, a skill-category id, a principle id, an experiment id. Every
- * entry derived from that subject inherits these terms.
- */
-/**
- * One rule about scope, learned from getting it wrong: **a subject's aliases
- * must describe the subject, never one of its fields.**
- *
- * "wrong" and "mistake" started out here under `dd-feasibility-agent`. Because
- * subject aliases are inherited by every entry derived from that subject, the
- * word "wrong" ended up on all eleven of that project's passages — including its
- * tagline, which then outranked the actual "what failed" passage for the query
- * "did anything go wrong". Field-specific vocabulary belongs on the field, in
- * `buildIndex`, where only the relevant entry gets it.
+ * Keyed by the content id `buildDocuments` is already iterating — a project id,
+ * a career-entry id, a skill-category id, an experiment id. Every document
+ * derived from that subject inherits these terms.
  */
 export const subjectExpansions: Record<string, readonly string[]> = {
   /* --- Projects ---------------------------------------------------------- */
@@ -64,14 +65,12 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "assessment",
     "evaluate",
     "investigate",
-    "investigation",
     "multi-agent",
     "parallel",
     "agents",
     "catalog",
     "storefront",
     "endpoint",
-    "network requests",
     "reverse engineer",
     "onboard",
     "launch decision",
@@ -91,8 +90,9 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "scale",
     "maintenance",
     "reuse",
-    "leverage",
     "faster",
+    "fast",
+    "slow",
     "speed",
     "runtime",
     "performance",
@@ -104,7 +104,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
   ],
 
   "usc-research-collection": [
-    "big",
     "large",
     "size",
     "record",
@@ -114,7 +113,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "blocked",
     "blocking",
     "banned",
-    "ban",
     "bot",
     "captcha",
     "rate limit",
@@ -131,16 +129,17 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "degrade",
     "degradation",
     "silently",
+    "quietly",
     "broke",
-    "breaks",
+    "break",
     "millions",
     "volume",
     "dataset",
     "crawl",
     "crawler",
-    "traversal",
     "coverage",
-    "runtime",
+    "fast",
+    "slow",
     "faster",
   ],
 
@@ -151,28 +150,26 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "plant",
     "operator",
     "technician",
-    "staff",
     "paper",
     "form",
     "digitise",
     "digitize",
     "low-code",
     "permission",
-    "role",
     "access control",
     "versioning",
     "legacy",
+    "staff",
+    "worker",
     "messy",
-    "dirty",
     "duplicate",
+    "duplicated",
+    "dedupe",
     "typo",
-    "transposition",
     "fuzzy",
     "matching",
     "reconcile",
-    "label",
     "printing",
-    "throughput",
   ],
 
   "automotive-genai": [
@@ -216,7 +213,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "speech",
     "voice",
     "audio",
-    "transcription",
     "startup",
   ],
 
@@ -254,8 +250,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "tutor",
     "instructor",
     "assistant",
-    "student",
-    "lab",
     "mentor",
     "mentoring",
     "algorithm",
@@ -279,7 +273,7 @@ export const subjectExpansions: Record<string, readonly string[]> = {
 
   graduation: ["graduated", "degree", "school", "university"],
 
-  cockyhacks: ["hackathon", "competition", "prize", "won", "winning", "team", "mentorship"],
+  cockyhacks: ["hackathon", "competition", "prize", "won", "winning", "mentorship"],
 
   "code-to-give": ["hackathon", "competition", "prize", "won", "winning", "food", "routing"],
 
@@ -308,7 +302,7 @@ export const subjectExpansions: Record<string, readonly string[]> = {
 
   /* --- Skill categories -------------------------------------------------- */
 
-  languages: ["programming language", "coding language", "stack", "fluent", "proficient"],
+  languages: ["programming language", "coding language", "stack", "fluent", "proficient", "know"],
   data: ["database", "storage", "query", "schema", "orm", "relational"],
   frameworks: ["library", "framework", "stack", "tooling"],
   practices: [
@@ -318,7 +312,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "etl",
     "data engineering",
     "messy",
-    "dirty",
     "deduplication",
     "blocked",
     "detection",
@@ -338,46 +331,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
   ],
   platforms: ["cloud", "hosting", "infrastructure", "devops", "deployment", "gcp", "serverless"],
 
-  /* --- Principles -------------------------------------------------------- */
-
-  understand: [
-    "requirement",
-    "root cause",
-    "discovery",
-    "user research",
-    "diagnose",
-    "judgement",
-    "judgment",
-    "decide",
-    "decision",
-    "approach",
-    "first step",
-    "brief",
-    "stated problem",
-  ],
-  system: [
-    "root cause",
-    "systemic",
-    "leverage",
-    "structural",
-    "architecture",
-    "prevention",
-    "reusable",
-    "recurring",
-  ],
-  measure: [
-    "metric",
-    "measurement",
-    "number",
-    "before and after",
-    "impact",
-    "proof",
-    "evidence",
-    "result",
-    "benchmark",
-    "worked",
-  ],
-
   /* --- Lab experiments --------------------------------------------------- */
 
   "retailer-feasibility": ["feasibility", "viability", "multi-agent", "parallel", "assessment"],
@@ -389,63 +342,24 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "verify",
     "check",
     "checked",
+    "checking",
     "test",
+    "testing",
+    "quality",
+    "ship",
+    "shipping",
     "gate",
     "guardrail",
     "safety",
     "review",
     "approval",
   ],
-
-  /* --- The learning log -------------------------------------------------- */
-
-  "learning-log": [
-    "curious",
-    "curiosity",
-    "interest",
-    "lately",
-    "recently",
-    "right now",
-    "these days",
-    "reading",
-    "studying",
-  ],
-
-  /* --- Résumé lenses ----------------------------------------------------- */
-  /* Each label is a single word, so the lens commands need synonyms or they  */
-  /* are reachable only by someone who guessed the exact term.               */
-
-  "lens-engineering": ["engineer", "engineering", "software", "development", "coding", "build"],
-  "lens-automation": ["automate", "automating", "script", "manual", "repetitive", "workflow"],
-  "lens-optimization": [
-    "optimise",
-    "optimize",
-    "faster",
-    "speed",
-    "performance",
-    "slow",
-    "efficiency",
-    "improve",
-  ],
-  "lens-ai-workflows": ["ai", "llm", "agent", "agentic", "genai", "model", "automation"],
-  "lens-leadership": [
-    "lead",
-    "leading",
-    "manage",
-    "manager",
-    "managing",
-    "people",
-    "team",
-    "mentor",
-    "teach",
-    "standards",
-  ],
 };
 
 /**
- * Applied to every entry in a section. Kept short on purpose — a term here lands
- * on dozens of entries at once, so anything only loosely related to the section
- * costs precision everywhere rather than earning recall somewhere.
+ * Applied to every document in a section. Kept short on purpose — a term here
+ * lands on dozens of documents at once, so anything only loosely related to the
+ * section costs precision everywhere rather than earning recall somewhere.
  */
 export const sectionExpansions: Record<string, readonly string[]> = {
   about: ["who", "bio", "introduction", "background", "profile", "himself"],
@@ -453,14 +367,19 @@ export const sectionExpansions: Record<string, readonly string[]> = {
     "philosophy",
     "value",
     "belief",
+    "believes",
     "principle",
     "mindset",
     "approach",
-    "how he thinks",
+    "decide",
+    "decision",
+    "choose",
+    "judgement",
   ],
-  work: ["project", "portfolio", "case study", "shipped", "built"],
-  lab: ["experiment", "ai", "research", "note"],
+  // "work" itself was missing, which is easy to miss because it is the section's
+  // own key — but the key is not indexed, only these strings are.
+  work: ["work", "project", "portfolio", "case study", "shipped", "built"],
+  lab: ["experiment", "ai", "research"],
   journey: ["career", "history", "job", "role", "timeline", "employment", "worked"],
-  resume: ["cv", "qualification", "experience", "skill"],
-  contact: ["reach", "hire", "hiring", "get in touch", "message", "email"],
+  skills: ["skill", "technology", "tech", "tool", "stack", "experience"],
 };

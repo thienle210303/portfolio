@@ -45,23 +45,47 @@ interface ButtonAsButtonProps
 export type ButtonProps = ButtonAsLinkProps | ButtonAsButtonProps;
 
 const BASE_CLASSES =
-  "inline-flex min-h-11 items-center justify-center gap-2 border font-sans font-medium transition-colors duration-200 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex min-h-11 items-center gap-2 border font-sans font-medium transition-colors duration-200 disabled:pointer-events-none disabled:opacity-50";
 
+/*
+ * Padding and centring are split by whether the variant draws a box, because
+ * `cn` is a plain string joiner with no tailwind-merge: emitting `px-6` and
+ * `px-0` together would leave the winner to stylesheet order rather than to
+ * the call site. Nothing conflicting is ever emitted instead.
+ *
+ * `quiet` gets no inline padding and no `justify-center` on purpose. It is a
+ * link wearing a button's tap target, and it is usually stacked under real
+ * buttons — so its text has to sit on the same left margin as the heading and
+ * body copy above it. With the boxed padding it sat ~25px inboard of every
+ * other element in the column, which read as a broken indent rather than as a
+ * tertiary action.
+ */
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  md: "px-6 py-2.5 text-[length:var(--step-0)]",
-  sm: "px-4 py-2 text-[length:var(--step--1)]",
+  md: "justify-center px-6 py-2.5 text-[length:var(--step-0)]",
+  sm: "justify-center px-4 py-2 text-[length:var(--step--1)]",
 };
 
-// Colours are drawn from the semantic aliases (not the raw --color-*
-// tokens) so every variant stays legible regardless of which section tone
-// (`ink`, `charcoal`, or `.on-light` `paper`) the button is placed in.
+const QUIET_SIZE_CLASSES: Record<ButtonSize, string> = {
+  md: "py-2.5 text-[length:var(--step-0)]",
+  sm: "py-2 text-[length:var(--step--1)]",
+};
+
+// Colours are drawn from the semantic aliases (never the raw --color-* tokens)
+// so every variant stays legible in either theme and in any of the three
+// section tones, with no per-tone branch here.
+//
+// `primary` fills with --accent rather than --fg. That is the one place the
+// blue is allowed to carry a whole element, and it is what makes the single
+// most important control on each screen the only saturated thing on it.
+// --fg-inverse is its partner on purpose: the pair clears 7:1 in both themes,
+// where a hardcoded white would fail against night's lighter accent.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "border-[color:var(--fg)] bg-[color:var(--fg)] text-[color:var(--fg-inverse)] hover:bg-transparent hover:text-[color:var(--fg)]",
+    "border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)] hover:border-[color:var(--accent-strong)] hover:bg-[color:var(--accent-strong)] hover:text-[color:var(--ground)]",
   secondary:
-    "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--fg)]",
+    "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]",
   quiet:
-    "border-transparent bg-transparent px-1 text-[color:var(--fg)] underline-offset-4 hover:underline focus-visible:underline",
+    "border-transparent bg-transparent text-[color:var(--fg)] underline-offset-4 hover:text-[color:var(--accent)] hover:underline focus-visible:underline",
 };
 
 /** Renders `<a>` or `<button>` depending on whether `href` is supplied.
@@ -70,7 +94,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
  * meet the 44px minimum tap target. */
 export function Button(props: ButtonProps) {
   const { children, variant = "primary", size = "md", className, ...rest } = props;
-  const classes = cn(BASE_CLASSES, SIZE_CLASSES[size], VARIANT_CLASSES[variant], className);
+  const sizeClasses = variant === "quiet" ? QUIET_SIZE_CLASSES[size] : SIZE_CLASSES[size];
+  const classes = cn(BASE_CLASSES, sizeClasses, VARIANT_CLASSES[variant], className);
 
   if (rest.href !== undefined) {
     const { href, ...anchorRest } = rest;

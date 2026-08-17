@@ -22,12 +22,20 @@ import { Tag } from "@/components/ui/Tag";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import WorkflowDiagram from "./WorkflowDiagram";
+import MetricHighlights from "./MetricHighlights";
 import MetricTable from "./MetricTable";
 
 const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]";
 
+/*
+ * The six-part arc — Problem, Constraint, Decision, Build, Proof, Lesson —
+ * repeated once per case study, so thirty of these render on the page. Set in
+ * bold uppercase mono at step-1 they were thirty shouts; in the display serif
+ * they read as what they are, headings, and they give the type system a
+ * mid-range voice it was missing between the section headline and body copy.
+ */
 const H4_CLASS =
-  "font-mono text-[length:var(--step-1)] font-bold uppercase tracking-[0.1em] text-[color:var(--fg)]";
+  "font-display text-[length:var(--step-1)] leading-snug text-[color:var(--fg)]";
 
 /** The site's recurring mono/uppercase micro-label treatment — same class
  * `<Section>`'s own eyebrow uses, reused here for sub-labels within a case
@@ -172,7 +180,7 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
         </h3>
 
         {entry ? (
-          <p className="wrap-anywhere mt-3 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+          <p className="wrap-anywhere mt-3 eyebrow">
             {entry.organization} · {entry.dateRange}
           </p>
         ) : null}
@@ -198,7 +206,25 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
           </div>
         ) : null}
 
-        {project.proof.length > 0 ? (
+        {/*
+          Figures, not prose bullets.
+
+          This slot used to hold the first three `proof` sentences. Someone
+          scanning the section is deciding whether to open the case study, and
+          that decision is answered by a number far faster than by a sentence —
+          so the measured results come up out of the disclosure and the prose
+          stays inside it, where a reader who has already decided to read will
+          find every proof line in full.
+
+          Projects without metrics keep the prose: for those, the sentences are
+          the only evidence there is, and showing nothing would be worse.
+        */}
+        {project.metrics && project.metrics.length > 0 ? (
+          <MetricHighlights
+            metrics={project.metrics}
+            label={`Measured results — ${project.title}`}
+          />
+        ) : project.proof.length > 0 ? (
           <div className="mt-5">
             <p id={proofLabelId} className={MICRO_LABEL_CLASS}>
               Proof

@@ -137,7 +137,7 @@ export function TimelineEntry({ entry, isFirst, isLast }: TimelineEntryProps) {
       </div>
 
       <div>
-        <p className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+        <p className="eyebrow">
           {entry.dateRange}
         </p>
         <Tag className="mt-3">{TYPE_LABEL[entry.type]}</Tag>

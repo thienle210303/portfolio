@@ -64,7 +64,20 @@ export function Tabs({ label, tabs, idPrefix }: TabsProps) {
 
   return (
     <div>
-      <div role="tablist" aria-label={label} className="flex flex-wrap gap-x-8 gap-y-1">
+      {/*
+        Scrolls sideways rather than wrapping. Wrapping turned three tabs into
+        three stacked full-width rows the moment the panel got narrow, which
+        reads as a broken list rather than as a tab strip — and it moved the
+        panel down the page every time the widest tab was selected.
+        `scrollbar-width: none` hides the bar itself; the tabs stay reachable
+        by keyboard through the existing roving tabIndex, which also scrolls
+        the focused tab into view for free.
+      */}
+      <div
+        role="tablist"
+        aria-label={label}
+        className="flex gap-x-8 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {tabs.map((tab, index) => {
           const selected = tab.id === activeTab.id;
           return (
@@ -82,7 +95,7 @@ export function Tabs({ label, tabs, idPrefix }: TabsProps) {
               onClick={() => selectByIndex(index, false)}
               onKeyDown={(event) => handleKeyDown(event, index)}
               className={cn(
-                "min-h-11 border-b-2 px-1 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] transition-colors duration-200",
+                "min-h-11 shrink-0 whitespace-nowrap border-b-2 px-1 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] transition-colors duration-200",
                 selected
                   ? "border-[color:var(--fg)] text-[color:var(--fg)]"
                   : "border-[color:var(--rule-color)] text-[color:var(--fg-muted)] hover:text-[color:var(--fg)]",

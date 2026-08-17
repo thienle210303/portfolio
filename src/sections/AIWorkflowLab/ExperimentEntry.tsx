@@ -65,7 +65,7 @@ function StatusChip({ status }: { status: ExperimentStatus }) {
 function Field({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+      <dt className="eyebrow">
         {term}
       </dt>
       <dd className="prose-measure mt-2 text-[length:var(--step-0)] leading-relaxed text-[color:var(--fg)]">
@@ -79,7 +79,7 @@ function FieldList({ term, items }: { term: string; items: readonly string[] }) 
   if (items.length === 0) return null;
   return (
     <div>
-      <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+      <dt className="eyebrow">
         {term}
       </dt>
       <dd className="mt-2">
@@ -180,7 +180,7 @@ export function ExperimentEntry({ experiment, tools, stages }: ExperimentEntryPr
 
           {usedStages.length > 0 ? (
             <div>
-              <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+              <dt className="eyebrow">
                 Workflow stages
               </dt>
               <dd className="mt-2">
@@ -215,7 +215,7 @@ export function ExperimentEntry({ experiment, tools, stages }: ExperimentEntryPr
 
           {sources.length > 0 ? (
             <div>
-              <dt className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+              <dt className="eyebrow">
                 Sources
               </dt>
               <dd className="mt-2">

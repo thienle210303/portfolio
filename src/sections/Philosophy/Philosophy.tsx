@@ -28,9 +28,19 @@ import ProblemSolvingLoop from "./ProblemSolvingLoop";
 
 const HEADING_ID = "philosophy-heading";
 
+/*
+ * Deliberately no `rail` here, unlike every other section.
+ *
+ * ProblemSolvingLoop lays its nine steps out as nine columns at >=1024px, and
+ * surrendering an 11rem margin plus its gap drops each column to roughly 127px
+ * — narrow enough that headings like "Question assumptions" break across three
+ * lines and the row stops scanning. The rail also had the least to say here:
+ * its notes would have been counts of the two lists rendered directly below
+ * it, which is annotation restating the page rather than adding to it.
+ */
 export default function Philosophy() {
   return (
-    <Section id="philosophy" labelledBy={HEADING_ID} eyebrow="02 / PHILOSOPHY" tone="charcoal">
+    <Section id="philosophy" labelledBy={HEADING_ID} eyebrow="Philosophy" tone="deep">
       {/* Not using SectionHeading's `lead` prop: philosophyIntro is two
           separate paragraphs, and `lead` wraps its children in a single
           <p> — nesting block <p>s inside it would be invalid HTML and a

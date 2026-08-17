@@ -35,7 +35,7 @@ function StageIndex({ index }: { index: number }) {
 function FieldGroup({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div>
-      <p className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+      <p className="eyebrow">
         {term}
       </p>
       <div className="mt-2">{children}</div>
@@ -85,7 +85,7 @@ function StageDetails({ stage }: { stage: WorkflowStage }) {
           className="mt-0.5 h-4 w-4 flex-none text-[color:var(--fg-muted)]"
         />
         <div>
-          <p className="font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-subtle)]">
+          <p className="eyebrow">
             What I watch for
           </p>
           <p className="mt-2 text-[length:var(--step-0)] italic leading-relaxed text-[color:var(--fg)]">

@@ -51,3 +51,7 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Scratch files used while driving a browser during development.
+# Never intended to be tracked; ignored so an "add -A" cannot sweep one in.
+.scratch-*

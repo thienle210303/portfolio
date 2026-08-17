@@ -14,16 +14,33 @@
  * the "never invent a fact" rule. Flagging the discrepancy for whoever owns
  * the content file.
  */
-import { Section } from "@/components/ui/Section";
+import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { projects } from "@/content/portfolio";
+import { resolved } from "@/types/portfolio";
 import CaseStudy from "./CaseStudy";
 
 const HEADING_ID = "work-heading";
 
+// Counted from the content, never typed. A project that loses its metrics, or
+// a sixth that arrives, moves these numbers without anyone remembering to.
+// `MetricComparison.source` is a required field, so every metric present is by
+// definition a sourced one — the count is of metrics, and that is the point.
+const sourcedMetrics = projects.reduce(
+  (total, project) => total + (project.metrics?.length ?? 0),
+  0,
+);
+const withFailures = projects.filter((project) => resolved(project.whatFailed) !== undefined).length;
+
+const RAIL: readonly RailNote[] = [
+  { term: "Case studies", detail: `${projects.length}` },
+  { term: "Sourced figures", detail: `${sourcedMetrics}, each naming its origin` },
+  { term: "Recorded failures", detail: `${withFailures} of ${projects.length} say what didn't work` },
+];
+
 export default function SelectedWork() {
   return (
-    <Section id="work" labelledBy={HEADING_ID} eyebrow="03 / SELECTED WORK" tone="ink">
+    <Section id="work" labelledBy={HEADING_ID} eyebrow="Selected work" tone="base" rail={RAIL}>
       <SectionHeading id={HEADING_ID}>Problems I chose to solve</SectionHeading>
       <div className="mt-12 md:mt-16">
         {projects.map((project, index) => (

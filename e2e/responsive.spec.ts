@@ -11,7 +11,13 @@ import { test, expect, type Page } from "@playwright/test";
 const OVERFLOW_TOLERANCE_PX = 1;
 
 test.beforeEach(async ({ page }) => {
+  // Playwright retries clicks until an element is actionable, but it dispatches
+  // key presses immediately and reads the DOM immediately. Both race React's
+  // hydration on a page this long, which is how a suite that passed became
+  // intermittently red once sections were reordered. Waiting for the network to
+  // settle is the closest available "the islands are live now" signal.
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
 });
 
 /** Scrolls window to the bottom in steps, then back to top, so any layout
