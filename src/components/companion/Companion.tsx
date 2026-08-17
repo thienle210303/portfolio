@@ -4,14 +4,18 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { profile } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import CompanionCat, { CAT_H, CAT_W, type CatPose } from "./CompanionCat";
-import RestingBox from "./RestingBox";
+import RestingBox, { BED_H, BED_INSET, BED_W, IdleBed } from "./RestingBox";
 import ToolkitPanel, { PANEL_ID } from "./ToolkitPanel";
 import { setCompanionMode, useCompanionMode } from "./companion-state";
 import {
   clamp,
   clampToViewport,
   findClearSpot,
+  keepInView,
+  refreshSafeArea,
+  safeTop,
   syncTone,
+  viewport,
   type Point,
 } from "./companion-space";
 
@@ -38,12 +42,20 @@ import {
  *     no amount of drawing makes that read as two animals. The grey one leads
  *     and tracks the pointer; the tabby follows *him*, on her own clock, and
  *     stops to watch the cursor or wander off when it suits her.
+ *  5. It is always somewhere you can find it. Two ways a cat used to become
+ *     invisible — off the viewport edge, and behind the opaque sticky header
+ *     the companion layer sits under — are answered in companion-space, which
+ *     every target and every position now goes through. The third was social
+ *     rather than geometric: after a while they simply stopped following and
+ *     went quiet wherever they were standing, which reads as a bug even when
+ *     the cat is right there. Now they go to bed, in the corner, visibly.
  *
  * On touch devices there is no cursor to follow, so the roaming behaviour is
  * skipped entirely and both cats simply rest in the corner as a toolkit button.
  * The same is true for anyone who has asked for reduced motion — and because
- * that path has no roaming layer at all, the police-cat escort and the nap
- * contract below are skipped with it, landing straight in their end state.
+ * that path has no roaming layer at all, the police-cat escort, the nap
+ * contract, the idle bed and every idle flourish are skipped with it, landing
+ * straight in their end state.
  */
 
 /** How close the lead cat is willing to get to the pointer, in px. */
@@ -54,18 +66,58 @@ const LEAD_SPACE = 96;
 const FOLLOW_GAP = 26;
 const FOLLOW_SLACK = 58;
 
-/** Pointer-idle time before the cats settle, then before they curl up, in ms. */
+/** Pointer-idle time before the cats settle, then before they go to bed, in ms. */
 const SETTLE_AFTER = 2400;
 const SLEEP_AFTER = 14000;
 
 /** px per frame at 60fps, scaled by distance so they lope rather than snap. */
 const LEAD_SPEED = 4.4;
-const FOLLOW_SPEED = 3.4;
-const FOLLOW_SPRINT = 6.2;
 /** Being shooed is faster than strolling — and it has to be, because the whole
  *  escort has a ~2.5s budget and the walk can start anywhere on screen. */
 const ESCORT_SPEED = 7.5;
 const POLICE_SPEED = 8;
+
+/**
+ * The follower's speed curve. See `followTarget` and `ramp` below — between
+ * them these four numbers replace what used to be three discrete speeds.
+ *
+ * `FOLLOW_RANGE` is how far past her comfortable distance she has to be before
+ * she is running flat out; `FOLLOW_ACCEL` and `FOLLOW_BRAKE` are how fast she
+ * is allowed to change her mind, in px per frame per frame. Braking is quicker
+ * than accelerating, which is true of cats and also keeps her from sailing past
+ * whatever she was heading for.
+ */
+const FOLLOW_MAX = 6.4;
+const FOLLOW_RANGE = 200;
+const FOLLOW_ACCEL = 0.34;
+const FOLLOW_BRAKE = 0.5;
+
+/* ---------------------------------------------------------------- the bed --
+ *
+ * Two sleeps, and the difference between them is the whole point:
+ *
+ *  - `CompanionMode === "resting"` is a **preference**. The visitor asked for
+ *    the cats to be put away, it is written to localStorage under "companion",
+ *    it survives a reload, and only the box's own "Wake the cats" button undoes
+ *    it. That flow owns `RestingBox`, and it is the only one that touches
+ *    storage.
+ *  - Idle sleep — everything below — is a **moment**. The cats have had nothing
+ *    to do for `SLEEP_AFTER`, so instead of dozing off in whatever margin they
+ *    happened to be standing in, they walk to the corner bed and curl up in it.
+ *    Nothing is written anywhere: reload and they roam, exactly as before.
+ *
+ * It exists because the old behaviour looked like a bug. The cats simply left,
+ * quietly, to wherever the placement probe had put them — which was correct and
+ * completely unreadable. Now they go somewhere on purpose, and the bed is there
+ * to say so.
+ */
+type Bed = "walking" | "asleep" | null;
+
+/** How near the pointer must come before a cat asleep in the bed will get up,
+ *  and how far it must travel anywhere else to have the same effect. A twitch
+ *  should not drag two sleeping animals across the page; using the page should. */
+const BED_WAKE_NEAR = 190;
+const BED_WAKE_TRAVEL = 150;
 
 /** Pointer dwell before a `data-cat-nap` element calls the cats over, in ms. */
 const NAP_DWELL = 600;
@@ -85,6 +137,24 @@ const TONE_INTERVAL = 320;
 
 type Mood = "trail" | "watch" | "drift";
 type EscortPhase = "herding" | "leaving";
+/** The poses a cat can drop into of its own accord while it is sitting. */
+type Flourish = Extract<CatPose, "sit" | "stretch" | "groom" | "bat">;
+
+/**
+ * Idle flourishes: how long a cat sits before it does something with itself,
+ * and how long the something lasts.
+ *
+ * Deliberately in the seconds-between-tens-of-seconds range. A companion that
+ * fidgets is a companion you end up watching instead of reading the page, and
+ * the whole feature is only defensible while it stays below that line — so the
+ * gap is long, the flourishes are short, and each cat rolls its own.
+ */
+const IDLE_GAP = 7000;
+const IDLE_SPREAD = 13000;
+/** The twitch, which needs no pose of its own — just an ear and a tail. */
+const FLICK_GAP = 6500;
+const FLICK_SPREAD = 11000;
+const FLICK_MS = 340;
 
 interface Spot {
   x: number;
@@ -107,11 +177,21 @@ interface Mover {
   /** Blink schedule, per animal, so they never blink in unison. */
   blinkUntil: number;
   blinkAt: number;
-  /** Follower only. */
+  /** Idle flourishes: the pose currently being held, when it ends, and the
+   *  earliest the next one may start. Rolled per animal for the same reason
+   *  the blink is — two cats stretching in unison is one cat drawn twice. */
+  idle: Flourish;
+  idleUntil: number;
+  idleAt: number;
+  flickUntil: number;
+  flickAt: number;
+  /** Follower only. `speed` is state rather than a per-frame result: it is what
+   *  the acceleration limiter carries between frames. */
   mood: Mood;
   moodUntil: number;
   drift: Spot;
   engaged: boolean;
+  speed: number;
 }
 
 /** The part of a cat React actually draws. */
@@ -120,6 +200,7 @@ interface Visual {
   readonly phase: number;
   readonly facing: 1 | -1;
   readonly blinking: boolean;
+  readonly flick: number;
 }
 
 interface Frame {
@@ -141,7 +222,7 @@ interface Nap {
   readAt: number;
 }
 
-const RESTING_VISUAL: Visual = { pose: "sit", phase: 0, facing: 1, blinking: false };
+const RESTING_VISUAL: Visual = { pose: "sit", phase: 0, facing: 1, blinking: false, flick: 0 };
 const INITIAL_FRAME: Frame = {
   lead: RESTING_VISUAL,
   // Half a cycle out of step with his, which is what keeps the parked pair from
@@ -158,10 +239,16 @@ function mover(phase: number): Mover {
     pose: "sit",
     blinkUntil: 0,
     blinkAt: 0,
+    idle: "sit",
+    idleUntil: 0,
+    idleAt: 0,
+    flickUntil: 0,
+    flickAt: 0,
     mood: "trail",
     moodUntil: 0,
     drift: { x: 0, y: 0 },
     engaged: false,
+    speed: 0,
   };
 }
 
@@ -176,27 +263,65 @@ function mover(phase: number): Mover {
  * resting box open from this corner too, so cats and furniture stay together.
  */
 function homeSpot(): Point {
-  return {
-    x: Math.max(12, window.innerWidth - CAT_W - 26),
-    y: Math.max(12, window.innerHeight - CAT_H - 30),
-  };
+  // Through the shared clamp, not a bare Math.max: that is the one function
+  // that knows about both viewport edges *and* the chrome painting over the
+  // companion layer, and a corner computed any other way is a corner that can
+  // land somewhere invisible.
+  return clampToViewport({
+    x: viewport().width - CAT_W - 26,
+    y: viewport().height - CAT_H - 30,
+  });
 }
 
 function followHome(home: Point): Point {
   return clampToViewport({ x: home.x - CAT_W - FOLLOW_GAP, y: home.y });
 }
 
-/** Their two places in the bed, spread across it rather than stacked. */
+/** Their two places in the resting box, spread across it rather than stacked. */
 function slotsForBox(rect: DOMRect): Spots {
-  const y = clamp(
-    rect.top + rect.height / 2 - CAT_H / 2,
-    8,
-    Math.max(8, window.innerHeight - CAT_H - 8),
-  );
+  const y = rect.top + rect.height / 2 - CAT_H / 2;
   return {
     lead: clampToViewport({ x: rect.right - CAT_W - 4, y }),
     follow: clampToViewport({ x: rect.left + 4, y }),
   };
+}
+
+/** The idle bed, in viewport coordinates. Computed from the same three numbers
+ *  the element is positioned with, so the cats cannot miss their own bed. */
+function bedBox(): { left: number; top: number } {
+  return {
+    left: Math.max(0, viewport().width - BED_INSET - BED_W),
+    top: Math.max(0, viewport().height - BED_INSET - BED_H),
+  };
+}
+
+/**
+ * Their two places on the mat: the tabby on the left, the grey one on the
+ * right, which is the order the resting box prints them in.
+ *
+ * The lead's slot is pulled back by the hit-target margin its button carries
+ * around the drawing, because that transform positions the *button* and not the
+ * animal inside it. Everywhere else on the page four pixels of drift between
+ * two roaming cats is invisible; sharing a 112px bed, it is not.
+ */
+const LEAD_PAD_X = 4;
+const LEAD_PAD_Y = 3;
+
+function bedSlots(): Spots {
+  const box = bedBox();
+  const y = box.top + (BED_H - CAT_H) / 2;
+  return {
+    lead: clampToViewport({ x: box.left + BED_W / 2 - LEAD_PAD_X, y: y - LEAD_PAD_Y }),
+    follow: clampToViewport({ x: box.left + BED_W / 2 - CAT_W, y }),
+  };
+}
+
+/** Distance from a point to the bed's edge, zero inside it. */
+function nearBed(point: Point): boolean {
+  const box = bedBox();
+  const dx = Math.max(box.left - point.x, 0, point.x - (box.left + BED_W));
+  const dy = Math.max(box.top - point.y, 0, point.y - (box.top + BED_H));
+  return Math.hypot(dx, dy) < BED_WAKE_NEAR;
 }
 
 /** Beneath the element that called them, centred on it. */
@@ -232,6 +357,108 @@ function centreOf(pos: Spot): Point {
   return { x: pos.x + CAT_W / 2, y: pos.y + CAT_H / 2 };
 }
 
+/* -------------------------------------------------------------------------- */
+/* The follower's speed                                                        */
+/*                                                                             */
+/* She used to have three: nothing while she was disengaged or watching, 3.4    */
+/* while she trailed, and a 6.2 "sprint" that cut in on the frame the gap       */
+/* passed 220px. Thien's note — "too slow and suddenly walking too fast" — is   */
+/* both edges of that. They are step changes in *velocity*, and no amount of    */
+/* easing inside `advance` hides one: the drawing is still moving at 3.4px a    */
+/* frame and then, one frame later, at 6.2.                                     */
+/*                                                                             */
+/* So there are no speeds any more, only a curve and a limiter.                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * How fast she *wants* to be going, given how far she has to go.
+ *
+ * `gap` is the distance she is entitled to keep — the follow gap when she is
+ * trailing him, zero when she is walking to a fixed place like the bed — so the
+ * curve is always "speed proportional to distance beyond where I should be".
+ * Eased out rather than smoothstepped: a curve that is flat at *both* ends
+ * looks right leaving the gap but leaves her creeping the last few pixels onto
+ * a target forever, which matters now that some of those targets are places she
+ * has to actually arrive at.
+ */
+function followTarget(away: number, gap: number): number {
+  const t = clamp((away - gap) / FOLLOW_RANGE, 0, 1);
+  return FOLLOW_MAX * (1 - (1 - t) * (1 - t));
+}
+
+/** And how fast she is allowed to change her mind. This is the half that makes
+ *  her *personality* smooth as well as her pursuit: stopping to watch the
+ *  cursor drops the target to zero, and she coasts down over ~13 frames instead
+ *  of freezing mid-stride. */
+function ramp(from: number, to: number): number {
+  return from + clamp(to - from, -FOLLOW_BRAKE, FOLLOW_ACCEL);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Idle flourishes                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What a cat does with itself while it is sitting and nothing needs doing.
+ *
+ * Only ever reached from a *settled* cat, so none of this competes with the
+ * pointer: a cat that is walking, sleeping, being escorted or being called to a
+ * nap spot is busy, and busy cats do not groom. `canBat` is the follower's
+ * privilege and hers alone — she is the one who ends up parked behind him with
+ * his tail in reach, and giving them both the same repertoire would undo the
+ * whole reason there are two of them.
+ */
+function tickIdle(cat: Mover, now: number, canBat: boolean): Flourish {
+  if (cat.idleAt === 0) {
+    cat.idleAt = now + IDLE_GAP + Math.random() * IDLE_SPREAD;
+    return "sit";
+  }
+  if (now < cat.idleUntil) return cat.idle;
+  if (cat.idle !== "sit") {
+    cat.idle = "sit";
+    cat.idleAt = now + IDLE_GAP + Math.random() * IDLE_SPREAD;
+    return "sit";
+  }
+  if (now < cat.idleAt) return "sit";
+
+  const roll = Math.random();
+  if (canBat && roll < 0.3) {
+    cat.idle = "bat";
+    cat.idleUntil = now + 900 + Math.random() * 500;
+  } else if (roll < 0.65) {
+    cat.idle = "groom";
+    cat.idleUntil = now + 2200 + Math.random() * 1200;
+  } else {
+    cat.idle = "stretch";
+    cat.idleUntil = now + 1000 + Math.random() * 500;
+  }
+  return cat.idle;
+}
+
+/** Drop whatever flourish was running and push the next one out. Called on
+ *  every frame a cat is doing something real, so a cat interrupted mid-groom
+ *  does not resume it three walks later. */
+function calmIdle(cat: Mover, now: number): void {
+  cat.idle = "sit";
+  cat.idleUntil = 0;
+  if (cat.idleAt < now) cat.idleAt = now + IDLE_GAP + Math.random() * IDLE_SPREAD;
+}
+
+/** The ear-and-tail twitch. Returns 0..1..0 across the flick so the ear that
+ *  moves also settles, rather than snapping back flat. */
+function tickFlick(cat: Mover, now: number, allowed: boolean): number {
+  if (cat.flickAt === 0 || !allowed) {
+    if (cat.flickAt < now) cat.flickAt = now + FLICK_GAP + Math.random() * FLICK_SPREAD;
+    return 0;
+  }
+  if (now < cat.flickUntil) return Math.sin(((cat.flickUntil - now) / FLICK_MS) * Math.PI);
+  if (now > cat.flickAt) {
+    cat.flickUntil = now + FLICK_MS;
+    cat.flickAt = now + FLICK_GAP + Math.random() * FLICK_SPREAD;
+  }
+  return 0;
+}
+
 function paint(node: HTMLElement | null, pos: Spot): void {
   if (node) node.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
 }
@@ -243,7 +470,8 @@ function sameVisual(a: Visual, b: Visual): boolean {
     a.blinking === b.blinking &&
     // Quantised: the drawing cannot show more than this, so committing more
     // than this is pure re-render cost.
-    Math.round(a.phase * 24) === Math.round(b.phase * 24)
+    Math.round(a.phase * 24) === Math.round(b.phase * 24) &&
+    Math.round(a.flick * 5) === Math.round(b.flick * 5)
   );
 }
 
@@ -281,6 +509,7 @@ export function Companion() {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
+  const [bed, setBed] = useState<Bed>(null);
   const [frame, setFrame] = useState<Frame>(INITIAL_FRAME);
 
   const leadNode = useRef<HTMLElement | null>(null);
@@ -288,6 +517,7 @@ export function Companion() {
   const policeNode = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const matRef = useRef<HTMLDivElement>(null);
   const wakeButtonRef = useRef<HTMLButtonElement>(null);
 
   const lead = useRef<Mover>(mover(0));
@@ -300,6 +530,12 @@ export function Companion() {
   const pointerRef = useRef<Point | null>(null);
   const lastMoveRef = useRef(0);
   const escortRef = useRef<EscortRun | null>(null);
+  /** The idle bed, mirrored out of React so the loop and the pointer handler
+   *  can both read it. The *loop* owns the value; everything else asks it to
+   *  reconsider by resetting the idle clock. */
+  const bedRef = useRef<Bed>(null);
+  /** Pointer distance accumulated since they curled up. */
+  const travelRef = useRef(0);
   const napRef = useRef<Nap | null>(null);
   const napPointer = useRef<Element | null>(null);
   const napFocus = useRef<Element | null>(null);
@@ -331,6 +567,9 @@ export function Companion() {
   // they had just walked out of.
   const place = useCallback(() => {
     if (placed.current) return;
+    // Before the first `homeSpot()`: that call is already clamped, and the
+    // clamp is only correct once the chrome has been measured.
+    refreshSafeArea();
     const home = homeSpot();
     const from = spawn.current;
     spawn.current = null;
@@ -395,15 +634,49 @@ export function Companion() {
 
   useEffect(() => {
     if (!roams || mode === "off") return;
-    const onMove = (event: PointerEvent) => {
+
+    /** Somebody is here. Resetting the idle clock is all this has to do: the
+     *  loop reads it, finds the cats are no longer idle, and walks them out of
+     *  the bed on its own. */
+    const rouse = () => {
+      travelRef.current = 0;
       lastMoveRef.current = performance.now();
-      pointerRef.current = { x: event.clientX, y: event.clientY };
-      // A moved pointer invalidates wherever they had decided to settle.
       settleSpots.current = null;
       wake();
     };
+
+    const onMove = (event: PointerEvent) => {
+      const at = { x: event.clientX, y: event.clientY };
+      const from = pointerRef.current;
+      pointerRef.current = at;
+      // Asleep in the bed, they are committed. A mouse nudged by a passing
+      // elbow should not drag two sleeping animals back across the page, so a
+      // single event is not enough: either the pointer comes over to where they
+      // are, or it travels far enough that somebody is plainly back at the
+      // page. Everything else leaves them where they are — and leaves the loop
+      // stopped, which is the point of them being asleep at all.
+      if (bedRef.current === "asleep") {
+        travelRef.current += from ? Math.hypot(at.x - from.x, at.y - from.y) : BED_WAKE_TRAVEL;
+        if (travelRef.current < BED_WAKE_TRAVEL && !nearBed(at)) return;
+      }
+      rouse();
+    };
+
+    // A click anywhere — including on the bed itself, which is the one the
+    // visitor is most likely to try — and any keystroke, which is the keyboard
+    // equivalent for a visitor who never moves a pointer at all.
+    const onPoke = () => {
+      if (bedRef.current) rouse();
+    };
+
     window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
+    window.addEventListener("pointerdown", onPoke, { passive: true });
+    window.addEventListener("keydown", onPoke, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onPoke);
+      window.removeEventListener("keydown", onPoke);
+    };
   }, [roams, mode, wake]);
 
   /* ----------------------------------------------------------- nap spots -- */
@@ -542,6 +815,17 @@ export function Companion() {
       const run = escortRef.current;
       const home = homeSpot();
 
+      // Before anything else decides where they are going: make sure they are
+      // still somewhere they can be seen. Every *target* below is clamped, but
+      // a target is only consulted when a cat is going somewhere, and a cat
+      // trailing a pointer already inside its personal space is told to stay
+      // exactly where it is — so a viewport that shrinks out from under it (a
+      // rotation, a window drag, devtools opening) strands it off-screen with
+      // nothing to bring it back. `overflow-x: clip` on the document means
+      // there is not even a scrollbar to hint at where it went.
+      keepInView(grey.pos);
+      keepInView(tabby.pos);
+
       /* -- reads first, writes afterwards: at most one forced reflow a frame. */
       let nap = napRef.current;
       if (nap) {
@@ -549,8 +833,10 @@ export function Companion() {
           nap.rect = nap.el.getBoundingClientRect();
           nap.readAt = now;
         }
-        // Scrolled out of sight: nothing to sleep under any more.
-        if (nap.rect.bottom < 0 || nap.rect.top > window.innerHeight) nap = null;
+        // Nothing left to sleep under: either scrolled off the bottom, or
+        // scrolled up behind the chrome, which for a cat is the same thing —
+        // the underside of that element is somewhere it cannot be seen.
+        if (nap.rect.bottom < safeTop() || nap.rect.top > viewport().height) nap = null;
       }
 
       const forced = run ? "escort" : nap ? "nap" : openRef.current ? "corner" : null;
@@ -558,22 +844,26 @@ export function Companion() {
       /** Non-null only while the lead is actually chasing something. */
       const chase = !forced && !parked ? pointer : null;
       const dozing = forced === "escort" || forced === "nap" || idleFor > SLEEP_AFTER;
+      /**
+       * Idle sleep — the ephemeral one. Gated on a pointer having existed at
+       * some point, because `lastMoveRef` starts at zero: without that check a
+       * fresh page load is already "idle" and the first thing a visitor would
+       * see is two cats in a bed they never sent them to.
+       */
+      const wantsBed = !forced && pointer !== null && idleFor > SLEEP_AFTER;
 
       /* ------------------------------------------------------------ lead -- */
 
       let leadWant: Point;
       let followWant: Point;
-      let followCap = FOLLOW_SPEED;
 
       if (run) {
         leadWant = run.slots.lead;
         followWant = run.slots.follow;
-        followCap = ESCORT_SPEED;
       } else if (nap) {
         const slots = napSlots(nap.rect);
         leadWant = slots.lead;
         followWant = slots.follow;
-        followCap = FOLLOW_SPRINT;
       } else if (forced === "corner") {
         // Come home while the toolkit is open. The panel is anchored to this
         // corner, so a cat still chasing the cursor would end up sitting on top
@@ -597,6 +887,13 @@ export function Companion() {
                 y: grey.pos.y + (dy / dist) * (dist - LEAD_SPACE),
               });
         followWant = grey.pos;
+      } else if (wantsBed) {
+        // Bored, and going somewhere about it. No content probe: the bed *is*
+        // the destination, it is the companion's own furniture, and it is drawn
+        // in the corner the toolkit and the resting box already own.
+        const slots = bedSlots();
+        leadWant = slots.lead;
+        followWant = slots.follow;
       } else if (!pointer || idleFor > SLEEP_AFTER) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
@@ -617,13 +914,27 @@ export function Companion() {
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
       const leadStep = advance(grey.pos, leadWant, run ? ESCORT_SPEED : LEAD_SPEED);
-      grey.pose = leadStep > 0.3 ? "walk" : dozing ? "sleep" : "sit";
+      if (leadStep > 0.3) {
+        calmIdle(grey, now);
+        grey.pose = "walk";
+      } else if (dozing) {
+        calmIdle(grey, now);
+        grey.pose = "sleep";
+      } else {
+        // He never bats: the tail he would be batting at is his own.
+        grey.pose = tickIdle(grey, now, false);
+      }
       if (leadStep > 0.3) grey.phase = (grey.phase + leadStep * 0.013) % 1;
-      else if (grey.pose === "sit") grey.phase = (grey.phase + 0.006) % 1;
+      else if (grey.pose !== "sleep") grey.phase = (grey.phase + 0.006) % 1;
 
       /* -------------------------------------------------------- follower -- */
 
-      if (chase) {
+      /** How fast she wants to be going this frame, before the limiter. */
+      let followWish: number;
+
+      if (run) {
+        followWish = ESCORT_SPEED;
+      } else if (chase) {
         // Her own clock. She trails him, watches the cursor, or wanders off —
         // and only while the pair are actually on the move, because a settled
         // cat that keeps re-parking is a cat that never stops moving.
@@ -651,27 +962,53 @@ export function Companion() {
             ? clampToViewport({ x: behind.x + tabby.drift.x, y: behind.y + tabby.drift.y })
             : behind;
 
+        // The slack is what makes her move in bursts instead of gliding along on
+        // a fixed leash, and it survives the rewrite: what changed is that
+        // engaging no longer *starts* her at 3.4px a frame. She engages, the
+        // curve gives her a target proportional to the slack she has let build
+        // up, and the limiter walks her up to it.
         const gap = distance(tabby.pos, followWant);
         if (!tabby.engaged && gap > FOLLOW_SLACK) tabby.engaged = true;
         else if (tabby.engaged && gap < 5) tabby.engaged = false;
-        followCap =
-          tabby.mood === "watch" || !tabby.engaged ? 0 : gap > 220 ? FOLLOW_SPRINT : FOLLOW_SPEED;
+        followWish =
+          tabby.mood === "watch" || !tabby.engaged ? 0 : followTarget(gap, FOLLOW_GAP);
         if (tabby.mood === "watch") followWant = tabby.pos;
       } else {
         tabby.engaged = true;
         tabby.moodUntil = 0;
+        // Walking to a place rather than after an animal, so there is no gap to
+        // subtract: she is allowed to arrive.
+        followWish = followTarget(distance(tabby.pos, followWant), 0);
       }
 
+      tabby.speed = ramp(tabby.speed, followWish);
       const followDx = followWant.x - tabby.pos.x;
-      if (followCap > 0 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
-      const followStep = advance(tabby.pos, followWant, followCap);
-      tabby.pose = followStep > 0.3 ? "walk" : dozing ? "sleep" : "sit";
+      if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
+      const followStep = advance(tabby.pos, followWant, tabby.speed);
+      if (followStep > 0.3) {
+        calmIdle(tabby, now);
+        tabby.pose = "walk";
+      } else if (dozing) {
+        calmIdle(tabby, now);
+        tabby.pose = "sleep";
+      } else {
+        // She bats at his tail when she has ended up parked on the side he
+        // keeps it — behind him, which is exactly where following him leaves
+        // her. Close, settled, and both of them sitting: any other combination
+        // and there is nothing there to swipe at.
+        const behindHim =
+          grey.pose !== "walk" &&
+          grey.pose !== "sleep" &&
+          Math.hypot(tabby.pos.x - grey.pos.x, tabby.pos.y - grey.pos.y) < 72 &&
+          (tabby.pos.x - grey.pos.x) * grey.facing < 0;
+        tabby.pose = tickIdle(tabby, now, behindHim);
+      }
       // A distracted cat looks at what distracted her.
       if (chase && tabby.mood === "watch" && followStep === 0) {
         tabby.facing = chase.x > tabby.pos.x + CAT_W / 2 ? 1 : -1;
       }
       if (followStep > 0.3) tabby.phase = (tabby.phase + followStep * 0.0115) % 1;
-      else if (tabby.pose === "sit") tabby.phase = (tabby.phase + 0.0045) % 1;
+      else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + 0.0045) % 1;
 
       /* ---------------------------------------------------------- police -- */
 
@@ -695,6 +1032,7 @@ export function Companion() {
           phase: cop.phase,
           facing: cop.facing,
           blinking: tickBlink(cop, now),
+          flick: 0,
         };
 
         const inBed =
@@ -722,11 +1060,31 @@ export function Companion() {
         syncTone(leadNode.current, centreOf(grey.pos));
         syncTone(followNode.current, centreOf(tabby.pos));
         if (run) syncTone(policeNode.current, centreOf(run.police.pos));
+        // The mat is opaque furniture on the same fixed layer, so it has the
+        // cats' problem: a `bg-surface` box coloured from the root scope sitting
+        // over a `contrast` section. A scroll resets `lastTone` and wakes the
+        // loop for one frame, which is all this needs even once they are asleep.
+        if (matRef.current) {
+          const box = bedBox();
+          syncTone(matRef.current, { x: box.left + BED_W / 2, y: box.top + BED_H / 2 });
+        }
       }
 
       const asleep = grey.pose === "sleep" && tabby.pose === "sleep";
       const busy = leadStep > 0.05 || followStep > 0.05 || run !== null;
+      // Idle sleep in the bed *is* asleep: once they are curled up in it the
+      // loop stops exactly as it always did when they fell asleep on the spot.
+      // The pointer handler restarts it.
       const keepGoing = busy || !asleep;
+
+      // The bed shows the moment they set off for it, so a visitor watching
+      // sees where they are going rather than two cats wandering away.
+      const nextBed: Bed = wantsBed ? (asleep && !busy ? "asleep" : "walking") : null;
+      if (nextBed !== bedRef.current) {
+        bedRef.current = nextBed;
+        if (!nextBed) travelRef.current = 0;
+        setBed(nextBed);
+      }
 
       const next: Frame = {
         lead: {
@@ -734,12 +1092,14 @@ export function Companion() {
           phase: grey.phase,
           facing: grey.facing,
           blinking: tickBlink(grey, now),
+          flick: tickFlick(grey, now, grey.pose !== "sleep"),
         },
         follow: {
           pose: tabby.pose,
           phase: tabby.phase,
           facing: tabby.facing,
           blinking: tickBlink(tabby, now),
+          flick: tickFlick(tabby, now, tabby.pose !== "sleep"),
         },
         police: policeVisual,
       };
@@ -776,6 +1136,9 @@ export function Companion() {
       if (recheck) return;
       recheck = window.setTimeout(() => {
         recheck = 0;
+        // The chrome may have grown, shrunk or unpinned, so the band the cats
+        // cannot be seen in is re-measured here rather than per frame.
+        refreshSafeArea();
         settleSpots.current = null;
         homeSpots.current = null;
         lastTone.current = 0;
@@ -784,12 +1147,21 @@ export function Companion() {
     };
 
     restart.current = start;
+    refreshSafeArea();
     start();
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("scroll", onPageMoved, { passive: true });
     window.addEventListener("resize", onPageMoved);
     return () => {
       stop();
+      // Idle sleep does not outlive the loop that owns it. Whatever put the
+      // loop away — a mode change here, or the same change arriving from
+      // another tab — is a fresh start, and cats returning to a roaming page
+      // should not arrive already fourteen seconds bored.
+      bedRef.current = null;
+      travelRef.current = 0;
+      lastMoveRef.current = performance.now();
+      setBed(null);
       window.clearTimeout(recheck);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
@@ -818,7 +1190,7 @@ export function Companion() {
     cop.pos.y = clamp(
       lead.current.pos.y,
       8,
-      Math.max(8, window.innerHeight - CAT_H - 8),
+      Math.max(8, viewport().height - CAT_H - 8),
     );
     escortRef.current = { phase: "herding", startedAt: performance.now(), slots, police: cop };
     setEscort("herding");
@@ -915,8 +1287,20 @@ export function Companion() {
     }
   }
 
+  /** Every deliberate change of mode ends the idle sleep with it: it is a state
+   *  about being left alone, and none of these are being left alone. Leaving it
+   *  set would also gate the pointer handler, so the cats would come back from
+   *  the resting box and walk straight into the bed again. */
+  function clearBed() {
+    bedRef.current = null;
+    travelRef.current = 0;
+    lastMoveRef.current = performance.now();
+    setBed(null);
+  }
+
   function sendAway() {
     setOpen(false);
+    clearBed();
     focusWish.current = "box";
     // The escort is theatre. Without a roaming layer there is nothing to
     // escort, so touch and reduced-motion visitors land straight in the box.
@@ -932,6 +1316,7 @@ export function Companion() {
     placed.current = false;
     escortRef.current = null;
     setEscort(null);
+    clearBed();
     focusWish.current = "cat";
     setCompanionMode("roam");
   }
@@ -940,6 +1325,7 @@ export function Companion() {
     setOpen(false);
     escortRef.current = null;
     setEscort(null);
+    clearBed();
     // Nothing companion-related is left to hold focus, so hand it to the
     // document's own landing point rather than dropping it on <body>.
     document.getElementById("main")?.focus();
@@ -971,6 +1357,13 @@ export function Companion() {
     // `data-companion` is how the placement probes recognise the cats' own
     // furniture and look straight through it — see companion-space.
     <div data-companion="" className="no-print pointer-events-none fixed inset-0 z-40">
+      {/* Drawn before the cats on purpose: they sleep *on* the mat, so it has
+          to be underneath them in paint order. Roaming only — the resting box
+          below occupies the same corner and the two never coexist. */}
+      {roams && mode === "roam" && bed ? (
+        <IdleBed asleep={bed === "asleep"} containerRef={matRef} />
+      ) : null}
+
       {mode === "roam" ? (
         <button
           ref={roams ? attachLead : attachPinnedLead}
@@ -988,7 +1381,13 @@ export function Companion() {
             // roaming, the pair is simply pinned to the corner.
             roams ? "left-0 top-0" : "bottom-6 right-6",
           )}
-          style={{ width: (roams ? CAT_W : CAT_W * 2) + 8, height: CAT_H + 6 }}
+          // The margin around the drawing is the hit target; `LEAD_PAD_*` is the
+          // same margin, and the bed's slots subtract it so the animal lands
+          // where the button's transform says the button does.
+          style={{
+            width: (roams ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2,
+            height: CAT_H + LEAD_PAD_Y * 2,
+          }}
         >
           {leadDrawing}
           <span className="sr-only">{open ? "Close quick actions" : "Open quick actions"}</span>

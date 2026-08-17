@@ -89,11 +89,110 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-export function clampToViewport(point: Point): Point {
+/* -------------------------------------------------------------------------- */
+/* Where a cat can actually be seen                                            */
+/*                                                                             */
+/* "Inside the viewport" is not the same question as "visible", and conflating  */
+/* the two is what made the cats vanish. Two distinct ways to lose an animal:   */
+/*                                                                             */
+/*  1. Off the viewport. `html` and `body` carry `overflow-x: clip`, so a fixed */
+/*     element parked past an edge produces no scrollbar and no other tell —    */
+/*     the cat is simply not there, and nothing about the page hints at it.     */
+/*  2. Behind the chrome. The site header is `sticky top-0 z-50` and opaque     */
+/*     (`bg-ground`); the entire companion layer is `fixed inset-0 z-40`. Any   */
+/*     cat in the top band is painted *under* a solid bar. The old probe could  */
+/*     not see this at all: it samples the cat's belly and feet — the bottom    */
+/*     60% of the box — so a spot whose feet clear the header by a pixel reads  */
+/*     as "clear" while the animal's head and shoulders are behind it.          */
+/*                                                                             */
+/* Both are answered here, once, by a single pair of bounds that every target   */
+/* and every settle position is run through.                                    */
+/* -------------------------------------------------------------------------- */
+
+/** The height of the page chrome that paints above the companion layer. */
+let overlayTop = 0;
+
+/**
+ * Re-measure the band at the top of the viewport the cats cannot be seen in.
+ *
+ * Measured rather than hardcoded, so it cannot drift from the header's actual
+ * height, and only called when the page can have moved (loop start, scroll,
+ * resize) rather than per frame.
+ */
+export function refreshSafeArea(): void {
+  let top = 0;
+  const header = document.querySelector("header");
+  if (header) {
+    const rect = header.getBoundingClientRect();
+    // Only counts while it is actually pinned across the top of the viewport;
+    // a header that has scrolled away covers nothing.
+    if (rect.top <= EDGE && rect.bottom > 0) top = rect.bottom;
+  }
+  // Whatever the chrome is doing, the cats still need somewhere to be.
+  overlayTop = clamp(top, 0, (document.documentElement.clientHeight || window.innerHeight) / 3);
+}
+
+/** The top of the band a cat may occupy, in viewport coordinates. */
+export function safeTop(): number {
+  return overlayTop;
+}
+
+/**
+ * The box the cats are actually positioned inside.
+ *
+ * `documentElement.clientWidth`, not `window.innerWidth`: the companion's root
+ * is `position: fixed; inset: 0`, so its coordinate space is the initial
+ * containing block — the viewport *minus* any classic scrollbar. Measuring with
+ * `innerWidth` lets the right-hand clamp put a cat's last few pixels underneath
+ * the scrollbar, and puts every corner-anchored target the same few pixels out
+ * of step with the furniture it is supposed to line up with.
+ */
+export function viewport(): { width: number; height: number } {
+  const root = document.documentElement;
   return {
-    x: clamp(point.x, EDGE, Math.max(EDGE, window.innerWidth - CAT_W - EDGE)),
-    y: clamp(point.y, EDGE, Math.max(EDGE, window.innerHeight - CAT_H - EDGE)),
+    width: root.clientWidth || window.innerWidth,
+    height: root.clientHeight || window.innerHeight,
   };
+}
+
+/** Every position a cat may hold, as the bounds of its top-left corner. */
+function bounds() {
+  const view = viewport();
+  const minY = overlayTop + EDGE;
+  return {
+    minX: EDGE,
+    maxX: Math.max(EDGE, view.width - CAT_W - EDGE),
+    minY,
+    maxY: Math.max(minY, view.height - CAT_H - EDGE),
+  };
+}
+
+export function clampToViewport(point: Point): Point {
+  const box = bounds();
+  return {
+    x: clamp(point.x, box.minX, box.maxX),
+    y: clamp(point.y, box.minY, box.maxY),
+  };
+}
+
+/**
+ * Drag a cat that the viewport has moved out from under back into view, and
+ * report whether it had to.
+ *
+ * Invalidating the *targets* on resize was never enough on its own: a cat holds
+ * its own position, and there is at least one branch of the loop that tells it
+ * to stay exactly where it is (trailing a pointer already inside its personal
+ * space). Shrink the window under that cat — a rotation, a devtools split, a
+ * window drag between displays — and it stays off-screen indefinitely. Called
+ * once per animal per frame, and does nothing in the overwhelming case where
+ * the cat is already somewhere it can be seen.
+ */
+export function keepInView(pos: { x: number; y: number }): boolean {
+  const safe = clampToViewport(pos);
+  if (safe.x === pos.x && safe.y === pos.y) return false;
+  pos.x = safe.x;
+  pos.y = safe.y;
+  return true;
 }
 
 /** The topmost element at this point that is not part of the companion. */
@@ -117,8 +216,12 @@ function occupied(x: number, y: number): boolean {
  */
 export function isClearSpot(point: Point): boolean {
   const { x, y } = point;
-  if (x < 0 || y < 0) return false;
-  if (x + CAT_W > window.innerWidth || y + CAT_H > window.innerHeight) return false;
+  // Somewhere it cannot be seen is not a spot, whatever is drawn there. The
+  // half-pixel slack is for values that have already been through
+  // `clampToViewport` and came back at the bound itself.
+  const box = bounds();
+  if (x < box.minX - 0.5 || x > box.maxX + 0.5) return false;
+  if (y < box.minY - 0.5 || y > box.maxY + 0.5) return false;
   return (
     !occupied(x + CAT_W / 2, y + CAT_H * 0.6) &&
     !occupied(x + 6, y + CAT_H - 6) &&
@@ -137,7 +240,7 @@ export function isClearSpot(point: Point): boolean {
  */
 function nearbyWhitespace(want: Point): Point[] {
   const leftGutter = EDGE;
-  const rightGutter = Math.max(EDGE, window.innerWidth - CAT_W - EDGE);
+  const rightGutter = Math.max(EDGE, viewport().width - CAT_W - EDGE);
   const gutters =
     Math.abs(want.x - leftGutter) <= Math.abs(want.x - rightGutter)
       ? [leftGutter, rightGutter]

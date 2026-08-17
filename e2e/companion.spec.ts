@@ -7,12 +7,16 @@ import AxeBuilder from "@axe-core/playwright";
  * The cats are decoration with a job attached, and the job is what these tests
  * cover: they must be operable by keyboard, must never be the only route to
  * anything, must stay out of the way when a visitor asks for less motion, must
- * never park on top of content, and must be removable — with a way back from
- * everything except the one action that says it has no way back.
+ * never park on top of content, must always be somewhere a visitor can see
+ * them, and must be removable — with a way back from everything except the one
+ * action that says it has no way back.
  *
  * Their animation is deliberately not asserted. Pose, phase and position are
  * cosmetic, one of the two cats is deliberately non-deterministic, and pinning
- * any of it would make the suite fail every time the drawing is retouched.
+ * any of it would make the suite fail every time the drawing is retouched. The
+ * two exceptions below are not about how the cats look: "somewhere you can see
+ * them" and "somewhere you can find them" are the two ways this feature has
+ * actually failed a visitor, and neither is cosmetic.
  */
 
 const DESKTOP_WIDTH = 1440;
@@ -232,6 +236,106 @@ test.describe("companion", () => {
       .toEqual([]);
   });
 
+  test("never leaves a cat off-screen or behind the sticky header", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    // The two ways a cat becomes invisible without ever leaving the DOM. The
+    // header is `sticky top-0 z-50` over a companion layer at `z-40`, and it is
+    // opaque; `overflow-x: clip` on the document means a cat past an edge does
+    // not even produce a scrollbar to hint at where it went.
+    const hidden = () =>
+      page.evaluate(() => {
+        const header = document.querySelector("header")?.getBoundingClientRect();
+        const width = document.documentElement.clientWidth;
+        const height = document.documentElement.clientHeight;
+        return Array.from(document.querySelectorAll("[data-companion] svg"))
+          .map((svg) => svg.getBoundingClientRect())
+          .filter(
+            (r) =>
+              r.left < 0 ||
+              r.top < 0 ||
+              r.right > width ||
+              r.bottom > height ||
+              (header !== undefined && header.bottom > 0 && r.top < header.bottom),
+          )
+          .map((r) => `${Math.round(r.left)},${Math.round(r.top)}`);
+      });
+
+    // Walk the pointer up into the chrome and leave it there. Crossing the
+    // header while they move is fine; ending up under it is not.
+    await page.mouse.move(700, 500);
+    await page.mouse.move(700, 70, { steps: 20 });
+    await expect
+      .poll(hidden, { timeout: 10_000, message: "a cat settled where it cannot be seen" })
+      .toEqual([]);
+
+    // And then take the viewport away from underneath them, which is the case
+    // that used to strand a cat outside it indefinitely: the targets were
+    // invalidated on resize, but the cats' own positions never were.
+    await page.setViewportSize({ width: 760, height: 560 });
+    await expect
+      .poll(hidden, { timeout: 10_000, message: "a resize left a cat outside the viewport" })
+      .toEqual([]);
+  });
+
+  test("puts itself to bed when left alone, and does not remember doing it", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Deliberately real time: the threshold this exercises is the one a visitor
+    // hits by looking away, and faking it would test a different feature.
+    test.setTimeout(90_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    // One move, then nothing. Idle sleep is gated on a pointer having existed,
+    // so a page nobody has touched keeps the old corner behaviour.
+    await page.mouse.move(600, 400);
+
+    const bed = page.locator("[data-cat-bed]");
+    await expect(bed).toBeVisible({ timeout: 40_000 });
+
+    // Both of them end up inside it. This is the whole point of the bed: cats
+    // that go quiet somewhere expected read as cats, and cats that go quiet in
+    // whatever margin they were standing in read as a bug.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
+            if (!box) return -1;
+            return Array.from(document.querySelectorAll("[data-companion] svg")).filter((svg) => {
+              const r = svg.getBoundingClientRect();
+              return (
+                r.left < box.left - 4 ||
+                r.right > box.right + 4 ||
+                r.top < box.top - 4 ||
+                r.bottom > box.bottom + 4
+              );
+            }).length;
+          }),
+        { timeout: 30_000, message: "a cat never made it into the bed" },
+      )
+      .toBe(0);
+
+    // It is a moment, not a preference — the distinction the resting box owns.
+    // Nothing is written down, so nothing has to be undone.
+    expect(await page.evaluate(() => window.localStorage.getItem("companion"))).toBeNull();
+
+    // Any real sign of life releases them, and the lead cat was a working
+    // control the entire time it was asleep.
+    await expect(catButton(page)).toBeVisible();
+    await page.mouse.move(300, 300, { steps: 12 });
+    await page.mouse.move(720, 520, { steps: 12 });
+    await expect(bed).toHaveCount(0);
+
+    // And a reload starts them roaming, with no trace of the nap.
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+  });
+
   test("does not roam when the visitor asks for reduced motion", async ({ browser }) => {
     const context = await browser.newContext({
       viewport: { width: DESKTOP_WIDTH, height: 900 },
@@ -250,6 +354,10 @@ test.describe("companion", () => {
 
     expect(before).not.toBeNull();
     expect(after).toEqual(before);
+    // No idle bed either: it belongs to the roaming layer, which does not exist
+    // here, and a bed appearing under a pair of cats that never walked to it
+    // would be pure decoration.
+    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
     // Still fully usable — they are parked, not removed.
     await cat.click();
     await expect(cat).toHaveAttribute("aria-expanded", "true");
