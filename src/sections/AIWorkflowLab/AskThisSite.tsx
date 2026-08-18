@@ -4,9 +4,16 @@ import { useId, useState } from "react";
 import { CornerDownLeft } from "lucide-react";
 import { answer, SUGGESTED_QUESTIONS, type Answer } from "@/lib/answers";
 import { CodeBlock } from "@/components/ui/CodeBlock";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { Tabs } from "@/components/ui/Tabs";
 import { cn } from "@/lib/cn";
 import { ANSWER_FILENAME, answerLiteral, describeAnswerLiteral } from "./answer-code";
+import {
+  SCORING_EXCERPT,
+  SCORING_EXCERPT_FILENAME,
+  SCORING_EXCERPT_SUMMARY,
+  SCORING_MATH,
+} from "./scoring-excerpt";
 
 /**
  * "Ask this site" — a grounded question box over the portfolio's own content.
@@ -54,6 +61,16 @@ import { ANSWER_FILENAME, answerLiteral, describeAnswerLiteral } from "./answer-
  * is a deliberate act by the reader, and announces only the panel they asked
  * for — the tab strip itself stays mounted between questions, so it is never
  * re-read either.
+ *
+ * ## "How this answers"
+ *
+ * One more disclosure, collapsed by default so it costs nothing for a visitor
+ * who never opens it: the actual scoring loop from `answer()`, hand-copied in
+ * `./scoring-excerpt.ts` (that file explains why it is a copy and not an
+ * import), the same rule restated as notation, and two sentences naming what
+ * this is — lexical, IDF-weighted term overlap — and what it is not: a
+ * language model. It sits below the intro paragraph rather than beside any one
+ * answer, because it explains the mechanism, not a result.
  */
 
 const NOTHING_FOUND =
@@ -122,6 +139,42 @@ function CodeAnswer({
   );
 }
 
+/**
+ * The honest mechanism, collapsed by default. See the file-level doc comment
+ * above; the excerpt itself and why it is a hand copy live in
+ * `./scoring-excerpt.ts`.
+ */
+function HowThisAnswers({ id }: { readonly id: string }) {
+  return (
+    <Disclosure
+      id={id}
+      summary={<span className="eyebrow">How this answers</span>}
+      expandLabel="Show the ranking code"
+      collapseLabel="Hide the ranking code"
+    >
+      <div className="prose-measure">
+        <p className="text-[length:var(--step--1)] leading-relaxed text-fg-muted">
+          This is lexical retrieval: each candidate passage is scored by summing the IDF weight of
+          every query term it contains — full weight if the term is in the passage text, 0.6&times;
+          if it only matches the passage&rsquo;s label — then ranked by that score. It is not a
+          language model: there is no embedding, no generation step, and no LLM or SLM anywhere in
+          this feature — the excerpt below is the actual mechanism, not a retelling of one.
+        </p>
+        <p className="mt-3 whitespace-pre-line font-mono text-[length:var(--step--1)] leading-relaxed text-fg">
+          {SCORING_MATH}
+        </p>
+      </div>
+      <div className="mt-4">
+        <CodeBlock
+          code={SCORING_EXCERPT}
+          filename={SCORING_EXCERPT_FILENAME}
+          summary={SCORING_EXCERPT_SUMMARY}
+        />
+      </div>
+    </Disclosure>
+  );
+}
+
 export default function AskThisSite() {
   const fieldId = useId();
   const resultsId = useId();
@@ -155,6 +208,10 @@ export default function AskThisSite() {
           came from. No model, nothing generated — if the answer isn&rsquo;t written somewhere on
           the site, you get told so.
         </p>
+
+        <div className="mt-4">
+          <HowThisAnswers id={`${viewId}-how-this-answers`} />
+        </div>
 
         <div className="mt-6">
           <p className="eyebrow">Try asking</p>
