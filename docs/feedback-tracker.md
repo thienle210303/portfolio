@@ -279,10 +279,10 @@ as own section yes/no; draft scraping content for approval yes/no.
 | --- | --- |
 | Cats: play menu, off retired | `off` deleted from the state machine; a stored `"off"` migrates to `resting` so nobody is stranded. Toolkit drops the jump/reach lists (the nav and Contact already carry them) for four on-demand scenes plus a police-escorted "Send the cats to bed". Section moods land in Work, Contact and beside the loop. Verified on a production build: resting schedules 0 rAF callbacks, axe clean with the panel open, reduced motion offers no scenes |
 | Cats: play refusals | DEFECT found by an independent pass — `requestPlay` probes from wherever the cats are, and opening the panel calls them to an unprobed corner, so three sections refused every scene and the answer changed with how long the panel had been open. Fixed: the request now sweeps the places a cat could stand rather than the one point they occupy, and walks them there if needed, so a refusal means the page is genuinely full. Measured on a production build across 7 sections x 4 scenes x 2 click timings: 15/28 and 16/28 played before, 28/28 and 28/28 after, the two timings identical. 2,239 mid-scene samples: 0 cats resting on content, 0 off-screen, 0 behind the header |
-| Loop → ring | Nine stations on an ellipse at equal arc length, one-way arcs, dashed 09→01 return, decisions spurring off the rim, philosophy at centre, detail behind per-station disclosures. Loop block 1751px → 687px at 1440 (−61%), 1886px → 918px at 390 (−51%). Two defects found and fixed: a fork printing its branches above their label, and an opened bottom station painting over the next section |
+| Loop → ring | Nine stations on an ellipse at equal arc length, one-way arcs, dashed 09→01 return, decisions spurring off the rim, philosophy at centre, detail revealed per station. Loop block 1751px → 727px at 1440 (−58%), 1886px → 918px at 390 (−51%). Two defects found and fixed: a fork printing its branches above their label, and an opened bottom station painting over the next section |
 | Tree as its own section | `#tree` after Work → Journey → Skills, nav updated to match render order, cross-linked all three ways (leaves → case studies, tree → timeline, roots → skill categories, and each of those sections → tree). Rail states the crown's lopsidedness rather than hiding it |
 | Tree: roots + foliage | Root count now derives from `skillCategories.length`; each category labels its own root tip, aligned by a shared fraction rather than a connector — labels only, no drawn skill→branch edge, which stays the forbidden inference. Foliage per bough scales with that branch's real technology count |
-| Per-entry timeline links | REJECTED after review: the only per-entry ids carry no sticky-header offset, the timeline is filterable so a link can target a hidden entry, and 25 links would add 25 tab stops inside leaf panels. One section-level link kept |
+| Per-entry timeline links | REJECTED in round 7, then BUILT in round 8 at the owner's request. The three rejection reasons were requirements, not excuses: the timeline now widens its own filter when a fragment targets an entry it is hiding (cold load, hashchange, and re-click-same-hash), the anchor is the entry `<li>` with a scroll-margin landing it 80px down, and the link renders only inside an opened leaf. Honest cost, measured: in the mobile/AT list the default-open first lens contributes 12 links at load (+75% tab stops inside #tree at 390px). Accepted — in that presentation the branch row *is* the panel, so it is 12 links or no route back at all |
 | Footer | One colophon line; ~80px saved on a phone, 20px on desktop. Recovery control deleted with the mode it escaped |
 | AI Lab | Kept, per the owner. Added a collapsed "How this answers" panel: the real ranking loop excerpted from `lib/answers.ts`, the rule as notation, and an explicit "this is lexical retrieval, not a language model". A unit test asserts every quoted line still exists in the engine, so the excerpt cannot drift into a lie |
 | Scraping workflow content | Deferred at the owner's request |
@@ -306,3 +306,35 @@ contention from agents sharing the tree rather than a fault.
 Known, out of scope, worth a future pass: the roaming lead cat is a button with
 a 4/3px hit-target margin, so the drawn animal sits slightly inside its own
 test box — meaning it can graze content by up to 4px at a boundary.
+
+## Round 8 (2026-08-18) — deliberate builder/verifier split
+
+Two builders, one package each, then a third agent whose only job was to
+attack both and report without touching the code. The split was adopted after
+round 7 produced the same benefit by accident.
+
+| Change | Outcome |
+| --- | --- |
+| Tree leaf → timeline entry | Built with the three round-7 objections answered. Verifier attacked the document click listener against all 20 in-page hashes on the page plus modified/middle/right clicks: no interference, no double-handling, nothing swallowed. Landing measured at exactly 80px in every path including JS-off and reduced motion; 50 links, 0 dead fragments, 0 duplicate ids |
+| Ring stations stop claiming state | `aria-expanded` removed rather than hiding content. Verifier confirmed via CDP that all nine details are in the accessibility tree at 1440/1024/768/390, nothing advertises a state it lacks, touch and print and reduced motion all work, heights unchanged |
+
+**Verifier's adjudication of three "flaky" e2e failures**, which is why the
+split earns its cost:
+
+- `companion.spec.ts:502` — **a genuine test defect**, not a flake. It fails
+  ~50% in isolation (5/10 with `--repeat-each`). The assertion is an
+  un-polled instantaneous snapshot taken right after a poll that only checks
+  a cat is *near* the card, not that it has *stopped* — so it photographs a
+  cat mid-stride across content, which the design explicitly permits. The
+  sibling test 25 lines above polls the same assertion and never fails.
+- `content-integrity:54` and `contact:53` — **environmental**. 40/40 and
+  60/60 in isolation. The verifier reproduced the exact failure signature by
+  accidentally leaving a second `next dev` against the same `.next`.
+
+**Separate real defect the verifier found while chasing that one:** the lead
+cat's button is padded 4px/3px larger than its drawing, and the rAF loop
+transforms the button — so `isClearSpot` probes a box offset 4px left and 3px
+above the drawn animal, and can approve a resting spot where the cat overlaps
+content by up to 4px. It bites hardest in the contact mood, which is placed
+with exactly 3px of designed clearance. Previously logged as out of scope;
+now measured and confirmed open.
