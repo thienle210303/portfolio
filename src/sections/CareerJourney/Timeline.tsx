@@ -62,8 +62,20 @@
  *
  * Nothing here calls `preventDefault()`. The browser still owns the URL and
  * the history entry; this only widens the filter and finishes the scroll the
- * browser could not perform. Without JavaScript the links still work,
- * because the filter's initial state renders every entry.
+ * browser could not perform.
+ *
+ * Without JavaScript this end of the link still holds up: the filter's
+ * initial state is "all", so every entry is in the document and the browser's
+ * own fragment navigation lands on one unaided (the `<li>` carries
+ * `scroll-margin-top: 80px`, so it arrives clear of the sticky header too).
+ * What does not survive is the other end. The links live inside the career
+ * tree's leaves, and a leaf is a Disclosure: at >=1024px all 25 of the drawn
+ * tree's leaves are collapsed, and the list presentation that would hold the
+ * other 25 is `display: none` there, so zero of the 50 links are reachable at
+ * all. Below 1024px it is 12 — the leaves of the one lens whose panel starts
+ * open. So this is progressive enhancement of the *target*, not of the
+ * journey: it means a link that is reachable always works, not that every
+ * link is reachable.
  *
  * A filter that already includes the entry is left alone rather than reset to
  * "all" — the visitor's choice survives a jump that did not need it undone,

@@ -82,11 +82,49 @@
  *              the ring's centre — below the panel in the lower half, above it
  *              in the upper half. That keeps the two decisions annotating the
  *              ring from outside instead of crowding the centre.
+ *   opening    which way a panel's detail grows, from `clearance`: toward
+ *              whichever side has more room before it would reach another
+ *              panel that shares part of its x range. See below.
  *
  * The nine collapsed panels clear each other by at least 11px on one axis and
- * 36px on the other; expanded ones deliberately overlay their neighbours (see
- * below) rather than pushing them, since nothing on an absolutely positioned
- * ring can push anything.
+ * 36px on the other. Nothing on an absolutely positioned ring can push
+ * anything, so an opening panel grows over its neighbours — which is why the
+ * direction it grows in is chosen rather than assumed.
+ *
+ * WHICH WAY A DETAIL OPENS
+ *
+ * Downward for eight of the nine, upward for 02, and that is computed, not
+ * listed. Only panels that share some of their x range can ever cover each
+ * other, so `clearance` measures, for each panel, the distance to the nearest
+ * such panel above and below it; a panel opens toward the roomier side. Below
+ * the box is unbounded, because `lg:pb-10` on the container reserves that
+ * space; above it is not, because the "The loop" eyebrow is right there.
+ *
+ * Measured at 1024px, where the box is smallest and the panels closest:
+ *
+ *   02  room above 102px (the box top)   room below  36px (03)  -> opens up
+ *   03  room above  36px (02)            room below  61px (04)  -> opens down
+ *   09  room above 102px (the box top)   room below  35px (08)  -> down anyway
+ *
+ * 02 is the case that forced this. Its detail is the longest of the nine —
+ * four lines, 95px — and the panel below it starts 36px away, so opening
+ * downward buried the first word of "03 Understand constraints" under an
+ * opaque card on every hover, at every width. Opening upward puts those 95px
+ * in the empty corner between 01 and 02 and covers nothing at all: verified
+ * with `elementFromPoint` over every station's label and detail text, at
+ * 1024/1280/1440 in both themes, revealing each of the nine in turn.
+ *
+ * 09 has more room above it too, and all of that room is its own fork band,
+ * so a station carrying a fork placed above never opens upward. It opens down
+ * into 08 instead, whose one-line label ends 6px short of the overlap — which
+ * is measured, not designed, so it is checked by the same sweep.
+ *
+ * Upward opening is `lg:bottom-[var(--station-b)]` on the list item plus
+ * `lg:flex-col-reverse` on the card: the panel is anchored from the edge the
+ * detail does *not* grow into, so the collapsed panel lands exactly where the
+ * downward version would have, its leader line still meets it in the same
+ * place, and the label never moves when the detail opens. Reversing is a
+ * paint order, not a DOM order — the button is still the card's first child.
  *
  * THE DETAIL IS ALWAYS READABLE, SO NOTHING CLAIMS OTHERWISE
  *
@@ -135,6 +173,46 @@
  * the panel open until it is clicked again; hover and focus reveal it for as
  * long as they last. None of that is a claim about content, which is why none
  * of it is announced.
+ *
+ * The button stays at every width, and >=1024px is not the exception it looks
+ * like. It is the figure's only focusable element: take it away on the ring
+ * and focus has nothing to land on, so `:focus-within` reveals nothing and a
+ * keyboard visitor loses all nine details at once. Hover is not a substitute
+ * — a touch screen 1024px wide has none — and a focusable element that is not
+ * a control is a worse answer than a control.
+ *
+ * ONE AT A TIME
+ *
+ * At most one station's detail is ever painted. That is not a nicety: two
+ * revealed panels on the same side of the ring overlap by design (see WHICH
+ * WAY A DETAIL OPENS), and with equal stacking the later one in the DOM won,
+ * so pinning 02 and then tabbing to 03 left 02's last line half-covered.
+ *
+ * Exclusivity is two CSS rules on the detail wrapper rather than React state,
+ * because hover and focus reveal the detail with JavaScript off today and
+ * should keep doing so:
+ *
+ *   any station hovered   -> every station that is not hovered collapses
+ *   none hovered, one     -> every station that does not have focus within it
+ *   focused                  collapses
+ *
+ * Hover outranks focus, so pointing at 03 while focus sits on 02 shows 03 and
+ * only 03, and moving the pointer away hands 02 back its detail. Both rules
+ * out-specify every reveal they override, the pin included. The pin itself is
+ * a single id on the parent, so "pinned" is singular by construction rather
+ * than by nine components agreeing.
+ *
+ * WHAT PINNING LOOKS LIKE
+ *
+ * A pinned card is bordered in `fg` instead of `rule`. Without that, pressing
+ * Enter on a focused station changed nothing anyone could see — focus had
+ * already painted the panel — so the one control in the figure read as dead.
+ * The ink border is a visual mark of a visual behaviour: this is the station
+ * that stays painted when the pointer and the focus ring have both moved on.
+ * It is still not an ARIA state, and there is still nothing to announce: for
+ * a screen reader all nine details are readable at all times, so the press
+ * genuinely changes nothing in the accessibility tree, and inventing an
+ * announcement for it would be describing a change that did not happen.
  *
  * What is deliberately NOT done: making the disclosure real by copying the
  * shared Disclosure primitive's `visibility` flip, which takes collapsed
@@ -332,11 +410,20 @@ interface Station {
   /** Panel box, in drawing-box coordinates. */
   readonly left: number;
   readonly top: number;
+  /** The same box measured from the bottom edge instead of the top. An
+   *  upward-opening station is anchored from this, so its collapsed panel
+   *  lands exactly where `top` would have put it and the detail grows into
+   *  the space above rather than pushing the label anywhere. */
+  readonly bottom: number;
   /** Forks hang off the side of the panel away from the ring's centre. */
   readonly forkPlacement: "above" | "below";
+  /** Which way the detail opens — see `clearance` below. */
+  readonly opensUp: boolean;
 }
 
-function place(count: number): readonly Station[] {
+type Panel = Omit<Station, "bottom" | "opensUp">;
+
+function panels(count: number): readonly Panel[] {
   return Array.from({ length: count }, (_unused, index) => {
     const angle = angleAtFraction(index / count);
     const dx = RX * Math.cos(angle);
@@ -370,6 +457,48 @@ function place(count: number): readonly Station[] {
       left: CX + left,
       top: CY + top,
       forkPlacement: dy < 0 ? "above" : "below",
+    } satisfies Panel;
+  });
+}
+
+/**
+ * How far a panel can grow before it reaches another panel that shares some
+ * of its x range — the only panels that can ever cover it.
+ *
+ *   above   bounded by the nearest such panel, or by the top of the drawing
+ *           box, because there is nothing reserved above the box: the "The
+ *           loop" eyebrow is right there.
+ *   below   unbounded when nothing overlaps it on x, because the container
+ *           reserves `lg:pb-10` under the box for exactly this (see the note
+ *           on the drawing box).
+ */
+function clearance(panel: Panel, all: readonly Panel[]): { above: number; below: number } {
+  let above = panel.top;
+  let below = Number.POSITIVE_INFINITY;
+  for (const other of all) {
+    if (other === panel) continue;
+    const sharesX =
+      Math.min(panel.left + PANEL_W, other.left + PANEL_W) > Math.max(panel.left, other.left);
+    if (!sharesX) continue;
+    if (other.top > panel.top) below = Math.min(below, other.top - (panel.top + PANEL_H));
+    else above = Math.min(above, panel.top - (other.top + PANEL_H));
+  }
+  return { above, below };
+}
+
+function place(count: number, hasFork: readonly boolean[]): readonly Station[] {
+  const all = panels(count);
+  return all.map((panel, index) => {
+    const room = clearance(panel, all);
+    /* A fork already occupies the space above its own panel, so a station
+       that carries one can never open upward into it — 09 is the case: it
+       has more room above than below on paper, and all of that room is its
+       own "Then / feed it back in / stop when it's useful" band. */
+    const forkAbove = hasFork[index] === true && panel.forkPlacement === "above";
+    return {
+      ...panel,
+      bottom: BOX_H - (panel.top + PANEL_H),
+      opensUp: !forkAbove && room.above > room.below,
     };
   });
 }
@@ -630,6 +759,10 @@ interface StationProps {
   readonly isLast: boolean;
   /** The last station's exit is dashed — it is the one edge that runs back. */
   readonly exitsToLoop: boolean;
+  /** Whether this is the one station currently pinned. Owned by the parent,
+   *  which is what makes "pinned" singular — see PINNING, above. */
+  readonly pinned: boolean;
+  readonly onPin: () => void;
 }
 
 function StationItem({
@@ -640,12 +773,11 @@ function StationItem({
   loopTarget,
   isLast,
   exitsToLoop,
+  pinned,
+  onPin,
 }: StationProps) {
-  /* Not `open`: nothing here opens or closes. The detail is in the document
-     either way; this only decides whether it stays painted after the pointer
-     and the focus ring have both moved on. */
-  const [pinned, setPinned] = useState(false);
   const placement = station?.forkPlacement ?? "below";
+  const opensUp = station?.opensUp ?? false;
 
   return (
     <li
@@ -658,7 +790,11 @@ function StationItem({
         // Below 1024px a station is a row, not a card the width of the page:
         // capped, so a two-word label is not stranded in 650px of surface.
         "max-w-[30rem] lg:max-w-none",
-        "lg:absolute lg:left-[var(--station-x)] lg:top-[var(--station-y)] lg:z-10 lg:w-[11.5rem] lg:pb-0",
+        "lg:absolute lg:left-[var(--station-x)] lg:z-10 lg:w-[11.5rem] lg:pb-0",
+        // Anchored from whichever edge the detail does NOT grow into, so the
+        // collapsed panel is in the same place either way and only the free
+        // side of it moves.
+        opensUp ? "lg:bottom-[var(--station-b)]" : "lg:top-[var(--station-y)]",
         "lg:hover:z-30 lg:focus-within:z-30",
         pinned && "lg:z-30",
       )}
@@ -667,11 +803,25 @@ function StationItem({
           ? ({
               "--station-x": pct(station.left, BOX_W),
               "--station-y": pct(station.top, BOX_H),
+              "--station-b": pct(station.bottom, BOX_H),
             } as CSSProperties)
           : undefined
       }
     >
-      <div className="relative border border-rule bg-surface">
+      <div
+        className={cn(
+          "relative border bg-surface",
+          // The pin's only claim, and it is a visual one: this is the station
+          // that stays painted when nothing is being pointed at. Ink rather
+          // than rule weight, so pressing the button changes something a
+          // sighted visitor can see even when focus never left the station.
+          pinned ? "border-fg" : "border-rule",
+          // `flex-col-reverse` paints the detail above the label without
+          // moving it in the DOM: the button is still the list item's first
+          // child, so tab order and reading order are untouched.
+          opensUp && "lg:flex lg:flex-col-reverse",
+        )}
+      >
         {/* No `aria-expanded`, no `aria-controls`, no `aria-pressed`: the
             paragraph below is in the accessibility tree whatever this button
             has been doing, so there is no state here worth reporting and none
@@ -681,7 +831,7 @@ function StationItem({
             reliable focus. */}
         <button
           type="button"
-          onClick={() => setPinned((value) => !value)}
+          onClick={onPin}
           className="flex w-full items-center px-3.5 py-3 text-left lg:h-[4.375rem] lg:py-0"
         >
           <span className="flex items-baseline gap-2">
@@ -710,9 +860,16 @@ function StationItem({
           data-print-expand=""
           className={cn(
             "grid transition-[grid-template-rows] duration-200 ease-out",
-            pinned
-              ? "grid-rows-[1fr]"
-              : "grid-rows-[0fr] group-focus-within:grid-rows-[1fr] group-hover:grid-rows-[1fr]",
+            pinned ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            "group-focus-within:grid-rows-[1fr] group-hover:grid-rows-[1fr]",
+            // The two exclusivity rules (see ONE AT A TIME, above). They are
+            // written as selectors rather than driven from React so the
+            // figure still reveals a detail on hover and on focus with
+            // JavaScript off, which is how it works today. Both out-specify
+            // every reveal above: `ol:has()` + `:not()` + the utility class
+            // beats `.group:hover .utility`.
+            "[.loop-ring:has(.group:hover)_.group:not(:hover)_&]:grid-rows-[0fr]",
+            "[.loop-ring:not(:has(.group:hover)):has(.group:focus-within)_.group:not(:focus-within)_&]:grid-rows-[0fr]",
           )}
         >
           <div className="overflow-hidden">
@@ -765,7 +922,12 @@ function StationItem({
 /* -------------------------------------------------------------------------- */
 
 export default function ProblemSolvingLoop({ steps, philosophy }: ProblemSolvingLoopProps) {
-  const stations = place(steps.length);
+  /* The id of the one pinned station, or null. Not a flag per station: one
+     value is what makes "only ever one detail painted" true by construction
+     rather than by agreement between nine components. */
+  const [pinned, setPinned] = useState<string | null>(null);
+  const decisions = steps.map((step) => FORKS[step.id] !== undefined);
+  const stations = place(steps.length, decisions);
   const lastStep = steps.length > 0 ? steps[steps.length - 1] : undefined;
   const loopTarget = steps.length > 0 ? steps[0].label : undefined;
   /* The closing arc is only the return edge if the step it leaves from is the
@@ -774,7 +936,6 @@ export default function ProblemSolvingLoop({ steps, philosophy }: ProblemSolving
   const closesTheLoop =
     lastStep !== undefined &&
     (FORKS[lastStep.id]?.branches.some((branch) => branch.kind === "loop") ?? false);
-  const decisions = steps.map((step) => FORKS[step.id] !== undefined);
 
   return (
     /* `lg:pb-10` is clearance, not spacing. The drawing box has a fixed height,
@@ -854,7 +1015,10 @@ export default function ProblemSolvingLoop({ steps, philosophy }: ProblemSolving
             </>
           ) : null}
 
-          <ol role="list" aria-labelledby={LABEL_ID}>
+          {/* `loop-ring` is a marker for the two exclusivity rules on each
+              station's detail wrapper, and nothing else — it carries no
+              styles of its own. */}
+          <ol role="list" aria-labelledby={LABEL_ID} className="loop-ring">
             {steps.map((step, index) => (
               <StationItem
                 key={step.id}
@@ -869,6 +1033,8 @@ export default function ProblemSolvingLoop({ steps, philosophy }: ProblemSolving
                 }
                 isLast={index === steps.length - 1}
                 exitsToLoop={closesTheLoop}
+                pinned={pinned === step.id}
+                onPin={() => setPinned((current) => (current === step.id ? null : step.id))}
               />
             ))}
           </ol>

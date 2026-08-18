@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { careerEntries, codeTabs } from "../src/content/portfolio";
 import { workflowStages, experiments } from "../src/content/ai-experiments";
 
@@ -6,8 +6,51 @@ import { workflowStages, experiments } from "../src/content/ai-experiments";
 // between its desktop tablist and its mobile accordion stack.
 const DESKTOP_MIN_WIDTH = 1024;
 
+/**
+ * Where a timeline entry comes to rest: `scroll-margin-top: 80px` on the
+ * `<li>`, which is the 4rem sticky header plus a rem of air.
+ */
+const ENTRY_RESTING_TOP = 80;
+/** A pixel or two of sub-pixel rounding, and nothing like enough to hide a
+ *  scroll that stopped somewhere else entirely. */
+const RESTING_TOLERANCE = 2;
+
 function viewportWidth(page: Page): number {
   return page.viewportSize()?.width ?? 0;
+}
+
+/**
+ * The element's offset from the top of the viewport once it has stopped
+ * moving.
+ *
+ * Deliberately not `expect.poll`: that returns on its first *passing* sample,
+ * so a threshold assertion on a smooth scroll passes at whatever point the
+ * scroll happens to be sampled at — a regression that parked the entry at
+ * 400px would satisfy `>= 64` on the way past and never be seen. This polls
+ * for stability instead: the same rounded offset three reads running, and
+ * only then is it handed back to be asserted against the one number the
+ * contract actually names.
+ */
+async function restingTop(element: Locator): Promise<number> {
+  const read = () => element.evaluate((node) => Math.round(node.getBoundingClientRect().top));
+  // Never accept a rest before the scroll has had a chance to start: the
+  // filtered path widens the filter first and scrolls on the commit after.
+  await element.page().waitForTimeout(250);
+  let stable = 0;
+  let previous = await read();
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await element.page().waitForTimeout(100);
+    const next = await read();
+    stable = next === previous ? stable + 1 : 0;
+    previous = next;
+    if (stable >= 2) return next;
+  }
+  throw new Error(`element never stopped scrolling (last offset ${previous}px)`);
+}
+
+function expectSettledAtScrollMargin(top: number, message: string) {
+  expect(top, message).toBeGreaterThanOrEqual(ENTRY_RESTING_TOP - RESTING_TOLERANCE);
+  expect(top, message).toBeLessThanOrEqual(ENTRY_RESTING_TOP + RESTING_TOLERANCE);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -278,28 +321,36 @@ test.describe("career tree", () => {
     expect(landedInPanel, "Tab from a collapsed leaf must not reach its timeline link").toBe(false);
   });
 
+  /**
+   * The one visible copy of the leaf's timeline link, opened if it needs to
+   * be. The drawing keeps each leaf's link in that leaf's own panel, so the
+   * leaf has to be opened first; the list presentation keeps it in the branch
+   * row, inside the lens's panel, which is already open for the first lens.
+   * Whichever presentation is displayed at this width, the other one is
+   * `display: none`, so its copy of the same link is not visible.
+   */
+  const revealLeafTimelineLink = async (page: Page): Promise<Locator> => {
+    const tree = page.locator("#tree");
+    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
+      const trigger = tree
+        .locator(`button[id^="tree-leaf-"][id$="-${linkedEntry.id}-trigger"]`)
+        .first();
+      if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
+    }
+    const link = tree.locator(`a[href="#${ENTRY_ANCHOR}"]:visible`).first();
+    await link.scrollIntoViewIfNeeded();
+    return link;
+  };
+
   test("a leaf's timeline link lands on its entry even when the filter excludes it", async ({
     page,
   }) => {
     const journey = page.locator("#journey");
-    const tree = page.locator("#tree");
 
     await journey.getByRole("radio", { name: "Work" }).click();
     await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
 
-    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
-      // The drawing keeps each leaf's link in that leaf's own panel; the list
-      // presentation keeps it in the branch row, inside the lens's panel,
-      // which is already open for the first lens.
-      await tree
-        .locator(`button[id^="tree-leaf-"][id$="-${linkedEntry.id}-trigger"]`)
-        .first()
-        .click();
-    }
-    // Whichever presentation is displayed at this width — the other one is
-    // `display: none`, so its copy of the same link is not visible.
-    const link = tree.locator(`a[href="#${ENTRY_ANCHOR}"]:visible`).first();
-    await link.scrollIntoViewIfNeeded();
+    const link = await revealLeafTimelineLink(page);
     await link.click();
 
     const entry = page.locator(`#${ENTRY_ANCHOR}`);
@@ -312,18 +363,109 @@ test.describe("career tree", () => {
       "true",
     );
 
-    // And it landed below the sticky header rather than behind it. Polled,
-    // because the scroll is smooth unless the visitor asked otherwise.
-    await expect
-      .poll(async () => entry.evaluate((element) => Math.round(element.getBoundingClientRect().top)), {
-        message: "the entry must come to rest clear of the 4rem sticky header",
-      })
-      .toBeGreaterThanOrEqual(64);
+    // And it came to rest at its scroll margin, not merely somewhere below
+    // the sticky header on the way past.
+    expectSettledAtScrollMargin(
+      await restingTop(entry),
+      "the entry must settle at its 80px scroll margin, clear of the 4rem sticky header",
+    );
     const rest = await entry.evaluate((element) => ({
       top: element.getBoundingClientRect().top,
       viewport: window.innerHeight,
     }));
     expect(rest.top, "inside the viewport").toBeLessThan(rest.viewport);
+  });
+
+  /*
+   * The case `hashchange` cannot cover, and the only reason the document-level
+   * click listener in Timeline.tsx exists: a second activation of a link whose
+   * fragment the page is *already* on navigates nowhere and fires no event at
+   * all. A visitor reaches that state by following a leaf and then filtering
+   * the entry away again — at which point the link they just used silently
+   * stops working unless something notices the click itself.
+   */
+  test("re-clicking the link the page is already on re-reveals a re-filtered entry", async ({
+    page,
+  }) => {
+    const journey = page.locator("#journey");
+    const entry = page.locator(`#${ENTRY_ANCHOR}`);
+
+    // First visit, from the default "all" filter: an ordinary fragment
+    // navigation, which sets the hash.
+    const link = await revealLeafTimelineLink(page);
+    await link.click();
+    await expect(entry).toBeFocused();
+    await expect.poll(() => new URL(page.url()).hash).toBe(`#${ENTRY_ANCHOR}`);
+
+    // Filter the entry back out. The hash still names it, so the second click
+    // below changes nothing about the URL and fires neither `hashchange` nor
+    // anything else the effects above could hear.
+    await journey.getByRole("radio", { name: "Work" }).click();
+    await expect(entry).toHaveCount(0);
+
+    const again = await revealLeafTimelineLink(page);
+    await again.click();
+
+    await expect(entry).toBeVisible();
+    await expect(entry).toBeFocused();
+    await expect(journey.getByRole("radio", { name: "All" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expectSettledAtScrollMargin(
+      await restingTop(entry),
+      "a re-click must land the entry where the first click did",
+    );
+  });
+
+  /*
+   * The other half of that listener: it runs on *every* click in the document,
+   * so the thing it must be best at is doing nothing. This is the ordinary
+   * in-page link nearest to it — the tree's own pointer back at the journey
+   * section — clicked twice, so the second click takes exactly the branch the
+   * test above relies on and has to fall straight back out of it.
+   */
+  test("an ordinary in-page link leaves the timeline's filter alone", async ({ page }) => {
+    const journey = page.locator("#journey");
+    const status = journey.getByRole("status");
+
+    await journey.getByRole("radio", { name: "Work" }).click();
+    await expect(journey.getByRole("radio", { name: "Work" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    const filtered = await status.textContent();
+    expect(filtered, "the live region should be reporting a filtered count").toMatch(
+      /Showing \d+ of \d+ entr/,
+    );
+    await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
+
+    const crossLink = page.locator('#tree a[href="#journey"]').first();
+    await crossLink.scrollIntoViewIfNeeded();
+    await crossLink.click();
+    await expect.poll(() => new URL(page.url()).hash).toBe("#journey");
+    // Again, now that the page is already on that fragment.
+    await crossLink.scrollIntoViewIfNeeded();
+    await crossLink.click();
+
+    await expect(journey.getByRole("radio", { name: "Work" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(status).toHaveText(filtered ?? "");
+    await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
+    // And nothing pulled focus into the timeline: revealing an entry focuses
+    // its `<li>`, so this is the same claim from the other side. Asserted
+    // against the entry rather than the link, because whether a click focuses
+    // the anchor it lands on is the platform's business, not this page's.
+    expect(
+      await page.evaluate(
+        () =>
+          document.activeElement instanceof HTMLElement &&
+          document.activeElement.id.startsWith("journey-entry-"),
+      ),
+      "an ordinary in-page link must not move focus onto a timeline entry",
+    ).toBe(false);
   });
 
   test("a cold load of an entry's fragment lands on it, clear of the header", async ({ page }) => {
@@ -334,11 +476,10 @@ test.describe("career tree", () => {
     await expect(entry).toBeVisible();
     await expect(entry).toBeFocused();
 
-    await expect
-      .poll(async () => entry.evaluate((element) => Math.round(element.getBoundingClientRect().top)), {
-        message: "a cold load must come to rest clear of the 4rem sticky header",
-      })
-      .toBeGreaterThanOrEqual(64);
+    expectSettledAtScrollMargin(
+      await restingTop(entry),
+      "a cold load must settle at the entry's 80px scroll margin",
+    );
   });
 });
 
