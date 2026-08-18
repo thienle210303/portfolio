@@ -278,7 +278,7 @@ as own section yes/no; draft scraping content for approval yes/no.
 | Item | Outcome |
 | --- | --- |
 | Cats: play menu, off retired | `off` deleted from the state machine; a stored `"off"` migrates to `resting` so nobody is stranded. Toolkit drops the jump/reach lists (the nav and Contact already carry them) for four on-demand scenes plus a police-escorted "Send the cats to bed". Section moods land in Work, Contact and beside the loop. Verified on a production build: resting schedules 0 rAF callbacks, axe clean with the panel open, reduced motion offers no scenes |
-| Cats: play refusals | DEFECT found by an independent pass — `requestPlay` probes from wherever the cats are, and opening the panel calls them to an unprobed corner, so three sections refused every scene and the answer changed with how long the panel had been open. Fix in flight |
+| Cats: play refusals | DEFECT found by an independent pass — `requestPlay` probes from wherever the cats are, and opening the panel calls them to an unprobed corner, so three sections refused every scene and the answer changed with how long the panel had been open. Fixed: the request now sweeps the places a cat could stand rather than the one point they occupy, and walks them there if needed, so a refusal means the page is genuinely full. Measured on a production build across 7 sections x 4 scenes x 2 click timings: 15/28 and 16/28 played before, 28/28 and 28/28 after, the two timings identical. 2,239 mid-scene samples: 0 cats resting on content, 0 off-screen, 0 behind the header |
 | Loop → ring | Nine stations on an ellipse at equal arc length, one-way arcs, dashed 09→01 return, decisions spurring off the rim, philosophy at centre, detail behind per-station disclosures. Loop block 1751px → 687px at 1440 (−61%), 1886px → 918px at 390 (−51%). Two defects found and fixed: a fork printing its branches above their label, and an opened bottom station painting over the next section |
 | Tree as its own section | `#tree` after Work → Journey → Skills, nav updated to match render order, cross-linked all three ways (leaves → case studies, tree → timeline, roots → skill categories, and each of those sections → tree). Rail states the crown's lopsidedness rather than hiding it |
 | Tree: roots + foliage | Root count now derives from `skillCategories.length`; each category labels its own root tip, aligned by a shared fraction rather than a connector — labels only, no drawn skill→branch edge, which stays the forbidden inference. Foliage per bough scales with that branch's real technology count |
@@ -292,3 +292,17 @@ the second agent detected the collision before writing and switched to
 verification, which is where the play-refusal defect, both ring defects and the
 stale companion spec were caught. Duplicate dispatch was wasteful; the
 verification pass it accidentally produced was not.
+
+### Round 7 gate (2026-08-18)
+
+`pnpm verify` green — typecheck, lint, contrast, 211 unit tests, production
+build. Full Playwright matrix: **302 passed, 0 failed** across six viewports,
+both themes, all tones, axe audits, including the Career Tree's new coverage.
+
+The `accessibility.spec.ts` console-error test that failed intermittently
+during the round passed in the uncontended run, confirming it was worker-load
+contention from agents sharing the tree rather than a fault.
+
+Known, out of scope, worth a future pass: the roaming lead cat is a button with
+a 4/3px hit-target margin, so the drawn animal sits slightly inside its own
+test box — meaning it can graze content by up to 4px at a boundary.
