@@ -1,5 +1,5 @@
+import { Fragment } from "react";
 import { profile, socialLinks } from "@/content/portfolio";
-import CompanionRecoveryLink from "./CompanionRecoveryLink";
 
 /**
  * Hardcoded rather than `new Date().getFullYear()` — computing the year
@@ -11,58 +11,76 @@ import CompanionRecoveryLink from "./CompanionRecoveryLink";
 const COPYRIGHT_YEAR = 2026;
 
 /**
- * Server Component. "Back to top" is a plain anchor to `#main`, so it (and
- * every link here) keeps working with JavaScript disabled. The one
- * exception is `CompanionRecoveryLink`, a tiny client island rendered
- * below — see that file for why it has to be one, and why it stays absent
- * (not merely hidden) on every load except the one it exists for.
+ * Server Component, no client islands. "Back to top" is a plain anchor to
+ * `#main`, so it (and every link here) keeps working with JavaScript
+ * disabled; the target carries `tabIndex={-1}` (see `layout.tsx`), which is
+ * what turns the fragment jump into a real focus move rather than a scroll
+ * that strands the keyboard cursor.
+ *
+ * Reads as one colophon line — copyright, email, GitHub, LinkedIn, Back to
+ * top — separated by quiet `·` dividers, wrapping to more than one line only
+ * once a narrow viewport forces it. Each divider is `aria-hidden`: the
+ * accessible structure is just a flat run of a paragraph and links, nothing
+ * a screen reader needs to announce as a list. Every link keeps a 44px tap
+ * target via `min-h-11` + padding, never a larger font, so the line stays
+ * visually quiet while remaining easy to hit on touch.
+ *
+ * `CompanionRecoveryLink`, the one client island this file used to render,
+ * is gone along with the companion's `off` mode it existed to escape — the
+ * bed is the only rest state now, so there is nothing left to recover from.
  */
 export default function SiteFooter() {
   const email = socialLinks.find((link) => link.platform === "Email");
   const externalLinks = socialLinks.filter((link) => link.platform !== "Email");
 
+  const divider = (
+    <span aria-hidden="true" className="px-2 text-fg-subtle">
+      ·
+    </span>
+  );
+
   return (
     <footer className="border-t border-rule bg-ground text-fg">
-      <div className="shell flex flex-col gap-8 py-12 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-4">
+      <div className="shell">
+        <div className="flex flex-wrap items-center gap-y-2 py-5 text-[length:var(--step--1)] text-fg-subtle">
+          <p className="inline-flex items-center py-1">
+            © {COPYRIGHT_YEAR} {profile.name}
+          </p>
+
           {email ? (
-            <a
-              href={email.href}
-              className="wrap-anywhere inline-flex min-h-11 w-fit items-center text-[length:var(--step-0)] text-fg"
-            >
-              {email.handle}
-            </a>
+            <Fragment>
+              {divider}
+              <a
+                href={email.href}
+                className="wrap-anywhere inline-flex min-h-11 items-center px-1 text-fg"
+              >
+                {email.handle}
+              </a>
+            </Fragment>
           ) : null}
 
-          <ul className="flex flex-wrap gap-x-6 gap-y-2">
-            {externalLinks.map((link) => (
-              <li key={link.id}>
-                <a
-                  href={link.href}
-                  target={link.external ? "_blank" : undefined}
-                  rel={link.external ? "noopener noreferrer" : undefined}
-                  className="inline-flex min-h-11 items-center gap-2 text-[length:var(--step--1)] text-fg-muted transition-colors duration-150 hover:text-fg"
-                >
-                  {link.label}
-                  <span className="text-fg-subtle">{link.handle}</span>
-                  {link.external ? <span className="sr-only"> (opens in a new tab)</span> : null}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
+          {externalLinks.map((link) => (
+            <Fragment key={link.id}>
+              {divider}
+              <a
+                href={link.href}
+                target={link.external ? "_blank" : undefined}
+                rel={link.external ? "noopener noreferrer" : undefined}
+                className="inline-flex min-h-11 items-center px-1 text-fg-muted transition-colors duration-150 hover:text-fg"
+              >
+                {link.label}
+                {link.external ? <span className="sr-only"> (opens in a new tab)</span> : null}
+              </a>
+            </Fragment>
+          ))}
 
-        <div className="flex flex-col items-start gap-4 sm:items-end">
+          {divider}
           <a
             href="#main"
-            className="inline-flex min-h-11 items-center border border-rule px-4 text-[length:var(--step--1)] uppercase tracking-[0.14em] text-fg"
+            className="inline-flex min-h-11 items-center border border-rule px-4 uppercase tracking-[0.14em] text-fg"
           >
             Back to top
           </a>
-          <p className="text-[length:var(--step--1)] text-fg-subtle">
-            © {COPYRIGHT_YEAR} {profile.name}
-          </p>
-          <CompanionRecoveryLink />
         </div>
       </div>
     </footer>
