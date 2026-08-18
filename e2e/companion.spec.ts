@@ -209,8 +209,7 @@ test.describe("companion", () => {
     const cat = catButton(page);
     await expect(cat).toHaveAttribute("aria-expanded", "false");
 
-    await cat.click();
-    await expect(cat).toHaveAttribute("aria-expanded", "true");
+    await clickOpenToolkit(page);
     await expect(toolkit(page).getByRole("button", { name: SCENES[0].name })).toBeVisible();
 
     await page.keyboard.press("Escape");
@@ -256,7 +255,7 @@ test.describe("companion", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
-    await catButton(page).click();
+    await openToolkit(page);
 
     const panel = toolkit(page);
 
@@ -386,7 +385,7 @@ test.describe("companion", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await catButton(page).click();
+    await openToolkit(page);
     await page.getByRole("button", { name: /send the cats to bed/i }).click();
 
     // Gone from roaming, but not gone: the bed is a real, labelled control and
@@ -897,7 +896,8 @@ test.describe("companion", () => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await catButton(page).click();
+    await openToolkit(page);
+    await expect(toolkit(page)).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])

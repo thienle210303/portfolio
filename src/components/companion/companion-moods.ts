@@ -197,14 +197,18 @@ function contactMood(follow: Point, home: Point): MoodPlan | null {
     { x: rect.right + MARGIN, y: rect.top + 26 },
   ];
 
+  const middle = (rect.left + rect.right) / 2;
   for (const want of perches) {
     const spot = clampToViewport(want);
     if (!isClearSpot(spot)) continue;
-    // Only *one* of them perches — the other keeps her own place, wherever the
-    // page allows it. Two cats lined up on a business card is a logo.
+    // Only *one* of them perches — the pair lined up along a business card is a
+    // logo, not two animals. She takes the nearest clear place off it, and only
+    // keeps her own if there is none: two cats a viewport apart have stopped
+    // being a pair.
+    const outward: 1 | -1 = spot.x + CAT_W / 2 >= middle ? 1 : -1;
     return {
       kind: "contact",
-      spots: { lead: spot, follow: findClearSpot(follow, home, spot) },
+      spots: { lead: spot, follow: mateSpot(spot, outward) ?? findClearSpot(follow, home, spot) },
       path: [],
     };
   }
@@ -219,40 +223,42 @@ function contactMood(follow: Point, home: Point): MoodPlan | null {
  * The loop diagram, which is the last ordered list in the section — the first
  * is the principles. Named by its own label id where that still holds, and by
  * position where it does not, because this is markup another component owns.
+ *
+ * And measured through its parent whenever the list itself has collapsed. A
+ * diagram is a *drawing* of a list: at desktop widths the steps are positioned
+ * absolutely against the wrapper, which leaves the `<ol>` a full-width box
+ * nine items tall and zero pixels high. Walking the outer edge of that is
+ * walking a horizontal line through the middle of the picture.
  */
 function loopDiagram(): DOMRect | null {
-  const labelled = document.querySelector('#philosophy ol[aria-labelledby="philosophy-loop-label"]');
-  if (labelled) return rectOf(labelled);
   const lists = document.querySelectorAll("#philosophy ol");
-  return rectOf(lists[lists.length - 1]);
+  const list =
+    document.querySelector('#philosophy ol[aria-labelledby="philosophy-loop-label"]') ??
+    lists[lists.length - 1];
+  if (!list) return null;
+  const own = list.getBoundingClientRect();
+  const drawn = own.height >= CAT_H ? list : (list.parentElement ?? list);
+  return rectOf(drawn);
 }
 
-/** Drop waypoints that land on top of the one before them — a clamped lap on a
- *  narrow viewport collapses to a straight line, and a "lap" of two identical
- *  points is a cat twitching in place. */
-function trim(points: readonly Point[], settle: Point): Point[] {
-  const kept: Point[] = [];
-  for (const point of points) {
-    const previous = kept[kept.length - 1];
-    if (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < CAT_W * 0.6) continue;
-    kept.push(point);
-  }
-  // And the last one, if it is already where they are going to sit.
-  while (
-    kept.length > 0 &&
-    Math.hypot(kept[kept.length - 1].x - settle.x, kept[kept.length - 1].y - settle.y) < CAT_W * 0.6
-  ) {
-    kept.pop();
-  }
-  return kept;
-}
+/**
+ * How far the lead is willing to walk to trace an edge, in px.
+ *
+ * The diagram is a thousand pixels across and six hundred tall, so a full
+ * circuit of it is well over three thousand pixels — a quarter of a minute of
+ * two cats trotting round the screen while somebody reads the thing they are
+ * trotting round. That is not a mood, it is a screensaver. The budget cuts the
+ * circuit off wherever it runs out and they sit down there instead, which on a
+ * big diagram traces one long edge and on a small one goes the whole way round.
+ */
+const LAP_BUDGET = 1100;
 
-function loopMood(follow: Point, home: Point): MoodPlan | null {
+function loopMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
   const rect = loopDiagram();
   if (!rect) return null;
 
   const view = viewport();
-  // The visible slice of the diagram: it is usually taller than the window, so
+  // The visible slice of it: the diagram is usually taller than the window, so
   // the "outer edge" a cat can actually walk is the part of it on screen.
   const top = Math.max(rect.top + 8, safeTop() + 10);
   const bottom = Math.min(rect.bottom - CAT_H - 8, view.height - CAT_H - 10);
@@ -260,19 +266,47 @@ function loopMood(follow: Point, home: Point): MoodPlan | null {
 
   const right = rect.right + MARGIN;
   const left = rect.left - CAT_W - MARGIN;
+  // Start on the side they are already standing, and at the end of it they are
+  // already nearest: a lap whose first leg is a walk across the whole page is a
+  // lap that reads as one long walk with a circuit attached.
+  const near = lead.x + CAT_W / 2 > (rect.left + rect.right) / 2 ? right : left;
+  const far = near === right ? left : right;
+  const from = Math.abs(lead.y - top) <= Math.abs(lead.y - bottom) ? top : bottom;
+  const to = from === top ? bottom : top;
 
-  for (const dy of [0, 70, 150, -CAT_H - 10]) {
-    const spot = clampToViewport({ x: left, y: top + dy });
+  const circuit = [
+    { x: near, y: from },
+    { x: near, y: to },
+    { x: far, y: to },
+    { x: far, y: from },
+  ].map(clampToViewport);
+
+  // Walk it until the budget runs out, dropping any leg the clamp has already
+  // collapsed — a "lap" of two identical points is a cat twitching in place.
+  const path: Point[] = [];
+  let spent = 0;
+  let at = lead;
+  for (const point of circuit) {
+    const step = Math.hypot(point.x - at.x, point.y - at.y);
+    if (step < CAT_W * 0.6) continue;
+    if (spent + step > LAP_BUDGET) break;
+    spent += step;
+    path.push(point);
+    at = point;
+  }
+  if (path.length === 0) return null;
+
+  // And they sit down where the trace stopped — on the edge, which is the whole
+  // point of having walked it. Backing off one waypoint at a time rather than
+  // hunting elsewhere: any spot on this route is still "beside the diagram".
+  for (let i = path.length - 1; i >= 0; i -= 1) {
+    const spot = path[i];
     if (!isClearSpot(spot)) continue;
-    const lap = [
-      { x: right, y: top },
-      { x: right, y: bottom },
-      { x: left, y: bottom },
-    ].map(clampToViewport);
+    const side: 1 | -1 = spot.x + CAT_W / 2 > (rect.left + rect.right) / 2 ? 1 : -1;
     return {
       kind: "loop",
-      spots: { lead: spot, follow: mateSpot(spot, -1) ?? findClearSpot(follow, home, spot) },
-      path: trim(lap, spot),
+      spots: { lead: spot, follow: mateSpot(spot, side) ?? findClearSpot(follow, home, spot) },
+      path: path.slice(0, i),
     };
   }
   return null;
@@ -296,6 +330,6 @@ export function planMood(
 ): MoodPlan | null {
   if (section === "work") return workMood(lead, follow, home);
   if (section === "contact") return contactMood(follow, home);
-  if (section === "philosophy") return loopMood(follow, home);
+  if (section === "philosophy") return loopMood(lead, follow, home);
   return null;
 }
