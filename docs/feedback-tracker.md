@@ -362,3 +362,37 @@ in two keystrokes, and three stale claims — and adjudicated three "flaky"
 failures into one genuine test defect and two environmental, with evidence
 rather than a shrug. One builder died mid-task to a server error; its work was
 checked rather than assumed, and had in fact completed.
+
+## Round 9 (2026-08-18)
+
+Three items, all about the cats.
+
+| ID | Feedback | Evaluation | Verdict | Priority | Owner |
+| --- | --- | --- | --- | --- | --- |
+| FB-9.1 | "when cat is active on my mouse and I choose action, they just stop doing and follow my mouse" | Reproduced in one run: the panel returns `data-cat-play="yarn"`, the next `mousemove` clears it. The loop drops any scene the frame the pointer moves, and made no distinction between a scene it offered and a scene the visitor chose — so with a mouse in your hand, four of the five menu items did nothing | **Accepted** | P0 | Opus |
+| FB-9.2 | "In light mode, on closing section, the cat is just disappearing (color overlapping?)" | Correct, and it is exactly colour overlapping. Measured: the follower's computed `color` was `rgb(18,24,28)` against a `--ground` of `#12181c` — **contrast 1.00**, a cat drawn in the ground it is standing on. `syncTone` repoints a drawing's aliases, but `color` was inherited from the layer root, resolved outside every tone scope, so the tone class never reached `currentColor`. Only the page's one `contrast` section is dark enough in day theme for it to be fatal | **Accepted** | P0 | Opus |
+| FB-9.3 | "How to make cat play around with content on the page? or have mode that cat go around instead of follow the mouse? … hiding on textbox. Scratching the text, or punch the text, hunting the text, run" | Two separable asks, both good. The mode is clean: a third `CompanionMode` where the pointer is ignored and the pair choose their own destinations. The content play is accepted in a scoped form — three scenes anchored to real elements (`peek` behind an opaque panel, `scratch` at a section's own hairline, `stalk` and pounce past a heading's end), all drawn by the companion. The page's own DOM is never mutated: a cat that could shove a heading around is a cat that can break a layout, and the "punch" reads just as well as a paw that stops short | **Accepted, scoped** | P1 | Opus |
+
+### FB-9.1 and FB-9.2 — shipped (`2e2a986`)
+
+Scenes now carry their provenance. A requested one is held against the pointer
+and against nothing else: the escort, a nap, reopening the panel, the page
+scrolling out from under the probe, and the scene finishing all still end it on
+the frame they appear. Unprompted scenes still yield to the pointer — that rule
+is what keeps the companion a companion.
+
+Every drawing now names its colour on the element the tone class lands on. The
+contract is written above `syncTone`, where the next person to add a drawn
+element will read it. Side effect worth noting: the two cats had been different
+colours everywhere on the page — the lead resolving `--fg-muted` correctly, the
+follower carrying the root's `--fg` — and now match.
+
+Both fixes are held by e2e tests that were run against the broken product
+first. Without the fix they fail on the pointer move, and at 2.26:1.
+
+Worth recording about FB-9.2: the pair only reach the closing section by
+*following a cursor onto it*. Left alone they walk back up to whatever the
+visitor is reading, and the closing section is short enough and last enough
+that the reading band never lands on it. So the test drives the cursor the way
+the visitor did rather than waiting for the cats to settle — a test that waited
+would have passed against the bug forever.
