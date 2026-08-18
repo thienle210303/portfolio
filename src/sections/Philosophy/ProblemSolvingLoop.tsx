@@ -10,11 +10,19 @@
  * WHY A RING AND NOT A COLUMN
  *
  * The previous drawing was honest but tall: nine full-width cards on a
- * vertical trunk, ~1750px of section, ending in a dashed rail that ran back
- * up the left margin to say "and then it starts again". A reader had to hold
- * the top of the page in their head to believe the arrow. On a ring the claim
- * is not asserted by an arrow at the end, it is the shape of the whole
- * figure — and it costs 552px instead of 1750.
+ * vertical trunk, ending in a dashed rail that ran back up the left margin to
+ * say "and then it starts again". A reader had to hold the top of the page in
+ * their head to believe the arrow. On a ring the claim is not asserted by an
+ * arrow at the end, it is the shape of the whole figure.
+ *
+ * Measured, this block against the column it replaces:
+ *
+ *   1440px   687px  was 1751   -61%
+ *   1024px   597px  was 1742   -66%
+ *    768px   933px  was 1729   -46%
+ *    390px   918px  was 1886   -51%
+ *
+ * Below 1024px the saving is the disclosure rather than the ring; see below.
  *
  * WHAT IS AUTHORED AND WHAT IS DRAWN
  *
@@ -50,9 +58,10 @@
  *
  * GEOMETRY
  *
- * One fixed drawing box, 880x552, and every position inside it is a fraction
- * of that box — no measurement, no ResizeObserver, nothing that can be a
- * different number on the server than in the browser.
+ * One fixed drawing box — 880x552 from 1024px, the same box at 1024x642 from
+ * 1280px — and every position inside it is a fraction of that box. No
+ * measurement, no ResizeObserver, nothing that can be a different number on
+ * the server than it is in the browser.
  *
  *   stations   placed at equal ARC LENGTH around the ellipse, not at equal
  *              parametric angle. On a 230x178 ellipse equal angles bunch the
@@ -196,13 +205,17 @@ const stationIds = (stepId: string) => ({
 /* -------------------------------------------------------------------------- */
 /* Geometry                                                                   */
 /*                                                                            */
-/* The drawing box, in px, and the ellipse inside it. These four numbers fix   */
-/* everything else; the rem values on the elements below are the same numbers  */
-/* divided by 16 and must be kept in step:                                     */
+/* The drawing box, in px, and the ellipse inside it. The constants here are   */
+/* what the SVG and the station percentages are computed from; the rem values  */
+/* written on the elements below are the same lengths, and the two have to be  */
+/* kept in step by hand — Tailwind arbitrary values cannot read a TS const:    */
 /*                                                                            */
-/*   BOX_W 880 -> lg:w-[55rem]      PANEL_W 184 -> lg:w-[11.5rem]             */
-/*   BOX_H 552 -> lg:h-[34.5rem]    PANEL_H  72 -> lg:h-[4.5rem]              */
-/*                                  FORK_W  200 -> lg:w-[12.5rem]             */
+/*   BOX_W   880  ->  lg:w-[55rem]      (xl:w-[64rem], the same box at 1.164x) */
+/*   BOX_H   552  ->  lg:h-[34.5rem]    (xl:h-[40.125rem])                     */
+/*   PANEL_W 184  ->  lg:w-[11.5rem]    on the station <li>                    */
+/*   PANEL_H  72  ->  lg:h-[4.375rem]   on its button, plus 1px of border each */
+/*                                      side, which is where the 72 comes from */
+/*   fork    208  ->  lg:w-[13rem]      on the two decision forks              */
 /* -------------------------------------------------------------------------- */
 const BOX_W = 880;
 const BOX_H = 552;
@@ -340,6 +353,11 @@ const strokeProps = {
   strokeWidth: 1,
   strokeLinecap: "round",
   strokeLinejoin: "round",
+  /* The drawing box has two sizes (see the ring container), so the SVG is
+     scaled at the larger one. Without this the "hairline" would come out at
+     1.16px there and the ring would sit a weight above the panel borders it
+     is supposed to be lighter than. */
+  vectorEffect: "non-scaling-stroke",
 } as const;
 
 /** A chevron on the ellipse at `angle`, pointing the way the flow runs. */
@@ -484,7 +502,7 @@ interface ForkProps {
   readonly align: "left" | "right";
 }
 
-const HAIRLINE = "border-[color:var(--fg-subtle)]";
+const HAIRLINE = "border-fg-subtle";
 
 function Fork({ fork, stepId, loopTarget, placement, align }: ForkProps) {
   const labelId = forkLabelId(stepId);
@@ -494,16 +512,22 @@ function Fork({ fork, stepId, loopTarget, placement, align }: ForkProps) {
       className={cn(
         "flex flex-col",
         // Below 1024px a fork always hangs under its panel; on the ring it
-        // hangs on whichever side points away from the centre. `flex-col-reverse`
-        // flips only the paint order — the DOM stays step, then its branches.
-        // 13rem against the station's 11.5rem. Two things fix that number: the
-        // spine has to fall *inside* the panel it hangs from or it reads as a
-        // stray rule, and the whole surplus has to go on the side facing away
+        // hangs on whichever side points away from the centre. The order
+        // inside it never flips, in either placement: the band's label reads
+        // before the branches it names, and the branches stay the end of the
+        // block nearest the station, so the spine runs label -> branches ->
+        // panel when the fork is above and panel -> label -> branches when it
+        // is below. (It was `lg:flex-col-reverse` when placed above, which put
+        // "THEN" underneath the two branches it introduces.)
+        //
+        // 13rem against the station's 11.5rem, and two things fix that number:
+        // the spine has to fall *inside* the panel it hangs from or it reads as
+        // a stray rule, and the whole surplus has to go on the side facing away
         // from the ring — a fork that grew inward would end up over the next
         // station's panel and swallow its pointer events.
         "static lg:absolute lg:w-[13rem]",
         align === "right" ? "lg:right-0" : "lg:left-0",
-        placement === "above" ? "lg:bottom-full lg:flex-col-reverse" : "lg:top-full",
+        placement === "above" ? "lg:bottom-full" : "lg:top-full",
       )}
     >
       {/* Lead-in: the stub that ties the branch band back to the station, with
@@ -606,7 +630,7 @@ function StationItem({
           : undefined
       }
     >
-      <div className={cn("relative border bg-surface", "border-[color:var(--rule-color)]")}>
+      <div className="relative border border-rule bg-surface">
         <button
           type="button"
           id={trigger}
@@ -622,10 +646,7 @@ function StationItem({
             {fork ? (
               <span
                 aria-hidden="true"
-                className={cn(
-                  "inline-block h-2 w-2 shrink-0 self-center rotate-45 border",
-                  "border-[color:var(--fg-subtle)]",
-                )}
+                className="inline-block h-2 w-2 shrink-0 self-center rotate-45 border border-fg-subtle"
               />
             ) : null}
             <span className="font-sans text-[length:var(--step-0)] font-medium leading-snug text-[color:var(--fg)]">
@@ -634,10 +655,13 @@ function StationItem({
           </span>
         </button>
 
+        {/* No `role="region"` on this, unlike the shared Disclosure: nine of
+            them would put nine landmarks inside one section, and a landmark
+            buys nothing here because the paragraph is already in the
+            accessibility tree as part of its list item. `aria-controls` still
+            points at it, which is what the pattern actually needs. */}
         <div
           id={panel}
-          role="region"
-          aria-labelledby={trigger}
           data-print-expand=""
           className={cn(
             "grid transition-[grid-template-rows] duration-200 ease-out",
@@ -708,7 +732,14 @@ export default function ProblemSolvingLoop({ steps, philosophy }: ProblemSolving
   const decisions = steps.map((step) => FORKS[step.id] !== undefined);
 
   return (
-    <div>
+    /* `lg:pb-10` is clearance, not spacing. The drawing box has a fixed height,
+       and a station opened at the bottom of the ring grows downward out of it —
+       nothing on an absolutely positioned ring can push anything. Measured at
+       1024px, the widest the box is relative to the section's own padding, the
+       longest bottom station (05) ended 9px past the section's bottom edge and
+       painted over the next section. This reserves the room it needs; every
+       other station clears the box by 47px or more. */
+    <div className="lg:pb-10">
       <p id={LABEL_ID} className="eyebrow">
         The loop
       </p>
