@@ -508,14 +508,24 @@ function clusterBox(): { left: number; top: number } {
 }
 
 /**
- * The lead's slot is pulled back by the hit-target margin its button carries
- * around the drawing, because that transform positions the *button* and not the
- * animal inside it. Everywhere else on the page four pixels of drift between
- * two roaming cats is invisible; wedged into a 44px carton, it is not.
+ * The hit-target margin the lead's button carries around its drawing.
  *
- * Only the idle path needs it: mid-escort the grey one is no longer a control,
- * so he is drawn in a bare box with no margin at all — which is why
- * `slotsForBox` below does not subtract it.
+ * The button has to be bigger than the animal — 50×42 of line work is under
+ * the 44px a finger needs — so the drawing sits centred inside a box padded by
+ * these two numbers. That margin used to be a silent offset between the cat the
+ * loop *positions* and the cat the visitor *sees*: `paint` writes a transform
+ * to the button, so the drawing landed `LEAD_PAD_X` right and `LEAD_PAD_Y` down
+ * of the coordinate everything else in the companion reasons about — including
+ * `isClearSpot`, which probes a bare `CAT_W × CAT_H` box at that coordinate.
+ * The probe was therefore testing a rectangle four pixels left of and three
+ * pixels above the animal, and would approve a resting spot with the drawn cat
+ * up to that far onto somebody's paragraph.
+ *
+ * So the button is pulled back by its own padding instead (see the render
+ * below), which makes one statement true for every cat, padded or not: **a
+ * cat's position is the top-left of the animal you can see**. The probe, the
+ * clamps, the moods and the bed's slots all mean the drawing, and none of them
+ * has to know which cat is wearing a button.
  */
 const LEAD_PAD_X = 4;
 const LEAD_PAD_Y = 3;
@@ -529,13 +539,13 @@ const LEAD_PAD_Y = 3;
  * naps. What *is* occasionally different is how she gets there — see the kick
  * spot below.
  */
-function sleepSlots(pad: boolean): Spots {
+function sleepSlots(): Spots {
   const box = clusterBox();
   return {
-    lead: clampToViewport({
-      x: box.left + BOX_SLOT.x - (pad ? LEAD_PAD_X : 0),
-      y: box.top + BOX_SLOT.y - (pad ? LEAD_PAD_Y : 0),
-    }),
+    // `BOX_SLOT` is where `RestingBox` draws the sleeping cat inside the
+    // cluster, and a cat's position is now the drawing's own top-left, so the
+    // two are the same number with nothing subtracted from either.
+    lead: clampToViewport({ x: box.left + BOX_SLOT.x, y: box.top + BOX_SLOT.y }),
     follow: clampToViewport({ x: box.left + PAPER_SLOT.x, y: box.top + PAPER_SLOT.y }),
   };
 }
@@ -1487,7 +1497,7 @@ export function Companion() {
           phase: "kick",
           at: 0,
         });
-        const slots = sleepSlots(true);
+        const slots = sleepSlots();
         leadWant = slots.lead;
         if (plan.kick && plan.phase === "kick") {
           // The detour. She walks to the bed first, and only once she is
@@ -2240,18 +2250,25 @@ export function Companion() {
             "pointer-events-auto absolute grid place-items-center",
             "text-fg-muted transition-colors duration-200 hover:text-fg",
             // Two placement modes, never both. When roaming, the rAF loop owns
-            // `transform` from the top-left origin — and there is deliberately
-            // no CSS transition on it, because a transition layered over a
-            // per-frame write fights the loop and smears the motion. When not
-            // roaming, the pair is simply pinned to the corner.
-            roams ? "left-0 top-0" : "bottom-6 right-6",
+            // `transform` and the inline `left`/`top` below place the origin —
+            // and there is deliberately no CSS transition on either, because a
+            // transition layered over a per-frame write fights the loop and
+            // smears the motion. When not roaming, the pair is simply pinned to
+            // the corner.
+            !roams && "bottom-6 right-6",
           )}
-          // The margin around the drawing is the hit target; `LEAD_PAD_*` is the
-          // same margin, and the bed's slots subtract it so the animal lands
-          // where the button's transform says the button does.
+          // The margin around the drawing is the hit target, and while the loop
+          // owns the transform the button is inset by exactly that margin: the
+          // drawing is centred in the padding, so pulling the box back by
+          // `LEAD_PAD_*` lands the *animal* on the transform origin. That is
+          // what makes a roaming cat's position mean the same thing for the
+          // padded lead as it does for the bare follower — and what the content
+          // probe is measuring when it says a spot is clear. The box itself is
+          // untouched: 58×48 of target either way.
           style={{
             width: (roams ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2,
             height: CAT_H + LEAD_PAD_Y * 2,
+            ...(roams ? { left: -LEAD_PAD_X, top: -LEAD_PAD_Y } : null),
           }}
         >
           {leadDrawing}

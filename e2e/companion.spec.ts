@@ -169,17 +169,50 @@ async function readTo(page: Page, selector: string, pointer: [number, number]): 
   await page.mouse.move(pointer[0] + 2, pointer[1] + 2);
 }
 
-/** Every cat currently resting on something readable. Empty is the contract:
- *  crossing prose while they walk is fine and deliberate, parking on it is not. */
-function restingOnContent(page: Page) {
-  return page.evaluate(() => {
-    const readable =
-      "p,h1,h2,h3,h4,h5,h6,li,dt,dd,blockquote,pre,code,figure,table,a,button,input,textarea,select,label";
-    // Animals only. This rule has always been about where a *cat* comes to
-    // rest; the corner furniture is placed rather than probed, and it lives
-    // where the toolkit panel and the resting box already do.
-    return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).flatMap(
-      (svg) => {
+/** What `restingOnContent` reports instead of a verdict when the pair have not
+ *  finished moving. Not a failure — a "come back later". */
+const WALKING = "cats still walking";
+
+/**
+ * Every cat currently resting on something readable. Empty is the contract:
+ * crossing prose while they walk is fine and deliberate, parking on it is not.
+ *
+ * `still` is what makes the second half of that sentence answerable. The probe
+ * cannot tell a cat that has *stopped* on a paragraph from one mid-stride
+ * across it, so asked at an arbitrary instant it answers a question the product
+ * never promised anything about — a cat two thirds of the way to a mood's
+ * anchor is over content by design, and says so. With `still`, the pair's
+ * drawn positions are read twice with a pause between and the sample is thrown
+ * away unless nothing moved; a pair still walking reports itself as `WALKING`,
+ * so a caller polling this waits the walk out instead of photographing it.
+ */
+function restingOnContent(page: Page, { still = false }: { still?: boolean } = {}) {
+  return page.evaluate(
+    async ({ requireStill, walking }) => {
+      // Animals only. This rule has always been about where a *cat* comes to
+      // rest; the corner furniture is placed rather than probed, and it lives
+      // where the toolkit panel and the resting box already do.
+      const cats = () => Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+
+      if (requireStill) {
+        const where = () =>
+          cats()
+            .map((svg) => {
+              const box = svg.getBoundingClientRect();
+              return `${box.left.toFixed(2)},${box.top.toFixed(2)}`;
+            })
+            .join(" ");
+        const before = where();
+        // Long enough that even the last crawling pixels of a walk show up: the
+        // loop only lets a cat stop once it is within 0.6px of its target, and
+        // that is still a dozen-odd frames of visible movement.
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        if (where() !== before) return [walking];
+      }
+
+      const readable =
+        "p,h1,h2,h3,h4,h5,h6,li,dt,dd,blockquote,pre,code,figure,table,a,button,input,textarea,select,label";
+      return cats().flatMap((svg) => {
         const rect = svg.getBoundingClientRect();
         // The feet and the belly, which is where a cat actually rests.
         const points: Array<[number, number]> = [
@@ -195,9 +228,45 @@ function restingOnContent(page: Page) {
             .filter((el) => el.closest(readable))
             .map((el) => `${el.tagName.toLowerCase()} at ${Math.round(x)},${Math.round(y)}`),
         );
+      });
+    },
+    { requireStill: still, walking: WALKING },
+  );
+}
+
+/**
+ * Wait for the pair to actually stop, and assert that where they stopped is
+ * clear of anything readable.
+ *
+ * Two things have to be true of the sample this asserts on, and each of them
+ * is a way the obvious version of this check goes wrong.
+ *
+ * It has to be taken while they are *stopped*, because "not on content" is a
+ * claim about a resting cat and a walking one is over prose by design. The
+ * moment a mood's arrival poll succeeds — "a cat is within 120px of the card" —
+ * is emphatically not that moment: it is true while the pair are still walking
+ * in, so a snapshot there is a coin toss about legal behaviour. Hence `still`.
+ *
+ * And it has to be the *first* such sample, which is why the verdict is latched
+ * out of the poll rather than being the poll's own predicate. Left alone for
+ * fourteen seconds the pair give up on the mood and walk home to their corner,
+ * which is furniture and always clear — so a poll that simply retried the
+ * purity check would let a cat that parked squarely on a paragraph wait out its
+ * own violation and pass on the tidy rest that followed.
+ */
+async function expectRestClearOfContent(page: Page, message: string): Promise<void> {
+  let rest: string[] | null = null;
+  await expect
+    .poll(
+      async () => {
+        const sample = await restingOnContent(page, { still: true });
+        if (rest === null && sample[0] !== WALKING) rest = sample;
+        return rest === null ? "still walking" : "stopped";
       },
-    );
-  });
+      { timeout: 25_000, message: `${message} (they never stopped moving)` },
+    )
+    .toBe("stopped");
+  expect(rest ?? [], message).toEqual([]);
 }
 
 test.describe("companion", () => {
@@ -501,7 +570,9 @@ test.describe("companion", () => {
 
   test("settles where the visitor is reading, without covering it", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the moods need the desktop layout; run once");
-    test.setTimeout(90_000);
+    // Four waits, two of them for the pair to stop moving rather than merely to
+    // arrive, and each capped at 25s: the budget is the sum, not the usual case.
+    test.setTimeout(120_000);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
@@ -543,7 +614,10 @@ test.describe("companion", () => {
         { timeout: 25_000, message: "the cats ignored the case study being read" },
       )
       .toBe("beside it");
-    expect(await restingOnContent(page)).toEqual([]);
+    await expectRestClearOfContent(
+      page,
+      "a cat came to rest on the case study it was sent to sit beside",
+    );
 
     // Contact: one of them on the edge of the business card.
     await readTo(page, "#contact aside", [300, 500]);
@@ -571,7 +645,10 @@ test.describe("companion", () => {
         { timeout: 25_000, message: "nobody came to the business card" },
       )
       .toBe("at the card");
-    expect(await restingOnContent(page)).toEqual([]);
+    await expectRestClearOfContent(
+      page,
+      "a cat came to rest on the business card it was sent to perch on",
+    );
 
     // And through all of it the companion says nothing. The cats are
     // decoration; a decoration that narrates where it has just sat down is
