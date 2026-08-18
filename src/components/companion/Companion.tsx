@@ -27,7 +27,7 @@ import {
   type SceneKind,
 } from "./companion-play";
 import { planMood, type MoodKind } from "./companion-moods";
-import { setCompanionMode, useCompanionMode } from "./companion-state";
+import { migrateCompanionMode, setCompanionMode, useCompanionMode } from "./companion-state";
 import {
   clamp,
   clampToViewport,
@@ -447,7 +447,10 @@ interface Stage {
  *
  * Bounded, and paid once per click rather than per frame: the sweep is a few
  * dozen spots, each one three hit tests, and only the ones that come back clear
- * cost a scene probe on top.
+ * cost a scene probe on top. Measured on a 1440×900 production build, that is
+ * 5–20ms when it finds a stage and 26ms in the worst case there is not one
+ * anywhere — a frame or two, once, on a deliberate action, which is the right
+ * place to spend it and the only place this is ever called from.
  */
 function stageFor(kind: SceneKind, here: Spots, facing: 1 | -1, now: number): Stage | null {
   const fits = (spots: Spots) => openPlay(kind, spots.lead, spots.follow, facing, now);
@@ -911,6 +914,12 @@ export function Companion() {
     openRef.current = open;
     wake();
   }, [open, wake]);
+
+  // Retire the one stored value this code no longer writes. It has to happen
+  // out here rather than inside the store's snapshot, which runs during render
+  // — see companion-state. Once per mount, and a no-op for everybody who never
+  // saw the old switch.
+  useEffect(migrateCompanionMode, []);
 
   /**
    * The visitor has moved to another section, so whatever mood the last one put

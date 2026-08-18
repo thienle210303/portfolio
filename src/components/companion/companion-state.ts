@@ -16,7 +16,9 @@ import { useSyncExternalStore } from "react";
  * `resting` is that state: no roaming, no scenes, the loop stopped, and the
  * corner drawn where the visitor put them. An absent or unrecognised value
  * means roaming, so a corrupted entry fails towards the default rather than
- * towards an empty corner.
+ * towards an empty corner. The one value that is neither — `off`, which real
+ * browsers still hold — is read as `resting` and rewritten to it once, on
+ * mount; see `read` and `migrateCompanionMode`.
  *
  * This is deliberately outside React. The value is unavailable while rendering
  * on the server, and it can change without React knowing (another tab), which
@@ -41,7 +43,7 @@ function subscribe(onChange: () => void) {
 }
 
 /**
- * Legacy migration, and the reason it cannot be a no-op.
+ * Legacy migration, half one.
  *
  * Browsers that visited while `off` existed still have `"off"` under this key.
  * Dropping the value from the union without mapping it would send every one of
@@ -52,10 +54,14 @@ function subscribe(onChange: () => void) {
  * corner, quiet exactly as they asked, with the Wake control right there if they
  * change their mind.
  *
- * Deliberately a *read*-side map rather than a rewrite. This function is the
- * `useSyncExternalStore` snapshot and runs during render, which is no place for
- * a storage write; the stale `"off"` is simply re-read as `resting` every time,
- * and the first deliberate change the visitor makes overwrites it.
+ * The map has to live here even though `migrateCompanionMode` rewrites it,
+ * because this function is the `useSyncExternalStore` snapshot: it answers the
+ * *first* render, and every render after it, whereas the rewrite is an effect
+ * and cannot run until the first one has been committed. A snapshot that
+ * consulted the storage key alone would put two cats on the page for a frame
+ * before the migration caught up. Nothing is written from in here for the same
+ * reason — a snapshot is a read, and a snapshot with a side effect in it is a
+ * render with a side effect in it.
  */
 function read(): CompanionMode {
   try {
@@ -63,6 +69,30 @@ function read(): CompanionMode {
     return stored === "resting" || stored === "off" ? "resting" : "roam";
   } catch {
     return "roam";
+  }
+}
+
+/**
+ * Legacy migration, half two: retire the stored `"off"` rather than reading
+ * around it forever.
+ *
+ * Called once from an effect on mount — see `Companion` — which is a legitimate
+ * place to touch storage in a way `read` is not. Without it a value from a
+ * union this code no longer has outlives the code that understood it: it sits
+ * in every one of those browsers until the visitor happens to make a deliberate
+ * change, which for somebody who is happy with the cats asleep is never. It
+ * changes nothing about what anybody sees — both values mean the same corner —
+ * which is exactly why it is safe to do without asking, and why it does not
+ * notify the listeners either.
+ */
+export function migrateCompanionMode(): void {
+  try {
+    if (window.localStorage.getItem(STORAGE_KEY) === "off") {
+      window.localStorage.setItem(STORAGE_KEY, "resting");
+    }
+  } catch {
+    // Storage can be blocked outright, in which case there is nothing stored
+    // under the old name to migrate.
   }
 }
 
