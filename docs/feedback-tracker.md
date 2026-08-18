@@ -338,3 +338,27 @@ above the drawn animal, and can approve a resting spot where the cat overlaps
 content by up to 4px. It bites hardest in the contact mood, which is placed
 with exactly 3px of designed clearance. Previously logged as out of scope;
 now measured and confirmed open.
+
+## Round 8 close (2026-08-18)
+
+Verifier findings, all fixed:
+
+| Finding | Outcome |
+| --- | --- |
+| Ring stations could cover each other's text (pin 02, Tab to 03) | Each panel now measures its clearance against the panels sharing its x range and opens toward the roomier side. Station 02 — longest detail, 36px below it — grows upward into empty space instead of burying 03. Verified with `elementFromPoint` over every station's text at 1024/1280/1440, both themes |
+| Document click listener had zero coverage | Two tests: re-click the current hash after filtering the entry away, and prove an ordinary in-page link leaves the filter untouched. Plus a unit test for the dead-fragment guard |
+| Landing asserted `>= 64` (would pass at 400px) | Pinned to the real 80px contract |
+| "Without JS the links still work" overstated | Corrected: the *target* survives without JS; the route to it mostly does not, because the leaves are collapsed disclosures |
+| Cat probe offset 4/3px from its drawing | Real bug, worse than it sounded: 23 of 37 probe-approved spots put the drawn cat on text; 0 of 37 after. The button is now inset by its own hit-target margin, so a cat's position is the top-left of the animal you can see. Tap target unchanged; the contact perch's 3px clearance is now real (measured 3.3px) |
+| `companion.spec.ts:502` failing ~50% | Genuine test defect. Now waits for both cats to stop, latches that sample, asserts on it. The latch is load-bearing: mutation testing showed a plain poll still passed against a deliberately broken perch, because after 14s the cats abandon the mood and walk home to clear furniture |
+| Tracker contradicted shipped code | Corrected: the "rejected" per-entry links, the removed disclosures, and a stale height figure |
+
+Gate: `pnpm verify` green (215 unit tests, up from 211) and the full Playwright
+matrix **334 passed / 0 failed** on a clean, uncontended tree.
+
+Process: the deliberate builder→verifier split was worth its cost. The verifier
+found one real product bug, one real test defect, one visual defect reachable
+in two keystrokes, and three stale claims — and adjudicated three "flaky"
+failures into one genuine test defect and two environmental, with evidence
+rather than a shrug. One builder died mid-task to a server error; its work was
+checked rather than assumed, and had in fact completed.
