@@ -2,6 +2,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { Tag } from "@/components/ui/Tag";
 import { cn } from "@/lib/cn";
 import type { TreeRoot } from "@/lib/knowledge-tree";
+import { JourneyEntryCrossLink } from "./cross-link";
 import { KIND_LABEL } from "./tree-labels";
 
 /**
@@ -114,6 +115,20 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                       ))}
                     </ul>
                   ) : null}
+
+                  {/* Same pointer the drawn presentation's leaves carry, so
+                      neither presentation holds a route the other does not.
+                      There is no per-leaf disclosure in this presentation —
+                      the lens's own panel is what is open or closed — so this
+                      sits in the branch row, which is already inside that
+                      panel and already out of the tab order while the lens is
+                      collapsed. */}
+                  <JourneyEntryCrossLink
+                    entryId={branch.id}
+                    label={branch.label}
+                    organization={branch.organization}
+                    className="mt-1"
+                  />
                 </li>
               ))}
             </ul>

@@ -35,10 +35,44 @@
  * array on every render (`index === filtered.length - 1`), this holds
  * automatically after any filter change — no special-casing for filtering
  * anywhere.
+ *
+ * ## Fragment links into a filtered list
+ *
+ * The career tree's leaves link at individual entries here
+ * (`journey-entry-<id>`, see ./anchors.ts). A filter is a client-side
+ * decision this component owns, so an entry the current filter excludes is
+ * simply not in the document: the browser follows such a link, finds no
+ * element, and does nothing at all — a link that visibly fails.
+ *
+ * So this island watches for its own fragments and makes sure the entry is
+ * showing before anything is scrolled to:
+ *
+ *   mount        a cold load of `/#journey-entry-x`. The filter starts at
+ *                "all", so the entry is already rendered; this pass exists to
+ *                move focus there as well as the viewport.
+ *   hashchange   every in-page activation that *changes* the fragment —
+ *                whether the target was rendered at the time or not, because
+ *                the fragment updates either way. This is the case that
+ *                matters: it fires with the filter still set, the filter is
+ *                widened, and the scroll happens on the render after.
+ *   click        the one gap hashchange leaves: re-activating a link to the
+ *                fragment the page is *already* on fires no event at all,
+ *                and that is precisely the state a visitor reaches by
+ *                following a leaf and then filtering the entry away again.
+ *
+ * Nothing here calls `preventDefault()`. The browser still owns the URL and
+ * the history entry; this only widens the filter and finishes the scroll the
+ * browser could not perform. Without JavaScript the links still work,
+ * because the filter's initial state renders every entry.
+ *
+ * A filter that already includes the entry is left alone rather than reset to
+ * "all" — the visitor's choice survives a jump that did not need it undone,
+ * and the live region announces nothing it does not have to.
  */
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CareerEntry, CareerEntryType } from "@/types/portfolio";
 import { FilterGroup, type FilterOption } from "@/components/ui/FilterGroup";
+import { journeyEntryAnchorId } from "./anchors";
 import { TimelineEntry } from "./TimelineEntry";
 
 interface TimelineProps {
@@ -69,8 +103,20 @@ function sortByKeyDescending(entries: readonly CareerEntry[]): CareerEntry[] {
   });
 }
 
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 export default function Timeline({ entries }: TimelineProps) {
   const [filter, setFilter] = useState<FilterValue>("all");
+  /** An anchor `reveal` could not land on yet because the entry was filtered
+   *  out at the time. A ref rather than state: it is a hand-off between an
+   *  event and the very next commit, never something rendered, and writing it
+   *  must not itself schedule a render. */
+  const pendingAnchorRef = useRef<string | null>(null);
 
   const sorted = sortByKeyDescending(entries);
   const options: FilterOption[] = FILTERS.map(({ id, label }) => ({
@@ -83,6 +129,103 @@ export default function Timeline({ entries }: TimelineProps) {
   function handleFilterChange(id: string) {
     if (isFilterValue(id)) setFilter(id);
   }
+
+  /** The entry a fragment points at, matched against the anchors the entries
+   *  themselves render rather than parsed out of the hash — a fragment that
+   *  merely looks like one of ours can never name an entry that isn't here. */
+  const entryForHash = useCallback(
+    (hash: string): CareerEntry | undefined => {
+      const id = hash.startsWith("#") ? hash.slice(1) : hash;
+      if (id === "") return undefined;
+      return entries.find((entry) => journeyEntryAnchorId(entry.id) === id);
+    },
+    [entries],
+  );
+
+  /** Land on an anchor if the entry it names is on the page right now.
+   *  Returns false when it is not, which is the whole filtered-out case. */
+  const landOn = useCallback((anchor: string): boolean => {
+    const target = document.getElementById(anchor);
+    if (target === null) return false;
+    // Focus first, without scrolling: the entry carries tabindex="-1" for
+    // exactly this, so a keyboard visitor continues from the entry rather
+    // than from the link they left, and a screen reader announces the entry
+    // (the <li> is labelled by its own role heading). The scroll below stays
+    // in charge of position.
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+    return true;
+  }, []);
+
+  /** Make sure `entry` is showing, then land on it. Two paths, because the
+   *  entry is only sometimes already there: if the current filter includes it
+   *  nothing needs to change and this lands immediately; if it does not, the
+   *  filter widens and the effect below finishes the job on the commit that
+   *  puts the entry back in the document. */
+  const reveal = useCallback(
+    (entry: CareerEntry) => {
+      const anchor = journeyEntryAnchorId(entry.id);
+      pendingAnchorRef.current = anchor;
+      setFilter((current) => (current === "all" || current === entry.type ? current : "all"));
+      if (landOn(anchor)) pendingAnchorRef.current = null;
+    },
+    [landOn],
+  );
+
+  // The second half of `reveal`, for the case where the entry had to be
+  // un-filtered first. Runs on every filter change; the ref is null for all
+  // the ones a visitor made themselves, so those scroll nothing. Cleared
+  // whether or not it lands, so a handed-off anchor can never fire later
+  // against an unrelated filter change.
+  useEffect(() => {
+    const anchor = pendingAnchorRef.current;
+    pendingAnchorRef.current = null;
+    if (anchor !== null) landOn(anchor);
+  }, [filter, landOn]);
+
+  // A fragment already in the URL at load, and every later change to it
+  // (in-page links, and Back/Forward between two of them).
+  useEffect(() => {
+    function handleHash() {
+      const entry = entryForHash(window.location.hash);
+      if (entry) reveal(entry);
+    }
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, [entryForHash, reveal]);
+
+  // The gap hashchange leaves: a link to the fragment the page is already on
+  // navigates nowhere and fires nothing, so a second visit to the same entry
+  // after filtering it away would do nothing. Only that case is handled here
+  // — everything else is left to the listener above, so a normal click is
+  // never processed twice — and modified clicks are ignored, because
+  // opening a link in a new tab must not touch this page's filter.
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest("a");
+      if (link === null) return;
+      if (link.hash === "" || link.hash !== window.location.hash) return;
+      if (link.origin !== window.location.origin || link.pathname !== window.location.pathname) {
+        return;
+      }
+
+      const entry = entryForHash(link.hash);
+      if (entry) reveal(entry);
+    }
+
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [entryForHash, reveal]);
 
   const noun = filtered.length === 1 ? "entry" : "entries";
   const resultText =

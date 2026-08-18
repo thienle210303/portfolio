@@ -20,7 +20,27 @@
  * than inside a sentence, so WCAG 2.2's target-size minimum (2.5.8) applies
  * to them in full; the site already sets 44px as its floor in the header,
  * the footer and every Disclosure trigger.
+ *
+ * ## The per-leaf link, and why it is not on the leaf
+ *
+ * `JourneyEntryCrossLink` is the same idea one level down: a leaf pointing at
+ * the one timeline entry it was built from. There are twenty-five leaves, so
+ * it is rendered **only inside a leaf's open panel**, never on the row that
+ * summarises it — one link per leaf on the collapsed drawing would be
+ * twenty-five new tab stops through a figure whose entire interaction is
+ * "open the one you want". `Disclosure` flips its panel to `visibility:
+ * hidden` while collapsed, so a closed leaf's link is out of the tab order
+ * and out of the accessibility tree, and the cost is paid only by the leaves
+ * a visitor actually opened.
+ *
+ * It renders nothing at all when the entry has no anchor on the timeline
+ * (`journeyEntryAnchor` returns `undefined`), because a fragment pointing at
+ * an element that does not exist is a link that silently does nothing — worse
+ * than no link.
  */
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
+import { journeyEntryAnchor } from "@/sections/CareerJourney/anchors";
+
 export const CROSS_LINK_CLASS =
   "eyebrow inline-flex min-h-11 items-center text-accent underline-offset-4 hover:underline";
 
@@ -32,6 +52,57 @@ export function TreeCrossLink() {
     <p className="mt-8">
       <a href="#tree" className={CROSS_LINK_CLASS}>
         See how this connects — the career tree
+      </a>
+    </p>
+  );
+}
+
+interface JourneyEntryCrossLinkProps {
+  /** The career entry this leaf was built from — `TreeBranch.id`, which is
+   *  the entry's own id carried through `buildKnowledgeTree()` verbatim. */
+  readonly entryId: string;
+  /** The leaf's own label and organisation, for the hidden half of the
+   *  accessible name. Passed in rather than looked up: the caller is already
+   *  rendering both, and nothing here should be able to disagree with it. */
+  readonly label: string;
+  readonly organization: string | undefined;
+  /** Merged onto the wrapping `<p>`, for callers that space their children
+   *  themselves rather than with a `space-y-*` container. Kept on the element
+   *  this renders — rather than on a wrapper around it — so a leaf whose entry
+   *  has no anchor contributes nothing at all, not an empty box with a
+   *  margin. */
+  readonly className?: string;
+}
+
+/**
+ * The pointer from one leaf to the timeline entry it came from. Render it
+ * inside the leaf's panel only — see the note above.
+ *
+ * The visible text is short because twenty-five of these exist; the entry it
+ * points at is named in the hidden half, so a screen-reader user listing the
+ * page's links hears twenty-five distinct destinations rather than twenty-five
+ * identical ones. The explicit `{" "}` before it is the same fix Disclosure
+ * documents: a space written inside the hidden span is trimmed when its
+ * contribution to the accessible name is computed, a sibling text node is not.
+ */
+export function JourneyEntryCrossLink({
+  entryId,
+  label,
+  organization,
+  className,
+}: JourneyEntryCrossLinkProps) {
+  const anchor = journeyEntryAnchor(entryId);
+  if (anchor === undefined) return null;
+
+  return (
+    <p className={className}>
+      <a href={`#${anchor}`} className={CROSS_LINK_CLASS}>
+        Find it on the timeline
+        {" "}
+        <VisuallyHidden>
+          — {label}
+          {organization ? `, ${organization}` : ""}
+        </VisuallyHidden>
       </a>
     </p>
   );

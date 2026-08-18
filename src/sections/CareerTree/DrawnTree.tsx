@@ -3,6 +3,7 @@ import { Tag } from "@/components/ui/Tag";
 import { skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import type { TreeBranch, TreeRoot } from "@/lib/knowledge-tree";
+import { JourneyEntryCrossLink } from "./cross-link";
 import { KIND_LABEL } from "./tree-labels";
 
 /**
@@ -875,6 +876,15 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
               ))}
             </ul>
           ) : null}
+
+          {/* The way back to this entry on the timeline. Inside the panel and
+              nowhere else: twenty-five collapsed leaves must not become
+              twenty-five tab stops — see ./cross-link.tsx. */}
+          <JourneyEntryCrossLink
+            entryId={branch.id}
+            label={branch.label}
+            organization={branch.organization}
+          />
         </div>
       </Disclosure>
       </div>

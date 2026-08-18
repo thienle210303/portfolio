@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { codeTabs } from "../src/content/portfolio";
+import { careerEntries, codeTabs } from "../src/content/portfolio";
 import { workflowStages, experiments } from "../src/content/ai-experiments";
 
 // Matches the `lg:` breakpoint (1024px) that switches the workflow explorer
@@ -199,6 +199,146 @@ test.describe("career tree", () => {
     const caseStudyLink = panel.locator('a[href="#work"]');
     await expect(caseStudyLink).toBeVisible();
     await expect(page.locator("#work")).toHaveCount(1);
+  });
+
+  /*
+   * The leaves' second cross-link: back to the one timeline entry each leaf
+   * was built from (`#journey-entry-<id>`, src/sections/CareerJourney/
+   * anchors.ts). Three things about it are worth a test rather than a
+   * reading, because all three failed a first attempt at this feature:
+   *
+   *   - it exists only inside an *open* leaf, so twenty-five leaves do not
+   *     become twenty-five tab stops;
+   *   - it lands clear of the 4rem sticky header;
+   *   - it works while the timeline is filtered to a category that excludes
+   *     the entry, which is the case where a plain fragment link silently
+   *     does nothing.
+   */
+  const linkedEntry = careerEntries.find(
+    (entry) => entry.type === "milestone" && entry.lenses.length > 0,
+  );
+  if (!linkedEntry) {
+    throw new Error("content fixture assumption failed: no lens-tagged milestone entry found");
+  }
+  // A milestone, deliberately: the "Work" filter below then genuinely
+  // excludes it, which is the state this whole mechanism exists for.
+  const ENTRY_ANCHOR = `journey-entry-${linkedEntry.id}`;
+
+  test("every timeline link the tree renders resolves to a real entry", async ({ page }) => {
+    const unresolved = await page.evaluate(() => {
+      const links = [...document.querySelectorAll('#tree a[href^="#journey-entry-"]')];
+      return links
+        .map((link) => link.getAttribute("href") ?? "")
+        .filter((href) => document.getElementById(href.slice(1)) === null);
+    });
+    expect(unresolved, "a leaf must render no link rather than a dead fragment").toEqual([]);
+    expect(
+      await page.locator('#tree a[href^="#journey-entry-"]').count(),
+      "the tree should link at the timeline at all",
+    ).toBeGreaterThan(0);
+  });
+
+  test("a leaf's timeline link is in the tab order only while that leaf is open", async ({
+    page,
+  }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "a leaf is only its own control in the drawn presentation — see KnowledgeTreeList.tsx",
+    );
+
+    const tree = page.locator("#tree");
+    const triggerId = await tree
+      .locator(`button[id^="tree-leaf-"][id$="-${linkedEntry.id}-trigger"]`)
+      .first()
+      .getAttribute("id");
+    expect(triggerId, `expected a leaf for career entry "${linkedEntry.id}"`).toBeTruthy();
+    const trigger = page.locator(`#${triggerId}`);
+    const panelId = await trigger.getAttribute("aria-controls");
+    const link = page.locator(`#${panelId} a[href="#${ENTRY_ANCHOR}"]`);
+
+    // Collapsed: Disclosure holds its panel at `visibility: hidden`, which
+    // takes the link out of the tab order and the accessibility tree both.
+    await expect(link).toBeHidden();
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(link).toBeVisible();
+
+    await trigger.click();
+    await expect(link).toBeHidden();
+
+    // Hidden is the mechanism; out of the tab order is the point. Same probe
+    // the case-study disclosure above uses.
+    await trigger.focus();
+    await page.keyboard.press("Tab");
+    const landedInPanel = await page.evaluate((id) => {
+      const panel = id ? document.getElementById(id) : null;
+      return panel ? panel.contains(document.activeElement) : false;
+    }, panelId);
+    expect(landedInPanel, "Tab from a collapsed leaf must not reach its timeline link").toBe(false);
+  });
+
+  test("a leaf's timeline link lands on its entry even when the filter excludes it", async ({
+    page,
+  }) => {
+    const journey = page.locator("#journey");
+    const tree = page.locator("#tree");
+
+    await journey.getByRole("radio", { name: "Work" }).click();
+    await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
+
+    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
+      // The drawing keeps each leaf's link in that leaf's own panel; the list
+      // presentation keeps it in the branch row, inside the lens's panel,
+      // which is already open for the first lens.
+      await tree
+        .locator(`button[id^="tree-leaf-"][id$="-${linkedEntry.id}-trigger"]`)
+        .first()
+        .click();
+    }
+    // Whichever presentation is displayed at this width — the other one is
+    // `display: none`, so its copy of the same link is not visible.
+    const link = tree.locator(`a[href="#${ENTRY_ANCHOR}"]:visible`).first();
+    await link.scrollIntoViewIfNeeded();
+    await link.click();
+
+    const entry = page.locator(`#${ENTRY_ANCHOR}`);
+    await expect(entry).toBeVisible();
+    await expect(entry).toBeFocused();
+    // The filter was widened to include it again, and the live region says
+    // what is actually showing.
+    await expect(journey.getByRole("radio", { name: "All" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    // And it landed below the sticky header rather than behind it. Polled,
+    // because the scroll is smooth unless the visitor asked otherwise.
+    await expect
+      .poll(async () => entry.evaluate((element) => Math.round(element.getBoundingClientRect().top)), {
+        message: "the entry must come to rest clear of the 4rem sticky header",
+      })
+      .toBeGreaterThanOrEqual(64);
+    const rest = await entry.evaluate((element) => ({
+      top: element.getBoundingClientRect().top,
+      viewport: window.innerHeight,
+    }));
+    expect(rest.top, "inside the viewport").toBeLessThan(rest.viewport);
+  });
+
+  test("a cold load of an entry's fragment lands on it, clear of the header", async ({ page }) => {
+    await page.goto(`/#${ENTRY_ANCHOR}`);
+    await page.waitForLoadState("networkidle");
+
+    const entry = page.locator(`#${ENTRY_ANCHOR}`);
+    await expect(entry).toBeVisible();
+    await expect(entry).toBeFocused();
+
+    await expect
+      .poll(async () => entry.evaluate((element) => Math.round(element.getBoundingClientRect().top)), {
+        message: "a cold load must come to rest clear of the 4rem sticky header",
+      })
+      .toBeGreaterThanOrEqual(64);
   });
 });
 
