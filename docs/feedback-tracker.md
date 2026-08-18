@@ -243,3 +243,32 @@ against warm-server/worker-load hydration races with a companionAwake()
 poll plus load-sized timeouts. Verified: pnpm verify green (190 unit
 tests); full Playwright matrix 285 passed / 0 failed on the re-run after
 hardening.
+
+## Round 7 plan (2026-08-18) — approved direction pending owner's go
+
+1. **Cats**: toolkit becomes a "Play with the cats" menu (on-demand yarn /
+   moth / dinner / chase via the existing scene engine) + "Send the cats to
+   bed"; Jump-to/Reach-me removed as redundant. Page-aware section moods
+   driven by the active-section signal (Work: sit by the active numeral;
+   Contact: perch on the card; loop: walk the edge once). "Turn the cats
+   off" leaves the panel; lead recommends the footer control become an
+   on/off toggle so an exit survives (round-1 contract) — owner to confirm.
+2. **Loop**: ring layout at desktop — nine stations on an ellipse, dashed
+   loop-back closing the circle, philosophy line centered; detail via
+   hover/expand; mobile keeps the vertical flow.
+3. **Tree**: roots labeled with authored skill categories (labels only — no
+   drawn skill→branch edges; authored-edges rule intact); leaf clusters
+   scaled by real tech counts. Recommendation: tree becomes its own nav
+   section placed after Work → Journey → Skills as the synthesis chapter,
+   cross-linking all three (one link per direction, no restated facts).
+4. **AI Lab**: lead with Ask This Site; add a "how this works" panel showing
+   the real scoring code from src/lib/answers.ts with the ranking math;
+   retire Workflow Explorer; replace with "How I solve problems with
+   scraping knowledge" — content to be drafted from the scraper case
+   studies for the owner's approval (authored-content dependency).
+5. **Footer**: compress to one hairline-topped line — © · email · GitHub ·
+   LinkedIn · Back to top (+ cats toggle per item 1).
+
+Sequence: 5 → 1 → 2 → 3 → 4-restructure now, 4-content on approval.
+Owner decisions requested: footer off-toggle keep/kill; ring yes/no; tree
+as own section yes/no; draft scraping content for approval yes/no.
