@@ -290,6 +290,55 @@ export function findClearSpot(want: Point, home: Point, avoid?: Point): Point {
   return clampToViewport(home);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Somewhere else entirely                                                     */
+/*                                                                             */
+/* `findClearSpot` answers "where near here", which is the right question for   */
+/* a cat that is settling down and the wrong one for a scene the visitor has    */
+/* just asked for. A play needs a *stage* — a couple of hundred clear pixels    */
+/* for a ball to roll across or a cat to run down — and whether one exists is   */
+/* a question about the page, not about where the pair happen to be standing    */
+/* when the button is pressed. Answering it from their current position is how  */
+/* the same button came to give different answers depending on how long the     */
+/* toolkit had been open, and how three whole sections came to answer "no room" */
+/* to everything: the corner the panel calls them to is one arbitrary spot, and */
+/* under Philosophy, Journey and Skills it happens to be full.                  */
+/* -------------------------------------------------------------------------- */
+
+/** How many columns the sweep below tries. Five is the two gutters, the middle
+ *  of the content column, and the two quarter points — enough to find the
+ *  vertical whitespace between blocks, which is where the wide scenes fit. */
+const SWEEP_COLUMNS = 5;
+
+/**
+ * A coarse sweep of every place on this page a cat could stand, nearest to
+ * `near` first.
+ *
+ * Deliberately does no hit testing of its own: the caller has a more expensive
+ * question to ask at each candidate than "is it clear" — whether a whole scene
+ * fits there — and wants to stop at the first that answers yes rather than pay
+ * for the whole grid every time.
+ *
+ * The grid itself is a function of the viewport alone, so the *set* of places
+ * considered is the same whoever asks and whenever they ask; `near` only
+ * decides the order, which is what keeps the pair from crossing the page when
+ * there is somewhere to play beside them.
+ */
+export function standingSpots(near: Point): Point[] {
+  const box = bounds();
+  const stride = CAT_H + 26;
+  const spots: Point[] = [];
+  for (let column = 0; column < SWEEP_COLUMNS; column += 1) {
+    const x = box.minX + ((box.maxX - box.minX) * column) / (SWEEP_COLUMNS - 1);
+    for (let y = box.minY; y < box.maxY + stride; y += stride) {
+      spots.push({ x, y: Math.min(y, box.maxY) });
+    }
+  }
+  return spots.sort(
+    (a, b) => (a.x - near.x) ** 2 + (a.y - near.y) ** 2 - ((b.x - near.x) ** 2 + (b.y - near.y) ** 2),
+  );
+}
+
 /** The three scopes a section can be in. `tone-base` is the same alias set the
  *  root already carries, so it is only listed to stop `closest` walking past a
  *  base section into something outside it. */

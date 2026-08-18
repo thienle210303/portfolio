@@ -36,6 +36,7 @@ import {
   keepInView,
   refreshSafeArea,
   safeTop,
+  standingSpots,
   syncTone,
   viewport,
   type Point,
@@ -404,6 +405,93 @@ function followHome(home: Point): Point {
   return clampToViewport({ x: home.x - CAT_W - FOLLOW_GAP, y: home.y });
 }
 
+/* ------------------------------------------------------------------ staging --
+ *
+ * Where a *requested* scene is allowed to happen, which is not the same
+ * question as where an unprompted one is.
+ *
+ * An unprompted scene starts from wherever the cats already settled, and the
+ * settle probe has already called that spot clear — so `openPlay` asking "does
+ * a scene fit around here" is asking about somewhere plausible, and a null is
+ * genuinely "not here, not now", answered by waiting for the next slot minutes
+ * later.
+ *
+ * A request has neither of those. Opening the toolkit calls the pair to the
+ * bottom-right corner — deliberately unprobed, because it is the corner the
+ * panel is drawn around — so the position `openPlay` would be handed is either
+ * that one arbitrary spot or, if the panel has only just opened, wherever they
+ * happen to be halfway through the walk. Round 7 shipped exactly that, and the
+ * measurements say what it costs: the same button answered differently
+ * depending on how long the panel had been open, and under Philosophy, Journey
+ * and Skills — where the corner sits on content — all four scenes refused
+ * every time. A refusal has to mean "there is nowhere on this page for this",
+ * not "the one spot I measured is busy".
+ *
+ * So the question is asked of the page instead: sweep the standing spots, and
+ * take the first one where the whole scene fits. The pair walk there and the
+ * scene opens when they arrive — see `queued` in the loop, which owns the walk
+ * and drops it on anything that would have dropped a running scene.
+ */
+interface Stage {
+  /** Where the pair have to be standing for this scene to open. */
+  readonly spots: Spots;
+  /** Non-null only when that is where they already are: the probe that proved
+   *  the scene fits *is* the scene, so it is handed back rather than thrown
+   *  away and run again a line later. */
+  readonly play: Play | null;
+}
+
+/**
+ * Somewhere on the page this scene can actually happen, or null if there is
+ * genuinely nowhere.
+ *
+ * Bounded, and paid once per click rather than per frame: the sweep is a few
+ * dozen spots, each one three hit tests, and only the ones that come back clear
+ * cost a scene probe on top.
+ */
+function stageFor(kind: SceneKind, here: Spots, facing: 1 | -1, now: number): Stage | null {
+  const fits = (spots: Spots) => openPlay(kind, spots.lead, spots.follow, facing, now);
+
+  // Where they are standing gets first refusal, so a scene that can happen
+  // under the visitor's nose never walks the cats across the page to happen
+  // somewhere else.
+  const asIs = fits(here);
+  if (asIs) return { spots: here, play: asIs };
+
+  for (const lead of standingSpots(here.lead)) {
+    if (!isClearSpot(lead)) continue;
+    for (const side of [-1, 1] as const) {
+      const follow = clampToViewport({ x: lead.x + side * (CAT_W + FOLLOW_GAP), y: lead.y });
+      // At the edges of the page the clamp folds her back on top of him, and
+      // two cats in one box is not a pair, it is a smudge.
+      if (Math.abs(follow.x - lead.x) < CAT_W) continue;
+      if (!isClearSpot(follow)) continue;
+      // The scene this probe opens is thrown away: its clock started now and
+      // the pair have a walk ahead of them. It is re-opened from these same two
+      // points once they arrive, which is the same question against the same
+      // page — and the walk is abandoned the moment anything moves the page.
+      if (fits({ lead, follow })) return { spots: { lead, follow }, play: null };
+    }
+  }
+  return null;
+}
+
+/**
+ * A scene that has been asked for and has somewhere to happen, waiting for the
+ * two animals to get there.
+ */
+interface QueuedPlay {
+  readonly kind: SceneKind;
+  readonly spots: Spots;
+  /** When to give up on the walk. Nothing should reach it — the far corner of a
+   *  1440px window is under two seconds away — but a cat that cannot arrive for
+   *  any reason must not leave a scene armed behind it. */
+  readonly expires: number;
+}
+
+/** How long a requested scene may spend walking to its stage. */
+const STAGE_WALK_MAX = 6000;
+
 /**
  * The furniture cluster, in viewport coordinates. Computed from the same four
  * numbers the element is positioned with, so the cats cannot miss their own
@@ -768,6 +856,10 @@ export function Companion() {
    *  a toy immediately, or reset a timer they have already half waited out. */
   const playRef = useRef<Play | null>(null);
   const playAt = useRef(0);
+  /** A scene the visitor has asked for that has somewhere to happen but not
+   *  where they are standing. See `stageFor`: the pair walk to it, and it opens
+   *  when they arrive. */
+  const queued = useRef<QueuedPlay | null>(null);
   /** Content-avoiding rest spots, resolved once per settle rather than per
    *  frame. Cleared whenever the page underneath them can have moved. */
   const settleSpots = useRef<Spots | null>(null);
@@ -795,6 +887,14 @@ export function Companion() {
    *  page. `playAt` is re-rolled here rather than at the start of a scene, so
    *  an interrupted play does not immediately try again. */
   const endPlay = useCallback((now = performance.now()) => {
+    // A requested scene still walking to its stage dies here too, and it has to
+    // die *first*: every caller of this function is something with a better
+    // claim on the cats than a play — the pointer moving, the toolkit opening,
+    // the page scrolling, the loop being torn down — and a scene that has not
+    // opened yet is no more entitled to survive one than a scene that has.
+    // Without this a visitor who clicks Toss the yarn and then scrolls away
+    // gets a ball of wool seconds later, from nowhere.
+    queued.current = null;
     if (!playRef.current) return;
     playAt.current = scheduleNextPlay(now);
     playRef.current = null;
@@ -1233,8 +1333,55 @@ export function Companion() {
        * scenes with no prop as much as for the ones with: a chase abandoned
        * mid-sprint just leaves two cats going back to trailing the cursor.
        */
-      if (playRef.current && (forced !== null || !parked)) endPlay(now);
+      if ((playRef.current || queued.current) && (forced !== null || !parked)) endPlay(now);
       if (playAt.current === 0) playAt.current = scheduleNextPlay(now);
+
+      /**
+       * A requested scene, arriving.
+       *
+       * The pair are walking to ground the scene was already probed against —
+       * see `stageFor` — so this is the last two pixels of that walk and the
+       * moment it becomes a play. They are snapped onto the exact points that
+       * were measured before it opens: at three pixels the move is invisible,
+       * and it is what makes the answer the panel gave the visitor true, rather
+       * than approximately true against a probe taken half a cat away.
+       *
+       * The re-probe can still decline, if the page moved underneath them in a
+       * way no scroll or resize reported. That is rare enough to answer the way
+       * an unprompted refusal is answered — back off and say nothing — because
+       * the panel that would have said it is closed, and reopening it to speak
+       * would be the companion interrupting the visitor.
+       */
+      const arriving = queued.current;
+      if (arriving) {
+        if (now > arriving.expires) {
+          queued.current = null;
+        } else if (
+          distance(grey.pos, arriving.spots.lead) < 3 &&
+          distance(tabby.pos, arriving.spots.follow) < 3
+        ) {
+          grey.pos.x = arriving.spots.lead.x;
+          grey.pos.y = arriving.spots.lead.y;
+          tabby.pos.x = arriving.spots.follow.x;
+          tabby.pos.y = arriving.spots.follow.y;
+          queued.current = null;
+          const opened = openPlay(
+            arriving.kind,
+            arriving.spots.lead,
+            arriving.spots.follow,
+            grey.facing,
+            now,
+          );
+          if (opened) {
+            playRef.current = opened;
+            setScene({ kind: opened.kind, prop: opened.prop });
+          } else {
+            playAt.current = now + PLAY_RETRY;
+          }
+        }
+      }
+      /** Non-null only while a requested scene is still walking to its stage. */
+      const walking = queued.current;
 
       // The grey one's live position goes in because one scene — the gift —
       // hangs its prop off his mouth while the loop is the thing moving him.
@@ -1359,6 +1506,16 @@ export function Companion() {
         const rest = settled();
         leadWant = beat.leadTo ?? rest.lead;
         followWant = beat.followTo ?? rest.follow;
+      } else if (walking) {
+        // On the way to a scene somebody asked for. Two cats crossing the page
+        // are allowed to cross anything — it is stopping on a paragraph that
+        // reads as broken — and both ends of this walk were probed: they are
+        // standing somewhere clear, and the place they are going is clear
+        // enough for the whole scene. It cannot outlast the bed either: the
+        // request stamped the presence clock, and the walk gives up long before
+        // `SLEEP_AFTER`.
+        leadWant = walking.spots.lead;
+        followWant = walking.spots.follow;
       } else if (!pointer || aloneFor > SLEEP_AFTER) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
@@ -1902,6 +2059,18 @@ export function Companion() {
    * very next pointer move stamps the clock forward again and the loop drops the
    * scene on that frame.
    *
+   * What it does *not* do any more is ask that question of one arbitrary spot.
+   * Round 7 probed from wherever the cats stood at the moment of the click,
+   * which is the corner the open panel calls them to — or, if the panel had
+   * only just opened, some point on the walk there. Neither is a place anybody
+   * chose, the corner is never probed at all, and the result was a button whose
+   * answer depended on how long the panel had been open and three sections that
+   * refused everything. `stageFor` asks the page instead: if the scene fits
+   * where they are, it opens there; if it fits anywhere else, they walk over
+   * and it opens when they arrive; and only if it fits nowhere is the answer no.
+   * See the loop, which owns the walk and abandons it on anything that would
+   * have ended a running scene.
+   *
    * Two things have to happen by hand, and both are about the panel. It has to
    * close, because an open toolkit calls the cats home and the loop would end
    * the scene as fast as this starts it — and `openRef` has to be written
@@ -1918,16 +2087,11 @@ export function Companion() {
 
       const now = performance.now();
       endPlay(now);
-      const opened = openPlay(
-        kind,
-        lead.current.pos,
-        follow.current.pos,
-        lead.current.facing,
-        now,
-      );
-      if (!opened) {
-        // Nowhere safe near the cats. Back the idle schedule off exactly as an
-        // unprompted refusal does, and let the panel say so.
+      const here: Spots = { lead: { ...lead.current.pos }, follow: { ...follow.current.pos } };
+      const stage = stageFor(kind, here, lead.current.facing, now);
+      if (!stage) {
+        // Nowhere on the page for this one. Back the idle schedule off exactly
+        // as an unprompted refusal does, and let the panel say so.
         playAt.current = now + PLAY_RETRY;
         return "no-room";
       }
@@ -1936,9 +2100,16 @@ export function Companion() {
       lastSignRef.current = now;
       settleSpots.current = null;
       moodWalk.current = null;
-      playRef.current = opened;
       playAt.current = scheduleNextPlay(now);
-      setScene({ kind: opened.kind, prop: opened.prop });
+      if (stage.play) {
+        playRef.current = stage.play;
+        setScene({ kind: stage.play.kind, prop: stage.play.prop });
+      } else {
+        // It fits somewhere else. The panel still closes and still says yes:
+        // the walk is a second or so, the visitor sees two cats set off, and
+        // the scene opens under them when they get there.
+        queued.current = { kind, spots: stage.spots, expires: now + STAGE_WALK_MAX };
+      }
       openRef.current = false;
       setOpen(false);
       leadNode.current?.focus();
