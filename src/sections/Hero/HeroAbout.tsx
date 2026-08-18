@@ -17,7 +17,7 @@
  * Everything beside the paragraphs is a fact already true in the content
  * layer, computed here rather than retyped:
  *  - the five knowledge-tree lenses, via the same `buildKnowledgeTree` the
- *    Journey section's tree renders, each with the count of career entries
+ *    Career Tree section renders, each with the count of career entries
  *    tagged under it — proof the work spans more than one kind of problem,
  *    and a number that cannot drift from the tree because it's the same
  *    computation.

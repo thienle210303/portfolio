@@ -51,13 +51,17 @@ import styles from "./companion.module.css";
  * piece that says "this is a control" is the label under it — plus the standard
  * focus ring, which needs no background to be seen.
  *
- * ## Why there is no "Off" here
+ * ## Why there is no "Off" here, and no longer anywhere else either
  *
  * There was one, deliberately, in round 1: two targets side by side, "Wake" and
- * "Off". Thien's round-3 note reverses that half of the decision — he wants the
- * bed to be *just the bed*. The escape hatch is not gone, only single-sourced:
- * "Turn the cats off" lives in the quick-actions toolkit, and it is still the
- * only thing that removes them for good.
+ * "Off". Thien's round-3 note reversed half of that — he wanted the bed to be
+ * *just the bed* — and his round-7 note finishes the job for the other half:
+ * "turn the cats off is equivalent to send the cats to bed". It was. Both stop
+ * the loop, both end the roaming, and the only thing the permanent one added
+ * was a state with no surface left to undo it. So the mode is gone (see
+ * companion-state, which still maps the value old browsers stored), and this
+ * corner is the single quiet state — which puts a lot of weight on the one
+ * control below being visible, reachable and obvious.
  */
 
 /* -------------------------------------------------------------------------- */

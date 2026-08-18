@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { profile } from "@/content/portfolio";
+import { navItems } from "@/content/portfolio";
+import { useActiveSection } from "@/hooks/useActiveSection";
 import { cn } from "@/lib/cn";
 import CompanionCat, { CAT_H, CAT_W, type CatPose } from "./CompanionCat";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
@@ -14,7 +15,7 @@ import RestingBox, {
   KICK_SLOT,
   PAPER_SLOT,
 } from "./RestingBox";
-import ToolkitPanel, { PANEL_ID } from "./ToolkitPanel";
+import ToolkitPanel, { PANEL_ID, type PlayRequest } from "./ToolkitPanel";
 import {
   advancePlay,
   openPlay,
@@ -23,12 +24,15 @@ import {
   PLAY_RETRY,
   type Play,
   type PlayBeat,
+  type SceneKind,
 } from "./companion-play";
+import { planMood, type MoodKind } from "./companion-moods";
 import { setCompanionMode, useCompanionMode } from "./companion-state";
 import {
   clamp,
   clampToViewport,
   findClearSpot,
+  isClearSpot,
   keepInView,
   refreshSafeArea,
   safeTop,
@@ -39,7 +43,7 @@ import {
 
 /**
  * Two line-drawn cats that live on the page, keep loose company with the
- * pointer, and double as the site's quick-actions toolkit.
+ * pointer, and carry the panel you play with them from.
  *
  * Four rules shaped every decision below, because a companion is exactly the
  * kind of feature that turns a calm site into a noisy one:
@@ -47,10 +51,14 @@ import {
  *  1. It never covers what you are reading. The lead cat keeps a personal-space
  *     radius from the cursor and approaches from behind it, and neither cat is
  *     allowed to *settle* on prose, a control or a form — see companion-space.
- *     Crossing something while it moves is fine; parking on it is not.
- *  2. It is never the only way to do anything. Every action in its toolkit also
- *     exists in the header, the hero or the contact section, and the cats
- *     themselves can be sent to bed or removed outright.
+ *     Crossing something while it moves is fine; parking on it is not. The
+ *     section moods added in round 7 are held to the same probe: see
+ *     companion-moods, which declines rather than compromising.
+ *  2. It is never the only way to do anything. Its panel used to prove that by
+ *     duplicating the nav and the contact links, which only proved the panel
+ *     was redundant; it now holds nothing but play and one exit, and the exit
+ *     leads somewhere visible with a control on it. Nothing on this layer is
+ *     load-bearing for the site.
  *  3. It costs nothing to people who do not want it. No model, no network, no
  *     images — the whole thing is inline SVG and *one* rAF loop that drives both
  *     cats and stops when the tab is hidden, when motion is reduced, and when
@@ -65,7 +73,9 @@ import {
  *     apart, can only start while the cats are already settled and the visitor
  *     is not doing anything, and end on the frame the pointer moves. A
  *     companion that performs on a schedule you can feel is a companion you
- *     watch instead of reading the page.
+ *     watch instead of reading the page. Asking for a scene from the panel
+ *     skips the timer and *only* the timer — see `requestPlay`, which is the
+ *     same code path with the wait taken out.
  *  6. It is always somewhere you can find it. Two ways a cat used to become
  *     invisible — off the viewport edge, and behind the opaque sticky header
  *     the companion layer sits under — are answered in companion-space, which
@@ -201,10 +211,21 @@ const BED_WAKE_TRAVEL = 150;
 const NAP_DWELL = 600;
 const NAP_ATTR = "[data-cat-nap]";
 
-/** Escort budget: cats in the box by 2.2s, police gone by 3.4s, whatever
- *  happens. A flourish that can hang is not a flourish. */
+/**
+ * Escort budget: cats in the box by 2.2s, police off the page by 6s, whatever
+ * happens. A flourish that can hang is not a flourish.
+ *
+ * The outer number was 3.4s for four rounds and it was too short by about half
+ * a walk. The cop leaves at 8px a frame from the bottom-*right* corner, so on a
+ * 1440px window the exit alone is nearly three seconds — the timeout kept
+ * firing mid-stride and simply deleting him, which reads as the drawing giving
+ * up rather than as a cat leaving. `WATCH_MS` is the new beat between the two:
+ * he stops, sits, and watches them stay put before he goes, which is what turns
+ * a cat walking the same way as two other cats into a cat herding them.
+ */
 const HERD_MAX = 2200;
-const ESCORT_MAX = 3400;
+const WATCH_MS = 620;
+const ESCORT_MAX = 6000;
 
 /** The drawing is committed to React at ~30fps while the positions move every
  *  frame. A gait at 30fps is indistinguishable from one at 60; a re-render at
@@ -214,7 +235,9 @@ const RENDER_INTERVAL = 32;
 const TONE_INTERVAL = 320;
 
 type Mood = "trail" | "watch" | "drift";
-type EscortPhase = "herding" | "leaving";
+/** The escort, in three beats: he pushes them into the corner, he stands over
+ *  them for a moment, he leaves. */
+type EscortPhase = "herding" | "watching" | "leaving";
 /** The poses a cat can drop into of its own accord while it is sitting. */
 type Flourish = Extract<CatPose, "sit" | "stretch" | "groom" | "bat">;
 
@@ -290,8 +313,34 @@ interface Frame {
 interface EscortRun {
   phase: EscortPhase;
   readonly startedAt: number;
+  /** When the standing-over-them beat ends. Zero until it starts. */
+  watchUntil: number;
   readonly slots: Spots;
   readonly police: Mover;
+}
+
+/**
+ * A section mood in flight — see companion-moods for what one is.
+ *
+ * `walked` is what makes the Philosophy lap happen *once* rather than every
+ * time the pair re-settle: the plan is recomputed constantly (a scroll moves
+ * every rectangle it is built from), so the memory of having already walked it
+ * has to live outside the plan. Reset when the visitor moves to another
+ * section, which is the only thing that makes a mood new again.
+ */
+interface MoodRun {
+  readonly kind: MoodKind;
+  /** The spots the mood chose, held until something moves underneath them. */
+  readonly spots: Spots;
+  walked: boolean;
+}
+
+/** The lap itself, mid-walk. `points` is replaced wholesale whenever the plan
+ *  is re-probed — the diagram it traces moves with the page — while `index`
+ *  survives, so a scroll adjusts the route rather than restarting it. */
+interface MoodWalk {
+  points: readonly Point[];
+  index: number;
 }
 
 interface Nap {
@@ -432,6 +481,32 @@ function napSlots(rect: DOMRect): Spots {
     lead: clampToViewport({ x: centre + 4, y }),
     follow: clampToViewport({ x: centre - CAT_W - 4, y }),
   };
+}
+
+/**
+ * Where the police cat stands while it is herding: behind the rearmost of the
+ * pair, on the line they are being pushed along.
+ *
+ * It used to hold station off their left at their average height, which is *a*
+ * spot behind two cats walking right — but only accidentally, and it read as a
+ * third cat strolling alongside rather than as one pushing. Projecting back
+ * along the vector to the corner puts him up and to the left of them while they
+ * cross the page and squarely above them as they drop into the furniture, which
+ * is the shape of herding. The vertical offset is the shorter of the two on
+ * purpose: a cop a full cat-height above the pair reads as a cat on a shelf.
+ */
+function herdSpot(goal: Point, lead: Spot, follow: Spot): Point {
+  const rear = { x: Math.min(lead.x, follow.x), y: Math.min(lead.y, follow.y) };
+  const dx = goal.x - rear.x;
+  const dy = goal.y - rear.y;
+  const len = Math.hypot(dx, dy);
+  // Already there: there is no line left to stand on, so fall back to "just
+  // behind", which for a corner in the bottom right is up and to the left.
+  if (len < 4) return clampToViewport({ x: rear.x - CAT_W - 16, y: rear.y - 12 });
+  return clampToViewport({
+    x: rear.x - (dx / len) * (CAT_W + 16),
+    y: rear.y - (dy / len) * (CAT_H * 0.6 + 12),
+  });
 }
 
 function distance(a: Spot, b: Point): number {
@@ -599,24 +674,36 @@ function useMedia(query: string): boolean {
   return useSyncExternalStore(subscribe, snapshot, () => false);
 }
 
+/**
+ * Built once at module scope, because `useActiveSection` rebuilds its observer
+ * whenever the array it is handed changes identity — the same contract SiteNav
+ * documents, and the reason the cats *subscribe* to that hook rather than
+ * growing a second scrollspy of their own.
+ */
+const SECTION_IDS = navItems.map((item) => item.sectionId);
+
 export function Companion() {
   const mode = useCompanionMode();
+  /** Which section the visitor is reading, from the page's own scrollspy. Used
+   *  for nothing but where the cats choose to sit — see companion-moods. */
+  const section = useActiveSection(SECTION_IDS);
   // Roaming needs a real pointer and a visitor who has not asked for calm.
   const finePointer = useMedia("(pointer: fine)");
   const stillness = useMedia("(prefers-reduced-motion: reduce)");
   const roams = finePointer && !stillness;
 
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
   const [bed, setBed] = useState<Bed>(null);
   /** The bed has been booted out of the way. React owns this one because it is
    *  a CSS transition on a piece of furniture, not a per-frame position. */
   const [shoved, setShoved] = useState(false);
-  /** Which prop is on the page, if any. The only part of a play React knows
-   *  about: everything else it does is a transform written per frame. The chase
-   *  has no prop at all, and stays null throughout. */
-  const [toy, setToy] = useState<ToyKind | null>(null);
+  /** The running scene, as much of it as React needs to know: which one, and
+   *  which prop it puts on the page. Everything else a scene does is a
+   *  transform written per frame. The chase has no prop at all — `prop` stays
+   *  null throughout — which is exactly why the *kind* is here too: it is the
+   *  only handle the page (and the spec) has on a scene that draws nothing. */
+  const [scene, setScene] = useState<{ kind: SceneKind; prop: ToyKind | null } | null>(null);
   const [frame, setFrame] = useState<Frame>(INITIAL_FRAME);
 
   const leadNode = useRef<HTMLElement | null>(null);
@@ -684,6 +771,11 @@ export function Companion() {
   /** Content-avoiding rest spots, resolved once per settle rather than per
    *  frame. Cleared whenever the page underneath them can have moved. */
   const settleSpots = useRef<Spots | null>(null);
+  /** The active section, mirrored for the loop, plus the mood it is currently
+   *  running. Both are cleared together when the visitor moves on. */
+  const sectionRef = useRef<string | null>(null);
+  const moodRun = useRef<MoodRun | null>(null);
+  const moodWalk = useRef<MoodWalk | null>(null);
   const homeSpots = useRef<Spots | null>(null);
   const committed = useRef<Frame>(INITIAL_FRAME);
   const lastCommit = useRef(0);
@@ -712,13 +804,28 @@ export function Companion() {
     // spot would be undoing the scene in front of the visitor. Cleared here so
     // the next frame re-probes from wherever they actually are.
     settleSpots.current = null;
-    setToy(null);
+    setScene(null);
   }, []);
 
   useEffect(() => {
     openRef.current = open;
     wake();
   }, [open, wake]);
+
+  /**
+   * The visitor has moved to another section, so whatever mood the last one put
+   * the cats in is over. Only the *memory* is dropped here — the plan itself is
+   * rebuilt from scratch on the next settle, and dropping the settle spots is
+   * what asks for that.
+   */
+  useEffect(() => {
+    if (sectionRef.current === section) return;
+    sectionRef.current = section;
+    moodRun.current = null;
+    moodWalk.current = null;
+    settleSpots.current = null;
+    wake();
+  }, [section, wake]);
 
   /* ------------------------------------------------------------- placing -- */
 
@@ -807,7 +914,7 @@ export function Companion() {
   /* ------------------------------------------------------------- pointer -- */
 
   useEffect(() => {
-    if (!roams || mode === "off") return;
+    if (!roams) return;
 
     /** Somebody is here. Resetting the idle clock is all this has to do: the
      *  loop reads it, finds the cats are no longer idle, and walks them out of
@@ -976,16 +1083,87 @@ export function Companion() {
       return { lead: spot, follow: findClearSpot(followAnchor, followHome(home), spot) };
     }
 
-    /** Where the pair are currently parked, resolved once per settle rather
-     *  than per frame — probing the page costs hit tests. Two branches want
-     *  the same answer now: holding station with the pointer stopped, and
-     *  holding it while a toy is out. */
+    /**
+     * Where the pair are currently parked, resolved once per settle rather than
+     * per frame — probing the page costs hit tests. Two branches want the same
+     * answer: holding station with the pointer stopped, and holding it while a
+     * toy is out. Cleared whenever the page underneath them can have moved.
+     */
     function settled(): Spots {
-      settleSpots.current ??= restSpots(grey.pos, {
-        x: grey.pos.x - CAT_W - FOLLOW_GAP,
-        y: grey.pos.y,
-      });
+      settleSpots.current ??= restingPlaces();
       return settleSpots.current;
+    }
+
+    /** The nearest pair of places to where they are standing. The answer
+     *  whenever there is no mood, and the answer a mood falls back to. */
+    function nearbySpots(): Spots {
+      return restSpots(grey.pos, { x: grey.pos.x - CAT_W - FOLLOW_GAP, y: grey.pos.y });
+    }
+
+    /**
+     * Where the pair should be sitting, mood included.
+     *
+     * The section mood gets first refusal, and only ever here — which is what
+     * keeps it from being a fifth kind of movement. It is a *settle position*,
+     * chosen exactly where every other settle position is chosen, so every rule
+     * already guarding this branch guards it for free: it cannot run while the
+     * pair are being escorted, called to a nap spot, walking to bed or following
+     * the pointer, because none of those branches ask this question.
+     *
+     * A mood once taken up is *held* rather than recomputed, and that is the
+     * whole difference between a companion and a distraction. Rebuilding the
+     * plan every time the spots are invalidated would mean re-measuring the
+     * anchor — a rectangle travelling up the screen while the visitor scrolls —
+     * and two cats lolloping after it for as long as the wheel turns. Held, they
+     * sit down once when the visitor arrives and stay put; the mood is only
+     * reconsidered when something has come underneath them, which is the rule
+     * the ordinary resting spots have always followed and reads, correctly, as a
+     * cat getting out of the way rather than a cat pacing.
+     */
+    function restingPlaces(): Spots {
+      // A scene owns their positions while it runs: it probed its own geometry
+      // against wherever they were standing when it opened, and answering
+      // "where do you rest" with a spot halfway across the page mid-scene walks
+      // the lead away from the ball he is supposed to be batting.
+      if (playRef.current) {
+        moodWalk.current = null;
+        return nearbySpots();
+      }
+
+      const held = moodRun.current;
+      if (held?.walked && isClearSpot(held.spots.lead) && isClearSpot(held.spots.follow)) {
+        return held.spots;
+      }
+
+      const plan = planMood(sectionRef.current, grey.pos, tabby.pos, homeSpot());
+      if (!plan) {
+        moodRun.current = null;
+        moodWalk.current = null;
+        return nearbySpots();
+      }
+
+      // A lap already walked stays walked — the memory is what makes "once"
+      // mean once — but only for as long as the mood is the same one.
+      const walked = held?.kind === plan.kind ? held.walked : plan.path.length === 0;
+      const run: MoodRun = { kind: plan.kind, spots: plan.spots, walked };
+      moodRun.current = run;
+
+      if (walked || plan.path.length === 0) {
+        run.walked = true;
+        moodWalk.current = null;
+      } else {
+        // Same lap, re-measured: the index survives so a scroll adjusts the
+        // route instead of sending them round it again.
+        const index = Math.min(moodWalk.current?.index ?? 0, plan.path.length);
+        if (index >= plan.path.length) {
+          run.walked = true;
+          moodWalk.current = null;
+        } else {
+          moodWalk.current = { points: plan.path, index };
+        }
+      }
+
+      return plan.spots;
     }
 
     function tickBlink(cat: Mover, now: number): boolean {
@@ -1100,7 +1278,7 @@ export function Companion() {
           playRef.current = opened;
           // Null for the chase, which is two cats and no props — the one scene
           // that mounts nothing at all.
-          setToy(opened.prop);
+          setScene({ kind: opened.kind, prop: opened.prop });
         } else {
           playAt.current = now + PLAY_RETRY;
         }
@@ -1187,10 +1365,35 @@ export function Companion() {
         followWant = homeSpots.current.follow;
       } else {
         // Pointer has stopped: hold station rather than creeping closer — but
-        // hold it somewhere they are allowed to sleep.
+        // hold it somewhere they are allowed to sleep, and, where the page says
+        // something about where the visitor is, somewhere that answers it.
         const rest = settled();
-        leadWant = rest.lead;
-        followWant = rest.follow;
+        const lap = moodWalk.current;
+        if (lap) {
+          // One lap of whatever the mood is tracing, then the settle spot. Only
+          // the destination was probed; the waypoints are crossed rather than
+          // stopped on, which is the licence a cat trailing the pointer has had
+          // all along.
+          if (distance(grey.pos, lap.points[lap.index]) < 6) lap.index += 1;
+          if (lap.index >= lap.points.length) {
+            moodWalk.current = null;
+            if (moodRun.current) moodRun.current.walked = true;
+            leadWant = rest.lead;
+            followWant = rest.follow;
+          } else {
+            leadWant = lap.points[lap.index];
+            // She comes along rather than waiting at the settle spot — a lap
+            // walked by one cat while the other sits is not a lap, it is an
+            // errand.
+            followWant = clampToViewport({
+              x: grey.pos.x - grey.facing * (CAT_W + FOLLOW_GAP),
+              y: grey.pos.y + 3,
+            });
+          }
+        } else {
+          leadWant = rest.lead;
+          followWant = rest.follow;
+        }
       }
 
       const leadDx = leadWant.x - grey.pos.x;
@@ -1326,16 +1529,18 @@ export function Companion() {
         const cop = run.police;
         const want =
           run.phase === "herding"
-            ? {
-                x: Math.min(grey.pos.x, tabby.pos.x) - CAT_W - 14,
-                y: (grey.pos.y + tabby.pos.y) / 2,
-              }
-            : { x: -CAT_W - 60, y: cop.pos.y };
+            ? herdSpot(run.slots.lead, grey.pos, tabby.pos)
+            : run.phase === "watching"
+              ? cop.pos
+              : { x: -CAT_W - 60, y: cop.pos.y };
         const copDx = want.x - cop.pos.x;
         if (Math.abs(copDx) > 2) cop.facing = copDx > 0 ? 1 : -1;
         const copStep = advance(cop.pos, want, POLICE_SPEED);
         cop.pose = copStep > 0.3 ? "walk" : "sit";
         if (copStep > 0.3) cop.phase = (cop.phase + copStep * 0.014) % 1;
+        // Standing over them: face the corner he has just put them in, not the
+        // door he came through.
+        if (run.phase === "watching") cop.facing = 1;
         policeVisual = {
           pose: cop.pose,
           phase: cop.phase,
@@ -1347,6 +1552,13 @@ export function Companion() {
         const inBed =
           distance(grey.pos, run.slots.lead) < 3 && distance(tabby.pos, run.slots.follow) < 3;
         if (run.phase === "herding" && (inBed || now - run.startedAt > HERD_MAX)) {
+          // In the corner. He does not turn on his heel the instant they land —
+          // he sits down and watches them not get up again, which is the beat
+          // that makes the whole walk read as having been his idea.
+          run.phase = "watching";
+          run.watchUntil = now + WATCH_MS;
+          setEscort("watching");
+        } else if (run.phase === "watching" && now > run.watchUntil) {
           run.phase = "leaving";
           setEscort("leaving");
         } else if (
@@ -1587,7 +1799,13 @@ export function Companion() {
       8,
       Math.max(8, viewport().height - CAT_H - 8),
     );
-    escortRef.current = { phase: "herding", startedAt: performance.now(), slots, police: cop };
+    escortRef.current = {
+      phase: "herding",
+      startedAt: performance.now(),
+      watchUntil: 0,
+      slots,
+      police: cop,
+    };
     setEscort("herding");
     wake();
   }, [mode, wake]);
@@ -1671,16 +1889,64 @@ export function Companion() {
     else wakeButtonRef.current?.focus();
   }, [mode]);
 
-  async function copyEmail() {
-    try {
-      await navigator.clipboard.writeText(profile.email);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2200);
-    } catch {
-      // Clipboard can be blocked outright; the address is visible in the panel
-      // and mailto still works, so there is nothing to recover from here.
-    }
-  }
+  /**
+   * A scene, because somebody asked for one.
+   *
+   * The whole of "on demand" is the two lines that move the settle clock. A
+   * scene may only open while the pair are parked and the visitor is doing
+   * nothing, and both of those are true the instant somebody clicks a button in
+   * a panel the cats are already sitting under — so rather than adding a second
+   * way in past the gate, this backdates the clock the gate reads. Everything
+   * downstream is then the ordinary path: the same `openPlay` probe against the
+   * same page, the same beat machinery, and the same cancellation, since the
+   * very next pointer move stamps the clock forward again and the loop drops the
+   * scene on that frame.
+   *
+   * Two things have to happen by hand, and both are about the panel. It has to
+   * close, because an open toolkit calls the cats home and the loop would end
+   * the scene as fast as this starts it — and `openRef` has to be written
+   * synchronously, because the effect that mirrors it runs after the commit and
+   * a frame can land in between. And focus has to go back to the cat, exactly as
+   * Escape does, since the element the visitor pressed is about to unmount.
+   */
+  const requestPlay = useCallback(
+    (kind: SceneKind): PlayRequest => {
+      // Nothing to run a scene in: no roaming loop on touch or under reduced
+      // motion. The panel does not offer play there, so this is a guard rather
+      // than a path.
+      if (!roams || mode !== "roam") return "no-room";
+
+      const now = performance.now();
+      endPlay(now);
+      const opened = openPlay(
+        kind,
+        lead.current.pos,
+        follow.current.pos,
+        lead.current.facing,
+        now,
+      );
+      if (!opened) {
+        // Nowhere safe near the cats. Back the idle schedule off exactly as an
+        // unprompted refusal does, and let the panel say so.
+        playAt.current = now + PLAY_RETRY;
+        return "no-room";
+      }
+
+      lastMoveRef.current = now - SETTLE_AFTER - 1;
+      lastSignRef.current = now;
+      settleSpots.current = null;
+      moodWalk.current = null;
+      playRef.current = opened;
+      playAt.current = scheduleNextPlay(now);
+      setScene({ kind: opened.kind, prop: opened.prop });
+      openRef.current = false;
+      setOpen(false);
+      leadNode.current?.focus();
+      wake();
+      return "playing";
+    },
+    [endPlay, mode, roams, wake],
+  );
 
   /** Every deliberate change of mode ends the idle sleep with it: it is a state
    *  about being left alone, and none of these are being left alone. Leaving it
@@ -1720,20 +1986,6 @@ export function Companion() {
     setCompanionMode("roam");
   }
 
-  function turnOff() {
-    setOpen(false);
-    escortRef.current = null;
-    setEscort(null);
-    clearBed();
-    endPlay();
-    // Nothing companion-related is left to hold focus, so hand it to the
-    // document's own landing point rather than dropping it on <body>.
-    document.getElementById("main")?.focus();
-    setCompanionMode("off");
-  }
-
-  if (mode === "off") return null;
-
   const showRoamers = mode === "roam" || escort === "herding";
   const police = frame.police ?? RESTING_VISUAL;
 
@@ -1756,7 +2008,14 @@ export function Companion() {
   return (
     // `data-companion` is how the placement probes recognise the cats' own
     // furniture and look straight through it — see companion-space.
-    <div data-companion="" className="no-print pointer-events-none fixed inset-0 z-40">
+    // `data-cat-play` names the scene currently running, and is the only handle
+    // anything outside this component has on one — the chase draws no prop at
+    // all, so without it "a scene is happening" is unobservable from the DOM.
+    <div
+      data-companion=""
+      data-cat-play={scene?.kind}
+      className="no-print pointer-events-none fixed inset-0 z-40"
+    >
       {/* Drawn before the cats on purpose: they sleep *in* this furniture, so
           the bed, the paper and the back of the carton have to be underneath
           them in paint order. The carton's front panel is a second element
@@ -1778,7 +2037,7 @@ export function Companion() {
           state that outlives the scene — the whole element is gone the moment
           the play ends. Roaming only; there is no scene to play without a
           loop to run it. */}
-      {roams && mode === "roam" && toy ? (
+      {roams && mode === "roam" && scene?.prop ? (
         <div
           ref={attachToy}
           data-cat-toy=""
@@ -1786,7 +2045,7 @@ export function Companion() {
           className="pointer-events-none absolute left-0 top-0"
           style={{ width: TOY_W, height: TOY_H }}
         >
-          <CompanionToy kind={toy} artRef={toyArt} spinRef={toySpin} />
+          <CompanionToy kind={scene.prop} artRef={toyArt} spinRef={toySpin} />
         </div>
       ) : null}
 
@@ -1877,18 +2136,16 @@ export function Companion() {
 
       {open ? (
         <ToolkitPanel
-          copied={copied}
-          onCopyEmail={copyEmail}
-          onNavigate={() => setOpen(false)}
+          canPlay={roams && mode === "roam"}
+          onPlay={requestPlay}
           onSendToBed={sendToBed}
-          onTurnOff={turnOff}
           panelRef={panelRef}
         />
       ) : null}
 
-      {/* The bed carries one control — waking them. Turning the cats off used
-          to be a second button here; it is now the toolkit's alone, so the bed
-          is only ever a bed. */}
+      {/* The bed carries one control — waking them — and it is now the only
+          way back from the only exit, which is why it is a place you can see
+          rather than a preference you cannot. */}
       {mode === "resting" ? (
         <RestingBox
           occupied={escort !== "herding"}
