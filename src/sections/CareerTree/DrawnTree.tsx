@@ -23,6 +23,9 @@ import { KIND_LABEL } from "./tree-labels";
  *            leaving the trunk tangentially (vertical at the junction, the way
  *            a real limb leaves a trunk) and sweeping out to its lens panel,
  *            with a shoot of its own
+ *   foliage  leaflets along each bough, and there are as many of them as that
+ *            branch has technologies to show (`foliageCount`) — the crown's
+ *            density is data, not decoration
  *   twig     the run of leaves under a lens, drawn per leaf so it meanders
  *   leaf     one career entry: a bend, a stem, a line-drawn blade, and the
  *            role set beside it
@@ -69,6 +72,12 @@ import { KIND_LABEL } from "./tree-labels";
  * bough is four times the others and the drawing is heaviest at the top left.
  * That is what the career looks like, and a tree is the one diagram that can
  * say so without apologising for it.
+ *
+ * The foliage says the second half of that. A branch's leaf *rows* count the
+ * places it was used; the leaflets on the limb itself count what was used
+ * there — `foliageCount()` below, off `technologyCount`. So the crown is thick
+ * where the work was broad and sparse where it was narrow, and both readings
+ * come out of the content rather than out of a designer's hand.
  *
  * ## Why the leaves alone are interactive
  *
@@ -206,17 +215,40 @@ function tiltFor(seed: string): Tilt {
   return TILTS[Math.min(TILTS.length - 1, Math.floor(hash01(seed) * TILTS.length))];
 }
 
+/**
+ * The steep tilts the foliage uses, written as literal pairs for the same
+ * reason `TILTS` is. A leaflet leaves the limb at roughly a right angle to it
+ * — that is what a leaf does — so these are the -66°/-60°/-54° family and its
+ * mirror below the limb. `blade()` and the petiole share the pair, so a
+ * leaflet's stalk and its blade always point the same way.
+ */
+const UP_TILTS: readonly Tilt[] = [
+  [0.407, -0.914], // -66°
+  [0.5, -0.866], // -60°
+  [0.588, -0.809], // -54°
+];
+const DOWN_TILTS: readonly Tilt[] = [
+  [0.407, 0.914], //  66°
+  [0.5, 0.866], //  60°
+  [0.588, 0.809], //  54°
+];
+
+function pick<T>(options: readonly T[], seed: string): T {
+  return options[Math.min(options.length - 1, Math.floor(hash01(seed) * options.length))];
+}
+
 /** One decimal place — short path strings, and byte-identical output wherever
  *  the same arithmetic runs. */
 const r1 = (n: number): number => Math.round(n * 10) / 10;
 
 /** A blade's path data, anchored at its stalk and tilted in place. `dir` of -1
- *  points it back along -x, for the one shoot that leaves the leader leftward. */
-function blade(x: number, y: number, tilt: Tilt, dir: 1 | -1 = 1): string {
+ *  points it back along -x, for the one shoot that leaves the leader leftward;
+ *  `scale` shrinks it, for the foliage leaflets that ride the boughs. */
+function blade(x: number, y: number, tilt: Tilt, dir: 1 | -1 = 1, scale = 1): string {
   const [c, s] = tilt;
   const at = (i: number) => {
-    const px = BLADE_PTS[i][0] * dir;
-    const py = BLADE_PTS[i][1];
+    const px = BLADE_PTS[i][0] * dir * scale;
+    const py = BLADE_PTS[i][1] * scale;
     return `${r1(x + px * c - py * s)} ${r1(y + px * s + py * c)}`;
   };
   return (
@@ -438,8 +470,105 @@ export function RootSystem({ className }: { readonly className?: string }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Boughs                                                                     */
+/* Boughs and their foliage                                                   */
 /* -------------------------------------------------------------------------- */
+
+type Point = readonly [number, number];
+/** A cubic's four control points, in the bough's own (unmirrored) frame. */
+type Curve = readonly [Point, Point, Point, Point];
+
+/** The `d` for one cubic — so a curve is written once and both the stroke that
+ *  is drawn and the leaflets that ride it come from the same four points.
+ *  Nothing here can drift apart, because there is only one of it. */
+function curvePath(c: Curve): string {
+  return (
+    `M${r1(c[0][0])} ${r1(c[0][1])}` +
+    `C${r1(c[1][0])} ${r1(c[1][1])} ${r1(c[2][0])} ${r1(c[2][1])} ${r1(c[3][0])} ${r1(c[3][1])}`
+  );
+}
+
+/** The point at parameter `t` along a cubic — de Casteljau written out. Plain
+ *  IEEE-754 arithmetic, so it gives the same answer on the server as in the
+ *  browser, which is what the whole drawing depends on. */
+function cubicAt(c: Curve, t: number): Point {
+  const u = 1 - t;
+  const [a, b, d, e] = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+  return [
+    a * c[0][0] + b * c[1][0] + d * c[2][0] + e * c[3][0],
+    a * c[0][1] + b * c[1][1] + d * c[2][1] + e * c[3][1],
+  ];
+}
+
+/**
+ * How many leaflets a bough carries: one per four distinct technologies under
+ * that branch, floored at two so even the narrowest branch is in leaf.
+ *
+ * This is the whole point of the foliage, so it is worth being exact about
+ * what it does and does not claim. The count is `TreeRoot.technologyCount` —
+ * the distinct technologies across every entry tagged with that lens, which is
+ * the same number the branch panel prints in words directly below. Nothing is
+ * invented and nothing is inferred: it is one authored list, counted.
+ *
+ * A quarter-scale is a *scale*, not a cap. Capping would have been the easy
+ * way to keep the biggest branch tidy, and it would have made the drawing lie
+ * at exactly the point it has the most to say — the branch with 33
+ * technologies must look denser than the ones with 13, or the shape is
+ * decoration again. The leaflets share a fixed run of the limb, so more of
+ * them pack tighter rather than growing past the end of the bough.
+ */
+function foliageCount(technologyCount: number): number {
+  return Math.max(2, Math.round(technologyCount / 4));
+}
+
+/** Foliage leaflets are drawn at a fraction of a leaf-marker blade: the
+ *  markers name a career entry and these are the mass around them, so reading
+ *  order stays "entry first, texture second". */
+const LEAFLET_SCALE = 0.62;
+
+/**
+ * The leaflets along one limb, as one run of subpaths.
+ *
+ * Each is a short stalk leaving the limb at roughly a right angle to it, with
+ * a small blade on the end pointing the same way. They alternate above and
+ * below the limb — a run all on one side reads as a comb — and they are spread
+ * over the middle half of it, never at the trunk junction (where the two
+ * strokes are still 11px apart and a leaflet would sprout out of solid wood)
+ * and never at the panel end (where a blade would cross the edge of the box
+ * and be clipped by the SVG's own bounds).
+ *
+ * The one asymmetry: an upward leaflet reaches about 18px above its anchor, so
+ * it is only drawn where the limb still has that much room above it inside the
+ * box. Where it does not — the last stretch before a bough arrives at its
+ * panel — the leaflet hangs below the limb instead, where there is always
+ * room. Nothing is measured to decide that; both curves are known here.
+ */
+function foliage(seed: string, count: number, under: Curve, over: Curve): string {
+  let d = "";
+
+  for (let i = 0; i < count; i += 1) {
+    const span = count === 1 ? 0.5 : i / (count - 1);
+    const t = 0.2 + span * 0.5 + vary(`${seed}|ft${i}`, -0.02, 0.02);
+
+    const aloft = cubicAt(over, t);
+    const up = i % 2 === 0 && aloft[1] >= 40;
+    const [ax, ay] = up ? aloft : cubicAt(under, t);
+
+    const tilt = pick(up ? UP_TILTS : DOWN_TILTS, `${seed}|fa${i}`);
+    const stalk = vary(`${seed}|fs${i}`, 5, 9);
+    const dx = stalk * tilt[0];
+    const dy = stalk * tilt[1];
+    const tipX = ax + dx;
+    const tipY = ay + dy;
+
+    d +=
+      `M${r1(ax)} ${r1(ay)}` +
+      `C${r1(ax + dx * 0.5)} ${r1(ay + dy * 0.2)} ${r1(ax + dx * 0.75)} ${r1(ay + dy * 0.7)}` +
+      ` ${r1(tipX)} ${r1(tipY)}` +
+      blade(tipX, tipY, tilt, 1, LEAFLET_SCALE);
+  }
+
+  return d;
+}
 
 /**
  * One bough. Its box hangs from the top of the lens panel and reaches back to
@@ -454,14 +583,39 @@ export function RootSystem({ className }: { readonly className?: string }) {
  * could not do — that one left the trunk at 45° like a flowchart elbow.
  *
  * Height, sweep, arrival height and the shoot all come from the lens id, so no
- * two boughs on the drawing are the same length or angle.
+ * two boughs on the drawing are the same length or angle. `leaflets` does not:
+ * it is a count off the content (`foliageCount`), which is what makes the
+ * crown's density readable rather than merely varied.
  */
-function Bough({ side, seed }: { readonly side: "left" | "right"; readonly seed: string }) {
+function Bough({
+  side,
+  seed,
+  leaflets,
+}: {
+  readonly side: "left" | "right";
+  readonly seed: string;
+  readonly leaflets: number;
+}) {
   const h = vary(`${seed}|h`, 176, 268);
   const sway = vary(`${seed}|s`, 10, 26);
   const entry = vary(`${seed}|e`, 14, 34);
   const shoot = vary(`${seed}|k`, 34, 62);
   const waist = Math.round(h * 0.5);
+
+  // Underside and topside of the same limb, converging on the panel. Declared
+  // as points rather than as path text because the foliage rides them.
+  const under: Curve = [
+    [0, h],
+    [0, waist],
+    [sway, entry + 8],
+    [BOUGH_W, entry],
+  ];
+  const over: Curve = [
+    [0, h - 11],
+    [0, waist - 8],
+    [sway + 5, entry + 3],
+    [BOUGH_W, entry],
+  ];
 
   return (
     <svg
@@ -478,13 +632,13 @@ function Bough({ side, seed }: { readonly side: "left" | "right"; readonly seed:
     >
       <path
         d={
-          // underside and topside of the same limb, converging on the panel
-          `M0 ${h}C0 ${waist} ${sway} ${entry + 8} ${BOUGH_W} ${entry}` +
-          `M0 ${h - 11}C0 ${waist - 8} ${sway + 5} ${entry + 3} ${BOUGH_W} ${entry}` +
+          curvePath(under) +
+          curvePath(over) +
           // a shoot off the same junction, ending in a leaf — the detail that
           // separates a branching tree from a connector line
           `M0.5 ${h - 4}C8 ${h - 14} 14 ${h - shoot + 7} 21 ${h - shoot}` +
-          blade(21, h - shoot, tiltFor(`${seed}|b`))
+          blade(21, h - shoot, tiltFor(`${seed}|b`)) +
+          foliage(seed, leaflets, under, over)
         }
       />
     </svg>
@@ -763,7 +917,7 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                 marginTop: place.drop,
               }}
             >
-              <Bough side={side} seed={lens.id} />
+              <Bough side={side} seed={lens.id} leaflets={foliageCount(lens.technologyCount)} />
 
               {/* The panel is capped and pinned to its trunk-facing edge, so
                   its inner edge — the one the bough lands on — never moves,
@@ -778,9 +932,13 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                 style={{ maxWidth: 340 + vary(`${lens.id}|p`, 0, 72) }}
               >
                 <p className="eyebrow">Branch</p>
-                <h4 className="mt-1 font-display text-[length:var(--step-1)] font-normal leading-tight tracking-[-0.01em] text-fg">
+                {/* <h3>, not <h4>: the tree is its own section now, so the
+                    nearest heading above this is the section's own <h2> and
+                    a fourth level would skip one (e2e/accessibility.spec.ts
+                    sweeps the whole document for that). */}
+                <h3 className="mt-1 font-display text-[length:var(--step-1)] font-normal leading-tight tracking-[-0.01em] text-fg">
                   {lens.label}
-                </h4>
+                </h3>
                 <p className="mt-1.5 text-[length:var(--step--1)] leading-relaxed text-fg-muted">
                   {lens.description}
                 </p>

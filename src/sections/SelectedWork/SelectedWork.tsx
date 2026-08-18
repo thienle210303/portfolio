@@ -17,6 +17,7 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { projects } from "@/content/portfolio";
+import { TreeCrossLink } from "@/sections/CareerTree/cross-link";
 import { resolved } from "@/types/portfolio";
 import { caseStudyAnchorId, caseStudyNumeral } from "./anchors";
 import CaseStudy from "./CaseStudy";
@@ -71,6 +72,11 @@ export default function SelectedWork() {
           {projects.map((project, index) => (
             <CaseStudy key={project.id} project={project} index={index} />
           ))}
+
+          {/* One pointer at the career tree, where these same case studies
+              hang off the roles they were built in. The tree links back to
+              this section by title from every leaf that has one. */}
+          <TreeCrossLink />
         </div>
       </div>
     </Section>

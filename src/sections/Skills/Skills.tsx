@@ -2,6 +2,7 @@ import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Tag } from "@/components/ui/Tag";
 import { certifications, skillCategories } from "@/content/portfolio";
+import { TreeCrossLink } from "@/sections/CareerTree/cross-link";
 import { resolved } from "@/types/portfolio";
 
 /**
@@ -17,9 +18,11 @@ import { resolved } from "@/types/portfolio";
  * `evidence` says where the category actually shows up in real work, which is
  * the honest version of the same claim.
  *
- * The knowledge tree in Journey answers the neighbouring question — which
- * technologies were used in which role. This answers what he works with at
- * all, including the things that predate any role listed here.
+ * The career tree, the section after this one, answers the neighbouring
+ * question — which technologies were used in which role. This answers what he
+ * works with at all, including the things that predate any role listed here.
+ * Each category carries an id so the tree's root labels can link straight to
+ * the group they name.
  */
 
 const HEADING_ID = "skills-heading";
@@ -47,7 +50,15 @@ export default function Skills() {
 
       <ul role="list" className="mt-12 grid gap-px border border-rule bg-rule sm:grid-cols-2">
         {skillCategories.map((category) => (
-          <li key={category.id} className="flex flex-col gap-3 bg-ground p-5">
+          <li
+            key={category.id}
+            // The landing target for the career tree's root labels, which name
+            // these same categories and link one each to the group they name.
+            // `scroll-mt-24` clears the 4rem sticky header, the same offset a
+            // case-study row uses for the jump from its own index.
+            id={`skills-${category.id}`}
+            className="flex scroll-mt-24 flex-col gap-3 bg-ground p-5"
+          >
             <h3 className="font-display text-[length:var(--step-1)] text-fg">{category.label}</h3>
 
             <ul role="list" className="flex flex-wrap gap-2">
@@ -89,6 +100,12 @@ export default function Skills() {
           </ul>
         </div>
       ) : null}
+
+      {/* One pointer at the career tree, whose roots carry these same category
+          names. It is a link and nothing more: which of these groups produced
+          which piece of work is not a relationship anyone has authored, and
+          the tree is careful not to draw it either. */}
+      <TreeCrossLink />
     </Section>
   );
 }
