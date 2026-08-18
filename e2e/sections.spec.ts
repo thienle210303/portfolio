@@ -128,6 +128,80 @@ test.describe("career journey", () => {
   });
 });
 
+test.describe("career tree", () => {
+  test("the section renders", async ({ page }) => {
+    await expect(page.locator("#tree")).toBeVisible();
+  });
+
+  test("the drawing shows at >=1024px with the list hidden, and the reverse below it", async ({
+    page,
+  }) => {
+    const tree = page.locator("#tree");
+
+    // The drawn presentation's leaves end their accessible name in "Show
+    // detail — …" and the list presentation's lens-level toggles end theirs
+    // in "Show what sits under …" (Disclosure appends the label after the
+    // summary text) — two different controls with two different accessible
+    // names, so a substring match on either is a reliable "which
+    // presentation is actually in the tree" probe. See
+    // src/sections/CareerTree/KnowledgeTree.tsx for why exactly one of the
+    // two presentations is ever in the accessibility tree at a given width.
+    const drawingLeaf = tree.getByRole("button", { name: /Show detail — /}).first();
+    const listLens = tree.getByRole("button", { name: /Show what sits under /}).first();
+
+    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
+      await expect(drawingLeaf).toBeVisible();
+      await expect(listLens).toBeHidden();
+    } else {
+      await expect(drawingLeaf).toBeHidden();
+      await expect(listLens).toBeVisible();
+    }
+  });
+
+  test("opening a leaf reveals its detail, including the case-study link when one exists", async ({
+    page,
+  }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "a leaf is only its own control in the drawn presentation — see KnowledgeTreeList.tsx",
+    );
+
+    const tree = page.locator("#tree");
+    // DoorDash carries two case studies (src/content/portfolio.ts,
+    // careerEntryId "doordash"), and appears as a leaf on every lens it is
+    // tagged with, so any leaf bearing its name is a leaf known to have a
+    // case-study link once opened. Resolved to a fixed id before clicking,
+    // not kept as a live role/name locator: expanding it flips its own
+    // accessible name from "Show detail — …" to "Hide detail — …"
+    // (Disclosure's expandLabel/collapseLabel swap), which would otherwise
+    // make a `/Show detail — /` locator silently re-resolve to a *different*
+    // DoorDash leaf the moment this one opens.
+    const candidateId = await tree
+      .getByRole("button", { name: /Show detail — /})
+      .filter({ hasText: "DoorDash, Inc." })
+      .first()
+      .getAttribute("id");
+    expect(candidateId, "expected at least one DoorDash leaf trigger").toBeTruthy();
+    const trigger = page.locator(`#${candidateId}`);
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const panelId = await trigger.getAttribute("aria-controls");
+    expect(panelId, "Disclosure trigger must expose aria-controls").toBeTruthy();
+    const panel = page.locator(`#${panelId}`);
+
+    // Detail: kind + date range always renders once opened.
+    await expect(panel.getByText(/Role · /)).toBeVisible();
+
+    // The case-study link, present because this leaf has one — points at
+    // the section that actually holds it, and that section exists.
+    const caseStudyLink = panel.locator('a[href="#work"]');
+    await expect(caseStudyLink).toBeVisible();
+    await expect(page.locator("#work")).toHaveCount(1);
+  });
+});
+
 test.describe("skills", () => {
   test("renders every category with its evidence, and rates nothing", async ({ page }) => {
     const skills = page.locator("#skills");

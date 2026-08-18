@@ -22,22 +22,42 @@ import { CROSS_LINK_CLASS } from "./cross-link";
  * of the figure that is argument rather than data, and naming them is as far
  * as that argument is allowed to go.
  *
- * So: no connector, no proximity trick, no ordering that pairs the nth label
- * with the nth branch. Six labels, one link each, pointing at the inventory
- * that does hold the detail.
+ * So: no connector, no proximity trick that reaches *above* ground, and no
+ * ordering that pairs the nth label with the nth branch or lens.
  *
- * ## Why it renders at every width
+ * At >=1024px each label now sits directly under its own root's tip (see
+ * `rootTipX` in `DrawnTree.tsx`) rather than in a caption row below all of
+ * them — the owner asked for roots that read as roots, not as a legend. That
+ * still is not a connector, and it is worth being precise about why: the
+ * position a label sits at is the *root's*, and every root here starts from
+ * the one shared taproot every branch and lens ultimately stands on — there
+ * is no per-branch or per-lens root to sit a label near even if the drawing
+ * wanted to draw one. Placing "Languages" under the third root from the left
+ * says the same thing sitting it in a centred row said: this is one of the
+ * things the whole tree grows from. It does not say which bough is above it
+ * — the columns of category names and the columns of lens boughs are laid
+ * out by two completely independent functions (`rootTipX` here,
+ * `placements()` in `DrawnTree.tsx`) over two differently-ordered,
+ * differently-sized arrays (`skillCategories`, six entries; `tree`, five),
+ * and nothing anywhere lines the nth one of each up on purpose. A label two
+ * columns from center under a root is not "attached to" whatever happens to
+ * be two columns from centre in the canopy above it.
  *
- * The root *drawing* is desktop-only, like the rest of the drawn tree. These
- * labels are not part of that drawing — they are content, and the two
- * presentations of this figure are held to the rule that neither may hold a
- * fact the other does not (see KnowledgeTree.tsx). So this block renders once,
- * in one place in the DOM, at every width: under the drawn roots at >=1024px,
- * and after the disclosure list below it.
+ * ## Two presentations, matching the rest of the figure
  *
- * It is also the last thing in the figure's DOM, which is what lets the flex
- * `order` reshuffle above it stay honest — every focusable thing in this
- * figure is reached in the order it is seen, in both presentations.
+ * The root *drawing* is desktop-only, like the rest of the drawn tree, so
+ * below 1024px there is no root to sit a label near — the honest fallback
+ * there is the caption row this always used to be, and that is what renders.
+ * At >=1024px the columns below replace it, one per category, each centred
+ * on the same x its root's tip lands on. Exactly one of the two is ever in
+ * the accessibility tree at a time (`lg:hidden` / `hidden lg:grid`), the same
+ * rule `KnowledgeTree.tsx` holds the rest of the figure to: neither
+ * presentation may hold a fact, or a link, the other does not.
+ *
+ * Both presentations live in this one component, which stays the last thing
+ * in the figure's DOM in both — see `KnowledgeTree.tsx` for why that is what
+ * keeps tab order matching reading order regardless of which presentation is
+ * showing.
  */
 export function RootLabels({ className }: { readonly className?: string }) {
   if (skillCategories.length === 0) return null;
@@ -45,14 +65,48 @@ export function RootLabels({ className }: { readonly className?: string }) {
   return (
     <div className={cn("border-t border-rule pt-5 lg:border-t-0 lg:pt-3", className)}>
       <p className="eyebrow lg:text-center">Foundations</p>
+
+      {/* Below 1024px: the tree is the disclosure list, not a drawing, so
+          there is no root tip to sit a label under. The caption row this
+          always was. */}
       <ul
         role="list"
         aria-label="Skill groups this rests on"
-        className="flex flex-wrap gap-x-7 lg:justify-center"
+        className="mt-2 flex flex-wrap gap-x-7 gap-y-2 lg:hidden"
       >
         {skillCategories.map((category) => (
           <li key={category.id}>
             <a href={`#skills-${category.id}`} className={cn(CROSS_LINK_CLASS, "wrap-anywhere")}>
+              {category.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      {/* >=1024px: one column per category, in `skillCategories`' own order —
+          `rootTipX(index, count)` in DrawnTree.tsx centres root `index` of
+          `count` on the same fraction an equal-width grid column `index` of
+          `count` centres on, so this needs no shared prop or import to land
+          under the root it names; it only needs the same count. Column
+          gutters keep two long neighbouring names from touching; the leader
+          tick is decoration, `aria-hidden`, standing in for "this belongs to
+          the root just above it" without becoming a connector. */}
+      <ul
+        role="list"
+        aria-label="Skill groups this rests on"
+        className="hidden lg:grid lg:gap-x-3"
+        style={{ gridTemplateColumns: `repeat(${skillCategories.length}, minmax(0, 1fr))` }}
+      >
+        {skillCategories.map((category) => (
+          <li key={category.id} className="flex flex-col items-center">
+            <span aria-hidden="true" className="block h-2 w-px border-l border-rule" />
+            <a
+              href={`#skills-${category.id}`}
+              className={cn(
+                CROSS_LINK_CLASS,
+                "wrap-anywhere mt-1 min-w-0 text-center leading-tight",
+              )}
+            >
               {category.label}
             </a>
           </li>

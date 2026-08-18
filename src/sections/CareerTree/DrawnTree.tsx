@@ -1,5 +1,6 @@
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Tag } from "@/components/ui/Tag";
+import { skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import type { TreeBranch, TreeRoot } from "@/lib/knowledge-tree";
 import { KIND_LABEL } from "./tree-labels";
@@ -425,36 +426,101 @@ export function GroundHatch({ className }: { readonly className?: string }) {
 
 /**
  * The root system, under the plinth. Same drawing language, mirrored: a
- * taproot with laterals and their own forks, spreading as wide below the
- * ground as the canopy does above it. Stretched horizontally with the
- * container, which only makes the spread wider on a wider screen — the one
- * distortion a root system is welcome to have.
+ * taproot with one *major* lateral per authored skill category and their own
+ * forks, spreading as wide below the ground as the canopy does above it.
+ * Stretched horizontally with the container, which only makes the spread
+ * wider on a wider screen — the one distortion a root system is welcome to
+ * have.
+ *
+ * The taproot itself, its two crown-forks and the two shallow surface roots
+ * are fixed decoration: texture that reads as "root system" but names
+ * nothing, so it owes no count to anything in the content layer. The major
+ * laterals are the opposite — there is exactly one per `skillCategories`
+ * entry (see `RootSystem` below), because those are the roots `RootLabels`
+ * names, and a label with no root under it, or a root with no label under
+ * it, would both be lies this drawing doesn't tell anywhere else.
  */
-const ROOTS =
-  // taproot
+const TAPROOT_AND_TEXTURE =
+  // taproot, forking twice near the surface
   "M500 0C497 26 503 54 496 88C494 98 492 105 489 113" +
-  // primary laterals
-  "M500 0C461 20 402 34 341 47C297 56 259 64 223 76" +
-  "M500 0C540 19 599 32 661 44C706 53 745 61 782 72" +
-  "M500 0C475 25 438 47 397 68C371 81 349 91 327 103" +
-  "M500 0C526 23 563 44 604 63C631 76 654 86 677 97" +
-  // shallow surface roots
-  "M500 0C468 13 425 21 375 25" +
-  "M500 0C533 12 577 19 628 22" +
-  // forks off the laterals
-  "M341 47C327 60 319 73 314 88" +
-  "M661 44C676 56 685 68 691 82" +
-  "M397 68C376 72 357 73 338 71" +
-  "M604 63C625 68 644 70 664 69" +
   "M496 88C484 92 473 95 460 96" +
   "M496 88C508 93 519 96 532 98" +
-  // root hairs
-  "M223 76C216 82 211 88 207 95" +
-  "M782 72C789 78 795 84 800 91" +
+  // shallow surface roots — unlabelled texture, not a major root
+  "M500 0C468 13 425 21 375 25" +
+  "M500 0C533 12 577 19 628 22" +
   "M375 25C368 30 362 35 357 41" +
   "M628 22C635 27 641 32 646 38";
 
+/**
+ * The x a major root's tip lands on, 0..1000 — the root system's own
+ * coordinate space, and (because the SVG is stretched to the section's full
+ * width with no left/right padding of its own) the same fraction the section
+ * itself maps a percentage onto. Root `index` of `count` is centred on
+ * `((index + 0.5) / count) * 1000` — the centre of an evenly divided column,
+ * not a value nudged by `vary()`.
+ *
+ * That determinism is what lets `RootLabels` line a name up under its root
+ * without importing this number: laying the same count of *equal-width* grid
+ * columns out under the root system puts column `i`'s centre at exactly this
+ * same fraction by construction. One formula, expressed twice as two
+ * different kinds of arithmetic — SVG coordinates here, CSS grid columns
+ * there — is what a fixed layout is allowed to do; a number computed once
+ * and threaded through props is what a *measured* one would need, and this
+ * whole drawing goes out of its way not to measure anything (see the file
+ * header). The tip itself is still real geometry, not a label's shadow: it
+ * is where `lateralRoot` actually draws the root to.
+ */
+export function rootTipX(index: number, count: number): number {
+  if (count <= 0) return 500;
+  return r1(((index + 0.5) / count) * 1000);
+}
+
+/**
+ * One major root: a tapering lateral from the taproot's own origin out to
+ * `tipX`, with a short fork partway along it. Depth, sweep and the fork all
+ * vary per category id via `vary()` — the same deterministic hash every
+ * other organic line on this drawing uses — but `tipX` itself never does,
+ * because it is the one number `RootLabels` has to still agree with once the
+ * root is below a border and the label is a separate DOM block reading its
+ * name.
+ *
+ * Built as a `Curve` and read back with `cubicAt` for the fork's origin
+ * rather than eyeballing a waypoint the way the trunk's boughs originally
+ * did — both helpers already exist below for the canopy, and a root forking
+ * off its own curve is the same shape as a bough's shoot forking off the
+ * limb.
+ */
+function lateralRoot(id: string, tipX: number): string {
+  const dx = tipX - 500;
+  const tipY = vary(`root|${id}|y`, 64, 108);
+  const curve: Curve = [
+    [500, 0],
+    [r1(500 + dx * 0.42 + vary(`root|${id}|mx`, -14, 14)), vary(`root|${id}|my`, 16, 30)],
+    [
+      r1(500 + dx * 0.78 + vary(`root|${id}|nx`, -10, 10)),
+      r1(tipY * vary(`root|${id}|ny`, 0.55, 0.8)),
+    ],
+    [tipX, tipY],
+  ];
+
+  const [fx, fy] = cubicAt(curve, vary(`root|${id}|ft`, 0.4, 0.62));
+  const forkDir = dx < 0 ? -1 : 1;
+  const forkDx = forkDir * vary(`root|${id}|fx`, 9, 18);
+  const forkDy = vary(`root|${id}|fy`, 9, 20);
+
+  return (
+    curvePath(curve) +
+    `M${r1(fx)} ${r1(fy)}C${r1(fx + forkDx * 0.5)} ${r1(fy + forkDy * 0.4)}` +
+    ` ${r1(fx + forkDx * 0.8)} ${r1(fy + forkDy * 0.75)} ${r1(fx + forkDx)} ${r1(fy + forkDy)}`
+  );
+}
+
 export function RootSystem({ className }: { readonly className?: string }) {
+  const count = skillCategories.length;
+  const laterals = skillCategories
+    .map((category, index) => lateralRoot(category.id, rootTipX(index, count)))
+    .join("");
+
   return (
     <div aria-hidden="true" className={cn("pointer-events-none", className)}>
       <svg
@@ -463,7 +529,7 @@ export function RootSystem({ className }: { readonly className?: string }) {
         preserveAspectRatio="none"
         className={cn("block h-[116px] w-full", INK)}
       >
-        <path d={ROOTS} vectorEffect="non-scaling-stroke" />
+        <path d={TAPROOT_AND_TEXTURE + laterals} vectorEffect="non-scaling-stroke" />
       </svg>
     </div>
   );
