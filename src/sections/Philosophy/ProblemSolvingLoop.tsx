@@ -17,8 +17,8 @@
  *
  * Measured, this block against the column it replaces:
  *
- *   1440px   687px  was 1751   -61%
- *   1024px   597px  was 1742   -66%
+ *   1440px   727px  was 1751   -58%
+ *   1024px   637px  was 1742   -63%
  *    768px   933px  was 1729   -46%
  *    390px   918px  was 1886   -51%
  *
