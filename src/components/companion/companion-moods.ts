@@ -6,6 +6,7 @@ import {
   findClearSpot,
   isClearSpot,
   safeTop,
+  standingSpots,
   viewport,
   type Point,
 } from "./companion-space";
@@ -45,6 +46,13 @@ import {
  * geometry: a mood is only ever consulted on the frames the loop has already
  * decided the pair are parked, so the pointer moving drops it the same frame it
  * drops any other settled position.
+ *
+ * The wander planner at the foot of the file is here rather than in the loop
+ * for one reason: it answers the same question these do, and it has to answer
+ * it the same way. Round 9 gave the visitor a mode with no cursor in it, and
+ * the pair need somewhere to go every few seconds — which is exactly "a place
+ * to stop", exactly the four rules above, and exactly the two mechanisms
+ * already written down here.
  */
 
 export type MoodKind = "work" | "contact" | "loop";
@@ -331,5 +339,84 @@ export function planMood(
   if (section === "work") return workMood(lead, follow, home);
   if (section === "contact") return contactMood(follow, home);
   if (section === "philosophy") return loopMood(lead, follow, home);
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Wandering: the same question with nobody asking it                          */
+/*                                                                             */
+/* In `wander` the pointer is not one of the forces acting on the pair, so the */
+/* question the loop asks every few seconds — "where now?" — has no answer     */
+/* coming from the visitor at all. It is answered here, and deliberately with  */
+/* the same two mechanisms everything else uses: the section moods above for   */
+/* the places on this page worth being, and the standing-spot sweep for        */
+/* everywhere else. There is no second placement engine, because a second      */
+/* placement engine is a second set of rules about content to keep in step     */
+/* with this one.                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * How far a wandering cat insists on going.
+ *
+ * A destination thirty pixels away is not a decision, it is a shuffle, and a
+ * pair that shuffle look like a pair that cannot settle. Roughly three
+ * cat-widths, which at every viewport this page renders at leaves the sweep
+ * plenty of candidates while ruling out the ones beside their own feet.
+ */
+export const WANDER_MIN = 180;
+
+/** How often they go and sit where the page says the visitor is, rather than
+ *  somewhere of their own choosing. Low enough that the mood stays a remark
+ *  rather than a habit. */
+const WANDER_MOOD = 0.34;
+
+/** How many places they are willing to consider before deciding there is
+ *  nowhere to go. Bounded because each one costs three hit tests, and a page
+ *  with no whitespace on it must not turn a stroll into a reflow. */
+const WANDER_TRIES = 8;
+
+/**
+ * Of everywhere a cat could stand, the places far enough away to read as
+ * having gone somewhere.
+ *
+ * Split out from the walk below because it is the only part of wandering that
+ * is a rule rather than a roll of the dice, and rules are worth being able to
+ * state without a browser in the room.
+ */
+export function wanderCandidates(spots: readonly Point[], from: Point): Point[] {
+  return spots.filter((spot) => Math.hypot(spot.x - from.x, spot.y - from.y) >= WANDER_MIN);
+}
+
+/**
+ * Somewhere else to be, or null for "stay put" — which the caller answers by
+ * leaving them exactly where they are until it asks again.
+ *
+ * Drawn from the candidates rather than taken in order: `standingSpots` returns
+ * them nearest-first, and a wanderer who always takes the nearest one paces the
+ * same short hop for the rest of the visit.
+ */
+export function planWander(
+  section: string | null,
+  lead: Point,
+  follow: Point,
+  home: Point,
+): MoodSpots | null {
+  if (Math.random() < WANDER_MOOD) {
+    const mood = planMood(section, lead, follow, home);
+    // The lap a mood may come with belongs to the settle branch, which owns the
+    // walking of it; what wandering wants from a mood is the pair of places it
+    // chose.
+    if (mood) return mood.spots;
+  }
+
+  const options = wanderCandidates(standingSpots(lead), lead);
+  for (let tries = 0; tries < WANDER_TRIES && options.length > 0; tries += 1) {
+    const [spot] = options.splice(Math.floor(Math.random() * options.length), 1);
+    if (!isClearSpot(spot)) continue;
+    // Outward from the middle of the window, so she takes the side with the
+    // page's own margin on it rather than the side with the content.
+    const outward: 1 | -1 = spot.x + CAT_W / 2 > viewport().width / 2 ? 1 : -1;
+    return { lead: spot, follow: mateSpot(spot, outward) ?? findClearSpot(follow, home, spot) };
+  }
   return null;
 }

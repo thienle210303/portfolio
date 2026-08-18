@@ -305,12 +305,17 @@ test.describe("companion", () => {
     );
     expect(focusedInPanel).toBe(true);
 
-    // And Tab walks every item in the order they are drawn, ending on the one
-    // that puts the cats away. Plain buttons in a plain group: that is the
-    // whole keyboard contract, and the reason the panel does not claim
+    // And Tab walks every item in the order they are drawn, ending on the two
+    // below the rule: what the cats do with themselves the rest of the time,
+    // and the one that puts them away. Plain buttons in a plain group: that is
+    // the whole keyboard contract, and the reason the panel does not claim
     // `role="menu"` — the role would promise arrow keys, Home/End and
     // typeahead, none of which exist here.
-    const order = [...SCENES.map((scene) => scene.name), /send the cats to bed/i];
+    const order = [
+      ...SCENES.map((scene) => scene.name),
+      /let them wander|follow my cursor/i,
+      /send the cats to bed/i,
+    ];
     for (const [index, name] of order.entries()) {
       if (index > 0) await page.keyboard.press("Tab");
       await expect(toolkit(page).getByRole("button", { name })).toBeFocused();
@@ -346,9 +351,15 @@ test.describe("companion", () => {
       await expect(panel.getByRole("button", { name: scene.name })).toHaveCount(1);
     }
     await expect(panel.getByRole("button", { name: /send the cats to bed/i })).toHaveCount(1);
-    // Five, and no sixth: the permanent exit is gone from here and from
+    // One control for what the pair do when nobody is asking them for a scene,
+    // and it says which way it is about to go rather than naming a state — a
+    // label that reads true whichever way round it currently is.
+    await expect(
+      panel.getByRole("button", { name: /let them wander|follow my cursor/i }),
+    ).toHaveCount(1);
+    // Six, and no seventh: the permanent exit is gone from here and from
     // everywhere else on the page.
-    await expect(panel.getByRole("button")).toHaveCount(SCENES.length + 1);
+    await expect(panel.getByRole("button")).toHaveCount(SCENES.length + 2);
     await expect(page.getByRole("button", { name: /turn the cats off/i })).toHaveCount(0);
 
     // Every control here is reachable and operable without a mouse, which is
@@ -629,6 +640,141 @@ test.describe("companion", () => {
         ).toBeGreaterThan(3);
       }
     }
+  });
+
+  test("takes the cats off the cursor when asked, and keeps them out of the bed there", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Real time, and deliberately: the second half of this is the fourteen-second
+    // idle threshold seen from the one mode it does not apply in, and faking the
+    // clock would test a different feature.
+    test.setTimeout(120_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    // One move, so a pointer exists. The idle bed is gated on that, which is
+    // what makes "no bed here" a claim about the mode rather than about a page
+    // nobody has touched.
+    await page.mouse.move(700, 500);
+
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /let them wander/i }).click();
+
+    // Written down like the bed is: this is a preference, not a session quirk,
+    // and it is the same key both of the others use.
+    expect(await page.evaluate(() => window.localStorage.getItem("companion"))).toBe("wander");
+    // The item now offers the way back, which is the whole of its two states.
+    await expect(toolkit(page).getByRole("button", { name: /follow my cursor/i })).toHaveCount(1);
+    await expect(toolkit(page).getByRole("button", { name: /let them wander/i })).toHaveCount(0);
+    // And the cat is still the control it was: same name, same wiring, same
+    // focus behaviour on the way out.
+    await expect(catButton(page)).toHaveAttribute("aria-controls", "companion-actions");
+    await page.keyboard.press("Escape");
+    await expect(catButton(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(catButton(page)).toBeFocused();
+
+    /*
+     * Now leave them alone with the pointer parked, for a good deal longer than
+     * the fourteen seconds that sends a roaming pair to bed. Two things have to
+     * hold across every one of those seconds. The bed must never appear, because
+     * in this mode a visitor doing nothing is a visitor *watching* and a
+     * companion that turned in fourteen seconds into it would be a mode fourteen
+     * seconds long. And the pair have to demonstrably go somewhere of their own
+     * accord, or "they ignore the cursor" would be indistinguishable from "they
+     * stopped".
+     */
+    const spots = new Set<string>();
+    for (let tick = 0; tick < 24; tick += 1) {
+      await page.waitForTimeout(1000);
+      await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+      spots.add(
+        await page.evaluate(() => {
+          const cat = document.querySelector("[data-companion] svg[data-cat]");
+          const box = cat?.getBoundingClientRect();
+          // Rounded hard: what is being counted is places, not pixels.
+          return box ? `${Math.round(box.left / 60)},${Math.round(box.top / 60)}` : "gone";
+        }),
+      );
+    }
+    expect(
+      spots.size,
+      "the pair never took themselves anywhere with the pointer parked",
+    ).toBeGreaterThan(2);
+  });
+
+  test("plays with the page itself while it wanders", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    /*
+     * The slowest test in the file, and the reason is the product rule it is
+     * about: scenes are minutes apart for somebody reading and a third of that
+     * for somebody watching, so the first one is thirty to ninety seconds off
+     * however this is driven. There is deliberately no way to ask for one of
+     * these three by name — they are about somewhere the visitor happens to be,
+     * and a button that fired one would be promising a place the page may not
+     * have — so waiting is the only honest way to see one.
+     */
+    test.setTimeout(300_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await page.mouse.move(700, 500);
+
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /let them wander/i }).click();
+    await page.keyboard.press("Escape");
+
+    // Somewhere all three anchors exist at once: the contact section's own top
+    // hairline, its heading, and the business card, which is one of the two
+    // panels on this page that declares itself as somewhere to hide.
+    await page.evaluate(() => {
+      const contact = document.querySelector("#contact");
+      if (!contact) throw new Error("the page has no contact section");
+      const box = contact.getBoundingClientRect();
+      window.scrollTo({ top: window.scrollY + box.top - 140, behavior: "instant" as ScrollBehavior });
+    });
+    await expect(page.locator("[data-cat-hide]")).not.toHaveCount(0);
+
+    const anchored = ["peek", "scratch", "stalk"];
+    const seen: { kind: string | null; clipped: string[] } = { kind: null, clipped: [] };
+    await expect
+      .poll(
+        async () => {
+          const now = await page.evaluate(() => ({
+            kind: document.querySelector("[data-cat-play]")?.getAttribute("data-cat-play") ?? null,
+            // Hiding is drawn rather than composited — nothing on the page paints
+            // over the companion's layer — so a clipped drawing is the only
+            // evidence that a cat is behind something.
+            clipped: Array.from(document.querySelectorAll("[data-companion] span"))
+              .map((node) => (node as HTMLElement).style.clipPath)
+              .filter((clip) => clip.startsWith("inset(")),
+          }));
+          if (now.kind !== null && anchored.includes(now.kind)) {
+            // Latched: the first anchored scene to turn up is the one under
+            // test, so a second one cannot rescue a first that misbehaved.
+            seen.kind ??= now.kind;
+            if (now.clipped.length > 0) seen.clipped = now.clipped;
+          }
+          // The one that hides has to actually hide, and the evidence only
+          // exists while it is hiding — the walk in is two cats in plain view —
+          // so the peek is not finished being observed until a clipped frame has
+          // been seen. Two cats standing in front of a panel with their whole
+          // bodies showing is the same drawing with none of the joke in it.
+          if (seen.kind === "peek" && seen.clipped.length === 0) return null;
+          return seen.kind;
+        },
+        {
+          timeout: 210_000,
+          intervals: [500],
+          message: "no scene anchored to the page happened while the cats wandered",
+        },
+      )
+      .not.toBeNull();
+
+    // And whatever it was, it obeys the rule every other scene obeys: crossing
+    // the page is fine, coming to rest on it is not.
+    await expectRestClearOfContent(page, "a cat came to rest on the page it was playing with");
   });
 
   test("draws two independently positioned cats, not one pair", async ({ page }) => {

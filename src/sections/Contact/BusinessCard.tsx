@@ -175,8 +175,15 @@ export default function BusinessCard({ className }: BusinessCardProps) {
   const linkedin = socialLinks.find((link) => link.platform === "LinkedIn");
 
   return (
+    // `data-cat-hide` is a cross-component contract, the twin of the
+    // `data-cat-nap` the knowledge tree's plinth carries: it says this panel is
+    // opaque and has a top edge, and the companion cats occasionally duck behind
+    // it so only their heads clear the rule. This file only declares the
+    // attribute; everything that reads it lives in src/components/companion, and
+    // nothing about the card itself changes.
     <aside
       aria-label={`${profile.name} — business card`}
+      data-cat-hide
       className={cn(
         "relative isolate flex flex-col justify-between overflow-hidden border border-rule bg-surface p-6 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.32)] sm:p-7",
         CARD_ASPECT,

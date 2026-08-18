@@ -3,7 +3,15 @@
 import type { CatPose } from "./CompanionCat";
 import { CAT_H, CAT_W } from "./CompanionCat";
 import { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
-import { clamp, clampToViewport, isClearSpot, type Point } from "./companion-space";
+import {
+  clamp,
+  clampToViewport,
+  elementBehind,
+  isClearSpot,
+  safeTop,
+  viewport,
+  type Point,
+} from "./companion-space";
 
 /**
  * Play: the short scenes the cats occasionally act out.
@@ -21,8 +29,11 @@ import { clamp, clampToViewport, isClearSpot, type Point } from "./companion-spa
  *     which is the line the whole feature lives on. Round 5 asked for more of
  *     them and the gap came down by a third — from two-and-a-half-to-six minutes
  *     to one-and-a-half-to-four-and-a-half — which is as far as it goes while
- *     "rare" still means anything. There is still no way to ask for one, and
- *     that is deliberate.
+ *     "rare" still means anything for somebody who is reading. The one visitor
+ *     that is not true of is the one who has turned the cursor off and asked to
+ *     watch instead: in `wander` the same gap is cut to a third again, because
+ *     "rare" is measured against what the visitor is doing, and what they are
+ *     doing is watching. See `scheduleNextPlay`.
  *  2. **Never in the way.** Every position a cat or a prop can *stop* at is
  *     probed against the page with the same content test the resting spots use,
  *     before the scene starts. A play that has nowhere safe to happen does not
@@ -44,6 +55,11 @@ import { clamp, clampToViewport, isClearSpot, type Point } from "./companion-spa
  *  number. */
 const PLAY_GAP = 90_000;
 const PLAY_SPREAD = 180_000;
+/** What both numbers are divided by while the pair are wandering. The spread is
+ *  divided with the gap rather than kept: a fixed spread over a third of the gap
+ *  is a schedule whose shape changes with the mode, and the thing that must not
+ *  change is that consecutive gaps never come out the same length. */
+const WANDER_HASTE = 3;
 /** Nowhere safe to play right now. Backing off matters: probing costs three
  *  hit tests per candidate, and re-running that every frame over a page with no
  *  whitespace would be a per-frame reflow to decide not to do anything. */
@@ -62,7 +78,10 @@ const DASH = 168;
 const DASH_BOW = 30;
 
 /**
- * The five scenes.
+ * The eight scenes, in two families.
+ *
+ * The first five are about the cats and whatever the companion brought with it,
+ * and they can happen on any clear patch of page:
  *
  *  - **yarn** is a four-beat gag: it turns up, the grey one bats it, it rolls,
  *    she catches it.
@@ -77,11 +96,40 @@ const DASH_BOW = 30;
  *    neither had moved.
  *  - **gift** is the yarn again, carried: he brings it to her and drops it.
  *
+ * The last three are round 9, and they are about the *page*. The owner's note
+ * asks for cats that play with what is on the screen — hiding behind a box,
+ * scratching at the text, hunting it — so these three take their geometry from
+ * something the page actually has rather than from a clear rectangle anywhere:
+ *
+ *  - **peek** tucks the pair behind an opaque panel that has declared itself
+ *    with `data-cat-hide`, so only heads and forepaws clear its top edge. The
+ *    panel does not paint over the companion layer — nothing on the page does —
+ *    so the hiding is drawn rather than composited: each animal is clipped to
+ *    the band above the edge. See `hideCut`, which is the whole trick.
+ *  - **scratch** stands a cat on a section's own top hairline and rakes at it
+ *    twice. It needs no new markup at all: every `<section>` carries
+ *    `hairline-t`, so the rule under the visitor is a fact about the layout.
+ *  - **stalk** crouches a short way off the section's `<h2>`, tail going, then
+ *    pounces past the end of it and sits looking pleased with itself.
+ *
+ * All three end where every other scene ends: on ground the same probe
+ * approved, never on the words. A scene with nowhere to happen declines, and
+ * the three above decline far more often than the first five — an anchor that
+ * has scrolled away is not an anchor, and saying nothing is the right answer.
+ *
  * A scene is a list of beats and the ms each one lasts. A beat given zero ms is
  * skipped outright, which is how the bowl drops its nudge when there is nowhere
  * clear for the nudged cat to retreat to.
  */
-export type SceneKind = "yarn" | "moth" | "bowl" | "chase" | "gift";
+export type SceneKind =
+  | "yarn"
+  | "moth"
+  | "bowl"
+  | "chase"
+  | "gift"
+  | "peek"
+  | "scratch"
+  | "stalk";
 
 type PlayPhase =
   | "enter"
@@ -96,7 +144,18 @@ type PlayPhase =
   | "skid"
   | "carry"
   | "offer"
-  | "leave";
+  | "leave"
+  /** The walk in. Shared by the three anchored scenes, and the only beat in the
+   *  module whose length is a cap rather than a duration: the anchor can be most
+   *  of a viewport away, and the beat is over when the lead arrives. */
+  | "approach"
+  | "tuck"
+  | "paw"
+  | "rise"
+  | "rake"
+  | "ease"
+  | "crouch"
+  | "pleased";
 
 interface Beat {
   readonly phase: PlayPhase;
@@ -121,6 +180,9 @@ export interface Play {
   readonly followSpot: Point;
   /** Where the nudged cat retreats to. Only the bowl uses it. */
   readonly aside: Point;
+  /** The y a hidden animal is cut off at — the top edge of whatever it is
+   *  hiding behind. Zero for every scene that hides behind nothing. */
+  readonly edge: number;
   /** Which way the scene runs, in the lead cat's facing units. */
   readonly facing: 1 | -1;
   /** Live, and written straight to the DOM by the caller: none of this belongs
@@ -146,6 +208,15 @@ export interface PlayBeat {
   /** A sprint. The loop lifts both speed caps for the beat — nothing else in
    *  the companion moves this fast except the police escort. */
   readonly dash: boolean;
+  /** Both animals are behind something: the caller clips each of them to the
+   *  band above `play.edge`, from its own live position. Kept as a flag rather
+   *  than as two numbers because the cut is a function of where a cat actually
+   *  is — a cat still walking in is cut correctly on the way, and one climbing
+   *  back out stops being cut as it rises. */
+  readonly hide: boolean;
+  /** The lead is wound up: its tail runs at walking speed while the rest of it
+   *  holds still. The one thing a crouching cat does. */
+  readonly stir: boolean;
 }
 
 const OVER: PlayBeat = {
@@ -156,27 +227,63 @@ const OVER: PlayBeat = {
   leadTo: null,
   followTo: null,
   dash: false,
+  hide: false,
+  stir: false,
 };
 
-export function scheduleNextPlay(now: number): number {
-  return now + PLAY_GAP + Math.random() * PLAY_SPREAD;
+/**
+ * When the next scene may open.
+ *
+ * `wandering` is the visitor's own answer to how much of this they want: they
+ * have taken the cursor out of it and are watching the pair get on with the
+ * page, so the wait between scenes is a third of what it is for somebody who is
+ * reading. Both halves of the interval are divided, so the spread stays
+ * proportional and consecutive gaps still never come out the same length.
+ */
+export function scheduleNextPlay(now: number, wandering = false): number {
+  const haste = wandering ? WANDER_HASTE : 1;
+  return now + (PLAY_GAP + Math.random() * PLAY_SPREAD) / haste;
 }
 
 /**
  * Which scene comes up.
  *
- * The chase leads because it is the only one that needs no clear rectangle for a
- * prop and no pair of facing spots — on a narrow viewport full of prose it is
- * usually the only one that can open at all, and a companion whose repertoire
- * silently empties on a phone-width window is a companion with one trick.
+ * The chase leads the reading visitor's pool because it is the only one that
+ * needs no clear rectangle for a prop and no pair of facing spots — on a narrow
+ * viewport full of prose it is usually the only one that can open at all, and a
+ * companion whose repertoire silently empties on a phone-width window is a
+ * companion with one trick.
+ *
+ * A wandering visitor gets a different pool rather than a different schedule of
+ * the same one, and the reason is what the two modes are *for*. Roaming, the
+ * cats are company for somebody reading, and a scene is an interruption they
+ * happen to enjoy — so the three anchored scenes take their turn alongside the
+ * yarn and the bowl and no more. Wandering, the visitor has said the page is
+ * the entertainment: the pair going through the furniture *is* the mode, so the
+ * scenes that touch the page lead and the props are what they fall back on. All
+ * eight stay reachable in both, because a mode that could only ever produce
+ * three things would run out in a minute.
  */
-export function pickScene(): SceneKind {
+export function pickScene(wandering = false): SceneKind {
   const roll = Math.random();
-  if (roll < 0.3) return "chase";
-  if (roll < 0.54) return "bowl";
-  if (roll < 0.72) return "yarn";
-  if (roll < 0.87) return "moth";
-  return "gift";
+  if (wandering) {
+    if (roll < 0.3) return "peek";
+    if (roll < 0.56) return "stalk";
+    if (roll < 0.78) return "scratch";
+    if (roll < 0.87) return "chase";
+    if (roll < 0.92) return "bowl";
+    if (roll < 0.96) return "yarn";
+    if (roll < 0.99) return "moth";
+    return "gift";
+  }
+  if (roll < 0.24) return "chase";
+  if (roll < 0.42) return "bowl";
+  if (roll < 0.56) return "yarn";
+  if (roll < 0.67) return "moth";
+  if (roll < 0.75) return "gift";
+  if (roll < 0.84) return "peek";
+  if (roll < 0.92) return "stalk";
+  return "scratch";
 }
 
 const PROP: Record<SceneKind, ToyKind | null> = {
@@ -185,6 +292,9 @@ const PROP: Record<SceneKind, ToyKind | null> = {
   bowl: "bowl",
   chase: null,
   gift: "yarn",
+  peek: null,
+  scratch: null,
+  stalk: null,
 };
 
 /* -------------------------------------------------------------------------- */
@@ -229,7 +339,14 @@ function beside(toy: Point, side: 1 | -1): Point {
   });
 }
 
-function open(kind: SceneKind, spec: Omit<Play, "kind" | "prop" | "script" | "step" | "until" | "pos" | "spin" | "flap" | "opacity">, script: readonly Beat[], now: number): Play {
+/** Everything a scene settles before it starts. `edge` is optional because
+ *  seven of the eight scenes hide behind nothing. */
+type Staging = Omit<
+  Play,
+  "kind" | "prop" | "script" | "step" | "until" | "pos" | "spin" | "flap" | "opacity" | "edge"
+> & { readonly edge?: number };
+
+function open(kind: SceneKind, spec: Staging, script: readonly Beat[], now: number): Play {
   return {
     kind,
     prop: PROP[kind],
@@ -237,6 +354,7 @@ function open(kind: SceneKind, spec: Omit<Play, "kind" | "prop" | "script" | "st
     step: 0,
     until: now + script[0].ms,
     ...spec,
+    edge: spec.edge ?? 0,
     pos: { x: spec.from.x, y: spec.from.y },
     spin: 0,
     flap: 1,
@@ -244,13 +362,286 @@ function open(kind: SceneKind, spec: Omit<Play, "kind" | "prop" | "script" | "st
   };
 }
 
+/* -------------------------------------------------------------------------- */
+/* Scenes that are about the page                                              */
+/*                                                                             */
+/* The first five scenes need a clear rectangle and nothing else, so their      */
+/* geometry is arithmetic on the cats' own positions. The three round-9 ones    */
+/* take their geometry off something the visitor can see, which means reading   */
+/* the page — and the rules for doing that are the ones companion-moods already */
+/* lives by, restated here because they are easy to get wrong twice:            */
+/*                                                                             */
+/*  - **Every lookup fails soft.** An anchor is markup another component owns;  */
+/*    a selector that stops matching costs the scene, not the companion.        */
+/*  - **An anchor off the screen is not an anchor.** A rectangle above the      */
+/*    header or below the fold is a scene nobody would see happen.              */
+/*  - **The geometry is separated from the page.** Everything below that can be */
+/*    stated as arithmetic on a rectangle is, and is exported, so the rules a   */
+/*    scene actually promises — the cut lands on the edge, the pounce ends past */
+/*    the words — can be tested without a browser underneath them.              */
+/* -------------------------------------------------------------------------- */
+
+/** The four numbers an anchored scene needs off an element. Deliberately not a
+ *  `DOMRect`: nothing here wants the other six, and a plain shape is one a test
+ *  can write down. */
+export interface Box {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
+/** Two places, one per animal. */
+export interface Pair {
+  readonly lead: Point;
+  readonly follow: Point;
+}
+
+/**
+ * The page-wide hiding contract: any element carrying `data-cat-hide` is an
+ * opaque panel the pair may tuck behind, exactly as `data-cat-nap` marks a
+ * place they may sleep under. The attribute's value is ignored — an element
+ * either offers itself or it does not — and it is static markup in the page's
+ * own source, never something the companion writes.
+ */
+const HIDE_ATTR = "[data-cat-hide]";
+
+/** How far off an anchor's edge a cat comes to rest, matching the moods. */
+const ANCHOR_MARGIN = 14;
+
+/**
+ * How much of a hiding cat clears the panel's top edge, and how far in from the
+ * panel's ends the pair stand.
+ *
+ * Twenty-seven of the drawing's forty-two units is the number that shows the
+ * head, both ears and the reach of a batting foreleg — the paw comes over at
+ * y≈26.8 — while the haunches, the feet and the root of the tail stay behind
+ * the panel. Less than that and the paw beat has nothing to show; much more and
+ * the animal is standing in front of the thing rather than behind it.
+ */
+const PEEK_SHOW = 27;
+const PEEK_GAP = 16;
+const PEEK_INSET = 10;
+/** How far a cat's feet sit past a rule it is standing on. The same three
+ *  pixels the contact mood perches with, and for the same reason: it is what
+ *  "on the edge" has to mean for a drawing with no depth, and it leaves the
+ *  probe reading the clear band above rather than the thing itself. */
+const PERCH_FOOT = 3;
+/** The stalk's run-up, and how much further into the margin the crouch sits so
+ *  the pounce is a diagonal rather than a lift. */
+const STALK_RUN = 132;
+const STALK_DRIFT = 26;
+/** How many places along a rule the scratch tries before it gives up. */
+const RULE_COLUMNS = 7;
+/** Close enough to have arrived, in px. */
+const ARRIVED = 4;
+/**
+ * The longest an anchored scene may spend walking to its anchor.
+ *
+ * A cap rather than a duration: the walk ends when the lead gets there, which
+ * on the near side of a paragraph is half a second and from the far corner of a
+ * 1440px window is nearer four. Sized so the second case still arrives, because
+ * a scene whose first beat expires mid-stride plays its second one to an empty
+ * mark.
+ */
+const APPROACH_MAX = 4200;
+
+/**
+ * How much of a drawing standing at `y` falls below `edge`.
+ *
+ * This is the whole of the hiding trick. Nothing on the page paints over the
+ * companion layer — it is `fixed` at `z-40` above every section — so a cat
+ * cannot get behind a panel by being underneath it in paint order. It gets
+ * behind it by not being drawn there: the caller clips each animal to the band
+ * above the edge, and this is the height of the cut.
+ *
+ * Expressed against the animal's live position rather than against the spot it
+ * was sent to, which is what makes the beat honest at both ends: a cat still
+ * walking in is cut exactly where it crosses the edge, and one climbing back
+ * out stops being cut as it rises.
+ */
+export function hideCut(y: number, edge: number): number {
+  return clamp(y + CAT_H - edge, 0, CAT_H);
+}
+
+/**
+ * Where a cat that has finished hiding stands: on the edge itself, with all of
+ * it above the panel.
+ *
+ * It is also the position the *probe* asks about before the scene opens, which
+ * is the honest way to ask. A tucked cat's box overlaps a panel full of text,
+ * and no amount of clipping makes that box clear — but the only part of the
+ * animal anybody ever sees is the part above the edge, and this is the box that
+ * part lives in. A peek that cannot come out into clear air does not happen.
+ */
+export function shownSpot(spot: Point, edge: number): Point {
+  return { x: spot.x, y: edge - CAT_H + PERCH_FOOT };
+}
+
+/**
+ * Where the pair stand to look over a panel's top edge, best first.
+ *
+ * Centred on the panel, then flush to each end, so a panel with something
+ * covering half of it still has somewhere to work. Both animals have to be over
+ * the panel — a cat hiding behind the *end* of a box is a cat standing beside
+ * it — which is why a panel narrower than the pair returns nothing at all.
+ */
+export function peekStands(panel: Box, near: Point): Pair[] {
+  const span = CAT_W * 2 + PEEK_GAP;
+  if (panel.right - panel.left - PEEK_INSET * 2 < span) return [];
+  const y = panel.top - PEEK_SHOW;
+  const starts = [
+    (panel.left + panel.right) / 2 - span / 2,
+    panel.left + PEEK_INSET,
+    panel.right - PEEK_INSET - span,
+  ].sort((a, b) => Math.abs(a - near.x) - Math.abs(b - near.x));
+  return starts.map((start) => ({
+    follow: { x: start, y },
+    lead: { x: start + CAT_W + PEEK_GAP, y },
+  }));
+}
+
+/** Standing on a rule: feet a few pixels past it, everything else above. */
+export function ruleSpot(x: number, rule: number): Point {
+  return { x, y: rule - CAT_H + PERCH_FOOT };
+}
+
+/**
+ * The stalk, as pairs of points to try, best first.
+ *
+ * Two landings, and the difference between them is the difference between
+ * hunting a heading and sitting in the margin near one. A `<h2>` is a block, so
+ * its box runs to the end of the column whatever the words do — on this page
+ * that is four hundred pixels of nothing after the last glyph — and a hit test
+ * answers "heading" for every one of them. So the first landing is the perch on
+ * the heading's own top edge at the point the words stop, which is beside the
+ * end of the line and, being a cat's height *above* the box, is ground the
+ * probe can actually approve. The second is past the box entirely, level with
+ * its last line: further from the words, and the answer when there is no band
+ * above the heading to stand in.
+ *
+ * The crouch is a run-up away on either side of the landing, and the caller
+ * tries both — a heading near the top of the window has no room above it and
+ * one near the bottom has none below. It sits a little further out than the
+ * landing so the pounce arrives diagonally; where the margin is too narrow for
+ * that the clamp flattens it into a spring, which is still a cat leaving the
+ * ground.
+ */
+export function stalkSpots(heading: Box, words: number): Array<{ crouch: Point; land: Point }> {
+  const landings = [
+    { x: words + ANCHOR_MARGIN, y: heading.top - CAT_H + PERCH_FOOT },
+    { x: heading.right + ANCHOR_MARGIN, y: heading.bottom - CAT_H },
+  ];
+  const pairs: Array<{ crouch: Point; land: Point }> = [];
+  for (const land of landings) {
+    for (const up of [1, -1] as const) {
+      pairs.push({ land, crouch: { x: land.x + STALK_DRIFT, y: land.y - up * STALK_RUN } });
+    }
+  }
+  return pairs;
+}
+
+/**
+ * Where the words in a heading stop.
+ *
+ * Measured off the last line box rather than the element, because the element
+ * is a block and its right edge belongs to the column rather than to the
+ * sentence. A heading that wraps has more than one line rect; the last one is
+ * the one with the end of the sentence in it. Falls back to the box, which is
+ * the honest answer whenever the range cannot be measured.
+ */
+function wordsEnd(heading: Element, box: Box): number {
+  const range = document.createRange();
+  range.selectNodeContents(heading);
+  const lines = range.getClientRects();
+  const last = lines[lines.length - 1];
+  return last && last.width > 0 ? Math.min(last.right, box.right) : box.right;
+}
+
+/** An element's box, or null if it is not somewhere a scene could be seen. */
+function boxOf(element: Element | null | undefined): Box | null {
+  if (!element) return null;
+  const rect = element.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return null;
+  if (rect.bottom < safeTop() || rect.top > viewport().height) return null;
+  return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+}
+
+/**
+ * Is this element the thing actually drawn just inside its own top edge?
+ *
+ * A box is not a panel. A collapsed disclosure keeps its rectangle while
+ * painting nothing, and anything scrolled under the sticky header keeps its
+ * rectangle too — in both cases a cat clipped against that edge is not a cat
+ * hiding, it is a cat cut in half over open page. One hit test answers it.
+ */
+function paints(element: Element, panel: Box): boolean {
+  const at = elementBehind((panel.left + panel.right) / 2, panel.top + 6);
+  return at !== null && (at === element || element.contains(at));
+}
+
+/** Every panel offering itself as somewhere to hide, nearest first. */
+function hidePanels(near: Point): Box[] {
+  const panels: Box[] = [];
+  for (const element of document.querySelectorAll(HIDE_ATTR)) {
+    const panel = boxOf(element);
+    // Room for a whole cat above the edge, and the edge itself somewhere short
+    // of the bottom of the window: both are what "you can watch this happen"
+    // comes down to.
+    if (!panel || panel.top < safeTop() + CAT_H || panel.top > viewport().height - CAT_H) {
+      continue;
+    }
+    if (!paints(element, panel)) continue;
+    panels.push(panel);
+  }
+  return panels.sort(
+    (a, b) => Math.abs((a.left + a.right) / 2 - near.x) - Math.abs((b.left + b.right) / 2 - near.x),
+  );
+}
+
+/**
+ * The hairlines of the section the visitor is on, whichever of them is on
+ * screen.
+ *
+ * Both edges count, and neither is a special case: every `<section>` carries
+ * `hairline-t`, so a section's bottom edge is the next one's rule drawn in the
+ * same place. Which of the two the visitor can see depends only on where they
+ * have scrolled to.
+ */
+function sectionRules(section: string | null): number[] {
+  const element = section ? document.getElementById(section) : null;
+  const box = boxOf(element);
+  if (!box) return [];
+  const view = viewport();
+  return [box.top, box.bottom].filter(
+    (rule) => rule > safeTop() + CAT_H && rule < view.height - PERCH_FOOT,
+  );
+}
+
+/** Places along a rule to try standing, nearest to the cats first. */
+function alongRule(rule: number, near: Point): Point[] {
+  const width = viewport().width;
+  const spots: Point[] = [];
+  for (let column = 0; column < RULE_COLUMNS; column += 1) {
+    const x = ((width - CAT_W) * column) / (RULE_COLUMNS - 1);
+    spots.push(clampToViewport(ruleSpot(x, rule)));
+  }
+  return spots.sort((a, b) => Math.abs(a.x - near.x) - Math.abs(b.x - near.x));
+}
+
 /**
  * Set a scene up, or decline to.
  *
  * Both directions are tried, so a lead cat sitting with his nose to a paragraph
  * plays *away* from it rather than not at all. Returning null is a normal
- * outcome — a narrow viewport full of text has nowhere for this — and the
- * caller answers it by backing the schedule off rather than by trying harder.
+ * outcome — a narrow viewport full of text has nowhere for this, and an
+ * anchored scene has no anchor on most of the page — and the caller answers it
+ * by backing the schedule off rather than by trying harder.
+ *
+ * `section` is the one the visitor is reading, from the page's own scrollspy.
+ * Only the anchored scenes read it, and they are the reason it is threaded
+ * through at all: "the section you are on" is not something this module can
+ * work out from two positions.
  */
 export function openPlay(
   kind: SceneKind,
@@ -258,6 +649,7 @@ export function openPlay(
   follow: Point,
   facing: 1 | -1,
   now: number,
+  section: string | null,
 ): Play | null {
   const sides: Array<1 | -1> = facing === 1 ? [1, -1] : [-1, 1];
   /** Ground level at the cats' feet: a prop that appears at head height is a
@@ -395,6 +787,119 @@ export function openPlay(
     return null;
   }
 
+  if (kind === "peek") {
+    /*
+     * Behind the furniture. Nothing here probes where they *hide* — that box is
+     * over a panel full of text by definition — only where they come out, which
+     * is the band above the edge and the one part of either animal the visitor
+     * ever sees. See `shownSpot`.
+     */
+    for (const panel of hidePanels(lead)) {
+      for (const pair of peekStands(panel, lead)) {
+        const out = {
+          lead: shownSpot(pair.lead, panel.top),
+          follow: shownSpot(pair.follow, panel.top),
+        };
+        if (!isClearSpot(out.lead) || !isClearSpot(out.follow)) continue;
+        return open(
+          kind,
+          {
+            from: pair.lead,
+            to: out.lead,
+            leadSpot: pair.lead,
+            followSpot: pair.follow,
+            aside: out.follow,
+            edge: panel.top,
+            // Facing the middle of the panel, which puts the two of them nose to
+            // nose over it rather than both staring the same way.
+            facing: pair.lead.x < (panel.left + panel.right) / 2 ? 1 : -1,
+          },
+          [
+            { phase: "approach", ms: APPROACH_MAX },
+            { phase: "tuck", ms: 1500 },
+            { phase: "paw", ms: 1300 },
+            { phase: "rise", ms: 900 },
+          ],
+          now,
+        );
+      }
+    }
+    return null;
+  }
+
+  if (kind === "scratch") {
+    /*
+     * At the rule. He stands on the section's own hairline with his feet a few
+     * pixels past it and everything else in the clear band above — the perch the
+     * contact mood already uses — and rakes along it. She sits and watches from
+     * a cat's width off, or keeps her own spot if there is nothing clear there.
+     */
+    for (const rule of sectionRules(section)) {
+      for (const spot of alongRule(rule, lead)) {
+        if (!isClearSpot(spot)) continue;
+        for (const side of (facing === 1 ? [1, -1] : [-1, 1]) as Array<1 | -1>) {
+          const watch = clampToViewport({ x: spot.x - side * (CAT_W + 12), y: spot.y });
+          if (Math.abs(watch.x - spot.x) < CAT_W || !isClearSpot(watch)) continue;
+          return open(
+            kind,
+            {
+              from: spot,
+              to: spot,
+              leadSpot: spot,
+              followSpot: watch,
+              aside: watch,
+              edge: rule,
+              facing: side,
+            },
+            [
+              { phase: "approach", ms: APPROACH_MAX },
+              { phase: "rake", ms: 420 },
+              { phase: "ease", ms: 240 },
+              { phase: "rake", ms: 420 },
+              { phase: "leave", ms: 800 },
+            ],
+            now,
+          );
+        }
+      }
+    }
+    return null;
+  }
+
+  if (kind === "stalk") {
+    const element = section ? document.getElementById(section)?.querySelector("h2") : null;
+    const heading = boxOf(element);
+    if (!element || !heading) return null;
+    for (const { crouch, land } of stalkSpots(heading, wordsEnd(element, heading))) {
+      const from = clampToViewport(crouch);
+      const to = clampToViewport(land);
+      // A run-up the clamp has flattened is not a run-up, and a cat that lands
+      // where it crouched has not pounced at anything.
+      if (Math.hypot(to.x - from.x, to.y - from.y) < STALK_RUN * 0.6) continue;
+      if (!isClearSpot(from) || !isClearSpot(to)) continue;
+      const watch = clampToViewport({ x: from.x - CAT_W - 12, y: from.y });
+      return open(
+        kind,
+        {
+          from,
+          to,
+          leadSpot: to,
+          followSpot: isClearSpot(watch) ? watch : follow,
+          aside: from,
+          facing: -1,
+        },
+        [
+          { phase: "approach", ms: APPROACH_MAX },
+          { phase: "crouch", ms: 1600 },
+          { phase: "pounce", ms: 460 },
+          { phase: "pleased", ms: 1100 },
+        ],
+        now,
+      );
+    }
+    return null;
+  }
+
   /*
    * The gift. He picks the ball up where he is standing and carries it to her,
    * which means the only spot that has to be clear is the one *he* stops at —
@@ -436,6 +941,21 @@ function arc(from: Point, to: Point, t: number): Point {
     x: mix(from.x, to.x, clamp(t, 0, 1)) + (dy / len) * bow,
     y: mix(from.y, to.y, clamp(t, 0, 1)) - (dx / len) * bow,
   });
+}
+
+/**
+ * End the walk-in the moment the lead is standing on his mark.
+ *
+ * The only beat in the module that is not a length of time, and it has to be:
+ * an anchored scene is staged wherever the page put the thing it is about, so
+ * the walk is anything from nothing to most of a viewport. A fixed duration
+ * would either sit the pair on their marks doing nothing for three seconds or
+ * start the scene while they were still crossing the page. Writing `until` back
+ * to `now` hands it to the same beat clock everything else uses rather than
+ * inventing a second way for a scene to advance.
+ */
+function arrive(play: Play, now: number, lead: Point, mark: Point): void {
+  if (Math.hypot(lead.x - mark.x, lead.y - mark.y) < ARRIVED) play.until = now;
 }
 
 /** Head down, head up, head down. Driven off wall-clock time rather than off
@@ -506,7 +1026,17 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
       followTo = play.followSpot;
     }
 
-    return { done: false, focus: centre(play.pos), leadPose, followPose, leadTo: null, followTo, dash: false };
+    return {
+      done: false,
+      focus: centre(play.pos),
+      leadPose,
+      followPose,
+      leadTo: null,
+      followTo,
+      dash: false,
+      hide: false,
+      stir: false,
+    };
   }
 
   if (play.kind === "moth") {
@@ -555,6 +1085,8 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
       leadTo: null,
       followTo: null,
       dash: false,
+      hide: false,
+      stir: false,
     };
   }
 
@@ -572,6 +1104,8 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
         leadTo: null,
         followTo: null,
         dash: false,
+        hide: false,
+        stir: false,
       };
     }
 
@@ -589,6 +1123,8 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
         : play.leadSpot,
       followTo: shoving ? play.aside : play.followSpot,
       dash: false,
+      hide: false,
+      stir: false,
     };
   }
 
@@ -605,6 +1141,8 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
         leadTo: arc(play.from, play.to, t),
         followTo: arc(play.from, play.followSpot, t - 0.32),
         dash: true,
+        hide: false,
+        stir: false,
       };
     }
     if (phase === "skid") {
@@ -616,6 +1154,8 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
         leadTo: play.leadSpot,
         followTo: play.followSpot,
         dash: true,
+        hide: false,
+        stir: false,
       };
     }
     // And then they sit, facing the way they were going, as though neither of
@@ -628,6 +1168,145 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
       leadTo: play.leadSpot,
       followTo: play.followSpot,
       dash: false,
+      hide: false,
+      stir: false,
+    };
+  }
+
+  if (play.kind === "peek") {
+    // Nothing is drawn for this one: the scene is two cats and a panel the page
+    // already had.
+    play.opacity = 0;
+    /** Over the middle of the panel, which is what the pair look at while they
+     *  are behind it — so they end up nose to nose rather than side by side. */
+    const over = { x: (play.leadSpot.x + play.followSpot.x + CAT_W) / 2, y: play.edge - CAT_H };
+
+    if (phase === "approach") {
+      arrive(play, now, lead, play.leadSpot);
+      return {
+        done: false,
+        focus: over,
+        leadPose: null,
+        followPose: null,
+        leadTo: play.leadSpot,
+        followTo: play.followSpot,
+        dash: false,
+        hide: false,
+        stir: false,
+      };
+    }
+    // Up and out, and still clipped: the cut goes to nothing on its own as they
+    // rise past the edge, so climbing out needs no beat that says so.
+    const out = phase === "rise";
+    return {
+      done: false,
+      focus: over,
+      leadPose: "sit",
+      // One paw over the top. She is the one who reaches — it is her pose in
+      // every other scene too — and at this height it is the only part of
+      // either of them below the ears that clears the edge.
+      followPose: phase === "paw" ? "bat" : "sit",
+      leadTo: out ? play.to : play.leadSpot,
+      followTo: out ? play.aside : play.followSpot,
+      dash: false,
+      hide: true,
+      stir: false,
+    };
+  }
+
+  if (play.kind === "scratch") {
+    play.opacity = 0;
+    /** Along the rule, in front of the paw. */
+    const at = { x: play.leadSpot.x + play.facing * CAT_W, y: play.edge };
+
+    if (phase === "approach") {
+      arrive(play, now, lead, play.leadSpot);
+      return {
+        done: false,
+        focus: at,
+        leadPose: null,
+        followPose: null,
+        leadTo: play.leadSpot,
+        followTo: play.followSpot,
+        dash: false,
+        hide: false,
+        stir: false,
+      };
+    }
+
+    const raking = phase === "rake";
+    return {
+      done: false,
+      focus: at,
+      leadPose: raking ? "bat" : "sit",
+      followPose: "sit",
+      leadTo: play.leadSpot,
+      followTo: play.followSpot,
+      dash: false,
+      hide: false,
+      // The batting paw pats off the same phase the tail sways on, so running
+      // that phase at walking speed is what turns one held paw into a rake.
+      stir: raking,
+    };
+  }
+
+  if (play.kind === "stalk") {
+    play.opacity = 0;
+
+    if (phase === "approach") {
+      arrive(play, now, lead, play.from);
+      return {
+        done: false,
+        focus: play.to,
+        leadPose: null,
+        followPose: null,
+        leadTo: play.from,
+        followTo: play.followSpot,
+        dash: false,
+        hide: false,
+        stir: false,
+      };
+    }
+    if (phase === "crouch") {
+      // The stretch contour is a hollowed back over a raised rump with the chest
+      // and head low and forward, which is a stretching cat and — held still,
+      // with the tail going — a cat about to jump on something.
+      return {
+        done: false,
+        focus: play.to,
+        leadPose: "stretch",
+        followPose: "sit",
+        leadTo: play.from,
+        followTo: play.followSpot,
+        dash: false,
+        hide: false,
+        stir: true,
+      };
+    }
+    if (phase === "pounce") {
+      return {
+        done: false,
+        focus: play.to,
+        leadPose: null,
+        followPose: "sit",
+        leadTo: arc(play.from, play.to, t),
+        followTo: null,
+        dash: true,
+        hide: false,
+        stir: false,
+      };
+    }
+    // Landed, and looking back down the line at whatever it was he caught.
+    return {
+      done: false,
+      focus: { x: play.to.x - CAT_W, y: play.to.y },
+      leadPose: "sit",
+      followPose: "sit",
+      leadTo: play.to,
+      followTo: null,
+      dash: false,
+      hide: false,
+      stir: false,
     };
   }
 
@@ -654,6 +1333,8 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
       leadTo: null,
       followTo: null,
       dash: false,
+      hide: false,
+      stir: false,
     };
   }
   if (phase === "carry") {
@@ -668,6 +1349,8 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
       leadTo: play.leadSpot,
       followTo: null,
       dash: false,
+      hide: false,
+      stir: false,
     };
   }
   // Dropped at her feet, and inspected.
@@ -683,5 +1366,7 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
     leadTo: play.leadSpot,
     followTo: null,
     dash: false,
+    hide: false,
+    stir: false,
   };
 }

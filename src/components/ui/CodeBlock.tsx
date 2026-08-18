@@ -39,7 +39,17 @@ export function CodeBlock({ code, filename, summary, className }: CodeBlockProps
   const summaryId = summaryIdFor(filename);
 
   return (
-    <figure className={cn("min-w-0 max-w-full border border-rule bg-surface", className)}>
+    // `data-cat-hide` is a cross-component contract, the twin of the
+    // `data-cat-nap` the knowledge tree's plinth carries: it says this panel is
+    // opaque and has a top edge, and the companion cats occasionally duck
+    // behind it so only their heads clear it. This file only declares the
+    // attribute; everything that reads it lives in src/components/companion,
+    // and a panel that is present but not painted — a collapsed disclosure, one
+    // scrolled under the header — is checked for and skipped there.
+    <figure
+      data-cat-hide
+      className={cn("min-w-0 max-w-full border border-rule bg-surface", className)}
+    >
       <figcaption className="flex items-center justify-between gap-4 border-b border-rule px-4 py-3">
         <span className="wrap-anywhere font-mono text-[length:var(--step--1)] text-fg-muted">
           {filename}

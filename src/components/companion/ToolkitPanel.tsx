@@ -15,7 +15,9 @@ import type { SceneKind } from "./companion-play";
  * the cats' menu should be about the cats.
  *
  * So it is a play menu. The four items ask for one of the scenes the companion
- * already knows how to act out, and the fifth sends the pair to bed.
+ * already knows how to act out; below the rule, one item decides what the pair
+ * are doing with themselves the rest of the time — following the cursor, or off
+ * about their own business — and the last sends them to bed.
  *
  * ## What "on demand" is allowed to skip, and what it is not
  *
@@ -62,29 +64,45 @@ export type PlayRequest = "playing" | "no-room";
  * a button on it would make the only unprompted moment in the repertoire
  * prompted too.
  */
-const SCENES: readonly { readonly kind: SceneKind; readonly label: string }[] = [
+const SCENES = [
   { kind: "yarn", label: "Toss the yarn" },
   { kind: "moth", label: "Release a moth" },
   { kind: "bowl", label: "Dinner time" },
   { kind: "chase", label: "Start a chase" },
-];
+] as const satisfies readonly { readonly kind: SceneKind; readonly label: string }[];
+
+/**
+ * The four that can be asked for, which is narrower than `SceneKind` and has to
+ * stay that way.
+ *
+ * Round 9 added three scenes anchored to the page — hiding behind a panel,
+ * scratching at a section rule, hunting a heading — and none of them is a menu
+ * item. They are about somewhere the visitor happens to be, so they belong to
+ * the rotation that watches for that; a button that fired one would mean
+ * "happen here, now", which is the one thing an anchored scene cannot promise.
+ * Typing the refusals off this list rather than off `SceneKind` is what stops
+ * the panel quietly acquiring an answer for a question it never asks.
+ */
+type MenuScene = (typeof SCENES)[number]["kind"];
 
 /** What the panel says when a scene has nowhere to happen. Names the thing that
  *  was asked for, because "no room" on its own reads as a fault rather than as
  *  an answer. */
-const NO_ROOM: Record<SceneKind, string> = {
+const NO_ROOM: Record<MenuScene, string> = {
   yarn: "No room to roll a ball of yarn just here.",
   moth: "No room for a moth just here.",
   bowl: "No room to put a bowl down just here.",
   chase: "No room for a run-up just here.",
-  gift: "No room just here.",
 };
 
 interface ToolkitPanelProps {
   /** False on touch and under reduced motion, where there is no roaming loop
    *  and therefore no scene to run. */
   readonly canPlay: boolean;
+  /** The pair are off the cursor and about their own business. */
+  readonly wandering: boolean;
   readonly onPlay: (kind: SceneKind) => PlayRequest;
+  readonly onWander: () => void;
   readonly onSendToBed: () => void;
   readonly panelRef?: Ref<HTMLDivElement>;
 }
@@ -94,12 +112,19 @@ const ITEM_CLASS =
 const LABEL_CLASS =
   "px-3 pb-2 pt-3 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-fg-subtle";
 
-export function ToolkitPanel({ canPlay, onPlay, onSendToBed, panelRef }: ToolkitPanelProps) {
+export function ToolkitPanel({
+  canPlay,
+  wandering,
+  onPlay,
+  onWander,
+  onSendToBed,
+  panelRef,
+}: ToolkitPanelProps) {
   /** The last refusal, or null. Cleared on the next attempt so the panel never
    *  shows an answer to a question the visitor has since asked again. */
-  const [refused, setRefused] = useState<SceneKind | null>(null);
+  const [refused, setRefused] = useState<MenuScene | null>(null);
 
-  function play(kind: SceneKind) {
+  function play(kind: MenuScene) {
     setRefused(null);
     // A successful request closes the panel from the parent — the cats are
     // called home while it is open, so a scene cannot start until it is shut —
@@ -172,13 +197,36 @@ export function ToolkitPanel({ canPlay, onPlay, onSendToBed, panelRef }: Toolkit
         {refused ? `${NO_ROOM[refused]} Try again once there is a clear patch of page.` : ""}
       </p>
 
-      {/* Set apart, because it is the one action that is not play: it ends the
-          companion for this visit and every visit after it until the visitor
-          says otherwise. It is also the only exit now — "turn the cats off" is
-          gone, being the same thing said twice with no way back — which is
-          exactly why the place it sends them is visible and carries its own
-          Wake control. */}
+      {/* Set apart, because neither of these is play: one changes what the cats
+          are *for* until the visitor says otherwise, and the other ends the
+          companion for this visit and every visit after it. The bed is the only
+          exit now — "turn the cats off" is gone, being the same thing said twice
+          with no way back — which is exactly why the place it sends them is
+          visible and carries its own Wake control. */}
       <div className="mt-2 flex flex-col border-t border-rule">
+        {/*
+          One item, two states, and deliberately not a toggle in the ARIA sense.
+          `aria-pressed` promises a control whose *name* stays put while its
+          state flips underneath it, and the honest name for this one is the
+          thing pressing it does — which is the opposite sentence in each state.
+          So it is a plain button that says what will happen, which is true read
+          aloud and true read off the screen, and it is exactly as operable from
+          the keyboard as every other row here.
+
+          Only offered where there is a roaming loop to change the shape of. On
+          touch and under reduced motion the pair are parked in the corner and
+          "let them wander" would be a control with nothing behind it — the same
+          reason the scenes above are not offered there.
+        */}
+        {canPlay ? (
+          <button
+            type="button"
+            onClick={onWander}
+            className="flex min-h-11 items-center px-3 text-left font-mono text-[0.62rem] uppercase tracking-[0.14em] text-fg-subtle hover:text-fg"
+          >
+            {wandering ? "Follow my cursor" : "Let them wander"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onSendToBed}

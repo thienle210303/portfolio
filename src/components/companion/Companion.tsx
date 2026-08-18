@@ -18,6 +18,7 @@ import RestingBox, {
 import ToolkitPanel, { PANEL_ID, type PlayRequest } from "./ToolkitPanel";
 import {
   advancePlay,
+  hideCut,
   openPlay,
   pickScene,
   scheduleNextPlay,
@@ -26,7 +27,7 @@ import {
   type PlayBeat,
   type SceneKind,
 } from "./companion-play";
-import { planMood, type MoodKind } from "./companion-moods";
+import { planMood, planWander, type MoodKind } from "./companion-moods";
 import { migrateCompanionMode, setCompanionMode, useCompanionMode } from "./companion-state";
 import {
   clamp,
@@ -63,7 +64,10 @@ import {
  *  3. It costs nothing to people who do not want it. No model, no network, no
  *     images — the whole thing is inline SVG and *one* rAF loop that drives both
  *     cats and stops when the tab is hidden, when motion is reduced, and when
- *     both animals are asleep.
+ *     both animals are asleep. `wander` is the one mode where the last of those
+ *     never comes up, because the cats never doze there — which is the cost of
+ *     a mode whose whole content is the pair doing something, and is why it is
+ *     a thing the visitor asks for rather than a default.
  *  4. Neither cat is the other one shifted sideways. They were literally one
  *     SVG on one button before this — same pose, same phase, one position — and
  *     no amount of drawing makes that read as two animals. The grey one leads
@@ -88,6 +92,23 @@ import {
  *     crossing the hero headline had the words running straight through their
  *     bodies. Every drawing on this layer now knocks the page out underneath
  *     itself in `var(--ground)` — see the note in `CompanionCat`.
+ *
+ * ## The two roaming modes
+ *
+ * `roam` is the original: the lead trails the cursor and everything above is
+ * about staying out of its way. `wander` is round 9, and it is the same layer
+ * with the pointer removed from it — the owner's note asks for "a mode that cat
+ * go around instead of follow the mouse", and that is exactly what it is. The
+ * pair choose their own places to be (see `planWander`), the personal-space
+ * radius has nothing to keep its distance from, and the scenes come three times
+ * as often because a visitor who has turned the cursor off has said what they
+ * are here for.
+ *
+ * One rule is deliberately dropped there, and only one: the idle bed. Fourteen
+ * seconds of nobody doing anything means "the visitor has gone" while they are
+ * driving, and means "the visitor is watching" while they are not — so a
+ * companion that went to bed on that clock in `wander` would be a mode fourteen
+ * seconds long. The bed is still one item away in the menu.
  *
  * On touch devices there is no cursor to follow, so the roaming behaviour is
  * skipped entirely and both cats simply rest in the corner as a toolkit button.
@@ -453,7 +474,11 @@ interface Stage {
  * place to spend it and the only place this is ever called from.
  */
 function stageFor(kind: SceneKind, here: Spots, facing: 1 | -1, now: number): Stage | null {
-  const fits = (spots: Spots) => openPlay(kind, spots.lead, spots.follow, facing, now);
+  // No section goes in, and none is wanted: the only scenes that reach here are
+  // the four on the menu, and an anchored scene is not one of them — see
+  // `MenuScene` in ToolkitPanel for why asking for one by name is a promise the
+  // page cannot keep.
+  const fits = (spots: Spots) => openPlay(kind, spots.lead, spots.follow, facing, now, null);
 
   // Where they are standing gets first refusal, so a scene that can happen
   // under the visitor's nose never walks the cats across the page to happen
@@ -739,6 +764,20 @@ function paint(node: HTMLElement | null, pos: Spot): void {
   if (node) node.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
 }
 
+/**
+ * Cut a drawing off at the edge of whatever it is hiding behind; zero puts it
+ * back.
+ *
+ * The inset is only ever on the bottom, which is what lets this sit on the same
+ * element as the drawing's own `scaleX` — mirroring a cut that is symmetrical
+ * left to right changes nothing about where it lands.
+ */
+function tuck(node: HTMLElement | null, cut: number): void {
+  if (!node) return;
+  const want = cut > 0 ? `inset(0px 0px ${cut.toFixed(1)}px 0px)` : "";
+  if (node.style.clipPath !== want) node.style.clipPath = want;
+}
+
 function sameVisual(a: Visual, b: Visual): boolean {
   return (
     a.pose === b.pose &&
@@ -783,8 +822,35 @@ function useMedia(query: string): boolean {
  */
 const SECTION_IDS = navItems.map((item) => item.sectionId);
 
+/**
+ * Where the pair are wandering to, and when they may think of somewhere else.
+ *
+ * Held rather than recomputed, for the same reason a mood is: a destination
+ * chosen again every frame is not a destination, it is a jitter. `arrivedAt` is
+ * what turns the plan into a stay — the clock on how long they stand there does
+ * not start until they are standing there — and `until` is a cap before then,
+ * so a walk that cannot finish (a spot that has scrolled under something) is
+ * abandoned rather than walked at forever.
+ */
+interface WanderRun {
+  readonly spots: Spots;
+  arrivedAt: number;
+  until: number;
+}
+
+/** How long a wandering pair stay somewhere once they get there, and the cap on
+ *  the walk before that. Long enough that they read as having settled in, short
+ *  enough that a visitor watching sees them think of something else. */
+const WANDER_STAY = 4500;
+const WANDER_STAY_SPREAD = 8000;
+const WANDER_WALK_MAX = 8000;
+
 export function Companion() {
   const mode = useCompanionMode();
+  /** Both modes that put cats on the page rather than in the corner. Almost
+   *  everything below cares which of the three the visitor chose only this far:
+   *  is there a roaming layer at all. */
+  const roaming = mode === "roam" || mode === "wander";
   /** Which section the visitor is reading, from the page's own scrollspy. Used
    *  for nothing but where the cats choose to sit — see companion-moods. */
   const section = useActiveSection(SECTION_IDS);
@@ -809,6 +875,12 @@ export function Companion() {
 
   const leadNode = useRef<HTMLElement | null>(null);
   const followNode = useRef<HTMLElement | null>(null);
+  /** The drawing inside each of the two roaming cats. Only one thing writes to
+   *  these — the clip that puts an animal behind a panel — and it deliberately
+   *  does not write to the elements above: the lead's is the quick-actions
+   *  button, and clipping a control is clipping its target and its focus ring. */
+  const leadArt = useRef<HTMLSpanElement | null>(null);
+  const followArt = useRef<HTMLSpanElement | null>(null);
   const policeNode = useRef<HTMLElement | null>(null);
   const toyNode = useRef<HTMLDivElement | null>(null);
   const toyArt = useRef<SVGGElement | null>(null);
@@ -881,6 +953,13 @@ export function Companion() {
   /** Content-avoiding rest spots, resolved once per settle rather than per
    *  frame. Cleared whenever the page underneath them can have moved. */
   const settleSpots = useRef<Spots | null>(null);
+  /** The mode, mirrored for the loop, which closes over its initial props and
+   *  is deliberately not torn down when the visitor switches between the two
+   *  roaming modes — a rebuild would hand them a fresh scene timer and forget
+   *  where the pair were going. */
+  const wanderRef = useRef(false);
+  /** Where they are wandering to. Null means "decide on the next frame". */
+  const wanderRun = useRef<WanderRun | null>(null);
   /** The active section, mirrored for the loop, plus the mood it is currently
    *  running. Both are cleared together when the visitor moves on. */
   const sectionRef = useRef<string | null>(null);
@@ -917,14 +996,17 @@ export function Companion() {
     // is the idle timer's until somebody asks for it again.
     askedRef.current = false;
     if (!playRef.current) return;
-    playAt.current = scheduleNextPlay(now);
+    playAt.current = scheduleNextPlay(now, wanderRef.current);
     playRef.current = null;
     // The spots they settled on before the scene are stale the moment a scene
-    // moves them, and two of them do: a chase can finish a viewport away from
-    // where it started, and cats that then walked all the way back to their old
-    // spot would be undoing the scene in front of the visitor. Cleared here so
-    // the next frame re-probes from wherever they actually are.
+    // moves them, and most of them do: a chase can finish a viewport away from
+    // where it started, and an anchored scene ends wherever the thing it was
+    // about happened to be. Cats that then walked all the way back to their old
+    // spot would be undoing the scene in front of the visitor, so both the
+    // settle spots and whatever they were wandering towards are cleared here and
+    // the next frame re-decides from wherever they actually are.
     settleSpots.current = null;
+    wanderRun.current = null;
     setScene(null);
   }, []);
 
@@ -932,6 +1014,23 @@ export function Companion() {
     openRef.current = open;
     wake();
   }, [open, wake]);
+
+  /**
+   * The mode, into the loop.
+   *
+   * A ref rather than a dependency of the loop effect, because switching
+   * between the two roaming modes must not rebuild the loop: that would re-roll
+   * the scene timer and drop the plan the pair are halfway through walking. The
+   * plan itself does go, because it was chosen under the other set of rules —
+   * and the cats are woken, because in `wander` there may be nothing else left
+   * to wake them.
+   */
+  useEffect(() => {
+    wanderRef.current = mode === "wander";
+    wanderRun.current = null;
+    settleSpots.current = null;
+    wake();
+  }, [mode, wake]);
 
   // Retire the one stored value this code no longer writes. It has to happen
   // out here rather than inside the store's snapshot, which runs during render
@@ -951,6 +1050,7 @@ export function Companion() {
     moodRun.current = null;
     moodWalk.current = null;
     settleSpots.current = null;
+    wanderRun.current = null;
     wake();
   }, [section, wake]);
 
@@ -1106,7 +1206,7 @@ export function Companion() {
    * common case) and needs no coordination with whichever section adds one.
    */
   useEffect(() => {
-    if (!roams || mode !== "roam") return;
+    if (!roams || !roaming) return;
 
     let dwell = 0;
     let pending: Element | null = null;
@@ -1178,11 +1278,11 @@ export function Companion() {
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
     };
-  }, [roams, mode, wake]);
+  }, [roams, roaming, wake]);
 
   /* ------------------------------------------------------------ the loop -- */
 
-  const loopActive = roams && (mode === "roam" || escort !== null);
+  const loopActive = roams && (roaming || escort !== null);
 
   useEffect(() => {
     if (!loopActive) return;
@@ -1293,6 +1393,46 @@ export function Companion() {
       return plan.spots;
     }
 
+    /**
+     * Where the pair are going while they are wandering, and how long they stay
+     * when they get there.
+     *
+     * The plan is *held*, which is the same rule the moods follow and for the
+     * same reason: re-asking every frame is not wandering, it is twitching. It
+     * is replaced when the stay is up, when they cannot get there in a
+     * reasonable time, and — from outside this function — whenever the page has
+     * moved underneath them, which is what clears `wanderRun`.
+     *
+     * A declined plan is a real outcome on a window with no whitespace in it.
+     * The answer is the nearest pair of clear spots, exactly as it is for a
+     * settling cat: standing still somewhere legal, and asking again shortly.
+     */
+    function wanderTo(now: number): Spots {
+      const run = wanderRun.current;
+      if (run && now < run.until) {
+        // The stay does not start until they are standing there. Four pixels is
+        // the same "close enough" the queued scenes and the escort use.
+        if (
+          run.arrivedAt === 0 &&
+          distance(grey.pos, run.spots.lead) < 4 &&
+          distance(tabby.pos, run.spots.follow) < 4
+        ) {
+          run.arrivedAt = now;
+          run.until = now + WANDER_STAY + Math.random() * WANDER_STAY_SPREAD;
+        }
+        return run.spots;
+      }
+
+      const chosen = planWander(sectionRef.current, grey.pos, tabby.pos, homeSpot());
+      const spots = chosen ?? nearbySpots();
+      wanderRun.current = {
+        spots,
+        arrivedAt: 0,
+        until: now + (chosen ? WANDER_WALK_MAX : WANDER_STAY),
+      };
+      return spots;
+    }
+
     function tickBlink(cat: Mover, now: number): boolean {
       if (cat.blinkAt === 0) cat.blinkAt = now + 1800 + Math.random() * 4200;
       else if (now > cat.blinkAt) {
@@ -1315,6 +1455,10 @@ export function Companion() {
        *  as a sign of life without having to say so twice. */
       const aloneFor = now - Math.max(lastMoveRef.current, lastSignRef.current);
       const pointer = pointerRef.current;
+      /** The pointer is not one of the forces acting on them this frame. Read
+       *  once, here, because half the decisions below are the same decision:
+       *  there is nobody driving. */
+      const wandering = wanderRef.current;
       const run = escortRef.current;
       const home = homeSpot();
 
@@ -1343,7 +1487,11 @@ export function Companion() {
       }
 
       const forced = run ? "escort" : nap ? "nap" : openRef.current ? "corner" : null;
-      const parked = !forced && (!pointer || idleFor > SETTLE_AFTER);
+      // Wandering is parked by construction: "settled" means there is nothing to
+      // trail, and there never is. Everything gated on it downstream — a scene
+      // may open, a scene is not dropped, a mood may be taken up — is gated on
+      // exactly the right thing for a visitor who is only watching.
+      const parked = !forced && (wandering || !pointer || idleFor > SETTLE_AFTER);
 
       /* -------------------------------------------------------------- play -- */
 
@@ -1416,6 +1564,7 @@ export function Companion() {
             arriving.spots.follow,
             grey.facing,
             now,
+            sectionRef.current,
           );
           if (opened) {
             playRef.current = opened;
@@ -1435,7 +1584,10 @@ export function Companion() {
       /** Non-null only while a scene is actually mid-flight. */
       const beat: PlayBeat | null = scene && !scene.done ? scene : null;
 
-      const dozing = forced === "escort" || forced === "nap" || (aloneFor > SLEEP_AFTER && !beat);
+      const dozing =
+        forced === "escort" ||
+        forced === "nap" ||
+        (!wandering && aloneFor > SLEEP_AFTER && !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a
@@ -1448,24 +1600,38 @@ export function Companion() {
        * cats walking away mid-scene to go to bed is the one way this could read
        * as broken.
        */
-      const wantsBed = !forced && pointer !== null && aloneFor > SLEEP_AFTER && !beat;
+      const wantsBed =
+        !forced && !wandering && pointer !== null && aloneFor > SLEEP_AFTER && !beat;
 
       // Starting one is the last thing considered, and the narrowest: settled,
       // standing still, nobody around, not on the way to bed, and the clock is
       // up. `openPlay` may still decline — a page with no whitespace near the
-      // cats has nowhere safe for this — in which case it backs off rather than
-      // re-probing the layout on the next frame.
+      // cats has nowhere safe for this, and an anchored scene has no anchor on
+      // most of the page — in which case it backs off rather than re-probing the
+      // layout on the next frame.
+      //
+      // The pointer clause is what stops a page nobody has touched producing a
+      // scene at somebody who has not arrived yet. A wandering visitor has
+      // arrived by definition: they pressed the control that put the cats in
+      // this mode, and there is nothing further to wait for.
       if (
         !beat &&
         !forced &&
         parked &&
         !wantsBed &&
-        pointer !== null &&
+        (pointer !== null || wandering) &&
         grey.pose !== "walk" &&
         tabby.pose !== "walk" &&
         now > playAt.current
       ) {
-        const opened = openPlay(pickScene(), grey.pos, tabby.pos, grey.facing, now);
+        const opened = openPlay(
+          pickScene(wandering),
+          grey.pos,
+          tabby.pos,
+          grey.facing,
+          now,
+          sectionRef.current,
+        );
         if (opened) {
           playRef.current = opened;
           // Null for the chase, which is two cats and no props — the one scene
@@ -1561,6 +1727,14 @@ export function Companion() {
         // `SLEEP_AFTER`.
         leadWant = walking.spots.lead;
         followWant = walking.spots.follow;
+      } else if (wandering) {
+        // Off about their own business. `wanderTo` owns both halves of that —
+        // where, and for how long — and every place it can name went through the
+        // same probe a settle position does, because it *is* one: they are going
+        // there to stand there.
+        const going = wanderTo(now);
+        leadWant = going.lead;
+        followWant = going.follow;
       } else if (!pointer || aloneFor > SLEEP_AFTER) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
@@ -1622,7 +1796,11 @@ export function Companion() {
         grey.pose = tickIdle(grey, now, false);
       }
       if (leadStep > 0.3) grey.phase = (grey.phase + leadStep * 0.013) % 1;
-      else if (grey.pose !== "sleep") grey.phase = (grey.phase + 0.006) % 1;
+      // The idle rate is what a still cat's tail does. A beat may ask for the
+      // wound-up one instead — the crouch before a pounce, the rake along a
+      // rule — which is the same phase run at about the speed walking gives it,
+      // so one number still drives the tail, the ear and the batting paw.
+      else if (grey.pose !== "sleep") grey.phase = (grey.phase + (beat?.stir ? 0.02 : 0.006)) % 1;
 
       /* -------------------------------------------------------- follower -- */
 
@@ -1778,6 +1956,17 @@ export function Companion() {
       paint(followNode.current, tabby.pos);
       if (run) paint(policeNode.current, run.police.pos);
 
+      // Behind something. The cut is taken from each animal's own position
+      // against the edge it is hiding behind, so it is right while they are
+      // still walking in and right again as they climb back out — see
+      // `hideCut`. It lands on the drawing rather than on the lead's button:
+      // the button is the quick-actions control, and a control clipped to two
+      // thirds of itself is a control that stops taking clicks where it looks
+      // like it should.
+      const edge = beat?.hide ? (playRef.current?.edge ?? 0) : 0;
+      tuck(leadArt.current, edge === 0 ? 0 : hideCut(grey.pos.y, edge));
+      tuck(followArt.current, edge === 0 ? 0 : hideCut(tabby.pos.y, edge));
+
       // The toy, on the same terms as the cats: position, fade and the one
       // moving part all go straight to the node. Nothing about a scene is worth
       // a re-render except the fact that it exists.
@@ -1916,6 +2105,7 @@ export function Companion() {
         refreshSafeArea();
         settleSpots.current = null;
         homeSpots.current = null;
+        wanderRun.current = null;
         // Clamped and painted here rather than left to `wake()`: a resize event
         // lands after layout and before the next paint, so correcting the
         // transforms inside the handler means the first frame the visitor sees
@@ -1937,6 +2127,9 @@ export function Companion() {
         refreshSafeArea();
         settleSpots.current = null;
         homeSpots.current = null;
+        // A destination chosen against the old layout is a destination that may
+        // now be under a paragraph, so it is dropped with the settle spots.
+        wanderRun.current = null;
         lastTone.current = 0;
         // A scene's clearance was probed against the layout as it stood when it
         // opened, and this is the event that says that layout has moved. The
@@ -2022,7 +2215,7 @@ export function Companion() {
   useEffect(() => {
     const nodes: HTMLElement[] = [];
     if (mode === "resting" && boxRef.current) nodes.push(boxRef.current);
-    if (mode === "roam" && !roams && leadNode.current) nodes.push(leadNode.current);
+    if (roaming && !roams && leadNode.current) nodes.push(leadNode.current);
     if (nodes.length === 0) return;
 
     const sync = () => {
@@ -2049,7 +2242,7 @@ export function Companion() {
       window.removeEventListener("scroll", onPageMoved);
       window.removeEventListener("resize", onPageMoved);
     };
-  }, [mode, roams]);
+  }, [mode, roaming, roams]);
 
   /* --------------------------------------------------------------- panel -- */
 
@@ -2128,7 +2321,7 @@ export function Companion() {
       // Nothing to run a scene in: no roaming loop on touch or under reduced
       // motion. The panel does not offer play there, so this is a guard rather
       // than a path.
-      if (!roams || mode !== "roam") return "no-room";
+      if (!roams || !roaming) return "no-room";
 
       const now = performance.now();
       endPlay(now);
@@ -2165,7 +2358,7 @@ export function Companion() {
       wake();
       return "playing";
     },
-    [endPlay, mode, roams, wake],
+    [endPlay, roaming, roams, wake],
   );
 
   /** Every deliberate change of mode ends the idle sleep with it: it is a state
@@ -2206,11 +2399,35 @@ export function Companion() {
     setCompanionMode("roam");
   }
 
-  const showRoamers = mode === "roam" || escort === "herding";
+  /**
+   * On or off the cursor.
+   *
+   * The panel stays open, deliberately: nothing it holds has unmounted, the
+   * item the visitor just pressed is still under their finger with the opposite
+   * sentence on it, and that flip is the whole confirmation. It is also why
+   * there is no `focusWish` here — unlike the bed and the wake button, this
+   * control survives what it does, so focus has nowhere to be handed to.
+   *
+   * The scene timer is re-rolled on the new mode's clock. The ref survives a
+   * mode change on purpose — a visitor who has half waited one out should not be
+   * sent back to the start of it by a tab switch — but this is not a tab switch:
+   * it is somebody saying what they want the cats doing, and answering that with
+   * a wait set under the other set of rules is answering the wrong question.
+   */
+  function wanderCats() {
+    clearBed();
+    endPlay();
+    const next = mode === "wander" ? "roam" : "wander";
+    playAt.current = scheduleNextPlay(performance.now(), next === "wander");
+    setCompanionMode(next);
+  }
+
+  const showRoamers = roaming || escort === "herding";
   const police = frame.police ?? RESTING_VISUAL;
 
   const leadDrawing = roams ? (
     <span
+      ref={leadArt}
       className="block"
       style={{ transform: `scaleX(${frame.lead.facing})`, width: CAT_W, height: CAT_H }}
     >
@@ -2242,7 +2459,7 @@ export function Companion() {
           further down, after the animals — which is the only way a cat can be
           inside a box in a drawing with no depth. Roaming only: the resting box
           below occupies the same corner and the two never coexist. */}
-      {roams && mode === "roam" && bed ? (
+      {roams && roaming && bed ? (
         <IdleFurniture
           layer="back"
           asleep={bed === "asleep"}
@@ -2268,7 +2485,7 @@ export function Companion() {
         and the bed were invisible. Naming the alias on the same element the
         tone class lands on is what makes the repointing reach `currentColor`.
       */}
-      {roams && mode === "roam" && scene?.prop ? (
+      {roams && roaming && scene?.prop ? (
         <div
           ref={attachToy}
           data-cat-toy=""
@@ -2280,7 +2497,7 @@ export function Companion() {
         </div>
       ) : null}
 
-      {mode === "roam" ? (
+      {roaming ? (
         <button
           ref={roams ? attachLead : attachPinnedLead}
           type="button"
@@ -2338,7 +2555,11 @@ export function Companion() {
           className="absolute left-0 top-0 text-fg-muted"
           style={{ width: CAT_W, height: CAT_H }}
         >
-          <span className="block" style={{ transform: `scaleX(${frame.follow.facing})` }}>
+          <span
+            ref={followArt}
+            className="block"
+            style={{ transform: `scaleX(${frame.follow.facing})` }}
+          >
             <CompanionCat variant="tabby" {...frame.follow} />
           </span>
         </div>
@@ -2347,7 +2568,7 @@ export function Companion() {
       {/* The front of the carton, over the animal wedged into it. Pure scenery
           and `pointer-events-none`, so the lead cat underneath is still the
           quick-actions button across every pixel of it. */}
-      {roams && mode === "roam" && bed ? (
+      {roams && roaming && bed ? (
         <IdleFurniture
           layer="front"
           asleep={bed === "asleep"}
@@ -2374,8 +2595,10 @@ export function Companion() {
 
       {open ? (
         <ToolkitPanel
-          canPlay={roams && mode === "roam"}
+          canPlay={roams && roaming}
+          wandering={mode === "wander"}
           onPlay={requestPlay}
+          onWander={wanderCats}
           onSendToBed={sendToBed}
           panelRef={panelRef}
         />

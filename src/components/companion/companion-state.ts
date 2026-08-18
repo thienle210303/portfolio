@@ -5,19 +5,29 @@ import { useSyncExternalStore } from "react";
 /**
  * Where the cats are, persisted across visits.
  *
- * One key, two values, and there used to be three. `off` removed the companion
- * for good and had no surface of its own left to undo it, which is how the
- * owner stranded himself twice: once with the original single cat, and once
- * with the footer link that existed only to rescue him from it. His round-7
+ * One key, three values, and there used to be a fourth. `off` removed the
+ * companion for good and had no surface of its own left to undo it, which is
+ * how the owner stranded himself twice: once with the original single cat, and
+ * once with the footer link that existed only to rescue him from it. His round-7
  * note ends the argument — "turn the cats off is equivalent to send the cats to
  * bed" — so the quiet state is the bed, and the bed is a place you can see, with
  * a control on it that brings them back.
  *
  * `resting` is that state: no roaming, no scenes, the loop stopped, and the
- * corner drawn where the visitor put them. An absent or unrecognised value
- * means roaming, so a corrupted entry fails towards the default rather than
- * towards an empty corner. The one value that is neither — `off`, which real
- * browsers still hold — is read as `resting` and rewritten to it once, on
+ * corner drawn where the visitor put them.
+ *
+ * `wander` is the round-9 addition, and it is the *same* roaming layer with the
+ * cursor taken out of it: the pair pick their own places to be and their own
+ * things to do with the page, and the pointer is simply not one of the forces
+ * acting on them. It is stored beside the other two rather than derived from
+ * anything, because it is a preference in exactly the sense `resting` is — the
+ * visitor said how they want the companion to behave, and a reload should not
+ * quietly disagree with them.
+ *
+ * An absent or unrecognised value means roaming, so a corrupted entry — or one
+ * written by a future version of this file — fails towards the default rather
+ * than towards an empty corner. The one value that is neither — `off`, which
+ * real browsers still hold — is read as `resting` and rewritten to it once, on
  * mount; see `read` and `migrateCompanionMode`.
  *
  * This is deliberately outside React. The value is unavailable while rendering
@@ -25,7 +35,7 @@ import { useSyncExternalStore } from "react";
  * is what `useSyncExternalStore` exists for — and why it is not read with a
  * `useEffect` + `setState`, which would render one frame of the wrong thing.
  */
-export type CompanionMode = "roam" | "resting";
+export type CompanionMode = "roam" | "resting" | "wander";
 
 const STORAGE_KEY = "companion";
 
@@ -66,7 +76,12 @@ function subscribe(onChange: () => void) {
 function read(): CompanionMode {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === "resting" || stored === "off" ? "resting" : "roam";
+    if (stored === "resting" || stored === "off") return "resting";
+    // Every other spelling, including one this build has never heard of, is the
+    // default. A visitor carrying a value from a later version of the site must
+    // find cats rather than an empty corner, which is the same promise the `off`
+    // line above keeps for a value from an earlier one.
+    return stored === "wander" ? "wander" : "roam";
   } catch {
     return "roam";
   }
