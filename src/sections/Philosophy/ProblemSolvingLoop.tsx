@@ -22,7 +22,8 @@
  *    768px   933px  was 1729   -46%
  *    390px   918px  was 1886   -51%
  *
- * Below 1024px the saving is the disclosure rather than the ring; see below.
+ * Below 1024px the saving is the clipped detail rather than the ring; see
+ * below.
  *
  * WHAT IS AUTHORED AND WHAT IS DRAWN
  *
@@ -87,43 +88,77 @@
  * below) rather than pushing them, since nothing on an absolutely positioned
  * ring can push anything.
  *
- * PROGRESSIVE DISCLOSURE, AND WHY `aria-expanded` DESCRIBES ONLY THE PANEL
+ * THE DETAIL IS ALWAYS READABLE, SO NOTHING CLAIMS OTHERWISE
  *
  * A station on a ring cannot hold its detail sentence — the box would be
  * three times the size and the ring would not fit. So each station shows its
- * numeral and label always, and reveals its detail on hover, on focus, and on
- * click. The trigger is a `<button aria-expanded aria-controls>` over a
- * region, which is the shared Disclosure primitive's contract, and the region
- * animates open with the same `grid-template-rows: 0fr -> 1fr` technique.
+ * numeral and label always, and its detail is revealed on hover, on focus and
+ * on activation, by clipping and nothing else: `grid-template-rows: 0fr ->
+ * 1fr` over an `overflow-hidden` wrapper. The paragraph is never
+ * `display: none`, never `visibility: hidden`, never `hidden`. It is a
+ * paragraph of its list item at every width and in every state, and a screen
+ * reader reads all nine details straight through, in order, whatever the
+ * pointer is doing.
  *
- * One thing is deliberately NOT copied from that primitive: its `visibility`
- * flip, which takes collapsed content out of the accessibility tree. Here that
- * would mean eight of the nine details are unreadable at any given moment,
- * which is a straight regression against the plain list this replaces — where
- * a screen reader simply read all nine steps and all nine details in order.
- * The region therefore stays in the accessibility tree at all times, and
- * `aria-expanded` describes exactly one thing: whether the panel is showing.
- * The consequence is that a collapsed station still reads its detail, i.e. the
- * inaccuracy is only ever in the direction of more information, never less.
- * It is safe to do here and not in Disclosure because this region holds one
- * paragraph and nothing focusable, so no keyboard user can land inside a
- * clipped panel.
+ * Which is exactly why this is NOT a disclosure, and why the trigger carries
+ * neither `aria-expanded` nor `aria-controls`. It used to carry both, and both
+ * were false in two directions at once:
+ *
+ *   - `aria-expanded="false"` on a control whose content is fully present in
+ *     the accessibility tree announces "there is something folded away here"
+ *     and then reads out the thing it just called folded away.
+ *   - hover and focus reveal the panel in CSS, which cannot write an
+ *     attribute — so the control still said "collapsed" while the panel was
+ *     open on screen. Measured at 1440px before this change: hovering station
+ *     01, or tabbing to it, painted a 75px panel with `aria-expanded="false"`
+ *     still on the button.
+ *
+ * The honest reading is that there is no expanded/collapsed state here at all.
+ * There is a paragraph that is always readable, and a visual emphasis that
+ * says which station you are pointing at. ARIA has no state for "painted, and
+ * otherwise no different", and both near-fits make it worse rather than
+ * better:
+ *
+ *   `aria-expanded` is the defect above.
+ *   `aria-pressed` would at least be accurate about the pin — but its two
+ *     values are indistinguishable to the only audience that can hear them,
+ *     and hover would still paint the panel with the button unpressed, so a
+ *     listener is invited to read "not pressed" as "not showing" and is wrong
+ *     again. Driving hover through React state to keep such an attribute in
+ *     step would buy a re-render per pointer move and nothing else.
+ *
+ * So the trigger states nothing, and is still a real button, because
+ * activation is the only reveal that works where there is no hover. Below
+ * 1024px — a phone, the whole reason the column layout exists — a tap has to
+ * be able to open a detail, and Safari does not reliably focus a button on
+ * tap, so `:focus-within` cannot be the touch path. Clicking therefore pins
+ * the panel open until it is clicked again; hover and focus reveal it for as
+ * long as they last. None of that is a claim about content, which is why none
+ * of it is announced.
+ *
+ * What is deliberately NOT done: making the disclosure real by copying the
+ * shared Disclosure primitive's `visibility` flip, which takes collapsed
+ * content out of the accessibility tree. That would make `aria-expanded`
+ * truthful by removing eight of the nine authored details from what a blind
+ * visitor can read at any moment — a real regression against the plain list
+ * this figure replaces, where a screen reader simply read all nine steps and
+ * all nine details in order, bought in exchange for a technicality.
  *
  * BELOW 1024px
  *
  * The same nine list items, in the same DOM order, laid out as a compact
  * vertical flow: the ring layer is `hidden lg:block`, the stations stop being
  * absolutely positioned, and the forks fall back under their panels. Detail
- * stays behind the same disclosure, which is most of why the small-screen
- * flow is also far shorter than what it replaces.
+ * stays behind the same clip — tap a station to pin it open — which is most of
+ * why the small-screen flow is also far shorter than what it replaces.
  *
  * No serpentine at middle widths, though the shape was on the table. Three
  * reasons: its reading direction reverses on alternate rows, which is the one
  * thing a single column never gets wrong; two of the nine stations carry a
  * decision fork, so its rows would be raggedly unequal; and it would be a
  * third absolutely positioned geometry to keep collision-free at every width
- * in both themes, in exchange for roughly 300px that the disclosure already
- * gives back.
+ * in both themes, in exchange for roughly 300px that the clipped detail
+ * already gives back.
  *
  * ACCESSIBILITY
  *
@@ -137,11 +172,19 @@
  * already conveys order, matching the index treatment in PrincipleList and
  * CaseStudy.
  *
+ * The nine station buttons are the figure's only interactive elements. Each
+ * announces its step label and the role button, and no state — see above — so
+ * nothing here can be reached, focused or read while advertising a condition
+ * it is not in. Tab reaches all nine in order, in the ring and in the column
+ * alike, and focus reveals the same detail the pointer does.
+ *
  * No ambient animation. A flow animation along the ring would have to be
  * switched off under `prefers-reduced-motion` anyway, and it would be movement
  * beside body text that says nothing the arrowheads don't already say. The one
- * transition here is the disclosure's own height, which globals.css already
- * neutralises under reduced motion.
+ * transition here is the detail panel's own height, which globals.css already
+ * neutralises under reduced motion — verified: with `prefers-reduced-motion:
+ * reduce` the panel is painted within 30ms of the hover, with a computed
+ * `transition: none`.
  */
 
 import { useState, type CSSProperties } from "react";
@@ -197,10 +240,6 @@ const FORKS: Readonly<Record<string, LoopFork | undefined>> = {
 
 const LABEL_ID = "philosophy-loop-label";
 const forkLabelId = (stepId: string) => `philosophy-loop-${stepId}-branches`;
-const stationIds = (stepId: string) => ({
-  trigger: `philosophy-loop-${stepId}-trigger`,
-  panel: `philosophy-loop-${stepId}-detail`,
-});
 
 /* -------------------------------------------------------------------------- */
 /* Geometry                                                                   */
@@ -602,8 +641,10 @@ function StationItem({
   isLast,
   exitsToLoop,
 }: StationProps) {
-  const [open, setOpen] = useState(false);
-  const { trigger, panel } = stationIds(step.id);
+  /* Not `open`: nothing here opens or closes. The detail is in the document
+     either way; this only decides whether it stays painted after the pointer
+     and the focus ring have both moved on. */
+  const [pinned, setPinned] = useState(false);
   const placement = station?.forkPlacement ?? "below";
 
   return (
@@ -619,7 +660,7 @@ function StationItem({
         "max-w-[30rem] lg:max-w-none",
         "lg:absolute lg:left-[var(--station-x)] lg:top-[var(--station-y)] lg:z-10 lg:w-[11.5rem] lg:pb-0",
         "lg:hover:z-30 lg:focus-within:z-30",
-        open && "lg:z-30",
+        pinned && "lg:z-30",
       )}
       style={
         station
@@ -631,12 +672,16 @@ function StationItem({
       }
     >
       <div className="relative border border-rule bg-surface">
+        {/* No `aria-expanded`, no `aria-controls`, no `aria-pressed`: the
+            paragraph below is in the accessibility tree whatever this button
+            has been doing, so there is no state here worth reporting and none
+            that could be reported accurately (see the head of this file). What
+            is left is a button that visually pins its own detail — the reveal
+            that works on a touch screen, where there is no hover and no
+            reliable focus. */}
         <button
           type="button"
-          id={trigger}
-          aria-expanded={open}
-          aria-controls={panel}
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => setPinned((value) => !value)}
           className="flex w-full items-center px-3.5 py-3 text-left lg:h-[4.375rem] lg:py-0"
         >
           <span className="flex items-baseline gap-2">
@@ -655,17 +700,17 @@ function StationItem({
           </span>
         </button>
 
-        {/* No `role="region"` on this, unlike the shared Disclosure: nine of
-            them would put nine landmarks inside one section, and a landmark
-            buys nothing here because the paragraph is already in the
-            accessibility tree as part of its list item. `aria-controls` still
-            points at it, which is what the pattern actually needs. */}
+        {/* Nothing labels or names this: no `role="region"` (nine of them would
+            put nine landmarks inside one section), no id for something to
+            point at. It is one paragraph of its list item, read in place, and
+            the only thing that ever changes about it is how many pixels tall
+            its wrapper is allowed to be. `data-print-expand` opens it on
+            paper, where there is no pointer to reveal anything. */}
         <div
-          id={panel}
           data-print-expand=""
           className={cn(
             "grid transition-[grid-template-rows] duration-200 ease-out",
-            open
+            pinned
               ? "grid-rows-[1fr]"
               : "grid-rows-[0fr] group-focus-within:grid-rows-[1fr] group-hover:grid-rows-[1fr]",
           )}
