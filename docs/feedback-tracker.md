@@ -272,3 +272,23 @@ hardening.
 Sequence: 5 → 1 → 2 → 3 → 4-restructure now, 4-content on approval.
 Owner decisions requested: footer off-toggle keep/kill; ring yes/no; tree
 as own section yes/no; draft scraping content for approval yes/no.
+
+## Round 7 outcomes (2026-08-18)
+
+| Item | Outcome |
+| --- | --- |
+| Cats: play menu, off retired | `off` deleted from the state machine; a stored `"off"` migrates to `resting` so nobody is stranded. Toolkit drops the jump/reach lists (the nav and Contact already carry them) for four on-demand scenes plus a police-escorted "Send the cats to bed". Section moods land in Work, Contact and beside the loop. Verified on a production build: resting schedules 0 rAF callbacks, axe clean with the panel open, reduced motion offers no scenes |
+| Cats: play refusals | DEFECT found by an independent pass — `requestPlay` probes from wherever the cats are, and opening the panel calls them to an unprobed corner, so three sections refused every scene and the answer changed with how long the panel had been open. Fix in flight |
+| Loop → ring | Nine stations on an ellipse at equal arc length, one-way arcs, dashed 09→01 return, decisions spurring off the rim, philosophy at centre, detail behind per-station disclosures. Loop block 1751px → 687px at 1440 (−61%), 1886px → 918px at 390 (−51%). Two defects found and fixed: a fork printing its branches above their label, and an opened bottom station painting over the next section |
+| Tree as its own section | `#tree` after Work → Journey → Skills, nav updated to match render order, cross-linked all three ways (leaves → case studies, tree → timeline, roots → skill categories, and each of those sections → tree). Rail states the crown's lopsidedness rather than hiding it |
+| Tree: roots + foliage | Root count now derives from `skillCategories.length`; each category labels its own root tip, aligned by a shared fraction rather than a connector — labels only, no drawn skill→branch edge, which stays the forbidden inference. Foliage per bough scales with that branch's real technology count |
+| Per-entry timeline links | REJECTED after review: the only per-entry ids carry no sticky-header offset, the timeline is filterable so a link can target a hidden entry, and 25 links would add 25 tab stops inside leaf panels. One section-level link kept |
+| Footer | One colophon line; ~80px saved on a phone, 20px on desktop. Recovery control deleted with the mode it escaped |
+| AI Lab | Kept, per the owner. Added a collapsed "How this answers" panel: the real ranking loop excerpted from `lib/answers.ts`, the rule as notation, and an explicit "this is lexical retrieval, not a language model". A unit test asserts every quoted line still exists in the engine, so the excerpt cannot drift into a lie |
+| Scraping workflow content | Deferred at the owner's request |
+
+Process note: three packages were dispatched to two agents each. In every case
+the second agent detected the collision before writing and switched to
+verification, which is where the play-refusal defect, both ring defects and the
+stale companion spec were caught. Duplicate dispatch was wasteful; the
+verification pass it accidentally produced was not.
