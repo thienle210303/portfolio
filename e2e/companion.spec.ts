@@ -55,12 +55,6 @@ function restingBox(page: Page) {
   return page.getByRole("button", { name: /wake the cats/i });
 }
 
-/** The footer's one-way-back control, present only while the cats are off
- *  for good — see CompanionRecoveryLink.tsx. */
-function footerRecovery(page: Page) {
-  return page.getByRole("button", { name: /bring the cats back/i });
-}
-
 /**
  * Wait until the roaming loop is demonstrably live — both cats positioned by
  * their first animation frames. The pointer listener attaches in the same
@@ -126,30 +120,36 @@ test.describe("companion", () => {
     expect(focusedInPanel).toBe(true);
   });
 
-  test("every toolkit action also exists elsewhere on the page", async ({ page }) => {
+  test("the toolkit offers play and bed, and nothing the page already carries", async ({
+    page,
+  }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "content is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await companionAwake(page);
     await catButton(page).click();
 
     const panel = page.locator("#companion-actions");
 
-    // Section jumps resolve to real sections.
-    // Root-relative, so the toolkit works from /resume as well as from home.
-    for (const id of ["work", "journey", "skills", "contact"]) {
-      const link = panel.locator(`a[href="/#${id}"]`);
-      await expect(link).toHaveCount(1);
-      await expect(page.locator(`#${id}`)).toHaveCount(1);
-    }
+    // The panel used to duplicate the site nav and the contact section — jump
+    // links and social links, a second copy of routes that already exist twice
+    // over. The owner had it replaced with the one thing only the cats can
+    // offer, so the absence of navigation here is the assertion, not an
+    // oversight.
+    await expect(panel.locator("a")).toHaveCount(0);
 
-    // The social links point at the same URLs the footer already carries, so
-    // the cats are a shortcut rather than a second source of truth.
-    for (const name of [/^GitHub/, /^LinkedIn/]) {
-      const inPanel = panel.getByRole("link", { name });
-      const href = await inPanel.getAttribute("href");
-      expect(href).toBeTruthy();
-      await expect(page.locator(`footer a[href="${href}"]`)).toHaveCount(1);
-      await expect(inPanel).toHaveAttribute("rel", "noopener noreferrer");
+    for (const name of [/toss the yarn/i, /release a moth/i, /dinner time/i, /start a chase/i]) {
+      await expect(panel.getByRole("button", { name })).toHaveCount(1);
+    }
+    await expect(panel.getByRole("button", { name: /send the cats to bed/i })).toHaveCount(1);
+
+    // Every control here is reachable and operable without a mouse, which is
+    // the bar any of them has to clear to be a control at all.
+    for (const control of await panel.getByRole("button").all()) {
+      await expect(control).toBeEnabled();
+      const box = await control.boundingBox();
+      expect(box, "a control with no box cannot be pressed").not.toBeNull();
+      expect(box!.height, "44px minimum target").toBeGreaterThanOrEqual(44);
     }
   });
 
@@ -243,72 +243,39 @@ test.describe("companion", () => {
     await expect(catButton(page)).toBeVisible();
   });
 
-  test("can be turned off for good, from the toolkit, and the footer can bring them back", async ({
-    page,
-  }) => {
+  test("an old stored 'off' preference becomes a nap, not an empty corner", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
+
+    // "Off" was a third state until the owner pointed out that sending the cats
+    // to bed already means the same thing. Removing it left one hazard: every
+    // visitor who had already chosen it was carrying the word in localStorage,
+    // and a value outside the union would otherwise render nothing at all —
+    // the exact stranding the bed exists to prevent. It has to read as rest.
+    await page.goto("/");
+    await page.evaluate(() => window.localStorage.setItem("companion", "off"));
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+
+    await expect(restingBox(page)).toBeVisible();
+    await expect(catButton(page)).toHaveCount(0);
+
+    // And the way back still works from there, so the migration lands them
+    // somewhere with an exit rather than somewhere quiet.
+    await restingBox(page).click();
+    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("the bed is furniture, not a control panel", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    await companionAwake(page);
-
-    // While the cats are on, the footer carries no trace of the recovery
-    // control at all — it is the one control that only makes sense once
-    // they are gone.
-    await expect(footerRecovery(page)).toHaveCount(0);
-
-    await catButton(page).click();
-    await page.getByRole("button", { name: /turn the cats off/i }).click();
-
-    // Nothing companion-related is left anywhere on the page.
-    await expect(catButton(page)).toHaveCount(0);
-    await expect(restingBox(page)).toHaveCount(0);
-    await expect(page.locator("[data-companion]")).toHaveCount(0);
-
-    // This is the entire point of FB-5 all over again: "off" used to strand
-    // a visitor with nothing on the page to click. The footer is now that
-    // route back, appearing the moment there is nothing else left to bring
-    // them back with.
-    await expect(footerRecovery(page)).toBeVisible();
-
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator("[data-companion]")).toHaveCount(0);
-    await expect(footerRecovery(page)).toBeVisible();
-
-    // One click, and they are roaming again — no reload required, because
-    // it writes through the same store `Companion` itself is subscribed to.
-    await footerRecovery(page).click();
-    // Generous timeout: remounting the whole companion under full-suite
-    // worker load can outrun the 5s default without anything being wrong.
-    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
-    await expect(footerRecovery(page)).toHaveCount(0);
-
-    // And the preference sticks: a visitor who used this route back does not
-    // find the cats off again on their next load.
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
-    await expect(footerRecovery(page)).toHaveCount(0);
-
-    // Put them back off for the rest of this test, which continues to
-    // exercise the toolkit's own permanent-exit behaviour.
-    await catButton(page).click();
-    await page.getByRole("button", { name: /turn the cats off/i }).click();
-    await expect(page.locator("[data-companion]")).toHaveCount(0);
-
-    // Nothing else on the page depends on them: contact routes still resolve.
-    await expect(page.locator("#contact")).toBeVisible();
-
-    // There used to be a second route to the same action, on the bed itself,
-    // so a visitor could remove the cats without waking them. It is gone by the
-    // owner's request — the bed is furniture, not a control panel — which makes
-    // the toolkit above the single source of the permanent exit. The cost is
-    // one click to wake them first, and the wake control is asserted by the
-    // resting-box test; what matters here is that the bed no longer offers it.
     await page.evaluate(() => window.localStorage.setItem("companion", "resting"));
     await page.reload();
     await page.waitForLoadState("networkidle");
+
+    // One control on the cluster, and it wakes them. Nothing else — no second
+    // exit, no settings surface growing quietly in the corner.
     await expect(restingBox(page)).toBeVisible();
+    await expect(page.locator("[data-companion] button")).toHaveCount(1);
     await expect(page.getByRole("button", { name: /turn the cats off/i })).toHaveCount(0);
   });
 
