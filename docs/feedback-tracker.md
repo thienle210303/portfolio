@@ -227,3 +227,19 @@ contact + companion specs re-run clean at integration (61/61).
 Verified: pnpm verify green (188 unit tests, build); full Playwright matrix
 285 passed / 0 failed; agent additionally verified companion e2e against the
 production build and re-ran responsive + axe clean.
+
+## Round 6 (2026-08-17/18)
+
+| Item | Verdict | Outcome |
+| --- | --- | --- |
+| Code snippets wrap, not overflow | Accepted | CodeBlock wraps (pre-wrap + wrap-anywhere); scroll scrim, inert tab stop and .code-scroll retired; screen now matches what print always did; two spec contracts updated (responsive + interactions) |
+| Career tree should look like a real tree | Accepted | Tapering double-stroke trunk, tangential boughs, meandering twigs, un-boxed leaves with lanceolate markers, root system under the horizon plinth; id-hash-deterministic variation; ink moved rule→fg-subtle for legibility; SVG replaced-element height bug found and fixed; DOM cost cut 313→93 added nodes |
+| Ask This Site better + snippet sub-section | Accepted (interpretation: framed caption, not a new page section) | Code view captioned "This answer, as data" with one honest explainer; "Try asking" eyebrow; idle state speaks; results region framed from first paint |
+| Business card "looks like a box" | Accepted | Inset engraved rule + corner registration ticks + printer's fleuron on the divider + tabular handle alignment + stronger monogram; all absolute-positioned ornament, ratio re-measured against a production build |
+
+Lead integration: reconciled interactions.spec to the wrapping contract
+(missed by WP-Q's grep, caught by WP-R), and hardened five companion tests
+against warm-server/worker-load hydration races with a companionAwake()
+poll plus load-sized timeouts. Verified: pnpm verify green (190 unit
+tests); full Playwright matrix 285 passed / 0 failed on the re-run after
+hardening.
