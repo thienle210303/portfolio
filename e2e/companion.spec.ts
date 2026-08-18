@@ -417,6 +417,220 @@ test.describe("companion", () => {
     expect(broken).toEqual([]);
   });
 
+  test("holds a scene the visitor asked for against the next mouse move", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const playing = () =>
+      page.evaluate(
+        () => document.querySelector("[data-cat-play]")?.getAttribute("data-cat-play") ?? null,
+      );
+    const refused = () =>
+      page.evaluate(() =>
+        /no room/i.test(document.querySelector("#companion-actions [role='status']")?.textContent ?? ""),
+      );
+
+    // Whichever scene the page has room for is the one under test — the rule is
+    // about provenance, not about any particular ball of wool.
+    let kind: string | null = null;
+    for (const scene of SCENES) {
+      await openToolkit(page);
+      await toolkit(page).getByRole("button", { name: scene.name }).click();
+      await expect
+        .poll(async () => ((await playing()) !== null ? "playing" : (await refused()) ? "refused" : "silent"), {
+          timeout: 5_000,
+          message: `"${scene.kind}" did nothing at all`,
+        })
+        .not.toBe("silent");
+      kind = await playing();
+      if (kind !== null) break;
+    }
+    expect(kind, "no scene had room to run, so there was nothing to hold").not.toBeNull();
+
+    /*
+     * FB-9.1, and the reason this test is not "wait and check": the hand that
+     * clicked the menu item is still on the mouse. Every unprompted scene is
+     * dropped the frame the pointer moves — that rule stays — but a scene the
+     * visitor *chose* used to die the same way, which made four of the five
+     * menu items unusable with a mouse. A second of real movement is far more
+     * than the one frame it took.
+     */
+    for (let i = 0; i < 12; i += 1) {
+      await page.mouse.move(320 + i * 28, 400 + i * 11);
+      await page.waitForTimeout(60);
+    }
+    expect(await playing(), "the scene was taken away by the pointer").toBe(kind);
+
+    /*
+     * And held against the pointer *only*. Reopening the panel calls the pair
+     * back to the corner it is anchored to, so it still ends the scene — the
+     * fix is a scene the visitor keeps, not a scene they cannot get out of.
+     */
+    await openToolkit(page);
+    await expect
+      .poll(playing, { timeout: 3_000, message: "reopening the panel left the scene running" })
+      .toBeNull();
+  });
+
+  /** One drawing, and how it reads against the section it is currently over. */
+  type Drawing = { section: string | null; steady: boolean; ratio: number | null };
+
+  test("stays visible over the section it is crossing", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    /*
+     * FB-9.2. `syncTone` repoints each drawing's aliases to the section it is
+     * over, but a drawing that never names a colour of its own inherits one
+     * already resolved on the layer root — outside every tone scope — and over
+     * the closing section in day theme the root's ink *is* that section's
+     * ground. The follower, the toy and the bed were being drawn in the colour
+     * they were standing on, which is how a visitor loses a cat.
+     *
+     * The assertion is the product rule rather than the mechanism: whatever
+     * the companion draws has to be visible against whatever is behind it.
+     * 3:1 is WCAG 2.2's floor for a non-text graphic, which is what a line
+     * drawing of a cat is.
+     */
+    const sample = (): Promise<Drawing[]> =>
+      page.evaluate(async () => {
+        const channels = (value: string): [number, number, number] | null => {
+          const trimmed = value.trim();
+          if (trimmed.startsWith("#") && trimmed.length === 7) {
+            return [1, 3, 5].map((i) => parseInt(trimmed.slice(i, i + 2), 16)) as [
+              number,
+              number,
+              number,
+            ];
+          }
+          const parts = trimmed.match(/-?[\d.]+/g);
+          return parts && parts.length >= 3
+            ? (parts.slice(0, 3).map(Number) as [number, number, number])
+            : null;
+        };
+        const relative = (rgb: [number, number, number]) => {
+          const [r, g, b] = rgb.map((v) => {
+            const c = v / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const drawings = () =>
+          Array.from(document.querySelectorAll("[data-companion] > *")).filter((node) =>
+            node.querySelector("svg"),
+          );
+        // The companion's own layer is see-through to this question: what is
+        // being measured is the cats, not what they are standing on.
+        const under = (node: Element) => {
+          const box = node.getBoundingClientRect();
+          return document
+            .elementsFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+            .find((el) => !el.closest("[data-companion]"));
+        };
+
+        // Read twice. The loop re-samples the tone every 320ms, so a cat that
+        // crossed a boundary a moment ago is legitimately still wearing the
+        // section it came from — `steady` is what tells the caller it is
+        // looking at a settled answer rather than at the sampling interval.
+        const before = drawings().map((node) => under(node)?.closest("section")?.id ?? null);
+        await new Promise((resolve) => setTimeout(resolve, 400));
+
+        return drawings().map((node, index) => {
+          const behind = under(node);
+          const section = behind?.closest("section")?.id ?? null;
+          const ink = channels(getComputedStyle(node).color);
+          const ground = behind
+            ? channels(getComputedStyle(behind).getPropertyValue("--ground"))
+            : null;
+          const steady = section !== null && section === before[index];
+          if (!ink || !ground) return { section, steady, ratio: null };
+          const light = Math.max(relative(ink), relative(ground));
+          const dark = Math.min(relative(ink), relative(ground));
+          return { section, steady, ratio: (light + 0.05) / (dark + 0.05) };
+        });
+      });
+
+    for (const theme of ["day", "night"] as const) {
+      if ((await page.locator("html").getAttribute("data-theme")) !== theme) {
+        await page.getByRole("button", { name: `Switch to ${theme} theme` }).click();
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      }
+
+      /*
+       * The closing section is the one that proves it: the page's only
+       * `contrast` tone, which in day theme is a dark band under a light page.
+       * The cats are brought there the way the visitor brought them — by
+       * trailing a cursor across it, not by being left alone, which sends them
+       * back up to whatever the visitor is actually reading.
+       */
+      const middle = await page.evaluate(() => {
+        const closing = document.querySelector("#closing");
+        if (!closing) throw new Error("the page has no closing section");
+        const box = closing.getBoundingClientRect();
+        window.scrollTo({
+          top: window.scrollY + box.top - (window.innerHeight - box.height) / 2,
+          behavior: "instant" as ScrollBehavior,
+        });
+        const settled = closing.getBoundingClientRect();
+        return {
+          x: Math.round(settled.left + settled.width / 2),
+          y: Math.round(settled.top + settled.height / 2),
+        };
+      });
+
+      // Latched out of the poll rather than re-asked by it: the first sample
+      // that can answer the question is the one that has to answer it, or a
+      // cat drawn in the ground it is standing on gets to walk somewhere
+      // friendlier and pass there.
+      const seen: { drawings: Drawing[] | null } = { drawings: null };
+      let step = 0;
+      await expect
+        .poll(
+          async () => {
+            for (let i = 0; i < 8; i += 1) {
+              const angle = (step += 1) / 5;
+              await page.mouse.move(
+                middle.x + Math.cos(angle) * 200,
+                middle.y + Math.sin(angle) * 110,
+              );
+              await page.waitForTimeout(50);
+            }
+            const drawings = await sample();
+            if (
+              seen.drawings === null &&
+              drawings.length > 0 &&
+              drawings.every((cat) => cat.steady && cat.section === "closing")
+            ) {
+              seen.drawings = drawings;
+            }
+            return seen.drawings !== null;
+          },
+          {
+            timeout: 30_000,
+            message: `the cats never followed the cursor onto the closing section in ${theme}`,
+          },
+        )
+        .toBe(true);
+
+      for (const cat of seen.drawings ?? []) {
+        expect(
+          cat.ratio,
+          `a drawing over "${cat.section}" in ${theme} could not be measured`,
+        ).not.toBeNull();
+        expect(
+          cat.ratio ?? 0,
+          `a drawing over "${cat.section}" in ${theme} is invisible`,
+        ).toBeGreaterThan(3);
+      }
+    }
+  });
+
   test("draws two independently positioned cats, not one pair", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     await page.goto("/");

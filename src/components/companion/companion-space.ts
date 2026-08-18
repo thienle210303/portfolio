@@ -367,6 +367,15 @@ const TONES = ".tone-contrast,.tone-deep,.tone-base";
  *
  * Written straight to the DOM rather than through React state: it changes with
  * position, and position is deliberately not in React.
+ *
+ * One contract on the caller, and FB-9.2 is what happens without it: whatever
+ * element is handed here must name its own colour from the alias — `text-fg`,
+ * `text-fg-muted` — on that element or on a descendant of it. Repointing sets
+ * custom properties, and a drawing that says `currentColor` while no element
+ * inside the tone scope has said `color: var(--fg-muted)` inherits a value
+ * that was resolved further up, outside every tone scope. It then keeps the
+ * root's ink over a `contrast` section, where the root's ink *is* that
+ * section's ground: a cat drawn in the colour it is standing on.
  */
 export function syncTone(node: HTMLElement | null, at: Point): void {
   if (!node) return;

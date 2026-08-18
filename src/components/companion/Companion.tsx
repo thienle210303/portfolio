@@ -869,6 +869,11 @@ export function Companion() {
    *  a toy immediately, or reset a timer they have already half waited out. */
   const playRef = useRef<Play | null>(null);
   const playAt = useRef(0);
+  /** True while the running — or still-walking — scene is one the visitor asked
+   *  for from the panel rather than one the idle timer started. Exactly one rule
+   *  reads it, in the loop below, and it is the difference between a scene the
+   *  companion offered and a scene the visitor chose. */
+  const askedRef = useRef(false);
   /** A scene the visitor has asked for that has somewhere to happen but not
    *  where they are standing. See `stageFor`: the pair walk to it, and it opens
    *  when they arrive. */
@@ -908,6 +913,9 @@ export function Companion() {
     // Without this a visitor who clicks Toss the yarn and then scrolls away
     // gets a ball of wool seconds later, from nowhere.
     queued.current = null;
+    // Whatever ends a scene ends its provenance with it: the next one to start
+    // is the idle timer's until somebody asks for it again.
+    askedRef.current = false;
     if (!playRef.current) return;
     playAt.current = scheduleNextPlay(now);
     playRef.current = null;
@@ -1336,8 +1344,6 @@ export function Companion() {
 
       const forced = run ? "escort" : nap ? "nap" : openRef.current ? "corner" : null;
       const parked = !forced && (!pointer || idleFor > SETTLE_AFTER);
-      /** Non-null only while the lead is actually chasing something. */
-      const chase = !forced && !parked ? pointer : null;
 
       /* -------------------------------------------------------------- play -- */
 
@@ -1351,9 +1357,29 @@ export function Companion() {
        * frame it appears rather than finishing the beat. That holds for the
        * scenes with no prop as much as for the ones with: a chase abandoned
        * mid-sprint just leaves two cats going back to trailing the cursor.
+       *
+       * One exception, and it is the whole of FB-9.1: a scene the visitor
+       * *asked for* is not an interruption of what they are doing, it is what
+       * they are doing. Until now the panel handed one back and the very next
+       * pointer move took it away — click "Toss the yarn", lift your hand off
+       * the menu you just used, and the yarn was gone before it landed. So a
+       * requested scene is held through the pointer, and through it alone.
+       * Everything else still ends it on the frame it appears: the escort, a
+       * nap spot, the panel being reopened, the page scrolling out from under
+       * the probe, the mode changing, the scene finishing.
        */
-      if ((playRef.current || queued.current) && (forced !== null || !parked)) endPlay(now);
+      const asked =
+        askedRef.current && (playRef.current !== null || queued.current !== null);
+      if ((playRef.current || queued.current) && (forced !== null || (!parked && !asked))) {
+        endPlay(now);
+      }
       if (playAt.current === 0) playAt.current = scheduleNextPlay(now);
+
+      /** Non-null only while the lead is actually chasing something — which a
+       *  held scene outranks, because a cat cannot both act out the scene it was
+       *  asked for and walk after the cursor. Computed after the cancellation
+       *  above so it reads the outcome rather than racing it. */
+      const chase = !forced && !parked && !asked ? pointer : null;
 
       /**
        * A requested scene, arriving.
@@ -2115,6 +2141,10 @@ export function Companion() {
         return "no-room";
       }
 
+      // Asked for, so the loop holds it against the pointer. Set after the
+      // `stage` check: a request with nowhere to happen started nothing, and a
+      // flag with no scene under it would outlive the refusal.
+      askedRef.current = true;
       lastMoveRef.current = now - SETTLE_AFTER - 1;
       lastSignRef.current = now;
       settleSpots.current = null;
@@ -2227,12 +2257,23 @@ export function Companion() {
           state that outlives the scene — the whole element is gone the moment
           the play ends. Roaming only; there is no scene to play without a
           loop to run it. */}
+      {/*
+        `text-fg-muted` here and on every drawing below is load-bearing, and it
+        is the fix for FB-9.2. `syncTone` repoints this element's *aliases* to
+        whatever section it is flying over, but `color` is inherited as a value
+        that was already resolved on the layer root — outside every tone scope
+        — so a drawing that never names a colour of its own keeps the root's
+        ink no matter what class lands on it. Over the Closing section in day
+        theme that ink is the section's own ground, and the follower, the toy
+        and the bed were invisible. Naming the alias on the same element the
+        tone class lands on is what makes the repointing reach `currentColor`.
+      */}
       {roams && mode === "roam" && scene?.prop ? (
         <div
           ref={attachToy}
           data-cat-toy=""
           aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-0"
+          className="pointer-events-none absolute left-0 top-0 text-fg-muted"
           style={{ width: TOY_W, height: TOY_H }}
         >
           <CompanionToy kind={scene.prop} artRef={toyArt} spinRef={toySpin} />
@@ -2281,7 +2322,7 @@ export function Companion() {
         <div
           ref={attachLead}
           aria-hidden="true"
-          className="absolute left-0 top-0"
+          className="absolute left-0 top-0 text-fg-muted"
           style={{ width: CAT_W, height: CAT_H }}
         >
           <span className="block" style={{ transform: `scaleX(${frame.lead.facing})` }}>
@@ -2294,7 +2335,7 @@ export function Companion() {
         <div
           ref={attachFollow}
           aria-hidden="true"
-          className="absolute left-0 top-0"
+          className="absolute left-0 top-0 text-fg-muted"
           style={{ width: CAT_W, height: CAT_H }}
         >
           <span className="block" style={{ transform: `scaleX(${frame.follow.facing})` }}>
@@ -2322,7 +2363,7 @@ export function Companion() {
         <div
           ref={attachPolice}
           aria-hidden="true"
-          className="absolute left-0 top-0"
+          className="absolute left-0 top-0 text-fg-muted"
           style={{ width: CAT_W, height: CAT_H }}
         >
           <span className="block" style={{ transform: `scaleX(${police.facing})` }}>

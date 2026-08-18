@@ -371,7 +371,12 @@ export function IdleFurniture({ asleep, shoved, containerRef, layer }: IdleFurni
       {...(layer === "back" ? { "data-cat-bed": "" } : { "data-cat-bed-front": "" })}
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute transition-opacity duration-500",
+        // The colour is named here rather than inherited for the reason the
+        // cats name theirs — see the note by the toy in Companion.tsx. This is
+        // the element `syncTone` repoints, so it has to be the element that
+        // reads the alias, or the furniture keeps the root's ink and disappears
+        // into a `contrast` section's ground.
+        "pointer-events-none absolute text-fg-muted transition-opacity duration-500",
         asleep ? "opacity-100" : "opacity-60",
       )}
       style={{
