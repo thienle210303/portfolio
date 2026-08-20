@@ -3,6 +3,7 @@ import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   advancePlay,
   hideCut,
+  sceneOrder,
   peekStands,
   ruleSpot,
   shownSpot,
@@ -226,5 +227,117 @@ describe("wanderCandidates", () => {
     // Which is a real answer on a window with no whitespace in it, and the
     // caller's cue to leave them standing rather than shuffle them sideways.
     expect(wanderCandidates(spots.slice(0, 2), here)).toEqual([]);
+  });
+});
+
+describe("sceneOrder", () => {
+  const KINDS = ["yarn", "moth", "bowl", "chase", "gift", "peek", "scratch", "stalk"];
+
+  /**
+   * The list is a fallback chain, not a shortlist. A scene missing from it is a
+   * scene the page can never produce once the ones above it decline, which is
+   * the failure the chain exists to prevent — so "all eight, once each" is the
+   * property that matters, in both moods.
+   */
+  it.each([false, true])("offers every scene exactly once (wandering: %s)", (wandering) => {
+    for (let run = 0; run < 50; run += 1) {
+      const order = sceneOrder(wandering);
+      expect(order).toHaveLength(KINDS.length);
+      expect([...order].sort()).toEqual([...KINDS].sort());
+    }
+  });
+
+  /**
+   * And the weights still mean something: a visitor who asked to watch the cats
+   * work the page should get the scenes that touch the page first, and a
+   * visitor who is reading should mostly not. Asserted as a wide band rather
+   * than a figure — the point is that the two moods are different, and a
+   * threshold that only a broken build could cross does not flake.
+   */
+  it("leads with the anchored scenes when wandering, and rarely when not", () => {
+    const anchored = new Set(["peek", "scratch", "stalk"]);
+    const leads = (wandering: boolean) => {
+      let count = 0;
+      for (let run = 0; run < 2000; run += 1) {
+        if (anchored.has(sceneOrder(wandering)[0])) count += 1;
+      }
+      return count / 2000;
+    };
+    expect(leads(true)).toBeGreaterThan(0.6);
+    expect(leads(false)).toBeLessThan(0.45);
+  });
+});
+
+describe("the scratch, beat by beat", () => {
+  function raking(left: number, facing: 1 | -1 = 1, phase = "rake"): Play {
+    const spot = { x: 300, y: 200 };
+    return {
+      kind: "scratch",
+      prop: "claw",
+      script: [{ phase, ms: 380 }] as Play["script"],
+      step: 0,
+      until: 1000 + left,
+      from: spot,
+      to: spot,
+      leadSpot: spot,
+      followSpot: { x: 240, y: 200 },
+      aside: { x: 240, y: 200 },
+      edge: 200,
+      facing,
+      pos: { x: spot.x, y: spot.y },
+      spin: 0,
+      flap: 1,
+      opacity: 0,
+    };
+  }
+
+  /**
+   * The stroke is the whole animal leaning along the rule and back, because a
+   * held-out paw and a faster tail read as a cat standing near a line rather
+   * than a cat scratching one.
+   */
+  it("leans the animal along the rule and brings it back", () => {
+    const play = raking(380);
+    const start = advancePlay(play, 1000, play.pos).leadTo;
+    expect(start?.x).toBeCloseTo(play.leadSpot.x, 5);
+
+    const reach = advancePlay(raking(285), 1000, play.pos).leadTo;
+    expect(reach?.x).toBeGreaterThan(play.leadSpot.x + 5);
+
+    const back = advancePlay(raking(95), 1000, play.pos).leadTo;
+    expect(back?.x).toBeLessThan(play.leadSpot.x - 5);
+
+    // Home before the next stroke starts, so three of them never walk him
+    // along the rule and off the spot the probe approved. Read a few
+    // milliseconds short of the end, because at the end the beat is over and
+    // this returns the next one.
+    const end = advancePlay(raking(4), 1000, play.pos).leadTo;
+    expect(Math.abs((end?.x ?? 0) - play.leadSpot.x)).toBeLessThan(1);
+  });
+
+  it("leans the way the cat is facing", () => {
+    const right = advancePlay(raking(285, 1), 1000, { x: 300, y: 200 }).leadTo;
+    const left = advancePlay(raking(285, -1), 1000, { x: 300, y: 200 }).leadTo;
+    expect(right?.x).toBeGreaterThan(300);
+    expect(left?.x).toBeLessThan(300);
+  });
+
+  it("stands still between strokes, and leaves no marks there", () => {
+    const easing = raking(200, 1, "ease");
+    expect(advancePlay(easing, 1000, easing.pos).leadTo).toEqual(easing.leadSpot);
+    // The marks are the evidence of a stroke, so they belong to the stroke.
+    expect(easing.opacity).toBe(0);
+  });
+
+  it("shows the claw marks through the stroke and clears them by the end", () => {
+    // Fullest halfway through, which is the paw pulling back rather than the
+    // paw reaching — the mark is made on the drag.
+    const mid = raking(190);
+    advancePlay(mid, 1000, mid.pos);
+    expect(mid.opacity).toBeGreaterThan(0.9);
+
+    const done = raking(4);
+    advancePlay(done, 1000, done.pos);
+    expect(done.opacity).toBeLessThan(0.1);
   });
 });

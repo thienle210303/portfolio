@@ -246,44 +246,76 @@ export function scheduleNextPlay(now: number, wandering = false): number {
 }
 
 /**
- * Which scene comes up.
+ * What to try, in the order to try it.
  *
- * The chase leads the reading visitor's pool because it is the only one that
+ * An order rather than a single choice, because a scene can have nowhere to
+ * happen: `openPlay` probes the page and declines, and until this returned a
+ * list a refusal cost the visitor the whole interval. That was survivable while
+ * every scene needed only a clear rectangle. It stopped being survivable when
+ * three of them started needing a *particular* thing on screen — a panel to
+ * duck behind, a heading to stalk, a section rule to rake at — because away
+ * from the one part of this page that has a panel, four rolls in five named a
+ * scene that could not open, and wandering, which promises the pair working
+ * the page, delivered two cats sitting down. The caller now walks this list and
+ * takes the first that opens, so the weights below say what the companion would
+ * *rather* do and the page decides what it can actually do.
+ *
+ * The chase leads the reading visitor's weights because it is the only one that
  * needs no clear rectangle for a prop and no pair of facing spots — on a narrow
- * viewport full of prose it is usually the only one that can open at all, and a
- * companion whose repertoire silently empties on a phone-width window is a
- * companion with one trick.
+ * viewport full of prose it is usually the only one that can open at all.
  *
- * A wandering visitor gets a different pool rather than a different schedule of
- * the same one, and the reason is what the two modes are *for*. Roaming, the
- * cats are company for somebody reading, and a scene is an interruption they
- * happen to enjoy — so the three anchored scenes take their turn alongside the
- * yarn and the bowl and no more. Wandering, the visitor has said the page is
- * the entertainment: the pair going through the furniture *is* the mode, so the
- * scenes that touch the page lead and the props are what they fall back on. All
- * eight stay reachable in both, because a mode that could only ever produce
- * three things would run out in a minute.
+ * A wandering visitor gets different weights rather than a different schedule
+ * of the same ones, and the reason is what the two modes are *for*. Roaming,
+ * the cats are company for somebody reading, and a scene is an interruption
+ * they happen to enjoy — so the three anchored scenes take their turn alongside
+ * the yarn and the bowl and no more. Wandering, the visitor has said the page
+ * is the entertainment: the scenes that touch the page lead and the props are
+ * what they fall back on. All eight stay reachable in both, because a mode that
+ * could only ever produce three things would run out in a minute.
  */
-export function pickScene(wandering = false): SceneKind {
-  const roll = Math.random();
-  if (wandering) {
-    if (roll < 0.3) return "peek";
-    if (roll < 0.56) return "stalk";
-    if (roll < 0.78) return "scratch";
-    if (roll < 0.87) return "chase";
-    if (roll < 0.92) return "bowl";
-    if (roll < 0.96) return "yarn";
-    if (roll < 0.99) return "moth";
-    return "gift";
+const WANDER_WEIGHTS: Record<SceneKind, number> = {
+  peek: 30,
+  stalk: 26,
+  scratch: 22,
+  chase: 9,
+  bowl: 5,
+  yarn: 4,
+  moth: 3,
+  gift: 1,
+};
+
+const ROAM_WEIGHTS: Record<SceneKind, number> = {
+  chase: 24,
+  bowl: 18,
+  yarn: 14,
+  moth: 11,
+  peek: 9,
+  gift: 8,
+  stalk: 8,
+  scratch: 8,
+};
+
+export function sceneOrder(wandering = false): SceneKind[] {
+  const weights = wandering ? WANDER_WEIGHTS : ROAM_WEIGHTS;
+  // A weighted shuffle rather than a weighted pick: every scene keeps its
+  // chance of being *first*, which is what the weights are about, and the rest
+  // of the list is only consulted when the page has refused the ones above it.
+  let left = (Object.keys(weights) as SceneKind[]).slice();
+  const order: SceneKind[] = [];
+  while (left.length > 0) {
+    let roll = Math.random() * left.reduce((sum, kind) => sum + weights[kind], 0);
+    let taken = left[left.length - 1];
+    for (const kind of left) {
+      roll -= weights[kind];
+      if (roll <= 0) {
+        taken = kind;
+        break;
+      }
+    }
+    order.push(taken);
+    left = left.filter((kind) => kind !== taken);
   }
-  if (roll < 0.24) return "chase";
-  if (roll < 0.42) return "bowl";
-  if (roll < 0.56) return "yarn";
-  if (roll < 0.67) return "moth";
-  if (roll < 0.75) return "gift";
-  if (roll < 0.84) return "peek";
-  if (roll < 0.92) return "stalk";
-  return "scratch";
+  return order;
 }
 
 const PROP: Record<SceneKind, ToyKind | null> = {
@@ -293,7 +325,9 @@ const PROP: Record<SceneKind, ToyKind | null> = {
   chase: null,
   gift: "yarn",
   peek: null,
-  scratch: null,
+  // The one prop that is not a toy: the marks the scratch leaves behind. See
+  // CompanionToy — without them the scene is a cat standing at a line.
+  scratch: "claw",
   stalk: null,
 };
 
@@ -431,6 +465,19 @@ const PERCH_FOOT = 3;
  *  the pounce is a diagonal rather than a lift. */
 const STALK_RUN = 132;
 const STALK_DRIFT = 26;
+/**
+ * One stroke of a rake, and how far the animal travels doing it.
+ *
+ * The first version of this scene held a paw out and ran the tail faster, and
+ * it read as two cats standing near a line. What was missing is that a cat
+ * scratching moves its whole body: the reach is in the shoulders, not the wrist.
+ * So the stroke is a lean of the entire animal along the rule and back, once
+ * per beat, at an amplitude that is a sixth of a cat — small enough not to read
+ * as walking, large enough to be the difference between a pose and an action.
+ */
+const RAKE_MS = 380;
+const RAKE_REACH = 7;
+
 /** How many places along a rule the scratch tries before it gives up. */
 const RULE_COLUMNS = 7;
 /** Close enough to have arrived, in px. */
@@ -853,10 +900,12 @@ export function openPlay(
             },
             [
               { phase: "approach", ms: APPROACH_MAX },
-              { phase: "rake", ms: 420 },
-              { phase: "ease", ms: 240 },
-              { phase: "rake", ms: 420 },
-              { phase: "leave", ms: 800 },
+              { phase: "rake", ms: RAKE_MS },
+              { phase: "ease", ms: 200 },
+              { phase: "rake", ms: RAKE_MS },
+              { phase: "ease", ms: 200 },
+              { phase: "rake", ms: RAKE_MS },
+              { phase: "leave", ms: 700 },
             ],
             now,
           );
@@ -1215,9 +1264,24 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
   }
 
   if (play.kind === "scratch") {
-    play.opacity = 0;
     /** Along the rule, in front of the paw. */
     const at = { x: play.leadSpot.x + play.facing * CAT_W, y: play.edge };
+    // Where the marks are drawn: under the paw rather than out at the focus
+    // point, and straddling the rule, because a claw mark that does not cross
+    // the line it is a mark on is a scribble beside it. Measured from the
+    // animal's centre rather than from `leadSpot`, which is its top-left — off
+    // the corner the same offset lands under the chest facing one way and a
+    // whole cat clear of it facing the other.
+    // Clamped, because the clear ground along a rule is usually at the page's
+    // margins and a cat scratching at the left edge would put its marks half
+    // outside the window. Sixteen pixels of slide is invisible; half a mark is
+    // not.
+    play.pos.x = clamp(
+      play.leadSpot.x + CAT_W / 2 + play.facing * (CAT_W * 0.5) - TOY_W / 2,
+      4,
+      Math.max(4, viewport().width - TOY_W - 4),
+    );
+    play.pos.y = play.edge - TOY_H / 2;
 
     if (phase === "approach") {
       arrive(play, now, lead, play.leadSpot);
@@ -1235,12 +1299,25 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
     }
 
     const raking = phase === "rake";
+    // The marks come up with the stroke and are gone by the end of it, so three
+    // strokes read as three passes of a paw rather than as one drawing that
+    // faded in. Nothing is left on the page afterwards: the companion draws on
+    // its own layer, and a mark that outlived the scene would be the cats
+    // vandalising somebody's rule.
+    // The lean. Measured from the end of the beat rather than from a clock of
+    // its own, because the beat's end is the only time this object stores — and
+    // one full cycle per beat means the animal is back on its mark before the
+    // next one starts, so three strokes never drift him along the rule.
+    const left = play.until - now;
+    const through = (RAKE_MS - left) / RAKE_MS;
+    const swipe = raking ? Math.sin(through * Math.PI * 2) * RAKE_REACH * play.facing : 0;
+    play.opacity = raking ? Math.max(0, Math.sin(through * Math.PI)) : 0;
     return {
       done: false,
       focus: at,
       leadPose: raking ? "bat" : "sit",
       followPose: "sit",
-      leadTo: play.leadSpot,
+      leadTo: { x: play.leadSpot.x + swipe, y: play.leadSpot.y },
       followTo: play.followSpot,
       dash: false,
       hide: false,

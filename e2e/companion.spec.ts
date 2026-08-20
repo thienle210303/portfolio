@@ -751,26 +751,35 @@ test.describe("companion", () => {
               .filter((clip) => clip.startsWith("inset(")),
           }));
           if (now.kind !== null && anchored.includes(now.kind)) {
-            // Latched: the first anchored scene to turn up is the one under
-            // test, so a second one cannot rescue a first that misbehaved.
             seen.kind ??= now.kind;
-            if (now.clipped.length > 0) seen.clipped = now.clipped;
+            if (now.kind === "peek" && now.clipped.length > 0) seen.clipped = now.clipped;
           }
-          // The one that hides has to actually hide, and the evidence only
-          // exists while it is hiding — the walk in is two cats in plain view —
-          // so the peek is not finished being observed until a clipped frame has
-          // been seen. Two cats standing in front of a panel with their whole
-          // bodies showing is the same drawing with none of the joke in it.
-          if (seen.kind === "peek" && seen.clipped.length === 0) return null;
+          /*
+           * Waits for the *peek* specifically, and not because the other two
+           * matter less. An earlier version of this test latched whichever
+           * anchored scene arrived first and checked the clipping only if that
+           * happened to be the peek, which meant it passed against a build with
+           * hiding switched off about one run in three. A test that only
+           * sometimes asks the question is worse than one that admits it is not
+           * asking: it reads as coverage.
+           *
+           * So the scratch and the stalk turning up first is progress rather
+           * than an answer — they still prove the mode produces anchored scenes
+           * — and the poll keeps going until a cat is actually drawn clipped.
+           * The walk in is two cats in plain view, so the clipped frame is the
+           * only evidence that anything is hiding behind anything.
+           */
+          if (seen.clipped.length === 0) return null;
           return seen.kind;
         },
         {
           timeout: 210_000,
           intervals: [500],
-          message: "no scene anchored to the page happened while the cats wandered",
+          message: "no cat ever hid behind anything while the pair wandered",
         },
       )
       .not.toBeNull();
+    expect(seen.kind, "the first anchored scene should have been observed").not.toBeNull();
 
     // And whatever it was, it obeys the rule every other scene obeys: crossing
     // the page is fine, coming to rest on it is not.

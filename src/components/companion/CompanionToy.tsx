@@ -58,7 +58,7 @@ import type { Ref } from "react";
 export const TOY_W = 24;
 export const TOY_H = 20;
 
-export type ToyKind = "yarn" | "moth" | "bowl";
+export type ToyKind = "yarn" | "moth" | "bowl" | "claw";
 
 /** The cats' stroke, to the tenth. A prop drawn at a different weight reads as
  *  a different illustration lying next to the animals rather than as part of
@@ -128,6 +128,27 @@ const BOWL_BODY =
   "M 2.6 11.4 C 3.2 15.8, 6.8 18.2, 12 18.2 C 17.2 18.2, 20.8 15.8, 21.4 11.4 C 21.4 13.6, 17.2 15, 12 15 C 6.8 15, 2.6 13.6, 2.6 11.4 Z";
 const BOWL_FOOD = "M 6.4 9.6 C 8 6.2, 16 6.2, 17.6 9.6 C 15.4 11, 8.6 11, 6.4 9.6 Z";
 
+/**
+ * Three claw marks, for the scratch.
+ *
+ * The odd prop out, and deliberately so: the other three are objects a cat
+ * plays with, and this is the *evidence* one has been working. Without it the
+ * scene was a cat standing at a rule with a paw out, which reads as a cat
+ * standing at a rule; the marks are what say the line has been scratched.
+ *
+ * They fan the way a paw does — tighter at the pad, splayed at the tips — and
+ * they are drawn short. A long mark reads as a crack in the page rather than
+ * something an animal did.
+ */
+const CLAW_A = "M 6.4 15.6 C 8.4 12.6, 9.8 9.4, 10.4 6.2";
+const CLAW_B = "M 11.4 16.4 C 13.2 13.2, 14.4 9.8, 14.8 6.6";
+const CLAW_C = "M 16.6 16.2 C 17.8 13.4, 18.8 10.4, 19.2 7.8";
+
+const CLAW_ORIGIN = {
+  transformBox: "view-box",
+  transformOrigin: `${TOY_W / 2}px ${TOY_H / 2}px`,
+} as const;
+
 interface CompanionToyProps {
   readonly kind: ToyKind;
   /** The direction/flutter group. Written once a frame by the companion loop. */
@@ -138,6 +159,32 @@ interface CompanionToyProps {
 }
 
 export function CompanionToy({ kind, artRef, spinRef }: CompanionToyProps) {
+  if (kind === "claw") {
+    return (
+      <svg
+        viewBox={`0 0 ${TOY_W} ${TOY_H}`}
+        width={TOY_W}
+        height={TOY_H}
+        aria-hidden="true"
+        focusable="false"
+      >
+        {/* Flipped with the animal, from the middle of the box rather than the
+            SVG origin — a group scaled about x=0 would leave the viewBox. */}
+        <g ref={artRef} style={CLAW_ORIGIN}>
+          {/* Masked like everything else the companion draws: the marks land on
+              a section's own hairline, and a stroke crossing a rule at the same
+              weight as the rule reads as a join rather than as a mark. */}
+          <path {...MASK_LINE} d={CLAW_A} />
+          <path {...MASK_LINE} d={CLAW_B} />
+          <path {...MASK_LINE} d={CLAW_C} />
+          <path {...STROKE} d={CLAW_A} />
+          <path {...STROKE} d={CLAW_B} />
+          <path {...STROKE} d={CLAW_C} />
+        </g>
+      </svg>
+    );
+  }
+
   if (kind === "bowl") {
     return (
       <svg

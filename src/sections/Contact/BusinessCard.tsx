@@ -181,6 +181,12 @@ export default function BusinessCard({ className }: BusinessCardProps) {
     // it so only their heads clear the rule. This file only declares the
     // attribute; everything that reads it lives in src/components/companion, and
     // nothing about the card itself changes.
+    //
+    // It is currently the only element on the site that carries it, and that is
+    // measured rather than assumed — see the note in CodeBlock.tsx, which had
+    // it and could never satisfy it. What makes the card work is the clear band
+    // above its top edge; a panel with a heading or a control sitting on that
+    // band has nowhere to put the visible half of a cat.
     <aside
       aria-label={`${profile.name} — business card`}
       data-cat-hide

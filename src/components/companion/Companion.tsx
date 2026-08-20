@@ -20,7 +20,7 @@ import {
   advancePlay,
   hideCut,
   openPlay,
-  pickScene,
+  sceneOrder,
   scheduleNextPlay,
   PLAY_RETRY,
   type Play,
@@ -1438,6 +1438,24 @@ export function Companion() {
       return spots;
     }
 
+    /**
+     * Is the lead cat currently wearing a focus ring?
+     *
+     * `:focus-visible` rather than `document.activeElement`, because the ring
+     * is the thing being worked around: clicking the cat focuses him without
+     * drawing one, and a scene declined for a ring nobody can see would be the
+     * companion getting quieter for no reason. Guarded, because the whole
+     * question is cosmetic and a browser that cannot answer it should get the
+     * cats rather than an exception.
+     */
+    function catRinged(): boolean {
+      try {
+        return leadNode.current?.matches(":focus-visible") === true;
+      } catch {
+        return false;
+      }
+    }
+
     function tickBlink(cat: Mover, now: number): boolean {
       if (cat.blinkAt === 0) cat.blinkAt = now + 1800 + Math.random() * 4200;
       else if (now > cat.blinkAt) {
@@ -1526,6 +1544,11 @@ export function Companion() {
       if ((playRef.current || queued.current) && (forced !== null || (!parked && !asked))) {
         endPlay(now);
       }
+      // Same rule as the one that keeps a peek from starting under a focus
+      // ring, for the case where the ring arrives afterwards: a visitor who
+      // tabs to the cat mid-hide gets two cats coming out from behind the
+      // panel, which is at least a thing a cat does.
+      if (playRef.current?.kind === "peek" && catRinged()) endPlay(now);
       // The first wait of the visit, on the clock of whichever mode the visitor
       // arrived in: somebody who reloads the page already wandering asked for
       // the shorter gap on the last visit and has not changed their mind.
@@ -1632,14 +1655,27 @@ export function Companion() {
         tabby.pose !== "walk" &&
         now > playAt.current
       ) {
-        const opened = openPlay(
-          pickScene(wandering),
-          grey.pos,
-          tabby.pos,
-          grey.facing,
-          now,
-          sectionRef.current,
-        );
+        /*
+         * The pool in order, first one that fits. A single roll followed by a
+         * 25-second sulk was fine while every scene wanted nothing more than a
+         * clear rectangle; three of them now want a particular thing on screen,
+         * and away from the section with a panel to hide behind most rolls
+         * named one that had nowhere to happen. The probing is the expensive
+         * part, and this is at most eight probes on one frame, at most once
+         * every thirty seconds — against a mode whose entire content is the
+         * pair finding something to do.
+         */
+        let opened: Play | null = null;
+        for (const kind of sceneOrder(wandering)) {
+          // Not while the visitor is holding the lead cat on the keyboard: he
+          // is a 44px control with a focus ring, and a ring is drawn around the
+          // whole button whether or not the drawing inside it is clipped away.
+          // A hiding cat with a blue rectangle sitting on the panel in front of
+          // it reads as a rendering fault, not as a cat.
+          if (kind === "peek" && catRinged()) continue;
+          opened = openPlay(kind, grey.pos, tabby.pos, grey.facing, now, sectionRef.current);
+          if (opened) break;
+        }
         if (opened) {
           playRef.current = opened;
           // Null for the chase, which is two cats and no props — the one scene
