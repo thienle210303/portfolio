@@ -28,7 +28,12 @@ import {
   type SceneKind,
 } from "./companion-play";
 import { planMood, planWander, type MoodKind } from "./companion-moods";
-import { migrateCompanionMode, setCompanionMode, useCompanionMode } from "./companion-state";
+import {
+  migrateCompanionMode,
+  roamingChoice,
+  setCompanionMode,
+  useCompanionMode,
+} from "./companion-state";
 import {
   clamp,
   clampToViewport,
@@ -1521,7 +1526,10 @@ export function Companion() {
       if ((playRef.current || queued.current) && (forced !== null || (!parked && !asked))) {
         endPlay(now);
       }
-      if (playAt.current === 0) playAt.current = scheduleNextPlay(now);
+      // The first wait of the visit, on the clock of whichever mode the visitor
+      // arrived in: somebody who reloads the page already wandering asked for
+      // the shorter gap on the last visit and has not changed their mind.
+      if (playAt.current === 0) playAt.current = scheduleNextPlay(now, wandering);
 
       /** Non-null only while the lead is actually chasing something — which a
        *  held scene outranks, because a cat cannot both act out the scene it was
@@ -2342,7 +2350,7 @@ export function Companion() {
       lastSignRef.current = now;
       settleSpots.current = null;
       moodWalk.current = null;
-      playAt.current = scheduleNextPlay(now);
+      playAt.current = scheduleNextPlay(now, wanderRef.current);
       if (stage.play) {
         playRef.current = stage.play;
         setScene({ kind: stage.play.kind, prop: stage.play.prop });
@@ -2396,7 +2404,10 @@ export function Companion() {
     setEscort(null);
     clearBed();
     focusWish.current = "cat";
-    setCompanionMode("roam");
+    // Back into whichever way of being out they were in when they went to bed.
+    // Waking is undoing the bed, and a visitor who had taken the cats off the
+    // cursor did not ask for them back on it — see `roamingChoice`.
+    setCompanionMode(roamingChoice());
   }
 
   /**

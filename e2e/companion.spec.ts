@@ -867,6 +867,71 @@ test.describe("companion", () => {
     await expect(catButton(page)).toBeVisible();
   });
 
+  test("wakes the cats into the mode they went to bed in", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    // Wandering is a choice about how the cats behave, and the bed is a pause
+    // rather than a reset — so the round trip through it has to come back to
+    // the same answer. It came back to the cursor before this test existed,
+    // which is the site quietly undoing something the visitor said.
+    await openToolkit(page);
+    await toolkit(page)
+      .getByRole("button", { name: /let them wander/i })
+      .click();
+    await page.getByRole("button", { name: /send the cats to bed/i }).click();
+    await expect(restingBox(page)).toBeVisible();
+
+    await restingBox(page).click();
+    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
+    await openToolkit(page);
+    await expect(toolkit(page).getByRole("button", { name: /follow my cursor/i })).toHaveCount(1);
+    expect(await page.evaluate(() => window.localStorage.getItem("companion"))).toBe("wander");
+
+    // And it is only ever a memory of the *last* choice: turning the cursor
+    // back on and repeating the trip has to bring the cursor back, or the
+    // second key has stopped tracking the first.
+    await toolkit(page)
+      .getByRole("button", { name: /follow my cursor/i })
+      .click();
+    await page.getByRole("button", { name: /send the cats to bed/i }).click();
+    await expect(restingBox(page)).toBeVisible();
+    await restingBox(page).click();
+    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
+    await openToolkit(page);
+    await expect(toolkit(page).getByRole("button", { name: /let them wander/i })).toHaveCount(1);
+  });
+
+  test("wakes visible cats from a stored preference it has never heard of", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
+
+    // The same promise the `off` migration keeps, made about the second key:
+    // whatever a browser is carrying under it — a value from a later version,
+    // or something that was never a mode at all — waking has to land on a page
+    // with cats on it rather than on a state this build cannot draw.
+    await page.goto("/");
+    await page.evaluate(() => {
+      window.localStorage.setItem("companion", "resting");
+      window.localStorage.setItem("companion-roam", "somersault");
+    });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+
+    await expect(restingBox(page)).toBeVisible();
+    await restingBox(page).click();
+    await expect(catButton(page)).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("[data-companion] svg[data-cat]")).toHaveCount(2);
+
+    // And it lands on the default rather than passing the unknown word along:
+    // `roam` is stored by storing nothing, so the key this build cannot read is
+    // gone and the menu is offering the way out of the mode it actually chose.
+    expect(await page.evaluate(() => window.localStorage.getItem("companion"))).toBeNull();
+    await openToolkit(page);
+    await expect(toolkit(page).getByRole("button", { name: /let them wander/i })).toHaveCount(1);
+  });
+
   test("an old stored 'off' preference becomes a nap, not an empty corner", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
 

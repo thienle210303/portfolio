@@ -30,6 +30,9 @@ import { useSyncExternalStore } from "react";
  * real browsers still hold — is read as `resting` and rewritten to it once, on
  * mount; see `read` and `migrateCompanionMode`.
  *
+ * There is a second key beside this one, and only one thing reads it: which of
+ * the two roaming modes to wake the cats back into. See `ROAM_KEY`.
+ *
  * This is deliberately outside React. The value is unavailable while rendering
  * on the server, and it can change without React knowing (another tab), which
  * is what `useSyncExternalStore` exists for — and why it is not read with a
@@ -37,7 +40,32 @@ import { useSyncExternalStore } from "react";
  */
 export type CompanionMode = "roam" | "resting" | "wander";
 
+/** The two modes that put cats on the page. The bed is the third state and the
+ *  only one that is not a way of roaming, which is the distinction the second
+ *  key below exists to keep. */
+export type RoamingMode = "roam" | "wander";
+
 const STORAGE_KEY = "companion";
+
+/**
+ * Which of the two roaming modes the visitor last chose, remembered across a
+ * trip to the bed.
+ *
+ * A second key rather than a second value, because `companion` answers "where
+ * are the cats now" and this answers "how do they behave when they are out",
+ * and the bed is precisely the state where those two are different questions.
+ * With one key the bed overwrites the answer to both: a visitor who chose
+ * `wander`, sent the pair to bed and woke them again got the cursor back, which
+ * is the site forgetting a deliberate choice on their behalf.
+ *
+ * Absent means `roam` — the default the whole file falls towards — so a browser
+ * that has never seen this key, or is carrying a value from a version that
+ * spells the modes differently, wakes its cats onto the page rather than into
+ * some state this build cannot draw. Nothing migrates: there is no old value to
+ * retire, and a visitor whose stored mode predates this key simply has no
+ * preference recorded yet.
+ */
+const ROAM_KEY = "companion-roam";
 
 const listeners = new Set<() => void>();
 
@@ -111,10 +139,30 @@ export function migrateCompanionMode(): void {
   }
 }
 
+/**
+ * How the cats behave when they are out, whatever they are doing at the moment.
+ *
+ * Read by the Wake control, which is the one place that has to put the pair
+ * back into a mode rather than into the mode they are already in.
+ */
+export function roamingChoice(): RoamingMode {
+  try {
+    return window.localStorage.getItem(ROAM_KEY) === "wander" ? "wander" : "roam";
+  } catch {
+    return "roam";
+  }
+}
+
 export function setCompanionMode(mode: CompanionMode): void {
   try {
     if (mode === "roam") window.localStorage.removeItem(STORAGE_KEY);
     else window.localStorage.setItem(STORAGE_KEY, mode);
+    // Only the two roaming modes say anything about how the cats behave. The
+    // bed deliberately leaves the last answer standing — that is the whole of
+    // what makes it a pause rather than a reset — and `roam`, being the
+    // default, is recorded by having nothing recorded, exactly as it is above.
+    if (mode === "roam") window.localStorage.removeItem(ROAM_KEY);
+    else if (mode === "wander") window.localStorage.setItem(ROAM_KEY, "wander");
   } catch {
     // Storage can be blocked outright. The choice still holds for this visit;
     // it just does not survive the next one.

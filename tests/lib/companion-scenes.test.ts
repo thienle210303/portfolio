@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
+  advancePlay,
   hideCut,
   peekStands,
   ruleSpot,
   shownSpot,
   stalkSpots,
   type Box,
+  type Play,
 } from "@/components/companion/companion-play";
 import { WANDER_MIN, wanderCandidates } from "@/components/companion/companion-moods";
 
@@ -142,6 +144,65 @@ describe("stalkSpots", () => {
   it("falls back to the heading's own edge when the words cannot be measured", () => {
     const [best] = stalkSpots(HEADING, HEADING.right);
     expect(best.land.x).toBeGreaterThan(HEADING.right);
+  });
+});
+
+describe("the stalk, beat by beat", () => {
+  /**
+   * A staged stalk, pointed at whichever beat is under test.
+   *
+   * Built by hand rather than through `openPlay`, which needs a page to measure
+   * — the thing being asserted here is not where the scene decides to happen
+   * but what it asks of each animal once it has decided, and that is arithmetic
+   * on the object.
+   */
+  function staged(phase: string, ms: number): Play {
+    const crouch = { x: 355, y: 124 };
+    const land = { x: 329, y: 256 };
+    const watch = { x: 293, y: 124 };
+    return {
+      kind: "stalk",
+      prop: null,
+      script: [{ phase, ms }] as Play["script"],
+      step: 0,
+      until: 1000 + ms,
+      from: crouch,
+      to: land,
+      leadSpot: land,
+      followSpot: watch,
+      aside: crouch,
+      edge: 0,
+      facing: -1,
+      pos: { x: crouch.x, y: crouch.y },
+      spin: 0,
+      flap: 1,
+      opacity: 0,
+    };
+  }
+
+  /**
+   * The scene walks the pair to a heading, so by the time he jumps neither of
+   * them is anywhere near where they were standing when it opened. A beat that
+   * names no place for the follower hands her back to the loop's settled
+   * position, which is that old spot — so she turned round and left across the
+   * page on the frame he pounced, and the punchline played to one cat.
+   */
+  it("keeps the watching cat on her mark through the pounce and the landing", () => {
+    for (const phase of ["crouch", "pounce", "pleased"]) {
+      const play = staged(phase, 600);
+      const beat = advancePlay(play, 1300, play.from);
+      expect(beat.followTo, `the ${phase} beat leaves the follower unplaced`).not.toBeNull();
+      expect(beat.followTo).toEqual(play.followSpot);
+    }
+  });
+
+  it("still throws the lead across the gap rather than placing him on it", () => {
+    const play = staged("pounce", 600);
+    const half = advancePlay(play, 1300, play.from).leadTo!;
+    expect(half.x).not.toBe(play.from.x);
+    expect(half.y).toBeGreaterThan(play.from.y);
+    expect(half.y).toBeLessThan(play.to.y);
+    expect(advancePlay(staged("pleased", 600), 1300, play.from).leadTo).toEqual(play.to);
   });
 });
 

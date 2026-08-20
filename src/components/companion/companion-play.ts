@@ -1290,7 +1290,13 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
         leadPose: null,
         followPose: "sit",
         leadTo: arc(play.from, play.to, t),
-        followTo: null,
+        // Named rather than left null, and the difference is the whole end of
+        // this scene. `null` hands the follower back to the loop's settled
+        // position, which for a scene that walked the pair to an anchor is
+        // wherever they were standing before it started — so she turned round
+        // and left across the page on the frame he jumped, and the punchline
+        // played to one cat. She stays where she watched him crouch from.
+        followTo: play.followSpot,
         dash: true,
         hide: false,
         stir: false,
@@ -1303,7 +1309,7 @@ export function advancePlay(play: Play, now: number, lead: Point): PlayBeat {
       leadPose: "sit",
       followPose: "sit",
       leadTo: play.to,
-      followTo: null,
+      followTo: play.followSpot,
       dash: false,
       hide: false,
       stir: false,
