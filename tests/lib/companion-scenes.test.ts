@@ -341,3 +341,63 @@ describe("the scratch, beat by beat", () => {
     expect(done.opacity).toBeLessThan(0.1);
   });
 });
+
+describe("the peek, beat by beat", () => {
+  /**
+   * The scene's whole joke is the cut, and the cut is a contract between two
+   * halves that live in different files: this module decides *when* a beat is
+   * hiding, `hideCut` decides how deep, and the companion loop is what actually
+   * writes a `clip-path`. The end-to-end test cannot afford to wait for this
+   * scene specifically — see the note in e2e/companion.spec.ts — so the half
+   * that can be pinned deterministically is pinned here.
+   */
+  function peeking(phase: string, left: number): Play {
+    const panelTop = 400;
+    const stand = { x: 200, y: panelTop - CAT_H + 14 };
+    return {
+      kind: "peek",
+      prop: null,
+      script: [{ phase, ms: 1000 }] as Play["script"],
+      step: 0,
+      until: 1000 + left,
+      from: stand,
+      to: { x: 200, y: panelTop - CAT_H - 30 },
+      leadSpot: stand,
+      followSpot: { x: 260, y: stand.y },
+      aside: { x: 260, y: panelTop - CAT_H - 30 },
+      edge: panelTop,
+      facing: 1,
+      pos: { x: stand.x, y: stand.y },
+      spin: 0,
+      flap: 1,
+      opacity: 0,
+    };
+  }
+
+  it("walks in visible and only hides once it has arrived", () => {
+    expect(advancePlay(peeking("approach", 800), 1000, { x: 0, y: 0 }).hide).toBe(false);
+    for (const phase of ["tuck", "paw", "rise"]) {
+      expect(advancePlay(peeking(phase, 800), 1000, { x: 200, y: 386 }).hide, phase).toBe(true);
+    }
+  });
+
+  /**
+   * And the depth the loop reads while it is hiding actually hides something:
+   * a cut of zero is two cats standing in front of a panel with the whole joke
+   * missing, which is the shape the end-to-end test caught once and could not
+   * be made to catch reliably.
+   */
+  it("cuts away the part of the animal below the panel's edge", () => {
+    const play = peeking("tuck", 800);
+    const cut = hideCut(play.leadSpot.y, play.edge);
+    expect(cut).toBeGreaterThan(0);
+    expect(cut).toBeLessThan(CAT_H);
+    // Heads still showing: the visible band is what the placement probed.
+    expect(CAT_H - cut).toBeGreaterThan(10);
+  });
+
+  it("reaches for the panel's top with one paw, and only in the middle beat", () => {
+    expect(advancePlay(peeking("paw", 800), 1000, { x: 200, y: 386 }).followPose).toBe("bat");
+    expect(advancePlay(peeking("tuck", 800), 1000, { x: 200, y: 386 }).followPose).toBe("sit");
+  });
+});

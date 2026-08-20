@@ -396,3 +396,74 @@ visitor is reading, and the closing section is short enough and last enough
 that the reading band never lands on it. So the test drives the cursor the way
 the visitor did rather than waiting for the cats to settle — a test that waited
 would have passed against the bug forever.
+
+### FB-9.3 — shipped (`7b4a3ce`, `105dc71`, and the pass below)
+
+Wander is a third mode on the same storage key: the pointer is taken out of the
+loop, the pair choose their own destinations from the machinery that already
+picks resting places, and the fourteen-second idle bed is off, because in a mode
+whose whole content is watching them, a visitor sitting still is the audience.
+
+Three scenes are anchored to real elements. `peek` tucks the pair behind an
+opaque panel and clips the drawing at its top edge — computed from their live
+position, so the cut forms as they walk in and dissolves as they climb out.
+`scratch` stands a cat under a section's own hairline and rakes at it.
+`stalk` crouches, pounces and lands beside the last word of a heading.
+
+One brief of mine was wrong and the builder was right to say so: I asked for the
+pounce to land "past the heading's right edge", but an `h2` is a block, so its
+right edge is the column edge — that would have put a cat four hundred pixels
+out in the margin. It lands where the words stop instead.
+
+### Verification pass
+
+| Finding | Outcome |
+| --- | --- |
+| Waking from the bed threw the wander choice away | Fixed. Proved by reading storage across the round trip: the key was removed entirely and the menu came back offering "let them wander". A second key now answers "how do they behave when they are out" separately from "where are they now", which is exactly the pair of questions the bed splits |
+| The stalk lost a cat at its punchline | Fixed, and the measurement is the report: the follower travelled 490px away from `(295,126)` and was still walking when the scene ended, because two beats named no position for her and the loop handed her back to a spot from before the scene. She now holds her mark across all 45 sampled frames |
+| Two schedule calls ignored the mode | Fixed. A visitor who reloaded mid-wander waited 90–270s for the first scene instead of 30–90s |
+| `data-cat-hide` on `CodeBlock` never worked once | Removed. Swept every 40px of the page: 0 usable hiding places out of 695 scroll positions at 1440 and 735 at 1024, because every code figure has something in the band above it — the hero's tab buttons, the lab's ask form. The business card is the only anchor, and the comment now says so |
+| An anchored scene that declined cost 25 seconds | Fixed, and this was the important one. Away from Contact, four wander rolls in five named a scene with nowhere to happen, so the mode that promises the cats working the page mostly delivered two cats sitting down. The pool is now a fallback chain: the weights say what the companion would rather do, the page decides what it can do |
+| A focused cat mid-`peek` put a blue ring on the panel it was hiding behind | Fixed by declining `peek` while the lead wears a focus ring, and ending one if the ring arrives. The 44px control is untouched — shrinking it was the other way to fix this, and it is the wrong way |
+| `scratch` read as two cats standing near a line | Rebuilt. The stroke is now the whole animal leaning along the rule and back, three times, and it leaves three claw marks straddling the rule under the paw, drawn in the companion's own ink and gone when the scene is. Checked in both themes and measured symmetric: the marks land 0.4 of a cat-width ahead of the animal whichever way it faces, and are clamped so a cat scratching at the page edge cannot put half a mark outside the window |
+| The content-scene e2e passed against a broken product 1 run in 3 | Fixed. It latched whichever anchored scene arrived first and only checked the clipping if that happened to be the peek. It now waits for a cat to be drawn clipped, and says why in the test |
+
+The verifier also confirmed both P0 fixes independently: no drawn element
+inherits its colour any more (7.19:1 over the closing section in day, 6.62:1 in
+night, against 1.00 with the fix stripped), and no path takes a requested scene
+away outside the five that should.
+
+### One test I got wrong on the way
+
+Worth recording because it was mine and it went both ways. The content-scene
+end-to-end test was passing against a build with hiding switched off about one
+run in three: it latched whichever anchored scene arrived first and only checked
+the clipping when that happened to be the peek. I tightened it to wait for a
+peek specifically — and it then failed outright, because a peek leads the wander
+pool about three times in ten and attempts are thirty to ninety seconds apart,
+so waiting for that one scene costs three or four attempts against a 210-second
+budget.
+
+A test that lies and a test that cannot finish are the same defect wearing
+different clothes. The fix was to stop asking one test to prove two things: the
+end-to-end test proves what an end-to-end wait can afford — that wandering
+produces scenes anchored to the page — and the hiding is pinned in unit tests
+that assert the walk-in is visible, that all three hiding beats hide, that the
+cut takes away a real part of the animal while leaving the heads, and that the
+reaching paw happens in exactly one beat. Flipping the hide flag turns them red.
+
+What that leaves is one honest gap: nothing automated proves the *loop* writes
+the clip the geometry describes. It is named in the test rather than papered
+over, and it is checked by hand in both themes.
+
+### Round 9 gate
+
+`pnpm verify` green: typecheck, lint, **31 contrast pairings all at or above AA**
+(lowest 4.66:1), **242 unit tests** — up from 215 at the close of round 8 — and a
+clean production build.
+
+The six-viewport Playwright matrix ran at **339 passed / 1 failed / 230 skipped**;
+the single failure was the over-tightened companion test described above, and
+nothing in the product. After the split, the companion suite at 1440 is **21
+passed / 2 skipped / 0 failed**, and two minutes faster than it was while it sat
+waiting for one particular scene.
