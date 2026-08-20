@@ -113,10 +113,19 @@ test("no element visibly overflows the viewport horizontally", async ({ page }) 
 test("hero code artifact panel scrolls inside itself, never the page", async ({ page }) => {
   // "builder.ts" is codeTabs[0]'s filename — the tab selected by default, so
   // its CodeBlock <pre role="region"> is present without any interaction.
+  //
+  // The panel no longer scrolls sideways: long lines wrap in place
+  // (`white-space: pre-wrap`, with `overflow-wrap: anywhere` so even an
+  // unbreakable token can't widen it), so the panel grows taller instead of
+  // gaining an inner horizontal scrollbar. What still must hold — the
+  // contract this test now asserts — is that none of that ever escapes into
+  // page-level horizontal overflow.
   const region = page.getByRole("region", { name: "builder.ts" });
   await expect(region).toBeVisible();
-  const overflowX = await region.evaluate((el) => getComputedStyle(el).overflowX);
-  expect(overflowX, "hero code panel must declare overflow-x: auto to scroll internally").toBe("auto");
+  const whiteSpace = await region.evaluate((el) => getComputedStyle(el).whiteSpace);
+  expect(whiteSpace, "hero code panel must wrap long lines (white-space: pre-wrap) instead of scrolling").toBe(
+    "pre-wrap",
+  );
   await assertNoPageOverflow(page);
 });
 

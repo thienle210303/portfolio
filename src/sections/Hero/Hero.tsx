@@ -19,11 +19,20 @@
  *
  * The two magic numbers in the split are explained at the point of use below;
  * both come from measurement, not from the breakpoint scale.
+ *
+ * `HeroAbout` — the About paragraphs — renders below all of that, as a
+ * sibling of the fold wrapper rather than inside it (FB-2). It used to sit at
+ * the bottom of the identity column, where at >=1360px it was a lone narrow
+ * stack beside a large empty area once the code artifact ended. Keeping it
+ * outside the `min-h-[...svh]` wrapper matters: that wrapper is deliberately
+ * budgeted to one screen, and About is meant to grow with its content rather
+ * than fight that budget.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { careerEntries, profile } from "@/content/portfolio";
 import HeroIdentity from "./HeroIdentity";
 import HeroCodeArtifact from "./HeroCodeArtifact";
+import HeroAbout from "./HeroAbout";
 
 const HEADING_ID = "hero-heading";
 
@@ -96,6 +105,8 @@ export default function Hero() {
           <span className="eyebrow">Scroll</span>
         </div>
       </div>
+
+      <HeroAbout />
     </Section>
   );
 }

@@ -13,6 +13,12 @@
  * Every list here is guarded by `.length > 0`: several milestone entries
  * have genuinely empty responsibilities/built/impact/technologies arrays,
  * and this renders no heading and no container for those, not an empty one.
+ *
+ * The `<li>` is also this entry's jump target — id, `tabindex="-1"` and the
+ * `scroll-mt-*` landing offset — for the career tree's leaves. See
+ * ./anchors.ts for why the target is the whole entry rather than its heading,
+ * and Timeline.tsx for what makes a link land on an entry the filter is
+ * currently hiding.
  */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
@@ -21,6 +27,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { Tag } from "@/components/ui/Tag";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
+import { journeyEntryAnchorId } from "./anchors";
 
 const TYPE_LABEL: Record<CareerEntry["type"], string> = {
   work: "Work",
@@ -102,8 +109,24 @@ export function TimelineEntry({ entry, isFirst, isLast }: TimelineEntryProps) {
 
   return (
     <li
+      // The jump target for anything linking at this entry — the career tree's
+      // leaves, today. The `<li>` and not the `<h3>`: this box is the whole
+      // entry, including the date range and the type tag, which sit *above*
+      // the heading below the `md` breakpoint and in a column beside it above
+      // one. See ./anchors.ts for the rest of that argument.
+      id={journeyEntryAnchorId(entry.id)}
+      // Landing point, not a control: a negative tabindex keeps the entry out
+      // of the tab order while letting Timeline move focus here after it has
+      // made sure the entry is unfiltered, so a keyboard visitor continues
+      // from where the page moved to instead of from the link they left.
+      tabIndex={-1}
       aria-labelledby={headingId}
-      className="relative py-8 pl-10 md:grid md:grid-cols-[9rem_1fr] md:gap-x-10 md:py-10 md:pl-0"
+      // Clears the 4rem sticky header with a little air — the same offset
+      // `Section` itself uses (`scroll-mt-20`), and the offset that applies
+      // whether the browser scrolls here natively or Timeline calls
+      // scrollIntoView. There is no docked index over this section, so it
+      // needs none of the extra CaseStudy allows for one.
+      className="relative scroll-mt-20 py-8 pl-10 md:grid md:grid-cols-[9rem_1fr] md:gap-x-10 md:py-10 md:pl-0"
     >
       {/*
         Decorative connector, anchored to this <li>'s own box including its

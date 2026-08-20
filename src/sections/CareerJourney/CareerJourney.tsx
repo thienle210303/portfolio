@@ -7,11 +7,15 @@
  * This file is the Server Component boundary: it reads the content and
  * hands the data to `Timeline`, the small `"use client"` island that owns
  * filter state, sorting and the result-count live region.
+ *
+ * The career tree is no longer part of this section — it is its own chapter
+ * (src/sections/CareerTree) rendered after Skills, and this section ends with
+ * one quiet pointer at it.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { careerEntries } from "@/content/portfolio";
-import KnowledgeTree from "./KnowledgeTree";
+import { TreeCrossLink } from "@/sections/CareerTree/cross-link";
 import Timeline from "./Timeline";
 
 const HEADING_ID = "journey-heading";
@@ -41,10 +45,13 @@ export default function CareerJourney() {
         <Timeline entries={careerEntries} />
       </div>
 
-      {/* The timeline answers "when". This answers "what does it add up to" —
-          the same entries regrouped by the kind of work, with the technologies
-          each one actually used hanging off it. */}
-      <KnowledgeTree />
+      {/* The career tree used to render here, below the timeline. It is the
+          synthesis of Work, Journey and Skills rather than an appendix to any
+          one of them, and it is the largest figure on the page, so it is now
+          its own chapter after Skills — see src/sections/CareerTree. This
+          section keeps the chronology and answers "when"; the link answers
+          "and what does it add up to". */}
+      <TreeCrossLink />
     </Section>
   );
 }

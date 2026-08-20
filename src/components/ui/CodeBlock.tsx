@@ -39,18 +39,45 @@ export function CodeBlock({ code, filename, summary, className }: CodeBlockProps
   const summaryId = summaryIdFor(filename);
 
   return (
+    // No `data-cat-hide` here, and it is worth saying why not: this figure
+    // carried it for one commit. A cat hides by standing in the clear band
+    // *above* a panel's top edge, and every code figure on this page has
+    // something in that band — the hero's has its tab buttons, the lab's has
+    // the ask form painting over it. Swept every 40px of the page at 1440 and
+    // 1024, the attribute here produced zero usable hiding places out of 695
+    // and 735 scroll positions. A contract that is declared and never once
+    // satisfied is worse than no contract: it reads as coverage.
     <figure className={cn("min-w-0 max-w-full border border-rule bg-surface", className)}>
       <figcaption className="flex items-center justify-between gap-4 border-b border-rule px-4 py-3">
         <span className="wrap-anywhere font-mono text-[length:var(--step--1)] text-fg-muted">
           {filename}
         </span>
       </figcaption>
+      {/*
+       * Long lines wrap instead of scrolling sideways: `whitespace-pre-wrap`
+       * keeps the preformatted line breaks/indentation but lets the line
+       * itself break, and `wrap-anywhere` (`overflow-wrap: anywhere`) is the
+       * belt-and-braces part — it lets a single unbreakable token (a long
+       * hash, URL, or identifier with no spaces) break mid-token rather than
+       * stretch this panel, and the panel, past the viewport.
+       *
+       * A hanging indent for wrapped continuation lines (padding-left +
+       * negative text-indent) was considered and dropped: `text-indent`
+       * only offsets the very first line of the whole block, and the
+       * standards-track fix for "reset it after every hard break" —
+       * `text-indent: <len> each-line` — isn't implemented in
+       * Chromium/WebKit, so it would silently no-op on most engines. The
+       * alternative, indenting per source line, needs each line to be its
+       * own block box, which means splitting on the `\n`s embedded inside
+       * token values (a blank-line run is one `whitespace` token; a block
+       * comment is one `comment` token spanning several lines) — exactly
+       * the token-span markup this change is asked to leave untouched.
+       */}
       <pre
-        tabIndex={0}
         role="region"
         aria-label={filename}
         aria-describedby={summaryId}
-        className="code-scroll max-w-full overflow-x-auto p-4 [-webkit-overflow-scrolling:touch]"
+        className="max-w-full whitespace-pre-wrap wrap-anywhere p-4"
       >
         <code className="font-mono text-[length:var(--step--1)] leading-relaxed">
           {tokens.map((token, index) => (

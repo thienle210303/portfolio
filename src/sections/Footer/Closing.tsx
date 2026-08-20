@@ -1,8 +1,7 @@
 import Section from "@/components/ui/Section";
 import SectionHeading from "@/components/ui/SectionHeading";
 import Button from "@/components/ui/Button";
-import ExternalLink from "@/components/ui/ExternalLink";
-import { closing, socialLinks } from "@/content/portfolio";
+import { closing } from "@/content/portfolio";
 
 /**
  * Server Component, tone `contrast` — the page's closing chapter, and one of
@@ -11,17 +10,21 @@ import { closing, socialLinks } from "@/content/portfolio";
  * ground of their own to sit on after a long light read.
  *
  * Everything here — this file's own text and borders as much as the shared
- * `Button` / `SectionHeading` / `ExternalLink` primitives — styles against the
- * semantic aliases, so the inversion is handled entirely by the tone class on
+ * `Button` / `SectionHeading` primitives — styles against the semantic
+ * aliases, so the inversion is handled entirely by the tone class on
  * <Section> and nothing below needs a per-tone branch.
+ *
+ * The email/GitHub/LinkedIn links that used to sit beside these two buttons
+ * are gone (owner feedback, round 2): `SiteFooter` renders immediately below
+ * this section on every page and already lists all three, so Closing was
+ * repeating a fact that was about to appear again one scroll later. "Get in
+ * touch" still routes to Contact, where the same links live as cards, for
+ * anyone who wants one directly instead of scrolling.
  *
  * The copyright line lives in `SiteFooter`; it is deliberately not repeated
  * here.
  */
 export default function Closing() {
-  const emailLink = socialLinks.find((link) => link.platform === "Email");
-  const otherLinks = socialLinks.filter((link) => link.platform !== "Email");
-
   return (
     <Section
       id="closing"
@@ -42,31 +45,6 @@ export default function Closing() {
         <Button href="#main" variant="secondary" size="md">
           Back to top
         </Button>
-
-        {emailLink ? (
-          <a
-            href={emailLink.href}
-            className="wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step-0)] text-fg"
-          >
-            {emailLink.handle}
-          </a>
-        ) : null}
-
-        {otherLinks.length > 0 ? (
-          <ul className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            {otherLinks.map((link) => (
-              <li key={link.id}>
-                <ExternalLink
-                  href={link.href}
-                  className="inline-flex min-h-11 items-center gap-2 text-[length:var(--step--1)] text-fg"
-                >
-                  {link.label}
-                  <span className="wrap-anywhere text-fg-muted">{link.handle}</span>
-                </ExternalLink>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </div>
     </Section>
   );

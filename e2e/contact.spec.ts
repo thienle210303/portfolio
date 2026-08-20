@@ -118,7 +118,7 @@ test.describe("quick connect", () => {
     await page.goto("/");
     const field = page.getByPlaceholder("Email or phone number");
     await field.scrollIntoViewIfNeeded();
-    await page.getByRole("button", { name: "Ask me to reach out" }).click();
+    await page.getByRole("button", { name: "I'll come to you" }).click();
 
     await expect(field).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByText(/Enter an email address or a phone number/)).toBeVisible();

@@ -9,6 +9,18 @@ interface CopyButtonProps {
   readonly label: string;
   readonly copiedLabel?: string;
   readonly className?: string;
+  /**
+   * `"default"` (the original, unchanged) renders the full bordered pill with
+   * its visible label. `"icon"` renders the same control at icon size —
+   * for a spot where the label text has nowhere to go (see `BusinessCard`,
+   * which sits the copy control on the same line as the email it copies).
+   * The accessible name is never dropped: it moves to `aria-label`, tracking
+   * the same idle/copied/failed states the visible label would have shown,
+   * so a screen reader still hears "Copy email address" and then "Copied!"
+   * — it just never renders as visible text. The `role="status"` live
+   * region below still fires too, exactly as it does in the default variant.
+   */
+  readonly variant?: "default" | "icon";
 }
 
 type CopyState = "idle" | "copied" | "failed";
@@ -24,7 +36,13 @@ const FAILURE_MESSAGE = "Copy failed — select the text manually";
  * aria-live="polite"` region and mirrored in the button's own visible
  * label, resetting to idle after ~2s.
  */
-export function CopyButton({ value, label, copiedLabel = "Copied", className }: CopyButtonProps) {
+export function CopyButton({
+  value,
+  label,
+  copiedLabel = "Copied",
+  className,
+  variant = "default",
+}: CopyButtonProps) {
   const [state, setState] = useState<CopyState>("idle");
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,6 +72,31 @@ export function CopyButton({ value, label, copiedLabel = "Copied", className }: 
 
   const visibleLabel = state === "copied" ? copiedLabel : state === "failed" ? "Copy failed" : label;
   const announcement = state === "copied" ? copiedLabel : state === "failed" ? FAILURE_MESSAGE : "";
+
+  if (variant === "icon") {
+    return (
+      <span className="inline-flex items-center">
+        <button
+          type="button"
+          onClick={handleClick}
+          aria-label={visibleLabel}
+          className={cn(
+            "inline-flex min-h-11 min-w-11 items-center justify-center border border-[color:var(--rule-color)] p-2.5 text-[color:var(--fg-muted)] transition-colors duration-200 hover:border-[color:var(--fg)] hover:text-[color:var(--fg)]",
+            className,
+          )}
+        >
+          {state === "copied" ? (
+            <Check aria-hidden="true" focusable="false" className="h-4 w-4" />
+          ) : (
+            <Copy aria-hidden="true" focusable="false" className="h-4 w-4" />
+          )}
+        </button>
+        <span role="status" aria-live="polite" className="sr-only">
+          {announcement}
+        </span>
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex items-center">

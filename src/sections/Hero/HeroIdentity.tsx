@@ -1,8 +1,19 @@
 /**
  * Hero identity column: the eyebrow (name + title), the page's single <h1>
  * (profile.headline), the intro paragraph, an optional location/availability
- * metadata row, the three hero actions, the social links row, and finally
- * the About paragraphs beneath that fold-line content (SECTIONS.md §1).
+ * metadata row, and the three hero actions.
+ *
+ * The social links row (GitHub/LinkedIn/Email) that used to close this column
+ * is gone (owner feedback, round 2): Contact already carries the same three
+ * as cards, and the site footer lists them again on every page, so the hero
+ * was one more repetition of a fact stated twice already. The three actions
+ * below already route to Contact for anyone who wants them.
+ *
+ * The About paragraphs used to render at the bottom of this column, but at
+ * >=1360px that made them a lone narrow stack beside a large empty area once
+ * the code artifact ended (FB-2). They now render in `HeroAbout`, a
+ * full-width band `Hero` places below the fold instead of inside this
+ * column — same content, same `<Section id="about">`, different composition.
  *
  * `location`/`availability` are `Maybe<string>` and currently hold literal
  * `[NEEDS INPUT: ...]` markers in content. `resolved()` is typed so those
@@ -18,24 +29,17 @@
  * unasked, shows a readable page instead.
  */
 import Link from "next/link";
-import { profile, socialLinks } from "@/content/portfolio";
+import { profile } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 import { Button } from "@/components/ui/Button";
-import { ExternalLink } from "@/components/ui/ExternalLink";
 
 interface HeroIdentityProps {
   /** Must match the id passed as the enclosing <Section>'s `labelledBy`. */
   readonly headingId: string;
 }
 
-const PROSE_CLASS =
-  "prose-measure text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]";
-
 const RESUME_LINK_CLASS =
   "inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-6 py-2.5 font-sans text-[length:var(--step-0)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]";
-
-const SOCIAL_LINK_CLASS =
-  "wrap-anywhere inline-flex min-h-11 items-center py-1 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] text-[color:var(--fg-muted)] transition-colors duration-200 hover:text-[color:var(--fg)]";
 
 export default function HeroIdentity({ headingId }: HeroIdentityProps) {
   const location = resolved(profile.location);
@@ -89,41 +93,6 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
           Contact me
         </Button>
       </div>
-
-      {/*
-        `gap-y-0` is not an oversight. Each link already carries `min-h-11` for
-        its 44px tap target, so on a phone — where these always wrap to one per
-        row — a vertical gap on top of that stacked to ~170px of near-empty
-        column. The rows sit flush; the tap targets are untouched.
-      */}
-      <ul role="list" aria-label="Social links" className="mt-8 flex flex-wrap gap-x-6 gap-y-0">
-        {socialLinks.map((link) => (
-          <li key={link.id}>
-            {link.external ? (
-              <ExternalLink href={link.href} className={SOCIAL_LINK_CLASS}>
-                {link.label} · {link.handle}
-              </ExternalLink>
-            ) : (
-              <a href={link.href} className={SOCIAL_LINK_CLASS}>
-                {link.label} · {link.handle}
-              </a>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      {profile.about.length > 0 ? (
-        <div className="mt-16 border-t border-[color:var(--rule-color)] pt-10 lg:mt-20">
-          <p className="eyebrow">About</p>
-          <div className="mt-4 space-y-4">
-            {profile.about.map((paragraph) => (
-              <p key={paragraph} className={PROSE_CLASS}>
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

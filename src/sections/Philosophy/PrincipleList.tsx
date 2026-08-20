@@ -7,9 +7,11 @@
  * all three entries happen to carry one today, but this renders nothing for
  * a principle that doesn't, rather than an empty bordered box.
  *
- * Grid proportions (2/12 numeral, 10/12 content) intentionally match
- * CaseStudy's own index/content split so the two numbered lists on the page
- * read as one consistent system.
+ * The numeral treatment (large structural mono in `--fg-subtle`, hidden from
+ * assistive technology) matches CaseStudy's chapter-opener masthead, so the
+ * two numbered lists on the page read as one consistent system. CaseStudy no
+ * longer uses a 2/12 numeral gutter — that column now pays for the section's
+ * sticky index — so the *proportions* here are this list's own.
  */
 import { cn } from "@/lib/cn";
 import type { Principle } from "@/types/portfolio";

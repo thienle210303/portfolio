@@ -527,17 +527,32 @@
       gap: 3rem;
       align-items: start;
     }
-  }
 
-  /*
-   * The rail is deliberately NOT sticky.
-   *
-   * It was, and it looked wrong: a section is far taller than its handful of
-   * annotations, so the rail would detach, ride down the viewport, and end up
-   * parked beside the section's closing whitespace with nothing to annotate.
-   * A note in the margin of a drawing sits level with the thing it describes.
-   * Static keeps that true and removes a moving part.
-   */
+    /*
+     * Sticky within the section (owner feedback, round 2 — reverses the
+     * decision this block used to argue for). On a long section — About,
+     * Skills, the AI Workflow Lab — a static rail scrolled its facts out of
+     * view well before the prose beside them did, so the counts and dates it
+     * exists to surface were gone for most of the scroll. `position: sticky`
+     * on a grid item ranges only over that item's own grid row (`.rail-layout`
+     * sets `align-items: start` above, which is what lets the row be taller
+     * than the rail instead of stretching to match it) — so the rail travels
+     * with its section and then stops dead at the row's bottom edge. It can
+     * never drift into the next section, and it never overlaps the content
+     * beside it, because that content is a separate grid column, not
+     * something the rail is stacked on top of. `top` clears the sticky header
+     * plus breathing room, matching the offset ProjectIndex already uses for
+     * the same mechanism — see that file's comment for the fuller case for
+     * *why* sticky-within-section is safe (the grid row is the sticky range,
+     * not the viewport). Scoped to this media query on purpose: below 1024px
+     * the rail is a stacked endnote block, not a grid column, and nothing
+     * about it changes.
+     */
+    .rail {
+      position: sticky;
+      top: calc(var(--header-h) + 2rem);
+    }
+  }
 
   .rail {
     display: flex;
@@ -612,31 +627,14 @@
   }
 
   /*
-   * Scroll affordance for horizontally scrollable code.
-   *
-   * The panel is allowed to scroll sideways, but with a hard edge and no
-   * cue the clipped line simply reads as broken. This paints a scrim at
-   * the right edge that disappears once you reach the end.
-   *
-   * It is CSS-only and needs no JavaScript: the first layer is attached
-   * `local` so it travels with the content and parks over the scrim at
-   * the very end, while the scrim itself is attached `scroll` and stays
-   * pinned to the visible edge. Monochrome by construction — it is drawn
-   * from the surface and ink tokens, never a colour.
+   * `.code-scroll` (the scrim for horizontally scrollable code) was removed
+   * here: CodeBlock now wraps long lines (`whitespace-pre-wrap` +
+   * `wrap-anywhere`) instead of scrolling them sideways, so there is nothing
+   * left to paint an edge-of-scroll cue for. It was the sole consumer of the
+   * `--code-scrim` / `--q-code-scrim` / `--l-code-scrim` theme tokens above;
+   * those are left in place as they're outside this change's scope, but
+   * they're now unused and a future pass can remove them.
    */
-  .code-scroll {
-    background-image:
-      linear-gradient(to left, var(--surface), var(--surface)),
-      linear-gradient(to left, var(--code-scrim), transparent);
-    background-position:
-      right center,
-      right center;
-    background-size:
-      3rem 100%,
-      3rem 100%;
-    background-repeat: no-repeat;
-    background-attachment: local, scroll;
-  }
 
   /*
    * The recurring micro-label. Tracking came down from 0.18em because this

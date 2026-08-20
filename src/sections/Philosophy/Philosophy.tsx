@@ -16,8 +16,14 @@
  * accessible name resolves to exactly that hidden sentence — "Unsolved is
  * not the same as unsolvable." — with nothing left to read ambiguously.
  * That sentence is `profile.philosophy` itself (not a re-typed copy), the
- * same value the closing pull-quote below renders, so the two can never
- * drift out of sync.
+ * same value ProblemSolvingLoop sets in the middle of its ring, so the two
+ * can never drift out of sync.
+ *
+ * There is no longer a closing pull-quote here. It rendered exactly that
+ * sentence, and the loop now sets it in the middle of the ring — where the
+ * nine steps circle it, which is a better argument for it than a blockquote
+ * underneath them was. Two visible copies of one sentence in one section is
+ * one too many, and the ring's is the one that means something.
  */
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -31,12 +37,13 @@ const HEADING_ID = "philosophy-heading";
 /*
  * Deliberately no `rail` here, unlike every other section.
  *
- * ProblemSolvingLoop lays its nine steps out as nine columns at >=1024px, and
- * surrendering an 11rem margin plus its gap drops each column to roughly 127px
- * — narrow enough that headings like "Question assumptions" break across three
- * lines and the row stops scanning. The rail also had the least to say here:
- * its notes would have been counts of the two lists rendered directly below
- * it, which is annotation restating the page rather than adding to it.
+ * The original reason was width — ProblemSolvingLoop used to lay its nine
+ * steps out as nine columns at >=1024px, and surrendering an 11rem margin
+ * dropped each column to roughly 127px. That reason expired when the loop
+ * became a vertical graph, but the other one did not, and it was always the
+ * stronger of the two: the rail's notes here would have been counts of the two
+ * lists rendered directly below it, which is annotation restating the page
+ * rather than adding to it.
  */
 export default function Philosophy() {
   return (
@@ -66,14 +73,8 @@ export default function Philosophy() {
       </div>
 
       <div className="mt-16 md:mt-20">
-        <ProblemSolvingLoop steps={problemSolvingLoop} />
+        <ProblemSolvingLoop steps={problemSolvingLoop} philosophy={profile.philosophy} />
       </div>
-
-      <blockquote className="prose-measure mt-16 border-t border-[color:var(--rule-color)] pt-10 md:mt-20">
-        <p className="font-display text-[length:var(--step-2)] italic leading-[1.3] tracking-[-0.01em] text-[color:var(--fg)]">
-          {profile.philosophy}
-        </p>
-      </blockquote>
     </Section>
   );
 }

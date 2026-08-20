@@ -1,0 +1,66 @@
+/*
+ * The one thing the companion cannot say in utility classes.
+ *
+ * Tailwind v4 has no `animate-*` for a keyframe it has never been shown, and
+ * this project's keyframes would have to live in the `@theme` block in
+ * `globals.css` — which is the design system's own file. A snore is not a
+ * design token, and it should not be able to collide with one.
+ *
+ * So it is a CSS module: locally scoped class names *and* a locally scoped
+ * `@keyframes`, sitting next to the component that draws it. That is exactly
+ * the case Next's own CSS guidance points modules at, and it is the only file
+ * in the companion that is not TypeScript.
+ *
+ * Nothing here paints. Colour, size and position all come from the semantic
+ * aliases on the elements themselves, because a raw value in here would freeze
+ * the drifting "z"s into one theme and one tone — the bug the alias layer
+ * exists to prevent.
+ */
+
+@keyframes companion-snore {
+  0% {
+    opacity: 0;
+    transform: translate(0, 3px) scale(0.72);
+  }
+  22% {
+    opacity: 0.85;
+  }
+  70% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -15px) scale(1.06);
+  }
+}
+
+/*
+ * Slow, and staggered so the three of them read as one drifting stream rather
+ * than as three things blinking. 4.8s is deliberately longer than it looks
+ * like it needs to be: at snoring speed the eye reads "asleep", and at any
+ * quicker it reads "loading".
+ */
+.snore > span {
+  animation: companion-snore 4.8s ease-out infinite;
+}
+
+.snore > span:nth-child(2) {
+  animation-delay: 1.6s;
+}
+
+.snore > span:nth-child(3) {
+  animation-delay: 3.2s;
+}
+
+/*
+ * Not slowed, not frozen mid-drift — gone. The global reduced-motion rule in
+ * `globals.css` collapses every animation to 0.01ms, which would leave these
+ * parked at their last keyframe (opacity 0, offset up and right) as three
+ * invisible-but-present glyphs. A visitor who asked for stillness gets a bed
+ * with two sleeping cats in it and nothing else.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .snore {
+    display: none;
+  }
+}

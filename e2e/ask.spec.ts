@@ -84,6 +84,53 @@ test.describe("ask this site", () => {
     }
   });
 
+  test("offers the same answer as a code artifact, one view at a time", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("button", { name: "Where did he study?" }).click();
+
+    // Scoped to this tablist on purpose: an unscoped `tab` named "Code" also
+    // matches the workflow stage "Explore an unfamiliar codebase".
+    const views = page.getByRole("tablist", { name: "Answer view" });
+
+    // Prose is the answer; code is the flourish, so prose is what arrives.
+    await expect(page.locator("#lab ol li").first()).toBeVisible();
+    const codeTab = views.getByRole("tab", { name: "Code" });
+    await expect(codeTab).toHaveAttribute("aria-selected", "false");
+
+    await codeTab.click();
+    const artifact = page.getByRole("region", { name: "answer.ts" });
+    await expect(artifact).toBeVisible();
+    // The visitor's question, quoted back as a string literal rather than
+    // paraphrased — the same discipline the prose view keeps.
+    await expect(artifact).toContainText('question: "Where did he study?"');
+
+    // Only one rendering is ever in the DOM, so a screen reader is never handed
+    // the same answer twice.
+    await expect(page.locator("#lab ol li")).toHaveCount(0);
+
+    await views.getByRole("tab", { name: "Prose" }).click();
+    await expect(page.locator("#lab ol li").first()).toBeVisible();
+    await expect(page.getByRole("region", { name: "answer.ts" })).toHaveCount(0);
+  });
+
+  test("the code view is reachable by keyboard alone", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("button", { name: "Where did he study?" }).click();
+
+    const views = page.getByRole("tablist", { name: "Answer view" });
+    await views.getByRole("tab", { name: "Prose" }).focus();
+    await page.keyboard.press("ArrowRight");
+
+    await expect(views.getByRole("tab", { name: "Code" })).toBeFocused();
+    await expect(page.getByRole("region", { name: "answer.ts" })).toBeVisible();
+  });
+
   test("is keyboard operable end to end", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/");

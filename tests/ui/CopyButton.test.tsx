@@ -121,4 +121,81 @@ describe("CopyButton", () => {
     expect(screen.getByRole("status")).toHaveTextContent("");
     expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
   });
+
+  describe('variant="icon"', () => {
+    it("carries the full accessible name via aria-label while rendering no visible label text", () => {
+      render(<CopyButton value="npm install thing" label="Copy email address" variant="icon" />);
+
+      const button = screen.getByRole("button", { name: "Copy email address" });
+      expect(button).toHaveAttribute("aria-label", "Copy email address");
+      // The label never renders as visible text -- only the icon does. An
+      // icon-only button relies entirely on aria-label for its name, so a
+      // stray text node here would be a silent regression back toward the
+      // default variant's presentation.
+      expect(button).toHaveTextContent("");
+    });
+
+    it("has a >=44px hit area from padding, same as the default variant", () => {
+      render(<CopyButton value="npm install thing" label="Copy" variant="icon" />);
+      const button = screen.getByRole("button", { name: "Copy" });
+      expect(button.className).toMatch(/\bmin-h-11\b/);
+      expect(button.className).toMatch(/\bmin-w-11\b/);
+    });
+
+    it("moves the accessible name to the copied state and announces it, on a successful copy", async () => {
+      const user = userEvent.setup();
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      installClipboard(writeText);
+
+      render(
+        <CopyButton
+          value="npm install thing"
+          label="Copy email address"
+          copiedLabel="Copied!"
+          variant="icon"
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: "Copy email address" }));
+
+      const button = await screen.findByRole("button", { name: "Copied!" });
+      expect(button).toHaveTextContent("");
+      expect(screen.getByRole("status")).toHaveTextContent("Copied!");
+    });
+
+    it("never claims success in its accessible name when clipboard.writeText rejects", async () => {
+      const user = userEvent.setup();
+      const writeText = vi.fn().mockRejectedValue(new Error("permission denied"));
+      installClipboard(writeText);
+
+      render(
+        <CopyButton value="npm install thing" label="Copy email address" variant="icon" />,
+      );
+
+      await user.click(screen.getByRole("button", { name: "Copy email address" }));
+
+      const button = await screen.findByRole("button", { name: "Copy failed" });
+      expect(button).toHaveAttribute("aria-label", "Copy failed");
+      expect(screen.getByRole("status")).toHaveTextContent(/copy failed/i);
+    });
+  });
+
+  it("renders the default variant identically whether or not `variant` is passed explicitly", () => {
+    const implicit = render(
+      <CopyButton value="npm install thing" label="Copy" copiedLabel="Copied!" />,
+    );
+    const implicitButton = screen.getByRole("button", { name: "Copy" });
+    const implicitClassName = implicitButton.className;
+    const implicitHasAriaLabel = implicitButton.hasAttribute("aria-label");
+    implicit.unmount();
+
+    render(
+      <CopyButton value="npm install thing" label="Copy" copiedLabel="Copied!" variant="default" />,
+    );
+    const explicitButton = screen.getByRole("button", { name: "Copy" });
+
+    expect(explicitButton.className).toBe(implicitClassName);
+    expect(explicitButton.hasAttribute("aria-label")).toBe(implicitHasAriaLabel);
+    expect(implicitHasAriaLabel).toBe(false);
+  });
 });
