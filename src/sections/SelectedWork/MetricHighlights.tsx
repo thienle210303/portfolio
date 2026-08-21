@@ -112,10 +112,9 @@ export default function MetricHighlights({
           >
             <span
               className={cn(
-                "font-mono leading-[1.1] text-[color:var(--accent)]",
+                "font-mono tabular-nums leading-[1.1] text-[color:var(--accent)]",
                 figureSize(metric.after),
               )}
-              style={{ fontVariantNumeric: "tabular-nums" }}
             >
               {metric.after}
             </span>

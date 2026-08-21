@@ -1,6 +1,14 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { careerEntries, codeTabs } from "../src/content/portfolio";
+import { careerEntries, codeTabs, skillCategories } from "../src/content/portfolio";
 import { workflowStages, experiments } from "../src/content/ai-experiments";
+import type { SkillCategory } from "../src/types/portfolio";
+
+// Widened for the same reason src/lib/knowledge-tree.ts widens careerEntries:
+// `skillCategories` is declared with `satisfies`, so its `lenses` arrays stay
+// literal tuples and narrow `.includes()`'s parameter to whichever lens that
+// one category happens to carry. Ordinary arrays here are what a query
+// across every category actually needs.
+const CATEGORIES: readonly SkillCategory[] = skillCategories;
 
 // Matches the `lg:` breakpoint (1024px) that switches the workflow explorer
 // between its desktop tablist and its mobile accordion stack.
@@ -238,10 +246,27 @@ test.describe("career tree", () => {
     await expect(panel.getByText(/Role · /)).toBeVisible();
 
     // The case-study link, present because this leaf has one — points at
-    // the section that actually holds it, and that section exists.
-    const caseStudyLink = panel.locator('a[href="#work"]');
+    // that case study's own article, not merely at the section holding all
+    // of them, and that article actually exists.
+    const caseStudyLink = panel.locator('a[href^="#work-"]').first();
     await expect(caseStudyLink).toBeVisible();
-    await expect(page.locator("#work")).toHaveCount(1);
+    const href = await caseStudyLink.getAttribute("href");
+    expect(href, "expected a per-study fragment").toBeTruthy();
+    await expect(page.locator(href ?? "")).toHaveCount(1);
+  });
+
+  test("every case-study link the tree renders resolves to a real article", async ({ page }) => {
+    // A sweep across the whole figure, not just the one DoorDash leaf above:
+    // every `#work-<id>` fragment any leaf renders, in either presentation,
+    // must land on a real `<article>` — the same dead-fragment guard the
+    // timeline links already get further down this file.
+    const unresolved = await page.evaluate(() => {
+      const links = [...document.querySelectorAll('#tree a[href^="#work-"]')];
+      return links
+        .map((link) => link.getAttribute("href") ?? "")
+        .filter((href) => document.getElementById(href.slice(1)) === null);
+    });
+    expect(unresolved, "a case-study link must resolve to a real article").toEqual([]);
   });
 
   /*
@@ -480,6 +505,160 @@ test.describe("career tree", () => {
       await restingTop(entry),
       "a cold load must settle at the entry's 80px scroll margin",
     );
+  });
+
+  /*
+   * Cross-highlighting (TreeFigure.tsx): pointer or focus on a tag, a root
+   * label or a lens's own panel/leaf stamps `data-tree-hit` on the set that
+   * attribute says it should. All three below only exercise the drawn
+   * presentation, where a panel and a root label are actually adjacent
+   * enough to hover independently — see the earlier "the drawing shows at
+   * >=1024px" test for why that split exists at all.
+   */
+  test("hovering a root label highlights exactly the lens clusters it authors feed", async ({
+    page,
+  }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "root labels sit under their own root's tip only in the drawn presentation",
+    );
+
+    const category = CATEGORIES.find((c) => c.lenses.length > 0);
+    expect(category, "content fixture assumption failed: no category with an authored lens").toBeTruthy();
+    if (!category) return;
+
+    const tree = page.locator("#tree");
+    const rootLabel = tree.locator(`[data-tree-root="${category.id}"]:visible`).first();
+    await rootLabel.scrollIntoViewIfNeeded();
+    await rootLabel.hover();
+
+    const hitLensIds = await page.evaluate(
+      () =>
+        [...document.querySelectorAll("#tree [data-tree-lens][data-tree-hit]")]
+          .map((el) => el.getAttribute("data-tree-lens"))
+          .filter((id): id is string => id !== null),
+    );
+    expect(new Set(hitLensIds)).toEqual(new Set(category.lenses));
+  });
+
+  test("focusing a leaf highlights the root labels its lens is actually fed by", async ({
+    page,
+  }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "a leaf is only its own control in the drawn presentation",
+    );
+
+    const tree = page.locator("#tree");
+    // Software engineering is the tree's largest branch (see CareerTree.tsx's
+    // own "heaviest" rail note), so it is guaranteed to have a leaf.
+    const trigger = tree
+      .getByRole("button", { name: /Show detail — Software engineering/ })
+      .first();
+    await trigger.scrollIntoViewIfNeeded();
+    await trigger.focus();
+
+    const hitRootIds = await page.evaluate(
+      () =>
+        [...document.querySelectorAll("#tree [data-tree-root][data-tree-hit]")]
+          .map((el) => el.getAttribute("data-tree-root"))
+          .filter((id): id is string => id !== null),
+    );
+    const expected = CATEGORIES
+      .filter((category) => category.lenses.includes("engineering"))
+      .map((category) => category.id);
+    expect(expected.length, "content fixture assumption failed: expected engineering to be fed").toBeGreaterThan(0);
+    expect(new Set(hitRootIds)).toEqual(new Set(expected));
+  });
+
+  test("hovering a technology tag highlights every leaf row that actually lists it", async ({
+    page,
+  }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "a leaf's technology tags are only reachable open in the drawn presentation",
+    );
+
+    const tree = page.locator("#tree");
+    const trigger = tree
+      .getByRole("button", { name: /Show detail — /})
+      .filter({ hasText: "DoorDash, Inc." })
+      .first();
+    await trigger.scrollIntoViewIfNeeded();
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const panelId = await trigger.getAttribute("aria-controls");
+    const tag = page.locator(`#${panelId} [data-tree-tech]`).first();
+    const slug = await tag.getAttribute("data-tree-tech");
+    expect(slug, "expected an open leaf to carry at least one technology tag").toBeTruthy();
+
+    await tag.hover();
+
+    const counts = await page.evaluate((needle: string) => {
+      const inTree = (el: Element) => el.closest("#tree") !== null;
+      const homes = [...document.querySelectorAll("[data-tree-techs]")].filter(
+        (el) => inTree(el) && (el.getAttribute("data-tree-techs") ?? "").split(/\s+/).includes(needle),
+      );
+      const hit = homes.filter((el) => el.hasAttribute("data-tree-hit"));
+      return { homes: homes.length, hit: hit.length };
+    }, slug as string);
+
+    expect(counts.homes, "the fixture should list this technology in more than one place").toBeGreaterThan(0);
+    expect(counts.hit).toBe(counts.homes);
+  });
+
+  /*
+   * Growth draw-in (the shared `InkReveal` primitive, Workstream 3, stamps
+   * `data-inked` on `[data-tree-figure]`'s own `data-ink-root`). This file
+   * owns only the tree's half of that contract — see the "Career tree
+   * figure" block in globals.css and the reconciliation note atop
+   * TreeFigure.tsx — but the point of gating everything behind
+   * `[data-ink-ready]` is that the *absence* of that attribute (true right
+   * now, and true for the lifetime of a no-JS or print visit even once
+   * InkReveal exists) must already leave the tree fully drawn. That is what
+   * this asserts, independently of whichever agent lands InkReveal itself.
+   */
+  test("with no ink-reveal gate present, the tree renders fully drawn", async ({ page }) => {
+    await expect(page.locator("html[data-ink-ready]")).toHaveCount(0);
+
+    const state = await page.evaluate(() => {
+      const figure = document.querySelector("[data-tree-figure]");
+      const draw = figure?.querySelector("path.tree-draw");
+      const grow = figure?.querySelector(".tree-grow, .tree-grow-down");
+      const fade = figure?.querySelector(".tree-fade");
+      return {
+        dashoffset: draw ? getComputedStyle(draw).strokeDashoffset : undefined,
+        transform: grow ? getComputedStyle(grow).transform : undefined,
+        opacity: fade ? getComputedStyle(fade).opacity : undefined,
+      };
+    });
+
+    // The initial CSS value for `stroke-dashoffset` is `0`; the pending state
+    // this figure's own CSS would set is `1`. No gate present means the
+    // pending rule never applied, so this stays at the initial value.
+    expect(state.dashoffset).not.toBe("1");
+    expect(state.transform === "none" || state.transform === undefined).toBe(true);
+    expect(state.opacity === "1" || state.opacity === undefined).toBe(true);
+  });
+
+  test("reduced motion: the tree renders fully drawn, never mid-growth", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+
+    const state = await page.evaluate(() => {
+      const figure = document.querySelector("[data-tree-figure]");
+      const draw = figure?.querySelector("path.tree-draw");
+      const fade = figure?.querySelector(".tree-fade");
+      return {
+        dashoffset: draw ? getComputedStyle(draw).strokeDashoffset : undefined,
+        opacity: fade ? getComputedStyle(fade).opacity : undefined,
+      };
+    });
+
+    expect(state.dashoffset).not.toBe("1");
+    expect(state.opacity === "1" || state.opacity === undefined).toBe(true);
   });
 });
 

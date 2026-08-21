@@ -124,10 +124,13 @@ export default function QuickConnect({ emailDeliveryConfigured }: QuickConnectPr
             aria-invalid={status === "error"}
             className={cn(FIELD_CLASS, "sm:flex-1", status === "error" && "border-fg")}
           />
+          {/* The etched inner keyline + mechanical press (Workstream 3, P3) —
+              same recipe as `Button`'s `primary` variant and SiteHeader's
+              "Let's talk", by hand, since this submit renders neither. */}
           <button
             type="submit"
             disabled={status === "sending"}
-            className="min-h-12 shrink-0 border border-accent bg-accent px-6 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 hover:border-accent-strong hover:bg-accent-strong hover:text-ground disabled:opacity-60"
+            className="relative min-h-12 shrink-0 border border-accent bg-accent px-6 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-accent-strong hover:bg-accent-strong hover:text-ground hover:after:opacity-40 active:translate-y-px disabled:opacity-60"
           >
             {status === "sending" ? "Sending…" : "I'll come to you"}
           </button>

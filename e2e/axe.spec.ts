@@ -42,6 +42,24 @@ async function auditHasNoViolations(page: Page, include?: string): Promise<void>
   expect(results.violations, formatViolations(results.violations)).toEqual([]);
 }
 
+/**
+ * Scroll-before-audit (Workstream 3 — the ink-reveal pass's own test-impact
+ * note). `#lab` and `#closing` sit well below the fold, and every section's
+ * eyebrow/h2/lead/rail now settle via `InkReveal` (`Section`/`SectionHeading`,
+ * globals.css) — pre-reveal, that text sits at `opacity: 0` until the section
+ * scrolls into view. Auditing it unscrolled would ask axe to run its colour-
+ * contrast rule against text that genuinely isn't there yet, which doesn't
+ * fail the rule so much as silently skip it — a false pass, not a real one.
+ * Scrolling the target into view and giving the settle transition time to
+ * finish (`--dur-settle` is 500ms; a full second here is comfortable slack,
+ * not a tuned minimum) means the audit sees the same fully-opaque content a
+ * real visitor does by the time they've scrolled this far down the page.
+ */
+async function scrollIntoViewAndSettle(page: Page, selector: string): Promise<void> {
+  await page.locator(selector).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1000);
+}
+
 test.describe("full-page audit", () => {
   test("zero WCAG violations at a mobile viewport", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "run once, at a representative mobile width");
@@ -72,6 +90,18 @@ test.describe("interactive states", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    // Settle `#work`'s own eyebrow/h2 first (Workstream 3 — see
+    // `scrollIntoViewAndSettle`'s own comment above), *before* jumping
+    // straight to a trigger further down the section. Locator actions
+    // scroll their target into view with a single instant jump, not an
+    // animated one — the target can land already past the viewport's far
+    // edge in one step, with no intermediate frame in which the section's
+    // own heading was ever intersecting. `IntersectionObserver` only fires
+    // on an actual crossing, so a heading skipped over that way in one jump
+    // can be left permanently pending. Settling it explicitly first sidesteps
+    // that race rather than depending on where the trigger below happens to
+    // sit relative to it.
+    await scrollIntoViewAndSettle(page, "#work-heading");
     const trigger = page.locator("#work").getByRole("button", { name: /Read the full case study/ }).first();
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -90,6 +120,7 @@ test.describe("off-base section tones", () => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await scrollIntoViewAndSettle(page, "#lab");
     await auditHasNoViolations(page, "#lab");
   });
 
@@ -97,6 +128,7 @@ test.describe("off-base section tones", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await scrollIntoViewAndSettle(page, "#closing");
     await auditHasNoViolations(page, "#closing");
   });
 });
@@ -136,7 +168,9 @@ test.describe("night theme", () => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await scrollIntoViewAndSettle(page, "#lab");
     await auditHasNoViolations(page, "#lab");
+    await scrollIntoViewAndSettle(page, "#closing");
     await auditHasNoViolations(page, "#closing");
   });
 });

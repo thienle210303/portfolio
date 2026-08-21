@@ -1,7 +1,8 @@
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Tag } from "@/components/ui/Tag";
 import { cn } from "@/lib/cn";
-import type { TreeRoot } from "@/lib/knowledge-tree";
+import { techSlug, type TreeRoot } from "@/lib/knowledge-tree";
+import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
 import { JourneyEntryCrossLink } from "./cross-link";
 import { KIND_LABEL } from "./tree-labels";
 
@@ -33,7 +34,7 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
       className={cn("flex flex-col gap-3 border-l border-rule pl-5", className)}
     >
       {tree.map((lens, lensIndex) => (
-        <li key={lens.id} className="relative border border-rule">
+        <li key={lens.id} data-tree-lens={lens.id} className="relative border border-rule">
           {/* Horizontal tick joining this lens to the trunk on its left,
               same span-based rule the branches below use for theirs. */}
           <span aria-hidden="true" className="absolute -left-5 top-6 h-px w-4 bg-rule" />
@@ -66,7 +67,12 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
               className="mb-5 ml-1 flex flex-col gap-5 border-l border-rule pl-5"
             >
               {lens.branches.map((branch) => (
-                <li key={branch.id} className="relative">
+                <li
+                  key={branch.id}
+                  className="relative"
+                  data-tree-entry={branch.id}
+                  data-tree-techs={branch.leaves.map((leaf) => techSlug(leaf.name)).join(" ")}
+                >
                   <span aria-hidden="true" className="absolute -left-5 top-3 h-px w-4 bg-rule" />
 
                   <p className="text-[length:var(--step-0)] text-[color:var(--fg)]">
@@ -82,9 +88,17 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                   {branch.caseStudies.length > 0 ? (
                     <p className="mt-2 text-[length:var(--step--1)] text-[color:var(--fg-muted)]">
                       Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
-                      <a href="#work" className="text-accent underline-offset-4 hover:underline">
-                        {branch.caseStudies.join(", ")}
-                      </a>
+                      {branch.caseStudies.map((caseStudy, index) => (
+                        <span key={caseStudy.id}>
+                          {index > 0 ? ", " : ""}
+                          <a
+                            href={`#${caseStudyAnchorId(caseStudy.id)}`}
+                            className="text-accent underline-offset-4 hover:underline"
+                          >
+                            {caseStudy.title}
+                          </a>
+                        </span>
+                      ))}
                     </p>
                   ) : null}
 
@@ -95,7 +109,7 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                       className="mt-2.5 flex flex-wrap gap-2"
                     >
                       {branch.leaves.map((leaf) => (
-                        <li key={leaf.name}>
+                        <li key={leaf.name} data-tree-tech={techSlug(leaf.name)}>
                           <Tag>
                             <span className="wrap-anywhere">{leaf.name}</span>
                             {/* Recurrence is the whole point of a tree view:

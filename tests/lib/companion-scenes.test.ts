@@ -11,7 +11,13 @@ import {
   type Box,
   type Play,
 } from "@/components/companion/companion-play";
-import { WANDER_MIN, wanderCandidates } from "@/components/companion/companion-moods";
+import {
+  detectRush,
+  RUSH_HOLD_MS,
+  RUSH_VELOCITY,
+  WANDER_MIN,
+  wanderCandidates,
+} from "@/components/companion/companion-moods";
 
 /**
  * The geometry behind the three scenes that are about the page, and behind
@@ -265,6 +271,69 @@ describe("sceneOrder", () => {
     };
     expect(leads(true)).toBeGreaterThan(0.6);
     expect(leads(false)).toBeLessThan(0.45);
+  });
+
+  /**
+   * Round 11's one situational weight: the moth is drawn to `#lab`'s own lit
+   * tablist, more so by day than by night (the boost is smaller then — see
+   * `LAB_MOTH_BOOST` in companion-play.ts, which this only observes through
+   * its effect). Every other section, and every other flavour shape, is the
+   * ordinary unweighted list — flavour is additive, not a second table.
+   */
+  it("leads with the moth far more often in #lab than elsewhere", () => {
+    const mothLeads = (section: string | null) => {
+      let count = 0;
+      for (let run = 0; run < 2000; run += 1) {
+        if (sceneOrder(false, { section })[0] === "moth") count += 1;
+      }
+      return count / 2000;
+    };
+    expect(mothLeads("lab")).toBeGreaterThan(mothLeads("work") * 1.5);
+    expect(mothLeads("lab")).toBeGreaterThan(mothLeads(null) * 1.5);
+  });
+
+  it("boosts the moth in #lab less at night than by day", () => {
+    const mothLeads = (night: boolean) => {
+      let count = 0;
+      for (let run = 0; run < 3000; run += 1) {
+        if (sceneOrder(false, { section: "lab", night })[0] === "moth") count += 1;
+      }
+      return count / 3000;
+    };
+    expect(mothLeads(false)).toBeGreaterThan(mothLeads(true));
+  });
+
+  it("is unaffected by a flavour naming an unrelated section", () => {
+    // Same eight scenes, same shape — flavour only ever touches the moth's own
+    // weight in `#lab`, and never removes or adds a scene from the pool.
+    for (const flavor of [undefined, { section: "work" }, { section: null }]) {
+      const order = sceneOrder(false, flavor);
+      expect([...order].sort()).toEqual([...KINDS].sort());
+    }
+  });
+});
+
+describe("detectRush", () => {
+  it("is false before the hold time has elapsed, no matter the speed", () => {
+    expect(detectRush(1000, RUSH_HOLD_MS - 1)).toBe(false);
+  });
+
+  it("is false for an ordinary scroll — plenty of time, not much distance", () => {
+    expect(detectRush(40, 600)).toBe(false);
+  });
+
+  it("is true once both the hold time and the velocity threshold are met", () => {
+    const distance = RUSH_VELOCITY * RUSH_HOLD_MS + 1;
+    expect(detectRush(distance, RUSH_HOLD_MS)).toBe(true);
+  });
+
+  it("is false one px short of the velocity threshold at exactly the hold time", () => {
+    const distance = RUSH_VELOCITY * RUSH_HOLD_MS - 1;
+    expect(detectRush(distance, RUSH_HOLD_MS)).toBe(false);
+  });
+
+  it("treats zero elapsed time as no rush rather than dividing by zero", () => {
+    expect(detectRush(500, 0)).toBe(false);
   });
 });
 

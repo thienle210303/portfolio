@@ -55,7 +55,7 @@ import {
  * already written down here.
  */
 
-export type MoodKind = "work" | "contact" | "loop";
+export type MoodKind = "hero" | "work" | "journey" | "skills" | "tree" | "lab" | "contact" | "loop";
 
 export interface MoodSpots {
   readonly lead: Point;
@@ -143,6 +143,117 @@ function mateSpot(lead: Point, side: 1 | -1): Point | null {
   return null;
 }
 
+/**
+ * Sit down beside a rectangle, on whichever side has room — the shared shape
+ * every "beside this element" mood below is built from.
+ *
+ * Extracted from `workMood`, which used to be the only mood that walked a
+ * side/offset grid to find a spot beside a moving target. Every mood added in
+ * round 11 wants exactly the same thing — a place next to *an* anchor,
+ * wherever that anchor currently is on screen — so the grid is shared rather
+ * than copied five times with five chances to drift apart.
+ */
+function besideRect(
+  rect: DOMRect,
+  lead: Point,
+  follow: Point,
+  home: Point,
+  kind: MoodKind,
+  dys: readonly number[] = [16, 96, 190, -CAT_H - 10],
+): MoodPlan | null {
+  for (const side of sides(rect, lead)) {
+    const x = side > 0 ? rect.right + MARGIN : rect.left - CAT_W - MARGIN;
+    for (const dy of dys) {
+      const spot = clampToViewport({ x, y: rect.top + dy });
+      if (!isClearSpot(spot)) continue;
+      const mate = mateSpot(spot, side) ?? findClearSpot(follow, home, spot);
+      return { kind, spots: { lead: spot, follow: mate }, path: [] };
+    }
+  }
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Hero: on the scroll-cue row                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** `Hero.tsx`'s scroll-cue row — the one-liner adds `data-cat-perch` to it,
+ *  which is the whole of what this mood needs from that file. */
+function heroMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
+  const rect = rectOf(document.querySelector("[data-cat-perch]"));
+  if (!rect) return null;
+  return besideRect(rect, lead, follow, home, "hero");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Journey: the timeline entry actually in the reading band                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The first timeline `<li>` intersecting the reading band — the middle third
+ * of the viewport a visitor's eyes are actually on. Every entry carries
+ * `id="journey-entry-{id}"` and no `aria-current`, so unlike the case-study
+ * index there is no scroll-spy answer to read off; this resolves it directly
+ * against the page, and only at settle time — the same rule every mood here
+ * follows — rather than tracking it as the visitor scrolls.
+ */
+function readingBandEntry(): DOMRect | null {
+  const items = document.querySelectorAll('#journey li[id^="journey-entry-"]');
+  const view = viewport();
+  const bandTop = safeTop() + view.height * 0.2;
+  const bandBottom = safeTop() + view.height * 0.6;
+  for (const item of items) {
+    const rect = item.getBoundingClientRect();
+    if (rect.bottom > bandTop && rect.top < bandBottom) return rectOf(item);
+  }
+  return null;
+}
+
+function journeyMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
+  const rect = readingBandEntry();
+  if (!rect) return null;
+  return besideRect(rect, lead, follow, home, "journey");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Skills: beside the list of categories                                       */
+/* -------------------------------------------------------------------------- */
+
+function skillsMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
+  const rect = rectOf(document.querySelector('#skills ul[role="list"]'));
+  if (!rect) return null;
+  return besideRect(rect, lead, follow, home, "skills");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tree: beside the plinth, not on it                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `#tree [data-cat-nap]` is the plinth the nap contract already sleeps
+ * beneath — see `Companion`'s `napRef` and `KnowledgeTree.tsx:112`, which
+ * this module does not touch. That contract calls the pair *under* the
+ * element on pointer dwell or focus; this is a different, narrower question —
+ * a settle mood that sits *beside* the same element while the visitor is
+ * simply reading the section, which is why it is a fifth mood and not a
+ * second reader of the nap attribute.
+ */
+function treeMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
+  const rect = rectOf(document.querySelector("#tree [data-cat-nap]"));
+  if (!rect) return null;
+  return besideRect(rect, lead, follow, home, "tree");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Lab: beside the workflow tabs                                               */
+/* -------------------------------------------------------------------------- */
+
+function labMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
+  const rect = rectOf(document.querySelector('#lab [role="tablist"]'));
+  if (!rect) return null;
+  return besideRect(rect, lead, follow, home, "lab");
+}
+
 /* -------------------------------------------------------------------------- */
 /* Work: beside the case study you are actually reading                        */
 /* -------------------------------------------------------------------------- */
@@ -166,20 +277,10 @@ function activeCaseStudy(): DOMRect | null {
 function workMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
   const rect = activeCaseStudy();
   if (!rect) return null;
-
-  for (const side of sides(rect, lead)) {
-    const x = side > 0 ? rect.right + MARGIN : rect.left - CAT_W - MARGIN;
-    // Down the study's edge, starting level with its masthead — where the
-    // numeral and the title are, so the pair read as sitting *with* the row
-    // rather than as having stopped somewhere arbitrary.
-    for (const dy of [16, 96, 190, -CAT_H - 10]) {
-      const spot = clampToViewport({ x, y: rect.top + dy });
-      if (!isClearSpot(spot)) continue;
-      const mate = mateSpot(spot, side) ?? findClearSpot(follow, home, spot);
-      return { kind: "work", spots: { lead: spot, follow: mate }, path: [] };
-    }
-  }
-  return null;
+  // Down the study's edge, starting level with its masthead — where the
+  // numeral and the title are, so the pair read as sitting *with* the row
+  // rather than as having stopped somewhere arbitrary.
+  return besideRect(rect, lead, follow, home, "work");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -336,7 +437,12 @@ export function planMood(
   follow: Point,
   home: Point,
 ): MoodPlan | null {
+  if (section === "about") return heroMood(lead, follow, home);
   if (section === "work") return workMood(lead, follow, home);
+  if (section === "journey") return journeyMood(lead, follow, home);
+  if (section === "skills") return skillsMood(lead, follow, home);
+  if (section === "tree") return treeMood(lead, follow, home);
+  if (section === "lab") return labMood(lead, follow, home);
   if (section === "contact") return contactMood(follow, home);
   if (section === "philosophy") return loopMood(lead, follow, home);
   return null;
@@ -395,6 +501,32 @@ export function wanderCandidates(spots: readonly Point[], from: Point): Point[] 
  * them nearest-first, and a wanderer who always takes the nearest one paces the
  * same short hop for the rest of the visit.
  */
+/* -------------------------------------------------------------------------- */
+/* Scroll anticipation                                                         */
+/*                                                                             */
+/* A visitor scrolling flat out is not reading — they are travelling — and a    */
+/* pair that keep trailing the stale pointer position through that read as     */
+/* oblivious rather than company. `detectRush` answers one narrow question,     */
+/* in pure arithmetic so it can be tested without a scroll event in the room:   */
+/* has the page been moving fast enough, for long enough, that this counts as   */
+/* a dash rather than an ordinary scroll. `Companion` accumulates the distance  */
+/* and elapsed time from its own scroll handler and asks this on every event;   */
+/* the geometry of what to do about a rush — which corner, which gutter —       */
+/* stays there, because it needs the viewport and the safe area this module     */
+/* never touches.                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** Sustained speed, in px of scroll per ms, that counts as a rush. */
+export const RUSH_VELOCITY = 1.4;
+/** How long that speed has to hold before it counts as one. A single fast
+ *  flick of the wheel is not a rush; a visitor who keeps it up is. */
+export const RUSH_HOLD_MS = 280;
+
+export function detectRush(distancePx: number, elapsedMs: number): boolean {
+  if (elapsedMs < RUSH_HOLD_MS) return false;
+  return distancePx / elapsedMs >= RUSH_VELOCITY;
+}
+
 export function planWander(
   section: string | null,
   lead: Point,

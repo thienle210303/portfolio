@@ -65,15 +65,22 @@ function prefersReducedMotion(): boolean {
 /** Active marker: an underline in the docked row, a rule segment against the
  *  ruled column at >=1024px. Always in the DOM at a fixed size so it never
  *  shifts layout, and never the only signal — it is paired with `aria-current`
- *  and a text-colour step, matching SiteNav's own active treatment. */
+ *  and a text-colour step, matching SiteNav's own active treatment.
+ *
+ *  Draws in on top of the opacity flip (Workstream 3, P3, matching
+ *  SiteNav's `ActiveIndicator`): `origin-left`/`scale-x` for the docked
+ *  row's horizontal underline, `origin-top`/`scale-y` for the ruled
+ *  column's vertical segment at >=1024px — the axis that actually has
+ *  length flips with the layout, so each draws along its own line rather
+ *  than growing sideways out of a segment that has none. */
 function ActiveMarker({ active }: { readonly active: boolean }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[color:var(--accent)] transition-opacity duration-150",
-        "lg:inset-x-auto lg:inset-y-0 lg:-left-px lg:h-auto lg:w-px",
-        active ? "opacity-100" : "opacity-0",
+        "pointer-events-none absolute inset-x-0 bottom-0 h-px origin-left bg-[color:var(--accent)] transition-[opacity,transform] duration-(--dur-quick) ease-(--ease-ink)",
+        "lg:inset-x-auto lg:inset-y-0 lg:-left-px lg:h-auto lg:w-px lg:origin-top lg:scale-x-100",
+        active ? "scale-x-100 opacity-100 lg:scale-y-100" : "scale-x-0 opacity-0 lg:scale-y-0",
       )}
     />
   );

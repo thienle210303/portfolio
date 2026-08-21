@@ -24,6 +24,17 @@ import type { CareerEntry, ResumeLensId } from "@/types/portfolio";
  *
  * Adding a role, retagging a lens or listing a new technology in
  * `src/content/portfolio.ts` changes this tree with no code change here.
+ *
+ * `skillCategories[].lenses` is a *second*, independent authored edge set —
+ * category → lens, sitting beside the entry → lens edges above. It exists so
+ * the root system can honestly say what each skill category feeds ("Languages
+ * · feeds Engineering") without joining skill names against technology
+ * strings, which is the exact fuzzy match the rest of this file refuses to
+ * do. The two edge sets are never merged: an entry's lenses say what kind of
+ * work it was; a category's lenses say what kind of work that skill group
+ * shows up in. Nothing here infers one from the other, and a category with no
+ * lens (there is one — see `RootLabels.tsx`) is left with an honestly empty
+ * "feeds" line rather than a guessed one.
  */
 
 /*
@@ -43,6 +54,13 @@ export interface TreeLeaf {
   readonly alsoUsedIn: number;
 }
 
+/** A case study attached to a branch, carrying enough to link straight at its
+ *  own article rather than at the section that holds all of them. */
+export interface TreeCaseStudy {
+  readonly id: string;
+  readonly title: string;
+}
+
 export interface TreeBranch {
   readonly id: string;
   /** "Software Engineer" / the project title. */
@@ -52,9 +70,15 @@ export interface TreeBranch {
   readonly dateRange: string;
   /** `work` | `learning` | `milestone`, so the UI can distinguish them. */
   readonly kind: string;
+  /** The year `dateRange` starts in, read off the entry's own `sortKey`
+   *  rather than parsed from `dateRange` prose — `sortKey` is `YYYY-MM[-x]`
+   *  by construction, so this is exact where scraping "October 2025 —
+   *  Present" would not be. Used only to decide where a year marker goes
+   *  down a bough; `dateRange` stays the fact a reader actually sees. */
+  readonly startYear: number;
   readonly leaves: readonly TreeLeaf[];
-  /** Case studies attached to this role, by title. */
-  readonly caseStudies: readonly string[];
+  /** Case studies attached to this role. */
+  readonly caseStudies: readonly TreeCaseStudy[];
 }
 
 export interface TreeRoot {
@@ -93,13 +117,14 @@ export function buildKnowledgeTree(): readonly TreeRoot[] {
         organization: entry.organization || undefined,
         dateRange: entry.dateRange,
         kind: entry.type,
+        startYear: Number(entry.sortKey.slice(0, 4)),
         leaves: [...new Set(entry.technologies)].map((name) => ({
           name,
           alsoUsedIn: Math.max(0, (frequency.get(name) ?? 1) - 1),
         })),
         caseStudies: projects
           .filter((project) => project.careerEntryId === entry.id)
-          .map((project) => project.title),
+          .map((project) => ({ id: project.id, title: project.title })),
       }));
 
     const technologies = new Set(branches.flatMap((branch) => branch.leaves.map((l) => l.name)));
@@ -121,4 +146,45 @@ export function buildKnowledgeTree(): readonly TreeRoot[] {
 /** Distinct technologies across the whole tree, for the summary line. */
 export function totalTechnologies(): number {
   return new Set(ENTRIES.flatMap((entry) => entry.technologies)).size;
+}
+
+/**
+ * The career's span, in whole years — first and last `startYear` across every
+ * entry that appears on the tree (i.e. is tagged with at least one lens), and
+ * the count of years that spans inclusively. `2021` through `2025` is five
+ * years, not four: a growth ring is drawn for each year the career has been
+ * running, including the one it started in.
+ *
+ * Read off `sortKey`, never `Date` — the whole drawing is server-rendered
+ * once at build time, and `Date` would make "years since" quietly drift stale
+ * between builds without a single line of content changing.
+ */
+export function careerYearSpan(): { firstYear: number; lastYear: number; years: number } {
+  const years = ENTRIES.filter((entry) => entry.lenses.length > 0).map((entry) =>
+    Number(entry.sortKey.slice(0, 4)),
+  );
+  const firstYear = Math.min(...years);
+  const lastYear = Math.max(...years);
+  return { firstYear, lastYear, years: lastYear - firstYear + 1 };
+}
+
+/**
+ * A CSS-token-safe slug for a free-text technology name: lower-cased,
+ * anything that is not `a-z0-9` collapsed to a single `-`, and no leading or
+ * trailing `-`. Used only as a DOM attribute value (`data-tree-tech`,
+ * `data-tree-techs`) for the cross-highlight island to match against — never
+ * shown to a reader, so it does not need to be pretty, only stable and
+ * collision-free across the real technology list.
+ *
+ * Uniqueness is a property of the actual content, not of this function in
+ * isolation — "C#" and "C/C++" both slug to something starting "c" but land
+ * on different strings ("c" and "c-c") because the punctuation each collapses
+ * differently. `tests/lib/knowledge-tree.test.ts` proves there is no
+ * collision across the real list rather than asserting it in the abstract.
+ */
+export function techSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

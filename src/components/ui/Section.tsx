@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -30,6 +30,23 @@ interface SectionProps {
   readonly rail?: readonly RailNote[];
   /** Merged onto the <section>. Used for print opt-outs (`no-print`). */
   readonly className?: string;
+  /**
+   * Opts this section into the shared ink-settle (Workstream 3, P1):
+   * default `true` marks the `<section>` a `[data-ink-root]`, and this
+   * component stamps `[data-ink]` + a staggered `--ink-delay` on its own
+   * eyebrow and rail — `SectionHeading` does the same for the h2 and lead it
+   * renders inside `children`, on the same 0/60/120/240ms schedule (eyebrow
+   * first, rail last). Only those four ever settle; the body content a
+   * section's own children render is deliberately untouched, which is what
+   * keeps `restingTop`/connector-gap geometry the rest of the e2e suite
+   * measures unaffected by this pass.
+   *
+   * `Hero` is the one caller that passes `false`: it runs its own
+   * `data-motion` load choreography (P2) instead, unconditionally on every
+   * load rather than on first scroll into view, because it is the one
+   * section guaranteed to already be on screen at first paint.
+   */
+  readonly reveal?: boolean;
   readonly children: ReactNode;
 }
 
@@ -64,6 +81,7 @@ export function Section({
   tone = "base",
   rail,
   className,
+  reveal = true,
   children,
 }: SectionProps) {
   const hasRail = rail !== undefined && rail.length > 0;
@@ -72,6 +90,7 @@ export function Section({
     <section
       id={id}
       aria-labelledby={labelledBy}
+      {...(reveal ? { "data-ink-root": "" } : {})}
       className={cn(
         // No ruled grid here by default — see the note on `.blueprint-grid` in
         // globals.css. Only the hero opts in, by passing the class through
@@ -82,12 +101,28 @@ export function Section({
       )}
     >
       <div className="shell">
-        {eyebrow ? <p className="eyebrow mb-8">{eyebrow}</p> : null}
+        {eyebrow ? (
+          <p
+            className="eyebrow mb-8"
+            {...(reveal ? { "data-ink": "" } : {})}
+            style={reveal ? ({ "--ink-delay": "0ms" } as CSSProperties) : undefined}
+          >
+            {eyebrow}
+          </p>
+        ) : null}
 
         {hasRail ? (
           <div className="rail-layout">
             <div className="min-w-0 lg:order-2">{children}</div>
-            <dl className="rail no-print lg:order-1">
+            <dl
+              className="rail no-print lg:order-1"
+              // `reveal={false}` currently means exactly one thing: this is
+              // the hero, which still wants its rail to fade in — just on
+              // its own `data-motion` schedule (P2) rather than the generic
+              // scroll-triggered one every other section's rail uses.
+              {...(reveal ? { "data-ink": "" } : { "data-hero-step": "rail" })}
+              style={reveal ? ({ "--ink-delay": "240ms" } as CSSProperties) : undefined}
+            >
               {rail.map((note) => (
                 <div key={note.term}>
                   <dt>{note.term}</dt>

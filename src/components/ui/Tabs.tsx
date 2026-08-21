@@ -95,7 +95,7 @@ export function Tabs({ label, tabs, idPrefix }: TabsProps) {
               onClick={() => selectByIndex(index, false)}
               onKeyDown={(event) => handleKeyDown(event, index)}
               className={cn(
-                "min-h-11 shrink-0 whitespace-nowrap border-b-2 px-1 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-[0.08em] transition-colors duration-200",
+                "min-h-11 shrink-0 whitespace-nowrap border-b-2 px-1 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-(--tracking-caps) transition-colors duration-200",
                 selected
                   ? "border-[color:var(--fg)] text-[color:var(--fg)]"
                   : "border-[color:var(--rule-color)] text-[color:var(--fg-muted)] hover:text-[color:var(--fg)]",

@@ -23,6 +23,13 @@ import { resolved } from "@/types/portfolio";
  * works with at all, including the things that predate any role listed here.
  * Each category carries an id so the tree's root labels can link straight to
  * the group they name.
+ *
+ * `category.lenses` (used only by the tree, not by anything rendered in this
+ * file) is a second authored edge set living on this same data — category →
+ * lens, sitting beside the entry → lens edges `careerEntries[].lenses`
+ * carries. It is what lets the tree's root labels say what each skill group
+ * *feeds* without joining skill names against technology strings; see the
+ * header of `src/lib/knowledge-tree.ts` for why that join is refused.
  */
 
 const HEADING_ID = "skills-heading";

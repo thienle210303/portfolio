@@ -59,6 +59,10 @@ export default function Hero() {
       tone="base"
       rail={RAIL}
       className="blueprint-grid"
+      // The hero runs its own `data-motion` load choreography (P2) instead
+      // of the generic scroll-triggered ink settle every other section gets
+      // — see Section.tsx's own comment on this prop.
+      reveal={false}
     >
       {/*
         The floor subtracts the sticky header and this section's own block
@@ -90,17 +94,35 @@ export default function Hero() {
             <HeroIdentity headingId={HEADING_ID} />
           </div>
 
-          <div
-            aria-hidden="true"
-            className="hidden bg-[color:var(--rule-color)] min-[1360px]:block"
-          />
+          {/*
+            The divider draws itself in as the P2 sequence's "hairline"
+            step, then — once at rest — reads as a measuring bar rather than
+            a plain rule: `.relative` wraps a full-height 1px fill (the
+            original line, now `data-hero-step="hairline"` so the keyframe in
+            globals.css can grow it top-down) plus two short perpendicular
+            end-ticks (Workstream 3, P5), `position: absolute` so they add
+            no width to the 1px grid track and cost the two flanking columns
+            nothing.
+          */}
+          <div aria-hidden="true" className="relative hidden min-[1360px]:block">
+            <div
+              data-hero-step="hairline"
+              className="h-full w-full bg-[color:var(--rule-color)]"
+            />
+            <span className="absolute left-1/2 top-0 h-px w-[5px] -translate-x-1/2 bg-[color:var(--rule-color)]" />
+            <span className="absolute bottom-0 left-1/2 h-px w-[5px] -translate-x-1/2 bg-[color:var(--rule-color)]" />
+          </div>
 
           <div className="min-w-0">
             <HeroCodeArtifact />
           </div>
         </div>
 
-        <div className="mt-14 flex items-center gap-3">
+        <div
+          data-cat-perch=""
+          data-hero-step="scroll"
+          className="mt-14 flex items-center gap-3"
+        >
           <span aria-hidden="true" className="h-px w-10 bg-[color:var(--rule-color)]" />
           <span className="eyebrow">Scroll</span>
         </div>

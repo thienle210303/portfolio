@@ -4,6 +4,7 @@ import { totalTechnologies, type TreeRoot } from "@/lib/knowledge-tree";
 import { DrawnTree, GroundHatch, RootSystem } from "./DrawnTree";
 import { KnowledgeTreeList } from "./KnowledgeTreeList";
 import { RootLabels } from "./RootLabels";
+import { TreeFigure } from "./TreeFigure";
 
 /**
  * The career tree figure: how the skills connect to the places they were used.
@@ -96,8 +97,12 @@ interface KnowledgeTreeProps {
 export default function KnowledgeTree({ tree, className }: KnowledgeTreeProps) {
   if (tree.length === 0) return null;
 
+  // The wrapper is `TreeFigure`, not a plain div: everything inside stays
+  // server-rendered — the island passes its children straight through and
+  // never re-renders them — and it only adds one client-side job, delegated
+  // event listeners for cross-highlighting. See TreeFigure.tsx.
   return (
-    <div className={cn("relative flex flex-col", className)}>
+    <TreeFigure className={cn("relative flex flex-col", className)}>
       {/* The drawing. Hidden below 1024px, where its two half-width columns
           would be too narrow to set a role and an organisation in. */}
       <DrawnTree tree={tree} className="hidden lg:order-1 lg:block" />
@@ -146,6 +151,6 @@ export default function KnowledgeTree({ tree, className }: KnowledgeTreeProps) {
       {/* Last in the DOM and last on screen in both presentations — see the
           note on focus order above. */}
       <RootLabels className="order-3 mt-8 lg:order-4 lg:mt-2" />
-    </div>
+    </TreeFigure>
   );
 }

@@ -223,7 +223,11 @@ export default function ResumePage() {
 
         <p className="no-print mt-14 border-t border-rule pt-5 font-mono text-[length:var(--step--1)] text-fg-subtle">
           Every line above is read from the same content the site itself uses, so this page and{" "}
-          <a href={SITE_URL} className="text-accent underline-offset-4 hover:underline">
+          {/* `.ink-link` (Workstream 3, P3): this is a prose link embedded in
+              a running sentence, not a standalone row, so it takes the
+              always-underlined-at-rest variant rather than `.ink-link-quiet`
+              — see that class's comment in globals.css. */}
+          <a href={SITE_URL} className="ink-link text-accent">
             the portfolio
           </a>{" "}
           can never disagree.

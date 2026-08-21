@@ -45,7 +45,19 @@ interface ButtonAsButtonProps
 export type ButtonProps = ButtonAsLinkProps | ButtonAsButtonProps;
 
 const BASE_CLASSES =
-  "inline-flex min-h-11 items-center gap-2 border font-sans font-medium transition-colors duration-200 disabled:pointer-events-none disabled:opacity-50";
+  "relative inline-flex min-h-11 items-center gap-2 border font-sans font-medium transition-colors duration-200 disabled:pointer-events-none disabled:opacity-50";
+
+/*
+ * The mechanical press (Workstream 3, P3): every *boxed* variant gets
+ * `active:translate-y-px`, a 1px, un-eased nudge on click that reads as the
+ * button actually depressing rather than merely changing colour. `quiet` is
+ * deliberately excluded — see its own comment above, it is "a link wearing
+ * a button's tap target," and a link doesn't get pressed. `relative` on
+ * `BASE_CLASSES` above is shared plumbing for `primary`'s etched keyline
+ * below, harmless on the other two variants since neither positions a child
+ * off it.
+ */
+const PRESS_CLASSES = "active:translate-y-px";
 
 /*
  * Padding and centring are split by whether the variant draws a box, because
@@ -79,9 +91,16 @@ const QUIET_SIZE_CLASSES: Record<ButtonSize, string> = {
 // most important control on each screen the only saturated thing on it.
 // --fg-inverse is its partner on purpose: the pair clears 7:1 in both themes,
 // where a hardcoded white would fail against night's lighter accent.
+// `primary` additionally carries the etched inner keyline (Workstream 3,
+// P3) — the one rich hover this site allows itself, reserved for the single
+// primary control per screen. `after:inset-[3px]` sits inside the fill, not
+// on its edge, so it reads as a mark pressed into the surface rather than a
+// second border racing the element's own; invisible at rest, never past 40%
+// on hover. SiteHeader's "Let's talk" and QuickConnect's submit carry the
+// identical recipe by hand, since neither renders through this component.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)] hover:border-[color:var(--accent-strong)] hover:bg-[color:var(--accent-strong)] hover:text-[color:var(--ground)]",
+    "border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)] after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-[color:var(--accent-strong)] hover:bg-[color:var(--accent-strong)] hover:text-[color:var(--ground)] hover:after:opacity-40",
   secondary:
     "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]",
   quiet:
@@ -95,7 +114,13 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 export function Button(props: ButtonProps) {
   const { children, variant = "primary", size = "md", className, ...rest } = props;
   const sizeClasses = variant === "quiet" ? QUIET_SIZE_CLASSES[size] : SIZE_CLASSES[size];
-  const classes = cn(BASE_CLASSES, sizeClasses, VARIANT_CLASSES[variant], className);
+  const classes = cn(
+    BASE_CLASSES,
+    sizeClasses,
+    VARIANT_CLASSES[variant],
+    variant !== "quiet" && PRESS_CLASSES,
+    className,
+  );
 
   if (rest.href !== undefined) {
     const { href, ...anchorRest } = rest;

@@ -84,12 +84,15 @@ import { cn } from "@/lib/cn";
  * more `absolute`, zero-height element, so the vertical rhythm below it
  * (`pt-3`, `space-y-2`) is untouched.
  *
- * The card also carries a quiet lift (`shadow-[0_10px_28px_-18px_…]`) — the
- * same recipe `ToolkitPanel`/`RestingBox` use, turned down: less blur, less
- * spread, lower opacity, because a card resting on the page should sit
- * barely off it, not float the way a floating panel does. `* { box-shadow:
- * none !important }` in the print stylesheet already kills it on paper.
+ * No `box-shadow` (Workstream 3, P5 — removed; this file used to carry the
+ * site's only hardcoded rgba shadow, a quiet lift matching `ToolkitPanel`/
+ * `RestingBox`'s recipe turned down). The engraved frame two paragraphs up
+ * already carries "an object resting on the page" on its own — a border-only
+ * device that survives print, where a shadow never did (`* { box-shadow:
+ * none !important }` zeroed it there regardless) — so the shadow was one
+ * more way of saying the same thing this card had already said twice.
  *
+
  * Colour stays inside the semantic aliases throughout, so the card reads
  * correctly in both themes and keeps working if `tone="deep"` on Contact
  * ever changes — nothing here is a raw `--color-*` token or a hex literal.
@@ -170,6 +173,19 @@ const LINK_ROW_CLASS =
  */
 const LINK_LABEL_CLASS = "inline-block w-[4.5rem] shrink-0 whitespace-nowrap text-fg-subtle";
 
+/**
+ * The GitHub/LinkedIn handle's own quiet-link treatment (Workstream 3, P3) —
+ * the same "decoration transparent -> currentColor" vocabulary `.ink-link-
+ * quiet` gives every other standalone link, hand-written here rather than
+ * that shared class because the trigger is the parent `<a>`'s hover
+ * (`group-hover:`), not this `<span>`'s own — a plain `.ink-link-quiet`
+ * would never see a `:hover` of its own to react to, since the whole row is
+ * the actual link and this handle is just the half of its label the state
+ * change should visibly land on.
+ */
+const HANDLE_CLASS =
+  "whitespace-nowrap underline decoration-transparent underline-offset-4 transition-[color,text-decoration-color] duration-(--dur-quick) group-hover:text-accent group-hover:decoration-current";
+
 export default function BusinessCard({ className }: BusinessCardProps) {
   const github = socialLinks.find((link) => link.platform === "GitHub");
   const linkedin = socialLinks.find((link) => link.platform === "LinkedIn");
@@ -191,7 +207,7 @@ export default function BusinessCard({ className }: BusinessCardProps) {
       aria-label={`${profile.name} — business card`}
       data-cat-hide
       className={cn(
-        "relative isolate flex flex-col justify-between overflow-hidden border border-rule bg-surface p-6 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.32)] sm:p-7",
+        "relative isolate flex flex-col justify-between overflow-hidden border border-rule bg-surface p-6 sm:p-7",
         CARD_ASPECT,
         className,
       )}
@@ -236,7 +252,11 @@ export default function BusinessCard({ className }: BusinessCardProps) {
             own content width on one line without help, and an arbitrary
             character clamp narrower than that width only forced an
             unnecessary second line. */}
-        <p className="mt-2 font-display text-[length:var(--step--1)] leading-snug text-fg-muted italic">
+        {/* `.hanging-quote` (Workstream 3, P4): this is the one quoted,
+            italic line inside this workstream's file scope — Safari hangs
+            the opening curly quote fractionally outside the text's own
+            left edge; every other engine ignores the unknown declaration. */}
+        <p className="hanging-quote mt-2 font-display text-[length:var(--step--1)] leading-snug text-fg-muted italic">
           &ldquo;{profile.philosophy}&rdquo;
         </p>
       </div>
@@ -257,7 +277,7 @@ export default function BusinessCard({ className }: BusinessCardProps) {
         <div className="flex items-center justify-between gap-2">
           <a
             href={`mailto:${profile.email}`}
-            className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-fg underline-offset-4 hover:text-accent hover:underline"
+            className="ink-link-quiet block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-fg hover:text-accent"
           >
             {profile.email}
           </a>
@@ -272,18 +292,14 @@ export default function BusinessCard({ className }: BusinessCardProps) {
         {github ? (
           <ExternalLink href={github.href} className={LINK_ROW_CLASS}>
             <span className={LINK_LABEL_CLASS}>{github.platform}</span>{" "}
-            <span className="whitespace-nowrap group-hover:text-accent group-hover:underline">
-              {github.handle}
-            </span>
+            <span className={HANDLE_CLASS}>{github.handle}</span>
           </ExternalLink>
         ) : null}
 
         {linkedin ? (
           <ExternalLink href={linkedin.href} className={LINK_ROW_CLASS}>
             <span className={LINK_LABEL_CLASS}>{linkedin.platform}</span>{" "}
-            <span className="whitespace-nowrap group-hover:text-accent group-hover:underline">
-              {linkedin.handle}
-            </span>
+            <span className={HANDLE_CLASS}>{linkedin.handle}</span>
           </ExternalLink>
         ) : null}
       </div>

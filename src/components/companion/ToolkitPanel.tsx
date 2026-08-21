@@ -55,6 +55,12 @@ const STATUS_ID = "companion-actions-status";
 /** What asking for a scene can come back as. */
 export type PlayRequest = "playing" | "no-room";
 
+/** What asking for the guided tour can come back as. `refused` covers both
+ *  reasons `requestTour` (Companion.tsx) can decline — no roaming loop, or
+ *  the tour's first stop has no element on this page (`/resume`) — because
+ *  the panel has one line for "not here" regardless of which one it was. */
+export type TourRequest = "started" | "refused";
+
 /**
  * The menu, and it is deliberately not every scene in `companion-play`.
  *
@@ -95,6 +101,11 @@ const NO_ROOM: Record<MenuScene, string> = {
   chase: "No room for a run-up just here.",
 };
 
+/** What the panel says when the tour declines. Covers both reasons — see
+ *  `TourRequest` — with one sentence, because the visitor does not need to
+ *  know which; either way there is nowhere to walk them right now. */
+const TOUR_REFUSED = "There's nowhere to start the tour from on this page.";
+
 interface ToolkitPanelProps {
   /** False on touch and under reduced motion, where there is no roaming loop
    *  and therefore no scene to run. */
@@ -102,6 +113,11 @@ interface ToolkitPanelProps {
   /** The pair are off the cursor and about their own business. */
   readonly wandering: boolean;
   readonly onPlay: (kind: SceneKind) => PlayRequest;
+  /** Same gate as `canPlay` — there is no tour without a roaming loop either —
+   *  and it is a separate prop rather than `canPlay` reused because the button
+   *  is still shown and still labelled when the tour itself declines; only the
+   *  refusal differs. */
+  readonly onTour: () => TourRequest;
   readonly onWander: () => void;
   readonly onSendToBed: () => void;
   readonly panelRef?: Ref<HTMLDivElement>;
@@ -116,13 +132,17 @@ export function ToolkitPanel({
   canPlay,
   wandering,
   onPlay,
+  onTour,
   onWander,
   onSendToBed,
   panelRef,
 }: ToolkitPanelProps) {
   /** The last refusal, or null. Cleared on the next attempt so the panel never
-   *  shows an answer to a question the visitor has since asked again. */
-  const [refused, setRefused] = useState<MenuScene | null>(null);
+   *  shows an answer to a question the visitor has since asked again. "tour"
+   *  joins the four scene kinds here rather than getting a state of its own,
+   *  because it is the same fact told about a different request: the status
+   *  line below can only ever be showing one refusal at a time. */
+  const [refused, setRefused] = useState<MenuScene | "tour" | null>(null);
 
   function play(kind: MenuScene) {
     setRefused(null);
@@ -130,6 +150,11 @@ export function ToolkitPanel({
     // called home while it is open, so a scene cannot start until it is shut —
     // which is why there is nothing to say here on the way through.
     if (onPlay(kind) === "no-room") setRefused(kind);
+  }
+
+  function tour() {
+    setRefused(null);
+    if (onTour() === "refused") setRefused("tour");
   }
 
   return (
@@ -156,6 +181,28 @@ export function ToolkitPanel({
 
       {canPlay ? (
         <div className="flex flex-col">
+          {/* First, and set apart from the four scenes below by what it does
+              rather than by any visual rule: the tour is the one item here
+              that narrates instead of playing, and putting it first is what
+              the owner's round-11 note asks for — "guided tour from the
+              toolkit panel" reads as the panel's headline offer, not a fifth
+              scene at the bottom of the list. */}
+          <button
+            type="button"
+            onClick={tour}
+            aria-describedby={refused === "tour" ? STATUS_ID : undefined}
+            className={ITEM_CLASS}
+          >
+            Show me around
+            {refused === "tour" ? (
+              <span
+                aria-hidden="true"
+                className="shrink-0 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-fg-subtle"
+              >
+                No room
+              </span>
+            ) : null}
+          </button>
           {SCENES.map((scene) => (
             <button
               key={scene.kind}
@@ -181,8 +228,8 @@ export function ToolkitPanel({
         </div>
       ) : (
         <p className="px-3 pb-1 text-[length:var(--step--1)] text-fg-muted">
-          The cats play where there is a pointer to chase and motion is welcome. They are sitting
-          this one out.
+          The cats play — and give tours — where there is a pointer to chase and motion is
+          welcome. They are sitting this one out.
         </p>
       )}
 
@@ -194,7 +241,9 @@ export function ToolkitPanel({
         role="status"
         className="px-3 text-[length:var(--step--1)] leading-snug text-fg-muted empty:hidden"
       >
-        {refused ? `${NO_ROOM[refused]} Try again once there is a clear patch of page.` : ""}
+        {refused
+          ? `${refused === "tour" ? TOUR_REFUSED : NO_ROOM[refused]} Try again once there is a clear patch of page.`
+          : ""}
       </p>
 
       {/* Set apart, because neither of these is play: one changes what the cats

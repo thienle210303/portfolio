@@ -41,8 +41,17 @@
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { journeyEntryAnchor } from "@/sections/CareerJourney/anchors";
 
+// `.ink-link-quiet` (Workstream 3, P3 — the only piece of this file
+// Workstream 3 owns, per that pass's file scope): these cross-links stand
+// alone on their own line rather than sitting in a run of prose, so they
+// take the "decoration transparent -> currentColor" quiet-link treatment
+// rather than `.ink-link`'s always-underlined prose variant. `text-accent`
+// stays: it is already the link's rest colour (unusual for this site, where
+// blue is normally reserved for hover/active states), and the plan for
+// this pass is confined to the hover *mechanism*, not to re-litigating that
+// colour choice.
 export const CROSS_LINK_CLASS =
-  "eyebrow inline-flex min-h-11 items-center text-accent underline-offset-4 hover:underline";
+  "ink-link-quiet eyebrow inline-flex min-h-11 items-center text-accent";
 
 /** The pointer into the tree, rendered at the end of Work, Journey and
  *  Skills. Deliberately says nothing about *what* connects — the section it

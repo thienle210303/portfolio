@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildKnowledgeTree, totalTechnologies } from "@/lib/knowledge-tree";
-import { careerEntries, resumeLenses } from "@/content/portfolio";
+import {
+  buildKnowledgeTree,
+  careerYearSpan,
+  techSlug,
+  totalTechnologies,
+} from "@/lib/knowledge-tree";
+import { careerEntries, projects, resumeLenses } from "@/content/portfolio";
 import type { CareerEntry } from "@/types/portfolio";
 
 // Widened for the same reason knowledge-tree.ts widens it — see the note there.
@@ -88,15 +93,49 @@ describe("buildKnowledgeTree", () => {
     }
   });
 
-  it("attaches case studies to the role they were built in", () => {
+  it("attaches case studies to the role they were built in, completely and correctly", () => {
     for (const root of tree) {
       for (const branch of root.branches) {
-        // Every attached title must be a real project title, not a label the
-        // tree made up.
-        for (const title of branch.caseStudies) {
-          expect(typeof title).toBe("string");
-          expect(title.length).toBeGreaterThan(0);
+        const expected = projects.filter((project) => project.careerEntryId === branch.id);
+
+        // Same set, not just "some real titles": a branch must carry every
+        // case study built in that role, and no others.
+        expect(branch.caseStudies.map((cs) => cs.id).sort()).toEqual(
+          expected.map((project) => project.id).sort(),
+        );
+
+        for (const caseStudy of branch.caseStudies) {
+          const project = expected.find((p) => p.id === caseStudy.id);
+          expect(project, `case study id "${caseStudy.id}" resolves to a real project`).toBeDefined();
+          expect(caseStudy.title).toBe(project?.title);
         }
+      }
+    }
+  });
+
+  it("reports each branch's startYear honestly against its dateRange", () => {
+    for (const root of tree) {
+      for (const branch of root.branches) {
+        const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
+        expect(entry).toBeDefined();
+        // startYear is read off sortKey, not scraped from dateRange prose —
+        // but the two must still agree: sortKey is YYYY-MM[-x] and dateRange
+        // always names that same year somewhere in its opening date ("October
+        // 2025 — Present", "2024 — 2025", "May 2025").
+        expect(branch.startYear).toBe(Number(entry?.sortKey.slice(0, 4)));
+        expect(branch.dateRange.includes(String(branch.startYear))).toBe(true);
+      }
+    }
+  });
+
+  it("orders each root's branches by non-increasing startYear", () => {
+    // A stronger form of "orders branches newest first": years must never
+    // decrease down a bough, which is the invariant the year-marker rendering
+    // (one mark per change) actually depends on.
+    for (const root of tree) {
+      const years = root.branches.map((branch) => branch.startYear);
+      for (let i = 1; i < years.length; i += 1) {
+        expect(years[i]).toBeLessThanOrEqual(years[i - 1]);
       }
     }
   });
@@ -111,5 +150,41 @@ describe("buildKnowledgeTree", () => {
     expect(tree.length).toBeGreaterThanOrEqual(3);
     expect(tree.some((root) => root.branches.length >= 3)).toBe(true);
     expect(totalTechnologies()).toBeGreaterThan(10);
+  });
+});
+
+describe("careerYearSpan", () => {
+  it("spans exactly the lens-tagged entries' years, inclusively", () => {
+    const tagged = ENTRIES.filter((entry) => entry.lenses.length > 0);
+    const years = tagged.map((entry) => Number(entry.sortKey.slice(0, 4)));
+    const expectedFirst = Math.min(...years);
+    const expectedLast = Math.max(...years);
+
+    const span = careerYearSpan();
+    expect(span.firstYear).toBe(expectedFirst);
+    expect(span.lastYear).toBe(expectedLast);
+    // Inclusive: the first year itself counts as one year, not zero.
+    expect(span.years).toBe(expectedLast - expectedFirst + 1);
+    expect(span.years).toBeGreaterThan(0);
+  });
+});
+
+describe("techSlug", () => {
+  it("is lower-case, alphanumeric-and-hyphen only, with no leading or trailing hyphen", () => {
+    const names = new Set(ENTRIES.flatMap((entry) => entry.technologies));
+    for (const name of names) {
+      const slug = techSlug(name);
+      expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+    }
+  });
+
+  it("is unique across every technology actually listed in the content layer", () => {
+    const names = [...new Set(ENTRIES.flatMap((entry) => entry.technologies))];
+    const slugs = names.map(techSlug);
+    expect(new Set(slugs).size).toBe(names.length);
+  });
+
+  it("is stable for the same input", () => {
+    expect(techSlug("JavaScript/React")).toBe(techSlug("JavaScript/React"));
   });
 });

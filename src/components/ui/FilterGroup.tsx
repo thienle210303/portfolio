@@ -82,7 +82,7 @@ export function FilterGroup({ label, options, value, onChange, idPrefix, classNa
             onClick={() => onChange(option.id)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "inline-flex min-h-11 items-center gap-2 border px-4 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-[0.05em] transition-colors duration-200",
+              "inline-flex min-h-11 items-center gap-2 border px-4 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-[0.05em] transition-colors duration-200 active:translate-y-px",
               checked
                 ? "border-[color:var(--fg)] text-[color:var(--fg)]"
                 : "border-[color:var(--rule-color)] text-[color:var(--fg-muted)] hover:border-[color:var(--fg-muted)] hover:text-[color:var(--fg)]",

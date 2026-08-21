@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { cn } from "@/lib/cn";
+import type { CompanionFacts } from "@/lib/companion-facts";
 import CompanionCat, { CAT_H, CAT_W, type CatPose } from "./CompanionCat";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, {
@@ -15,7 +17,8 @@ import RestingBox, {
   KICK_SLOT,
   PAPER_SLOT,
 } from "./RestingBox";
-import ToolkitPanel, { PANEL_ID, type PlayRequest } from "./ToolkitPanel";
+import ToolkitPanel, { PANEL_ID, type PlayRequest, type TourRequest } from "./ToolkitPanel";
+import TourHud from "./TourHud";
 import {
   advancePlay,
   hideCut,
@@ -27,7 +30,9 @@ import {
   type PlayBeat,
   type SceneKind,
 } from "./companion-play";
-import { planMood, planWander, type MoodKind } from "./companion-moods";
+import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
+import { fieldNote, nextNoteAt, NOTE_SHOW_MS } from "./companion-notes";
+import { TOUR_STOPS, isLastStop, startTour, tourLine, type TourRun } from "./companion-tour";
 import {
   migrateCompanionMode,
   roamingChoice,
@@ -142,6 +147,29 @@ const FOLLOW_SLACK = 58;
  */
 const SETTLE_AFTER = 2400;
 const SLEEP_AFTER = 14000;
+/** At night the corner is a shorter walk in visitors' heads too — the bed
+ *  comes three seconds sooner. A small nudge, on purpose: this is flavour, not
+ *  a second sleep threshold to keep in step with the real one. */
+const NIGHT_SLEEP_TRIM = 3000;
+
+/** How long a cheer lasts — a brief lead-`stretch` and tabby-`bat`, drawn from
+ *  the poses both animals already have rather than a new one. See D3: a copy
+ *  confirmation, a sent message and a theme toggle all ask for the same
+ *  flourish, none of them know a cat is listening, and none of them get a
+ *  say in how long it lasts. */
+const CHEER_MS = 1100;
+
+/** Dwell before a nav link's hover or focus counts as intent, matching the
+ *  nap contract's own dwell (`NAP_DWELL`) — brushing past a link on the way
+ *  to another one should not read as "heading there". */
+const INTENT_DWELL = 300;
+
+/** How long the page must have gone without a scroll event before a tour stop
+ *  counts as "arrived". The tour's own `scrollIntoView` fires scroll events
+ *  the whole way there, so arrival cannot be "the pair are close enough" on
+ *  its own — that is true for a moment mid-scroll on every stop — it has to be
+ *  "close enough, and the scroll that got them there has stopped". */
+const TOUR_SCROLL_SILENCE = 350;
 
 /** px per frame at 60fps, scaled by distance so they lope rather than snap. */
 const LEAD_SPEED = 4.4;
@@ -850,8 +878,17 @@ const WANDER_STAY = 4500;
 const WANDER_STAY_SPREAD = 8000;
 const WANDER_WALK_MAX = 8000;
 
-export function Companion() {
+export interface CompanionProps {
+  /** D1: computed once, on the server, from `src/content/*` — see
+   *  src/lib/companion-facts.ts. The only route any content number reaches
+   *  this client chunk by; the field notes and the tour quote it and nothing
+   *  else. */
+  readonly facts: CompanionFacts;
+}
+
+export function Companion({ facts }: CompanionProps) {
   const mode = useCompanionMode();
+  const pathname = usePathname();
   /** Both modes that put cats on the page rather than in the corner. Almost
    *  everything below cares which of the three the visitor chose only this far:
    *  is there a roaming layer at all. */
@@ -890,6 +927,9 @@ export function Companion() {
   const toyNode = useRef<HTMLDivElement | null>(null);
   const toyArt = useRef<SVGGElement | null>(null);
   const toySpin = useRef<SVGGElement | null>(null);
+  /** The field note's own element — positioned per frame exactly like the toy,
+   *  and for the same reason: an effect would place it one frame late. */
+  const noteNode = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   /** The two halves of the idle furniture — everything behind the animals, and
@@ -971,6 +1011,79 @@ export function Companion() {
   const moodRun = useRef<MoodRun | null>(null);
   const moodWalk = useRef<MoodWalk | null>(null);
   const homeSpots = useRef<Spots | null>(null);
+  /** Mirrors `roaming` for the loop, the same way `wanderRef` mirrors the
+   *  mode: the loop effect's dependency array is `loopActive`, which can stay
+   *  true across a mode change that flips `roaming` (an escort keeps the loop
+   *  alive after "resting" is chosen), so anything the loop reads that cares
+   *  about *real* roaming — as opposed to "there happens to be a frame
+   *  running" — has to read a ref rather than the render-scope value. */
+  const roamingRef = useRef(roaming);
+
+  /* ------------------------------------------------------------- the tour -- */
+  /** The tour in progress, mutated per frame exactly like `escortRef` — see
+   *  companion-tour.ts. `tourSpots` is where the current stop's mood or
+   *  fallback anchor resolved to, held rather than probed every frame except
+   *  while a stop is still being walked to (the section it belongs to is
+   *  mid-scroll, so its anchor keeps moving until the scroll settles). */
+  const tourRef = useRef<TourRun | null>(null);
+  const tourSpots = useRef<Spots | null>(null);
+  const tourHudRef = useRef<HTMLDivElement>(null);
+  /** The last moment any scroll event fired, regardless of cause — the tour's
+   *  own `scrollIntoView` included. Arrival at a stop is gated on this being
+   *  quiet for a beat, which is what stops "close enough" being read as
+   *  arrived while the programmatic scroll that is *carrying* the pair there
+   *  is still under way. */
+  const lastScrollAt = useRef(0);
+  /** What React needs to draw the HUD: which stop, and the line once the pair
+   *  have actually arrived (empty while still walking to it). Everything else
+   *  about a tour — the walk, the arrival check — is `tourRef`'s business,
+   *  exactly as a scene's beat-by-beat progress is `playRef`'s. */
+  const [tourView, setTourView] = useState<{ index: number; line: string } | null>(null);
+
+  /* -------------------------------------------------------- field notes -- */
+  /** The next moment a note may appear, and the sections that have already
+   *  shown one this visit — see companion-notes.ts. Neither is cleared when
+   *  the visitor moves on: "once per section per visit" means once, not once
+   *  per return trip, and the cadence is a property of the *visit*, not of
+   *  whichever section happens to be current when the clock comes up. */
+  const noteAt = useRef(0);
+  const noteShown = useRef<Set<string>>(new Set());
+  const noteHideAt = useRef(0);
+  /** Whether the visit's one deterministic note has already had its turn —
+   *  see the comment where it is read, in the loop. */
+  const noteFirstShown = useRef(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  /* --------------------------------------------------------- nav intent -- */
+  /** D2: the nav link the pointer or keyboard focus is dwelling on, by
+   *  section id — `null` off the nav entirely. Detected by delegation on
+   *  `header nav a[href]`, the same shape the `data-cat-nap` contract already
+   *  uses, so no change reaches SiteNav to make this work. */
+  const intentRef = useRef<string | null>(null);
+  const [intent, setIntent] = useState<string | null>(null);
+
+  /* ------------------------------------------------------------- night -- */
+  /** Whether `<html data-theme>` currently reads "night", read once at mount
+   *  and kept current by the `MutationObserver` below (D3) — the loop cannot
+   *  itself watch a DOM attribute a visitor may change at any moment. */
+  const nightRef = useRef(false);
+
+  /* -------------------------------------------------------------- cheer -- */
+  /** A brief flourish on a copy confirmation, a sent message, or a theme
+   *  toggle (D3) — none of which know a cat is listening. `cheerRef` is the
+   *  window the loop honours; `cheer` is only for `data-cat-cheer`. */
+  const cheerRef = useRef<{ until: number } | null>(null);
+  const [cheer, setCheer] = useState(false);
+
+  /* --------------------------------------------------------------- rush -- */
+  /** A sustained fast scroll, detected from the loop's own scroll handler —
+   *  see `detectRush` in companion-moods.ts for the arithmetic and the
+   *  handler below for the accumulation. `dir` is which way the page is
+   *  moving, `until` is when the reaction ends if nothing else claims the
+   *  pair first. */
+  const rushRef = useRef<{ dir: 1 | -1; until: number } | null>(null);
+  const rushWindow = useRef<{ y: number; at: number } | null>(null);
+
   const committed = useRef<Frame>(INITIAL_FRAME);
   const lastCommit = useRef(0);
   const lastTone = useRef(0);
@@ -1032,10 +1145,11 @@ export function Companion() {
    */
   useEffect(() => {
     wanderRef.current = mode === "wander";
+    roamingRef.current = roaming;
     wanderRun.current = null;
     settleSpots.current = null;
     wake();
-  }, [mode, wake]);
+  }, [mode, roaming, wake]);
 
   // Retire the one stored value this code no longer writes. It has to happen
   // out here rather than inside the store's snapshot, which runs during render
@@ -1056,8 +1170,125 @@ export function Companion() {
     moodWalk.current = null;
     settleSpots.current = null;
     wanderRun.current = null;
+    // A note is *about* the section it appeared in — one that outlived the
+    // move would be pointing at content the pair have already left behind.
+    // The cadence clock (`noteAt`) is untouched: the visit-wide gap keeps
+    // running, this only clears what is currently showing.
+    noteHideAt.current = 0;
+    setNote(null);
     wake();
   }, [section, wake]);
+
+  /**
+   * D3, the theme half: `ThemeToggle` writes `data-theme` straight to
+   * `<html>` rather than through any state this component could subscribe to
+   * (see its own doc comment), so the only way to notice a toggle is to
+   * watch the attribute. `attributeFilter` means this fires only on an
+   * actual change, never on unrelated DOM churn elsewhere on the page.
+   *
+   * Both the read and the cheer only matter once there is a loop to feel
+   * them, so this — like the nap contract — does nothing at all off `roams`.
+   */
+  useEffect(() => {
+    if (!roams) return;
+    const root = document.documentElement;
+    nightRef.current = root.dataset.theme === "night";
+
+    const cheerNow = () => {
+      cheerRef.current = { until: performance.now() + CHEER_MS };
+      setCheer(true);
+      window.setTimeout(() => setCheer(false), CHEER_MS);
+      lastSignRef.current = performance.now();
+      wake();
+    };
+
+    const observer = new MutationObserver(() => {
+      nightRef.current = root.dataset.theme === "night";
+      cheerNow();
+    });
+    observer.observe(root, { attributeFilter: ["data-theme"] });
+
+    // D3, the neutral-event half: CopyButton and ContactForm dispatch these
+    // on success with no idea a cat is listening — see the one-line edits in
+    // each file. The companion is simply one more thing on the page that
+    // happens to care.
+    window.addEventListener("portfolio:copied", cheerNow);
+    window.addEventListener("portfolio:contact-sent", cheerNow);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("portfolio:copied", cheerNow);
+      window.removeEventListener("portfolio:contact-sent", cheerNow);
+    };
+  }, [roams, wake]);
+
+  /**
+   * D2: nav intent by DOM delegation rather than a `CustomEvent` from
+   * `SiteNav` — the same shape the `data-cat-nap` contract already uses one
+   * effect up, and it costs SiteNav nothing to make this work. A dwell, not
+   * entry, for the same reason the nap contract has one: passing over a link
+   * on the way to another should not read as having decided to go there.
+   */
+  useEffect(() => {
+    if (!roams || !roaming) return;
+
+    let dwell = 0;
+
+    const clear = () => {
+      window.clearTimeout(dwell);
+      if (intentRef.current !== null) {
+        intentRef.current = null;
+        setIntent(null);
+      }
+    };
+
+    const consider = (target: Element | null) => {
+      const link = target?.closest<HTMLAnchorElement>("header nav a[href]") ?? null;
+      const href = link?.getAttribute("href") ?? "";
+      // `SiteNav` links read `/#section-id` — a same-page fragment written as
+      // an absolute path, which still resolves to an in-page jump but is not
+      // a bare `#section-id`. The section id is whatever follows the `#`
+      // wherever it falls, not only at index 0.
+      const hash = href.indexOf("#");
+      const wants = hash >= 0 ? href.slice(hash + 1) : null;
+      if (!wants) {
+        clear();
+        return;
+      }
+      if (wants === intentRef.current) return;
+      window.clearTimeout(dwell);
+      dwell = window.setTimeout(() => {
+        intentRef.current = wants;
+        setIntent(wants);
+      }, INTENT_DWELL);
+    };
+
+    const onOver = (event: PointerEvent) => {
+      consider(event.target instanceof Element ? event.target : null);
+    };
+    const onOut = (event: PointerEvent) => {
+      const next = event.relatedTarget instanceof Element ? event.relatedTarget : null;
+      if (!next?.closest("header nav a[href]")) clear();
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      consider(event.target instanceof Element ? event.target : null);
+    };
+    const onFocusOut = (event: FocusEvent) => {
+      const next = event.relatedTarget instanceof Element ? event.relatedTarget : null;
+      if (!next?.closest("header nav a[href]")) clear();
+    };
+
+    document.addEventListener("pointerover", onOver);
+    document.addEventListener("pointerout", onOut);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      window.clearTimeout(dwell);
+      document.removeEventListener("pointerover", onOver);
+      document.removeEventListener("pointerout", onOut);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, [roams, roaming]);
 
   /* ------------------------------------------------------------- placing -- */
 
@@ -1141,6 +1372,15 @@ export function Companion() {
     if (!node || !play) return;
     paint(node, play.pos);
     node.style.opacity = play.opacity.toFixed(3);
+  }, []);
+
+  /** D5: the note is decoration exactly the way the toy is, and gets the same
+   *  first-frame treatment — placed here rather than left for an effect to
+   *  catch up to, so it never flashes in at the origin before jumping to the
+   *  cat it belongs beside. */
+  const attachNote = useCallback((node: HTMLDivElement | null) => {
+    noteNode.current = node;
+    if (node) paint(node, { x: lead.current.pos.x, y: lead.current.pos.y - 26 });
   }, []);
 
   /* ------------------------------------------------------------- pointer -- */
@@ -1333,6 +1573,34 @@ export function Companion() {
     }
 
     /**
+     * Where a tour stop wants the pair standing.
+     *
+     * The stop's section id is deliberately the same string `planMood`
+     * dispatches on — `TOUR_STOPS` is built from `navItems`, and every section
+     * id there already has a mood — so the tour's placement is the section
+     * mood, asked for on demand instead of waiting for a settle. Recomputed
+     * every frame the tour is walking to a stop rather than held like an
+     * ordinary mood: the section is still scrolling into view, so its anchor
+     * is moving, and a spot probed once at the start of that scroll would be
+     * measuring ground that has since moved out from under it.
+     *
+     * A section whose mood declines (there is genuinely nowhere clear beside
+     * whatever the mood hangs off) falls back to a spot beside the section's
+     * own top edge — cruder, but still a real, content-avoiding answer rather
+     * than nowhere at all.
+     */
+    function tourStopSpots(sectionId: string): Spots | null {
+      const plan = planMood(sectionId, grey.pos, tabby.pos, homeSpot());
+      if (plan) return plan.spots;
+      const el = document.getElementById(sectionId);
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return null;
+      const anchor = { x: rect.left + 24, y: rect.top + 72 };
+      return restSpots(anchor, { x: anchor.x - CAT_W - FOLLOW_GAP, y: anchor.y });
+    }
+
+    /**
      * Where the pair should be sitting, mood included.
      *
      * The section mood gets first refusal, and only ever here — which is what
@@ -1509,12 +1777,61 @@ export function Companion() {
         if (nap.rect.bottom < safeTop() || nap.rect.top > viewport().height) nap = null;
       }
 
-      const forced = run ? "escort" : nap ? "nap" : openRef.current ? "corner" : null;
+      /**
+       * D4: the guided tour, advanced before `forced` reads it.
+       *
+       * Outranks the nap contract on purpose — stop 6 is the career tree, and
+       * its own plinth carries `data-cat-nap`, so without this the plinth's
+       * dwell would hijack the tour the moment the pair arrived there. It does
+       * not outrank the escort: a visitor who sends the cats to bed mid-tour
+       * has `sendToBed` end the tour first (see below), so `run` is never
+       * actually true at the same time as `tourRef.current` in practice — the
+       * `!run` guard here is the same defensive shape `nap` is read with, for
+       * the one caller that is not this component.
+       */
+      let tour = tourRef.current;
+      if (tour && !run) {
+        const stop = TOUR_STOPS[tour.index];
+        const spots = tourStopSpots(stop.sectionId);
+        if (spots) tourSpots.current = spots;
+        if (!tourSpots.current) {
+          // Nowhere at all for this stop. Skip it rather than strand the tour
+          // on a section that has, for whatever reason, nothing clear near it;
+          // give up only if it was the last one.
+          if (isLastStop(tour.index)) {
+            tourRef.current = null;
+            tour = null;
+            setTourView(null);
+          } else {
+            tour.index += 1;
+            tour.phase = "walking";
+            tour.arrivedAt = 0;
+            tourSpots.current = null;
+            setTourView({ index: tour.index, line: "" });
+          }
+        } else if (
+          tour.phase === "walking" &&
+          now - lastScrollAt.current > TOUR_SCROLL_SILENCE &&
+          distance(grey.pos, tourSpots.current.lead) < 4 &&
+          distance(tabby.pos, tourSpots.current.follow) < 4
+        ) {
+          tour.phase = "arrived";
+          tour.arrivedAt = now;
+          setTourView({ index: tour.index, line: tourLine(stop.sectionId, facts) });
+        }
+      }
+
+      const forced = run ? "escort" : tour ? "tour" : nap ? "nap" : openRef.current ? "corner" : null;
       // Wandering is parked by construction: "settled" means there is nothing to
       // trail, and there never is. Everything gated on it downstream — a scene
       // may open, a scene is not dropped, a mood may be taken up — is gated on
       // exactly the right thing for a visitor who is only watching.
       const parked = !forced && (wandering || !pointer || idleFor > SETTLE_AFTER);
+      /** Night flavour: the bed comes `NIGHT_SLEEP_TRIM` sooner. Read from a
+       *  ref rather than the two thresholds themselves, so the one number that
+       *  changes with the theme is computed once a frame rather than smeared
+       *  across every place `SLEEP_AFTER` used to appear. */
+      const sleepAfter = nightRef.current ? SLEEP_AFTER - NIGHT_SLEEP_TRIM : SLEEP_AFTER;
 
       /* -------------------------------------------------------------- play -- */
 
@@ -1618,7 +1935,7 @@ export function Companion() {
       const dozing =
         forced === "escort" ||
         forced === "nap" ||
-        (!wandering && aloneFor > SLEEP_AFTER && !beat);
+        (!wandering && aloneFor > sleepAfter && !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a
@@ -1632,7 +1949,7 @@ export function Companion() {
        * as broken.
        */
       const wantsBed =
-        !forced && !wandering && pointer !== null && aloneFor > SLEEP_AFTER && !beat;
+        !forced && !wandering && pointer !== null && aloneFor > sleepAfter && !beat;
 
       // Starting one is the last thing considered, and the narrowest: settled,
       // standing still, nobody around, not on the way to bed, and the clock is
@@ -1666,7 +1983,7 @@ export function Companion() {
          * pair finding something to do.
          */
         let opened: Play | null = null;
-        for (const kind of sceneOrder(wandering)) {
+        for (const kind of sceneOrder(wandering, { night: nightRef.current, section: sectionRef.current })) {
           // Not while the visitor is holding the lead cat on the keyboard: he
           // is a 44px control with a focus ring, and a ring is drawn around the
           // whole button whether or not the drawing inside it is clipped away.
@@ -1686,6 +2003,77 @@ export function Companion() {
         }
       }
 
+      /* -------------------------------------------------------------- rush -- */
+
+      /**
+       * A sustained fast scroll, still within its window. Narrower than
+       * `chase`'s own gate — `!walking` and `!playRef.current` on top of
+       * `!forced` and `!beat` — because a rush is a *reaction*, and every one
+       * of those four is something with a stronger claim on the pair already.
+       * Expired the moment `until` passes, whether or not anything else ever
+       * claims it, so a dash that nobody interrupts still ends on its own.
+       */
+      const rushing =
+        !forced &&
+        !beat &&
+        !walking &&
+        !playRef.current &&
+        rushRef.current !== null &&
+        now < rushRef.current.until;
+      if (rushRef.current && now >= rushRef.current.until) rushRef.current = null;
+      if (cheerRef.current && now >= cheerRef.current.until) cheerRef.current = null;
+      /** Only while there is genuinely nothing else going on — a cheer is a
+       *  flourish, and every flourish here yields to a scene, dozing off or
+       *  actually moving. Read once, close to where it is used, the same shape
+       *  `rushing` is computed in. */
+      const cheering = cheerRef.current !== null && !beat && !dozing;
+
+      /* -------------------------------------------------------- field note -- */
+
+      /**
+       * D5's ambient half. Only while genuinely settled — parked, nothing
+       * forced, no scene running or walking to one, not mid-rush — which is
+       * exactly "the pair have nothing else to be doing", the same gate a
+       * flourish gets. The clock is seeded once, on the first settled frame of
+       * the visit, and re-armed by `nextNoteAt` every time it fires, whether
+       * or not that firing actually produced a visible note — a section with
+       * nothing to say (or one already shown once this visit) still spends the
+       * roll, so the cadence stays the visitor's clock rather than a queue
+       * that empties out on the first section with something to report.
+       */
+      // `noteHideAt` rather than the `note` state itself: this closure was
+      // built once, when the loop started, and the state value it captured
+      // then is not the render React committed since — the same reason `scene`
+      // and `bed` are driven from refs in here and only mirrored to state for
+      // drawing. Zeroing it after clearing is what lets it double as "a note
+      // is currently showing" for the gate below.
+      if (noteHideAt.current !== 0 && now > noteHideAt.current) {
+        noteHideAt.current = 0;
+        setNote(null);
+      }
+      const quiet = parked && !forced && !beat && !walking && !rushing && sectionRef.current;
+      if (quiet && roamingRef.current && noteHideAt.current === 0) {
+        if (noteAt.current === 0) {
+          noteAt.current = nextNoteAt(now, true);
+        } else if (now > noteAt.current) {
+          // The *first* note of the visit is deterministic — it is the
+          // introduction, and a 55% chance of the pair settling in with
+          // nothing to say for their first word reads as having nothing to
+          // say at all. Every note after it goes through the ordinary odds.
+          const first = !noteFirstShown.current;
+          noteFirstShown.current = true;
+          noteAt.current = nextNoteAt(now, false);
+          const shown = !noteShown.current.has(sectionRef.current!)
+            ? fieldNote(sectionRef.current, facts, first ? 0 : Math.random())
+            : null;
+          if (shown) {
+            noteShown.current.add(sectionRef.current!);
+            setNote(shown);
+            noteHideAt.current = now + NOTE_SHOW_MS;
+          }
+        }
+      }
+
       /* ------------------------------------------------------------ lead -- */
 
       let leadWant: Point;
@@ -1697,6 +2085,15 @@ export function Companion() {
       if (run) {
         leadWant = run.slots.lead;
         followWant = run.slots.follow;
+      } else if (forced === "tour") {
+        // The stop being walked to or stood at — `tourSpots` was just refreshed
+        // above, before `forced` was even read, so it is never stale here.
+        // Falling back to wherever they already are is defensive only: the
+        // cascade above already dropped the tour the one frame it could have
+        // nothing to offer.
+        const spots = tourSpots.current ?? nearbySpots();
+        leadWant = spots.lead;
+        followWant = spots.follow;
       } else if (nap) {
         const slots = napSlots(nap.rect);
         leadWant = slots.lead;
@@ -1709,6 +2106,20 @@ export function Companion() {
         // the one the panel is designed around.
         leadWant = home;
         followWant = followHome(home);
+      } else if (rushing) {
+        // A visitor travelling, not reading — see `rushing` above. The pair
+        // duck to the leading edge of the page in whichever direction it is
+        // moving, which is the same "get out from underfoot" instinct the
+        // corner spot already gives them for the toolkit, aimed at the top or
+        // bottom of the viewport instead of a fixed corner. No content probe:
+        // like the corner and the bed, this is a reaction to the *page*
+        // moving, not a place chosen against whatever happens to be printed
+        // there this frame.
+        const dir = rushRef.current!.dir;
+        const view = viewport();
+        const edgeY = dir === 1 ? safeTop() + 4 : Math.max(safeTop(), view.height - CAT_H - 4);
+        leadWant = clampToViewport({ x: view.width - CAT_W - 26, y: edgeY });
+        followWant = followHome(leadWant);
       } else if (chase) {
         // Approach to the edge of the personal-space radius, on the side the cat
         // is already on, so it trails the cursor instead of crossing it.
@@ -1779,7 +2190,7 @@ export function Companion() {
         const going = wanderTo(now);
         leadWant = going.lead;
         followWant = going.follow;
-      } else if (!pointer || aloneFor > SLEEP_AFTER) {
+      } else if (!pointer || aloneFor > sleepAfter) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
         followWant = homeSpots.current.follow;
@@ -1835,6 +2246,13 @@ export function Companion() {
       } else if (dozing) {
         calmIdle(grey, now);
         grey.pose = "sleep";
+      } else if (cheering) {
+        // D3: a copy confirmation, a sent message or a theme toggle, none of
+        // which know a cat is listening — see the `cheerRef` effects above.
+        // Both halves of the pair get a pose they already have; nothing new
+        // is drawn for this.
+        calmIdle(grey, now);
+        grey.pose = "stretch";
       } else {
         // He never bats: the tail he would be batting at is his own.
         grey.pose = tickIdle(grey, now, false);
@@ -1927,6 +2345,9 @@ export function Companion() {
       } else if (dozing) {
         calmIdle(tabby, now);
         tabby.pose = "sleep";
+      } else if (cheering) {
+        calmIdle(tabby, now);
+        tabby.pose = "bat";
       } else {
         // She bats at his tail when she has ended up parked on the side he
         // keeps it — behind him, which is exactly where following him leaves
@@ -2023,6 +2444,13 @@ export function Companion() {
             live.kind === "moth" ? `scaleX(${live.flap.toFixed(3)})` : `scaleX(${live.facing})`;
         }
         if (toySpin.current) toySpin.current.style.transform = `rotate(${live.spin.toFixed(1)}deg)`;
+      }
+
+      // The note, on the same terms: painted every frame it exists rather
+      // than left static, because the settled spot it appeared beside can
+      // still be nudged by `keepInView` on a resize.
+      if (noteHideAt.current !== 0) {
+        paint(noteNode.current, { x: grey.pos.x, y: grey.pos.y - 26 });
       }
 
       if (now - lastTone.current > TONE_INTERVAL) {
@@ -2183,7 +2611,28 @@ export function Companion() {
       }, 250);
     };
 
-    const onScroll = () => onPageMoved(false);
+    /**
+     * Scroll anticipation's own half of the work — see `detectRush` in
+     * companion-moods.ts for the arithmetic this feeds. A window rather than a
+     * single delta: one big wheel tick and a sustained flick both move the
+     * page fast, and only the second one is a rush. The window resets on any
+     * pause longer than the hold time asks for, so a scroll that stops and
+     * restarts has to earn the reaction again rather than carrying a stale
+     * head start.
+     */
+    const onScrollEvent = () => {
+      lastScrollAt.current = performance.now();
+      const now = lastScrollAt.current;
+      const y = window.scrollY;
+      const win = rushWindow.current;
+      if (!win || now - win.at > RUSH_HOLD_MS + 120) {
+        rushWindow.current = { y, at: now };
+      } else if (detectRush(Math.abs(y - win.y), now - win.at)) {
+        rushRef.current = { dir: y > win.y ? 1 : -1, until: now + RUSH_HOLD_MS + 500 };
+      }
+      onPageMoved(false);
+    };
+    const onScroll = onScrollEvent;
     const onResize = () => onPageMoved(true);
 
     restart.current = start;
@@ -2208,13 +2657,29 @@ export function Companion() {
       // Nor does a toy. It is only ever advanced from inside this loop, so one
       // left behind would be a drawing stopped mid-roll on the page.
       endPlay();
+      // Nor a tour or a note — both are only ever advanced from inside this
+      // loop too, and a mode change mid-tour (touch/reduced-motion never
+      // reach here, but the visitor sending the cats to bed does) must not
+      // leave the HUD or a note on the page with nothing left driving it.
+      tourRef.current = null;
+      tourSpots.current = null;
+      setTourView(null);
+      noteAt.current = 0;
+      noteHideAt.current = 0;
+      noteFirstShown.current = false;
+      setNote(null);
       window.clearTimeout(recheck);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-  }, [loopActive, wake, endPlay]);
+    // `facts` is a dependency in name only: it is a small object computed once
+    // on the server and handed down from `layout.tsx`, never reconstructed
+    // for the lifetime of the page, so this never actually re-runs on its
+    // account. Listed anyway because the tour and the field notes both close
+    // over it for their narration.
+  }, [loopActive, wake, endPlay, facts]);
 
   /* -------------------------------------------------------------- escort -- */
 
@@ -2405,6 +2870,130 @@ export function Companion() {
     [endPlay, roaming, roams, wake],
   );
 
+  /** Smooth-scrolls a stop's section into view. The tour's own scroll, not the
+   *  visitor's — `lastScrollAt` picks it up through the ordinary `scroll`
+   *  listener exactly as any other scroll would, which is what lets arrival
+   *  wait for it to finish rather than needing to know it was this call. */
+  function scrollToStop(sectionId: string) {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /**
+   * D4/D5: the guided tour's one way in.
+   *
+   * Refuses on the same two grounds `ToolkitPanel` only ever shows one
+   * message for: no roaming loop (touch, reduced motion), or this page does
+   * not have the first stop on it at all — `/resume` reads the same content
+   * through a different template with no `id="about"` section, so the tour
+   * would have nowhere to start. Checking the element directly rather than
+   * only the route is what keeps this correct if that template ever changes
+   * without this file being told.
+   */
+  const requestTour = useCallback((): TourRequest => {
+    if (!roams || !roaming) return "refused";
+    if (pathname === "/resume") return "refused";
+    const first = TOUR_STOPS[0];
+    if (!document.getElementById(first.sectionId)) return "refused";
+
+    const now = performance.now();
+    endPlay(now);
+    tourRef.current = startTour();
+    tourSpots.current = null;
+    setTourView({ index: 0, line: "" });
+    scrollToStop(first.sectionId);
+    // Same two lines `requestPlay` uses to backdate the settle clock: the
+    // pair are about to start walking, which the loop should treat exactly
+    // like a pointer that just stopped moving rather than waiting out
+    // `SETTLE_AFTER` first.
+    lastMoveRef.current = now - SETTLE_AFTER - 1;
+    lastSignRef.current = now;
+    lastScrollAt.current = now;
+    openRef.current = false;
+    setOpen(false);
+    wake();
+    return "started";
+  }, [endPlay, pathname, roaming, roams, wake]);
+
+  /** The HUD's "Next stop" / "Finish tour". */
+  function advanceTour() {
+    const run = tourRef.current;
+    if (!run) return;
+    if (isLastStop(run.index)) {
+      endTour();
+      return;
+    }
+    run.index += 1;
+    run.phase = "walking";
+    run.arrivedAt = 0;
+    tourSpots.current = null;
+    setTourView({ index: run.index, line: "" });
+    scrollToStop(TOUR_STOPS[run.index].sectionId);
+    lastSignRef.current = performance.now();
+    wake();
+  }
+
+  /** The HUD's "End tour", Escape, and every cancellation listener below.
+   *  Idempotent — a visitor pressing Escape twice, or a cancellation firing
+   *  after the tour has already finished on its own, does nothing the second
+   *  time. Focus goes back to the cat, exactly as it does leaving the panel. */
+  function endTour() {
+    if (!tourRef.current) return;
+    tourRef.current = null;
+    tourSpots.current = null;
+    setTourView(null);
+    lastSignRef.current = performance.now();
+    wake();
+    leadNode.current?.focus();
+  }
+
+  /**
+   * Cancellation: any *input*, never scroll position.
+   *
+   * The tour drives its own `scrollIntoView` between every stop, so ending on
+   * "the page scrolled" would have the tour cancel itself the instant it
+   * moves the pair to the next stop. What actually says "the visitor wants
+   * out" is a wheel, a touch drag, the keys a visitor uses to scroll by hand,
+   * a click outside the HUD, or Escape — none of which the tour's own walk
+   * ever produces.
+   */
+  useEffect(() => {
+    if (!tourView) return;
+    tourHudRef.current?.focus();
+
+    const SCROLL_KEYS = new Set([
+      "ArrowDown",
+      "ArrowUp",
+      "ArrowLeft",
+      "ArrowRight",
+      "PageDown",
+      "PageUp",
+      "Home",
+      "End",
+      " ",
+    ]);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || SCROLL_KEYS.has(event.key)) endTour();
+    };
+    const onWheel = () => endTour();
+    const onTouchMove = () => endTour();
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!tourHudRef.current?.contains(target)) endTour();
+    };
+
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourView !== null]);
+
   /** Every deliberate change of mode ends the idle sleep with it: it is a state
    *  about being left alone, and none of these are being left alone. Leaving it
    *  set would also gate the pointer handler, so the cats would come back from
@@ -2421,6 +3010,7 @@ export function Companion() {
 
   function sendToBed() {
     setOpen(false);
+    endTour();
     clearBed();
     endPlay();
     focusWish.current = "box";
@@ -2498,6 +3088,13 @@ export function Companion() {
     <div
       data-companion=""
       data-cat-play={scene?.kind}
+      // Round 11's four, all rare-commit React state rather than anything
+      // read every frame — see the refs each mirrors above. Present only when
+      // true/non-null, so a page nobody has touched carries none of them.
+      data-cat-tour={tourView ? "true" : undefined}
+      data-cat-note={note ?? undefined}
+      data-cat-intent={intent ?? undefined}
+      data-cat-cheer={cheer ? "true" : undefined}
       className="no-print pointer-events-none fixed inset-0 z-40"
     >
       {/* Drawn before the cats on purpose: they sleep *in* this furniture, so
@@ -2544,11 +3141,38 @@ export function Companion() {
         </div>
       ) : null}
 
+      {/* D5's ambient half. `aria-hidden` — the tour is the accessible
+          narrator, this is a decoration a screen reader has no reason to
+          hear — and only ever mounted inside `roams && roaming`, exactly like
+          the toy above: there is no settled spot to appear beside without a
+          loop placing one. */}
+      {roams && roaming && note ? (
+        <div
+          ref={attachNote}
+          data-cat-note-bubble=""
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap border border-rule bg-surface px-2 py-1 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle"
+        >
+          {note}
+        </div>
+      ) : null}
+
       {roaming ? (
         <button
           ref={roams ? attachLead : attachPinnedLead}
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => {
+            // Mid-tour the lead cat is still the same button, but pressing it
+            // means "stop this" rather than "open the panel" — the panel has
+            // nothing to say while the HUD is up, and a visitor who has found
+            // the cat again has found the one thing on the page that ends a
+            // tour without hunting for the HUD's own button.
+            if (tourView) {
+              endTour();
+              return;
+            }
+            setOpen((value) => !value);
+          }}
           aria-expanded={open}
           aria-controls={PANEL_ID}
           className={cn(
@@ -2645,9 +3269,27 @@ export function Companion() {
           canPlay={roams && roaming}
           wandering={mode === "wander"}
           onPlay={requestPlay}
+          onTour={requestTour}
           onWander={wanderCats}
           onSendToBed={sendToBed}
           panelRef={panelRef}
+        />
+      ) : null}
+
+      {/* D4/D5: the tour's accessible surface, up whenever a tour is running —
+          the toolkit panel above and this are mutually exclusive by
+          construction, since starting a tour closes the panel and the panel
+          offers no route back into itself until the tour ends. */}
+      {tourView ? (
+        <TourHud
+          stopIndex={tourView.index}
+          totalStops={TOUR_STOPS.length}
+          label={TOUR_STOPS[tourView.index].label}
+          line={tourView.line}
+          isLast={isLastStop(tourView.index)}
+          onNext={advanceTour}
+          onEnd={endTour}
+          hudRef={tourHudRef}
         />
       ) : null}
 
