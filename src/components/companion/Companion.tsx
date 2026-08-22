@@ -1916,6 +1916,8 @@ export function Companion({ facts }: CompanionProps) {
             tourRef.current = null;
             tour = null;
             setTourView(null);
+            duetRef.current = null;
+            setDuetBeat(null);
           } else {
             tour.index += 1;
             tour.phase = "walking";
@@ -1931,10 +1933,9 @@ export function Companion({ facts }: CompanionProps) {
         ) {
           tour.phase = "arrived";
           tour.arrivedAt = now;
-          setTourView({
-            index: tour.index,
-            lines: sceneFor("tour", stop.sectionId, facts)?.beats ?? [],
-          });
+          const stopScene = sceneFor("tour", stop.sectionId, facts);
+          setTourView({ index: tour.index, lines: stopScene?.beats ?? [] });
+          if (stopScene) playDuetScene(stopScene, now);
         }
       }
 
@@ -3070,6 +3071,8 @@ export function Companion({ facts }: CompanionProps) {
     run.arrivedAt = 0;
     tourSpots.current = null;
     setTourView({ index: run.index, lines: [] });
+    duetRef.current = null;
+    setDuetBeat(null);
     scrollToStop(TOUR_STOPS[run.index].sectionId);
     lastSignRef.current = performance.now();
     wake();
@@ -3084,6 +3087,8 @@ export function Companion({ facts }: CompanionProps) {
     tourRef.current = null;
     tourSpots.current = null;
     setTourView(null);
+    duetRef.current = null;
+    setDuetBeat(null);
     lastSignRef.current = performance.now();
     wake();
     leadNode.current?.focus();
