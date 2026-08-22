@@ -5,7 +5,7 @@ import { navItems } from "@/content/portfolio";
 /**
  * The guided tour: the accessible half of D5.
  *
- * Field notes (companion-notes.ts) are ambient and decorative; this is the
+ * The duet's ambient banter (companion-dialogue.ts) is decorative; this is the
  * opposite — a visitor presses "Show me around" in the toolkit panel, and the
  * pair walk the page's own eight sections in order, saying one factual line
  * at each stop through the HUD's `role="status"`. It is the only thing the

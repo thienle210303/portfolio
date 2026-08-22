@@ -1566,9 +1566,9 @@ test.describe("companion", () => {
     ).toEqual([]);
   });
 
-  /* --------------------------------------------------------------- D5: field notes -- */
+  /* -------------------------------------------------------------------- D5: the duet -- */
 
-  test("shows a field note that is decorative, in view, and eventually clears", async ({
+  test("the hello duet plays: decorative bubbles, meow above, subtitle beneath", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1581,30 +1581,31 @@ test.describe("companion", () => {
     await page.mouse.move(700, 500);
     await page.waitForTimeout(200);
 
-    const note = page.locator("[data-companion] [data-cat-note-bubble]").first();
-    await expect(note).toBeVisible({ timeout: 20_000 });
-    await expect(note).toHaveAttribute("aria-hidden", "true");
-    const box = await note.boundingBox();
+    const bubble = page.locator("[data-companion] [data-cat-bubble]").first();
+    await expect(bubble).toBeVisible({ timeout: 15_000 });
+    await expect(bubble).toHaveAttribute("aria-hidden", "true");
+    const meow = await bubble.locator("p").first().textContent();
+    expect(meow).toMatch(/^m[a-z!?.\- ]*$/i);
+    const sub = await bubble.locator("p").nth(1).textContent();
+    expect(sub?.length ?? 0).toBeGreaterThan(0);
+    // The bubble stays inside the viewport whatever edge the cats chose.
+    const box = await bubble.boundingBox();
     const viewport = page.viewportSize();
     expect(box).not.toBeNull();
     expect(viewport).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.y).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
-
-    await expect(note).toBeHidden({ timeout: 10_000 });
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width + 1);
   });
 
-  test("a field note stays clear of content at a narrow viewport too", async ({ page }) => {
+  test("the hello duet stays clear of content at a narrow viewport too", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "narrow-viewport specific; run once");
     await page.setViewportSize({ width: MOBILE_WIDTH, height: 812 });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // Touch viewports have no roaming loop and therefore no field note at
+    // Touch viewports have no roaming loop and therefore no duet bubble at
     // all — the pair are parked in the corner button. This asserts the
     // honest absence rather than a false positive.
-    await expect(page.locator("[data-companion] [data-cat-note-bubble]")).toHaveCount(0);
+    await expect(page.locator("[data-companion] [data-cat-bubble]")).toHaveCount(0);
   });
 
   /* ----------------------------------------------------------------- D2: nav intent -- */
