@@ -30,9 +30,10 @@ import {
   type PlayBeat,
   type SceneKind,
 } from "./companion-play";
+import { sceneFor, type DialogueBeat } from "./companion-dialogue";
 import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
 import { fieldNote, nextNoteAt, NOTE_SHOW_MS } from "./companion-notes";
-import { TOUR_STOPS, isLastStop, startTour, tourLine, type TourRun } from "./companion-tour";
+import { TOUR_STOPS, isLastStop, startTour, type TourRun } from "./companion-tour";
 import {
   migrateCompanionMode,
   roamingChoice,
@@ -1049,11 +1050,11 @@ export function Companion({ facts }: CompanionProps) {
    *  arrived while the programmatic scroll that is *carrying* the pair there
    *  is still under way. */
   const lastScrollAt = useRef(0);
-  /** What React needs to draw the HUD: which stop, and the line once the pair
+  /** What React needs to draw the HUD: which stop, and the beats once the pair
    *  have actually arrived (empty while still walking to it). Everything else
    *  about a tour — the walk, the arrival check — is `tourRef`'s business,
    *  exactly as a scene's beat-by-beat progress is `playRef`'s. */
-  const [tourView, setTourView] = useState<{ index: number; line: string } | null>(null);
+  const [tourView, setTourView] = useState<{ index: number; lines: readonly DialogueBeat[] } | null>(null);
 
   /* -------------------------------------------------------- field notes -- */
   /** The next moment a note may appear, and the sections that have already
@@ -1822,7 +1823,7 @@ export function Companion({ facts }: CompanionProps) {
             tour.phase = "walking";
             tour.arrivedAt = 0;
             tourSpots.current = null;
-            setTourView({ index: tour.index, line: "" });
+            setTourView({ index: tour.index, lines: [] });
           }
         } else if (
           tour.phase === "walking" &&
@@ -1832,7 +1833,10 @@ export function Companion({ facts }: CompanionProps) {
         ) {
           tour.phase = "arrived";
           tour.arrivedAt = now;
-          setTourView({ index: tour.index, line: tourLine(stop.sectionId, facts) });
+          setTourView({
+            index: tour.index,
+            lines: sceneFor("tour", stop.sectionId, facts)?.beats ?? [],
+          });
         }
       }
 
@@ -2914,7 +2918,7 @@ export function Companion({ facts }: CompanionProps) {
     endPlay(now);
     tourRef.current = startTour();
     tourSpots.current = null;
-    setTourView({ index: 0, line: "" });
+    setTourView({ index: 0, lines: [] });
     scrollToStop(first.sectionId);
     // Same two lines `requestPlay` uses to backdate the settle clock: the
     // pair are about to start walking, which the loop should treat exactly
@@ -2941,7 +2945,7 @@ export function Companion({ facts }: CompanionProps) {
     run.phase = "walking";
     run.arrivedAt = 0;
     tourSpots.current = null;
-    setTourView({ index: run.index, line: "" });
+    setTourView({ index: run.index, lines: [] });
     scrollToStop(TOUR_STOPS[run.index].sectionId);
     lastSignRef.current = performance.now();
     wake();
@@ -3300,7 +3304,7 @@ export function Companion({ facts }: CompanionProps) {
           stopIndex={tourView.index}
           totalStops={TOUR_STOPS.length}
           label={TOUR_STOPS[tourView.index].label}
-          line={tourView.line}
+          lines={tourView.lines}
           isLast={isLastStop(tourView.index)}
           onNext={advanceTour}
           onEnd={endTour}

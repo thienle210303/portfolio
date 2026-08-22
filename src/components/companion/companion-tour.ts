@@ -1,7 +1,6 @@
 "use client";
 
 import { navItems } from "@/content/portfolio";
-import type { CompanionFacts } from "@/lib/companion-facts";
 
 /**
  * The guided tour: the accessible half of D5.
@@ -17,7 +16,9 @@ import type { CompanionFacts } from "@/lib/companion-facts";
  *
  * `TOUR_STOPS` is derived from `navItems` rather than kept as a parallel
  * list, so the tour can never visit a section the nav does not, or skip one
- * it does — the two are structurally the same eight entries.
+ * it does — the two are structurally the same eight entries. The lines
+ * spoken at each stop are not here: they come from companion-dialogue.ts's
+ * `tour-*` scenes, the same scene bank the ambient banter draws from.
  */
 
 export interface TourStop {
@@ -52,36 +53,4 @@ export function startTour(): TourRun {
 
 export function isLastStop(index: number): boolean {
   return index >= TOUR_STOPS.length - 1;
-}
-
-/**
- * One factual sentence per stop, every number read straight off
- * `CompanionFacts` — never typed here — which is the same discipline
- * companion-notes.ts follows and for the same reason: the tour is the
- * accessible narrator, so it is the one place a wrong number would actually
- * be heard.
- */
-export function tourLine(sectionId: string, facts: CompanionFacts): string {
-  switch (sectionId) {
-    case "about":
-      return facts.about.role && facts.about.organization
-        ? `This is the start — right now that's ${facts.about.role} at ${facts.about.organization}.`
-        : "This is the start of the page.";
-    case "philosophy":
-      return `${facts.philosophy.principles} principles run this loop, over and over.`;
-    case "work":
-      return `${facts.work.caseStudies} case studies, ${facts.work.sourcedMetrics} sourced figures between them.`;
-    case "journey":
-      return `${facts.journey.entries} entries on the timeline — ${facts.journey.work} of them work.`;
-    case "skills":
-      return `${facts.skills.categories} categories, ${facts.skills.distinctSkills} distinct skills.`;
-    case "tree":
-      return `${facts.tree.branches} branches, ${facts.tree.leaves} leaves, ${facts.tree.technologies} technologies.`;
-    case "lab":
-      return `${facts.lab.experiments} experiments here, ${facts.lab.verified} of them verified.`;
-    case "contact":
-      return "And that's everywhere — this is where you'd reach out.";
-    default:
-      return "";
-  }
 }

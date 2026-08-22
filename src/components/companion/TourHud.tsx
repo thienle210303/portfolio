@@ -2,6 +2,7 @@
 
 import type { Ref } from "react";
 import { cn } from "@/lib/cn";
+import type { DialogueBeat } from "./companion-dialogue";
 
 /**
  * The tour's accessible surface.
@@ -22,9 +23,9 @@ export interface TourHudProps {
   readonly stopIndex: number;
   readonly totalStops: number;
   readonly label: string;
-  /** Empty until the pair have actually arrived — see the doc comment on
-   *  `role="status"` below for why that matters. */
-  readonly line: string;
+  /** Empty until the pair have arrived — the status region must exist from
+   *  first render (see below), so it mounts with no lines and fills. */
+  readonly lines: readonly DialogueBeat[];
   readonly isLast: boolean;
   readonly onNext: () => void;
   readonly onEnd: () => void;
@@ -38,7 +39,7 @@ export function TourHud({
   stopIndex,
   totalStops,
   label,
-  line,
+  lines,
   isLast,
   onNext,
   onEnd,
@@ -66,11 +67,10 @@ export function TourHud({
           region a screen reader has never seen before is one it may not
           announce, so it has to be present from the first render rather than
           mounted with the first line already in it. */}
-      <p
-        role="status"
-        className="min-h-[2.5em] text-[length:var(--step--1)] leading-snug text-fg-muted"
-      >
-        {line}
+      <p role="status" className="min-h-[2.5em] text-[length:var(--step--1)] leading-snug text-fg-muted">
+        {lines
+          .map((beat) => `${beat.speaker === "grey" ? "Grey" : "Tabby"}: ${beat.sub}`)
+          .join(" · ")}
       </p>
 
       <div className="mt-1 flex items-center justify-between gap-2">
