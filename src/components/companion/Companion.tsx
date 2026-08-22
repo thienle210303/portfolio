@@ -30,9 +30,21 @@ import {
   type PlayBeat,
   type SceneKind,
 } from "./companion-play";
-import { sceneFor, type DialogueBeat } from "./companion-dialogue";
+import {
+  advanceBeat,
+  currentBeat,
+  beatDurationMs,
+  DUET_ODDS,
+  hasEncore,
+  nextDuetAt,
+  sceneFor,
+  startScene,
+  type DialogueBeat,
+  type DialogueRun,
+  type DialogueScene,
+  type Speaker,
+} from "./companion-dialogue";
 import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
-import { fieldNote, nextNoteAt, NOTE_SHOW_MS } from "./companion-notes";
 import { TOUR_STOPS, isLastStop, startTour, type TourRun } from "./companion-tour";
 import {
   migrateCompanionMode,
@@ -799,13 +811,14 @@ function paint(node: HTMLElement | null, pos: Spot): void {
 }
 
 /**
- * The note bubble, clamped to the viewport: it sits at the cat's x, but the
- * cat is allowed right up against the window edge and the bubble is
- * `whitespace-nowrap` — unclamped, a note that fires there gets cut off
- * mid-fact, which is worse than no note at all. Measured off the node's own
- * rendered width so the clamp holds for whichever fact it is showing.
+ * The duet's speech bubble, clamped to the viewport: it sits at the speaking
+ * cat's x, but the cat is allowed right up against the window edge and the
+ * bubble is `whitespace-nowrap` on its meow line — unclamped, a bubble that
+ * fires there gets cut off mid-line, which is worse than no bubble at all.
+ * Measured off the node's own rendered width so the clamp holds for whichever
+ * beat it is showing.
  */
-function paintNote(node: HTMLElement | null, cat: Spot): void {
+function paintBubble(node: HTMLElement | null, cat: Spot): void {
   if (!node) return;
   const margin = 8;
   const width = node.offsetWidth;
@@ -897,7 +910,7 @@ const WANDER_WALK_MAX = 8000;
 export interface CompanionProps {
   /** D1: computed once, on the server, from `src/content/*` — see
    *  src/lib/companion-facts.ts. The only route any content number reaches
-   *  this client chunk by; the field notes and the tour quote it and nothing
+   *  this client chunk by; the duet and the tour quote it and nothing
    *  else. */
   readonly facts: CompanionFacts;
 }
@@ -943,9 +956,13 @@ export function Companion({ facts }: CompanionProps) {
   const toyNode = useRef<HTMLDivElement | null>(null);
   const toyArt = useRef<SVGGElement | null>(null);
   const toySpin = useRef<SVGGElement | null>(null);
-  /** The field note's own element — positioned per frame exactly like the toy,
-   *  and for the same reason: an effect would place it one frame late. */
-  const noteNode = useRef<HTMLDivElement | null>(null);
+  /** The duet's two speech-bubble elements — positioned per frame exactly like
+   *  the toy, and for the same reason: an effect would place it one frame
+   *  late. Only one is ever mounted at a time (see the render), but both need
+   *  a stable ref for the frame their speaker isn't holding to attach to when
+   *  it next takes the floor. */
+  const greyBubble = useRef<HTMLDivElement | null>(null);
+  const tabbyBubble = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   /** The two halves of the idle furniture — everything behind the animals, and
@@ -1056,19 +1073,29 @@ export function Companion({ facts }: CompanionProps) {
    *  exactly as a scene's beat-by-beat progress is `playRef`'s. */
   const [tourView, setTourView] = useState<{ index: number; lines: readonly DialogueBeat[] } | null>(null);
 
-  /* -------------------------------------------------------- field notes -- */
-  /** The next moment a note may appear, and the sections that have already
-   *  shown one this visit — see companion-notes.ts. Neither is cleared when
-   *  the visitor moves on: "once per section per visit" means once, not once
-   *  per return trip, and the cadence is a property of the *visit*, not of
-   *  whichever section happens to be current when the clock comes up. */
-  const noteAt = useRef(0);
-  const noteShown = useRef<Set<string>>(new Set());
-  const noteHideAt = useRef(0);
-  /** Whether the visit's one deterministic note has already had its turn —
-   *  see the comment where it is read, in the loop. */
-  const noteFirstShown = useRef(false);
-  const [note, setNote] = useState<string | null>(null);
+  /* ------------------------------------------------------------- duet -- */
+  /** The next moment a scene may start on its own, and the sections that have
+   *  already shown an ambient one this visit — see companion-dialogue.ts.
+   *  Neither is cleared when the visitor moves on: "once per section per
+   *  visit" means once, not once per return trip, and the cadence is a
+   *  property of the *visit*, not of whichever section happens to be current
+   *  when the clock comes up. */
+  const duetAt = useRef(0);
+  const duetShown = useRef<Set<string>>(new Set());
+  /** Whether the visit's one deterministic scene — the hello — has already
+   *  had its turn — see the comment where it is read, in the loop. */
+  const duetFirstShown = useRef(false);
+  /** The running scene, if any — advanced by the loop's reading-time clock
+   *  or by a tap on the tabby, and cleared by the same things that cleared a
+   *  field note, plus scene completion. The state mirror below is for JSX
+   *  only, exactly the way `note` used to be. */
+  const duetRef = useRef<DialogueRun | null>(null);
+  const [duetBeat, setDuetBeat] = useState<{
+    speaker: Speaker;
+    meow: string;
+    sub: string;
+    hintMore: boolean;
+  } | null>(null);
 
   /* --------------------------------------------------------- nav intent -- */
   /** D2: the nav link the pointer or keyboard focus is dwelling on, by
@@ -1186,12 +1213,14 @@ export function Companion({ facts }: CompanionProps) {
     moodWalk.current = null;
     settleSpots.current = null;
     wanderRun.current = null;
-    // A note is *about* the section it appeared in — one that outlived the
-    // move would be pointing at content the pair have already left behind.
-    // The cadence clock (`noteAt`) is untouched: the visit-wide gap keeps
-    // running, this only clears what is currently showing.
-    noteHideAt.current = 0;
-    setNote(null);
+    // A scene is *about* the section it started in. The tour is exempt — it
+    // is the thing doing the scrolling. The cadence clock (`duetAt`) is
+    // untouched: the visit-wide gap keeps running, this only clears what is
+    // currently showing.
+    if (duetRef.current && duetRef.current.scene.kind !== "tour") {
+      duetRef.current = null;
+      setDuetBeat(null);
+    }
     wake();
   }, [section, wake]);
 
@@ -1390,14 +1419,80 @@ export function Companion({ facts }: CompanionProps) {
     node.style.opacity = play.opacity.toFixed(3);
   }, []);
 
-  /** D5: the note is decoration exactly the way the toy is, and gets the same
-   *  first-frame treatment — placed here rather than left for an effect to
-   *  catch up to, so it never flashes in at the origin before jumping to the
-   *  cat it belongs beside. */
-  const attachNote = useCallback((node: HTMLDivElement | null) => {
-    noteNode.current = node;
-    if (node) paintNote(node, lead.current.pos);
+  /** D5: the bubble is decoration exactly the way the toy is, and gets the
+   *  same first-frame treatment — placed here rather than left for an effect
+   *  to catch up to, so it never flashes in at the origin before jumping to
+   *  the cat it belongs beside. One attacher per speaker, because only one
+   *  bubble is ever mounted, and each has to find its own cat's position
+   *  regardless of which cat is currently speaking. */
+  const attachGreyBubble = useCallback((node: HTMLDivElement | null) => {
+    greyBubble.current = node;
+    if (node) paintBubble(node, lead.current.pos);
   }, []);
+  const attachTabbyBubble = useCallback((node: HTMLDivElement | null) => {
+    tabbyBubble.current = node;
+    if (node) paintBubble(node, follow.current.pos);
+  }, []);
+
+  /** What the JSX needs to draw one beat; `hintMore` marks the last beat of
+   *  an ambient scene that has an encore waiting behind it. */
+  const beatView = useCallback(
+    (run: DialogueRun): { speaker: Speaker; meow: string; sub: string; hintMore: boolean } => {
+      const beat = currentBeat(run);
+      const last = run.beatIndex === run.scene.beats.length - 1;
+      const section = run.scene.kind === "ambient" ? run.scene.id.replace(/^ambient-/, "") : null;
+      return {
+        speaker: beat.speaker,
+        meow: beat.meow,
+        sub: beat.sub,
+        hintMore: last && section !== null && hasEncore(section, facts),
+      };
+    },
+    [facts],
+  );
+
+  const playDuetScene = useCallback(
+    (scene: DialogueScene, now: number) => {
+      const run = startScene(scene, now);
+      duetRef.current = run;
+      setDuetBeat(beatView(run));
+    },
+    [beatView],
+  );
+
+  /** The tabby's own control: advance the running scene a beat, open the
+   *  encore waiting behind an ambient scene's last line, or — if nothing is
+   *  running — start whichever scene this section has not shown yet. The
+   *  same three moves the loop makes on its own clock, just on the visitor's
+   *  tap instead. */
+  const tapTabby = useCallback(() => {
+    const now = performance.now();
+    const run = duetRef.current;
+    if (run) {
+      const last = run.beatIndex === run.scene.beats.length - 1;
+      const section = sectionRef.current;
+      if (last && run.scene.kind === "ambient" && section && hasEncore(section, facts)) {
+        const encore = sceneFor("encore", section, facts);
+        if (encore) {
+          playDuetScene(encore, now);
+          return;
+        }
+      }
+      const next = advanceBeat(run, now);
+      duetRef.current = next;
+      setDuetBeat(next ? beatView(next) : null);
+      return;
+    }
+    const section = sectionRef.current;
+    if (!section) return;
+    const scene = duetShown.current.has(section)
+      ? sceneFor("encore", section, facts)
+      : sceneFor("ambient", section, facts);
+    if (scene) {
+      if (scene.kind === "ambient") duetShown.current.add(section);
+      playDuetScene(scene, performance.now());
+    }
+  }, [beatView, facts, playDuetScene]);
 
   /* ------------------------------------------------------------- pointer -- */
 
@@ -2047,48 +2142,51 @@ export function Companion({ facts }: CompanionProps) {
        *  `rushing` is computed in. */
       const cheering = cheerRef.current !== null && !beat && !dozing;
 
-      /* -------------------------------------------------------- field note -- */
+      /* -------------------------------------------------------------- duet -- */
+
+      // Advance or finish a running scene on its reading-time clock. Tour
+      // scenes are exempt from the section-change cancellation (the tour
+      // scrolls the page itself); everything else was already dropped by the
+      // effect that watches `sectionRef`.
+      if (duetRef.current) {
+        const beat = currentBeat(duetRef.current);
+        if (now - duetRef.current.beatStartedAt > beatDurationMs(beat)) {
+          const next = advanceBeat(duetRef.current, now);
+          duetRef.current = next;
+          setDuetBeat(next ? beatView(next) : null);
+        }
+      }
 
       /**
        * D5's ambient half. Only while genuinely settled — parked, nothing
        * forced, no scene running or walking to one, not mid-rush — which is
        * exactly "the pair have nothing else to be doing", the same gate a
        * flourish gets. The clock is seeded once, on the first settled frame of
-       * the visit, and re-armed by `nextNoteAt` every time it fires, whether
-       * or not that firing actually produced a visible note — a section with
-       * nothing to say (or one already shown once this visit) still spends the
-       * roll, so the cadence stays the visitor's clock rather than a queue
-       * that empties out on the first section with something to report.
+       * the visit, and re-armed by `nextDuetAt` every time it fires, whether
+       * or not that firing actually started a scene — a section with nothing
+       * to say (or one already shown once this visit) still spends the roll,
+       * so the cadence stays the visitor's clock rather than a queue that
+       * empties out on the first section with something to report.
        */
-      // `noteHideAt` rather than the `note` state itself: this closure was
-      // built once, when the loop started, and the state value it captured
-      // then is not the render React committed since — the same reason `scene`
-      // and `bed` are driven from refs in here and only mirrored to state for
-      // drawing. Zeroing it after clearing is what lets it double as "a note
-      // is currently showing" for the gate below.
-      if (noteHideAt.current !== 0 && now > noteHideAt.current) {
-        noteHideAt.current = 0;
-        setNote(null);
-      }
       const quiet = parked && !forced && !beat && !walking && !rushing && sectionRef.current;
-      if (quiet && roamingRef.current && noteHideAt.current === 0) {
-        if (noteAt.current === 0) {
-          noteAt.current = nextNoteAt(now, true);
-        } else if (now > noteAt.current) {
-          // The *first* note of the visit is deterministic — it is the
-          // introduction, and a 55% chance of the pair settling in with
-          // nothing to say for their first word reads as having nothing to
-          // say at all. Every note after it goes through the ordinary odds.
-          const first = !noteFirstShown.current;
-          noteFirstShown.current = true;
-          noteAt.current = nextNoteAt(now, false);
-          const shown = !noteShown.current.has(sectionRef.current!)
-            ? fieldNote(sectionRef.current, facts, first ? 0 : Math.random())
-            : null;
-          if (shown) {
-            noteShown.current.add(sectionRef.current!);
-            setNote(shown);
-            noteHideAt.current = now + NOTE_SHOW_MS;
+      if (quiet && roamingRef.current && duetRef.current === null) {
+        if (duetAt.current === 0) {
+          duetAt.current = nextDuetAt(now, true, 0);
+        } else if (now > duetAt.current) {
+          // The first scene of the visit is the hello, deterministically — it
+          // is the introduction and the discoverability fix in one. Every
+          // scene after it rolls the same odds the notes used to roll.
+          const first = !duetFirstShown.current;
+          duetFirstShown.current = true;
+          duetAt.current = nextDuetAt(now, false, Math.random());
+          const scene = first
+            ? sceneFor("hello", null, facts)
+            : !duetShown.current.has(sectionRef.current!) && Math.random() < DUET_ODDS
+              ? sceneFor("ambient", sectionRef.current, facts)
+              : null;
+          if (scene) {
+            if (scene.kind === "ambient") duetShown.current.add(sectionRef.current!);
+            playDuetScene(scene, now);
           }
         }
       }
@@ -2465,11 +2563,12 @@ export function Companion({ facts }: CompanionProps) {
         if (toySpin.current) toySpin.current.style.transform = `rotate(${live.spin.toFixed(1)}deg)`;
       }
 
-      // The note, on the same terms: painted every frame it exists rather
-      // than left static, because the settled spot it appeared beside can
-      // still be nudged by `keepInView` on a resize.
-      if (noteHideAt.current !== 0) {
-        paintNote(noteNode.current, grey.pos);
+      // The bubbles, on the same terms: painted every frame either exists
+      // rather than left static, because the settled spot they appeared
+      // beside can still be nudged by `keepInView` on a resize.
+      if (duetRef.current) {
+        paintBubble(greyBubble.current, grey.pos);
+        paintBubble(tabbyBubble.current, tabby.pos);
       }
 
       if (now - lastTone.current > TONE_INTERVAL) {
@@ -2477,6 +2576,13 @@ export function Companion({ facts }: CompanionProps) {
         syncTone(leadNode.current, centreOf(grey.pos));
         syncTone(followNode.current, centreOf(tabby.pos));
         if (run) syncTone(policeNode.current, centreOf(run.police.pos));
+        // The bubbles are opaque line work on the same fixed layer as the
+        // cats and the toy, so they need the same repointing over a
+        // `contrast` section — see FB-9.2, in the render below.
+        if (duetRef.current) {
+          syncTone(greyBubble.current, centreOf(grey.pos));
+          syncTone(tabbyBubble.current, centreOf(tabby.pos));
+        }
         // Line work on the same fixed layer as the cats, so it needs the same
         // repointing: a toy that stayed root-coloured would vanish over a
         // contrast section exactly as the cats used to.
@@ -2676,17 +2782,17 @@ export function Companion({ facts }: CompanionProps) {
       // Nor does a toy. It is only ever advanced from inside this loop, so one
       // left behind would be a drawing stopped mid-roll on the page.
       endPlay();
-      // Nor a tour or a note — both are only ever advanced from inside this
-      // loop too, and a mode change mid-tour (touch/reduced-motion never
+      // Nor a tour or a duet scene — both are only ever advanced from inside
+      // this loop too, and a mode change mid-tour (touch/reduced-motion never
       // reach here, but the visitor sending the cats to bed does) must not
-      // leave the HUD or a note on the page with nothing left driving it.
+      // leave the HUD or a bubble on the page with nothing left driving it.
       tourRef.current = null;
       tourSpots.current = null;
       setTourView(null);
-      noteAt.current = 0;
-      noteHideAt.current = 0;
-      noteFirstShown.current = false;
-      setNote(null);
+      duetAt.current = 0;
+      duetFirstShown.current = false;
+      duetRef.current = null;
+      setDuetBeat(null);
       window.clearTimeout(recheck);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
@@ -2696,9 +2802,11 @@ export function Companion({ facts }: CompanionProps) {
     // `facts` is a dependency in name only: it is a small object computed once
     // on the server and handed down from `layout.tsx`, never reconstructed
     // for the lifetime of the page, so this never actually re-runs on its
-    // account. Listed anyway because the tour and the field notes both close
-    // over it for their narration.
-  }, [loopActive, wake, endPlay, facts]);
+    // account. Listed anyway because the tour and the duet both close over it
+    // for their narration — `beatView` and `playDuetScene` are listed for the
+    // same reason: both are stable across the page's lifetime, since both are
+    // only ever rebuilt when `facts` is.
+  }, [loopActive, wake, endPlay, facts, beatView, playDuetScene]);
 
   /* -------------------------------------------------------------- escort -- */
 
@@ -3107,11 +3215,10 @@ export function Companion({ facts }: CompanionProps) {
     <div
       data-companion=""
       data-cat-play={scene?.kind}
-      // Round 11's four, all rare-commit React state rather than anything
+      // Round 11's three, all rare-commit React state rather than anything
       // read every frame — see the refs each mirrors above. Present only when
       // true/non-null, so a page nobody has touched carries none of them.
       data-cat-tour={tourView ? "true" : undefined}
-      data-cat-note={note ?? undefined}
       data-cat-intent={intent ?? undefined}
       data-cat-cheer={cheer ? "true" : undefined}
       className="no-print pointer-events-none fixed inset-0 z-40"
@@ -3160,19 +3267,29 @@ export function Companion({ facts }: CompanionProps) {
         </div>
       ) : null}
 
-      {/* D5's ambient half. `aria-hidden` — the tour is the accessible
+      {/* The duet's speech bubble. `aria-hidden` — the tour is the accessible
           narrator, this is a decoration a screen reader has no reason to
-          hear — and only ever mounted inside `roams && roaming`, exactly like
-          the toy above: there is no settled spot to appear beside without a
-          loop placing one. */}
-      {roams && roaming && note ? (
+          hear, and the tabby button below is the interactive surface, so the
+          bubble never becomes an unreachable control — and only ever mounted
+          inside `roams && roaming`, exactly like the toy above: there is no
+          settled spot to appear beside without a loop placing one. Only the
+          active speaker's bubble is mounted; the subtitle wraps
+          (`max-w-[16rem]`, no nowrap) while the meow line stays nowrap —
+          `SUB_MAX_CHARS` at this size is two short lines at most. */}
+      {roams && roaming && duetBeat ? (
         <div
-          ref={attachNote}
-          data-cat-note-bubble=""
+          ref={duetBeat.speaker === "grey" ? attachGreyBubble : attachTabbyBubble}
+          data-cat-bubble={duetBeat.speaker}
           aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap border border-rule bg-surface px-2 py-1 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle"
+          className="pointer-events-none absolute left-0 top-0 w-max max-w-[16rem] border border-rule bg-surface px-2 py-1"
         >
-          {note}
+          <p className="whitespace-nowrap font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle">
+            {duetBeat.meow}
+          </p>
+          <p className="text-[0.68rem] italic leading-snug text-fg-muted">
+            {duetBeat.sub}
+            {duetBeat.hintMore ? <span className="text-fg-subtle"> …more?</span> : null}
+          </p>
         </div>
       ) : null}
 
@@ -3239,20 +3356,49 @@ export function Companion({ facts }: CompanionProps) {
       ) : null}
 
       {roams && showRoamers ? (
-        <div
-          ref={attachFollow}
-          aria-hidden="true"
-          className="absolute left-0 top-0 text-fg-muted"
-          style={{ width: CAT_W, height: CAT_H }}
-        >
-          <span
-            ref={followArt}
-            className="block"
-            style={{ transform: `scaleX(${frame.follow.facing})` }}
+        escort === null && tourView === null && mode !== "resting" ? (
+          // The storyteller control: a tap advances the running scene a beat,
+          // opens the encore behind an ambient scene's last line, or starts
+          // one for whichever section this is, all through `tapTabby`. Not a
+          // button mid-escort/tour/nap — `forced` is loop state rather than
+          // anything rendered, so this gates on the render-state equivalents
+          // that already exist instead of mirroring it into the frame.
+          <button
+            ref={attachFollow}
+            type="button"
+            onClick={tapTabby}
+            className="pointer-events-auto absolute left-0 top-0 text-fg-muted"
+            style={{ width: CAT_W, height: CAT_H }}
           >
-            <CompanionCat variant="tabby" {...frame.follow} />
-          </span>
-        </div>
+            <span
+              ref={followArt}
+              className="block"
+              style={{ transform: `scaleX(${frame.follow.facing})` }}
+            >
+              <CompanionCat variant="tabby" {...frame.follow} />
+            </span>
+            <span className="sr-only">
+              {duetBeat ? "Next line" : "Ask the cats about this section"}
+            </span>
+          </button>
+        ) : (
+          // Mid-escort/tour/nap the tabby is no longer a control, for the same
+          // reason the lead one gives up its button above.
+          <div
+            ref={attachFollow}
+            aria-hidden="true"
+            className="absolute left-0 top-0 text-fg-muted"
+            style={{ width: CAT_W, height: CAT_H }}
+          >
+            <span
+              ref={followArt}
+              className="block"
+              style={{ transform: `scaleX(${frame.follow.facing})` }}
+            >
+              <CompanionCat variant="tabby" {...frame.follow} />
+            </span>
+          </div>
+        )
       ) : null}
 
       {/* The front of the carton, over the animal wedged into it. Pure scenery
