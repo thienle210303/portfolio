@@ -816,14 +816,17 @@ function paint(node: HTMLElement | null, pos: Spot): void {
  * bubble is `whitespace-nowrap` on its meow line — unclamped, a bubble that
  * fires there gets cut off mid-line, which is worse than no bubble at all.
  * Measured off the node's own rendered width so the clamp holds for whichever
- * beat it is showing.
+ * beat it is showing. The vertical offset is measured too, off the node's own
+ * rendered height — a one-line note had a fixed height, but the subtitle here
+ * can wrap to two lines, and a hardcoded offset put the cat drawing right over
+ * the second line the moment a beat's subtitle actually wrapped.
  */
 function paintBubble(node: HTMLElement | null, cat: Spot): void {
   if (!node) return;
   const margin = 8;
   const width = node.offsetWidth;
   const x = clamp(cat.x, margin, Math.max(margin, window.innerWidth - width - margin));
-  paint(node, { x, y: cat.y - 26 });
+  paint(node, { x, y: cat.y - node.offsetHeight - 6 });
 }
 
 /**
@@ -2144,10 +2147,23 @@ export function Companion({ facts }: CompanionProps) {
 
       /* -------------------------------------------------------------- duet -- */
 
+      // Anything with a stronger claim on the pair — the escort, a nap spot,
+      // the tour, the toolkit, or idle sleep claiming them — ends a running
+      // scene on the frame it appears, the same rule `endPlay` follows for a
+      // scene with a prop. Tour scenes are the one exception, exactly as at
+      // the section-change effect: the tour is the thing doing the walking,
+      // so `forced === "tour"` is not a reason to drop its own narration.
+      // Checked before the advance below so a scene cleared this frame can't
+      // also advance on it.
+      if (duetRef.current && duetRef.current.scene.kind !== "tour" && (forced || dozing)) {
+        duetRef.current = null;
+        setDuetBeat(null);
+      }
+
       // Advance or finish a running scene on its reading-time clock. Tour
       // scenes are exempt from the section-change cancellation (the tour
       // scrolls the page itself); everything else was already dropped by the
-      // effect that watches `sectionRef`.
+      // effect that watches `sectionRef`, or by the cancellation just above.
       if (duetRef.current) {
         const beat = currentBeat(duetRef.current);
         if (now - duetRef.current.beatStartedAt > beatDurationMs(beat)) {
