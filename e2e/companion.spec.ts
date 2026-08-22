@@ -1566,6 +1566,25 @@ test.describe("companion", () => {
     ).toEqual([]);
   });
 
+  test("the tour HUD carries both speakers' subtitles", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    const status = hud.getByRole("status");
+    // Same wait condition "walks all eight stops" uses: the status region is
+    // the arrival signal, not a fixed delay.
+    await expect(status).not.toHaveText("", { timeout: 10_000 });
+    // Both voices, not one line quoting whichever cat spoke last — the tour
+    // narrates every beat of the stop's scene, grey and tabby both.
+    await expect(status).toContainText("Grey:");
+    await expect(status).toContainText("Tabby:");
+  });
+
   /* -------------------------------------------------------------------- D5: the duet -- */
 
   test("the hello duet plays: decorative bubbles, meow above, subtitle beneath", async ({
@@ -1606,6 +1625,61 @@ test.describe("companion", () => {
     // all — the pair are parked in the corner button. This asserts the
     // honest absence rather than a false positive.
     await expect(page.locator("[data-companion] [data-cat-bubble]")).toHaveCount(0);
+  });
+
+  test("clicking the tabby advances the duet a beat", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    // Settle the pair exactly as "the hello duet plays" does: by the time the
+    // bubble shows, the settle threshold has long passed and the tabby is not
+    // walking, so a plain click is safe here — see "Driving the cats" above.
+    await page.mouse.move(700, 500);
+    await page.waitForTimeout(200);
+
+    const bubble = page.locator("[data-cat-bubble]");
+    await expect(bubble).toBeVisible({ timeout: 15_000 });
+    const before = await bubble.locator("p").nth(1).textContent();
+
+    await page.getByRole("button", { name: "Next line" }).click();
+    await expect(bubble.locator("p").nth(1)).not.toHaveText(before ?? "");
+  });
+
+  test("scrolling to another section ends an ambient scene mid-beat", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    // Park the pair at #journey the same way "settles where the visitor is
+    // reading" does, then start that section's scene by asking for it rather
+    // than waiting out the 75s±60s cadence clock — the tabby starts it the
+    // moment she is tapped, quiet or not. `force` plus a retrying poll is the
+    // same idiom `clickOpenToolkit` uses for a target the loop keeps moving.
+    await readTo(page, "#journey", [300, 500]);
+    const bubble = page.locator("[data-cat-bubble]");
+    const tabby = page.getByRole("button", {
+      name: /Ask the cats about this section|Next line/i,
+    });
+    await expect
+      .poll(
+        async () => {
+          if ((await bubble.count()) > 0) return true;
+          await tabby.click({ force: true, timeout: 5_000 }).catch(() => {});
+          return (await bubble.count()) > 0;
+        },
+        { timeout: 15_000, message: "clicking the tabby never started the journey scene" },
+      )
+      .toBe(true);
+
+    // Moving to another section is a stronger claim on the cats than a
+    // beat's own reading-time clock: the scene the visitor was mid-way
+    // through at #journey is about that section, not about #skills.
+    await readTo(page, "#skills", [300, 500]);
+    await expect(bubble).toBeHidden({ timeout: 10_000 });
   });
 
   /* ----------------------------------------------------------------- D2: nav intent -- */
