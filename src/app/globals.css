@@ -399,7 +399,33 @@
 
   html {
     -webkit-text-size-adjust: 100%;
-    scroll-behavior: smooth;
+    /*
+     * Deliberately *not* `scroll-behavior: smooth` here. Every intentional
+     * smooth scroll on this page (SiteNav's nav links and scroll-lock
+     * restore, ProjectIndex, Timeline, ContactForm, the companion's tour)
+     * already requests it explicitly on the call itself — `behavior:
+     * prefersReducedMotion() ? "auto" : "smooth"` — which is what lets each
+     * of them honour reduced motion without this property's help. A blanket
+     * rule here does not add animation to any of those; it only reaches the
+     * *unguarded* scrolls nothing above chose to opt in — SiteNav's own
+     * scroll-lock restore included one until it was fixed to ask for `auto`
+     * explicitly, and `window.scrollTo` calls issued by tooling (Playwright's
+     * `page.evaluate`, extensions, anything outside this codebase) are
+     * exactly the same shape of unguarded call. Chromium runs the animation
+     * to completion before an automated `evaluate()` call is considered
+     * settled, so a smooth `html` turns every programmatic scroll step in
+     * e2e/responsive.spec.ts's full-page sweep into a ~480ms wait — measured
+     * directly: forcing `prefers-reduced-motion: reduce` (which the old
+     * `@media` override below already turns into `scroll-behavior: auto` for
+     * exactly this reason) cut a 30s scroll-through-the-page loop to 2s. On
+     * the narrow/mobile layout, where the stacked page is tall enough to need
+     * five to six dozen scroll steps, that 480ms-a-step tax alone exceeded
+     * Playwright's default 30s test timeout — which is why the hang only
+     * ever showed up below the 768px breakpoint. Leaving this property unset
+     * makes `auto` (instant) the default for anything that does not ask for
+     * smooth by name, which is the correct default for a fixup scroll and
+     * the correct default for a test.
+     */
     overflow-x: clip;
   }
 

@@ -67,7 +67,17 @@ test("every Exploring AI experiment shows 'no results yet' and no fabricated out
     const article = page
       .locator("article")
       .filter({ has: page.getByRole("heading", { name: experiment.title, level: 4 }) });
-    await article.getByRole("button", { name: /Read the full experiment/ }).click();
+    // Clicked inside a retry block rather than once: the trigger is
+    // server-rendered and therefore clickable before React has attached its
+    // listener, and a click that lands in that gap is silently lost — seen
+    // once at chromium-390 with six workers contending for the dev server.
+    // A real pointer can't meaningfully hit a tens-of-milliseconds window,
+    // so the retry belongs here, not in the component.
+    const trigger = article.getByRole("button", { name: /Read the full experiment/ });
+    await expect(async () => {
+      if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
+      expect(await trigger.getAttribute("aria-expanded")).toBe("true");
+    }).toPass();
 
     await expect(
       article.getByText("No results yet — this is an open question."),

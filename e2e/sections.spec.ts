@@ -528,6 +528,13 @@ test.describe("career tree", () => {
     if (!category) return;
 
     const tree = page.locator("#tree");
+    // `networkidle` in beforeEach only proves the bundle finished downloading,
+    // not that TreeFigure's effect has attached its pointerover/focus
+    // listeners yet — under load (dev-mode compilation, a slower machine) a
+    // hover dispatched between those two moments lands on nothing. Wait for
+    // the island's own "listeners are on" signal instead of guessing at a
+    // delay.
+    await expect(tree.locator("[data-tree-live]")).toHaveCount(1);
     const rootLabel = tree.locator(`[data-tree-root="${category.id}"]:visible`).first();
     await rootLabel.scrollIntoViewIfNeeded();
     await rootLabel.hover();
@@ -550,6 +557,9 @@ test.describe("career tree", () => {
     );
 
     const tree = page.locator("#tree");
+    // See the hover test above for why this waits on the island's own
+    // "listeners are on" signal rather than trusting `networkidle`.
+    await expect(tree.locator("[data-tree-live]")).toHaveCount(1);
     // Software engineering is the tree's largest branch (see CareerTree.tsx's
     // own "heaviest" rail note), so it is guaranteed to have a leaf.
     const trigger = tree
@@ -580,10 +590,18 @@ test.describe("career tree", () => {
     );
 
     const tree = page.locator("#tree");
-    const trigger = tree
+    // Same trap the "opening a leaf" test above documents: DoorDash appears
+    // as a leaf on every lens it is tagged with, and clicking one flips its
+    // accessible name to "Hide detail — …", so a live `/Show detail — /`
+    // locator would silently re-resolve to the *other* DoorDash leaf the
+    // moment this one opens. Pin the id first, then click the pinned button.
+    const candidateId = await tree
       .getByRole("button", { name: /Show detail — /})
       .filter({ hasText: "DoorDash, Inc." })
-      .first();
+      .first()
+      .getAttribute("id");
+    expect(candidateId, "expected at least one DoorDash leaf trigger").toBeTruthy();
+    const trigger = page.locator(`#${candidateId}`);
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -613,33 +631,72 @@ test.describe("career tree", () => {
    * `data-inked` on `[data-tree-figure]`'s own `data-ink-root`). This file
    * owns only the tree's half of that contract — see the "Career tree
    * figure" block in globals.css and the reconciliation note atop
-   * TreeFigure.tsx — but the point of gating everything behind
-   * `[data-ink-ready]` is that the *absence* of that attribute (true right
-   * now, and true for the lifetime of a no-JS or print visit even once
-   * InkReveal exists) must already leave the tree fully drawn. That is what
-   * this asserts, independently of whichever agent lands InkReveal itself.
+   * TreeFigure.tsx. Two states matter, and they get one test each: with no
+   * gate anywhere (a no-JS visit — the only remaining way `data-ink-ready`
+   * is genuinely absent now that InkReveal ships), the pending CSS must
+   * never have applied; and on an ordinary JS visit, scrolling the figure
+   * into view must stamp it `data-inked` and carry the drawing all the way
+   * to its finished state, not leave it parked mid-growth.
    */
-  test("with no ink-reveal gate present, the tree renders fully drawn", async ({ page }) => {
-    await expect(page.locator("html[data-ink-ready]")).toHaveCount(0);
+  test.describe("without JavaScript", () => {
+    test.use({ javaScriptEnabled: false });
 
-    const state = await page.evaluate(() => {
-      const figure = document.querySelector("[data-tree-figure]");
-      const draw = figure?.querySelector("path.tree-draw");
-      const grow = figure?.querySelector(".tree-grow, .tree-grow-down");
-      const fade = figure?.querySelector(".tree-fade");
-      return {
-        dashoffset: draw ? getComputedStyle(draw).strokeDashoffset : undefined,
-        transform: grow ? getComputedStyle(grow).transform : undefined,
-        opacity: fade ? getComputedStyle(fade).opacity : undefined,
-      };
+    test("with no ink-reveal gate present, the tree renders fully drawn", async ({ page }) => {
+      await page.goto("/");
+      await expect(page.locator("html[data-ink-ready]")).toHaveCount(0);
+
+      const state = await page.evaluate(() => {
+        const figure = document.querySelector("[data-tree-figure]");
+        const draw = figure?.querySelector("path.tree-draw");
+        const grow = figure?.querySelector(".tree-grow, .tree-grow-down");
+        const fade = figure?.querySelector(".tree-fade");
+        return {
+          dashoffset: draw ? getComputedStyle(draw).strokeDashoffset : undefined,
+          transform: grow ? getComputedStyle(grow).transform : undefined,
+          opacity: fade ? getComputedStyle(fade).opacity : undefined,
+        };
+      });
+
+      // The pending rule (`[data-ink-ready] [data-tree-figure]:not([data-inked])`)
+      // sets `stroke-dashoffset: 1` and `scaleY(0)`; with no gate it never
+      // matched, so everything stays at its initial, fully-drawn value.
+      expect(state.dashoffset).not.toBe("1px");
+      expect(state.transform === "none" || state.transform === undefined).toBe(true);
+      expect(state.opacity === "1" || state.opacity === undefined).toBe(true);
     });
+  });
 
-    // The initial CSS value for `stroke-dashoffset` is `0`; the pending state
-    // this figure's own CSS would set is `1`. No gate present means the
-    // pending rule never applied, so this stays at the initial value.
-    expect(state.dashoffset).not.toBe("1");
-    expect(state.transform === "none" || state.transform === undefined).toBe(true);
-    expect(state.opacity === "1" || state.opacity === undefined).toBe(true);
+  test("scrolled into view, the inked figure draws to completion", async ({ page }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "below 1024px the drawn presentation is display: none, so its ink root never intersects",
+    );
+
+    const figure = page.locator("[data-tree-figure]");
+    await figure.scrollIntoViewIfNeeded();
+
+    // InkReveal's observer stamps the wrapper once it clears the -12%
+    // rootMargin; from there the CSS transitions (600ms draw, 500ms settle)
+    // carry every layer to its finished state.
+    await expect(page.locator("[data-tree-figure][data-inked]")).toHaveCount(1);
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const figureEl = document.querySelector("[data-tree-figure]");
+            const draw = figureEl?.querySelector("path.tree-draw");
+            const grow = figureEl?.querySelector(".tree-grow, .tree-grow-down");
+            const fade = figureEl?.querySelector(".tree-fade");
+            return {
+              dashoffset: draw ? parseFloat(getComputedStyle(draw).strokeDashoffset) : 0,
+              transform: grow ? getComputedStyle(grow).transform : "none",
+              opacity: fade ? getComputedStyle(fade).opacity : "1",
+            };
+          }),
+        { message: "the drawing must finish, not park mid-growth" },
+      )
+      .toEqual({ dashoffset: 0, transform: "none", opacity: "1" });
   });
 
   test("reduced motion: the tree renders fully drawn, never mid-growth", async ({ page }) => {

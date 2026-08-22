@@ -105,7 +105,9 @@ failed at 4.44:1 on the half-step-darker one.
 
 ## Local setup
 
-Requires **Node.js 20.9+** and **pnpm**.
+Requires **Node.js 22.12+** and **pnpm**. (The site itself builds on 20.9+,
+but `pnpm test`'s jsdom chain needs 22.12's stable `require(esm)` — one
+runtime for everything keeps the pipeline honest.)
 
 ```bash
 pnpm install

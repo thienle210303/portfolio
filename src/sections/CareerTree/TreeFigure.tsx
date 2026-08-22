@@ -165,11 +165,21 @@ export function TreeFigure({ children, className }: TreeFigureProps) {
     wrapper.addEventListener("focus", handleFocus, true);
     wrapper.addEventListener("blur", handleLeave, true);
 
+    // Stamped only once every listener above is actually attached: the one
+    // honest "this island is live" signal for anything that needs to know
+    // hydration has reached this far before it hovers or focuses something.
+    // (e2e/sections.spec.ts's cross-highlighting tests wait on it instead of
+    // trusting `networkidle` — that only means the JS finished downloading,
+    // not that this effect has run, and dev-mode compilation plus a slower
+    // machine is enough of a gap between the two for a hover to land in it.)
+    wrapper.setAttribute("data-tree-live", "");
+
     return () => {
       wrapper.removeEventListener("pointerover", handleOver);
       wrapper.removeEventListener("pointerleave", handleLeave);
       wrapper.removeEventListener("focus", handleFocus, true);
       wrapper.removeEventListener("blur", handleLeave, true);
+      wrapper.removeAttribute("data-tree-live");
     };
   }, []);
 

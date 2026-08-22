@@ -141,7 +141,14 @@ export default function SiteNav() {
           block: "start",
         });
       } else {
-        window.scrollTo(0, scrollY);
+        // A fixup, not a navigation: `body` was pinned at `position: fixed`
+        // for the lock, which reset its scroll offset to 0, so this is
+        // putting the page back where it visually already was rather than
+        // moving it anywhere new. It must never animate — explicit `auto`
+        // rather than the default, which would otherwise pick up whatever
+        // `scroll-behavior` the page happens to have (see globals.css's `html`
+        // rule for why that is deliberately not "smooth").
+        window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
       }
     };
   }, [open]);

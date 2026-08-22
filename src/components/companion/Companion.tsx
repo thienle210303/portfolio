@@ -798,6 +798,21 @@ function paint(node: HTMLElement | null, pos: Spot): void {
 }
 
 /**
+ * The note bubble, clamped to the viewport: it sits at the cat's x, but the
+ * cat is allowed right up against the window edge and the bubble is
+ * `whitespace-nowrap` — unclamped, a note that fires there gets cut off
+ * mid-fact, which is worse than no note at all. Measured off the node's own
+ * rendered width so the clamp holds for whichever fact it is showing.
+ */
+function paintNote(node: HTMLElement | null, cat: Spot): void {
+  if (!node) return;
+  const margin = 8;
+  const width = node.offsetWidth;
+  const x = clamp(cat.x, margin, Math.max(margin, window.innerWidth - width - margin));
+  paint(node, { x, y: cat.y - 26 });
+}
+
+/**
  * Cut a drawing off at the edge of whatever it is hiding behind; zero puts it
  * back.
  *
@@ -1380,7 +1395,7 @@ export function Companion({ facts }: CompanionProps) {
    *  cat it belongs beside. */
   const attachNote = useCallback((node: HTMLDivElement | null) => {
     noteNode.current = node;
-    if (node) paint(node, { x: lead.current.pos.x, y: lead.current.pos.y - 26 });
+    if (node) paintNote(node, lead.current.pos);
   }, []);
 
   /* ------------------------------------------------------------- pointer -- */
@@ -1935,7 +1950,7 @@ export function Companion({ facts }: CompanionProps) {
       const dozing =
         forced === "escort" ||
         forced === "nap" ||
-        (!wandering && aloneFor > sleepAfter && !beat);
+        (!wandering && pointer !== null && aloneFor > sleepAfter && !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a
@@ -2450,7 +2465,7 @@ export function Companion({ facts }: CompanionProps) {
       // than left static, because the settled spot it appeared beside can
       // still be nudged by `keepInView` on a resize.
       if (noteHideAt.current !== 0) {
-        paint(noteNode.current, { x: grey.pos.x, y: grey.pos.y - 26 });
+        paintNote(noteNode.current, grey.pos);
       }
 
       if (now - lastTone.current > TONE_INTERVAL) {
