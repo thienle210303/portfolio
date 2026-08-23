@@ -1168,6 +1168,102 @@
   }
 
   /* ---------------------------------------------------------------------- */
+  /* Origin story (Task 3): the lazy-loaded "How it grew" player.           */
+  /*                                                                        */
+  /* `OriginStory.tsx` only ever applies these classes when it has already  */
+  /* checked `prefers-reduced-motion` itself and found "no-preference" —    */
+  /* the reduced-motion path renders a static storyboard instead and never  */
+  /* mounts a single one of these classes. The media guard below is        */
+  /* redundant defence on top of that JS check, the same belt-and-braces    */
+  /* relationship the tree's own `.tree-draw`/`.tree-grow` rules above have  */
+  /* to `InkReveal`.                                                        */
+  /*                                                                        */
+  /* Timing comes from two places on purpose. The flight beat's bird and    */
+  /* its drawn-behind path both read `--origin-dur`, an inline custom       */
+  /* property the component sets to that beat's own authored duration —     */
+  /* there is no existing token for a 3-second flight because nothing else   */
+  /* on the page plays one. Everything else — a glyph settling in, the       */
+  /* silhouette growing, the backdrop dissolving for the reveal — reuses      */
+  /* `--dur-settle`/`--dur-draw` and `--ease-ink` exactly as the tree's own   */
+  /* draw-in does, because those are the same *kind* of motion the rest of   */
+  /* the page already has a name for.                                        */
+  /* ---------------------------------------------------------------------- */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    @keyframes origin-flight-path-draw {
+      from {
+        stroke-dashoffset: 1;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    .origin-flight-path {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: origin-flight-path-draw var(--origin-dur, 3000ms) linear forwards;
+    }
+
+    /* Approximates the same arc `origin-flight-path-draw` traces — a rise
+       and fall between the two ends of `FLIGHT_PATH_D` in OriginStory.tsx. */
+    @keyframes origin-flight {
+      0% {
+        transform: translate(20px, 112px) rotate(-10deg);
+      }
+      30% {
+        transform: translate(110px, 45px) rotate(-2deg);
+      }
+      60% {
+        transform: translate(190px, 35px) rotate(4deg);
+      }
+      100% {
+        transform: translate(280px, 100px) rotate(14deg);
+      }
+    }
+    .origin-bird {
+      animation: origin-flight var(--origin-dur, 3000ms) linear forwards;
+    }
+
+    /* The seed, each season's weather glyph and the closing shoot all use
+       this: a fresh element (React remounts it via a changing `key` for the
+       weather glyph) settles in once, the same motion `--dur-settle` already
+       names everywhere else on the page. */
+    @keyframes origin-settle {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .origin-glyph {
+      animation: origin-settle var(--dur-settle) var(--ease-ink);
+    }
+
+    /* The silhouette's `stroke-dashoffset` is a plain inline style the
+       component updates every time `growthStage()` moves — a transition,
+       not an animation, because there is no fixed start and end here, only
+       a value that steps forward beat by beat. */
+    .origin-silhouette {
+      transition: stroke-dashoffset var(--dur-draw) var(--ease-ink);
+    }
+
+    /* The backdrop that dissolves during the reveal, letting the real
+       figure's own re-inking show through underneath. `.is-settling` is
+       added by React on a later render, never present at mount, which is
+       what makes this an actual transition rather than a no-op — see the
+       note on `[data-tree-figure]`'s own pending-state selectors above for
+       why the equivalent trick there needs an attribute instead of a class. */
+    .origin-fade {
+      transition: opacity var(--dur-settle) var(--ease-ink);
+    }
+    .origin-fade.is-settling {
+      opacity: 0;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* Screen-reader-only utilities                                           */
   /* ---------------------------------------------------------------------- */
 

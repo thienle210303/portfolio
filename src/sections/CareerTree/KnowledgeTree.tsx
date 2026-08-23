@@ -5,6 +5,7 @@ import { DrawnTree, GroundHatch, RootSystem } from "./DrawnTree";
 import { KnowledgeTreeList } from "./KnowledgeTreeList";
 import { RootLabels } from "./RootLabels";
 import { TreeFigure } from "./TreeFigure";
+import { WatchOrigin } from "./WatchOrigin";
 
 /**
  * The career tree figure: how the skills connect to the places they were used.
@@ -104,8 +105,21 @@ export default function KnowledgeTree({ tree, className }: KnowledgeTreeProps) {
   return (
     <TreeFigure className={cn("relative flex flex-col", className)}>
       {/* The drawing. Hidden below 1024px, where its two half-width columns
-          would be too narrow to set a role and an organisation in. */}
-      <DrawnTree tree={tree} className="hidden lg:order-1 lg:block" />
+          would be too narrow to set a role and an organisation in.
+
+          Wrapped, rather than handed `WatchOrigin` as a sibling further
+          down: the "How it grew" button (and, once pressed, the player it
+          swaps itself for) is positioned `absolute` against this wrapper's
+          own `relative` box, which is exactly the drawing's box — the
+          canopy, trunk and ground hatch — and nothing below it. See
+          `OriginStory.tsx` for why the player's overlay is scoped to the
+          drawing rather than the whole figure. `TreeFigure` itself stays
+          untouched: this `relative` lives one level in, not on the island's
+          own wrapper. */}
+      <div className="relative hidden lg:order-1 lg:block">
+        <DrawnTree tree={tree} />
+        <WatchOrigin />
+      </div>
 
       {/* The root: Thien himself, the foundation the branches grow out of.
           `profile.name` / `profile.philosophy` and the tree's own computed
