@@ -2109,7 +2109,13 @@ export function Companion({ facts }: CompanionProps) {
       const dozing =
         forced === "escort" ||
         forced === "nap" ||
-        (!wandering && pointer !== null && aloneFor > sleepAfter && !beat);
+        // Excludes "watch": the origin-story show runs ~26s, well past
+        // `sleepAfter` (14s, 11s at night), and the watcher is deliberately
+        // motionless the entire time — nothing else refreshes `lastSignRef`
+        // while it stands. Without this clause both cats would pose asleep
+        // for the back half of every show, same as the tour and the escort
+        // never let idle sleep claim them mid-scene.
+        (forced !== "watch" && !wandering && pointer !== null && aloneFor > sleepAfter && !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a

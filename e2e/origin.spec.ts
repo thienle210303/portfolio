@@ -63,8 +63,14 @@ test.describe("the player", () => {
     // (`origin.from`, "Rạch Giá, Việt Nam") and never a schooling location.
     // `origin-story.test.ts` holds `Season.caption` to the same ban; this is
     // the flight caption's own copy of it.
-    const captionText = await stage.getByRole("status").textContent();
-    expect(captionText).toContain("December 2018");
+    //
+    // The status region mounts empty and is filled a frame later (see
+    // `AnimatedStage` in `OriginStory.tsx`) so a screen reader hears beat 1
+    // as a change rather than silently missing it — `toContainText` is an
+    // auto-retrying assertion, so it absorbs that one-tick delay.
+    const status = stage.getByRole("status");
+    await expect(status).toContainText("December 2018");
+    const captionText = await status.textContent();
     expect(captionText ?? "").not.toMatch(/Rạch|Taylors|Columbia|Cheraw/);
   });
 
@@ -74,6 +80,9 @@ test.describe("the player", () => {
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     const status = stage.getByRole("status");
+    // Wait past the mount-empty-then-fill delay before capturing the
+    // baseline caption, or this could grab the empty string instead.
+    await expect(status).not.toHaveText("");
     const flightCaption = await status.textContent();
 
     // Top-left corner of the stage: away from the Skip button, which sits in

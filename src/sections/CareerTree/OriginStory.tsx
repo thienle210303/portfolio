@@ -245,6 +245,21 @@ function AnimatedStage({ beat }: { readonly beat: Beat }) {
   const isSettling = beat.kind === "reveal" || beat.kind === "stillGrowing";
   const showSeedOnward = beat.kind !== "flight";
 
+  // Mounted empty and filled a frame later — the same mount-empty-then-fill
+  // discipline `TourHud.tsx`'s `role="status"` region uses, for the same
+  // reason. Rendering beat 1's caption straight into the region on its first
+  // paint would mean the region never actually *changes*: a `role="status"`
+  // a screen reader has never seen before is one it may not announce with
+  // content already inside it. A `requestAnimationFrame` after mount/update
+  // guarantees at least one paint with the old (or, for beat 1, empty) text
+  // still in place before the real caption lands, so every beat — the first
+  // one included — is heard as a change.
+  const [announced, setAnnounced] = useState("");
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setAnnounced(beat.caption));
+    return () => cancelAnimationFrame(id);
+  }, [beat]);
+
   return (
     <>
       <div
@@ -279,7 +294,7 @@ function AnimatedStage({ beat }: { readonly beat: Beat }) {
         role="status"
         className="absolute inset-x-3 bottom-3 border border-rule bg-surface px-3 py-2 text-[length:var(--step--1)] leading-snug text-fg"
       >
-        {beat.caption}
+        {announced}
       </p>
     </>
   );

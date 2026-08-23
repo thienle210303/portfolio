@@ -45,7 +45,7 @@ type PlayerComponent = ComponentType<{ readonly onClose: (restoreFocus: boolean)
 type ButtonState = "idle" | "loading" | "open";
 
 const BUTTON_CLASS =
-  "no-print ink-link-quiet eyebrow absolute right-0 top-1 z-10 inline-flex min-h-11 items-center px-2 text-accent disabled:pointer-events-none disabled:opacity-70";
+  "no-print ink-link-quiet eyebrow absolute right-0 top-1 z-10 inline-flex min-h-11 items-center px-2 text-accent aria-disabled:pointer-events-none aria-disabled:opacity-70";
 
 interface WatchOriginProps {
   readonly className?: string;
@@ -63,9 +63,16 @@ export function WatchOrigin({ className }: WatchOriginProps) {
   const pendingFocusRef = useRef(false);
   const [state, setState] = useState<ButtonState>("idle");
   const [Player, setPlayer] = useState<PlayerComponent | null>(null);
+  // Set only on the `.catch()` path, cleared the moment another press starts.
+  // Nothing else reads it — it exists purely to give the sr-only status
+  // region below something to announce, since a failed import leaves focus
+  // exactly where it already was (see the `aria-disabled` swap below) with
+  // no visible explanation beyond the label flipping back to its idle text.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const handlePress = useCallback(() => {
     if (state !== "idle") return;
+    setLoadFailed(false);
     setState("loading");
     import("./OriginStory")
       .then((mod) => {
@@ -77,6 +84,7 @@ export function WatchOrigin({ className }: WatchOriginProps) {
         // promised yet — drop back to idle so the button is press-again-able
         // rather than stuck announcing a load that will never finish.
         setState("idle");
+        setLoadFailed(true);
       });
   }, [state]);
 
@@ -106,16 +114,28 @@ export function WatchOrigin({ className }: WatchOriginProps) {
   }
 
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      onClick={handlePress}
-      aria-busy={state === "loading"}
-      disabled={state === "loading"}
-      className={cn(BUTTON_CLASS, className)}
-    >
-      {state === "loading" ? "Loading…" : "Watch how it grew"}
-    </button>
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handlePress}
+        aria-busy={state === "loading"}
+        // Not `disabled`: a disabled control is pulled out of the tab order
+        // and, if focus was already on it, blurred straight to `<body>` —
+        // exactly the mid-load focus-drop this control used to cause. The
+        // `if (state !== "idle") return;` guard in `handlePress` already
+        // makes a press while loading a no-op, so `aria-disabled` gets the
+        // same "can't press this right now" signal without ever moving
+        // focus off the button.
+        aria-disabled={state === "loading"}
+        className={cn(BUTTON_CLASS, className)}
+      >
+        {state === "loading" ? "Loading…" : "Watch how it grew"}
+      </button>
+      <span role="status" className="sr-only">
+        {loadFailed ? "Couldn't load the story — try again." : ""}
+      </span>
+    </>
   );
 }
 
