@@ -838,13 +838,27 @@ function paint(node: HTMLElement | null, pos: Spot): void {
  * rendered height — a one-line note had a fixed height, but the subtitle here
  * can wrap to two lines, and a hardcoded offset put the cat drawing right over
  * the second line the moment a beat's subtitle actually wrapped.
+ *
+ * The *y* is clamped the same way: a cat close enough to the top of the
+ * viewport used to put the bubble's top edge under the sticky header — the
+ * header is opaque and the bubble is `fixed`, painted above it in source
+ * order but not in the header's own stacking context, so the bubble's first
+ * line landed half-hidden behind the site chrome. `safeTop()` is the same
+ * measured header-bottom the roaming bounds already probe against (see
+ * `companion-space.ts`), so this never drifts from the header's actual
+ * height the way a hardcoded pixel figure would. When the bubble would sit
+ * above that line, it flips below the cat instead of merely being pushed
+ * down onto it — a bubble still reading "above" while jammed flush under the
+ * header would point at nothing.
  */
 function paintBubble(node: HTMLElement | null, cat: Spot): void {
   if (!node) return;
   const margin = 8;
   const width = node.offsetWidth;
   const x = clamp(cat.x, margin, Math.max(margin, window.innerWidth - width - margin));
-  paint(node, { x, y: cat.y - node.offsetHeight - 6 });
+  const above = cat.y - node.offsetHeight - 6;
+  const y = above < safeTop() + margin ? cat.y + CAT_H + 6 : above;
+  paint(node, { x, y });
 }
 
 /**
@@ -3595,7 +3609,18 @@ export function Companion({ facts }: CompanionProps) {
       " ",
     ]);
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" || SCROLL_KEYS.has(event.key)) endTour();
+      if (event.key === "Escape") {
+        endTour();
+        return;
+      }
+      // Space both scrolls the page *and* activates whichever element has
+      // focus — the two collide the moment that element is one of the HUD's
+      // own buttons, where a visitor pressing Space to press "Next stop"
+      // used to also end the tour out from under the very click it was
+      // activating. Every other scroll key still cancels regardless of what
+      // has focus: none of them double as a HUD control's own activation key.
+      if (event.key === " " && tourHudRef.current?.contains(document.activeElement)) return;
+      if (SCROLL_KEYS.has(event.key)) endTour();
     };
     const onWheel = () => endTour();
     const onTouchMove = () => endTour();

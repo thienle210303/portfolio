@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { origin } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import {
@@ -411,13 +412,25 @@ function releaseThroughYear(groups: readonly OriginGroup[], year: number): reado
   return ordered.map((group, index) => {
     const delayMs = index * STAGGER_STEP_MS;
     let durationMs = ORDINARY_DUR_MS;
-    group.el.style.transitionDelay = `${delayMs}ms`;
+    // Inherited custom properties, not `transitionDelay`/`transitionDuration`
+    // directly: every rule this stagger is meant to shape — `.tree-draw`,
+    // `.tree-grow`/`.tree-grow-down`, `.tree-fade`, `[data-tree-panel]`,
+    // `[data-tree-entry] > div` — declares its `transition` on a
+    // *descendant* of this group's own element (an SVG `<path>`, a lens
+    // `<li>`'s summary card), never on the group itself, and
+    // `transition-*` does not inherit. A custom property does, though, so
+    // setting `--origin-stagger` (and, for the two tiers with their own
+    // pace, `--origin-rise`/`--origin-pop`) here on the group and letting
+    // each descendant's own `transition` shorthand read it back via `var()`
+    // reaches exactly the elements that are actually animating, with no new
+    // DOM walk needed on this side.
+    group.el.style.setProperty("--origin-stagger", `${delayMs}ms`);
     if (group.isTrunk) {
       durationMs = TRUNK_RISE_MS;
-      group.el.style.transitionDuration = `${durationMs}ms`;
+      group.el.style.setProperty("--origin-rise", `${durationMs}ms`);
     } else if (group.tier === TIER_LEAF) {
       durationMs = LEAF_POP_MS;
-      group.el.style.transitionDuration = `${durationMs}ms`;
+      group.el.style.setProperty("--origin-pop", `${durationMs}ms`);
     }
     group.el.removeAttribute("data-origin-pending");
     return { el: group.el, clearAfterMs: delayMs + durationMs + STAGGER_CLEANUP_MARGIN_MS };
@@ -995,8 +1008,9 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   const scheduleStaggerCleanup = useCallback((scheduled: readonly ScheduledStagger[]) => {
     for (const { el, clearAfterMs } of scheduled) {
       const id = window.setTimeout(() => {
-        el.style.transitionDelay = "";
-        el.style.transitionDuration = "";
+        el.style.removeProperty("--origin-stagger");
+        el.style.removeProperty("--origin-rise");
+        el.style.removeProperty("--origin-pop");
       }, clearAfterMs);
       staggerTimeoutsRef.current.push(id);
     }
@@ -1023,12 +1037,13 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     // untouched one having its already-settled transition reopened for no
     // reason — see `releaseThroughYear`'s doc comment on exactly that
     // failure mode. Without this, a Skip/Escape mid-stagger would leave a
-    // real, still-mounted tree carrying `transition-delay`/`transition-
-    // duration` values a *second* run of this same story would otherwise
-    // inherit before ever setting its own.
+    // real, still-mounted tree carrying `--origin-stagger`/`--origin-rise`/
+    // `--origin-pop` custom properties a *second* run of this same story
+    // would otherwise inherit before ever setting its own.
     figure.querySelectorAll<HTMLElement>("[data-origin-year]").forEach((el) => {
-      el.style.transitionDelay = "";
-      el.style.transitionDuration = "";
+      el.style.removeProperty("--origin-stagger");
+      el.style.removeProperty("--origin-rise");
+      el.style.removeProperty("--origin-pop");
     });
     figure.removeAttribute("data-origin-running");
   }, []);
@@ -1462,8 +1477,23 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
               camera pan (see the file banner) walks the page away from that
               box for as long as the roots are what the story shows, and the
               weather is meant to read at both camera positions — see
-              `WeatherLayer`'s own doc comment. */}
-          {beat.season ? <WeatherLayer season={beat.season} /> : null}
+              `WeatherLayer`'s own doc comment.
+
+              Portalled to `document.body` rather than rendered in place: this
+              `<div>`'s own `z-[60]` bump while `awayFromCanopy` (above) is a
+              *stacking context*, not just a z-index, so any descendant —
+              `WeatherLayer` included, its own `position: fixed` notwithstanding
+              — paints as part of that context, not against the page's stacking
+              tree directly. The whole z-60 box lands above the sticky header's
+              z-50 as a unit, weather and all, which is exactly the "root beat
+              draws rain over the nav bar" bug this fixes. Portalling to
+              `document.body` puts `WeatherLayer` in the same stacking context
+              the header itself lives in, so its own `z-30` finally competes
+              with the header's `z-50` directly and loses, as intended — while
+              staying `aria-hidden`/`pointer-events-none` and mounted only for
+              exactly as long as this conditional already kept it, so an exit
+              still unmounts it the same way it always did. */}
+          {beat.season ? createPortal(<WeatherLayer season={beat.season} />, document.body) : null}
           <p role="status" className="sr-only">
             {announced}
           </p>

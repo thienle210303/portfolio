@@ -86,12 +86,15 @@ function countOf(entries: readonly CareerEntry[], type: CareerEntryType): number
 /**
  * The precedence a season's *base* weather follows when more than one kind
  * of ordinary thing happened that year: schooling reads as rain over plain
- * work; failing that, plain work reads as sun; a year with neither is quiet
- * growth underground. A milestone no longer takes precedence over any of
- * this — it never reaches `kindFor` at all, because it isn't base weather,
- * it's `Season.storm`, computed separately in `seasonsFor` below. See the
- * file banner for why: real content puts a milestone in every active year,
- * so the old milestones-first rule left sun and rain never appearing.
+ * work — including a tie, where a year with equal `learning` and `work`
+ * still reads as rain rather than sun, since `learning >= work` rather than
+ * `>` is the actual comparison below; failing that, plain work reads as
+ * sun; a year with neither is quiet growth underground. A milestone no
+ * longer takes precedence over any of this — it never reaches `kindFor` at
+ * all, because it isn't base weather, it's `Season.storm`, computed
+ * separately in `seasonsFor` below. See the file banner for why: real
+ * content puts a milestone in every active year, so the old
+ * milestones-first rule left sun and rain never appearing.
  *
  * Exported on its own so the precedence rule can be proven against crafted
  * `SeasonForces` rather than needing real content to happen to produce every

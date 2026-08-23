@@ -1146,22 +1146,43 @@
       opacity: 0;
     }
 
-    [data-tree-figure][data-inked] .tree-draw,
-    [data-tree-figure][data-inked] .tree-grow,
-    [data-tree-figure][data-inked] .tree-grow-down,
-    [data-tree-figure][data-inked] .tree-fade {
+    /* `:where([data-inked])`, not a bare `[data-inked]`: this block and the
+       "Origin story" one below it both give the "revealed" state of these
+       same four classes a specificity of exactly two selectors (one
+       attribute, one class) on purpose — a still-`[data-origin-pending]`
+       group's own hide (three selectors: `[data-origin-running] [data-
+       origin-pending] .tree-draw`) needs to keep beating BOTH, and the
+       origin story's own reveal needs to keep beating THIS one, purely by
+       coming later in the file at an *equal* two. Writing `[data-inked]`
+       plain here would make this block three selectors instead of two — a
+       specificity-only fix layered on top of the origin story's own reveal
+       rules found that out the hard way: matching the origin story's
+       stagger fix to *this* block's three-selector weight (by adding
+       `[data-tree-figure]` there too) made the origin story's "revealed"
+       rule tie with its OWN "pending" rule instead of losing to it, so a
+       group's `stroke-dashoffset` snapped to its finished value the instant
+       it was *tagged* pending, real transition or not — the opposite of the
+       intended fix. `:where()` contributes zero specificity regardless of
+       what it wraps, so `[data-tree-figure]:where([data-inked])` matches
+       exactly what `[data-tree-figure][data-inked]` always matched (the
+       truth value of "is this figure inked" is unchanged) while costing
+       this block only the one selector `[data-tree-figure]` already did. */
+    [data-tree-figure]:where([data-inked]) .tree-draw,
+    [data-tree-figure]:where([data-inked]) .tree-grow,
+    [data-tree-figure]:where([data-inked]) .tree-grow-down,
+    [data-tree-figure]:where([data-inked]) .tree-fade {
       transition-delay: var(--ink-delay, 0ms);
     }
-    [data-tree-figure][data-inked] .tree-draw {
+    [data-tree-figure]:where([data-inked]) .tree-draw {
       stroke-dashoffset: 0;
       transition: stroke-dashoffset var(--dur-draw) var(--ease-ink);
     }
-    [data-tree-figure][data-inked] .tree-grow,
-    [data-tree-figure][data-inked] .tree-grow-down {
+    [data-tree-figure]:where([data-inked]) .tree-grow,
+    [data-tree-figure]:where([data-inked]) .tree-grow-down {
       transform: none;
       transition: transform var(--dur-draw) var(--ease-ink);
     }
-    [data-tree-figure][data-inked] .tree-fade {
+    [data-tree-figure]:where([data-inked]) .tree-fade {
       opacity: 1;
       transition: opacity var(--dur-settle) var(--ease-ink);
     }
@@ -1241,6 +1262,26 @@
        shorthand below was already going to produce; deleting it would
        change nothing on screen. It stays as documentation of the intended
        reset, not as the rule actually performing it. */
+    /* Bare `[data-origin-running]` — two selectors, same as it always was —
+       not `[data-tree-figure][data-origin-running]`: see the `:where()` note
+       on the page-load ink reveal just above for why that reveal's own
+       specificity was brought *down* to meet this rule instead of this rule
+       being brought up to meet it. Bringing this one up to three would have
+       tied it with this very file's own `[data-origin-running] [data-origin-
+       pending] .tree-draw` hide rule just above — which is also three,
+       deliberately, so a still-pending group keeps winning over its own
+       revealed state regardless of source order. A three-selector "revealed"
+       rule tied with that hide rule, but declared *after* it, would have
+       reversed that outcome: a group's `stroke-dashoffset` would resolve to
+       its finished value the instant `data-origin-pending` was ever stamped,
+       transition or not, which is a real regression this design-polish pass
+       hit while chasing the ink reveal's own collision — caught by sampling
+       a still-pending group's own computed `stroke-dashoffset` and finding
+       it already at its finished value. Two selectors, losing cleanly to the
+       hide rule's three whenever a group is genuinely still pending, and
+       winning the ink reveal's now-two-selector rule on source order (this
+       block comes after it) whenever it is not, is the one specificity that
+       keeps every case honest. */
     [data-origin-running] .tree-draw,
     [data-origin-running] .tree-grow,
     [data-origin-running] .tree-grow-down,
@@ -1249,16 +1290,19 @@
     }
     [data-origin-running] .tree-draw {
       stroke-dashoffset: 0;
-      transition: stroke-dashoffset var(--dur-draw) var(--ease-ink);
+      transition: stroke-dashoffset var(--origin-rise, var(--origin-pop, var(--dur-draw)))
+        var(--ease-ink) var(--origin-stagger, 0ms);
     }
     [data-origin-running] .tree-grow,
     [data-origin-running] .tree-grow-down {
       transform: none;
-      transition: transform var(--dur-draw) var(--ease-ink);
+      transition: transform var(--origin-rise, var(--origin-pop, var(--dur-draw))) var(--ease-ink)
+        var(--origin-stagger, 0ms);
     }
     [data-origin-running] .tree-fade {
       opacity: 1;
-      transition: opacity var(--dur-settle) var(--ease-ink);
+      transition: opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+        var(--origin-stagger, 0ms);
     }
 
     /* Non-ink chrome (Task 2, implementer's judgment per the plan's
@@ -1329,8 +1373,10 @@
       visibility: visible;
       opacity: 1;
       transition:
-        opacity var(--dur-settle) var(--ease-ink),
-        visibility var(--dur-settle) var(--ease-ink);
+        opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms),
+        visibility var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms);
     }
     [data-origin-running] [data-origin-pending] [data-tree-panel] {
       visibility: hidden;
@@ -1340,8 +1386,10 @@
       visibility: visible;
       opacity: 1;
       transition:
-        opacity var(--dur-settle) var(--ease-ink),
-        visibility var(--dur-settle) var(--ease-ink);
+        opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms),
+        visibility var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms);
     }
     [data-origin-running] [data-tree-shoot-label][data-origin-pending] {
       visibility: hidden;
