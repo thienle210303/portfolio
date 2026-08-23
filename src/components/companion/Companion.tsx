@@ -1076,6 +1076,18 @@ export function Companion({ facts }: CompanionProps) {
    *  exactly as a scene's beat-by-beat progress is `playRef`'s. */
   const [tourView, setTourView] = useState<{ index: number; lines: readonly DialogueBeat[] } | null>(null);
 
+  /* ------------------------------------------------------------- watch -- */
+  /** Non-null while the pair have been invited to sit and watch the
+   *  origin-story overlay — see the effect near the tour's own listeners.
+   *  `spots` starts null and is filled in by the loop exactly the way
+   *  `tourSpots` is: recomputed every frame they are still walking over
+   *  (`tourStopSpots("tree")`, the tour's own placement for that section),
+   *  then left alone once they arrive. Dropped — not merely outranked — the
+   *  moment anything with a stronger claim shows up, so it is never resumed
+   *  once the visitor has been handed to the escort, the tour, a nap or the
+   *  panel; see where `forced` is read in the loop. */
+  const watchRef = useRef<{ spots: Spots | null } | null>(null);
+
   /* ------------------------------------------------------------- duet -- */
   /** The next moment a scene may start on its own, and the sections that have
    *  already shown an ambient one this visit — see companion-dialogue.ts.
@@ -1957,7 +1969,33 @@ export function Companion({ facts }: CompanionProps) {
         }
       }
 
-      const forced = run ? "escort" : tour ? "tour" : nap ? "nap" : openRef.current ? "corner" : null;
+      /**
+       * The origin-story invitation — see `watchRef`'s declaration. Dropped
+       * for good the first frame any of the four states above claims the
+       * pair, exactly the asymmetric drop a running duet gets from `forced`
+       * further down: none of those hand it back when they end. Otherwise
+       * refreshed like a tour stop while it stands, since `tourStopSpots`
+       * this cheap is worth calling every frame rather than trying to know
+       * ahead of time when the section's anchor has finished settling.
+       */
+      if (watchRef.current && (run || tour || nap || openRef.current)) watchRef.current = null;
+      const watch = watchRef.current;
+      if (watch) {
+        const spots = tourStopSpots("tree");
+        if (spots) watch.spots = spots;
+      }
+
+      const forced = run
+        ? "escort"
+        : tour
+          ? "tour"
+          : nap
+            ? "nap"
+            : openRef.current
+              ? "corner"
+              : watch
+                ? "watch"
+                : null;
       // Wandering is parked by construction: "settled" means there is nothing to
       // trail, and there never is. Everything gated on it downstream — a scene
       // may open, a scene is not dropped, a mood may be taken up — is gated on
@@ -2258,6 +2296,15 @@ export function Companion({ facts }: CompanionProps) {
         // the one the panel is designed around.
         leadWant = home;
         followWant = followHome(home);
+      } else if (forced === "watch") {
+        // Sit and watch the tree relight itself — `watch.spots` was just
+        // refreshed above, before `forced` was even read, the same way
+        // `tourSpots` is for a tour stop. Falling back to wherever they
+        // already are is defensive only, for the one frame the section has
+        // nothing clear near it at all.
+        const spots = watch!.spots ?? nearbySpots();
+        leadWant = spots.lead;
+        followWant = spots.follow;
       } else if (rushing) {
         // A visitor travelling, not reading — see `rushing` above. The pair
         // duck to the leading edge of the page in whichever direction it is
@@ -2876,6 +2923,59 @@ export function Companion({ facts }: CompanionProps) {
     setEscort("herding");
     wake();
   }, [mode, wake]);
+
+  /* ------------------------------------------------------------ origin story */
+
+  /**
+   * The origin-story overlay (`OriginStory.tsx`) dispatches this on `document`
+   * — `"start"` once on mount, `"end"` exactly once on every exit. Neither
+   * carries a payload beyond that, so this is the whole contract.
+   *
+   * `"start"` only sets `watchRef` — see its declaration — when nothing
+   * already has a stronger claim on the pair; a visitor mid-tour, mid-nap or
+   * with the panel open keeps whatever they already have, the same refusal
+   * every other invitation in this file gives a claimed pair. `"end"` clears
+   * it unconditionally (it may already be null, if the invitation was
+   * declined or a stronger claim dropped it while the show played), and — the
+   * one bit of narration this gets — queues the tree's own encore if the pair
+   * are otherwise doing nothing and the visitor is still looking at it. No new
+   * scene: `sceneFor("encore", "tree", facts)` already exists and is exactly
+   * about the tree lighting up.
+   */
+  useEffect(() => {
+    if (!roams || !roaming) return;
+
+    const onOriginStory = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      if (detail === "start") {
+        if (escortRef.current || tourRef.current || napRef.current || openRef.current) return;
+        watchRef.current = { spots: null };
+        lastSignRef.current = performance.now();
+        wake();
+      } else if (detail === "end") {
+        watchRef.current = null;
+        const quiet =
+          !escortRef.current &&
+          !tourRef.current &&
+          !napRef.current &&
+          !openRef.current &&
+          !playRef.current &&
+          !queued.current &&
+          !duetRef.current;
+        if (quiet && sectionRef.current === "tree") {
+          const scene = sceneFor("encore", "tree", facts);
+          if (scene) playDuetScene(scene, performance.now());
+        }
+        wake();
+      }
+    };
+
+    document.addEventListener("origin-story", onOriginStory);
+    return () => {
+      document.removeEventListener("origin-story", onOriginStory);
+      watchRef.current = null;
+    };
+  }, [roams, roaming, facts, playDuetScene, wake]);
 
   /* --------------------------------------------------------- tone: parked */
 
