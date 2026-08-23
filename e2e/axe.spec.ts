@@ -107,6 +107,17 @@ test.describe("interactive states", () => {
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await auditHasNoViolations(page);
   });
+
+  test("zero WCAG violations with the origin-story player open", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the player only mounts at >=1024px; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await scrollIntoViewAndSettle(page, "#tree-heading");
+    const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
+    await button.click();
+    await expect(page.locator("[data-origin-stage]")).toBeVisible();
+    await auditHasNoViolations(page);
+  });
 });
 
 /**
