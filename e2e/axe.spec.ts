@@ -116,6 +116,20 @@ test.describe("interactive states", () => {
     const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
+    // The stage mounting is also the instant `OriginStory.tsx`'s conductor
+    // stamps `data-origin-running` and starts fading out the tree's own
+    // non-growable chrome — the plinth's inscription and the root labels
+    // (globals.css, "Origin story v2 — chronological growth": `[data-origin-
+    // running] [data-tree-root]` / `[data-cat-nap] > p`) — over `--dur-settle`
+    // (500ms), holding `visibility: visible` for nearly the whole transition
+    // so the fade actually plays. Auditing the instant the stage appears
+    // catches that fade mid-flight: a paragraph at `opacity: 0.05` and
+    // `visibility: visible` is a real, if momentary, contrast violation to
+    // axe, even though it is seconds away from settling honestly (hidden) or
+    // reverting (Skip/Escape). Waiting out the transition first is the same
+    // "give a settle transition time to finish" discipline
+    // `scrollIntoViewAndSettle` already uses above.
+    await page.waitForTimeout(600);
     await auditHasNoViolations(page);
   });
 });

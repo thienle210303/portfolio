@@ -1682,6 +1682,29 @@ test.describe("companion", () => {
     await expect(bubble).toBeHidden({ timeout: 10_000 });
   });
 
+  /* --------------------------------------------------------- origin story: narration -- */
+
+  test("narrates the origin story with a speech bubble while the cats roam", async ({ page }) => {
+    test.skip(
+      viewportWidth(page) !== DESKTOP_WIDTH,
+      "the origin-story button only mounts at >=1024px; run once",
+    );
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
+    await button.click();
+    await expect(page.locator("[data-origin-stage]")).toBeVisible();
+
+    // `Companion.tsx`'s "start" handler answers `origin-story-ack`
+    // synchronously and narrates the flight beat straight away, so a bubble
+    // should appear well inside the flight beat's own 3s run.
+    const bubble = page.locator("[data-cat-bubble]");
+    await expect(bubble).toBeVisible({ timeout: 5_000 });
+    await expect(bubble).toHaveAttribute("aria-hidden", "true");
+  });
+
   /* ----------------------------------------------------------------- D2: nav intent -- */
 
   test("marks nav-link intent on hover dwell, and clears it on leaving the nav", async ({

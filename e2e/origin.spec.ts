@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seasonsFor } from "../src/lib/origin-story";
+import AxeBuilder from "@axe-core/playwright";
+import { firstCanopyYear, seasonsFor } from "../src/lib/origin-story";
 
 /**
  * The origin-story player (`WatchOrigin.tsx` / `OriginStory.tsx`, Workstream
@@ -24,6 +25,11 @@ const DESKTOP_MIN_WIDTH = 1024;
 // each pinned to one width rather than repeated (with real setTimeout-driven
 // beats) across every project.
 const DESKTOP_WIDTH = 1440;
+
+/** Same five WCAG tag levels `axe.spec.ts` audits the rest of the page
+ *  against, reused here for the one state that file does not scroll through
+ *  a beat of. */
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 function viewportWidth(page: Page): number {
   return page.viewportSize()?.width ?? 0;
@@ -133,5 +139,185 @@ test.describe("the player", () => {
         await expect(stage.getByText(String(season.year))).not.toHaveCount(0);
       }
     });
+  });
+});
+
+/**
+ * v2's own coverage: the conductor documented at the top of `OriginStory.tsx`
+ * — chronological release, the never-partial-tree exit guarantee on every
+ * path out, and the two forms narration takes depending on whether the cats
+ * are free to carry it.
+ */
+test.describe("chronological growth", () => {
+  test("releases each year's growable groups in order, never all at once", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+
+    // Derived from the same imports the player itself uses, never a literal
+    // year: `seasonsFor()` is the beat order past flight/seed, and
+    // `firstCanopyYear()` is the year `releaseThroughYear` first has anything
+    // above ground to release.
+    const seasons = seasonsFor();
+    const canopyYear = firstCanopyYear();
+    const seasonIndex = seasons.findIndex((season) => season.year === canopyYear);
+    expect(
+      seasonIndex,
+      "content fixture assumption failed: no season names firstCanopyYear()",
+    ).toBeGreaterThanOrEqual(0);
+
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toBeVisible();
+    const status = stage.getByRole("status");
+    await expect(status).not.toHaveText("");
+
+    // Flight is beat 0, seed is beat 1, then one season beat per entry in
+    // `seasons` — so the beat that names `canopyYear` sits at `2 + seasonIndex`.
+    // Clicking the stage advances immediately (see "clicking the stage
+    // advances to the next beat" above), and reaching that beat is what runs
+    // `releaseThroughYear(groups, canopyYear)` in `OriginStory.tsx`.
+    const targetBeatIndex = 2 + seasonIndex;
+    for (let i = 0; i < targetBeatIndex; i += 1) {
+      const before = await status.textContent();
+      await stage.click({ position: { x: 5, y: 5 } });
+      await expect(status).not.toHaveText(before ?? "");
+    }
+
+    const groupState = await page.evaluate((limitYear) => {
+      // The shoot is deliberately excluded from this generic sweep (it waits
+      // for its own "still" beat), so it is excluded here too.
+      const groups = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-origin-year]"),
+      ).filter((el) => !el.hasAttribute("data-tree-shoot"));
+      const early = groups.filter((el) => Number(el.getAttribute("data-origin-year")) <= limitYear);
+      const later = groups.filter((el) => Number(el.getAttribute("data-origin-year")) > limitYear);
+      return {
+        earlyPending: early.filter((el) => el.hasAttribute("data-origin-pending")).length,
+        laterTotal: later.length,
+        laterPending: later.filter((el) => el.hasAttribute("data-origin-pending")).length,
+      };
+    }, canopyYear);
+
+    // Grown in order: every group dated at or before the beat just reached
+    // has already been released.
+    expect(groupState.earlyPending).toBe(0);
+    // Never all at once: something dated after it is still waiting its turn.
+    expect(
+      groupState.laterTotal,
+      "content fixture assumption failed: no year after firstCanopyYear()",
+    ).toBeGreaterThan(0);
+    expect(groupState.laterPending).toBeGreaterThan(0);
+  });
+});
+
+test.describe("exit hygiene", () => {
+  /**
+   * Every exit path funnels through `releaseEverything` in `OriginStory.tsx`
+   * — a real tree left half-drawn is worse than a story that never played.
+   * Both tests below get the show genuinely mid-story (past the flight beat,
+   * with real pending groups still on the tree) before exiting, so a pass
+   * here cannot be explained by "nothing was ever pending to begin with".
+   */
+  async function midStory(page: Page): Promise<{ stage: ReturnType<Page["locator"]> }> {
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toBeVisible();
+    const status = stage.getByRole("status");
+    await expect(status).not.toHaveText("");
+    const before = await status.textContent();
+    await stage.click({ position: { x: 5, y: 5 } });
+    await expect(status).not.toHaveText(before ?? "");
+    expect(
+      await page.locator("[data-origin-pending]").count(),
+      "test setup assumption failed: nothing was pending mid-story",
+    ).toBeGreaterThan(0);
+    return { stage };
+  }
+
+  test("Skip mid-story leaves zero pending groups and no data-origin-running", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const { stage } = await midStory(page);
+
+    await stage.getByRole("button", { name: "Skip" }).click();
+
+    await expect(stage).toHaveCount(0);
+    await expect(page.locator("[data-origin-pending]")).toHaveCount(0);
+    await expect(page.locator("[data-origin-running]")).toHaveCount(0);
+  });
+
+  test("Escape mid-story leaves zero pending groups and no data-origin-running", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const { stage } = await midStory(page);
+
+    await page.keyboard.press("Escape");
+
+    await expect(stage).toHaveCount(0);
+    await expect(page.locator("[data-origin-pending]")).toHaveCount(0);
+    await expect(page.locator("[data-origin-running]")).toHaveCount(0);
+  });
+});
+
+test.describe("narration without the cats", () => {
+  test("falls back to a floating annotation that keeps narrating when the cats are napped", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+
+    // Send the cats to bed first — `Companion.tsx`'s watch listener only
+    // attaches while `roams && roaming`, which "resting" is neither, so the
+    // player never hears an `origin-story-ack` and `catsNarrating` never
+    // flips true.
+    await page.evaluate(() => window.localStorage.setItem("companion", "resting"));
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button", { name: /wake the cats/i })).toBeVisible();
+
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toBeVisible();
+
+    const annotation = stage.locator("[data-origin-annotation]");
+    await expect(annotation).toBeVisible();
+    await expect(annotation).toHaveAttribute("aria-hidden", "true");
+    await expect(annotation).not.toHaveText("");
+
+    // And it keeps narrating rather than freezing on the flight caption.
+    const before = await annotation.textContent();
+    await stage.click({ position: { x: 5, y: 5 } });
+    await expect(annotation).not.toHaveText(before ?? "");
+  });
+});
+
+test.describe("accessible narration", () => {
+  test("the sr-only status announces every beat, and axe stays clean mid-story", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toBeVisible();
+
+    const status = stage.getByRole("status");
+    await expect(status).not.toHaveText("");
+
+    // Present in the accessibility tree, but visually clipped to nothing —
+    // the actual `.sr-only` CSS contract (`globals.css`), checked directly
+    // rather than trusted from the class name alone.
+    const box = await status.boundingBox();
+    expect(box, "the status region has no box at all").not.toBeNull();
+    expect(box!.width).toBeLessThanOrEqual(1);
+    expect(box!.height).toBeLessThanOrEqual(1);
+
+    // Every beat is heard as a change, not just the first one.
+    const first = await status.textContent();
+    await stage.click({ position: { x: 5, y: 5 } });
+    await expect(status).not.toHaveText(first ?? "");
+    const second = await status.textContent();
+    await stage.click({ position: { x: 5, y: 5 } });
+    await expect(status).not.toHaveText(second ?? "");
+
+    const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    expect(
+      results.violations,
+      results.violations.map((violation) => `[${violation.id}] ${violation.help}`).join("\n"),
+    ).toEqual([]);
   });
 });
