@@ -99,6 +99,21 @@ describe("scene bank", () => {
     const noRole = { ...FACTS, about: { role: "", organization: "" } };
     expect(sceneFor("ambient", "about", noRole)).toBeNull();
   });
+
+  it("never double-stops a subtitle, even when a fact already ends in a period", () => {
+    // FACTS.about.organization is "DoorDash, Inc." — already period-terminated,
+    // so any template that blindly appends its own "." would show "Inc..".
+    const kinds = ["hello", "ambient", "encore", "tour"] as const;
+    for (const kind of kinds) {
+      for (const section of [null, ...AMBIENT_SECTIONS, "contact"]) {
+        const scene = sceneFor(kind, section, FACTS);
+        if (!scene) continue;
+        for (const beat of scene.beats) {
+          expect(beat.sub, `${scene.id}: "${beat.sub}"`).not.toMatch(/\.\./);
+        }
+      }
+    }
+  });
 });
 
 describe("run state", () => {

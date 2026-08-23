@@ -37,7 +37,10 @@ export interface DialogueScene {
  *  two voices earn a little more room. */
 export const SUB_MAX_CHARS = 64;
 
-/** Reading-time clock for auto-advance: floor + per-character, clamped. */
+/** Reading-time clock for auto-advance: max-anchored, not floor-anchored — a
+ *  beat starts at `BEAT_MAX_MS` and loses `BEAT_MS_PER_CHAR` for every
+ *  character short of `SUB_MAX_CHARS`, then clamps to [BEAT_MIN_MS,
+ *  BEAT_MAX_MS]. See `beatDurationMs` below for the formula itself. */
 export const BEAT_MIN_MS = 2400;
 export const BEAT_MAX_MS = 5000;
 export const BEAT_MS_PER_CHAR = 55;
@@ -51,6 +54,11 @@ export const DUET_ODDS = 0.45;
 
 const grey = (meow: string, sub: string): DialogueBeat => ({ speaker: "grey", meow, sub });
 const tabby = (meow: string, sub: string): DialogueBeat => ({ speaker: "tabby", meow, sub });
+
+/** A full stop for a sentence that doesn't already end in one — "DoorDash,
+ *  Inc." brings its own, "Schaeffler Group" doesn't, and a template can't
+ *  tell which fact it got handed. */
+const endStop = (s: string): string => (s.endsWith(".") ? "" : ".");
 
 /**
  * The bank. Builders rather than data so facts resolve at ask-time; a builder
@@ -68,7 +76,7 @@ const AMBIENT: Record<string, SceneBuilder> = {
   about: (f) =>
     f.about.role && f.about.organization
       ? [
-          grey("Mrp. Meow.", `Now: ${f.about.role}, ${f.about.organization}.`),
+          grey("Mrp. Meow.", `Now: ${f.about.role}, ${f.about.organization}${endStop(f.about.organization)}`),
           tabby("Mrrrow?", "That's the headline. The page is the proof."),
         ]
       : null,
@@ -114,11 +122,14 @@ const ENCORE: Record<string, SceneBuilder> = {
 };
 
 const TOUR: Record<string, SceneBuilder> = {
+  // Asymmetric on purpose: AMBIENT.about nulls out when a fact is missing and
+  // simply never plays, but the tour must visit every stop, so this one falls
+  // back to generic prose instead of skipping the beat.
   about: (f) => [
     grey(
       "Mrp. Meow.",
       f.about.role && f.about.organization
-        ? `The start. Now: ${f.about.role}, ${f.about.organization}.`
+        ? `The start. Now: ${f.about.role}, ${f.about.organization}${endStop(f.about.organization)}`
         : "The start of the page.",
     ),
     tabby("Mrrrow!", "Scroll with us — we know all the good spots!"),

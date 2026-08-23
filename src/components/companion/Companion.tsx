@@ -1470,6 +1470,14 @@ export function Companion({ facts }: CompanionProps) {
    *  tap instead. */
   const tapTabby = useCallback(() => {
     const now = performance.now();
+    // A visitor-initiated scene still owes the scheduler a re-arm: it only
+    // guards on `duetRef.current === null`, so without this a tapped scene
+    // that just finished would leave the spontaneous hello free to fire the
+    // instant it ends. Skip the re-arm while the hello itself hasn't played
+    // yet — that one is on its own fixed clock and must not be pushed out.
+    const rearm = () => {
+      if (duetFirstShown.current) duetAt.current = nextDuetAt(now, false, Math.random());
+    };
     const run = duetRef.current;
     if (run) {
       const last = run.beatIndex === run.scene.beats.length - 1;
@@ -1478,22 +1486,32 @@ export function Companion({ facts }: CompanionProps) {
         const encore = sceneFor("encore", section, facts);
         if (encore) {
           playDuetScene(encore, now);
+          rearm();
           return;
         }
       }
       const next = advanceBeat(run, now);
       duetRef.current = next;
       setDuetBeat(next ? beatView(next) : null);
+      rearm();
       return;
     }
     const section = sectionRef.current;
     if (!section) return;
+    // Once a section's ambient scene has already had its once-per-visit
+    // showing, an encore is the next thing to offer — but only journey, tree
+    // and lab have one. Everywhere else, replay the ambient scene rather than
+    // going silent for the rest of the visit; `duetShown` already has the
+    // section, so this replay does not touch it again.
     const scene = duetShown.current.has(section)
-      ? sceneFor("encore", section, facts)
+      ? (sceneFor("encore", section, facts) ?? sceneFor("ambient", section, facts))
       : sceneFor("ambient", section, facts);
     if (scene) {
+      // A fallback replay is already in `duetShown`; only a first-ever
+      // ambient scene needs to be added.
       if (scene.kind === "ambient") duetShown.current.add(section);
-      playDuetScene(scene, performance.now());
+      playDuetScene(scene, now);
+      rearm();
     }
   }, [beatView, facts, playDuetScene]);
 
@@ -2807,7 +2825,8 @@ export function Companion({ facts }: CompanionProps) {
       tourSpots.current = null;
       setTourView(null);
       duetAt.current = 0;
-      duetFirstShown.current = false;
+      // duetFirstShown stays put: the hello is a once-per-visit scene (see
+      // its declaration above), and a bed/wake cycle is not a new visit.
       duetRef.current = null;
       setDuetBeat(null);
       window.clearTimeout(recheck);
