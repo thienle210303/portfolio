@@ -14,49 +14,90 @@ import { growthStage, seasonsFor, type Season, type SeasonKind } from "@/lib/ori
  * exists until a visitor presses the button, and everything it needs to
  * draw the story travels down in this one chunk.
  *
+ * v2 rewrite: there is no stand-in silhouette any more. The story grows the
+ * **real** knowledge tree — the same `<DrawnTree>` the visitor was just
+ * looking at — by conducting the `data-origin-year`/`data-origin-pending`
+ * contract `DrawnTree.tsx` and `globals.css` already carry (see the "Origin
+ * story v2" CSS block). This file's only jobs now are: play a transparent
+ * sky layer over the canopy (a bird, a seed, the weather), and release the
+ * real tree's own growable groups in chronological order as the beats pass.
+ *
  * A beat is `{ id, kind, caption, durationMs, season? }` — one authored or
  * derived moment, played in order: the flight (3s), the seed (2.5s), one per
- * `Season` from `seasonsFor()` (2s each), the reveal (2s) and "still
- * growing" (2.5s). `setTimeout` auto-advances; a click anywhere on the stage
- * advances immediately, the same "click moves things along" idiom the
- * companion's duet already uses. Escape, the Skip button, or the figure
- * scrolling out of view all end the show the same way.
+ * `Season` from `seasonsFor()` (2s each, `kind` is the season's own weather),
+ * and "still growing" (2.5s), which releases the one group nothing else
+ * ever does — the unfinished shoot. `setTimeout` auto-advances; a click
+ * anywhere on the stage advances immediately, the same "click moves things
+ * along" idiom the companion's duet already uses. Escape, the Skip button,
+ * or the figure scrolling out of view all end the show the same way.
  *
- * The overlay is deliberately not the *whole* `[data-tree-figure]` box —
- * only the wrapper `KnowledgeTree.tsx` puts around the drawing itself
- * (canopy, trunk, ground hatch). The root panel, the root system and the
- * list presentation sit below it, visible the entire time: the story plays
- * over the sky and the canopy, which is where a bird, a seed and a growing
- * silhouette actually belong, and the ground the tree already stands in
- * never has to disappear to make room for it. The reveal step still walks up
- * to the real `[data-tree-figure]` (via `closest`) to retrigger the whole
- * figure's ink draw-in — that part *is* figure-wide, on purpose: the payoff
- * is the entire tree redrawing itself, not just the slice the overlay sat on.
+ * ## The conductor, and the one rule it can never break
  *
- * Two independent things fade during the reveal, not one. The backdrop (a
- * `bg-ground` rect plus the SVG) carries `.origin-fade`, which is what
- * dissolves to let the real, re-inking tree show through underneath. The
- * caption and the Skip control each sit in their own opaque `bg-surface`
- * strip and never fade — a "…and still growing." announcement that faded
- * into illegibility right when it mattered most would be a worse ending
- * than the one this feature is trying to give the tree.
+ * On start, the stage walks up to the real `[data-tree-figure]` (via
+ * `closest` — the same idiom `TreeFigure.tsx`'s own cross-highlight island
+ * uses to reach the same wrapper), stamps `data-origin-running` on it, finds
+ * every `[data-origin-year]` group inside it exactly once, and stamps every
+ * one `data-origin-pending`. From there each beat only ever *releases*
+ * (`removeAttribute("data-origin-pending")`) — nothing is ever re-pended.
+ * Season beats release every group whose own year is at or before that
+ * season's year (a group can be a leaf, a lens branch, a root main, or the
+ * trunk/ground break — see `DrawnTree.tsx`); the shoot is deliberately
+ * excluded from that generic sweep and released only by the closing "still
+ * growing" beat, so the newest, unfinished growth is always the last thing
+ * to appear, never merely tied for last with whatever year it happens to
+ * share.
+ *
+ * The one thing every exit path — Skip, Escape, scrolling the stage out of
+ * view, the last beat's own timeout, an unmount nothing here chose, even a
+ * thrown error — must do is release every remaining pending group and drop
+ * `data-origin-running`, synchronously, before this component is gone. A
+ * real tree left half-drawn is a worse failure than a story that never
+ * played at all. `releaseEverything` below is the one function that does
+ * that; `end()` calls it before anything else, and the mount effect's own
+ * cleanup calls it again on unmount regardless of how the exit happened —
+ * both calls are safe because releasing an already-released tree is a no-op.
+ *
+ * ## The sky, not a cover
+ *
+ * `SkyLayer` is `pointer-events-none` and only ever draws over the canopy
+ * (the same 300×200 box the old silhouette used) — never a `bg-ground`
+ * backdrop, because there is no longer anything underneath it that needs
+ * covering. The stage `<div>` itself is what catches clicks-to-advance, and
+ * it is sized to the *whole* drawing wrapper (`inset-0`, matching
+ * `KnowledgeTree.tsx`'s relative box around `<DrawnTree>`), not just the sky
+ * slice — a click anywhere the real, growing tree is still visible still
+ * advances the story, the same "click the stage" contract as before. That
+ * wrapper exists only while this component is mounted, so the instant the
+ * story ends and `WatchOrigin.tsx` swaps this player back out for its
+ * button, the tree underneath is exactly as interactive as it always was.
+ *
+ * ## Narration, in two forms
+ *
+ * The accessible narration is the `role="status"` region — `sr-only` now,
+ * since the *visible* narration is a job the cats do (Task 3) or, when they
+ * are not roaming, a bare floating annotation does instead. This file always
+ * renders that fallback annotation for now: the ack it would hide behind
+ * (`origin-story-ack`, dispatched by the companion once it accepts the
+ * watch) has no dispatcher yet. The listener is wired up regardless, so
+ * Task 3 turning it on requires no change here.
  */
 
-type BeatKind = "flight" | "seed" | "season" | "reveal" | "stillGrowing";
+type BeatKind = "flight" | "seed" | SeasonKind | "still";
 
 interface Beat {
   readonly id: string;
   readonly kind: BeatKind;
   readonly caption: string;
   readonly durationMs: number;
+  /** Present only for a season beat — both the year a `data-origin-year`
+   *  group is compared against and the weather glyph to draw. */
   readonly season?: Season;
 }
 
 const FLIGHT_MS = 3000;
 const SEED_MS = 2500;
 const SEASON_MS = 2000;
-const REVEAL_MS = 2000;
-const STILL_GROWING_MS = 2500;
+const STILL_MS = 2500;
 
 /**
  * The one geographic fact the player is allowed to name, composed rather
@@ -77,7 +118,7 @@ function flightCaption(): string {
 function buildBeats(seasons: readonly Season[]): readonly Beat[] {
   const seasonBeats: Beat[] = seasons.map((season) => ({
     id: `season-${season.year}`,
-    kind: "season",
+    kind: season.kind,
     caption: season.caption,
     durationMs: SEASON_MS,
     season,
@@ -87,27 +128,8 @@ function buildBeats(seasons: readonly Season[]): readonly Beat[] {
     { id: "flight", kind: "flight", caption: flightCaption(), durationMs: FLIGHT_MS },
     { id: "seed", kind: "seed", caption: "A seed, carried the whole way.", durationMs: SEED_MS },
     ...seasonBeats,
-    {
-      id: "reveal",
-      kind: "reveal",
-      caption: "The tree, as it stands today.",
-      durationMs: REVEAL_MS,
-    },
-    {
-      id: "stillGrowing",
-      kind: "stillGrowing",
-      caption: "…and still growing.",
-      durationMs: STILL_GROWING_MS,
-    },
+    { id: "still", kind: "still", caption: "…and still growing.", durationMs: STILL_MS },
   ];
-}
-
-/** 0 before the seed lands, `growthStage(year)` through the seasons, 1 once
- *  the reveal begins — the silhouette never has to un-grow. */
-function growthFor(beat: Beat): number {
-  if (beat.kind === "season" && beat.season) return growthStage(beat.season.year);
-  if (beat.kind === "reveal" || beat.kind === "stillGrowing") return 1;
-  return 0;
 }
 
 function originDur(ms: number): CSSProperties {
@@ -115,42 +137,59 @@ function originDur(ms: number): CSSProperties {
 }
 
 /* -------------------------------------------------------------------------- */
-/* The drawing                                                                */
+/* The conductor                                                              */
 /* -------------------------------------------------------------------------- */
 
-/** Shared viewBox for every frame the player draws, animated or static: sky
- *  above y=80 (the upper 40% of 200), ground at y=150. */
+interface OriginGroup {
+  readonly el: HTMLElement;
+  readonly year: number;
+  /** The one group the generic "release through year Y" sweep must never
+   *  touch — see the file banner on why the shoot waits for its own beat. */
+  readonly isShoot: boolean;
+}
+
+function queryGroups(figure: HTMLElement): readonly OriginGroup[] {
+  return Array.from(figure.querySelectorAll<HTMLElement>("[data-origin-year]")).map((el) => ({
+    el,
+    year: Number(el.getAttribute("data-origin-year")),
+    isShoot: el.hasAttribute("data-tree-shoot"),
+  }));
+}
+
+function releaseThroughYear(groups: readonly OriginGroup[], year: number): void {
+  for (const group of groups) {
+    if (!group.isShoot && group.year <= year) group.el.removeAttribute("data-origin-pending");
+  }
+}
+
+function releaseShoot(groups: readonly OriginGroup[]): void {
+  for (const group of groups) {
+    if (group.isShoot) group.el.removeAttribute("data-origin-pending");
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* The sky layer                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** Shared viewBox for the sky layer's own drawing: a thin slice pinned over
+ *  the canopy, the same 300:200 box the old silhouette stage used. */
 const VIEW_BOX = "0 0 300 200";
-const GROUND_Y = 150;
 
 /** A bird as four strokes — a shallow double chevron, the plainest shape
  *  that still reads as wings mid-flap. */
 const BIRD_D = "M-8 3L-2 0M-2 0L0 2M0 2L2 0M2 0L8 3";
 /** The arc the bird follows, drawn dashed behind it — same curve the
- *  `origin-flight` keyframes below approximate with translate steps. */
+ *  `origin-flight` keyframes in globals.css approximate with translate
+ *  steps. */
 const FLIGHT_PATH_D = "M20 112C80 20 220 20 280 100";
 
 const SEED_TRAIL_D = "M150 32C149 56 150 82 150 108";
 const MOUND_D = "M136 150C142 144 158 144 164 150";
 
-/** A trunk and four limbs, one path: `pathLength={1}` makes its
- *  `stroke-dashoffset` a plain 0..1 fraction regardless of the real path
- *  length, the same trick every growth-drawn path in `DrawnTree.tsx` uses. */
-const SILHOUETTE_D =
-  "M150 150C150 130 148 110 150 92C151 78 149 64 150 50" +
-  "M150 118C138 108 128 100 116 96" +
-  "M150 96C162 88 172 82 182 78" +
-  "M150 74C140 66 132 60 122 56" +
-  "M150 60C158 54 166 50 174 46";
-
-/** The unfinished shoot the "still growing" beat adds above the silhouette's
- *  own tip — thinner, open-ended, the same idea as `DrawnTree.tsx`'s
- *  `GrowingTip`, drawn small enough for this stage rather than shared code. */
-const SHOOT_D = "M150 50C152 42 146 34 156 26";
-
 /** sun: six rays and a small disc. rain: five falling hatch strokes. storm:
  *  seven denser strokes plus one bent stroke. quiet has no glyph at all — a
- *  bare horizon is the honest picture of a year with nothing on record. */
+ *  bare sky is the honest picture of a year with nothing on record. */
 const SUN_D =
   "M0 -11L0 -6M9.5 -5.5L6 -3M9.5 5.5L6 3M0 11L0 6M-9.5 5.5L-6 3M-9.5 -5.5L-6 -3" +
   "M-5 0A5 5 0 1 0 5 0A5 5 0 1 0 -5 0";
@@ -183,18 +222,7 @@ const strokeProps = {
 } as const;
 
 function GroundLine() {
-  return <line x1={0} y1={GROUND_Y} x2={300} y2={GROUND_Y} stroke="currentColor" strokeWidth={1} />;
-}
-
-function Silhouette({ growth }: { readonly growth: number }) {
-  return (
-    <path
-      d={SILHOUETTE_D}
-      pathLength={1}
-      className="origin-silhouette"
-      style={{ strokeDasharray: 1, strokeDashoffset: 1 - growth }}
-    />
-  );
+  return <line x1={0} y1={150} x2={300} y2={150} stroke="currentColor" strokeWidth={1} />;
 }
 
 function SeedGlyph() {
@@ -214,10 +242,9 @@ function WeatherGlyph({ season }: { readonly season: Season }) {
     // animation applies one) replaces an SVG `transform` *attribute*
     // outright rather than composing with it — set both on the same element
     // and the attribute's `translate(240 48)` is simply discarded the moment
-    // the animation's own `transform: translateY(...)` takes over, which is
-    // exactly what happened here until this split. The position lives on
-    // the outer, unanimated `<g>`; the animation lives on the inner one,
-    // which has no attribute-transform of its own to lose.
+    // the animation's own `transform: translateY(...)` takes over. The
+    // position lives on the outer, unanimated `<g>`; the animation lives on
+    // the inner one, which has no attribute-transform of its own to lose.
     <g key={season.year} transform="translate(240 48)">
       <g className="origin-glyph">
         {d ? <path d={d} /> : null}
@@ -229,80 +256,80 @@ function WeatherGlyph({ season }: { readonly season: Season }) {
   );
 }
 
-function ShootGlyph() {
+/** The transparent sky: a bird tracing its flight (flight beat), a seed
+ *  landing (seed beat), or a season's weather and year — nothing at all
+ *  during "still", where the real tree's own shoot is the entire story.
+ *  `pointer-events-none` throughout: this layer is decoration drawn *over*
+ *  the canopy, never a click target and never a cover. */
+function SkyLayer({ beat }: { readonly beat: Beat }) {
   return (
-    <g className="origin-glyph">
-      <path d={SHOOT_D} strokeWidth={0.75} />
-    </g>
-  );
-}
-
-/** The animated stage: the moving picture, plus its live caption. Everything
- *  inside `.origin-fade` is decoration (`aria-hidden`) — the caption below
- *  it is the one piece of real text a screen reader hears. */
-function AnimatedStage({ beat }: { readonly beat: Beat }) {
-  const growth = growthFor(beat);
-  const isSettling = beat.kind === "reveal" || beat.kind === "stillGrowing";
-  const showSeedOnward = beat.kind !== "flight";
-
-  // Mounted empty and filled a frame later — the same mount-empty-then-fill
-  // discipline `TourHud.tsx`'s `role="status"` region uses, for the same
-  // reason. Rendering beat 1's caption straight into the region on its first
-  // paint would mean the region never actually *changes*: a `role="status"`
-  // a screen reader has never seen before is one it may not announce with
-  // content already inside it. A `requestAnimationFrame` after mount/update
-  // guarantees at least one paint with the old (or, for beat 1, empty) text
-  // still in place before the real caption lands, so every beat — the first
-  // one included — is heard as a change.
-  const [announced, setAnnounced] = useState("");
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setAnnounced(beat.caption));
-    return () => cancelAnimationFrame(id);
-  }, [beat]);
-
-  return (
-    <>
-      <div
-        aria-hidden="true"
-        className={cn("origin-fade absolute inset-0 bg-ground", isSettling && "is-settling")}
-      >
-        <svg
-          {...strokeProps}
-          viewBox={VIEW_BOX}
-          preserveAspectRatio="xMidYMid meet"
-          className="h-full w-full text-fg-subtle"
-        >
+    <svg
+      {...strokeProps}
+      viewBox={VIEW_BOX}
+      preserveAspectRatio="xMidYMid meet"
+      className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2] text-fg-subtle"
+    >
+      {beat.kind === "flight" ? (
+        <>
           <GroundLine />
+          <path d={FLIGHT_PATH_D} pathLength={1} className="origin-flight-path" style={originDur(FLIGHT_MS)} />
+          <g className="origin-bird" style={originDur(FLIGHT_MS)}>
+            <path d={BIRD_D} />
+          </g>
+        </>
+      ) : null}
+      {beat.kind === "seed" ? (
+        <>
+          <GroundLine />
+          <SeedGlyph />
+        </>
+      ) : null}
+      {beat.season ? <WeatherGlyph season={beat.season} /> : null}
+    </svg>
+  );
+}
 
-          {beat.kind === "flight" ? (
-            <g>
-              <path d={FLIGHT_PATH_D} pathLength={1} className="origin-flight-path" style={originDur(FLIGHT_MS)} />
-              <g className="origin-bird" style={originDur(FLIGHT_MS)}>
-                <path d={BIRD_D} />
-              </g>
-            </g>
-          ) : null}
-
-          {showSeedOnward ? <SeedGlyph /> : null}
-          {showSeedOnward ? <Silhouette growth={growth} /> : null}
-          {beat.kind === "season" && beat.season ? <WeatherGlyph season={beat.season} /> : null}
-          {beat.kind === "stillGrowing" ? <ShootGlyph /> : null}
-        </svg>
-      </div>
-
-      <p
-        role="status"
-        className="absolute inset-x-3 bottom-3 border border-rule bg-surface px-3 py-2 text-[length:var(--step--1)] leading-snug text-fg"
-      >
-        {announced}
-      </p>
-    </>
+/** The bare-mono fallback narration: shown whenever the cats are not
+ *  narrating (always, until Task 3 wires the ack that hides it). No border,
+ *  no background — an annotation, not a caption box, sitting near the
+ *  ground line the way the figure's own margin notes do. `aria-hidden`
+ *  because it duplicates the accessible `role="status"` region below it;
+ *  a screen reader should hear the story once, not twice. */
+function FloatingAnnotation({ text }: { readonly text: string }) {
+  return (
+    <p
+      aria-hidden="true"
+      data-origin-annotation
+      className="pointer-events-none absolute inset-x-3 bottom-2 font-mono text-[length:var(--step--1)] leading-snug text-fg-subtle"
+    >
+      {text}
+    </p>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Storyboard — the reduced-motion fallback                                  */
+/* Storyboard — the reduced-motion fallback (unchanged from v1)              */
 /* -------------------------------------------------------------------------- */
+
+/** A trunk and four limbs, one path — the storyboard's own small illustration,
+ *  independent of the real tree it sits over: reduced motion never stamps
+ *  `data-origin-running` (the beat effect below bails out first), so the
+ *  real tree stays exactly as already-inked as it always is underneath this
+ *  static overlay. `pathLength={1}` makes its `stroke-dashoffset` a plain
+ *  0..1 fraction regardless of the real path length, the same trick every
+ *  growth-drawn path in `DrawnTree.tsx` uses. */
+const SILHOUETTE_D =
+  "M150 150C150 130 148 110 150 92C151 78 149 64 150 50" +
+  "M150 118C138 108 128 100 116 96" +
+  "M150 96C162 88 172 82 182 78" +
+  "M150 74C140 66 132 60 122 56" +
+  "M150 60C158 54 166 50 174 46";
+
+/** The unfinished shoot the storyboard's closing frame adds above the
+ *  silhouette's own tip — thinner, open-ended, the same idea as
+ *  `DrawnTree.tsx`'s `GrowingTip`, drawn small enough for this frame rather
+ *  than shared code. */
+const SHOOT_D = "M150 50C152 42 146 34 156 26";
 
 const KIND_LABEL: Record<SeasonKind, string> = {
   sun: "Sun years",
@@ -431,15 +458,39 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // is nothing mid-show for a later preference change to interrupt.
   const [reduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [index, setIndex] = useState(0);
+  const [announced, setAnnounced] = useState("");
+  // Flips true the moment the companion answers `origin-story-ack` (Task 3).
+  // Never flips back — a watch that was accepted stays accepted for the rest
+  // of this run, so the fallback annotation cannot flicker on if the
+  // companion's own state changes mid-story for an unrelated reason.
+  const [catsNarrating, setCatsNarrating] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const ended = useRef(false);
-  const revealed = useRef(false);
+  // Captured once, at the setup effect below — read at unmount time via this
+  // plain ref rather than `containerRef.current`, which React may already
+  // have detached by the time an unrelated cleanup runs.
+  const figureRef = useRef<HTMLElement | null>(null);
+  const groupsRef = useRef<readonly OriginGroup[]>([]);
+
+  // The one cleanup every exit path funnels through — see the file banner's
+  // note on why this must never leave the tree half-drawn. Idempotent: once
+  // a group has lost `data-origin-pending`, removing it again is a no-op,
+  // and removing an attribute that is already gone is too.
+  const releaseEverything = useCallback(() => {
+    const figure = figureRef.current;
+    if (!figure) return;
+    figure
+      .querySelectorAll("[data-origin-pending]")
+      .forEach((el) => el.removeAttribute("data-origin-pending"));
+    figure.removeAttribute("data-origin-running");
+  }, []);
 
   const end = useCallback(() => {
     if (ended.current) return;
     ended.current = true;
+    releaseEverything();
     document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
     // Read *before* `onClose` unmounts this subtree — `document.activeElement`
     // is still whatever it was the instant the show ended, whether that was
@@ -448,7 +499,7 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     // it started, outside the stage).
     const restoreFocus = containerRef.current?.contains(document.activeElement) ?? false;
     onClose(restoreFocus);
-  }, [onClose]);
+  }, [onClose, releaseEverything]);
 
   useEffect(() => {
     // Reset on every real run of this effect, not just at the top of the
@@ -459,17 +510,47 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     // the last beat's own timeout — would silently no-op against a guard that
     // had already fired for a mount nobody asked to close.
     ended.current = false;
+    // Listening before dispatching: `dispatchEvent` is synchronous, so if the
+    // companion is already mounted and answers `origin-story-ack`
+    // synchronously from its own "start" listener (Task 3), this has to be
+    // attached first to hear it.
+    const onAck = () => setCatsNarrating(true);
+    document.addEventListener("origin-story-ack", onAck);
     document.dispatchEvent(new CustomEvent("origin-story", { detail: "start" }));
     return () => {
+      document.removeEventListener("origin-story-ack", onAck);
       // Covers the exits `end()` never sees directly — a parent unmounting
-      // this component some other way. `ended` guarantees the pair fires
+      // this component some other way, or an error before any exit handler
+      // ran. `ended` guarantees the pair (and the tree release) fires
       // exactly once per *real* mount, Strict Mode's rehearsal included.
       if (!ended.current) {
         ended.current = true;
+        releaseEverything();
         document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
       }
     };
-  }, []);
+  }, [releaseEverything]);
+
+  // The conductor's setup, once per real mount: find the real figure, stamp
+  // it running, cache every growable group exactly once (so later beats
+  // never re-query the DOM), pend all of them, then immediately release
+  // whatever is already true at the flight's own landing year — there is
+  // nothing earlier than `origin.arrivedYear` for any group to honestly
+  // claim, so nothing here waits on a beat that will never move it. Skipped
+  // entirely under reduced motion, which never touches these attributes —
+  // see the Storyboard doc comment above for why that overlay is safe
+  // regardless.
+  useEffect(() => {
+    if (reduced) return;
+    const figure = containerRef.current?.closest<HTMLElement>("[data-tree-figure]");
+    if (!figure) return;
+    figureRef.current = figure;
+    figure.setAttribute("data-origin-running", "");
+    const groups = queryGroups(figure);
+    groups.forEach((group) => group.el.setAttribute("data-origin-pending", ""));
+    groupsRef.current = groups;
+    releaseThroughYear(groups, origin.arrivedYear);
+  }, [reduced]);
 
   useEffect(() => {
     skipRef.current?.focus();
@@ -488,11 +569,12 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // *stage itself* (`containerRef`), not `closest("[data-tree-figure]")`: the
   // figure runs 2000px+ tall once every branch panel is stacked under it, so
   // watching the figure meant the show — and its live status region — kept
-  // running for thousands of scrolled pixels after the stage (a much smaller
-  // box pinned to the figure's own top) had long since left the viewport.
-  // Self-observing a box this component also unmounts from is safe: `end()`
-  // is latch-guarded against firing twice, and the observer disconnects in
-  // this same effect's cleanup on unmount regardless of which exit fired.
+  // running for thousands of scrolled pixels after the stage (a box exactly
+  // as tall as the figure's own drawing wrapper, pinned to its top) had long
+  // since left the viewport. Self-observing a box this component also
+  // unmounts from is safe: `end()` is latch-guarded against firing twice, and
+  // the observer disconnects in this same effect's cleanup on unmount
+  // regardless of which exit fired.
   useEffect(() => {
     const stage = containerRef.current;
     if (!stage || typeof IntersectionObserver === "undefined") return;
@@ -509,23 +591,37 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   const beat = beats[index];
   const isLast = index >= beats.length - 1;
 
+  // Mounted empty and filled a frame later — the same mount-empty-then-fill
+  // discipline `TourHud.tsx`'s `role="status"` region uses, for the same
+  // reason. Rendering beat 1's caption straight into the region on its first
+  // paint would mean the region never actually *changes*: a `role="status"`
+  // a screen reader has never seen before is one it may not announce with
+  // content already inside it. A `requestAnimationFrame` after mount/update
+  // guarantees at least one paint with the old (or, for beat 1, empty) text
+  // still in place before the real caption lands, so every beat — the first
+  // one included — is heard as a change.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setAnnounced(beat.caption));
+    return () => cancelAnimationFrame(id);
+  }, [beat]);
+
   useEffect(() => {
     if (reduced) return;
 
-    if (beat.kind === "reveal" && !revealed.current) {
-      revealed.current = true;
-      // The exact re-trigger the "Career tree figure" CSS block is built to
-      // replay: drop `data-inked`, then restore it a frame later so the
-      // browser sees a genuine change rather than a no-op. Guarded on
-      // `data-ink-ready` per that block's own contract — without it (reduced
-      // motion or no observer) the attribute dance does nothing, and this
-      // beat never runs there anyway (see the storyboard branch below).
-      const figure = containerRef.current?.closest<HTMLElement>("[data-tree-figure]");
-      if (figure && document.documentElement.hasAttribute("data-ink-ready")) {
-        figure.removeAttribute("data-inked");
-        requestAnimationFrame(() => figure.setAttribute("data-inked", ""));
-      }
-    }
+    // Every beat's own release, before anything else this beat does: the
+    // shoot waits for "still" specifically (see `releaseShoot`'s doc
+    // comment); a season beat releases every other group at or before its
+    // own year; flight and seed release nothing — there is nothing dated
+    // that early for them to honestly reveal.
+    const groups = groupsRef.current;
+    if (beat.kind === "still") releaseShoot(groups);
+    else if (beat.season) releaseThroughYear(groups, beat.season.year);
+
+    document.dispatchEvent(
+      new CustomEvent("origin-story-beat", {
+        detail: { kind: beat.kind, year: beat.season?.year, sub: beat.caption },
+      }),
+    );
 
     const id = window.setTimeout(() => {
       if (isLast) end();
@@ -555,28 +651,26 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
       aria-label="How the tree grew"
       data-origin-stage
       onClick={reduced ? undefined : advance}
-      // `aspect-[3/2]` (the same 300:200 ratio the SVG viewBoxes use), not
-      // `inset-0`, for the *animated* stage only: the drawing wrapper this
-      // mounts inside is the *whole* canopy-to-trunk-foot column, which runs
-      // well past 2000px tall once every branch panel is stacked under it. A
-      // story sized to that full height would centre a 3:2 picture inside a
-      // mostly-empty column, invisible without scrolling. Pinned to the top
-      // and sized off the wrapper's own width instead, the stage lands
-      // exactly over the trunk and its tip — where a bird, a seed and a
-      // growing silhouette actually belong — and everything below (the
-      // branch panels, the root system) is simply never touched, reappearing
-      // exactly as it was the moment the show ends.
-      //
-      // Reduced motion drops both the aspect clamp and `overflow-hidden`:
-      // the storyboard is meant to be read start to finish, not scrolled
-      // inside a letterbox, and the figure has more than enough height
-      // below this pinned-to-the-top box for its natural, un-clamped size.
-      className={cn(
-        "absolute inset-x-0 top-0 z-20",
-        !reduced && "aspect-[3/2] overflow-hidden cursor-pointer",
-      )}
+      // Non-reduced: `inset-0` matches the *whole* drawing wrapper
+      // `KnowledgeTree.tsx` puts around `<DrawnTree>` — the click-to-advance
+      // target the whole real tree draws inside, not just the sky slice — so
+      // a click anywhere the growing tree is visible still advances the
+      // story. Reduced motion keeps the old top-pinned, unclamped box: the
+      // storyboard is meant to be read start to finish, not clicked through,
+      // and has more than enough height below it to grow into.
+      className={cn("absolute z-20", reduced ? "inset-x-0 top-0" : "inset-0 cursor-pointer")}
     >
-      {reduced ? <Storyboard seasons={seasons} /> : <AnimatedStage beat={beat} />}
+      {reduced ? (
+        <Storyboard seasons={seasons} />
+      ) : (
+        <>
+          <SkyLayer beat={beat} />
+          {!catsNarrating ? <FloatingAnnotation text={announced} /> : null}
+          <p role="status" className="sr-only">
+            {announced}
+          </p>
+        </>
+      )}
 
       <button type="button" ref={skipRef} onClick={handleSkip} className={SKIP_BUTTON_CLASS}>
         Skip

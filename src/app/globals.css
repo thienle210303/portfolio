@@ -1247,10 +1247,42 @@
       opacity: 1;
       transition: opacity var(--dur-settle) var(--ease-ink);
     }
+
+    /* Non-ink chrome (Task 2, implementer's judgment per the plan's
+       self-review note): the pending rules above only ever collapse
+       `.tree-draw`/`.tree-grow`/`.tree-fade` — a leaf's disclosure text, the
+       root labels and the ground plinth's own name/inscription carry none of
+       those classes, so without this they would sit at full opacity next to
+       a bare, undrawn tree and break the "nothing here yet" illusion the
+       story is trying to tell. Three targets, each already an existing hook
+       (no new markup):
+         - a leaf row's own disclosure (the `<div>` directly inside
+           `[data-tree-entry]`) fades with its own leaf's pending state,
+           exactly like its ink neighbours, so the label reappears the same
+           moment the leaf's twig does;
+         - `[data-tree-root]` (every root label under the plinth) and the
+           plinth's own name/philosophy/count line (`[data-cat-nap] > p`) are
+           not conducted by any beat at all, so they simply stay hidden for
+           the whole run and return the instant it ends.
+       The leaf rule needs the extra `[data-origin-running]` ancestor to
+       out-specify the release rule below it, the same reason the four
+       pending shapes above do. */
+    [data-origin-running] [data-tree-entry][data-origin-pending] > div {
+      opacity: 0;
+    }
+    [data-origin-running] [data-tree-entry] > div {
+      opacity: 1;
+      transition: opacity var(--dur-settle) var(--ease-ink);
+    }
+    [data-origin-running] [data-tree-root],
+    [data-origin-running] [data-cat-nap] > p {
+      opacity: 0;
+      transition: opacity var(--dur-settle) var(--ease-ink);
+    }
   }
 
   /* ---------------------------------------------------------------------- */
-  /* Origin story (Task 3): the lazy-loaded "How it grew" player.           */
+  /* Origin story — the sky layer (v2).                                     */
   /*                                                                        */
   /* `OriginStory.tsx` only ever applies these classes when it has already  */
   /* checked `prefers-reduced-motion` itself and found "no-preference" —    */
@@ -1260,15 +1292,22 @@
   /* relationship the tree's own `.tree-draw`/`.tree-grow` rules above have  */
   /* to `InkReveal`.                                                        */
   /*                                                                        */
+  /* v2 deleted the covering silhouette entirely — the story now grows the  */
+  /* real tree via `[data-origin-running]`/`[data-origin-pending]` (the      */
+  /* block above this one), so `.origin-silhouette` and the dissolving       */
+  /* `.origin-fade` backdrop it used to reveal through are gone. What is     */
+  /* left is the transparent sky layer's own cast: a bird tracing a flight   */
+  /* path, a seed settling in, and each season's weather glyph — all drawn   */
+  /* over the canopy, never covering it.                                     */
+  /*                                                                        */
   /* Timing comes from two places on purpose. The flight beat's bird and    */
   /* its drawn-behind path both read `--origin-dur`, an inline custom       */
   /* property the component sets to that beat's own authored duration —     */
   /* there is no existing token for a 3-second flight because nothing else   */
-  /* on the page plays one. Everything else — a glyph settling in, the       */
-  /* silhouette growing, the backdrop dissolving for the reveal — reuses      */
-  /* `--dur-settle`/`--dur-draw` and `--ease-ink` exactly as the tree's own   */
-  /* draw-in does, because those are the same *kind* of motion the rest of   */
-  /* the page already has a name for.                                        */
+  /* on the page plays one. Everything else — a glyph settling in — reuses   */
+  /* `--dur-settle` and `--ease-ink` exactly as the tree's own draw-in does,  */
+  /* because that is the same *kind* of motion the rest of the page already  */
+  /* has a name for.                                                        */
   /* ---------------------------------------------------------------------- */
   @media screen and (prefers-reduced-motion: no-preference) {
     @keyframes origin-flight-path-draw {
@@ -1334,27 +1373,6 @@
     }
     .origin-glyph {
       animation: origin-settle var(--dur-settle) var(--ease-ink);
-    }
-
-    /* The silhouette's `stroke-dashoffset` is a plain inline style the
-       component updates every time `growthStage()` moves — a transition,
-       not an animation, because there is no fixed start and end here, only
-       a value that steps forward beat by beat. */
-    .origin-silhouette {
-      transition: stroke-dashoffset var(--dur-draw) var(--ease-ink);
-    }
-
-    /* The backdrop that dissolves during the reveal, letting the real
-       figure's own re-inking show through underneath. `.is-settling` is
-       added by React on a later render, never present at mount, which is
-       what makes this an actual transition rather than a no-op — see the
-       note on `[data-tree-figure]`'s own pending-state selectors above for
-       why the equivalent trick there needs an attribute instead of a class. */
-    .origin-fade {
-      transition: opacity var(--dur-settle) var(--ease-ink);
-    }
-    .origin-fade.is-settling {
-      opacity: 0;
     }
   }
 
