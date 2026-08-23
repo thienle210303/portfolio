@@ -795,7 +795,12 @@ export function RootSystem({ className }: { readonly className?: string }) {
   const { years } = careerYearSpan();
 
   return (
-    <div aria-hidden="true" className={cn("pointer-events-none", className)}>
+    // `data-root-system` is a query hook only, for `OriginStory.tsx`'s
+    // conductor: the one stable way to find this box from the shared
+    // `[data-tree-figure]` ancestor without a ref threaded down through
+    // `KnowledgeTree.tsx`. It carries no styling and no semantics of its
+    // own — `aria-hidden`/`pointer-events-none` are unchanged from before.
+    <div aria-hidden="true" data-root-system className={cn("pointer-events-none", className)}>
       {/* Stretched and `preserveAspectRatio="none"`, like the trunk above —
           the whole `<svg>` grows down from the ground rather than any one
           path dash-drawing, for the same reason. */}
@@ -821,7 +826,21 @@ export function RootSystem({ className }: { readonly className?: string }) {
             brighten exactly the lateral a hovered or focused root label
             names, without touching the other five. The feeder hairs are
             unlabelled texture, like the taproot's own — fine roots are not
-            a claim `RootLabels` makes, only the lateral itself is. */}
+            a claim `RootLabels` makes, only the lateral itself is.
+
+            `tree-fade` on both paths, not left bare like the taproot above:
+            this `<g>` is the one thing in the whole file carrying its own
+            `data-origin-year` with nothing to gate its visibility — without
+            an ink class, `[data-origin-pending]` on the group matches
+            nothing in globals.css and the lateral sits fully drawn from the
+            first frame, story or no story. `tree-fade` rather than
+            `tree-grow-down` (the parent `<svg>`'s own class, for the
+            page-load reveal): stacking the same transform-based class on a
+            descendant would compound the parent's `scaleY(0)` collapse
+            rather than layer cleanly on top of it, the same reason
+            `GroundHatch`'s hatching above fades rather than grows. Fading
+            obeys both contracts — the passive scroll reveal and the story's
+            conductor — with the one CSS block already written for either. */}
         {skillCategories.map((category, index) => {
           const { main, feeders } = lateralRoot(
             category.id,
@@ -830,8 +849,20 @@ export function RootSystem({ className }: { readonly className?: string }) {
           );
           return (
             <g key={category.id} data-origin-year={rootYearFor(index, count)}>
-              <path data-tree-lateral={category.id} d={main} vectorEffect="non-scaling-stroke" />
-              <path d={feeders} strokeWidth={0.4} vectorEffect="non-scaling-stroke" />
+              <path
+                data-tree-lateral={category.id}
+                className="tree-fade"
+                style={inkDelay(`root|${category.id}`, 40, 140)}
+                d={main}
+                vectorEffect="non-scaling-stroke"
+              />
+              <path
+                className="tree-fade"
+                style={inkDelay(`root|${category.id}|feeders`, 60, 160)}
+                d={feeders}
+                strokeWidth={0.4}
+                vectorEffect="non-scaling-stroke"
+              />
             </g>
           );
         })}

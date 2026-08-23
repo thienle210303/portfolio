@@ -2011,9 +2011,17 @@ export function Companion({ facts }: CompanionProps) {
        * `tourStopSpots` this cheap is worth calling every frame rather than
        * trying to know ahead of time when the section's anchor has finished
        * settling.
+       *
+       * The player still has a show running when this fires — only the
+       * watch is dropped, not the story — so it is told with its own
+       * `"stop"` detail rather than the plain, detail-less dispatch `"end"`
+       * gets elsewhere in this file: `OriginStory.tsx`'s ack listener reads
+       * that detail to bring its bare-annotation fallback back rather than
+       * leaving the story fully dark for whatever beats remain.
        */
       if (watchRef.current && (run || tour || nap || openRef.current)) {
         watchRef.current = null;
+        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
         if (duetRef.current?.scene.kind === "story") {
           duetRef.current = null;
           setDuetBeat(null);
@@ -2956,6 +2964,18 @@ export function Companion({ facts }: CompanionProps) {
       // its declaration above), and a bed/wake cycle is not a new visit.
       duetRef.current = null;
       setDuetBeat(null);
+      // Nor the origin-story watch. This loop is the only thing that ever
+      // advances it (see the effect below), so `loopActive` going false —
+      // the visitor turning roaming off mid-show, same as `roams` itself
+      // dropping — is the one watch-drop site that reaching into `watchRef`
+      // from inside the loop's own frames can never catch, because there is
+      // no frame left to reach from. `"stop"`, not the plain `"end"` this
+      // file also dispatches elsewhere: the story itself is still running,
+      // only the cats' narration of it just went dark.
+      if (watchRef.current) {
+        watchRef.current = null;
+        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
+      }
       window.clearTimeout(recheck);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
@@ -3007,27 +3027,39 @@ export function Companion({ facts }: CompanionProps) {
   /* ------------------------------------------------------------ origin story */
 
   /**
-   * The origin-story overlay (`OriginStory.tsx`) dispatches this on `document`
-   * — `"start"` once on mount, `"end"` exactly once on every exit. Neither
-   * carries a payload beyond that, so this is the whole contract.
+   * The origin-story overlay (`OriginStory.tsx`) dispatches `"origin-story"`
+   * on `document` — `"start"` once on mount, `"end"` exactly once on every
+   * exit. Neither carries a payload beyond that, so that much is the whole
+   * contract.
    *
    * `"start"` only sets `watchRef` — see its declaration — when nothing
    * already has a stronger claim on the pair; a visitor mid-tour, mid-nap or
    * with the panel open keeps whatever they already have, the same refusal
    * every other invitation in this file gives a claimed pair. Accepting also
-   * answers the player with `"origin-story-ack"`, which is what tells it to
-   * hide its own bare-annotation fallback — the player is listening for this
-   * before it ever dispatches `"start"` (see its own mount effect's comment),
-   * so there is no race to lose here. `"end"` clears `watchRef`
-   * unconditionally (it may already be null, if the invitation was declined
-   * or a stronger claim dropped it while the show played) and drops a
-   * running story bubble with it — a beat still reading out a show that has
-   * already ended is exactly the "narrating something that is no longer
-   * true" a scene's stronger claims elsewhere in this file are written to
-   * avoid — then, the one further bit of narration this gets, queues the
-   * tree's own encore if the pair are otherwise doing nothing and the
-   * visitor is still looking at it. No new scene: `sceneFor("encore", "tree",
-   * facts)` already exists and is exactly about the tree lighting up.
+   * answers the player with `origin-story-ack`'s `detail: "start"`, which is
+   * what tells it to hide its own bare-annotation fallback — the player is
+   * listening for this before it ever dispatches `"start"` (see its own
+   * mount effect's comment), so there is no race to lose here.
+   *
+   * The same `origin-story-ack` event carries a second detail, `"stop"`,
+   * dispatched from every site in this file that drops `watchRef` *without*
+   * the story itself ending — the per-frame drop a few dozen lines above
+   * (toolkit open, escort, tour, nap) and the loop's own cleanup (roaming
+   * turned off, or `roams` itself dropping). The player's own ack listener
+   * treats that as "the cats stopped narrating, not the show" and brings
+   * its fallback annotation back rather than sitting fully dark for
+   * whatever beats remain — see its `catsNarrating` state.
+   *
+   * `"end"` clears `watchRef` unconditionally (it may already be null, if
+   * the invitation was declined or a stronger claim dropped it while the
+   * show played) and drops a running story bubble with it — a beat still
+   * reading out a show that has already ended is exactly the "narrating
+   * something that is no longer true" a scene's stronger claims elsewhere in
+   * this file are written to avoid — then, the one further bit of narration
+   * this gets, queues the tree's own encore if the pair are otherwise doing
+   * nothing and the visitor is still looking at it. No new scene:
+   * `sceneFor("encore", "tree", facts)` already exists and is exactly about
+   * the tree lighting up.
    */
   useEffect(() => {
     if (!roams || !roaming) return;
@@ -3043,7 +3075,7 @@ export function Companion({ facts }: CompanionProps) {
         rushRef.current = null;
         rainHuddleUntil.current = 0;
         lastSignRef.current = performance.now();
-        document.dispatchEvent(new CustomEvent("origin-story-ack"));
+        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "start" }));
         wake();
       } else if (detail === "end") {
         watchRef.current = null;

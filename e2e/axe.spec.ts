@@ -126,10 +126,18 @@ test.describe("interactive states", () => {
     // catches that fade mid-flight: a paragraph at `opacity: 0.05` and
     // `visibility: visible` is a real, if momentary, contrast violation to
     // axe, even though it is seconds away from settling honestly (hidden) or
-    // reverting (Skip/Escape). Waiting out the transition first is the same
-    // "give a settle transition time to finish" discipline
-    // `scrollIntoViewAndSettle` already uses above.
-    await page.waitForTimeout(600);
+    // reverting (Skip/Escape). Polling the plinth's own `[data-cat-nap] > p`
+    // for the computed `visibility` this transition ends on — rather than a
+    // fixed wait guessing how long that takes — settles exactly when the
+    // fade actually finishes, on any machine.
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-cat-nap] > p")
+          .first()
+          .evaluate((el) => getComputedStyle(el).visibility),
+      )
+      .toBe("hidden");
     await auditHasNoViolations(page);
   });
 });

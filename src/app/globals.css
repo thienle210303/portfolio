@@ -1227,7 +1227,20 @@
        still pending is unaffected by this — the moment it stops matching
        `[data-origin-pending]`, though, this is what it falls into, and the
        `transition` declared alongside each end state is what makes that
-       change a draw-in rather than a jump cut. */
+       change a draw-in rather than a jump cut.
+
+       The `transition-delay: 0ms` below looks like the thing clearing a
+       leftover `--ink-delay` stagger a group might still carry from the
+       page-load ink reveal (the "Career tree figure" block above sets that
+       custom property per element) — it is not. Each of the three
+       per-class rules immediately after this one repeats this rule's own
+       selector text exactly, so the cascade always prefers whichever comes
+       later in the source, and that rule's `transition` shorthand already
+       resets `transition-delay` to its initial `0s` on its own, simply by
+       never naming a delay term. This declaration restates a value the
+       shorthand below was already going to produce; deleting it would
+       change nothing on screen. It stays as documentation of the intended
+       reset, not as the rule actually performing it. */
     [data-origin-running] .tree-draw,
     [data-origin-running] .tree-grow,
     [data-origin-running] .tree-grow-down,

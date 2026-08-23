@@ -2,6 +2,7 @@
 
 import { origin } from "@/content/portfolio";
 import type { CompanionFacts } from "@/lib/companion-facts";
+import type { SeasonKind } from "@/lib/origin-story";
 
 /**
  * The duet: one pure scene bank behind both the ambient banter and the
@@ -181,8 +182,15 @@ const TOUR: Record<string, SceneBuilder> = {
  * flight's own date is `origin.arrived` (`src/content/portfolio.ts`), not a
  * literal — the same fact `flightCaption()` in `OriginStory.tsx` composes
  * from, so a change to the arrival date never has to be typed twice.
+ *
+ * The four weather members are `SeasonKind` itself (`@/lib/origin-story`),
+ * type-only imported rather than retyped: `OriginStory.tsx`'s own
+ * `BeatKind` is `"flight" | "seed" | SeasonKind | "still"`, the exact shape
+ * below, and a season kind added there without a matching update here would
+ * otherwise only ever surface as a silent "nothing to say" (the guarded
+ * lookup a few lines down) rather than a type error at the call site.
  */
-export type StoryBeatKind = "flight" | "seed" | "rain" | "sun" | "storm" | "quiet" | "still";
+export type StoryBeatKind = "flight" | "seed" | SeasonKind | "still";
 
 const STORY_BEAT: Record<
   StoryBeatKind,
