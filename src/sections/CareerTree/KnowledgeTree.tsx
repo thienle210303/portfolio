@@ -109,23 +109,34 @@ export default function KnowledgeTree({ tree, className }: KnowledgeTreeProps) {
 
       {/* The root: Thien himself, the foundation the branches grow out of.
           `profile.name` / `profile.philosophy` and the tree's own computed
-          totals — never retyped here. Centred at >=1024px, where it becomes
-          the plinth the trunk stands on — and its own top border becomes the
-          ground line the trunk grows from, which is why `GroundHatch` only
-          has to say which side of that line is earth. */}
+          totals — never retyped here.
+
+          At >=1024px this is no longer a boxed plinth: the trunk already
+          arrives from above, and a bordered card under it read as a second
+          thing bolted onto the drawing rather than the ground the drawing
+          stands in. What is left is the ground itself — a hairline
+          (`border-t`, the same rule the trunk visually passes through and
+          `GroundHatch` hangs its earth ticks off) with a specimen label
+          under it: `profile.name` set small in the display face, not a
+          headline, and `profile.philosophy` as a finer italic inscription
+          beneath it — a museum ground-plaque, not a card.
+
+          Below 1024px this remains the list's own header, unboxed the same
+          way: a plain top hairline and the same content, at reduced
+          padding — it never had a ground line to hang hatching off, so
+          `GroundHatch` stays lg-only. */}
       <div
         data-cat-nap
-        className="relative order-1 border border-rule bg-surface px-5 py-6 sm:px-6 lg:order-2 lg:px-8 lg:py-8 lg:text-center"
+        className="relative order-1 border-t border-rule py-5 lg:order-2 lg:pb-8 lg:pt-6 lg:text-center"
       >
         <GroundHatch className="hidden lg:block" />
-        <p className="eyebrow">Root</p>
-        <p className="mt-2 font-display text-[length:var(--step-2)] tracking-[-0.01em] text-fg">
+        <p className="font-display text-[length:var(--step-0)] tracking-[-0.01em] text-fg lg:mt-2 lg:text-[length:var(--step-1)]">
           {profile.name}
         </p>
-        <p className="prose-measure mt-2 text-[length:var(--step-0)] italic leading-[1.5] text-fg-muted lg:mx-auto">
+        <p className="prose-measure mt-1.5 text-[length:var(--step--1)] italic leading-[1.5] text-fg-muted lg:mx-auto">
           {profile.philosophy}
         </p>
-        <p className="eyebrow mt-4">
+        <p className="eyebrow mt-3">
           {tree.length} kinds · {TECHNOLOGY_TOTAL} technologies
         </p>
 

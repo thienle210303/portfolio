@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { careerEntries, codeTabs, skillCategories } from "../src/content/portfolio";
+import { careerEntries, codeTabs, profile, skillCategories } from "../src/content/portfolio";
 import { workflowStages, experiments } from "../src/content/ai-experiments";
 import type { SkillCategory } from "../src/types/portfolio";
 
@@ -716,6 +716,35 @@ test.describe("career tree", () => {
 
     expect(state.dashoffset).not.toBe("1");
     expect(state.opacity === "1" || state.opacity === undefined).toBe(true);
+  });
+
+  /*
+   * The always-on changes from the origin-story plan's Task 2: the drawing
+   * never claims to be finished (an unfinished shoot, annotated), and the
+   * root plinth is drawing rather than a card floating on top of it.
+   */
+  test("the unfinished shoot draws with its still-growing annotation", async ({ page }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "below 1024px the drawn presentation is display: none",
+    );
+
+    const tree = page.locator("#tree");
+    await expect(tree.locator("[data-tree-shoot]")).toHaveCount(1);
+    await expect(tree.getByText(/still growing/i)).toHaveCount(1);
+  });
+
+  test("the ground band renders as drawing, not a boxed card", async ({ page }) => {
+    test.skip(
+      viewportWidth(page) < DESKTOP_MIN_WIDTH,
+      "the plinth's boxed-card removal is a >=1024px change; below that it never had a background to begin with",
+    );
+
+    const band = page.locator("#tree [data-cat-nap]");
+    await expect(band.getByText(profile.name, { exact: true })).toBeVisible();
+
+    const backgroundColor = await band.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(backgroundColor).toBe("rgba(0, 0, 0, 0)");
   });
 });
 
