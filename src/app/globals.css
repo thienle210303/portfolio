@@ -1262,27 +1262,47 @@
     }
 
     /* Non-ink chrome (Task 2, implementer's judgment per the plan's
-       self-review note): the pending rules above only ever collapse
-       `.tree-draw`/`.tree-grow`/`.tree-fade` — a leaf's disclosure text, the
-       root labels and the ground plinth's own name/inscription carry none of
-       those classes, so without this they would sit at full opacity next to
-       a bare, undrawn tree and break the "nothing here yet" illusion the
-       story is trying to tell. Three targets, each already an existing hook
-       (no new markup):
+       self-review note; the branch panel and the shoot's own label were
+       added in a later design-polish pass — see below): the pending rules
+       above only ever collapse `.tree-draw`/`.tree-grow`/`.tree-fade` — a
+       leaf's disclosure text, a lens's own summary card, the shoot's
+       "still growing" words, the root labels and the ground plinth's own
+       name/inscription carry none of those classes, so without this they
+       would sit at full opacity next to a bare, undrawn tree and break the
+       "nothing here yet" illusion the story is trying to tell. Five targets,
+       each already an existing hook (no new markup beyond the two
+       `data-tree-shoot-label`/`data-origin-tier` attributes the
+       choreography pass added in `DrawnTree.tsx`):
          - a leaf row's own disclosure (the `<div>` directly inside
            `[data-tree-entry]`) fades with its own leaf's pending state,
            exactly like its ink neighbours, so the label reappears the same
            moment the leaf's twig does;
+         - a lens's own summary card (`[data-tree-panel]`, "BRANCH /
+           <lens> / <count> places · <count> technologies") fades with the
+           lens `<li>` it sits inside — a visitor who scrolled past the
+           canopy mid-story used to find every branch's card fully readable
+           regardless of whether that branch had grown yet, which is the
+           same "chrome outran the ink" bug the leaf rule above already
+           existed to close, just for a hook this pass had missed;
+         - the shoot's own annotation (`[data-tree-shoot-label]`, "still
+           growing · <year>") fades with the shoot itself — an aria-hidden
+           `<span>` beside the ink, not a descendant of it (SVG and HTML
+           don't nest that way), so it needed to become its own
+           `data-origin-year` group rather than ride the ink's own class;
+           `OriginStory.tsx`'s `queryGroups` treats it as another shoot
+           (`isShoot`) so it is still released only by the closing beat, in
+           lockstep with the mark it names, not merely tied to whatever year
+           the mark happens to share;
          - `[data-tree-root]` (every root label under the plinth) and the
            plinth's own name/philosophy/count line (`[data-cat-nap] > p`) are
            not conducted by any beat at all, so they simply stay hidden for
            the whole run and return the instant it ends.
-       The leaf rule needs the extra `[data-origin-running]` ancestor to
-       out-specify the release rule below it, the same reason the four
-       pending shapes above do.
+       The leaf, panel and shoot-label rules each need the extra
+       `[data-origin-pending]` ancestor to out-specify their own release rule
+       below, the same reason the four pending shapes above do.
 
        `opacity: 0` alone was a WCAG 2.4.7 hole: a leaf's disclosure
-       `<button>` (and, for the other two targets, an ordinary link) stays
+       `<button>` (and, for the root/plinth targets, an ordinary link) stays
        hit-testable and in the tab order at zero opacity, so a keyboard
        visitor could Tab onto a focus ring nobody can see, and — for the root
        labels and the plinth links, which sit *outside* this stage's own
@@ -1296,12 +1316,38 @@
        reverse change, which is exactly what a Skip/Escape needs, since that
        reverse change is losing `[data-origin-running]` itself (no rule below
        matches any more, so there is no transition left to run — the same
-       instant reappearance every other pending group already gets). */
+       instant reappearance every other pending group already gets). The
+       panel and shoot-label targets carry no focusable content of their own
+       (a card is plain text, the shoot's words are `aria-hidden`), but
+       `visibility: hidden` costs nothing extra here and keeps all five
+       targets in this block behaving identically. */
     [data-origin-running] [data-tree-entry][data-origin-pending] > div {
       visibility: hidden;
       opacity: 0;
     }
     [data-origin-running] [data-tree-entry] > div {
+      visibility: visible;
+      opacity: 1;
+      transition:
+        opacity var(--dur-settle) var(--ease-ink),
+        visibility var(--dur-settle) var(--ease-ink);
+    }
+    [data-origin-running] [data-origin-pending] [data-tree-panel] {
+      visibility: hidden;
+      opacity: 0;
+    }
+    [data-origin-running] [data-tree-panel] {
+      visibility: visible;
+      opacity: 1;
+      transition:
+        opacity var(--dur-settle) var(--ease-ink),
+        visibility var(--dur-settle) var(--ease-ink);
+    }
+    [data-origin-running] [data-tree-shoot-label][data-origin-pending] {
+      visibility: hidden;
+      opacity: 0;
+    }
+    [data-origin-running] [data-tree-shoot-label] {
       visibility: visible;
       opacity: 1;
       transition:
@@ -1394,10 +1440,13 @@
       animation: origin-flight var(--origin-dur, 3000ms) linear forwards;
     }
 
-    /* The seed, each season's weather glyph and the closing shoot all use
-       this: a fresh element (React remounts it via a changing `key` for the
-       weather glyph) settles in once, the same motion `--dur-settle` already
-       names everywhere else on the page. */
+    /* The seed's own glyph settles in once with this — a fresh element
+       rising into place, the same motion `--dur-settle` already names
+       everywhere else on the page. (A season's own weather used to remount
+       through the same animation too, as a small glyph in this sky slice;
+       a design-polish pass moved it to `WeatherLayer` and the stage-wide
+       "Origin story — weather presence" block below, which is where its own
+       motion now lives instead.) */
     @keyframes origin-settle {
       from {
         opacity: 0;
@@ -1410,6 +1459,136 @@
     }
     .origin-glyph {
       animation: origin-settle var(--dur-settle) var(--ease-ink);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Origin story — weather presence (design-polish pass)                   */
+  /*                                                                        */
+  /* A season's weather used to be a small glyph sharing the sky slice's own */
+  /* 300×200 box with the bird and the seed (see the block above) — which    */
+  /* meant it simply never appeared for the entire stretch a root beat's own */
+  /* camera pan scrolls the page away from that box (`OriginStory.tsx`'s     */
+  /* file banner, "The camera, during the root years"). The owner's own      */
+  /* brief for this pass: "make raining, sunny, windy more showing". This    */
+  /* block is what `WeatherLayer` in `OriginStory.tsx` reads — a             */
+  /* `position: fixed`, `pointer-events-none`, `aria-hidden` overlay that     */
+  /* reads at both camera positions the story ever holds, because it never   */
+  /* moves with either.                                                      */
+  /*                                                                        */
+  /* Same belt-and-braces as every other block in this file: `WeatherLayer`  */
+  /* only ever mounts after `OriginStory.tsx` has already checked            */
+  /* `prefers-reduced-motion` itself and found "no-preference" — the         */
+  /* reduced-motion Storyboard branch never renders it — so the media guard   */
+  /* below is defence on top of that JS check, not the only thing standing   */
+  /* between a reduced-motion visitor and this animation.                    */
+  /*                                                                        */
+  /* Every colour here is `currentColor` against the `text-fg-subtle`        */
+  /* context `WeatherLayer` sets on its own wrapper, or the stronger `--fg`   */
+  /* alias for a storm's own "denser, darker" hatch — never blue, which the   */
+  /* design system reserves for annotation and links alone (CLAUDE.md).      */
+  /* ---------------------------------------------------------------------- */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    /* Rain: a slanted hairline per stroke, falling top to bottom of the
+       *viewport* (not the stroke's own small box) on a loop — `vh` units
+       keep the fall reading as "the full sky", regardless of how tall any
+       one stroke is drawn. `RainStrokes` in OriginStory.tsx staggers the
+       start of each with `animationDelay`, so a dozen of these never fall in
+       lockstep. */
+    @keyframes origin-weather-drop-fall {
+      from {
+        transform: translateY(0) rotate(14deg);
+      }
+      to {
+        transform: translateY(112vh) rotate(14deg);
+      }
+    }
+    .origin-weather-drop {
+      position: absolute;
+      top: -6vh;
+      width: 1px;
+      height: 6vh;
+      background-color: currentColor;
+      opacity: 0.45;
+      animation: origin-weather-drop-fall 900ms linear infinite;
+    }
+    /* A storm's own rain: more of them (`RainStrokes({ dense: true })`
+       simply draws more `.origin-weather-drop`s), and each one switched to
+       the stronger `--fg` alias rather than the ordinary `--fg-subtle` a
+       plain rain year inherits — "denser, darker", the same phrase the
+       owner's brief used. */
+    .origin-weather-drop--dense {
+      opacity: 0.8;
+      background-color: var(--fg);
+    }
+
+    /* Sun: the existing ray-and-disc glyph, breathing — the one season
+       whose whole point is a steady, untroubled year, so the only motion it
+       gets is the gentlest one in this block. `translateX(-50%)` is baked
+       into both keyframe steps because animating `transform` replaces the
+       whole property for the run of the animation — it cannot compose with
+       a separate, static `-translate-x-1/2` utility the way an unanimated
+       transform could, so the centring has to travel with the animation
+       itself rather than sit beside it. */
+    @keyframes origin-weather-sun-breathe {
+      from {
+        transform: translateX(-50%) scale(1);
+      }
+      to {
+        transform: translateX(-50%) scale(1.06);
+      }
+    }
+    .origin-weather-sun {
+      animation: origin-weather-sun-breathe 4s ease-in-out infinite alternate;
+    }
+
+    /* Storm: rain (above) plus a one-time shudder on the *whole layer*, the
+       instant the beat starts — `WeatherLayer`'s own `key={season.year}`
+       remount is what makes "the instant the beat starts" true here: a
+       fresh element plays a non-`infinite` animation from its own start
+       every time, rather than only once for the whole run. `StormBolts`'
+       own bent strokes need no animation of their own; the shudder they ride
+       along with is loud enough. */
+    @keyframes origin-weather-shudder-kf {
+      0% {
+        transform: translateX(0);
+      }
+      20% {
+        transform: translateX(-6px);
+      }
+      40% {
+        transform: translateX(5px);
+      }
+      60% {
+        transform: translateX(-4px);
+      }
+      80% {
+        transform: translateX(2px);
+      }
+      100% {
+        transform: translateX(0);
+      }
+    }
+    .origin-weather-shudder {
+      animation: origin-weather-shudder-kf 500ms ease-out 1;
+    }
+
+    /* Quiet: wind, not an empty sky — two long strokes drifting the full
+       width of the viewport, `vw` units again so the crossing is honest
+       regardless of how wide the stroke's own stretched box is drawn.
+       `WindStrokes` staggers the second stroke's `animationDelay` so the
+       pair never travels together. */
+    @keyframes origin-weather-wind-drift {
+      from {
+        transform: translateX(-20vw);
+      }
+      to {
+        transform: translateX(120vw);
+      }
+    }
+    .origin-weather-wind {
+      left: -10%;
+      animation: origin-weather-wind-drift 6s linear infinite;
     }
   }
 

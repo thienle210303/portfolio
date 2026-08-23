@@ -206,12 +206,14 @@ import {
  * `awayFromCanopy`) swaps its position from `absolute` inside `skySlice` to
  * `fixed` against the viewport for exactly that stretch, so the caption
  * stays legible wherever the page has panned to rather than scrolling off
- * with the sky. The sky's own
- * weather glyph and year numeral are not similarly relocated — moving the
- * whole `SkyLayer` box would fight the pan itself — but the accessible
- * `role="status"` region and this pinned caption both already carry the
- * beat's year and story on their own, which is the bar this stage sets
- * everywhere else too.
+ * with the sky. `SkyLayer` itself is not similarly relocated — moving the
+ * whole box would fight the pan itself — but it no longer needs to be: a
+ * design-polish pass moved the weather (and the year numeral that used to
+ * ride inside it) out of that box entirely, into `WeatherLayer`, a
+ * `position: fixed` overlay that reads at both camera positions on its own
+ * terms. See that component's own doc comment for why, and why the sky slice
+ * keeps only the bird and the seed, which have nowhere else that makes sense
+ * to live.
  */
 
 type BeatKind = "flight" | "seed" | SeasonKind | "still";
@@ -272,33 +274,154 @@ function originDur(ms: number): CSSProperties {
 /* The conductor                                                              */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Growth choreography (design-polish pass, after v2's chronological release
+ * already existed): "start from the ground, grow slowly" meant a whole
+ * year's worth of groups could no longer flip from pending to grown in the
+ * same frame — a trunk, five boughs and a dozen leaves all bumping into view
+ * at once reads as a cut, not a growth. `tier` is what `releaseThroughYear`
+ * below sorts a year's newly-releasing groups by before staggering them:
+ * trunk/ground-break first (0), then branch/lens and the underground's own
+ * major roots (1, the canopy's and the root system's structural peers), then
+ * leaves (2) — big, slow things settle before the small, quick things hung
+ * off them do. Read straight off each element's own `data-origin-tier` in
+ * `DrawnTree.tsx` rather than inferred here, the same "author the fact where
+ * the element already lives" discipline the rest of this file's DOM contract
+ * follows; a group with no tier at all (there should never be one) defaults
+ * to the branch tier rather than either extreme.
+ */
+const TIER_TRUNK = 0;
+const TIER_BRANCH = 1;
+const TIER_LEAF = 2;
+
+function tierOf(el: HTMLElement): number {
+  switch (el.getAttribute("data-origin-tier")) {
+    case "trunk":
+      return TIER_TRUNK;
+    case "leaf":
+      return TIER_LEAF;
+    default:
+      return TIER_BRANCH;
+  }
+}
+
 interface OriginGroup {
   readonly el: HTMLElement;
   readonly year: number;
   /** The one group the generic "release through year Y" sweep must never
-   *  touch — see the file banner on why the shoot waits for its own beat. */
+   *  touch — see the file banner on why the shoot waits for its own beat.
+   *  True for both the shoot's own `<g data-tree-shoot>` and its floating
+   *  `<span data-tree-shoot-label>` annotation — two groups, one moment,
+   *  see that span's own doc comment in `DrawnTree.tsx` for why the words
+   *  beside the shoot needed the same pending gate the ink already had. */
   readonly isShoot: boolean;
+  /** True only for the trunk's own group — the one growth-drawn element this
+   *  file gives a slower, hero-length rise. See `tierOf`'s doc comment. */
+  readonly isTrunk: boolean;
+  readonly tier: number;
 }
 
 function queryGroups(figure: HTMLElement): readonly OriginGroup[] {
   return Array.from(figure.querySelectorAll<HTMLElement>("[data-origin-year]")).map((el) => ({
     el,
     year: Number(el.getAttribute("data-origin-year")),
-    isShoot: el.hasAttribute("data-tree-shoot"),
+    isShoot: el.hasAttribute("data-tree-shoot") || el.hasAttribute("data-tree-shoot-label"),
+    isTrunk: el.hasAttribute("data-tree-trunk"),
+    tier: tierOf(el),
   }));
 }
 
-/** `year <= year` is false for every comparison once `year` is `NaN` (a
- *  malformed `data-origin-year`, which should never happen but would
- *  otherwise leave that one group pending for the entire run rather than
- *  merely for the beat it can no longer honestly claim), so a non-finite
- *  year is treated as "always due" instead. */
-function releaseThroughYear(groups: readonly OriginGroup[], year: number): void {
-  for (const group of groups) {
-    if (!group.isShoot && (!Number.isFinite(group.year) || group.year <= year)) {
-      group.el.removeAttribute("data-origin-pending");
+/** How long a stagger step waits before the next group in the same release
+ *  starts its own transition — small enough that a year with a dozen leaves
+ *  still finishes well inside one season beat's `SEASON_MS`, large enough to
+ *  actually read as a sequence rather than a shimmer. */
+const STAGGER_STEP_MS = 120;
+/** The trunk's own hero rise: roughly double the ordinary `--dur-draw` a
+ *  bough or a leaf's mark draws with — the one moment this drawing is asked
+ *  to slow down for, not speed past. */
+const TRUNK_RISE_MS = 1200;
+/** A leaf pops faster than the branch it hangs off — "small things move
+ *  quick, big things move slow" — well under `--dur-draw` (600ms). */
+const LEAF_POP_MS = 300;
+/** Neither `TRUNK_RISE_MS` nor `LEAF_POP_MS` — the ordinary `--dur-draw` a
+ *  branch/lens group's own ink class already transitions with in
+ *  globals.css. This file has no access to that CSS custom property's
+ *  numeric value (nothing here needs the *exact* figure, only something safe
+ *  to size a cleanup timeout against), so this is a same-order stand-in. */
+const ORDINARY_DUR_MS = 600;
+/** How long past a group's own delay+duration this file waits before wiping
+ *  its inline stagger back off — comfortably past when the transition it
+ *  timed has actually finished, so the reset in `scheduleStaggerCleanup`
+ *  never lands mid-animation. */
+const STAGGER_CLEANUP_MARGIN_MS = 800;
+
+/** One group this release just staggered, and how long from *now* until it
+ *  is safe to wipe that stagger back off — see `scheduleStaggerCleanup`. */
+interface ScheduledStagger {
+  readonly el: HTMLElement;
+  readonly clearAfterMs: number;
+}
+
+/**
+ * Releases every non-shoot group at or before `year`, in an order and a
+ * timing meant to read as growth rather than a swap: trunk/ground-break
+ * groups first, then branch/lens (canopy boughs and the root system's own
+ * major laterals share this tier), then leaves — see `tierOf`'s doc comment
+ * — each one's `transitionDelay` staggered `STAGGER_STEP_MS` past the one
+ * before it. The trunk's own group additionally gets `TRUNK_RISE_MS` (the
+ * hero moment "start from the ground" asks for) and every leaf gets the
+ * faster `LEAF_POP_MS` — everything else keeps the ordinary `--dur-draw`/
+ * `--dur-settle` its own ink class already declares in globals.css.
+ *
+ * Only groups still actually pending are sorted and staggered — a group
+ * already released earlier this run is left alone rather than re-staggered
+ * for no visible reason, and (since this can run more than once per beat via
+ * the "still" beat's own safety sweep through `Infinity`) never twice. That
+ * "leave everything else alone" rule is not just tidiness: an earlier
+ * version of this function cleared every group's inline stagger *before*
+ * setting fresh ones, on every beat, on the theory that "clear on the next
+ * release" was as valid as a self-clearing timeout. It measurably was not —
+ * touching `transitionDelay`/`transitionDuration` on a group that was not
+ * changing state at all (a `data-tree-shoot-label` two years from its own
+ * release, say) was enough to re-open its already-finished fade-out
+ * transition for a further couple hundred milliseconds, which is exactly the
+ * "chrome still fading, not yet hidden" bug this design-polish pass exists
+ * to close, not reopen. Returns what it staggered rather than scheduling the
+ * cleanup itself — it has no timer and no ref to hold one, both of which the
+ * caller already has.
+ *
+ * `year <= year` is false for every comparison once `year` is `NaN` (a
+ * malformed `data-origin-year`, which should never happen but would
+ * otherwise leave that one group pending for the entire run rather than
+ * merely for the beat it can no longer honestly claim), so a non-finite
+ * year is treated as "always due" instead.
+ */
+function releaseThroughYear(groups: readonly OriginGroup[], year: number): readonly ScheduledStagger[] {
+  const due = groups.filter(
+    (group) =>
+      !group.isShoot &&
+      group.el.hasAttribute("data-origin-pending") &&
+      (!Number.isFinite(group.year) || group.year <= year),
+  );
+  // A stable sort — the only kind `Array.prototype.sort` has been since
+  // ES2019 — keeps each tier's own groups in the document order they were
+  // already queried in, so "trunk, then branch, then leaf" is the only new
+  // ordering this introduces, not a second, silent reshuffle within a tier.
+  const ordered = [...due].sort((a, b) => a.tier - b.tier);
+  return ordered.map((group, index) => {
+    const delayMs = index * STAGGER_STEP_MS;
+    let durationMs = ORDINARY_DUR_MS;
+    group.el.style.transitionDelay = `${delayMs}ms`;
+    if (group.isTrunk) {
+      durationMs = TRUNK_RISE_MS;
+      group.el.style.transitionDuration = `${durationMs}ms`;
+    } else if (group.tier === TIER_LEAF) {
+      durationMs = LEAF_POP_MS;
+      group.el.style.transitionDuration = `${durationMs}ms`;
     }
-  }
+    group.el.removeAttribute("data-origin-pending");
+    return { el: group.el, clearAfterMs: delayMs + durationMs + STAGGER_CLEANUP_MARGIN_MS };
+  });
 }
 
 function releaseShoot(groups: readonly OriginGroup[]): void {
@@ -374,35 +497,15 @@ function SeedGlyph() {
   );
 }
 
-function WeatherGlyph({ season }: { readonly season: Season }) {
-  const d = weatherGlyph(season.kind);
-  return (
-    // Two `<g>`s, not one: a CSS `transform` (the `.origin-glyph` fade-in
-    // animation applies one) replaces an SVG `transform` *attribute*
-    // outright rather than composing with it — set both on the same element
-    // and the attribute's `translate(240 48)` is simply discarded the moment
-    // the animation's own `transform: translateY(...)` takes over. The
-    // position lives on the outer, unanimated `<g>`; the animation lives on
-    // the inner one, which has no attribute-transform of its own to lose.
-    <g key={season.year} transform="translate(240 48)">
-      <g className="origin-glyph">
-        {d ? <path d={d} /> : null}
-        <text x={-8} y={44} fontSize={10} fill="currentColor" stroke="none">
-          {season.year}
-        </text>
-      </g>
-    </g>
-  );
-}
-
 /** The transparent sky: a bird tracing its flight (flight beat), a seed
- *  landing (seed beat), or a season's weather and year — nothing at all
- *  during "still", where the real tree's own shoot is the entire story.
- *  `pointer-events-none` throughout: this layer is decoration drawn *over*
- *  the canopy, never a click target and never a cover. Sized to fill
- *  whatever box its caller (the `skySlice` wrapper below) already gives it —
- *  that wrapper is what carries the actual position/aspect-ratio/observer
- *  duties now, so this stays a plain, fully-filling `<svg>`. */
+ *  landing (seed beat) — nothing at all during a season beat (the weather
+ *  itself is `WeatherLayer`, below, not this box) or "still", where the real
+ *  tree's own shoot is the entire story. `pointer-events-none` throughout:
+ *  this layer is decoration drawn *over* the canopy, never a click target and
+ *  never a cover. Sized to fill whatever box its caller (the `skySlice`
+ *  wrapper below) already gives it — that wrapper is what carries the actual
+ *  position/aspect-ratio/observer duties now, so this stays a plain, fully-
+ *  filling `<svg>`. */
 function SkyLayer({ beat }: { readonly beat: Beat }) {
   return (
     <svg
@@ -426,8 +529,171 @@ function SkyLayer({ beat }: { readonly beat: Beat }) {
           <SeedGlyph />
         </>
       ) : null}
-      {beat.season ? <WeatherGlyph season={beat.season} /> : null}
     </svg>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* The weather layer — stage-wide, viewport-anchored (design-polish pass)     */
+/*                                                                            */
+/* A season's weather used to be `WeatherGlyph` above: a small icon in the   */
+/* same 300×200 sky slice the bird and the seed draw in, pinned over the      */
+/* canopy. That box is exactly what a root beat's own camera pan (see the     */
+/* file banner, "The camera, during the root years") scrolls away from for as */
+/* long as the roots are what the story is showing — so for every quiet year  */
+/* before the canopy exists, the weather simply never appeared at all. The    */
+/* owner's brief for this pass was blunt about it: "make raining, sunny,      */
+/* windy more showing". `WeatherLayer` is the fix — `position: fixed`, so it   */
+/* reads at both camera positions this story ever holds, not only the one the */
+/* old glyph happened to share a box with.                                    */
+/* -------------------------------------------------------------------------- */
+
+/** How many rain strokes an ordinary rain year draws — a storm year draws     */
+const RAIN_STROKE_COUNT = 12;
+/** more than this, for "denser" without a second, separate layout. */
+const STORM_EXTRA_STROKES = 6;
+const WIND_STROKE_COUNT = 2;
+
+/** Evenly across the viewport's own width, one stroke per `1 / count` of it —
+ *  centred in its own share rather than starting flush at the edge, so the
+ *  outermost strokes still read as part of the same rain rather than a frame. */
+function rainLeftPercent(index: number, count: number): number {
+  return ((index + 0.5) / count) * 100;
+}
+
+/** ~12 (a storm's own count higher) slanted strokes, evenly spread and each
+ *  falling on a loop — `animationDelay` staggers them so the whole width
+ *  doesn't fall in lockstep. `dense` both draws more of them and switches
+ *  their own colour to the stronger `--fg` alias (never blue — see the
+ *  design system rules) rather than the ordinary `--fg-subtle` a plain rain
+ *  year inherits from its container. */
+function RainStrokes({ dense }: { readonly dense: boolean }) {
+  const count = dense ? RAIN_STROKE_COUNT + STORM_EXTRA_STROKES : RAIN_STROKE_COUNT;
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <span
+          key={i}
+          className={cn("origin-weather-drop", dense && "origin-weather-drop--dense")}
+          style={{
+            left: `${rainLeftPercent(i, count)}%`,
+            animationDelay: `${(i % 6) * 150}ms`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+/** The existing ray-and-disc glyph, drawn larger and given a slow breathe
+ *  (`.origin-weather-sun`, `globals.css`) — the one season whose whole point
+ *  is a steady, untroubled year, so the only motion it gets is the gentlest
+ *  one this file has. */
+function SunGlyph() {
+  return (
+    <svg
+      {...strokeProps}
+      viewBox="0 0 40 40"
+      className="origin-weather-sun absolute left-1/2 top-[20%] h-24 w-24 text-fg-subtle"
+    >
+      <path d={SUN_D} transform="translate(20 20) scale(1.8)" />
+    </svg>
+  );
+}
+
+/** Two bent strokes — the same "hard corner, not a curve" shape `STORM_D`'s
+ *  own closing segment already draws (`M2 -14L-3 -2L4 -2L-2 12`) — at two
+ *  sizes and positions, rather than one bolt centred alone. */
+const BOLT_D = "M2 -14L-3 -2L4 -2L-2 12";
+
+function StormBolts() {
+  return (
+    <svg
+      {...strokeProps}
+      viewBox="0 0 40 40"
+      className="absolute left-1/2 top-[12%] h-20 w-20 text-fg"
+    >
+      <g transform="translate(13 18) scale(1.4)">
+        <path d={BOLT_D} />
+      </g>
+      <g transform="translate(27 23) scale(1.05)">
+        <path d={BOLT_D} />
+      </g>
+    </svg>
+  );
+}
+
+/** A quiet year is weather too — wind, not an empty sky: two long, gently
+ *  curved strokes drifting the full width of the viewport on their own loop,
+ *  the second offset so they never travel in lockstep. Calm and sparse, the
+ *  way "roots don't hurry" reads as motion rather than as nothing happening.
+ *  Stretched horizontally with `preserveAspectRatio="none"` and drawn with
+ *  `vectorEffect="non-scaling-stroke"` — the same pairing `Trunk` and
+ *  `RootSystem` in `DrawnTree.tsx` already use to stretch a path without
+ *  thickening its line. */
+function WindStrokes() {
+  return (
+    <>
+      {Array.from({ length: WIND_STROKE_COUNT }, (_, i) => (
+        <svg
+          key={i}
+          {...strokeProps}
+          viewBox="0 0 300 40"
+          preserveAspectRatio="none"
+          className="origin-weather-wind absolute h-6 w-2/3 text-fg-subtle"
+          style={{ top: `${30 + i * 22}%`, animationDelay: `${i * 2200}ms` }}
+        >
+          <path d="M0 20C60 4 120 36 180 20C220 8 260 24 300 14" vectorEffect="non-scaling-stroke" />
+        </svg>
+      ))}
+    </>
+  );
+}
+
+/**
+ * The season's weather, stage-wide: `position: fixed` so the same rain, sun,
+ * storm or wind reads over the canopy *and* over the underground the camera
+ * pans to for a root year — see the file banner just above. `pointer-events-
+ * none`/`aria-hidden` throughout: this is atmosphere, never a click target
+ * and never a second narration (the accessible `role="status"` region and
+ * the floating annotation already carry the beat's own words).
+ *
+ * `key={season.year}` remounts a fresh element on every season change, the
+ * same one-shot-entry idiom the old `WeatherGlyph` used for its own settle-in
+ * — here it is also what restarts `.origin-weather-shudder` on every storm
+ * rather than only ever playing it once for the whole run.
+ *
+ * The year numeral moves here too, top-left — the one fact this whole layer
+ * still owes a reader — rather than staying behind in the sky slice's own
+ * small box the way it used to: that box is exactly what goes off-screen for
+ * a root beat's pan, which was the numeral's own share of the same bug this
+ * component exists to fix. Top-*left*, not top-right: the Skip button (`
+ * SKIP_BUTTON_CLASS` below) already owns that corner.
+ */
+function WeatherLayer({ season }: { readonly season: Season }) {
+  return (
+    <div
+      key={season.year}
+      aria-hidden="true"
+      data-origin-weather={season.kind}
+      className={cn(
+        "pointer-events-none fixed inset-0 z-30 overflow-hidden text-fg-subtle",
+        season.kind === "storm" && "origin-weather-shudder",
+      )}
+    >
+      {season.kind === "rain" ? <RainStrokes dense={false} /> : null}
+      {season.kind === "storm" ? (
+        <>
+          <RainStrokes dense />
+          <StormBolts />
+        </>
+      ) : null}
+      {season.kind === "sun" ? <SunGlyph /> : null}
+      {season.kind === "quiet" ? <WindStrokes /> : null}
+      <span className="eyebrow absolute left-3 top-[calc(var(--header-h)+0.75rem)] text-fg-subtle">
+        {season.year}
+      </span>
+    </div>
   );
 }
 
@@ -660,6 +926,11 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // have detached by the time an unrelated cleanup runs.
   const figureRef = useRef<HTMLElement | null>(null);
   const groupsRef = useRef<readonly OriginGroup[]>([]);
+  // Every pending `window.setTimeout` id from `scheduleStaggerCleanup` below,
+  // so `releaseEverything` can cancel them on any exit — see that callback's
+  // own doc comment for why a self-clearing timeout replaced an earlier
+  // "clear on the next release" sweep.
+  const staggerTimeoutsRef = useRef<number[]>([]);
   // The scroll-away observer's own handle, so the pan effect below can
   // disconnect and re-create it against a new target rather than the fixed
   // one the original, mount-only observer watched — see `armWatch`.
@@ -669,16 +940,53 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // happens to fall on the same side of it as the one before.
   const panRegionRef = useRef<"sky" | "root">("sky");
 
+  // Schedules the one self-cleanup `releaseThroughYear` cannot do itself (it
+  // has no timer and no ref to hold one) for each group it just staggered —
+  // wipes that group's own inline `transitionDelay`/`transitionDuration`
+  // back to nothing once `clearAfterMs` has safely passed its transition,
+  // never touching any *other* group in the process. See
+  // `releaseThroughYear`'s own doc comment for why "only the groups that
+  // just changed, on their own clock" replaced an earlier "clear everything,
+  // on the next release" approach that measurably reopened already-settled
+  // fades elsewhere on the tree.
+  const scheduleStaggerCleanup = useCallback((scheduled: readonly ScheduledStagger[]) => {
+    for (const { el, clearAfterMs } of scheduled) {
+      const id = window.setTimeout(() => {
+        el.style.transitionDelay = "";
+        el.style.transitionDuration = "";
+      }, clearAfterMs);
+      staggerTimeoutsRef.current.push(id);
+    }
+  }, []);
+
   // The one cleanup every exit path funnels through — see the file banner's
   // note on why this must never leave the tree half-drawn. Idempotent: once
   // a group has lost `data-origin-pending`, removing it again is a no-op,
   // and removing an attribute that is already gone is too.
   const releaseEverything = useCallback(() => {
+    staggerTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    staggerTimeoutsRef.current = [];
     const figure = figureRef.current;
     if (!figure) return;
     figure
       .querySelectorAll("[data-origin-pending]")
       .forEach((el) => el.removeAttribute("data-origin-pending"));
+    // Wipes the growth-choreography stagger too — queried fresh from the
+    // figure rather than read off `groupsRef`, so this stays correct even on
+    // an exit that races the conductor's own setup effect. Safe to do in one
+    // blanket pass *here*, unlike per-beat: every group's `data-origin-
+    // pending` is being stripped in this same call, so any group whose
+    // stagger this also clears is already mid-genuinely-changing, not an
+    // untouched one having its already-settled transition reopened for no
+    // reason — see `releaseThroughYear`'s doc comment on exactly that
+    // failure mode. Without this, a Skip/Escape mid-stagger would leave a
+    // real, still-mounted tree carrying `transition-delay`/`transition-
+    // duration` values a *second* run of this same story would otherwise
+    // inherit before ever setting its own.
+    figure.querySelectorAll<HTMLElement>("[data-origin-year]").forEach((el) => {
+      el.style.transitionDelay = "";
+      el.style.transitionDuration = "";
+    });
     figure.removeAttribute("data-origin-running");
   }, []);
 
@@ -753,8 +1061,8 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     const groups = queryGroups(figure);
     groups.forEach((group) => group.el.setAttribute("data-origin-pending", ""));
     groupsRef.current = groups;
-    releaseThroughYear(groups, origin.arrivedYear);
-  }, [reduced]);
+    scheduleStaggerCleanup(releaseThroughYear(groups, origin.arrivedYear));
+  }, [reduced, scheduleStaggerCleanup]);
 
   useEffect(() => {
     skipRef.current?.focus();
@@ -989,10 +1297,10 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     // stranded pending for `releaseEverything()` to have to clean up instead.
     const groups = groupsRef.current;
     if (beat.kind === "still") {
-      releaseThroughYear(groups, Infinity);
+      scheduleStaggerCleanup(releaseThroughYear(groups, Infinity));
       releaseShoot(groups);
     } else if (beat.season) {
-      releaseThroughYear(groups, beat.season.year);
+      scheduleStaggerCleanup(releaseThroughYear(groups, beat.season.year));
     }
 
     document.dispatchEvent(
@@ -1015,7 +1323,7 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
       else setIndex((current) => current + 1);
     }, beat.durationMs);
     return () => window.clearTimeout(id);
-  }, [beat, isLast, end, reduced]);
+  }, [beat, isLast, end, reduced, scheduleStaggerCleanup]);
 
   const advance = useCallback(() => {
     if (reduced) return;
@@ -1103,6 +1411,12 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
             <SkyLayer beat={beat} />
             {!catsNarrating ? <FloatingAnnotation text={announced} pinned={awayFromCanopy} /> : null}
           </div>
+          {/* Stage-wide, not scoped to the sky slice above: a root beat's own
+              camera pan (see the file banner) walks the page away from that
+              box for as long as the roots are what the story shows, and the
+              weather is meant to read at both camera positions — see
+              `WeatherLayer`'s own doc comment. */}
+          {beat.season ? <WeatherLayer season={beat.season} /> : null}
           <p role="status" className="sr-only">
             {announced}
           </p>

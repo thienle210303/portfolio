@@ -355,9 +355,22 @@ function GrowingTip() {
         className={cn("pointer-events-none absolute left-1/2 -translate-x-1/2", INK)}
         style={{ top: -SHOOT_H }}
       >
-        {/* The leader, unchanged — every coordinate below is the same as it
-            has always been, just carried down by the new headroom. */}
-        <g transform={`translate(0, ${SHOOT_H})`}>
+        {/* The leader — every coordinate below is the same as it has always
+            been, just carried down by the new headroom.
+
+            `data-origin-year={firstCanopyYear()}`/`data-origin-tier="trunk"`
+            (a design-polish pass): the leader is the very top of the trunk,
+            with two leaves already on it, so a visitor watching the origin
+            story used to see this whole tip — including its own foliage —
+            fully drawn from the very first beat, years before the trunk it
+            caps had grown at all. Same year and tier as `Trunk`/`TrunkFoot`
+            below, so the tip finishes rising in the same stagger step as the
+            rest of the trunk's own hero moment, not a beat early. */}
+        <g
+          data-origin-year={firstCanopyYear()}
+          data-origin-tier="trunk"
+          transform={`translate(0, ${SHOOT_H})`}
+        >
           <path
             pathLength={1}
             className="tree-draw"
@@ -378,7 +391,7 @@ function GrowingTip() {
             two strokes converge on (36, 8 in the leader's own frame, so
             36, 8 + SHOOT_H once translated) and curves up into the headroom
             above, tapering toward nothing rather than a leaf. */}
-        <g data-tree-shoot data-origin-year={lastYear}>
+        <g data-tree-shoot data-origin-year={lastYear} data-origin-tier="leaf">
           <path
             pathLength={1}
             className="tree-draw"
@@ -396,9 +409,22 @@ function GrowingTip() {
       </svg>
 
       {/* The words beside it. Positioned off the shoot's own tip rather than
-          measured, like everything else on this drawing. */}
+          measured, like everything else on this drawing.
+
+          `data-tree-shoot-label`/`data-origin-year` (not `data-tree-shoot`
+          itself — `e2e/sections.spec.ts` holds that selector to a count of
+          exactly one, the `<g>` above) make this its own second origin-story
+          group, released in lockstep with the shoot: `OriginStory.tsx`'s
+          `queryGroups` treats either attribute as "this is the shoot", so the
+          words never announce a growth the drawing hasn't shown yet — a bug a
+          design-polish pass caught by scrolling mid-story and finding this
+          text fully legible over a still-pending tree. `globals.css`'s
+          "Origin story v2" block hides it the same non-ink-chrome way it
+          already hides a pending leaf's own label. */}
       <span
         aria-hidden="true"
+        data-tree-shoot-label
+        data-origin-year={lastYear}
         className="eyebrow pointer-events-none absolute left-1/2 whitespace-nowrap"
         style={{ top: -SHOOT_H + 2, transform: "translateX(18px)" }}
       >
@@ -419,6 +445,18 @@ function GrowingTip() {
  * visibly distort. The widening is deliberately front-loaded — most of it
  * happens in the bottom quarter, the way a real bole flares — which also
  * means the exact height of the drawing barely changes how the taper reads.
+ *
+ * `data-tree-trunk`/`data-origin-tier="trunk"` are this file's own hooks for
+ * `OriginStory.tsx`'s growth choreography (a design-polish pass, after v2's
+ * chronological release already existed): a year's newly-releasing groups
+ * are sorted trunk first, then branch/lens, then leaf, so a whole year no
+ * longer bumps into view all at once — and `data-tree-trunk` singles this one
+ * group out for a slower, hero-length rise, since a trunk is the one thing on
+ * this drawing large enough that "everything moves at the same speed" reads
+ * as wrong. Neither attribute changes how this element looks outside a
+ * running story; see the "Origin story v2" and "Origin story — growth
+ * choreography" blocks in globals.css for the CSS side, and the conductor's
+ * own `releaseThroughYear` for the JS side.
  */
 function Trunk() {
   return (
@@ -430,7 +468,9 @@ function Trunk() {
     // the same pattern is why every twig segment is wrapped too.
     <span
       aria-hidden="true"
+      data-tree-trunk
       data-origin-year={firstCanopyYear()}
+      data-origin-tier="trunk"
       className={cn(
         "pointer-events-none absolute bottom-11 left-1/2 top-16 block w-10 -translate-x-1/2",
         INK,
@@ -516,6 +556,7 @@ export function GroundHatch({ className }: { readonly className?: string }) {
     <span
       aria-hidden="true"
       data-origin-year={firstCanopyYear()}
+      data-origin-tier="trunk"
       className={cn("pointer-events-none absolute inset-x-0 top-0", className)}
     >
       <svg
@@ -848,7 +889,11 @@ export function RootSystem({ className }: { readonly className?: string }) {
             rootForkCount(category.skills.length),
           );
           return (
-            <g key={category.id} data-origin-year={rootYearFor(index, count)}>
+            <g
+              key={category.id}
+              data-origin-year={rootYearFor(index, count)}
+              data-origin-tier="branch"
+            >
               <path
                 data-tree-lateral={category.id}
                 className="tree-fade"
@@ -1123,6 +1168,7 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext, showYear }: LeafProps) {
       className="relative"
       data-tree-entry={branch.id}
       data-origin-year={branch.startYear}
+      data-origin-tier="leaf"
       data-tree-techs={techSlugs}
       style={
         side === "right"
@@ -1369,6 +1415,7 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
               key={lens.id}
               data-tree-lens={lens.id}
               data-origin-year={Math.min(...lens.branches.map((branch) => branch.startYear))}
+              data-origin-tier="branch"
               className="relative"
               // Placed with `style` rather than utilities on purpose: the row
               // index and the drop are computed, and Tailwind can only
@@ -1418,7 +1465,22 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
               >
                 {/* The twig leaving the panel: from just inside its lower
                     trunk-facing corner, down to where the first leaf's mark
-                    picks it up. */}
+                    picks it up.
+
+                    `tree-fade` (a design-polish pass): this stroke carried no
+                    ink class at all, so neither the page-load reveal nor the
+                    origin story's own pending gate ever touched it — a
+                    visitor scrolling mid-story past a still-pending lens
+                    found this one short connector fully drawn regardless,
+                    the same "chrome outran the ink" bug the panel and the
+                    shoot's own label needed fixing for. It rides its lens's
+                    own `data-origin-year` (the ancestor `<li>`) once tagged
+                    with an ink class at all — `tree-fade` rather than
+                    `tree-draw`'s dash-offset, the same choice the leaf's own
+                    straight "run" span below makes for the same reason: an
+                    8px joint between two points is not a stroke worth
+                    watching draw itself, only one worth not seeing too
+                    soon. */}
                 <svg
                   {...strokeProps}
                   width={TWIG_W}
@@ -1431,7 +1493,11 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                   )}
                   style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
                 >
-                  <path d={`M2 0C2 8 ${xs[0] ?? 7} 11 ${xs[0] ?? 7} 20`} />
+                  <path
+                    className="tree-fade"
+                    style={inkDelay(`${lens.id}|twig`, 400, 480)}
+                    d={`M2 0C2 8 ${xs[0] ?? 7} 11 ${xs[0] ?? 7} 20`}
+                  />
                 </svg>
 
                 {lens.branches.map((branch, leafIndex) => (
