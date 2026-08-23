@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { origin } from "@/content/portfolio";
 import {
   SUB_MAX_CHARS,
   BEAT_MIN_MS,
@@ -159,9 +160,13 @@ describe("story scenes", () => {
     }
   });
 
-  it("the flight names the authored arrival, not a computed beat year", () => {
+  it("the flight names origin.arrived verbatim, not a computed beat year or a re-typed date", () => {
     const scene = storyBeatScene("flight", null, FACTS, "grey");
-    expect(scene!.beats[0].sub).toContain("December 2018");
+    expect(scene!.beats[0].sub).toContain(origin.arrived);
+  });
+
+  it("returns null for a beat kind the bank does not recognise", () => {
+    expect(storyBeatScene("nonsense" as StoryBeatKind, 2019, FACTS, "grey")).toBeNull();
   });
 
   it("returns null for a season kind with no year to narrate", () => {

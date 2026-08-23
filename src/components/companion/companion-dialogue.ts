@@ -1,5 +1,6 @@
 "use client";
 
+import { origin } from "@/content/portfolio";
 import type { CompanionFacts } from "@/lib/companion-facts";
 
 /**
@@ -176,7 +177,10 @@ const TOUR: Record<string, SceneBuilder> = {
  * Every season sub leads with its own year — the fact actually being
  * narrated — composed from the beat's real year, never a season counted or
  * typed twice. `flight`, `seed` and `still` name no year at all: none of
- * them dates a single beat, so nothing here pretends to lead with one.
+ * them dates a single beat, so nothing here pretends to lead with one. The
+ * flight's own date is `origin.arrived` (`src/content/portfolio.ts`), not a
+ * literal — the same fact `flightCaption()` in `OriginStory.tsx` composes
+ * from, so a change to the arrival date never has to be typed twice.
  */
 export type StoryBeatKind = "flight" | "seed" | "rain" | "sun" | "storm" | "quiet" | "still";
 
@@ -184,7 +188,10 @@ const STORY_BEAT: Record<
   StoryBeatKind,
   { readonly meow: string; readonly sub: (year: number | null) => string | null }
 > = {
-  flight: { meow: "Mrrrow...", sub: () => "A long flight, a small seed. December 2018." },
+  flight: {
+    meow: "Mrrrow...",
+    sub: () => `A long flight, a small seed. ${origin.arrived}${endStop(origin.arrived)}`,
+  },
   seed: { meow: "Mrp!", sub: () => "Right here. This exact spot." },
   rain: {
     meow: "Mrrp-meow.",
@@ -215,7 +222,11 @@ const STORY_BEAT: Record<
  * portfolio number, since a season's year is already a real, computed fact
  * on its own — but stays in the signature for the same reason every other
  * builder here takes it: a future beat that does want one should not have to
- * change the call site.
+ * change the call site. `kind` is typed to the seven known beats, but the
+ * caller gets it from a `CustomEvent` detail rather than from TypeScript, so
+ * the lookup is guarded rather than destructured straight off `STORY_BEAT` —
+ * an unrecognised kind is "nothing to say", the same answer every other
+ * failure in this function gives, not a thrown exception.
  */
 export function storyBeatScene(
   kind: StoryBeatKind,
@@ -223,10 +234,11 @@ export function storyBeatScene(
   facts: CompanionFacts,
   speaker: Speaker,
 ): DialogueScene | null {
-  const { meow, sub: subFor } = STORY_BEAT[kind];
-  const sub = subFor(year);
-  if (sub === null || sub.length > SUB_MAX_CHARS || meow.length === 0) return null;
-  return { id: `story-${kind}`, kind: "story", beats: [{ speaker, meow, sub }] };
+  const entry = STORY_BEAT[kind] ?? null;
+  if (!entry) return null;
+  const sub = entry.sub(year);
+  if (sub === null || sub.length > SUB_MAX_CHARS || entry.meow.length === 0) return null;
+  return { id: `story-${kind}`, kind: "story", beats: [{ speaker, meow: entry.meow, sub }] };
 }
 
 /** A resolved scene, or null for "nothing to play" — over-budget subs and

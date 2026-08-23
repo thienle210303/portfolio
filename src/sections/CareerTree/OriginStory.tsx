@@ -84,13 +84,12 @@ import { growthStage, seasonsFor, type Season, type SeasonKind } from "@/lib/ori
  *
  * The accessible narration is the `role="status"` region — `sr-only` now,
  * since the *visible* narration is a job the cats do (Task 3) or, when they
- * are not roaming, a bare floating annotation does instead. This file always
- * renders that fallback annotation for now: the ack it would hide behind
- * (`origin-story-ack`, dispatched by the companion once it accepts the
- * watch) has no dispatcher yet. The listener is wired up regardless, so
- * Task 3 turning it on requires no change here. It lives inside `skySlice`
- * too, near the horizon `GroundLine` draws at y=150 of that box's own
- * 300×200 coordinate space — "near the ground line" the spec asks for is
+ * are not roaming, a bare floating annotation does instead. `catsNarrating`
+ * tracks which: it flips true the moment `origin-story-ack` arrives
+ * (`Companion.tsx` dispatches it from the same `"start"` handler that arms
+ * its watch) and the annotation renders only until then. It lives inside
+ * `skySlice` too, near the horizon `GroundLine` draws at y=150 of that box's
+ * own 300×200 coordinate space — "near the ground line" the spec asks for is
  * the sky's own ground, not the real tree's, which is often thousands of
  * pixels further down the page.
  */
@@ -313,11 +312,11 @@ function SkyLayer({ beat }: { readonly beat: Beat }) {
 }
 
 /** The bare-mono fallback narration: shown whenever the cats are not
- *  narrating (always, until Task 3 wires the ack that hides it). No border,
- *  no background — an annotation, not a caption box, sitting near the
- *  ground line the way the figure's own margin notes do. `aria-hidden`
- *  because it duplicates the accessible `role="status"` region below it;
- *  a screen reader should hear the story once, not twice. */
+ *  narrating — the parent only renders this while `catsNarrating` is still
+ *  false. No border, no background — an annotation, not a caption box,
+ *  sitting near the ground line the way the figure's own margin notes do.
+ *  `aria-hidden` because it duplicates the accessible `role="status"` region
+ *  below it; a screen reader should hear the story once, not twice. */
 function FloatingAnnotation({ text }: { readonly text: string }) {
   return (
     <p

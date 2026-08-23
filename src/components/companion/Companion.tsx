@@ -3051,6 +3051,19 @@ export function Companion({ facts }: CompanionProps) {
           duetRef.current = null;
           setDuetBeat(null);
         }
+        // A show that ends mid-storm (or just after one) can leave `rushRef`
+        // armed for up to ~780ms past `"end"` — and unlike `rainHuddleUntil`,
+        // which only ever matters inside the `if (watch)` block this show is
+        // the only thing that runs, `rushRef` also feeds the ordinary
+        // scroll-triggered `rushing` check a few lines into the loop, gated
+        // on nothing but `!forced`. Left armed, that reads as a page-edge
+        // dash nobody scrolled for — a phantom rush the instant the pair
+        // stop being forced to watch. `cheerRef` is the same shape of leak:
+        // it feeds `cheering`, which is gated on `!beat && !dozing` only, not
+        // on the watch. Both are cleared here for the same reason `"start"`
+        // clears them before arming anything new.
+        rushRef.current = null;
+        cheerRef.current = null;
         const quiet =
           !escortRef.current &&
           !tourRef.current &&
@@ -3084,14 +3097,22 @@ export function Companion({ facts }: CompanionProps) {
      * and every choreography window below is armed by writing a fresh
      * `{ until }`, not by toggling a flag — so replaying a beat re-arms the
      * same window rather than corrupting it.
+     *
+     * `detail?.kind` rather than a bare destructure: the payload comes in as
+     * an untyped `CustomEvent`, not through anything TypeScript checks, so an
+     * unrecognised or missing kind is read as "nothing to say" — the early
+     * return below — rather than trusted all the way into `storyBeatScene`
+     * and the `if`/`else if` chain past it.
      */
     const onOriginStoryBeat = (event: Event) => {
       if (!watchRef.current) return;
-      const detail = (event as CustomEvent<{ kind: StoryBeatKind; year?: number; sub: string }>).detail;
+      const detail = (event as CustomEvent<{ kind?: StoryBeatKind; year?: number; sub?: string }>).detail;
+      const kind = detail?.kind ?? null;
+      if (!kind) return;
       const speaker = storySpeakerRef.current;
       storySpeakerRef.current = speaker === "grey" ? "tabby" : "grey";
       const now = performance.now();
-      const scene = storyBeatScene(detail.kind, detail.year ?? null, facts, speaker);
+      const scene = storyBeatScene(kind, detail?.year ?? null, facts, speaker);
       if (scene) playDuetScene(scene, now);
 
       // Choreography, existing mechanics only. This only arms a window (a
@@ -3100,14 +3121,23 @@ export function Companion({ facts }: CompanionProps) {
       // above in the loop, is what actually moves anyone while the window is
       // open, and both windows self-expire the same way those refs already
       // do.
-      if (detail.kind === "storm") {
+      if (kind === "storm") {
         rushRef.current = { dir: lead.current.facing === 1 ? -1 : 1, until: now + RUSH_HOLD_MS + 500 };
-      } else if (detail.kind === "rain") {
+      } else if (kind === "rain") {
         rainHuddleUntil.current = now + HUDDLE_MS;
-      } else if (detail.kind === "sun") {
-        // The same brief flourish D3 gives a copy confirmation or a theme
-        // toggle — see `cheerNow` a few effects up, mirrored here rather than
-        // called directly since that closure belongs to a different effect.
+      }
+      // Spec §2: "any growth year (forces > 0) → a small excited hop (cheer
+      // on the tabby)". `kindFor` (origin-story.ts) makes forces > 0 exactly
+      // these three weather kinds — "quiet" is the one year with nothing to
+      // cheer about — so the flourish arms for all three, not sun alone.
+      // Honestly: there is no tabby-only hop anywhere in this file, only the
+      // existing pair flourish (grey stretches, tabby bats) D3 already gives
+      // a copy confirmation or a theme toggle — see `cheerNow` a few effects
+      // up, mirrored here rather than called directly since that closure
+      // belongs to a different effect. Reusing that pair reaction rather
+      // than inventing a one-cat version is "existing mechanics only"
+      // winning over the spec's literal "on the tabby".
+      if (kind === "storm" || kind === "rain" || kind === "sun") {
         cheerRef.current = { until: now + CHEER_MS };
         setCheer(true);
         window.setTimeout(() => setCheer(false), CHEER_MS);
