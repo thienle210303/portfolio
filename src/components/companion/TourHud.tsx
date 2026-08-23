@@ -3,6 +3,7 @@
 import type { Ref } from "react";
 import { cn } from "@/lib/cn";
 import type { DialogueBeat } from "./companion-dialogue";
+import type { TourRoute } from "./companion-tour";
 
 /**
  * The tour's accessible surface.
@@ -27,6 +28,11 @@ export interface TourHudProps {
    *  first render (see below), so it mounts with no lines and fills. */
   readonly lines: readonly DialogueBeat[];
   readonly isLast: boolean;
+  /** The one fork in the walk: true for exactly the juncture where "Follow
+   *  Grey" / "Follow Tabby" replace "Next stop" — see `Companion.tsx`'s
+   *  `chooseRoute`. False everywhere else, before and after it. */
+  readonly showRouteChoice: boolean;
+  readonly onChooseRoute: (route: TourRoute) => void;
   readonly onNext: () => void;
   readonly onEnd: () => void;
   readonly hudRef?: Ref<HTMLDivElement>;
@@ -41,6 +47,8 @@ export function TourHud({
   label,
   lines,
   isLast,
+  showRouteChoice,
+  onChooseRoute,
   onNext,
   onEnd,
   hudRef,
@@ -73,14 +81,35 @@ export function TourHud({
           .join(" · ")}
       </p>
 
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <button type="button" onClick={onEnd} className={BUTTON_CLASS}>
-          End tour
-        </button>
-        <button type="button" onClick={onNext} className={BUTTON_CLASS}>
-          {isLast ? "Finish tour" : "Next stop"}
-        </button>
-      </div>
+      {showRouteChoice ? (
+        // The fork: two routes through the same eight stops (see
+        // `stopsFor`), offered here instead of "Next stop" and nowhere
+        // else. Stacked rather than squeezed onto one row alongside "End
+        // tour" — three buttons at this width would either wrap unpredictably
+        // or crowd the 44px target every one of them needs.
+        <div className="mt-1 flex flex-col gap-2">
+          <button type="button" onClick={onEnd} className={BUTTON_CLASS}>
+            End tour
+          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => onChooseRoute("grey")} className={BUTTON_CLASS}>
+              Follow Grey
+            </button>
+            <button type="button" onClick={() => onChooseRoute("tabby")} className={BUTTON_CLASS}>
+              Follow Tabby
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <button type="button" onClick={onEnd} className={BUTTON_CLASS}>
+            End tour
+          </button>
+          <button type="button" onClick={onNext} className={BUTTON_CLASS}>
+            {isLast ? "Finish tour" : "Next stop"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

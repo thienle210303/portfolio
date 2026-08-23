@@ -1460,7 +1460,7 @@ test.describe("companion", () => {
 
   /* ------------------------------------------------------------- D4/D5: the guided tour -- */
 
-  test("walks all eight stops, narrates each on arrival, and ends back on the cat", async ({
+  test("walks all eight stops, choosing a route at the fork, and ends back on the cat", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1489,12 +1489,63 @@ test.describe("companion", () => {
         const after = await page.evaluate(() => window.scrollY);
         expect(after).not.toBe(before);
       }
+      if (stop === 2) {
+        // The one fork in the walk: "Next stop" is gone here, replaced by
+        // the two routes — both of which reach every one of the eight stops,
+        // just in a different order. This run follows Grey's.
+        await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
+        await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
+        await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
+        await hud.getByRole("button", { name: /follow grey/i }).click();
+        continue;
+      }
       const isLast = stop === 8;
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
 
     // The tour ends itself on the last "Finish tour" press, and focus lands
     // back on the cat — the same place Escape and "End tour" send it.
+    await expect(hud).toBeHidden();
+    await expect(catButton(page)).toBeFocused();
+  });
+
+  test("the other route reaches every stop too, ending on Contact", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    const status = hud.getByRole("status");
+
+    // To the fork — About, then Philosophy — and pick the cat the other test
+    // did not: the curious route, which walks the middle five stops in the
+    // opposite order.
+    await expect(hud.getByText(/stop 1 of 8/i)).toBeVisible({ timeout: 10_000 });
+    await expect(status).not.toHaveText("", { timeout: 10_000 });
+    await hud.getByRole("button", { name: /next stop/i }).click();
+
+    await expect(hud.getByText(/stop 2 of 8/i)).toBeVisible({ timeout: 10_000 });
+    await expect(status).not.toHaveText("", { timeout: 10_000 });
+    await hud.getByRole("button", { name: /follow tabby/i }).click();
+
+    for (let stop = 3; stop <= 8; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 8`, "i"))).toBeVisible({
+        timeout: 10_000,
+      });
+      await expect(status).not.toHaveText("", { timeout: 10_000 });
+      const isLast = stop === 8;
+      if (isLast) {
+        // Both routes share the same last stop — Contact — regardless of
+        // which way the middle five were walked.
+        await expect(hud.getByText(/stop 8 of 8.*contact/i)).toBeVisible();
+      }
+      await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
+    }
+
     await expect(hud).toBeHidden();
     await expect(catButton(page)).toBeFocused();
   });
@@ -1556,6 +1607,28 @@ test.describe("companion", () => {
     await openToolkit(page);
     await toolkit(page).getByRole("button", { name: /show me around/i }).click();
     await expect(page.getByLabel(/guided tour/i)).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(
+      results.violations,
+      results.violations.map((violation) => `[${violation.id}] ${violation.help}`).join("\n"),
+    ).toEqual([]);
+  });
+
+  test("adds no WCAG violations with the tour's route choice visible", async ({ page }) => {
+    test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    await expect(hud).toBeVisible();
+    await hud.getByRole("button", { name: /next stop/i }).click();
+    await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible({ timeout: 10_000 });
+    await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])

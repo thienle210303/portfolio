@@ -128,41 +128,41 @@ const TOUR: Record<string, SceneBuilder> = {
   // simply never plays, but the tour must visit every stop, so this one falls
   // back to generic prose instead of skipping the beat.
   about: (f) => [
+    tabby("Mrrrow!", "This is him! Right here, top of the page!"),
     grey(
       "Mrp. Meow.",
       f.about.role && f.about.organization
-        ? `The start. Now: ${f.about.role}, ${f.about.organization}${endStop(f.about.organization)}`
-        : "The start of the page.",
+        ? `${f.about.role}. ${f.about.organization}${endStop(f.about.organization)} The facts hold.`
+        : "The start of the page. The facts hold.",
     ),
-    tabby("Mrrrow!", "Scroll with us — we know all the good spots!"),
   ],
   philosophy: (f) => [
-    tabby("Meow meow!", `${f.philosophy.principles} principles run this loop.`),
-    grey("Mrp.", "It's short. Read it twice anyway."),
+    grey("Mrp.", `${f.philosophy.principles} principles. He runs them on everything.`),
+    tabby("Meow-meow!", "One loop, over and over. I've watched it work."),
   ],
   work: (f) => [
-    grey("Meow. Mrp.", `${f.work.caseStudies} case studies, ${f.work.sourcedMetrics} sourced figures.`),
-    tabby("Mrrrow-meow!", "Problem, solution, receipts. My kind of story."),
+    tabby("Mrrrow-meow!", `${f.work.caseStudies} case studies! Real problems, real fixes!`),
+    grey("Meow. Mrp.", `${f.work.sourcedMetrics} numbers, every one sourced. Proof, not vibes.`),
   ],
   journey: (f) => [
-    grey("Mrp.", `${f.journey.entries} entries — ${f.journey.work} of them work.`),
-    tabby("Meow-mrrp!", "Filter it! The connectors mind the gaps."),
+    grey("Mrp. Mrp.", `${f.journey.entries} entries. ${f.journey.work} of them are work.`),
+    tabby("Mrrrow!", "I napped through the rest — they still count!"),
   ],
   skills: (f) => [
-    tabby("Mrrrow!", `${f.skills.categories} categories, ${f.skills.distinctSkills} skills!`),
-    grey("Mrp. Meow.", "Each one points at where it was used."),
+    tabby("Mrrrow!", `${f.skills.categories} shelves, ${f.skills.distinctSkills} things on them!`),
+    grey("Mrp. Meow.", "Huddle up. Each one points at where it was used."),
   ],
   tree: (f) => [
-    tabby("Meow meow meow!", `${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
-    grey("Mrp.", `${f.tree.technologies} technologies. All from the timeline.`),
+    tabby("Meow meow meow!", `Look up! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
+    grey("Mrp.", `${f.tree.technologies} technologies hang there. We planted nothing.`),
   ],
   lab: (f) => [
-    grey("Meow. Mrp.", `${f.lab.experiments} experiments here, ${f.lab.verified} verified.`),
-    tabby("Mrrrow?", "The open ones say so. Refreshing, honestly."),
+    grey("Meow. Mrp.", `${f.lab.experiments} experiments. ${f.lab.verified} hold up so far.`),
+    tabby("Mrrrow?!", "The rest say 'no results yet' — that made me jump!"),
   ],
   contact: () => [
-    tabby("Mrrrow-meow-meow!", "That's everywhere! This is where you write."),
-    grey("Mrp.", "The form works. So does plain email."),
+    tabby("Mrrrow-meow-meow!", "Say hi! He answers — usually before I wake up."),
+    grey("Mrp.", "The form works. So does plain email. Either lands."),
   ],
 };
 

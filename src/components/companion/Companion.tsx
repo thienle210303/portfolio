@@ -47,7 +47,14 @@ import {
   type StoryBeatKind,
 } from "./companion-dialogue";
 import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
-import { TOUR_STOPS, isLastStop, startTour, type TourRun } from "./companion-tour";
+import {
+  TOUR_STOPS,
+  isLastStop,
+  startTour,
+  stopsFor,
+  type TourRoute,
+  type TourRun,
+} from "./companion-tour";
 import {
   migrateCompanionMode,
   roamingChoice,
@@ -178,6 +185,10 @@ const CHEER_MS = 1100;
  *  spacing takes back over — roughly one season beat's own display time, so
  *  the pair have drawn back apart before the next beat's narration starts. */
 const HUDDLE_MS = 1800;
+
+/** How long the Contact stop's fake-nap holds before the startle-awake cheer
+ *  fires — see `tourNapUntil` and the choreography armed on tour arrival. */
+const CONTACT_NAP_MS = 2000;
 
 /** Dwell before a nav link's hover or focus counts as intent, matching the
  *  nap contract's own dwell (`NAP_DWELL`) — brushing past a link on the way
@@ -1077,11 +1088,28 @@ export function Companion({ facts }: CompanionProps) {
    *  arrived while the programmatic scroll that is *carrying* the pair there
    *  is still under way. */
   const lastScrollAt = useRef(0);
-  /** What React needs to draw the HUD: which stop, and the beats once the pair
-   *  have actually arrived (empty while still walking to it). Everything else
-   *  about a tour — the walk, the arrival check — is `tourRef`'s business,
-   *  exactly as a scene's beat-by-beat progress is `playRef`'s. */
-  const [tourView, setTourView] = useState<{ index: number; lines: readonly DialogueBeat[] } | null>(null);
+  /**
+   * The play's own choreography windows — one per stop that needs more than
+   * the pair's ordinary sit, armed at arrival (see `armTourChoreo` in the
+   * loop) and read only from inside the tour's own code paths, exactly the
+   * way `rainHuddleUntil` is read only from inside the watch's. Both are
+   * plain timestamps rather than a richer shape because both are read the
+   * same way `rainHuddleUntil` already is: "is now before this".
+   */
+  const tourHuddleUntil = useRef(0);
+  const tourNapUntil = useRef(0);
+  /** What React needs to draw the HUD: which stop, the route it is currently
+   *  walking (see companion-tour's `TourRoute`), whether that route has been
+   *  chosen yet, and the beats once the pair have actually arrived (empty
+   *  while still walking to it). Everything else about a tour — the walk, the
+   *  arrival check — is `tourRef`'s business, exactly as a scene's
+   *  beat-by-beat progress is `playRef`'s. */
+  const [tourView, setTourView] = useState<{
+    index: number;
+    lines: readonly DialogueBeat[];
+    route: TourRoute;
+    routeChosen: boolean;
+  } | null>(null);
 
   /* ------------------------------------------------------------- watch -- */
   /** Non-null while the pair have been invited to sit and watch the
@@ -1961,7 +1989,7 @@ export function Companion({ facts }: CompanionProps) {
        */
       let tour = tourRef.current;
       if (tour && !run) {
-        const stop = TOUR_STOPS[tour.index];
+        const stop = stopsFor(tour.route)[tour.index];
         const spots = tourStopSpots(stop.sectionId);
         if (spots) tourSpots.current = spots;
         if (!tourSpots.current) {
@@ -1979,7 +2007,7 @@ export function Companion({ facts }: CompanionProps) {
             tour.phase = "walking";
             tour.arrivedAt = 0;
             tourSpots.current = null;
-            setTourView({ index: tour.index, lines: [] });
+            setTourView({ index: tour.index, lines: [], route: tour.route, routeChosen: tour.routeChosen });
           }
         } else if (
           tour.phase === "walking" &&
@@ -1990,8 +2018,44 @@ export function Companion({ facts }: CompanionProps) {
           tour.phase = "arrived";
           tour.arrivedAt = now;
           const stopScene = sceneFor("tour", stop.sectionId, facts);
-          setTourView({ index: tour.index, lines: stopScene?.beats ?? [] });
+          setTourView({
+            index: tour.index,
+            lines: stopScene?.beats ?? [],
+            route: tour.route,
+            routeChosen: tour.routeChosen,
+          });
           if (stopScene) playDuetScene(stopScene, now);
+
+          /**
+           * The play's choreography: one beat per stop, existing mechanics
+           * only. About, Philosophy and Tree get nothing here on purpose —
+           * the pair's own default sit, and the facing they already carry in
+           * from the walk, already read as "peering up" and "looking up at
+           * the figure"; adding a forced pose to a cat already sitting still
+           * would be drawing the same thing twice. The rest reuse exactly
+           * the windows `origin-story-beat` arms elsewhere in this file:
+           * `cheerRef` for the pair flourish (grey stretches, tabby bats —
+           * see the "Honestly" note on that handler for why a *pair* cheer
+           * stands in for "tabby cheer" / "tabby startle-hop" alike), and a
+           * `{ dir, until }` / plain-until window read directly from the
+           * tour's own branches below rather than through the generic
+           * `rushing`/huddle checks, which never get a turn while `forced`
+           * is already `"tour"`. Every window self-expires on its own clock
+           * and is read only from inside the tour's own code paths, so
+           * ending the tour drops whichever of these happens to be open
+           * along with everything else.
+           */
+          if (stop.sectionId === "work" || stop.sectionId === "lab") {
+            cheerRef.current = { until: now + CHEER_MS };
+            setCheer(true);
+            window.setTimeout(() => setCheer(false), CHEER_MS);
+          } else if (stop.sectionId === "journey") {
+            rushRef.current = { dir: grey.facing, until: now + RUSH_HOLD_MS + 500 };
+          } else if (stop.sectionId === "skills") {
+            tourHuddleUntil.current = now + HUDDLE_MS;
+          } else if (stop.sectionId === "contact") {
+            tourNapUntil.current = now + CONTACT_NAP_MS;
+          }
         }
       }
 
@@ -2067,6 +2131,19 @@ export function Companion({ facts }: CompanionProps) {
               : watch
                 ? "watch"
                 : null;
+
+      // The Contact stop's startle-awake: the moment the fake-nap window
+      // lapses, the pair cheer instead of just quietly opening their eyes.
+      // Consumed the frame it fires (`tourNapUntil` reset to zero) so this
+      // never re-fires, and gated on `forced === "tour"` so a tour that ends
+      // mid-nap does not cheer on its way out.
+      if (forced === "tour" && tourNapUntil.current > 0 && now >= tourNapUntil.current) {
+        tourNapUntil.current = 0;
+        cheerRef.current = { until: now + CHEER_MS };
+        setCheer(true);
+        window.setTimeout(() => setCheer(false), CHEER_MS);
+      }
+
       // Wandering is parked by construction: "settled" means there is nothing to
       // trail, and there never is. Everything gated on it downstream — a scene
       // may open, a scene is not dropped, a mood may be taken up — is gated on
@@ -2180,6 +2257,10 @@ export function Companion({ facts }: CompanionProps) {
       const dozing =
         forced === "escort" ||
         forced === "nap" ||
+        // The Contact stop's fake-nap: a deliberate, self-expiring window
+        // rather than the idle clock, so it holds regardless of how recently
+        // the visitor moved anything.
+        (forced === "tour" && now < tourNapUntil.current) ||
         // Excludes "watch": the origin-story show runs ~26s, well past
         // `sleepAfter` (14s, 11s at night), and the watcher is deliberately
         // motionless the entire time — nothing else refreshes `lastSignRef`
@@ -2370,8 +2451,30 @@ export function Companion({ facts }: CompanionProps) {
         // cascade above already dropped the tour the one frame it could have
         // nothing to offer.
         const spots = tourSpots.current ?? nearbySpots();
-        leadWant = spots.lead;
-        followWant = spots.follow;
+        const stopId = stopsFor(tour!.route)[tour!.index].sectionId;
+        if (stopId === "journey" && rushRef.current && now < rushRef.current.until) {
+          // The chase dash: the same `{ dir, until }` window the storm beat
+          // arms above, read here directly rather than through the generic
+          // `rushing` branch, which never gets a turn while `forced` is
+          // already `"tour"`.
+          const dashed = clampToViewport({
+            x: spots.lead.x + rushRef.current.dir * 26,
+            y: spots.lead.y,
+          });
+          leadWant = dashed;
+          followWant = clampToViewport({
+            x: dashed.x - grey.facing * (CAT_W + FOLLOW_GAP),
+            y: dashed.y,
+          });
+        } else if (stopId === "skills" && now < tourHuddleUntil.current) {
+          // The huddle: she comes in beside him instead of behind, the same
+          // nudge the rain beat gives the watch above.
+          leadWant = spots.lead;
+          followWant = clampToViewport({ x: spots.lead.x - CAT_W - 6, y: spots.lead.y });
+        } else {
+          leadWant = spots.lead;
+          followWant = spots.follow;
+        }
       } else if (nap) {
         const slots = napSlots(nap.rect);
         leadWant = slots.lead;
@@ -2958,6 +3061,8 @@ export function Companion({ facts }: CompanionProps) {
       // leave the HUD or a bubble on the page with nothing left driving it.
       tourRef.current = null;
       tourSpots.current = null;
+      tourHuddleUntil.current = 0;
+      tourNapUntil.current = 0;
       setTourView(null);
       duetAt.current = 0;
       // duetFirstShown stays put: the hello is a once-per-visit scene (see
@@ -3370,9 +3475,12 @@ export function Companion({ facts }: CompanionProps) {
 
     const now = performance.now();
     endPlay(now);
-    tourRef.current = startTour();
+    const started = startTour();
+    tourRef.current = started;
     tourSpots.current = null;
-    setTourView({ index: 0, lines: [] });
+    tourHuddleUntil.current = 0;
+    tourNapUntil.current = 0;
+    setTourView({ index: 0, lines: [], route: started.route, routeChosen: started.routeChosen });
     scrollToStop(first.sectionId);
     // Same two lines `requestPlay` uses to backdate the settle clock: the
     // pair are about to start walking, which the loop should treat exactly
@@ -3399,12 +3507,27 @@ export function Companion({ facts }: CompanionProps) {
     run.phase = "walking";
     run.arrivedAt = 0;
     tourSpots.current = null;
-    setTourView({ index: run.index, lines: [] });
+    setTourView({ index: run.index, lines: [], route: run.route, routeChosen: run.routeChosen });
     duetRef.current = null;
     setDuetBeat(null);
-    scrollToStop(TOUR_STOPS[run.index].sectionId);
+    scrollToStop(stopsFor(run.route)[run.index].sectionId);
     lastSignRef.current = performance.now();
     wake();
+  }
+
+  /**
+   * The HUD's fork in the walk, offered once — see `TourHud`'s
+   * `showRouteChoice` — after Philosophy's scene. Picking either cat settles
+   * `route` for the rest of the walk and immediately does what "Next stop"
+   * would have: the choice replaces that button at this one juncture, it
+   * does not sit beside it.
+   */
+  function chooseRoute(route: TourRoute) {
+    const run = tourRef.current;
+    if (!run || run.routeChosen) return;
+    run.route = route;
+    run.routeChosen = true;
+    advanceTour();
   }
 
   /** The HUD's "End tour", Escape, and every cancellation listener below.
@@ -3415,6 +3538,13 @@ export function Companion({ facts }: CompanionProps) {
     if (!tourRef.current) return;
     tourRef.current = null;
     tourSpots.current = null;
+    tourHuddleUntil.current = 0;
+    tourNapUntil.current = 0;
+    // Left armed, either window reads as a phantom flourish the instant the
+    // pair stop being forced — the same leak `origin-story`'s own "end"
+    // handler guards against, for the same reason. See that handler's note.
+    rushRef.current = null;
+    cheerRef.current = null;
     setTourView(null);
     duetRef.current = null;
     setDuetBeat(null);
@@ -3799,9 +3929,15 @@ export function Companion({ facts }: CompanionProps) {
         <TourHud
           stopIndex={tourView.index}
           totalStops={TOUR_STOPS.length}
-          label={TOUR_STOPS[tourView.index].label}
+          label={stopsFor(tourView.route)[tourView.index].label}
           lines={tourView.lines}
           isLast={isLastStop(tourView.index)}
+          // The one fork in the walk: offered exactly at Philosophy (index 1,
+          // the second stop) once its scene has actually arrived — not while
+          // the pair are still walking there — replacing "Next stop" rather
+          // than sitting beside it. See `chooseRoute`.
+          showRouteChoice={tourView.index === 1 && tourView.lines.length > 0 && !tourView.routeChosen}
+          onChooseRoute={chooseRoute}
           onNext={advanceTour}
           onEnd={endTour}
           hudRef={tourHudRef}
