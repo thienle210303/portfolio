@@ -59,14 +59,16 @@ const H4_CLASS =
  * study so the typographic motif stays consistent at every depth. */
 const MICRO_LABEL_CLASS = "eyebrow";
 
-/** Text link for a demo or a repository. Underlined `--fg`, matching how
- *  every other section sets an inline link (see ExperimentEntry,
- *  TimelineEntry); `min-h-11` buys the tap target without touching the type
- *  size. These used to render with no class at all, which left them in the
- *  browser's default link colour — the one colour on the page belonging to
- *  no palette. */
+/** Text link for a demo or a repository. `--fg` at rest with `.ink-link`'s
+ *  quiet rest underline (Workstream 3, P3 — replacing a flat `underline
+ *  hover:no-underline` with the shared fade-on-hover vocabulary every other
+ *  standalone link on the site now uses), matching how every other section
+ *  sets an inline link (see ExperimentEntry, TimelineEntry); `min-h-11` buys
+ *  the tap target without touching the type size. These used to render with
+ *  no class at all, which left them in the browser's default link colour —
+ *  the one colour on the page belonging to no palette. */
 const TEXT_LINK_CLASS =
-  "wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step--1)] text-[color:var(--fg)] underline underline-offset-4 hover:no-underline";
+  "ink-link-quiet wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step--1)] text-[color:var(--fg)]";
 
 const BULLET_ITEM_CLASS =
   "wrap-anywhere relative pl-5 before:absolute before:left-0 before:top-[0.7em] before:h-[5px] before:w-[5px] before:rounded-full before:bg-[color:var(--fg-subtle)] before:content-['']";
@@ -209,8 +211,14 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
       // 1024px, the docked index row (~3.5rem) and a little air. Written as
       // scale steps rather than calc() for the same reason `Section` writes
       // `scroll-mt-20` — one class, no arbitrary-value arithmetic.
-      className="scroll-mt-36 border-t border-[color:var(--rule-color)] py-14 first:border-t-0 first:pt-0 md:py-20 lg:scroll-mt-24"
+      className="relative scroll-mt-36 border-t border-[color:var(--rule-color)] py-14 first:border-t-0 first:pt-0 md:py-20 lg:scroll-mt-24"
     >
+      {/* Chapter tick (Workstream 3, P5): a short registration mark crossing
+          this article's own top rule. `index > 0` only — the first article
+          opts out of the top rule entirely (`first:border-t-0` above), so a
+          tick with no line to cross would float. */}
+      {index > 0 ? <span aria-hidden="true" className="chapter-tick" /> : null}
+
       <header>
         {/*
           The chapter opener. The numeral is structural, not informative —
@@ -222,7 +230,7 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
           <p
             aria-hidden="true"
-            className="font-mono text-[length:var(--step-4)] leading-[0.85] tracking-[-0.03em] text-[color:var(--fg-subtle)]"
+            className="font-mono text-[length:var(--step-4)] leading-[0.85] tracking-(--tracking-display-lg) text-[color:var(--fg-subtle)]"
           >
             {caseStudyNumeral(index)}
           </p>
@@ -235,7 +243,7 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
 
         <h3
           id={titleId}
-          className="mt-4 font-display text-[length:var(--step-3)] font-normal leading-[1.05] tracking-[-0.02em] text-[color:var(--fg)]"
+          className="mt-4 text-balance font-display text-[length:var(--step-3)] font-normal leading-[1.05] tracking-(--tracking-display) text-[color:var(--fg)]"
         >
           {project.title}
         </h3>

@@ -29,7 +29,11 @@ export default function MetricTable({ metrics, caption }: MetricTableProps) {
       className="mt-4 overflow-x-auto border border-[color:var(--rule-color)]"
       style={{ WebkitOverflowScrolling: "touch" }}
     >
-      <table className="w-full min-w-[34rem] border-collapse">
+      {/* `tabular-nums` (Workstream 3, P4): the "Before" column sets in the
+          default sans face, not mono — see the note on `.rail` in
+          globals.css for why most of the site's figures need no explicit
+          utility and this table is one of the exceptions. */}
+      <table className="w-full min-w-[34rem] border-collapse tabular-nums">
         <caption className="eyebrow border-b border-[color:var(--rule-color)] px-4 py-3 text-left">
           {caption}
         </caption>

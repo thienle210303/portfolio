@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+
 import { defineConfig } from "@playwright/test";
 
 /**
@@ -24,8 +26,14 @@ const VIEWPORTS = [
  * directly: `chromium.launch()` with no `executablePath` fails that way in
  * this container; passing `executablePath` below launches it fine). Do not
  * run `playwright install` — this path is the only browser available.
+ *
+ * Outside that container (a developer's own machine) the pinned path does not
+ * exist, but Playwright's ordinary managed cache does — so the override is
+ * applied only when the container path is actually present, and everywhere
+ * else the default resolution is left to do its job.
  */
-const CHROMIUM_EXECUTABLE = "/opt/pw-browsers/chromium";
+const PINNED_CHROMIUM = "/opt/pw-browsers/chromium";
+const CHROMIUM_EXECUTABLE = existsSync(PINNED_CHROMIUM) ? PINNED_CHROMIUM : undefined;
 
 export default defineConfig({
   testDir: "./e2e",

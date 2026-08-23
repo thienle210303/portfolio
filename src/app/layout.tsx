@@ -2,21 +2,37 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
 import { cn } from "@/lib/cn";
 import { careerEntries, education, profile, socialLinks, SITE_URL } from "@/content/portfolio";
+import { buildCompanionFacts } from "@/lib/companion-facts";
 import SkipLink from "@/components/layout/SkipLink";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Companion from "@/components/companion/Companion";
+import InkReveal from "@/components/ui/InkReveal";
 import "./globals.css";
 
 // Newsreader is variable on both `opsz` and `wght`, which is the reason it is
 // here: the same family sets a 4rem headline and a 400-word case study without
 // a second display face. Do not pin `weight` — that would collapse the
 // variation axes the type scale relies on.
+//
+// `axes: ["opsz"]` (Workstream 3, P4) is what actually turns that on.
+// next/font only ships the axes it's told to request beyond the default
+// `wght` — without this, `font-optical-sizing: auto` had nothing to steer,
+// because the one variable font file next/font was fetching never carried an
+// `opsz` axis in the first place, silent-substitution rather than a visible
+// bug. With it, the same variable file now genuinely reshapes letterforms
+// between the hero's ~4rem headline and a ~13px rail note — heavier stroke
+// contrast and taller x-height at small sizes, closer to the display cut at
+// large ones — which is the actual reading behind Newsreader being chosen
+// over a static serif at all. Verified in devtools: computed
+// `font-variation-settings` on the h1 now carries a nonzero `opsz`, where it
+// previously read 0.
 const newsreader = Newsreader({
   style: ["normal", "italic"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
+  axes: ["opsz"],
 });
 
 // Plex Sans and Plex Mono ship as static faces, so the weights actually used
@@ -129,8 +145,19 @@ const personJsonLd = {
  * than left to CSS, so the attribute is always concrete and the toggle only
  * ever has one state to read. globals.css keeps a `prefers-color-scheme`
  * fallback for the case where this script does not run at all.
+ *
+ * The trailing statement stamps `data-motion` on the same element for the
+ * same reason `data-theme` has to be — the hero's load choreography
+ * (globals.css, P2) animates the page's own `<h1>`, a Largest Contentful
+ * Paint candidate, so the attribute that gates it must exist before first
+ * paint or the animation would start a frame late and the LCP guard would be
+ * fighting a flash instead of preventing one. It is unconditional, outside
+ * the `try` above and never itself capable of throwing: whether the theme
+ * read succeeded or the `catch` swallowed a `localStorage` failure, the hero
+ * still gets its one entrance. The two real kill switches both live in CSS,
+ * not here — see the block comment on the hero keyframes in globals.css.
  */
-const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");document.documentElement.dataset.theme=s==="day"||s==="night"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"night":"day")}catch(e){}})()`;
+const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");document.documentElement.dataset.theme=s==="day"||s==="night"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"night":"day")}catch(e){}document.documentElement.dataset.motion=""})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -148,6 +175,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="blueprint-grid bg-ground text-fg">
+        {/* P6's header-hairline sentinel: a 1px, off-flow, aria-hidden marker
+            InkReveal's second observer watches to know whether the visitor
+            is still at the very top of the page. It has to be `body`'s
+            first child, ahead of the sticky header, so its geometric
+            position is the actual document top rather than wherever the
+            header's own box happens to end — the two are unrelated to each
+            other on purpose: this element is never painted (1px, no
+            content), it exists purely as an IntersectionObserver target. */}
+        <div aria-hidden="true" data-scroll-sentinel className="pointer-events-none absolute left-0 top-0 h-px w-px" />
         <SkipLink />
         <SiteHeader />
         {/* tabIndex={-1} is load-bearing, not decoration. Fragment
@@ -160,7 +196,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
-        <Companion />
+        {/* D1: facts computed once, on the server, from src/content/* — see
+            src/lib/companion-facts.ts. The content arrays never reach the
+            client chunk the cats ship in; only this small object does. */}
+        <Companion facts={buildCompanionFacts()} />
+        {/* The one reveal observer for the whole page — see that file's own
+            doc comment for why its two jobs (section settles + the header
+            hairline sentinel above) live in a single mount rather than two. */}
+        <InkReveal />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}

@@ -295,8 +295,35 @@ const ROAM_WEIGHTS: Record<SceneKind, number> = {
   scratch: 8,
 };
 
-export function sceneOrder(wandering = false): SceneKind[] {
-  const weights = wandering ? WANDER_WEIGHTS : ROAM_WEIGHTS;
+/**
+ * What the moment is, for the one weight round 11 makes situational: the moth
+ * is a creature drawn to a light, and the AI Workflow Lab is the one section
+ * whose own drawing is lit up like one — see WorkflowExplorer's tablist. It
+ * is 3x as likely to lead there, and 2x at night, when a lit lab reads as the
+ * one bright thing on the page rather than merely the busiest.
+ *
+ * Both fields are optional, and omitting the object entirely is the same as
+ * passing `{}` — the ordinary weights, unmodified — which is what keeps every
+ * existing caller of `sceneOrder` correct without having to be rewritten.
+ */
+export interface SceneFlavor {
+  readonly night?: boolean;
+  readonly section?: string | null;
+}
+
+/** How much more likely the moth is to lead in `#lab`, by time of day. */
+const LAB_MOTH_BOOST = { day: 3, night: 2 } as const;
+
+function flavoredWeights(
+  base: Record<SceneKind, number>,
+  flavor: SceneFlavor | undefined,
+): Record<SceneKind, number> {
+  if (!flavor || flavor.section !== "lab") return base;
+  return { ...base, moth: base.moth * (flavor.night ? LAB_MOTH_BOOST.night : LAB_MOTH_BOOST.day) };
+}
+
+export function sceneOrder(wandering = false, flavor?: SceneFlavor): SceneKind[] {
+  const weights = flavoredWeights(wandering ? WANDER_WEIGHTS : ROAM_WEIGHTS, flavor);
   // A weighted shuffle rather than a weighted pick: every scene keeps its
   // chance of being *first*, which is what the weights are about, and the rest
   // of the list is only consulted when the page has refused the ones above it.

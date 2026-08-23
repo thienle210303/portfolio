@@ -1,4 +1,4 @@
-import { skillCategories } from "@/content/portfolio";
+import { resumeLenses, skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { CROSS_LINK_CLASS } from "./cross-link";
 
@@ -58,7 +58,32 @@ import { CROSS_LINK_CLASS } from "./cross-link";
  * in the figure's DOM in both — see `KnowledgeTree.tsx` for why that is what
  * keeps tab order matching reading order regardless of which presentation is
  * showing.
+ *
+ * ## The fact line under each root
+ *
+ * `category.lenses` is a second, independent authored edge set — category →
+ * lens — sitting beside the `lenses` a career entry carries (see the header
+ * of `src/lib/knowledge-tree.ts`). It is *not* the same claim a connector
+ * line would make: "Languages feeds Software engineering" says this skill
+ * group shows up in that kind of work in general, not that any specific piece
+ * of work above used it, which is exactly the distinction the file header
+ * above spends three paragraphs on. `data-tree-root`/`data-tree-feeds` below
+ * carry that edge to the cross-highlight island in `TreeFigure.tsx`: hovering
+ * or focusing a root brightens the lens panels it feeds, and vice versa.
+ *
+ * One lens has no category feeding it at all — "Leadership" — because no
+ * skill category is tagged with it. That is left exactly as honest as it is:
+ * hovering the Leadership panel highlights no roots, and no root's fact line
+ * mentions it. Inventing a feed here would be the same mistake a fuzzy
+ * skill/technology join would be.
  */
+function feedsLine(lenses: readonly string[]): string {
+  const labels = lenses
+    .map((id) => resumeLenses.find((lens) => lens.id === id)?.label)
+    .filter((label): label is string => Boolean(label));
+  return labels.length > 0 ? `Feeds ${labels.join(", ")}` : "Feeds nothing tagged yet";
+}
+
 export function RootLabels({ className }: { readonly className?: string }) {
   if (skillCategories.length === 0) return null;
 
@@ -75,10 +100,17 @@ export function RootLabels({ className }: { readonly className?: string }) {
         className="mt-2 flex flex-wrap gap-x-7 gap-y-2 lg:hidden"
       >
         {skillCategories.map((category) => (
-          <li key={category.id}>
+          <li
+            key={category.id}
+            data-tree-root={category.id}
+            data-tree-feeds={category.lenses.join(" ")}
+          >
             <a href={`#skills-${category.id}`} className={cn(CROSS_LINK_CLASS, "wrap-anywhere")}>
               {category.label}
             </a>
+            <span className="mt-0.5 block text-[length:var(--step--1)] leading-snug text-fg-muted">
+              {category.skills.length} skills · {feedsLine(category.lenses)}
+            </span>
           </li>
         ))}
       </ul>
@@ -98,7 +130,12 @@ export function RootLabels({ className }: { readonly className?: string }) {
         style={{ gridTemplateColumns: `repeat(${skillCategories.length}, minmax(0, 1fr))` }}
       >
         {skillCategories.map((category) => (
-          <li key={category.id} className="flex flex-col items-center">
+          <li
+            key={category.id}
+            data-tree-root={category.id}
+            data-tree-feeds={category.lenses.join(" ")}
+            className="flex flex-col items-center"
+          >
             <span aria-hidden="true" className="block h-2 w-px border-l border-rule" />
             <a
               href={`#skills-${category.id}`}
@@ -109,6 +146,9 @@ export function RootLabels({ className }: { readonly className?: string }) {
             >
               {category.label}
             </a>
+            <span className="mt-0.5 block max-w-[16ch] text-center text-[length:var(--step--1)] leading-snug text-fg-muted">
+              {category.skills.length} skills · {feedsLine(category.lenses)}
+            </span>
           </li>
         ))}
       </ul>

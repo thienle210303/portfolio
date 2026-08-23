@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { cn } from "@/lib/cn";
+import type { CompanionFacts } from "@/lib/companion-facts";
 import CompanionCat, { CAT_H, CAT_W, type CatPose } from "./CompanionCat";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, {
@@ -15,7 +17,8 @@ import RestingBox, {
   KICK_SLOT,
   PAPER_SLOT,
 } from "./RestingBox";
-import ToolkitPanel, { PANEL_ID, type PlayRequest } from "./ToolkitPanel";
+import ToolkitPanel, { PANEL_ID, type PlayRequest, type TourRequest } from "./ToolkitPanel";
+import TourHud from "./TourHud";
 import {
   advancePlay,
   hideCut,
@@ -27,7 +30,31 @@ import {
   type PlayBeat,
   type SceneKind,
 } from "./companion-play";
-import { planMood, planWander, type MoodKind } from "./companion-moods";
+import {
+  advanceBeat,
+  currentBeat,
+  beatDurationMs,
+  DUET_ODDS,
+  hasEncore,
+  nextDuetAt,
+  sceneFor,
+  startScene,
+  storyBeatScene,
+  type DialogueBeat,
+  type DialogueRun,
+  type DialogueScene,
+  type Speaker,
+  type StoryBeatKind,
+} from "./companion-dialogue";
+import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
+import {
+  TOUR_STOPS,
+  isLastStop,
+  startTour,
+  stopsFor,
+  type TourRoute,
+  type TourRun,
+} from "./companion-tour";
 import {
   migrateCompanionMode,
   roamingChoice,
@@ -142,6 +169,38 @@ const FOLLOW_SLACK = 58;
  */
 const SETTLE_AFTER = 2400;
 const SLEEP_AFTER = 14000;
+/** At night the corner is a shorter walk in visitors' heads too — the bed
+ *  comes three seconds sooner. A small nudge, on purpose: this is flavour, not
+ *  a second sleep threshold to keep in step with the real one. */
+const NIGHT_SLEEP_TRIM = 3000;
+
+/** How long a cheer lasts — a brief lead-`stretch` and tabby-`bat`, drawn from
+ *  the poses both animals already have rather than a new one. See D3: a copy
+ *  confirmation, a sent message and a theme toggle all ask for the same
+ *  flourish, none of them know a cat is listening, and none of them get a
+ *  say in how long it lasts. */
+const CHEER_MS = 1100;
+
+/** How long the rain beat's huddle holds before the ordinary tour-stop
+ *  spacing takes back over — roughly one season beat's own display time, so
+ *  the pair have drawn back apart before the next beat's narration starts. */
+const HUDDLE_MS = 1800;
+
+/** How long the Contact stop's fake-nap holds before the startle-awake cheer
+ *  fires — see `tourNapUntil` and the choreography armed on tour arrival. */
+const CONTACT_NAP_MS = 2000;
+
+/** Dwell before a nav link's hover or focus counts as intent, matching the
+ *  nap contract's own dwell (`NAP_DWELL`) — brushing past a link on the way
+ *  to another one should not read as "heading there". */
+const INTENT_DWELL = 300;
+
+/** How long the page must have gone without a scroll event before a tour stop
+ *  counts as "arrived". The tour's own `scrollIntoView` fires scroll events
+ *  the whole way there, so arrival cannot be "the pair are close enough" on
+ *  its own — that is true for a moment mid-scroll on every stop — it has to be
+ *  "close enough, and the scroll that got them there has stopped". */
+const TOUR_SCROLL_SILENCE = 350;
 
 /** px per frame at 60fps, scaled by distance so they lope rather than snap. */
 const LEAD_SPEED = 4.4;
@@ -770,6 +829,39 @@ function paint(node: HTMLElement | null, pos: Spot): void {
 }
 
 /**
+ * The duet's speech bubble, clamped to the viewport: it sits at the speaking
+ * cat's x, but the cat is allowed right up against the window edge and the
+ * bubble is `whitespace-nowrap` on its meow line — unclamped, a bubble that
+ * fires there gets cut off mid-line, which is worse than no bubble at all.
+ * Measured off the node's own rendered width so the clamp holds for whichever
+ * beat it is showing. The vertical offset is measured too, off the node's own
+ * rendered height — a one-line note had a fixed height, but the subtitle here
+ * can wrap to two lines, and a hardcoded offset put the cat drawing right over
+ * the second line the moment a beat's subtitle actually wrapped.
+ *
+ * The *y* is clamped the same way: a cat close enough to the top of the
+ * viewport used to put the bubble's top edge under the sticky header — the
+ * header is opaque and the bubble is `fixed`, painted above it in source
+ * order but not in the header's own stacking context, so the bubble's first
+ * line landed half-hidden behind the site chrome. `safeTop()` is the same
+ * measured header-bottom the roaming bounds already probe against (see
+ * `companion-space.ts`), so this never drifts from the header's actual
+ * height the way a hardcoded pixel figure would. When the bubble would sit
+ * above that line, it flips below the cat instead of merely being pushed
+ * down onto it — a bubble still reading "above" while jammed flush under the
+ * header would point at nothing.
+ */
+function paintBubble(node: HTMLElement | null, cat: Spot): void {
+  if (!node) return;
+  const margin = 8;
+  const width = node.offsetWidth;
+  const x = clamp(cat.x, margin, Math.max(margin, window.innerWidth - width - margin));
+  const above = cat.y - node.offsetHeight - 6;
+  const y = above < safeTop() + margin ? cat.y + CAT_H + 6 : above;
+  paint(node, { x, y });
+}
+
+/**
  * Cut a drawing off at the edge of whatever it is hiding behind; zero puts it
  * back.
  *
@@ -850,8 +942,17 @@ const WANDER_STAY = 4500;
 const WANDER_STAY_SPREAD = 8000;
 const WANDER_WALK_MAX = 8000;
 
-export function Companion() {
+export interface CompanionProps {
+  /** D1: computed once, on the server, from `src/content/*` — see
+   *  src/lib/companion-facts.ts. The only route any content number reaches
+   *  this client chunk by; the duet and the tour quote it and nothing
+   *  else. */
+  readonly facts: CompanionFacts;
+}
+
+export function Companion({ facts }: CompanionProps) {
   const mode = useCompanionMode();
+  const pathname = usePathname();
   /** Both modes that put cats on the page rather than in the corner. Almost
    *  everything below cares which of the three the visitor chose only this far:
    *  is there a roaming layer at all. */
@@ -890,6 +991,13 @@ export function Companion() {
   const toyNode = useRef<HTMLDivElement | null>(null);
   const toyArt = useRef<SVGGElement | null>(null);
   const toySpin = useRef<SVGGElement | null>(null);
+  /** The duet's two speech-bubble elements — positioned per frame exactly like
+   *  the toy, and for the same reason: an effect would place it one frame
+   *  late. Only one is ever mounted at a time (see the render), but both need
+   *  a stable ref for the frame their speaker isn't holding to attach to when
+   *  it next takes the floor. */
+  const greyBubble = useRef<HTMLDivElement | null>(null);
+  const tabbyBubble = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   /** The two halves of the idle furniture — everything behind the animals, and
@@ -971,6 +1079,131 @@ export function Companion() {
   const moodRun = useRef<MoodRun | null>(null);
   const moodWalk = useRef<MoodWalk | null>(null);
   const homeSpots = useRef<Spots | null>(null);
+  /** Mirrors `roaming` for the loop, the same way `wanderRef` mirrors the
+   *  mode: the loop effect's dependency array is `loopActive`, which can stay
+   *  true across a mode change that flips `roaming` (an escort keeps the loop
+   *  alive after "resting" is chosen), so anything the loop reads that cares
+   *  about *real* roaming — as opposed to "there happens to be a frame
+   *  running" — has to read a ref rather than the render-scope value. */
+  const roamingRef = useRef(roaming);
+
+  /* ------------------------------------------------------------- the tour -- */
+  /** The tour in progress, mutated per frame exactly like `escortRef` — see
+   *  companion-tour.ts. `tourSpots` is where the current stop's mood or
+   *  fallback anchor resolved to, held rather than probed every frame except
+   *  while a stop is still being walked to (the section it belongs to is
+   *  mid-scroll, so its anchor keeps moving until the scroll settles). */
+  const tourRef = useRef<TourRun | null>(null);
+  const tourSpots = useRef<Spots | null>(null);
+  const tourHudRef = useRef<HTMLDivElement>(null);
+  /** The last moment any scroll event fired, regardless of cause — the tour's
+   *  own `scrollIntoView` included. Arrival at a stop is gated on this being
+   *  quiet for a beat, which is what stops "close enough" being read as
+   *  arrived while the programmatic scroll that is *carrying* the pair there
+   *  is still under way. */
+  const lastScrollAt = useRef(0);
+  /**
+   * The play's own choreography windows — one per stop that needs more than
+   * the pair's ordinary sit, armed at arrival (see `armTourChoreo` in the
+   * loop) and read only from inside the tour's own code paths, exactly the
+   * way `rainHuddleUntil` is read only from inside the watch's. Both are
+   * plain timestamps rather than a richer shape because both are read the
+   * same way `rainHuddleUntil` already is: "is now before this".
+   */
+  const tourHuddleUntil = useRef(0);
+  const tourNapUntil = useRef(0);
+  /** What React needs to draw the HUD: which stop, the route it is currently
+   *  walking (see companion-tour's `TourRoute`), whether that route has been
+   *  chosen yet, and the beats once the pair have actually arrived (empty
+   *  while still walking to it). Everything else about a tour — the walk, the
+   *  arrival check — is `tourRef`'s business, exactly as a scene's
+   *  beat-by-beat progress is `playRef`'s. */
+  const [tourView, setTourView] = useState<{
+    index: number;
+    lines: readonly DialogueBeat[];
+    route: TourRoute;
+    routeChosen: boolean;
+  } | null>(null);
+
+  /* ------------------------------------------------------------- watch -- */
+  /** Non-null while the pair have been invited to sit and watch the
+   *  origin-story overlay — see the effect near the tour's own listeners.
+   *  `spots` starts null and is filled in by the loop exactly the way
+   *  `tourSpots` is: recomputed every frame they are still walking over
+   *  (`tourStopSpots("tree")`, the tour's own placement for that section),
+   *  then left alone once they arrive. Dropped — not merely outranked — the
+   *  moment anything with a stronger claim shows up, so it is never resumed
+   *  once the visitor has been handed to the escort, the tour, a nap or the
+   *  panel; see where `forced` is read in the loop. */
+  const watchRef = useRef<{ spots: Spots | null } | null>(null);
+  /** Who narrates the next `origin-story-beat` — flipped after every beat so
+   *  the show reads as a duet rather than one cat narrating the whole thing,
+   *  and reset to "grey" at the top of every run (the "start" branch below)
+   *  so a show always opens on the same voice regardless of who spoke last
+   *  in whatever ambient scene came before it. */
+  const storySpeakerRef = useRef<Speaker>("grey");
+  /** How long the rain beat's huddle — the follow spot pulled in beside the
+   *  lead instead of behind him — holds before the ordinary tour-stop
+   *  spacing (`tourStopSpots`) takes back over. Set from the
+   *  `origin-story-beat` listener; read where `watch.spots` is refreshed
+   *  every frame below. Zero (the initial value) never satisfies `now <
+   *  rainHuddleUntil.current`, so this is inert until the first rain beat. */
+  const rainHuddleUntil = useRef(0);
+
+  /* ------------------------------------------------------------- duet -- */
+  /** The next moment a scene may start on its own, and the sections that have
+   *  already shown an ambient one this visit — see companion-dialogue.ts.
+   *  Neither is cleared when the visitor moves on: "once per section per
+   *  visit" means once, not once per return trip, and the cadence is a
+   *  property of the *visit*, not of whichever section happens to be current
+   *  when the clock comes up. */
+  const duetAt = useRef(0);
+  const duetShown = useRef<Set<string>>(new Set());
+  /** Whether the visit's one deterministic scene — the hello — has already
+   *  had its turn — see the comment where it is read, in the loop. */
+  const duetFirstShown = useRef(false);
+  /** The running scene, if any — advanced by the loop's reading-time clock
+   *  or by a tap on the tabby, and cleared by the same things that cleared a
+   *  field note, plus scene completion. The state mirror below is for JSX
+   *  only, exactly the way `note` used to be. */
+  const duetRef = useRef<DialogueRun | null>(null);
+  const [duetBeat, setDuetBeat] = useState<{
+    speaker: Speaker;
+    meow: string;
+    sub: string;
+    hintMore: boolean;
+  } | null>(null);
+
+  /* --------------------------------------------------------- nav intent -- */
+  /** D2: the nav link the pointer or keyboard focus is dwelling on, by
+   *  section id — `null` off the nav entirely. Detected by delegation on
+   *  `header nav a[href]`, the same shape the `data-cat-nap` contract already
+   *  uses, so no change reaches SiteNav to make this work. */
+  const intentRef = useRef<string | null>(null);
+  const [intent, setIntent] = useState<string | null>(null);
+
+  /* ------------------------------------------------------------- night -- */
+  /** Whether `<html data-theme>` currently reads "night", read once at mount
+   *  and kept current by the `MutationObserver` below (D3) — the loop cannot
+   *  itself watch a DOM attribute a visitor may change at any moment. */
+  const nightRef = useRef(false);
+
+  /* -------------------------------------------------------------- cheer -- */
+  /** A brief flourish on a copy confirmation, a sent message, or a theme
+   *  toggle (D3) — none of which know a cat is listening. `cheerRef` is the
+   *  window the loop honours; `cheer` is only for `data-cat-cheer`. */
+  const cheerRef = useRef<{ until: number } | null>(null);
+  const [cheer, setCheer] = useState(false);
+
+  /* --------------------------------------------------------------- rush -- */
+  /** A sustained fast scroll, detected from the loop's own scroll handler —
+   *  see `detectRush` in companion-moods.ts for the arithmetic and the
+   *  handler below for the accumulation. `dir` is which way the page is
+   *  moving, `until` is when the reaction ends if nothing else claims the
+   *  pair first. */
+  const rushRef = useRef<{ dir: 1 | -1; until: number } | null>(null);
+  const rushWindow = useRef<{ y: number; at: number } | null>(null);
+
   const committed = useRef<Frame>(INITIAL_FRAME);
   const lastCommit = useRef(0);
   const lastTone = useRef(0);
@@ -1032,10 +1265,11 @@ export function Companion() {
    */
   useEffect(() => {
     wanderRef.current = mode === "wander";
+    roamingRef.current = roaming;
     wanderRun.current = null;
     settleSpots.current = null;
     wake();
-  }, [mode, wake]);
+  }, [mode, roaming, wake]);
 
   // Retire the one stored value this code no longer writes. It has to happen
   // out here rather than inside the store's snapshot, which runs during render
@@ -1056,8 +1290,133 @@ export function Companion() {
     moodWalk.current = null;
     settleSpots.current = null;
     wanderRun.current = null;
+    // A scene is *about* the section it started in. The tour is exempt — it
+    // is the thing doing the scrolling — and the story is exempt for the same
+    // reason: the visitor does not scroll during the show (the player itself
+    // ends the show on scroll-away, well before this effect would ever see a
+    // change), so in practice this never fires mid-story, but a real forced
+    // state still drops a story scene the moment it claims the pair — see the
+    // origin-story invitation's own drop, just below `tourStopSpots`, which
+    // clears it explicitly rather than relying on this effect. The cadence
+    // clock (`duetAt`) is untouched: the visit-wide gap keeps running, this
+    // only clears what is currently showing.
+    if (duetRef.current && duetRef.current.scene.kind !== "tour" && duetRef.current.scene.kind !== "story") {
+      duetRef.current = null;
+      setDuetBeat(null);
+    }
     wake();
   }, [section, wake]);
+
+  /**
+   * D3, the theme half: `ThemeToggle` writes `data-theme` straight to
+   * `<html>` rather than through any state this component could subscribe to
+   * (see its own doc comment), so the only way to notice a toggle is to
+   * watch the attribute. `attributeFilter` means this fires only on an
+   * actual change, never on unrelated DOM churn elsewhere on the page.
+   *
+   * Both the read and the cheer only matter once there is a loop to feel
+   * them, so this — like the nap contract — does nothing at all off `roams`.
+   */
+  useEffect(() => {
+    if (!roams) return;
+    const root = document.documentElement;
+    nightRef.current = root.dataset.theme === "night";
+
+    const cheerNow = () => {
+      cheerRef.current = { until: performance.now() + CHEER_MS };
+      setCheer(true);
+      window.setTimeout(() => setCheer(false), CHEER_MS);
+      lastSignRef.current = performance.now();
+      wake();
+    };
+
+    const observer = new MutationObserver(() => {
+      nightRef.current = root.dataset.theme === "night";
+      cheerNow();
+    });
+    observer.observe(root, { attributeFilter: ["data-theme"] });
+
+    // D3, the neutral-event half: CopyButton and ContactForm dispatch these
+    // on success with no idea a cat is listening — see the one-line edits in
+    // each file. The companion is simply one more thing on the page that
+    // happens to care.
+    window.addEventListener("portfolio:copied", cheerNow);
+    window.addEventListener("portfolio:contact-sent", cheerNow);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("portfolio:copied", cheerNow);
+      window.removeEventListener("portfolio:contact-sent", cheerNow);
+    };
+  }, [roams, wake]);
+
+  /**
+   * D2: nav intent by DOM delegation rather than a `CustomEvent` from
+   * `SiteNav` — the same shape the `data-cat-nap` contract already uses one
+   * effect up, and it costs SiteNav nothing to make this work. A dwell, not
+   * entry, for the same reason the nap contract has one: passing over a link
+   * on the way to another should not read as having decided to go there.
+   */
+  useEffect(() => {
+    if (!roams || !roaming) return;
+
+    let dwell = 0;
+
+    const clear = () => {
+      window.clearTimeout(dwell);
+      if (intentRef.current !== null) {
+        intentRef.current = null;
+        setIntent(null);
+      }
+    };
+
+    const consider = (target: Element | null) => {
+      const link = target?.closest<HTMLAnchorElement>("header nav a[href]") ?? null;
+      const href = link?.getAttribute("href") ?? "";
+      // `SiteNav` links read `/#section-id` — a same-page fragment written as
+      // an absolute path, which still resolves to an in-page jump but is not
+      // a bare `#section-id`. The section id is whatever follows the `#`
+      // wherever it falls, not only at index 0.
+      const hash = href.indexOf("#");
+      const wants = hash >= 0 ? href.slice(hash + 1) : null;
+      if (!wants) {
+        clear();
+        return;
+      }
+      if (wants === intentRef.current) return;
+      window.clearTimeout(dwell);
+      dwell = window.setTimeout(() => {
+        intentRef.current = wants;
+        setIntent(wants);
+      }, INTENT_DWELL);
+    };
+
+    const onOver = (event: PointerEvent) => {
+      consider(event.target instanceof Element ? event.target : null);
+    };
+    const onOut = (event: PointerEvent) => {
+      const next = event.relatedTarget instanceof Element ? event.relatedTarget : null;
+      if (!next?.closest("header nav a[href]")) clear();
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      consider(event.target instanceof Element ? event.target : null);
+    };
+    const onFocusOut = (event: FocusEvent) => {
+      const next = event.relatedTarget instanceof Element ? event.relatedTarget : null;
+      if (!next?.closest("header nav a[href]")) clear();
+    };
+
+    document.addEventListener("pointerover", onOver);
+    document.addEventListener("pointerout", onOut);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      window.clearTimeout(dwell);
+      document.removeEventListener("pointerover", onOver);
+      document.removeEventListener("pointerout", onOut);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, [roams, roaming]);
 
   /* ------------------------------------------------------------- placing -- */
 
@@ -1142,6 +1501,99 @@ export function Companion() {
     paint(node, play.pos);
     node.style.opacity = play.opacity.toFixed(3);
   }, []);
+
+  /** D5: the bubble is decoration exactly the way the toy is, and gets the
+   *  same first-frame treatment — placed here rather than left for an effect
+   *  to catch up to, so it never flashes in at the origin before jumping to
+   *  the cat it belongs beside. One attacher per speaker, because only one
+   *  bubble is ever mounted, and each has to find its own cat's position
+   *  regardless of which cat is currently speaking. */
+  const attachGreyBubble = useCallback((node: HTMLDivElement | null) => {
+    greyBubble.current = node;
+    if (node) paintBubble(node, lead.current.pos);
+  }, []);
+  const attachTabbyBubble = useCallback((node: HTMLDivElement | null) => {
+    tabbyBubble.current = node;
+    if (node) paintBubble(node, follow.current.pos);
+  }, []);
+
+  /** What the JSX needs to draw one beat; `hintMore` marks the last beat of
+   *  an ambient scene that has an encore waiting behind it. */
+  const beatView = useCallback(
+    (run: DialogueRun): { speaker: Speaker; meow: string; sub: string; hintMore: boolean } => {
+      const beat = currentBeat(run);
+      const last = run.beatIndex === run.scene.beats.length - 1;
+      const section = run.scene.kind === "ambient" ? run.scene.id.replace(/^ambient-/, "") : null;
+      return {
+        speaker: beat.speaker,
+        meow: beat.meow,
+        sub: beat.sub,
+        hintMore: last && section !== null && hasEncore(section, facts),
+      };
+    },
+    [facts],
+  );
+
+  const playDuetScene = useCallback(
+    (scene: DialogueScene, now: number) => {
+      const run = startScene(scene, now);
+      duetRef.current = run;
+      setDuetBeat(beatView(run));
+    },
+    [beatView],
+  );
+
+  /** The tabby's own control: advance the running scene a beat, open the
+   *  encore waiting behind an ambient scene's last line, or — if nothing is
+   *  running — start whichever scene this section has not shown yet. The
+   *  same three moves the loop makes on its own clock, just on the visitor's
+   *  tap instead. */
+  const tapTabby = useCallback(() => {
+    const now = performance.now();
+    // A visitor-initiated scene still owes the scheduler a re-arm: it only
+    // guards on `duetRef.current === null`, so without this a tapped scene
+    // that just finished would leave the spontaneous hello free to fire the
+    // instant it ends. Skip the re-arm while the hello itself hasn't played
+    // yet — that one is on its own fixed clock and must not be pushed out.
+    const rearm = () => {
+      if (duetFirstShown.current) duetAt.current = nextDuetAt(now, false, Math.random());
+    };
+    const run = duetRef.current;
+    if (run) {
+      const last = run.beatIndex === run.scene.beats.length - 1;
+      const section = sectionRef.current;
+      if (last && run.scene.kind === "ambient" && section && hasEncore(section, facts)) {
+        const encore = sceneFor("encore", section, facts);
+        if (encore) {
+          playDuetScene(encore, now);
+          rearm();
+          return;
+        }
+      }
+      const next = advanceBeat(run, now);
+      duetRef.current = next;
+      setDuetBeat(next ? beatView(next) : null);
+      rearm();
+      return;
+    }
+    const section = sectionRef.current;
+    if (!section) return;
+    // Once a section's ambient scene has already had its once-per-visit
+    // showing, an encore is the next thing to offer — but only journey, tree
+    // and lab have one. Everywhere else, replay the ambient scene rather than
+    // going silent for the rest of the visit; `duetShown` already has the
+    // section, so this replay does not touch it again.
+    const scene = duetShown.current.has(section)
+      ? (sceneFor("encore", section, facts) ?? sceneFor("ambient", section, facts))
+      : sceneFor("ambient", section, facts);
+    if (scene) {
+      // A fallback replay is already in `duetShown`; only a first-ever
+      // ambient scene needs to be added.
+      if (scene.kind === "ambient") duetShown.current.add(section);
+      playDuetScene(scene, now);
+      rearm();
+    }
+  }, [beatView, facts, playDuetScene]);
 
   /* ------------------------------------------------------------- pointer -- */
 
@@ -1333,6 +1785,34 @@ export function Companion() {
     }
 
     /**
+     * Where a tour stop wants the pair standing.
+     *
+     * The stop's section id is deliberately the same string `planMood`
+     * dispatches on — `TOUR_STOPS` is built from `navItems`, and every section
+     * id there already has a mood — so the tour's placement is the section
+     * mood, asked for on demand instead of waiting for a settle. Recomputed
+     * every frame the tour is walking to a stop rather than held like an
+     * ordinary mood: the section is still scrolling into view, so its anchor
+     * is moving, and a spot probed once at the start of that scroll would be
+     * measuring ground that has since moved out from under it.
+     *
+     * A section whose mood declines (there is genuinely nowhere clear beside
+     * whatever the mood hangs off) falls back to a spot beside the section's
+     * own top edge — cruder, but still a real, content-avoiding answer rather
+     * than nowhere at all.
+     */
+    function tourStopSpots(sectionId: string): Spots | null {
+      const plan = planMood(sectionId, grey.pos, tabby.pos, homeSpot());
+      if (plan) return plan.spots;
+      const el = document.getElementById(sectionId);
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return null;
+      const anchor = { x: rect.left + 24, y: rect.top + 72 };
+      return restSpots(anchor, { x: anchor.x - CAT_W - FOLLOW_GAP, y: anchor.y });
+    }
+
+    /**
      * Where the pair should be sitting, mood included.
      *
      * The section mood gets first refusal, and only ever here — which is what
@@ -1509,12 +1989,185 @@ export function Companion() {
         if (nap.rect.bottom < safeTop() || nap.rect.top > viewport().height) nap = null;
       }
 
-      const forced = run ? "escort" : nap ? "nap" : openRef.current ? "corner" : null;
+      /**
+       * D4: the guided tour, advanced before `forced` reads it.
+       *
+       * Outranks the nap contract on purpose — stop 6 is the career tree, and
+       * its own plinth carries `data-cat-nap`, so without this the plinth's
+       * dwell would hijack the tour the moment the pair arrived there. It does
+       * not outrank the escort: a visitor who sends the cats to bed mid-tour
+       * has `sendToBed` end the tour first (see below), so `run` is never
+       * actually true at the same time as `tourRef.current` in practice — the
+       * `!run` guard here is the same defensive shape `nap` is read with, for
+       * the one caller that is not this component.
+       */
+      let tour = tourRef.current;
+      if (tour && !run) {
+        const stop = stopsFor(tour.route)[tour.index];
+        const spots = tourStopSpots(stop.sectionId);
+        if (spots) tourSpots.current = spots;
+        if (!tourSpots.current) {
+          // Nowhere at all for this stop. Skip it rather than strand the tour
+          // on a section that has, for whatever reason, nothing clear near it;
+          // give up only if it was the last one.
+          if (isLastStop(tour.index)) {
+            tourRef.current = null;
+            tour = null;
+            setTourView(null);
+            duetRef.current = null;
+            setDuetBeat(null);
+          } else {
+            tour.index += 1;
+            tour.phase = "walking";
+            tour.arrivedAt = 0;
+            tourSpots.current = null;
+            setTourView({ index: tour.index, lines: [], route: tour.route, routeChosen: tour.routeChosen });
+          }
+        } else if (
+          tour.phase === "walking" &&
+          now - lastScrollAt.current > TOUR_SCROLL_SILENCE &&
+          distance(grey.pos, tourSpots.current.lead) < 4 &&
+          distance(tabby.pos, tourSpots.current.follow) < 4
+        ) {
+          tour.phase = "arrived";
+          tour.arrivedAt = now;
+          const stopScene = sceneFor("tour", stop.sectionId, facts);
+          setTourView({
+            index: tour.index,
+            lines: stopScene?.beats ?? [],
+            route: tour.route,
+            routeChosen: tour.routeChosen,
+          });
+          if (stopScene) playDuetScene(stopScene, now);
+
+          /**
+           * The play's choreography: one beat per stop, existing mechanics
+           * only. About, Philosophy and Tree get nothing here on purpose —
+           * the pair's own default sit, and the facing they already carry in
+           * from the walk, already read as "peering up" and "looking up at
+           * the figure"; adding a forced pose to a cat already sitting still
+           * would be drawing the same thing twice. The rest reuse exactly
+           * the windows `origin-story-beat` arms elsewhere in this file:
+           * `cheerRef` for the pair flourish (grey stretches, tabby bats —
+           * see the "Honestly" note on that handler for why a *pair* cheer
+           * stands in for "tabby cheer" / "tabby startle-hop" alike), and a
+           * `{ dir, until }` / plain-until window read directly from the
+           * tour's own branches below rather than through the generic
+           * `rushing`/huddle checks, which never get a turn while `forced`
+           * is already `"tour"`. Every window self-expires on its own clock
+           * and is read only from inside the tour's own code paths, so
+           * ending the tour drops whichever of these happens to be open
+           * along with everything else.
+           */
+          if (stop.sectionId === "work" || stop.sectionId === "lab") {
+            cheerRef.current = { until: now + CHEER_MS };
+            setCheer(true);
+            window.setTimeout(() => setCheer(false), CHEER_MS);
+          } else if (stop.sectionId === "journey") {
+            rushRef.current = { dir: grey.facing, until: now + RUSH_HOLD_MS + 500 };
+          } else if (stop.sectionId === "skills") {
+            tourHuddleUntil.current = now + HUDDLE_MS;
+          } else if (stop.sectionId === "contact") {
+            tourNapUntil.current = now + CONTACT_NAP_MS;
+          }
+        }
+      }
+
+      /**
+       * The origin-story invitation — see `watchRef`'s declaration. Dropped
+       * for good the first frame any of the four states above claims the
+       * pair, exactly the asymmetric drop a running duet gets from `forced`
+       * further down: none of those hand it back when they end. A running
+       * story scene is dropped in the same breath — the section-change and
+       * forced/dozing clears below are told to leave a `"story"` scene alone
+       * (the same exemption `"tour"` already has), which is correct only
+       * while the watch itself stands; the moment a real forced state (the
+       * escort, the tour, a nap or the panel) takes the watch away, nothing
+       * else would ever clear the orphaned bubble, so this does it directly
+       * rather than leaning on a rule written for a different scene kind.
+       * Otherwise refreshed like a tour stop while it stands, since
+       * `tourStopSpots` this cheap is worth calling every frame rather than
+       * trying to know ahead of time when the section's anchor has finished
+       * settling.
+       *
+       * The player still has a show running when this fires — only the
+       * watch is dropped, not the story — so it is told with its own
+       * `"stop"` detail rather than the plain, detail-less dispatch `"end"`
+       * gets elsewhere in this file: `OriginStory.tsx`'s ack listener reads
+       * that detail to bring its bare-annotation fallback back rather than
+       * leaving the story fully dark for whatever beats remain.
+       */
+      if (watchRef.current && (run || tour || nap || openRef.current)) {
+        watchRef.current = null;
+        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
+        if (duetRef.current?.scene.kind === "story") {
+          duetRef.current = null;
+          setDuetBeat(null);
+        }
+      }
+      const watch = watchRef.current;
+      if (watch) {
+        const spots = tourStopSpots("tree");
+        if (spots) {
+          if (rushRef.current && now < rushRef.current.until) {
+            // The storm beat's startle: a short dash off the sit spot and
+            // back, using the same `{ dir, until }` shape (and duration) a
+            // sustained fast scroll already gives `rushRef` elsewhere in this
+            // loop — no new reaction, just that jolt borrowed for one beat
+            // instead of a page-length dash. `rushing` itself never reads
+            // true here (it requires `!forced`, and `forced` is `"watch"`
+            // for as long as this branch runs), so this is the one place the
+            // ref's *shape* is reused without its usual branch.
+            const startled = clampToViewport({ x: spots.lead.x + rushRef.current.dir * 20, y: spots.lead.y });
+            watch.spots = { lead: startled, follow: followHome(startled) };
+          } else if (now < rainHuddleUntil.current) {
+            // The rain beat's huddle: she comes in beside him instead of
+            // behind — the same clamp every spot here goes through, just a
+            // shorter gap than the ordinary `FOLLOW_GAP`.
+            watch.spots = {
+              lead: spots.lead,
+              follow: clampToViewport({ x: spots.lead.x - CAT_W - 6, y: spots.lead.y }),
+            };
+          } else {
+            watch.spots = spots;
+          }
+        }
+      }
+
+      const forced = run
+        ? "escort"
+        : tour
+          ? "tour"
+          : nap
+            ? "nap"
+            : openRef.current
+              ? "corner"
+              : watch
+                ? "watch"
+                : null;
+
+      // The Contact stop's startle-awake: the moment the fake-nap window
+      // lapses, the pair cheer instead of just quietly opening their eyes.
+      // Consumed the frame it fires (`tourNapUntil` reset to zero) so this
+      // never re-fires, and gated on `forced === "tour"` so a tour that ends
+      // mid-nap does not cheer on its way out.
+      if (forced === "tour" && tourNapUntil.current > 0 && now >= tourNapUntil.current) {
+        tourNapUntil.current = 0;
+        cheerRef.current = { until: now + CHEER_MS };
+        setCheer(true);
+        window.setTimeout(() => setCheer(false), CHEER_MS);
+      }
+
       // Wandering is parked by construction: "settled" means there is nothing to
       // trail, and there never is. Everything gated on it downstream — a scene
       // may open, a scene is not dropped, a mood may be taken up — is gated on
       // exactly the right thing for a visitor who is only watching.
       const parked = !forced && (wandering || !pointer || idleFor > SETTLE_AFTER);
+      /** Night flavour: the bed comes `NIGHT_SLEEP_TRIM` sooner. Read from a
+       *  ref rather than the two thresholds themselves, so the one number that
+       *  changes with the theme is computed once a frame rather than smeared
+       *  across every place `SLEEP_AFTER` used to appear. */
+      const sleepAfter = nightRef.current ? SLEEP_AFTER - NIGHT_SLEEP_TRIM : SLEEP_AFTER;
 
       /* -------------------------------------------------------------- play -- */
 
@@ -1618,7 +2271,17 @@ export function Companion() {
       const dozing =
         forced === "escort" ||
         forced === "nap" ||
-        (!wandering && aloneFor > SLEEP_AFTER && !beat);
+        // The Contact stop's fake-nap: a deliberate, self-expiring window
+        // rather than the idle clock, so it holds regardless of how recently
+        // the visitor moved anything.
+        (forced === "tour" && now < tourNapUntil.current) ||
+        // Excludes "watch": the origin-story show runs ~26s, well past
+        // `sleepAfter` (14s, 11s at night), and the watcher is deliberately
+        // motionless the entire time — nothing else refreshes `lastSignRef`
+        // while it stands. Without this clause both cats would pose asleep
+        // for the back half of every show, same as the tour and the escort
+        // never let idle sleep claim them mid-scene.
+        (forced !== "watch" && !wandering && pointer !== null && aloneFor > sleepAfter && !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a
@@ -1632,7 +2295,7 @@ export function Companion() {
        * as broken.
        */
       const wantsBed =
-        !forced && !wandering && pointer !== null && aloneFor > SLEEP_AFTER && !beat;
+        !forced && !wandering && pointer !== null && aloneFor > sleepAfter && !beat;
 
       // Starting one is the last thing considered, and the narrowest: settled,
       // standing still, nobody around, not on the way to bed, and the clock is
@@ -1666,7 +2329,7 @@ export function Companion() {
          * pair finding something to do.
          */
         let opened: Play | null = null;
-        for (const kind of sceneOrder(wandering)) {
+        for (const kind of sceneOrder(wandering, { night: nightRef.current, section: sectionRef.current })) {
           // Not while the visitor is holding the lead cat on the keyboard: he
           // is a 44px control with a focus ring, and a ring is drawn around the
           // whole button whether or not the drawing inside it is clipped away.
@@ -1686,6 +2349,104 @@ export function Companion() {
         }
       }
 
+      /* -------------------------------------------------------------- rush -- */
+
+      /**
+       * A sustained fast scroll, still within its window. Narrower than
+       * `chase`'s own gate — `!walking` and `!playRef.current` on top of
+       * `!forced` and `!beat` — because a rush is a *reaction*, and every one
+       * of those four is something with a stronger claim on the pair already.
+       * Expired the moment `until` passes, whether or not anything else ever
+       * claims it, so a dash that nobody interrupts still ends on its own.
+       */
+      const rushing =
+        !forced &&
+        !beat &&
+        !walking &&
+        !playRef.current &&
+        rushRef.current !== null &&
+        now < rushRef.current.until;
+      if (rushRef.current && now >= rushRef.current.until) rushRef.current = null;
+      if (cheerRef.current && now >= cheerRef.current.until) cheerRef.current = null;
+      /** Only while there is genuinely nothing else going on — a cheer is a
+       *  flourish, and every flourish here yields to a scene, dozing off or
+       *  actually moving. Read once, close to where it is used, the same shape
+       *  `rushing` is computed in. */
+      const cheering = cheerRef.current !== null && !beat && !dozing;
+
+      /* -------------------------------------------------------------- duet -- */
+
+      // Anything with a stronger claim on the pair — the escort, a nap spot,
+      // the tour, the toolkit, or idle sleep claiming them — ends a running
+      // scene on the frame it appears, the same rule `endPlay` follows for a
+      // scene with a prop. Tour scenes are one exception, exactly as at the
+      // section-change effect: the tour is the thing doing the walking, so
+      // `forced === "tour"` is not a reason to drop its own narration. Story
+      // scenes are the other, and only because `forced` is expected to *be*
+      // `"watch"` for as long as one is running — the watch's own drop, just
+      // above, already clears a story scene the instant a real forced state
+      // (escort/tour/nap/corner) takes `watchRef` away, so by the time
+      // `forced` could read anything but `"watch"` or `null` here,
+      // `duetRef.current` is already null and this check never has to tell
+      // the difference itself. Checked before the advance below so a scene
+      // cleared this frame can't also advance on it.
+      if (
+        duetRef.current &&
+        duetRef.current.scene.kind !== "tour" &&
+        duetRef.current.scene.kind !== "story" &&
+        (forced || dozing)
+      ) {
+        duetRef.current = null;
+        setDuetBeat(null);
+      }
+
+      // Advance or finish a running scene on its reading-time clock. Tour
+      // scenes are exempt from the section-change cancellation (the tour
+      // scrolls the page itself); everything else was already dropped by the
+      // effect that watches `sectionRef`, or by the cancellation just above.
+      if (duetRef.current) {
+        const beat = currentBeat(duetRef.current);
+        if (now - duetRef.current.beatStartedAt > beatDurationMs(beat)) {
+          const next = advanceBeat(duetRef.current, now);
+          duetRef.current = next;
+          setDuetBeat(next ? beatView(next) : null);
+        }
+      }
+
+      /**
+       * D5's ambient half. Only while genuinely settled — parked, nothing
+       * forced, no scene running or walking to one, not mid-rush — which is
+       * exactly "the pair have nothing else to be doing", the same gate a
+       * flourish gets. The clock is seeded once, on the first settled frame of
+       * the visit, and re-armed by `nextDuetAt` every time it fires, whether
+       * or not that firing actually started a scene — a section with nothing
+       * to say (or one already shown once this visit) still spends the roll,
+       * so the cadence stays the visitor's clock rather than a queue that
+       * empties out on the first section with something to report.
+       */
+      const quiet = parked && !forced && !beat && !walking && !rushing && sectionRef.current;
+      if (quiet && roamingRef.current && duetRef.current === null) {
+        if (duetAt.current === 0) {
+          duetAt.current = nextDuetAt(now, true, 0);
+        } else if (now > duetAt.current) {
+          // The first scene of the visit is the hello, deterministically — it
+          // is the introduction and the discoverability fix in one. Every
+          // scene after it rolls the same odds the notes used to roll.
+          const first = !duetFirstShown.current;
+          duetFirstShown.current = true;
+          duetAt.current = nextDuetAt(now, false, Math.random());
+          const scene = first
+            ? sceneFor("hello", null, facts)
+            : !duetShown.current.has(sectionRef.current!) && Math.random() < DUET_ODDS
+              ? sceneFor("ambient", sectionRef.current, facts)
+              : null;
+          if (scene) {
+            if (scene.kind === "ambient") duetShown.current.add(sectionRef.current!);
+            playDuetScene(scene, now);
+          }
+        }
+      }
+
       /* ------------------------------------------------------------ lead -- */
 
       let leadWant: Point;
@@ -1697,6 +2458,37 @@ export function Companion() {
       if (run) {
         leadWant = run.slots.lead;
         followWant = run.slots.follow;
+      } else if (forced === "tour") {
+        // The stop being walked to or stood at — `tourSpots` was just refreshed
+        // above, before `forced` was even read, so it is never stale here.
+        // Falling back to wherever they already are is defensive only: the
+        // cascade above already dropped the tour the one frame it could have
+        // nothing to offer.
+        const spots = tourSpots.current ?? nearbySpots();
+        const stopId = stopsFor(tour!.route)[tour!.index].sectionId;
+        if (stopId === "journey" && rushRef.current && now < rushRef.current.until) {
+          // The chase dash: the same `{ dir, until }` window the storm beat
+          // arms above, read here directly rather than through the generic
+          // `rushing` branch, which never gets a turn while `forced` is
+          // already `"tour"`.
+          const dashed = clampToViewport({
+            x: spots.lead.x + rushRef.current.dir * 26,
+            y: spots.lead.y,
+          });
+          leadWant = dashed;
+          followWant = clampToViewport({
+            x: dashed.x - grey.facing * (CAT_W + FOLLOW_GAP),
+            y: dashed.y,
+          });
+        } else if (stopId === "skills" && now < tourHuddleUntil.current) {
+          // The huddle: she comes in beside him instead of behind, the same
+          // nudge the rain beat gives the watch above.
+          leadWant = spots.lead;
+          followWant = clampToViewport({ x: spots.lead.x - CAT_W - 6, y: spots.lead.y });
+        } else {
+          leadWant = spots.lead;
+          followWant = spots.follow;
+        }
       } else if (nap) {
         const slots = napSlots(nap.rect);
         leadWant = slots.lead;
@@ -1709,6 +2501,29 @@ export function Companion() {
         // the one the panel is designed around.
         leadWant = home;
         followWant = followHome(home);
+      } else if (forced === "watch") {
+        // Sit and watch the tree relight itself — `watch.spots` was just
+        // refreshed above, before `forced` was even read, the same way
+        // `tourSpots` is for a tour stop. Falling back to wherever they
+        // already are is defensive only, for the one frame the section has
+        // nothing clear near it at all.
+        const spots = watch!.spots ?? nearbySpots();
+        leadWant = spots.lead;
+        followWant = spots.follow;
+      } else if (rushing) {
+        // A visitor travelling, not reading — see `rushing` above. The pair
+        // duck to the leading edge of the page in whichever direction it is
+        // moving, which is the same "get out from underfoot" instinct the
+        // corner spot already gives them for the toolkit, aimed at the top or
+        // bottom of the viewport instead of a fixed corner. No content probe:
+        // like the corner and the bed, this is a reaction to the *page*
+        // moving, not a place chosen against whatever happens to be printed
+        // there this frame.
+        const dir = rushRef.current!.dir;
+        const view = viewport();
+        const edgeY = dir === 1 ? safeTop() + 4 : Math.max(safeTop(), view.height - CAT_H - 4);
+        leadWant = clampToViewport({ x: view.width - CAT_W - 26, y: edgeY });
+        followWant = followHome(leadWant);
       } else if (chase) {
         // Approach to the edge of the personal-space radius, on the side the cat
         // is already on, so it trails the cursor instead of crossing it.
@@ -1779,7 +2594,7 @@ export function Companion() {
         const going = wanderTo(now);
         leadWant = going.lead;
         followWant = going.follow;
-      } else if (!pointer || aloneFor > SLEEP_AFTER) {
+      } else if (!pointer || aloneFor > sleepAfter) {
         if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
         leadWant = homeSpots.current.lead;
         followWant = homeSpots.current.follow;
@@ -1835,6 +2650,13 @@ export function Companion() {
       } else if (dozing) {
         calmIdle(grey, now);
         grey.pose = "sleep";
+      } else if (cheering) {
+        // D3: a copy confirmation, a sent message or a theme toggle, none of
+        // which know a cat is listening — see the `cheerRef` effects above.
+        // Both halves of the pair get a pose they already have; nothing new
+        // is drawn for this.
+        calmIdle(grey, now);
+        grey.pose = "stretch";
       } else {
         // He never bats: the tail he would be batting at is his own.
         grey.pose = tickIdle(grey, now, false);
@@ -1927,6 +2749,9 @@ export function Companion() {
       } else if (dozing) {
         calmIdle(tabby, now);
         tabby.pose = "sleep";
+      } else if (cheering) {
+        calmIdle(tabby, now);
+        tabby.pose = "bat";
       } else {
         // She bats at his tail when she has ended up parked on the side he
         // keeps it — behind him, which is exactly where following him leaves
@@ -2025,11 +2850,26 @@ export function Companion() {
         if (toySpin.current) toySpin.current.style.transform = `rotate(${live.spin.toFixed(1)}deg)`;
       }
 
+      // The bubbles, on the same terms: painted every frame either exists
+      // rather than left static, because the settled spot they appeared
+      // beside can still be nudged by `keepInView` on a resize.
+      if (duetRef.current) {
+        paintBubble(greyBubble.current, grey.pos);
+        paintBubble(tabbyBubble.current, tabby.pos);
+      }
+
       if (now - lastTone.current > TONE_INTERVAL) {
         lastTone.current = now;
         syncTone(leadNode.current, centreOf(grey.pos));
         syncTone(followNode.current, centreOf(tabby.pos));
         if (run) syncTone(policeNode.current, centreOf(run.police.pos));
+        // The bubbles are opaque line work on the same fixed layer as the
+        // cats and the toy, so they need the same repointing over a
+        // `contrast` section — see FB-9.2, in the render below.
+        if (duetRef.current) {
+          syncTone(greyBubble.current, centreOf(grey.pos));
+          syncTone(tabbyBubble.current, centreOf(tabby.pos));
+        }
         // Line work on the same fixed layer as the cats, so it needs the same
         // repointing: a toy that stayed root-coloured would vanish over a
         // contrast section exactly as the cats used to.
@@ -2183,7 +3023,28 @@ export function Companion() {
       }, 250);
     };
 
-    const onScroll = () => onPageMoved(false);
+    /**
+     * Scroll anticipation's own half of the work — see `detectRush` in
+     * companion-moods.ts for the arithmetic this feeds. A window rather than a
+     * single delta: one big wheel tick and a sustained flick both move the
+     * page fast, and only the second one is a rush. The window resets on any
+     * pause longer than the hold time asks for, so a scroll that stops and
+     * restarts has to earn the reaction again rather than carrying a stale
+     * head start.
+     */
+    const onScrollEvent = () => {
+      lastScrollAt.current = performance.now();
+      const now = lastScrollAt.current;
+      const y = window.scrollY;
+      const win = rushWindow.current;
+      if (!win || now - win.at > RUSH_HOLD_MS + 120) {
+        rushWindow.current = { y, at: now };
+      } else if (detectRush(Math.abs(y - win.y), now - win.at)) {
+        rushRef.current = { dir: y > win.y ? 1 : -1, until: now + RUSH_HOLD_MS + 500 };
+      }
+      onPageMoved(false);
+    };
+    const onScroll = onScrollEvent;
     const onResize = () => onPageMoved(true);
 
     restart.current = start;
@@ -2208,13 +3069,46 @@ export function Companion() {
       // Nor does a toy. It is only ever advanced from inside this loop, so one
       // left behind would be a drawing stopped mid-roll on the page.
       endPlay();
+      // Nor a tour or a duet scene — both are only ever advanced from inside
+      // this loop too, and a mode change mid-tour (touch/reduced-motion never
+      // reach here, but the visitor sending the cats to bed does) must not
+      // leave the HUD or a bubble on the page with nothing left driving it.
+      tourRef.current = null;
+      tourSpots.current = null;
+      tourHuddleUntil.current = 0;
+      tourNapUntil.current = 0;
+      setTourView(null);
+      duetAt.current = 0;
+      // duetFirstShown stays put: the hello is a once-per-visit scene (see
+      // its declaration above), and a bed/wake cycle is not a new visit.
+      duetRef.current = null;
+      setDuetBeat(null);
+      // Nor the origin-story watch. This loop is the only thing that ever
+      // advances it (see the effect below), so `loopActive` going false —
+      // the visitor turning roaming off mid-show, same as `roams` itself
+      // dropping — is the one watch-drop site that reaching into `watchRef`
+      // from inside the loop's own frames can never catch, because there is
+      // no frame left to reach from. `"stop"`, not the plain `"end"` this
+      // file also dispatches elsewhere: the story itself is still running,
+      // only the cats' narration of it just went dark.
+      if (watchRef.current) {
+        watchRef.current = null;
+        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
+      }
       window.clearTimeout(recheck);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-  }, [loopActive, wake, endPlay]);
+    // `facts` is a dependency in name only: it is a small object computed once
+    // on the server and handed down from `layout.tsx`, never reconstructed
+    // for the lifetime of the page, so this never actually re-runs on its
+    // account. Listed anyway because the tour and the duet both close over it
+    // for their narration — `beatView` and `playDuetScene` are listed for the
+    // same reason: both are stable across the page's lifetime, since both are
+    // only ever rebuilt when `facts` is.
+  }, [loopActive, wake, endPlay, facts, beatView, playDuetScene]);
 
   /* -------------------------------------------------------------- escort -- */
 
@@ -2248,6 +3142,185 @@ export function Companion() {
     setEscort("herding");
     wake();
   }, [mode, wake]);
+
+  /* ------------------------------------------------------------ origin story */
+
+  /**
+   * The origin-story overlay (`OriginStory.tsx`) dispatches `"origin-story"`
+   * on `document` — `"start"` once on mount, `"end"` exactly once on every
+   * exit. Neither carries a payload beyond that, so that much is the whole
+   * contract.
+   *
+   * `"start"` only sets `watchRef` — see its declaration — when nothing
+   * already has a stronger claim on the pair; a visitor mid-tour, mid-nap or
+   * with the panel open keeps whatever they already have, the same refusal
+   * every other invitation in this file gives a claimed pair. Accepting also
+   * answers the player with `origin-story-ack`'s `detail: "start"`, which is
+   * what tells it to hide its own bare-annotation fallback — the player is
+   * listening for this before it ever dispatches `"start"` (see its own
+   * mount effect's comment), so there is no race to lose here.
+   *
+   * The same `origin-story-ack` event carries a second detail, `"stop"`,
+   * dispatched from every site in this file that drops `watchRef` *without*
+   * the story itself ending — the per-frame drop a few dozen lines above
+   * (toolkit open, escort, tour, nap) and the loop's own cleanup (roaming
+   * turned off, or `roams` itself dropping). The player's own ack listener
+   * treats that as "the cats stopped narrating, not the show" and brings
+   * its fallback annotation back rather than sitting fully dark for
+   * whatever beats remain — see its `catsNarrating` state.
+   *
+   * `"end"` clears `watchRef` unconditionally (it may already be null, if
+   * the invitation was declined or a stronger claim dropped it while the
+   * show played) and drops a running story bubble with it — a beat still
+   * reading out a show that has already ended is exactly the "narrating
+   * something that is no longer true" a scene's stronger claims elsewhere in
+   * this file are written to avoid — then, the one further bit of narration
+   * this gets, queues the tree's own encore if the pair are otherwise doing
+   * nothing and the visitor is still looking at it. No new scene:
+   * `sceneFor("encore", "tree", facts)` already exists and is exactly about
+   * the tree lighting up.
+   */
+  useEffect(() => {
+    if (!roams || !roaming) return;
+
+    const onOriginStory = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      if (detail === "start") {
+        if (escortRef.current || tourRef.current || napRef.current || openRef.current) return;
+        watchRef.current = { spots: null };
+        // Every run opens on the same voice, and with no choreography window
+        // left armed from a previous run.
+        storySpeakerRef.current = "grey";
+        rushRef.current = null;
+        rainHuddleUntil.current = 0;
+        lastSignRef.current = performance.now();
+        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "start" }));
+        wake();
+      } else if (detail === "end") {
+        watchRef.current = null;
+        if (duetRef.current?.scene.kind === "story") {
+          duetRef.current = null;
+          setDuetBeat(null);
+        }
+        // A show that ends mid-storm (or just after one) can leave `rushRef`
+        // armed for up to ~780ms past `"end"` — and unlike `rainHuddleUntil`,
+        // which only ever matters inside the `if (watch)` block this show is
+        // the only thing that runs, `rushRef` also feeds the ordinary
+        // scroll-triggered `rushing` check a few lines into the loop, gated
+        // on nothing but `!forced`. Left armed, that reads as a page-edge
+        // dash nobody scrolled for — a phantom rush the instant the pair
+        // stop being forced to watch. `cheerRef` is the same shape of leak:
+        // it feeds `cheering`, which is gated on `!beat && !dozing` only, not
+        // on the watch. Both are cleared here for the same reason `"start"`
+        // clears them before arming anything new.
+        rushRef.current = null;
+        cheerRef.current = null;
+        const quiet =
+          !escortRef.current &&
+          !tourRef.current &&
+          !napRef.current &&
+          !openRef.current &&
+          !playRef.current &&
+          !queued.current &&
+          !duetRef.current;
+        if (quiet && sectionRef.current === "tree") {
+          const scene = sceneFor("encore", "tree", facts);
+          if (scene) playDuetScene(scene, performance.now());
+        }
+        wake();
+      }
+    };
+
+    /**
+     * One beat of the show, narrated. Guarded on `watchRef.current` rather
+     * than on `forced` (unavailable here — this fires from a DOM event, not
+     * from inside the loop): the watch is the pair's only claim to be
+     * standing there at all, so a beat that arrives after it has been
+     * dropped — the visitor scrolled away, or a stronger claim took the pair
+     * mid-show — narrates nothing rather than starting a scene nobody is
+     * sitting still to deliver.
+     *
+     * The speaker alternates every beat, including a duplicate first beat —
+     * React Strict Mode's dev-only double-invocation of `OriginStory`'s own
+     * mount effect can dispatch the flight beat twice in immediate
+     * succession. Flipping twice back-to-back is harmless (the second call's
+     * `playDuetScene` simply supersedes the first's before either paints),
+     * and every choreography window below is armed by writing a fresh
+     * `{ until }`, not by toggling a flag — so replaying a beat re-arms the
+     * same window rather than corrupting it.
+     *
+     * `detail?.kind` rather than a bare destructure: the payload comes in as
+     * an untyped `CustomEvent`, not through anything TypeScript checks, so an
+     * unrecognised or missing kind is read as "nothing to say" — the early
+     * return below — rather than trusted all the way into `storyBeatScene`
+     * and the `if`/`else if` chain past it.
+     */
+    const onOriginStoryBeat = (event: Event) => {
+      if (!watchRef.current) return;
+      const detail = (
+        event as CustomEvent<{ kind?: StoryBeatKind; year?: number; storm?: boolean; sub?: string }>
+      ).detail;
+      const kind = detail?.kind ?? null;
+      if (!kind) return;
+      // `kind` is always the beat's *base* weather now (never `"storm"` —
+      // `origin-story.ts`'s `Season.kind` stopped producing it); `storm` is
+      // the separate, independent fact that a milestone rode in on top of
+      // whichever base weather this year already had. See `storyBeatScene`'s
+      // own doc comment (companion-dialogue.ts) for why both travel to it.
+      const storm = detail?.storm === true;
+      const speaker = storySpeakerRef.current;
+      storySpeakerRef.current = speaker === "grey" ? "tabby" : "grey";
+      const now = performance.now();
+      const scene = storyBeatScene(kind, detail?.year ?? null, facts, speaker, storm);
+      if (scene) playDuetScene(scene, now);
+
+      // Choreography, existing mechanics only. This only arms a window (a
+      // `{ dir?, until }`, the same shape `rushRef`/`cheerRef` already use
+      // elsewhere in this file); the watch's own per-frame spot refresh,
+      // above in the loop, is what actually moves anyone while the window is
+      // open, and both windows self-expire the same way those refs already
+      // do. The base kind drives the pair's ordinary reaction — rain gets
+      // the huddle, sun gets the cheer — and `storm`, independently, ADDS
+      // the startle dash on top of whichever of those just armed: a rain
+      // year with a storm riding in still huddles, but also startles: the
+      // dash's own window (`rushRef`) is checked ahead of the huddle's in
+      // the per-frame read above, so the pair visibly startles first and
+      // settles back into the huddle once that window lapses, rather than
+      // the two fighting over the same beat.
+      if (kind === "rain") {
+        rainHuddleUntil.current = now + HUDDLE_MS;
+      }
+      if (storm) {
+        rushRef.current = { dir: lead.current.facing === 1 ? -1 : 1, until: now + RUSH_HOLD_MS + 500 };
+      }
+      // Spec §2: "any growth year (forces > 0) → a small excited hop (cheer
+      // on the tabby)". `forces > 0` is exactly "rain or sun as a base kind,
+      // or a storm rode in" — "quiet" with no storm is the one year with
+      // nothing at all to cheer about. Honestly: there is no tabby-only hop
+      // anywhere in this file, only the existing pair flourish (grey
+      // stretches, tabby bats) D3 already gives a copy confirmation or a
+      // theme toggle — see `cheerNow` a few effects up, mirrored here rather
+      // than called directly since that closure belongs to a different
+      // effect. Reusing that pair reaction rather than inventing a one-cat
+      // version is "existing mechanics only" winning over the spec's
+      // literal "on the tabby".
+      if (kind === "rain" || kind === "sun" || storm) {
+        cheerRef.current = { until: now + CHEER_MS };
+        setCheer(true);
+        window.setTimeout(() => setCheer(false), CHEER_MS);
+      }
+      lastSignRef.current = now;
+      wake();
+    };
+
+    document.addEventListener("origin-story", onOriginStory);
+    document.addEventListener("origin-story-beat", onOriginStoryBeat);
+    return () => {
+      document.removeEventListener("origin-story", onOriginStory);
+      document.removeEventListener("origin-story-beat", onOriginStoryBeat);
+      watchRef.current = null;
+    };
+  }, [roams, roaming, facts, playDuetScene, wake]);
 
   /* --------------------------------------------------------- tone: parked */
 
@@ -2405,6 +3478,170 @@ export function Companion() {
     [endPlay, roaming, roams, wake],
   );
 
+  /** Smooth-scrolls a stop's section into view. The tour's own scroll, not the
+   *  visitor's — `lastScrollAt` picks it up through the ordinary `scroll`
+   *  listener exactly as any other scroll would, which is what lets arrival
+   *  wait for it to finish rather than needing to know it was this call. */
+  function scrollToStop(sectionId: string) {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /**
+   * D4/D5: the guided tour's one way in.
+   *
+   * Refuses on the same two grounds `ToolkitPanel` only ever shows one
+   * message for: no roaming loop (touch, reduced motion), or this page does
+   * not have the first stop on it at all — `/resume` reads the same content
+   * through a different template with no `id="about"` section, so the tour
+   * would have nowhere to start. Checking the element directly rather than
+   * only the route is what keeps this correct if that template ever changes
+   * without this file being told.
+   */
+  const requestTour = useCallback((): TourRequest => {
+    if (!roams || !roaming) return "refused";
+    if (pathname === "/resume") return "refused";
+    const first = TOUR_STOPS[0];
+    if (!document.getElementById(first.sectionId)) return "refused";
+
+    const now = performance.now();
+    endPlay(now);
+    const started = startTour();
+    tourRef.current = started;
+    tourSpots.current = null;
+    tourHuddleUntil.current = 0;
+    tourNapUntil.current = 0;
+    setTourView({ index: 0, lines: [], route: started.route, routeChosen: started.routeChosen });
+    scrollToStop(first.sectionId);
+    // Same two lines `requestPlay` uses to backdate the settle clock: the
+    // pair are about to start walking, which the loop should treat exactly
+    // like a pointer that just stopped moving rather than waiting out
+    // `SETTLE_AFTER` first.
+    lastMoveRef.current = now - SETTLE_AFTER - 1;
+    lastSignRef.current = now;
+    lastScrollAt.current = now;
+    openRef.current = false;
+    setOpen(false);
+    wake();
+    return "started";
+  }, [endPlay, pathname, roaming, roams, wake]);
+
+  /** The HUD's "Next stop" / "Finish tour". */
+  function advanceTour() {
+    const run = tourRef.current;
+    if (!run) return;
+    if (isLastStop(run.index)) {
+      endTour();
+      return;
+    }
+    run.index += 1;
+    run.phase = "walking";
+    run.arrivedAt = 0;
+    tourSpots.current = null;
+    setTourView({ index: run.index, lines: [], route: run.route, routeChosen: run.routeChosen });
+    duetRef.current = null;
+    setDuetBeat(null);
+    scrollToStop(stopsFor(run.route)[run.index].sectionId);
+    lastSignRef.current = performance.now();
+    wake();
+  }
+
+  /**
+   * The HUD's fork in the walk, offered once — see `TourHud`'s
+   * `showRouteChoice` — after Philosophy's scene. Picking either cat settles
+   * `route` for the rest of the walk and immediately does what "Next stop"
+   * would have: the choice replaces that button at this one juncture, it
+   * does not sit beside it.
+   */
+  function chooseRoute(route: TourRoute) {
+    const run = tourRef.current;
+    if (!run || run.routeChosen) return;
+    run.route = route;
+    run.routeChosen = true;
+    advanceTour();
+  }
+
+  /** The HUD's "End tour", Escape, and every cancellation listener below.
+   *  Idempotent — a visitor pressing Escape twice, or a cancellation firing
+   *  after the tour has already finished on its own, does nothing the second
+   *  time. Focus goes back to the cat, exactly as it does leaving the panel. */
+  function endTour() {
+    if (!tourRef.current) return;
+    tourRef.current = null;
+    tourSpots.current = null;
+    tourHuddleUntil.current = 0;
+    tourNapUntil.current = 0;
+    // Left armed, either window reads as a phantom flourish the instant the
+    // pair stop being forced — the same leak `origin-story`'s own "end"
+    // handler guards against, for the same reason. See that handler's note.
+    rushRef.current = null;
+    cheerRef.current = null;
+    setTourView(null);
+    duetRef.current = null;
+    setDuetBeat(null);
+    lastSignRef.current = performance.now();
+    wake();
+    leadNode.current?.focus();
+  }
+
+  /**
+   * Cancellation: any *input*, never scroll position.
+   *
+   * The tour drives its own `scrollIntoView` between every stop, so ending on
+   * "the page scrolled" would have the tour cancel itself the instant it
+   * moves the pair to the next stop. What actually says "the visitor wants
+   * out" is a wheel, a touch drag, the keys a visitor uses to scroll by hand,
+   * a click outside the HUD, or Escape — none of which the tour's own walk
+   * ever produces.
+   */
+  useEffect(() => {
+    if (!tourView) return;
+    tourHudRef.current?.focus();
+
+    const SCROLL_KEYS = new Set([
+      "ArrowDown",
+      "ArrowUp",
+      "ArrowLeft",
+      "ArrowRight",
+      "PageDown",
+      "PageUp",
+      "Home",
+      "End",
+      " ",
+    ]);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        endTour();
+        return;
+      }
+      // Space both scrolls the page *and* activates whichever element has
+      // focus — the two collide the moment that element is one of the HUD's
+      // own buttons, where a visitor pressing Space to press "Next stop"
+      // used to also end the tour out from under the very click it was
+      // activating. Every other scroll key still cancels regardless of what
+      // has focus: none of them double as a HUD control's own activation key.
+      if (event.key === " " && tourHudRef.current?.contains(document.activeElement)) return;
+      if (SCROLL_KEYS.has(event.key)) endTour();
+    };
+    const onWheel = () => endTour();
+    const onTouchMove = () => endTour();
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!tourHudRef.current?.contains(target)) endTour();
+    };
+
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourView !== null]);
+
   /** Every deliberate change of mode ends the idle sleep with it: it is a state
    *  about being left alone, and none of these are being left alone. Leaving it
    *  set would also gate the pointer handler, so the cats would come back from
@@ -2421,6 +3658,7 @@ export function Companion() {
 
   function sendToBed() {
     setOpen(false);
+    endTour();
     clearBed();
     endPlay();
     focusWish.current = "box";
@@ -2498,6 +3736,12 @@ export function Companion() {
     <div
       data-companion=""
       data-cat-play={scene?.kind}
+      // Round 11's three, all rare-commit React state rather than anything
+      // read every frame — see the refs each mirrors above. Present only when
+      // true/non-null, so a page nobody has touched carries none of them.
+      data-cat-tour={tourView ? "true" : undefined}
+      data-cat-intent={intent ?? undefined}
+      data-cat-cheer={cheer ? "true" : undefined}
       className="no-print pointer-events-none fixed inset-0 z-40"
     >
       {/* Drawn before the cats on purpose: they sleep *in* this furniture, so
@@ -2544,11 +3788,48 @@ export function Companion() {
         </div>
       ) : null}
 
+      {/* The duet's speech bubble. `aria-hidden` — the tour is the accessible
+          narrator, this is a decoration a screen reader has no reason to
+          hear, and the tabby button below is the interactive surface, so the
+          bubble never becomes an unreachable control — and only ever mounted
+          inside `roams && roaming`, exactly like the toy above: there is no
+          settled spot to appear beside without a loop placing one. Only the
+          active speaker's bubble is mounted; the subtitle wraps
+          (`max-w-[16rem]`, no nowrap) while the meow line stays nowrap —
+          `SUB_MAX_CHARS` at this size is two short lines at most. */}
+      {roams && roaming && duetBeat ? (
+        <div
+          ref={duetBeat.speaker === "grey" ? attachGreyBubble : attachTabbyBubble}
+          data-cat-bubble={duetBeat.speaker}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 w-max max-w-[16rem] border border-rule bg-surface px-2 py-1"
+        >
+          <p className="whitespace-nowrap font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle">
+            {duetBeat.meow}
+          </p>
+          <p className="text-[0.68rem] italic leading-snug text-fg-muted">
+            {duetBeat.sub}
+            {duetBeat.hintMore ? <span className="text-fg-subtle"> …more?</span> : null}
+          </p>
+        </div>
+      ) : null}
+
       {roaming ? (
         <button
           ref={roams ? attachLead : attachPinnedLead}
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => {
+            // Mid-tour the lead cat is still the same button, but pressing it
+            // means "stop this" rather than "open the panel" — the panel has
+            // nothing to say while the HUD is up, and a visitor who has found
+            // the cat again has found the one thing on the page that ends a
+            // tour without hunting for the HUD's own button.
+            if (tourView) {
+              endTour();
+              return;
+            }
+            setOpen((value) => !value);
+          }}
           aria-expanded={open}
           aria-controls={PANEL_ID}
           className={cn(
@@ -2596,20 +3877,49 @@ export function Companion() {
       ) : null}
 
       {roams && showRoamers ? (
-        <div
-          ref={attachFollow}
-          aria-hidden="true"
-          className="absolute left-0 top-0 text-fg-muted"
-          style={{ width: CAT_W, height: CAT_H }}
-        >
-          <span
-            ref={followArt}
-            className="block"
-            style={{ transform: `scaleX(${frame.follow.facing})` }}
+        escort === null && tourView === null && mode !== "resting" ? (
+          // The storyteller control: a tap advances the running scene a beat,
+          // opens the encore behind an ambient scene's last line, or starts
+          // one for whichever section this is, all through `tapTabby`. Not a
+          // button mid-escort/tour/nap — `forced` is loop state rather than
+          // anything rendered, so this gates on the render-state equivalents
+          // that already exist instead of mirroring it into the frame.
+          <button
+            ref={attachFollow}
+            type="button"
+            onClick={tapTabby}
+            className="pointer-events-auto absolute left-0 top-0 text-fg-muted"
+            style={{ width: CAT_W, height: CAT_H }}
           >
-            <CompanionCat variant="tabby" {...frame.follow} />
-          </span>
-        </div>
+            <span
+              ref={followArt}
+              className="block"
+              style={{ transform: `scaleX(${frame.follow.facing})` }}
+            >
+              <CompanionCat variant="tabby" {...frame.follow} />
+            </span>
+            <span className="sr-only">
+              {duetBeat ? "Next line" : "Ask the cats about this section"}
+            </span>
+          </button>
+        ) : (
+          // Mid-escort/tour/nap the tabby is no longer a control, for the same
+          // reason the lead one gives up its button above.
+          <div
+            ref={attachFollow}
+            aria-hidden="true"
+            className="absolute left-0 top-0 text-fg-muted"
+            style={{ width: CAT_W, height: CAT_H }}
+          >
+            <span
+              ref={followArt}
+              className="block"
+              style={{ transform: `scaleX(${frame.follow.facing})` }}
+            >
+              <CompanionCat variant="tabby" {...frame.follow} />
+            </span>
+          </div>
+        )
       ) : null}
 
       {/* The front of the carton, over the animal wedged into it. Pure scenery
@@ -2645,9 +3955,33 @@ export function Companion() {
           canPlay={roams && roaming}
           wandering={mode === "wander"}
           onPlay={requestPlay}
+          onTour={requestTour}
           onWander={wanderCats}
           onSendToBed={sendToBed}
           panelRef={panelRef}
+        />
+      ) : null}
+
+      {/* D4/D5: the tour's accessible surface, up whenever a tour is running —
+          the toolkit panel above and this are mutually exclusive by
+          construction, since starting a tour closes the panel and the panel
+          offers no route back into itself until the tour ends. */}
+      {tourView ? (
+        <TourHud
+          stopIndex={tourView.index}
+          totalStops={TOUR_STOPS.length}
+          label={stopsFor(tourView.route)[tourView.index].label}
+          lines={tourView.lines}
+          isLast={isLastStop(tourView.index)}
+          // The one fork in the walk: offered exactly at Philosophy (index 1,
+          // the second stop) once its scene has actually arrived — not while
+          // the pair are still walking there — replacing "Next stop" rather
+          // than sitting beside it. See `chooseRoute`.
+          showRouteChoice={tourView.index === 1 && tourView.lines.length > 0 && !tourView.routeChosen}
+          onChooseRoute={chooseRoute}
+          onNext={advanceTour}
+          onEnd={endTour}
+          hudRef={tourHudRef}
         />
       ) : null}
 

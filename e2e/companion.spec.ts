@@ -312,6 +312,7 @@ test.describe("companion", () => {
     // `role="menu"` — the role would promise arrow keys, Home/End and
     // typeahead, none of which exist here.
     const order = [
+      /show me around/i,
       ...SCENES.map((scene) => scene.name),
       /let them wander|follow my cursor/i,
       /send the cats to bed/i,
@@ -347,6 +348,9 @@ test.describe("companion", () => {
     // oversight.
     await expect(panel.locator("a")).toHaveCount(0);
 
+    // Round 11's headline offer, first in the list and reachable the same way
+    // every other item here is.
+    await expect(panel.getByRole("button", { name: /show me around/i })).toHaveCount(1);
     for (const scene of SCENES) {
       await expect(panel.getByRole("button", { name: scene.name })).toHaveCount(1);
     }
@@ -357,9 +361,9 @@ test.describe("companion", () => {
     await expect(
       panel.getByRole("button", { name: /let them wander|follow my cursor/i }),
     ).toHaveCount(1);
-    // Six, and no seventh: the permanent exit is gone from here and from
+    // Seven, and no eighth: the permanent exit is gone from here and from
     // everywhere else on the page.
-    await expect(panel.getByRole("button")).toHaveCount(SCENES.length + 2);
+    await expect(panel.getByRole("button")).toHaveCount(SCENES.length + 3);
     await expect(page.getByRole("button", { name: /turn the cats off/i })).toHaveCount(0);
 
     // Every control here is reachable and operable without a mouse, which is
@@ -1379,6 +1383,10 @@ test.describe("companion", () => {
     for (const scene of SCENES) {
       await expect(toolkit(page).getByRole("button", { name: scene.name })).toHaveCount(0);
     }
+    // Nor is the tour, which needs the same roaming loop the scenes do — and
+    // the panel's one sentence of explanation covers both now.
+    await expect(toolkit(page).getByRole("button", { name: /show me around/i })).toHaveCount(0);
+    await expect(toolkit(page).getByText(/tour/i)).toBeVisible();
     await expect(toolkit(page).getByRole("button")).toHaveCount(1);
 
     // And the dismissal still works, without any of the escort theatrics: the
@@ -1448,5 +1456,362 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await page.emulateMedia({ media: "print" });
     await expect(catButton(page)).toBeHidden();
+  });
+
+  /* ------------------------------------------------------------- D4/D5: the guided tour -- */
+
+  test("walks all eight stops, choosing a route at the fork, and ends back on the cat", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    const status = hud.getByRole("status");
+
+    for (let stop = 1; stop <= 8; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 8`, "i"))).toBeVisible({
+        timeout: 10_000,
+      });
+      const before = await page.evaluate(() => window.scrollY);
+      // The narration is empty while the pair are still walking to the stop,
+      // and filled once they arrive — the HUD's own `role="status"` is the
+      // wait condition, not a fixed delay.
+      await expect(status).not.toHaveText("", { timeout: 10_000 });
+      if (stop > 1) {
+        // Every stop after the first required scrolling to reach — the tour
+        // moves the page, not just the cats.
+        const after = await page.evaluate(() => window.scrollY);
+        expect(after).not.toBe(before);
+      }
+      if (stop === 2) {
+        // The one fork in the walk: "Next stop" is gone here, replaced by
+        // the two routes — both of which reach every one of the eight stops,
+        // just in a different order. This run follows Grey's.
+        await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
+        await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
+        await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
+        await hud.getByRole("button", { name: /follow grey/i }).click();
+        continue;
+      }
+      const isLast = stop === 8;
+      await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
+    }
+
+    // The tour ends itself on the last "Finish tour" press, and focus lands
+    // back on the cat — the same place Escape and "End tour" send it.
+    await expect(hud).toBeHidden();
+    await expect(catButton(page)).toBeFocused();
+  });
+
+  test("the other route reaches every stop too, ending on Contact", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    const status = hud.getByRole("status");
+
+    // To the fork — About, then Philosophy — and pick the cat the other test
+    // did not: the curious route, which walks the middle five stops in the
+    // opposite order.
+    await expect(hud.getByText(/stop 1 of 8/i)).toBeVisible({ timeout: 10_000 });
+    await expect(status).not.toHaveText("", { timeout: 10_000 });
+    await hud.getByRole("button", { name: /next stop/i }).click();
+
+    await expect(hud.getByText(/stop 2 of 8/i)).toBeVisible({ timeout: 10_000 });
+    await expect(status).not.toHaveText("", { timeout: 10_000 });
+    await hud.getByRole("button", { name: /follow tabby/i }).click();
+
+    for (let stop = 3; stop <= 8; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 8`, "i"))).toBeVisible({
+        timeout: 10_000,
+      });
+      await expect(status).not.toHaveText("", { timeout: 10_000 });
+      const isLast = stop === 8;
+      if (isLast) {
+        // Both routes share the same last stop — Contact — regardless of
+        // which way the middle five were walked.
+        await expect(hud.getByText(/stop 8 of 8.*contact/i)).toBeVisible();
+      }
+      await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
+    }
+
+    await expect(hud).toBeHidden();
+    await expect(catButton(page)).toBeFocused();
+  });
+
+  test("Escape cancels the tour mid-walk and returns focus to the cat", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    await expect(hud).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(hud).toBeHidden();
+    await expect(catButton(page)).toBeFocused();
+  });
+
+  test("a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    await expect(hud).toBeVisible();
+    // The tour's own smooth scroll to stop one must not have cancelled it by
+    // the time this fires — if it had, the HUD would already be gone here.
+    await expect(hud).toBeVisible();
+
+    await page.mouse.wheel(0, 400);
+    await expect(hud).toBeHidden({ timeout: 5_000 });
+  });
+
+  test("the tour panel item is not offered on /resume, which has no first stop", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/resume");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+    // Refused, not started: no HUD appears, and the panel's own status line
+    // says so in the same voice a "no room" scene refusal does.
+    await expect(page.getByLabel(/guided tour/i)).toHaveCount(0);
+    await expect(toolkit(page).getByText(/nowhere to start/i)).toBeVisible();
+  });
+
+  test("adds no WCAG violations with the tour HUD open", async ({ page }) => {
+    test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+    await expect(page.getByLabel(/guided tour/i)).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(
+      results.violations,
+      results.violations.map((violation) => `[${violation.id}] ${violation.help}`).join("\n"),
+    ).toEqual([]);
+  });
+
+  test("adds no WCAG violations with the tour's route choice visible", async ({ page }) => {
+    test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    await expect(hud).toBeVisible();
+    await hud.getByRole("button", { name: /next stop/i }).click();
+    await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible({ timeout: 10_000 });
+    await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(
+      results.violations,
+      results.violations.map((violation) => `[${violation.id}] ${violation.help}`).join("\n"),
+    ).toEqual([]);
+  });
+
+  test("the tour HUD carries both speakers' subtitles", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await openToolkit(page);
+    await toolkit(page).getByRole("button", { name: /show me around/i }).click();
+
+    const hud = page.getByLabel(/guided tour/i);
+    const status = hud.getByRole("status");
+    // Same wait condition "walks all eight stops" uses: the status region is
+    // the arrival signal, not a fixed delay.
+    await expect(status).not.toHaveText("", { timeout: 10_000 });
+    // Both voices, not one line quoting whichever cat spoke last — the tour
+    // narrates every beat of the stop's scene, grey and tabby both.
+    await expect(status).toContainText("Grey:");
+    await expect(status).toContainText("Tabby:");
+  });
+
+  /* -------------------------------------------------------------------- D5: the duet -- */
+
+  test("the hello duet plays: decorative bubbles, meow above, subtitle beneath", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    // Settle the pair somewhere with a mood answer rather than leaving them
+    // trailing the pointer, which never reads as "settled".
+    await page.mouse.move(700, 500);
+    await page.waitForTimeout(200);
+
+    const bubble = page.locator("[data-companion] [data-cat-bubble]").first();
+    await expect(bubble).toBeVisible({ timeout: 15_000 });
+    await expect(bubble).toHaveAttribute("aria-hidden", "true");
+    const meow = await bubble.locator("p").first().textContent();
+    expect(meow).toMatch(/^m[a-z!?.\- ]*$/i);
+    const sub = await bubble.locator("p").nth(1).textContent();
+    expect(sub?.length ?? 0).toBeGreaterThan(0);
+    // The bubble stays inside the viewport whatever edge the cats chose.
+    const box = await bubble.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width + 1);
+  });
+
+  test("the hello duet stays clear of content at a narrow viewport too", async ({ page }) => {
+    test.skip(viewportWidth(page) !== MOBILE_WIDTH, "narrow-viewport specific; run once");
+    await page.setViewportSize({ width: MOBILE_WIDTH, height: 812 });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    // Touch viewports have no roaming loop and therefore no duet bubble at
+    // all — the pair are parked in the corner button. This asserts the
+    // honest absence rather than a false positive.
+    await expect(page.locator("[data-companion] [data-cat-bubble]")).toHaveCount(0);
+  });
+
+  test("clicking the tabby advances the duet a beat", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    // Settle the pair exactly as "the hello duet plays" does: by the time the
+    // bubble shows, the settle threshold has long passed and the tabby is not
+    // walking, so a plain click is safe here — see "Driving the cats" above.
+    await page.mouse.move(700, 500);
+    await page.waitForTimeout(200);
+
+    const bubble = page.locator("[data-cat-bubble]");
+    await expect(bubble).toBeVisible({ timeout: 15_000 });
+    const before = await bubble.locator("p").nth(1).textContent();
+
+    await page.getByRole("button", { name: "Next line" }).click();
+    await expect(bubble.locator("p").nth(1)).not.toHaveText(before ?? "");
+  });
+
+  test("scrolling to another section ends an ambient scene mid-beat", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    // Park the pair at #journey the same way "settles where the visitor is
+    // reading" does, then start that section's scene by asking for it rather
+    // than waiting out the 75s±60s cadence clock — the tabby starts it the
+    // moment she is tapped, quiet or not. `force` plus a retrying poll is the
+    // same idiom `clickOpenToolkit` uses for a target the loop keeps moving.
+    await readTo(page, "#journey", [300, 500]);
+    const bubble = page.locator("[data-cat-bubble]");
+    const tabby = page.getByRole("button", {
+      name: /Ask the cats about this section|Next line/i,
+    });
+    await expect
+      .poll(
+        async () => {
+          if ((await bubble.count()) > 0) return true;
+          await tabby.click({ force: true, timeout: 5_000 }).catch(() => {});
+          return (await bubble.count()) > 0;
+        },
+        { timeout: 15_000, message: "clicking the tabby never started the journey scene" },
+      )
+      .toBe(true);
+
+    // Moving to another section is a stronger claim on the cats than a
+    // beat's own reading-time clock: the scene the visitor was mid-way
+    // through at #journey is about that section, not about #skills.
+    await readTo(page, "#skills", [300, 500]);
+    await expect(bubble).toBeHidden({ timeout: 10_000 });
+  });
+
+  /* --------------------------------------------------------- origin story: narration -- */
+
+  test("narrates the origin story with a speech bubble while the cats roam", async ({ page }) => {
+    test.skip(
+      viewportWidth(page) !== DESKTOP_WIDTH,
+      "the origin-story button only mounts at >=1024px; run once",
+    );
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
+    await button.click();
+    await expect(page.locator("[data-origin-stage]")).toBeVisible();
+
+    // `Companion.tsx`'s "start" handler answers `origin-story-ack`
+    // synchronously and narrates the flight beat straight away, so a bubble
+    // should appear well inside the flight beat's own 3s run.
+    const bubble = page.locator("[data-cat-bubble]");
+    await expect(bubble).toBeVisible({ timeout: 5_000 });
+    await expect(bubble).toHaveAttribute("aria-hidden", "true");
+  });
+
+  /* ----------------------------------------------------------------- D2: nav intent -- */
+
+  test("marks nav-link intent on hover dwell, and clears it on leaving the nav", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const link = page.locator('header nav a[href$="#work"]').first();
+    await link.hover();
+    await expect(page.locator("[data-companion][data-cat-intent='work']")).toHaveCount(1, {
+      timeout: 2_000,
+    });
+
+    await page.mouse.move(700, 700);
+    await expect(page.locator("[data-companion][data-cat-intent]")).toHaveCount(0);
+  });
+
+  /* --------------------------------------------------------------------- D3: cheer -- */
+
+  test("cheers briefly on a theme toggle", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    await page.getByRole("button", { name: /theme|day|night/i }).first().click();
+    await expect(page.locator("[data-companion][data-cat-cheer='true']")).toHaveCount(1, {
+      timeout: 2_000,
+    });
+    await expect(page.locator("[data-companion][data-cat-cheer]")).toHaveCount(0, {
+      timeout: 3_000,
+    });
   });
 });

@@ -4,6 +4,8 @@ import { totalTechnologies, type TreeRoot } from "@/lib/knowledge-tree";
 import { DrawnTree, GroundHatch, RootSystem } from "./DrawnTree";
 import { KnowledgeTreeList } from "./KnowledgeTreeList";
 import { RootLabels } from "./RootLabels";
+import { TreeFigure } from "./TreeFigure";
+import { WatchOrigin } from "./WatchOrigin";
 
 /**
  * The career tree figure: how the skills connect to the places they were used.
@@ -96,31 +98,59 @@ interface KnowledgeTreeProps {
 export default function KnowledgeTree({ tree, className }: KnowledgeTreeProps) {
   if (tree.length === 0) return null;
 
+  // The wrapper is `TreeFigure`, not a plain div: everything inside stays
+  // server-rendered — the island passes its children straight through and
+  // never re-renders them — and it only adds one client-side job, delegated
+  // event listeners for cross-highlighting. See TreeFigure.tsx.
   return (
-    <div className={cn("relative flex flex-col", className)}>
+    <TreeFigure className={cn("relative flex flex-col", className)}>
       {/* The drawing. Hidden below 1024px, where its two half-width columns
-          would be too narrow to set a role and an organisation in. */}
-      <DrawnTree tree={tree} className="hidden lg:order-1 lg:block" />
+          would be too narrow to set a role and an organisation in.
+
+          Wrapped, rather than handed `WatchOrigin` as a sibling further
+          down: the "How it grew" button (and, once pressed, the player it
+          swaps itself for) is positioned `absolute` against this wrapper's
+          own `relative` box, which is exactly the drawing's box — the
+          canopy, trunk and ground hatch — and nothing below it. See
+          `OriginStory.tsx` for why the player's overlay is scoped to the
+          drawing rather than the whole figure. `TreeFigure` itself stays
+          untouched: this `relative` lives one level in, not on the island's
+          own wrapper. */}
+      <div className="relative hidden lg:order-1 lg:block">
+        <DrawnTree tree={tree} />
+        <WatchOrigin />
+      </div>
 
       {/* The root: Thien himself, the foundation the branches grow out of.
           `profile.name` / `profile.philosophy` and the tree's own computed
-          totals — never retyped here. Centred at >=1024px, where it becomes
-          the plinth the trunk stands on — and its own top border becomes the
-          ground line the trunk grows from, which is why `GroundHatch` only
-          has to say which side of that line is earth. */}
+          totals — never retyped here.
+
+          At >=1024px this is no longer a boxed plinth: the trunk already
+          arrives from above, and a bordered card under it read as a second
+          thing bolted onto the drawing rather than the ground the drawing
+          stands in. What is left is the ground itself — a hairline
+          (`border-t`, the same rule the trunk visually passes through and
+          `GroundHatch` hangs its earth ticks off) with a specimen label
+          under it: `profile.name` set small in the display face, not a
+          headline, and `profile.philosophy` as a finer italic inscription
+          beneath it — a museum ground-plaque, not a card.
+
+          Below 1024px this remains the list's own header, unboxed the same
+          way: a plain top hairline and the same content, at reduced
+          padding — it never had a ground line to hang hatching off, so
+          `GroundHatch` stays lg-only. */}
       <div
         data-cat-nap
-        className="relative order-1 border border-rule bg-surface px-5 py-6 sm:px-6 lg:order-2 lg:px-8 lg:py-8 lg:text-center"
+        className="relative order-1 border-t border-rule py-5 lg:order-2 lg:pb-8 lg:pt-6 lg:text-center"
       >
         <GroundHatch className="hidden lg:block" />
-        <p className="eyebrow">Root</p>
-        <p className="mt-2 font-display text-[length:var(--step-2)] tracking-[-0.01em] text-fg">
+        <p className="font-display text-[length:var(--step-0)] tracking-[-0.01em] text-fg lg:mt-2 lg:text-[length:var(--step-1)]">
           {profile.name}
         </p>
-        <p className="prose-measure mt-2 text-[length:var(--step-0)] italic leading-[1.5] text-fg-muted lg:mx-auto">
+        <p className="prose-measure mt-1.5 text-[length:var(--step--1)] italic leading-[1.5] text-fg-muted lg:mx-auto">
           {profile.philosophy}
         </p>
-        <p className="eyebrow mt-4">
+        <p className="eyebrow mt-3">
           {tree.length} kinds · {TECHNOLOGY_TOTAL} technologies
         </p>
 
@@ -146,6 +176,6 @@ export default function KnowledgeTree({ tree, className }: KnowledgeTreeProps) {
       {/* Last in the DOM and last on screen in both presentations — see the
           note on focus order above. */}
       <RootLabels className="order-3 mt-8 lg:order-4 lg:mt-2" />
-    </div>
+    </TreeFigure>
   );
 }

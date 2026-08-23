@@ -23,6 +23,7 @@ import type {
   EducationEntry,
   LoopStep,
   NavItem,
+  Origin,
   Principle,
   Profile,
   Project,
@@ -83,6 +84,18 @@ export const profile = {
   resumePdf: "/thien-le-resume.pdf",
   resumePdfLabel: "Thien Le — Résumé (PDF)",
 } satisfies Profile;
+
+/**
+ * The only geographic fact the origin story may draw. Every caption, label
+ * and storyboard frame the story renders computes from career entries or
+ * from this block — never a second, independently-typed place name.
+ */
+export const origin = {
+  from: "Rạch Giá, Việt Nam",
+  to: "United States",
+  arrived: "December 2018",
+  arrivedYear: 2018,
+} satisfies Origin;
 
 export const socialLinks = [
   {

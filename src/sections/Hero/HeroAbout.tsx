@@ -100,7 +100,11 @@ export default function HeroAbout() {
           {workEntries.length > 0 ? (
             <div>
               <p className="eyebrow">By the numbers</p>
-              <p className="mt-2 text-[length:var(--step--1)] leading-[1.6] text-[color:var(--fg-muted)]">
+              {/* `tabular-nums` (Workstream 3, P4): this line's figures set in
+                  the sans face rather than the mono the rail uses, so unlike
+                  most numeric callouts on the site they aren't tabular by
+                  construction — see the note on `.rail` in globals.css. */}
+              <p className="mt-2 text-[length:var(--step--1)] leading-[1.6] tabular-nums text-[color:var(--fg-muted)]">
                 {workEntries.length} {workEntries.length === 1 ? "role" : "roles"} ·{" "}
                 {organizationCount} {organizationCount === 1 ? "organization" : "organizations"}
                 {earliestRoleYear ? ` · since ${earliestRoleYear}` : ""}

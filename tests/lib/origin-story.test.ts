@@ -1,0 +1,217 @@
+import { describe, expect, it } from "vitest";
+import { careerEntries, origin } from "@/content/portfolio";
+import { careerYearSpan } from "@/lib/knowledge-tree";
+import {
+  CAPTION_MAX_CHARS,
+  firstCanopyYear,
+  growthStage,
+  kindFor,
+  rootYearFor,
+  seasonsFor,
+  type SeasonForces,
+} from "@/lib/origin-story";
+import type { CareerEntry } from "@/types/portfolio";
+
+// Widened for the same reason knowledge-tree.ts widens it — see the note there.
+const ENTRIES: readonly CareerEntry[] = careerEntries;
+
+/**
+ * `seasonsFor` is only trustworthy if every count it produces matches an
+ * independent recomputation from `src/content/portfolio.ts` — otherwise it is
+ * just a second, differently-typed guess at a number the content already
+ * states. Each assertion below recomputes its figure straight from
+ * `careerEntries` rather than trusting the module under test to have done it
+ * correctly, on purpose.
+ */
+describe("seasonsFor", () => {
+  const seasons = seasonsFor();
+  const { lastYear } = careerYearSpan();
+
+  it("starts the year the flight landed and ends at the career's last year", () => {
+    expect(seasons[0]?.year).toBe(origin.arrivedYear);
+    expect(seasons[seasons.length - 1]?.year).toBe(lastYear);
+  });
+
+  it("is one season per year, consecutive, with no gaps", () => {
+    for (let i = 1; i < seasons.length; i++) {
+      expect(seasons[i].year).toBe(seasons[i - 1].year + 1);
+    }
+    expect(seasons.length).toBe(lastYear - origin.arrivedYear + 1);
+  });
+
+  it("counts each year's forces from the real career entries, not a guess", () => {
+    for (const season of seasons) {
+      const inYear = ENTRIES.filter(
+        (entry) => Number(entry.sortKey.slice(0, 4)) === season.year,
+      );
+      expect(season.forces.learning, `${season.year} learning`).toBe(
+        inYear.filter((entry) => entry.type === "learning").length,
+      );
+      expect(season.forces.work, `${season.year} work`).toBe(
+        inYear.filter((entry) => entry.type === "work").length,
+      );
+      expect(season.forces.milestones, `${season.year} milestones`).toBe(
+        inYear.filter((entry) => entry.type === "milestone").length,
+      );
+    }
+  });
+
+  it("carries the storm overlay independently of the base kind", () => {
+    // Recomputed straight from real content (src/content/portfolio.ts),
+    // the same discipline every other assertion in this describe block
+    // follows: 2021 has one learning entry and one milestone, so its base
+    // weather is rain with a storm riding in; 2023/2024/2025 each have work
+    // entries and at least one milestone, so their base weather is sun,
+    // also with a storm; 2018/2019/2020/2022 have nothing on record at all,
+    // so they are quiet with no storm.
+    const expected: Record<number, { kind: string; storm: boolean }> = {
+      2018: { kind: "quiet", storm: false },
+      2019: { kind: "quiet", storm: false },
+      2020: { kind: "quiet", storm: false },
+      2021: { kind: "rain", storm: true },
+      2022: { kind: "quiet", storm: false },
+      2023: { kind: "sun", storm: true },
+      2024: { kind: "sun", storm: true },
+      2025: { kind: "sun", storm: true },
+    };
+    for (const [year, want] of Object.entries(expected)) {
+      const season = seasons.find((s) => s.year === Number(year));
+      expect(season?.kind, `${year} kind`).toBe(want.kind);
+      expect(season?.storm, `${year} storm`).toBe(want.storm);
+    }
+  });
+
+  it("storm is exactly forces.milestones > 0, for every season", () => {
+    for (const season of seasons) {
+      expect(season.storm, `${season.year}`).toBe(season.forces.milestones > 0);
+    }
+  });
+
+  it("kind is never \"storm\" — that value is reserved for the beat contract, not produced here", () => {
+    for (const season of seasons) {
+      expect(season.kind).not.toBe("storm");
+    }
+  });
+
+  it("keeps every caption inside budget, year-led, and free of place names", () => {
+    for (const season of seasons) {
+      expect(season.caption.length, `${season.year}: "${season.caption}"`).toBeLessThanOrEqual(
+        CAPTION_MAX_CHARS,
+      );
+      expect(season.caption.startsWith(String(season.year)), season.caption).toBe(true);
+      expect(season.caption).not.toMatch(/Rạch|Việt|Taylors|Columbia|Cheraw/);
+    }
+  });
+});
+
+/**
+ * `kindFor` carries the precedence rule in isolation, so it can be proven
+ * against crafted forces without needing real content to happen to produce
+ * every combination.
+ */
+describe("kindFor", () => {
+  const zero: SeasonForces = { learning: 0, work: 0, milestones: 0 };
+
+  it("is base weather only — milestones never affect it", () => {
+    expect(kindFor({ ...zero, milestones: 1, learning: 5, work: 5 })).toBe("rain");
+    expect(kindFor({ ...zero, milestones: 1, work: 5 })).toBe("sun");
+    expect(kindFor({ ...zero, milestones: 1 })).toBe("quiet");
+  });
+
+  it("puts learning ahead of work only when learning is at least as much", () => {
+    expect(kindFor({ ...zero, learning: 5, work: 1 })).toBe("rain");
+    expect(kindFor({ ...zero, learning: 2, work: 2 })).toBe("rain");
+  });
+
+  it("falls back to work when work outweighs learning, or there is no learning at all", () => {
+    expect(kindFor({ ...zero, learning: 1, work: 5 })).toBe("sun");
+    expect(kindFor({ ...zero, work: 1 })).toBe("sun");
+  });
+
+  it("is quiet when nothing happened that year", () => {
+    expect(kindFor(zero)).toBe("quiet");
+  });
+
+  it("never returns \"storm\" — that is Season.storm's job, not kindFor's", () => {
+    expect(kindFor({ learning: 3, work: 3, milestones: 3 })).not.toBe("storm");
+  });
+});
+
+describe("growthStage", () => {
+  const { lastYear } = careerYearSpan();
+
+  it("is 0 at arrival and 1 at the career's last year", () => {
+    expect(growthStage(origin.arrivedYear)).toBe(0);
+    expect(growthStage(lastYear)).toBe(1);
+  });
+
+  it("is monotonically non-decreasing across the span", () => {
+    let previous = growthStage(origin.arrivedYear);
+    for (let year = origin.arrivedYear + 1; year <= lastYear; year++) {
+      const stage = growthStage(year);
+      expect(stage).toBeGreaterThanOrEqual(previous);
+      previous = stage;
+    }
+  });
+
+  it("clamps outside the span instead of going negative or past 1", () => {
+    expect(growthStage(origin.arrivedYear - 5)).toBe(0);
+    expect(growthStage(lastYear + 5)).toBe(1);
+  });
+});
+
+/**
+ * `firstCanopyYear` is DrawnTree's name for the same fact `careerYearSpan`
+ * already computes — the earliest year any lens-tagged entry appears. It is
+ * not a second computation to keep in sync by hand; it has to equal
+ * `careerYearSpan().firstYear` outright.
+ */
+describe("firstCanopyYear", () => {
+  it("equals careerYearSpan().firstYear", () => {
+    expect(firstCanopyYear()).toBe(careerYearSpan().firstYear);
+  });
+});
+
+/**
+ * `rootYearFor` distributes the root system's major roots — which carry no
+ * authored year of their own — across the quiet, pre-canopy years honestly:
+ * every root lands somewhere between the flight's landing and the year
+ * before the canopy started, spread by index rather than left to guess or to
+ * a single shared year that would claim more precision than the drawing has.
+ */
+describe("rootYearFor", () => {
+  const first = origin.arrivedYear;
+  const last = firstCanopyYear() - 1;
+
+  it("is deterministic: the same index and total always land on the same year", () => {
+    expect(rootYearFor(2, 6)).toBe(rootYearFor(2, 6));
+  });
+
+  it("keeps every value inside [arrivedYear, firstCanopyYear - 1]", () => {
+    const total = 6;
+    for (let index = 0; index < total; index++) {
+      const year = rootYearFor(index, total);
+      expect(year, `index ${index}`).toBeGreaterThanOrEqual(first);
+      expect(year, `index ${index}`).toBeLessThanOrEqual(last);
+    }
+  });
+
+  it("uses every pre-canopy year at least once when total is at least the span", () => {
+    const span = last - first + 1;
+    const total = Math.max(span, 6);
+    const years = new Set(Array.from({ length: total }, (_, index) => rootYearFor(index, total)));
+    for (let year = first; year <= last; year++) {
+      expect(years.has(year), `year ${year} missing from ${[...years]}`).toBe(true);
+    }
+  });
+
+  it("is monotonically non-decreasing as the index climbs", () => {
+    const total = 6;
+    let previous = rootYearFor(0, total);
+    for (let index = 1; index < total; index++) {
+      const year = rootYearFor(index, total);
+      expect(year).toBeGreaterThanOrEqual(previous);
+      previous = year;
+    }
+  });
+});

@@ -67,6 +67,19 @@ export interface Profile {
   readonly resumePdfLabel: string;
 }
 
+/**
+ * The one geographic fact the origin story may draw on. Every other place
+ * that touches the story — captions, the player's flight label, the
+ * reduced-motion storyboard — computes from career entries or from this
+ * block, never from a second, independently-typed place name.
+ */
+export interface Origin {
+  readonly from: string;
+  readonly to: string;
+  readonly arrived: string;
+  readonly arrivedYear: number;
+}
+
 export type SocialPlatform = "GitHub" | "LinkedIn" | "Email";
 
 export interface SocialLink {

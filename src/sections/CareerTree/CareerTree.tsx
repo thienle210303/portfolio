@@ -21,7 +21,7 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { skillCategories } from "@/content/portfolio";
-import { buildKnowledgeTree, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildKnowledgeTree, careerYearSpan, totalTechnologies } from "@/lib/knowledge-tree";
 import KnowledgeTree from "./KnowledgeTree";
 import { CROSS_LINK_CLASS } from "./cross-link";
 
@@ -41,11 +41,14 @@ const HEAVIEST = TREE.reduce<(typeof TREE)[number] | undefined>(
   undefined,
 );
 
+const YEAR_SPAN = careerYearSpan();
+
 const RAIL: readonly RailNote[] = [
   { term: "Branches", detail: `${TREE.length} kinds of work` },
   { term: "Leaves", detail: `${LEAF_TOTAL} places` },
   { term: "Technologies", detail: `${totalTechnologies()} distinct` },
   { term: "Roots", detail: `${skillCategories.length} skill groups` },
+  { term: "Rings", detail: `${YEAR_SPAN.years} — one per year since ${YEAR_SPAN.firstYear}` },
   ...(HEAVIEST
     ? [
         {

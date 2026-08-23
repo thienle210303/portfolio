@@ -61,6 +61,9 @@ export function CopyButton({
       try {
         await clipboard.writeText(value);
         setState("copied");
+        // D3: a neutral event the companion listens for to cheer — nothing
+        // here knows or cares that a cat is watching. See Companion.tsx.
+        window.dispatchEvent(new CustomEvent("portfolio:copied"));
       } catch {
         setState("failed");
       }
@@ -81,7 +84,7 @@ export function CopyButton({
           onClick={handleClick}
           aria-label={visibleLabel}
           className={cn(
-            "inline-flex min-h-11 min-w-11 items-center justify-center border border-[color:var(--rule-color)] p-2.5 text-[color:var(--fg-muted)] transition-colors duration-200 hover:border-[color:var(--fg)] hover:text-[color:var(--fg)]",
+            "inline-flex min-h-11 min-w-11 items-center justify-center border border-[color:var(--rule-color)] p-2.5 text-[color:var(--fg-muted)] transition-colors duration-200 hover:border-[color:var(--fg)] hover:text-[color:var(--fg)] active:translate-y-px",
             className,
           )}
         >
@@ -104,7 +107,7 @@ export function CopyButton({
         type="button"
         onClick={handleClick}
         className={cn(
-          "inline-flex min-h-11 items-center gap-2 border border-[color:var(--rule-color)] px-4 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-[0.05em] text-[color:var(--fg-muted)] transition-colors duration-200 hover:border-[color:var(--fg)] hover:text-[color:var(--fg)]",
+          "inline-flex min-h-11 items-center gap-2 border border-[color:var(--rule-color)] px-4 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-[0.05em] text-[color:var(--fg-muted)] transition-colors duration-200 hover:border-[color:var(--fg)] hover:text-[color:var(--fg)] active:translate-y-px",
           className,
         )}
       >

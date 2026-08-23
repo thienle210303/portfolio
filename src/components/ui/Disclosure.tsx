@@ -39,9 +39,13 @@ interface DisclosureProps {
  * the instant it starts growing into view; closing sets `invisible` with a
  * delay equal to the collapse duration, so nothing is torn out of view
  * mid-transition — it only leaves the tab order once it has actually
- * finished shrinking to nothing. That delay (`delay-200`) must stay equal
- * to the grid-rows transition's `duration-200` below, or the two will fall
- * out of sync. Under `prefers-reduced-motion`, globals.css forces both
+ * finished shrinking to nothing. That delay (`delay-(--dur-reveal)`) must
+ * stay equal to the grid-rows transition's `duration-(--dur-reveal)` below
+ * — both now reference the same named token (Workstream 3, P0) rather than
+ * two independently-typed `200`s, which is what makes "must stay equal" an
+ * invariant the token system enforces rather than one a future edit could
+ * silently break by changing only one of the two numbers. Under
+ * `prefers-reduced-motion`, globals.css forces both
  * `transition-duration` and `transition-delay` to ~0 `!important`, so the
  * height collapse and the visibility flip become instantaneous together
  * instead of leaving a lingering reachable-but-invisible window.
@@ -77,7 +81,10 @@ export function Disclosure({
         <ChevronDown
           aria-hidden="true"
           focusable="false"
-          className={cn("h-4 w-4 shrink-0 transition-transform duration-200", open && "rotate-180")}
+          className={cn(
+            "h-4 w-4 shrink-0 transition-transform duration-(--dur-reveal)",
+            open && "rotate-180",
+          )}
         />
         {/* Explicit text-node space, not decorative whitespace: a space
             written *inside* VisuallyHidden's own text gets trimmed when its
@@ -94,13 +101,13 @@ export function Disclosure({
         role="region"
         aria-labelledby={triggerId}
         data-print-expand=""
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        className="grid transition-[grid-template-rows] duration-(--dur-reveal) ease-out"
         style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
       >
         <div
           className={cn(
             "overflow-hidden transition-[visibility] duration-0",
-            open ? "visible delay-0" : "invisible delay-200",
+            open ? "visible delay-0" : "invisible delay-(--dur-reveal)",
           )}
         >
           <div className="pt-2">{children}</div>

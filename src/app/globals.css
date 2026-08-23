@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------- */
-/* Palette — "Blueprint". Fourteen raw tokens and nothing else.               */
+/* Palette — "Blueprint". Seventeen raw tokens and nothing else.              */
 /*                                                                            */
 /* The ground is a cool paper rather than a warm cream: every neutral here is */
 /* biased toward the accent blue, so paper, hairline and ink read as one      */
@@ -41,6 +41,38 @@
   --color-mist-soft: #7e8a93;
   --color-line-night: #24313b;
   --color-blue-bright: #7fa9dc;
+}
+
+/*
+ * Motion and typographic tokens — deliberately a *second* @theme block, and it
+ * must stay second: scripts/contrast.mjs reads the first `@theme {` in this
+ * file and measures every token it finds there as a colour. Keep the palette
+ * block above colours-only, and keep this one hue-free.
+ *
+ * One easing curve, not a family. `--ease-ink` decelerates hard, which is what
+ * makes an entrance read as ink settling onto paper rather than as a UI
+ * element sliding in; hover and colour moves keep the browser default, because
+ * a 150ms colour change has no arc to shape.
+ */
+@theme {
+  --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Durations. Plain variables rather than a Tailwind namespace — v4 has no
+     --duration-* namespace — so they are consumed as duration-(--dur-quick)
+     at a call site, or named directly in the rules further down. */
+  --dur-quick: 150ms; /* hover colour moves, active indicators */
+  --dur-reveal: 200ms; /* Disclosure open/close — delay MUST match duration */
+  --dur-settle: 500ms; /* an element rising into place on reveal */
+  --dur-draw: 600ms; /* a hairline drawing itself in */
+
+  /* Tracking. Names for the values already in use across the display faces,
+     so the same heading rhythm is not re-typed as an arbitrary value in six
+     components. `.eyebrow` keeps its own 0.1em — see the note on that class. */
+  --tracking-display-lg: -0.03em; /* h1, case-study numerals */
+  --tracking-display: -0.02em; /* h2/h3 */
+  --tracking-display-sm: -0.01em; /* step-2 headings, small figures */
+  --tracking-caps: 0.08em; /* uppercase mono labels, tabs */
+  --tracking-caps-lg: 0.12em; /* rail dt, "Back to top" */
 }
 
 /*
@@ -367,7 +399,33 @@
 
   html {
     -webkit-text-size-adjust: 100%;
-    scroll-behavior: smooth;
+    /*
+     * Deliberately *not* `scroll-behavior: smooth` here. Every intentional
+     * smooth scroll on this page (SiteNav's nav links and scroll-lock
+     * restore, ProjectIndex, Timeline, ContactForm, the companion's tour)
+     * already requests it explicitly on the call itself — `behavior:
+     * prefersReducedMotion() ? "auto" : "smooth"` — which is what lets each
+     * of them honour reduced motion without this property's help. A blanket
+     * rule here does not add animation to any of those; it only reaches the
+     * *unguarded* scrolls nothing above chose to opt in — SiteNav's own
+     * scroll-lock restore included one until it was fixed to ask for `auto`
+     * explicitly, and `window.scrollTo` calls issued by tooling (Playwright's
+     * `page.evaluate`, extensions, anything outside this codebase) are
+     * exactly the same shape of unguarded call. Chromium runs the animation
+     * to completion before an automated `evaluate()` call is considered
+     * settled, so a smooth `html` turns every programmatic scroll step in
+     * e2e/responsive.spec.ts's full-page sweep into a ~480ms wait — measured
+     * directly: forcing `prefers-reduced-motion: reduce` (which the old
+     * `@media` override below already turns into `scroll-behavior: auto` for
+     * exactly this reason) cut a 30s scroll-through-the-page loop to 2s. On
+     * the narrow/mobile layout, where the stacked page is tall enough to need
+     * five to six dozen scroll steps, that 480ms-a-step tax alone exceeded
+     * Playwright's default 30s test timeout — which is why the hang only
+     * ever showed up below the 768px breakpoint. Leaving this property unset
+     * makes `auto` (instant) the default for anything that does not ask for
+     * smooth by name, which is the correct default for a fixup scroll and
+     * the correct default for a test.
+     */
     overflow-x: clip;
   }
 
@@ -418,6 +476,22 @@
      the delay here, reduced-motion users would get an instant height
      collapse but still sit through the original delay before the content
      left the tab order — a lingering reachable-but-invisible window. */
+  /*
+   * `text-wrap: pretty` over the default `wrap`. It costs the browser a
+   * heavier line-breaking pass (which is exactly why it isn't the default),
+   * but it only runs once per paragraph reflow, and this site's paragraphs
+   * are prose measured to `prose-measure`'s 68ch — precisely the width where
+   * a lone orphan word on its own last line is common and where `pretty`
+   * earns its keep. Scoped to `p` alone: the display headings already carry
+   * `text-balance` at the two call sites that need it (SectionHeading's h2,
+   * CaseStudy's h3), and balancing is the better fit for a short headline
+   * where every line should carry roughly equal weight, not just avoid a
+   * short trailing one.
+   */
+  p {
+    text-wrap: pretty;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -554,6 +628,18 @@
     }
   }
 
+  /*
+   * No explicit `tabular-nums` here (Workstream 3, P4): every rail detail
+   * renders in `var(--font-mono)`, and IBM Plex Mono's digits are tabular by
+   * construction — a monospace face has exactly one advance width for every
+   * glyph, digits included, so there is no proportional-width figure for
+   * `font-variant-numeric` to fix. The same is true of most of the site's
+   * other figures (case-study numerals, the code artifact, MetricHighlights'
+   * headline value); the explicit utility only earns its place on the
+   * handful of *sans* figures — MetricTable, the footer copyright,
+   * HeroAbout's "Since {year}" line — where digits would otherwise sit at
+   * their proportional widths beside letters and misalign column to column.
+   */
   .rail {
     display: flex;
     flex-direction: column;
@@ -649,6 +735,936 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--fg-subtle);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Ink reveal — the shared settle primitive (Workstream 3, P1)            */
+  /*                                                                        */
+  /* `InkReveal.tsx` is the only thing that ever writes `data-ink-ready`     */
+  /* (on <html>) or `data-inked` (on a `[data-ink-root]`). Every rule below  */
+  /* only *reads* those two attributes, which is what lets the knowledge     */
+  /* tree's own growth CSS (see the "Career tree figure" block further      */
+  /* down) key off the identical contract with zero coordination beyond      */
+  /* agreeing on the attribute names.                                       */
+  /*                                                                        */
+  /* `[data-ink]` marks a settling descendant (rise 8px + fade);            */
+  /* `[data-ink="fade"]` is the fade-only variant, for anything the LCP     */
+  /* guard or a `translateY` would otherwise be wasted motion on. Nothing    */
+  /* below ever hides `[data-ink]` content unless `[data-ink-ready]` is      */
+  /* already present on `<html>` — that attribute is JS-stamped only after   */
+  /* InkReveal has confirmed an `IntersectionObserver` exists and reduced    */
+  /* motion is off, so a no-JS visit, an old browser and a reduced-motion    */
+  /* visitor all render every one of these elements at its finished state    */
+  /* from first paint, never mid-hide. Print gets an explicit belt-and-      */
+  /* braces override too, in the unlayered print block at the foot of this   */
+  /* file, in case a page is printed mid-JS-session while `data-ink-ready`   */
+  /* happens to be set.                                                     */
+  /* ---------------------------------------------------------------------- */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-ink-ready] [data-ink-root]:not([data-inked]) [data-ink] {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    /* Fade-only descendants never carried the rise in the first place, so
+       there is nothing to reset here except opacity — listed only for the
+       reader's sake; the general rule above already leaves transform at its
+       initial `none` for anything that doesn't redeclare it, but writing it
+       out keeps this override from reading as an oversight. */
+    [data-ink-ready] [data-ink-root]:not([data-inked]) [data-ink="fade"] {
+      transform: none;
+    }
+
+    [data-ink-root][data-inked] [data-ink] {
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity var(--dur-settle) var(--ease-ink),
+        transform var(--dur-settle) var(--ease-ink);
+      transition-delay: var(--ink-delay, 0ms);
+    }
+
+    /*
+     * The section rule (`.hairline-t`'s own `border-top`) draws in as one
+     * continuous line rather than fading, because a 1px border cross-fading
+     * reads as a rendering glitch, not as ink. The trick is paint-only:
+     * `border-top-color` is swapped for a `::before` at the exact same
+     * position (`top: -1px`, i.e. dead on the border's own line) that
+     * scales in from `scaleX(0)`, so nothing about the section's box model
+     * changes and there is zero layout shift. Scoped to `[data-ink-ready]`
+     * only, same as everything else here — outside it (no-JS, reduced
+     * motion, before InkReveal mounts) the plain CSS border from
+     * `.hairline-t` further up this file is untouched and always visible.
+     */
+    [data-ink-ready] [data-ink-root].hairline-t {
+      position: relative;
+      border-top-color: transparent;
+    }
+    [data-ink-ready] [data-ink-root].hairline-t::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: 0;
+      width: 100%;
+      height: var(--rule);
+      background-color: var(--rule-color);
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+    [data-ink-ready] [data-ink-root].hairline-t[data-inked]::before {
+      transform: scaleX(1);
+      transition: transform var(--dur-draw) var(--ease-ink);
+      transition-delay: var(--ink-delay, 0ms);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Hero load choreography (Workstream 3, P2)                              */
+  /*                                                                        */
+  /* Independent of the ink-reveal system above on purpose: the hero is the */
+  /* one element on the page guaranteed to be on screen at first paint, so  */
+  /* it needs no IntersectionObserver at all — every load plays the same    */
+  /* sequence, gated only by `html[data-motion]` (stamped pre-paint by      */
+  /* THEME_SCRIPT in layout.tsx, the same mechanism `data-theme` uses) and  */
+  /* by this file's screen + reduced-motion guard. That is the second of    */
+  /* the two documented kill switches: no reduced motion means no          */
+  /* `@media` match, and a blocked/failed inline script means no            */
+  /* `data-motion` attribute — either alone is enough to leave the hero      */
+  /* fully rendered at its final state, matching every other pre-reveal      */
+  /* state on the page.                                                     */
+  /*                                                                        */
+  /* LCP guard: the h1 and the code artifact use `ink-rise` (transform-only) */
+  /* rather than `ink-fade-rise`. Both are plausible Largest Contentful      */
+  /* Paint candidates, and an element that starts at `opacity: 0` delays the */
+  /* browser's own LCP timestamp until the animation finishes — a transform  */
+  /* never does, because the element is fully painted (just offset by up to  */
+  /* 10px) from frame one.                                                  */
+  /* ---------------------------------------------------------------------- */
+  @keyframes ink-rise {
+    from {
+      transform: translateY(10px);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes ink-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes ink-fade-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes ink-draw-y {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @media screen and (prefers-reduced-motion: no-preference) {
+    html[data-motion] [data-hero-step] {
+      animation-duration: var(--dur-settle);
+      animation-timing-function: var(--ease-ink);
+      animation-fill-mode: both;
+    }
+
+    /* Timeline, ~850ms end to end. Two parallel tracks — the identity
+       column (eyebrow -> h1 -> intro -> meta/actions) and the code column
+       (the artifact itself) — converge at the hairline, then the rail and
+       the scroll cue close the sequence out. */
+    html[data-motion] [data-hero-step="eyebrow"] {
+      animation-name: ink-fade-rise;
+      animation-delay: 0ms;
+    }
+    html[data-motion] [data-hero-step="h1"] {
+      animation-name: ink-rise; /* LCP guard — see the block comment above */
+      animation-delay: 40ms;
+    }
+    html[data-motion] [data-hero-step="intro"] {
+      animation-name: ink-fade-rise;
+      animation-delay: 90ms;
+    }
+    html[data-motion] [data-hero-step="meta-actions"] {
+      animation-name: ink-fade-rise;
+      animation-delay: 140ms;
+    }
+    html[data-motion] [data-hero-step="code"] {
+      animation-name: ink-rise; /* LCP guard — see the block comment above */
+      animation-delay: 120ms;
+    }
+    html[data-motion] [data-hero-step="hairline"] {
+      animation-name: ink-draw-y;
+      animation-duration: var(--dur-draw);
+      animation-delay: 160ms;
+      transform-origin: top;
+    }
+    html[data-motion] [data-hero-step="rail"] {
+      animation-name: ink-fade;
+      animation-delay: 320ms;
+    }
+    html[data-motion] [data-hero-step="scroll"] {
+      animation-name: ink-fade-rise;
+      animation-delay: 550ms;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Hover vocabulary (Workstream 3, P3)                                    */
+  /*                                                                        */
+  /* Two link treatments, not one, because a link's rest state has to say    */
+  /* where it sits. `.ink-link` is for a link embedded in a run of prose —   */
+  /* it keeps a visible underline at rest (in `--fg-subtle`, quieter than    */
+  /* the text around it) so axe's link-in-text-block rule passes on          */
+  /* structure alone, not on a colour a colour-blind reader can't rely on —  */
+  /* and on hover the underline fades away as the text itself takes the      */
+  /* accent, which reads as the link "lighting up" rather than gaining a     */
+  /* decoration it didn't have. `.ink-link-quiet` is for a link standing on  */
+  /* its own line (a card row, a cross-section pointer) where an underline   */
+  /* at rest would just be visual noise beside nothing to disambiguate it     */
+  /* from — so it starts with the decoration transparent and draws it in on  */
+  /* hover instead, the opposite direction of `.ink-link`.                   */
+  /*                                                                        */
+  /* Both are colour transitions, not entrances, so both use the browser's   */
+  /* default timing function rather than `--ease-ink` — see that token's own */
+  /* comment for why a 150ms colour move has no arc worth shaping.           */
+  /*                                                                        */
+  /* Rejected: a `background-size` sweep (the underline "drawing" across the */
+  /* text on hover). It reads well on a single line and fractures across a   */
+  /* wrapped one — the sweep restarts mid-word at the wrap point — which is   */
+  /* exactly the failure mode prose links hit constantly on this site.       */
+  /* ---------------------------------------------------------------------- */
+  .ink-link {
+    text-decoration-line: underline;
+    text-decoration-color: var(--fg-subtle);
+    text-underline-offset: 4px;
+    transition:
+      color var(--dur-quick),
+      text-decoration-color var(--dur-quick);
+  }
+  .ink-link:hover,
+  .ink-link:focus-visible {
+    color: var(--accent);
+    text-decoration-color: transparent;
+  }
+
+  .ink-link-quiet {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 4px;
+    transition:
+      color var(--dur-quick),
+      text-decoration-color var(--dur-quick);
+  }
+  .ink-link-quiet:hover,
+  .ink-link-quiet:focus-visible {
+    text-decoration-color: currentColor;
+  }
+
+  /* A quoted, italic line gets `hanging-punctuation: first` so the opening
+     curly quote hangs slightly outside the text's own left edge instead of
+     eating into it — a typesetting nicety Safari alone implements; every
+     other engine treats the declaration as an unknown property and ignores
+     it, which is exactly the graceful degradation this needs and nothing
+     more has to be done for it. */
+  .hanging-quote {
+    hanging-punctuation: first;
+  }
+
+  /* SkipLink's own focus-visible plate — deliberately its own class rather
+     than a variant of `.sr-only-focusable` above, and confined to that one
+     component. The shared class reveals at `position: static`, which was a
+     real layout jump: the link pushed the header down by its own line height
+     for the one frame it was focused, because static content still
+     participates in flow. `position: fixed` here removes it from flow
+     entirely, so focusing it can never move anything else on the page —
+     verified: this class has exactly one consumer. */
+  .skip-link {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .skip-link:focus {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 60;
+    width: auto;
+    height: auto;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    background-color: var(--ground);
+    border: var(--rule) solid var(--rule-color);
+    color: var(--fg);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Chrome polish (Workstream 3, P6)                                       */
+  /*                                                                        */
+  /* The header's bottom rule dissolves at the very top of the page and     */
+  /* etches back in on the first scroll — a static border on a sticky        */
+  /* header at rest reads as one more line competing with the hero's own     */
+  /* ruled grid directly beneath it; once content has actually scrolled      */
+  /* under the header, the same rule is what separates fixed chrome from      */
+  /* page content, and it earns its keep back.                               */
+  /*                                                                        */
+  /* `html[data-at-top]` is written by InkReveal's second, non-motion         */
+  /* observer watching the 1px sentinel `layout.tsx` renders as `body`'s      */
+  /* first child. Unconditional on purpose, not wrapped in the reduced-       */
+  /* motion guard above: this is a border-colour swap, not a translate or a   */
+  /* fade, and the global `prefers-reduced-motion: reduce` block already      */
+  /* forces every `transition` on the page to `none !important` — there is    */
+  /* no separate motion for that preference to collapse here. With no JS at   */
+  /* all, `data-at-top` never appears, so the header keeps its rule visible    */
+  /* unconditionally, which was the pre-existing (and entirely correct)        */
+  /* behaviour.                                                                */
+  /* ---------------------------------------------------------------------- */
+  header[data-site-header] {
+    transition: border-color var(--dur-quick);
+  }
+  html[data-at-top] header[data-site-header] {
+    border-bottom-color: transparent;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Engravings (Workstream 3, P5)                                          */
+  /*                                                                        */
+  /* Three small registration marks, all built the way `BusinessCard`'s own  */
+  /* corner ticks and diamond are: `absolute`, `aria-hidden`,                */
+  /* `pointer-events-none`, drawn from `border-rule`/`bg-*` only, never a     */
+  /* `box-shadow` — the print stylesheet zeroes shadows globally, and a       */
+  /* mark built from a border survives onto paper for free.                  */
+  /* ---------------------------------------------------------------------- */
+
+  /* Closing's colophon: the page's one contrast chapter gets a terminal
+     ornament rather than ending flush on the last button row. The fleuron
+     fills with `--ground`, not `--surface` — Closing has no raised panels,
+     just the inverted ground `tone-contrast` repoints everything onto, so a
+     `--surface` fill would have read as a small filled tile floating on top
+     of the hairline instead of a mark cut into it. */
+  .colophon {
+    position: relative;
+    height: var(--rule);
+    width: 3rem;
+    background-color: var(--rule-color);
+  }
+  .colophon::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    height: 7px;
+    width: 7px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    border: var(--rule) solid var(--rule-color);
+    background-color: var(--ground);
+  }
+
+  /* CaseStudy's chapter tick: a short registration mark crossing the
+     article's own top rule, centred on the line rather than sitting above
+     or below it (`top: 0; translateY(-50%)`, since the rule is drawn at the
+     article box's own top edge). Applied by the component only when
+     `index > 0` — the first article opts out of the top rule entirely
+     (`first:border-t-0`), so a tick with nothing to cross would float. */
+  .chapter-tick {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 6px;
+    width: var(--rule);
+    transform: translateY(-50%);
+    background-color: var(--rule-color);
+  }
+
+  /*                                                                        */
+  /* Two unrelated rulesets share this block because they share one         */
+  /* wrapper (`[data-tree-figure]` in TreeFigure.tsx). Emphasis needs no    */
+  /* media guard: `data-tree-hit` is only ever stamped by a pointer or a    */
+  /* focus already in play, so there is nothing to gate. Growth is gated    */
+  /* behind reduced-motion and keyed off the *shared* `InkReveal` contract  */
+  /* — `[data-ink-ready]` is its JS-live gate, `[data-inked]` is the stamp  */
+  /* it puts on this wrapper's own `data-ink-root` once the drawing is on   */
+  /* screen — so no-JS, reduced-motion and print all see the finished tree  */
+  /* by default, before InkReveal exists to say otherwise.                  */
+  /* ---------------------------------------------------------------------- */
+  [data-tree-figure] [data-tree-hit] path,
+  [data-tree-figure] path[data-tree-hit] {
+    color: var(--fg);
+    stroke-width: 1.4;
+  }
+  [data-tree-figure] [data-tree-hit] [data-tree-panel],
+  [data-tree-figure] [data-tree-panel][data-tree-hit] {
+    border-color: var(--fg-subtle);
+  }
+  [data-tree-figure] [data-tree-hit] [data-tree-entry],
+  [data-tree-figure] [data-tree-entry][data-tree-hit] {
+    background-color: var(--surface);
+  }
+  [data-tree-figure] a[data-tree-root][data-tree-hit] {
+    text-decoration-line: underline;
+  }
+  [data-tree-figure] [data-tree-tech][data-tree-hit] > span:first-child {
+    color: var(--fg);
+  }
+
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-draw {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+    }
+    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-grow {
+      transform: scaleY(0);
+      transform-origin: bottom;
+    }
+    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-grow-down {
+      transform: scaleY(0);
+      transform-origin: top;
+    }
+    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-fade {
+      opacity: 0;
+    }
+
+    /* `:where([data-inked])`, not a bare `[data-inked]`: this block and the
+       "Origin story" one below it both give the "revealed" state of these
+       same four classes a specificity of exactly two selectors (one
+       attribute, one class) on purpose — a still-`[data-origin-pending]`
+       group's own hide (three selectors: `[data-origin-running] [data-
+       origin-pending] .tree-draw`) needs to keep beating BOTH, and the
+       origin story's own reveal needs to keep beating THIS one, purely by
+       coming later in the file at an *equal* two. Writing `[data-inked]`
+       plain here would make this block three selectors instead of two — a
+       specificity-only fix layered on top of the origin story's own reveal
+       rules found that out the hard way: matching the origin story's
+       stagger fix to *this* block's three-selector weight (by adding
+       `[data-tree-figure]` there too) made the origin story's "revealed"
+       rule tie with its OWN "pending" rule instead of losing to it, so a
+       group's `stroke-dashoffset` snapped to its finished value the instant
+       it was *tagged* pending, real transition or not — the opposite of the
+       intended fix. `:where()` contributes zero specificity regardless of
+       what it wraps, so `[data-tree-figure]:where([data-inked])` matches
+       exactly what `[data-tree-figure][data-inked]` always matched (the
+       truth value of "is this figure inked" is unchanged) while costing
+       this block only the one selector `[data-tree-figure]` already did. */
+    [data-tree-figure]:where([data-inked]) .tree-draw,
+    [data-tree-figure]:where([data-inked]) .tree-grow,
+    [data-tree-figure]:where([data-inked]) .tree-grow-down,
+    [data-tree-figure]:where([data-inked]) .tree-fade {
+      transition-delay: var(--ink-delay, 0ms);
+    }
+    [data-tree-figure]:where([data-inked]) .tree-draw {
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset var(--dur-draw) var(--ease-ink);
+    }
+    [data-tree-figure]:where([data-inked]) .tree-grow,
+    [data-tree-figure]:where([data-inked]) .tree-grow-down {
+      transform: none;
+      transition: transform var(--dur-draw) var(--ease-ink);
+    }
+    [data-tree-figure]:where([data-inked]) .tree-fade {
+      opacity: 1;
+      transition: opacity var(--dur-settle) var(--ease-ink);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Origin story v2 — chronological growth                                */
+  /*                                                                        */
+  /* The same contract as the "Career tree figure" block above, keyed off a */
+  /* different pair of attributes: `[data-ink-ready]`/`[data-inked]` gate    */
+  /* the *whole tree's* one-time reveal on scroll-into-view, where           */
+  /* `[data-origin-running]`/`[data-origin-pending]` gate *individual*       */
+  /* growable groups (leaves, branches, trunk, roots, the shoot — every      */
+  /* `[data-origin-year]` in DrawnTree.tsx) as the story's conductor         */
+  /* (`OriginStory.tsx`) releases them one beat at a time. Same classes      */
+  /* (`.tree-draw` / `.tree-grow` / `.tree-grow-down` / `.tree-fade`), same   */
+  /* collapsed shapes, same `--dur-draw`/`--dur-settle`/`--ease-ink` tokens   */
+  /* the ink reveal already draws with — a group re-uses whichever ink        */
+  /* treatment it was already given; the story just decides *when* each one   */
+  /* is allowed to play it.                                                  */
+  /*                                                                        */
+  /* `data-origin-running` is stamped on the figure only while the story is  */
+  /* playing (imperative DOM, the same idiom the cross-highlight island      */
+  /* above uses) and `data-origin-pending` is stamped on every growable      */
+  /* group at story start, then removed group-by-group as the beats reach     */
+  /* that group's own `data-origin-year`. A group can be the pending element  */
+  /* itself (the shoot's own `<g data-tree-shoot>`) or an ancestor of the ink  */
+  /* classes (a lens `<li>` wrapping a whole branch's boughs and leaves), so   */
+  /* both the "self" and "descendant" shapes below are needed, exactly as     */
+  /* the two `[data-tree-hit]` shapes above them are.                         */
+  /*                                                                        */
+  /* No `[data-ink-ready]` guard here: unlike the passive scroll reveal,      */
+  /* nothing plays this without a visitor pressing "How it grew" first, so    */
+  /* there is no no-JS/print/reduced-motion path where `data-origin-running`  */
+  /* could appear unbidden — `OriginStory.tsx` only ever stamps it after       */
+  /* checking `prefers-reduced-motion` itself, same as the block below this   */
+  /* one. The media guard here is still the belt-and-braces backstop.         */
+  /* ---------------------------------------------------------------------- */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-origin-running] [data-origin-pending].tree-draw,
+    [data-origin-running] [data-origin-pending] .tree-draw {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+    }
+    [data-origin-running] [data-origin-pending].tree-grow,
+    [data-origin-running] [data-origin-pending] .tree-grow {
+      transform: scaleY(0);
+      transform-origin: bottom;
+    }
+    [data-origin-running] [data-origin-pending].tree-grow-down,
+    [data-origin-running] [data-origin-pending] .tree-grow-down {
+      transform: scaleY(0);
+      transform-origin: top;
+    }
+    [data-origin-running] [data-origin-pending].tree-fade,
+    [data-origin-running] [data-origin-pending] .tree-fade {
+      opacity: 0;
+    }
+
+    /* Released: a group's `data-origin-pending` has been removed while the
+       figure is still `data-origin-running`. Lower specificity than the four
+       pending rules above (one attribute selector short each), so a group
+       still pending is unaffected by this — the moment it stops matching
+       `[data-origin-pending]`, though, this is what it falls into, and the
+       `transition` declared alongside each end state is what makes that
+       change a draw-in rather than a jump cut.
+
+       The `transition-delay: 0ms` below looks like the thing clearing a
+       leftover `--ink-delay` stagger a group might still carry from the
+       page-load ink reveal (the "Career tree figure" block above sets that
+       custom property per element) — it is not. Each of the three
+       per-class rules immediately after this one repeats this rule's own
+       selector text exactly, so the cascade always prefers whichever comes
+       later in the source, and that rule's `transition` shorthand already
+       resets `transition-delay` to its initial `0s` on its own, simply by
+       never naming a delay term. This declaration restates a value the
+       shorthand below was already going to produce; deleting it would
+       change nothing on screen. It stays as documentation of the intended
+       reset, not as the rule actually performing it. */
+    /* Bare `[data-origin-running]` — two selectors, same as it always was —
+       not `[data-tree-figure][data-origin-running]`: see the `:where()` note
+       on the page-load ink reveal just above for why that reveal's own
+       specificity was brought *down* to meet this rule instead of this rule
+       being brought up to meet it. Bringing this one up to three would have
+       tied it with this very file's own `[data-origin-running] [data-origin-
+       pending] .tree-draw` hide rule just above — which is also three,
+       deliberately, so a still-pending group keeps winning over its own
+       revealed state regardless of source order. A three-selector "revealed"
+       rule tied with that hide rule, but declared *after* it, would have
+       reversed that outcome: a group's `stroke-dashoffset` would resolve to
+       its finished value the instant `data-origin-pending` was ever stamped,
+       transition or not, which is a real regression this design-polish pass
+       hit while chasing the ink reveal's own collision — caught by sampling
+       a still-pending group's own computed `stroke-dashoffset` and finding
+       it already at its finished value. Two selectors, losing cleanly to the
+       hide rule's three whenever a group is genuinely still pending, and
+       winning the ink reveal's now-two-selector rule on source order (this
+       block comes after it) whenever it is not, is the one specificity that
+       keeps every case honest. */
+    [data-origin-running] .tree-draw,
+    [data-origin-running] .tree-grow,
+    [data-origin-running] .tree-grow-down,
+    [data-origin-running] .tree-fade {
+      transition-delay: 0ms;
+    }
+    [data-origin-running] .tree-draw {
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset var(--origin-rise, var(--origin-pop, var(--dur-draw)))
+        var(--ease-ink) var(--origin-stagger, 0ms);
+    }
+    [data-origin-running] .tree-grow,
+    [data-origin-running] .tree-grow-down {
+      transform: none;
+      transition: transform var(--origin-rise, var(--origin-pop, var(--dur-draw))) var(--ease-ink)
+        var(--origin-stagger, 0ms);
+    }
+    [data-origin-running] .tree-fade {
+      opacity: 1;
+      transition: opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+        var(--origin-stagger, 0ms);
+    }
+
+    /* Non-ink chrome (Task 2, implementer's judgment per the plan's
+       self-review note; the branch panel and the shoot's own label were
+       added in a later design-polish pass — see below): the pending rules
+       above only ever collapse `.tree-draw`/`.tree-grow`/`.tree-fade` — a
+       leaf's disclosure text, a lens's own summary card, the shoot's
+       "still growing" words, the root labels and the ground plinth's own
+       name/inscription carry none of those classes, so without this they
+       would sit at full opacity next to a bare, undrawn tree and break the
+       "nothing here yet" illusion the story is trying to tell. Five targets,
+       each already an existing hook (no new markup beyond the two
+       `data-tree-shoot-label`/`data-origin-tier` attributes the
+       choreography pass added in `DrawnTree.tsx`):
+         - a leaf row's own disclosure (the `<div>` directly inside
+           `[data-tree-entry]`) fades with its own leaf's pending state,
+           exactly like its ink neighbours, so the label reappears the same
+           moment the leaf's twig does;
+         - a lens's own summary card (`[data-tree-panel]`, "BRANCH /
+           <lens> / <count> places · <count> technologies") fades with the
+           lens `<li>` it sits inside — a visitor who scrolled past the
+           canopy mid-story used to find every branch's card fully readable
+           regardless of whether that branch had grown yet, which is the
+           same "chrome outran the ink" bug the leaf rule above already
+           existed to close, just for a hook this pass had missed;
+         - the shoot's own annotation (`[data-tree-shoot-label]`, "still
+           growing · <year>") fades with the shoot itself — an aria-hidden
+           `<span>` beside the ink, not a descendant of it (SVG and HTML
+           don't nest that way), so it needed to become its own
+           `data-origin-year` group rather than ride the ink's own class;
+           `OriginStory.tsx`'s `queryGroups` treats it as another shoot
+           (`isShoot`) so it is still released only by the closing beat, in
+           lockstep with the mark it names, not merely tied to whatever year
+           the mark happens to share;
+         - `[data-tree-root]` (every root label under the plinth) and the
+           plinth's own name/philosophy/count line (`[data-cat-nap] > p`) are
+           not conducted by any beat at all, so they simply stay hidden for
+           the whole run and return the instant it ends.
+       The leaf, panel and shoot-label rules each need the extra
+       `[data-origin-pending]` ancestor to out-specify their own release rule
+       below, the same reason the four pending shapes above do.
+
+       `opacity: 0` alone was a WCAG 2.4.7 hole: a leaf's disclosure
+       `<button>` (and, for the root/plinth targets, an ordinary link) stays
+       hit-testable and in the tab order at zero opacity, so a keyboard
+       visitor could Tab onto a focus ring nobody can see, and — for the root
+       labels and the plinth links, which sit *outside* this stage's own
+       click-catcher entirely — a pointer could still click something
+       invisible. `visibility: hidden` fixes both (it drops an element from
+       hit-testing and the tab order together) without losing the fade:
+       `visibility` is a discrete property, so listing it in `transition`
+       alongside `opacity` with the same duration holds it `visible` for the
+       *entire* fade-out and only flips to `hidden` at the very last instant
+       — and flips back to `visible` immediately at the *start* of the
+       reverse change, which is exactly what a Skip/Escape needs, since that
+       reverse change is losing `[data-origin-running]` itself (no rule below
+       matches any more, so there is no transition left to run — the same
+       instant reappearance every other pending group already gets). The
+       panel and shoot-label targets carry no focusable content of their own
+       (a card is plain text, the shoot's words are `aria-hidden`), but
+       `visibility: hidden` costs nothing extra here and keeps all five
+       targets in this block behaving identically. */
+    [data-origin-running] [data-tree-entry][data-origin-pending] > div {
+      visibility: hidden;
+      opacity: 0;
+    }
+    [data-origin-running] [data-tree-entry] > div {
+      visibility: visible;
+      opacity: 1;
+      transition:
+        opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms),
+        visibility var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms);
+    }
+    [data-origin-running] [data-origin-pending] [data-tree-panel] {
+      visibility: hidden;
+      opacity: 0;
+    }
+    [data-origin-running] [data-tree-panel] {
+      visibility: visible;
+      opacity: 1;
+      transition:
+        opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms),
+        visibility var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
+          var(--origin-stagger, 0ms);
+    }
+    [data-origin-running] [data-tree-shoot-label][data-origin-pending] {
+      visibility: hidden;
+      opacity: 0;
+    }
+    [data-origin-running] [data-tree-shoot-label] {
+      visibility: visible;
+      opacity: 1;
+      transition:
+        opacity var(--dur-settle) var(--ease-ink),
+        visibility var(--dur-settle) var(--ease-ink);
+    }
+    [data-origin-running] [data-tree-root],
+    [data-origin-running] [data-cat-nap] > p {
+      visibility: hidden;
+      opacity: 0;
+      transition:
+        opacity var(--dur-settle) var(--ease-ink),
+        visibility var(--dur-settle) var(--ease-ink);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Origin story — the sky layer (v2).                                     */
+  /*                                                                        */
+  /* `OriginStory.tsx` only ever applies these classes when it has already  */
+  /* checked `prefers-reduced-motion` itself and found "no-preference" —    */
+  /* the reduced-motion path renders a static storyboard instead and never  */
+  /* mounts a single one of these classes. The media guard below is        */
+  /* redundant defence on top of that JS check, the same belt-and-braces    */
+  /* relationship the tree's own `.tree-draw`/`.tree-grow` rules above have  */
+  /* to `InkReveal`.                                                        */
+  /*                                                                        */
+  /* v2 deleted the covering silhouette entirely — the story now grows the  */
+  /* real tree via `[data-origin-running]`/`[data-origin-pending]` (the      */
+  /* block above this one), so `.origin-silhouette` and the dissolving       */
+  /* `.origin-fade` backdrop it used to reveal through are gone. What is     */
+  /* left is the transparent sky layer's own cast: a bird tracing a flight   */
+  /* path, a seed settling in, and each season's weather glyph — all drawn   */
+  /* over the canopy, never covering it.                                     */
+  /*                                                                        */
+  /* Timing comes from two places on purpose. The flight beat's bird and    */
+  /* its drawn-behind path both read `--origin-dur`, an inline custom       */
+  /* property the component sets to that beat's own authored duration —     */
+  /* there is no existing token for a 3-second flight because nothing else   */
+  /* on the page plays one. Everything else — a glyph settling in — reuses   */
+  /* `--dur-settle` and `--ease-ink` exactly as the tree's own draw-in does,  */
+  /* because that is the same *kind* of motion the rest of the page already  */
+  /* has a name for.                                                        */
+  /* ---------------------------------------------------------------------- */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    @keyframes origin-flight-path-draw {
+      from {
+        stroke-dashoffset: 1;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    .origin-flight-path {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: origin-flight-path-draw var(--origin-dur, 3000ms) linear forwards;
+    }
+
+    /* Approximates the same arc `origin-flight-path-draw` traces — a rise
+       and fall between the two ends of `FLIGHT_PATH_D` in OriginStory.tsx. */
+    @keyframes origin-flight {
+      0% {
+        transform: translate(20px, 112px) rotate(-10deg);
+      }
+      30% {
+        transform: translate(110px, 45px) rotate(-2deg);
+      }
+      60% {
+        transform: translate(190px, 35px) rotate(4deg);
+      }
+      100% {
+        transform: translate(280px, 100px) rotate(14deg);
+      }
+    }
+    .origin-bird {
+      /* Without these two, `rotate()` above turns around the SVG's default
+         transform-origin for a child element — the *viewport's* centre
+         (150,100 in `VIEW_BOX` units), not the bird's own shape — because the
+         initial value of `transform-box` for an SVG geometry element is
+         `view-box`. Compounded with each keyframe's `translate()`, that swung
+         the bird through points nowhere near `FLIGHT_PATH_D`: ≈(5,139) at 0%
+         instead of (20,112), ≈(309,67) at 100% instead of (280,100) — past
+         the right edge of the viewBox entirely. `fill-box` + `50% 50%` moves
+         the rotation origin to the bird's own bounding-box centre, so each
+         keyframe's `translate()` lands where it says and `rotate()` only
+         turns the bird in place around that point. */
+      transform-box: fill-box;
+      transform-origin: 50% 50%;
+      animation: origin-flight var(--origin-dur, 3000ms) linear forwards;
+    }
+
+    /* The seed's own glyph settles in once with this — a fresh element
+       rising into place, the same motion `--dur-settle` already names
+       everywhere else on the page. (A season's own weather used to remount
+       through the same animation too, as a small glyph in this sky slice;
+       a design-polish pass moved it to `WeatherLayer` and the stage-wide
+       "Origin story — weather presence" block below, which is where its own
+       motion now lives instead.) */
+    @keyframes origin-settle {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .origin-glyph {
+      animation: origin-settle var(--dur-settle) var(--ease-ink);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Origin story — weather presence (design-polish pass)                   */
+  /*                                                                        */
+  /* A season's weather used to be a small glyph sharing the sky slice's own */
+  /* 300×200 box with the bird and the seed (see the block above) — which    */
+  /* meant it simply never appeared for the entire stretch a root beat's own */
+  /* camera pan scrolls the page away from that box (`OriginStory.tsx`'s     */
+  /* file banner, "The camera, during the root years"). The owner's own      */
+  /* brief for this pass: "make raining, sunny, windy more showing". This    */
+  /* block is what `WeatherLayer` in `OriginStory.tsx` reads — a             */
+  /* `position: fixed`, `pointer-events-none`, `aria-hidden` overlay that     */
+  /* reads at both camera positions the story ever holds, because it never   */
+  /* moves with either.                                                      */
+  /*                                                                        */
+  /* Same belt-and-braces as every other block in this file: `WeatherLayer`  */
+  /* only ever mounts after `OriginStory.tsx` has already checked            */
+  /* `prefers-reduced-motion` itself and found "no-preference" — the         */
+  /* reduced-motion Storyboard branch never renders it — so the media guard   */
+  /* below is defence on top of that JS check, not the only thing standing   */
+  /* between a reduced-motion visitor and this animation.                    */
+  /*                                                                        */
+  /* Every colour here is `currentColor` against the `text-fg-subtle`        */
+  /* context `WeatherLayer` sets on its own wrapper, or the stronger `--fg`   */
+  /* alias for a storm's own "denser, darker" hatch — never blue, which the   */
+  /* design system reserves for annotation and links alone (CLAUDE.md).      */
+  /* ---------------------------------------------------------------------- */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    /* Rain: a slanted hairline per stroke, falling top to bottom of the
+       *viewport* (not the stroke's own small box) on a loop — `vh` units
+       keep the fall reading as "the full sky", regardless of how tall any
+       one stroke is drawn. `RainStrokes` in OriginStory.tsx staggers the
+       start of each with `animationDelay`, so a dozen of these never fall in
+       lockstep. */
+    @keyframes origin-weather-drop-fall {
+      from {
+        transform: translateY(0) rotate(14deg);
+      }
+      to {
+        transform: translateY(112vh) rotate(14deg);
+      }
+    }
+    .origin-weather-drop {
+      position: absolute;
+      top: -6vh;
+      width: 1px;
+      height: 6vh;
+      background-color: currentColor;
+      opacity: 0.45;
+      animation: origin-weather-drop-fall 900ms linear infinite;
+    }
+    /* A storm's own rain: more of them (`RainStrokes({ dense: true })`
+       simply draws more `.origin-weather-drop`s), and each one switched to
+       the stronger `--fg` alias rather than the ordinary `--fg-subtle` a
+       plain rain year inherits — "denser, darker", the same phrase the
+       owner's brief used. */
+    .origin-weather-drop--dense {
+      opacity: 0.8;
+      background-color: var(--fg);
+    }
+
+    /* Sun: the existing ray-and-disc glyph, breathing — the one season
+       whose whole point is a steady, untroubled year, so the only motion it
+       gets is the gentlest one in this block. `translateX(-50%)` is baked
+       into both keyframe steps because animating `transform` replaces the
+       whole property for the run of the animation — it cannot compose with
+       a separate, static `-translate-x-1/2` utility the way an unanimated
+       transform could, so the centring has to travel with the animation
+       itself rather than sit beside it. */
+    @keyframes origin-weather-sun-breathe {
+      from {
+        transform: translateX(-50%) scale(1);
+      }
+      to {
+        transform: translateX(-50%) scale(1.06);
+      }
+    }
+    .origin-weather-sun {
+      animation: origin-weather-sun-breathe 4s ease-in-out infinite alternate;
+    }
+
+    /* Storm: a passage through the beat, not the whole beat's own weather —
+       see `Season.storm` (origin-story.ts) and `StormOverlay`
+       (OriginStory.tsx) for why a milestone year no longer replaces its base
+       rain/sun/quiet. `.origin-weather-storm-overlay` is mounted for the
+       entire beat but starts at `opacity: 0`; both animations below share a
+       600ms delay, so the overlay stays invisible until roughly a third of
+       the way into a 2000ms season beat, then the shudder (one-time, 500ms)
+       and the fade (`origin-weather-storm-fade`, 1100ms — up quickly, a
+       brief hold, back down) run together, finishing at 1700ms: comfortably
+       inside the beat, so the storm reads as *passing through* rather than
+       painting the sky for the whole two seconds. `WeatherLayer`'s own
+       `key={season.year}` remount is what makes "every storm beat replays
+       this from the top" true here: a fresh element plays these two
+       non-`infinite` animations from their own start every time, rather than
+       only once for the whole run. `StormBolts`' own bent strokes need no
+       animation of their own; the shudder and fade they ride along with are
+       loud enough. */
+    @keyframes origin-weather-shudder-kf {
+      0% {
+        transform: translateX(0);
+      }
+      20% {
+        transform: translateX(-6px);
+      }
+      40% {
+        transform: translateX(5px);
+      }
+      60% {
+        transform: translateX(-4px);
+      }
+      80% {
+        transform: translateX(2px);
+      }
+      100% {
+        transform: translateX(0);
+      }
+    }
+    @keyframes origin-weather-storm-fade {
+      0% {
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+    .origin-weather-storm-overlay {
+      opacity: 0;
+      animation:
+        origin-weather-storm-fade 1100ms ease-in-out 600ms forwards,
+        origin-weather-shudder-kf 500ms ease-out 600ms 1;
+    }
+
+    /* Quiet: wind, not an empty sky — two long strokes drifting the full
+       width of the viewport, `vw` units again so the crossing is honest
+       regardless of how wide the stroke's own stretched box is drawn.
+       `WindStrokes` staggers the second stroke's `animationDelay` so the
+       pair never travels together. */
+    @keyframes origin-weather-wind-drift {
+      from {
+        transform: translateX(-20vw);
+      }
+      to {
+        transform: translateX(120vw);
+      }
+    }
+    .origin-weather-wind {
+      left: -10%;
+      animation: origin-weather-wind-drift 6s linear infinite;
+    }
   }
 
   /* ---------------------------------------------------------------------- */
@@ -826,6 +1842,26 @@
 
   a[href^="http"]::after {
     content: " (" attr(href) ")";
+  }
+
+  /* Ink-reveal belt-and-braces (Workstream 3, P1). The screen-only media
+     guard around every pre-reveal rule in the components layer already
+     keeps this from applying during an actual print — `@media print` and
+     `@media screen` never both match — but a page can still be sent to a
+     printer mid-JS-session with `data-ink-ready`/`data-inked` genuinely set
+     on the live DOM (Ctrl/Cmd+P captures whatever is on screen, styles and
+     all). This is the second, redundant guarantee for that case: force every
+     settling element and the section hairline's own draw-in back to their
+     finished state, unconditionally. */
+  [data-ink] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  [data-ink-root].hairline-t {
+    border-top-color: var(--rule-color) !important;
+  }
+  [data-ink-root].hairline-t::before {
+    display: none !important;
   }
 }
 

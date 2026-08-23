@@ -65,7 +65,10 @@ The knowledge tree draws only authored relationships (`lenses`,
 `technologies`). Do not make it infer edges by matching skill names against
 technology strings: the two vocabularies only overlap 17 of 38 ways, so loose
 matching invents links and strict matching claims real skills were never used.
-`tests/lib/knowledge-tree.test.ts` enforces this.
+`tests/lib/knowledge-tree.test.ts` enforces this. `skillCategories[].lenses`
+is a second, independent authored edge set (category → lens, feeding the root
+labels and cross-highlighting); it is never merged with or inferred from the
+entry → lens edges.
 
 ## Before calling anything done
 

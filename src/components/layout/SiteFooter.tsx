@@ -43,7 +43,10 @@ export default function SiteFooter() {
     <footer className="border-t border-rule bg-ground text-fg">
       <div className="shell">
         <div className="flex flex-wrap items-center gap-y-2 py-5 text-[length:var(--step--1)] text-fg-subtle">
-          <p className="inline-flex items-center py-1">
+          {/* `tabular-nums` (Workstream 3, P4): the year sets in this line's
+              default sans face, not the mono the rail's own figures get for
+              free — see the note on `.rail` in globals.css. */}
+          <p className="inline-flex items-center py-1 tabular-nums">
             © {COPYRIGHT_YEAR} {profile.name}
           </p>
 
@@ -75,9 +78,13 @@ export default function SiteFooter() {
           ))}
 
           {divider}
+          {/* This was the one boxed clickable on the page with neither a
+              hover state nor a transition to it (Workstream 3, P3) — every
+              other bordered control on the site darkens/accents on hover and
+              now presses on click; this one did neither. */}
           <a
             href="#main"
-            className="inline-flex min-h-11 items-center border border-rule px-4 uppercase tracking-[0.14em] text-fg"
+            className="inline-flex min-h-11 items-center border border-rule px-4 uppercase tracking-[0.14em] text-fg transition-colors duration-150 hover:border-accent hover:text-accent active:translate-y-px"
           >
             Back to top
           </a>

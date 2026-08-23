@@ -21,15 +21,25 @@ function prefersReducedMotion(): boolean {
 }
 
 /** Shared underline element for the active-state indicator. Always in the
- * DOM at a fixed size; only its opacity changes, so it never shifts layout
- * and never relies on colour alone (paired with `aria-current`). */
+ * DOM at a fixed size; only its opacity (and now its own horizontal scale)
+ * changes, so it never shifts layout and never relies on colour alone
+ * (paired with `aria-current`).
+ *
+ * The `scale-x` addition (Workstream 3, P3) is what turns the flip into a
+ * draw: `origin-left` plus `scale-x-0 -> scale-x-100` makes the underline
+ * grow out from the label's own reading start rather than simply appearing,
+ * using `--ease-ink` — the one deliberate exception to "hover moves keep the
+ * browser default timing" (see that token's comment in globals.css), because
+ * this specifically reads as a line being drawn rather than a colour
+ * changing. Opacity stays in the mix too: a link whose section is merely
+ * hovered, not active, never gets the indicator regardless of scale. */
 function ActiveIndicator({ active }: { active: boolean }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-x-0 -bottom-px h-px bg-accent transition-opacity duration-150",
-        active ? "opacity-100" : "opacity-0"
+        "pointer-events-none absolute inset-x-0 -bottom-px h-px origin-left bg-accent transition-[opacity,transform] duration-(--dur-quick) ease-(--ease-ink)",
+        active ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"
       )}
     />
   );
@@ -131,7 +141,14 @@ export default function SiteNav() {
           block: "start",
         });
       } else {
-        window.scrollTo(0, scrollY);
+        // A fixup, not a navigation: `body` was pinned at `position: fixed`
+        // for the lock, which reset its scroll offset to 0, so this is
+        // putting the page back where it visually already was rather than
+        // moving it anywhere new. It must never animate — explicit `auto`
+        // rather than the default, which would otherwise pick up whatever
+        // `scroll-behavior` the page happens to have (see globals.css's `html`
+        // rule for why that is deliberately not "smooth").
+        window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
       }
     };
   }, [open]);
@@ -218,7 +235,7 @@ export default function SiteNav() {
         aria-controls={MOBILE_PANEL_ID}
         aria-label={open ? "Close menu" : "Open menu"}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-11 w-11 items-center justify-center border border-rule text-fg lg:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center border border-rule text-fg active:translate-y-px lg:hidden"
       >
         {open ? (
           <X aria-hidden="true" focusable="false" size={20} />

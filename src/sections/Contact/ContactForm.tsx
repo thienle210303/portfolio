@@ -337,6 +337,9 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
         setTouched({});
         setFieldErrors({});
         setSelectedIntentId(null);
+        // D3: a neutral event the companion listens for to cheer — nothing
+        // here knows or cares that a cat is watching. See Companion.tsx.
+        window.dispatchEvent(new CustomEvent("portfolio:contact-sent"));
       } else if (payload && payload.ok === false && payload.reason === "not-configured") {
         // The server just told us, authoritatively, that it cannot send.
         // Fall back the same honest way the unconfigured mode does, rather

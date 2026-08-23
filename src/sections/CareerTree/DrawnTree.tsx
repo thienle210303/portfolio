@@ -1,8 +1,11 @@
+import type { CSSProperties } from "react";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Tag } from "@/components/ui/Tag";
 import { skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
-import type { TreeBranch, TreeRoot } from "@/lib/knowledge-tree";
+import { careerYearSpan, techSlug, type TreeBranch, type TreeRoot } from "@/lib/knowledge-tree";
+import { firstCanopyYear, rootYearFor } from "@/lib/origin-story";
+import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
 import { JourneyEntryCrossLink } from "./cross-link";
 import { KIND_LABEL } from "./tree-labels";
 
@@ -132,6 +135,20 @@ function vary(seed: string, min: number, max: number): number {
   return Math.round((min + hash01(seed) * (max - min)) * 10) / 10;
 }
 
+/**
+ * A `--ink-delay` style object for one growth-drawn element — the same
+ * `vary()` hash the rest of this file uses for geometry, applied to a
+ * millisecond stagger instead. SSR'd as an inline custom property (never a
+ * `useEffect`, never measured) so the server-rendered HTML already carries
+ * the value the shared `InkReveal` primitive's CSS reads once it stamps
+ * `data-inked` — see the "Career tree figure" block in globals.css and the
+ * reconciliation note atop TreeFigure.tsx for why this file owns the
+ * stagger's *value* while InkReveal owns *when* it fires.
+ */
+function inkDelay(seed: string, min: number, max: number): CSSProperties {
+  return { "--ink-delay": `${vary(seed, min, max)}ms` } as CSSProperties;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Geometry                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -147,6 +164,20 @@ const BOUGH_W = 48;
 /** The leader above the canopy; matches the container's `pt-16`. */
 const TIP_W = 72;
 const TIP_H = 64;
+
+/**
+ * Extra headroom above the leader, reserved for the unfinished shoot — the
+ * tree's last, deliberately-incomplete stroke (see the design spec's "the
+ * tree is never finished"). Added only to `GrowingTip`'s own box: its `<svg>`
+ * grows taller and is nudged up by this same amount (`top: -SHOOT_H`), so its
+ * *bottom* edge — where the trunk begins — never moves, and `Trunk`'s
+ * `top-16` and the container's `pt-16` (both tied to the original `TIP_H`)
+ * stay exactly where they always were. The existing leader artwork is
+ * translated down by `SHOOT_H` inside its own `<g>` for the same reason: its
+ * numbers were written for a box that started at y=0, and this keeps them
+ * unchanged rather than re-deriving every coordinate.
+ */
+const SHOOT_H = 36;
 
 /** The base flare; matches the trunk's `bottom-11`. */
 const FOOT_W = 76;
@@ -290,30 +321,116 @@ const INK = "text-fg-subtle";
 /* The trunk, its tip and its foot                                            */
 /* -------------------------------------------------------------------------- */
 
-/** The leader: the trunk narrowing to a point, with two shoots. Fixed size,
- *  so its shape is exact; its bottom edge is the trunk's top edge, where the
- *  two strokes are 3.4px apart. */
+/**
+ * The leader: the trunk narrowing to a point, with two shoots — and, above
+ * all of it, the one shoot that never resolves into a leaf.
+ *
+ * The box is taller than the trunk it caps by `SHOOT_H`, and nudged up by the
+ * same amount, purely so the *existing* leader keeps the exact coordinates it
+ * always had (see the note on `SHOOT_H`). The unfinished shoot lives in that
+ * new headroom: thinner than every other stroke on the drawing (0.75 against
+ * the usual 1), open-ended — no node, no blade closes it — and given the
+ * *last* `--ink-delay` of anything in the figure, so it is the final line
+ * this drawing ever settles into. Two short ticks along it are the first hint
+ * of a bud, not a finished leaf: the tree has not decided what this growth
+ * becomes yet, which is the whole point of drawing it at all.
+ *
+ * Beside it, an aria-hidden annotation names the same fact in words —
+ * `still growing · {lastYear}` — in the drawing's existing convention for a
+ * computed, decorative label (the `eyebrow` year marker beside a `Leaf`
+ * below). It restates nothing new: the rail's own "Rings" note already gives
+ * this year, and a screen reader gets that fact once, from real text, not
+ * twice from a picture repeating itself.
+ */
 function GrowingTip() {
+  const { lastYear } = careerYearSpan();
+
   return (
-    <svg
-      {...strokeProps}
-      width={TIP_W}
-      height={TIP_H}
-      viewBox={`0 0 ${TIP_W} ${TIP_H}`}
-      className={cn("pointer-events-none absolute left-1/2 top-0 -translate-x-1/2", INK)}
-    >
-      <path
-        d={
-          // the two trunk strokes, converging to a tip
-          "M34.3 64C34.8 46 35.2 26 36 8M37.7 64C37.2 46 36.8 26 36 8" +
-          // two shoots off the leader, each ending in a leaf
-          "M35.6 42C31 38.4 25.8 36 20.4 35" +
-          blade(20.4, 35, TILTS[6], -1) +
-          "M36.4 26C40.6 22.2 45.4 19.4 50.6 18" +
-          blade(50.6, 18, TILTS[0])
-        }
-      />
-    </svg>
+    <>
+      <svg
+        {...strokeProps}
+        width={TIP_W}
+        height={TIP_H + SHOOT_H}
+        viewBox={`0 0 ${TIP_W} ${TIP_H + SHOOT_H}`}
+        className={cn("pointer-events-none absolute left-1/2 -translate-x-1/2", INK)}
+        style={{ top: -SHOOT_H }}
+      >
+        {/* The leader — every coordinate below is the same as it has always
+            been, just carried down by the new headroom.
+
+            `data-origin-year={firstCanopyYear()}`/`data-origin-tier="trunk"`
+            (a design-polish pass): the leader is the very top of the trunk,
+            with two leaves already on it, so a visitor watching the origin
+            story used to see this whole tip — including its own foliage —
+            fully drawn from the very first beat, years before the trunk it
+            caps had grown at all. Same year and tier as `Trunk`/`TrunkFoot`
+            below, so the tip finishes rising in the same stagger step as the
+            rest of the trunk's own hero moment, not a beat early. */}
+        <g
+          data-origin-year={firstCanopyYear()}
+          data-origin-tier="trunk"
+          transform={`translate(0, ${SHOOT_H})`}
+        >
+          <path
+            pathLength={1}
+            className="tree-draw"
+            style={inkDelay("tip", 380, 460)}
+            d={
+              // the two trunk strokes, converging to a tip
+              "M34.3 64C34.8 46 35.2 26 36 8M37.7 64C37.2 46 36.8 26 36 8" +
+              // two shoots off the leader, each ending in a leaf
+              "M35.6 42C31 38.4 25.8 36 20.4 35" +
+              blade(20.4, 35, TILTS[6], -1) +
+              "M36.4 26C40.6 22.2 45.4 19.4 50.6 18" +
+              blade(50.6, 18, TILTS[0])
+            }
+          />
+        </g>
+
+        {/* The unfinished shoot. Continues from the same point the leader's
+            two strokes converge on (36, 8 in the leader's own frame, so
+            36, 8 + SHOOT_H once translated) and curves up into the headroom
+            above, tapering toward nothing rather than a leaf. */}
+        <g data-tree-shoot data-origin-year={lastYear} data-origin-tier="leaf">
+          <path
+            pathLength={1}
+            className="tree-draw"
+            strokeWidth={0.75}
+            style={inkDelay("shoot", 980, 1060)}
+            d={
+              `M36 ${SHOOT_H + 8}C36.9 ${SHOOT_H - 3} 34.3 ${SHOOT_H - 15} 38.2 ${SHOOT_H - 22}` +
+              `C39.6 ${SHOOT_H - 24.5} 40.4 ${SHOOT_H - 28} 41.1 ${SHOOT_H - 32}` +
+              // two tiny bud ticks — barely there, the first hint of a leaf
+              // rather than one
+              `M37.2 ${SHOOT_H - 9}l3 -1.3M39 ${SHOOT_H - 18}l2.7 -0.6`
+            }
+          />
+        </g>
+      </svg>
+
+      {/* The words beside it. Positioned off the shoot's own tip rather than
+          measured, like everything else on this drawing.
+
+          `data-tree-shoot-label`/`data-origin-year` (not `data-tree-shoot`
+          itself — `e2e/sections.spec.ts` holds that selector to a count of
+          exactly one, the `<g>` above) make this its own second origin-story
+          group, released in lockstep with the shoot: `OriginStory.tsx`'s
+          `queryGroups` treats either attribute as "this is the shoot", so the
+          words never announce a growth the drawing hasn't shown yet — a bug a
+          design-polish pass caught by scrolling mid-story and finding this
+          text fully legible over a still-pending tree. `globals.css`'s
+          "Origin story v2" block hides it the same non-ink-chrome way it
+          already hides a pending leaf's own label. */}
+      <span
+        aria-hidden="true"
+        data-tree-shoot-label
+        data-origin-year={lastYear}
+        className="eyebrow pointer-events-none absolute left-1/2 whitespace-nowrap"
+        style={{ top: -SHOOT_H + 2, transform: "translateX(18px)" }}
+      >
+        still growing · {lastYear}
+      </span>
+    </>
   );
 }
 
@@ -328,6 +445,18 @@ function GrowingTip() {
  * visibly distort. The widening is deliberately front-loaded — most of it
  * happens in the bottom quarter, the way a real bole flares — which also
  * means the exact height of the drawing barely changes how the taper reads.
+ *
+ * `data-tree-trunk`/`data-origin-tier="trunk"` are this file's own hooks for
+ * `OriginStory.tsx`'s growth choreography (a design-polish pass, after v2's
+ * chronological release already existed): a year's newly-releasing groups
+ * are sorted trunk first, then branch/lens, then leaf, so a whole year no
+ * longer bumps into view all at once — and `data-tree-trunk` singles this one
+ * group out for a slower, hero-length rise, since a trunk is the one thing on
+ * this drawing large enough that "everything moves at the same speed" reads
+ * as wrong. Neither attribute changes how this element looks outside a
+ * running story; see the "Origin story v2" and "Origin story — growth
+ * choreography" blocks in globals.css for the CSS side, and the conductor's
+ * own `releaseThroughYear` for the JS side.
  */
 function Trunk() {
   return (
@@ -339,16 +468,28 @@ function Trunk() {
     // the same pattern is why every twig segment is wrapped too.
     <span
       aria-hidden="true"
+      data-tree-trunk
+      data-origin-year={firstCanopyYear()}
+      data-origin-tier="trunk"
       className={cn(
         "pointer-events-none absolute bottom-11 left-1/2 top-16 block w-10 -translate-x-1/2",
         INK,
       )}
     >
+      {/* Stretched and `preserveAspectRatio="none"`, so a dash-draw is out
+          (the note on `.tree-draw` in globals.css explains why) — the whole
+          `<svg>` grows instead, scaled up from the ground, which is the one
+          distortion a trunk reaching for the canopy is welcome to have. The
+          class sits on the `<svg>` rather than the `<path>` here: it is a
+          replaced element with its own border-box, so `transform-origin:
+          bottom` means exactly what it says, where a nested `<path>`'s
+          transform box is the viewBox and would need more care. */}
       <svg
         {...strokeProps}
         viewBox="0 0 40 100"
         preserveAspectRatio="none"
-        className="block h-full w-full"
+        className="tree-grow block h-full w-full"
+        style={inkDelay("trunk", 20, 60)}
       >
         <path
           d="M7 100C9.4 80 15.2 44 18.3 0M33 100C30.6 80 24.8 44 21.7 0"
@@ -372,6 +513,9 @@ function TrunkFoot() {
       className={cn("pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2", INK)}
     >
       <path
+        pathLength={1}
+        className="tree-draw"
+        style={inkDelay("foot", 140, 200)}
         d={
           // the flare
           "M25 0C23.4 14 20 28 11 44M51 0C52.8 14 56.2 28 65.5 44" +
@@ -411,6 +555,8 @@ export function GroundHatch({ className }: { readonly className?: string }) {
   return (
     <span
       aria-hidden="true"
+      data-origin-year={firstCanopyYear()}
+      data-origin-tier="trunk"
       className={cn("pointer-events-none absolute inset-x-0 top-0", className)}
     >
       <svg
@@ -419,7 +565,16 @@ export function GroundHatch({ className }: { readonly className?: string }) {
         preserveAspectRatio="none"
         className={cn("block h-2.5 w-full", INK)}
       >
-        <path d={GROUND_HATCH} vectorEffect="non-scaling-stroke" />
+        {/* Stretched horizontally, only 10px tall: a dash-draw or a scaleY
+            grow both read as noise at this aspect ratio, so the hatching
+            fades in instead — the third of the three treatments the
+            stretched SVGs need (see the note on Trunk above). */}
+        <path
+          className="tree-fade"
+          style={inkDelay("ground", 0, 20)}
+          d={GROUND_HATCH}
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
     </span>
   );
@@ -433,7 +588,7 @@ export function GroundHatch({ className }: { readonly className?: string }) {
  * wider on a wider screen — the one distortion a root system is welcome to
  * have.
  *
- * The taproot itself, its two crown-forks and the two shallow surface roots
+ * The taproot itself, its three crown-forks and the two shallow surface roots
  * are fixed decoration: texture that reads as "root system" but names
  * nothing, so it owes no count to anything in the content layer. The major
  * laterals are the opposite — there is exactly one per `skillCategories`
@@ -441,16 +596,79 @@ export function GroundHatch({ className }: { readonly className?: string }) {
  * names, and a label with no root under it, or a root with no label under
  * it, would both be lies this drawing doesn't tell anywhere else.
  */
+
+/**
+ * The root system's own viewBox height. Taller than the canopy above it
+ * needs to be honest, because it now has to hold a third fork of the
+ * taproot and laterals reaching deeper into the panel — see `ROOT_H`.
+ *
+ * Kept in sync by hand with the literal `h-[220px]` Tailwind class on
+ * `RootSystem`'s `<svg>` below: Tailwind's arbitrary-value classes are
+ * matched as literal text at build time, so a template literal there would
+ * not generate a utility at all. Change one, change the other.
+ */
+const ROOT_H = 220;
+
+/**
+ * The underground's fixed decoration: a taproot with its own crown-forks and
+ * a shallow surface pair, each now forking a second time — the same density
+ * the canopy's boughs get from their own foliage, mirrored below ground
+ * rather than only above it. Still fully literal, still owing no count to
+ * the content layer: nothing here is a major root `RootLabels` names, so
+ * nothing here needs to agree with `skillCategories`.
+ */
 const TAPROOT_AND_TEXTURE =
-  // taproot, forking twice near the surface
-  "M500 0C497 26 503 54 496 88C494 98 492 105 489 113" +
-  "M496 88C484 92 473 95 460 96" +
-  "M496 88C508 93 519 96 532 98" +
-  // shallow surface roots — unlabelled texture, not a major root
-  "M500 0C468 13 425 21 375 25" +
-  "M500 0C533 12 577 19 628 22" +
-  "M375 25C368 30 362 35 357 41" +
-  "M628 22C635 27 641 32 646 38";
+  // taproot, forking three times as it runs deeper — the surface pair the
+  // drawing always had, plus a third below them, so the taproot itself
+  // reads as reaching further down than the laterals branching off it do
+  "M500 0C497 34 503 70 497 112C494 132 505 148 499 168C497 182 495 196 493 210" +
+  "M497 112C484 118 472 123 458 125C452 129 447 133 443 138" +
+  "M497 112C510 119 522 124 536 128C542 132 547 137 551 143" +
+  "M499 168C489 174 480 179 470 184C465 188 461 192 458 197" +
+  "M499 168C509 175 519 180 530 185C536 189 541 193 545 198" +
+  // shallow surface roots — unlabelled texture, not a major root — each now
+  // forking a second time so the crown of the taproot reads as dense as the
+  // major laterals fanning out below it
+  "M500 0C468 15 425 24 375 28" +
+  "M500 0C533 14 577 22 628 25" +
+  "M375 28C368 33 362 38 357 44" +
+  "M375 28C381 35 386 43 388 52" +
+  "M628 25C635 30 641 35 646 41" +
+  "M628 25C622 33 619 42 619 51";
+
+/**
+ * Fine hair texture at the taproot's own crown, between the surface roots and
+ * the taproot itself — rendered as its own thin path (see `RootSystem`)
+ * rather than folded into `TAPROOT_AND_TEXTURE`, because a single `<path>`
+ * cannot mix stroke widths and these are meant to read as finer than
+ * everything else down here, the same way `feederHairs` reads finer than a
+ * category's own lateral.
+ */
+const TAPROOT_HAIRS = "M455 8L446 19M470 4L466 16M530 8L539 19M515 4L519 16";
+
+/**
+ * One growth ring per year the career has been running
+ * (`careerYearSpan().years`) — concentric semi-ellipse arcs centred on the
+ * taproot's own origin, widest first so each tighter ring paints over the
+ * last and stays legible against it.
+ *
+ * Drawn with the SVG arc command rather than points sampled from a
+ * trigonometric curve: an ellipse is exactly what `A rx ry 0 0 0 …`
+ * describes, so this stays plain IEEE-754 arithmetic like every other number
+ * on the drawing (see the file header) — the browser's own renderer walks
+ * the ellipse, this file never calls `Math.cos`/`Math.sin` to approximate
+ * one. One `aria-hidden` path; `RootSystem` gives it `data-tree-part="rings"`
+ * so it takes the same brighten-only emphasis as everything else.
+ */
+function growthRings(years: number): string {
+  let d = "";
+  for (let i = 0; i < years; i += 1) {
+    const rx = 42 + i * 24;
+    const ry = 9 + i * 5;
+    d += `M${r1(500 - rx)} 0A${rx} ${ry} 0 0 0 ${r1(500 + rx)} 0`;
+  }
+  return d;
+}
 
 /**
  * The x a major root's tip lands on, 0..1000 — the root system's own
@@ -477,26 +695,97 @@ export function rootTipX(index: number, count: number): number {
 }
 
 /**
+ * How many forks a major root shows: one for roughly every three skills in
+ * that category, floored at one so even the smallest category's root still
+ * branches once. The same honesty rule `foliageCount` applies to the canopy
+ * — a category with nine skills (`frameworks`) should look like it forks more
+ * than one with five (`data`), and the count that decides that is the
+ * authored skill list itself, not a designer's eyeball.
+ */
+function rootForkCount(skillCount: number): number {
+  return Math.max(1, Math.round(skillCount / 3));
+}
+
+/**
+ * One short sub-fork off a point already on the drawing — a fork's fork, the
+ * second (or third) level of branching a major root gets, mirroring how a
+ * bough's own foliage rides its curve rather than the trunk directly. Returns
+ * the tip along with the path text so a caller can chain a further level off
+ * of it, the way `lateralRoot` chains a third level off some second-level
+ * tips below.
+ */
+function subFork(seed: string, x: number, y: number, dir: 1 | -1): { d: string; tip: Point } {
+  const dx = dir * vary(`${seed}|x`, 5, 11);
+  const dy = vary(`${seed}|y`, 6, 14);
+  const tip: Point = [r1(x + dx), r1(y + dy)];
+  const d =
+    `M${r1(x)} ${r1(y)}C${r1(x + dx * 0.5)} ${r1(y + dy * 0.4)}` +
+    ` ${r1(x + dx * 0.8)} ${r1(y + dy * 0.75)} ${tip[0]} ${tip[1]}`;
+  return { d, tip };
+}
+
+/**
+ * Fine root hairs riding a lateral's own curve — the underground equivalent
+ * of `foliage()`: short, thin (`RootSystem` renders them at their own
+ * sub-0.5 stroke width, never the lateral's), and spread over the same back
+ * half of the root the forks occupy, so the whole root reads as one dense
+ * fibrous mass rather than a bare line with a few forks hanging off it.
+ * `dir` alternates per hair rather than following the fork's own bias — real
+ * fine roots go every which way, where the *forks* are what carries the
+ * lateral's overall sweep.
+ */
+function feederHairs(seed: string, curve: Curve, count: number): string {
+  let d = "";
+  for (let i = 0; i < count; i += 1) {
+    const span = count === 1 ? 0.5 : i / (count - 1);
+    const t = 0.3 + span * 0.55 + vary(`${seed}|ht${i}`, -0.03, 0.03);
+    const [x, y] = cubicAt(curve, t);
+    const dir = i % 2 === 0 ? 1 : -1;
+    const dx = dir * vary(`${seed}|hx${i}`, 3, 7);
+    const dy = vary(`${seed}|hy${i}`, 3, 8);
+    d += `M${r1(x)} ${r1(y)}L${r1(x + dx)} ${r1(y + dy)}`;
+  }
+  return d;
+}
+
+/**
  * One major root: a tapering lateral from the taproot's own origin out to
- * `tipX`, with a short fork partway along it. Depth, sweep and the fork all
- * vary per category id via `vary()` — the same deterministic hash every
- * other organic line on this drawing uses — but `tipX` itself never does,
- * because it is the one number `RootLabels` has to still agree with once the
- * root is below a border and the label is a separate DOM block reading its
- * name.
+ * `tipX`, forking two or three levels deep — the same botanical weight the
+ * canopy's boughs get from their own foliage, mirrored below ground. Depth,
+ * sweep and every fork vary per category id via `vary()` — the same
+ * deterministic hash every other organic line on this drawing uses — but
+ * `tipX` itself never does, because it is the one number `RootLabels` has to
+ * still agree with once the root is below a border and the label is a
+ * separate DOM block reading its name.
  *
- * Built as a `Curve` and read back with `cubicAt` for the fork's origin
+ * The curve's first control point is biased toward x=500 (`dx * 0.22`, not
+ * the canopy boughs' `dx * 0.5`-ish sweep) so the bundle of six roots
+ * visibly gathers into the trunk base before it fans out toward its own
+ * tip — a taproot's laterals leave close together and spread, where a
+ * bough's shoot leaves the trunk already at its own angle.
+ *
+ * Built as a `Curve` and read back with `cubicAt` for each fork's origin
  * rather than eyeballing a waypoint the way the trunk's boughs originally
  * did — both helpers already exist below for the canopy, and a root forking
  * off its own curve is the same shape as a bough's shoot forking off the
  * limb.
+ *
+ * Returns the main lateral (curve + every fork, one stroke weight — what
+ * `data-tree-lateral` highlights) separately from its feeder hairs (a
+ * second, thinner path `RootSystem` renders on its own): a single `<path>`
+ * cannot mix stroke widths, and the hairs are meant to read as finer than the
+ * root that grew them.
  */
-function lateralRoot(id: string, tipX: number): string {
+function lateralRoot(
+  id: string,
+  tipX: number,
+  forkCount: number,
+): { readonly main: string; readonly feeders: string } {
   const dx = tipX - 500;
-  const tipY = vary(`root|${id}|y`, 64, 108);
+  const tipY = vary(`root|${id}|y`, 78, 132);
   const curve: Curve = [
     [500, 0],
-    [r1(500 + dx * 0.42 + vary(`root|${id}|mx`, -14, 14)), vary(`root|${id}|my`, 16, 30)],
+    [r1(500 + dx * 0.22 + vary(`root|${id}|mx`, -10, 10)), vary(`root|${id}|my`, 18, 34)],
     [
       r1(500 + dx * 0.78 + vary(`root|${id}|nx`, -10, 10)),
       r1(tipY * vary(`root|${id}|ny`, 0.55, 0.8)),
@@ -504,33 +793,124 @@ function lateralRoot(id: string, tipX: number): string {
     [tipX, tipY],
   ];
 
-  const [fx, fy] = cubicAt(curve, vary(`root|${id}|ft`, 0.4, 0.62));
-  const forkDir = dx < 0 ? -1 : 1;
-  const forkDx = forkDir * vary(`root|${id}|fx`, 9, 18);
-  const forkDy = vary(`root|${id}|fy`, 9, 20);
+  const forkDir: 1 | -1 = dx < 0 ? -1 : 1;
+  let forks = "";
+  for (let i = 0; i < forkCount; i += 1) {
+    // Spread along the back half of the root, in order, so forks read as a
+    // sequence rather than clustering — the same span `foliage()` uses.
+    const span = forkCount === 1 ? 0.5 : i / (forkCount - 1);
+    const t = 0.34 + span * 0.4 + vary(`root|${id}|ft${i}`, -0.03, 0.03);
+    const [fx, fy] = cubicAt(curve, t);
+    const forkDx = forkDir * vary(`root|${id}|fx${i}`, 8, 17);
+    const forkDy = vary(`root|${id}|fy${i}`, 8, 19);
+    const tipX2 = r1(fx + forkDx);
+    const tipY2 = r1(fy + forkDy);
+    forks +=
+      `M${r1(fx)} ${r1(fy)}C${r1(fx + forkDx * 0.5)} ${r1(fy + forkDy * 0.4)}` +
+      ` ${r1(fx + forkDx * 0.8)} ${r1(fy + forkDy * 0.75)} ${tipX2} ${tipY2}`;
 
-  return (
-    curvePath(curve) +
-    `M${r1(fx)} ${r1(fy)}C${r1(fx + forkDx * 0.5)} ${r1(fy + forkDy * 0.4)}` +
-    ` ${r1(fx + forkDx * 0.8)} ${r1(fy + forkDy * 0.75)} ${r1(fx + forkDx)} ${r1(fy + forkDy)}`
-  );
+    // Second level: the fork itself forks, once on each side — the same
+    // idiom `subFork` shares with the taproot's own crown above.
+    const oppositeDir: 1 | -1 = forkDir === 1 ? -1 : 1;
+    const second1 = subFork(`root|${id}|sf${i}a`, tipX2, tipY2, forkDir);
+    const second2 = subFork(`root|${id}|sf${i}b`, tipX2, tipY2, oppositeDir);
+    forks += second1.d + second2.d;
+
+    // Third level, on roughly half the forks (hashed, not alternated, so it
+    // is not a visible every-other pattern): one further fork off the first
+    // second-level tip, so a root with several forks reads as reaching two
+    // or three levels deep rather than a uniform two everywhere.
+    if (hash01(`root|${id}|sf${i}c`) > 0.5) {
+      forks += subFork(`root|${id}|sf${i}c`, second1.tip[0], second1.tip[1], forkDir).d;
+    }
+  }
+
+  return {
+    main: curvePath(curve) + forks,
+    feeders: feederHairs(`root|${id}`, curve, Math.max(3, forkCount + 2)),
+  };
 }
 
 export function RootSystem({ className }: { readonly className?: string }) {
   const count = skillCategories.length;
-  const laterals = skillCategories
-    .map((category, index) => lateralRoot(category.id, rootTipX(index, count)))
-    .join("");
+  const { years } = careerYearSpan();
 
   return (
-    <div aria-hidden="true" className={cn("pointer-events-none", className)}>
+    // `data-root-system` is a query hook only, for `OriginStory.tsx`'s
+    // conductor: the one stable way to find this box from the shared
+    // `[data-tree-figure]` ancestor without a ref threaded down through
+    // `KnowledgeTree.tsx`. It carries no styling and no semantics of its
+    // own — `aria-hidden`/`pointer-events-none` are unchanged from before.
+    <div aria-hidden="true" data-root-system className={cn("pointer-events-none", className)}>
+      {/* Stretched and `preserveAspectRatio="none"`, like the trunk above —
+          the whole `<svg>` grows down from the ground rather than any one
+          path dash-drawing, for the same reason. */}
       <svg
         {...strokeProps}
-        viewBox="0 0 1000 116"
+        viewBox={`0 0 1000 ${ROOT_H}`}
         preserveAspectRatio="none"
-        className={cn("block h-[116px] w-full", INK)}
+        className={cn("tree-grow-down block h-[220px] w-full", INK)}
+        style={inkDelay("roots", 20, 60)}
       >
-        <path d={TAPROOT_AND_TEXTURE + laterals} vectorEffect="non-scaling-stroke" />
+        <path d={TAPROOT_AND_TEXTURE} vectorEffect="non-scaling-stroke" />
+        {/* The taproot's own fine hairs: thinner than every path above, the
+            same way each lateral's `feeders` below reads finer than its own
+            main root. */}
+        <path d={TAPROOT_HAIRS} strokeWidth={0.4} vectorEffect="non-scaling-stroke" />
+        <path
+          d={growthRings(years)}
+          data-tree-part="rings"
+          vectorEffect="non-scaling-stroke"
+        />
+        {/* One pair of paths per authored skill category, not one shared
+            path — so the cross-highlight island (TreeFigure.tsx) can
+            brighten exactly the lateral a hovered or focused root label
+            names, without touching the other five. The feeder hairs are
+            unlabelled texture, like the taproot's own — fine roots are not
+            a claim `RootLabels` makes, only the lateral itself is.
+
+            `tree-fade` on both paths, not left bare like the taproot above:
+            this `<g>` is the one thing in the whole file carrying its own
+            `data-origin-year` with nothing to gate its visibility — without
+            an ink class, `[data-origin-pending]` on the group matches
+            nothing in globals.css and the lateral sits fully drawn from the
+            first frame, story or no story. `tree-fade` rather than
+            `tree-grow-down` (the parent `<svg>`'s own class, for the
+            page-load reveal): stacking the same transform-based class on a
+            descendant would compound the parent's `scaleY(0)` collapse
+            rather than layer cleanly on top of it, the same reason
+            `GroundHatch`'s hatching above fades rather than grows. Fading
+            obeys both contracts — the passive scroll reveal and the story's
+            conductor — with the one CSS block already written for either. */}
+        {skillCategories.map((category, index) => {
+          const { main, feeders } = lateralRoot(
+            category.id,
+            rootTipX(index, count),
+            rootForkCount(category.skills.length),
+          );
+          return (
+            <g
+              key={category.id}
+              data-origin-year={rootYearFor(index, count)}
+              data-origin-tier="branch"
+            >
+              <path
+                data-tree-lateral={category.id}
+                className="tree-fade"
+                style={inkDelay(`root|${category.id}`, 40, 140)}
+                d={main}
+                vectorEffect="non-scaling-stroke"
+              />
+              <path
+                className="tree-fade"
+                style={inkDelay(`root|${category.id}|feeders`, 60, 160)}
+                d={feeders}
+                strokeWidth={0.4}
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
@@ -690,6 +1070,7 @@ function Bough({
       width={BOUGH_W}
       height={h}
       viewBox={`0 0 ${BOUGH_W} ${h}`}
+      data-tree-part="bough"
       className={cn(
         "pointer-events-none absolute top-0 w-12",
         INK,
@@ -698,6 +1079,9 @@ function Bough({
       style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
     >
       <path
+        pathLength={1}
+        className="tree-draw"
+        style={inkDelay(`${seed}|ink`, 460, 640)}
         d={
           curvePath(under) +
           curvePath(over) +
@@ -737,6 +1121,10 @@ interface LeafProps {
   readonly x: number;
   /** False on the last leaf: its run of twig stops short, as a tip. */
   readonly hasNext: boolean;
+  /** True only where `branch.startYear` differs from the leaf above it (or
+   *  this is the first leaf on the bough) — see the year-marker note on
+   *  `Leaf` below. */
+  readonly showYear: boolean;
 }
 
 /**
@@ -750,8 +1138,22 @@ interface LeafProps {
  * because it is a vertical line of unknown height, which is the one shape CSS
  * draws exactly and SVG has to be talked into — and because at twenty-five
  * leaves, two elements each stops being free.
+ *
+ * ## The year marker
+ *
+ * `showYear` is true only where `branch.startYear` differs from the leaf
+ * above it on the same bough, or this is the bough's first leaf — thirteen of
+ * the drawing's twenty-five leaves, since a bough often runs several entries
+ * from the same year in a row. Where it is true, an `aria-hidden` eyebrow
+ * span sits right of the role/org text, marking the point down the bough
+ * where the chronology moves. It is chronology-as-texture, not the fact
+ * itself: `dateRange` inside the opened panel stays the one figure a screen
+ * reader or a reader in either presentation actually reads, so the marker can
+ * be hidden from assistive tech without hiding anything the drawing claims.
+ * The disclosure summary becomes a flex row to hold it without disturbing the
+ * accessible name, which is computed from the same text nodes it always was.
  */
-function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
+function Leaf({ branch, lens, side, xPrev, x, hasNext, showYear }: LeafProps) {
   const seed = `${lens.id}|${branch.id}`;
   const inset = leafInset(seed);
   const bladeAt = 13 + inset;
@@ -759,10 +1161,15 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
   // twelve has a rhythm rather than a row spacing. Only the gap *below*
   // moves — the twig meets its label at a fixed height, whatever else changes.
   const pad = { paddingTop: 4, paddingBottom: 4 + vary(`${seed}|g`, 0, 11) };
+  const techSlugs = branch.leaves.map((leaf) => techSlug(leaf.name)).join(" ");
 
   return (
     <li
       className="relative"
+      data-tree-entry={branch.id}
+      data-origin-year={branch.startYear}
+      data-origin-tier="leaf"
+      data-tree-techs={techSlugs}
       style={
         side === "right"
           ? { ...pad, paddingLeft: TWIG_W + inset }
@@ -774,11 +1181,13 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
           without either measuring the other. */}
       <span
         aria-hidden="true"
-        className={cn("pointer-events-none absolute w-px bg-current", INK)}
+        data-tree-part="run"
+        className={cn("tree-fade pointer-events-none absolute w-px bg-current", INK)}
         style={{
           top: TWIG_BEND,
           bottom: hasNext ? 0 : 10,
           [side === "right" ? "left" : "right"]: x,
+          ...inkDelay(`${seed}|ink-run`, 640, 900),
         }}
       />
 
@@ -791,6 +1200,7 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
         width={MARK_W}
         height={MARK_H}
         viewBox={`0 0 ${MARK_W} ${MARK_H}`}
+        data-tree-part="mark"
         className={cn(
           "pointer-events-none absolute top-0",
           INK,
@@ -799,6 +1209,9 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
         style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
       >
         <path
+          pathLength={1}
+          className="tree-draw"
+          style={inkDelay(`${seed}|ink-mark`, 600, 860)}
           d={
             `M${xPrev} 0C${xPrev} 4 ${x} 7 ${x} ${TWIG_BEND}` +
             `M${x} 15C${x + 1.5} 19 ${bladeAt - 5} 20.5 ${bladeAt} 24` +
@@ -828,12 +1241,21 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
         collapseLabel={`Hide detail — ${lens.label}`}
         // One line, not two: a leaf is the smallest node on the drawing, and
         // at twenty-five of them a second line costs the tree a screen of
-        // height for information the panel is about to give anyway.
+        // height for information the panel is about to give anyway. The
+        // year marker rides the same line, right-aligned, rather than
+        // costing a second one of its own.
         summary={
-          <span className="wrap-anywhere block text-left text-[length:var(--step-0)] leading-snug text-fg">
-            {branch.label}
-            {branch.organization ? (
-              <span className="text-fg-muted"> · {branch.organization}</span>
+          <span className="flex items-baseline justify-between gap-2 text-left">
+            <span className="wrap-anywhere text-[length:var(--step-0)] leading-snug text-fg">
+              {branch.label}
+              {branch.organization ? (
+                <span className="text-fg-muted"> · {branch.organization}</span>
+              ) : null}
+            </span>
+            {showYear ? (
+              <span aria-hidden="true" className="eyebrow shrink-0">
+                {branch.startYear}
+              </span>
             ) : null}
           </span>
         }
@@ -846,9 +1268,17 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
           {branch.caseStudies.length > 0 ? (
             <p className="text-[length:var(--step--1)] leading-relaxed text-fg-muted">
               Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
-              <a href="#work" className="text-accent underline-offset-4 hover:underline">
-                {branch.caseStudies.join(", ")}
-              </a>
+              {branch.caseStudies.map((caseStudy, index) => (
+                <span key={caseStudy.id}>
+                  {index > 0 ? ", " : ""}
+                  <a
+                    href={`#${caseStudyAnchorId(caseStudy.id)}`}
+                    className="text-accent underline-offset-4 hover:underline"
+                  >
+                    {caseStudy.title}
+                  </a>
+                </span>
+              ))}
             </p>
           ) : null}
 
@@ -859,7 +1289,7 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext }: LeafProps) {
               className="flex flex-wrap gap-2"
             >
               {branch.leaves.map((leaf) => (
-                <li key={leaf.name}>
+                <li key={leaf.name} data-tree-tech={techSlug(leaf.name)}>
                   <Tag>
                     <span className="wrap-anywhere">{leaf.name}</span>
                     {leaf.alsoUsedIn > 0 ? (
@@ -983,6 +1413,9 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
           return (
             <li
               key={lens.id}
+              data-tree-lens={lens.id}
+              data-origin-year={Math.min(...lens.branches.map((branch) => branch.startYear))}
+              data-origin-tier="branch"
               className="relative"
               // Placed with `style` rather than utilities on purpose: the row
               // index and the drop are computed, and Tailwind can only
@@ -1001,6 +1434,7 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                   branch. Five panels all reaching the same margin was most of
                   what made the old drawing read as two columns. */}
               <div
+                data-tree-panel
                 className={cn(
                   "border border-rule bg-surface px-4 py-3",
                   side === "left" && "ml-auto",
@@ -1031,7 +1465,22 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
               >
                 {/* The twig leaving the panel: from just inside its lower
                     trunk-facing corner, down to where the first leaf's mark
-                    picks it up. */}
+                    picks it up.
+
+                    `tree-fade` (a design-polish pass): this stroke carried no
+                    ink class at all, so neither the page-load reveal nor the
+                    origin story's own pending gate ever touched it — a
+                    visitor scrolling mid-story past a still-pending lens
+                    found this one short connector fully drawn regardless,
+                    the same "chrome outran the ink" bug the panel and the
+                    shoot's own label needed fixing for. It rides its lens's
+                    own `data-origin-year` (the ancestor `<li>`) once tagged
+                    with an ink class at all — `tree-fade` rather than
+                    `tree-draw`'s dash-offset, the same choice the leaf's own
+                    straight "run" span below makes for the same reason: an
+                    8px joint between two points is not a stroke worth
+                    watching draw itself, only one worth not seeing too
+                    soon. */}
                 <svg
                   {...strokeProps}
                   width={TWIG_W}
@@ -1044,7 +1493,11 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                   )}
                   style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
                 >
-                  <path d={`M2 0C2 8 ${xs[0] ?? 7} 11 ${xs[0] ?? 7} 20`} />
+                  <path
+                    className="tree-fade"
+                    style={inkDelay(`${lens.id}|twig`, 400, 480)}
+                    d={`M2 0C2 8 ${xs[0] ?? 7} 11 ${xs[0] ?? 7} 20`}
+                  />
                 </svg>
 
                 {lens.branches.map((branch, leafIndex) => (
@@ -1058,6 +1511,10 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                     xPrev={leafIndex === 0 ? (xs[0] ?? 7) : (xs[leafIndex - 1] ?? 7)}
                     x={xs[leafIndex] ?? 7}
                     hasNext={leafIndex + 1 < xs.length}
+                    showYear={
+                      leafIndex === 0 ||
+                      branch.startYear !== lens.branches[leafIndex - 1].startYear
+                    }
                   />
                 ))}
               </ul>

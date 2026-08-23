@@ -39,7 +39,7 @@ interface HeroIdentityProps {
 }
 
 const RESUME_LINK_CLASS =
-  "inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-6 py-2.5 font-sans text-[length:var(--step-0)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]";
+  "inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-6 py-2.5 font-sans text-[length:var(--step-0)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)] active:translate-y-px";
 
 export default function HeroIdentity({ headingId }: HeroIdentityProps) {
   const location = resolved(profile.location);
@@ -48,23 +48,31 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
 
   return (
     <div>
-      <p className="eyebrow">
+      <p data-hero-step="eyebrow" className="eyebrow">
         {profile.name} <span aria-hidden="true">·</span> {profile.title}
       </p>
 
+      {/* LCP guard (Workstream 3, P2): this h1 is the page's most likely
+          Largest Contentful Paint candidate, so its `data-hero-step="h1"`
+          keyframe in globals.css (`ink-rise`) is transform-only and never
+          starts from `opacity: 0` — see that block's own comment. */}
       <h1
         id={headingId}
-        className="mt-6 max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-normal leading-[1.02] tracking-[-0.03em] text-[color:var(--fg)]"
+        data-hero-step="h1"
+        className="mt-6 max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-normal leading-[1.02] tracking-(--tracking-display-lg) text-[color:var(--fg)]"
       >
         {profile.headline}
       </h1>
 
-      <p className="mt-6 max-w-[56ch] text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg-muted)]">
+      <p
+        data-hero-step="intro"
+        className="mt-6 max-w-[56ch] text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg-muted)]"
+      >
         {profile.intro}
       </p>
 
       {hasMeta ? (
-        <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-2">
+        <dl data-hero-step="meta-actions" className="mt-6 flex flex-wrap gap-x-8 gap-y-2">
           {location ? (
             <div className="flex items-baseline gap-2">
               <dt className="eyebrow">Location</dt>
@@ -84,7 +92,7 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
         </dl>
       ) : null}
 
-      <div className="mt-8 flex flex-wrap items-center gap-4">
+      <div data-hero-step="meta-actions" className="mt-8 flex flex-wrap items-center gap-4">
         <Button href="#work">Explore my work</Button>
         <Link href="/resume" className={RESUME_LINK_CLASS}>
           Open résumé

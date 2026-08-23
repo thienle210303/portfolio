@@ -224,7 +224,7 @@ export function ExperimentEntry({ experiment, tools, stages }: ExperimentEntryPr
                     <li key={source.href}>
                       <ExternalLink
                         href={source.href}
-                        className="wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step-0)] text-[color:var(--fg)] underline underline-offset-4 hover:no-underline"
+                        className="ink-link-quiet wrap-anywhere inline-flex min-h-11 items-center text-[length:var(--step-0)] text-[color:var(--fg)]"
                       >
                         {stripNeedsInput(source.label)}
                       </ExternalLink>

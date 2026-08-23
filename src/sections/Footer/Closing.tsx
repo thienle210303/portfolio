@@ -46,6 +46,13 @@ export default function Closing() {
           Back to top
         </Button>
       </div>
+
+      {/* The colophon (Workstream 3, P5): a terminal ornament closing out
+          the page's one contrast chapter, built the same way BusinessCard's
+          own registration marks are — absolute, aria-hidden, pointer-events-
+          none, drawn from `border-rule`/`bg-*` only, never a `box-shadow`.
+          See `.colophon` in globals.css for the fleuron itself. */}
+      <div aria-hidden="true" className="colophon mx-auto mt-14" />
     </Section>
   );
 }
