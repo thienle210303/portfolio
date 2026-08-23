@@ -152,7 +152,10 @@ as the canopy's mirror in care, not an afterthought.
   storyboard** instead — the beats as captioned frames (flight, seed, one
   frame per season kind present, the finished-but-growing tree), fully
   readable, no animation.
-- No-JS: the button never mounts; the section is unchanged.
+- No-JS: the button server-renders inert, matching every other interactive
+  control on the site (Disclosure, Tabs, FilterGroup all SSR the same way) —
+  amended at final review from "never mounts": the site has no mounted-gate
+  idiom, and one control should not be the sole exception.
 - The always-on changes (shoot, ground band, roots) are server-rendered
   exactly like the rest of the figure; print/no-JS/reduced-motion see them
   complete via the existing ink-reveal fallbacks.
