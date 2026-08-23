@@ -1266,18 +1266,42 @@
            the whole run and return the instant it ends.
        The leaf rule needs the extra `[data-origin-running]` ancestor to
        out-specify the release rule below it, the same reason the four
-       pending shapes above do. */
+       pending shapes above do.
+
+       `opacity: 0` alone was a WCAG 2.4.7 hole: a leaf's disclosure
+       `<button>` (and, for the other two targets, an ordinary link) stays
+       hit-testable and in the tab order at zero opacity, so a keyboard
+       visitor could Tab onto a focus ring nobody can see, and — for the root
+       labels and the plinth links, which sit *outside* this stage's own
+       click-catcher entirely — a pointer could still click something
+       invisible. `visibility: hidden` fixes both (it drops an element from
+       hit-testing and the tab order together) without losing the fade:
+       `visibility` is a discrete property, so listing it in `transition`
+       alongside `opacity` with the same duration holds it `visible` for the
+       *entire* fade-out and only flips to `hidden` at the very last instant
+       — and flips back to `visible` immediately at the *start* of the
+       reverse change, which is exactly what a Skip/Escape needs, since that
+       reverse change is losing `[data-origin-running]` itself (no rule below
+       matches any more, so there is no transition left to run — the same
+       instant reappearance every other pending group already gets). */
     [data-origin-running] [data-tree-entry][data-origin-pending] > div {
+      visibility: hidden;
       opacity: 0;
     }
     [data-origin-running] [data-tree-entry] > div {
+      visibility: visible;
       opacity: 1;
-      transition: opacity var(--dur-settle) var(--ease-ink);
+      transition:
+        opacity var(--dur-settle) var(--ease-ink),
+        visibility var(--dur-settle) var(--ease-ink);
     }
     [data-origin-running] [data-tree-root],
     [data-origin-running] [data-cat-nap] > p {
+      visibility: hidden;
       opacity: 0;
-      transition: opacity var(--dur-settle) var(--ease-ink);
+      transition:
+        opacity var(--dur-settle) var(--ease-ink),
+        visibility var(--dur-settle) var(--ease-ink);
     }
   }
 

@@ -71,6 +71,15 @@ import { growthStage, seasonsFor, type Season, type SeasonKind } from "@/lib/ori
  * story ends and `WatchOrigin.tsx` swaps this player back out for its
  * button, the tree underneath is exactly as interactive as it always was.
  *
+ * The scroll-away observer, though, does *not* watch that full-height click
+ * target: the drawing wrapper runs 2000px+ tall once every branch panel is
+ * stacked under it, and a visitor who has scrolled past the canopy but is
+ * still somewhere inside that column would otherwise keep watching a
+ * blanked, pending tree for the rest of the run. It watches `skySlice`
+ * instead — the same small, top-pinned box `SkyLayer` and the floating
+ * annotation live in — so the story ends the moment the part a visitor is
+ * actually looking at leaves the viewport.
+ *
  * ## Narration, in two forms
  *
  * The accessible narration is the `role="status"` region — `sr-only` now,
@@ -79,7 +88,11 @@ import { growthStage, seasonsFor, type Season, type SeasonKind } from "@/lib/ori
  * renders that fallback annotation for now: the ack it would hide behind
  * (`origin-story-ack`, dispatched by the companion once it accepts the
  * watch) has no dispatcher yet. The listener is wired up regardless, so
- * Task 3 turning it on requires no change here.
+ * Task 3 turning it on requires no change here. It lives inside `skySlice`
+ * too, near the horizon `GroundLine` draws at y=150 of that box's own
+ * 300×200 coordinate space — "near the ground line" the spec asks for is
+ * the sky's own ground, not the real tree's, which is often thousands of
+ * pixels further down the page.
  */
 
 type BeatKind = "flight" | "seed" | SeasonKind | "still";
@@ -156,9 +169,16 @@ function queryGroups(figure: HTMLElement): readonly OriginGroup[] {
   }));
 }
 
+/** `year <= year` is false for every comparison once `year` is `NaN` (a
+ *  malformed `data-origin-year`, which should never happen but would
+ *  otherwise leave that one group pending for the entire run rather than
+ *  merely for the beat it can no longer honestly claim), so a non-finite
+ *  year is treated as "always due" instead. */
 function releaseThroughYear(groups: readonly OriginGroup[], year: number): void {
   for (const group of groups) {
-    if (!group.isShoot && group.year <= year) group.el.removeAttribute("data-origin-pending");
+    if (!group.isShoot && (!Number.isFinite(group.year) || group.year <= year)) {
+      group.el.removeAttribute("data-origin-pending");
+    }
   }
 }
 
@@ -260,14 +280,17 @@ function WeatherGlyph({ season }: { readonly season: Season }) {
  *  landing (seed beat), or a season's weather and year — nothing at all
  *  during "still", where the real tree's own shoot is the entire story.
  *  `pointer-events-none` throughout: this layer is decoration drawn *over*
- *  the canopy, never a click target and never a cover. */
+ *  the canopy, never a click target and never a cover. Sized to fill
+ *  whatever box its caller (the `skySlice` wrapper below) already gives it —
+ *  that wrapper is what carries the actual position/aspect-ratio/observer
+ *  duties now, so this stays a plain, fully-filling `<svg>`. */
 function SkyLayer({ beat }: { readonly beat: Beat }) {
   return (
     <svg
       {...strokeProps}
       viewBox={VIEW_BOX}
       preserveAspectRatio="xMidYMid meet"
-      className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2] text-fg-subtle"
+      className="h-full w-full text-fg-subtle"
     >
       {beat.kind === "flight" ? (
         <>
@@ -466,6 +489,13 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   const [catsNarrating, setCatsNarrating] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  // The small, top-pinned "sky slice" box `SkyLayer` and the floating
+  // annotation render inside — see the file banner on why the scroll-away
+  // observer watches this instead of the full-height `containerRef` click
+  // target. Unused (stays null) under reduced motion, where the Storyboard
+  // branch renders neither and the observer falls back to `containerRef`
+  // itself, exactly as it always has.
+  const skySliceRef = useRef<HTMLDivElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const ended = useRef(false);
   // Captured once, at the setup effect below — read at unmount time via this
@@ -565,28 +595,33 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   }, [end]);
 
   // Scrolling away ends the show exactly like Skip does — nobody wants a
-  // caption still narrating a section they scrolled away from. Observes the
-  // *stage itself* (`containerRef`), not `closest("[data-tree-figure]")`: the
-  // figure runs 2000px+ tall once every branch panel is stacked under it, so
-  // watching the figure meant the show — and its live status region — kept
-  // running for thousands of scrolled pixels after the stage (a box exactly
-  // as tall as the figure's own drawing wrapper, pinned to its top) had long
-  // since left the viewport. Self-observing a box this component also
-  // unmounts from is safe: `end()` is latch-guarded against firing twice, and
-  // the observer disconnects in this same effect's cleanup on unmount
-  // regardless of which exit fired.
+  // caption still narrating a section they scrolled away from. Non-reduced,
+  // this watches `skySliceRef` — the small, top-pinned box the sky layer and
+  // the floating annotation actually live in — rather than `containerRef`,
+  // the full-height click-to-advance target: `containerRef` now spans the
+  // *whole* drawing wrapper (2000px+ once every branch panel is stacked
+  // under it), so watching it meant a visitor who had scrolled well past the
+  // canopy but was still somewhere inside that column kept the show — and
+  // its live status region — running against a blanked, pending tree they
+  // could no longer see any part of. Reduced motion has no sky slice (the
+  // Storyboard branch renders neither it nor `SkyLayer`), so it falls back
+  // to `containerRef` there, unchanged from before: that box is only ever as
+  // tall as the storyboard's own stacked frames, never the whole figure.
+  // Self-observing a box this component also unmounts from is safe: `end()`
+  // is latch-guarded against firing twice, and the observer disconnects in
+  // this same effect's cleanup on unmount regardless of which exit fired.
   useEffect(() => {
-    const stage = containerRef.current;
-    if (!stage || typeof IntersectionObserver === "undefined") return;
+    const target = reduced ? containerRef.current : skySliceRef.current;
+    if (!target || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry && !entry.isIntersecting) end();
       },
       { threshold: 0 },
     );
-    observer.observe(stage);
+    observer.observe(target);
     return () => observer.disconnect();
-  }, [end]);
+  }, [end, reduced]);
 
   const beat = beats[index];
   const isLast = index >= beats.length - 1;
@@ -612,10 +647,18 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     // shoot waits for "still" specifically (see `releaseShoot`'s doc
     // comment); a season beat releases every other group at or before its
     // own year; flight and seed release nothing — there is nothing dated
-    // that early for them to honestly reveal.
+    // that early for them to honestly reveal. "still" also sweeps every
+    // non-shoot group through `Infinity` as a last-beat safety net — belt
+    // and braces alongside the season sweep above, so the natural end of a
+    // full run is never the one exit path that could leave something
+    // stranded pending for `releaseEverything()` to have to clean up instead.
     const groups = groupsRef.current;
-    if (beat.kind === "still") releaseShoot(groups);
-    else if (beat.season) releaseThroughYear(groups, beat.season.year);
+    if (beat.kind === "still") {
+      releaseThroughYear(groups, Infinity);
+      releaseShoot(groups);
+    } else if (beat.season) {
+      releaseThroughYear(groups, beat.season.year);
+    }
 
     document.dispatchEvent(
       new CustomEvent("origin-story-beat", {
@@ -664,8 +707,16 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
         <Storyboard seasons={seasons} />
       ) : (
         <>
-          <SkyLayer beat={beat} />
-          {!catsNarrating ? <FloatingAnnotation text={announced} /> : null}
+          {/* The sky slice: a small, top-pinned box (the same 300×200 area
+              the old silhouette stage used) that holds both the sky layer's
+              own drawing and the floating annotation, and doubles as the
+              scroll-away observer's target — see the file banner and the
+              IntersectionObserver effect above for why neither lives on the
+              full-height click target this `<div>`'s parent now is. */}
+          <div ref={skySliceRef} className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2]">
+            <SkyLayer beat={beat} />
+            {!catsNarrating ? <FloatingAnnotation text={announced} /> : null}
+          </div>
           <p role="status" className="sr-only">
             {announced}
           </p>
