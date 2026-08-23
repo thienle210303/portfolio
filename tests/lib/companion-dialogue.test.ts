@@ -10,6 +10,8 @@ import {
   nextDuetAt,
   sceneFor,
   startScene,
+  storyBeatScene,
+  type StoryBeatKind,
 } from "@/components/companion/companion-dialogue";
 import type { CompanionFacts } from "@/lib/companion-facts";
 
@@ -112,6 +114,67 @@ describe("scene bank", () => {
           expect(beat.sub, `${scene.id}: "${beat.sub}"`).not.toMatch(/\.\./);
         }
       }
+    }
+  });
+});
+
+describe("story scenes", () => {
+  const SEASON_KINDS: StoryBeatKind[] = ["rain", "sun", "storm", "quiet"];
+  const FIXED_KINDS: StoryBeatKind[] = ["flight", "seed", "still"];
+  const ALL_KINDS: StoryBeatKind[] = [...FIXED_KINDS, ...SEASON_KINDS];
+
+  it("plays one beat, on the given speaker, kind 'story'", () => {
+    for (const speaker of ["grey", "tabby"] as const) {
+      const scene = storyBeatScene("storm", 2022, FACTS, speaker);
+      expect(scene).not.toBeNull();
+      expect(scene!.kind).toBe("story");
+      expect(scene!.beats).toHaveLength(1);
+      expect(scene!.beats[0].speaker).toBe(speaker);
+    }
+  });
+
+  it("keeps every subtitle inside the budget and every meow non-empty and cat-shaped", () => {
+    for (const kind of ALL_KINDS) {
+      const year = SEASON_KINDS.includes(kind) ? 2022 : null;
+      const scene = storyBeatScene(kind, year, FACTS, "grey");
+      expect(scene, kind).not.toBeNull();
+      const beat = scene!.beats[0];
+      expect(beat.sub.length, `${kind}: "${beat.sub}"`).toBeLessThanOrEqual(SUB_MAX_CHARS);
+      expect(beat.meow.length).toBeGreaterThan(0);
+      expect(beat.meow).toMatch(/^[Mm][a-z!?.\- ]*$/i);
+    }
+  });
+
+  it("leads every season subtitle with its own year", () => {
+    for (const kind of SEASON_KINDS) {
+      const scene = storyBeatScene(kind, 2019, FACTS, "tabby");
+      expect(scene!.beats[0].sub.startsWith("2019")).toBe(true);
+    }
+  });
+
+  it("names no year at all for seed or still", () => {
+    for (const kind of ["seed", "still"] as const) {
+      const scene = storyBeatScene(kind, null, FACTS, "grey");
+      expect(scene!.beats[0].sub).not.toMatch(/\d/);
+    }
+  });
+
+  it("the flight names the authored arrival, not a computed beat year", () => {
+    const scene = storyBeatScene("flight", null, FACTS, "grey");
+    expect(scene!.beats[0].sub).toContain("December 2018");
+  });
+
+  it("returns null for a season kind with no year to narrate", () => {
+    for (const kind of SEASON_KINDS) {
+      expect(storyBeatScene(kind, null, FACTS, "grey")).toBeNull();
+    }
+  });
+
+  it("never names a city, only the flight's authored arrival", () => {
+    for (const kind of ALL_KINDS) {
+      const year = SEASON_KINDS.includes(kind) ? 2021 : null;
+      const scene = storyBeatScene(kind, year, FACTS, "grey");
+      expect(scene!.beats[0].sub).not.toMatch(/Rạch|Giá|Việt Nam/);
     }
   });
 });

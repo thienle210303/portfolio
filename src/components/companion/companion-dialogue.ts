@@ -24,7 +24,7 @@ export interface DialogueBeat {
   readonly sub: string;
 }
 
-export type SceneKind = "hello" | "ambient" | "encore" | "tour";
+export type SceneKind = "hello" | "ambient" | "encore" | "tour" | "story";
 
 export interface DialogueScene {
   readonly id: string;
@@ -164,6 +164,71 @@ const TOUR: Record<string, SceneBuilder> = {
   ],
 };
 
+/**
+ * The origin story's own bank: one beat per season/flight/seed/still stamp,
+ * narrated by whichever cat `Companion.tsx`'s watch listener hands in as
+ * `speaker` — it alternates that itself, beat to beat, so this stays as
+ * clockless as every other builder here. Unlike `AMBIENT`/`ENCORE`/`TOUR`,
+ * the template is keyed by *kind* rather than by speaker: this is one voice
+ * narrating an event as it happens, not two characters trading lines about a
+ * fact, so there is nothing for a second, per-speaker builder to add.
+ *
+ * Every season sub leads with its own year — the fact actually being
+ * narrated — composed from the beat's real year, never a season counted or
+ * typed twice. `flight`, `seed` and `still` name no year at all: none of
+ * them dates a single beat, so nothing here pretends to lead with one.
+ */
+export type StoryBeatKind = "flight" | "seed" | "rain" | "sun" | "storm" | "quiet" | "still";
+
+const STORY_BEAT: Record<
+  StoryBeatKind,
+  { readonly meow: string; readonly sub: (year: number | null) => string | null }
+> = {
+  flight: { meow: "Mrrrow...", sub: () => "A long flight, a small seed. December 2018." },
+  seed: { meow: "Mrp!", sub: () => "Right here. This exact spot." },
+  rain: {
+    meow: "Mrrp-meow.",
+    sub: (year) => (year === null ? null : `${year} — rain for the roots. Drink up.`),
+  },
+  storm: {
+    meow: "Mrrrow!!",
+    sub: (year) => (year === null ? null : `${year} — a storm! Hold the trunk!`),
+  },
+  sun: {
+    meow: "Mrrp.",
+    sub: (year) => (year === null ? null : `${year} — steady sun, steady work.`),
+  },
+  quiet: {
+    meow: "Mrp...",
+    sub: (year) => (year === null ? null : `${year} — quiet. Roots don't hurry.`),
+  },
+  still: { meow: "Meow!", sub: () => "…and still growing." },
+};
+
+/**
+ * One beat of "How it grew" — a single-beat scene, always. `year` is the
+ * season's own year for the four weather kinds and is ignored (and may
+ * safely be `null`) for `flight`/`seed`/`still`; a weather kind asked for
+ * with a `null` year returns null rather than narrating a year it does not
+ * have, the same "nothing to say" contract every other builder in this file
+ * follows. `facts` is unused by every template above — nothing here quotes a
+ * portfolio number, since a season's year is already a real, computed fact
+ * on its own — but stays in the signature for the same reason every other
+ * builder here takes it: a future beat that does want one should not have to
+ * change the call site.
+ */
+export function storyBeatScene(
+  kind: StoryBeatKind,
+  year: number | null,
+  facts: CompanionFacts,
+  speaker: Speaker,
+): DialogueScene | null {
+  const { meow, sub: subFor } = STORY_BEAT[kind];
+  const sub = subFor(year);
+  if (sub === null || sub.length > SUB_MAX_CHARS || meow.length === 0) return null;
+  return { id: `story-${kind}`, kind: "story", beats: [{ speaker, meow, sub }] };
+}
+
 /** A resolved scene, or null for "nothing to play" — over-budget subs and
  *  missing facts both land there, and the caller cannot tell the difference,
  *  which is deliberate. */
@@ -172,8 +237,17 @@ export function sceneFor(
   section: string | null,
   facts: CompanionFacts,
 ): DialogueScene | null {
+  // "story" has no section-keyed builder of its own — it is built directly
+  // by `storyBeatScene`, from a beat kind and a year rather than a nav
+  // section, so there is nothing here for it to look up.
   const builder =
-    kind === "hello" ? HELLO : section ? { ambient: AMBIENT, encore: ENCORE, tour: TOUR }[kind]?.[section] : undefined;
+    kind === "hello"
+      ? HELLO
+      : kind === "story"
+        ? undefined
+        : section
+          ? { ambient: AMBIENT, encore: ENCORE, tour: TOUR }[kind]?.[section]
+          : undefined;
   if (!builder) return null;
   const beats = builder(facts);
   if (!beats || beats.length === 0) return null;

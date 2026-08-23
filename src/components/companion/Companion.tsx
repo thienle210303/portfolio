@@ -39,10 +39,12 @@ import {
   nextDuetAt,
   sceneFor,
   startScene,
+  storyBeatScene,
   type DialogueBeat,
   type DialogueRun,
   type DialogueScene,
   type Speaker,
+  type StoryBeatKind,
 } from "./companion-dialogue";
 import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
 import { TOUR_STOPS, isLastStop, startTour, type TourRun } from "./companion-tour";
@@ -171,6 +173,11 @@ const NIGHT_SLEEP_TRIM = 3000;
  *  flourish, none of them know a cat is listening, and none of them get a
  *  say in how long it lasts. */
 const CHEER_MS = 1100;
+
+/** How long the rain beat's huddle holds before the ordinary tour-stop
+ *  spacing takes back over — roughly one season beat's own display time, so
+ *  the pair have drawn back apart before the next beat's narration starts. */
+const HUDDLE_MS = 1800;
 
 /** Dwell before a nav link's hover or focus counts as intent, matching the
  *  nap contract's own dwell (`NAP_DWELL`) — brushing past a link on the way
@@ -1087,6 +1094,19 @@ export function Companion({ facts }: CompanionProps) {
    *  once the visitor has been handed to the escort, the tour, a nap or the
    *  panel; see where `forced` is read in the loop. */
   const watchRef = useRef<{ spots: Spots | null } | null>(null);
+  /** Who narrates the next `origin-story-beat` — flipped after every beat so
+   *  the show reads as a duet rather than one cat narrating the whole thing,
+   *  and reset to "grey" at the top of every run (the "start" branch below)
+   *  so a show always opens on the same voice regardless of who spoke last
+   *  in whatever ambient scene came before it. */
+  const storySpeakerRef = useRef<Speaker>("grey");
+  /** How long the rain beat's huddle — the follow spot pulled in beside the
+   *  lead instead of behind him — holds before the ordinary tour-stop
+   *  spacing (`tourStopSpots`) takes back over. Set from the
+   *  `origin-story-beat` listener; read where `watch.spots` is refreshed
+   *  every frame below. Zero (the initial value) never satisfies `now <
+   *  rainHuddleUntil.current`, so this is inert until the first rain beat. */
+  const rainHuddleUntil = useRef(0);
 
   /* ------------------------------------------------------------- duet -- */
   /** The next moment a scene may start on its own, and the sections that have
@@ -1229,10 +1249,16 @@ export function Companion({ facts }: CompanionProps) {
     settleSpots.current = null;
     wanderRun.current = null;
     // A scene is *about* the section it started in. The tour is exempt — it
-    // is the thing doing the scrolling. The cadence clock (`duetAt`) is
-    // untouched: the visit-wide gap keeps running, this only clears what is
-    // currently showing.
-    if (duetRef.current && duetRef.current.scene.kind !== "tour") {
+    // is the thing doing the scrolling — and the story is exempt for the same
+    // reason: the visitor does not scroll during the show (the player itself
+    // ends the show on scroll-away, well before this effect would ever see a
+    // change), so in practice this never fires mid-story, but a real forced
+    // state still drops a story scene the moment it claims the pair — see the
+    // origin-story invitation's own drop, just below `tourStopSpots`, which
+    // clears it explicitly rather than relying on this effect. The cadence
+    // clock (`duetAt`) is untouched: the visit-wide gap keeps running, this
+    // only clears what is currently showing.
+    if (duetRef.current && duetRef.current.scene.kind !== "tour" && duetRef.current.scene.kind !== "story") {
       duetRef.current = null;
       setDuetBeat(null);
     }
@@ -1973,16 +1999,53 @@ export function Companion({ facts }: CompanionProps) {
        * The origin-story invitation — see `watchRef`'s declaration. Dropped
        * for good the first frame any of the four states above claims the
        * pair, exactly the asymmetric drop a running duet gets from `forced`
-       * further down: none of those hand it back when they end. Otherwise
-       * refreshed like a tour stop while it stands, since `tourStopSpots`
-       * this cheap is worth calling every frame rather than trying to know
-       * ahead of time when the section's anchor has finished settling.
+       * further down: none of those hand it back when they end. A running
+       * story scene is dropped in the same breath — the section-change and
+       * forced/dozing clears below are told to leave a `"story"` scene alone
+       * (the same exemption `"tour"` already has), which is correct only
+       * while the watch itself stands; the moment a real forced state (the
+       * escort, the tour, a nap or the panel) takes the watch away, nothing
+       * else would ever clear the orphaned bubble, so this does it directly
+       * rather than leaning on a rule written for a different scene kind.
+       * Otherwise refreshed like a tour stop while it stands, since
+       * `tourStopSpots` this cheap is worth calling every frame rather than
+       * trying to know ahead of time when the section's anchor has finished
+       * settling.
        */
-      if (watchRef.current && (run || tour || nap || openRef.current)) watchRef.current = null;
+      if (watchRef.current && (run || tour || nap || openRef.current)) {
+        watchRef.current = null;
+        if (duetRef.current?.scene.kind === "story") {
+          duetRef.current = null;
+          setDuetBeat(null);
+        }
+      }
       const watch = watchRef.current;
       if (watch) {
         const spots = tourStopSpots("tree");
-        if (spots) watch.spots = spots;
+        if (spots) {
+          if (rushRef.current && now < rushRef.current.until) {
+            // The storm beat's startle: a short dash off the sit spot and
+            // back, using the same `{ dir, until }` shape (and duration) a
+            // sustained fast scroll already gives `rushRef` elsewhere in this
+            // loop — no new reaction, just that jolt borrowed for one beat
+            // instead of a page-length dash. `rushing` itself never reads
+            // true here (it requires `!forced`, and `forced` is `"watch"`
+            // for as long as this branch runs), so this is the one place the
+            // ref's *shape* is reused without its usual branch.
+            const startled = clampToViewport({ x: spots.lead.x + rushRef.current.dir * 20, y: spots.lead.y });
+            watch.spots = { lead: startled, follow: followHome(startled) };
+          } else if (now < rainHuddleUntil.current) {
+            // The rain beat's huddle: she comes in beside him instead of
+            // behind — the same clamp every spot here goes through, just a
+            // shorter gap than the ordinary `FOLLOW_GAP`.
+            watch.spots = {
+              lead: spots.lead,
+              follow: clampToViewport({ x: spots.lead.x - CAT_W - 6, y: spots.lead.y }),
+            };
+          } else {
+            watch.spots = spots;
+          }
+        }
       }
 
       const forced = run
@@ -2213,12 +2276,23 @@ export function Companion({ facts }: CompanionProps) {
       // Anything with a stronger claim on the pair — the escort, a nap spot,
       // the tour, the toolkit, or idle sleep claiming them — ends a running
       // scene on the frame it appears, the same rule `endPlay` follows for a
-      // scene with a prop. Tour scenes are the one exception, exactly as at
-      // the section-change effect: the tour is the thing doing the walking,
-      // so `forced === "tour"` is not a reason to drop its own narration.
-      // Checked before the advance below so a scene cleared this frame can't
-      // also advance on it.
-      if (duetRef.current && duetRef.current.scene.kind !== "tour" && (forced || dozing)) {
+      // scene with a prop. Tour scenes are one exception, exactly as at the
+      // section-change effect: the tour is the thing doing the walking, so
+      // `forced === "tour"` is not a reason to drop its own narration. Story
+      // scenes are the other, and only because `forced` is expected to *be*
+      // `"watch"` for as long as one is running — the watch's own drop, just
+      // above, already clears a story scene the instant a real forced state
+      // (escort/tour/nap/corner) takes `watchRef` away, so by the time
+      // `forced` could read anything but `"watch"` or `null` here,
+      // `duetRef.current` is already null and this check never has to tell
+      // the difference itself. Checked before the advance below so a scene
+      // cleared this frame can't also advance on it.
+      if (
+        duetRef.current &&
+        duetRef.current.scene.kind !== "tour" &&
+        duetRef.current.scene.kind !== "story" &&
+        (forced || dozing)
+      ) {
         duetRef.current = null;
         setDuetBeat(null);
       }
@@ -2940,13 +3014,20 @@ export function Companion({ facts }: CompanionProps) {
    * `"start"` only sets `watchRef` — see its declaration — when nothing
    * already has a stronger claim on the pair; a visitor mid-tour, mid-nap or
    * with the panel open keeps whatever they already have, the same refusal
-   * every other invitation in this file gives a claimed pair. `"end"` clears
-   * it unconditionally (it may already be null, if the invitation was
-   * declined or a stronger claim dropped it while the show played), and — the
-   * one bit of narration this gets — queues the tree's own encore if the pair
-   * are otherwise doing nothing and the visitor is still looking at it. No new
-   * scene: `sceneFor("encore", "tree", facts)` already exists and is exactly
-   * about the tree lighting up.
+   * every other invitation in this file gives a claimed pair. Accepting also
+   * answers the player with `"origin-story-ack"`, which is what tells it to
+   * hide its own bare-annotation fallback — the player is listening for this
+   * before it ever dispatches `"start"` (see its own mount effect's comment),
+   * so there is no race to lose here. `"end"` clears `watchRef`
+   * unconditionally (it may already be null, if the invitation was declined
+   * or a stronger claim dropped it while the show played) and drops a
+   * running story bubble with it — a beat still reading out a show that has
+   * already ended is exactly the "narrating something that is no longer
+   * true" a scene's stronger claims elsewhere in this file are written to
+   * avoid — then, the one further bit of narration this gets, queues the
+   * tree's own encore if the pair are otherwise doing nothing and the
+   * visitor is still looking at it. No new scene: `sceneFor("encore", "tree",
+   * facts)` already exists and is exactly about the tree lighting up.
    */
   useEffect(() => {
     if (!roams || !roaming) return;
@@ -2956,10 +3037,20 @@ export function Companion({ facts }: CompanionProps) {
       if (detail === "start") {
         if (escortRef.current || tourRef.current || napRef.current || openRef.current) return;
         watchRef.current = { spots: null };
+        // Every run opens on the same voice, and with no choreography window
+        // left armed from a previous run.
+        storySpeakerRef.current = "grey";
+        rushRef.current = null;
+        rainHuddleUntil.current = 0;
         lastSignRef.current = performance.now();
+        document.dispatchEvent(new CustomEvent("origin-story-ack"));
         wake();
       } else if (detail === "end") {
         watchRef.current = null;
+        if (duetRef.current?.scene.kind === "story") {
+          duetRef.current = null;
+          setDuetBeat(null);
+        }
         const quiet =
           !escortRef.current &&
           !tourRef.current &&
@@ -2976,9 +3067,60 @@ export function Companion({ facts }: CompanionProps) {
       }
     };
 
+    /**
+     * One beat of the show, narrated. Guarded on `watchRef.current` rather
+     * than on `forced` (unavailable here — this fires from a DOM event, not
+     * from inside the loop): the watch is the pair's only claim to be
+     * standing there at all, so a beat that arrives after it has been
+     * dropped — the visitor scrolled away, or a stronger claim took the pair
+     * mid-show — narrates nothing rather than starting a scene nobody is
+     * sitting still to deliver.
+     *
+     * The speaker alternates every beat, including a duplicate first beat —
+     * React Strict Mode's dev-only double-invocation of `OriginStory`'s own
+     * mount effect can dispatch the flight beat twice in immediate
+     * succession. Flipping twice back-to-back is harmless (the second call's
+     * `playDuetScene` simply supersedes the first's before either paints),
+     * and every choreography window below is armed by writing a fresh
+     * `{ until }`, not by toggling a flag — so replaying a beat re-arms the
+     * same window rather than corrupting it.
+     */
+    const onOriginStoryBeat = (event: Event) => {
+      if (!watchRef.current) return;
+      const detail = (event as CustomEvent<{ kind: StoryBeatKind; year?: number; sub: string }>).detail;
+      const speaker = storySpeakerRef.current;
+      storySpeakerRef.current = speaker === "grey" ? "tabby" : "grey";
+      const now = performance.now();
+      const scene = storyBeatScene(detail.kind, detail.year ?? null, facts, speaker);
+      if (scene) playDuetScene(scene, now);
+
+      // Choreography, existing mechanics only. This only arms a window (a
+      // `{ dir?, until }`, the same shape `rushRef`/`cheerRef` already use
+      // elsewhere in this file); the watch's own per-frame spot refresh,
+      // above in the loop, is what actually moves anyone while the window is
+      // open, and both windows self-expire the same way those refs already
+      // do.
+      if (detail.kind === "storm") {
+        rushRef.current = { dir: lead.current.facing === 1 ? -1 : 1, until: now + RUSH_HOLD_MS + 500 };
+      } else if (detail.kind === "rain") {
+        rainHuddleUntil.current = now + HUDDLE_MS;
+      } else if (detail.kind === "sun") {
+        // The same brief flourish D3 gives a copy confirmation or a theme
+        // toggle — see `cheerNow` a few effects up, mirrored here rather than
+        // called directly since that closure belongs to a different effect.
+        cheerRef.current = { until: now + CHEER_MS };
+        setCheer(true);
+        window.setTimeout(() => setCheer(false), CHEER_MS);
+      }
+      lastSignRef.current = now;
+      wake();
+    };
+
     document.addEventListener("origin-story", onOriginStory);
+    document.addEventListener("origin-story-beat", onOriginStoryBeat);
     return () => {
       document.removeEventListener("origin-story", onOriginStory);
+      document.removeEventListener("origin-story-beat", onOriginStoryBeat);
       watchRef.current = null;
     };
   }, [roams, roaming, facts, playDuetScene, wake]);
