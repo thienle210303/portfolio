@@ -1220,6 +1220,19 @@
       }
     }
     .origin-bird {
+      /* Without these two, `rotate()` above turns around the SVG's default
+         transform-origin for a child element — the *viewport's* centre
+         (150,100 in `VIEW_BOX` units), not the bird's own shape — because the
+         initial value of `transform-box` for an SVG geometry element is
+         `view-box`. Compounded with each keyframe's `translate()`, that swung
+         the bird through points nowhere near `FLIGHT_PATH_D`: ≈(5,139) at 0%
+         instead of (20,112), ≈(309,67) at 100% instead of (280,100) — past
+         the right edge of the viewBox entirely. `fill-box` + `50% 50%` moves
+         the rotation origin to the bird's own bounding-box centre, so each
+         keyframe's `translate()` lands where it says and `rotate()` only
+         turns the bird in place around that point. */
+      transform-box: fill-box;
+      transform-origin: 50% 50%;
       animation: origin-flight var(--origin-dur, 3000ms) linear forwards;
     }
 

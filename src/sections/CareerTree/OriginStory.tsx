@@ -339,7 +339,16 @@ function Storyboard({ seasons }: { readonly seasons: readonly Season[] }) {
   const lastYear = seasons[seasons.length - 1]?.year;
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto bg-ground p-4">
+    // No `h-full`/`overflow-y-auto`: the stage that hosts this (see the
+    // `reduced` branch of `data-origin-stage`'s className below) carries no
+    // aspect-ratio clamp of its own in this mode, so this div sizes to its
+    // real content — all frames, stacked, fully visible — the same way any
+    // ordinary block of static content on the page does. A scroller with no
+    // focusable element inside it is unreachable by keyboard (WCAG 2.1.1),
+    // and "fully readable" storyboard is the one thing the spec asks for
+    // under reduced motion; clipping it into a small box and hoping someone
+    // finds the scrollbar satisfied neither.
+    <div className="flex flex-col gap-4 bg-ground p-4">
       <StoryboardFrame caption={flightCaption()}>
         <path d={FLIGHT_PATH_D} />
         <g transform="translate(280 100)">
@@ -386,7 +395,17 @@ const SKIP_BUTTON_CLASS =
   "absolute right-3 top-3 z-10 min-h-11 border border-rule bg-surface px-3 text-[length:var(--step--1)] text-fg hover:text-accent";
 
 export interface OriginStoryProps {
-  readonly onClose: () => void;
+  /**
+   * `restoreFocus` is true only when focus was still somewhere inside the
+   * stage the instant it ended — true for Escape and Skip (focus starts on
+   * Skip and nothing here ever moves it elsewhere), false when the show
+   * ended because the visitor scrolled away with focus never touched. The
+   * caller (`WatchOrigin.tsx`) uses it to decide whether pulling focus back
+   * to the "Watch how it grew" button is a courtesy or a hijack — see the
+   * note there on why `focus()` alone was already the wrong call in that
+   * second case even before this flag existed.
+   */
+  readonly onClose: (restoreFocus: boolean) => void;
 }
 
 export default function OriginStory({ onClose }: OriginStoryProps) {
@@ -407,7 +426,13 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     if (ended.current) return;
     ended.current = true;
     document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
-    onClose();
+    // Read *before* `onClose` unmounts this subtree — `document.activeElement`
+    // is still whatever it was the instant the show ended, whether that was
+    // Escape/Skip (focus on the Skip button, inside `containerRef`) or a
+    // scroll-away no keyboard interaction ever touched (focus still wherever
+    // it started, outside the stage).
+    const restoreFocus = containerRef.current?.contains(document.activeElement) ?? false;
+    onClose(restoreFocus);
   }, [onClose]);
 
   useEffect(() => {
@@ -443,18 +468,26 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [end]);
 
-  // Scrolling the figure out of view ends the show exactly like Skip does —
-  // nobody wants a caption still narrating a section they scrolled away from.
+  // Scrolling away ends the show exactly like Skip does — nobody wants a
+  // caption still narrating a section they scrolled away from. Observes the
+  // *stage itself* (`containerRef`), not `closest("[data-tree-figure]")`: the
+  // figure runs 2000px+ tall once every branch panel is stacked under it, so
+  // watching the figure meant the show — and its live status region — kept
+  // running for thousands of scrolled pixels after the stage (a much smaller
+  // box pinned to the figure's own top) had long since left the viewport.
+  // Self-observing a box this component also unmounts from is safe: `end()`
+  // is latch-guarded against firing twice, and the observer disconnects in
+  // this same effect's cleanup on unmount regardless of which exit fired.
   useEffect(() => {
-    const figure = containerRef.current?.closest<HTMLElement>("[data-tree-figure]");
-    if (!figure || typeof IntersectionObserver === "undefined") return;
+    const stage = containerRef.current;
+    if (!stage || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry && !entry.isIntersecting) end();
       },
       { threshold: 0 },
     );
-    observer.observe(figure);
+    observer.observe(stage);
     return () => observer.disconnect();
   }, [end]);
 
@@ -508,19 +541,24 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
       data-origin-stage
       onClick={reduced ? undefined : advance}
       // `aspect-[3/2]` (the same 300:200 ratio the SVG viewBoxes use), not
-      // `inset-0`: the drawing wrapper this mounts inside is the *whole*
-      // canopy-to-trunk-foot column, which runs well past 2000px tall once
-      // every branch panel is stacked under it. A story sized to that full
-      // height would centre a 3:2 picture inside a mostly-empty column,
-      // invisible without scrolling. Pinned to the top and sized off the
-      // wrapper's own width instead, the stage lands exactly over the trunk
-      // and its tip — where a bird, a seed and a growing silhouette actually
-      // read as being — and everything below (the branch panels, the root
-      // system) is simply never touched, reappearing exactly as it was the
-      // moment the show ends.
+      // `inset-0`, for the *animated* stage only: the drawing wrapper this
+      // mounts inside is the *whole* canopy-to-trunk-foot column, which runs
+      // well past 2000px tall once every branch panel is stacked under it. A
+      // story sized to that full height would centre a 3:2 picture inside a
+      // mostly-empty column, invisible without scrolling. Pinned to the top
+      // and sized off the wrapper's own width instead, the stage lands
+      // exactly over the trunk and its tip — where a bird, a seed and a
+      // growing silhouette actually belong — and everything below (the
+      // branch panels, the root system) is simply never touched, reappearing
+      // exactly as it was the moment the show ends.
+      //
+      // Reduced motion drops both the aspect clamp and `overflow-hidden`:
+      // the storyboard is meant to be read start to finish, not scrolled
+      // inside a letterbox, and the figure has more than enough height
+      // below this pinned-to-the-top box for its natural, un-clamped size.
       className={cn(
-        "absolute inset-x-0 top-0 z-20 aspect-[3/2] overflow-hidden",
-        !reduced && "cursor-pointer",
+        "absolute inset-x-0 top-0 z-20",
+        !reduced && "aspect-[3/2] overflow-hidden cursor-pointer",
       )}
     >
       {reduced ? <Storyboard seasons={seasons} /> : <AnimatedStage beat={beat} />}
