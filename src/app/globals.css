@@ -1542,13 +1542,23 @@
       animation: origin-weather-sun-breathe 4s ease-in-out infinite alternate;
     }
 
-    /* Storm: rain (above) plus a one-time shudder on the *whole layer*, the
-       instant the beat starts — `WeatherLayer`'s own `key={season.year}`
-       remount is what makes "the instant the beat starts" true here: a
-       fresh element plays a non-`infinite` animation from its own start
-       every time, rather than only once for the whole run. `StormBolts`'
-       own bent strokes need no animation of their own; the shudder they ride
-       along with is loud enough. */
+    /* Storm: a passage through the beat, not the whole beat's own weather —
+       see `Season.storm` (origin-story.ts) and `StormOverlay`
+       (OriginStory.tsx) for why a milestone year no longer replaces its base
+       rain/sun/quiet. `.origin-weather-storm-overlay` is mounted for the
+       entire beat but starts at `opacity: 0`; both animations below share a
+       600ms delay, so the overlay stays invisible until roughly a third of
+       the way into a 2000ms season beat, then the shudder (one-time, 500ms)
+       and the fade (`origin-weather-storm-fade`, 1100ms — up quickly, a
+       brief hold, back down) run together, finishing at 1700ms: comfortably
+       inside the beat, so the storm reads as *passing through* rather than
+       painting the sky for the whole two seconds. `WeatherLayer`'s own
+       `key={season.year}` remount is what makes "every storm beat replays
+       this from the top" true here: a fresh element plays these two
+       non-`infinite` animations from their own start every time, rather than
+       only once for the whole run. `StormBolts`' own bent strokes need no
+       animation of their own; the shudder and fade they ride along with are
+       loud enough. */
     @keyframes origin-weather-shudder-kf {
       0% {
         transform: translateX(0);
@@ -1569,8 +1579,25 @@
         transform: translateX(0);
       }
     }
-    .origin-weather-shudder {
-      animation: origin-weather-shudder-kf 500ms ease-out 1;
+    @keyframes origin-weather-storm-fade {
+      0% {
+        opacity: 0;
+      }
+      15% {
+        opacity: 1;
+      }
+      70% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+    .origin-weather-storm-overlay {
+      opacity: 0;
+      animation:
+        origin-weather-storm-fade 1100ms ease-in-out 600ms forwards,
+        origin-weather-shudder-kf 500ms ease-out 600ms 1;
     }
 
     /* Quiet: wind, not an empty sky — two long strokes drifting the full

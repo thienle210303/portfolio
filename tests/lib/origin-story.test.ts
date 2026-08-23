@@ -56,10 +56,41 @@ describe("seasonsFor", () => {
     }
   });
 
-  it("finds a real storm year: 2024 has milestones on record", () => {
-    const year2024 = seasons.find((season) => season.year === 2024);
-    expect(year2024?.forces.milestones).toBeGreaterThan(0);
-    expect(year2024?.kind).toBe("storm");
+  it("carries the storm overlay independently of the base kind", () => {
+    // Recomputed straight from real content (src/content/portfolio.ts),
+    // the same discipline every other assertion in this describe block
+    // follows: 2021 has one learning entry and one milestone, so its base
+    // weather is rain with a storm riding in; 2023/2024/2025 each have work
+    // entries and at least one milestone, so their base weather is sun,
+    // also with a storm; 2018/2019/2020/2022 have nothing on record at all,
+    // so they are quiet with no storm.
+    const expected: Record<number, { kind: string; storm: boolean }> = {
+      2018: { kind: "quiet", storm: false },
+      2019: { kind: "quiet", storm: false },
+      2020: { kind: "quiet", storm: false },
+      2021: { kind: "rain", storm: true },
+      2022: { kind: "quiet", storm: false },
+      2023: { kind: "sun", storm: true },
+      2024: { kind: "sun", storm: true },
+      2025: { kind: "sun", storm: true },
+    };
+    for (const [year, want] of Object.entries(expected)) {
+      const season = seasons.find((s) => s.year === Number(year));
+      expect(season?.kind, `${year} kind`).toBe(want.kind);
+      expect(season?.storm, `${year} storm`).toBe(want.storm);
+    }
+  });
+
+  it("storm is exactly forces.milestones > 0, for every season", () => {
+    for (const season of seasons) {
+      expect(season.storm, `${season.year}`).toBe(season.forces.milestones > 0);
+    }
+  });
+
+  it("kind is never \"storm\" — that value is reserved for the beat contract, not produced here", () => {
+    for (const season of seasons) {
+      expect(season.kind).not.toBe("storm");
+    }
   });
 
   it("keeps every caption inside budget, year-led, and free of place names", () => {
@@ -81,20 +112,28 @@ describe("seasonsFor", () => {
 describe("kindFor", () => {
   const zero: SeasonForces = { learning: 0, work: 0, milestones: 0 };
 
-  it("puts milestones ahead of everything else", () => {
-    expect(kindFor({ ...zero, milestones: 1, learning: 5, work: 5 })).toBe("storm");
+  it("is base weather only — milestones never affect it", () => {
+    expect(kindFor({ ...zero, milestones: 1, learning: 5, work: 5 })).toBe("rain");
+    expect(kindFor({ ...zero, milestones: 1, work: 5 })).toBe("sun");
+    expect(kindFor({ ...zero, milestones: 1 })).toBe("quiet");
   });
 
-  it("puts learning ahead of work when there is no milestone", () => {
-    expect(kindFor({ ...zero, learning: 1, work: 5 })).toBe("rain");
+  it("puts learning ahead of work only when learning is at least as much", () => {
+    expect(kindFor({ ...zero, learning: 5, work: 1 })).toBe("rain");
+    expect(kindFor({ ...zero, learning: 2, work: 2 })).toBe("rain");
   });
 
-  it("falls back to work when there is neither a milestone nor learning", () => {
+  it("falls back to work when work outweighs learning, or there is no learning at all", () => {
+    expect(kindFor({ ...zero, learning: 1, work: 5 })).toBe("sun");
     expect(kindFor({ ...zero, work: 1 })).toBe("sun");
   });
 
   it("is quiet when nothing happened that year", () => {
     expect(kindFor(zero)).toBe("quiet");
+  });
+
+  it("never returns \"storm\" — that is Season.storm's job, not kindFor's", () => {
+    expect(kindFor({ learning: 3, work: 3, milestones: 3 })).not.toBe("storm");
   });
 });
 

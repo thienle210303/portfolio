@@ -450,8 +450,12 @@ const SEED_TRAIL_D = "M150 32C149 56 150 82 150 108";
 const MOUND_D = "M136 150C142 144 158 144 164 150";
 
 /** sun: six rays and a small disc. rain: five falling hatch strokes. storm:
- *  seven denser strokes plus one bent stroke. quiet has no glyph at all — a
- *  bare sky is the honest picture of a year with nothing on record. */
+ *  seven denser strokes plus one bent stroke — used only by the reduced-
+ *  motion `Storyboard`'s small per-group glyph below, since a running show
+ *  draws the storm as its own `StormOverlay`, layered atop whichever of
+ *  these the year's base weather already is, not a fourth glyph of its own.
+ *  quiet has no glyph at all — a bare sky is the honest picture of a year
+ *  with nothing on record. */
 const SUN_D =
   "M0 -11L0 -6M9.5 -5.5L6 -3M9.5 5.5L6 3M0 11L0 6M-9.5 5.5L-6 3M-9.5 -5.5L-6 -3" +
   "M-5 0A5 5 0 1 0 5 0A5 5 0 1 0 -5 0";
@@ -548,9 +552,9 @@ function SkyLayer({ beat }: { readonly beat: Beat }) {
 /* old glyph happened to share a box with.                                    */
 /* -------------------------------------------------------------------------- */
 
-/** How many rain strokes an ordinary rain year draws — a storm year draws     */
+/** How many rain strokes an ordinary rain year draws — the storm overlay     */
 const RAIN_STROKE_COUNT = 12;
-/** more than this, for "denser" without a second, separate layout. */
+/** draws more than this, for "denser" without a second, separate layout. */
 const STORM_EXTRA_STROKES = 6;
 const WIND_STROKE_COUNT = 2;
 
@@ -623,6 +627,28 @@ function StormBolts() {
   );
 }
 
+/**
+ * The storm event: a passage *through* a beat's weather, not a fourth kind
+ * replacing it — see `Season.storm`'s own doc comment in `origin-story.ts`
+ * for why a milestone year no longer overrides its base rain/sun/quiet at
+ * all. `.origin-weather-storm-overlay` (globals.css) is what actually times
+ * this: the overlay renders for the entire beat but sits at `opacity: 0`
+ * until its animation's own delay elapses, so it visually appears roughly
+ * 600ms into the beat, holds briefly, then fades back to nothing well before
+ * `SEASON_MS` (2000ms) runs out — a storm passing through mid-beat, not a
+ * sky the whole beat wears. The one-time shudder rides the same delay, so
+ * the shake and the storm's own ink appear together. Composed from the same
+ * dense rain and bent-bolt strokes the old, storm-as-a-kind branch drew —
+ * nothing new to look at, only a new place in time for it to happen. */
+function StormOverlay() {
+  return (
+    <div aria-hidden="true" className="origin-weather-storm-overlay pointer-events-none absolute inset-0 text-fg">
+      <RainStrokes dense />
+      <StormBolts />
+    </div>
+  );
+}
+
 /** A quiet year is weather too — wind, not an empty sky: two long, gently
  *  curved strokes drifting the full width of the viewport on their own loop,
  *  the second offset so they never travel in lockstep. Calm and sparse, the
@@ -651,17 +677,25 @@ function WindStrokes() {
 }
 
 /**
- * The season's weather, stage-wide: `position: fixed` so the same rain, sun,
- * storm or wind reads over the canopy *and* over the underground the camera
- * pans to for a root year — see the file banner just above. `pointer-events-
+ * The season's weather, stage-wide: `position: fixed` so the same rain, sun
+ * or wind reads over the canopy *and* over the underground the camera pans
+ * to for a root year — see the file banner just above. `pointer-events-
  * none`/`aria-hidden` throughout: this is atmosphere, never a click target
  * and never a second narration (the accessible `role="status"` region and
  * the floating annotation already carry the beat's own words).
  *
+ * Base weather, for the *whole* beat, is drawn straight off `season.kind` —
+ * which is never `"storm"` any more, see `origin-story.ts`. A storm is
+ * `season.storm`, layered on top via `StormOverlay` rather than swapped in
+ * for the base atmosphere: real content puts a milestone in every active
+ * year, so a year is honestly both its own weather *and* a storm passing
+ * through it, never one or the other.
+ *
  * `key={season.year}` remounts a fresh element on every season change, the
  * same one-shot-entry idiom the old `WeatherGlyph` used for its own settle-in
- * — here it is also what restarts `.origin-weather-shudder` on every storm
- * rather than only ever playing it once for the whole run.
+ * — here it is also what restarts `StormOverlay`'s own delayed fade-in/shudder
+ * on every storm year rather than only ever playing it once for the whole
+ * run.
  *
  * The year numeral moves here too, top-left — the one fact this whole layer
  * still owes a reader — rather than staying behind in the sky slice's own
@@ -676,20 +710,13 @@ function WeatherLayer({ season }: { readonly season: Season }) {
       key={season.year}
       aria-hidden="true"
       data-origin-weather={season.kind}
-      className={cn(
-        "pointer-events-none fixed inset-0 z-30 overflow-hidden text-fg-subtle",
-        season.kind === "storm" && "origin-weather-shudder",
-      )}
+      data-origin-storm={season.storm ? "" : undefined}
+      className="pointer-events-none fixed inset-0 z-30 overflow-hidden text-fg-subtle"
     >
       {season.kind === "rain" ? <RainStrokes dense={false} /> : null}
-      {season.kind === "storm" ? (
-        <>
-          <RainStrokes dense />
-          <StormBolts />
-        </>
-      ) : null}
       {season.kind === "sun" ? <SunGlyph /> : null}
       {season.kind === "quiet" ? <WindStrokes /> : null}
+      {season.storm ? <StormOverlay /> : null}
       <span className="eyebrow absolute left-3 top-[calc(var(--header-h)+0.75rem)] text-fg-subtle">
         {season.year}
       </span>
@@ -764,22 +791,37 @@ const KIND_LABEL: Record<SeasonKind, string> = {
 interface KindGroup {
   readonly kind: SeasonKind;
   readonly years: readonly number[];
+  /** The subset of `years` that also carried a storm — surfaced in the
+   *  frame's own caption text below, since the static storyboard draws only
+   *  one small glyph per group and has no running overlay to show a storm
+   *  passing through the way the animated show does. */
+  readonly stormYears: readonly number[];
 }
 
-/** One frame per distinct `SeasonKind` actually present, in the order each
- *  first appears — not one frame per year, and not a fixed four regardless
- *  of what the real seasons contain. */
+/** One frame per distinct base `SeasonKind` actually present, in the order
+ *  each first appears — not one frame per year, and not a fixed three
+ *  regardless of what the real seasons contain. `kind` is always base
+ *  weather now (never `"storm"` — see `origin-story.ts`), so this groups
+ *  exactly the way it always has; the storm years within a group are
+ *  tracked separately rather than fracturing the grouping by a fourth kind. */
 function groupByKind(seasons: readonly Season[]): readonly KindGroup[] {
   const order: SeasonKind[] = [];
   const byKind = new Map<SeasonKind, number[]>();
+  const stormByKind = new Map<SeasonKind, number[]>();
   for (const season of seasons) {
     if (!byKind.has(season.kind)) {
       byKind.set(season.kind, []);
+      stormByKind.set(season.kind, []);
       order.push(season.kind);
     }
     byKind.get(season.kind)?.push(season.year);
+    if (season.storm) stormByKind.get(season.kind)?.push(season.year);
   }
-  return order.map((kind) => ({ kind, years: byKind.get(kind) ?? [] }));
+  return order.map((kind) => ({
+    kind,
+    years: byKind.get(kind) ?? [],
+    stormYears: stormByKind.get(kind) ?? [],
+  }));
 }
 
 function StoryboardFrame({ caption, children }: { readonly caption: string; readonly children: ReactNode }) {
@@ -828,10 +870,11 @@ function Storyboard({ seasons }: { readonly seasons: readonly Season[] }) {
         <path d={SILHOUETTE_D} pathLength={1} style={{ strokeDasharray: 1, strokeDashoffset: 1 }} />
       </StoryboardFrame>
 
-      {groups.map(({ kind, years }) => {
+      {groups.map(({ kind, years, stormYears }) => {
         const d = weatherGlyph(kind);
+        const stormNote = stormYears.length > 0 ? ` (storm: ${stormYears.join(", ")})` : "";
         return (
-          <StoryboardFrame key={kind} caption={`${KIND_LABEL[kind]} — ${years.join(", ")}`}>
+          <StoryboardFrame key={kind} caption={`${KIND_LABEL[kind]} — ${years.join(", ")}${stormNote}`}>
             <path
               d={SILHOUETTE_D}
               pathLength={1}
@@ -1310,11 +1353,15 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
         // annotation) is about to render. It is not read by Companion.tsx's
         // listener: the cats narrate from their own authored copy
         // (`storyBeatScene` in companion-dialogue.ts, keyed on `kind`/
-        // `year` alone), by design — a meow with a typed translation
+        // `year`/`storm`), by design — a meow with a typed translation
         // beneath it, not this file's prose read back verbatim. `sub`
         // travels in the payload anyway so the two narrations can be
-        // compared or cross-checked without a second event.
-        detail: { kind: beat.kind, year: beat.season?.year, sub: beat.caption },
+        // compared or cross-checked without a second event. `kind` is
+        // always the beat's *base* weather (never `"storm"` — see
+        // `origin-story.ts`); `storm` rides alongside it separately, so the
+        // companion's own choreography can react to a milestone year on top
+        // of whichever base weather it already reacts to, not instead of it.
+        detail: { kind: beat.kind, year: beat.season?.year, storm: beat.season?.storm ?? false, sub: beat.caption },
       }),
     );
 

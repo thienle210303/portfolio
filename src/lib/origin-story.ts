@@ -6,19 +6,33 @@ import type { CareerEntry, CareerEntryType } from "@/types/portfolio";
  * The origin story: one flight authored (`origin`, above), every season
  * computed from the same career entries the timeline already renders.
  *
- * A "season" is a year of the career, told as weather: a year with a
- * milestone is a storm, a year with schooling is rain, a plain working year
- * is sun, and a year with nothing on record is quiet underground growth. The
- * mapping is a deliberate metaphor, not a measurement — but the *counts*
- * behind it are real, read straight off `careerEntries.sortKey`, never typed
- * in twice. Changing what a season says means changing the content layer,
- * the same discipline `companion-facts.ts` and `knowledge-tree.ts` already
- * hold to.
+ * A "season" is a year of the career, told as weather: a year with schooling
+ * is rain, a plain working year is sun, and a year with nothing on record is
+ * quiet underground growth — and, independently, a year with a hard-won
+ * milestone also has a storm ride through it, on top of whichever of those
+ * three it already was. The mapping is a deliberate metaphor, not a
+ * measurement — but the *counts* behind it are real, read straight off
+ * `careerEntries.sortKey`, never typed in twice. Changing what a season says
+ * means changing the content layer, the same discipline `companion-facts.ts`
+ * and `knowledge-tree.ts` already hold to.
  *
  * Pure and server-safe: no `Date`, no `Math.random`, nothing but arithmetic
  * over `src/content/portfolio.ts`. Years come from `sortKey` so the story
  * never drifts from "today" between builds — see `careerYearSpan`'s note on
  * exactly this.
+ *
+ * Base weather + storm overlay (design-content fix, after the original
+ * all-or-nothing precedence): every active year in the real content also
+ * carries a milestone (2021, 2023, 2024, 2025), so a precedence rule that
+ * gave `storm` first claim whenever `milestones > 0` meant the show only
+ * ever rendered storms, quiet and wind — sun and rain, the two the owner
+ * explicitly asked to see, never appeared at all. `kindFor` below now
+ * answers a different question — "what was this year's *base* weather,
+ * milestone or not" — and `Season.storm` carries the milestone fact
+ * separately, so a year can honestly be both (rain, with a storm that rode
+ * in) rather than forced to pick one. See `OriginStory.tsx`'s `WeatherLayer`
+ * for how the two compose on screen: the base kind's atmosphere for the
+ * whole beat, the storm layered on top for a passage in the middle of it.
  */
 
 /*
@@ -36,12 +50,26 @@ export interface SeasonForces {
   readonly milestones: number;
 }
 
+/**
+ * `"storm"` stays in this union for compatibility with the beat contract
+ * `OriginStory.tsx`'s `BeatKind` and `companion-dialogue.ts`'s
+ * `StoryBeatKind` both build on (`"flight" | "seed" | SeasonKind | "still"`)
+ * — but `kindFor` below never returns it any more. A storm is no longer a
+ * weather *kind* a season has instead of rain or sun; it is `Season.storm`,
+ * an overlay any base kind can carry. See the file banner.
+ */
 export type SeasonKind = "rain" | "sun" | "storm" | "quiet";
 
 export interface Season {
   readonly year: number;
   readonly forces: SeasonForces;
+  /** The year's base weather — rain, sun or quiet, never `"storm"`. See the
+   *  file banner. */
   readonly kind: SeasonKind;
+  /** Whether a hard-won milestone (`forces.milestones > 0`) rode in on top
+   *  of the base weather this year. Independent of `kind` — a year can be
+   *  rain-with-a-storm or sun-with-a-storm equally honestly. */
+  readonly storm: boolean;
   /** Authored copy around computed counts. Always starts with the year,
    *  never a place name — see `tests/lib/origin-story.test.ts`. */
   readonly caption: string;
@@ -56,37 +84,54 @@ function countOf(entries: readonly CareerEntry[], type: CareerEntryType): number
 }
 
 /**
- * The precedence a season's weather follows when more than one kind of thing
- * happened that year: a hard-won milestone reads as a storm even in a year
- * that was mostly quiet otherwise; failing that, schooling reads as rain;
- * failing that, plain work reads as sun; a year with nothing on record is
- * quiet growth underground.
+ * The precedence a season's *base* weather follows when more than one kind
+ * of ordinary thing happened that year: schooling reads as rain over plain
+ * work; failing that, plain work reads as sun; a year with neither is quiet
+ * growth underground. A milestone no longer takes precedence over any of
+ * this — it never reaches `kindFor` at all, because it isn't base weather,
+ * it's `Season.storm`, computed separately in `seasonsFor` below. See the
+ * file banner for why: real content puts a milestone in every active year,
+ * so the old milestones-first rule left sun and rain never appearing.
  *
  * Exported on its own so the precedence rule can be proven against crafted
  * `SeasonForces` rather than needing real content to happen to produce every
  * combination — see `tests/lib/origin-story.test.ts`.
  */
 export function kindFor(forces: SeasonForces): SeasonKind {
-  if (forces.milestones > 0) return "storm";
-  if (forces.learning > 0) return "rain";
+  if (forces.learning > 0 && forces.learning >= forces.work) return "rain";
   if (forces.work > 0) return "sun";
   return "quiet";
 }
 
-function captionFor(year: number, forces: SeasonForces, kind: SeasonKind): string {
+/**
+ * Composes base weather and storm honestly rather than picking one: a
+ * storm year still says what the base weather *was*, with the storm named
+ * as something that rode in on top of it, not a replacement for it. Every
+ * branch stays under `CAPTION_MAX_CHARS`, leads with the year, and names no
+ * city — see `tests/lib/origin-story.test.ts`.
+ */
+function captionFor(year: number, kind: SeasonKind, storm: boolean): string {
+  if (storm) {
+    switch (kind) {
+      case "rain":
+        return `${year} — rain for the roots, and a storm rode in`;
+      case "sun":
+        return `${year} — steady sun, then a storm broke — and passed`;
+      case "quiet":
+        return `${year} — quiet growth, until a storm rode in`;
+      case "storm":
+        return `${year} — a storm rode in`;
+    }
+  }
   switch (kind) {
-    case "storm":
-      return `${year} — a storm year: ${forces.milestones} hard-won ${
-        forces.milestones === 1 ? "milestone" : "milestones"
-      }`;
     case "rain":
-      return `${year} — rain for the roots: education underway`;
+      return `${year} — rain for the roots: education`;
     case "sun":
-      return `${year} — steady sun: ${forces.work} working ${
-        forces.work === 1 ? "season" : "seasons"
-      }`;
+      return `${year} — steady sun: working growth`;
     case "quiet":
       return `${year} — quiet growth underground`;
+    case "storm":
+      return `${year} — a storm rode in`;
   }
 }
 
@@ -109,7 +154,8 @@ export function seasonsFor(): readonly Season[] {
       milestones: countOf(inYear, "milestone"),
     };
     const kind = kindFor(forces);
-    seasons.push({ year, forces, kind, caption: captionFor(year, forces, kind) });
+    const storm = forces.milestones > 0;
+    seasons.push({ year, forces, kind, storm, caption: captionFor(year, kind, storm) });
   }
 
   return seasons;

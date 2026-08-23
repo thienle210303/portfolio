@@ -189,6 +189,15 @@ const TOUR: Record<string, SceneBuilder> = {
  * below, and a season kind added there without a matching update here would
  * otherwise only ever surface as a silent "nothing to say" (the guarded
  * lookup a few lines down) rather than a type error at the call site.
+ *
+ * `"storm"` is one of `SeasonKind`'s members but is never a beat's own
+ * *base* `kind` any more — `Season.kind` (origin-story.ts) never produces
+ * it, only `Season.storm`, a fact that rides alongside whichever base
+ * weather the year actually had. `STORY_BEAT.storm` below is repurposed as
+ * that overlay's own line rather than a fifth, orphaned entry: `storm`, the
+ * caller's boolean, picks it over the beat's own base-kind entry, so a
+ * storm year is narrated with the dramatic line every base kind used to
+ * lose to, and a storm-free year is narrated with its own honest weather.
  */
 export type StoryBeatKind = "flight" | "seed" | SeasonKind | "still";
 
@@ -205,6 +214,10 @@ const STORY_BEAT: Record<
     meow: "Mrrp-meow.",
     sub: (year) => (year === null ? null : `${year} — rain for the roots. Drink up.`),
   },
+  // The storm overlay's own line — played instead of the base-kind entry
+  // below whenever `storyBeatScene` is asked with `storm: true`, regardless
+  // of which base weather the year actually had. See the file banner just
+  // above.
   storm: {
     meow: "Mrrrow!!",
     sub: (year) => (year === null ? null : `${year} — a storm! Hold the trunk!`),
@@ -235,14 +248,23 @@ const STORY_BEAT: Record<
  * the lookup is guarded rather than destructured straight off `STORY_BEAT` —
  * an unrecognised kind is "nothing to say", the same answer every other
  * failure in this function gives, not a thrown exception.
+ *
+ * `storm` (default `false`) is the beat's own storm overlay fact —
+ * `OriginStory.tsx` passes `beat.season?.storm ?? false` — independent of
+ * `kind`, which is always base weather now. When true, this narrates the
+ * `STORY_BEAT.storm` line instead of `kind`'s own, for any of `rain`/`sun`/
+ * `quiet`; `flight`/`seed`/`still` never carry a storm and ignore the flag,
+ * the same way they already ignore `year`.
  */
 export function storyBeatScene(
   kind: StoryBeatKind,
   year: number | null,
   facts: CompanionFacts,
   speaker: Speaker,
+  storm = false,
 ): DialogueScene | null {
-  const entry = STORY_BEAT[kind] ?? null;
+  const isWeatherKind = kind === "rain" || kind === "sun" || kind === "quiet";
+  const entry = STORY_BEAT[storm && isWeatherKind ? "storm" : kind] ?? null;
   if (!entry) return null;
   const sub = entry.sub(year);
   if (sub === null || sub.length > SUB_MAX_CHARS || entry.meow.length === 0) return null;

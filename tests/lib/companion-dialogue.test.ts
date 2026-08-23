@@ -182,6 +182,55 @@ describe("story scenes", () => {
       expect(scene!.beats[0].sub).not.toMatch(/Rạch|Giá|Việt Nam/);
     }
   });
+
+  /**
+   * `storm` is a fact independent of `kind`: real content puts a milestone
+   * in every active year, so the storm overlay has to layer on top of
+   * whichever base weather (rain/sun/quiet) the year actually had, not
+   * replace it as its own fourth kind — see `Season.storm` in
+   * `origin-story.ts` and `WeatherLayer`/`StormOverlay` in
+   * `OriginStory.tsx`.
+   */
+  describe("the storm overlay", () => {
+    const BASE_KINDS: StoryBeatKind[] = ["rain", "sun", "quiet"];
+
+    it("narrates the storm line instead of the base kind's own when storm is true", () => {
+      for (const kind of BASE_KINDS) {
+        const scene = storyBeatScene(kind, 2021, FACTS, "grey", true);
+        const storm = storyBeatScene("storm", 2021, FACTS, "grey");
+        expect(scene, kind).not.toBeNull();
+        expect(scene!.beats[0].sub, kind).toBe(storm!.beats[0].sub);
+        expect(scene!.beats[0].meow, kind).toBe(storm!.beats[0].meow);
+      }
+    });
+
+    it("narrates the base kind's own line when storm is false or omitted", () => {
+      for (const kind of BASE_KINDS) {
+        const withFalse = storyBeatScene(kind, 2021, FACTS, "grey", false);
+        const omitted = storyBeatScene(kind, 2021, FACTS, "grey");
+        const plain = storyBeatScene(kind, 2021, FACTS, "grey");
+        expect(withFalse!.beats[0].sub).toBe(plain!.beats[0].sub);
+        expect(omitted!.beats[0].sub).toBe(plain!.beats[0].sub);
+      }
+    });
+
+    it("still leads with the year and stays in budget when storm overrides the base kind", () => {
+      for (const kind of BASE_KINDS) {
+        const scene = storyBeatScene(kind, 2024, FACTS, "tabby", true);
+        expect(scene!.beats[0].sub.startsWith("2024")).toBe(true);
+        expect(scene!.beats[0].sub.length).toBeLessThanOrEqual(SUB_MAX_CHARS);
+      }
+    });
+
+    it("ignores storm=true for flight, seed and still — none of them narrate a year", () => {
+      for (const kind of ["flight", "seed", "still"] as const) {
+        const plain = storyBeatScene(kind, null, FACTS, "grey", false);
+        const forced = storyBeatScene(kind, null, FACTS, "grey", true);
+        expect(forced!.beats[0].sub).toBe(plain!.beats[0].sub);
+        expect(forced!.beats[0].meow).toBe(plain!.beats[0].meow);
+      }
+    });
+  });
 });
 
 describe("run state", () => {
