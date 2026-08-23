@@ -128,3 +128,42 @@ export function growthStage(year: number): number {
   const stage = (year - origin.arrivedYear) / span;
   return Math.min(1, Math.max(0, stage));
 }
+
+/**
+ * The first year the canopy exists: the earliest year any lens-tagged entry
+ * lands in, which is the same fact `careerYearSpan().firstYear` already is —
+ * this is only a second name for it, so `DrawnTree.tsx` can ask the origin
+ * story's own vocabulary ("when does the canopy start") without importing
+ * `knowledge-tree.ts` twice under two different words.
+ */
+export function firstCanopyYear(): number {
+  return careerYearSpan().firstYear;
+}
+
+/**
+ * The year a major root (`RootSystem`'s `data-tree-lateral` groups in
+ * `DrawnTree.tsx`) is stamped with, for the origin story's chronological
+ * growth.
+ *
+ * The underground has no authored year of its own — nothing in
+ * `src/content/portfolio.ts` says "this skill category existed in 2019" —
+ * so a single root cannot honestly claim a year the way a leaf can from its
+ * `sortKey`. What the drawing *can* say honestly is that the roots grew
+ * before the canopy did: every root lands somewhere in the quiet years
+ * between the flight's landing (`origin.arrivedYear`) and the year before
+ * the first canopy year, spread evenly by index rather than bunched on one
+ * year or left to the same year as every other root.
+ *
+ * `total` roots are divided into `yearsCount` equal-ish buckets by integer
+ * division, the same idiom `rootTipX` in `DrawnTree.tsx` uses to place root
+ * tips evenly across the drawing's width — deterministic, and (when
+ * `total >= yearsCount`) guaranteed to touch every pre-canopy year at least
+ * once, so the story never skips a quiet year it promised to show growing.
+ */
+export function rootYearFor(index: number, total: number): number {
+  const first = origin.arrivedYear;
+  const yearsCount = Math.max(1, firstCanopyYear() - first);
+  if (total <= 0) return first;
+  const bucket = Math.floor((Math.max(0, index) * yearsCount) / total);
+  return first + Math.min(yearsCount - 1, bucket);
+}

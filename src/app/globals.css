@@ -1168,6 +1168,88 @@
   }
 
   /* ---------------------------------------------------------------------- */
+  /* Origin story v2 — chronological growth                                */
+  /*                                                                        */
+  /* The same contract as the "Career tree figure" block above, keyed off a */
+  /* different pair of attributes: `[data-ink-ready]`/`[data-inked]` gate    */
+  /* the *whole tree's* one-time reveal on scroll-into-view, where           */
+  /* `[data-origin-running]`/`[data-origin-pending]` gate *individual*       */
+  /* growable groups (leaves, branches, trunk, roots, the shoot — every      */
+  /* `[data-origin-year]` in DrawnTree.tsx) as the story's conductor         */
+  /* (`OriginStory.tsx`) releases them one beat at a time. Same classes      */
+  /* (`.tree-draw` / `.tree-grow` / `.tree-grow-down` / `.tree-fade`), same   */
+  /* collapsed shapes, same `--dur-draw`/`--dur-settle`/`--ease-ink` tokens   */
+  /* the ink reveal already draws with — a group re-uses whichever ink        */
+  /* treatment it was already given; the story just decides *when* each one   */
+  /* is allowed to play it.                                                  */
+  /*                                                                        */
+  /* `data-origin-running` is stamped on the figure only while the story is  */
+  /* playing (imperative DOM, the same idiom the cross-highlight island      */
+  /* above uses) and `data-origin-pending` is stamped on every growable      */
+  /* group at story start, then removed group-by-group as the beats reach     */
+  /* that group's own `data-origin-year`. A group can be the pending element  */
+  /* itself (the shoot's own `<g data-tree-shoot>`) or an ancestor of the ink  */
+  /* classes (a lens `<li>` wrapping a whole branch's boughs and leaves), so   */
+  /* both the "self" and "descendant" shapes below are needed, exactly as     */
+  /* the two `[data-tree-hit]` shapes above them are.                         */
+  /*                                                                        */
+  /* No `[data-ink-ready]` guard here: unlike the passive scroll reveal,      */
+  /* nothing plays this without a visitor pressing "How it grew" first, so    */
+  /* there is no no-JS/print/reduced-motion path where `data-origin-running`  */
+  /* could appear unbidden — `OriginStory.tsx` only ever stamps it after       */
+  /* checking `prefers-reduced-motion` itself, same as the block below this   */
+  /* one. The media guard here is still the belt-and-braces backstop.         */
+  /* ---------------------------------------------------------------------- */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-origin-running] [data-origin-pending].tree-draw,
+    [data-origin-running] [data-origin-pending] .tree-draw {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+    }
+    [data-origin-running] [data-origin-pending].tree-grow,
+    [data-origin-running] [data-origin-pending] .tree-grow {
+      transform: scaleY(0);
+      transform-origin: bottom;
+    }
+    [data-origin-running] [data-origin-pending].tree-grow-down,
+    [data-origin-running] [data-origin-pending] .tree-grow-down {
+      transform: scaleY(0);
+      transform-origin: top;
+    }
+    [data-origin-running] [data-origin-pending].tree-fade,
+    [data-origin-running] [data-origin-pending] .tree-fade {
+      opacity: 0;
+    }
+
+    /* Released: a group's `data-origin-pending` has been removed while the
+       figure is still `data-origin-running`. Lower specificity than the four
+       pending rules above (one attribute selector short each), so a group
+       still pending is unaffected by this — the moment it stops matching
+       `[data-origin-pending]`, though, this is what it falls into, and the
+       `transition` declared alongside each end state is what makes that
+       change a draw-in rather than a jump cut. */
+    [data-origin-running] .tree-draw,
+    [data-origin-running] .tree-grow,
+    [data-origin-running] .tree-grow-down,
+    [data-origin-running] .tree-fade {
+      transition-delay: 0ms;
+    }
+    [data-origin-running] .tree-draw {
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset var(--dur-draw) var(--ease-ink);
+    }
+    [data-origin-running] .tree-grow,
+    [data-origin-running] .tree-grow-down {
+      transform: none;
+      transition: transform var(--dur-draw) var(--ease-ink);
+    }
+    [data-origin-running] .tree-fade {
+      opacity: 1;
+      transition: opacity var(--dur-settle) var(--ease-ink);
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* Origin story (Task 3): the lazy-loaded "How it grew" player.           */
   /*                                                                        */
   /* `OriginStory.tsx` only ever applies these classes when it has already  */

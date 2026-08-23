@@ -4,6 +4,7 @@ import { Tag } from "@/components/ui/Tag";
 import { skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { careerYearSpan, techSlug, type TreeBranch, type TreeRoot } from "@/lib/knowledge-tree";
+import { firstCanopyYear, rootYearFor } from "@/lib/origin-story";
 import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
 import { JourneyEntryCrossLink } from "./cross-link";
 import { KIND_LABEL } from "./tree-labels";
@@ -377,7 +378,7 @@ function GrowingTip() {
             two strokes converge on (36, 8 in the leader's own frame, so
             36, 8 + SHOOT_H once translated) and curves up into the headroom
             above, tapering toward nothing rather than a leaf. */}
-        <g data-tree-shoot>
+        <g data-tree-shoot data-origin-year={lastYear}>
           <path
             pathLength={1}
             className="tree-draw"
@@ -429,6 +430,7 @@ function Trunk() {
     // the same pattern is why every twig segment is wrapped too.
     <span
       aria-hidden="true"
+      data-origin-year={firstCanopyYear()}
       className={cn(
         "pointer-events-none absolute bottom-11 left-1/2 top-16 block w-10 -translate-x-1/2",
         INK,
@@ -513,6 +515,7 @@ export function GroundHatch({ className }: { readonly className?: string }) {
   return (
     <span
       aria-hidden="true"
+      data-origin-year={firstCanopyYear()}
       className={cn("pointer-events-none absolute inset-x-0 top-0", className)}
     >
       <svg
@@ -826,7 +829,7 @@ export function RootSystem({ className }: { readonly className?: string }) {
             rootForkCount(category.skills.length),
           );
           return (
-            <g key={category.id}>
+            <g key={category.id} data-origin-year={rootYearFor(index, count)}>
               <path data-tree-lateral={category.id} d={main} vectorEffect="non-scaling-stroke" />
               <path d={feeders} strokeWidth={0.4} vectorEffect="non-scaling-stroke" />
             </g>
@@ -1088,6 +1091,7 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext, showYear }: LeafProps) {
     <li
       className="relative"
       data-tree-entry={branch.id}
+      data-origin-year={branch.startYear}
       data-tree-techs={techSlugs}
       style={
         side === "right"
@@ -1333,6 +1337,7 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
             <li
               key={lens.id}
               data-tree-lens={lens.id}
+              data-origin-year={Math.min(...lens.branches.map((branch) => branch.startYear))}
               className="relative"
               // Placed with `style` rather than utilities on purpose: the row
               // index and the drop are computed, and Tailwind can only
