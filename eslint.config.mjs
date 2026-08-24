@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Agent worktrees: whole checkouts (with their own .next/ build
+    // artifacts, which the ".next/**" pattern above cannot reach nested)
+    // live under here while a background session works. Never lintable
+    // source from this checkout's point of view.
+    ".claude/worktrees/**",
   ]),
 ]);
 

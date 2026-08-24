@@ -114,6 +114,108 @@ test("the honeypot field is present and not reachable by Tab", async ({ page }) 
  * say. Delivery itself is not exercised — the suite runs without Resend
  * configured, which is exactly the mailto-fallback state the site ships in.
  */
+/**
+ * The right-hand business card (BusinessCard.tsx, >=1024px only). Its
+ * column is a fixed `22rem`/`24rem` (Contact.tsx), never a fluid width, so
+ * it only ever actually renders at exactly two widths — the two of this
+ * repo's six-viewport Playwright matrix that land in each range.
+ */
+test.describe("business card", () => {
+  test("holds a true 13:10 card ratio with zero content clipping, at both fixed column widths Contact.tsx provides", async ({
+    page,
+  }) => {
+    const width = page.viewportSize()?.width ?? 0;
+    test.skip(
+      width !== 1024 && width !== 1440,
+      "the card's column is a fixed 22rem (lg, 1024-1279px) or 24rem (xl, >=1280px), not fluid -- only these two projects land in each range",
+    );
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const card = page.locator('aside[aria-label$="business card"]');
+    await card.scrollIntoViewIfNeeded();
+    const box = await card.boundingBox();
+    if (!box) throw new Error("business card did not render a box");
+
+    // The ratio CopyButton's compact variant unlocked -- see BusinessCard.tsx's
+    // CARD_ASPECT comment for the measured margin at each of these two widths.
+    expect(box.width / box.height).toBeCloseTo(1.3, 1);
+
+    // Zero clipping: the ratio-driven height must never be shorter than the
+    // content's own natural (unconstrained) height. Undershooting doesn't
+    // clip visibly at the card's outer edge -- it eats into the bottom
+    // padding instead, the same family of defect round 4 first found here
+    // (see BusinessCard.tsx). Measured the same way that file documents:
+    // strip the ratio and any explicit height, read the natural box, put
+    // both back.
+    const natural = await card.evaluate((el) => {
+      const node = el as HTMLElement;
+      const prevAspect = node.style.aspectRatio;
+      const prevHeight = node.style.height;
+      node.style.aspectRatio = "auto";
+      node.style.height = "auto";
+      const height = node.getBoundingClientRect().height;
+      node.style.aspectRatio = prevAspect;
+      node.style.height = prevHeight;
+      return height;
+    });
+    expect(box.height).toBeGreaterThanOrEqual(natural - 1);
+  });
+
+  test("the email copy control's hit area reaches a full 44px even though its visible box is 32px", async ({
+    page,
+  }) => {
+    const width = page.viewportSize()?.width ?? 0;
+    test.skip(width !== 1440, "control geometry is viewport-independent at >=1024; run once");
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const button = page
+      .locator('aside[aria-label$="business card"]')
+      .getByRole("button", { name: "Copy email address" });
+    await button.scrollIntoViewIfNeeded();
+    const box = await button.boundingBox();
+    if (!box) throw new Error("copy control did not render a box");
+
+    // The visible box is 32px -- this is the compact variant's whole point.
+    expect(box.width).toBeCloseTo(32, 0);
+    expect(box.height).toBeCloseTo(32, 0);
+
+    // A capture-phase listener records the real click's `target`, read back
+    // afterwards -- rather than waiting on the button's own post-click state
+    // (aria-label flipping to "Copied"/"Copy failed"), which depends on
+    // `navigator.clipboard.writeText()` actually settling. That call can
+    // hang indefinitely for a *trusted* click in a headless/sandboxed
+    // browser with no real system clipboard to write to, which would make
+    // this test about clipboard plumbing instead of about the hit area it
+    // exists to check.
+    await page.evaluate(() => {
+      (window as unknown as { __clickTarget?: string }).__clickTarget = "none";
+      window.addEventListener(
+        "click",
+        (e) => {
+          const target = e.target as HTMLElement;
+          (window as unknown as { __clickTarget?: string }).__clickTarget =
+            target.tagName + (target.getAttribute("aria-label") ? `[aria-label="${target.getAttribute("aria-label")}"]` : "");
+        },
+        true,
+      );
+    });
+
+    // Click 5px outside the visible box's left edge: inside the pseudo-
+    // element's 7px halo (CopyButton.tsx's `variant="compact"`), never
+    // touching the 32px box itself, and comfortably clear of the adjacent
+    // email link (the row's own `gap-2` leaves 8px of empty space there).
+    await page.mouse.click(box.x - 5, box.y + box.height / 2);
+
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __clickTarget?: string }).__clickTarget))
+      .toBe('BUTTON[aria-label="Copy email address"]');
+  });
+});
+
 test.describe("quick connect", () => {
   test("offers email, GitHub and LinkedIn as direct one-tap links", async ({ page }) => {
     await page.goto("/");

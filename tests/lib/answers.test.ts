@@ -9,6 +9,7 @@ import {
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { origin, philosophyIntro, principles, problemSolvingLoop } from "@/content/portfolio";
+import { scrapingPlaybook, scrapingPlaybookIntro } from "@/content/ai-experiments";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -55,6 +56,10 @@ const CORPUS = new Set<string>([
     ...(principle.evidence ? [principle.evidence.body] : []),
   ]),
   ...problemSolvingLoop.map((step) => step.detail),
+  // The scraping playbook (round 11): the owner's approved prose, indexed
+  // verbatim from src/content/ai-experiments.ts.
+  scrapingPlaybookIntro,
+  ...scrapingPlaybook.map((move) => move.body),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé

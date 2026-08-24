@@ -180,6 +180,87 @@ describe("CopyButton", () => {
     });
   });
 
+  describe('variant="compact"', () => {
+    it("carries the full accessible name via aria-label while rendering no visible label text", () => {
+      render(<CopyButton value="npm install thing" label="Copy email address" variant="compact" />);
+
+      const button = screen.getByRole("button", { name: "Copy email address" });
+      expect(button).toHaveAttribute("aria-label", "Copy email address");
+      expect(button).toHaveTextContent("");
+    });
+
+    it("keeps the visible box at 32px (h-8 w-8) while extending the hit area to 44px via an out-of-flow pseudo-element, not by growing the box", () => {
+      render(<CopyButton value="npm install thing" label="Copy" variant="compact" />);
+      const button = screen.getByRole("button", { name: "Copy" });
+
+      // The box you can SEE stays 32px -- this is the whole point of the
+      // variant. Unlike `variant="icon"`, this must NOT carry min-h-11/
+      // min-w-11 (44px) on the button itself.
+      expect(button.className).toMatch(/\bh-8\b/);
+      expect(button.className).toMatch(/\bw-8\b/);
+      expect(button.className).not.toMatch(/\bmin-h-11\b/);
+      expect(button.className).not.toMatch(/\bmin-w-11\b/);
+
+      // The box you can CLICK reaches 44px through `relative` positioning on
+      // the button plus an absolutely-positioned, empty `::before` inset
+      // exactly -7px on every side -- out of flow, so it costs the
+      // surrounding layout nothing and never changes what `className`
+      // reports on the button's own box. An absolutely-positioned child's
+      // containing block is its ancestor's *padding* box, and this button's
+      // border-box sizing (`h-8 w-8` = 32px total) leaves only a 30px
+      // padding box once the 1px border on each side is subtracted -- so
+      // the inset is written as an exact `-inset-[7px]`, not the `-inset-
+      // 1.5` (6px) the 44px target would suggest at a glance: 30 + 7 + 7 =
+      // 44px, the same target size `variant="icon"` and the default variant
+      // both guarantee, just reached without the 44px box those variants
+      // pay for directly. (jsdom performs no layout, so the actual 44px is
+      // exercised in the browser: see e2e/contact.spec.ts's "business card"
+      // describe block, which clicks 5px outside this box and confirms the
+      // click still lands on the button.)
+      expect(button.className).toMatch(/\brelative\b/);
+      expect(button.className).toMatch(/before:absolute/);
+      expect(button.className).toMatch(/before:-inset-\[7px\]/);
+      expect(button.className).toMatch(/before:content-\[''\]/);
+    });
+
+    it("moves the accessible name to the copied state and announces it, on a successful copy", async () => {
+      const user = userEvent.setup();
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      installClipboard(writeText);
+
+      render(
+        <CopyButton
+          value="npm install thing"
+          label="Copy email address"
+          copiedLabel="Copied!"
+          variant="compact"
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: "Copy email address" }));
+
+      const button = await screen.findByRole("button", { name: "Copied!" });
+      expect(button).toHaveTextContent("");
+      expect(screen.getByRole("status")).toHaveTextContent("Copied!");
+    });
+
+    it("never claims success in its accessible name when clipboard.writeText rejects", async () => {
+      const user = userEvent.setup();
+      const writeText = vi.fn().mockRejectedValue(new Error("permission denied"));
+      installClipboard(writeText);
+
+      render(
+        <CopyButton value="npm install thing" label="Copy email address" variant="compact" />,
+      );
+
+      await user.click(screen.getByRole("button", { name: "Copy email address" }));
+
+      const button = await screen.findByRole("button", { name: "Copy failed" });
+      expect(button).toHaveAttribute("aria-label", "Copy failed");
+      expect(screen.getByRole("status")).toHaveTextContent(/copy failed/i);
+    });
+  });
+
   it("renders the default variant identically whether or not `variant` is passed explicitly", () => {
     const implicit = render(
       <CopyButton value="npm install thing" label="Copy" copiedLabel="Copied!" />,

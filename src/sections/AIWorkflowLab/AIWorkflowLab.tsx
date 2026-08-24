@@ -10,12 +10,15 @@ import {
   labLiveNotice,
   labPositioning,
   learningLog,
+  scrapingPlaybook,
+  scrapingPlaybookIntro,
   workflowStages,
 } from "@/content/ai-experiments";
 import { askLiveModeConfigured } from "@/lib/ask-live-config";
 import AskThisSite from "./AskThisSite";
 import { ExperimentEntry } from "./ExperimentEntry";
 import { LearningLog } from "./LearningLog";
+import { ScrapingPlaybook } from "./ScrapingPlaybook";
 
 const HEADING_ID = "lab-heading";
 
@@ -136,6 +139,14 @@ export default function AIWorkflowLab() {
         <div className="mt-8">
           <AskThisSite liveModeConfigured={liveModeConfigured} />
         </div>
+      </div>
+
+      {/* Round 7's deferred content, approved in round 11: the owner's own
+          reading on what scraping work taught him. Placed between the chat
+          and the experiments — after the thing that answers questions, before
+          the material a deep reader continues into. */}
+      <div className="mt-20 sm:mt-24">
+        <ScrapingPlaybook intro={scrapingPlaybookIntro} moves={scrapingPlaybook} />
       </div>
 
       <div className="mt-20 sm:mt-24">

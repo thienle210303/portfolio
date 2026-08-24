@@ -519,3 +519,33 @@ racing a by-design stagger, a "cold load" that wasn't one).
 
 Owner's items 1 and 6 from this round's list never arrived (terminal ate
 them) — still awaiting a resend.
+
+**Post-round resolution of items 1 and 6:** item 6 never existed (owner
+confirmed), and item 1 turned out to be the `MaxListenersExceededWarning`
+Gzip spam itself — diagnosed as the Claude Code CLI's own log compression
+(PID long gone, zero gzip usage anywhere in this repo), benign, remedied by
+updating the CLI or ignoring it. Nothing to build.
+
+## Round 11 (2026-08-23) — the backlog round
+
+Owner: "build the rest." Every deferred/open item from rounds 1–7, plus the
+standing blue question (answered: **blue stays**).
+
+| WP | Owner | Item | Outcome |
+| --- | --- | --- | --- |
+| F | Lead | Scraping-knowledge content (deferred round 7) | Drafted from the USC/DoorDash scraper case studies, approved by the owner verbatim, shipped as "How I solve problems with scraping knowledge" between the chat and the experiments (`ScrapingPlaybook.tsx`, content + type in the content layer). Four moves, each linking to the case study already proving its numbers; all five passages indexed into the chat corpus verbatim (the content-honesty test caught them and now pins them). Lab last-updated honestly bumped |
+| G | Sonnet | Compact CopyButton + card ratio (round 4 note) | `variant="compact"`: 32px visible box, 44px tap target recovered via an exact `-inset-[7px]` pseudo-element — the naive −6px was a real bug (border shrinks the containing block to 30px; 42px ≠ 44px). Card re-cut to **13:10**, not 3:2: measured floors 260.4px @352px / 261.8px @384px leave true 3:2 short by 25.7px at the lg width, so 13:10 is the honest optimum, documented in the file. New unit tests (352 total) + e2e ratio/no-clip/hit-area tests. A trusted Playwright click on the copy control hangs against a headless clipboard — the hit-area test asserts capture-phase `event.target` instead |
+| H | Sonnet | screenshots.mjs refresh (round 1 follow-up) | Capture list rebuilt to the current page (tree Tree/List faces, lab chat turn, contact intent, `/resume` route; `#resume`/"Deep Dive"/explorer captures deleted). Script was also Windows-broken (baked Linux paths, POSIX process handling) — fixed and proven end-to-end: 27 files produced, server started and cleanly stopped. **Found a real site bug:** home page under `@media print` collapses `#work` articles to 0px wide (~230,000px page, unrasterizable); `/resume` prints fine. Spawned as its own task (being fixed in a separate worktree session) |
+| — | Lead | Blue vs zero-hue (open since round 0) | **Closed: blue stays.** Owner's call; links, measured values and the single primary control keep the annotation hue |
+| — | Lead | Worktree lint pollution | `.claude/worktrees/**` added to eslint ignores — a concurrent session's nested `.next` artifacts were producing 10k phantom lint problems in this checkout |
+
+### Round 11 gate
+
+`pnpm verify` green: typecheck, lint, contrast, **352 unit tests** (up from
+348), production build. Full Playwright matrix: **430 passed / 0 failed**,
+first run — no fix rounds needed this time. Visual check at 1440 in both
+themes: the playbook with its evidence links, the 13:10 card with the
+compact copy control.
+
+Open, tracked elsewhere: the home-page `@media print` collapse (WP-H's
+find) is being fixed in its own worktree session.

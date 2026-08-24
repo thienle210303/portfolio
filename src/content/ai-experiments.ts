@@ -15,10 +15,10 @@
  *     invented one.
  */
 
-import type { AiExperiment, LearningLog, WorkflowStage } from "@/types/portfolio";
+import type { AiExperiment, LearningLog, ScrapingPlaybookMove, WorkflowStage } from "@/types/portfolio";
 
 /** Drives the "last updated" indicator on the whole section. */
-export const LAB_LAST_UPDATED = "2026-08-16";
+export const LAB_LAST_UPDATED = "2026-08-23";
 
 export const labPositioning =
   "I use AI-assisted workflows to accelerate exploration while keeping architecture, verification, and accountability human-owned — including the chat box below, which will tell you about any of it without inventing a word.";
@@ -37,6 +37,50 @@ export const labIntro = [
  */
 export const labLiveNotice =
   "One thing on this page now runs live: the chat box below hands your question, and only the passages it retrieved from this page, to a real language model — and marks that answer as coming from a live model when it does.";
+
+/* -------------------------------------------------------------------------- */
+/* The scraping playbook                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * "How I solve problems with scraping knowledge" — deferred in round 7,
+ * drafted and approved by the owner in round 11. Every claim and number
+ * below is already made elsewhere on this page with sources (the USC and
+ * DoorDash case studies, the career entries); each move links to where.
+ */
+export const scrapingPlaybookIntro =
+  "Three employers in a row handed me the same problem wearing different clothes: data that exists on someone else's site, needed at a scale nobody wants to click for. This is what that work actually taught me.";
+
+export const scrapingPlaybook = [
+  {
+    id: "bottleneck",
+    title: "The bottleneck is rarely where you think",
+    body: "The USC research scraper wasn't slow because of the network — it was slow because of the interaction model. Rewriting collection around DOM manipulation and in-page JavaScript execution cut runtime by 95%. The number is what proved the diagnosis; before measuring, I'd have optimized the wrong layer.",
+    evidenceHref: "#work-usc-research-collection",
+    evidenceLabel: "Two million records, unattended",
+  },
+  {
+    id: "months-not-runs",
+    title: "Months-long reliability is a different discipline from one-run correctness",
+    body: "Research collection had to run unattended for months against sites actively defending against automation. Everything that could drift, eventually did. What survived: scrapers that mimic human interaction patterns, and breadth-first traversal of product and seller networks so coverage didn't depend on any one path staying open. Result: 2 million+ records at a 99.9% success rate.",
+    evidenceHref: "#work-usc-research-collection",
+    evidenceLabel: "Two million records, unattended",
+  },
+  {
+    id: "fix-the-factory",
+    title: "The scraper is never the unit that needs fixing — the way scrapers get made is",
+    body: "At DoorDash, scrapers were built as individual artefacts, each with its own conventions and failure modes, so the retailer count was capped by engineer-hours. Standardizing the shared workflows, tooling and validation first — before optimizing any single scraper — is what made 30+ production scrapers in one week possible. Throughput problems in data work are organisational before they are technical.",
+    evidenceHref: "#work-dd-scraper-platform",
+    evidenceLabel: "Thirty scrapers in a week",
+  },
+  {
+    id: "fail-loudly",
+    title: "Wrong data must fail loudly",
+    body: "Validation is a required stage, not a convention. A scraper that silently produces wrong data is worse than one that crashes — the crash tells you; the silence ships bad data into 18+ live integrations that depend on it being right.",
+    evidenceHref: "#work-dd-scraper-platform",
+    evidenceLabel: "Thirty scrapers in a week",
+  },
+] satisfies readonly ScrapingPlaybookMove[];
 
 /* -------------------------------------------------------------------------- */
 /* Workflow stages                                                             */

@@ -2,18 +2,56 @@
 /**
  * Standalone Playwright script (not a test spec): starts `pnpm dev`, captures
  * full-page / per-section / interactive-state screenshots, then stops it.
+ *
+ * Refreshed for round 11 (see docs/feedback-tracker.md). What changed since
+ * the last pass:
+ *   - The résumé is a route (`/resume`), not a `#resume` section — there is
+ *     no "Deep Dive" toggle there any more (that whole page is one flat
+ *     view). It now gets its own navigation + full-page + print capture.
+ *   - `#skills` joined the section list (it didn't exist last time this
+ *     script was touched).
+ *   - The old `#journey` section merged into `#tree` as a Tree/List toggle
+ *     (`ViewToggle.tsx` / `view-state.ts`); the capture list follows that —
+ *     one shot of each face via the real toggle buttons instead of a
+ *     `#journey` section that no longer exists.
+ *   - The AI Workflow Lab's "explorer" (`[role="tab"]` stage picker) retired
+ *     in favor of "Ask this site", a chat thread over the page's own
+ *     content (`AskThisSite.tsx`). The interactive-state capture now asks
+ *     one question from the suggested list and shoots the resulting turn.
+ *   - `OUT_DIR` and the Chromium executable path used to be hardcoded
+ *     absolute paths baked in from whatever sandbox last ran this script —
+ *     broken on any other machine (this one included: Windows, not that
+ *     Linux path). Both are portable defaults now, overridable by env var.
  */
 import { chromium } from "@playwright/test";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdir, readFile, rm } from "node:fs/promises";
-const REPO_ROOT = new URL("..", import.meta.url).pathname;
-const BASE_URL = "http://localhost:3000";
-const OUT_DIR =
-  "/tmp/claude-0/-home-user-portfolio/2d0d34ac-2ff9-55f3-b689-20dc60d4a33e/scratchpad/shots";
-const CHROMIUM_EXECUTABLE = "/opt/pw-browsers/chromium";
-const SECTIONS = ["about", "philosophy", "work", "lab", "journey", "resume", "contact", "closing"];
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const outPath = (name) => `${OUT_DIR}/${name}.png`;
+const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
+const BASE_URL = "http://localhost:3000";
+
+// Portable default: a well-known per-OS tmp dir, not a path baked in from
+// whatever sandbox last ran this script. Override with SCREENSHOTS_OUT_DIR
+// when you want the output somewhere specific.
+const OUT_DIR = process.env.SCREENSHOTS_OUT_DIR ?? path.join(tmpdir(), "portfolio-screenshots");
+
+// Let Playwright resolve its own installed browser by default (correct on
+// every platform this repo runs on) — only override via env var if you
+// specifically need a different binary.
+const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
+
+const IS_WINDOWS = process.platform === "win32";
+
+// Page order per src/app/page.tsx: about, philosophy, work, skills, tree,
+// lab, contact, closing. No standalone "journey" or "resume" section any
+// more — journey folded into tree (see CareerTree.tsx), résumé moved to its
+// own route (captured separately, below).
+const SECTIONS = ["about", "philosophy", "work", "skills", "tree", "lab", "contact", "closing"];
+
+const outPath = (name) => path.join(OUT_DIR, `${name}.png`);
 
 async function isServerUp() {
   try {
@@ -33,13 +71,40 @@ async function waitForServer(timeoutMs) {
 }
 
 function startDevServer() {
-  return spawn("pnpm", ["dev"], { cwd: REPO_ROOT, detached: true, stdio: ["ignore", "ignore", "inherit"] });
+  // `shell: true` is required on Windows: `pnpm` resolves to a `.cmd` shim,
+  // and `spawn` only resolves shims through the shell, not directly on PATH
+  // (bare `spawn("pnpm", ...)` throws ENOENT there). `detached` process
+  // groups are a POSIX concept — skip it on Windows, where the lock-file pid
+  // below is the real (and only reliable) way to find and stop the server.
+  return spawn("pnpm", ["dev"], {
+    cwd: REPO_ROOT,
+    detached: !IS_WINDOWS,
+    shell: IS_WINDOWS,
+    stdio: ["ignore", "ignore", "inherit"],
+  });
+}
+
+function killPid(pid) {
+  try {
+    if (IS_WINDOWS) {
+      // /t kills the whole tree (Turbopack's real server included), /f forces it.
+      spawnSync("taskkill", ["/pid", String(pid), "/t", "/f"], { stdio: "ignore" });
+    } else {
+      process.kill(pid, "SIGKILL");
+    }
+  } catch {
+    // Already gone.
+  }
 }
 
 async function stopDevServer(child) {
   if (child && child.pid) {
     try {
-      process.kill(-child.pid, "SIGTERM");
+      if (IS_WINDOWS) {
+        killPid(child.pid);
+      } else {
+        process.kill(-child.pid, "SIGTERM");
+      }
     } catch {
       /* already gone */
     }
@@ -47,10 +112,10 @@ async function stopDevServer(child) {
   // Turbopack's dev server detaches into its own persistent process, which
   // outlives the CLI above — Next records its real pid in this lock file for
   // exactly this situation ("run kill <pid> to stop it").
-  const lockPath = `${REPO_ROOT}.next/dev/lock`;
+  const lockPath = path.join(REPO_ROOT, ".next", "dev", "lock");
   try {
     const { pid } = JSON.parse(await readFile(lockPath, "utf8"));
-    process.kill(pid, "SIGKILL");
+    killPid(pid);
   } catch {
     // No lock file, or that pid is already gone.
   }
@@ -63,30 +128,8 @@ async function settle(page, ms = 300) {
   await page.waitForTimeout(ms);
 }
 
-/** A transient viewport resize mis-resolves `position: sticky` (the résumé's
- * sticky sidebar lands at the bottom of the image) — resize for real, clip
- * to the element's actual box, then restore the viewport. */
-async function shootTall(page, selector, path, width, baseHeight) {
-  const locator = page.locator(selector);
-  await locator.scrollIntoViewIfNeeded();
-  await settle(page, 150);
-  let box = await locator.boundingBox();
-  if (box && box.height > baseHeight) {
-    await page.setViewportSize({ width, height: Math.ceil(box.height) + 100 });
-    await locator.scrollIntoViewIfNeeded();
-    await settle(page, 150);
-    box = await locator.boundingBox();
-  }
-  if (box) await page.screenshot({ path, clip: box });
-  await page.setViewportSize({ width, height: baseHeight });
-}
-
-async function shootSections(page, width, baseHeight) {
+async function shootSections(page, width) {
   for (const id of SECTIONS) {
-    if (id === "resume") {
-      await shootTall(page, "#resume", outPath(`${id}-${width}`), width, baseHeight);
-      continue;
-    }
     const locator = page.locator(`#${id}`);
     await locator.scrollIntoViewIfNeeded();
     await settle(page, 150);
@@ -101,7 +144,7 @@ async function captureDesktop(browser) {
   await settle(page);
 
   await page.screenshot({ path: outPath("full-1440"), fullPage: true });
-  await shootSections(page, 1440, 900);
+  await shootSections(page, 1440);
 
   // A case-study disclosure, expanded.
   const article = page.locator("#work article").first();
@@ -110,18 +153,24 @@ async function captureDesktop(browser) {
   await settle(page, 250);
   await article.screenshot({ path: outPath("case-study-open-1440") });
 
-  // AI Workflow Lab explorer, a non-default stage selected.
-  const explorer = page.locator("#lab-explorer-heading + div");
-  await explorer.scrollIntoViewIfNeeded();
-  await explorer.locator('[role="tab"]').nth(1).click();
+  // Career tree's List face, forced on via the real toggle button — desktop
+  // defaults to the drawn Tree face (already captured as part of
+  // shootSections above), so this is the same section with the visitor's
+  // explicit override applied instead.
+  const tree = page.locator("#tree");
+  await tree.scrollIntoViewIfNeeded();
+  await page.locator('[data-tree-view-toggle="list"]').click();
   await settle(page, 250);
-  await explorer.screenshot({ path: outPath("lab-stage-1440") });
+  await tree.screenshot({ path: outPath("tree-list-1440") });
 
-  // Resume in Deep Dive mode.
-  await page.locator("#resume").scrollIntoViewIfNeeded();
-  await page.getByRole("button", { name: "Deep Dive", exact: true }).click();
-  await settle(page, 250);
-  await shootTall(page, "#resume", outPath("resume-deep-1440"), 1440, 900);
+  // AI Workflow Lab's "Ask this site" chat, with one turn asked from the
+  // suggested-questions list (the workflow explorer this used to capture
+  // retired — see AskThisSite.tsx).
+  const askPanel = page.locator("#lab-ask-heading + div");
+  await askPanel.scrollIntoViewIfNeeded();
+  await askPanel.locator('[aria-label="Try asking"] button').first().click();
+  await settle(page, 400);
+  await askPanel.screenshot({ path: outPath("lab-ask-turn-1440") });
 
   // Contact form with an intent selected (prefills reason + message).
   const contact = page.locator("#contact");
@@ -131,10 +180,39 @@ async function captureDesktop(browser) {
   await contact.screenshot({ path: outPath("contact-intent-1440") });
 
   // Print emulation, from a clean reload (no leftover interactive state).
+  //
+  // As of this refresh this capture reliably fails: under `@media print`
+  // every `<article>` inside #work measures 0px wide (confirmed via
+  // getBoundingClientRect — .shell itself is still the full 1440px, so
+  // something below it collapses), which turns each case study's flowing
+  // text into one character per line and inflates the section to ~230,000px
+  // tall. Chromium's screenshot backend refuses to rasterize a canvas that
+  // size ("Protocol error (Page.captureScreenshot): Unable to capture
+  // screenshot") — not a script bug, a real print-layout defect in
+  // SelectedWork/CaseStudy (or the print rules in globals.css) that predates
+  // this refresh and is out of scope for this file. Caught here so it can't
+  // take down every capture after it; every other screenshot below still
+  // gets produced. See the resume-print-1440 capture below for the print
+  // path that does work.
   await page.reload({ waitUntil: "load", timeout: 60_000 });
   await settle(page);
   await page.emulateMedia({ media: "print" });
-  await page.screenshot({ path: outPath("print-1440"), fullPage: true });
+  try {
+    await page.screenshot({ path: outPath("print-1440"), fullPage: true, timeout: 30_000 });
+  } catch (error) {
+    console.warn(
+      `print-1440 skipped — home page print layout is broken (see the comment above this line): ${error.message}`,
+    );
+  }
+  await page.emulateMedia({ media: "screen" });
+
+  // The résumé, as its own page — no longer a section of the home page.
+  await page.goto(`${BASE_URL}/resume`, { waitUntil: "load", timeout: 60_000 });
+  await settle(page);
+  await page.screenshot({ path: outPath("resume-1440"), fullPage: true });
+
+  await page.emulateMedia({ media: "print" });
+  await page.screenshot({ path: outPath("resume-print-1440"), fullPage: true });
 
   await context.close();
 }
@@ -146,13 +224,19 @@ async function captureMobile(browser) {
   await settle(page);
 
   await page.screenshot({ path: outPath("full-390"), fullPage: true });
-  await shootSections(page, 390, 844);
+  await shootSections(page, 390);
 
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByRole("button", { name: "Open menu" }).click();
   await page.locator("#mobile-nav-panel").waitFor({ state: "visible" });
   await settle(page, 250);
   await page.screenshot({ path: outPath("menu-open-390"), fullPage: false });
+
+  // The résumé at mobile width too — it is a full route now, not a section
+  // that only ever appeared inside the desktop-oriented captures above.
+  await page.goto(`${BASE_URL}/resume`, { waitUntil: "load", timeout: 60_000 });
+  await settle(page);
+  await page.screenshot({ path: outPath("resume-390"), fullPage: true });
 
   await context.close();
 }
@@ -178,7 +262,9 @@ async function main() {
   }
   console.log("Dev server is up at " + BASE_URL);
 
-  const browser = await chromium.launch({ executablePath: CHROMIUM_EXECUTABLE });
+  const browser = await chromium.launch(
+    CHROMIUM_EXECUTABLE ? { executablePath: CHROMIUM_EXECUTABLE } : {},
+  );
   try {
     await captureDesktop(browser);
     await captureMobile(browser);
