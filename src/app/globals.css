@@ -1790,6 +1790,18 @@
     display: none !important;
   }
 
+  /* The margin rail is `.no-print`, but `display: none` on a grid item does
+     not remove the 10rem track `.rail-layout` reserves for it at >=1024px —
+     and the content column, placed by `lg:order-2` alone with no explicit
+     `grid-column`, auto-flows into that first (rail) track. 160px for a whole
+     section: any nested grid with a fixed column then resolves its
+     `minmax(0, 1fr)` content track to 0 and the page balloons past what
+     Chromium can rasterize. With the rail gone the content is the layout's
+     only child, so print it as a plain block (e2e/print.spec.ts). */
+  .rail-layout {
+    display: block !important;
+  }
+
   /*
    * Printing.
    *
@@ -1832,6 +1844,17 @@
   [data-print-expand] * {
     overflow: visible !important;
     visibility: visible !important;
+  }
+
+  /* …except screen-reader-only text, which must keep its clipping. `.sr-only`
+     is a 1px absolutely-positioned box whose nowrap text is held in only by
+     `overflow: hidden` — clip-path hides it visually either way, but with the
+     rule above un-clipping it, each of the ~120 sr-only nodes inside expanded
+     case studies extends the document's scrollable area past the paper edge
+     (~2700px wide at a 1440px viewport, measured). Higher specificity than
+     the `*` rule above, so it wins at equal !important. */
+  [data-print-expand] .sr-only {
+    overflow: hidden !important;
   }
 
   /* Code panels: unwrap rather than force horizontal scrolling on paper. */

@@ -56,6 +56,57 @@ test("the home page prints its content rather than a blank sheet", async ({ page
   expect(visible, "print CSS hid every section on the page").toBeGreaterThan(0);
 });
 
+/*
+ * Regression: `.rail` is `no-print`, but `display: none` on a grid item does
+ * not remove the 10rem track `.rail-layout` reserves for it at >=1024px — and
+ * the content column, placed by `lg:order-2` alone with no explicit
+ * `grid-column`, auto-flowed into that empty rail track. A whole section
+ * squeezed into 160px: SelectedWork's inner grid (minmax(0,1fr) + a 10rem
+ * index column + a 2rem gap) then resolved its content track to 0px, prose
+ * wrapped one character per line, and the page grew to ~340,000px — tall
+ * enough that Chromium's print capture failed outright. The print stylesheet
+ * now collapses `.rail-layout` to a plain block, which is what this asserts.
+ */
+test("hiding the margin rail must not strand section content in its grid track", async ({ page }) => {
+  const layouts = page.locator("main .rail-layout");
+  expect(await layouts.count()).toBeGreaterThan(0);
+
+  for (const layout of await layouts.all()) {
+    const widths = await layout.evaluate((el) => ({
+      layout: el.getBoundingClientRect().width,
+      content: el.firstElementChild?.getBoundingClientRect().width ?? 0,
+    }));
+    // The content column is the layout's first child (Section.tsx renders it
+    // ahead of the rail in DOM order). With the rail hidden it should span
+    // the layout; stranded in the 10rem rail track it measures ~12% of it.
+    expect(widths.content).toBeGreaterThan(widths.layout / 2);
+  }
+
+  // And the concrete symptom: case-study articles keep a real measure.
+  const article = page.locator("#work article").first();
+  const articleWidth = await article.evaluate((el) => el.getBoundingClientRect().width);
+  expect(articleWidth, "case studies collapsed to zero width in print").toBeGreaterThan(200);
+});
+
+/*
+ * Companion regression: `[data-print-expand] *` restores `overflow: visible`
+ * so collapsed disclosures print in full — but that also un-clipped every
+ * `.sr-only` node inside them. Screen-reader text is a 1px box whose nowrap
+ * content is held in only by `overflow: hidden` (clip-path hides it visually
+ * either way), so the document's scrollable area silently grew ~1300px past
+ * the paper edge. The stylesheet re-clips `.sr-only` at higher specificity;
+ * this asserts the page stays within its own viewport width in print.
+ */
+test("print media does not create phantom horizontal overflow", async ({ page }) => {
+  const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(scrollWidth, "document scrolls sideways under print media").toBeLessThanOrEqual(
+    clientWidth + 1,
+  );
+});
+
 // The subtlest part of the print stylesheet: `data-print-expand` must force a
 // *collapsed* disclosure's panel open for print, including restoring
 // visibility on Disclosure's inner wrapper (the element that pulls collapsed
