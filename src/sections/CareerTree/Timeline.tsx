@@ -38,8 +38,10 @@
  *
  * ## Fragment links into a filtered list
  *
- * The career tree's leaves link at individual entries here
- * (`journey-entry-<id>`, see ./anchors.ts). A filter is a client-side
+ * The career tree's own leaves link at individual entries here
+ * (`journey-entry-<id>`, see ./anchors.ts) — the same section now, since the
+ * round-10 merge folded this timeline in as the tree's "List" face (see
+ * `CareerTree.tsx` and `./view-state.ts`). A filter is a client-side
  * decision this component owns, so an entry the current filter excludes is
  * simply not in the document: the browser follows such a link, finds no
  * element, and does nothing at all — a link that visibly fails.
@@ -64,18 +66,26 @@
  * the history entry; this only widens the filter and finishes the scroll the
  * browser could not perform.
  *
- * Without JavaScript this end of the link still holds up: the filter's
- * initial state is "all", so every entry is in the document and the browser's
- * own fragment navigation lands on one unaided (the `<li>` carries
- * `scroll-margin-top: 80px`, so it arrives clear of the sticky header too).
- * What does not survive is the other end. The links live inside the career
- * tree's leaves, and a leaf is a Disclosure: at >=1024px all 25 of the drawn
- * tree's leaves are collapsed, and the list presentation that would hold the
- * other 25 is `display: none` there, so zero of the 50 links are reachable at
- * all. Below 1024px it is 12 — the leaves of the one lens whose panel starts
- * open. So this is progressive enhancement of the *target*, not of the
- * journey: it means a link that is reachable always works, not that every
- * link is reachable.
+ * Every one of those three paths also forces the section's "List" face
+ * visible (`forceCareerTreeView("list")`, from `./view-state.ts`) before it
+ * scrolls anywhere. That call has to happen first and in the same
+ * synchronous pass as the scroll: this container's own visibility is driven
+ * by a *sibling* island (`ViewToggle.tsx`) that a tree leaf's link never
+ * touches directly, and a `display: none` ancestor turns `scrollIntoView`
+ * and `.focus()` alike into silent no-ops. Reaching for `forceCareerTreeView`
+ * directly here — a plain DOM write, not React state — is what keeps that
+ * ordering guaranteed rather than hoped for; see `view-state.ts`'s own header
+ * for why a `useState`-based version of this would race.
+ *
+ * Without JavaScript this end of the link still holds up exactly where the
+ * page's own CSS default already shows the list: below 1024px, where the
+ * section's list face is the default presentation and every entry is in the
+ * document, the browser's own fragment navigation lands on one unaided (the
+ * `<li>` carries `scroll-margin-top: 80px`, so it arrives clear of the sticky
+ * header too). Above 1024px, without JavaScript, the section's default face
+ * is the drawn tree and there is no way to flip the CSS-only default to
+ * "list" — a leaf's timeline link is inert there until the page has run its
+ * scripts, the same trade-off `WatchOrigin.tsx`'s player makes.
  *
  * A filter that already includes the entry is left alone rather than reset to
  * "all" — the visitor's choice survives a jump that did not need it undone,
@@ -86,6 +96,7 @@ import type { CareerEntry, CareerEntryType } from "@/types/portfolio";
 import { FilterGroup, type FilterOption } from "@/components/ui/FilterGroup";
 import { journeyEntryAnchorId } from "./anchors";
 import { TimelineEntry } from "./TimelineEntry";
+import { forceCareerTreeView } from "./view-state";
 
 interface TimelineProps {
   readonly entries: readonly CareerEntry[];
@@ -176,10 +187,14 @@ export default function Timeline({ entries }: TimelineProps) {
    *  entry is only sometimes already there: if the current filter includes it
    *  nothing needs to change and this lands immediately; if it does not, the
    *  filter widens and the effect below finishes the job on the commit that
-   *  puts the entry back in the document. */
+   *  puts the entry back in the document. Either way the section's list face
+   *  is forced visible first (see the file header) — a target that exists in
+   *  the document but sits under a `display: none` ancestor still fails both
+   *  `.focus()` and `scrollIntoView`. */
   const reveal = useCallback(
     (entry: CareerEntry) => {
       const anchor = journeyEntryAnchorId(entry.id);
+      forceCareerTreeView("list");
       pendingAnchorRef.current = anchor;
       setFilter((current) => (current === "all" || current === entry.type ? current : "all"));
       if (landOn(anchor)) pendingAnchorRef.current = null;

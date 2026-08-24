@@ -18,6 +18,12 @@
  * landing on the heading puts them behind the sticky header — the entry would
  * arrive without its own date. The anchor is the `<li>`, which is the whole
  * entry in both layouts.
+ *
+ * The `journey-` prefix outlives the section of the same name: the timeline
+ * this anchors moved into the career tree (round 10), but every existing
+ * fragment — deep links from the tree's own leaves, old bookmarks, `/resume`
+ * — already names entries this way, so the prefix stays rather than forcing
+ * every existing link to learn a new one.
  */
 import { careerEntries } from "@/content/portfolio";
 

@@ -3,6 +3,7 @@
 import { CAT_H, CAT_W } from "./CompanionCat";
 import {
   clampToViewport,
+  clearsControls,
   findClearSpot,
   isClearSpot,
   safeTop,
@@ -55,7 +56,7 @@ import {
  * already written down here.
  */
 
-export type MoodKind = "hero" | "work" | "journey" | "skills" | "tree" | "lab" | "contact" | "loop";
+export type MoodKind = "hero" | "work" | "skills" | "tree" | "lab" | "contact" | "loop";
 
 export interface MoodSpots {
   readonly lead: Point;
@@ -129,7 +130,10 @@ function sides(rect: DOMRect, lead: Point): Array<1 | -1> {
 }
 
 /** Where the second cat goes once the first has claimed a spot: behind, above,
- *  or a cat-width further out — and only if that place is clear too. */
+ *  or a cat-width further out — and only if that place is clear too, and
+ *  clear of the companion's own fixed controls (`clearsControls`) — the
+ *  toolkit toggle chief among them, since it is wherever the lead itself is
+ *  currently standing. */
 function mateSpot(lead: Point, side: 1 | -1): Point | null {
   const tries: Point[] = [
     { x: lead.x, y: lead.y + CAT_H + 6 },
@@ -138,7 +142,7 @@ function mateSpot(lead: Point, side: 1 | -1): Point | null {
   ];
   for (const want of tries) {
     const spot = clampToViewport(want);
-    if (!overlaps(spot, lead) && isClearSpot(spot)) return spot;
+    if (!overlaps(spot, lead) && isClearSpot(spot) && clearsControls(spot)) return spot;
   }
   return null;
 }
@@ -183,36 +187,6 @@ function heroMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
   const rect = rectOf(document.querySelector("[data-cat-perch]"));
   if (!rect) return null;
   return besideRect(rect, lead, follow, home, "hero");
-}
-
-/* -------------------------------------------------------------------------- */
-/* Journey: the timeline entry actually in the reading band                    */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The first timeline `<li>` intersecting the reading band — the middle third
- * of the viewport a visitor's eyes are actually on. Every entry carries
- * `id="journey-entry-{id}"` and no `aria-current`, so unlike the case-study
- * index there is no scroll-spy answer to read off; this resolves it directly
- * against the page, and only at settle time — the same rule every mood here
- * follows — rather than tracking it as the visitor scrolls.
- */
-function readingBandEntry(): DOMRect | null {
-  const items = document.querySelectorAll('#journey li[id^="journey-entry-"]');
-  const view = viewport();
-  const bandTop = safeTop() + view.height * 0.2;
-  const bandBottom = safeTop() + view.height * 0.6;
-  for (const item of items) {
-    const rect = item.getBoundingClientRect();
-    if (rect.bottom > bandTop && rect.top < bandBottom) return rectOf(item);
-  }
-  return null;
-}
-
-function journeyMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
-  const rect = readingBandEntry();
-  if (!rect) return null;
-  return besideRect(rect, lead, follow, home, "journey");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -439,7 +413,6 @@ export function planMood(
 ): MoodPlan | null {
   if (section === "about") return heroMood(lead, follow, home);
   if (section === "work") return workMood(lead, follow, home);
-  if (section === "journey") return journeyMood(lead, follow, home);
   if (section === "skills") return skillsMood(lead, follow, home);
   if (section === "tree") return treeMood(lead, follow, home);
   if (section === "lab") return labMood(lead, follow, home);

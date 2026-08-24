@@ -403,7 +403,17 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
         </p>
       ) : null}
 
-      <form ref={formRef} noValidate onSubmit={handleSubmit} className="mt-8 flex flex-col gap-6 scroll-mt-20">
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={handleSubmit}
+        // Declarative contract with the companion (same shape as
+        // data-cat-nap): while the "secret" intent is selected, the cats
+        // creep toward this form and perk up. Nothing here knows a cat is
+        // listening; removing the attribute ends the scene.
+        data-cat-secret={selectedIntentId === "secret" ? "" : undefined}
+        className="mt-8 flex flex-col gap-6 scroll-mt-20"
+      >
         <div className="flex flex-col gap-2">
           <FieldLabel htmlFor="contact-name" required>
             Name

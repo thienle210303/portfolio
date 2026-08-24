@@ -1,7 +1,4 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { workflowStages } from "../src/content/ai-experiments";
-
-const DESKTOP_MIN_WIDTH = 1024;
 
 function viewportWidth(page: Page): number {
   return page.viewportSize()?.width ?? 0;
@@ -15,29 +12,6 @@ test.beforeEach(async ({ page }) => {
   // settle is the closest available "the islands are live now" signal.
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-});
-
-test.describe("AI Workflow Lab stages", () => {
-  test("every stage is keyboard-selectable on desktop, each showing distinct panel content", async ({ page }) => {
-    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "desktop-only tablist");
-
-    const tabs = page.getByRole("tablist", { name: "Workflow stages" }).getByRole("tab");
-    await expect(tabs).toHaveCount(workflowStages.length);
-
-    const heading = page.getByRole("tabpanel").locator("h4");
-    const seen = new Set<string>();
-    await tabs.first().focus();
-
-    for (let i = 0; i < workflowStages.length; i++) {
-      await expect(tabs.nth(i)).toHaveAttribute("aria-selected", "true");
-      await expect(tabs.nth(i)).toBeFocused();
-      const text = ((await heading.textContent()) ?? "").trim();
-      expect(text.length, `stage ${i + 1} panel must render a heading`).toBeGreaterThan(0);
-      expect(seen.has(text), `stage ${i + 1} ("${text}") repeats a previous panel`).toBe(false);
-      seen.add(text);
-      if (i < workflowStages.length - 1) await page.keyboard.press("ArrowDown");
-    }
-  });
 });
 
 /** Bottom of entry i's drawn connector line vs. top of entry i+1's dot — the
@@ -101,10 +75,17 @@ async function connectorSpansMarkers(list: Locator): Promise<boolean> {
 
 test.describe("career timeline filters", () => {
   test("every filter's visible count matches the announced count, with no connector gap", async ({ page }) => {
-    const journey = page.locator("#journey");
-    const list = journey.getByRole("list", { name: "Career timeline" });
-    const status = journey.getByRole("status").filter({ hasText: "Showing" });
-    const radiogroup = journey.getByRole("radiogroup", { name: "Filter career entries by type" });
+    // The timeline lives inside the career tree's own "List" face since
+    // round 10 (src/sections/CareerTree/CareerTree.tsx, ViewToggle.tsx) —
+    // below 1024px that is already the default, but forcing it explicitly
+    // keeps this test viewport-independent rather than silently exercising
+    // nothing at the wider configured widths, where the default face is Tree.
+    const tree = page.locator("#tree");
+    await tree.getByRole("button", { name: "List", exact: true }).click();
+
+    const list = tree.getByRole("list", { name: "Career timeline" });
+    const status = tree.getByRole("status").filter({ hasText: "Showing" });
+    const radiogroup = tree.getByRole("radiogroup", { name: "Filter career entries by type" });
 
     for (const label of ["All", "Work", "Learning", "Milestones"]) {
       await radiogroup.getByRole("radio", { name: label }).click();
@@ -157,6 +138,10 @@ test.describe("hero code panel", () => {
 test.describe("reduced motion", () => {
   test("a disclosure still opens, closes, and stays keyboard-reachable", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
+
+    // The disclosure lives on the career tree's "List" face — force it on
+    // regardless of viewport (see the "career timeline filters" test above).
+    await page.locator("#tree").getByRole("button", { name: "List", exact: true }).click();
 
     // A journey entry known (from content) to carry a `link`, so its panel
     // is guaranteed at least one focusable element — Tab correctly skips

@@ -21,12 +21,22 @@ import type { AiExperiment, LearningLog, WorkflowStage } from "@/types/portfolio
 export const LAB_LAST_UPDATED = "2026-08-16";
 
 export const labPositioning =
-  "I use AI-assisted workflows to accelerate exploration while keeping architecture, verification, and accountability human-owned.";
+  "I use AI-assisted workflows to accelerate exploration while keeping architecture, verification, and accountability human-owned — including the chat box below, which will tell you about any of it without inventing a word.";
 
 export const labIntro = [
-  "Claude Code, Codex and Cursor are development tools and subjects I'm studying. None of them run in this website — this page is static, and nothing on it executes an agent.",
+  "Claude Code, Codex and Cursor are development tools and subjects I'm studying. None of them run this chat box — by default it's a lexical index over this page's own text, not a model, and it says so below.",
   "What I find interesting isn't the tools. It's the question underneath them: which parts of engineering judgement are actually delegable, and which parts quietly stop working the moment you delegate them.",
 ];
+
+/**
+ * Shown in place of `labIntro[0]` when `ASK_LLM_API_KEY` and `ASK_LLM_MODEL`
+ * are both set (`src/lib/ask-live-config.ts`) — the one thing on this page
+ * that then genuinely runs live. `AIWorkflowLab.tsx` picks between the two;
+ * neither sentence is invented by the component itself. See
+ * `docs/superpowers/specs/2026-08-23-round-10-design.md`, WP-D.
+ */
+export const labLiveNotice =
+  "One thing on this page now runs live: the chat box below hands your question, and only the passages it retrieved from this page, to a real language model — and marks that answer as coming from a live model when it does.";
 
 /* -------------------------------------------------------------------------- */
 /* Workflow stages                                                             */

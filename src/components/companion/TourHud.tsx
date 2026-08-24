@@ -153,8 +153,13 @@ export function TourHud({
       {/* Mounted empty and filled once the pair arrive — a `role="status"`
           region a screen reader has never seen before is one it may not
           announce, so it has to be present from the first render rather than
-          mounted with the first line already in it. */}
-      <p role="status" className="min-h-[2.5em] text-[length:var(--step--1)] leading-snug text-fg-muted">
+          mounted with the first line already in it. Round 10: `sr-only`
+          rather than removed — mini-Thien is now the visible translation
+          beside the speaking cat (`Companion.tsx`), so this line's job is
+          purely the accessible announcement it always made through
+          `role="status"`; a sighted visitor reads the same words off him
+          instead of off this panel. */}
+      <p role="status" className="sr-only">
         {statusText}
       </p>
 

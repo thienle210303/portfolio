@@ -13,12 +13,12 @@ import { buildKnowledgeTree, totalTechnologies } from "@/lib/knowledge-tree";
  *
  * Every derivation here is copied from the rail that already renders the same
  * count, on purpose: SelectedWork.tsx (case studies, sourced figures),
- * CareerJourney.tsx (entries, the work/learning/milestone split),
  * Skills.tsx (categories, distinct skills), CareerTree.tsx (branches,
- * leaves, technologies), AIWorkflowLab.tsx (experiments, verified) and
- * Hero.tsx (the current role). Changing what a rail says and forgetting this
- * file is exactly the drift the plan rules out — so if a rail's expression
- * ever changes, this one has to change with it.
+ * leaves, technologies, and — since the tree absorbed Journey — the entries
+ * and the work/learning/milestone split too), AIWorkflowLab.tsx (experiments,
+ * verified) and Hero.tsx (the current role). Changing what a rail says and
+ * forgetting this file is exactly the drift the plan rules out — so if a
+ * rail's expression ever changes, this one has to change with it.
  *
  * Pure and server-safe: no DOM, no `Math.random`, nothing but arithmetic over
  * `src/content/*`. `layout.tsx` calls this once, on the server, and hands the
@@ -37,20 +37,26 @@ export interface CompanionFacts {
     readonly caseStudies: number;
     readonly sourcedMetrics: number;
   };
-  readonly journey: {
-    readonly entries: number;
-    readonly work: number;
-    readonly learning: number;
-    readonly milestones: number;
-  };
   readonly skills: {
     readonly categories: number;
     readonly distinctSkills: number;
   };
+  /**
+   * Round 10: the tree absorbs Journey (one section, two faces), and the
+   * companion follows — `journey` retired as a key here rather than staying a
+   * fact nothing quotes any more. The timeline's own split (entries, and the
+   * work/learning/milestone counts that sum to it) is folded in beside the
+   * tree's own branch/leaf/technology counts, so both faces of the merged
+   * section speak from the same object.
+   */
   readonly tree: {
     readonly branches: number;
     readonly leaves: number;
     readonly technologies: number;
+    readonly entries: number;
+    readonly work: number;
+    readonly learning: number;
+    readonly milestones: number;
   };
   readonly lab: {
     readonly experiments: number;
@@ -96,12 +102,6 @@ export function buildCompanionFacts(): CompanionFacts {
       caseStudies: projects.length,
       sourcedMetrics,
     },
-    journey: {
-      entries: careerEntries.length,
-      work: countOf("work"),
-      learning: countOf("learning"),
-      milestones: countOf("milestone"),
-    },
     skills: {
       categories: skillCategories.length,
       distinctSkills: totalSkills,
@@ -110,6 +110,10 @@ export function buildCompanionFacts(): CompanionFacts {
       branches: tree.length,
       leaves: leafTotal,
       technologies: totalTechnologies(),
+      entries: careerEntries.length,
+      work: countOf("work"),
+      learning: countOf("learning"),
+      milestones: countOf("milestone"),
     },
     lab: {
       experiments: experiments.length,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { journeyEntryAnchor, journeyEntryAnchorId } from "@/sections/CareerJourney/anchors";
+import { journeyEntryAnchor, journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries } from "@/content/portfolio";
 
 /**

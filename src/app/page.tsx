@@ -2,7 +2,6 @@ import Hero from "@/sections/Hero/Hero";
 import Philosophy from "@/sections/Philosophy/Philosophy";
 import SelectedWork from "@/sections/SelectedWork/SelectedWork";
 import AIWorkflowLab from "@/sections/AIWorkflowLab/AIWorkflowLab";
-import CareerJourney from "@/sections/CareerJourney/CareerJourney";
 import Skills from "@/sections/Skills/Skills";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import Contact from "@/sections/Contact/Contact";
@@ -40,12 +39,15 @@ export default function Home() {
         those are now their own section. The résumé lives at /resume as a view
         to read or download, which is what a résumé is.
 
-        The career tree comes after Work, Journey and Skills rather than
-        inside the Journey section, where it used to render below the timeline.
-        It is the synthesis of those three — the case studies, the chronology
-        and the inventory, shown as one shape — so it can only be read after
-        all three, and it belongs to none of them. Each of those three ends
-        with a single link into it.
+        The career tree comes after Work and Skills rather than after Work,
+        Journey and Skills: round 10 folded the Journey section's own
+        chronological timeline into the tree as its own "List" face (see
+        src/sections/CareerTree/CareerTree.tsx and ViewToggle.tsx), so there is
+        no longer a separate Journey section to place. What is left is the
+        synthesis of the other two — the case studies and the inventory, shown
+        as one shape alongside the chronology itself — so it can only be read
+        after both, and it belongs to neither. Each of the two ends with a
+        single link into it.
 
         `navItems` in src/content/portfolio.ts must stay in this order: the nav
         doubles as the page's table of contents.
@@ -53,7 +55,6 @@ export default function Home() {
       <Hero />
       <Philosophy />
       <SelectedWork />
-      <CareerJourney />
       <Skills />
       <CareerTree />
       <AIWorkflowLab />

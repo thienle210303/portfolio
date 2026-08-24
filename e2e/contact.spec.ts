@@ -31,6 +31,24 @@ test("selecting an intent prefills subject and message, and both remain editable
   await expect(reason).toHaveValue(contactIntents[0].subject);
 });
 
+test("the secret intent declares data-cat-secret on the form, and only while selected", async ({ page }) => {
+  const contact = page.locator("#contact");
+  // Two forms live in #contact (quick connect above, the full form below);
+  // anchor on the field only the full form has rather than on DOM order.
+  const form = contact.locator("form", { has: page.locator("#contact-name") });
+  const secret = contactIntents.find((intent) => intent.id === "secret");
+  if (!secret) throw new Error("The secret intent left the content layer — update this spec with it.");
+
+  // Declaration side of the companion contract only: the cats' reaction is
+  // pinned in companion.spec.ts. Here the form must raise the flag while the
+  // secret intent is selected and lower it the moment another intent is.
+  await expect(form).not.toHaveAttribute("data-cat-secret");
+  await contact.getByRole("radio", { name: secret.label }).check();
+  await expect(form).toHaveAttribute("data-cat-secret", "");
+  await contact.getByRole("radio", { name: contactIntents[0].label }).check();
+  await expect(form).not.toHaveAttribute("data-cat-secret");
+});
+
 test("submitting with empty required fields shows inline validation, not a submission", async ({ page }) => {
   const form = page.locator("#contact form");
 

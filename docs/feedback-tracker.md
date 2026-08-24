@@ -467,3 +467,55 @@ the single failure was the over-tightened companion test described above, and
 nothing in the product. After the split, the companion suite at 1440 is **21
 passed / 2 skipped / 0 failed**, and two minutes faster than it was while it sat
 waiting for one particular scene.
+
+## Round 10 (2026-08-23) — closed
+
+Owner's items 2/3/4/5/7 (items 1 and 6 never arrived — eaten by the
+terminal; owner pinged to resend). Decisions taken via four owner calls;
+full design in `docs/superpowers/specs/2026-08-23-round-10-design.md`.
+
+| WP | Owner | Scope | Files | Status |
+| --- | --- | --- | --- | --- |
+| A | Sonnet | Mini-Thien narrator, meow-only bubbles, bubble occupancy, journey→tree re-key, `data-cat-secret` listener | `src/components/companion/*`, `src/lib/companion-facts.ts`, companion specs | Dispatched |
+| B | Sonnet | Origin story rebuilt on a single rAF master clock | `src/sections/CareerTree/OriginStory.tsx`, origin keyframes, origin tests | Dispatched |
+| C | Sonnet | Tree absorbs Journey: one `#tree` section (+`#journey` alias), Tree/List toggle, nav −1 | `src/sections/CareerTree/*` (not OriginStory), `src/sections/CareerJourney/*`, `page.tsx`, `navItems` | Dispatched |
+| D | Sonnet | Chat-thread Ask-me-anything, corpus from the content layer, env-gated live LLM (`ASK_LLM_*`, free by default), Workflow Explorer retired | `src/sections/AIWorkflowLab/*`, `src/lib/answers.ts`+corpus, `/api/ask`, `.env.example` | Dispatched |
+| E | Lead | Four intents (opportunity · crazy idea · hello · secret 🤫), `data-cat-secret` declaration + spec | `contactIntents`, `ContactForm.tsx`, `e2e/contact.spec.ts` | Implemented |
+
+Cross-package contracts (lead-owned): `data-cat-secret` (E declares, A
+listens); section re-key (C merges sections, A re-keys companion); story
+beat `CustomEvent` shape (B preserves, A consumes); `page.tsx` (C only).
+
+### Round 10 outcomes
+
+All five packages shipped. Four parallel Sonnet builders with disjoint file
+ownership, then three matrix-driven fix rounds routed back to the owning
+builders (context intact via resume), lead handling cross-cutting triage.
+
+| WP | Outcome |
+| --- | --- |
+| A | Mini-Thien (shared `Silhouette`/`LineWork` primitives, bare contours, notebook) translates while cats keep meow-only puffs; bubbles/captions are reserved space and paint above the cats; tour HUD transcript went sr-only; `journey` retired as a companion key (7-stop tour); `data-cat-secret` creep shipped. Fix rounds: two-form locator strict-mode defect; a real target-size bug (cat parked on the toolkit toggle, 6.6px clear space) fixed via a separate control-rects registry — whose first version fed the follower's own position back into her target every frame and silently broke tour arrival (status region never filled); reverted at `findClearSpot`, kept at `mateSpot`/home, `sideStep` now offsets from the lead's live rect on a 120ms cadence |
+| B | One rAF master clock replaces per-group `setTimeout`s + CSS-delay guesses; `planRelease`/`dueByElapsed` pure and unit-tested (14 tests). Fix rounds: the chronology e2e was racing the by-design staggered DOM release (poll, deadline from `STAGGER_STEP_MS`); then the poll exposed a real StrictMode bug — `claimedRef` survived the rehearsal unmount while the DOM re-pended, permanently stranding the arrival year's groups; conductor now resets all bookkeeping per real mount. Lead added: Escape/Skip-focus listeners moved to layout effects — a visible player that drops an Escape pressed before its passive effects ran was a real race the full-suite load exposed |
+| C | One `#tree` section, `#journey` as a zero-size anchor (no-JS safe), Tree/List toggle with CSS-only defaults (desktop tree, mobile list), `forceCareerTreeView` as direct DOM writes to outrun `scrollIntoView`; per-entry fragments, widen-on-fragment, and the 80px landing all survive; nav −1 with the merged item labelled "Journey". Known trade-off: no-JS desktop cannot reach the List face (same class as the origin player). Lead fix round: the "cold load" e2e was actually a same-document hash hop (file-level beforeEach loads `/` first) and Next's dev router intermittently dropped the fragment before `hashchange` — measured `location.hash === ""` in 10/12 failures with the product blameless; the test now interposes `about:blank` so it truly cold-loads (12/12) |
+| D | Ask This Site is the section lead: multi-turn thread, per-turn Prose/Code tabs with unique filenames, focus-preserving compose; corpus adds origin, philosophy, principles, loop (mechanical field-joins only); Workflow Explorer deleted; live mode env-gated on `ASK_LLM_*` (free by default — no key, no model, no cost) with retrieval-first grounding, 12/10min per-IP limit, zod caps; authored live/static notice pair. Fix rounds: Tailwind preflight strips implicit list roles — the new lists needed the codebase's explicit `role="list"` pattern; then the lead found the remaining failure was the spec's own `lastTurn` grabbing nested sourced-answer `<li>`s (role queries match descendants) — direct-child scoping fixed all seven |
+| E | Four intents shipped (opportunity · crazy idea · hello+feedback · secret 🤫 with "The cats have been briefed. They'll deny everything."); `data-cat-secret` declared on the form while selected, pinned by a declaration-side e2e test |
+
+### Round 10 gate
+
+`pnpm verify` green: typecheck, lint, 31 contrast pairings all ≥ AA (lowest
+4.66:1), **348 unit tests** (up from 242 at round 9), production build with
+the new `/api/ask` route. Full Playwright matrix: **427 passed / 0 failed**
+across six viewports, both themes, all tones, axe audits. Visual pass done
+against a real browser at 1440 in day and night: tree face, list face, lab
+chat with a live turn, contact with the secret intent selected and the cats
+crept to the form.
+
+Five matrix runs to green, every failure adjudicated: 16 → 12 → 1 → 1 → 0,
+with four real product bugs found and fixed along the way (toolkit-toggle
+target size, tour-arrival feedback loop, StrictMode-stranded story groups,
+dropped-Escape listener window) and four test defects fixed where the test
+was the liar (strict-mode locators, descendant listitem matching, a poll
+racing a by-design stagger, a "cold load" that wasn't one).
+
+Owner's items 1 and 6 from this round's list never arrived (terminal ate
+them) — still awaiting a resend.

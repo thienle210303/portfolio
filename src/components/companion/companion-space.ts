@@ -210,6 +210,84 @@ function occupied(x: number, y: number): boolean {
 }
 
 /**
+ * Rects the placement probe must also treat as occupied — the duet's own
+ * speech bubbles and mini-Thien's caption.
+ *
+ * They cannot be found the way ordinary content is: `elementBehind` walks
+ * straight through anything inside `[data-companion]` (see `SELF` above), on
+ * purpose — without that, the two cats would each read the other as
+ * "occupied" and never be able to stand near one another. That same rule
+ * makes the companion's own bubbles invisible to `occupied()`, which is
+ * exactly the reported bug: a cat could rest on top of, or under, the very
+ * bubble a scene had just opened.
+ *
+ * So this is a second, narrower list, kept out of band from the DOM scan and
+ * populated only by `Companion.tsx`, once a frame, from the bounding boxes of
+ * whichever bubbles or captions are actually mounted — empty the rest of the
+ * time, which is the common case and costs this module nothing then.
+ */
+const EMPTY_RECTS: readonly DOMRect[] = [];
+let reserved: readonly DOMRect[] = EMPTY_RECTS;
+
+export function setReservedRects(rects: readonly DOMRect[]): void {
+  reserved = rects.length > 0 ? rects : EMPTY_RECTS;
+}
+
+function reservedAt(x: number, y: number): boolean {
+  for (const rect of reserved) {
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return true;
+  }
+  return false;
+}
+
+/**
+ * The companion's own fixed controls a *different* cat must never be placed
+ * on top of — currently just the toolkit toggle, which is the lead cat's own
+ * button. Axe caught this one live: `target-size` flagged the toggle with
+ * only a sliver of its target left clickable, because the follower had been
+ * placed squarely over it.
+ *
+ * Deliberately **not** folded into `reserved`/`isClearSpot` above, and that
+ * is not an oversight — a bubble is always offset a few pixels clear of the
+ * cat it belongs to, so nothing that reads a bubble as occupied ever asks
+ * about a point a cat is actually standing on. The toolkit toggle *is* the
+ * lead cat's own current position. Wiring it into `isClearSpot` would make
+ * the lead read its own settled spot as occupied by itself on every frame
+ * `restingPlaces()` re-validates a held mood (`isClearSpot(held.spots.lead)`
+ * in `Companion.tsx`), which would drop every mood the instant it was taken
+ * up. So this is its own registry, consulted only by the two functions that
+ * ever compute one cat's position *relative to the other's* — `mateSpot`
+ * (companion-moods.ts) and `findClearSpot` below — never by a cat validating
+ * its own spot.
+ */
+const EMPTY_CONTROL_RECTS: readonly DOMRect[] = [];
+let controlRects: readonly DOMRect[] = EMPTY_CONTROL_RECTS;
+
+export function setControlRects(rects: readonly DOMRect[]): void {
+  controlRects = rects.length > 0 ? rects : EMPTY_CONTROL_RECTS;
+}
+
+/** Same three-point probe `isClearSpot` uses, for the same reason: a single
+ *  centre sample would let a cat straddle the edge of a control with half of
+ *  it clear. */
+export function clearsControls(point: Point): boolean {
+  const { x, y } = point;
+  const probes: Point[] = [
+    { x: x + CAT_W / 2, y: y + CAT_H * 0.6 },
+    { x: x + 6, y: y + CAT_H - 6 },
+    { x: x + CAT_W - 6, y: y + CAT_H - 6 },
+  ];
+  for (const rect of controlRects) {
+    for (const probe of probes) {
+      if (probe.x >= rect.left && probe.x <= rect.right && probe.y >= rect.top && probe.y <= rect.bottom) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
  * Three probes, not one: the cat's middle and both of the points its feet
  * actually rest on. A single centre sample lets a cat straddle the edge of a
  * paragraph with half of it on the text, which is the case this exists to stop.
@@ -222,10 +300,16 @@ export function isClearSpot(point: Point): boolean {
   const box = bounds();
   if (x < box.minX - 0.5 || x > box.maxX + 0.5) return false;
   if (y < box.minY - 0.5 || y > box.maxY + 0.5) return false;
+  const belly = { x: x + CAT_W / 2, y: y + CAT_H * 0.6 };
+  const leftFoot = { x: x + 6, y: y + CAT_H - 6 };
+  const rightFoot = { x: x + CAT_W - 6, y: y + CAT_H - 6 };
   return (
-    !occupied(x + CAT_W / 2, y + CAT_H * 0.6) &&
-    !occupied(x + 6, y + CAT_H - 6) &&
-    !occupied(x + CAT_W - 6, y + CAT_H - 6)
+    !occupied(belly.x, belly.y) &&
+    !occupied(leftFoot.x, leftFoot.y) &&
+    !occupied(rightFoot.x, rightFoot.y) &&
+    !reservedAt(belly.x, belly.y) &&
+    !reservedAt(leftFoot.x, leftFoot.y) &&
+    !reservedAt(rightFoot.x, rightFoot.y)
   );
 }
 
@@ -277,6 +361,19 @@ function overlaps(a: Point, b: Point): boolean {
  * toolkit panel is anchored anyway. `avoid` is the spot the other cat has
  * already claimed.
  *
+ * `clearsControls` is deliberately **not** part of `free()`, the check run
+ * against `want` and every `nearbyWhitespace` candidate — it was, briefly,
+ * and it broke the guided tour. `want` here is very often the *other* cat's
+ * own current position (`mateSpot`'s fallback passes the follower's live
+ * spot; `restSpots` passes it too), which trails the lead within a few tens
+ * of pixels by construction — normal, harmless proximity that is not the
+ * same claim as "standing on the toggle". Rejecting it on every frame a
+ * tour stop is recomputed (every frame, walking or arrived — see
+ * `Companion.tsx`) fed the follower's own moving position back into its own
+ * target, and the two never converged. The controls check is applied only
+ * to the corner fallback below, where `home` is a fixed point rather than a
+ * moving one and cannot create that feedback.
+ *
  * Bounded work: at most fifteen candidates × three hit tests, and only ever at
  * the moment a cat settles.
  */
@@ -287,7 +384,22 @@ export function findClearSpot(want: Point, home: Point, avoid?: Point): Point {
   for (const candidate of nearbyWhitespace(wanted)) {
     if (free(candidate)) return candidate;
   }
-  return clampToViewport(home);
+  const fallback = clampToViewport(home);
+  if (free(fallback) && clearsControls(fallback)) return fallback;
+  // The corner itself is never occupied by page content, so failing here
+  // means `avoid` — another cat, or a fixed control such as the toolkit
+  // toggle — is standing on it. One nudge a full cat-width away, on
+  // whichever side `avoid` is not, before genuinely giving up: this
+  // function never returns null, so the alternative to a nudge that also
+  // fails is handing back a point already known to conflict.
+  if (avoid) {
+    const nudged = clampToViewport({
+      x: fallback.x + (fallback.x >= avoid.x ? CAT_W : -CAT_W),
+      y: fallback.y,
+    });
+    if (!overlaps(nudged, avoid) && clearsControls(nudged)) return nudged;
+  }
+  return fallback;
 }
 
 /* -------------------------------------------------------------------------- */
