@@ -27,7 +27,7 @@
  *    it under "Holds", and the rail rule against restating a fact applies
  *    just as much to this band as to the rail itself.
  *  - role/organization/year counts, read directly off the `work` career
- *    entries the same way CareerJourney.tsx counts its own rail notes.
+ *    entries — computed facts, never typed twice.
  *
  * No heading element. Hero owns the page's only <h1> and has nothing at <h2>
  * ahead of this band (every other section's <h2> comes from `SectionHeading`,
@@ -52,8 +52,8 @@ const workEntries = careerEntries.filter((entry) => entry.type === "work");
 // organizations" is meant to claim.
 const organizationCount = new Set(workEntries.map((entry) => entry.organization)).size;
 
-// `sortKey` is `YYYY-MM[-x]` and sorts reverse-lexicographically — the same
-// computation CareerJourney.tsx uses for its "From" rail note. Scoped to
+// `sortKey` is `YYYY-MM[-x]`, so plain lexicographic order is date order.
+// Scoped to
 // `work` entries so it stays paired with the role/organization counts above
 // rather than reaching back to the 2021 start of the degree.
 const earliestRoleYear = [...workEntries]

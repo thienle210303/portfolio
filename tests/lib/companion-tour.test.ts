@@ -44,7 +44,7 @@ describe("isLastStop", () => {
 describe("stopsFor", () => {
   const ROUTES: TourRoute[] = ["grey", "tabby"];
 
-  it("both routes carry exactly the same eight stops — nothing skipped, nothing invented", () => {
+  it("both routes carry exactly the same stops — nothing skipped, nothing invented", () => {
     const bySection = (stops: readonly { sectionId: string }[]) =>
       new Set(stops.map((stop) => stop.sectionId));
     for (const route of ROUTES) {
@@ -67,7 +67,7 @@ describe("stopsFor", () => {
 
   it("walks the builder's route work outward, and the curious route in reverse", () => {
     const middle = (route: TourRoute) => stopsFor(route).slice(2, -1).map((stop) => stop.sectionId);
-    expect(middle("grey")).toEqual(["work", "journey", "skills", "tree", "lab"]);
-    expect(middle("tabby")).toEqual(["lab", "tree", "skills", "journey", "work"]);
+    expect(middle("grey")).toEqual(["work", "skills", "tree", "lab"]);
+    expect(middle("tabby")).toEqual(["lab", "tree", "skills", "work"]);
   });
 });

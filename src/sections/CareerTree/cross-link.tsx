@@ -1,20 +1,26 @@
 /**
- * The cross-references between this section and the three it synthesises.
+ * The cross-references between this section and the two it still stands
+ * apart from.
  *
  * The rule they follow: **one quiet link per direction, and no restated
- * facts.** Work, Journey and Skills each keep their own job — the case
- * studies, the chronology, the inventory — and the tree is the one place
- * they are shown as a single shape. So each of those three ends with one
- * pointer here (`TreeCrossLink`, below), the tree points back at Journey
- * once, its leaves already link to the case studies in `#work`, and its
- * roots link to the skill groups in `#skills`. Nothing anywhere explains the
- * relationship in prose; the link is the explanation.
+ * facts.** Work and Skills each keep their own job — the case studies, the
+ * inventory — and the tree is the one place their content is shown as a
+ * single shape alongside the chronology. Journey used to be the third of
+ * these, a separate section this one pointed back at; round 10 folded the
+ * timeline into this section as its own "List" face (see `CareerTree.tsx`
+ * and `Timeline.tsx`), so there is no longer a third section to point at —
+ * only Work and Skills end with a pointer here (`TreeCrossLink`, below), and
+ * the tree no longer needs a pointer back the other way, because the
+ * chronology it used to point at is now inside it. Its leaves still link to
+ * the case studies in `#work`, and its roots still link to the skill groups
+ * in `#skills`. Nothing anywhere explains the relationship in prose; the
+ * link is the explanation.
  *
- * Rendered from one component in all three inbound places rather than typed
- * out three times: identical text pointing at an identical href is also the
- * correct accessibility answer — a screen-reader user listing the page's
- * links hears one repeated destination, not three differently-worded ones
- * that turn out to be the same place.
+ * Rendered from one component in both inbound places rather than typed out
+ * twice: identical text pointing at an identical href is also the correct
+ * accessibility answer — a screen-reader user listing the page's links hears
+ * one repeated destination, not two differently-worded ones that turn out to
+ * be the same place.
  *
  * `min-h-11` is not decoration either. These sit on their own line rather
  * than inside a sentence, so WCAG 2.2's target-size minimum (2.5.8) applies
@@ -37,9 +43,15 @@
  * (`journeyEntryAnchor` returns `undefined`), because a fragment pointing at
  * an element that does not exist is a link that silently does nothing — worse
  * than no link.
+ *
+ * Following it does more than navigate: the timeline it points at is this
+ * same section's own "List" face, which may not be the one currently on
+ * screen. `Timeline.tsx`'s own hashchange/click handling is what switches the
+ * face and lands the scroll — see `./view-state.ts` for why that lives there
+ * rather than here.
  */
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
-import { journeyEntryAnchor } from "@/sections/CareerJourney/anchors";
+import { journeyEntryAnchor } from "./anchors";
 
 // `.ink-link-quiet` (Workstream 3, P3 — the only piece of this file
 // Workstream 3 owns, per that pass's file scope): these cross-links stand
@@ -53,9 +65,9 @@ import { journeyEntryAnchor } from "@/sections/CareerJourney/anchors";
 export const CROSS_LINK_CLASS =
   "ink-link-quiet eyebrow inline-flex min-h-11 items-center text-accent";
 
-/** The pointer into the tree, rendered at the end of Work, Journey and
- *  Skills. Deliberately says nothing about *what* connects — the section it
- *  points at is where that is shown. */
+/** The pointer into the tree, rendered at the end of Work and Skills.
+ *  Deliberately says nothing about *what* connects — the section it points
+ *  at is where that is shown. */
 export function TreeCrossLink() {
   return (
     <p className="mt-8">

@@ -127,13 +127,17 @@ export const socialLinks = [
 // Order must match the render order in src/app/page.tsx: the nav doubles as
 // the page's table of contents, and a nav that lists sections in a different
 // order than the page scrolls through them is actively misleading.
+// Round 10: Journey no longer has its own section — its timeline is now the
+// career tree's own "List" face (see src/sections/CareerTree/CareerTree.tsx).
+// The nav item that used to point at #journey is gone; "tree" keeps its own
+// entry, relabelled "Journey" — what a hiring manager scans for — since it
+// now answers both #tree and #journey (src/sections/CareerTree/anchors.ts).
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
   { id: "nav-philosophy", sectionId: "philosophy", label: "Philosophy" },
   { id: "nav-work", sectionId: "work", label: "Work" },
-  { id: "nav-journey", sectionId: "journey", label: "Journey" },
   { id: "nav-skills", sectionId: "skills", label: "Skills" },
-  { id: "nav-tree", sectionId: "tree", label: "Career tree" },
+  { id: "nav-tree", sectionId: "tree", label: "Journey" },
   { id: "nav-lab", sectionId: "lab", label: "AI Workflow Lab" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
@@ -1223,36 +1227,28 @@ export const contactIntents = [
       "Hi Thien,\n\nI'm reaching out about a role I think could be a fit. Here's the team and what the work looks like:\n\n",
   },
   {
-    id: "collaborate",
-    label: "I want to collaborate",
-    description: "A project, a problem, or something you'd like to build.",
-    subject: "Collaboration",
+    id: "crazy-idea",
+    label: "I have a crazy idea",
+    description: "A project, a collaboration, something nobody asked for yet.",
+    subject: "A crazy idea",
     messageStarter:
-      "Hi Thien,\n\nI'd like to work together on something. Here's what I have in mind:\n\n",
-  },
-  {
-    id: "ai-workflows",
-    label: "I want to discuss AI workflows",
-    description: "Agentic development, context engineering, verification.",
-    subject: "AI workflows",
-    messageStarter:
-      "Hi Thien,\n\nI read the AI Workflow Lab and wanted to compare notes. What I've been trying:\n\n",
-  },
-  {
-    id: "feedback",
-    label: "I have portfolio feedback",
-    description: "Something is broken, unclear, or could be better.",
-    subject: "Portfolio feedback",
-    messageStarter:
-      "Hi Thien,\n\nSome feedback on your site:\n\n",
+      "Hi Thien,\n\nOkay, hear me out:\n\n",
   },
   {
     id: "hello",
-    label: "I just want to say hello",
-    description: "No agenda required.",
+    label: "Just want to say hello",
+    description: "No agenda required. Feedback about this site lands here too.",
     subject: "Hello",
     messageStarter:
       "Hi Thien,\n\nJust wanted to say hello. A bit about me:\n\n",
+  },
+  {
+    id: "secret",
+    label: "It's a secret \u{1F92B}",
+    description: "The cats have been briefed. They'll deny everything.",
+    subject: "A secret",
+    messageStarter:
+      "Hi Thien,\n\nI can't say much here. What I can say:\n\n",
   },
 ] satisfies readonly ContactIntent[];
 

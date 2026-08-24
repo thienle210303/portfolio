@@ -298,7 +298,7 @@ const ROAM_WEIGHTS: Record<SceneKind, number> = {
 /**
  * What the moment is, for the one weight round 11 makes situational: the moth
  * is a creature drawn to a light, and the AI Workflow Lab is the one section
- * whose own drawing is lit up like one — see WorkflowExplorer's tablist. It
+ * that answers back — the Ask This Site chat is the page's lit window. It
  * is 3x as likely to lead there, and 2x at night, when a lit lab reads as the
  * one bright thing on the page rather than merely the busiest.
  *

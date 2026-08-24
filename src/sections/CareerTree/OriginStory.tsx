@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { origin } from "@/content/portfolio";
@@ -8,9 +8,15 @@ import { cn } from "@/lib/cn";
 import {
   firstCanopyYear,
   growthStage,
+  planRelease,
   seasonsFor,
+  STAGGER_CLEANUP_MARGIN_MS,
+  TIER_BRANCH,
+  TIER_LEAF,
+  TIER_TRUNK,
   type Season,
   type SeasonKind,
+  type StaggerCandidate,
 } from "@/lib/origin-story";
 
 /**
@@ -33,10 +39,11 @@ import {
  * derived moment, played in order: the flight (3s), the seed (2.5s), one per
  * `Season` from `seasonsFor()` (2s each, `kind` is the season's own weather),
  * and "still growing" (2.5s), which releases the one group nothing else
- * ever does — the unfinished shoot. `setTimeout` auto-advances; a click
- * anywhere on the stage advances immediately, the same "click moves things
- * along" idiom the companion's duet already uses. Escape, the Skip button,
- * or the figure scrolling out of view all end the show the same way.
+ * ever does — the unfinished shoot. A single `requestAnimationFrame` master
+ * clock auto-advances (see "The master clock" below); a click anywhere on
+ * the stage advances immediately, the same "click moves things along" idiom
+ * the companion's duet already uses. Escape, the Skip button, or the figure
+ * scrolling out of view all end the show the same way.
  *
  * ## The conductor, and the one rule it can never break
  *
@@ -280,21 +287,20 @@ function originDur(ms: number): CSSProperties {
  * already existed): "start from the ground, grow slowly" meant a whole
  * year's worth of groups could no longer flip from pending to grown in the
  * same frame — a trunk, five boughs and a dozen leaves all bumping into view
- * at once reads as a cut, not a growth. `tier` is what `releaseThroughYear`
- * below sorts a year's newly-releasing groups by before staggering them:
- * trunk/ground-break first (0), then branch/lens and the underground's own
- * major roots (1, the canopy's and the root system's structural peers), then
- * leaves (2) — big, slow things settle before the small, quick things hung
- * off them do. Read straight off each element's own `data-origin-tier` in
- * `DrawnTree.tsx` rather than inferred here, the same "author the fact where
- * the element already lives" discipline the rest of this file's DOM contract
- * follows; a group with no tier at all (there should never be one) defaults
- * to the branch tier rather than either extreme.
+ * at once reads as a cut, not a growth. `tier` is what `planRelease`
+ * (`origin-story.ts`) sorts a year's newly-releasing groups by before
+ * staggering them: trunk/ground-break first (`TIER_TRUNK`), then
+ * branch/lens and the underground's own major roots (`TIER_BRANCH`, the
+ * canopy's and the root system's structural peers), then leaves
+ * (`TIER_LEAF`) — big, slow things settle before the small, quick things
+ * hung off them do. Read straight off each element's own `data-origin-tier`
+ * in `DrawnTree.tsx` rather than inferred here, the same "author the fact
+ * where the element already lives" discipline the rest of this file's DOM
+ * contract follows; a group with no tier at all (there should never be one)
+ * defaults to the branch tier rather than either extreme. The three
+ * constants themselves live in `origin-story.ts`, alongside `planRelease`,
+ * so the ordering and the function that reads it can never drift apart.
  */
-const TIER_TRUNK = 0;
-const TIER_BRANCH = 1;
-const TIER_LEAF = 2;
-
 function tierOf(el: HTMLElement): number {
   switch (el.getAttribute("data-origin-tier")) {
     case "trunk":
@@ -332,108 +338,86 @@ function queryGroups(figure: HTMLElement): readonly OriginGroup[] {
   }));
 }
 
-/** How long a stagger step waits before the next group in the same release
- *  starts its own transition — small enough that a year with a dozen leaves
- *  still finishes well inside one season beat's `SEASON_MS`, large enough to
- *  actually read as a sequence rather than a shimmer. */
-const STAGGER_STEP_MS = 120;
-/** The trunk's own hero rise: roughly double the ordinary `--dur-draw` a
- *  bough or a leaf's mark draws with — the one moment this drawing is asked
- *  to slow down for, not speed past. */
-const TRUNK_RISE_MS = 1200;
-/** A leaf pops faster than the branch it hangs off — "small things move
- *  quick, big things move slow" — well under `--dur-draw` (600ms). */
-const LEAF_POP_MS = 300;
-/** Neither `TRUNK_RISE_MS` nor `LEAF_POP_MS` — the ordinary `--dur-draw` a
- *  branch/lens group's own ink class already transitions with in
- *  globals.css. This file has no access to that CSS custom property's
- *  numeric value (nothing here needs the *exact* figure, only something safe
- *  to size a cleanup timeout against), so this is a same-order stand-in. */
-const ORDINARY_DUR_MS = 600;
-/** How long past a group's own delay+duration this file waits before wiping
- *  its inline stagger back off — comfortably past when the transition it
- *  timed has actually finished, so the reset in `scheduleStaggerCleanup`
- *  never lands mid-animation. */
-const STAGGER_CLEANUP_MARGIN_MS = 800;
+/**
+ * The single rAF master clock (round 10, "Origin story on one clock"): every
+ * group's release used to be scheduled by giving it its own CSS
+ * `transitionDelay` (an inherited custom property) plus its own
+ * `window.setTimeout` to later wipe that property back off — dozens of
+ * independent clocks per beat, each free to fire late or out of order
+ * relative to the others under load, exactly the "small clocks that miss
+ * each other" the round's design brief names as the root cause of the
+ * reported glitches. There is now exactly one clock: a single
+ * `requestAnimationFrame` loop (the effect below this comment), reading one
+ * `performance.now()` per frame, that both *decides* which pending group is
+ * due (`dueByElapsed`, `origin-story.ts` — a pure function of elapsed time
+ * against a plan `planRelease` already computed) and *cleans up* every
+ * group's inline `--origin-rise`/`--origin-pop` once its own transition has
+ * safely finished. A `QueuedRelease`/`QueuedCleanup` array standing in for
+ * what used to be a `window.setTimeout` per entry: read every frame instead
+ * of scheduled ahead of time, so nothing here can fire late relative to
+ * anything else this clock also owns — they are all read from the same
+ * `now`.
+ *
+ * The one thing this rewrite deliberately stops doing is writing
+ * `--origin-stagger` at all. `[data-origin-running] .tree-draw` and its
+ * siblings in globals.css still read `var(--origin-stagger, 0ms)` as their
+ * own `transition-delay` — that CSS is untouched, and does not need to be:
+ * with the clock itself now deciding *when* a group's `data-origin-pending`
+ * is removed (waiting out each group's own stagger step in JS before ever
+ * touching the DOM), the CSS transition can simply start the instant it is
+ * triggered, at its own `var(--origin-stagger, 0ms)` default of zero. One
+ * clock deciding "when", rather than a JS timer and a CSS delay each
+ * independently approximating the same wait, is the whole fix.
+ *
+ * Compositor-friendly properties only, per the round's own constraint: every
+ * transition this clock's DOM writes ultimately drive is `transform`
+ * (`.tree-grow`/`.tree-grow-down`) or `opacity` (`.tree-fade`,
+ * `[data-tree-panel]`, `[data-tree-entry] > div`) — the one exception,
+ * `.tree-draw`'s `stroke-dashoffset`, is an SVG stroke-drawing effect this
+ * package does not own (`DrawnTree.tsx`'s own ink contract, shared with the
+ * page-load reveal); it predates this round and moving it to a
+ * transform-based draw-on effect is out of this package's file ownership.
+ */
+interface QueuedRelease {
+  readonly group: OriginGroup;
+  readonly delayMs: number;
+  readonly durationMs: number;
+}
 
-/** One group this release just staggered, and how long from *now* until it
- *  is safe to wipe that stagger back off — see `scheduleStaggerCleanup`. */
-interface ScheduledStagger {
+/** One group already released, whose inline `--origin-rise`/`--origin-pop`
+ *  override is still waiting for its own transition to actually finish
+ *  before the master clock wipes it back off. */
+interface QueuedCleanup {
   readonly el: HTMLElement;
-  readonly clearAfterMs: number;
+  readonly dueAt: number;
 }
 
 /**
- * Releases every non-shoot group at or before `year`, in an order and a
- * timing meant to read as growth rather than a swap: trunk/ground-break
- * groups first, then branch/lens (canopy boughs and the root system's own
- * major laterals share this tier), then leaves — see `tierOf`'s doc comment
- * — each one's `transitionDelay` staggered `STAGGER_STEP_MS` past the one
- * before it. The trunk's own group additionally gets `TRUNK_RISE_MS` (the
- * hero moment "start from the ground" asks for) and every leaf gets the
- * faster `LEAF_POP_MS` — everything else keeps the ordinary `--dur-draw`/
- * `--dur-settle` its own ink class already declares in globals.css.
- *
- * Only groups still actually pending are sorted and staggered — a group
- * already released earlier this run is left alone rather than re-staggered
- * for no visible reason, and (since this can run more than once per beat via
- * the "still" beat's own safety sweep through `Infinity`) never twice. That
- * "leave everything else alone" rule is not just tidiness: an earlier
- * version of this function cleared every group's inline stagger *before*
- * setting fresh ones, on every beat, on the theory that "clear on the next
- * release" was as valid as a self-clearing timeout. It measurably was not —
- * touching `transitionDelay`/`transitionDuration` on a group that was not
- * changing state at all (a `data-tree-shoot-label` two years from its own
- * release, say) was enough to re-open its already-finished fade-out
- * transition for a further couple hundred milliseconds, which is exactly the
- * "chrome still fading, not yet hidden" bug this design-polish pass exists
- * to close, not reopen. Returns what it staggered rather than scheduling the
- * cleanup itself — it has no timer and no ref to hold one, both of which the
- * caller already has.
- *
- * `year <= year` is false for every comparison once `year` is `NaN` (a
- * malformed `data-origin-year`, which should never happen but would
- * otherwise leave that one group pending for the entire run rather than
- * merely for the beat it can no longer honestly claim), so a non-finite
- * year is treated as "always due" instead.
+ * Turns a beat's own cutoff year into an ordered release queue by calling
+ * `planRelease` (the DOM-free, unit-tested half of this clock) with the real
+ * groups' own facts, then joins each plan entry's opaque `key` back up with
+ * the `OriginGroup` it actually came from. `planRelease` only ever returns
+ * keys it was handed, so `byEl` always has a match; `flatMap` (rather than a
+ * cast or a non-null assertion) is what lets the type checker see that
+ * without this file asserting an invariant it cannot itself prove.
  */
-function releaseThroughYear(groups: readonly OriginGroup[], year: number): readonly ScheduledStagger[] {
-  const due = groups.filter(
-    (group) =>
-      !group.isShoot &&
-      group.el.hasAttribute("data-origin-pending") &&
-      (!Number.isFinite(group.year) || group.year <= year),
-  );
-  // A stable sort — the only kind `Array.prototype.sort` has been since
-  // ES2019 — keeps each tier's own groups in the document order they were
-  // already queried in, so "trunk, then branch, then leaf" is the only new
-  // ordering this introduces, not a second, silent reshuffle within a tier.
-  const ordered = [...due].sort((a, b) => a.tier - b.tier);
-  return ordered.map((group, index) => {
-    const delayMs = index * STAGGER_STEP_MS;
-    let durationMs = ORDINARY_DUR_MS;
-    // Inherited custom properties, not `transitionDelay`/`transitionDuration`
-    // directly: every rule this stagger is meant to shape — `.tree-draw`,
-    // `.tree-grow`/`.tree-grow-down`, `.tree-fade`, `[data-tree-panel]`,
-    // `[data-tree-entry] > div` — declares its `transition` on a
-    // *descendant* of this group's own element (an SVG `<path>`, a lens
-    // `<li>`'s summary card), never on the group itself, and
-    // `transition-*` does not inherit. A custom property does, though, so
-    // setting `--origin-stagger` (and, for the two tiers with their own
-    // pace, `--origin-rise`/`--origin-pop`) here on the group and letting
-    // each descendant's own `transition` shorthand read it back via `var()`
-    // reaches exactly the elements that are actually animating, with no new
-    // DOM walk needed on this side.
-    group.el.style.setProperty("--origin-stagger", `${delayMs}ms`);
-    if (group.isTrunk) {
-      durationMs = TRUNK_RISE_MS;
-      group.el.style.setProperty("--origin-rise", `${durationMs}ms`);
-    } else if (group.tier === TIER_LEAF) {
-      durationMs = LEAF_POP_MS;
-      group.el.style.setProperty("--origin-pop", `${durationMs}ms`);
-    }
-    group.el.removeAttribute("data-origin-pending");
-    return { el: group.el, clearAfterMs: delayMs + durationMs + STAGGER_CLEANUP_MARGIN_MS };
+function buildQueue(
+  groups: readonly OriginGroup[],
+  year: number,
+  claimed: ReadonlySet<HTMLElement>,
+): readonly QueuedRelease[] {
+  const candidates: readonly StaggerCandidate<HTMLElement>[] = groups.map((group) => ({
+    key: group.el,
+    year: group.year,
+    tier: group.tier,
+    isTrunk: group.isTrunk,
+    isShoot: group.isShoot,
+  }));
+  const plan = planRelease(candidates, year, claimed);
+  const byEl = new Map(groups.map((group) => [group.el, group] as const));
+  return plan.flatMap((entry) => {
+    const group = byEl.get(entry.key);
+    return group ? [{ group, delayMs: entry.delayMs, durationMs: entry.durationMs }] : [];
   });
 }
 
@@ -982,11 +966,45 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // have detached by the time an unrelated cleanup runs.
   const figureRef = useRef<HTMLElement | null>(null);
   const groupsRef = useRef<readonly OriginGroup[]>([]);
-  // Every pending `window.setTimeout` id from `scheduleStaggerCleanup` below,
-  // so `releaseEverything` can cancel them on any exit — see that callback's
-  // own doc comment for why a self-clearing timeout replaced an earlier
-  // "clear on the next release" sweep.
-  const staggerTimeoutsRef = useRef<number[]>([]);
+  // Every group this run has ever queued for release, whether or not the
+  // clock has actually applied it yet — the single source of truth
+  // `buildQueue` (via `planRelease`) checks so a group already claimed by an
+  // earlier beat is never queued a second time by a later "still" beat's own
+  // safety sweep through `Infinity`.
+  const claimedRef = useRef<Set<HTMLElement>>(new Set());
+  // The current beat's own release plan, waiting for the master clock below
+  // to apply each entry once enough time has passed — see `dueByElapsed`
+  // (`origin-story.ts`). Never a `window.setTimeout` queue: entries here are
+  // only ever *read*, every animation frame, against one shared `now`.
+  const releaseQueueRef = useRef<readonly QueuedRelease[]>([]);
+  // Every already-released group still waiting for its own inline
+  // `--origin-rise`/`--origin-pop` override to be safe to clear — same idea
+  // as `releaseQueueRef`, read every frame instead of scheduled ahead with
+  // `window.setTimeout`.
+  const cleanupQueueRef = useRef<QueuedCleanup[]>([]);
+  // `performance.now()` at the instant the current beat began — every
+  // "how much time has passed" question the clock answers this beat is
+  // `performance.now() - beatStartRef.current`, one shared value instead of
+  // each beat/group re-deriving its own.
+  const beatStartRef = useRef(0);
+  // The current beat's own `durationMs`, mirrored here so the master clock
+  // effect (mount-scoped, run once) can read the *latest* beat without
+  // re-subscribing to it — see the beat effect below, which is what keeps
+  // this in sync.
+  const beatDurationRef = useRef(0);
+  // Guards the clock's own auto-advance so a beat whose expiry is detected
+  // on one frame cannot fire `advance()` again on the next, before React has
+  // had a chance to commit the resulting state change and the beat effect
+  // has reset `beatStartRef` for the new beat. Cleared by that same beat
+  // effect, the same "the next real beat clears the guard" idiom `ended`
+  // already uses for `end()`.
+  const advancingRef = useRef(false);
+  // The latest `advance` closure, read by the master clock instead of
+  // captured at effect-setup time — `advance` itself is recreated most
+  // renders (it closes over `isLast`/`index`), and the clock effect below is
+  // mount-scoped, so it needs a way to always call the *current* one.
+  const advanceRef = useRef<() => void>(() => {});
+  const rafIdRef = useRef<number | null>(null);
   // The scroll-away observer's own handle, so the pan effect below can
   // disconnect and re-create it against a new target rather than the fixed
   // one the original, mount-only observer watched — see `armWatch`.
@@ -996,24 +1014,23 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // happens to fall on the same side of it as the one before.
   const panRegionRef = useRef<"sky" | "root">("sky");
 
-  // Schedules the one self-cleanup `releaseThroughYear` cannot do itself (it
-  // has no timer and no ref to hold one) for each group it just staggered —
-  // wipes that group's own inline `transitionDelay`/`transitionDuration`
-  // back to nothing once `clearAfterMs` has safely passed its transition,
-  // never touching any *other* group in the process. See
-  // `releaseThroughYear`'s own doc comment for why "only the groups that
-  // just changed, on their own clock" replaced an earlier "clear everything,
-  // on the next release" approach that measurably reopened already-settled
-  // fades elsewhere on the tree.
-  const scheduleStaggerCleanup = useCallback((scheduled: readonly ScheduledStagger[]) => {
-    for (const { el, clearAfterMs } of scheduled) {
-      const id = window.setTimeout(() => {
-        el.style.removeProperty("--origin-stagger");
-        el.style.removeProperty("--origin-rise");
-        el.style.removeProperty("--origin-pop");
-      }, clearAfterMs);
-      staggerTimeoutsRef.current.push(id);
+  // Applies one plan entry for real: sets the duration override the trunk
+  // or a leaf needs (everything else keeps the ordinary CSS duration, so
+  // nothing is written for it), removes `data-origin-pending` — the one DOM
+  // change that actually starts the group's own CSS transition, at whatever
+  // moment this is called — and queues the matching cleanup. Called from
+  // three places, always with the *same* meaning ("this group's moment has
+  // arrived, right now"): the conductor's own initial arrival-year release,
+  // a beat boundary flushing whatever the clock had not yet reached, and the
+  // master clock itself as each entry's own `delayMs` elapses.
+  const applyRelease = useCallback((group: OriginGroup, durationMs: number, now: number) => {
+    if (group.isTrunk) {
+      group.el.style.setProperty("--origin-rise", `${durationMs}ms`);
+    } else if (group.tier === TIER_LEAF) {
+      group.el.style.setProperty("--origin-pop", `${durationMs}ms`);
     }
+    group.el.removeAttribute("data-origin-pending");
+    cleanupQueueRef.current.push({ el: group.el, dueAt: now + durationMs + STAGGER_CLEANUP_MARGIN_MS });
   }, []);
 
   // The one cleanup every exit path funnels through — see the file banner's
@@ -1021,27 +1038,27 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // a group has lost `data-origin-pending`, removing it again is a no-op,
   // and removing an attribute that is already gone is too.
   const releaseEverything = useCallback(() => {
-    staggerTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
-    staggerTimeoutsRef.current = [];
+    releaseQueueRef.current = [];
+    cleanupQueueRef.current = [];
     const figure = figureRef.current;
     if (!figure) return;
     figure
       .querySelectorAll("[data-origin-pending]")
       .forEach((el) => el.removeAttribute("data-origin-pending"));
-    // Wipes the growth-choreography stagger too — queried fresh from the
+    // Wipes the growth-choreography overrides too — queried fresh from the
     // figure rather than read off `groupsRef`, so this stays correct even on
     // an exit that races the conductor's own setup effect. Safe to do in one
-    // blanket pass *here*, unlike per-beat: every group's `data-origin-
+    // blanket pass *here*, unlike per-frame: every group's `data-origin-
     // pending` is being stripped in this same call, so any group whose
-    // stagger this also clears is already mid-genuinely-changing, not an
+    // override this also clears is already mid-genuinely-changing, not an
     // untouched one having its already-settled transition reopened for no
-    // reason — see `releaseThroughYear`'s doc comment on exactly that
-    // failure mode. Without this, a Skip/Escape mid-stagger would leave a
-    // real, still-mounted tree carrying `--origin-stagger`/`--origin-rise`/
+    // reason — see `applyRelease`'s own doc comment on exactly that failure
+    // mode, which this project already hit once under the old per-group
+    // `window.setTimeout` design. Without this, a Skip/Escape mid-release
+    // would leave a real, still-mounted tree carrying `--origin-rise`/
     // `--origin-pop` custom properties a *second* run of this same story
     // would otherwise inherit before ever setting its own.
     figure.querySelectorAll<HTMLElement>("[data-origin-year]").forEach((el) => {
-      el.style.removeProperty("--origin-stagger");
       el.style.removeProperty("--origin-rise");
       el.style.removeProperty("--origin-pop");
     });
@@ -1114,19 +1131,48 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     if (reduced) return;
     const figure = containerRef.current?.closest<HTMLElement>("[data-tree-figure]");
     if (!figure) return;
+    // Reset every ref-based bookkeeping set this effect (and everything
+    // downstream of it) builds on, rather than trusting it to already be
+    // empty. `claimedRef` in particular is a plain ref, so it survives
+    // React Strict Mode's dev-only mount → cleanup → mount rehearsal at
+    // full value — this effect has no cleanup of its own to undo the
+    // phantom first pass's claims, while the DOM reset two lines below
+    // (`setAttribute("data-origin-pending", "")` on every group) *does*
+    // start over fresh on the real mount. Without this reset, the phantom
+    // pass's claim on `origin.arrivedYear`'s own groups outlives it, and
+    // `buildQueue` below — seeing them already "claimed" — never queues
+    // them again on the real mount, even though the DOM just re-pended
+    // them: a permanently stranded group, not merely a late one. Safe to
+    // do unconditionally here because this is the first effect in mount
+    // order to ever touch any of this state (see the hook order above).
+    claimedRef.current = new Set();
+    releaseQueueRef.current = [];
+    cleanupQueueRef.current = [];
     figureRef.current = figure;
     figure.setAttribute("data-origin-running", "");
     const groups = queryGroups(figure);
     groups.forEach((group) => group.el.setAttribute("data-origin-pending", ""));
     groupsRef.current = groups;
-    scheduleStaggerCleanup(releaseThroughYear(groups, origin.arrivedYear));
-  }, [reduced, scheduleStaggerCleanup]);
+    const now = performance.now();
+    const initial = buildQueue(groups, origin.arrivedYear, claimedRef.current);
+    for (const item of initial) {
+      claimedRef.current.add(item.group.el);
+      applyRelease(item.group, item.durationMs, now);
+    }
+  }, [reduced, applyRelease]);
 
-  useEffect(() => {
+  // Layout effects, not passive ones, for the two things a *visible* player
+  // must already have: focus on Skip, and a working Escape. A passive effect
+  // runs after paint, which leaves a window — one frame wide normally, much
+  // wider under load — where the stage is on screen but an Escape press is
+  // dropped on a listener not yet attached, and `end()`'s focus-was-inside
+  // check reads focus that never moved to Skip. A full-suite Playwright run
+  // hit exactly that window once; a fast human on a slow machine could too.
+  useLayoutEffect(() => {
     skipRef.current?.focus();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") end();
     };
@@ -1341,24 +1387,50 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     return () => cancelAnimationFrame(id);
   }, [beat]);
 
+  // Builds this beat's own release queue and starts its own share of the
+  // master clock below — no `window.setTimeout` here any more (compare the
+  // old per-beat auto-advance timer this replaced): `beatStartRef` and
+  // `beatDurationRef` are the only state this beat contributes, and the one
+  // continuously-running rAF loop reads both every frame from here on.
   useEffect(() => {
     if (reduced) return;
 
-    // Every beat's own release, before anything else this beat does: the
-    // shoot waits for "still" specifically (see `releaseShoot`'s doc
-    // comment); a season beat releases every other group at or before its
-    // own year; flight and seed release nothing — there is nothing dated
-    // that early for them to honestly reveal. "still" also sweeps every
-    // non-shoot group through `Infinity` as a last-beat safety net — belt
-    // and braces alongside the season sweep above, so the natural end of a
-    // full run is never the one exit path that could leave something
-    // stranded pending for `releaseEverything()` to have to clean up instead.
     const groups = groupsRef.current;
+    const now = performance.now();
+
+    // Flush anything the clock had not yet reached from the beat that just
+    // ended — a release queue never bleeds across a beat boundary, it only
+    // ever finishes early. In practice this is a no-op: `STAGGER_STEP_MS`
+    // against a beat's own `durationMs` (`origin-story.ts`) is sized so a
+    // whole year's groups clear well inside one season beat, but a queue
+    // that somehow didn't finish is still better snapped into place here
+    // than left to desync against a beat it no longer belongs to.
+    for (const queued of releaseQueueRef.current) {
+      applyRelease(queued.group, queued.durationMs, now);
+    }
+    releaseQueueRef.current = [];
+    beatStartRef.current = now;
+    beatDurationRef.current = beat.durationMs;
+    advancingRef.current = false;
+
+    // This beat's own release, before anything else it does: the shoot
+    // waits for "still" specifically (see `releaseShoot`'s doc comment); a
+    // season beat releases every other group at or before its own year;
+    // flight and seed queue nothing — there is nothing dated that early for
+    // them to honestly reveal. "still" also sweeps every non-shoot group
+    // through `Infinity` as a last-beat safety net — belt and braces
+    // alongside the season sweep, so the natural end of a full run is never
+    // the one exit path that could leave something stranded pending for
+    // `releaseEverything()` to have to clean up instead.
     if (beat.kind === "still") {
-      scheduleStaggerCleanup(releaseThroughYear(groups, Infinity));
+      const queue = buildQueue(groups, Infinity, claimedRef.current);
+      for (const item of queue) claimedRef.current.add(item.group.el);
+      releaseQueueRef.current = queue;
       releaseShoot(groups);
     } else if (beat.season) {
-      scheduleStaggerCleanup(releaseThroughYear(groups, beat.season.year));
+      const queue = buildQueue(groups, beat.season.year, claimedRef.current);
+      for (const item of queue) claimedRef.current.add(item.group.el);
+      releaseQueueRef.current = queue;
     }
 
     document.dispatchEvent(
@@ -1379,19 +1451,88 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
         detail: { kind: beat.kind, year: beat.season?.year, storm: beat.season?.storm ?? false, sub: beat.caption },
       }),
     );
-
-    const id = window.setTimeout(() => {
-      if (isLast) end();
-      else setIndex((current) => current + 1);
-    }, beat.durationMs);
-    return () => window.clearTimeout(id);
-  }, [beat, isLast, end, reduced, scheduleStaggerCleanup]);
+  }, [beat, reduced, applyRelease]);
 
   const advance = useCallback(() => {
     if (reduced) return;
     if (isLast) end();
     else setIndex((current) => current + 1);
   }, [reduced, isLast, end]);
+
+  // Keeps the master clock's own copy of `advance` current — the clock
+  // effect just below is mount-scoped (it must never restart, or its own
+  // `requestAnimationFrame` chain would restart with it), so it reads
+  // `advanceRef.current()` rather than closing over `advance` directly.
+  useEffect(() => {
+    advanceRef.current = advance;
+  }, [advance]);
+
+  // The master clock itself: one `requestAnimationFrame` loop, started once
+  // at mount and running for the lifetime of the show, replacing every
+  // `window.setTimeout` this file used to schedule for beat pacing and
+  // stagger cleanup — see the doc comment above `QueuedRelease` for why that
+  // was the actual source of the reported glitches. Every frame reads one
+  // shared `now` and answers three questions purely from it: which queued
+  // groups are due (`dueByElapsed`), which already-released groups' inline
+  // overrides are safe to clear, and whether this beat's own `durationMs`
+  // has elapsed. Nothing here schedules a future callback of its own; the
+  // next frame is simply the next `requestAnimationFrame`.
+  useEffect(() => {
+    if (reduced) return;
+    let cancelled = false;
+
+    function tick() {
+      if (cancelled) return;
+      const now = performance.now();
+      const elapsed = now - beatStartRef.current;
+
+      // `dueByElapsed` itself is generic over a plain `{ key, delayMs,
+      // durationMs }` shape (`origin-story.ts`) so it can be unit-tested
+      // without a DOM; `QueuedRelease` carries the real `OriginGroup`
+      // instead of an opaque key, so the equivalent cut is repeated here
+      // rather than reshaping this array through that generic just to
+      // reshape it back.
+      let dueCount = 0;
+      const queue = releaseQueueRef.current;
+      while (dueCount < queue.length && elapsed >= queue[dueCount].delayMs) dueCount++;
+      if (dueCount > 0) {
+        for (let i = 0; i < dueCount; i++) applyRelease(queue[i].group, queue[i].durationMs, now);
+        releaseQueueRef.current = queue.slice(dueCount);
+      }
+
+      if (cleanupQueueRef.current.length > 0) {
+        const stillWaiting: QueuedCleanup[] = [];
+        for (const cleanup of cleanupQueueRef.current) {
+          if (now >= cleanup.dueAt) {
+            cleanup.el.style.removeProperty("--origin-rise");
+            cleanup.el.style.removeProperty("--origin-pop");
+          } else {
+            stillWaiting.push(cleanup);
+          }
+        }
+        cleanupQueueRef.current = stillWaiting;
+      }
+
+      // Guarded by `advancingRef` so a beat detected as expired on one frame
+      // cannot fire `advance()` again on the next, before React has
+      // committed the resulting state change and the beat effect above has
+      // reset `beatStartRef` for the new beat — see that ref's own doc
+      // comment.
+      if (!advancingRef.current && elapsed >= beatDurationRef.current) {
+        advancingRef.current = true;
+        advanceRef.current();
+      }
+
+      rafIdRef.current = requestAnimationFrame(tick);
+    }
+
+    rafIdRef.current = requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    };
+  }, [reduced, applyRelease]);
 
   const handleSkip = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {

@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { careerEntries, codeTabs, profile, skillCategories } from "../src/content/portfolio";
-import { workflowStages, experiments } from "../src/content/ai-experiments";
+import { experiments } from "../src/content/ai-experiments";
 import type { SkillCategory } from "../src/types/portfolio";
 
 // Widened for the same reason src/lib/knowledge-tree.ts widens careerEntries:
@@ -10,8 +10,9 @@ import type { SkillCategory } from "../src/types/portfolio";
 // across every category actually needs.
 const CATEGORIES: readonly SkillCategory[] = skillCategories;
 
-// Matches the `lg:` breakpoint (1024px) that switches the workflow explorer
-// between its desktop tablist and its mobile accordion stack.
+// Matches the `lg:` breakpoint (1024px) that switches several sections'
+// desktop/mobile presentations, e.g. the career tree's drawn figure vs. its
+// indented-list fallback.
 const DESKTOP_MIN_WIDTH = 1024;
 
 /**
@@ -123,30 +124,6 @@ test.describe("selected work", () => {
 });
 
 test.describe("ai workflow lab", () => {
-  test("workflow explorer selects stages by keyboard on desktop", async ({ page }) => {
-    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "desktop-only explorer");
-
-    const tablist = page.getByRole("tablist", { name: "Workflow stages" });
-    const tabs = tablist.getByRole("tab");
-    const heading = page.getByRole("tabpanel").locator("h4");
-    const before = await heading.textContent();
-
-    await tabs.first().focus();
-    await page.keyboard.press("ArrowDown");
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-    await expect(tabs.nth(1)).toBeFocused();
-    await expect(heading).not.toHaveText(before ?? "");
-  });
-
-  test("workflow explorer renders accordions on mobile", async ({ page }) => {
-    test.skip(viewportWidth(page) >= DESKTOP_MIN_WIDTH, "mobile-only accordions");
-
-    await expect(page.getByRole("tablist", { name: "Workflow stages" })).toBeHidden();
-    const firstStage = page.getByRole("button", { name: workflowStages[0].label });
-    await firstStage.click();
-    await expect(firstStage).toHaveAttribute("aria-expanded", "true");
-  });
-
   test("an Exploring experiment shows no fabricated outcome", async ({ page }) => {
     const exploring = experiments.find((experiment) => experiment.status === "Exploring");
     if (!exploring) throw new Error("content fixture assumption failed: no Exploring experiment found");
@@ -161,32 +138,97 @@ test.describe("ai workflow lab", () => {
   });
 });
 
-test.describe("career journey", () => {
-  test("filters change the visible entry count and announce it in a live region", async ({ page }) => {
-    const journey = page.locator("#journey");
-    const list = journey.getByRole("list", { name: "Career timeline" });
-    const status = journey.getByRole("status").filter({ hasText: "Showing" });
-
-    const allCount = await list.getByRole("listitem").count();
-    const initialStatusText = await status.textContent();
-
-    await journey.getByRole("radiogroup", { name: "Filter career entries by type" }).getByRole("radio", { name: "Work" }).click();
-
-    await expect(status).not.toHaveText(initialStatusText ?? "");
-    const workCount = await list.getByRole("listitem").count();
-    expect(workCount).toBeGreaterThan(0);
-    expect(workCount).toBeLessThan(allCount);
-  });
-});
-
+/**
+ * Round 10 merged the old "career journey" section (a filterable
+ * chronological timeline, `#journey`) into the career tree as its own "List"
+ * face — see src/sections/CareerTree/CareerTree.tsx, ViewToggle.tsx and
+ * view-state.ts. One `#tree` section, one "Tree / List" toggle choosing which
+ * face is on screen, and the old `#journey` id survives as a zero-size
+ * landing target so nothing that ever bookmarked it breaks.
+ */
 test.describe("career tree", () => {
-  test("the section renders", async ({ page }) => {
+  test("the section renders and still answers #journey", async ({ page }) => {
     await expect(page.locator("#tree")).toBeVisible();
+    // Not visible — it is a zero-size landing target (see CareerTree.tsx) —
+    // but it must exist, and exactly once, or an old bookmark goes nowhere.
+    await expect(page.locator("#journey")).toHaveCount(1);
   });
 
-  test("the drawing shows at >=1024px with the list hidden, and the reverse below it", async ({
+  /** The two toggle buttons, by their own accessible name — `exact: true`
+   *  because "Tree" would otherwise substring-match nothing here, but is
+   *  cheap insurance against a future label change making one a substring of
+   *  the other. */
+  function viewToggle(page: Page, label: "Tree" | "List"): Locator {
+    return page.locator("#tree").getByRole("button", { name: label, exact: true });
+  }
+
+  test("the toggle defaults to Tree at >=1024px and List below it", async ({ page }) => {
+    const treeButton = viewToggle(page, "Tree");
+    const listButton = viewToggle(page, "List");
+    const [expectPressed, expectUnpressed] =
+      viewportWidth(page) >= DESKTOP_MIN_WIDTH ? [treeButton, listButton] : [listButton, treeButton];
+
+    await expect(expectPressed).toHaveAttribute("aria-pressed", "true");
+    await expect(expectUnpressed).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("choosing a face — by mouse or keyboard — shows it and hides the other", async ({ page }) => {
+    const tree = page.locator("#tree");
+    const treeButton = viewToggle(page, "Tree");
+    const listButton = viewToggle(page, "List");
+    const list = tree.getByRole("list", { name: "Career timeline" });
+
+    await listButton.click();
+    await expect(listButton).toHaveAttribute("aria-pressed", "true");
+    await expect(treeButton).toHaveAttribute("aria-pressed", "false");
+    await expect(list).toBeVisible();
+
+    // Keyboard: Tab to reach it (real buttons are natively tab-stops), Enter
+    // to activate it — no bespoke key handling to verify beyond that.
+    await treeButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(treeButton).toHaveAttribute("aria-pressed", "true");
+    await expect(listButton).toHaveAttribute("aria-pressed", "false");
+    await expect(list).toBeHidden();
+  });
+
+  test.describe("list face — the career timeline", () => {
+    test.beforeEach(async ({ page }) => {
+      await viewToggle(page, "List").click();
+    });
+
+    test("filters change the visible entry count and announce it in a live region", async ({
+      page,
+    }) => {
+      const tree = page.locator("#tree");
+      const list = tree.getByRole("list", { name: "Career timeline" });
+      const status = tree.getByRole("status").filter({ hasText: "Showing" });
+
+      const allCount = await list.getByRole("listitem").count();
+      const initialStatusText = await status.textContent();
+
+      await tree
+        .getByRole("radiogroup", { name: "Filter career entries by type" })
+        .getByRole("radio", { name: "Work" })
+        .click();
+
+      await expect(status).not.toHaveText(initialStatusText ?? "");
+      const workCount = await list.getByRole("listitem").count();
+      expect(workCount).toBeGreaterThan(0);
+      expect(workCount).toBeLessThan(allCount);
+    });
+  });
+
+  test("on the Tree face, the drawing shows at >=1024px with the list hidden, and the reverse below it", async ({
     page,
   }) => {
+    // Forced on regardless of viewport: this test is about the Tree face's
+    // own *internal* presentation switch (KnowledgeTree.tsx — the drawn tree
+    // vs. its indented-list fallback), which is a different axis from the
+    // outer Tree/List toggle covered above. Below 1024px the outer default is
+    // now List, which would otherwise hide both internal presentations and
+    // make the "reverse below it" branch fail for the wrong reason.
+    await viewToggle(page, "Tree").click();
     const tree = page.locator("#tree");
 
     // The drawn presentation's leaves end their accessible name in "Show
@@ -216,6 +258,7 @@ test.describe("career tree", () => {
       viewportWidth(page) < DESKTOP_MIN_WIDTH,
       "a leaf is only its own control in the drawn presentation — see KnowledgeTreeList.tsx",
     );
+    await viewToggle(page, "Tree").click();
 
     const tree = page.locator("#tree");
     // DoorDash carries two case studies (src/content/portfolio.ts,
@@ -271,16 +314,19 @@ test.describe("career tree", () => {
 
   /*
    * The leaves' second cross-link: back to the one timeline entry each leaf
-   * was built from (`#journey-entry-<id>`, src/sections/CareerJourney/
-   * anchors.ts). Three things about it are worth a test rather than a
-   * reading, because all three failed a first attempt at this feature:
+   * was built from (`#journey-entry-<id>`, src/sections/CareerTree/
+   * anchors.ts). Four things about it are worth a test rather than a
+   * reading, because all four failed a first attempt at this feature:
    *
    *   - it exists only inside an *open* leaf, so twenty-five leaves do not
    *     become twenty-five tab stops;
    *   - it lands clear of the 4rem sticky header;
    *   - it works while the timeline is filtered to a category that excludes
    *     the entry, which is the case where a plain fragment link silently
-   *     does nothing.
+   *     does nothing;
+   *   - since round 10, it also has to switch the section from its Tree face
+   *     to its List face — the entry's `<li>` can be in the document and
+   *     still be unreachable, sitting under a `display: none` ancestor.
    */
   const linkedEntry = careerEntries.find(
     (entry) => entry.type === "milestone" && entry.lenses.length > 0,
@@ -351,11 +397,15 @@ test.describe("career tree", () => {
    * be. The drawing keeps each leaf's link in that leaf's own panel, so the
    * leaf has to be opened first; the list presentation keeps it in the branch
    * row, inside the lens's panel, which is already open for the first lens.
-   * Whichever presentation is displayed at this width, the other one is
-   * `display: none`, so its copy of the same link is not visible.
+   * Whichever internal presentation shows at this width, the other one is
+   * `display: none`, so its copy of the same link is not visible — and the
+   * outer Tree face has to be forced on first, or the whole panel holding
+   * both presentations is `display: none` regardless of width (mobile's
+   * default face is now List — see view-state.ts).
    */
   const revealLeafTimelineLink = async (page: Page): Promise<Locator> => {
     const tree = page.locator("#tree");
+    await tree.getByRole("button", { name: "Tree", exact: true }).click();
     if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
       const trigger = tree
         .locator(`button[id^="tree-leaf-"][id$="-${linkedEntry.id}-trigger"]`)
@@ -367,12 +417,16 @@ test.describe("career tree", () => {
     return link;
   };
 
-  test("a leaf's timeline link lands on its entry even when the filter excludes it", async ({
+  test("a leaf's timeline link switches the section to List, lands on its entry, even when the filter excludes it", async ({
     page,
   }) => {
-    const journey = page.locator("#journey");
-
-    await journey.getByRole("radio", { name: "Work" }).click();
+    const tree = page.locator("#tree");
+    // Start on the List face so the "Work" filter is actually the state a
+    // visitor following the leaf's link a moment later would be filtering
+    // away from — the click below re-selects Tree, but the filter itself is
+    // Timeline's own state and survives the face switch untouched.
+    await tree.getByRole("button", { name: "List", exact: true }).click();
+    await tree.getByRole("radio", { name: "Work" }).click();
     await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
 
     const link = await revealLeafTimelineLink(page);
@@ -381,9 +435,15 @@ test.describe("career tree", () => {
     const entry = page.locator(`#${ENTRY_ANCHOR}`);
     await expect(entry).toBeVisible();
     await expect(entry).toBeFocused();
+    // The section switched itself back to its List face — a leaf's link is
+    // useless if it lands on an entry still sitting under `display: none`.
+    await expect(tree.getByRole("button", { name: "List", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     // The filter was widened to include it again, and the live region says
     // what is actually showing.
-    await expect(journey.getByRole("radio", { name: "All" })).toHaveAttribute(
+    await expect(tree.getByRole("radio", { name: "All" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -412,7 +472,7 @@ test.describe("career tree", () => {
   test("re-clicking the link the page is already on re-reveals a re-filtered entry", async ({
     page,
   }) => {
-    const journey = page.locator("#journey");
+    const tree = page.locator("#tree");
     const entry = page.locator(`#${ENTRY_ANCHOR}`);
 
     // First visit, from the default "all" filter: an ordinary fragment
@@ -424,8 +484,10 @@ test.describe("career tree", () => {
 
     // Filter the entry back out. The hash still names it, so the second click
     // below changes nothing about the URL and fires neither `hashchange` nor
-    // anything else the effects above could hear.
-    await journey.getByRole("radio", { name: "Work" }).click();
+    // anything else the effects above could hear. Switching back to Tree
+    // first is what makes the second click below a genuine re-click of a
+    // leaf's link rather than a click on an already-visible list entry.
+    await tree.getByRole("radio", { name: "Work" }).click();
     await expect(entry).toHaveCount(0);
 
     const again = await revealLeafTimelineLink(page);
@@ -433,7 +495,11 @@ test.describe("career tree", () => {
 
     await expect(entry).toBeVisible();
     await expect(entry).toBeFocused();
-    await expect(journey.getByRole("radio", { name: "All" })).toHaveAttribute(
+    await expect(tree.getByRole("button", { name: "List", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(tree.getByRole("radio", { name: "All" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -445,17 +511,19 @@ test.describe("career tree", () => {
 
   /*
    * The other half of that listener: it runs on *every* click in the document,
-   * so the thing it must be best at is doing nothing. This is the ordinary
-   * in-page link nearest to it — the tree's own pointer back at the journey
-   * section — clicked twice, so the second click takes exactly the branch the
-   * test above relies on and has to fall straight back out of it.
+   * so the thing it must be best at is doing nothing. `TreeCrossLink`
+   * (src/sections/CareerTree/cross-link.tsx) is an ordinary in-page link
+   * nearby — Skills ends with one pointing at `#tree` — clicked twice, so the
+   * second click takes exactly the branch the test above relies on and has
+   * to fall straight back out of it.
    */
   test("an ordinary in-page link leaves the timeline's filter alone", async ({ page }) => {
-    const journey = page.locator("#journey");
-    const status = journey.getByRole("status");
+    const tree = page.locator("#tree");
+    await tree.getByRole("button", { name: "List", exact: true }).click();
+    const status = tree.getByRole("status");
 
-    await journey.getByRole("radio", { name: "Work" }).click();
-    await expect(journey.getByRole("radio", { name: "Work" })).toHaveAttribute(
+    await tree.getByRole("radio", { name: "Work" }).click();
+    await expect(tree.getByRole("radio", { name: "Work" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -465,15 +533,15 @@ test.describe("career tree", () => {
     );
     await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
 
-    const crossLink = page.locator('#tree a[href="#journey"]').first();
+    const crossLink = page.locator('a[href="#tree"]').first();
     await crossLink.scrollIntoViewIfNeeded();
     await crossLink.click();
-    await expect.poll(() => new URL(page.url()).hash).toBe("#journey");
+    await expect.poll(() => new URL(page.url()).hash).toBe("#tree");
     // Again, now that the page is already on that fragment.
     await crossLink.scrollIntoViewIfNeeded();
     await crossLink.click();
 
-    await expect(journey.getByRole("radio", { name: "Work" })).toHaveAttribute(
+    await expect(tree.getByRole("radio", { name: "Work" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -494,6 +562,16 @@ test.describe("career tree", () => {
   });
 
   test("a cold load of an entry's fragment lands on it, clear of the header", async ({ page }) => {
+    // A real cold load, not a hash hop. The file-level beforeEach has already
+    // loaded "/", so going straight to the fragment from here would be a
+    // same-document hash navigation — a different story from this test's
+    // name, and one where Next's dev router intermittently drops the
+    // fragment before `hashchange` ever fires (measured: location.hash === ""
+    // at failure, 10/12 repeats). Interposing about:blank makes the next
+    // goto a genuine fresh document load, which is the visitor path this
+    // test exists to protect. The in-page hash-hop story has its own tests
+    // above, driven by real link clicks.
+    await page.goto("about:blank");
     await page.goto(`/#${ENTRY_ANCHOR}`);
     await page.waitForLoadState("networkidle");
 

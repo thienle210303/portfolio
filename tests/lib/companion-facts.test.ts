@@ -35,16 +35,6 @@ describe("buildCompanionFacts", () => {
     expect(facts.work.sourcedMetrics).toBe(metrics);
   });
 
-  it("splits the journey by entry type, and the parts sum to the whole", () => {
-    expect(facts.journey.entries).toBe(careerEntries.length);
-    expect(facts.journey.work).toBe(careerEntries.filter((e) => e.type === "work").length);
-    expect(facts.journey.learning).toBe(careerEntries.filter((e) => e.type === "learning").length);
-    expect(facts.journey.milestones).toBe(careerEntries.filter((e) => e.type === "milestone").length);
-    expect(facts.journey.work + facts.journey.learning + facts.journey.milestones).toBe(
-      facts.journey.entries,
-    );
-  });
-
   it("counts skill categories and distinct skills", () => {
     expect(facts.skills.categories).toBe(skillCategories.length);
     const distinct = new Set(skillCategories.flatMap((category) => category.skills));
@@ -56,6 +46,14 @@ describe("buildCompanionFacts", () => {
     expect(facts.tree.branches).toBe(tree.length);
     expect(facts.tree.leaves).toBe(tree.reduce((total, lens) => total + lens.branches.length, 0));
     expect(facts.tree.technologies).toBe(totalTechnologies());
+  });
+
+  it("splits the absorbed journey by entry type on the tree fact, and the parts sum to the whole", () => {
+    expect(facts.tree.entries).toBe(careerEntries.length);
+    expect(facts.tree.work).toBe(careerEntries.filter((e) => e.type === "work").length);
+    expect(facts.tree.learning).toBe(careerEntries.filter((e) => e.type === "learning").length);
+    expect(facts.tree.milestones).toBe(careerEntries.filter((e) => e.type === "milestone").length);
+    expect(facts.tree.work + facts.tree.learning + facts.tree.milestones).toBe(facts.tree.entries);
   });
 
   it("counts lab experiments and how many are verified", () => {

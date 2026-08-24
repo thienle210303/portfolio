@@ -8,6 +8,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
+import { origin, philosophyIntro, principles, problemSolvingLoop } from "@/content/portfolio";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -42,6 +43,18 @@ const CORPUS = new Set<string>([
   ]),
   ...education.map((school) => `${school.credential}, ${school.institution} (${school.dateRange}).`),
   ...skillsIndexable.map((category) => category.evidence),
+  // Philosophy, the origin flight and the problem-solving loop were reachable
+  // from src/content/portfolio.ts but never indexed — corpus expansion for
+  // round 10 (WP-D), so "Ask this site" can answer career/background/how he
+  // works questions, not just the lab.
+  `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
+  ...philosophyIntro,
+  ...principles.flatMap((principle) => [
+    principle.summary,
+    principle.detail,
+    ...(principle.evidence ? [principle.evidence.body] : []),
+  ]),
+  ...problemSolvingLoop.map((step) => step.detail),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé

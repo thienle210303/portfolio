@@ -64,16 +64,20 @@ import {
 import {
   clamp,
   clampToViewport,
+  clearsControls,
   findClearSpot,
   isClearSpot,
   keepInView,
   refreshSafeArea,
   safeTop,
+  setControlRects,
+  setReservedRects,
   standingSpots,
   syncTone,
   viewport,
   type Point,
 } from "./companion-space";
+import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
 
 /**
  * Two line-drawn cats that live on the page, keep loose company with the
@@ -211,6 +215,10 @@ const POLICE_SPEED = 8;
 /** A cat that has decided to bolt. Only the chase scene asks for this, and only
  *  for the two beats it lasts. */
 const DASH_SPEED = 8.6;
+/** Mini-Thien's own walking pace — a touch slower than the lead cat's, which
+ *  is what makes him read as arriving *beside* whichever cat is speaking
+ *  rather than racing it there. */
+const THIEN_SPEED = 3.6;
 
 /**
  * The follower's speed curve. See `followTarget` and `ramp` below — between
@@ -296,6 +304,18 @@ const BED_WAKE_TRAVEL = 150;
 /** Pointer dwell before a `data-cat-nap` element calls the cats over, in ms. */
 const NAP_DWELL = 600;
 const NAP_ATTR = "[data-cat-nap]";
+
+/**
+ * WP-E's own declarative contract, the same shape as `data-cat-nap`: while
+ * the Contact form carries `data-cat-secret` (the "secret" intent selected),
+ * the cats creep toward it and sit up alert rather than settling in as they
+ * would beneath an ordinary nap spot — see `secretRef` and the `"secret"`
+ * branch of `forced` in the loop below. Watched with a `MutationObserver`
+ * rather than the nap contract's pointer/focus delegation, because this
+ * attribute's own lifetime is driven by form state a visitor may change
+ * anywhere on the page, not by hovering or focusing the element itself.
+ */
+const SECRET_ATTR = "[data-cat-secret]";
 
 /**
  * Escort budget: cats in the box by 2.2s, police off the page by 6s, whatever
@@ -490,6 +510,44 @@ function followHome(home: Point): Point {
   return clampToViewport({ x: home.x - CAT_W - FOLLOW_GAP, y: home.y });
 }
 
+/**
+ * A point `gap` px to one side of `lead`, clamped into the viewport —
+ * mirrored to the far side, then dropped below, if a side's clamp would
+ * have collapsed the gap against an edge or would still land on the
+ * toolkit toggle.
+ *
+ * The origin-story watch's storm dash and rain huddle both used to compute
+ * this as a single unconditional `x: lead.x ± gap`, clamped — correct almost
+ * everywhere, and silently wrong two ways at once. The clamp could pull the
+ * follower back towards the lead instead of away from it near a viewport
+ * edge. And `lead` here is the *tour stop's own target* for the lead cat —
+ * the tree mood's chosen spot, or the storm's own jolt — not necessarily
+ * where the lead is actually rendered this frame; mid-walk into the huddle,
+ * those two can differ by as much as a stride. Offsetting purely from the
+ * target, with no reference to where the lead's own button actually is,
+ * is how the tabby ended up standing on it with only a sliver left
+ * clickable. `clearsControls` checks the real thing — the lead's live
+ * rendered rect, registered every frame by `Companion`'s own loop — rather
+ * than trusting the target and the render to agree.
+ */
+function sideStep(lead: Point, gap: number): Point {
+  const candidates: Point[] = [
+    clampToViewport({ x: lead.x - gap, y: lead.y }),
+    clampToViewport({ x: lead.x + gap, y: lead.y }),
+    clampToViewport({ x: lead.x, y: lead.y + CAT_H + 6 }),
+    clampToViewport({ x: lead.x, y: lead.y - CAT_H - 6 }),
+  ];
+  for (const candidate of candidates) {
+    const gapKept =
+      Math.abs(candidate.x - lead.x) >= CAT_W || Math.abs(candidate.y - lead.y) >= CAT_H;
+    if (gapKept && clearsControls(candidate)) return candidate;
+  }
+  // Every candidate either collapsed against a viewport edge or still
+  // covers the toggle — vanishingly rare, and the first one is still no
+  // worse than what this replaced.
+  return candidates[0];
+}
+
 /* ------------------------------------------------------------------ staging --
  *
  * Where a *requested* scene is allowed to happen, which is not the same
@@ -674,6 +732,24 @@ function napSlots(rect: DOMRect): Spots {
 }
 
 /**
+ * Where the pair creep to for `data-cat-secret` — hugging the visible top
+ * corner of the form rather than napping beneath it the way `napSlots` does.
+ *
+ * The Contact form is tall, and the nap contract's own "beneath the
+ * element's bottom edge" answer is built for compact anchors — a plinth, a
+ * business card — not for something that can run well past the fold. Anchored
+ * to the top edge instead: whatever is actually on screen once
+ * `clampToViewport` has pulled it back into the window, which for a form the
+ * visitor is presently filling in is the form itself.
+ */
+function secretSlots(rect: DOMRect): Spots {
+  const x = rect.left + 10;
+  const y = rect.top + 6;
+  const lead = clampToViewport({ x, y });
+  return { lead, follow: clampToViewport({ x: x - CAT_W - FOLLOW_GAP, y }) };
+}
+
+/**
  * Where the police cat stands while it is herding: behind the rearmost of the
  * pair, on the line they are being pushed along.
  *
@@ -851,14 +927,47 @@ function paint(node: HTMLElement | null, pos: Spot): void {
  * down onto it — a bubble still reading "above" while jammed flush under the
  * header would point at nothing.
  */
-function paintBubble(node: HTMLElement | null, cat: Spot): void {
+/**
+ * Shared by the duet's speech bubbles and mini-Thien's caption: sit above
+ * whatever it is anchored to, or below it — never under the sticky header —
+ * clamped to the viewport on both axes. `anchorH` is the anchor's own drawn
+ * height (`CAT_H` for a bubble beside a cat, `THIEN_H` for a caption beside
+ * the narrator), which is what the "flip below" fallback offsets by.
+ */
+function paintBeside(node: HTMLElement | null, anchor: Spot, anchorH: number): void {
   if (!node) return;
   const margin = 8;
   const width = node.offsetWidth;
-  const x = clamp(cat.x, margin, Math.max(margin, window.innerWidth - width - margin));
-  const above = cat.y - node.offsetHeight - 6;
-  const y = above < safeTop() + margin ? cat.y + CAT_H + 6 : above;
+  const x = clamp(anchor.x, margin, Math.max(margin, window.innerWidth - width - margin));
+  const above = anchor.y - node.offsetHeight - 6;
+  const y = above < safeTop() + margin ? anchor.y + anchorH + 6 : above;
   paint(node, { x, y });
+}
+
+/** The duet's speech bubble, clamped to the speaking cat — see `paintBeside`. */
+function paintBubble(node: HTMLElement | null, cat: Spot): void {
+  paintBeside(node, cat, CAT_H);
+}
+
+/** Mini-Thien's caption, clamped to him rather than to the cat he is
+ *  standing beside — the two are never the same point once he has arrived,
+ *  so this cannot simply reuse `paintBubble`'s own anchor. */
+function paintCaption(node: HTMLElement | null, thien: Spot): void {
+  paintBeside(node, thien, THIEN_H);
+}
+
+/**
+ * Where mini-Thien wants to stand for the beat currently playing: beside the
+ * speaking cat, on the side away from the other one, so the three of them
+ * never end up stacked in a line. Handed to `findClearSpot` exactly the way
+ * every other settle target here is — see its own comment for why that means
+ * probing him with the cats' clear-spot geometry rather than his own: an
+ * approximation, and close enough for a decoration whose only job is to stay
+ * off a paragraph, not to model its own exact footprint.
+ */
+function thienWant(speaker: Spot, other: Spot): Point {
+  const side: 1 | -1 = speaker.x <= other.x ? -1 : 1;
+  return { x: speaker.x + side * (CAT_W + 18), y: speaker.y - 4 };
 }
 
 /**
@@ -998,6 +1107,13 @@ export function Companion({ facts }: CompanionProps) {
    *  it next takes the floor. */
   const greyBubble = useRef<HTMLDivElement | null>(null);
   const tabbyBubble = useRef<HTMLDivElement | null>(null);
+  /** Mini-Thien: the wrapper the loop paints his position onto, the inner
+   *  span it writes his facing to (the same split the toy uses — `thienNode`
+   *  is the transform, `thienArt` is the flip), and his own caption, painted
+   *  beside him exactly as a bubble is painted beside a cat. */
+  const thienNode = useRef<HTMLDivElement | null>(null);
+  const thienArt = useRef<HTMLSpanElement | null>(null);
+  const thienCaption = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   /** The two halves of the idle furniture — everything behind the animals, and
@@ -1049,6 +1165,10 @@ export function Companion({ facts }: CompanionProps) {
   const napRef = useRef<Nap | null>(null);
   const napPointer = useRef<Element | null>(null);
   const napFocus = useRef<Element | null>(null);
+  /** The `data-cat-secret` element, mirrored the same way `napRef` is — see
+   *  the `MutationObserver` effect below, which is the only thing that
+   *  writes it. */
+  const secretRef = useRef<Nap | null>(null);
   /** The running scene, and the earliest the next one may start. Both live
    *  above the loop effect so a mode change does not hand a returning visitor
    *  a toy immediately, or reset a timer they have already half waited out. */
@@ -1174,6 +1294,23 @@ export function Companion({ facts }: CompanionProps) {
     hintMore: boolean;
   } | null>(null);
 
+  /* ---------------------------------------------------------- mini-Thien -- */
+  /** His position and facing, mirrored out of React exactly the way the
+   *  cats' own `Mover` is — written every frame, painted straight to the
+   *  DOM, never round-tripped through `setState`. */
+  const thien = useRef<{ pos: Spot; facing: 1 | -1 }>({ pos: { x: 0, y: 0 }, facing: 1 });
+  /** Where he is currently walking to, and which speaker that target was
+   *  chosen for — recomputed only when the speaker changes (or a new scene
+   *  starts), not every frame: it is a `findClearSpot` probe, and probing
+   *  the page sixty times a second for a target that only ever changes a
+   *  couple of times a scene is the cost this avoids. Both null together,
+   *  always, and both reset to null the instant `duetRef.current` clears —
+   *  see `endPlay`-adjacent cleanup below — so the next scene starts fresh
+   *  rather than walking him back to a stale mark from a beat that finished
+   *  first. */
+  const thienTarget = useRef<Point | null>(null);
+  const thienSpeaker = useRef<Speaker | null>(null);
+
   /* --------------------------------------------------------- nav intent -- */
   /** D2: the nav link the pointer or keyboard focus is dwelling on, by
    *  section id — `null` off the nav entirely. Detected by delegation on
@@ -1207,6 +1344,12 @@ export function Companion({ facts }: CompanionProps) {
   const committed = useRef<Frame>(INITIAL_FRAME);
   const lastCommit = useRef(0);
   const lastTone = useRef(0);
+  /** Last time the lead's own live rect was read for `setControlRects` — on
+   *  the nap/secret rects' own faster throttle (120ms) rather than the tone
+   *  sample's 320ms, since this is what the origin-story watch's placement
+   *  leans on to keep the follower off the toolkit toggle while the pair are
+   *  still moving into a huddle. */
+  const lastControlRead = useRef(0);
   /** Where the cats should re-enter from, captured before the box unmounts. */
   const spawn = useRef<Spots | null>(null);
   const pendingEscort = useRef(false);
@@ -1517,6 +1660,17 @@ export function Companion({ facts }: CompanionProps) {
     if (node) paintBubble(node, follow.current.pos);
   }, []);
 
+  /** Mini-Thien and his caption get the same first-frame treatment as the
+   *  bubbles above, for the same reason. */
+  const attachThien = useCallback((node: HTMLDivElement | null) => {
+    thienNode.current = node;
+    if (node) paint(node, thien.current.pos);
+  }, []);
+  const attachThienCaption = useCallback((node: HTMLDivElement | null) => {
+    thienCaption.current = node;
+    if (node) paintCaption(node, thien.current.pos);
+  }, []);
+
   /** What the JSX needs to draw one beat; `hintMore` marks the last beat of
    *  an ambient scene that has an encore waiting behind it. */
   const beatView = useCallback(
@@ -1579,10 +1733,10 @@ export function Companion({ facts }: CompanionProps) {
     const section = sectionRef.current;
     if (!section) return;
     // Once a section's ambient scene has already had its once-per-visit
-    // showing, an encore is the next thing to offer — but only journey, tree
-    // and lab have one. Everywhere else, replay the ambient scene rather than
-    // going silent for the rest of the visit; `duetShown` already has the
-    // section, so this replay does not touch it again.
+    // showing, an encore is the next thing to offer — but only tree and lab
+    // have one. Everywhere else, replay the ambient scene rather than going
+    // silent for the rest of the visit; `duetShown` already has the section,
+    // so this replay does not touch it again.
     const scene = duetShown.current.has(section)
       ? (sceneFor("encore", section, facts) ?? sceneFor("ambient", section, facts))
       : sceneFor("ambient", section, facts);
@@ -1734,6 +1888,43 @@ export function Companion({ facts }: CompanionProps) {
       document.removeEventListener("pointerleave", onLeave);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
+    };
+  }, [roams, roaming, wake]);
+
+  /**
+   * WP-E's own contract: `data-cat-secret` on the Contact form while the
+   * "secret" intent is selected. Unlike `data-cat-nap`, this is not a
+   * pointer/focus dwell — the attribute's lifetime is driven by form state a
+   * visitor may change from anywhere the form's own controls reach, not by
+   * hovering or focusing the form region itself — so it is watched with a
+   * `MutationObserver` on the attribute directly, the same tool D3 already
+   * uses for `data-theme`, just scoped to `document.body` with `subtree`
+   * rather than to a single known node.
+   *
+   * Reduced motion and touch never reach this at all: gated on `roams &&
+   * roaming` exactly like the nap contract, which is what keeps the
+   * theatrics off — there is no roaming loop to creep the pair anywhere in
+   * either case.
+   */
+  useEffect(() => {
+    if (!roams || !roaming) return;
+
+    const sync = () => {
+      const el = document.querySelector(SECRET_ATTR);
+      const current = secretRef.current;
+      if (el === (current?.el ?? null)) return;
+      secretRef.current = el
+        ? { el, rect: el.getBoundingClientRect(), readAt: performance.now() }
+        : null;
+      wake();
+    };
+
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { attributeFilter: ["data-cat-secret"], subtree: true });
+    return () => {
+      observer.disconnect();
+      secretRef.current = null;
     };
   }, [roams, roaming, wake]);
 
@@ -1989,6 +2180,18 @@ export function Companion({ facts }: CompanionProps) {
         if (nap.rect.bottom < safeTop() || nap.rect.top > viewport().height) nap = null;
       }
 
+      // `data-cat-secret`, refreshed on the same throttle as the nap rect
+      // above and for the same reason: WP-E's form can be scrolled while the
+      // attribute stands.
+      let secret = secretRef.current;
+      if (secret) {
+        if (now - secret.readAt > 120) {
+          secret.rect = secret.el.getBoundingClientRect();
+          secret.readAt = now;
+        }
+        if (secret.rect.bottom < safeTop() || secret.rect.top > viewport().height) secret = null;
+      }
+
       /**
        * D4: the guided tour, advanced before `forced` reads it.
        *
@@ -2063,8 +2266,6 @@ export function Companion({ facts }: CompanionProps) {
             cheerRef.current = { until: now + CHEER_MS };
             setCheer(true);
             window.setTimeout(() => setCheer(false), CHEER_MS);
-          } else if (stop.sectionId === "journey") {
-            rushRef.current = { dir: grey.facing, until: now + RUSH_HOLD_MS + 500 };
           } else if (stop.sectionId === "skills") {
             tourHuddleUntil.current = now + HUDDLE_MS;
           } else if (stop.sectionId === "contact") {
@@ -2097,7 +2298,7 @@ export function Companion({ facts }: CompanionProps) {
        * that detail to bring its bare-annotation fallback back rather than
        * leaving the story fully dark for whatever beats remain.
        */
-      if (watchRef.current && (run || tour || nap || openRef.current)) {
+      if (watchRef.current && (run || tour || nap || secret || openRef.current)) {
         watchRef.current = null;
         document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
         if (duetRef.current?.scene.kind === "story") {
@@ -2119,15 +2320,14 @@ export function Companion({ facts }: CompanionProps) {
             // for as long as this branch runs), so this is the one place the
             // ref's *shape* is reused without its usual branch.
             const startled = clampToViewport({ x: spots.lead.x + rushRef.current.dir * 20, y: spots.lead.y });
-            watch.spots = { lead: startled, follow: followHome(startled) };
+            watch.spots = { lead: startled, follow: sideStep(startled, CAT_W + FOLLOW_GAP) };
           } else if (now < rainHuddleUntil.current) {
             // The rain beat's huddle: she comes in beside him instead of
             // behind — the same clamp every spot here goes through, just a
-            // shorter gap than the ordinary `FOLLOW_GAP`.
-            watch.spots = {
-              lead: spots.lead,
-              follow: clampToViewport({ x: spots.lead.x - CAT_W - 6, y: spots.lead.y }),
-            };
+            // shorter gap than the ordinary `FOLLOW_GAP`, and `sideStep`
+            // rather than a bare offset so a lead near an edge does not pull
+            // her onto him instead of beside him.
+            watch.spots = { lead: spots.lead, follow: sideStep(spots.lead, CAT_W + 6) };
           } else {
             watch.spots = spots;
           }
@@ -2140,11 +2340,13 @@ export function Companion({ facts }: CompanionProps) {
           ? "tour"
           : nap
             ? "nap"
-            : openRef.current
-              ? "corner"
-              : watch
-                ? "watch"
-                : null;
+            : secret
+              ? "secret"
+              : openRef.current
+                ? "corner"
+                : watch
+                  ? "watch"
+                  : null;
 
       // The Contact stop's startle-awake: the moment the fake-nap window
       // lapses, the pair cheer instead of just quietly opening their eyes.
@@ -2280,8 +2482,17 @@ export function Companion({ facts }: CompanionProps) {
         // motionless the entire time — nothing else refreshes `lastSignRef`
         // while it stands. Without this clause both cats would pose asleep
         // for the back half of every show, same as the tour and the escort
-        // never let idle sleep claim them mid-scene.
-        (forced !== "watch" && !wandering && pointer !== null && aloneFor > sleepAfter && !beat);
+        // never let idle sleep claim them mid-scene. Excludes "secret" for a
+        // simpler reason: WP-E's own contract is "perk up (alert pose)", so
+        // idle sleep must never override it for as long as the attribute
+        // stands — sitting up, not settling in, is the whole point of the
+        // reaction.
+        (forced !== "watch" &&
+          forced !== "secret" &&
+          !wandering &&
+          pointer !== null &&
+          aloneFor > sleepAfter &&
+          !beat);
       /**
        * Idle sleep — the ephemeral one. Gated on a pointer having existed at
        * some point, because `lastMoveRef` starts at zero: without that check a
@@ -2466,21 +2677,7 @@ export function Companion({ facts }: CompanionProps) {
         // nothing to offer.
         const spots = tourSpots.current ?? nearbySpots();
         const stopId = stopsFor(tour!.route)[tour!.index].sectionId;
-        if (stopId === "journey" && rushRef.current && now < rushRef.current.until) {
-          // The chase dash: the same `{ dir, until }` window the storm beat
-          // arms above, read here directly rather than through the generic
-          // `rushing` branch, which never gets a turn while `forced` is
-          // already `"tour"`.
-          const dashed = clampToViewport({
-            x: spots.lead.x + rushRef.current.dir * 26,
-            y: spots.lead.y,
-          });
-          leadWant = dashed;
-          followWant = clampToViewport({
-            x: dashed.x - grey.facing * (CAT_W + FOLLOW_GAP),
-            y: dashed.y,
-          });
-        } else if (stopId === "skills" && now < tourHuddleUntil.current) {
+        if (stopId === "skills" && now < tourHuddleUntil.current) {
           // The huddle: she comes in beside him instead of behind, the same
           // nudge the rain beat gives the watch above.
           leadWant = spots.lead;
@@ -2491,6 +2688,14 @@ export function Companion({ facts }: CompanionProps) {
         }
       } else if (nap) {
         const slots = napSlots(nap.rect);
+        leadWant = slots.lead;
+        followWant = slots.follow;
+      } else if (secret) {
+        // WP-E's own contract: creep toward the form while it carries
+        // `data-cat-secret` — see `secretSlots`, hugging its visible top edge
+        // rather than napping beneath it the way an ordinary `data-cat-nap`
+        // spot would.
+        const slots = secretSlots(secret.rect);
         leadWant = slots.lead;
         followWant = slots.follow;
       } else if (forced === "corner") {
@@ -2819,11 +3024,62 @@ export function Companion({ facts }: CompanionProps) {
         }
       }
 
+      /* ------------------------------------------------------- mini-Thien -- */
+
+      /**
+       * He exists only while a scene has something to translate — mounted
+       * and unmounted exactly on `duetBeat` (see the render below), same as
+       * the bubbles. "Walks in" is the whole of what this does: a target
+       * beside whichever cat is speaking, probed once per speaker change
+       * rather than every frame (`findClearSpot` is a handful of hit tests,
+       * not something to spend sixty times a second on a decoration), and
+       * `advance` closes the gap on the same per-frame clock as everything
+       * else here. "Leaves" needs no code of its own — the wrapper simply
+       * stops being rendered the instant `duetRef.current` clears, the same
+       * way the toy already does.
+       */
+      if (duetRef.current) {
+        const speaking = currentBeat(duetRef.current);
+        if (thienSpeaker.current !== speaking.speaker || thienTarget.current === null) {
+          if (thienSpeaker.current === null) {
+            // A fresh appearance this scene: start the walk from the corner
+            // rather than wherever `thien.pos` last held — page load's
+            // default origin, or an earlier scene's finishing spot on the
+            // far side of the page — so the very first frame he is painted
+            // on is never a flash at a stale or literal (0, 0) position.
+            thien.current.pos.x = home.x;
+            thien.current.pos.y = home.y;
+          }
+          const speakerPos = speaking.speaker === "grey" ? grey.pos : tabby.pos;
+          const otherPos = speaking.speaker === "grey" ? tabby.pos : grey.pos;
+          thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos);
+          thienSpeaker.current = speaking.speaker;
+        }
+        const target = thienTarget.current;
+        const thienDx = target.x - thien.current.pos.x;
+        if (Math.abs(thienDx) > 2) thien.current.facing = thienDx > 0 ? 1 : -1;
+        advance(thien.current.pos, target, THIEN_SPEED);
+      } else if (thienTarget.current !== null || thienSpeaker.current !== null) {
+        // The scene ended by some other path than the ones that already know
+        // to clear these — there are several (see every `duetRef.current =
+        // null` in this file) — so this is the one place that has to be
+        // right regardless of which of them fired: the next scene, on
+        // whichever cat, starts its own fresh walk rather than resuming a
+        // stale mark.
+        thienTarget.current = null;
+        thienSpeaker.current = null;
+      }
+
       /* ----------------------------------------------------------- paint -- */
 
       paint(leadNode.current, grey.pos);
       paint(followNode.current, tabby.pos);
       if (run) paint(policeNode.current, run.police.pos);
+      if (duetRef.current) {
+        paint(thienNode.current, thien.current.pos);
+        if (thienArt.current) thienArt.current.style.transform = `scaleX(${thien.current.facing})`;
+        paintCaption(thienCaption.current, thien.current.pos);
+      }
 
       // Behind something. The cut is taken from each animal's own position
       // against the edge it is hiding behind, so it is right while they are
@@ -2858,6 +3114,39 @@ export function Companion({ facts }: CompanionProps) {
         paintBubble(tabbyBubble.current, tabby.pos);
       }
 
+      // The collision fix: bubble and caption rects register as occupied
+      // space so the placement probe (`isClearSpot`, `findClearSpot`,
+      // `standingSpots`) never approves a spot underneath one — see
+      // `setReservedRects` in companion-space.ts for why this cannot simply
+      // be "another thing `elementBehind` sees". Read every frame a scene is
+      // actually showing, the same cadence `paintBubble` already reads
+      // `offsetWidth`/`offsetHeight` at; cleared the one frame nothing is.
+      if (duetRef.current) {
+        const rects: DOMRect[] = [];
+        const greyRect = greyBubble.current?.getBoundingClientRect();
+        const tabbyRect = tabbyBubble.current?.getBoundingClientRect();
+        const captionRect = thienCaption.current?.getBoundingClientRect();
+        if (greyRect) rects.push(greyRect);
+        if (tabbyRect) rects.push(tabbyRect);
+        if (captionRect) rects.push(captionRect);
+        setReservedRects(rects);
+      } else {
+        setReservedRects([]);
+      }
+
+      // The lead's own live rect, registered as a control the *follower*
+      // must never be placed on top of — see `clearsControls` and its own
+      // note on why this cannot simply join `setReservedRects` above. Read
+      // on the nap/secret rects' own 120ms throttle rather than the tone
+      // sample's 320ms: the origin-story watch actively steers the follower
+      // off this rect while the pair are still moving into a huddle
+      // (`sideStep`), and 320ms of staleness there is most of a stride at
+      // walking speed.
+      if (now - lastControlRead.current > 120) {
+        lastControlRead.current = now;
+        setControlRects(leadNode.current ? [leadNode.current.getBoundingClientRect()] : []);
+      }
+
       if (now - lastTone.current > TONE_INTERVAL) {
         lastTone.current = now;
         syncTone(leadNode.current, centreOf(grey.pos));
@@ -2869,6 +3158,15 @@ export function Companion({ facts }: CompanionProps) {
         if (duetRef.current) {
           syncTone(greyBubble.current, centreOf(grey.pos));
           syncTone(tabbyBubble.current, centreOf(tabby.pos));
+          // Mini-Thien and his caption are on the same fixed layer, opaque
+          // line work exactly like the bubbles beside them, and need the
+          // same repointing for the same reason.
+          const thienCentre = {
+            x: thien.current.pos.x + THIEN_W / 2,
+            y: thien.current.pos.y + THIEN_H / 2,
+          };
+          syncTone(thienNode.current, thienCentre);
+          syncTone(thienCaption.current, thienCentre);
         }
         // Line work on the same fixed layer as the cats, so it needs the same
         // repointing: a toy that stayed root-coloured would vanish over a
@@ -3788,32 +4086,6 @@ export function Companion({ facts }: CompanionProps) {
         </div>
       ) : null}
 
-      {/* The duet's speech bubble. `aria-hidden` — the tour is the accessible
-          narrator, this is a decoration a screen reader has no reason to
-          hear, and the tabby button below is the interactive surface, so the
-          bubble never becomes an unreachable control — and only ever mounted
-          inside `roams && roaming`, exactly like the toy above: there is no
-          settled spot to appear beside without a loop placing one. Only the
-          active speaker's bubble is mounted; the subtitle wraps
-          (`max-w-[16rem]`, no nowrap) while the meow line stays nowrap —
-          `SUB_MAX_CHARS` at this size is two short lines at most. */}
-      {roams && roaming && duetBeat ? (
-        <div
-          ref={duetBeat.speaker === "grey" ? attachGreyBubble : attachTabbyBubble}
-          data-cat-bubble={duetBeat.speaker}
-          aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-0 w-max max-w-[16rem] border border-rule bg-surface px-2 py-1"
-        >
-          <p className="whitespace-nowrap font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle">
-            {duetBeat.meow}
-          </p>
-          <p className="text-[0.68rem] italic leading-snug text-fg-muted">
-            {duetBeat.sub}
-            {duetBeat.hintMore ? <span className="text-fg-subtle"> …more?</span> : null}
-          </p>
-        </div>
-      ) : null}
-
       {roaming ? (
         <button
           ref={roams ? attachLead : attachPinnedLead}
@@ -3920,6 +4192,62 @@ export function Companion({ facts }: CompanionProps) {
             </span>
           </div>
         )
+      ) : null}
+
+      {/* Round 10: cats meow, Thien translates — see the file banner on
+          `MiniThien.tsx`. The bubble now carries only `beat.meow`; the
+          English translation moved to the caption beside him. All three —
+          both bubbles and his caption — render after both cats in source
+          order on purpose: the companion layer has no explicit `z-index`
+          here, so later means on top, and that ordering *is* the collision
+          fix's second half. Their rects are also registered as occupied
+          space (see `setReservedRects` in the loop above), which is the
+          first half — between the two, no cat can park on or cross to rest
+          under a bubble or the caption, and if one is mid-stride across
+          either while it moves, the bubble or caption is still legible on
+          top of it rather than the drawing painting over the words. `aria-
+          hidden` throughout: the tour HUD's `role="status"` is the
+          accessible narration (see `TourHud.tsx`), this trio is decoration a
+          screen reader has no reason to hear, and the tabby button above is
+          still the interactive surface — none of the three becomes an
+          unreachable control. Mounted only inside `roams && roaming`,
+          exactly like the toy: there is no settled spot to appear beside
+          without a loop placing one, and reduced motion / touch never reach
+          here at all since `roams` is false in both. */}
+      {roams && roaming && duetBeat ? (
+        <>
+          <div
+            ref={duetBeat.speaker === "grey" ? attachGreyBubble : attachTabbyBubble}
+            data-cat-bubble={duetBeat.speaker}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-0 w-max max-w-[12rem] border border-rule bg-surface px-2 py-1"
+          >
+            <p className="whitespace-nowrap font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle">
+              {duetBeat.meow}
+            </p>
+          </div>
+          <div
+            ref={attachThien}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-0 text-fg-muted"
+            style={{ width: THIEN_W, height: THIEN_H }}
+          >
+            <span ref={thienArt} className="block" style={{ transform: `scaleX(${thien.current.facing})` }}>
+              <MiniThien />
+            </span>
+          </div>
+          <div
+            ref={attachThienCaption}
+            data-cat-caption=""
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-0 w-max max-w-[16rem] border border-rule bg-surface px-2 py-1"
+          >
+            <p className="text-[0.68rem] italic leading-snug text-fg-muted">
+              {duetBeat.sub}
+              {duetBeat.hintMore ? <span className="text-fg-subtle"> …more?</span> : null}
+            </p>
+          </div>
+        </>
       ) : null}
 
       {/* The front of the carton, over the animal wedged into it. Pure scenery

@@ -90,10 +90,6 @@ const AMBIENT: Record<string, SceneBuilder> = {
     tabby("Mrrrow-meow!", `Ooh — ${f.work.caseStudies} case studies live here!`),
     grey("Meow. Mrp.", `${f.work.sourcedMetrics} sourced figures between them.`),
   ],
-  journey: (f) => [
-    grey("Mrp. Mrp.", `${f.journey.entries} entries here. ${f.journey.work} are work.`),
-    tabby("Mrrrow!", "I watched every one. From the windowsill."),
-  ],
   skills: (f) => [
     tabby("Meow-meow-meow!", `${f.skills.distinctSkills} skills in ${f.skills.categories} groups!`),
     grey("Mrp.", "No star ratings. Evidence only. House rule."),
@@ -108,14 +104,17 @@ const AMBIENT: Record<string, SceneBuilder> = {
   ],
 };
 
+/**
+ * Round 10: the tree absorbed Journey, and its encore is where that
+ * section's own facts earned a place — the branch/leaf/technology count
+ * followed by the timeline split that used to be `journey`'s own scene.
+ */
 const ENCORE: Record<string, SceneBuilder> = {
-  journey: (f) => [
-    grey("Mrp.", `Also: ${f.journey.learning} learning, ${f.journey.milestones} milestones.`),
-    tabby("Meow!", "The milestones are my favourite. Confetti days."),
-  ],
   tree: (f) => [
     grey("Meow. Mrp.", `${f.tree.technologies} technologies hang on those branches.`),
     tabby("Mrrrow?", "Hover one! The tree lights up where it lives."),
+    grey("Mrp. Mrp.", `${f.tree.entries} entries fed it. ${f.tree.work} were work.`),
+    tabby("Meow!", `${f.tree.milestones} milestones. Confetti days, every one.`),
   ],
   lab: () => [
     tabby("Meow-meow?", "What about the unverified ones?"),
@@ -144,17 +143,19 @@ const TOUR: Record<string, SceneBuilder> = {
     tabby("Mrrrow-meow!", `${f.work.caseStudies} case studies! Real problems, real fixes!`),
     grey("Meow. Mrp.", `${f.work.sourcedMetrics} numbers, every one sourced. Proof, not vibes.`),
   ],
-  journey: (f) => [
-    grey("Mrp. Mrp.", `${f.journey.entries} entries. ${f.journey.work} of them are work.`),
-    tabby("Mrrrow!", "I napped through the rest — they still count!"),
-  ],
   skills: (f) => [
     tabby("Mrrrow!", `${f.skills.categories} shelves, ${f.skills.distinctSkills} things on them!`),
     grey("Mrp. Meow.", "Huddle up. Each one points at where it was used."),
   ],
+  // Round 10: the tree absorbed Journey, and this one stop now narrates both
+  // faces — the branch/leaf/technology count first, then the timeline split
+  // that used to be `journey`'s own tour stop, tabby's line preserved rather
+  // than dropped.
   tree: (f) => [
     tabby("Meow meow meow!", `Look up! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
     grey("Mrp.", `${f.tree.technologies} technologies hang there. We planted nothing.`),
+    grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} of them are work.`),
+    tabby("Mrrrow!", "I napped through the rest — they still count!"),
   ],
   lab: (f) => [
     grey("Meow. Mrp.", `${f.lab.experiments} experiments. ${f.lab.verified} hold up so far.`),

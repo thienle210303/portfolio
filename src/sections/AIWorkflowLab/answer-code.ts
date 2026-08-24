@@ -1,4 +1,4 @@
-import type { Answer } from "@/lib/answers";
+import type { Answer, Citation } from "@/lib/answers";
 
 /**
  * Renders an answer set as a TypeScript object literal, for the code view of
@@ -30,9 +30,18 @@ import type { Answer } from "@/lib/answers";
  * order. The reverse would let a line break land inside a `\uXXXX` sequence.
  */
 
-/** Distinct from the hero artifact's filenames — CodeBlock derives its hidden
- *  summary's id from this, and assumes it is unique among mounted blocks. */
-export const ANSWER_FILENAME = "answer.ts";
+/**
+ * One filename per turn in the thread, distinct from the hero artifact's
+ * filenames and from every other turn's — CodeBlock derives its hidden
+ * summary's id from its filename and assumes that id is unique among
+ * mounted blocks, and a multi-turn thread can genuinely have more than one
+ * turn's Code tab open at once (each turn owns its own `Tabs` state; see
+ * `AskThisSite.tsx`). `turn` is the 1-based position of the question in the
+ * visible thread.
+ */
+export function answerFilename(turn: number): string {
+  return `answer-${turn}.ts`;
+}
 
 /**
  * Characters of string content per line before wrapping.
@@ -186,4 +195,55 @@ export function describeAnswerLiteral(results: readonly Answer[]): string {
   }
   const noun = count === 1 ? "one result object" : `${count} result objects`;
   return `A TypeScript object literal named answer, holding the question that was asked and ${noun}, each carrying the answer text, the source it came from and the section of this page it lives in. The same answers as the prose view, written as code.`;
+}
+
+/**
+ * Live mode's version of `answerLiteral` above — same escaping and wrapping
+ * discipline, same refusal to alter a string, different shape underneath:
+ * a live answer is one composed `text` plus the `citations` it was grounded
+ * in, rather than a list of quoted results. `grounded` is a plain boolean
+ * literal, never a quoted string, so it reads unambiguously as the same
+ * field `/api/ask` returned rather than as prose.
+ */
+export function liveAnswerLiteral(
+  question: string,
+  grounded: boolean,
+  text: string,
+  citations: readonly Citation[],
+): string {
+  const lines: string[] = [
+    "// Composed by a live model, grounded only in the cited passages below.",
+    "const answer = {",
+    ...field(2, "question", question),
+    `  grounded: ${grounded},`,
+    ...field(2, "text", text),
+  ];
+
+  if (citations.length === 0) {
+    lines.push("  citations: [],");
+  } else {
+    lines.push("  citations: [");
+    for (const citation of citations) {
+      lines.push("    {");
+      lines.push(...field(6, "text", citation.text));
+      lines.push(...field(6, "source", citation.source));
+      lines.push(...field(6, "section", citation.sectionLabel));
+      lines.push(...field(6, "href", `#${citation.sectionId}`));
+      lines.push("    },");
+    }
+    lines.push("  ],");
+  }
+
+  lines.push("};");
+  return lines.join("\n");
+}
+
+/** The live-mode counterpart to `describeAnswerLiteral`. */
+export function describeLiveAnswerLiteral(grounded: boolean, citations: readonly Citation[]): string {
+  if (!grounded) {
+    return "A TypeScript object literal named answer, holding the question that was asked, grounded set to false, the model's decline, and an empty list of citations.";
+  }
+  const count = citations.length;
+  const noun = count === 1 ? "one citation object" : `${count} citation objects`;
+  return `A TypeScript object literal named answer, holding the question that was asked, grounded set to true, the model's composed text, and ${noun} it was grounded in, each carrying the passage text, its source and the section of this page it lives in.`;
 }

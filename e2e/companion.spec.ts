@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { contactIntents } from "../src/content/portfolio";
 
 /**
  * The companion cats, their play menu, and the one place they can be put away.
@@ -1371,6 +1372,13 @@ test.describe("companion", () => {
     // that never walked to it would be pure decoration.
     await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
     await expect(page.locator("[data-cat-bed-front]")).toHaveCount(0);
+    // Nor a bubble, mini-Thien, or his caption: none of the duet's scenes ever
+    // play without the roaming loop, so the narrator this round adds never has
+    // anything to translate here either — the negative control the spec asks
+    // for, direct rather than inferred from "no scene plays".
+    await expect(page.locator("[data-cat-bubble]")).toHaveCount(0);
+    await expect(page.locator("[data-thien]")).toHaveCount(0);
+    await expect(page.locator("[data-cat-caption]")).toHaveCount(0);
     // Still fully usable — they are parked, not removed.
     await cat.click();
     await expect(cat).toHaveAttribute("aria-expanded", "true");
@@ -1460,7 +1468,7 @@ test.describe("companion", () => {
 
   /* ------------------------------------------------------------- D4/D5: the guided tour -- */
 
-  test("walks all eight stops, choosing a route at the fork, and ends back on the cat", async ({
+  test("walks all seven stops, choosing a route at the fork, and ends back on the cat", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1474,14 +1482,16 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    for (let stop = 1; stop <= 8; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 8`, "i"))).toBeVisible({
+    for (let stop = 1; stop <= 7; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 7`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       const before = await page.evaluate(() => window.scrollY);
       // The narration is empty while the pair are still walking to the stop,
       // and filled once they arrive — the HUD's own `role="status"` is the
-      // wait condition, not a fixed delay.
+      // wait condition, not a fixed delay. It is `sr-only` since round 10
+      // (mini-Thien carries the visible translation now), which does not
+      // change what a screen reader announces or what this reads here.
       await expect(status).not.toHaveText("", { timeout: 10_000 });
       if (stop > 1) {
         // Every stop after the first required scrolling to reach — the tour
@@ -1491,15 +1501,15 @@ test.describe("companion", () => {
       }
       if (stop === 2) {
         // The one fork in the walk: "Next stop" is gone here, replaced by
-        // the two routes — both of which reach every one of the eight stops,
-        // just in a different order. This run follows Grey's.
+        // the two routes — both of which reach every one of the seven
+        // stops, just in a different order. This run follows Grey's.
         await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
         await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
         await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
         await hud.getByRole("button", { name: /follow grey/i }).click();
         continue;
       }
-      const isLast = stop === 8;
+      const isLast = stop === 7;
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
 
@@ -1522,26 +1532,26 @@ test.describe("companion", () => {
     const status = hud.getByRole("status");
 
     // To the fork — About, then Philosophy — and pick the cat the other test
-    // did not: the curious route, which walks the middle five stops in the
+    // did not: the curious route, which walks the middle four stops in the
     // opposite order.
-    await expect(hud.getByText(/stop 1 of 8/i)).toBeVisible({ timeout: 10_000 });
+    await expect(hud.getByText(/stop 1 of 7/i)).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /next stop/i }).click();
 
-    await expect(hud.getByText(/stop 2 of 8/i)).toBeVisible({ timeout: 10_000 });
+    await expect(hud.getByText(/stop 2 of 7/i)).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /follow tabby/i }).click();
 
-    for (let stop = 3; stop <= 8; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 8`, "i"))).toBeVisible({
+    for (let stop = 3; stop <= 7; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 7`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       await expect(status).not.toHaveText("", { timeout: 10_000 });
-      const isLast = stop === 8;
+      const isLast = stop === 7;
       if (isLast) {
         // Both routes share the same last stop — Contact — regardless of
-        // which way the middle five were walked.
-        await expect(hud.getByText(/stop 8 of 8.*contact/i)).toBeVisible();
+        // which way the middle four were walked.
+        await expect(hud.getByText(/stop 7 of 7.*contact/i)).toBeVisible();
       }
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
@@ -1649,7 +1659,7 @@ test.describe("companion", () => {
 
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
-    // Same wait condition "walks all eight stops" uses: the status region is
+    // Same wait condition "walks all seven stops" uses: the status region is
     // the arrival signal, not a fixed delay.
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     // Both voices, not one line quoting whichever cat spoke last — the tour
@@ -1660,7 +1670,7 @@ test.describe("companion", () => {
 
   /* -------------------------------------------------------------------- D5: the duet -- */
 
-  test("the hello duet plays: decorative bubbles, meow above, subtitle beneath", async ({
+  test("the hello duet plays: cats meow only, mini-Thien carries the translation", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1673,20 +1683,38 @@ test.describe("companion", () => {
     await page.mouse.move(700, 500);
     await page.waitForTimeout(200);
 
+    // Round 10: cats speak meow only — the bubble carries exactly one line,
+    // and it reads as a meow, never as English prose.
     const bubble = page.locator("[data-companion] [data-cat-bubble]").first();
     await expect(bubble).toBeVisible({ timeout: 15_000 });
     await expect(bubble).toHaveAttribute("aria-hidden", "true");
+    await expect(bubble.locator("p")).toHaveCount(1);
     const meow = await bubble.locator("p").first().textContent();
     expect(meow).toMatch(/^m[a-z!?.\- ]*$/i);
-    const sub = await bubble.locator("p").nth(1).textContent();
+
+    // Mini-Thien walks in and carries the caption a bubble used to.
+    const thien = page.locator("[data-companion] [data-thien]");
+    await expect(thien).toBeVisible({ timeout: 5_000 });
+    await expect(thien).toHaveAttribute("aria-hidden", "true");
+    const caption = page.locator("[data-companion] [data-cat-caption]");
+    await expect(caption).toBeVisible();
+    await expect(caption).toHaveAttribute("aria-hidden", "true");
+    const sub = await caption.locator("p").first().textContent();
     expect(sub?.length ?? 0).toBeGreaterThan(0);
-    // The bubble stays inside the viewport whatever edge the cats chose.
-    const box = await bubble.boundingBox();
+    // And it is not itself a meow — one consistent rule, cats meow, Thien
+    // translates.
+    expect(sub).not.toMatch(/^m[a-z!?.\- ]*$/i);
+
+    // Both the bubble and the caption stay inside the viewport whatever edge
+    // the cats and Thien chose.
     const viewport = page.viewportSize();
-    expect(box).not.toBeNull();
     expect(viewport).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width + 1);
+    for (const el of [bubble, caption]) {
+      const box = await el.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width + 1);
+    }
   });
 
   test("the hello duet stays clear of content at a narrow viewport too", async ({ page }) => {
@@ -1694,10 +1722,71 @@ test.describe("companion", () => {
     await page.setViewportSize({ width: MOBILE_WIDTH, height: 812 });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // Touch viewports have no roaming loop and therefore no duet bubble at
-    // all — the pair are parked in the corner button. This asserts the
-    // honest absence rather than a false positive.
+    // Touch viewports have no roaming loop and therefore no duet bubble, no
+    // narrator and no caption at all — the pair are parked in the corner
+    // button. This asserts the honest absence rather than a false positive,
+    // and doubles as the negative control the narrator needs: it never
+    // appears where there is no roaming loop to walk it in.
     await expect(page.locator("[data-companion] [data-cat-bubble]")).toHaveCount(0);
+    await expect(page.locator("[data-companion] [data-thien]")).toHaveCount(0);
+    await expect(page.locator("[data-companion] [data-cat-caption]")).toHaveCount(0);
+  });
+
+  test("bubbles and Thien's caption paint above the cats, and register as occupied ground", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await page.mouse.move(700, 500);
+    await page.waitForTimeout(200);
+
+    const bubble = page.locator("[data-companion] [data-cat-bubble]").first();
+    const caption = page.locator("[data-companion] [data-cat-caption]");
+    await expect(bubble).toBeVisible({ timeout: 15_000 });
+    await expect(caption).toBeVisible();
+
+    // The collision fix's first half: painted after both cats in source
+    // order, which — with no explicit `z-index` on this layer — is what
+    // makes them paint on top rather than under a cat crossing them.
+    const paintedAfterBothCats = await page.evaluate(() => {
+      const layer = document.querySelector("[data-companion]");
+      const cats = Array.from(layer?.querySelectorAll("svg[data-cat]") ?? []);
+      const overlays = Array.from(
+        layer?.querySelectorAll("[data-cat-bubble], [data-cat-caption]") ?? [],
+      );
+      if (cats.length === 0 || overlays.length === 0) return false;
+      return overlays.every((overlay) =>
+        cats.every((cat) => {
+          const relation = cat.compareDocumentPosition(overlay);
+          // DOCUMENT_POSITION_FOLLOWING (4): the overlay comes after this cat.
+          return (relation & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+        }),
+      );
+    });
+    expect(paintedAfterBothCats).toBe(true);
+
+    // The collision fix's second half: with the scene still running, poll
+    // for a moment and confirm neither cat's own drawn box ever overlaps the
+    // bubble's or the caption's — the placement probe now treats both as
+    // occupied ground (`setReservedRects` in companion-space.ts), so neither
+    // animal should settle on or cross onto resting there.
+    const overlapsOverlay = () =>
+      page.evaluate(() => {
+        const rectsOf = (selector: string) =>
+          Array.from(document.querySelectorAll(selector)).map((el) => el.getBoundingClientRect());
+        const cats = rectsOf("[data-companion] svg[data-cat]");
+        const overlays = rectsOf("[data-companion] [data-cat-bubble], [data-companion] [data-cat-caption]");
+        const intersects = (a: DOMRect, b: DOMRect) =>
+          a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        return cats.some((cat) => overlays.some((overlay) => intersects(cat, overlay)));
+      });
+    for (let sample = 0; sample < 10; sample += 1) {
+      expect(await overlapsOverlay(), `sample ${sample}`).toBe(false);
+      await page.waitForTimeout(200);
+    }
   });
 
   test("clicking the tabby advances the duet a beat", async ({ page }) => {
@@ -1713,11 +1802,16 @@ test.describe("companion", () => {
     await page.waitForTimeout(200);
 
     const bubble = page.locator("[data-cat-bubble]");
+    const caption = page.locator("[data-cat-caption]");
     await expect(bubble).toBeVisible({ timeout: 15_000 });
-    const before = await bubble.locator("p").nth(1).textContent();
+    const meowBefore = await bubble.locator("p").first().textContent();
+    const subBefore = await caption.locator("p").first().textContent();
 
     await page.getByRole("button", { name: "Next line" }).click();
-    await expect(bubble.locator("p").nth(1)).not.toHaveText(before ?? "");
+    // Both halves of the beat change together — the meow the cat "says" and
+    // the caption Thien translates it into.
+    await expect(bubble.locator("p").first()).not.toHaveText(meowBefore ?? "");
+    await expect(caption.locator("p").first()).not.toHaveText(subBefore ?? "");
   });
 
   test("scrolling to another section ends an ambient scene mid-beat", async ({ page }) => {
@@ -1727,12 +1821,12 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
-    // Park the pair at #journey the same way "settles where the visitor is
+    // Park the pair at #tree the same way "settles where the visitor is
     // reading" does, then start that section's scene by asking for it rather
     // than waiting out the 75s±60s cadence clock — the tabby starts it the
     // moment she is tapped, quiet or not. `force` plus a retrying poll is the
     // same idiom `clickOpenToolkit` uses for a target the loop keeps moving.
-    await readTo(page, "#journey", [300, 500]);
+    await readTo(page, "#tree", [300, 500]);
     const bubble = page.locator("[data-cat-bubble]");
     const tabby = page.getByRole("button", {
       name: /Ask the cats about this section|Next line/i,
@@ -1744,20 +1838,25 @@ test.describe("companion", () => {
           await tabby.click({ force: true, timeout: 5_000 }).catch(() => {});
           return (await bubble.count()) > 0;
         },
-        { timeout: 15_000, message: "clicking the tabby never started the journey scene" },
+        { timeout: 15_000, message: "clicking the tabby never started the tree scene" },
       )
       .toBe(true);
 
     // Moving to another section is a stronger claim on the cats than a
     // beat's own reading-time clock: the scene the visitor was mid-way
-    // through at #journey is about that section, not about #skills.
+    // through at #tree is about that section, not about #skills.
     await readTo(page, "#skills", [300, 500]);
     await expect(bubble).toBeHidden({ timeout: 10_000 });
+    // Thien and his caption leave with the scene, not after it.
+    await expect(page.locator("[data-thien]")).toHaveCount(0);
+    await expect(page.locator("[data-cat-caption]")).toHaveCount(0);
   });
 
   /* --------------------------------------------------------- origin story: narration -- */
 
-  test("narrates the origin story with a speech bubble while the cats roam", async ({ page }) => {
+  test("narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam", async ({
+    page,
+  }) => {
     test.skip(
       viewportWidth(page) !== DESKTOP_WIDTH,
       "the origin-story button only mounts at >=1024px; run once",
@@ -1776,6 +1875,13 @@ test.describe("companion", () => {
     const bubble = page.locator("[data-cat-bubble]");
     await expect(bubble).toBeVisible({ timeout: 5_000 });
     await expect(bubble).toHaveAttribute("aria-hidden", "true");
+    // One consistent rule applies to origin-story beats too: the cat meows,
+    // mini-Thien translates.
+    const thien = page.locator("[data-thien]");
+    await expect(thien).toBeVisible({ timeout: 5_000 });
+    const caption = page.locator("[data-cat-caption]");
+    await expect(caption).toBeVisible();
+    await expect(caption).toHaveAttribute("aria-hidden", "true");
   });
 
   /* ----------------------------------------------------------------- D2: nav intent -- */
@@ -1813,5 +1919,111 @@ test.describe("companion", () => {
     await expect(page.locator("[data-companion][data-cat-cheer]")).toHaveCount(0, {
       timeout: 3_000,
     });
+  });
+
+  /* --------------------------------------------------------- WP-E: the secret intent -- */
+
+  test("creeps toward the form while data-cat-secret stands, and lets go once it clears", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(45_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const secret = contactIntents.find((intent) => intent.id === "secret");
+    if (!secret) throw new Error("The secret intent left the content layer — update this spec with it.");
+
+    const contact = page.locator("#contact");
+    await contact.scrollIntoViewIfNeeded();
+    // #contact holds two forms — QuickConnect's one-field form above the
+    // full one — so this has to be anchored on the full form specifically,
+    // the same way e2e/contact.spec.ts's own data-cat-secret test does, or
+    // Playwright's strict mode fails with "resolved to 2 elements".
+    const form = contact.locator("form", { has: page.locator("#contact-name") });
+
+    // WP-E declares the attribute; this is the companion's own half of the
+    // contract — the same declarative shape `data-cat-nap` already uses (see
+    // `SECRET_ATTR` in Companion.tsx), asserted here rather than in
+    // contact.spec.ts, which only proves the attribute itself appears and
+    // clears.
+    await contact.getByRole("radio", { name: secret.label }).check();
+    await expect(form).toHaveAttribute("data-cat-secret", "");
+
+    // The pair creep toward it — polled the same way "settles where the
+    // visitor is reading" polls an arrival, as the distance from the lead
+    // cat's own centre to the nearest point on the form's box.
+    await expect
+      .poll(
+        async () => {
+          const catBox = await catButton(page).boundingBox();
+          const formBox = await form.boundingBox();
+          if (!catBox || !formBox) return Number.POSITIVE_INFINITY;
+          const centre = { x: catBox.x + catBox.width / 2, y: catBox.y + catBox.height / 2 };
+          const nearest = {
+            x: Math.max(formBox.x, Math.min(centre.x, formBox.x + formBox.width)),
+            y: Math.max(formBox.y, Math.min(centre.y, formBox.y + formBox.height)),
+          };
+          return Math.hypot(centre.x - nearest.x, centre.y - nearest.y);
+        },
+        { timeout: 15_000, message: "the cats never crept toward the secret form" },
+      )
+      .toBeLessThan(250);
+
+    // Switching away from the secret intent lowers the attribute — and the
+    // companion's own side lets go: nothing keeps the pair glued to the form
+    // once it is gone, so a pointer move elsewhere carries them off again.
+    const held = await catButton(page).boundingBox();
+    await contact.getByRole("radio", { name: contactIntents[0].label }).check();
+    await expect(form).not.toHaveAttribute("data-cat-secret");
+    await page.mouse.move(200, 200);
+    await page.mouse.move(900, 250);
+    await expect
+      .poll(
+        async () => {
+          const box = await catButton(page).boundingBox();
+          if (!box || !held) return 0;
+          return Math.hypot(box.x - held.x, box.y - held.y);
+        },
+        { timeout: 10_000, message: "the cats stayed put after data-cat-secret cleared" },
+      )
+      .toBeGreaterThan(40);
+  });
+
+  test("reduced motion skips the secret theatrics entirely", async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: DESKTOP_WIDTH, height: 900 },
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    const secret = contactIntents.find((intent) => intent.id === "secret");
+    if (!secret) throw new Error("The secret intent left the content layer — update this spec with it.");
+
+    const contact = page.locator("#contact");
+    await contact.scrollIntoViewIfNeeded();
+    // #contact holds two forms — QuickConnect's one-field form above the
+    // full one — so this has to be anchored on the full form specifically,
+    // the same way e2e/contact.spec.ts's own data-cat-secret test does, or
+    // Playwright's strict mode fails with "resolved to 2 elements".
+    const form = contact.locator("form", { has: page.locator("#contact-name") });
+    await contact.getByRole("radio", { name: secret.label }).check();
+    await expect(form).toHaveAttribute("data-cat-secret", "");
+
+    // The attribute stands, exactly as it does with motion allowed — but
+    // there is no roaming loop here to react to it, so the cat button never
+    // moves: the same "does not roam" contract this file already asserts for
+    // every other reaction, now proved for this one too.
+    const cat = catButton(page);
+    const before = await cat.boundingBox();
+    await page.waitForTimeout(600);
+    const after = await cat.boundingBox();
+    expect(before).not.toBeNull();
+    expect(after).toEqual(before);
+
+    await context.close();
   });
 });

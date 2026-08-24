@@ -20,14 +20,13 @@ const FACTS: CompanionFacts = {
   about: { role: "Software Engineer", organization: "DoorDash, Inc." },
   philosophy: { principles: 5 },
   work: { caseStudies: 3, sourcedMetrics: 14 },
-  journey: { entries: 12, work: 5, learning: 4, milestones: 3 },
   skills: { categories: 6, distinctSkills: 38 },
-  tree: { branches: 5, leaves: 25, technologies: 33 },
+  tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
   lab: { experiments: 6, verified: 4 },
   contact: { email: "x@y.z" },
 };
 
-const AMBIENT_SECTIONS = ["about", "philosophy", "work", "journey", "skills", "tree", "lab"];
+const AMBIENT_SECTIONS = ["about", "philosophy", "work", "skills", "tree", "lab"];
 
 describe("scene bank", () => {
   it("has a hello scene with both speakers and alternation", () => {
@@ -49,7 +48,7 @@ describe("scene bank", () => {
     expect(sceneFor("ambient", null, FACTS)).toBeNull();
   });
 
-  it("has a tour scene for all eight nav sections", () => {
+  it("has a tour scene for every nav section", () => {
     for (const section of [...AMBIENT_SECTIONS, "contact"]) {
       const scene = sceneFor("tour", section, FACTS);
       expect(scene, section).not.toBeNull();
@@ -58,7 +57,6 @@ describe("scene bank", () => {
   });
 
   it("offers encores exactly where a second fact exists", () => {
-    expect(hasEncore("journey", FACTS)).toBe(true);
     expect(hasEncore("tree", FACTS)).toBe(true);
     expect(hasEncore("lab", FACTS)).toBe(true);
     expect(hasEncore("about", FACTS)).toBe(false);

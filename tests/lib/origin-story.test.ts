@@ -3,12 +3,22 @@ import { careerEntries, origin } from "@/content/portfolio";
 import { careerYearSpan } from "@/lib/knowledge-tree";
 import {
   CAPTION_MAX_CHARS,
+  dueByElapsed,
   firstCanopyYear,
   growthStage,
   kindFor,
+  LEAF_POP_MS,
+  ORDINARY_DUR_MS,
+  planRelease,
   rootYearFor,
   seasonsFor,
+  STAGGER_STEP_MS,
+  TIER_BRANCH,
+  TIER_LEAF,
+  TIER_TRUNK,
+  TRUNK_RISE_MS,
   type SeasonForces,
+  type StaggerCandidate,
 } from "@/lib/origin-story";
 import type { CareerEntry } from "@/types/portfolio";
 
@@ -213,5 +223,134 @@ describe("rootYearFor", () => {
       expect(year).toBeGreaterThanOrEqual(previous);
       previous = year;
     }
+  });
+});
+
+/**
+ * `planRelease` and `dueByElapsed` are the pure clock math behind
+ * `OriginStory.tsx`'s single rAF master clock (round 10): given the same
+ * inputs they always answer the same way, with no DOM, no timer, and no
+ * side effect — which is exactly what makes "does the growth choreography
+ * stay correct under this rule" finally provable without driving a real
+ * browser. `key` is a plain string in every test here (never an
+ * `HTMLElement`) precisely because these functions do not care what the key
+ * *is*, only that it is stable identity — `OriginStory.tsx` supplies a real
+ * `HTMLElement` at runtime.
+ */
+describe("planRelease", () => {
+  const zero = new Set<string>();
+
+  function candidate(
+    key: string,
+    year: number,
+    tier: number,
+    extra: Partial<Pick<StaggerCandidate<string>, "isTrunk" | "isShoot">> = {},
+  ): StaggerCandidate<string> {
+    return { key, year, tier, isTrunk: false, isShoot: false, ...extra };
+  }
+
+  it("orders trunk before branch before leaf, regardless of input order", () => {
+    const candidates = [
+      candidate("leaf", 2020, TIER_LEAF),
+      candidate("trunk", 2020, TIER_TRUNK, { isTrunk: true }),
+      candidate("branch", 2020, TIER_BRANCH),
+    ];
+    const plan = planRelease(candidates, 2020, zero);
+    expect(plan.map((entry) => entry.key)).toEqual(["trunk", "branch", "leaf"]);
+  });
+
+  it("stable-sorts within a tier: same-tier candidates keep their input order", () => {
+    const candidates = [
+      candidate("branch-b", 2020, TIER_BRANCH),
+      candidate("branch-a", 2020, TIER_BRANCH),
+      candidate("branch-c", 2020, TIER_BRANCH),
+    ];
+    const plan = planRelease(candidates, 2020, zero);
+    expect(plan.map((entry) => entry.key)).toEqual(["branch-b", "branch-a", "branch-c"]);
+  });
+
+  it("staggers each entry STAGGER_STEP_MS past the one before it, by plan order", () => {
+    const candidates = [
+      candidate("trunk", 2020, TIER_TRUNK, { isTrunk: true }),
+      candidate("branch", 2020, TIER_BRANCH),
+      candidate("leaf", 2020, TIER_LEAF),
+    ];
+    const plan = planRelease(candidates, 2020, zero);
+    expect(plan.map((entry) => entry.delayMs)).toEqual([0, STAGGER_STEP_MS, STAGGER_STEP_MS * 2]);
+  });
+
+  it("gives the trunk its hero rise, a leaf its quick pop, and everything else the ordinary duration", () => {
+    const candidates = [
+      candidate("trunk", 2020, TIER_TRUNK, { isTrunk: true }),
+      candidate("branch", 2020, TIER_BRANCH),
+      candidate("leaf", 2020, TIER_LEAF),
+    ];
+    const plan = planRelease(candidates, 2020, zero);
+    const byKey = new Map(plan.map((entry) => [entry.key, entry.durationMs]));
+    expect(byKey.get("trunk")).toBe(TRUNK_RISE_MS);
+    expect(byKey.get("branch")).toBe(ORDINARY_DUR_MS);
+    expect(byKey.get("leaf")).toBe(LEAF_POP_MS);
+  });
+
+  it("never plans the shoot — that always waits for its own beat", () => {
+    const candidates = [candidate("shoot", 2020, TIER_LEAF, { isShoot: true })];
+    expect(planRelease(candidates, 2025, zero)).toEqual([]);
+  });
+
+  it("excludes a key already claimed, even if it would otherwise be due", () => {
+    const candidates = [candidate("a", 2020, TIER_BRANCH)];
+    expect(planRelease(candidates, 2020, new Set(["a"]))).toEqual([]);
+  });
+
+  it("excludes anything dated after the cutoff year", () => {
+    const candidates = [candidate("early", 2019, TIER_BRANCH), candidate("late", 2021, TIER_BRANCH)];
+    const plan = planRelease(candidates, 2020, zero);
+    expect(plan.map((entry) => entry.key)).toEqual(["early"]);
+  });
+
+  it("treats a non-finite year as always due, rather than never due", () => {
+    const candidates = [candidate("nan", Number.NaN, TIER_BRANCH)];
+    const plan = planRelease(candidates, 1900, zero);
+    expect(plan.map((entry) => entry.key)).toEqual(["nan"]);
+  });
+
+  it("is pure: the same inputs always produce the same plan", () => {
+    const candidates = [
+      candidate("trunk", 2020, TIER_TRUNK, { isTrunk: true }),
+      candidate("leaf", 2020, TIER_LEAF),
+    ];
+    expect(planRelease(candidates, 2020, zero)).toEqual(planRelease(candidates, 2020, zero));
+  });
+});
+
+describe("dueByElapsed", () => {
+  const plan = [
+    { key: "a", delayMs: 0, durationMs: ORDINARY_DUR_MS },
+    { key: "b", delayMs: STAGGER_STEP_MS, durationMs: ORDINARY_DUR_MS },
+    { key: "c", delayMs: STAGGER_STEP_MS * 2, durationMs: ORDINARY_DUR_MS },
+  ];
+
+  it("returns nothing before the first entry's own delay has elapsed", () => {
+    expect(dueByElapsed(plan, -1)).toEqual([]);
+  });
+
+  it("returns exactly the entries whose delay has elapsed, in plan order", () => {
+    expect(dueByElapsed(plan, 0).map((entry) => entry.key)).toEqual(["a"]);
+    expect(dueByElapsed(plan, STAGGER_STEP_MS).map((entry) => entry.key)).toEqual(["a", "b"]);
+    expect(dueByElapsed(plan, STAGGER_STEP_MS * 2).map((entry) => entry.key)).toEqual(["a", "b", "c"]);
+  });
+
+  it("returns the whole plan once elapsed time is well past the last delay", () => {
+    expect(dueByElapsed(plan, STAGGER_STEP_MS * 100)).toHaveLength(plan.length);
+  });
+
+  it("is a pure, repeatable read: the same plan and elapsed time always answer the same way", () => {
+    expect(dueByElapsed(plan, STAGGER_STEP_MS)).toEqual(dueByElapsed(plan, STAGGER_STEP_MS));
+  });
+
+  it("never mutates the plan it was given", () => {
+    const before = JSON.stringify(plan);
+    dueByElapsed(plan, STAGGER_STEP_MS * 2);
+    expect(JSON.stringify(plan)).toBe(before);
   });
 });

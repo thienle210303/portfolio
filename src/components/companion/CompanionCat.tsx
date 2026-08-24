@@ -125,7 +125,10 @@ interface CompanionCatProps {
   readonly scale?: number;
 }
 
-const STROKE = {
+/** Exported for `MiniThien`, the one other drawing on this layer that follows
+ *  the same ink discipline — a bare line weight for a figure that carries no
+ *  coat wash of its own. */
+export const STROKE = {
   fill: "none",
   stroke: "currentColor",
   strokeWidth: 1.6,
@@ -167,7 +170,7 @@ const PAD_RY = 1.5;
  * `fill` on an open path silently closes it, and half the parts of a cat are
  * open on purpose.
  */
-type Part =
+export type Part =
   /** A closed silhouette. The mask fills it and traces its outline; the ink
    *  draws the contour, carrying the coat wash unless `bare` says otherwise.
    *  Contours that are left open below are ones whose implied closing chord was
@@ -331,8 +334,12 @@ function sitTail(lash: number, drop = 0): string {
 /* -------------------------------------------------------------------------- */
 
 /** The knockout: every part of the animal in the page's ground, laid down
- *  before a single line of it is drawn. */
-function Silhouette({ parts }: { readonly parts: readonly Part[] }) {
+ *  before a single line of it is drawn. Exported alongside `LineWork` so
+ *  `MiniThien` — the one other drawing on this layer, and the one drawn in
+ *  the same two-pass technique for the same reason — can render its own part
+ *  list through the identical pair of passes rather than a second copy of
+ *  this masking logic. */
+export function Silhouette({ parts }: { readonly parts: readonly Part[] }) {
   return (
     <g>
       {parts.map((part, index) => {
@@ -356,8 +363,9 @@ function Silhouette({ parts }: { readonly parts: readonly Part[] }) {
   );
 }
 
-/** The drawing itself, on top of its own knockout. */
-function LineWork({
+/** The drawing itself, on top of its own knockout. See the note on
+ *  `Silhouette` above for why this is exported. */
+export function LineWork({
   parts,
   coat,
 }: {

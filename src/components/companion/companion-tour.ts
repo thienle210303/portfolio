@@ -51,10 +51,14 @@ export type TourPhase = "walking" | "arrived";
  */
 export type TourRoute = "grey" | "tabby";
 
-/** The five stops between Philosophy and Contact, in `grey`'s order — the
+/** The four stops between Philosophy and Contact, in `grey`'s order — the
  *  same order `TOUR_STOPS` already puts them in, named here rather than
- *  re-sliced at every call site. `tabby`'s route is this, reversed. */
-const GREY_MIDDLE = ["work", "journey", "skills", "tree", "lab"] as const;
+ *  re-sliced at every call site. `tabby`'s route is this, reversed.
+ *
+ *  Round 10: the tree absorbed Journey, so this list is one shorter than it
+ *  used to be — `journey` retired as a section id, and the tree's own tour
+ *  scene (`companion-dialogue.ts`) narrates both faces at its one stop. */
+const GREY_MIDDLE = ["work", "skills", "tree", "lab"] as const;
 
 const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop]));
 

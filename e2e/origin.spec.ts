@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { firstCanopyYear, seasonsFor } from "../src/lib/origin-story";
+import { firstCanopyYear, seasonsFor, STAGGER_STEP_MS } from "../src/lib/origin-story";
 
 /**
  * The origin-story player (`WatchOrigin.tsx` / `OriginStory.tsx`, Workstream
@@ -154,8 +154,8 @@ test.describe("chronological growth", () => {
 
     // Derived from the same imports the player itself uses, never a literal
     // year: `seasonsFor()` is the beat order past flight/seed, and
-    // `firstCanopyYear()` is the year `releaseThroughYear` first has anything
-    // above ground to release.
+    // `firstCanopyYear()` is the year `planRelease` (`origin-story.ts`)
+    // first has anything above ground to release.
     const seasons = seasonsFor();
     const canopyYear = firstCanopyYear();
     const seasonIndex = seasons.findIndex((season) => season.year === canopyYear);
@@ -173,8 +173,8 @@ test.describe("chronological growth", () => {
     // Flight is beat 0, seed is beat 1, then one season beat per entry in
     // `seasons` — so the beat that names `canopyYear` sits at `2 + seasonIndex`.
     // Clicking the stage advances immediately (see "clicking the stage
-    // advances to the next beat" above), and reaching that beat is what runs
-    // `releaseThroughYear(groups, canopyYear)` in `OriginStory.tsx`.
+    // advances to the next beat" above), and reaching that beat is what
+    // queues `canopyYear`'s own groups for the master clock to release.
     const targetBeatIndex = 2 + seasonIndex;
     for (let i = 0; i < targetBeatIndex; i += 1) {
       const before = await status.textContent();
@@ -182,25 +182,67 @@ test.describe("chronological growth", () => {
       await expect(status).not.toHaveText(before ?? "");
     }
 
+    // Contract check (round 10, "Origin story on one clock"): the rebuilt
+    // player releases a beat's own due groups *progressively* — a single
+    // rAF master clock removes each group's `data-origin-pending` exactly
+    // `STAGGER_STEP_MS` apart, staggered across real time (`planRelease`/
+    // `dueByElapsed` in `origin-story.ts`, applied from `OriginStory.tsx`'s
+    // "master clock" effect) — rather than every due group flipping in the
+    // DOM synchronously the instant the beat's own `origin-story-beat`
+    // CustomEvent fires. That stagger is the intended architecture, not a
+    // regression: it is the whole point of "start from the ground, grow
+    // slowly", and nothing else on the page needs the old synchronous
+    // contract — the companion's own `origin-story-beat` listener
+    // (`Companion.tsx`) narrates from the event's `kind`/`year`/`storm`
+    // detail alone and never inspects `[data-origin-pending]`. So this
+    // samples with `expect.poll` instead of one instantaneous
+    // `page.evaluate` right after the last click, with a deadline sized off
+    // the same `STAGGER_STEP_MS` the clock itself staggers by (comfortably
+    // under `OriginStory.tsx`'s own `SEASON_MS`, so the beat's own
+    // auto-advance can never race this poll and start releasing a *later*
+    // year's groups before it resolves) — "never all at once" is still
+    // proven below, by `laterPending` staying nonzero throughout.
+    const earlyCount = await page.evaluate(
+      (limitYear) =>
+        Array.from(document.querySelectorAll<HTMLElement>("[data-origin-year]")).filter(
+          (el) => !el.hasAttribute("data-tree-shoot") && Number(el.getAttribute("data-origin-year")) <= limitYear,
+        ).length,
+      canopyYear,
+    );
+
+    const readEarlyPending = () =>
+      page.evaluate((limitYear) => {
+        const groups = Array.from(document.querySelectorAll<HTMLElement>("[data-origin-year]")).filter(
+          (el) => !el.hasAttribute("data-tree-shoot"),
+        );
+        return groups.filter(
+          (el) =>
+            Number(el.getAttribute("data-origin-year")) <= limitYear && el.hasAttribute("data-origin-pending"),
+        ).length;
+      }, canopyYear);
+
+    // Grown in order: every group dated at or before the beat just reached
+    // is released within the stagger window the clock itself promises for
+    // it — never left pending forever, but not required to be instant.
+    await expect
+      .poll(readEarlyPending, { timeout: Math.min(earlyCount * STAGGER_STEP_MS + 500, 1700) })
+      .toBe(0);
+
     const groupState = await page.evaluate((limitYear) => {
       // The shoot is deliberately excluded from this generic sweep (it waits
       // for its own "still" beat), so it is excluded here too.
       const groups = Array.from(
         document.querySelectorAll<HTMLElement>("[data-origin-year]"),
       ).filter((el) => !el.hasAttribute("data-tree-shoot"));
-      const early = groups.filter((el) => Number(el.getAttribute("data-origin-year")) <= limitYear);
       const later = groups.filter((el) => Number(el.getAttribute("data-origin-year")) > limitYear);
       return {
-        earlyPending: early.filter((el) => el.hasAttribute("data-origin-pending")).length,
         laterTotal: later.length,
         laterPending: later.filter((el) => el.hasAttribute("data-origin-pending")).length,
       };
     }, canopyYear);
 
-    // Grown in order: every group dated at or before the beat just reached
-    // has already been released.
-    expect(groupState.earlyPending).toBe(0);
-    // Never all at once: something dated after it is still waiting its turn.
+    // Never all at once: something dated after the beat just reached is
+    // still waiting its turn.
     expect(
       groupState.laterTotal,
       "content fixture assumption failed: no year after firstCanopyYear()",
