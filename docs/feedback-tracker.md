@@ -615,3 +615,17 @@ Two quick owner items after living with round 12:
 
 Gate: `pnpm verify` green, full Playwright matrix **463 passed / 0 failed**,
 visual pass at 390 in both themes.
+
+## Round 14 (2026-08-24)
+
+Owner's items 1–3 (item 4 eaten by the terminal twice — still awaited).
+
+| Item | Owner | Outcome |
+| --- | --- | --- |
+| 1 · Tree "awful" on mobile + laptop (messy, hard to read) | Sonnet (WP-O) | Diagnosed with DOM-geometry evidence before redesigning: leaf marks (40px) taller than their rows (30px) physically overlapping; per-leaf x-jitter turning each spine into a meander; 6.5–7× height mismatch between paired boughs driving the zigzag; 301px panels at 1024. Fixes: one straight twig per branch (blade tilt still varies), mark 40→26 with tightened pitch, calmed stagger (lean 24→16, cap 264→160), reclaimed width (gap-x-24→16, bough 48→32; panels 301→317px), mobile ring/bough knot separated (ring pinned to the trunk's own hairlines, bough departs below it). Contracts all held (56 scoped tree tests green). The builder could not screenshot in its environment and said so; the lead verified visually at 1024 and 390, both themes — dramatically calmer, chronology reads clean |
+| 2 · Mini-Thien looks like Thien | Sonnet (WP-P) | Redrawn per the owner's description: tall lean frame, glasses, filled dark hair mass at 0.68 ink density (denser than the grey cat's 0.42 coat — ink standing in for "dark", blue stays forbidden) in a short ivy-league cut with raised crown and part-notch, one raised-eyebrow stroke, notebook kept. Verified at 3–6× density in both themes; 1x marginality is the pre-existing scale tradeoff, not a regression |
+| 3 · Wander corners + scroll sprint | Sonnet (WP-P) | Wander destinations now uniform draws across the margin-inset viewport (10 tries through the existing isClearSpot gauntlet before falling back to the old pool) — the corner-seeking was `standingSpots`' whitespace grid, whose whitespace lives in the gutters. Facing decoupled: a deterministic per-arrival roll (FNV-1a, the drawing files' own idiom) faces a settled cat left or right at random. Speed: every path audited — all motion already flows through the shared advance/followTarget+ramp pair, so the cap held mathematically; it is now explicit in a pure `companion-motion.ts` with 12 tests incl. a 20,000px-jump case. Honest residual: cats are viewport-fixed, so during a fast scroll they still glide relative to the *text* — if that perception persists for the owner, the next lever is riding the page mid-scroll |
+
+Gate: `pnpm verify` green (**410 unit tests**, up from 388), full Playwright
+matrix **463 passed / 0 failed**, first run. Lead visual pass: tree at 1024
++ 390 both themes, mini-Thien at 3× both themes.

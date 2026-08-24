@@ -6,6 +6,7 @@ import {
   clearsControls,
   findClearSpot,
   isClearSpot,
+  randomViewportPoint,
   safeTop,
   standingSpots,
   viewport,
@@ -454,6 +455,13 @@ const WANDER_MOOD = 0.34;
  *  with no whitespace on it must not turn a stroll into a reflow. */
 const WANDER_TRIES = 8;
 
+/** How many uniformly random points `planWander` tries before it gives up on
+ *  "genuinely anywhere" and falls back to `standingSpots`'s own, edge-biased
+ *  pool. A handful: each one is three hit tests same as `WANDER_TRIES`
+ *  above, and a page that is mostly prose will fail most of them, which is
+ *  the whole reason there is a fallback rather than a bigger number here. */
+const WANDER_UNIFORM_TRIES = 10;
+
 /**
  * Of everywhere a cat could stand, the places far enough away to read as
  * having gone somewhere.
@@ -500,6 +508,17 @@ export function detectRush(distancePx: number, elapsedMs: number): boolean {
   return distancePx / elapsedMs >= RUSH_VELOCITY;
 }
 
+/**
+ * Where a candidate lands relative to the middle of the window, which is the
+ * one thing every wander candidate — uniform or pooled — decides the second
+ * cat's side by: outward, so she takes the side with the page's own margin
+ * on it rather than the side with the content.
+ */
+function settleAt(spot: Point, follow: Point, home: Point): MoodSpots {
+  const outward: 1 | -1 = spot.x + CAT_W / 2 > viewport().width / 2 ? 1 : -1;
+  return { lead: spot, follow: mateSpot(spot, outward) ?? findClearSpot(follow, home, spot) };
+}
+
 export function planWander(
   section: string | null,
   lead: Point,
@@ -514,14 +533,29 @@ export function planWander(
     if (mood) return mood.spots;
   }
 
+  // Genuinely anywhere first: every point in the viewport is equally likely,
+  // so a page with clear ground in the middle of it is no longer invisible to
+  // the planner — see the file banner on `randomViewportPoint`. Each
+  // candidate still has to clear the ordinary content probe; a uniform draw
+  // finds whitespace exactly as often as the page actually has whitespace to
+  // find, which is why this still needs the retries rather than taking the
+  // first roll on faith.
+  for (let tries = 0; tries < WANDER_UNIFORM_TRIES; tries += 1) {
+    const spot = randomViewportPoint();
+    if (Math.hypot(spot.x - lead.x, spot.y - lead.y) < WANDER_MIN) continue;
+    if (!isClearSpot(spot)) continue;
+    return settleAt(spot, follow, home);
+  }
+
+  // A page with genuinely little clear ground outside its own margins — the
+  // old pool, tried second rather than dropped: it still finds *somewhere*
+  // on pages a uniform draw keeps missing, at the cost of the edge bias the
+  // owner's report was about.
   const options = wanderCandidates(standingSpots(lead), lead);
   for (let tries = 0; tries < WANDER_TRIES && options.length > 0; tries += 1) {
     const [spot] = options.splice(Math.floor(Math.random() * options.length), 1);
     if (!isClearSpot(spot)) continue;
-    // Outward from the middle of the window, so she takes the side with the
-    // page's own margin on it rather than the side with the content.
-    const outward: 1 | -1 = spot.x + CAT_W / 2 > viewport().width / 2 ? 1 : -1;
-    return { lead: spot, follow: mateSpot(spot, outward) ?? findClearSpot(follow, home, spot) };
+    return settleAt(spot, follow, home);
   }
   return null;
 }

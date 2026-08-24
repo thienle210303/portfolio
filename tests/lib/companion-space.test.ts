@@ -5,6 +5,8 @@ import {
   findClearSpot,
   isClearSpot,
   keepClearOfControl,
+  randomFacing,
+  randomViewportPoint,
   setControlRects,
   setReservedRects,
   TOGGLE_CLEARANCE,
@@ -300,5 +302,81 @@ describe("keepClearOfControl — the target-size invariant", () => {
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
     }
+  });
+});
+
+/**
+ * The wander-goes-random fix (WP-P round 14): `standingSpots` sweeps a grid
+ * of five columns — the two gutters, the content column's middle, the two
+ * quarter points — built to find the whitespace *between* blocks of prose,
+ * which on an ordinary page is the margins. Wander used that same pool for
+ * its own destinations, and "they always try to come to corners or edges"
+ * is exactly what that grid was always going to produce. `randomViewportPoint`
+ * is the other kind of pool: every point in the margin-inset box equally
+ * likely, sampled rather than swept.
+ */
+describe("randomViewportPoint", () => {
+  it("draws the exact corners of the box at the extremes of the rng", () => {
+    const min = randomViewportPoint(() => 0);
+    const max = randomViewportPoint(() => 1);
+    // jsdom's default viewport: window.innerWidth/innerHeight (1024×768),
+    // since `document.documentElement.clientWidth/Height` are 0 there and
+    // `viewport()` falls back — see that function's own note.
+    expect(min).toEqual({ x: 8, y: 8 });
+    expect(max).toEqual({ x: 1024 - CAT_W - 8, y: 768 - CAT_H - 8 });
+  });
+
+  it("is linear in the rng draw, not clustered towards either end", () => {
+    const mid = randomViewportPoint(() => 0.5);
+    const min = randomViewportPoint(() => 0);
+    const max = randomViewportPoint(() => 1);
+    expect(mid.x).toBeCloseTo((min.x + max.x) / 2, 5);
+    expect(mid.y).toBeCloseTo((min.y + max.y) / 2, 5);
+  });
+
+  it("defaults to Math.random and always lands inside the box, middle included", () => {
+    let sawMiddleColumn = false;
+    for (let i = 0; i < 200; i += 1) {
+      const point = randomViewportPoint();
+      expect(point.x).toBeGreaterThanOrEqual(8);
+      expect(point.x).toBeLessThanOrEqual(1024 - CAT_W - 8);
+      expect(point.y).toBeGreaterThanOrEqual(8);
+      expect(point.y).toBeLessThanOrEqual(768 - CAT_H - 8);
+      // Unlike `standingSpots`'s five fixed columns, a uniform draw is not
+      // confined to the gutters — this is the property the fix is for.
+      if (Math.abs(point.x - 512) < 100) sawMiddleColumn = true;
+    }
+    expect(sawMiddleColumn).toBe(true);
+  });
+});
+
+describe("randomFacing", () => {
+  it("is deterministic — the same seed always answers the same way", () => {
+    const seed = "lead:12345:600:400";
+    expect(randomFacing(seed)).toBe(randomFacing(seed));
+  });
+
+  it("only ever answers 1 or -1", () => {
+    for (let i = 0; i < 50; i += 1) {
+      const face = randomFacing(`seed-${i}`);
+      expect(face === 1 || face === -1).toBe(true);
+    }
+  });
+
+  it("answers both ways across enough different seeds — it is not secretly constant", () => {
+    const faces = new Set<number>();
+    for (let i = 0; i < 50; i += 1) faces.add(randomFacing(`arrival-${i}`));
+    expect(faces).toEqual(new Set([1, -1]));
+  });
+
+  it("two different seeds are not guaranteed the same answer — the hash actually depends on the input", () => {
+    // Not every pair of seeds has to differ, but at least one of a spread
+    // of them must, or this would be a constant function wearing a seed
+    // parameter.
+    const answers = new Set<number>();
+    for (const seed of ["a", "b", "c", "d", "e", "f", "g", "h"]) {
+      answers.add(randomFacing(seed));
+    }
+    expect(answers.size).toBeGreaterThan(1);
   });
 });

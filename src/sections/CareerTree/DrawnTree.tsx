@@ -67,7 +67,7 @@ import { KIND_LABEL } from "./tree-labels";
  * any zoom, in either theme. Two junctions get extra help: a bough runs all
  * the way to the trunk's *centre line* rather than to its edge, so the
  * tapering edge can move without ever leaving a gap; and a leaf's twig has
- * finished bending 11px down, above anything that can reflow, so the straight
+ * finished bending 8px down, above anything that can reflow, so the straight
  * run below it starts from a known point however the label wraps.
  *
  * ## Where the asymmetry comes from
@@ -172,12 +172,15 @@ function inkDelay(seed: string, min: number, max: number): CSSProperties {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Half the column gap (`gap-x-24` = 6rem = 96px) — the distance from the
- * trunk, the centre line of that gap, to the near edge of either column. The
- * bough box is exactly that wide, so its two ends land on the two things it
- * joins without either being measured. Change the gap and change this.
+ * Half the column gap (`gap-x-16` = 4rem = 64px — round 14 narrowed this
+ * from `gap-x-24`/96px to give each column back 16px it was losing to the
+ * trunk on a 1024px screen, where two ~300px columns were already tight for
+ * a role name and a technology list) — the distance from the trunk, the
+ * centre line of that gap, to the near edge of either column. The bough box
+ * is exactly that wide, so its two ends land on the two things it joins
+ * without either being measured. Change the gap and change this.
  */
-const BOUGH_W = 48;
+const BOUGH_W = 32;
 
 /** The leader above the canopy; matches the container's `pt-16`. */
 const TIP_W = 72;
@@ -202,14 +205,21 @@ const FOOT_W = 76;
 const FOOT_H = 44;
 
 /** The twig gutter inside a leaf column, and the mark box that draws the
- *  twig's bend, a stem and a blade across it into the label's inner margin. */
+ *  twig's bend, a stem and a blade across it into the label's inner margin.
+ *  Round 14 shrank `MARK_H` from 40 to 26 and tightened the row pitch below
+ *  (`LeafMark`'s `pad`) to match it: at the old sizing a leaf as short as one
+ *  line of text packed at less than its own mark's height, so consecutive
+ *  bend-stem-blade marks visually overlapped one another — dozens of them
+ *  down a busy bough read as a knot of scribbles rather than a legible list
+ *  of separate facts. The mark box is now sized to what the shortest leaf row
+ *  actually has room for. */
 const TWIG_W = 32;
 const MARK_W = 44;
-const MARK_H = 40;
+const MARK_H = 26;
 /** How far down a leaf the twig has finished bending to that leaf's own x —
  *  shared by the mark's path and by the straight run's `top`, which is what
- *  makes the two meet exactly. */
-const TWIG_BEND = 11;
+ *  makes the two meet exactly. Shortened alongside `MARK_H`. */
+const TWIG_BEND = 8;
 
 /**
  * A leaf blade, drawn from its stalk at the origin and pointing along +x:
@@ -1065,7 +1075,11 @@ function Bough({
   readonly leaflets: number;
 }) {
   const h = vary(`${seed}|h`, 176, 268);
-  const sway = vary(`${seed}|s`, 10, 26);
+  // Capped lower than before (was 10..26): `BOUGH_W` narrowed to 32 in round
+  // 14, and a foliage leaflet riding near this control point can reach a few
+  // px past its own anchor — keeping `sway` well inside the new box's width
+  // is what stops that reach from clipping against the SVG's own edge.
+  const sway = vary(`${seed}|s`, 8, 18);
   const entry = vary(`${seed}|e`, 14, 34);
   const shoot = vary(`${seed}|k`, 34, 62);
   const waist = Math.round(h * 0.5);
@@ -1093,9 +1107,9 @@ function Bough({
       viewBox={`0 0 ${BOUGH_W} ${h}`}
       data-tree-part="bough"
       className={cn(
-        "pointer-events-none absolute top-0 w-12",
+        "pointer-events-none absolute top-0 w-8",
         INK,
-        side === "right" ? "-left-12" : "-right-12",
+        side === "right" ? "-left-8" : "-right-8",
       )}
       style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
     >
@@ -1204,12 +1218,22 @@ function BranchPanel({ branch, side }: { readonly branch: TreeBranch; readonly s
 /* Leaves                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/** Where a leaf's twig sits inside the gutter, and how far its label stands
- *  off it. Both vary per leaf, which is what gives a run of them a ragged
- *  inner edge instead of a comb. */
+/**
+ * Where a bough's twig sits inside the gutter. Round 14 made this one value
+ * per *branch* rather than per leaf: through round 13 every leaf picked its
+ * own x, so the "straight run" between consecutive leaves was actually a
+ * dozen short diagonal jogs, one per leaf, and a bough with nine leaves drew
+ * nine small kinks nobody was meant to individually notice — it read as a
+ * meandering scribble rather than a run of separate facts. One x per bough
+ * keeps the spine a single straight line — the calm, legible part of the
+ * drawing — while `leafInset` below still varies per leaf, so the *blades*
+ * hanging off that spine keep their own ragged, hand-drawn silhouette.
+ */
 function twigX(seed: string): number {
-  return vary(`${seed}|t`, 3, 11);
+  return vary(`${seed}|t`, 4, 8);
 }
+/** How far a leaf's label stands off its twig — varies per leaf, which is
+ *  what keeps a straight spine (see `twigX`) from reading as a ruler. */
 function leafInset(seed: string): number {
   return vary(`${seed}|i`, 3, 12);
 }
@@ -1265,7 +1289,11 @@ function LeafMark({ leaf, seed, startYear, side, xPrev, x, hasNext }: LeafMarkPr
   // Leaves are not evenly pitched: the gap below each one varies, so a run of
   // them has a rhythm rather than a row spacing. Only the gap *below*
   // moves — the twig meets its label at a fixed height, whatever else changes.
-  const pad = { paddingTop: 4, paddingBottom: 4 + vary(`${seed}|g`, 0, 11) };
+  // Round 14 tightened both numbers (was 4 / 4+vary(0,11)): a busy bough's
+  // run of leaves is what made the drawing's tallest boughs run three and
+  // four times longer than a quiet neighbour's, which is most of what threw
+  // the two-column layout's reading line off — see the note on `placements`.
+  const pad = { paddingTop: 3, paddingBottom: 3 + vary(`${seed}|g`, 0, 5) };
 
   return (
     <li
@@ -1317,9 +1345,9 @@ function LeafMark({ leaf, seed, startYear, side, xPrev, x, hasNext }: LeafMarkPr
           className="tree-draw"
           style={inkDelay(`${seed}|ink-mark`, 600, 860)}
           d={
-            `M${xPrev} 0C${xPrev} 4 ${x} 7 ${x} ${TWIG_BEND}` +
-            `M${x} 15C${x + 1.5} 19 ${bladeAt - 5} 20.5 ${bladeAt} 24` +
-            blade(bladeAt, 24, tiltFor(`${seed}|a`))
+            `M${xPrev} 0C${xPrev} 3 ${x} 5 ${x} ${TWIG_BEND}` +
+            `M${x} 12C${x + 1.2} 14.5 ${bladeAt - 4} 15.5 ${bladeAt} 18` +
+            blade(bladeAt, 18, tiltFor(`${seed}|a`))
           }
         />
       </svg>
@@ -1413,17 +1441,23 @@ function placements(tree: readonly TreeBranch[]): readonly Placement[] {
     // The branch sharing this row, if any — only ever the one written just
     // before a right-hand branch. An orphan has no partner and no row to
     // balance against. Roughly half the height difference between the two, at
-    // ~24px per leaf: enough to sit the shorter cluster in the middle of the
-    // taller one's run rather than at the top of it.
+    // ~16px per leaf (round 14: was 24px, tuned down to match the tighter
+    // leaf pitch `LeafMark` now uses) and capped at 160 (was 264) so a
+    // nine-leaf entry paired with an empty one leans, but does not throw its
+    // partner most of a screen's height down the trunk: enough to sit the
+    // shorter cluster in the middle of the taller one's run rather than at
+    // the top of it.
     const partner = column === 2 && !isOrphan ? tree[index - 1] : undefined;
     const lean = partner
-      ? Math.min(Math.max(partner.leaves.length - branch.leaves.length, 0) * 24, 264)
+      ? Math.min(Math.max(partner.leaves.length - branch.leaves.length, 0) * 16, 160)
       : 0;
 
     return {
       column,
       row: totalPairs - Math.floor(index / 2),
-      drop: (column === 2 ? 44 + lean : 0) + vary(`${branch.id}|d`, 0, 26),
+      // Base offset and jitter both tuned down alongside `lean` above — a
+      // calmer stagger to match the tighter leaf pitch.
+      drop: (column === 2 ? 28 + lean : 0) + vary(`${branch.id}|d`, 0, 14),
     };
   });
 }
@@ -1439,12 +1473,16 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
       <Trunk />
       <TrunkFoot />
 
-      <ul role="list" className="relative grid grid-cols-2 items-start gap-x-24 gap-y-10">
+      <ul role="list" className="relative grid grid-cols-2 items-start gap-x-16 gap-y-10">
         {tree.map((branch, index) => {
           // One placement per branch, in the same order.
           const place = placed[index];
           const side = place.column === 1 ? "left" : "right";
-          const xs = branch.leaves.map((_leaf, leafIndex) => twigX(`${branch.id}|${leafIndex}`));
+          // One twig x for the whole bough (round 14 — see the note on
+          // `twigX`), not one per leaf: every leaf shares it, so the run
+          // reads as a single straight spine.
+          const twigXValue = twigX(branch.id);
+          const xs = branch.leaves.map(() => twigXValue);
 
           return (
             <li
@@ -1510,7 +1548,7 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                     <path
                       className="tree-fade"
                       style={inkDelay(`${branch.id}|twig`, 400, 480)}
-                      d={`M2 0C2 8 ${xs[0] ?? 7} 11 ${xs[0] ?? 7} 20`}
+                      d={`M2 0C2 6 ${xs[0] ?? 6} 8 ${xs[0] ?? 6} 20`}
                     />
                   </svg>
 

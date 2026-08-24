@@ -149,7 +149,13 @@ interface EntryInkProps {
  */
 export function EntryInk({ seed, showRing }: EntryInkProps) {
   const trunkX = vary(`${seed}|tx`, 7, 11);
-  const leaveY = vary(`${seed}|ly`, 1, 6);
+  // Round 14: raised from vary(1, 6). At the old range a bough could leave
+  // the trunk at nearly the same point the ring crossed it — both marks
+  // occupying the same few square pixels read as a single tangled knot
+  // rather than two separate facts (the owner's own first-row nit from
+  // round 13). Giving the bough a few more px of clearance below the ring
+  // (fixed at the trunk's own y=0 below) is what separates them.
+  const leaveY = vary(`${seed}|ly`, 6, 11);
   const arriveY = vary(`${seed}|ay`, 21, 27);
   const sway = vary(`${seed}|sw`, 5, 10);
 
@@ -157,10 +163,17 @@ export function EntryInk({ seed, showRing }: EntryInkProps) {
     `M${trunkX} ${leaveY}C${trunkX} ${leaveY + 9} ${trunkX + sway} ${arriveY - 3} ${GUTTER} ${arriveY}` +
     `M${trunkX + 3} ${leaveY}C${trunkX + 3} ${leaveY + 9} ${trunkX + sway + 2} ${arriveY - 2} ${GUTTER} ${arriveY}`;
 
-  // A short arc dipping just below the point the bough leaves the trunk —
-  // small enough to read as a ring crossing a line, not a shape of its own.
-  const ringCentre = trunkX + 1.5;
-  const ring = showRing ? `M${ringCentre - 5} ${leaveY}A5 1.8 0 0 0 ${ringCentre + 5} ${leaveY}` : "";
+  // A short arc crossing the trunk where a year begins — fixed at y=0 and
+  // centred on the trunk's own two hairlines (`ListTrunk`'s `d` starts both
+  // strokes at x=6 and x=14) rather than following this row's own jittered
+  // `trunkX`/`leaveY`. Through round 13 the ring tracked the bough's own
+  // wandering departure point, so on a seed where both landed close together
+  // — the very first row, in the owner's report — the ring and the bough's
+  // two converging strokes drew on top of one another. Pinning the ring to
+  // the trunk itself, a few px above wherever this row's bough happens to
+  // leave, keeps the two marks legible as separate strokes on every seed
+  // rather than on most of them.
+  const ring = showRing ? "M5 0A5 1.8 0 0 0 15 0" : "";
 
   return (
     <svg

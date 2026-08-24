@@ -580,6 +580,78 @@ export function standingSpots(near: Point): Point[] {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Wandering: genuinely anywhere                                               */
+/*                                                                             */
+/* `standingSpots` above answers "every place a cat could stand", but its own   */
+/* five columns are the two gutters, the content column's middle and the two    */
+/* quarter points — a grid built to find whitespace *between* blocks of prose,  */
+/* which on an ordinary page is the margins. `wander` (companion-moods.ts)      */
+/* used exactly that pool for its own destinations, and the owner's own report  */
+/* is what that reads as from the visitor's side: "they always try to come to  */
+/* corners or edges" — correct, because the pool was built to prefer edges on   */
+/* purpose for a *different* question (where can a whole scene's stage fit).    */
+/* `randomViewportPoint` is the other kind of pool: no columns, no bias, every  */
+/* point in the margin-inset box equally likely, so a page with clear ground in */
+/* the middle of it is no longer invisible to the planner. Wander tries this    */
+/* first and falls back to `standingSpots`'s own pool only when a page has      */
+/* genuinely nothing free but its margins — see `planWander`.                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A point drawn uniformly at random from the same margin-inset box every
+ * settle position is clamped into — the bounds `bounds()` already computes
+ * for `clampToViewport`, sampled instead of clamped towards.
+ *
+ * `rng` defaults to `Math.random`, exactly like every other roll on this
+ * layer (see `companion-moods.ts`'s own `wanderCandidates` and the idle
+ * flourishes in `Companion.tsx`); it takes an injectable source only so a
+ * test can hand it a fixed sequence and assert the sampled point lands
+ * inside the box without needing to mock the global.
+ */
+export function randomViewportPoint(rng: () => number = Math.random): Point {
+  const box = bounds();
+  return {
+    x: box.minX + rng() * (box.maxX - box.minX),
+    y: box.minY + rng() * (box.maxY - box.minY),
+  };
+}
+
+/**
+ * A small FNV-1a hash into `0..1` — the same shape `list-ink.tsx` and
+ * `DrawnTree.tsx` already use for their own per-branch variation, kept as a
+ * private copy here for the same reason theirs are private to each other:
+ * this is a handful of lines, not a shared dependency worth a third module.
+ */
+function hash01(seed: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return ((h >>> 0) % 4096) / 4096;
+}
+
+/**
+ * Left or right, deterministically, from a seed unique to one arrival.
+ *
+ * A wandering cat used to keep whatever facing its last step of travel left
+ * it with — correct for a cat still walking, and the reason it is never
+ * touched here, but a settled cat facing forever "the direction I most
+ * recently arrived from" reads as an accident of pathfinding, not a choice.
+ * The owner's ask is for it to actually be one: "randomly facing left or
+ * right". Hashed rather than `Math.random()` so the choice for one arrival
+ * is a pure function of that arrival (call it twice with the same seed, get
+ * the same face) — a property a unit test can pin down, which a live
+ * `Math.random()` call at the moment of arrival cannot be. The caller (see
+ * `wanderTo` in `Companion.tsx`) builds the seed from the arrival time and
+ * the spot chosen, which is unique enough per arrival without this module
+ * ever having to hold state of its own.
+ */
+export function randomFacing(seed: string): 1 | -1 {
+  return hash01(seed) < 0.5 ? -1 : 1;
+}
+
 /** The three scopes a section can be in. `tone-base` is the same alias set the
  *  root already carries, so it is only listed to stop `closest` walking past a
  *  base section into something outside it. */

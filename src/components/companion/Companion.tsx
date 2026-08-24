@@ -47,6 +47,7 @@ import {
   type StoryBeatKind,
 } from "./companion-dialogue";
 import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
+import { advance, followTarget, ramp } from "./companion-motion";
 import {
   TOUR_STOPS,
   isLastStop,
@@ -68,6 +69,7 @@ import {
   isClearSpot,
   keepClearOfControl,
   keepInView,
+  randomFacing,
   refreshSafeArea,
   safeTop,
   setControlRects,
@@ -207,7 +209,10 @@ const INTENT_DWELL = 300;
  *  "close enough, and the scroll that got them there has stopped". */
 const TOUR_SCROLL_SILENCE = 350;
 
-/** px per frame at 60fps, scaled by distance so they lope rather than snap. */
+/** Max px per frame — a hard cap `advance` (companion-motion.ts) never lets a
+ *  single call exceed, whatever `want` is: they ease into the last few pixels
+ *  of arrival, but a target that has jumped — a fast scroll, most of all —
+ *  asks for no more speed than a target four pixels away does. */
 const LEAD_SPEED = 4.4;
 /** Being shooed is faster than strolling — and it has to be, because the whole
  *  escort has a ~2.5s budget and the walk can start anywhere on screen. */
@@ -220,21 +225,6 @@ const DASH_SPEED = 8.6;
  *  is what makes him read as arriving *beside* whichever cat is speaking
  *  rather than racing it there. */
 const THIEN_SPEED = 3.6;
-
-/**
- * The follower's speed curve. See `followTarget` and `ramp` below — between
- * them these four numbers replace what used to be three discrete speeds.
- *
- * `FOLLOW_RANGE` is how far past her comfortable distance she has to be before
- * she is running flat out; `FOLLOW_ACCEL` and `FOLLOW_BRAKE` are how fast she
- * is allowed to change her mind, in px per frame per frame. Braking is quicker
- * than accelerating, which is true of cats and also keeps her from sailing past
- * whatever she was heading for.
- */
-const FOLLOW_MAX = 6.4;
-const FOLLOW_RANGE = 200;
-const FOLLOW_ACCEL = 0.34;
-const FOLLOW_BRAKE = 0.5;
 
 /* ------------------------------------------------------------ the corner --
  *
@@ -779,61 +769,19 @@ function distance(a: Spot, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
-/** Moves `pos` towards `want` and returns how far it actually travelled, which
- *  is what the gait speed is scaled by — a cat creeping the last few pixels
- *  should not be sprinting on the spot. */
-function advance(pos: Spot, want: Point, maxSpeed: number): number {
-  if (maxSpeed <= 0) return 0;
-  const dx = want.x - pos.x;
-  const dy = want.y - pos.y;
-  const dist = Math.hypot(dx, dy);
-  if (dist < 0.6) return 0;
-  const step = Math.min(maxSpeed, dist * 0.14, dist);
-  pos.x += (dx / dist) * step;
-  pos.y += (dy / dist) * step;
-  return step;
-}
-
 function centreOf(pos: Spot): Point {
   return { x: pos.x + CAT_W / 2, y: pos.y + CAT_H / 2 };
 }
 
-/* -------------------------------------------------------------------------- */
-/* The follower's speed                                                        */
-/*                                                                             */
-/* She used to have three: nothing while she was disengaged or watching, 3.4    */
-/* while she trailed, and a 6.2 "sprint" that cut in on the frame the gap       */
-/* passed 220px. Thien's note — "too slow and suddenly walking too fast" — is   */
-/* both edges of that. They are step changes in *velocity*, and no amount of    */
-/* easing inside `advance` hides one: the drawing is still moving at 3.4px a    */
-/* frame and then, one frame later, at 6.2.                                     */
-/*                                                                             */
-/* So there are no speeds any more, only a curve and a limiter.                 */
-/* -------------------------------------------------------------------------- */
-
 /**
- * How fast she *wants* to be going, given how far she has to go.
- *
- * `gap` is the distance she is entitled to keep — the follow gap when she is
- * trailing him, zero when she is walking to a fixed place like the bed — so the
- * curve is always "speed proportional to distance beyond where I should be".
- * Eased out rather than smoothstepped: a curve that is flat at *both* ends
- * looks right leaving the gap but leaves her creeping the last few pixels onto
- * a target forever, which matters now that some of those targets are places she
- * has to actually arrive at.
+ * `advance` (the hard per-frame speed cap every mover on this layer is walked
+ * by) and the follower's own curve (`followTarget` + `ramp`) both live in
+ * `companion-motion.ts` now, not here — see that file's banner for why a
+ * target that is content-anchored while the cats are viewport-fixed makes the
+ * cap's independence from distance the whole point, not an implementation
+ * detail, and why that is worth a module a test can import on its own
+ * (WP-P round 14, "scroll must not speed them up").
  */
-function followTarget(away: number, gap: number): number {
-  const t = clamp((away - gap) / FOLLOW_RANGE, 0, 1);
-  return FOLLOW_MAX * (1 - (1 - t) * (1 - t));
-}
-
-/** And how fast she is allowed to change her mind. This is the half that makes
- *  her *personality* smooth as well as her pursuit: stopping to watch the
- *  cursor drops the target to zero, and she coasts down over ~13 frames instead
- *  of freezing mid-stride. */
-function ramp(from: number, to: number): number {
-  return from + clamp(to - from, -FOLLOW_BRAKE, FOLLOW_ACCEL);
-}
 
 /* -------------------------------------------------------------------------- */
 /* Idle flourishes                                                             */
@@ -1037,11 +985,20 @@ const SECTION_IDS = navItems.map((item) => item.sectionId);
  * not start until they are standing there — and `until` is a cap before then,
  * so a walk that cannot finish (a spot that has scrolled under something) is
  * abandoned rather than walked at forever.
+ *
+ * `faceLead`/`faceFollow` are rolled once, at the same moment `arrivedAt` is
+ * stamped — see round 14, "randomly facing left or right". Held here rather
+ * than recomputed for the same reason `spots` is: a facing re-rolled every
+ * frame is not a choice, it is a flicker. Zero until an arrival has actually
+ * happened, which is never read as a real facing — nothing consults these
+ * two fields while `arrivedAt` is still 0.
  */
 interface WanderRun {
   readonly spots: Spots;
   arrivedAt: number;
   until: number;
+  faceLead: 1 | -1;
+  faceFollow: 1 | -1;
 }
 
 /** How long a wandering pair stay somewhere once they get there, and the cap on
@@ -2089,6 +2046,14 @@ export function Companion({ facts }: CompanionProps) {
         ) {
           run.arrivedAt = now;
           run.until = now + WANDER_STAY + Math.random() * WANDER_STAY_SPREAD;
+          // Round 14: facing left or right at random on arrival, decoupled
+          // from whichever way they were travelling to get here — see
+          // `randomFacing`. Seeded from this arrival's own moment and spot
+          // rather than a live `Math.random()` call, which is what makes the
+          // choice a pure, testable function of "this one arrival" instead
+          // of an untestable side effect of when the frame happened to land.
+          run.faceLead = randomFacing(`lead:${now}:${run.spots.lead.x}:${run.spots.lead.y}`);
+          run.faceFollow = randomFacing(`follow:${now}:${run.spots.follow.x}:${run.spots.follow.y}`);
         }
         return run.spots;
       }
@@ -2099,6 +2064,8 @@ export function Companion({ facts }: CompanionProps) {
         spots,
         arrivedAt: 0,
         until: now + (chosen ? WANDER_WALK_MAX : WANDER_STAY),
+        faceLead: 1,
+        faceFollow: 1,
       };
       return spots;
     }
@@ -2850,6 +2817,16 @@ export function Companion({ facts }: CompanionProps) {
         leadWant,
         run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : LEAD_SPEED,
       );
+      // Round 14: once he has actually stopped at a wandered-to spot, his
+      // facing holds the roll `wanderTo` made on arrival rather than
+      // whatever the travel-direction check just above last left it as —
+      // see the note on `WanderRun`. Gated on `leadStep <= 0.3`, the same
+      // "not really walking any more" threshold the pose branches below
+      // read, so this never fights the travel-direction facing while he is
+      // still closing the last few pixels of the walk.
+      if (wandering && wanderRun.current?.arrivedAt && leadStep <= 0.3) {
+        grey.facing = wanderRun.current.faceLead;
+      }
       if (leadStep > 0.3) {
         calmIdle(grey, now);
         grey.pose = "walk";
@@ -2942,6 +2919,12 @@ export function Companion({ facts }: CompanionProps) {
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
       const followStep = advance(tabby.pos, followWant, tabby.speed);
+      // Round 14, her half of the same rule the lead gets above: once she has
+      // actually stopped at a wandered-to spot, her facing holds `wanderTo`'s
+      // own roll rather than the travel-direction check just above.
+      if (wandering && wanderRun.current?.arrivedAt && followStep <= 0.3) {
+        tabby.facing = wanderRun.current.faceFollow;
+      }
       if (kicking && followStep <= 0.3) {
         // Outranks the sleep branch below, which would otherwise have her curled
         // up before the paw ever landed: by the time she reaches the bed the
