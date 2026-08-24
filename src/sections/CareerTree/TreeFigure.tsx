@@ -10,21 +10,28 @@ import { useEffect, useRef, type ReactNode } from "react";
  *
  * Every server-rendered node in the figure that participates already carries
  * a plain `data-tree-*` attribute naming what it is: `data-tree-tech` on a
- * technology tag, `data-tree-techs` on the leaf row listing them,
- * `data-tree-root`/`data-tree-feeds` on a root label, `data-tree-lateral` on
- * its underground path, `data-tree-lens` on a whole branch's `<li>`,
+ * technology leaf, `data-tree-root` on a root label, `data-tree-lateral` on
+ * its underground path, `data-tree-branch` on a whole career entry's `<li>`,
  * `data-tree-panel` on its summary card, `data-tree-entry` on a leaf. None of
  * that is new data — every one of those attributes is a value the server
- * already had in hand from `buildKnowledgeTree()` or `skillCategories`. This
+ * already had in hand from `buildCareerTree()` or `skillCategories`. This
  * island reads them; it invents nothing.
  *
  * On `pointerover`/`focus` it walks up from the event target to the nearest
  * attribute it recognises, works out what that thing highlights — the
- * category below is where `hitTech`/`hitRoot`/`hitLens` puts that authored
- * logic, no two of them agreeing by coincidence — clears whatever was
- * highlighted a moment ago, and stamps `data-tree-hit` on the new set. The
- * CSS in `globals.css`'s "Career tree figure" block does the actual
- * brightening; this file only ever decides *which* elements qualify.
+ * category below is where `hitTech`/`hitRoot` puts that authored logic —
+ * clears whatever was highlighted a moment ago, and stamps `data-tree-hit` on
+ * the new set. The CSS in `globals.css`'s "Career tree figure" block does the
+ * actual brightening; this file only ever decides *which* elements qualify.
+ *
+ * Round 12 retired a third case, `hitLens`: through round 11 a root label
+ * also brightened every lens panel `category.lenses` named it feeding, and a
+ * hover on a lens panel or leaf brightened the roots feeding it back. That
+ * edge existed only because a lens was a whole branch of the drawing; now the
+ * branches are career entries and there is no lens left to feed, so
+ * `RootLabels.tsx` no longer prints a "Feeds …" line and this file no longer
+ * looks for one. A root now highlights only itself and its own lateral root
+ * underground — see `hitRoot` below.
  *
  * Two things this deliberately does not do. It never touches React state —
  * every mutation here is a DOM attribute, so re-rendering this component
@@ -65,16 +72,8 @@ const HIT_ATTR = "data-tree-hit";
 
 /** The attributes an event target might be standing on, or standing inside —
  *  checked in this order because a leaf row (`data-tree-entry`) can itself
- *  sit inside a lens `<li>` that is not what the pointer landed on. */
+ *  sit inside a branch `<li>` that is not what the pointer landed on. */
 const MATCH_SELECTOR = "[data-tree-tech], [data-tree-root], [data-tree-panel], [data-tree-entry]";
-
-/** A space-separated attribute value, split into its tokens — the same
- *  matching a class-list `~=` selector would do, spelled out because the
- *  values here (`data-tree-techs`, `data-tree-feeds`) are read in JS, not
- *  matched by a CSS attribute selector. */
-function tokens(value: string | null): readonly string[] {
-  return value ? value.split(/\s+/).filter(Boolean) : [];
-}
 
 function clearHits(scope: ParentNode): void {
   scope.querySelectorAll(`[${HIT_ATTR}]`).forEach((el) => el.removeAttribute(HIT_ATTR));
@@ -84,43 +83,24 @@ function mark(scope: ParentNode, selector: string): void {
   scope.querySelectorAll(selector).forEach((el) => el.setAttribute(HIT_ATTR, ""));
 }
 
-/** A technology tag: every leaf row — in either presentation — whose
- *  `data-tree-techs` token list actually names it, plus its own other
- *  instances. Token match, not substring: `data-tree-techs` is a
- *  space-separated list of slugs, and a substring match on "c" would also
- *  catch "c-c" ("C/C++"). */
+/** A technology leaf: every other leaf — in either presentation, on any
+ *  branch — carrying the exact same `data-tree-tech` slug. Since round 12
+ *  each technology is its own leaf mark rather than a tag nested inside a
+ *  bigger entry row, so an exact attribute match is the whole query; there is
+ *  no wrapping row left that also needs to light up. */
 function hitTech(scope: ParentNode, slug: string): void {
   mark(scope, `[data-tree-tech="${slug}"]`);
-  scope.querySelectorAll("[data-tree-techs]").forEach((el) => {
-    if (tokens(el.getAttribute("data-tree-techs")).includes(slug)) {
-      el.setAttribute(HIT_ATTR, "");
-    }
-  });
 }
 
-/** A root label: its own lateral underground, and every lens `<li>` the
- *  authored `category.lenses` names in `data-tree-feeds`. A root that feeds
- *  nothing (there is one — see `RootLabels.tsx`) highlights only itself and
- *  its lateral, honestly. */
+/** A root label: its own lateral underground. Through round 11 this also
+ *  brightened every lens panel `category.lenses` named it feeding; round 12
+ *  retires the lens branches that line fed, so a root now highlights only
+ *  itself and its lateral, honestly — see the file banner and
+ *  `RootLabels.tsx`. */
 function hitRoot(scope: ParentNode, categoryId: string): void {
   const label = scope.querySelector(`[data-tree-root="${categoryId}"]`);
   label?.setAttribute(HIT_ATTR, "");
   mark(scope, `[data-tree-lateral="${categoryId}"]`);
-  for (const lensId of tokens(label?.getAttribute("data-tree-feeds") ?? null)) {
-    mark(scope, `[data-tree-lens="${lensId}"]`);
-  }
-}
-
-/** A lens panel, or any part of a leaf hanging off it: the reverse of
- *  `hitRoot` — every root label that lists this lens among what it feeds.
- *  The Leadership lens (fed by no category) resolves to an empty set here,
- *  which is the honest answer, not a bug to work around. */
-function hitLens(scope: ParentNode, lensId: string): void {
-  scope.querySelectorAll("[data-tree-root]").forEach((el) => {
-    if (tokens(el.getAttribute("data-tree-feeds")).includes(lensId)) {
-      el.setAttribute(HIT_ATTR, "");
-    }
-  });
 }
 
 export function TreeFigure({ children, className }: TreeFigureProps) {
@@ -146,10 +126,11 @@ export function TreeFigure({ children, className }: TreeFigureProps) {
       } else if (el.hasAttribute("data-tree-root")) {
         hitRoot(wrapper, el.getAttribute("data-tree-root") ?? "");
       } else {
-        // data-tree-panel or data-tree-entry: both act on the lens they
-        // belong to, found by walking further up from here.
-        const lensId = el.closest("[data-tree-lens]")?.getAttribute("data-tree-lens");
-        if (lensId) hitLens(wrapper, lensId);
+        // data-tree-panel (a branch's own card) or data-tree-entry (an
+        // impact leaf, which carries no data-tree-tech): nothing else on the
+        // drawing shares either one's identity, so hovering or focusing it
+        // highlights only itself.
+        el.setAttribute(HIT_ATTR, "");
       }
     };
 

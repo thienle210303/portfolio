@@ -65,11 +65,22 @@ function expectSettledAtScrollMargin(top: number, message: string) {
 test.beforeEach(async ({ page }) => {
   // Playwright retries clicks until an element is actionable, but it dispatches
   // key presses immediately and reads the DOM immediately. Both race React's
-  // hydration on a page this long, which is how a suite that passed became
-  // intermittently red once sections were reordered. Waiting for the network to
-  // settle is the closest available "the islands are live now" signal.
+  // hydration on a page this long. `networkidle` was the old approximation of
+  // "the islands are live now", and under full-matrix dev-server load it lied
+  // often enough to flake a different click-based test on each run (hero tabs,
+  // case-study disclosures — round 12's integration log has the tally).
+  // `html[data-ink-ready]` is the real signal: InkReveal stamps it from a
+  // client effect, and effects only flush after the hydration pass that
+  // attaches every island's handlers has committed.
   await page.goto("/");
   await page.waitForLoadState("networkidle");
+  // The "without JavaScript" describe below shares this hook, and with
+  // scripts off the attribute can never arrive. `page.evaluate` itself runs
+  // over CDP regardless of `javaScriptEnabled`, so the discriminator is
+  // whether the page's own scripts ran: Next's inline flight script always
+  // defines `__next_f` — absent exactly when page scripts are disabled.
+  const jsLive = await page.evaluate(() => "__next_f" in window);
+  if (jsLive) await page.waitForSelector("html[data-ink-ready]", { timeout: 30_000 });
 });
 
 test.describe("hero", () => {
@@ -80,10 +91,22 @@ test.describe("hero", () => {
   test("code artifact tabs switch panels via mouse and keyboard", async ({ page }) => {
     const tablist = page.getByRole("tablist", { name: "Code artifact tabs" });
     const tabs = tablist.getByRole("tab");
-    await expect(tabs).toHaveCount(codeTabs.length);
+    // The three authored code tabs plus "Ask Thien" (round 12, WP-K) — the
+    // mini chat rides the same tablist but is not a codeTabs member; its own
+    // behavior is pinned in e2e/ask.spec.ts.
+    await expect(tabs).toHaveCount(codeTabs.length + 1);
 
-    await tabs.nth(1).click();
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+    // Click-and-verify as one retried unit: `networkidle` in beforeEach only
+    // approximates "the islands are live" (its own comment says so), and
+    // under full-matrix dev-server load a click can land on a tablist React
+    // has not attached to yet — the click succeeds, nothing flips, and a
+    // plain assertion waits on state that will never arrive. Retrying the
+    // click keeps the contract honest: a genuinely broken switch still
+    // fails after the timeout.
+    await expect(async () => {
+      await tabs.nth(1).click();
+      await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true", { timeout: 1000 });
+    }).toPass({ timeout: 15_000 });
     await expect(page.getByRole("region", { name: codeTabs[1].filename })).toBeVisible();
 
     await tabs.nth(1).focus();
@@ -231,52 +254,52 @@ test.describe("career tree", () => {
     await viewToggle(page, "Tree").click();
     const tree = page.locator("#tree");
 
-    // The drawn presentation's leaves end their accessible name in "Show
-    // detail — …" and the list presentation's lens-level toggles end theirs
-    // in "Show what sits under …" (Disclosure appends the label after the
-    // summary text) — two different controls with two different accessible
-    // names, so a substring match on either is a reliable "which
+    // The drawn presentation's branch panels end their accessible name in
+    // "Show detail — …" and the list presentation's own branch toggles end
+    // theirs in "Show what … involved" (Disclosure appends the label after
+    // the summary text) — two different controls with two different
+    // accessible names, so a substring match on either is a reliable "which
     // presentation is actually in the tree" probe. See
     // src/sections/CareerTree/KnowledgeTree.tsx for why exactly one of the
     // two presentations is ever in the accessibility tree at a given width.
-    const drawingLeaf = tree.getByRole("button", { name: /Show detail — /}).first();
-    const listLens = tree.getByRole("button", { name: /Show what sits under /}).first();
+    const drawingBranch = tree.getByRole("button", { name: /Show detail — /}).first();
+    const listBranch = tree.getByRole("button", { name: /Show what .+ involved/}).first();
 
     if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
-      await expect(drawingLeaf).toBeVisible();
-      await expect(listLens).toBeHidden();
+      await expect(drawingBranch).toBeVisible();
+      await expect(listBranch).toBeHidden();
     } else {
-      await expect(drawingLeaf).toBeHidden();
-      await expect(listLens).toBeVisible();
+      await expect(drawingBranch).toBeHidden();
+      await expect(listBranch).toBeVisible();
     }
   });
 
-  test("opening a leaf reveals its detail, including the case-study link when one exists", async ({
+  test("opening a branch panel reveals its detail, including the case-study link when one exists", async ({
     page,
   }) => {
     test.skip(
       viewportWidth(page) < DESKTOP_MIN_WIDTH,
-      "a leaf is only its own control in the drawn presentation — see KnowledgeTreeList.tsx",
+      "a branch panel is only its own control in the drawn presentation — see KnowledgeTreeList.tsx",
     );
     await viewToggle(page, "Tree").click();
 
     const tree = page.locator("#tree");
     // DoorDash carries two case studies (src/content/portfolio.ts,
-    // careerEntryId "doordash"), and appears as a leaf on every lens it is
-    // tagged with, so any leaf bearing its name is a leaf known to have a
-    // case-study link once opened. Resolved to a fixed id before clicking,
-    // not kept as a live role/name locator: expanding it flips its own
+    // careerEntryId "doordash") and, since round 12's tree inversion, draws
+    // as exactly one branch — no more re-resolving-to-a-different-DoorDash
+    // trap from a name that used to repeat once per tagged lens. Resolved to
+    // a fixed id before clicking, still: expanding it flips its own
     // accessible name from "Show detail — …" to "Hide detail — …"
     // (Disclosure's expandLabel/collapseLabel swap), which would otherwise
-    // make a `/Show detail — /` locator silently re-resolve to a *different*
-    // DoorDash leaf the moment this one opens.
-    const candidateId = await tree
+    // make a live `/Show detail — /` locator match nothing at all the
+    // instant this one opens.
+    const triggerId = await tree
       .getByRole("button", { name: /Show detail — /})
       .filter({ hasText: "DoorDash, Inc." })
       .first()
       .getAttribute("id");
-    expect(candidateId, "expected at least one DoorDash leaf trigger").toBeTruthy();
-    const trigger = page.locator(`#${candidateId}`);
+    expect(triggerId, "expected the DoorDash branch trigger").toBeTruthy();
+    const trigger = page.locator(`#${triggerId}`);
 
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -288,7 +311,7 @@ test.describe("career tree", () => {
     // Detail: kind + date range always renders once opened.
     await expect(panel.getByText(/Role · /)).toBeVisible();
 
-    // The case-study link, present because this leaf has one — points at
+    // The case-study link, present because this branch has one — points at
     // that case study's own article, not merely at the section holding all
     // of them, and that article actually exists.
     const caseStudyLink = panel.locator('a[href^="#work-"]').first();
@@ -313,13 +336,17 @@ test.describe("career tree", () => {
   });
 
   /*
-   * The leaves' second cross-link: back to the one timeline entry each leaf
-   * was built from (`#journey-entry-<id>`, src/sections/CareerTree/
-   * anchors.ts). Four things about it are worth a test rather than a
+   * The branch panels' second cross-link: back to the one timeline entry
+   * each branch was built from (`#journey-entry-<id>`, src/sections/
+   * CareerTree/anchors.ts). Round 12 moved this from the leaf to the branch
+   * panel (a leaf is now a single authored fact with nothing further to
+   * disclose — see the "Why the branch panel alone is interactive" note in
+   * DrawnTree.tsx), so there is one of these per branch now, not one per
+   * (lens, entry) pair. Four things about it are worth a test rather than a
    * reading, because all four failed a first attempt at this feature:
    *
-   *   - it exists only inside an *open* leaf, so twenty-five leaves do not
-   *     become twenty-five tab stops;
+   *   - it exists only inside an *open* branch panel, so fourteen branches
+   *     do not become fourteen tab stops;
    *   - it lands clear of the 4rem sticky header;
    *   - it works while the timeline is filtered to a category that excludes
    *     the entry, which is the case where a plain fragment link silently
@@ -352,21 +379,20 @@ test.describe("career tree", () => {
     ).toBeGreaterThan(0);
   });
 
-  test("a leaf's timeline link is in the tab order only while that leaf is open", async ({
+  test("a branch panel's timeline link is in the tab order only while that panel is open", async ({
     page,
   }) => {
     test.skip(
       viewportWidth(page) < DESKTOP_MIN_WIDTH,
-      "a leaf is only its own control in the drawn presentation — see KnowledgeTreeList.tsx",
+      "a branch panel is only its own control in the drawn presentation — see KnowledgeTreeList.tsx",
     );
 
     const tree = page.locator("#tree");
-    const triggerId = await tree
-      .locator(`button[id^="tree-leaf-"][id$="-${linkedEntry.id}-trigger"]`)
-      .first()
-      .getAttribute("id");
-    expect(triggerId, `expected a leaf for career entry "${linkedEntry.id}"`).toBeTruthy();
-    const trigger = page.locator(`#${triggerId}`);
+    // Round 12: a branch panel's id is `tree-branch-<entryId>` — one panel
+    // per career entry, not one leaf per (lens, entry) pair — so this is now
+    // an exact id lookup rather than a wildcard prefix/suffix match.
+    const trigger = tree.locator(`#tree-branch-${linkedEntry.id}-trigger`);
+    await expect(trigger, `expected a branch panel for career entry "${linkedEntry.id}"`).toHaveCount(1);
     const panelId = await trigger.getAttribute("aria-controls");
     const link = page.locator(`#${panelId} a[href="#${ENTRY_ANCHOR}"]`);
 
@@ -389,47 +415,45 @@ test.describe("career tree", () => {
       const panel = id ? document.getElementById(id) : null;
       return panel ? panel.contains(document.activeElement) : false;
     }, panelId);
-    expect(landedInPanel, "Tab from a collapsed leaf must not reach its timeline link").toBe(false);
+    expect(landedInPanel, "Tab from a collapsed branch panel must not reach its timeline link").toBe(false);
   });
 
   /**
-   * The one visible copy of the leaf's timeline link, opened if it needs to
-   * be. The drawing keeps each leaf's link in that leaf's own panel, so the
-   * leaf has to be opened first; the list presentation keeps it in the branch
-   * row, inside the lens's panel, which is already open for the first lens.
-   * Whichever internal presentation shows at this width, the other one is
-   * `display: none`, so its copy of the same link is not visible — and the
-   * outer Tree face has to be forced on first, or the whole panel holding
-   * both presentations is `display: none` regardless of width (mobile's
-   * default face is now List — see view-state.ts).
+   * The one visible copy of the branch's timeline link, opened if it needs
+   * to be. Both presentations keep this link inside that branch's own
+   * `Disclosure` now — round 12 flattened the list from "lens panel holding
+   * branch rows" to "one Disclosure per branch", the same shape the drawing
+   * already used, so both need an explicit open rather than only the drawn
+   * one. Whichever internal presentation shows at this width, the other one
+   * is `display: none`, so its copy of the same link is not visible — and
+   * the outer Tree face has to be forced on first, or the whole panel
+   * holding both presentations is `display: none` regardless of width
+   * (mobile's default face is now List — see view-state.ts).
    */
-  const revealLeafTimelineLink = async (page: Page): Promise<Locator> => {
+  const revealBranchTimelineLink = async (page: Page): Promise<Locator> => {
     const tree = page.locator("#tree");
     await tree.getByRole("button", { name: "Tree", exact: true }).click();
-    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
-      const trigger = tree
-        .locator(`button[id^="tree-leaf-"][id$="-${linkedEntry.id}-trigger"]`)
-        .first();
-      if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
-    }
+    const idPrefix = viewportWidth(page) >= DESKTOP_MIN_WIDTH ? "tree-branch-" : "tree-list-branch-";
+    const trigger = tree.locator(`#${idPrefix}${linkedEntry.id}-trigger`);
+    if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
     const link = tree.locator(`a[href="#${ENTRY_ANCHOR}"]:visible`).first();
     await link.scrollIntoViewIfNeeded();
     return link;
   };
 
-  test("a leaf's timeline link switches the section to List, lands on its entry, even when the filter excludes it", async ({
+  test("a branch panel's timeline link switches the section to List, lands on its entry, even when the filter excludes it", async ({
     page,
   }) => {
     const tree = page.locator("#tree");
     // Start on the List face so the "Work" filter is actually the state a
-    // visitor following the leaf's link a moment later would be filtering
-    // away from — the click below re-selects Tree, but the filter itself is
+    // visitor following the branch panel's link a moment later would be
+    // filtering away from — the click below re-selects Tree, but the filter itself is
     // Timeline's own state and survives the face switch untouched.
     await tree.getByRole("button", { name: "List", exact: true }).click();
     await tree.getByRole("radio", { name: "Work" }).click();
     await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
 
-    const link = await revealLeafTimelineLink(page);
+    const link = await revealBranchTimelineLink(page);
     await link.click();
 
     const entry = page.locator(`#${ENTRY_ANCHOR}`);
@@ -477,7 +501,7 @@ test.describe("career tree", () => {
 
     // First visit, from the default "all" filter: an ordinary fragment
     // navigation, which sets the hash.
-    const link = await revealLeafTimelineLink(page);
+    const link = await revealBranchTimelineLink(page);
     await link.click();
     await expect(entry).toBeFocused();
     await expect.poll(() => new URL(page.url()).hash).toBe(`#${ENTRY_ANCHOR}`);
@@ -486,11 +510,11 @@ test.describe("career tree", () => {
     // below changes nothing about the URL and fires neither `hashchange` nor
     // anything else the effects above could hear. Switching back to Tree
     // first is what makes the second click below a genuine re-click of a
-    // leaf's link rather than a click on an already-visible list entry.
+    // branch panel's link rather than a click on an already-visible list entry.
     await tree.getByRole("radio", { name: "Work" }).click();
     await expect(entry).toHaveCount(0);
 
-    const again = await revealLeafTimelineLink(page);
+    const again = await revealBranchTimelineLink(page);
     await again.click();
 
     await expect(entry).toBeVisible();
@@ -586,14 +610,18 @@ test.describe("career tree", () => {
   });
 
   /*
-   * Cross-highlighting (TreeFigure.tsx): pointer or focus on a tag, a root
-   * label or a lens's own panel/leaf stamps `data-tree-hit` on the set that
-   * attribute says it should. All three below only exercise the drawn
-   * presentation, where a panel and a root label are actually adjacent
-   * enough to hover independently — see the earlier "the drawing shows at
-   * >=1024px" test for why that split exists at all.
+   * Cross-highlighting (TreeFigure.tsx): pointer or focus on a technology
+   * leaf or a root label stamps `data-tree-hit` on the set that attribute
+   * says it should. Round 12 retired a third case along with the lens
+   * branches it depended on: through round 11 a root label also brightened
+   * every lens panel its authored `category.lenses` named, and vice versa;
+   * now that lenses no longer draw as their own branch of the tree, that
+   * edge has no target left to name, and `RootLabels.tsx` no longer prints
+   * the "Feeds …" line it came from. The two tests below assert the honest
+   * replacement — a root highlights only itself and its own lateral root —
+   * rather than keeping tests for a feature this round removed.
    */
-  test("hovering a root label highlights exactly the lens clusters it authors feed", async ({
+  test("hovering a root label highlights only itself and its own lateral root", async ({
     page,
   }) => {
     test.skip(
@@ -601,10 +629,7 @@ test.describe("career tree", () => {
       "root labels sit under their own root's tip only in the drawn presentation",
     );
 
-    const category = CATEGORIES.find((c) => c.lenses.length > 0);
-    expect(category, "content fixture assumption failed: no category with an authored lens").toBeTruthy();
-    if (!category) return;
-
+    const category = CATEGORIES[0];
     const tree = page.locator("#tree");
     // `networkidle` in beforeEach only proves the bundle finished downloading,
     // not that TreeFigure's effect has attached its pointerover/focus
@@ -617,85 +642,68 @@ test.describe("career tree", () => {
     await rootLabel.scrollIntoViewIfNeeded();
     await rootLabel.hover();
 
-    const hitLensIds = await page.evaluate(
-      () =>
-        [...document.querySelectorAll("#tree [data-tree-lens][data-tree-hit]")]
-          .map((el) => el.getAttribute("data-tree-lens"))
-          .filter((id): id is string => id !== null),
-    );
-    expect(new Set(hitLensIds)).toEqual(new Set(category.lenses));
+    const result = await page.evaluate((categoryId: string) => {
+      const hit = [...document.querySelectorAll("#tree [data-tree-hit]")];
+      return {
+        total: hit.length,
+        root: hit.filter((el) => el.getAttribute("data-tree-root") === categoryId).length,
+        lateral: hit.filter((el) => el.getAttribute("data-tree-lateral") === categoryId).length,
+      };
+    }, category.id);
+
+    expect(result.root, "the hovered root label itself must be in the hit set").toBeGreaterThan(0);
+    expect(result.lateral, "its own lateral root underground must be in the hit set").toBeGreaterThan(0);
+    // And nothing else: no lens panel, no branch, no leaf lights up — the
+    // roots are label-only now (see RootLabels.tsx).
+    expect(result.total).toBe(result.root + result.lateral);
   });
 
-  test("focusing a leaf highlights the root labels its lens is actually fed by", async ({
+  test("focusing a branch panel highlights only itself — nothing underground lights up", async ({
     page,
   }) => {
     test.skip(
       viewportWidth(page) < DESKTOP_MIN_WIDTH,
-      "a leaf is only its own control in the drawn presentation",
+      "a branch panel is only its own control in the drawn presentation",
     );
 
     const tree = page.locator("#tree");
     // See the hover test above for why this waits on the island's own
     // "listeners are on" signal rather than trusting `networkidle`.
     await expect(tree.locator("[data-tree-live]")).toHaveCount(1);
-    // Software engineering is the tree's largest branch (see CareerTree.tsx's
-    // own "heaviest" rail note), so it is guaranteed to have a leaf.
     const trigger = tree
-      .getByRole("button", { name: /Show detail — Software engineering/ })
+      .getByRole("button", { name: /Show detail — /})
+      .filter({ hasText: "DoorDash, Inc." })
       .first();
     await trigger.scrollIntoViewIfNeeded();
     await trigger.focus();
 
-    const hitRootIds = await page.evaluate(
-      () =>
-        [...document.querySelectorAll("#tree [data-tree-root][data-tree-hit]")]
-          .map((el) => el.getAttribute("data-tree-root"))
-          .filter((id): id is string => id !== null),
+    const hitRootCount = await page.evaluate(
+      () => document.querySelectorAll("#tree [data-tree-root][data-tree-hit]").length,
     );
-    const expected = CATEGORIES
-      .filter((category) => category.lenses.includes("engineering"))
-      .map((category) => category.id);
-    expect(expected.length, "content fixture assumption failed: expected engineering to be fed").toBeGreaterThan(0);
-    expect(new Set(hitRootIds)).toEqual(new Set(expected));
+    expect(hitRootCount, "a branch panel must not brighten any root — that edge no longer exists").toBe(0);
   });
 
-  test("hovering a technology tag highlights every leaf row that actually lists it", async ({
+  test("hovering a technology leaf highlights every other leaf that lists it, in either presentation", async ({
     page,
   }) => {
     test.skip(
       viewportWidth(page) < DESKTOP_MIN_WIDTH,
-      "a leaf's technology tags are only reachable open in the drawn presentation",
+      "hover-driven cross-highlighting is exercised at desktop width only, matching the rest of this block",
     );
 
     const tree = page.locator("#tree");
-    // Same trap the "opening a leaf" test above documents: DoorDash appears
-    // as a leaf on every lens it is tagged with, and clicking one flips its
-    // accessible name to "Hide detail — …", so a live `/Show detail — /`
-    // locator would silently re-resolve to the *other* DoorDash leaf the
-    // moment this one opens. Pin the id first, then click the pinned button.
-    const candidateId = await tree
-      .getByRole("button", { name: /Show detail — /})
-      .filter({ hasText: "DoorDash, Inc." })
-      .first()
-      .getAttribute("id");
-    expect(candidateId, "expected at least one DoorDash leaf trigger").toBeTruthy();
-    const trigger = page.locator(`#${candidateId}`);
-    await trigger.scrollIntoViewIfNeeded();
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
-
-    const panelId = await trigger.getAttribute("aria-controls");
-    const tag = page.locator(`#${panelId} [data-tree-tech]`).first();
+    await expect(tree.locator("[data-tree-live]")).toHaveCount(1);
+    // Round 12: a technology is its own leaf mark, always visible on its
+    // branch's twig — no panel needs opening to reach one any more.
+    const tag = tree.locator("[data-tree-tech]:visible").first();
     const slug = await tag.getAttribute("data-tree-tech");
-    expect(slug, "expected an open leaf to carry at least one technology tag").toBeTruthy();
+    expect(slug, "expected at least one technology leaf on the drawing").toBeTruthy();
 
+    await tag.scrollIntoViewIfNeeded();
     await tag.hover();
 
     const counts = await page.evaluate((needle: string) => {
-      const inTree = (el: Element) => el.closest("#tree") !== null;
-      const homes = [...document.querySelectorAll("[data-tree-techs]")].filter(
-        (el) => inTree(el) && (el.getAttribute("data-tree-techs") ?? "").split(/\s+/).includes(needle),
-      );
+      const homes = [...document.querySelectorAll(`#tree [data-tree-tech="${needle}"]`)];
       const hit = homes.filter((el) => el.hasAttribute("data-tree-hit"));
       return { homes: homes.length, hit: hit.length };
     }, slug as string);

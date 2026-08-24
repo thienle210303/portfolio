@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CAT_W } from "@/components/companion/CompanionCat";
+import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   clearsControls,
   findClearSpot,
   isClearSpot,
+  keepClearOfControl,
   setControlRects,
   setReservedRects,
+  TOGGLE_CLEARANCE,
   type Point,
+  type RectLike,
 } from "@/components/companion/companion-space";
 
 /**
@@ -35,6 +38,19 @@ function rect(left: number, top: number, width: number, height: number): DOMRect
     y: top,
     toJSON: () => ({}),
   } as DOMRect;
+}
+
+const LEAD_PAD_X = 4;
+const LEAD_PAD_Y = 3;
+
+/** The exact shape `Companion.tsx`'s `leadControlRect` builds from `grey.pos`. */
+function leadControlRect(pos: Point): RectLike {
+  return {
+    left: pos.x - LEAD_PAD_X,
+    top: pos.y - LEAD_PAD_Y,
+    right: pos.x - LEAD_PAD_X + CAT_W + LEAD_PAD_X * 2,
+    bottom: pos.y - LEAD_PAD_Y + CAT_H + LEAD_PAD_Y * 2,
+  };
 }
 
 describe("setReservedRects", () => {
@@ -163,5 +179,126 @@ describe("setControlRects / clearsControls — the toolkit-toggle fix", () => {
     const result = findClearSpot({ x: 500, y: 400 }, home, home);
     expect(result).not.toEqual(home);
     expect(Math.abs(result.x - home.x)).toBeGreaterThanOrEqual(CAT_W);
+  });
+});
+
+/**
+ * The staleness regression (round 10, second pass): the control rect used
+ * to be read off the DOM on a throttle (320ms, then 120ms), and axe caught
+ * it going stale under load — the follower placed against a coordinate the
+ * lead had already walked away from mid-huddle. `Companion.tsx` now
+ * computes this rect directly from `grey.pos` and the fixed padded box a
+ * roaming lead is drawn in, every frame, with no `getBoundingClientRect()`
+ * and no interval to fall behind.
+ *
+ * That only works if `setControlRects` genuinely accepts a bare
+ * `{ left, top, right, bottom }` — the `RectLike` this module now types it
+ * as — rather than secretly wanting a real `DOMRect` (`width`, `height`,
+ * `x`, `y`, `toJSON`). This pins that promise with the exact arithmetic
+ * `Companion.tsx` builds, and proves a second call — the loop's next frame
+ * — takes effect immediately, with nothing left over from the position it
+ * replaces.
+ */
+describe("setControlRects computed straight from state, no DOM object and no staleness", () => {
+  beforeEach(() => {
+    document.elementsFromPoint = vi.fn(() => []);
+    setReservedRects([]);
+    setControlRects([]);
+  });
+
+  it("blocks the lead's own current position using a bare computed rectangle, no DOMRect required", () => {
+    const leadPos: Point = { x: 500, y: 500 };
+    setControlRects([leadControlRect(leadPos)]);
+    expect(clearsControls(leadPos)).toBe(false);
+  });
+
+  it("has no staleness window — a fresh position takes effect on the very next call, not after an interval", () => {
+    const oldPos: Point = { x: 500, y: 500 };
+    const newPos: Point = { x: 900, y: 500 };
+    setControlRects([leadControlRect(oldPos)]);
+    expect(clearsControls(oldPos)).toBe(false);
+    // The loop moved on — a live rAF caller would register this on the very
+    // next frame, not after any elapsed time.
+    setControlRects([leadControlRect(newPos)]);
+    expect(clearsControls(oldPos)).toBe(true);
+    expect(clearsControls(newPos)).toBe(false);
+  });
+});
+
+/**
+ * The invariant fix (round 10, third pass): `clearsControls` only ever
+ * gated a *placement candidate* — it stopped the follower being placed on
+ * the toggle, but nothing stopped the *lead* independently walking towards
+ * wherever the follower already stood (cats look through each other by
+ * design), which is what a watch scene's own huddle did. `keepClearOfControl`
+ * is the invariant itself: a correction applied to the follower's already-
+ * final position, regardless of which path produced it.
+ *
+ * `TOGGLE_CLEARANCE` is pinned against the WCAG 2.5.8 figure directly — if
+ * anyone ever "simplifies" it back down below the spec's own minimum, this
+ * fails without needing a browser or an axe scan to say so.
+ */
+describe("keepClearOfControl — the target-size invariant", () => {
+  it("enforces at least the WCAG 2.5.8 minimum (24px), not merely close to it", () => {
+    expect(TOGGLE_CLEARANCE).toBeGreaterThanOrEqual(24);
+  });
+
+  it("leaves an already-clear position untouched", () => {
+    const rectAt = leadControlRect({ x: 500, y: 500 });
+    const farPos: Point = { x: 900, y: 500 };
+    expect(keepClearOfControl(farPos, rectAt)).toEqual(farPos);
+  });
+
+  it("pushes a position that overlaps the control out to at least the clearance", () => {
+    const leadRect = leadControlRect({ x: 500, y: 500 });
+    // Squarely on top of the lead's own button.
+    const onTop: Point = { x: 500, y: 500 };
+    const result = keepClearOfControl(onTop, leadRect);
+    expect(result).not.toEqual(onTop);
+    const box = { left: result.x, top: result.y, right: result.x + CAT_W, bottom: result.y + CAT_H };
+    const gap = Math.max(
+      Math.max(box.left - leadRect.right, leadRect.left - box.right),
+      Math.max(box.top - leadRect.bottom, leadRect.top - box.bottom),
+    );
+    expect(gap).toBeGreaterThanOrEqual(TOGGLE_CLEARANCE);
+  });
+
+  it("pushes a position that is merely too close (not yet overlapping) out to the clearance too", () => {
+    // Ordinary FOLLOW_GAP trailing distance: a 22px gap, short of
+    // TOGGLE_CLEARANCE by a couple of pixels but not overlapping at all —
+    // the case that must not be confused with "already fine".
+    const leadRect = leadControlRect({ x: 500, y: 500 });
+    const almostClear: Point = { x: leadRect.left - CAT_W - 22, y: 500 };
+    const result = keepClearOfControl(almostClear, leadRect);
+    expect(result.x).toBeLessThan(almostClear.x);
+  });
+
+  it("falls through to a vertical candidate when the viewport is too narrow for either horizontal one — round 10's own clamp-collapse bug, closed for the invariant too", () => {
+    // A viewport narrow enough that pushing the follower to either side of
+    // the lead gets clamped straight back into it — the exact shape that
+    // let a clamp silently re-introduce an overlap in round 10's first
+    // pass. `window.innerHeight` stays generous, so the vertical
+    // candidates below/above still have room; this proves the fallback
+    // chain actually reaches them rather than settling for a clamped,
+    // still-conflicting horizontal one.
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 150 });
+    try {
+      const leadPos: Point = { x: 40, y: 400 };
+      const leadRect = leadControlRect(leadPos);
+      const onTop: Point = { x: leadPos.x, y: leadPos.y };
+      const result = keepClearOfControl(onTop, leadRect);
+      const box = { left: result.x, top: result.y, right: result.x + CAT_W, bottom: result.y + CAT_H };
+      const gap = Math.max(
+        Math.max(box.left - leadRect.right, leadRect.left - box.right),
+        Math.max(box.top - leadRect.bottom, leadRect.top - box.bottom),
+      );
+      expect(gap).toBeGreaterThanOrEqual(TOGGLE_CLEARANCE);
+      // And it moved vertically to get there, not horizontally into an
+      // edge it could never have cleared at this width.
+      expect(result.y).not.toBe(onTop.y);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+    }
   });
 });

@@ -1,7 +1,7 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Tag } from "@/components/ui/Tag";
-import { certifications, skillCategories } from "@/content/portfolio";
+import { careerEntries, certifications, skillCategories } from "@/content/portfolio";
 import { TreeCrossLink } from "@/sections/CareerTree/cross-link";
 import { resolved } from "@/types/portfolio";
 
@@ -24,21 +24,48 @@ import { resolved } from "@/types/portfolio";
  * Each category carries an id so the tree's root labels can link straight to
  * the group they name.
  *
- * `category.lenses` (used only by the tree, not by anything rendered in this
- * file) is a second authored edge set living on this same data — category →
- * lens, sitting beside the entry → lens edges `careerEntries[].lenses`
- * carries. It is what lets the tree's root labels say what each skill group
- * *feeds* without joining skill names against technology strings; see the
- * header of `src/lib/knowledge-tree.ts` for why that join is refused.
+ * `category.lenses` is a second authored edge set living on this same data —
+ * category → lens. Since the round-12 tree inversion it has no consumer:
+ * the tree's roots are label-only links to these groups, and the lens
+ * branches retired. The data stays because the relationship is true and
+ * authored — a future presentation may draw it — but nothing renders from
+ * it today. See the header of `src/lib/knowledge-tree.ts` for why a
+ * skill-name/technology-string join remains refused everywhere.
  */
 
 const HEADING_ID = "skills-heading";
 
-const totalSkills = new Set(skillCategories.flatMap((category) => category.skills)).size;
+// Round 12, item 5: the rail used to count what the reader's own eyes can
+// count (6 categories, 38 skills). It now carries evidence a reader can't
+// get by looking — which technology the career entries actually name most,
+// and across how many years — computed from `careerEntries[].technologies`,
+// the same authored per-entry lists the tree draws. Nothing here joins skill
+// names against technology strings; it only summarises one authored set.
+const techUse = new Map<string, { count: number; years: number[] }>();
+for (const entry of careerEntries) {
+  const year = Number(entry.sortKey.slice(0, 4));
+  for (const tech of entry.technologies) {
+    const use = techUse.get(tech) ?? { count: 0, years: [] };
+    use.count += 1;
+    use.years.push(year);
+    techUse.set(tech, use);
+  }
+}
+// Deterministic on ties: highest count first, then alphabetical.
+const mostUsed = [...techUse.entries()].sort(
+  (a, b) => b[1].count - a[1].count || (a[0] < b[0] ? -1 : 1),
+)[0];
+const mostUsedSpan = mostUsed
+  ? `${Math.min(...mostUsed[1].years)}–${Math.max(...mostUsed[1].years)}`
+  : undefined;
 
 const RAIL: readonly RailNote[] = [
-  { term: "Categories", detail: `${skillCategories.length}` },
-  { term: "Distinct skills", detail: `${totalSkills}` },
+  ...(mostUsed
+    ? [
+        { term: "Most used", detail: `${mostUsed[0]} — ${mostUsed[1].count} entries` },
+        { term: "In use", detail: `${mostUsedSpan}` },
+      ]
+    : []),
   ...(certifications.length > 0
     ? [{ term: "Certifications", detail: `${certifications.length}` }]
     : []),

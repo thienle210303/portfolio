@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CornerDownLeft, Loader2 } from "lucide-react";
 import { answer, SUGGESTED_QUESTIONS, type Answer, type Citation } from "@/lib/answers";
 import { CodeBlock } from "@/components/ui/CodeBlock";
@@ -55,6 +55,21 @@ import {
  *
  * All state — the whole thread — lives in this component and nothing is
  * persisted; reloading the page starts a new conversation.
+ *
+ * ## The scroll window
+ *
+ * Round 12 (WP-K): the owner's report was literal — "if I click multiple
+ * buttons it just keeps stacking up on the page" — because the thread used
+ * to be an ordinary flow element, so the *page* grew by one turn's height
+ * every time a question landed. `role="log"` now wraps the conversation
+ * (`<ol aria-label="Conversation">` nests inside it, not the other way
+ * round) with a fixed `max-h-*` and `overflow-y-auto`: a real chat-window
+ * feel, and one the page's own height no longer answers to. See the JSX
+ * comment at the region itself for the exact height and why. A "Clear
+ * conversation" control (state only — nothing was ever persisted to begin
+ * with) sits above it, visible only once there is something to clear, and
+ * returns focus to the question field, the same "keep focus in hand"
+ * contract every other action in this component already keeps.
  *
  * ## The second view
  *
@@ -135,6 +150,13 @@ type AskApiResponse =
 
 function isAskApiResponse(value: unknown): value is AskApiResponse {
   return typeof value === "object" && value !== null && "ok" in value;
+}
+
+/** Same check `ContactForm.tsx` runs — `prefers-reduced-motion` skips the
+ *  scroll window's smooth-scrolling and jumps straight to the newest turn
+ *  instead. */
+function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 type AskFailureReason = Extract<AskApiResponse, { ok: false }>["reason"];
@@ -342,7 +364,15 @@ function HowThisAnswers({ id, liveModeConfigured }: { readonly id: string; reado
 /* One turn                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function TurnItem({ turn, turnNumber, viewId }: { readonly turn: Turn; readonly turnNumber: number; readonly viewId: string }) {
+function TurnItem({
+  turn,
+  turnNumber,
+  viewId,
+}: {
+  readonly turn: Turn;
+  readonly turnNumber: number;
+  readonly viewId: string;
+}) {
   const idPrefix = `${viewId}-answer-view-${turn.id}`;
   const filename = answerFilename(turnNumber);
 
@@ -441,12 +471,51 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
   const viewId = useId();
   const nextTurnId = useRef(0);
   const fieldRef = useRef<HTMLInputElement | null>(null);
+  /** The scroll window itself — see the scroll-to-bottom effect below. */
+  const logRef = useRef<HTMLDivElement | null>(null);
 
   const [query, setQuery] = useState("");
   const [turns, setTurns] = useState<readonly Turn[]>([]);
   const [lastAsked, setLastAsked] = useState<string | null>(null);
 
   const isBusy = turns.some((turn) => turn.answer.kind === "pending");
+
+  // Runs after every commit that touches `turns` — a turn being added *and*
+  // a pending turn resolving into its answer both replace the array, so an
+  // answer that lands taller than the question it followed still ends up
+  // fully in view rather than clipped at the scroll window's edge from the
+  // moment the question was asked.
+  //
+  // `logRef.current.scrollTo(...)` rather than `lastTurn.scrollIntoView(...)`
+  // on purpose, and this is not a stylistic choice: `scrollIntoView` walks
+  // *every* scrollable ancestor in the containing-block chain, including the
+  // page itself, and — verified directly in a real browser, not assumed —
+  // Chromium's algorithm for a target inside a nested `overflow:auto` box
+  // will happily satisfy "bring it into view" by scrolling the *page* by
+  // several thousand pixels instead of (or as well as) the inner box,
+  // whenever the inner box alone wouldn't make the target visible in the
+  // outer viewport. That is exactly the failure mode this window exists to
+  // end: a click that yanks the whole page around. `Element.scrollTo()` is
+  // scoped to the single scrolling box it is called on and never touches an
+  // ancestor, so the page's own scroll position is now untouched by asking
+  // a question, full stop. Smooth under ordinary motion, instant (`"auto"`)
+  // under `prefers-reduced-motion`.
+  useEffect(() => {
+    if (turns.length === 0) return;
+    const node = logRef.current;
+    if (!node) return;
+    node.scrollTo({ top: node.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }, [turns]);
+
+  function handleClear() {
+    setTurns([]);
+    setLastAsked(null);
+    // Nothing was persisted to begin with, so "clear" is just resetting this
+    // component's own state — but focus still needs somewhere sensible to
+    // land, and the question field is exactly where a visitor who just
+    // cleared the thread would want to start typing again.
+    fieldRef.current?.focus();
+  }
 
   function updateTurn(id: string, next: TurnAnswer) {
     setTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, answer: next } : turn)));
@@ -549,22 +618,74 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
           <HowThisAnswers id={`${viewId}-how-this-answers`} liveModeConfigured={liveModeConfigured} />
         </div>
 
-        {/* The thread. `aria-live="polite"` so a new turn — or a pending
-            turn resolving into its answer — is announced without re-reading
-            turns already on screen; turns already rendered never change
-            once resolved, so nothing gets announced twice. */}
-        <div id={threadId} aria-live="polite" className="mt-8 min-w-0 border-t border-rule pt-6">
-          {turns.length === 0 ? (
-            <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-subtle">
-              {IDLE_HINT}
-            </p>
-          ) : (
-            <ol role="list" aria-label="Conversation" className="flex flex-col gap-6">
-              {turns.map((turn, index) => (
-                <TurnItem key={turn.id} turn={turn} turnNumber={index + 1} viewId={viewId} />
-              ))}
-            </ol>
-          )}
+        <div className="mt-8 border-t border-rule pt-6">
+          {turns.length > 0 ? (
+            <div className="flex items-center justify-between gap-4">
+              <p className="eyebrow">Conversation</p>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="min-h-11 px-2 font-mono text-[length:var(--step--1)] text-fg-muted transition-colors duration-200 hover:text-accent"
+              >
+                Clear conversation
+              </button>
+            </div>
+          ) : null}
+
+          {/*
+            The scroll window itself. `max-h-[22rem]` (352px) is sized to
+            what one turn actually takes up at this type scale: the question
+            line (~step-0, one row) plus its `mt-4`, the Prose/Code tablist
+            (`min-h-11` row plus its own `pt-6`), and one short answer — a
+            couple of lines of prose plus its source/link line — run close
+            to 210px end to end. 352px comfortably shows the newest turn in
+            full plus roughly half of the one above it: enough to read as a
+            conversation rather than a single flashcard, and short enough
+            that the thread never grows past a fixed patch of the page no
+            matter how many questions get asked — the owner's report this
+            round was literal: "if I click multiple buttons it just keeps
+            stacking up on the page".
+
+            `role="log"` is the ARIA role built for a region whose new
+            content is worth announcing (`aria-live="polite"`, same reason
+            the whole thread carried it before this became scrollable) but
+            whose already-read content a screen reader should not repeat.
+            `tabIndex={0}` only once there is something to scroll — an idle,
+            empty log is just the hint paragraph below, with nothing to
+            reach by keyboard that isn't already reachable — and gives the
+            region its own stop in the tab order without trapping focus:
+            Tab still moves on to whatever a turn's own content makes
+            focusable (a source link, an "Answer view" tab), then past the
+            region entirely to the compose area below, same as any other
+            element in normal document order. `id={threadId}` keeps the
+            input's `aria-controls` pointed at the region it actually
+            updates, now that "the rest of the page below the form" is no
+            longer an accurate description of it.
+          */}
+          <div
+            ref={logRef}
+            id={threadId}
+            role="log"
+            aria-label="Conversation thread"
+            aria-live="polite"
+            tabIndex={turns.length > 0 ? 0 : undefined}
+            className={cn(
+              "mt-4 min-w-0 overflow-y-auto overscroll-contain",
+              turns.length > 0 && "max-h-[22rem]",
+            )}
+          >
+            {turns.length === 0 ? (
+              <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-subtle">
+                {IDLE_HINT}
+              </p>
+            ) : (
+              <ol role="list" aria-label="Conversation" className="flex flex-col gap-6">
+                {turns.map((turn, index) => (
+                  <TurnItem key={turn.id} turn={turn} turnNumber={index + 1} viewId={viewId} />
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
 
         {/* The compose area: quick-start suggestions and the input, together

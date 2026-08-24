@@ -122,4 +122,45 @@ describe("CodeBlock", () => {
     const codeEl = container.querySelector("code");
     expect(codeEl?.textContent).toBe(codeWithLongToken);
   });
+
+  describe("compact (round 12, WP-K: the hero code artifact's tightened frame)", () => {
+    it("defaults to the ordinary, non-compact padding and type size", () => {
+      const { container } = render(
+        <CodeBlock code={SAMPLE_CODE} filename="example.ts" summary="Example summary" />,
+      );
+      const region = screen.getByRole("region", { name: "example.ts" });
+      expect(region).toHaveClass("p-4");
+      expect(region).not.toHaveClass("p-3");
+
+      const codeEl = container.querySelector("code");
+      expect(codeEl).toHaveClass("text-[length:var(--step--1)]");
+      expect(codeEl).not.toHaveClass("text-[length:var(--step--2)]");
+    });
+
+    it("steps padding and type down a notch when compact, without touching the code content", () => {
+      const { container } = render(
+        <CodeBlock code={SAMPLE_CODE} filename="example.ts" summary="Example summary" compact />,
+      );
+
+      const region = screen.getByRole("region", { name: "example.ts" });
+      expect(region).toHaveClass("p-3");
+      expect(region).not.toHaveClass("p-4");
+
+      const codeEl = container.querySelector("code");
+      expect(codeEl).toHaveClass("text-[length:var(--step--2)]");
+      expect(codeEl?.textContent).toBe(SAMPLE_CODE);
+
+      const figcaption = container.querySelector("figcaption");
+      expect(figcaption).toHaveClass("px-3", "py-2");
+    });
+
+    it("keeps the accessible name, describedby wiring and token markup identical when compact", () => {
+      render(
+        <CodeBlock code={SAMPLE_CODE} filename="example.ts" summary="Example summary" compact />,
+      );
+      expect(screen.getByRole("region", { name: "example.ts" })).toBeInTheDocument();
+      expect(screen.getByText("Example summary")).toBeInTheDocument();
+      expect(document.querySelectorAll('[data-token="keyword"]').length).toBeGreaterThan(0);
+    });
+  });
 });

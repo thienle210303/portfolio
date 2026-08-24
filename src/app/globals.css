@@ -139,6 +139,14 @@
   /* ---------------------------------------------------------------------- */
 
   :root {
+    /*
+     * Round 12 (WP-K): the one place below `--step--1` on the scale, added
+     * for the hero code artifact's compact rendering only (`CodeBlock`'s
+     * `compact` prop) — the owner reported it "dominating the hero column"
+     * next to the identity copy. Same clamp shape as its neighbours, one
+     * notch down: floor and ceiling both ~0.06rem under `--step--1`'s.
+     */
+    --step--2: clamp(0.75rem, 0.735rem + 0.08vw, 0.8125rem);
     --step--1: clamp(0.8125rem, 0.79rem + 0.11vw, 0.875rem);
     --step-0: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
     --step-1: clamp(1.2rem, 1.13rem + 0.35vw, 1.4rem);
@@ -1492,9 +1500,8 @@
        rising into place, the same motion `--dur-settle` already names
        everywhere else on the page. (A season's own weather used to remount
        through the same animation too, as a small glyph in this sky slice;
-       a design-polish pass moved it to `WeatherLayer` and the stage-wide
-       "Origin story — weather presence" block below, which is where its own
-       motion now lives instead.) */
+       a design-polish pass moved it to `WeatherLayer`, below, which is
+       where its own motion now lives instead.) */
     @keyframes origin-settle {
       from {
         opacity: 0;
@@ -1511,18 +1518,16 @@
   }
 
   /* ---------------------------------------------------------------------- */
-  /* Origin story — weather presence (design-polish pass)                   */
+  /* Origin story — weather presence                                        */
   /*                                                                        */
   /* A season's weather used to be a small glyph sharing the sky slice's own */
-  /* 300×200 box with the bird and the seed (see the block above) — which    */
-  /* meant it simply never appeared for the entire stretch a root beat's own */
-  /* camera pan scrolls the page away from that box (`OriginStory.tsx`'s     */
-  /* file banner, "The camera, during the root years"). The owner's own      */
-  /* brief for this pass: "make raining, sunny, windy more showing". This    */
-  /* block is what `WeatherLayer` in `OriginStory.tsx` reads — a             */
-  /* `position: fixed`, `pointer-events-none`, `aria-hidden` overlay that     */
-  /* reads at both camera positions the story ever holds, because it never   */
-  /* moves with either.                                                      */
+  /* 300×200 box with the bird and the seed (see the block above) — a        */
+  /* design-polish pass grew it into its own layer, `WeatherLayer` in        */
+  /* `OriginStory.tsx`: a `pointer-events-none`, `aria-hidden` overlay that   */
+  /* fills the sky slice, `position: absolute` (round 12 — see that          */
+  /* component's own doc comment for why it is no longer `fixed` against the */
+  /* viewport). The owner's own brief for this pass: "make raining, sunny,   */
+  /* windy more showing".                                                    */
   /*                                                                        */
   /* Same belt-and-braces as every other block in this file: `WeatherLayer`  */
   /* only ever mounts after `OriginStory.tsx` has already checked            */
@@ -1537,12 +1542,13 @@
   /* design system reserves for annotation and links alone (CLAUDE.md).      */
   /* ---------------------------------------------------------------------- */
   @media screen and (prefers-reduced-motion: no-preference) {
-    /* Rain: a slanted hairline per stroke, falling top to bottom of the
-       *viewport* (not the stroke's own small box) on a loop — `vh` units
-       keep the fall reading as "the full sky", regardless of how tall any
-       one stroke is drawn. `RainStrokes` in OriginStory.tsx staggers the
-       start of each with `animationDelay`, so a dozen of these never fall in
-       lockstep. */
+    /* Rain: a slanted hairline per stroke, falling on a loop across the sky
+       slice `WeatherLayer` fills (`OriginStory.tsx`) — `vh` units size the
+       travel generously (comfortably taller than that box ever renders) so
+       every drop clears it regardless of the box's own height; `overflow:
+       hidden` on `WeatherLayer` clips whatever falls past. `RainStrokes` in
+       OriginStory.tsx staggers the start of each with `animationDelay`, so a
+       dozen of these never fall in lockstep. */
     @keyframes origin-weather-drop-fall {
       from {
         transform: translateY(0) rotate(14deg);
@@ -1648,11 +1654,13 @@
         origin-weather-shudder-kf 500ms ease-out 600ms 1;
     }
 
-    /* Quiet: wind, not an empty sky — two long strokes drifting the full
-       width of the viewport, `vw` units again so the crossing is honest
-       regardless of how wide the stroke's own stretched box is drawn.
-       `WindStrokes` staggers the second stroke's `animationDelay` so the
-       pair never travels together. */
+    /* Quiet: wind, not an empty sky — two long strokes drifting across the
+       sky slice `WeatherLayer` fills, `vw` units sizing the crossing
+       generously (comfortably wider than that box ever renders) regardless
+       of how wide the stroke's own stretched box is drawn; `overflow:
+       hidden` on `WeatherLayer` clips whatever drifts past. `WindStrokes`
+       staggers the second stroke's `animationDelay` so the pair never
+       travels together. */
     @keyframes origin-weather-wind-drift {
       from {
         transform: translateX(-20vw);

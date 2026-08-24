@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCareerTree,
   buildKnowledgeTree,
   careerYearSpan,
   techSlug,
@@ -17,126 +18,149 @@ const ENTRIES: readonly CareerEntry[] = careerEntries;
  * "improve coverage" by fuzzy-matching skill names against technology strings
  * would invent relationships nobody stated, and this file is what fails when
  * someone tries.
+ *
+ * Round 12 inverts the model `buildCareerTree` draws from — see the file
+ * banner in `src/lib/knowledge-tree.ts` — so this file is rewritten to it: a
+ * branch is now one career entry (in chronological order, oldest first), and
+ * a leaf is one authored technology or impact line off that entry. The
+ * anti-inference assertions carry over unchanged in *kind*, just retargeted:
+ * a leaf must still exist only where its own entry authored it, and nothing
+ * here may still join skill names against technology strings.
+ *
+ * `buildKnowledgeTree` — the pre-round-12 shape, kept only for
+ * `HeroAbout.tsx` — gets its own smaller describe block further down: the
+ * anti-inference guarantee has to hold for it too, since it is still built
+ * from the same authored `entry.lenses` edge, but it is no longer what the
+ * tree itself renders from, so it does not need the same depth of coverage.
  */
-describe("buildKnowledgeTree", () => {
-  const tree = buildKnowledgeTree();
+describe("buildCareerTree", () => {
+  const tree = buildCareerTree();
 
-  it("draws only branches the content layer actually tags", () => {
-    for (const root of tree) {
-      for (const branch of root.branches) {
-        const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
-        expect(entry, `branch ${branch.id} has no career entry`).toBeDefined();
+  it("draws exactly one branch per career entry, no more, no fewer", () => {
+    expect(tree.map((branch) => branch.id).sort()).toEqual(
+      ENTRIES.map((entry) => entry.id).sort(),
+    );
+  });
+
+  it("orders branches chronologically, oldest first — up the trunk, oldest lowest", () => {
+    const keys = tree.map(
+      (branch) => ENTRIES.find((entry) => entry.id === branch.id)?.sortKey ?? "",
+    );
+    expect([...keys].sort()).toEqual(keys);
+  });
+
+  it("draws only the technology leaves the branch's own entry lists", () => {
+    for (const branch of tree) {
+      const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
+      expect(entry, `branch ${branch.id} has no career entry`).toBeDefined();
+      for (const leaf of branch.leaves.filter((l) => l.kind === "technology")) {
         expect(
-          entry?.lenses.includes(root.id),
-          `${branch.id} appears under "${root.id}" but is not tagged with it`,
+          entry?.technologies.includes(leaf.text),
+          `"${leaf.text}" is drawn as a technology leaf under ${branch.id} but that entry does not list it`,
         ).toBe(true);
       }
     }
   });
 
-  it("draws only leaves the branch itself lists", () => {
-    for (const root of tree) {
-      for (const branch of root.branches) {
-        const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
-        for (const leaf of branch.leaves) {
-          expect(
-            entry?.technologies.includes(leaf.name),
-            `"${leaf.name}" is drawn under ${branch.id} but that entry does not list it`,
-          ).toBe(true);
-        }
+  it("draws only the impact leaves the branch's own entry lists", () => {
+    for (const branch of tree) {
+      const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
+      for (const leaf of branch.leaves.filter((l) => l.kind === "impact")) {
+        expect(
+          entry?.impact.includes(leaf.text),
+          `"${leaf.text}" is drawn as an impact leaf under ${branch.id} but that entry does not list it`,
+        ).toBe(true);
       }
     }
   });
 
-  it("never renders an empty root", () => {
-    for (const root of tree) {
-      expect(root.branches.length, `"${root.label}" has no branches`).toBeGreaterThan(0);
+  it("draws every technology and every impact line the entry actually authored", () => {
+    // The other half of the two tests above: not just "nothing extra", but
+    // "nothing missing" — a leaf must exist for every authored fact, or the
+    // tree would be quietly dropping content it has no reason to drop.
+    for (const branch of tree) {
+      const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
+      expect(entry).toBeDefined();
+      const drawnTech = new Set(
+        branch.leaves.filter((l) => l.kind === "technology").map((l) => l.text),
+      );
+      const drawnImpact = new Set(
+        branch.leaves.filter((l) => l.kind === "impact").map((l) => l.text),
+      );
+      expect(drawnTech).toEqual(new Set(entry?.technologies));
+      expect(drawnImpact).toEqual(new Set(entry?.impact));
     }
   });
 
-  it("covers every lens that has anything tagged to it", () => {
-    const tagged = resumeLenses.filter((lens) =>
-      ENTRIES.some((entry) => entry.lenses.includes(lens.id)),
+  it("never joins a skill name to a technology string — a technology used nowhere draws no leaf", () => {
+    // The anti-inference guarantee, made concrete: every technology text that
+    // appears anywhere on the tree traces back to at least one entry that
+    // actually lists it. There is no fuzzy-matched leaf floating free of the
+    // content layer.
+    const drawnTechnologies = new Set(
+      tree.flatMap((branch) =>
+        branch.leaves.filter((l) => l.kind === "technology").map((l) => l.text),
+      ),
     );
-    expect(tree.map((root) => root.id).sort()).toEqual(tagged.map((lens) => lens.id).sort());
+    for (const name of drawnTechnologies) {
+      const homes = ENTRIES.filter((entry) => entry.technologies.includes(name)).length;
+      expect(homes, `"${name}" is drawn but no entry lists it`).toBeGreaterThan(0);
+    }
   });
 
-  it("orders branches newest first, like the timeline", () => {
-    for (const root of tree) {
-      const keys = root.branches.map(
-        (branch) => ENTRIES.find((entry) => entry.id === branch.id)?.sortKey ?? "",
-      );
-      expect([...keys].sort().reverse()).toEqual(keys);
+  it("impact leaves carry no alsoUsedIn — they are one entry's own prose, not a fact to count matches of", () => {
+    for (const branch of tree) {
+      for (const leaf of branch.leaves.filter((l) => l.kind === "impact")) {
+        expect(leaf.alsoUsedIn).toBeUndefined();
+      }
     }
   });
 
   it("counts a technology's other homes without counting its own", () => {
-    for (const root of tree) {
-      for (const branch of root.branches) {
-        for (const leaf of branch.leaves) {
-          const homes = ENTRIES.filter((entry) =>
-            entry.technologies.includes(leaf.name),
-          ).length;
-          expect(leaf.alsoUsedIn).toBe(homes - 1);
-          expect(leaf.alsoUsedIn).toBeGreaterThanOrEqual(0);
-        }
+    for (const branch of tree) {
+      for (const leaf of branch.leaves.filter((l) => l.kind === "technology")) {
+        const homes = ENTRIES.filter((entry) => entry.technologies.includes(leaf.text)).length;
+        expect(leaf.alsoUsedIn).toBe(homes - 1);
+        expect(leaf.alsoUsedIn).toBeGreaterThanOrEqual(0);
       }
     }
   });
 
-  it("de-duplicates technologies within a branch", () => {
-    for (const root of tree) {
-      for (const branch of root.branches) {
-        const names = branch.leaves.map((leaf) => leaf.name);
-        expect(new Set(names).size).toBe(names.length);
-      }
+  it("de-duplicates leaves within a branch", () => {
+    for (const branch of tree) {
+      const keys = branch.leaves.map((leaf) => `${leaf.kind}|${leaf.text}`);
+      expect(new Set(keys).size).toBe(keys.length);
     }
   });
 
-  it("attaches case studies to the role they were built in, completely and correctly", () => {
-    for (const root of tree) {
-      for (const branch of root.branches) {
-        const expected = projects.filter((project) => project.careerEntryId === branch.id);
+  it("attaches case studies to the entry they were built in, completely and correctly", () => {
+    for (const branch of tree) {
+      const expected = projects.filter((project) => project.careerEntryId === branch.id);
 
-        // Same set, not just "some real titles": a branch must carry every
-        // case study built in that role, and no others.
-        expect(branch.caseStudies.map((cs) => cs.id).sort()).toEqual(
-          expected.map((project) => project.id).sort(),
-        );
+      // Same set, not just "some real titles": a branch must carry every
+      // case study built in that role, and no others.
+      expect(branch.caseStudies.map((cs) => cs.id).sort()).toEqual(
+        expected.map((project) => project.id).sort(),
+      );
 
-        for (const caseStudy of branch.caseStudies) {
-          const project = expected.find((p) => p.id === caseStudy.id);
-          expect(project, `case study id "${caseStudy.id}" resolves to a real project`).toBeDefined();
-          expect(caseStudy.title).toBe(project?.title);
-        }
+      for (const caseStudy of branch.caseStudies) {
+        const project = expected.find((p) => p.id === caseStudy.id);
+        expect(project, `case study id "${caseStudy.id}" resolves to a real project`).toBeDefined();
+        expect(caseStudy.title).toBe(project?.title);
       }
     }
   });
 
   it("reports each branch's startYear honestly against its dateRange", () => {
-    for (const root of tree) {
-      for (const branch of root.branches) {
-        const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
-        expect(entry).toBeDefined();
-        // startYear is read off sortKey, not scraped from dateRange prose —
-        // but the two must still agree: sortKey is YYYY-MM[-x] and dateRange
-        // always names that same year somewhere in its opening date ("October
-        // 2025 — Present", "2024 — 2025", "May 2025").
-        expect(branch.startYear).toBe(Number(entry?.sortKey.slice(0, 4)));
-        expect(branch.dateRange.includes(String(branch.startYear))).toBe(true);
-      }
-    }
-  });
-
-  it("orders each root's branches by non-increasing startYear", () => {
-    // A stronger form of "orders branches newest first": years must never
-    // decrease down a bough, which is the invariant the year-marker rendering
-    // (one mark per change) actually depends on.
-    for (const root of tree) {
-      const years = root.branches.map((branch) => branch.startYear);
-      for (let i = 1; i < years.length; i += 1) {
-        expect(years[i]).toBeLessThanOrEqual(years[i - 1]);
-      }
+    for (const branch of tree) {
+      const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
+      expect(entry).toBeDefined();
+      // startYear is read off sortKey, not scraped from dateRange prose —
+      // but the two must still agree: sortKey is YYYY-MM[-x] and dateRange
+      // always names that same year somewhere in its opening date ("October
+      // 2025 — Present", "2024 — 2025", "May 2025").
+      expect(branch.startYear).toBe(Number(entry?.sortKey.slice(0, 4)));
+      expect(branch.dateRange.includes(String(branch.startYear))).toBe(true);
     }
   });
 
@@ -148,15 +172,14 @@ describe("buildKnowledgeTree", () => {
   it("is worth rendering at all", () => {
     // Guards against a refactor that quietly empties it.
     expect(tree.length).toBeGreaterThanOrEqual(3);
-    expect(tree.some((root) => root.branches.length >= 3)).toBe(true);
+    expect(tree.some((branch) => branch.leaves.length >= 3)).toBe(true);
     expect(totalTechnologies()).toBeGreaterThan(10);
   });
 });
 
 describe("careerYearSpan", () => {
-  it("spans exactly the lens-tagged entries' years, inclusively", () => {
-    const tagged = ENTRIES.filter((entry) => entry.lenses.length > 0);
-    const years = tagged.map((entry) => Number(entry.sortKey.slice(0, 4)));
+  it("spans every career entry's years, inclusively — round 12: every entry is now a branch", () => {
+    const years = ENTRIES.map((entry) => Number(entry.sortKey.slice(0, 4)));
     const expectedFirst = Math.min(...years);
     const expectedLast = Math.max(...years);
 
@@ -186,5 +209,51 @@ describe("techSlug", () => {
 
   it("is stable for the same input", () => {
     expect(techSlug("JavaScript/React")).toBe(techSlug("JavaScript/React"));
+  });
+});
+
+/**
+ * `buildKnowledgeTree` — the pre-round-12, lens-grouped shape. Nothing in
+ * `src/sections/CareerTree` reads this any more (see `buildCareerTree`
+ * above); it survives only because `src/sections/Hero/HeroAbout.tsx` (a
+ * different work package this round) still calls it for its "Where it shows
+ * up" list. The anti-inference guarantee still has to hold for it — it is
+ * still built from the authored `entry.lenses` edge, and a fuzzy join here
+ * would be exactly the mistake the rest of this file refuses — so it keeps a
+ * light version of the same coverage the old, pre-inversion suite held in
+ * full, rather than none at all.
+ */
+describe("buildKnowledgeTree (legacy — HeroAbout.tsx only)", () => {
+  const roots = buildKnowledgeTree();
+
+  it("draws only branches the content layer actually tags with that lens", () => {
+    for (const root of roots) {
+      for (const branch of root.branches) {
+        const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
+        expect(entry, `branch ${branch.id} has no career entry`).toBeDefined();
+        expect(
+          entry?.lenses.includes(root.id),
+          `${branch.id} appears under "${root.id}" but is not tagged with it`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("never renders an empty root", () => {
+    for (const root of roots) {
+      expect(root.branches.length, `"${root.label}" has no branches`).toBeGreaterThan(0);
+    }
+  });
+
+  it("covers every lens that has anything tagged to it", () => {
+    const tagged = resumeLenses.filter((lens) =>
+      ENTRIES.some((entry) => entry.lenses.includes(lens.id)),
+    );
+    expect(roots.map((root) => root.id).sort()).toEqual(tagged.map((lens) => lens.id).sort());
+  });
+
+  it("is worth HeroAbout rendering at all", () => {
+    expect(roots.length).toBeGreaterThan(0);
+    expect(roots.every((root) => root.branches.length > 0)).toBe(true);
   });
 });

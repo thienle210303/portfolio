@@ -11,10 +11,10 @@
  * and `Timeline.tsx`), so there is no longer a third section to point at —
  * only Work and Skills end with a pointer here (`TreeCrossLink`, below), and
  * the tree no longer needs a pointer back the other way, because the
- * chronology it used to point at is now inside it. Its leaves still link to
- * the case studies in `#work`, and its roots still link to the skill groups
- * in `#skills`. Nothing anywhere explains the relationship in prose; the
- * link is the explanation.
+ * chronology it used to point at is now inside it. Its branch panels still
+ * link to the case studies in `#work`, and its roots still link to the skill
+ * groups in `#skills`. Nothing anywhere explains the relationship in prose;
+ * the link is the explanation.
  *
  * Rendered from one component in both inbound places rather than typed out
  * twice: identical text pointing at an identical href is also the correct
@@ -27,17 +27,21 @@
  * to them in full; the site already sets 44px as its floor in the header,
  * the footer and every Disclosure trigger.
  *
- * ## The per-leaf link, and why it is not on the leaf
+ * ## The per-branch link, and why it is not on every leaf
  *
- * `JourneyEntryCrossLink` is the same idea one level down: a leaf pointing at
- * the one timeline entry it was built from. There are twenty-five leaves, so
- * it is rendered **only inside a leaf's open panel**, never on the row that
- * summarises it — one link per leaf on the collapsed drawing would be
- * twenty-five new tab stops through a figure whose entire interaction is
- * "open the one you want". `Disclosure` flips its panel to `visibility:
- * hidden` while collapsed, so a closed leaf's link is out of the tab order
- * and out of the accessibility tree, and the cost is paid only by the leaves
- * a visitor actually opened.
+ * `JourneyEntryCrossLink` is the same idea one level down: a branch pointing
+ * at the one timeline entry it was built from. Round 12 moved this from the
+ * leaf to the branch along with the rest of the tree's interaction (see the
+ * "Why the branch panel alone is interactive" note in `DrawnTree.tsx`) — a
+ * leaf is now a single authored fact (a technology, an impact line) with no
+ * link of its own to carry, so there is exactly one of these per branch
+ * (fourteen, not one per leaf), and it is rendered **only inside that
+ * branch's open panel**, never on the row that summarises it — one link per
+ * branch on the collapsed drawing would be fourteen new tab stops through a
+ * figure whose entire interaction is "open the one you want". `Disclosure`
+ * flips its panel to `visibility: hidden` while collapsed, so a closed
+ * branch's link is out of the tab order and out of the accessibility tree,
+ * and the cost is paid only by the branches a visitor actually opened.
  *
  * It renders nothing at all when the entry has no anchor on the timeline
  * (`journeyEntryAnchor` returns `undefined`), because a fragment pointing at

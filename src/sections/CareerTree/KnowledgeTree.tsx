@@ -1,6 +1,6 @@
 import { profile } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
-import { totalTechnologies, type TreeRoot } from "@/lib/knowledge-tree";
+import { totalTechnologies, type TreeBranch } from "@/lib/knowledge-tree";
 import { DrawnTree, GroundHatch, RootSystem } from "./DrawnTree";
 import { KnowledgeTreeList } from "./KnowledgeTreeList";
 import { RootLabels } from "./RootLabels";
@@ -15,25 +15,23 @@ import { WatchOrigin } from "./WatchOrigin";
  * building its own, so the numbers in the rail and the numbers on the drawing
  * are the same call.
  *
- * Four levels, each an authored fact rather than an inference:
+ * Three levels, each an authored fact rather than an inference:
  *
  *   root    Thien himself — the name and philosophy already carried by
  *           `profile` elsewhere on the page, not retyped here
- *   branch  the five lenses — the kinds of work he claims (`TreeRoot` in
- *           src/lib/knowledge-tree.ts; called `lens` in this file, because
- *           here "root" means the actual root of the tree)
- *   leaf    the role or project tagged with that lens
- *   detail  what that entry listed: its dates, its technologies, its case
- *           studies — revealed by opening the leaf
+ *   branch  one career entry, in chronological order up the trunk — a role,
+ *           a degree, a milestone (`TreeBranch` in src/lib/knowledge-tree.ts)
+ *   leaf    what that entry authored about itself: a technology it lists, or
+ *           an impact line it claims
  *
  * Under the plinth, `RootLabels` names the major roots with the authored skill
  * categories. Labels only: see that file for why no line is drawn from one of
  * them to anything above ground.
  *
- * See `src/lib/knowledge-tree.ts` for why every edge comes from `lenses` and
- * `technologies` rather than from matching skill names against technology
- * strings. Nothing in this file infers an edge; it only lays out the ones
- * `buildKnowledgeTree()` was given.
+ * See `src/lib/knowledge-tree.ts` for why every edge comes from a career
+ * entry's own `technologies` and `impact` fields rather than from matching
+ * skill names against technology strings. Nothing in this file infers an
+ * edge; it only lays out the ones `buildCareerTree()` was given.
  *
  * ## One component, two presentations
  *
@@ -60,9 +58,10 @@ import { WatchOrigin } from "./WatchOrigin";
  *
  * The alternative — one markup structure reflowed by CSS alone — was tried
  * against the shape of the data and does not survive it. The list collapses
- * per lens; the drawing opens per leaf. Those are different controls with
- * different accessible names and different `aria-controls` targets, and a
- * media query cannot rewrite either.
+ * per branch; the drawing's own branch panels do too, but each presentation
+ * lays its twig of leaves out differently once open. Those are different
+ * controls with different accessible names and different `aria-controls`
+ * targets, and a media query cannot rewrite either.
  *
  * ## Why the root is shared rather than duplicated
  *
@@ -91,7 +90,7 @@ import { WatchOrigin } from "./WatchOrigin";
 const TECHNOLOGY_TOTAL = totalTechnologies();
 
 interface KnowledgeTreeProps {
-  readonly tree: readonly TreeRoot[];
+  readonly tree: readonly TreeBranch[];
   readonly className?: string;
 }
 
@@ -151,7 +150,7 @@ export default function KnowledgeTree({ tree, className }: KnowledgeTreeProps) {
           {profile.philosophy}
         </p>
         <p className="eyebrow mt-3">
-          {tree.length} kinds · {TECHNOLOGY_TOTAL} technologies
+          {tree.length} {tree.length === 1 ? "entry" : "entries"} · {TECHNOLOGY_TOTAL} technologies
         </p>
 
         {/* Trunk stub: continues the spine from the root's own left edge

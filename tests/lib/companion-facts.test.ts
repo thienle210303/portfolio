@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { careerEntries, principles, projects, skillCategories } from "@/content/portfolio";
 import { experiments } from "@/content/ai-experiments";
 import { buildCompanionFacts } from "@/lib/companion-facts";
-import { buildKnowledgeTree, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
 
 /**
  * D1: `buildCompanionFacts` is only trustworthy if every number in it matches
@@ -42,10 +42,14 @@ describe("buildCompanionFacts", () => {
   });
 
   it("counts tree branches, leaves and technologies from the same builder the tree itself renders from", () => {
-    const tree = buildKnowledgeTree();
+    const tree = buildCareerTree();
     expect(facts.tree.branches).toBe(tree.length);
-    expect(facts.tree.leaves).toBe(tree.reduce((total, lens) => total + lens.branches.length, 0));
+    expect(facts.tree.leaves).toBe(tree.reduce((total, branch) => total + branch.leaves.length, 0));
     expect(facts.tree.technologies).toBe(totalTechnologies());
+  });
+
+  it("has one branch per career entry now the tree has inverted (round 12)", () => {
+    expect(facts.tree.branches).toBe(facts.tree.entries);
   });
 
   it("splits the absorbed journey by entry type on the tree fact, and the parts sum to the whole", () => {

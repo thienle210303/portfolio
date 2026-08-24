@@ -38,6 +38,14 @@ export const labIntro = [
 export const labLiveNotice =
   "One thing on this page now runs live: the chat box below hands your question, and only the passages it retrieved from this page, to a real language model — and marks that answer as coming from a live model when it does.";
 
+/**
+ * The hero's "Ask Thien" tab (round 12, WP-K) is a smaller mirror of the Lab
+ * chat box, not a second engine — same static index, same honesty about it.
+ * One line, always shown (the hero tab never wires up live mode, regardless
+ * of `askLiveModeConfigured()`), mirroring `labIntro[0]`'s framing above.
+ */
+export const heroAskCaption = "A lexical index over this page — no model.";
+
 /* -------------------------------------------------------------------------- */
 /* The scraping playbook                                                       */
 /* -------------------------------------------------------------------------- */

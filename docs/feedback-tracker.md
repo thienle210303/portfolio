@@ -549,3 +549,57 @@ compact copy control.
 
 Open, tracked elsewhere: the home-page `@media print` collapse (WP-H's
 find) is being fixed in its own worktree session.
+**Resolved:** merged as PR #6 before this round's commit landed.
+
+## Round 12 (2026-08-23/24)
+
+Owner's six items; four owner calls taken (scrolling chat window · compact
+hero + "Ask Thien" tab · evidence-facts rail · full tree inversion).
+Design: `docs/superpowers/specs/2026-08-23-round-12-design.md`.
+
+| Item | Owner | Outcome |
+| --- | --- | --- |
+| 1 · Origin story unstable on scroll | Sonnet (WP-I) | Root cause was real: the weather layer was `position: fixed` (portalled to body) and root-year beats panned the page with `scrollIntoView` — a fixed layer plus a programmatic scroll fighting the visitor's own is exactly the reported shearing. Both deleted; every visual now absolute inside the tree's frame; no more scroll-away-ends-the-show. New e2e proves the opposite property: scroll away, story keeps playing, scroll back, sky's box inside stage's box at every position. All round-10 contracts held. 11/11 scoped |
+| 2 · Tree/List toggle looks broken | Lead | Segmented-control border bug: the shared middle edge belonged to List alone (`border-r-0` on Tree), so it always wore the other button's color. Both buttons now carry four borders, List overlaps `-ml-px`, pressed lifts `z-10` |
+| 3 · Chat stacking up the page | Sonnet (WP-K) | Thread now a `role="log"` window, `max-h-[22rem]` (~1.5 turns), internal scroll, newest turn scrolled into view (instant under reduced motion), "Clear conversation" returns focus to the input. Real bug found: `scrollIntoView` walks every scrollable ancestor and lurched the whole page five-to-six-figure pixels — replaced with a container-scoped `scrollTo`, pinned by a dedicated "page doesn't lurch" e2e test. Round-10 "stays on screen" contract rewritten honestly |
+| 4 · Compact hero snippet + "Ask Thien" tab | Sonnet (WP-K) | `CodeBlock` gains an opt-in `compact` prop (new fluid `--step--2` token); hero artifact tightens; fourth tab "Ask Thien" hosts a mini chat — one input, latest turn, sources, "Full conversation in the Lab →" — engine lazy-loaded on first tab activation (mounting the panel IS activation, proven by unit + e2e), static engine only, honest caption authored in content. Works at 320px |
+| 5 · Skills rail unhelpful | Lead | Counts the reader's eyes can make are gone; the rail now says which technology the entries name most, across how many entries and which years — computed from `careerEntries[].technologies` only. Certifications count and the "Not shown: proficiency scores" line stay |
+| 6 · Tree branches = experiences | Sonnet (WP-M) | Full inversion: `buildCareerTree()` — one branch per entry, chronological up the trunk (oldest lowest, verified 2021→2025 across grid rows), leaves = authored `technologies` + `impact` (tagged by kind; only technology leaves carry a cross-entry count). Lens branches retired; roots label-only (no invented category→entry edge); branch→`#journey-entry-<id>` links; leaf disclosures replaced by one disclosure per branch (14 tab stops, not 70+); mobile list mirrors; origin data-attribute contract verified live (1 shoot, 14 branches, 60 leaves); anti-inference tests rewritten and kept sharp. `buildKnowledgeTree()` survives solely for the hero's entries-per-lens list |
+| — | Lead | Doc debt from the inversion settled: CLAUDE.md tree rules, docs/editing.md, Skills.tsx's `category.lenses` comment (now honestly "no consumer today") |
+
+### Round 12 integration log
+
+Six matrix runs to green — every intermediate failure adjudicated:
+
+1. Old hero-tabs test asserted 3 tabs; "Ask Thien" makes 4 (the one seam of
+   the ownership split — neither builder owned that pre-existing test).
+2. Toolkit-obscured axe violation returned: the 120ms-throttled control-rect
+   read went stale under load → replaced with a rect computed each frame
+   from the loop's own state (zero DOM reads, zero staleness).
+3. Escape test: the lazy player chunk missed a 5s expect under six-worker
+   dev-compile contention (2.7s in isolation) → load-sized mount timeout at
+   every open site, round-6 discipline.
+4. Hero tabs at 390: pre-hydration click → retried click-and-verify unit.
+5. Case-study disclosure at 390, same class → class fix: the sections
+   suite's beforeEach now gates on `html[data-ink-ready]` (a client-effect
+   stamp — a true post-hydration signal), guarded for the JS-off describe
+   via the `__next_f` inline-script discriminator.
+6. Toolkit axe a third time + a one-off 768 flake → the real invariant:
+   `keepClearOfControl` enforces ≥24px+4 clearance between the follower and
+   the lead's button at the one chokepoint where mood/tour positions are
+   finalized (two earlier chokepoint attempts were caught wrong by the
+   builder's own scoped runs and rejected); `sideStep` retired as
+   superseded. The 768 flake passed 8/8 isolated and was left unchanged —
+   the builder also proved the proposed `data-ink-ready` gate would be
+   WRONG for companion.spec (InkReveal never stamps it under reduced
+   motion) and refused it with evidence.
+
+### Round 12 gate
+
+`pnpm verify` green: typecheck, lint, contrast, **388 unit tests** (up from
+352), production build. Full Playwright matrix: **459 passed / 0 failed**.
+Visual pass at 1440 in both themes: the inverted tree (14 chronological
+branches, 59 authored-fact leaves, honest rail), the hero's Ask Thien tab
+answering with sources, the scrolling chat window pinned to the newest
+turn. The origin story's scroll stability is pinned by its own new e2e
+test rather than a screenshot.

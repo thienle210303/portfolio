@@ -64,15 +64,18 @@ Add an entry to `careerEntries`. One entry feeds all of:
 - the hero's "Now" line, which reads the most recent `type: "work"` entry — so
   changing jobs is one edit, not a hunt
 
-The two fields that decide where it shows up:
+The fields that decide what hangs off it in the tree (round 12: every entry
+is its own branch, in date order — `sortKey` decides where on the trunk):
 
 ```ts
-lenses: ["engineering", "automation"],   // which branches of the tree it hangs under
-technologies: ["Python", "Playwright"],  // the leaves under it
+technologies: ["Python", "Playwright"],  // technology leaves on its branch
+impact: ["99% runtime reduction, ..."],  // achievement leaves on its branch
+lenses: ["engineering", "automation"],   // résumé-explorer grouping (not drawn)
 ```
 
-`lenses` come from `resumeLenses` in the same file. An entry with no lenses is
-still on the timeline; it just does not appear in the tree.
+`lenses` come from `resumeLenses` in the same file. Since the round-12
+inversion they group entries for the résumé and the hero's "Where it shows
+up" list; the drawn tree no longer uses them.
 
 To attach a case study to a role, set the project's `careerEntryId` to that
 entry's `id`. That is also what supplies the employer and dates shown under the
@@ -98,9 +101,10 @@ the page. `Ctrl/Cmd+P` on `/resume` produces a clean copy to replace it with.
 
 ## A note on the knowledge tree
 
-The tree draws **only relationships you have written down**. It hangs roles
-under a lens because you tagged that lens, and technologies under a role
-because you listed them there.
+The tree draws **only relationships you have written down**. Since round 12
+each branch *is* one career entry (chronological up the trunk, each exactly
+once), and its leaves are that entry's own `technologies` and `impact`
+lines — because you listed them there, never because anything matched.
 
 It deliberately does *not* try to match `skillCategories.skills` against
 `technologies`. Those are two different vocabularies — of 38 skills, 17 match a

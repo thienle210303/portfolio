@@ -25,6 +25,25 @@ export interface Point {
   readonly y: number;
 }
 
+/**
+ * Whatever `setReservedRects`/`setControlRects` need out of a rectangle —
+ * the four edges, nothing else. A real `DOMRect` satisfies this
+ * structurally, so a caller with one on hand (the bubbles, measured because
+ * their size is content-dependent) can still just pass it straight through.
+ * The point of naming a narrower shape is the *other* kind of caller: the
+ * lead's own control rect is computed directly from state — its position
+ * and a compile-time-constant box — and never needs to touch the DOM at
+ * all, so it should not have to fake a whole `DOMRect` (`x`, `y`, `width`,
+ * `height`, `toJSON`) just to satisfy a type it only ever reads four fields
+ * of.
+ */
+export interface RectLike {
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly bottom: number;
+}
+
 /** The companion's own root, marked so the probes can look straight through
  *  it. Without this a cat reads its own button as content and flees itself. */
 const SELF = "[data-companion]";
@@ -226,10 +245,10 @@ function occupied(x: number, y: number): boolean {
  * whichever bubbles or captions are actually mounted — empty the rest of the
  * time, which is the common case and costs this module nothing then.
  */
-const EMPTY_RECTS: readonly DOMRect[] = [];
-let reserved: readonly DOMRect[] = EMPTY_RECTS;
+const EMPTY_RECTS: readonly RectLike[] = [];
+let reserved: readonly RectLike[] = EMPTY_RECTS;
 
-export function setReservedRects(rects: readonly DOMRect[]): void {
+export function setReservedRects(rects: readonly RectLike[]): void {
   reserved = rects.length > 0 ? rects : EMPTY_RECTS;
 }
 
@@ -259,11 +278,24 @@ function reservedAt(x: number, y: number): boolean {
  * ever compute one cat's position *relative to the other's* — `mateSpot`
  * (companion-moods.ts) and `findClearSpot` below — never by a cat validating
  * its own spot.
+ *
+ * This one is never measured off the DOM. It was, for one round, on a
+ * 320ms-then-120ms throttle — and it went stale under load exactly when it
+ * mattered most: axe caught the follower placed against a coordinate the
+ * lead had already walked away from, because a `getBoundingClientRect()`
+ * on a timer is a photograph, and a photograph taken too rarely under
+ * contention is a photograph of the past. `Companion.tsx`'s own rAF loop
+ * already knows the lead's position every frame — it is what writes the
+ * `transform` — so the caller derives this rect straight from that state
+ * (`grey.pos` plus the fixed, compile-time padded box a roaming lead is
+ * drawn in) instead of asking the browser to re-measure a box whose shape
+ * never changes. Zero reflow, zero staleness window: there is no frame this
+ * rect can be older than the position that produced it.
  */
-const EMPTY_CONTROL_RECTS: readonly DOMRect[] = [];
-let controlRects: readonly DOMRect[] = EMPTY_CONTROL_RECTS;
+const EMPTY_CONTROL_RECTS: readonly RectLike[] = [];
+let controlRects: readonly RectLike[] = EMPTY_CONTROL_RECTS;
 
-export function setControlRects(rects: readonly DOMRect[]): void {
+export function setControlRects(rects: readonly RectLike[]): void {
   controlRects = rects.length > 0 ? rects : EMPTY_CONTROL_RECTS;
 }
 
@@ -285,6 +317,103 @@ export function clearsControls(point: Point): boolean {
     }
   }
   return true;
+}
+
+/**
+ * WCAG 2.5.8's target-size minimum (24px) plus a small safety margin — the
+ * least gap `keepClearOfControl` below will ever leave between a cat's box
+ * and a registered control rect.
+ *
+ * `clearsControls` above only ever rejects or approves a *candidate* a
+ * placement function is choosing between — `mateSpot`, `sideStep`. That
+ * guarantees the follower is never *placed* onto the toggle, but it cannot
+ * guarantee the pair never end up too close, because nothing stops the
+ * *lead* from independently walking towards wherever the follower already
+ * stands: `elementBehind` deliberately looks straight through the
+ * companion's own subtree, so the two cats have always looked through each
+ * other by design, and a mood or tour stop choosing the lead's next spot
+ * has no idea the follower is there. Axe caught exactly this: a huddle
+ * scene pulling the pair together, from the lead's side rather than the
+ * follower's.
+ *
+ * So the real invariant cannot live at *placement* time at all — it has to
+ * be re-asserted after both cats' positions are final for the frame,
+ * regardless of which of the many paths chose them. `keepClearOfControl` is
+ * that correction: called once a frame, it only ever moves the follower —
+ * the lead is the interactive element, and a control that visibly recoiled
+ * from its own decoration would be a stranger bug than the one this fixes.
+ */
+export const TOGGLE_CLEARANCE = 24 + 4;
+
+/** The follower's own drawn box, and its true axis-aligned gap to `rect` —
+ *  negative when they already overlap on that axis, which `Math.max` here
+ *  turns into "how deep", so a genuinely separated pair reports its real
+ *  clearance and an overlapping pair reports a negative one, never a false
+ *  positive from comparing the wrong pair of edges. */
+function gapToRect(box: RectLike, rect: RectLike): number {
+  const dxOut = Math.max(box.left - rect.right, rect.left - box.right);
+  const dyOut = Math.max(box.top - rect.bottom, rect.top - box.bottom);
+  return Math.max(dxOut, dyOut);
+}
+
+function catBox(pos: Point): RectLike {
+  return { left: pos.x, top: pos.y, right: pos.x + CAT_W, bottom: pos.y + CAT_H };
+}
+
+/**
+ * Push a candidate position for the follower away from `rect` — a
+ * registered control, such as the lead's own live button — until its drawn
+ * box clears it by at least `TOGGLE_CLEARANCE`. Returns `pos` unchanged
+ * when it already does.
+ *
+ * Four candidates — right, left, below, above — ordered by how little each
+ * would actually move her: whichever side of `rect` she is already biased
+ * towards on each axis is tried before the far side of either. A follower
+ * a couple of pixels short of clearance on her own side is nudged those few
+ * pixels, not relocated across the lead entirely because "right" happened
+ * to be checked first; the very first version of this function did exactly
+ * that, tried in a fixed order regardless of where `pos` already was, and
+ * would have visibly teleported her for a near-miss this small ever to
+ * come up in a snapshot test.
+ *
+ * Every candidate is clamped into the viewport *and re-measured after the
+ * clamp*, which is where round 10's own bug lived: a clamp that pulls a
+ * candidate back towards an edge can silently collapse a gap that was only
+ * ever checked before the clamp ran. The first candidate that clears after
+ * clamping wins; if a viewport is narrow enough that none of the four do
+ * (two cats and 2×28px of margin is over 200px — implausible, not
+ * impossible), this returns whichever candidate cleared the most rather
+ * than the one it started with, so a cramped viewport still gets the best
+ * available answer instead of a known conflict handed back unchanged.
+ */
+export function keepClearOfControl(pos: Point, rect: RectLike): Point {
+  if (gapToRect(catBox(pos), rect) >= TOGGLE_CLEARANCE) return pos;
+
+  const right: Point = { x: rect.right + TOGGLE_CLEARANCE, y: pos.y };
+  const left: Point = { x: rect.left - CAT_W - TOGGLE_CLEARANCE, y: pos.y };
+  const below: Point = { x: pos.x, y: rect.bottom + TOGGLE_CLEARANCE };
+  const above: Point = { x: pos.x, y: rect.top - CAT_H - TOGGLE_CLEARANCE };
+
+  const posOnRight = pos.x + CAT_W / 2 >= (rect.left + rect.right) / 2;
+  const posBelow = pos.y + CAT_H / 2 >= (rect.top + rect.bottom) / 2;
+  const nearHorizontal = posOnRight ? right : left;
+  const farHorizontal = posOnRight ? left : right;
+  const nearVertical = posBelow ? below : above;
+  const farVertical = posBelow ? above : below;
+  const candidates = [nearHorizontal, nearVertical, farHorizontal, farVertical];
+
+  let best = clampToViewport(candidates[0]);
+  let bestGap = gapToRect(catBox(best), rect);
+  for (const candidate of candidates) {
+    const safe = clampToViewport(candidate);
+    const gap = gapToRect(catBox(safe), rect);
+    if (gap > bestGap) {
+      bestGap = gap;
+      best = safe;
+    }
+    if (gap >= TOGGLE_CLEARANCE) return safe;
+  }
+  return best;
 }
 
 /**

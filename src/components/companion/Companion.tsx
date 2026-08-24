@@ -64,9 +64,9 @@ import {
 import {
   clamp,
   clampToViewport,
-  clearsControls,
   findClearSpot,
   isClearSpot,
+  keepClearOfControl,
   keepInView,
   refreshSafeArea,
   safeTop,
@@ -76,6 +76,7 @@ import {
   syncTone,
   viewport,
   type Point,
+  type RectLike,
 } from "./companion-space";
 import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
 
@@ -510,44 +511,6 @@ function followHome(home: Point): Point {
   return clampToViewport({ x: home.x - CAT_W - FOLLOW_GAP, y: home.y });
 }
 
-/**
- * A point `gap` px to one side of `lead`, clamped into the viewport —
- * mirrored to the far side, then dropped below, if a side's clamp would
- * have collapsed the gap against an edge or would still land on the
- * toolkit toggle.
- *
- * The origin-story watch's storm dash and rain huddle both used to compute
- * this as a single unconditional `x: lead.x ± gap`, clamped — correct almost
- * everywhere, and silently wrong two ways at once. The clamp could pull the
- * follower back towards the lead instead of away from it near a viewport
- * edge. And `lead` here is the *tour stop's own target* for the lead cat —
- * the tree mood's chosen spot, or the storm's own jolt — not necessarily
- * where the lead is actually rendered this frame; mid-walk into the huddle,
- * those two can differ by as much as a stride. Offsetting purely from the
- * target, with no reference to where the lead's own button actually is,
- * is how the tabby ended up standing on it with only a sliver left
- * clickable. `clearsControls` checks the real thing — the lead's live
- * rendered rect, registered every frame by `Companion`'s own loop — rather
- * than trusting the target and the render to agree.
- */
-function sideStep(lead: Point, gap: number): Point {
-  const candidates: Point[] = [
-    clampToViewport({ x: lead.x - gap, y: lead.y }),
-    clampToViewport({ x: lead.x + gap, y: lead.y }),
-    clampToViewport({ x: lead.x, y: lead.y + CAT_H + 6 }),
-    clampToViewport({ x: lead.x, y: lead.y - CAT_H - 6 }),
-  ];
-  for (const candidate of candidates) {
-    const gapKept =
-      Math.abs(candidate.x - lead.x) >= CAT_W || Math.abs(candidate.y - lead.y) >= CAT_H;
-    if (gapKept && clearsControls(candidate)) return candidate;
-  }
-  // Every candidate either collapsed against a viewport edge or still
-  // covers the toggle — vanishingly rare, and the first one is still no
-  // worse than what this replaced.
-  return candidates[0];
-}
-
 /* ------------------------------------------------------------------ staging --
  *
  * Where a *requested* scene is allowed to happen, which is not the same
@@ -676,6 +639,43 @@ function clusterBox(): { left: number; top: number } {
  */
 const LEAD_PAD_X = 4;
 const LEAD_PAD_Y = 3;
+
+/** The lead's own live control rect — the toolkit toggle's actual drawn
+ *  box — computed from its position and the fixed padded box above, never
+ *  read off the DOM. Shared by the two things that need it every frame:
+ *  registering it (`setControlRects`, for `clearsControls`) and enforcing
+ *  the clearance invariant around it (`keepClearOfControl`). */
+function leadControlRect(pos: Point): RectLike {
+  return {
+    left: pos.x - LEAD_PAD_X,
+    top: pos.y - LEAD_PAD_Y,
+    right: pos.x - LEAD_PAD_X + CAT_W + LEAD_PAD_X * 2,
+    bottom: pos.y - LEAD_PAD_Y + CAT_H + LEAD_PAD_Y * 2,
+  };
+}
+
+/**
+ * The target-size invariant, applied once at the source rather than at
+ * movement time.
+ *
+ * The first attempt at this correction ran right before the follower's own
+ * `advance()` call, nudging her `followWant` for that one frame. It broke
+ * the guided tour: the tour's own "have we arrived" check compares
+ * `tabby.pos` against `tourSpots.current.follow` — a *different* copy of
+ * the same spot, read straight from `tourStopSpots()` and never touched by
+ * the correction — so her corrected target and the arrival check's own
+ * reference disagreed by the exact width of the correction, and she could
+ * never get within 4px of a point nothing was actually walking her toward.
+ *
+ * Correcting `Spots` here, at the one place a mood or a tour stop hands a
+ * finished `{ lead, follow }` back to its caller, means every reader after
+ * that — the movement code and any arrival check alike — sees the same,
+ * already-clear pair of points. Nothing downstream has to know this ran.
+ */
+function clearFollowOfToggle(spots: Spots): Spots {
+  const follow = keepClearOfControl(spots.follow, leadControlRect(spots.lead));
+  return follow === spots.follow ? spots : { lead: spots.lead, follow };
+}
 
 /**
  * Where the two of them actually sleep — and it is not the bed.
@@ -1344,12 +1344,6 @@ export function Companion({ facts }: CompanionProps) {
   const committed = useRef<Frame>(INITIAL_FRAME);
   const lastCommit = useRef(0);
   const lastTone = useRef(0);
-  /** Last time the lead's own live rect was read for `setControlRects` — on
-   *  the nap/secret rects' own faster throttle (120ms) rather than the tone
-   *  sample's 320ms, since this is what the origin-story watch's placement
-   *  leans on to keep the follower off the toolkit toggle while the pair are
-   *  still moving into a huddle. */
-  const lastControlRead = useRef(0);
   /** Where the cats should re-enter from, captured before the box unmounts. */
   const spawn = useRef<Spots | null>(null);
   const pendingEscort = useRef(false);
@@ -2208,7 +2202,12 @@ export function Companion({ facts }: CompanionProps) {
       if (tour && !run) {
         const stop = stopsFor(tour.route)[tour.index];
         const spots = tourStopSpots(stop.sectionId);
-        if (spots) tourSpots.current = spots;
+        // `clearFollowOfToggle` here, not at movement time: the "have we
+        // arrived" check just below reads `tourSpots.current.follow`
+        // directly, so the corrected value has to be what gets stored, or
+        // the movement code and the arrival check end up chasing two
+        // different points — see that function's own note.
+        if (spots) tourSpots.current = clearFollowOfToggle(spots);
         if (!tourSpots.current) {
           // Nowhere at all for this stop. Skip it rather than strand the tour
           // on a section that has, for whatever reason, nothing clear near it;
@@ -2320,16 +2319,24 @@ export function Companion({ facts }: CompanionProps) {
             // for as long as this branch runs), so this is the one place the
             // ref's *shape* is reused without its usual branch.
             const startled = clampToViewport({ x: spots.lead.x + rushRef.current.dir * 20, y: spots.lead.y });
-            watch.spots = { lead: startled, follow: sideStep(startled, CAT_W + FOLLOW_GAP) };
+            // The naive offset behind him, same as the huddle below — see
+            // `clearFollowOfToggle`, which is what actually keeps her off
+            // the toolkit toggle if this lands too close.
+            const naive = clampToViewport({ x: startled.x - (CAT_W + FOLLOW_GAP), y: startled.y });
+            watch.spots = clearFollowOfToggle({ lead: startled, follow: naive });
           } else if (now < rainHuddleUntil.current) {
             // The rain beat's huddle: she comes in beside him instead of
-            // behind — the same clamp every spot here goes through, just a
-            // shorter gap than the ordinary `FOLLOW_GAP`, and `sideStep`
-            // rather than a bare offset so a lead near an edge does not pull
-            // her onto him instead of beside him.
-            watch.spots = { lead: spots.lead, follow: sideStep(spots.lead, CAT_W + 6) };
+            // behind, on a shorter gap than the ordinary `FOLLOW_GAP` — the
+            // whole point of a huddle is that it reads tighter than usual.
+            // `clearFollowOfToggle` still has the final word: if this gap
+            // would leave the toolkit toggle without its required clear
+            // space, it widens just enough to fix that and no more — the
+            // coordinator's own call is that a huddle still reads as one at
+            // the WCAG minimum.
+            const naive = clampToViewport({ x: spots.lead.x - (CAT_W + 6), y: spots.lead.y });
+            watch.spots = clearFollowOfToggle({ lead: spots.lead, follow: naive });
           } else {
-            watch.spots = spots;
+            watch.spots = clearFollowOfToggle(spots);
           }
         }
       }
@@ -3136,16 +3143,20 @@ export function Companion({ facts }: CompanionProps) {
 
       // The lead's own live rect, registered as a control the *follower*
       // must never be placed on top of — see `clearsControls` and its own
-      // note on why this cannot simply join `setReservedRects` above. Read
-      // on the nap/secret rects' own 120ms throttle rather than the tone
-      // sample's 320ms: the origin-story watch actively steers the follower
-      // off this rect while the pair are still moving into a huddle
-      // (`sideStep`), and 320ms of staleness there is most of a stride at
-      // walking speed.
-      if (now - lastControlRead.current > 120) {
-        lastControlRead.current = now;
-        setControlRects(leadNode.current ? [leadNode.current.getBoundingClientRect()] : []);
-      }
+      // note on why this cannot simply join `setReservedRects` above.
+      //
+      // Computed from `grey.pos` and the fixed padded box a roaming lead is
+      // drawn in (see `LEAD_PAD_X`/`LEAD_PAD_Y` and the button's own inline
+      // style in the render below), never read off the DOM. A throttled
+      // `getBoundingClientRect()` used to sit here, and it went stale under
+      // load exactly when it mattered: the origin-story watch moves the
+      // pair every frame, and a photograph of "where the toggle was" a
+      // throttle-interval ago is a photograph of the wrong place while
+      // they're mid-stride into a huddle. This has no interval to fall
+      // behind — it is arithmetic on the same state the paint call two
+      // lines below writes to the DOM, so it is current on every frame the
+      // loop runs, roaming or not.
+      setControlRects(roamingRef.current ? [leadControlRect(grey.pos)] : []);
 
       if (now - lastTone.current > TONE_INTERVAL) {
         lastTone.current = now;

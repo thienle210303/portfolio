@@ -21,34 +21,44 @@
  * its own component — `KnowledgeTree` for the drawing, `Timeline` (moved in
  * from the old Journey section, filters intact) for the chronology.
  *
- * Every rail note is counted off `buildKnowledgeTree()` and `careerEntries`
+ * Every rail note is counted off `buildCareerTree()` and `careerEntries`
  * directly — the same values each face renders from, so a number here cannot
  * drift from the drawing or the list beside it. "Heaviest" is deliberate
- * rather than tactful: twelve of the twenty-five leaves hang off one branch,
- * the drawing is visibly lopsided because of it, and a rail that quietly
- * omitted that would be hiding the one thing the shape is saying.
+ * rather than tactful: one entry authored several times the technologies and
+ * impact lines of the next-busiest, the drawing is visibly lopsided because
+ * of it, and a rail that quietly omitted that would be hiding the one thing
+ * the shape is saying.
+ *
+ * Round 12 inverted the tree itself — branches are career entries now, in
+ * chronological order up the trunk, and leaves are what each one authored
+ * about itself (see `src/lib/knowledge-tree.ts`) — but this file's own job
+ * did not change: read the built tree once, compute the rail from it, hand
+ * it to `KnowledgeTree`.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { careerEntries, skillCategories } from "@/content/portfolio";
-import { buildKnowledgeTree, careerYearSpan, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildCareerTree, careerYearSpan, totalTechnologies } from "@/lib/knowledge-tree";
 import KnowledgeTree from "./KnowledgeTree";
 import Timeline from "./Timeline";
 import { ViewToggle } from "./ViewToggle";
 
 const HEADING_ID = "tree-heading";
 
-const TREE = buildKnowledgeTree();
+const TREE = buildCareerTree();
 
-/** Every leaf on the drawing: one per (lens, career entry) pair. Larger than
- *  the number of career entries, because an entry tagged with three lenses
- *  legitimately hangs off three branches. */
-const LEAF_TOTAL = TREE.reduce((total, lens) => total + lens.branches.length, 0);
+/** Every leaf on the drawing: every technology and every impact line any
+ *  branch lists, summed. Round 12 inverted what a branch and a leaf are —
+ *  see `src/lib/knowledge-tree.ts` — so this is no longer "one row per
+ *  (lens, career entry) pair"; it is "one row per authored fact". */
+const LEAF_TOTAL = TREE.reduce((total, branch) => total + branch.leaves.length, 0);
 
-/** The branch carrying the most places. Ties go to the first one written,
- *  which is the order `resumeLenses` already puts them in. */
+/** The branch with the most to show — the entry whose own technologies and
+ *  impact lines, combined, outnumber every other entry's. Ties go to the
+ *  first one written, which since round 12 is the oldest (`TREE` is
+ *  chronological, oldest first). */
 const HEAVIEST = TREE.reduce<(typeof TREE)[number] | undefined>(
-  (largest, lens) => (largest && largest.branches.length >= lens.branches.length ? largest : lens),
+  (largest, branch) => (largest && largest.leaves.length >= branch.leaves.length ? largest : branch),
   undefined,
 );
 
@@ -63,8 +73,8 @@ const RAIL: readonly RailNote[] = [
     term: "Split",
     detail: `${countOf("work")} work · ${countOf("learning")} learning · ${countOf("milestone")} milestones`,
   },
-  { term: "Branches", detail: `${TREE.length} kinds of work` },
-  { term: "Leaves", detail: `${LEAF_TOTAL} places` },
+  { term: "Branches", detail: `${TREE.length} career entries` },
+  { term: "Leaves", detail: `${LEAF_TOTAL} authored facts` },
   { term: "Technologies", detail: `${totalTechnologies()} distinct` },
   { term: "Roots", detail: `${skillCategories.length} skill groups` },
   { term: "Rings", detail: `${YEAR_SPAN.years} — one per year since ${YEAR_SPAN.firstYear}` },
@@ -72,7 +82,7 @@ const RAIL: readonly RailNote[] = [
     ? [
         {
           term: "Heaviest",
-          detail: `${HEAVIEST.label} · ${HEAVIEST.branches.length} of ${LEAF_TOTAL}`,
+          detail: `${HEAVIEST.label} · ${HEAVIEST.leaves.length} of ${LEAF_TOTAL}`,
         },
       ]
     : []),
@@ -92,7 +102,7 @@ export default function CareerTree() {
 
       <SectionHeading
         id={HEADING_ID}
-        lead="One root, one branch per kind of work, and every place the work actually happened hanging off the branch it was tagged with — by hand, never guessed. Open any of them to read what it involved, or switch to the list below for the same record in order."
+        lead="One trunk, one branch per role, degree or milestone — in the order it happened — and every leaf hanging off it something authored on that entry: a technology used, or an impact made. Open any branch to read what it involved, or switch to the list below for the same record in order."
       >
         What it adds up to
       </SectionHeading>
