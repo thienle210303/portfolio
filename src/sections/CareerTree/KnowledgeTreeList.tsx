@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { techSlug, type TreeBranch } from "@/lib/knowledge-tree";
 import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
 import { JourneyEntryCrossLink } from "./cross-link";
+import { EntryInk, ListGrowingTip, ListTrunk } from "./list-ink";
 import { KIND_LABEL } from "./tree-labels";
 
 /**
@@ -30,6 +31,16 @@ import { KIND_LABEL } from "./tree-labels";
  * Collapsed by default apart from the first (the *oldest* entry now, not an
  * arbitrary first lens), so the section opens as one scannable headline
  * rather than a wall — the same summary-first shape the case studies use.
+ *
+ * Round 13 gives this list its own ink: a drawn trunk down the left margin
+ * (`ListTrunk`), a curved bough per row (`EntryInk`), and a small "still
+ * growing" tip at the newest end (`ListGrowingTip`) — see `list-ink.tsx` for
+ * why all three are safe to describe as pure decoration. The list is
+ * oldest-first, so the trunk's "ground" end is the top of this list, where
+ * `KnowledgeTree.tsx`'s own root plaque sits just above it (see that file's
+ * "Trunk stub" note) — the drawing here continues that same line down
+ * through every row and past the last one, rather than starting a second,
+ * disconnected trunk of its own.
  */
 interface KnowledgeTreeListProps {
   readonly tree: readonly TreeBranch[];
@@ -38,121 +49,131 @@ interface KnowledgeTreeListProps {
 
 export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
   return (
-    <ul
-      role="list"
-      className={cn("flex flex-col gap-3 border-l border-rule pl-5", className)}
-    >
-      {tree.map((branch, branchIndex) => {
-        const technologyLeaves = branch.leaves.filter((leaf) => leaf.kind === "technology");
-        const impactLeaves = branch.leaves.filter((leaf) => leaf.kind === "impact");
+    <div className={cn("relative", className)}>
+      <ListTrunk />
+      <ul role="list" className="flex flex-col gap-3 pl-5">
+        {tree.map((branch, branchIndex) => {
+          const technologyLeaves = branch.leaves.filter((leaf) => leaf.kind === "technology");
+          const impactLeaves = branch.leaves.filter((leaf) => leaf.kind === "impact");
+          // A ring ticks the trunk wherever the year changes — including the
+          // very first row, which starts the whole list's oldest ring.
+          const showRing = branchIndex === 0 || branch.startYear !== tree[branchIndex - 1].startYear;
 
-        return (
-          <li
-            key={branch.id}
-            data-tree-branch={branch.id}
-            className="relative border border-rule"
-          >
-            {/* Horizontal tick joining this branch to the trunk on its left. */}
-            <span aria-hidden="true" className="absolute -left-5 top-6 h-px w-4 bg-rule" />
-            <Disclosure
-              id={`tree-list-branch-${branch.id}`}
-              defaultOpen={branchIndex === 0}
-              expandLabel={`Show what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
-              collapseLabel={`Hide what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
-              className="px-4 sm:px-5"
-              summary={
-                <span className="flex flex-1 flex-col gap-1 py-3 text-left">
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="text-[length:var(--step-1)] text-[color:var(--fg)]">
-                      {branch.label}
-                      {branch.organization ? (
-                        <span className="text-[color:var(--fg-muted)]"> · {branch.organization}</span>
-                      ) : null}
-                    </span>
-                    <span aria-hidden="true" className="eyebrow shrink-0">
-                      {branch.startYear}
-                    </span>
-                  </span>
-                  <span className="eyebrow mt-1">
-                    {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
-                  </span>
-                </span>
-              }
+          return (
+            <li
+              key={branch.id}
+              data-tree-branch={branch.id}
+              className="relative border border-rule"
             >
-              <div className="mb-5 space-y-3 border-t border-rule pb-4 pt-3">
-                {branch.caseStudies.length > 0 ? (
-                  <p className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]">
-                    Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
-                    {branch.caseStudies.map((caseStudy, index) => (
-                      <span key={caseStudy.id}>
-                        {index > 0 ? ", " : ""}
-                        <a
-                          href={`#${caseStudyAnchorId(caseStudy.id)}`}
-                          className="text-accent underline-offset-4 hover:underline"
-                        >
-                          {caseStudy.title}
-                        </a>
+              {/* The bough joining this row to the trunk on its left,
+                  replacing the old plain tick — see list-ink.tsx. */}
+              <EntryInk seed={branch.id} showRing={showRing} />
+              <Disclosure
+                id={`tree-list-branch-${branch.id}`}
+                defaultOpen={branchIndex === 0}
+                expandLabel={`Show what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
+                collapseLabel={`Hide what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
+                className="px-4 sm:px-5"
+                summary={
+                  <span className="flex flex-1 flex-col gap-1 py-3 text-left">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="text-[length:var(--step-1)] text-[color:var(--fg)]">
+                        {branch.label}
+                        {branch.organization ? (
+                          <span className="text-[color:var(--fg-muted)]"> · {branch.organization}</span>
+                        ) : null}
                       </span>
-                    ))}
-                  </p>
-                ) : null}
+                      <span aria-hidden="true" className="eyebrow shrink-0">
+                        {branch.startYear}
+                      </span>
+                    </span>
+                    <span className="eyebrow mt-1">
+                      {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
+                    </span>
+                  </span>
+                }
+              >
+                <div className="mb-5 space-y-3 border-t border-rule pb-4 pt-3">
+                  {branch.caseStudies.length > 0 ? (
+                    <p className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]">
+                      Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
+                      {branch.caseStudies.map((caseStudy, index) => (
+                        <span key={caseStudy.id}>
+                          {index > 0 ? ", " : ""}
+                          <a
+                            href={`#${caseStudyAnchorId(caseStudy.id)}`}
+                            className="text-accent underline-offset-4 hover:underline"
+                          >
+                            {caseStudy.title}
+                          </a>
+                        </span>
+                      ))}
+                    </p>
+                  ) : null}
 
-                {technologyLeaves.length > 0 ? (
-                  <ul
-                    role="list"
-                    aria-label={`Technologies used — ${branch.label}`}
-                    className="flex flex-wrap gap-2"
-                  >
-                    {technologyLeaves.map((leaf) => (
-                      <li key={leaf.text} data-tree-tech={techSlug(leaf.text)}>
-                        <Tag>
-                          <span className="wrap-anywhere">{leaf.text}</span>
-                          {/* Recurrence is the whole point of a tree view: it
-                              is what shows a technology running through more
-                              than one branch instead of sitting in one. */}
-                          {leaf.alsoUsedIn ? (
-                            <span className="text-accent">
-                              +{leaf.alsoUsedIn}
-                              <span className="sr-only">
-                                {" "}
-                                other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
+                  {technologyLeaves.length > 0 ? (
+                    <ul
+                      role="list"
+                      aria-label={`Technologies used — ${branch.label}`}
+                      className="flex flex-wrap gap-2"
+                    >
+                      {technologyLeaves.map((leaf) => (
+                        <li key={leaf.text} data-tree-tech={techSlug(leaf.text)}>
+                          <Tag>
+                            <span className="wrap-anywhere">{leaf.text}</span>
+                            {/* Recurrence is the whole point of a tree view: it
+                                is what shows a technology running through more
+                                than one branch instead of sitting in one. */}
+                            {leaf.alsoUsedIn ? (
+                              <span className="text-accent">
+                                +{leaf.alsoUsedIn}
+                                <span className="sr-only">
+                                  {" "}
+                                  other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
+                                </span>
                               </span>
-                            </span>
-                          ) : null}
-                        </Tag>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+                            ) : null}
+                          </Tag>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
 
-                {impactLeaves.length > 0 ? (
-                  <ul
-                    role="list"
-                    aria-label={`Impact — ${branch.label}`}
-                    className="space-y-1"
-                  >
-                    {impactLeaves.map((leaf) => (
-                      <li
-                        key={leaf.text}
-                        className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]"
-                      >
-                        {leaf.text}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+                  {impactLeaves.length > 0 ? (
+                    <ul
+                      role="list"
+                      aria-label={`Impact — ${branch.label}`}
+                      className="space-y-1"
+                    >
+                      {impactLeaves.map((leaf) => (
+                        <li
+                          key={leaf.text}
+                          className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]"
+                        >
+                          {leaf.text}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
 
-                <JourneyEntryCrossLink
-                  entryId={branch.id}
-                  label={branch.label}
-                  organization={branch.organization}
-                />
-              </div>
-            </Disclosure>
-          </li>
-        );
-      })}
-    </ul>
+                  <JourneyEntryCrossLink
+                    entryId={branch.id}
+                    label={branch.label}
+                    organization={branch.organization}
+                  />
+                </div>
+              </Disclosure>
+            </li>
+          );
+        })}
+      </ul>
+      {/* The newest entry is always last — `tree` is chronological, oldest
+          first (see the file banner) — so its own year is the tip's. Guarded
+          rather than assumed: `KnowledgeTree.tsx` never renders this
+          component with an empty tree, but nothing here should crash if it
+          ever did. */}
+      {tree.length > 0 ? <ListGrowingTip year={tree[tree.length - 1].startYear} /> : null}
+    </div>
   );
 }
 

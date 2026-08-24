@@ -274,6 +274,56 @@ test.describe("career tree", () => {
     }
   });
 
+  /*
+   * Round 13: the mobile/AT list gets its own drawn ink (a trunk, a curved
+   * bough per row, year rings, a "still growing" tip) — see
+   * src/sections/CareerTree/list-ink.tsx. It is meant to be pure decoration
+   * layered onto the accessible list that has always been here: this test
+   * proves that rather than trusting it, by checking every drawn piece is
+   * `aria-hidden` and that the list's own accessible controls — one "Show
+   * what … involved" button per career entry — are unaffected by any of it.
+   */
+  test("the list's drawn ink is pure decoration layered onto the same accessible list", async ({
+    page,
+  }) => {
+    test.skip(
+      viewportWidth(page) >= DESKTOP_MIN_WIDTH,
+      "this ink only exists in KnowledgeTreeList.tsx, the <1024px presentation — see list-ink.tsx",
+    );
+    await viewToggle(page, "Tree").click();
+    const tree = page.locator("#tree");
+
+    // Either wording: the very first (oldest) branch defaults open, so its
+    // own trigger already reads "Hide what … involved" rather than "Show
+    // what … involved" — see KnowledgeTreeList.tsx's `defaultOpen`.
+    const branchButtons = tree.getByRole("button", { name: /(Show|Hide) what .+ involved/ });
+    const branchCount = await branchButtons.count();
+    expect(branchCount, "expected at least one career entry in the list").toBeGreaterThan(0);
+
+    // One continuous trunk …
+    const trunk = tree.locator("[data-tree-list-trunk]");
+    await expect(trunk).toHaveCount(1);
+    await expect(trunk).toHaveAttribute("aria-hidden", "true");
+
+    // … one bough per row, joining it to the trunk …
+    const boughs = tree.locator('[data-tree-list-part="bough"]');
+    await expect(boughs).toHaveCount(branchCount);
+    for (const bough of await boughs.all()) {
+      await expect(bough).toHaveAttribute("aria-hidden", "true");
+    }
+
+    // … and one growing tip at the newest end.
+    const tip = tree.locator("[data-tree-list-tip]");
+    await expect(tip).toHaveCount(1);
+    await expect(tip).toHaveAttribute("aria-hidden", "true");
+    await expect(tip.locator("[data-tree-list-shoot-label]")).toHaveText(/still growing/i);
+
+    // None of it changed how many accessible controls the list itself
+    // exposes — the same count `on the Tree face, the drawing shows …`
+    // above already established this list has, before this ink existed.
+    await expect(branchButtons).toHaveCount(branchCount);
+  });
+
   test("opening a branch panel reveals its detail, including the case-study link when one exists", async ({
     page,
   }) => {
@@ -817,7 +867,16 @@ test.describe("career tree", () => {
 
     const tree = page.locator("#tree");
     await expect(tree.locator("[data-tree-shoot]")).toHaveCount(1);
-    await expect(tree.getByText(/still growing/i)).toHaveCount(1);
+    // Round 13 gave the mobile list its own "still growing" tip
+    // (KnowledgeTreeList.tsx's `ListGrowingTip`, see list-ink.tsx) — a
+    // second element carrying this same text now exists in the DOM at every
+    // width, just `display: none` here since the drawn presentation is what
+    // shows at >=1024px. `:visible` scopes the count to whichever
+    // presentation is actually on screen, same convention as the
+    // `[data-tree-tech]:visible` probe above.
+    await expect(
+      tree.locator('[data-tree-shoot-label]:visible, [data-tree-list-shoot-label]:visible'),
+    ).toHaveCount(1);
   });
 
   test("the ground band renders as drawing, not a boxed card", async ({ page }) => {

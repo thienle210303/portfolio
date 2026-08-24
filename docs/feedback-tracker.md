@@ -603,3 +603,15 @@ branches, 59 authored-fact leaves, honest rail), the hero's Ask Thien tab
 answering with sources, the scrolling chat window pinned to the newest
 turn. The origin story's scroll stability is pinned by its own new e2e
 test rather than a screenshot.
+
+## Round 13 (2026-08-24)
+
+Two quick owner items after living with round 12:
+
+| Item | Verdict | Outcome |
+| --- | --- | --- |
+| Leaves: achievements or `learned`? | Answered, no build | Achievements stay — impact lines are short and skimmable where `learned` lines are full reflective sentences; the lesson belongs in the opened branch panel, the proof on the branch |
+| "On a small screen, it is no longer a tree" | Accepted, built (WP-N) | The mobile Tree face (`KnowledgeTreeList`) got its ink back: a y-stretching trunk SVG whose height comes from normal document flow (disclosures can never break it — zero measurement code), a deterministic curved bough per entry, year rings at year boundaries, a miniature "still growing" tip. Pure `aria-hidden` decoration over the unchanged accessible list, pinned by a new e2e test (one trunk, one bough per branch, all hidden, accessible button count unchanged). Verified at 320/390/430 with multiple disclosures open, both themes. Known nit, owner's call: the first row's ring + bough read as a slightly busy "knot" |
+
+Gate: `pnpm verify` green, full Playwright matrix **463 passed / 0 failed**,
+visual pass at 390 in both themes.
