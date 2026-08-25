@@ -35,6 +35,26 @@ function viewportWidth(page: Page): number {
   return page.viewportSize()?.width ?? 0;
 }
 
+interface Box {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Whether `inner`'s box lies entirely inside `outer`'s, within a small
+ *  pixel tolerance for sub-pixel layout rounding. Used to prove the sky
+ *  layer never strays outside the stage it is `absolute` inside of — see
+ *  "everything lives in the frame" below. */
+function boxContains(outer: Box, inner: Box, tolerance = 1): boolean {
+  return (
+    inner.x >= outer.x - tolerance &&
+    inner.y >= outer.y - tolerance &&
+    inner.x + inner.width <= outer.x + outer.width + tolerance &&
+    inner.y + inner.height <= outer.y + outer.height + tolerance
+  );
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
@@ -43,6 +63,17 @@ test.beforeEach(async ({ page }) => {
 function watchOriginButton(page: Page) {
   return page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
 }
+
+/**
+ * How long the stage may take to appear after the button is pressed. The
+ * player is a lazy chunk fetched on the press (`WatchOrigin.tsx`), and this
+ * suite runs against `pnpm dev` under six parallel worker projects — a
+ * chunk that mounts in ~2.7s in isolation was measured missing a 5s expect
+ * under full-matrix contention (dev-compile latency, not product latency:
+ * a deployed visitor gets a prebuilt chunk). Same load-sized-timeout
+ * discipline the companion suite adopted in round 6.
+ */
+const PLAYER_MOUNT_TIMEOUT = 15_000;
 
 test.describe("the button", () => {
   test("surfaces inside #tree at >=1024px, and is hidden below it", async ({ page }) => {
@@ -62,7 +93,7 @@ test.describe("the player", () => {
     await watchOriginButton(page).click();
 
     const stage = page.locator("[data-origin-stage]");
-    await expect(stage).toBeVisible();
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
     // The one geographic fact the story is allowed to name is the arrival —
     // "<country> → United States · December 2018" — never the city
@@ -108,7 +139,7 @@ test.describe("the player", () => {
     await button.click();
 
     const stage = page.locator("[data-origin-stage]");
-    await expect(stage).toBeVisible();
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
     await page.keyboard.press("Escape");
 
@@ -127,7 +158,7 @@ test.describe("the player", () => {
 
       await watchOriginButton(page).click();
       const stage = page.locator("[data-origin-stage]");
-      await expect(stage).toBeVisible();
+      await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
       // Real text, not an animated frame the click-to-advance idiom would
       // otherwise gate: the storyboard renders every beat at once, so every
@@ -166,7 +197,7 @@ test.describe("chronological growth", () => {
 
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
-    await expect(stage).toBeVisible();
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
 
@@ -262,7 +293,7 @@ test.describe("exit hygiene", () => {
   async function midStory(page: Page): Promise<{ stage: ReturnType<Page["locator"]> }> {
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
-    await expect(stage).toBeVisible();
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
     const before = await status.textContent();
@@ -315,7 +346,7 @@ test.describe("narration without the cats", () => {
 
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
-    await expect(stage).toBeVisible();
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
     const annotation = stage.locator("[data-origin-annotation]");
     await expect(annotation).toBeVisible();
@@ -335,7 +366,7 @@ test.describe("accessible narration", () => {
 
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
-    await expect(stage).toBeVisible();
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
@@ -361,5 +392,92 @@ test.describe("accessible narration", () => {
       results.violations,
       results.violations.map((violation) => `[${violation.id}] ${violation.help}`).join("\n"),
     ).toEqual([]);
+  });
+});
+
+/**
+ * Round 12, "Origin story lives in the frame": the owner's report was that
+ * "watch how it grew is very unstable and awful when I scroll up and down"
+ * — traced to a camera pan (`scrollIntoView` for root-year beats) and a
+ * scroll-away `IntersectionObserver` that ended the show the instant the
+ * sky slice left the viewport, both fighting a visitor's own scroll. Both
+ * are deleted rather than adapted: everything the player draws is now
+ * `position: absolute` inside the stage, which is itself `absolute` inside
+ * the tree figure's own relative box — never `position: fixed` to the
+ * viewport — so scrolling moves the whole picture as one object, and there
+ * is no more "the visitor scrolled away" event for anything to end on.
+ *
+ * This replaces the old scroll-away-ends-the-show coverage with the
+ * opposite contract: scrolling the stage out of view and back no longer
+ * ends the show, the show keeps advancing while off-screen, and nothing
+ * ever separates from the drawing at any scroll position — proven by the
+ * sky layer's own bounding box (`[data-origin-sky]`) staying inside the
+ * stage's bounding box (`[data-origin-stage]`) throughout.
+ */
+test.describe("everything lives in the frame", () => {
+  test("scrolling away mid-story doesn't end it, and nothing detaches from the drawing", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
+    const sky = page.locator("[data-origin-sky]");
+    const status = stage.getByRole("status");
+    await expect(status).not.toHaveText("");
+
+    // Contained at rest, before any scrolling happens at all.
+    const startStageBox = await stage.boundingBox();
+    const startSkyBox = await sky.boundingBox();
+    expect(startStageBox, "stage has no box").not.toBeNull();
+    expect(startSkyBox, "sky layer has no box").not.toBeNull();
+    expect(boxContains(startStageBox!, startSkyBox!)).toBe(true);
+
+    const beforeScroll = await status.textContent();
+
+    // Scroll the whole stage well out of the viewport — the deleted
+    // observer used to end the show the instant this happened.
+    await page.evaluate(() => {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" as ScrollBehavior });
+    });
+    await expect(stage).not.toBeInViewport();
+    // Still mounted and still running off-screen — Skip is still there.
+    await expect(stage.getByRole("button", { name: "Skip" })).toBeAttached();
+
+    // Even scrolled away, nothing has sheared apart: the sky layer's box is
+    // still exactly where the stage's own box says it should be.
+    const awayStageBox = await stage.boundingBox();
+    const awaySkyBox = await sky.boundingBox();
+    expect(awayStageBox, "stage has no box while scrolled away").not.toBeNull();
+    expect(awaySkyBox, "sky layer has no box while scrolled away").not.toBeNull();
+    expect(boxContains(awayStageBox!, awaySkyBox!)).toBe(true);
+
+    // The story kept advancing the whole time nobody was looking — a season
+    // beat is 2s (`SEASON_MS`), so a caption change here can only mean the
+    // master clock auto-advanced while off-screen, not that scrolling away
+    // paused or ended it.
+    await expect(status).not.toHaveText(beforeScroll ?? "", { timeout: 3_000 });
+
+    // Scroll back to the stage itself — not necessarily the top of the page,
+    // since the tree section is not the first thing on it — the show is
+    // still going, not restarted and not ended.
+    await stage.scrollIntoViewIfNeeded();
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
+    await expect(stage).toBeInViewport();
+
+    // Contained again, back on screen: the sky layer travelled with the
+    // stage in both directions, never left pinned to some other position.
+    const backStageBox = await stage.boundingBox();
+    const backSkyBox = await sky.boundingBox();
+    expect(backStageBox, "stage has no box after scrolling back").not.toBeNull();
+    expect(backSkyBox, "sky layer has no box after scrolling back").not.toBeNull();
+    expect(boxContains(backStageBox!, backSkyBox!)).toBe(true);
+
+    // And it still ends cleanly, the same as every other exit path.
+    await page.keyboard.press("Escape");
+    await expect(stage).toHaveCount(0);
+    await expect(page.locator("[data-origin-pending]")).toHaveCount(0);
+    await expect(page.locator("[data-origin-running]")).toHaveCount(0);
   });
 });

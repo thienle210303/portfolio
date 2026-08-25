@@ -1,9 +1,8 @@
 import type { CSSProperties } from "react";
 import { Disclosure } from "@/components/ui/Disclosure";
-import { Tag } from "@/components/ui/Tag";
 import { skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
-import { careerYearSpan, techSlug, type TreeBranch, type TreeRoot } from "@/lib/knowledge-tree";
+import { careerYearSpan, techSlug, type TreeBranch, type TreeLeaf } from "@/lib/knowledge-tree";
 import { firstCanopyYear, rootYearFor } from "@/lib/origin-story";
 import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
 import { JourneyEntryCrossLink } from "./cross-link";
@@ -24,16 +23,24 @@ import { KIND_LABEL } from "./tree-labels";
  *            stroke width, which no single SVG path can give at hairline
  *            weight
  *   foot     the base flare and its buttress roots, meeting the ground line
- *   bough    one limb per lens — again two strokes converging, again a taper —
- *            leaving the trunk tangentially (vertical at the junction, the way
- *            a real limb leaves a trunk) and sweeping out to its lens panel,
- *            with a shoot of its own
+ *   bough    one limb per career entry — again two strokes converging, again
+ *            a taper — leaving the trunk tangentially (vertical at the
+ *            junction, the way a real limb leaves a trunk) and sweeping out
+ *            to that entry's own panel, with a shoot of its own. Round 12
+ *            inverted what a bough *is*: through round 11 it was one of five
+ *            resume lenses, with every entry tagged under it hanging off as
+ *            its own leaf — DoorDash, tagged with five lenses, hung off the
+ *            drawing five times. Now a bough is one career entry, drawn once,
+ *            in chronological order up the trunk (oldest lowest); nothing is
+ *            grouped by lens any more, so nothing can duplicate
  *   foliage  leaflets along each bough, and there are as many of them as that
- *            branch has technologies to show (`foliageCount`) — the crown's
- *            density is data, not decoration
- *   twig     the run of leaves under a lens, drawn per leaf so it meanders
- *   leaf     one career entry: a bend, a stem, a line-drawn blade, and the
- *            role set beside it
+ *            entry has leaves to show (`foliageCount`) — the crown's density
+ *            is data, not decoration
+ *   twig     the run of leaves under one entry, drawn per leaf so it meanders
+ *   leaf     one fact that entry authored about itself — a technology it
+ *            lists, or an impact line it claims (`TreeLeaf` in
+ *            `src/lib/knowledge-tree.ts`) — a bend, a stem, a line-drawn
+ *            blade, and the fact set beside it
  *   ground   the root panel's own top border, hatched underneath (`GroundHatch`)
  *   roots    the mirror of the canopy, below the plinth (`RootSystem`)
  *
@@ -60,53 +67,64 @@ import { KIND_LABEL } from "./tree-labels";
  * any zoom, in either theme. Two junctions get extra help: a bough runs all
  * the way to the trunk's *centre line* rather than to its edge, so the
  * tapering edge can move without ever leaving a gap; and a leaf's twig has
- * finished bending 11px down, above anything that can reflow, so the straight
+ * finished bending 8px down, above anything that can reflow, so the straight
  * run below it starts from a known point however the label wraps.
  *
  * ## Where the asymmetry comes from
  *
  * A tree drawn to a grid is a flowchart. Every length, angle, exit height and
- * leaf tilt here varies — but from `hash01()` over the lens and entry ids,
+ * leaf tilt here varies — but from `hash01()` over the entry and leaf keys,
  * never from `Math.random()`. Same id, same number, on the server and in the
  * browser, so the drawing is complete in the server-rendered HTML and
- * hydrates without a mismatch. Retag an entry and its leaf moves; it is the
- * content that makes this tree's shape, not a seed anyone chose.
+ * hydrates without a mismatch. Edit an entry's technologies or impact lines
+ * and its own leaves move; it is the content that makes this tree's shape,
+ * not a seed anyone chose.
  *
- * The lopsidedness is the content's too: twelve entries are tagged
- * "Software engineering" and three or four carry each of the others, so one
- * bough is four times the others and the drawing is heaviest at the top left.
- * That is what the career looks like, and a tree is the one diagram that can
- * say so without apologising for it.
+ * The lopsidedness is the content's too: a role with nine technologies and
+ * three impact lines carries three times the foliage of a milestone with one
+ * line to its name, and the drawing is heaviest wherever the career itself
+ * was busiest. That is what the career looks like, and a tree is the one
+ * diagram that can say so without apologising for it.
  *
- * The foliage says the second half of that. A branch's leaf *rows* count the
- * places it was used; the leaflets on the limb itself count what was used
- * there — `foliageCount()` below, off `technologyCount`. So the crown is thick
- * where the work was broad and sparse where it was narrow, and both readings
- * come out of the content rather than out of a designer's hand.
+ * The foliage says the same thing a second way. A branch's own leaf *rows*
+ * are exactly what that entry authored; the leaflets riding the limb itself
+ * are a count of the same thing — `foliageCount()` below, off
+ * `branch.leaves.length`. So the crown is thick where the entry had a lot to
+ * show and sparse where it did not, and both readings come out of the
+ * content rather than out of a designer's hand.
  *
- * ## Why the leaves alone are interactive
+ * ## Why the branch panel alone is interactive
  *
- * A leaf is a `Disclosure` — the same component the case studies and the
- * timeline use, which is what buys correct `aria-expanded`/`aria-controls`
- * wiring, the collapsed subtree genuinely leaving the tab order, print
- * expansion and the reduced-motion path, without a second implementation of
- * any of it. The panel is an inline expansion directly after its trigger
- * rather than a floating popover: the detail is then reachable by pressing
- * Tab once, needs no focus trap and no Escape handler, and cannot be
- * positioned off the edge of a narrow column. The tree simply grows.
+ * Round 12 moved the `Disclosure` from the leaf to the branch: through round
+ * 11 a leaf *was* a career entry, so it needed the collapse — an entry's
+ * dates, technologies and case studies are a lot to show at every one of the
+ * (up to five) places it hung off the drawing. Now a leaf is a single
+ * authored fact — one technology, one impact line — with nothing further
+ * underneath it to disclose, so it is drawn plainly: no button, no panel, no
+ * tab stop, just a line-drawn blade and the fact beside it. What still needs
+ * disclosing — the dates, the case-study links, the way back to this entry on
+ * the timeline — moved to the one thing per branch that still has it: the
+ * branch panel itself, at the bough's own end, using the same `Disclosure`
+ * component the case studies and the timeline use. That buys correct
+ * `aria-expanded`/`aria-controls` wiring, the collapsed subtree genuinely
+ * leaving the tab order, print expansion and the reduced-motion path, without
+ * a second implementation of any of it — and, with fourteen branches instead
+ * of up to twenty-five leaf-entries, it keeps exactly the discipline the
+ * round-6 drawing already held: a page a visitor has not touched yet does not
+ * hand them a tab stop for every fact on it.
  *
- * Leaves open independently rather than as an accordion. One-at-a-time would
- * mean opening any leaf silently collapsed another somewhere else on the
- * drawing — a layout shift under the pointer, and a tree that can never be
- * read as a whole.
+ * Branch panels open independently rather than as an accordion. One-at-a-time
+ * would mean opening any panel silently collapsed another somewhere else on
+ * the drawing — a layout shift under the pointer, and a tree that can never
+ * be read as a whole.
  *
  * Every stroke on this page is `aria-hidden`: to assistive technology this is
- * a list of five branches, each holding a list of the places tagged with it,
- * which is exactly what it is.
+ * a list of career entries in order, each holding a list of what it
+ * authored about itself, which is exactly what it is.
  */
 
 interface DrawnTreeProps {
-  readonly tree: readonly TreeRoot[];
+  readonly tree: readonly TreeBranch[];
   readonly className?: string;
 }
 
@@ -154,12 +172,15 @@ function inkDelay(seed: string, min: number, max: number): CSSProperties {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Half the column gap (`gap-x-24` = 6rem = 96px) — the distance from the
- * trunk, the centre line of that gap, to the near edge of either column. The
- * bough box is exactly that wide, so its two ends land on the two things it
- * joins without either being measured. Change the gap and change this.
+ * Half the column gap (`gap-x-16` = 4rem = 64px — round 14 narrowed this
+ * from `gap-x-24`/96px to give each column back 16px it was losing to the
+ * trunk on a 1024px screen, where two ~300px columns were already tight for
+ * a role name and a technology list) — the distance from the trunk, the
+ * centre line of that gap, to the near edge of either column. The bough box
+ * is exactly that wide, so its two ends land on the two things it joins
+ * without either being measured. Change the gap and change this.
  */
-const BOUGH_W = 48;
+const BOUGH_W = 32;
 
 /** The leader above the canopy; matches the container's `pt-16`. */
 const TIP_W = 72;
@@ -184,14 +205,21 @@ const FOOT_W = 76;
 const FOOT_H = 44;
 
 /** The twig gutter inside a leaf column, and the mark box that draws the
- *  twig's bend, a stem and a blade across it into the label's inner margin. */
+ *  twig's bend, a stem and a blade across it into the label's inner margin.
+ *  Round 14 shrank `MARK_H` from 40 to 26 and tightened the row pitch below
+ *  (`LeafMark`'s `pad`) to match it: at the old sizing a leaf as short as one
+ *  line of text packed at less than its own mark's height, so consecutive
+ *  bend-stem-blade marks visually overlapped one another — dozens of them
+ *  down a busy bough read as a knot of scribbles rather than a legible list
+ *  of separate facts. The mark box is now sized to what the shortest leaf row
+ *  actually has room for. */
 const TWIG_W = 32;
 const MARK_W = 44;
-const MARK_H = 40;
+const MARK_H = 26;
 /** How far down a leaf the twig has finished bending to that leaf's own x —
  *  shared by the mark's path and by the straight run's `top`, which is what
- *  makes the two meet exactly. */
-const TWIG_BEND = 11;
+ *  makes the two meet exactly. Shortened alongside `MARK_H`. */
+const TWIG_BEND = 8;
 
 /**
  * A leaf blade, drawn from its stalk at the origin and pointing along +x:
@@ -947,24 +975,26 @@ function cubicAt(c: Curve, t: number): Point {
 }
 
 /**
- * How many leaflets a bough carries: one per four distinct technologies under
- * that branch, floored at two so even the narrowest branch is in leaf.
+ * How many leaflets a bough carries: one per four leaves that career entry
+ * lists (technologies and impact lines together), floored at two so even the
+ * quietest entry is in leaf.
  *
  * This is the whole point of the foliage, so it is worth being exact about
- * what it does and does not claim. The count is `TreeRoot.technologyCount` —
- * the distinct technologies across every entry tagged with that lens, which is
- * the same number the branch panel prints in words directly below. Nothing is
- * invented and nothing is inferred: it is one authored list, counted.
+ * what it does and does not claim. The count is `branch.leaves.length` —
+ * exactly what that one entry authored about itself, the same number of rows
+ * drawn down its own twig. Nothing is invented and nothing is inferred: it is
+ * one authored list, counted.
  *
  * A quarter-scale is a *scale*, not a cap. Capping would have been the easy
- * way to keep the biggest branch tidy, and it would have made the drawing lie
- * at exactly the point it has the most to say — the branch with 33
- * technologies must look denser than the ones with 13, or the shape is
- * decoration again. The leaflets share a fixed run of the limb, so more of
- * them pack tighter rather than growing past the end of the bough.
+ * way to keep the busiest entry tidy, and it would have made the drawing lie
+ * at exactly the point it has the most to say — the role with nine
+ * technologies and three impact lines must look denser than the milestone
+ * with one line to its name, or the shape is decoration again. The leaflets
+ * share a fixed run of the limb, so more of them pack tighter rather than
+ * growing past the end of the bough.
  */
-function foliageCount(technologyCount: number): number {
-  return Math.max(2, Math.round(technologyCount / 4));
+function foliageCount(leafCount: number): number {
+  return Math.max(2, Math.round(leafCount / 4));
 }
 
 /** Foliage leaflets are drawn at a fraction of a leaf-marker blade: the
@@ -1018,9 +1048,10 @@ function foliage(seed: string, count: number, under: Curve, over: Curve): string
 }
 
 /**
- * One bough. Its box hangs from the top of the lens panel and reaches back to
- * the trunk's centre line — not to the trunk's edge — so however the trunk
- * tapers, the junction is buried inside the bole and can never show a gap.
+ * One bough — one career entry. Its box hangs from the top of that entry's
+ * own panel and reaches back to the trunk's centre line — not to the trunk's
+ * edge — so however the trunk tapers, the junction is buried inside the bole
+ * and can never show a gap.
  *
  * The limb is two strokes, like the trunk: they leave the trunk about 11px
  * apart and converge on one point at the panel, which is a taper. Both leave
@@ -1029,10 +1060,10 @@ function foliage(seed: string, count: number, under: Curve, over: Curve): string
  * shape a real limb makes, and it is what the old symmetric quarter-circle
  * could not do — that one left the trunk at 45° like a flowchart elbow.
  *
- * Height, sweep, arrival height and the shoot all come from the lens id, so no
- * two boughs on the drawing are the same length or angle. `leaflets` does not:
- * it is a count off the content (`foliageCount`), which is what makes the
- * crown's density readable rather than merely varied.
+ * Height, sweep, arrival height and the shoot all come from the entry's own
+ * id, so no two boughs on the drawing are the same length or angle.
+ * `leaflets` does not: it is a count off the content (`foliageCount`), which
+ * is what makes the crown's density readable rather than merely varied.
  */
 function Bough({
   side,
@@ -1044,7 +1075,11 @@ function Bough({
   readonly leaflets: number;
 }) {
   const h = vary(`${seed}|h`, 176, 268);
-  const sway = vary(`${seed}|s`, 10, 26);
+  // Capped lower than before (was 10..26): `BOUGH_W` narrowed to 32 in round
+  // 14, and a foliage leaflet riding near this control point can reach a few
+  // px past its own anchor — keeping `sway` well inside the new box's width
+  // is what stops that reach from clipping against the SVG's own edge.
+  const sway = vary(`${seed}|s`, 8, 18);
   const entry = vary(`${seed}|e`, 14, 34);
   const shoot = vary(`${seed}|k`, 34, 62);
   const waist = Math.round(h * 0.5);
@@ -1072,9 +1107,9 @@ function Bough({
       viewBox={`0 0 ${BOUGH_W} ${h}`}
       data-tree-part="bough"
       className={cn(
-        "pointer-events-none absolute top-0 w-12",
+        "pointer-events-none absolute top-0 w-8",
         INK,
-        side === "right" ? "-left-12" : "-right-12",
+        side === "right" ? "-left-8" : "-right-8",
       )}
       style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
     >
@@ -1097,79 +1132,176 @@ function Bough({
 }
 
 /* -------------------------------------------------------------------------- */
+/* The branch panel                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The card at a bough's own end: one career entry, named. Collapsed it
+ * carries the role, the organisation and the year; opened it adds the kind
+ * and date range, any case study built in that role, and the way back to it
+ * on the timeline. What it deliberately does *not* repeat is the entry's
+ * technologies or impact lines — those are drawn as this bough's own leaves,
+ * always visible on the twig below, so the panel never restates a fact
+ * already on the page beside it.
+ *
+ * `data-tree-panel` is read by two things that are not this file:
+ * `TreeFigure.tsx`'s cross-highlight island (a hover or focus here brightens
+ * this card) and `globals.css`'s origin-story fade (this card's whole
+ * `Disclosure` — trigger and panel together — fades with the rest of this
+ * bough while the growth story has not reached it yet).
+ */
+function BranchPanel({ branch, side }: { readonly branch: TreeBranch; readonly side: "left" | "right" }) {
+  const accessibleSuffix = `${branch.label}${branch.organization ? `, ${branch.organization}` : ""}`;
+
+  return (
+    <div
+      data-tree-panel
+      className={cn("border border-rule bg-surface px-4 py-1", side === "left" && "ml-auto")}
+      style={{ maxWidth: 340 + vary(`${branch.id}|p`, 0, 72) }}
+    >
+      <Disclosure
+        id={`tree-branch-${branch.id}`}
+        className="[&>button:hover]:bg-surface"
+        expandLabel={`Show detail — ${accessibleSuffix}`}
+        collapseLabel={`Hide detail — ${accessibleSuffix}`}
+        summary={
+          <span className="flex items-baseline justify-between gap-2 text-left">
+            <span className="wrap-anywhere text-[length:var(--step-0)] leading-snug text-fg">
+              {branch.label}
+              {branch.organization ? (
+                <span className="text-fg-muted"> · {branch.organization}</span>
+              ) : null}
+            </span>
+            <span aria-hidden="true" className="eyebrow shrink-0">
+              {branch.startYear}
+            </span>
+          </span>
+        }
+      >
+        <div className="space-y-3 border-t border-rule pb-4 pt-3">
+          <p className="eyebrow">
+            {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
+          </p>
+
+          {branch.caseStudies.length > 0 ? (
+            <p className="text-[length:var(--step--1)] leading-relaxed text-fg-muted">
+              Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
+              {branch.caseStudies.map((caseStudy, index) => (
+                <span key={caseStudy.id}>
+                  {index > 0 ? ", " : ""}
+                  <a
+                    href={`#${caseStudyAnchorId(caseStudy.id)}`}
+                    className="text-accent underline-offset-4 hover:underline"
+                  >
+                    {caseStudy.title}
+                  </a>
+                </span>
+              ))}
+            </p>
+          ) : null}
+
+          {/* The way back to this entry on the timeline. Inside the panel and
+              nowhere else: fourteen collapsed panels must not become
+              fourteen tab stops — see ./cross-link.tsx. */}
+          <JourneyEntryCrossLink
+            entryId={branch.id}
+            label={branch.label}
+            organization={branch.organization}
+          />
+        </div>
+      </Disclosure>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Leaves                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/** Where a leaf's twig sits inside the gutter, and how far its label stands
- *  off it. Both vary per entry, which is what gives a run of twelve leaves a
- *  ragged inner edge instead of a comb. */
+/**
+ * Where a bough's twig sits inside the gutter. Round 14 made this one value
+ * per *branch* rather than per leaf: through round 13 every leaf picked its
+ * own x, so the "straight run" between consecutive leaves was actually a
+ * dozen short diagonal jogs, one per leaf, and a bough with nine leaves drew
+ * nine small kinks nobody was meant to individually notice — it read as a
+ * meandering scribble rather than a run of separate facts. One x per bough
+ * keeps the spine a single straight line — the calm, legible part of the
+ * drawing — while `leafInset` below still varies per leaf, so the *blades*
+ * hanging off that spine keep their own ragged, hand-drawn silhouette.
+ */
 function twigX(seed: string): number {
-  return vary(`${seed}|t`, 3, 11);
+  return vary(`${seed}|t`, 4, 8);
 }
+/** How far a leaf's label stands off its twig — varies per leaf, which is
+ *  what keeps a straight spine (see `twigX`) from reading as a ruler. */
 function leafInset(seed: string): number {
   return vary(`${seed}|i`, 3, 12);
 }
 
-interface LeafProps {
-  readonly branch: TreeBranch;
-  readonly lens: TreeRoot;
+interface LeafMarkProps {
+  readonly leaf: TreeLeaf;
+  /** Unique per leaf (`${branch.id}|${index in branch.leaves}`) — the seed
+   *  every hashed variation below reads from, and the value stamped on
+   *  `data-tree-entry` for the origin story's per-leaf fade (see the note on
+   *  `LeafMark` below). */
+  readonly seed: string;
+  /** Inherited from the branch this leaf hangs off — every leaf on one bough
+   *  shares its entry's own year, so there is nothing to compare against a
+   *  neighbour the way the old per-entry leaves once did. */
+  readonly startYear: number;
   readonly side: "left" | "right";
   /** The twig's x under the leaf above this one, and this leaf's own. The mark
    *  bends from the first to the second in its top 11px, which is what makes a
-   *  run of twelve read as one meandering twig rather than a comb. */
+   *  run of leaves read as one meandering twig rather than a comb. */
   readonly xPrev: number;
   readonly x: number;
   /** False on the last leaf: its run of twig stops short, as a tip. */
   readonly hasNext: boolean;
-  /** True only where `branch.startYear` differs from the leaf above it (or
-   *  this is the first leaf on the bough) — see the year-marker note on
-   *  `Leaf` below. */
-  readonly showYear: boolean;
 }
 
 /**
- * One career entry hanging off its branch. Collapsed it carries the role and
- * the organisation; opened it adds the dates, the technologies that entry
- * actually listed and any case study built in it.
+ * One fact a career entry authored about itself — a technology, or an impact
+ * line — hanging off its bough's own twig. Un-boxed and non-interactive: a
+ * leaf here has nothing further underneath it to disclose (round 11's leaf
+ * *was* a whole career entry and needed the `Disclosure`; round 12's does
+ * not — see the file banner's "Why the branch panel alone is interactive").
  *
  * Three elements draw its share of the tree: a hairline span for the twig's
- * straight run, and one `<svg>` holding one `<path>` for the bend, the stem
- * and the blade. The straight run is a span rather than a stretched `<svg>`
- * because it is a vertical line of unknown height, which is the one shape CSS
- * draws exactly and SVG has to be talked into — and because at twenty-five
- * leaves, two elements each stops being free.
+ * straight run, one `<svg>` holding one `<path>` for the bend, the stem and
+ * the blade, and a plain text label. The straight run is a span rather than
+ * a stretched `<svg>` because it is a vertical line of unknown height, which
+ * is the one shape CSS draws exactly and SVG has to be talked into.
  *
- * ## The year marker
- *
- * `showYear` is true only where `branch.startYear` differs from the leaf
- * above it on the same bough, or this is the bough's first leaf — thirteen of
- * the drawing's twenty-five leaves, since a bough often runs several entries
- * from the same year in a row. Where it is true, an `aria-hidden` eyebrow
- * span sits right of the role/org text, marking the point down the bough
- * where the chronology moves. It is chronology-as-texture, not the fact
- * itself: `dateRange` inside the opened panel stays the one figure a screen
- * reader or a reader in either presentation actually reads, so the marker can
- * be hidden from assistive tech without hiding anything the drawing claims.
- * The disclosure summary becomes a flex row to hold it without disturbing the
- * accessible name, which is computed from the same text nodes it always was.
+ * `data-tree-entry` on the `<li>`, with the label sitting in a direct child
+ * `<div>`, is not this file's own invention — it is `globals.css`'s origin-
+ * story hook (`[data-tree-entry][data-origin-pending] > div`), unchanged from
+ * round 11, just moved down one tier: a *leaf* is now the smallest thing the
+ * growth story releases one at a time, where an entry-as-leaf used to be.
+ * `data-tree-tech`, present only on a technology leaf, is what lets
+ * `TreeFigure.tsx` find every other leaf naming the same technology and
+ * brighten them together on hover or focus — an impact leaf carries no such
+ * attribute, honestly: it is that entry's own sentence, not a fact to match
+ * against every other entry.
  */
-function Leaf({ branch, lens, side, xPrev, x, hasNext, showYear }: LeafProps) {
-  const seed = `${lens.id}|${branch.id}`;
+function LeafMark({ leaf, seed, startYear, side, xPrev, x, hasNext }: LeafMarkProps) {
   const inset = leafInset(seed);
   const bladeAt = 13 + inset;
   // Leaves are not evenly pitched: the gap below each one varies, so a run of
-  // twelve has a rhythm rather than a row spacing. Only the gap *below*
+  // them has a rhythm rather than a row spacing. Only the gap *below*
   // moves — the twig meets its label at a fixed height, whatever else changes.
-  const pad = { paddingTop: 4, paddingBottom: 4 + vary(`${seed}|g`, 0, 11) };
-  const techSlugs = branch.leaves.map((leaf) => techSlug(leaf.name)).join(" ");
+  // Round 14 tightened both numbers (was 4 / 4+vary(0,11)): a busy bough's
+  // run of leaves is what made the drawing's tallest boughs run three and
+  // four times longer than a quiet neighbour's, which is most of what threw
+  // the two-column layout's reading line off — see the note on `placements`.
+  const pad = { paddingTop: 3, paddingBottom: 3 + vary(`${seed}|g`, 0, 5) };
 
   return (
     <li
       className="relative"
-      data-tree-entry={branch.id}
-      data-origin-year={branch.startYear}
+      data-tree-entry={seed}
+      data-origin-year={startYear}
       data-origin-tier="leaf"
-      data-tree-techs={techSlugs}
+      data-tree-tech={leaf.kind === "technology" ? techSlug(leaf.text) : undefined}
       style={
         side === "right"
           ? { ...pad, paddingLeft: TWIG_W + inset }
@@ -1213,110 +1345,35 @@ function Leaf({ branch, lens, side, xPrev, x, hasNext, showYear }: LeafProps) {
           className="tree-draw"
           style={inkDelay(`${seed}|ink-mark`, 600, 860)}
           d={
-            `M${xPrev} 0C${xPrev} 4 ${x} 7 ${x} ${TWIG_BEND}` +
-            `M${x} 15C${x + 1.5} 19 ${bladeAt - 5} 20.5 ${bladeAt} 24` +
-            blade(bladeAt, 24, tiltFor(`${seed}|a`))
+            `M${xPrev} 0C${xPrev} 3 ${x} 5 ${x} ${TWIG_BEND}` +
+            `M${x} 12C${x + 1.2} 14.5 ${bladeAt - 4} 15.5 ${bladeAt} 18` +
+            blade(bladeAt, 18, tiltFor(`${seed}|a`))
           }
         />
       </svg>
 
-      {/* A leaf is capped well short of its column and pinned to the twig
-          side. Left to fill the column, the label sat at one end of a 460px
-          row and its chevron at the other, which reads as a table row; and
-          the outer edge of every leaf lined up into a straight canopy edge.
-          Capped and varied, the type keeps its own ragged silhouette — which
-          is the outline the crown is actually made of. */}
+      {/* A leaf's label is capped well short of its column and pinned to the
+          twig side — the same "ragged silhouette, not a table row" rule the
+          old per-entry leaf held to, un-boxed per the round-6 ink discipline
+          rather than set as a `Tag`: this is the drawing's own ink, not a
+          UI chrome token. */}
       <div
-        className={side === "left" ? "ml-auto" : undefined}
-        style={{ maxWidth: 300 + vary(`${seed}|w`, 0, 56) }}
+        className={cn(side === "left" ? "ml-auto text-right" : undefined, "wrap-anywhere")}
+        style={{ maxWidth: 240 + vary(`${seed}|w`, 0, 80) }}
       >
-      <Disclosure
-        id={`tree-leaf-${lens.id}-${branch.id}`}
-        className="[&>button:hover]:bg-surface"
-        // The lens is part of the hidden label, not decoration: the same entry
-        // legitimately hangs off several branches, and without it five leaves
-        // would announce under one identical name and open five regions that
-        // are also identically named.
-        expandLabel={`Show detail — ${lens.label}`}
-        collapseLabel={`Hide detail — ${lens.label}`}
-        // One line, not two: a leaf is the smallest node on the drawing, and
-        // at twenty-five of them a second line costs the tree a screen of
-        // height for information the panel is about to give anyway. The
-        // year marker rides the same line, right-aligned, rather than
-        // costing a second one of its own.
-        summary={
-          <span className="flex items-baseline justify-between gap-2 text-left">
-            <span className="wrap-anywhere text-[length:var(--step-0)] leading-snug text-fg">
-              {branch.label}
-              {branch.organization ? (
-                <span className="text-fg-muted"> · {branch.organization}</span>
-              ) : null}
-            </span>
-            {showYear ? (
-              <span aria-hidden="true" className="eyebrow shrink-0">
-                {branch.startYear}
+        <p className="text-[length:var(--step--1)] leading-snug text-fg-muted">
+          {leaf.text}
+          {leaf.kind === "technology" && leaf.alsoUsedIn ? (
+            <span className="text-accent">
+              {" "}
+              +{leaf.alsoUsedIn}
+              <span className="sr-only">
+                {" "}
+                other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
               </span>
-            ) : null}
-          </span>
-        }
-      >
-        <div className="space-y-3 border-t border-rule pb-4 pt-3">
-          <p className="eyebrow">
-            {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
-          </p>
-
-          {branch.caseStudies.length > 0 ? (
-            <p className="text-[length:var(--step--1)] leading-relaxed text-fg-muted">
-              Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
-              {branch.caseStudies.map((caseStudy, index) => (
-                <span key={caseStudy.id}>
-                  {index > 0 ? ", " : ""}
-                  <a
-                    href={`#${caseStudyAnchorId(caseStudy.id)}`}
-                    className="text-accent underline-offset-4 hover:underline"
-                  >
-                    {caseStudy.title}
-                  </a>
-                </span>
-              ))}
-            </p>
+            </span>
           ) : null}
-
-          {branch.leaves.length > 0 ? (
-            <ul
-              role="list"
-              aria-label={`Technologies used — ${branch.label}`}
-              className="flex flex-wrap gap-2"
-            >
-              {branch.leaves.map((leaf) => (
-                <li key={leaf.name} data-tree-tech={techSlug(leaf.name)}>
-                  <Tag>
-                    <span className="wrap-anywhere">{leaf.name}</span>
-                    {leaf.alsoUsedIn > 0 ? (
-                      <span className="text-accent">
-                        +{leaf.alsoUsedIn}
-                        <span className="sr-only">
-                          {" "}
-                          other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
-                        </span>
-                      </span>
-                    ) : null}
-                  </Tag>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {/* The way back to this entry on the timeline. Inside the panel and
-              nowhere else: twenty-five collapsed leaves must not become
-              twenty-five tab stops — see ./cross-link.tsx. */}
-          <JourneyEntryCrossLink
-            entryId={branch.id}
-            label={branch.label}
-            organization={branch.organization}
-          />
-        </div>
-      </Disclosure>
+        </p>
       </div>
     </li>
   );
@@ -1336,33 +1393,40 @@ interface Placement {
 /**
  * Where each bough leaves the trunk.
  *
- * Boughs are packed in pairs — branch n takes row floor(n/2)+1 — because
+ * Boughs are packed in pairs — pair n takes row floor(n/2)+1 — because
  * alternating down a single stack leaves the opposite half of every row empty,
  * which cost this drawing an entire screen of blank paper per branch. Laid out
  * this way, reading left to right and then down lands on the branches in
- * exactly the order they are written, so a keyboard visitor's focus never
- * jumps somewhere the eye has already been.
+ * exactly the order the pairing visits them.
+ *
+ * `tree` itself is oldest-first (`buildCareerTree()`'s own order — "up the
+ * trunk, oldest lowest"), but row 1 sits nearest the canopy and the last row
+ * nearest the ground, so the row a pair lands in is the *reverse* of its
+ * position in the array: the oldest pair gets the last row, the newest gets
+ * row 1. `totalPairs - Math.floor(index / 2)` is that reversal — everything
+ * else below (column, drop, the orphan rule) reads `tree` in its own forward
+ * order exactly as round 11's lens-keyed version did.
  *
  * Two things then keep it from reading as a grid:
  *
  *   drop     the right-hand bough of a pair always leaves the trunk lower
  *            than its partner. Real limbs alternate up a trunk; two leaving
  *            at the same height is the single thing that makes a tree look
- *            like an org chart. How much lower is read off the partner: a
- *            row whose left branch carries twelve entries is a tall row, and
- *            a bough that left at its top would be followed by four hundred
- *            pixels of nothing. So the drop scales with the partner's size —
- *            the bigger the branch opposite, the further down its own trunk
- *            the next one starts — plus a per-lens jitter so no two are equal
+ *            like an org chart. How much lower is read off the partner: an
+ *            entry with nine leaves is a tall row, and a bough that left at
+ *            its top would be followed by a lot of nothing. So the drop
+ *            scales with the partner's size — the busier the entry opposite,
+ *            the further down its own trunk the next one starts — plus a
+ *            per-entry jitter so no two are equal
  *   orphan   an odd final branch goes to whichever column is carrying fewer
- *            entries so far, rather than always to the left. With twelve
- *            entries under the first lens that is never the left, and the
- *            drawing ends with a limb rather than a stump
+ *            leaves so far, rather than always to the left, so the drawing
+ *            ends with a limb rather than a stump
  */
-function placements(tree: readonly TreeRoot[]): readonly Placement[] {
+function placements(tree: readonly TreeBranch[]): readonly Placement[] {
+  const totalPairs = Math.max(1, Math.ceil(tree.length / 2));
   const load: [number, number] = [0, 0];
 
-  return tree.map((lens, index) => {
+  return tree.map((branch, index) => {
     const isOrphan = index === tree.length - 1 && index % 2 === 0;
     const column: 1 | 2 = isOrphan
       ? load[0] <= load[1]
@@ -1372,22 +1436,28 @@ function placements(tree: readonly TreeRoot[]): readonly Placement[] {
         ? 1
         : 2;
 
-    load[column - 1] += lens.branches.length;
+    load[column - 1] += branch.leaves.length;
 
     // The branch sharing this row, if any — only ever the one written just
     // before a right-hand branch. An orphan has no partner and no row to
     // balance against. Roughly half the height difference between the two, at
-    // ~52px per leaf: enough to sit the shorter cluster in the middle of the
-    // taller one's run rather than at the top of it.
+    // ~16px per leaf (round 14: was 24px, tuned down to match the tighter
+    // leaf pitch `LeafMark` now uses) and capped at 160 (was 264) so a
+    // nine-leaf entry paired with an empty one leans, but does not throw its
+    // partner most of a screen's height down the trunk: enough to sit the
+    // shorter cluster in the middle of the taller one's run rather than at
+    // the top of it.
     const partner = column === 2 && !isOrphan ? tree[index - 1] : undefined;
     const lean = partner
-      ? Math.min(Math.max(partner.branches.length - lens.branches.length, 0) * 24, 264)
+      ? Math.min(Math.max(partner.leaves.length - branch.leaves.length, 0) * 16, 160)
       : 0;
 
     return {
       column,
-      row: Math.floor(index / 2) + 1,
-      drop: (column === 2 ? 44 + lean : 0) + vary(`${lens.id}|d`, 0, 26),
+      row: totalPairs - Math.floor(index / 2),
+      // Base offset and jitter both tuned down alongside `lean` above — a
+      // calmer stagger to match the tighter leaf pitch.
+      drop: (column === 2 ? 28 + lean : 0) + vary(`${branch.id}|d`, 0, 14),
     };
   });
 }
@@ -1403,18 +1473,22 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
       <Trunk />
       <TrunkFoot />
 
-      <ul role="list" className="relative grid grid-cols-2 items-start gap-x-24 gap-y-10">
-        {tree.map((lens, index) => {
-          // One placement per lens, in the same order.
+      <ul role="list" className="relative grid grid-cols-2 items-start gap-x-16 gap-y-10">
+        {tree.map((branch, index) => {
+          // One placement per branch, in the same order.
           const place = placed[index];
           const side = place.column === 1 ? "left" : "right";
-          const xs = lens.branches.map((branch) => twigX(`${lens.id}|${branch.id}`));
+          // One twig x for the whole bough (round 14 — see the note on
+          // `twigX`), not one per leaf: every leaf shares it, so the run
+          // reads as a single straight spine.
+          const twigXValue = twigX(branch.id);
+          const xs = branch.leaves.map(() => twigXValue);
 
           return (
             <li
-              key={lens.id}
-              data-tree-lens={lens.id}
-              data-origin-year={Math.min(...lens.branches.map((branch) => branch.startYear))}
+              key={branch.id}
+              data-tree-branch={branch.id}
+              data-origin-year={branch.startYear}
               data-origin-tier="branch"
               className="relative"
               // Placed with `style` rather than utilities on purpose: the row
@@ -1426,98 +1500,75 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                 marginTop: place.drop,
               }}
             >
-              <Bough side={side} seed={lens.id} leaflets={foliageCount(lens.technologyCount)} />
+              <Bough side={side} seed={branch.id} leaflets={foliageCount(branch.leaves.length)} />
 
               {/* The panel is capped and pinned to its trunk-facing edge, so
                   its inner edge — the one the bough lands on — never moves,
                   while its outer edge steps in by a different amount per
-                  branch. Five panels all reaching the same margin was most of
-                  what made the old drawing read as two columns. */}
-              <div
-                data-tree-panel
-                className={cn(
-                  "border border-rule bg-surface px-4 py-3",
-                  side === "left" && "ml-auto",
-                )}
-                style={{ maxWidth: 340 + vary(`${lens.id}|p`, 0, 72) }}
-              >
-                <p className="eyebrow">Branch</p>
-                {/* <h3>, not <h4>: the tree is its own section now, so the
-                    nearest heading above this is the section's own <h2> and
-                    a fourth level would skip one (e2e/accessibility.spec.ts
-                    sweeps the whole document for that). */}
-                <h3 className="mt-1 font-display text-[length:var(--step-1)] font-normal leading-tight tracking-[-0.01em] text-fg">
-                  {lens.label}
-                </h3>
-                <p className="mt-1.5 text-[length:var(--step--1)] leading-relaxed text-fg-muted">
-                  {lens.description}
-                </p>
-                <p className="eyebrow mt-2">
-                  {lens.branches.length} {lens.branches.length === 1 ? "place" : "places"} ·{" "}
-                  {lens.technologyCount} technologies
-                </p>
-              </div>
+                  branch. Fourteen panels all reaching the same margin was
+                  most of what made the old drawing read as two columns. */}
+              <BranchPanel branch={branch} side={side} />
 
-              <ul
-                role="list"
-                aria-label={`Where ${lens.label} was used`}
-                className="relative flex flex-col pt-5"
-              >
-                {/* The twig leaving the panel: from just inside its lower
-                    trunk-facing corner, down to where the first leaf's mark
-                    picks it up.
-
-                    `tree-fade` (a design-polish pass): this stroke carried no
-                    ink class at all, so neither the page-load reveal nor the
-                    origin story's own pending gate ever touched it — a
-                    visitor scrolling mid-story past a still-pending lens
-                    found this one short connector fully drawn regardless,
-                    the same "chrome outran the ink" bug the panel and the
-                    shoot's own label needed fixing for. It rides its lens's
-                    own `data-origin-year` (the ancestor `<li>`) once tagged
-                    with an ink class at all — `tree-fade` rather than
-                    `tree-draw`'s dash-offset, the same choice the leaf's own
-                    straight "run" span below makes for the same reason: an
-                    8px joint between two points is not a stroke worth
-                    watching draw itself, only one worth not seeing too
-                    soon. */}
-                <svg
-                  {...strokeProps}
-                  width={TWIG_W}
-                  height={20}
-                  viewBox={`0 0 ${TWIG_W} 20`}
-                  className={cn(
-                    "pointer-events-none absolute top-0",
-                    INK,
-                    side === "right" ? "left-0" : "right-0",
-                  )}
-                  style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
+              {branch.leaves.length > 0 ? (
+                <ul
+                  role="list"
+                  aria-label={`What ${branch.label} involved`}
+                  className="relative flex flex-col pt-5"
                 >
-                  <path
-                    className="tree-fade"
-                    style={inkDelay(`${lens.id}|twig`, 400, 480)}
-                    d={`M2 0C2 8 ${xs[0] ?? 7} 11 ${xs[0] ?? 7} 20`}
-                  />
-                </svg>
+                  {/* The twig leaving the panel: from just inside its lower
+                      trunk-facing corner, down to where the first leaf's mark
+                      picks it up.
 
-                {lens.branches.map((branch, leafIndex) => (
-                  <Leaf
-                    key={branch.id}
-                    branch={branch}
-                    lens={lens}
-                    side={side}
-                    // The first leaf continues the connector above rather than
-                    // bending: it is already at its own x when it arrives.
-                    xPrev={leafIndex === 0 ? (xs[0] ?? 7) : (xs[leafIndex - 1] ?? 7)}
-                    x={xs[leafIndex] ?? 7}
-                    hasNext={leafIndex + 1 < xs.length}
-                    showYear={
-                      leafIndex === 0 ||
-                      branch.startYear !== lens.branches[leafIndex - 1].startYear
-                    }
-                  />
-                ))}
-              </ul>
+                      `tree-fade`: this stroke carries no ink class of its
+                      own, so neither the page-load reveal nor the origin
+                      story's own pending gate would touch it without one — a
+                      visitor scrolling mid-story past a still-pending branch
+                      would find this one short connector fully drawn
+                      regardless, the same "chrome outran the ink" bug the
+                      panel and the shoot's own label needed fixing for. It
+                      rides its branch's own `data-origin-year` (the ancestor
+                      `<li>`) once tagged with an ink class at all —
+                      `tree-fade` rather than `tree-draw`'s dash-offset, the
+                      same choice a leaf's own straight "run" span makes for
+                      the same reason: an 8px joint between two points is not
+                      a stroke worth watching draw itself, only one worth not
+                      seeing too soon. */}
+                  <svg
+                    {...strokeProps}
+                    width={TWIG_W}
+                    height={20}
+                    viewBox={`0 0 ${TWIG_W} 20`}
+                    className={cn(
+                      "pointer-events-none absolute top-0",
+                      INK,
+                      side === "right" ? "left-0" : "right-0",
+                    )}
+                    style={side === "left" ? { transform: "scaleX(-1)" } : undefined}
+                  >
+                    <path
+                      className="tree-fade"
+                      style={inkDelay(`${branch.id}|twig`, 400, 480)}
+                      d={`M2 0C2 6 ${xs[0] ?? 6} 8 ${xs[0] ?? 6} 20`}
+                    />
+                  </svg>
+
+                  {branch.leaves.map((leaf, leafIndex) => (
+                    <LeafMark
+                      key={`${leaf.kind}|${leaf.text}`}
+                      leaf={leaf}
+                      seed={`${branch.id}|${leafIndex}`}
+                      startYear={branch.startYear}
+                      side={side}
+                      // The first leaf continues the connector above rather
+                      // than bending: it is already at its own x when it
+                      // arrives.
+                      xPrev={leafIndex === 0 ? (xs[0] ?? 7) : (xs[leafIndex - 1] ?? 7)}
+                      x={xs[leafIndex] ?? 7}
+                      hasNext={leafIndex + 1 < xs.length}
+                    />
+                  ))}
+                </ul>
+              ) : null}
             </li>
           );
         })}

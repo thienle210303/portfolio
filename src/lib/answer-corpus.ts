@@ -1,3 +1,4 @@
+import { scrapingPlaybook, scrapingPlaybookIntro } from "@/content/ai-experiments";
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
 import { origin, philosophyIntro, principles, problemSolvingLoop } from "@/content/portfolio";
 import {
@@ -275,6 +276,26 @@ export function buildDocuments(): Document[] {
         label: label("lab", experiment.id, experiment.title, "result verified finding measured"),
       });
     }
+  }
+
+  // The scraping playbook: the owner's approved prose, verbatim. Each move's
+  // title rides in `label` so "how does he approach scraping?" matches the
+  // right move without the title needing to be part of the quoted answer.
+  docs.push({
+    text: scrapingPlaybookIntro,
+    source: "AI Workflow Lab — the scraping playbook",
+    sectionId: "lab",
+    sectionLabel: "AI Workflow Lab",
+    label: label("lab", undefined, "scraping playbook web scraper collection approach lessons"),
+  });
+  for (const move of scrapingPlaybook) {
+    docs.push({
+      text: move.body,
+      source: `AI Workflow Lab — the scraping playbook: ${move.title}`,
+      sectionId: "lab",
+      sectionLabel: "AI Workflow Lab",
+      label: label("lab", undefined, move.title, "scraping playbook web scraper collection lesson"),
+    });
   }
 
   for (const entry of careerIndexable) {

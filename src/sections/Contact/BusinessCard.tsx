@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
  * what used to be QuickConnect's three separate link cards.
  *
  * Geometry, not a settings list: at >=1024px the card holds a true
- * landscape card aspect ratio (`lg:aspect-[5/4]`, chosen — see the
+ * landscape card aspect ratio (`lg:aspect-[13/10]`, chosen — see the
  * measurement note below `CARD_ASPECT` — to be the flattest box the
  * content still clears at both `22rem` and `24rem`, the widths Contact.tsx
  * actually gives it) and every element is anchored to a corner or edge the
@@ -25,12 +25,14 @@ import { cn } from "@/lib/cn";
  * The email is the one line on the card that must never wrap mid-address:
  * it gets `overflow-hidden text-ellipsis whitespace-nowrap` so a width this
  * card never actually hits would elide it rather than break it mid-word.
- * Copy sits *beside* it now, not beneath: `CopyButton`'s `variant="icon"`
- * (see that file) drops the visible label down to icon size while keeping
- * `min-h-11 min-w-11` for the tap target and the full name on `aria-label`,
- * which is what makes one row wide enough for both — `min-w-0 flex-1` on
- * the email and `shrink-0` on the button so the button, not the address,
- * always keeps its shape.
+ * Copy sits *beside* it now, not beneath: `CopyButton`'s `variant="compact"`
+ * (see that file — this round's unlock, promised in round 4's feedback note)
+ * drops the visible box itself to 32px while extending the accessible tap
+ * target to 44px through an invisible, out-of-flow pseudo-element rather
+ * than through the box's own size — which is what makes one row wide enough
+ * for both without the 44px box round 4 and 6 were still stuck carrying —
+ * `min-w-0 flex-1` on the email and `shrink-0` on the button so the button,
+ * not the address, always keeps its shape.
  *
  * GitHub and LinkedIn stay one link per row spanning its full width, not a
  * label beside a separate "View" affordance, because the platform name has
@@ -111,53 +113,67 @@ interface BusinessCardProps {
 }
 
 /**
- * `5/4` (1.25:1) — flatter than the previous `9/8` (1.125:1), still short
- * of the `3/2` (1.5:1) this round's brief named as a target, and rejected
- * in favour of it for a measured reason, not a cautious one.
+ * `13/10` (1.3:1) — flatter than round 6's `5/4` (1.25:1), still short of
+ * the true `3/2` (1.5:1) round 4 named as the eventual target, and rejected
+ * in favour of it for the same kind of measured reason round 4 and 6 both
+ * gave, not a cautious one.
  *
- * Re-measured the same way as before: the card's real content (compiled
- * CSS + the actual IBM Plex Mono / Newsreader faces, headless) rendered at
- * `aspect-auto`, reading its natural height. Collapsing the copy control
- * onto the email's own row (see the file comment) brought that floor down
- * from ~295px to **271.7px** at `22rem` (Contact's `lg` column, 352px) and
- * **273.8px** at `24rem` (`xl`, 384px) — the entire saving is the row the
- * card no longer has, not any single element shrinking.
+ * Round 4's note was that `CopyButton`'s fixed 44px box — not the card's
+ * padding, spacing or type — was the binding constraint, and that a compact
+ * variant was "the future unlock." `variant="compact"` (CopyButton.tsx) is
+ * that unlock: same 44px *tap target*, an out-of-flow pseudo-element rather
+ * than a 44px box. Swapping the email row's `CopyButton` from `variant=
+ * "icon"` to `variant="compact"` is the only change this round makes to the
+ * card's content — everything else (padding, spacing, type, the round-6
+ * frame) is untouched — and it re-measures cheaper for exactly the reason
+ * predicted: one row shrinks from 44px to 32px tall, nothing else moves.
  *
- * `3/2` was tried first, since that was the brief. It renders at 234.7px
- * at 352px wide — 37px short of the 271.7px floor — and still comes up
- * 16.8px short even at 384px, unlike the old `9/8` case where only the
- * narrower width was ever the binding constraint. Short by that much, the
- * ruled contact block does not clip at the card's outer edge (nothing
- * literally leaves the box) — it eats straight through the bottom padding
- * instead, which is the same family of defect as the "copy button clipped
- * mid-word" regression this card was already rewritten to fix once. A
- * bottom row flush against the card's border is that defect with a softer
- * name, so "fits" here means clearing the full declared `p-6`/`sm:p-7`,
- * not just clearing the border.
+ * Re-measured the same way rounds 4 and 6 did, but against a live `pnpm dev`
+ * render rather than a headless reconstruction: with the ratio and any
+ * explicit height cleared (`aspectRatio`/`height` set to `auto` inline,
+ * `getBoundingClientRect().height` read, then restored), the card's real
+ * content floor is **260.4px** at `22rem` (Contact's `lg` column, 352px)
+ * and **261.8px** at `24rem` (`xl`, 384px) — down from round 6's 271.7px /
+ * 273.8px, a ~11px saving at both widths, matching the ~12px a 44px→32px
+ * row should cost and nothing more.
  *
- * That floor was then bisected rather than guessed at a second time:
- * `7/5` (251.4px, −19.3px into the padding), `4/3` (264px, −6.7px), `21/16`
- * (268.2px, −2.5px) all still cut into it; `13/10` (270.8px) lands within
- * 0.1px of the floor, i.e. exactly the knife-edge — one browser's worth of
- * font-hinting or sub-pixel rounding away from being the regression again,
- * not a ratio to ship. `9/7` (273.8px) is the first one with real air under
- * it, but only ~3px — plausible headroom for a build with the real
- * (non-approximated) fonts and a different rendering engine, not a margin
- * anyone should have to trust. `5/4` (281.6px at 352px, 307.2px at 384px)
- * is the first stop past that with a margin in the same neighbourhood as
- * the old `9/8` case (~10px, next to that one's ~18px) — flatter than
- * before, and still honestly clear of the floor rather than balanced on it.
+ * `3/2` was tried first, since that is still the named target. At 352px
+ * wide it renders 234.7px tall against a 260.4px floor — 25.7px short, the
+ * same "eats through the bottom padding rather than clipping at the edge"
+ * defect rounds 4 and 6 already named. At 384px it is only 5.8px short
+ * (261.8px floor vs. 256px rendered) — close, but 352px (Contact's `lg`
+ * column, not just its narrower one — both widths are real, reachable
+ * viewport ranges, 1024–1279px and >=1280px respectively) is just as live a
+ * width as 384px is, so a ratio that only clears at one of the two column
+ * widths a real visitor's window can land on is not a ratio that "fits."
  *
- * Round 6 added the engraved frame, its ticks, and the divider's diamond —
- * all `position: absolute`, none of them in the flex column's flow — plus
- * a fixed-width label column on the GitHub/LinkedIn rows only, which *is*
- * in flow but only ever changes where a line breaks horizontally, not how
- * tall any row is. Neither changes the natural-height floor this ratio was
- * measured against, so the number above still stands; re-verified instead
- * by screenshotting the compiled card at 320/375/390/768/1024/1280/1440 in
- * both themes and confirming zero descendant overflow — see the PR notes.
+ * The floor was bisected the same way round 6 did, against the new numbers:
+ * `4/3` (264.0px, +3.6px of margin at 352px) is the same kind of knife-edge
+ * round 6 rejected `9/7`'s ~3px margin for — plausible on this machine, not
+ * a margin worth trusting on another rendering engine. `21/16` (268.2px,
+ * +7.8px) is better but still thinner than round 6's own bar. `13/10`
+ * (270.8px, **+10.4px** at 352px, +33.6px at 384px) lands almost exactly on
+ * the margin round 6 picked `5/4` for (+9.9px there, against the old,
+ * higher floor) — the compact `CopyButton` turned the exact ratio round 6
+ * measured as "0.1px short of the floor" into one with a full ten-pixel
+ * cushion, which is the unlock round 4 promised, precisely.
+ *
+ * Nothing about the round-6 frame, ticks, fleuron or label column changes
+ * here — all four are still either out of the flex column's flow or, for
+ * the label column, horizontal-only — so the floor above is the same kind
+ * of number they were already measured against, not a new category of one.
+ * The ratio only ever applies at `lg` and up, so 1024px and 1440px (of this
+ * repo's six-viewport Playwright matrix) are the only two widths where it
+ * does anything to verify — narrower widths stay `aspect-auto` and were
+ * never at risk. `e2e/contact.spec.ts`'s "business card" describe block
+ * pins the 352px/384px measurements above as an assertion, at those two
+ * widths, rather than leaving them as a comment only; the same block also
+ * confirms the compact `CopyButton`'s 44px hit area actually reaches 44px in
+ * a real browser. `e2e/axe.spec.ts`'s desktop-viewport audits (day and
+ * night, `wcag22aa` tags — target-size included) passed against this ratio
+ * and the compact control with zero violations.
  */
-const CARD_ASPECT = "lg:aspect-[5/4]";
+const CARD_ASPECT = "lg:aspect-[13/10]";
 
 const LINK_ROW_CLASS =
   "group flex items-baseline gap-2 py-1 text-fg transition-colors duration-200";
@@ -284,7 +300,7 @@ export default function BusinessCard({ className }: BusinessCardProps) {
           <CopyButton
             value={profile.email}
             label="Copy email address"
-            variant="icon"
+            variant="compact"
             className="shrink-0"
           />
         </div>

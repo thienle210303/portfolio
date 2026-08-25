@@ -299,6 +299,20 @@ export interface AiTool {
   readonly href: string;
 }
 
+/**
+ * One move of the scraping playbook (AI Workflow Lab). The `body` is the
+ * owner's own approved prose; `evidenceHref` points at the in-page case
+ * study or timeline entry that already makes the same claim with sources —
+ * the playbook asserts nothing the page doesn't prove elsewhere.
+ */
+export interface ScrapingPlaybookMove {
+  readonly id: string;
+  readonly title: string;
+  readonly body: string;
+  readonly evidenceHref: string;
+  readonly evidenceLabel: string;
+}
+
 /** One stage of the agentic development loop the explorer walks through. */
 export interface WorkflowStage {
   readonly id: string;

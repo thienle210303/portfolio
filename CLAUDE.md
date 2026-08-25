@@ -61,14 +61,18 @@ fact. One career entry feeds the timeline, the résumé, the knowledge tree and
 the hero's "Now" line at once. Practical recipes — adding a metric, adding a
 role, attaching a case study — are in [docs/editing.md](docs/editing.md).
 
-The knowledge tree draws only authored relationships (`lenses`,
-`technologies`). Do not make it infer edges by matching skill names against
-technology strings: the two vocabularies only overlap 17 of 38 ways, so loose
-matching invents links and strict matching claims real skills were never used.
-`tests/lib/knowledge-tree.test.ts` enforces this. `skillCategories[].lenses`
-is a second, independent authored edge set (category → lens, feeding the root
-labels and cross-highlighting); it is never merged with or inferred from the
-entry → lens edges.
+The career tree draws only authored relationships. Since round 12 each
+branch is one career entry (chronological, each exactly once) and its leaves
+are that entry's own `technologies` and `impact` fields, verbatim. Do not
+make it infer edges by matching skill names against technology strings: the
+two vocabularies only overlap 17 of 38 ways, so loose matching invents links
+and strict matching claims real skills were never used.
+`tests/lib/knowledge-tree.test.ts` enforces this. The roots are
+`skillCategories` labels linking to the Skills section — label-only, no
+drawn category → entry edge, because nobody has authored one.
+`buildKnowledgeTree()` (the old lens-grouped shape) survives solely for the
+hero's "Where it shows up" list, which wants entries-per-lens — a different
+authored fact.
 
 ## Before calling anything done
 

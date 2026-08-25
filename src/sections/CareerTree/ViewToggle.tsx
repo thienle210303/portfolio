@@ -8,8 +8,14 @@ interface ViewToggleProps {
   readonly className?: string;
 }
 
+// Both buttons carry all four borders and the second overlaps the first by
+// one pixel (`-ml-px`); the pressed button lifts itself (`z-10`) so its own
+// dark border wins the shared middle edge. The previous `border-r-0` scheme
+// gave that edge to List alone, so whichever button was pressed, the middle
+// edge kept the *other* button's color — pressed Tree showed a grey right
+// edge, pressed List read as a detached box (round 12, item 2).
 const BUTTON_CLASS =
-  "min-h-11 border border-rule px-4 font-mono text-[length:var(--step--1)] uppercase tracking-[0.05em] text-fg-muted transition-colors duration-200 hover:text-fg active:translate-y-px aria-pressed:border-fg aria-pressed:text-fg";
+  "relative min-h-11 border border-rule px-4 font-mono text-[length:var(--step--1)] uppercase tracking-[0.05em] text-fg-muted transition-colors duration-200 hover:text-fg active:translate-y-px aria-pressed:z-10 aria-pressed:border-fg aria-pressed:text-fg";
 
 /**
  * "Tree / List" — real, keyboard-reachable `aria-pressed` buttons (SPEC §2),
@@ -57,7 +63,7 @@ export function ViewToggle({ className }: ViewToggleProps) {
           hasChosenRef.current = true;
           forceCareerTreeView("tree");
         }}
-        className={cn(BUTTON_CLASS, "border-r-0")}
+        className={BUTTON_CLASS}
       >
         Tree
       </button>
@@ -69,7 +75,7 @@ export function ViewToggle({ className }: ViewToggleProps) {
           hasChosenRef.current = true;
           forceCareerTreeView("list");
         }}
-        className={BUTTON_CLASS}
+        className={cn(BUTTON_CLASS, "-ml-px")}
       >
         List
       </button>

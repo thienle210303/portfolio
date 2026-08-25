@@ -47,6 +47,7 @@ import {
   type StoryBeatKind,
 } from "./companion-dialogue";
 import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
+import { advance, followTarget, ramp } from "./companion-motion";
 import {
   TOUR_STOPS,
   isLastStop,
@@ -64,10 +65,11 @@ import {
 import {
   clamp,
   clampToViewport,
-  clearsControls,
   findClearSpot,
   isClearSpot,
+  keepClearOfControl,
   keepInView,
+  randomFacing,
   refreshSafeArea,
   safeTop,
   setControlRects,
@@ -76,6 +78,7 @@ import {
   syncTone,
   viewport,
   type Point,
+  type RectLike,
 } from "./companion-space";
 import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
 
@@ -206,7 +209,10 @@ const INTENT_DWELL = 300;
  *  "close enough, and the scroll that got them there has stopped". */
 const TOUR_SCROLL_SILENCE = 350;
 
-/** px per frame at 60fps, scaled by distance so they lope rather than snap. */
+/** Max px per frame — a hard cap `advance` (companion-motion.ts) never lets a
+ *  single call exceed, whatever `want` is: they ease into the last few pixels
+ *  of arrival, but a target that has jumped — a fast scroll, most of all —
+ *  asks for no more speed than a target four pixels away does. */
 const LEAD_SPEED = 4.4;
 /** Being shooed is faster than strolling — and it has to be, because the whole
  *  escort has a ~2.5s budget and the walk can start anywhere on screen. */
@@ -219,21 +225,6 @@ const DASH_SPEED = 8.6;
  *  is what makes him read as arriving *beside* whichever cat is speaking
  *  rather than racing it there. */
 const THIEN_SPEED = 3.6;
-
-/**
- * The follower's speed curve. See `followTarget` and `ramp` below — between
- * them these four numbers replace what used to be three discrete speeds.
- *
- * `FOLLOW_RANGE` is how far past her comfortable distance she has to be before
- * she is running flat out; `FOLLOW_ACCEL` and `FOLLOW_BRAKE` are how fast she
- * is allowed to change her mind, in px per frame per frame. Braking is quicker
- * than accelerating, which is true of cats and also keeps her from sailing past
- * whatever she was heading for.
- */
-const FOLLOW_MAX = 6.4;
-const FOLLOW_RANGE = 200;
-const FOLLOW_ACCEL = 0.34;
-const FOLLOW_BRAKE = 0.5;
 
 /* ------------------------------------------------------------ the corner --
  *
@@ -510,44 +501,6 @@ function followHome(home: Point): Point {
   return clampToViewport({ x: home.x - CAT_W - FOLLOW_GAP, y: home.y });
 }
 
-/**
- * A point `gap` px to one side of `lead`, clamped into the viewport —
- * mirrored to the far side, then dropped below, if a side's clamp would
- * have collapsed the gap against an edge or would still land on the
- * toolkit toggle.
- *
- * The origin-story watch's storm dash and rain huddle both used to compute
- * this as a single unconditional `x: lead.x ± gap`, clamped — correct almost
- * everywhere, and silently wrong two ways at once. The clamp could pull the
- * follower back towards the lead instead of away from it near a viewport
- * edge. And `lead` here is the *tour stop's own target* for the lead cat —
- * the tree mood's chosen spot, or the storm's own jolt — not necessarily
- * where the lead is actually rendered this frame; mid-walk into the huddle,
- * those two can differ by as much as a stride. Offsetting purely from the
- * target, with no reference to where the lead's own button actually is,
- * is how the tabby ended up standing on it with only a sliver left
- * clickable. `clearsControls` checks the real thing — the lead's live
- * rendered rect, registered every frame by `Companion`'s own loop — rather
- * than trusting the target and the render to agree.
- */
-function sideStep(lead: Point, gap: number): Point {
-  const candidates: Point[] = [
-    clampToViewport({ x: lead.x - gap, y: lead.y }),
-    clampToViewport({ x: lead.x + gap, y: lead.y }),
-    clampToViewport({ x: lead.x, y: lead.y + CAT_H + 6 }),
-    clampToViewport({ x: lead.x, y: lead.y - CAT_H - 6 }),
-  ];
-  for (const candidate of candidates) {
-    const gapKept =
-      Math.abs(candidate.x - lead.x) >= CAT_W || Math.abs(candidate.y - lead.y) >= CAT_H;
-    if (gapKept && clearsControls(candidate)) return candidate;
-  }
-  // Every candidate either collapsed against a viewport edge or still
-  // covers the toggle — vanishingly rare, and the first one is still no
-  // worse than what this replaced.
-  return candidates[0];
-}
-
 /* ------------------------------------------------------------------ staging --
  *
  * Where a *requested* scene is allowed to happen, which is not the same
@@ -677,6 +630,43 @@ function clusterBox(): { left: number; top: number } {
 const LEAD_PAD_X = 4;
 const LEAD_PAD_Y = 3;
 
+/** The lead's own live control rect — the toolkit toggle's actual drawn
+ *  box — computed from its position and the fixed padded box above, never
+ *  read off the DOM. Shared by the two things that need it every frame:
+ *  registering it (`setControlRects`, for `clearsControls`) and enforcing
+ *  the clearance invariant around it (`keepClearOfControl`). */
+function leadControlRect(pos: Point): RectLike {
+  return {
+    left: pos.x - LEAD_PAD_X,
+    top: pos.y - LEAD_PAD_Y,
+    right: pos.x - LEAD_PAD_X + CAT_W + LEAD_PAD_X * 2,
+    bottom: pos.y - LEAD_PAD_Y + CAT_H + LEAD_PAD_Y * 2,
+  };
+}
+
+/**
+ * The target-size invariant, applied once at the source rather than at
+ * movement time.
+ *
+ * The first attempt at this correction ran right before the follower's own
+ * `advance()` call, nudging her `followWant` for that one frame. It broke
+ * the guided tour: the tour's own "have we arrived" check compares
+ * `tabby.pos` against `tourSpots.current.follow` — a *different* copy of
+ * the same spot, read straight from `tourStopSpots()` and never touched by
+ * the correction — so her corrected target and the arrival check's own
+ * reference disagreed by the exact width of the correction, and she could
+ * never get within 4px of a point nothing was actually walking her toward.
+ *
+ * Correcting `Spots` here, at the one place a mood or a tour stop hands a
+ * finished `{ lead, follow }` back to its caller, means every reader after
+ * that — the movement code and any arrival check alike — sees the same,
+ * already-clear pair of points. Nothing downstream has to know this ran.
+ */
+function clearFollowOfToggle(spots: Spots): Spots {
+  const follow = keepClearOfControl(spots.follow, leadControlRect(spots.lead));
+  return follow === spots.follow ? spots : { lead: spots.lead, follow };
+}
+
 /**
  * Where the two of them actually sleep — and it is not the bed.
  *
@@ -779,61 +769,19 @@ function distance(a: Spot, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
-/** Moves `pos` towards `want` and returns how far it actually travelled, which
- *  is what the gait speed is scaled by — a cat creeping the last few pixels
- *  should not be sprinting on the spot. */
-function advance(pos: Spot, want: Point, maxSpeed: number): number {
-  if (maxSpeed <= 0) return 0;
-  const dx = want.x - pos.x;
-  const dy = want.y - pos.y;
-  const dist = Math.hypot(dx, dy);
-  if (dist < 0.6) return 0;
-  const step = Math.min(maxSpeed, dist * 0.14, dist);
-  pos.x += (dx / dist) * step;
-  pos.y += (dy / dist) * step;
-  return step;
-}
-
 function centreOf(pos: Spot): Point {
   return { x: pos.x + CAT_W / 2, y: pos.y + CAT_H / 2 };
 }
 
-/* -------------------------------------------------------------------------- */
-/* The follower's speed                                                        */
-/*                                                                             */
-/* She used to have three: nothing while she was disengaged or watching, 3.4    */
-/* while she trailed, and a 6.2 "sprint" that cut in on the frame the gap       */
-/* passed 220px. Thien's note — "too slow and suddenly walking too fast" — is   */
-/* both edges of that. They are step changes in *velocity*, and no amount of    */
-/* easing inside `advance` hides one: the drawing is still moving at 3.4px a    */
-/* frame and then, one frame later, at 6.2.                                     */
-/*                                                                             */
-/* So there are no speeds any more, only a curve and a limiter.                 */
-/* -------------------------------------------------------------------------- */
-
 /**
- * How fast she *wants* to be going, given how far she has to go.
- *
- * `gap` is the distance she is entitled to keep — the follow gap when she is
- * trailing him, zero when she is walking to a fixed place like the bed — so the
- * curve is always "speed proportional to distance beyond where I should be".
- * Eased out rather than smoothstepped: a curve that is flat at *both* ends
- * looks right leaving the gap but leaves her creeping the last few pixels onto
- * a target forever, which matters now that some of those targets are places she
- * has to actually arrive at.
+ * `advance` (the hard per-frame speed cap every mover on this layer is walked
+ * by) and the follower's own curve (`followTarget` + `ramp`) both live in
+ * `companion-motion.ts` now, not here — see that file's banner for why a
+ * target that is content-anchored while the cats are viewport-fixed makes the
+ * cap's independence from distance the whole point, not an implementation
+ * detail, and why that is worth a module a test can import on its own
+ * (WP-P round 14, "scroll must not speed them up").
  */
-function followTarget(away: number, gap: number): number {
-  const t = clamp((away - gap) / FOLLOW_RANGE, 0, 1);
-  return FOLLOW_MAX * (1 - (1 - t) * (1 - t));
-}
-
-/** And how fast she is allowed to change her mind. This is the half that makes
- *  her *personality* smooth as well as her pursuit: stopping to watch the
- *  cursor drops the target to zero, and she coasts down over ~13 frames instead
- *  of freezing mid-stride. */
-function ramp(from: number, to: number): number {
-  return from + clamp(to - from, -FOLLOW_BRAKE, FOLLOW_ACCEL);
-}
 
 /* -------------------------------------------------------------------------- */
 /* Idle flourishes                                                             */
@@ -1037,11 +985,20 @@ const SECTION_IDS = navItems.map((item) => item.sectionId);
  * not start until they are standing there — and `until` is a cap before then,
  * so a walk that cannot finish (a spot that has scrolled under something) is
  * abandoned rather than walked at forever.
+ *
+ * `faceLead`/`faceFollow` are rolled once, at the same moment `arrivedAt` is
+ * stamped — see round 14, "randomly facing left or right". Held here rather
+ * than recomputed for the same reason `spots` is: a facing re-rolled every
+ * frame is not a choice, it is a flicker. Zero until an arrival has actually
+ * happened, which is never read as a real facing — nothing consults these
+ * two fields while `arrivedAt` is still 0.
  */
 interface WanderRun {
   readonly spots: Spots;
   arrivedAt: number;
   until: number;
+  faceLead: 1 | -1;
+  faceFollow: 1 | -1;
 }
 
 /** How long a wandering pair stay somewhere once they get there, and the cap on
@@ -1344,12 +1301,6 @@ export function Companion({ facts }: CompanionProps) {
   const committed = useRef<Frame>(INITIAL_FRAME);
   const lastCommit = useRef(0);
   const lastTone = useRef(0);
-  /** Last time the lead's own live rect was read for `setControlRects` — on
-   *  the nap/secret rects' own faster throttle (120ms) rather than the tone
-   *  sample's 320ms, since this is what the origin-story watch's placement
-   *  leans on to keep the follower off the toolkit toggle while the pair are
-   *  still moving into a huddle. */
-  const lastControlRead = useRef(0);
   /** Where the cats should re-enter from, captured before the box unmounts. */
   const spawn = useRef<Spots | null>(null);
   const pendingEscort = useRef(false);
@@ -2095,6 +2046,14 @@ export function Companion({ facts }: CompanionProps) {
         ) {
           run.arrivedAt = now;
           run.until = now + WANDER_STAY + Math.random() * WANDER_STAY_SPREAD;
+          // Round 14: facing left or right at random on arrival, decoupled
+          // from whichever way they were travelling to get here — see
+          // `randomFacing`. Seeded from this arrival's own moment and spot
+          // rather than a live `Math.random()` call, which is what makes the
+          // choice a pure, testable function of "this one arrival" instead
+          // of an untestable side effect of when the frame happened to land.
+          run.faceLead = randomFacing(`lead:${now}:${run.spots.lead.x}:${run.spots.lead.y}`);
+          run.faceFollow = randomFacing(`follow:${now}:${run.spots.follow.x}:${run.spots.follow.y}`);
         }
         return run.spots;
       }
@@ -2105,6 +2064,8 @@ export function Companion({ facts }: CompanionProps) {
         spots,
         arrivedAt: 0,
         until: now + (chosen ? WANDER_WALK_MAX : WANDER_STAY),
+        faceLead: 1,
+        faceFollow: 1,
       };
       return spots;
     }
@@ -2208,7 +2169,12 @@ export function Companion({ facts }: CompanionProps) {
       if (tour && !run) {
         const stop = stopsFor(tour.route)[tour.index];
         const spots = tourStopSpots(stop.sectionId);
-        if (spots) tourSpots.current = spots;
+        // `clearFollowOfToggle` here, not at movement time: the "have we
+        // arrived" check just below reads `tourSpots.current.follow`
+        // directly, so the corrected value has to be what gets stored, or
+        // the movement code and the arrival check end up chasing two
+        // different points — see that function's own note.
+        if (spots) tourSpots.current = clearFollowOfToggle(spots);
         if (!tourSpots.current) {
           // Nowhere at all for this stop. Skip it rather than strand the tour
           // on a section that has, for whatever reason, nothing clear near it;
@@ -2320,16 +2286,24 @@ export function Companion({ facts }: CompanionProps) {
             // for as long as this branch runs), so this is the one place the
             // ref's *shape* is reused without its usual branch.
             const startled = clampToViewport({ x: spots.lead.x + rushRef.current.dir * 20, y: spots.lead.y });
-            watch.spots = { lead: startled, follow: sideStep(startled, CAT_W + FOLLOW_GAP) };
+            // The naive offset behind him, same as the huddle below — see
+            // `clearFollowOfToggle`, which is what actually keeps her off
+            // the toolkit toggle if this lands too close.
+            const naive = clampToViewport({ x: startled.x - (CAT_W + FOLLOW_GAP), y: startled.y });
+            watch.spots = clearFollowOfToggle({ lead: startled, follow: naive });
           } else if (now < rainHuddleUntil.current) {
             // The rain beat's huddle: she comes in beside him instead of
-            // behind — the same clamp every spot here goes through, just a
-            // shorter gap than the ordinary `FOLLOW_GAP`, and `sideStep`
-            // rather than a bare offset so a lead near an edge does not pull
-            // her onto him instead of beside him.
-            watch.spots = { lead: spots.lead, follow: sideStep(spots.lead, CAT_W + 6) };
+            // behind, on a shorter gap than the ordinary `FOLLOW_GAP` — the
+            // whole point of a huddle is that it reads tighter than usual.
+            // `clearFollowOfToggle` still has the final word: if this gap
+            // would leave the toolkit toggle without its required clear
+            // space, it widens just enough to fix that and no more — the
+            // coordinator's own call is that a huddle still reads as one at
+            // the WCAG minimum.
+            const naive = clampToViewport({ x: spots.lead.x - (CAT_W + 6), y: spots.lead.y });
+            watch.spots = clearFollowOfToggle({ lead: spots.lead, follow: naive });
           } else {
-            watch.spots = spots;
+            watch.spots = clearFollowOfToggle(spots);
           }
         }
       }
@@ -2843,6 +2817,16 @@ export function Companion({ facts }: CompanionProps) {
         leadWant,
         run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : LEAD_SPEED,
       );
+      // Round 14: once he has actually stopped at a wandered-to spot, his
+      // facing holds the roll `wanderTo` made on arrival rather than
+      // whatever the travel-direction check just above last left it as —
+      // see the note on `WanderRun`. Gated on `leadStep <= 0.3`, the same
+      // "not really walking any more" threshold the pose branches below
+      // read, so this never fights the travel-direction facing while he is
+      // still closing the last few pixels of the walk.
+      if (wandering && wanderRun.current?.arrivedAt && leadStep <= 0.3) {
+        grey.facing = wanderRun.current.faceLead;
+      }
       if (leadStep > 0.3) {
         calmIdle(grey, now);
         grey.pose = "walk";
@@ -2935,6 +2919,12 @@ export function Companion({ facts }: CompanionProps) {
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
       const followStep = advance(tabby.pos, followWant, tabby.speed);
+      // Round 14, her half of the same rule the lead gets above: once she has
+      // actually stopped at a wandered-to spot, her facing holds `wanderTo`'s
+      // own roll rather than the travel-direction check just above.
+      if (wandering && wanderRun.current?.arrivedAt && followStep <= 0.3) {
+        tabby.facing = wanderRun.current.faceFollow;
+      }
       if (kicking && followStep <= 0.3) {
         // Outranks the sleep branch below, which would otherwise have her curled
         // up before the paw ever landed: by the time she reaches the bed the
@@ -3136,16 +3126,20 @@ export function Companion({ facts }: CompanionProps) {
 
       // The lead's own live rect, registered as a control the *follower*
       // must never be placed on top of — see `clearsControls` and its own
-      // note on why this cannot simply join `setReservedRects` above. Read
-      // on the nap/secret rects' own 120ms throttle rather than the tone
-      // sample's 320ms: the origin-story watch actively steers the follower
-      // off this rect while the pair are still moving into a huddle
-      // (`sideStep`), and 320ms of staleness there is most of a stride at
-      // walking speed.
-      if (now - lastControlRead.current > 120) {
-        lastControlRead.current = now;
-        setControlRects(leadNode.current ? [leadNode.current.getBoundingClientRect()] : []);
-      }
+      // note on why this cannot simply join `setReservedRects` above.
+      //
+      // Computed from `grey.pos` and the fixed padded box a roaming lead is
+      // drawn in (see `LEAD_PAD_X`/`LEAD_PAD_Y` and the button's own inline
+      // style in the render below), never read off the DOM. A throttled
+      // `getBoundingClientRect()` used to sit here, and it went stale under
+      // load exactly when it mattered: the origin-story watch moves the
+      // pair every frame, and a photograph of "where the toggle was" a
+      // throttle-interval ago is a photograph of the wrong place while
+      // they're mid-stride into a huddle. This has no interval to fall
+      // behind — it is arithmetic on the same state the paint call two
+      // lines below writes to the DOM, so it is current on every frame the
+      // loop runs, roaming or not.
+      setControlRects(roamingRef.current ? [leadControlRect(grey.pos)] : []);
 
       if (now - lastTone.current > TONE_INTERVAL) {
         lastTone.current = now;

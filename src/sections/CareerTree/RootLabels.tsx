@@ -1,4 +1,4 @@
-import { resumeLenses, skillCategories } from "@/content/portfolio";
+import { skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { CROSS_LINK_CLASS } from "./cross-link";
 
@@ -11,37 +11,52 @@ import { CROSS_LINK_CLASS } from "./cross-link";
  * A root labelled "Languages" says *this is part of what the whole tree
  * stands on*, which is true of every branch above it and is the only claim
  * the content layer supports. A line from that root up to a bough, or to a
- * lens, or to a career entry would say something else entirely: that this
- * skill category produced that piece of work — and nobody ever authored that
- * edge. The two vocabularies do not even join: of 38 skills only 17 match a
- * technology string exactly, so a fuzzy connector would invent relationships
- * and an exact one would claim real skills were never used (see the header of
+ * career entry, would say something else entirely: that this skill category
+ * produced that piece of work — and nobody ever authored that edge. The two
+ * vocabularies do not even join: of 38 skills only 17 match a technology
+ * string exactly, so a fuzzy connector would invent relationships and an
+ * exact one would claim real skills were never used (see the header of
  * `src/lib/knowledge-tree.ts`, and `tests/lib/knowledge-tree.test.ts`, which
- * holds that line). Everything drawn above ground comes from `lenses` and
- * `technologies`, which are fields a human sets. The roots are the one part
- * of the figure that is argument rather than data, and naming them is as far
- * as that argument is allowed to go.
+ * holds that line). Everything drawn above ground comes from a career entry's
+ * own `technologies` and `impact`, which are fields a human sets. The roots
+ * are the one part of the figure that is argument rather than data, and
+ * naming them is as far as that argument is allowed to go.
  *
  * So: no connector, no proximity trick that reaches *above* ground, and no
- * ordering that pairs the nth label with the nth branch or lens.
+ * ordering that pairs the nth label with the nth branch.
  *
- * At >=1024px each label now sits directly under its own root's tip (see
+ * ### Round 12 — the fact line retires along with the lenses
+ *
+ * Through round 11 each root also carried a "Feeds …" line, built from
+ * `skillCategories[].lenses` — a second authored edge set, category → lens,
+ * naming which of the five resume-lens branches that skill group showed up
+ * in. Round 12 retires the lens branches from the drawing entirely (see the
+ * header of `src/lib/knowledge-tree.ts`), which leaves that edge with no
+ * target left to name: there is no longer a lens panel for "Languages" to
+ * say it feeds. Rather than repoint it at something nobody authored — a
+ * career entry, say, which would be exactly the fuzzy skill/technology join
+ * this file has refused from the start — the line is simply gone. A root is
+ * now a name and a link, nothing more: honest about being one part of the
+ * foundation, and silent about which branch above it that foundation
+ * actually reaches, because no one ever said.
+ *
+ * At >=1024px each label sits directly under its own root's tip (see
  * `rootTipX` in `DrawnTree.tsx`) rather than in a caption row below all of
  * them — the owner asked for roots that read as roots, not as a legend. That
  * still is not a connector, and it is worth being precise about why: the
  * position a label sits at is the *root's*, and every root here starts from
- * the one shared taproot every branch and lens ultimately stands on — there
- * is no per-branch or per-lens root to sit a label near even if the drawing
- * wanted to draw one. Placing "Languages" under the third root from the left
- * says the same thing sitting it in a centred row said: this is one of the
- * things the whole tree grows from. It does not say which bough is above it
- * — the columns of category names and the columns of lens boughs are laid
- * out by two completely independent functions (`rootTipX` here,
- * `placements()` in `DrawnTree.tsx`) over two differently-ordered,
- * differently-sized arrays (`skillCategories`, six entries; `tree`, five),
- * and nothing anywhere lines the nth one of each up on purpose. A label two
- * columns from center under a root is not "attached to" whatever happens to
- * be two columns from centre in the canopy above it.
+ * the one shared taproot every branch ultimately stands on — there is no
+ * per-branch root to sit a label near even if the drawing wanted to draw one.
+ * Placing "Languages" under the third root from the left says the same thing
+ * sitting it in a centred row said: this is one of the things the whole tree
+ * grows from. It does not say which bough is above it — the columns of
+ * category names and the columns of career-entry boughs are laid out by two
+ * completely independent functions (`rootTipX` here, `placements()` in
+ * `DrawnTree.tsx`) over two differently-ordered, differently-sized arrays
+ * (`skillCategories`, six entries; `tree`, fourteen), and nothing anywhere
+ * lines the nth one of each up on purpose. A label two columns from centre
+ * under a root is not "attached to" whatever happens to be two columns from
+ * centre in the canopy above it.
  *
  * ## Two presentations, matching the rest of the figure
  *
@@ -59,31 +74,12 @@ import { CROSS_LINK_CLASS } from "./cross-link";
  * keeps tab order matching reading order regardless of which presentation is
  * showing.
  *
- * ## The fact line under each root
- *
- * `category.lenses` is a second, independent authored edge set — category →
- * lens — sitting beside the `lenses` a career entry carries (see the header
- * of `src/lib/knowledge-tree.ts`). It is *not* the same claim a connector
- * line would make: "Languages feeds Software engineering" says this skill
- * group shows up in that kind of work in general, not that any specific piece
- * of work above used it, which is exactly the distinction the file header
- * above spends three paragraphs on. `data-tree-root`/`data-tree-feeds` below
- * carry that edge to the cross-highlight island in `TreeFigure.tsx`: hovering
- * or focusing a root brightens the lens panels it feeds, and vice versa.
- *
- * One lens has no category feeding it at all — "Leadership" — because no
- * skill category is tagged with it. That is left exactly as honest as it is:
- * hovering the Leadership panel highlights no roots, and no root's fact line
- * mentions it. Inventing a feed here would be the same mistake a fuzzy
- * skill/technology join would be.
+ * `data-tree-root` is still read by the cross-highlight island in
+ * `TreeFigure.tsx`: hovering or focusing a root brightens itself and its own
+ * lateral root underground (`data-tree-lateral` in `DrawnTree.tsx`'s
+ * `RootSystem`) — the one thing about a root the drawing can honestly claim,
+ * now that there is nothing above ground left to say it feeds.
  */
-function feedsLine(lenses: readonly string[]): string {
-  const labels = lenses
-    .map((id) => resumeLenses.find((lens) => lens.id === id)?.label)
-    .filter((label): label is string => Boolean(label));
-  return labels.length > 0 ? `Feeds ${labels.join(", ")}` : "Feeds nothing tagged yet";
-}
-
 export function RootLabels({ className }: { readonly className?: string }) {
   if (skillCategories.length === 0) return null;
 
@@ -100,16 +96,12 @@ export function RootLabels({ className }: { readonly className?: string }) {
         className="mt-2 flex flex-wrap gap-x-7 gap-y-2 lg:hidden"
       >
         {skillCategories.map((category) => (
-          <li
-            key={category.id}
-            data-tree-root={category.id}
-            data-tree-feeds={category.lenses.join(" ")}
-          >
+          <li key={category.id} data-tree-root={category.id}>
             <a href={`#skills-${category.id}`} className={cn(CROSS_LINK_CLASS, "wrap-anywhere")}>
               {category.label}
             </a>
             <span className="mt-0.5 block text-[length:var(--step--1)] leading-snug text-fg-muted">
-              {category.skills.length} skills · {feedsLine(category.lenses)}
+              {category.skills.length} {category.skills.length === 1 ? "skill" : "skills"}
             </span>
           </li>
         ))}
@@ -133,7 +125,6 @@ export function RootLabels({ className }: { readonly className?: string }) {
           <li
             key={category.id}
             data-tree-root={category.id}
-            data-tree-feeds={category.lenses.join(" ")}
             className="flex flex-col items-center"
           >
             <span aria-hidden="true" className="block h-2 w-px border-l border-rule" />
@@ -147,7 +138,7 @@ export function RootLabels({ className }: { readonly className?: string }) {
               {category.label}
             </a>
             <span className="mt-0.5 block max-w-[16ch] text-center text-[length:var(--step--1)] leading-snug text-fg-muted">
-              {category.skills.length} skills · {feedsLine(category.lenses)}
+              {category.skills.length} {category.skills.length === 1 ? "skill" : "skills"}
             </span>
           </li>
         ))}

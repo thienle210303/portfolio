@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { origin } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import {
-  firstCanopyYear,
   growthStage,
   planRelease,
   seasonsFor,
@@ -42,8 +40,37 @@ import {
  * ever does — the unfinished shoot. A single `requestAnimationFrame` master
  * clock auto-advances (see "The master clock" below); a click anywhere on
  * the stage advances immediately, the same "click moves things along" idiom
- * the companion's duet already uses. Escape, the Skip button, or the figure
- * scrolling out of view all end the show the same way.
+ * the companion's duet already uses. Escape or the Skip button end the show
+ * early; the last beat's own timeout ends it naturally.
+ *
+ * ## Everything lives in the frame (round 12)
+ *
+ * Every visual this file draws — the sky layer, the weather, the sr-only
+ * caption's visible stand-in, the year numeral — is `position: absolute`
+ * inside the stage `<div>` below, which is itself `position: absolute`
+ * inside the tree figure's own relative box (`KnowledgeTree.tsx`'s wrapper
+ * around `<DrawnTree>`). Nothing in this file is ever `position: fixed` to
+ * the viewport. That used to be untrue: an earlier pass pinned the weather
+ * to the viewport and, for root-year beats, panned the whole page with
+ * `scrollIntoView` so a `RootSystem` lateral growing far below the canopy
+ * would still be on screen — machinery that, together with the
+ * scroll-away-ends-the-show `IntersectionObserver` it had to keep
+ * coordinating with, was the actual cause of the instability reported
+ * ("watch how it grew is very unstable... when I scroll up and down"):
+ * a fixed weather layer and a programmatic scroll fighting a visitor's own
+ * scroll is exactly what "shearing" looks like. Both are gone. There is no
+ * camera to pan and nothing pinned to the viewport for a visitor's scroll
+ * to shear against — scrolling now simply moves the whole picture, sky and
+ * tree together, as one object, the same as scrolling past any other
+ * illustration on the page would.
+ *
+ * The corollary: there is no more "the visitor scrolled away" event either.
+ * A root-year beat's own `RootSystem` lateral grows wherever it already
+ * sits on the page — no pan walks the viewport down to meet it — and a
+ * visitor who scrolls off mid-story simply finds the story still playing,
+ * in the drawing, exactly where they left it, when they scroll back. Only
+ * Escape, Skip, click-to-advance, and the final beat's own timeout end the
+ * show now.
  *
  * ## The conductor, and the one rule it can never break
  *
@@ -61,15 +88,15 @@ import {
  * to appear, never merely tied for last with whatever year it happens to
  * share.
  *
- * The one thing every exit path — Skip, Escape, scrolling the stage out of
- * view, the last beat's own timeout, an unmount nothing here chose, even a
- * thrown error — must do is release every remaining pending group and drop
- * `data-origin-running`, synchronously, before this component is gone. A
- * real tree left half-drawn is a worse failure than a story that never
- * played at all. `releaseEverything` below is the one function that does
- * that; `end()` calls it before anything else, and the mount effect's own
- * cleanup calls it again on unmount regardless of how the exit happened —
- * both calls are safe because releasing an already-released tree is a no-op.
+ * The one thing every exit path — Skip, Escape, the last beat's own
+ * timeout, an unmount nothing here chose, even a thrown error — must do is
+ * release every remaining pending group and drop `data-origin-running`,
+ * synchronously, before this component is gone. A real tree left
+ * half-drawn is a worse failure than a story that never played at all.
+ * `releaseEverything` below is the one function that does that; `end()`
+ * calls it before anything else, and the mount effect's own cleanup calls
+ * it again on unmount regardless of how the exit happened — both calls are
+ * safe because releasing an already-released tree is a no-op.
  *
  * ## The sky, not a cover
  *
@@ -80,148 +107,32 @@ import {
  * it is sized to the *whole* drawing wrapper (`inset-0`, matching
  * `KnowledgeTree.tsx`'s relative box around `<DrawnTree>`), not just the sky
  * slice — a click anywhere the real, growing tree is still visible still
- * advances the story, the same "click the stage" contract as before. That
- * wrapper exists only while this component is mounted, so the instant the
- * story ends and `WatchOrigin.tsx` swaps this player back out for its
- * button, the tree underneath is exactly as interactive as it always was.
+ * advances the story. That wrapper exists only while this component is
+ * mounted, so the instant the story ends and `WatchOrigin.tsx` swaps this
+ * player back out for its button, the tree underneath is exactly as
+ * interactive as it always was.
  *
- * The scroll-away observer, though, does *not* watch that full-height click
- * target: the drawing wrapper runs 2000px+ tall once every branch panel is
- * stacked under it, and a visitor who has scrolled past the canopy but is
- * still somewhere inside that column would otherwise keep watching a
- * blanked, pending tree for the rest of the run. It watches `skySlice`
- * instead — so the story ends the moment the part a visitor is actually
- * looking at leaves the viewport — except while a root beat has panned the
- * page away from `skySlice` on purpose; see "The camera, during the root
- * years" below for why the observer stands down for exactly that stretch.
- *
- * ## The camera, during the root years
- *
- * Root-year beats (`beat.season.year < firstCanopyYear()`) release a
- * `RootSystem` lateral that lives well below the canopy — under the ground
- * plinth, often a full screen or more further down the page than the sky
- * slice this stage is pinned to. Releasing it there without moving the
- * viewport would mean growth nobody is looking at, so the pan effect below
- * walks the page to `[data-root-system]` (`scrollIntoView({ behavior: "auto",
- * block: "center" })`) the instant a beat's region flips from sky to root,
- * and back to `skySlice` the instant it flips back at the first canopy-year
- * beat. Both are one-way, computed straight from `beat` at render time
- * (`isRootBeat` below) — years only increase across a run, so a real show
- * pans at most twice: down once, back up once.
- *
- * `behavior: "auto"` (an instant jump), not `"smooth"`: a cinematic pan was
- * the original idea, and it is not what ships, because it is what made this
- * whole feature unreliable to click through. A multi-second smooth scroll
- * leaves `[data-origin-stage]`'s own bounding box moving for that entire
- * stretch, and every automation or assistive-tech interaction that needs to
- * check "is this element stable/in view" has to wait the animation out
- * first — during which a real Playwright run of `origin.spec.ts`, clicking
- * through every beat, sat retrying for seconds at a time, occasionally long
- * enough that the click-catcher and `z-[60]` boost below (both keyed to the
- * beat, not the scroll) had already lapsed by the time a retry finally
- * landed. Measured directly: the same repeated run that flaked roughly one
- * time in five under `"smooth"` passed 20/20 and 45/45 at `"auto"`, several
- * seconds faster each time. The visual cost is real — no eased glide, the
- * canopy and the roots simply swap — but it is a single jump-cut in an
- * 8-to-20-second run, not the sort of motion `prefers-reduced-motion`
- * itself exists to guard (that preference already turns off this whole pan,
- * and everything else in the file, in favour of the static `Storyboard`).
- *
- * The one rule this can never break is the same one the conductor itself
- * answers to: a pan is not a "the visitor scrolled away" event. The
- * scroll-away observer above is disconnected for the duration of *every*
- * conducted pan, both directions — but only the pan back up re-arms it
- * afterwards, once a second, one-shot `IntersectionObserver` on `skySlice`
- * itself *confirms* it is actually back on screen (a 3s timeout is the only
- * fallback, for whatever cannot see that confirmation at all — see the pan
- * effect for why a guessed duration alone was not reliable enough here). The
- * pan down to the roots does not re-arm anything:
- * `skySlice` is exactly the box that pan just walked away from on purpose,
- * so watching it the instant the scroll settles would find it already out
- * of view and end the show on the very beat meant to grow the roots.
- * Scrolling is simply unpoliced for as long as a root beat is playing —
- * Escape and the per-beat timer both still work regardless of scroll
- * position — and resumes the moment the canopy is back. A *later*, genuine
- * scroll away from `skySlice`, once re-armed, still ends the show exactly
- * as before.
- *
- * That alone is not the whole fix, though — the *other* half of this same
- * hazard has nothing to do with the observer. The click-to-advance surface
- * (the outer `<div>` below, `inset-0` in *document* coordinates) still sits
- * at the canopy throughout a root beat, same as `skySlice`. Advancing by
- * click during one therefore means clicking something currently off-screen,
- * which forces whatever dispatches the click to scroll the page back up
- * first — fighting the pan that just ran, and often landing the click point
- * squarely under the sticky header, which then swallows it (a header
- * pinned at the very top of the viewport is exactly where "scroll an
- * above-the-fold element back into view" tends to land a point). This is
- * not hypothetical: a real Playwright run of `origin.spec.ts` clicking
- * `[data-origin-stage]` through every beat hit exactly this, reliably
- * enough to be the flakiest thing in this file during development, and it
- * took four attempts to actually close. `scroll-mt-[var(--header-h)]` on
- * the stage `<div>` itself (below) is honest CSS — the browser's own
- * scroll-into-view algorithm really does respect `scroll-margin-top` — but
- * did nothing for the flake: Playwright's own corrective scroll for an
- * actionability check does not appear to consult it, so the click point it
- * computes can still land under the header regardless. Outranking the
- * header with a plain `z-[60]` on a *descendant* click-catcher did nothing
- * either, for a reason that cost real time to track down: the stage
- * `<div>` itself is `position: absolute` with its own explicit `z-index`,
- * which is exactly what creates a stacking context — every descendant's own
- * z-index is compared *inside* that context only, capped at whatever the
- * stage's own number is, no matter how high a child's climbs. Bumping the
- * stage `<div>`'s *own* z-index to `z-[60]` while `awayFromCanopy` (below)
- * — the same number `SkipLink.tsx` uses to outrank this same header, and
- * for the same reason: nothing lower ever wins that fight against a `z-50`
- * sticky element — fixed *that* trap, so the whole stage, catcher included,
- * escapes it as one unit instead of fighting from inside. It also was not
- * the whole story: with the trap gone, the flake dropped but did not
- * disappear, and the actual remaining cause turned out to be `behavior:
- * "smooth"` itself — see the pan effect's own comment on why this scrolls
- * with `"auto"` instead. The trade the `z-[60]` boost still costs is real,
- * if brief: the header (and anything else under it) stops being clickable
- * through the stage for as long as a root beat or its pan is in flight, in
- * exchange for a click reliably advancing the story instead of a coin flip
- * between that and silently ending the whole show. `scroll-mt-
- * [var(--header-h)]` stays anyway — it costs nothing, and is simply correct
- * for any future caller that scrolls this element with an API that *does*
- * honour it.
- *
- * `prefers-reduced-motion` already keeps this whole effect from ever running
- * — the Storyboard branch below has no `skySlice`, no `[data-root-system]`
- * pan, and nothing here reads `beat` until then — but the pan effect guards
- * on `reduced` directly too, the same belt-and-braces the CSS media query
- * above the ink classes already keeps.
+ * `WeatherLayer` (a season's rain/sun/wind/storm) and `FloatingAnnotation`
+ * (the visible caption stand-in) both live inside `skySlice`, the same
+ * small, top-pinned-*to-the-drawing* box `SkyLayer` draws in — `absolute`
+ * inside `skySlice`, which is itself `absolute` inside the stage. See each
+ * component's own doc comment for what it used to do instead.
  *
  * ## Narration, in two forms
  *
  * The accessible narration is the `role="status"` region — `sr-only` now,
  * since the *visible* narration is a job the cats do (Task 3) or, when they
- * are not roaming, a bare floating annotation does instead. `catsNarrating`
- * tracks which: it flips true whenever `origin-story-ack` answers with
+ * are not roaming, `FloatingAnnotation` does instead. `catsNarrating` tracks
+ * which: it flips true whenever `origin-story-ack` answers with
  * `detail: "start"` (`Companion.tsx` dispatches it from the same `"start"`
  * handler that arms its watch) and false again if the companion later
  * answers `detail: "stop"` — the watch dropping mid-show without the run
  * itself ending — so the annotation resumes instead of leaving the story
  * fully dark for whatever remains of it. The annotation renders only while
- * `catsNarrating` is false. It normally lives inside `skySlice`, near the
- * horizon `GroundLine` draws at y=150 of that box's own 300×200 coordinate
- * space — "near the ground line" the spec asks for is the sky's own ground,
- * not the real tree's, which is often thousands of pixels further down the
- * page — except while `awayFromCanopy` (a root beat's pan is running or its
- * dwell still stands), when `skySlice` is exactly the box the pan above has
- * scrolled away from. `FloatingAnnotation`'s `pinned` prop (that same
- * `awayFromCanopy`) swaps its position from `absolute` inside `skySlice` to
- * `fixed` against the viewport for exactly that stretch, so the caption
- * stays legible wherever the page has panned to rather than scrolling off
- * with the sky. `SkyLayer` itself is not similarly relocated — moving the
- * whole box would fight the pan itself — but it no longer needs to be: a
- * design-polish pass moved the weather (and the year numeral that used to
- * ride inside it) out of that box entirely, into `WeatherLayer`, a
- * `position: fixed` overlay that reads at both camera positions on its own
- * terms. See that component's own doc comment for why, and why the sky slice
- * keeps only the bird and the seed, which have nowhere else that makes sense
- * to live.
+ * `catsNarrating` is false, near the horizon `GroundLine` draws at y=150 of
+ * `skySlice`'s own 300×200 coordinate space — "near the ground line" the
+ * spec asks for is the sky's own ground, not the real tree's, which is
+ * often thousands of pixels further down the page.
  */
 
 type BeatKind = "flight" | "seed" | SeasonKind | "still";
@@ -535,18 +446,18 @@ function SkyLayer({ beat }: { readonly beat: Beat }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* The weather layer — stage-wide, viewport-anchored (design-polish pass)     */
+/* The weather layer — lives inside the sky slice, `absolute`, never fixed    */
+/* to the viewport (round 12, "Everything lives in the frame" — see the file  */
+/* banner).                                                                    */
 /*                                                                            */
-/* A season's weather used to be `WeatherGlyph` above: a small icon in the   */
-/* same 300×200 sky slice the bird and the seed draw in, pinned over the      */
-/* canopy. That box is exactly what a root beat's own camera pan (see the     */
-/* file banner, "The camera, during the root years") scrolls away from for as */
-/* long as the roots are what the story is showing — so for every quiet year  */
-/* before the canopy exists, the weather simply never appeared at all. The    */
-/* owner's brief for this pass was blunt about it: "make raining, sunny,      */
-/* windy more showing". `WeatherLayer` is the fix — `position: fixed`, so it   */
-/* reads at both camera positions this story ever holds, not only the one the */
-/* old glyph happened to share a box with.                                    */
+/* A season's weather used to be `WeatherGlyph` above: a small icon sharing   */
+/* the same 300×200 sky slice the bird and the seed draw in. A later design-  */
+/* polish pass promoted it to `position: fixed` against the viewport so it    */
+/* would still read once a root beat's own camera pan scrolled that box off   */
+/* screen — the owner's brief for that pass was blunt: "make raining, sunny,  */
+/* windy more showing". Round 12 deletes the camera pan entirely (it was the  */
+/* actual source of the reported scroll instability), so `WeatherLayer` moves */
+/* back into the sky slice's own coordinate space rather than the viewport's. */
 /* -------------------------------------------------------------------------- */
 
 /** How many rain strokes an ordinary rain year draws — the storm overlay     */
@@ -674,12 +585,17 @@ function WindStrokes() {
 }
 
 /**
- * The season's weather, stage-wide: `position: fixed` so the same rain, sun
- * or wind reads over the canopy *and* over the underground the camera pans
- * to for a root year — see the file banner just above. `pointer-events-
- * none`/`aria-hidden` throughout: this is atmosphere, never a click target
- * and never a second narration (the accessible `role="status"` region and
- * the floating annotation already carry the beat's own words).
+ * The season's weather: `position: absolute`, filling `skySlice` — the same
+ * small box `SkyLayer` draws in — so the rain, sun or wind scrolls with the
+ * drawing exactly as the rest of it does. An earlier pass made this
+ * `position: fixed` against the viewport so it would still read once a root
+ * beat's own camera pan scrolled `skySlice` off screen; round 12 deletes
+ * that pan entirely (see the file banner's "Everything lives in the frame"),
+ * so there is no second camera position for this layer to survive any more
+ * — it simply lives where `SkyLayer` already does. `pointer-events-none`/
+ * `aria-hidden` throughout: this is atmosphere, never a click target and
+ * never a second narration (the accessible `role="status"` region and
+ * `FloatingAnnotation` already carry the beat's own words).
  *
  * Base weather, for the *whole* beat, is drawn straight off `season.kind` —
  * which is never `"storm"` any more, see `origin-story.ts`. A storm is
@@ -694,12 +610,9 @@ function WindStrokes() {
  * on every storm year rather than only ever playing it once for the whole
  * run.
  *
- * The year numeral moves here too, top-left — the one fact this whole layer
- * still owes a reader — rather than staying behind in the sky slice's own
- * small box the way it used to: that box is exactly what goes off-screen for
- * a root beat's pan, which was the numeral's own share of the same bug this
- * component exists to fix. Top-*left*, not top-right: the Skip button (`
- * SKIP_BUTTON_CLASS` below) already owns that corner.
+ * The year numeral sits top-left of this same box — the one fact this whole
+ * layer still owes a reader. Top-*left*, not top-right: the Skip button
+ * (`SKIP_BUTTON_CLASS` below) already owns that corner.
  */
 function WeatherLayer({ season }: { readonly season: Season }) {
   return (
@@ -708,13 +621,13 @@ function WeatherLayer({ season }: { readonly season: Season }) {
       aria-hidden="true"
       data-origin-weather={season.kind}
       data-origin-storm={season.storm ? "" : undefined}
-      className="pointer-events-none fixed inset-0 z-30 overflow-hidden text-fg-subtle"
+      className="pointer-events-none absolute inset-0 overflow-hidden text-fg-subtle"
     >
       {season.kind === "rain" ? <RainStrokes dense={false} /> : null}
       {season.kind === "sun" ? <SunGlyph /> : null}
       {season.kind === "quiet" ? <WindStrokes /> : null}
       {season.storm ? <StormOverlay /> : null}
-      <span className="eyebrow absolute left-3 top-[calc(var(--header-h)+0.75rem)] text-fg-subtle">
+      <span className="eyebrow absolute left-3 top-2 text-fg-subtle">
         {season.year}
       </span>
     </div>
@@ -723,31 +636,23 @@ function WeatherLayer({ season }: { readonly season: Season }) {
 
 /** The bare-mono fallback narration: shown whenever the cats are not
  *  narrating — the parent only renders this while `catsNarrating` is still
- *  false. No border, no background — an annotation, not a caption box,
- *  sitting near the ground line the way the figure's own margin notes do.
- *  `aria-hidden` because it duplicates the accessible `role="status"` region
- *  below it; a screen reader should hear the story once, not twice.
+ *  false. `aria-hidden` because it duplicates the accessible `role="status"`
+ *  region below it; a screen reader should hear the story once, not twice.
  *
- *  `pinned` is true for exactly the beats the conductor pans the page away
- *  from this box's own ancestor (`skySlice`, still positioned `absolute`
- *  inside it) to show the root system instead — see the pan effect below.
- *  Without it the caption would scroll off with the sky slice the moment the
- *  root beats start, leaving nothing readable in the viewport but the roots
- *  themselves. `fixed` has nothing to do with `skySlice`'s own box once set,
- *  so this is the cheap fix: no ancestor between here and `<body>` carries a
- *  `transform`/`filter`/`contain`, so `position: fixed` is relative to the
- *  viewport exactly as plainly as it looks. */
-function FloatingAnnotation({ text, pinned }: { readonly text: string; readonly pinned: boolean }) {
+ *  Always `absolute` inside `skySlice`, the same box `SkyLayer` draws in —
+ *  round 12 deleted the camera pan that used to walk the page away from that
+ *  box for a root beat (see the file banner), so there is no second camera
+ *  position left for this annotation to survive by switching to
+ *  `position: fixed`, and it no longer does. `bg-ground/90` keeps the text
+ *  legible over whatever part of the drawing sits behind it — canopy or
+ *  root, either theme, any tone (checked against the deep tone's own paper,
+ *  the pairing that fails first — see CLAUDE.md's contrast note). */
+function FloatingAnnotation({ text }: { readonly text: string }) {
   return (
     <p
       aria-hidden="true"
       data-origin-annotation
-      className={cn(
-        "pointer-events-none z-30 font-mono text-[length:var(--step--1)] leading-snug text-fg-subtle",
-        pinned
-          ? "fixed inset-x-3 bottom-4 bg-ground/90 px-1"
-          : "absolute inset-x-3 bottom-2",
-      )}
+      className="pointer-events-none absolute inset-x-3 bottom-2 z-10 bg-ground/90 px-1 font-mono text-[length:var(--step--1)] leading-snug text-fg-subtle"
     >
       {text}
     </p>
@@ -901,14 +806,14 @@ const SKIP_BUTTON_CLASS =
 
 export interface OriginStoryProps {
   /**
-   * `restoreFocus` is true only when focus was still somewhere inside the
-   * stage the instant it ended — true for Escape and Skip (focus starts on
-   * Skip and nothing here ever moves it elsewhere), false when the show
-   * ended because the visitor scrolled away with focus never touched. The
+   * `restoreFocus` is true when focus was still somewhere inside the stage
+   * the instant it ended — the ordinary case for Escape and Skip, since the
+   * layout effect below puts focus on the Skip button on mount and nothing
+   * here ever moves it away on its own. It can still be false if something
+   * outside this component moved focus elsewhere before the show ended (a
+   * visitor tabbing away, or clicking something else on the page). The
    * caller (`WatchOrigin.tsx`) uses it to decide whether pulling focus back
-   * to the "Watch how it grew" button is a courtesy or a hijack — see the
-   * note there on why `focus()` alone was already the wrong call in that
-   * second case even before this flag existed.
+   * to the "Watch how it grew" button is a courtesy or a hijack.
    */
   readonly onClose: (restoreFocus: boolean) => void;
 }
@@ -932,32 +837,11 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // in their place. See the ack listener effect below.
   const [catsNarrating, setCatsNarrating] = useState(false);
 
-  // Covers just the up-pan's own travel time, from the moment the pan
-  // effect below starts walking the page back to `skySlice` until that
-  // scroll has actually *settled* there — `awayFromCanopy` below folds this
-  // together with `isRootBeat` itself into one "is the canopy actually back
-  // on screen yet" signal, since a beat can claim the canopy is back before
-  // the page has actually arrived. Set inside a `requestAnimationFrame`
-  // callback, not directly in the pan effect's own body — the same
-  // "announce a change a frame later" idiom the `announced` effect below
-  // already uses, and for the same practical reason here: a bare
-  // synchronous `setState` at the top of an effect body is what
-  // `react-hooks/set-state-in-effect` flags, since the effect could
-  // otherwise just derive the value during render — which is exactly true
-  // for the *other* direction (`isRootBeat` alone already covers a root
-  // beat itself) but not this one, which only exists because scrolling
-  // takes real time after the beat has already changed. Flipped back false
-  // from the pan effect's own `rearm` callback once the scroll genuinely
-  // settles.
-  const [settlingBack, setSettlingBack] = useState(false);
-
   const containerRef = useRef<HTMLDivElement>(null);
-  // The small, top-pinned "sky slice" box `SkyLayer` and the floating
-  // annotation render inside — see the file banner on why the scroll-away
-  // observer watches this instead of the full-height `containerRef` click
-  // target. Unused (stays null) under reduced motion, where the Storyboard
-  // branch renders neither and the observer falls back to `containerRef`
-  // itself, exactly as it always has.
+  // The small, top-pinned "sky slice" box `SkyLayer`, `WeatherLayer` and
+  // `FloatingAnnotation` all render inside — see the file banner. Unused
+  // (stays null) under reduced motion, where the Storyboard branch renders
+  // none of them.
   const skySliceRef = useRef<HTMLDivElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const ended = useRef(false);
@@ -1005,14 +889,6 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // mount-scoped, so it needs a way to always call the *current* one.
   const advanceRef = useRef<() => void>(() => {});
   const rafIdRef = useRef<number | null>(null);
-  // The scroll-away observer's own handle, so the pan effect below can
-  // disconnect and re-create it against a new target rather than the fixed
-  // one the original, mount-only observer watched — see `armWatch`.
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  // Which side of the figure the conductor last panned to, so the pan
-  // effect only acts on an actual sky<->root *change*, not every beat that
-  // happens to fall on the same side of it as the one before.
-  const panRegionRef = useRef<"sky" | "root">("sky");
 
   // Applies one plan entry for real: sets the duration override the trunk
   // or a leaf needs (everything else keeps the ordinary CSS duration, so
@@ -1071,10 +947,11 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     releaseEverything();
     document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
     // Read *before* `onClose` unmounts this subtree — `document.activeElement`
-    // is still whatever it was the instant the show ended, whether that was
-    // Escape/Skip (focus on the Skip button, inside `containerRef`) or a
-    // scroll-away no keyboard interaction ever touched (focus still wherever
-    // it started, outside the stage).
+    // is still whatever it was the instant the show ended: Escape or Skip,
+    // both of which leave focus on the Skip button inside `containerRef`
+    // (the layout effect below puts it there on mount and nothing here ever
+    // moves it away), or the last beat's own timeout, which leaves focus
+    // wherever it already was.
     const restoreFocus = containerRef.current?.contains(document.activeElement) ?? false;
     onClose(restoreFocus);
   }, [onClose, releaseEverything]);
@@ -1180,198 +1057,8 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [end]);
 
-  // Scrolling away ends the show exactly like Skip does — nobody wants a
-  // caption still narrating a section they scrolled away from. Non-reduced,
-  // this watches `skySliceRef` by default — the small, top-pinned box the
-  // sky layer and the floating annotation actually live in — rather than
-  // `containerRef`, the full-height click-to-advance target: `containerRef`
-  // now spans the *whole* drawing wrapper (2000px+ once every branch panel
-  // is stacked under it), so watching it meant a visitor who had scrolled
-  // well past the canopy but was still somewhere inside that column kept
-  // the show — and its live status region — running against a blanked,
-  // pending tree they could no longer see any part of. Reduced motion has
-  // no sky slice (the Storyboard branch renders neither it nor `SkyLayer`),
-  // so it falls back to `containerRef` there, unchanged from before: that
-  // box is only ever as tall as the storyboard's own stacked frames, never
-  // the whole figure. Self-observing a box this component also unmounts
-  // from is safe: `end()` is latch-guarded against firing twice, and the
-  // observer disconnects on unmount regardless of which exit fired.
-  //
-  // `armWatch` is pulled out of the effect body, rather than inlined the
-  // way it was before the camera pan existed, because the pan effect below
-  // needs to re-create this same observer against a *different* target —
-  // `[data-root-system]` instead of `skySlice` — without duplicating the
-  // instantiation logic or fighting over which effect owns the ref.
-  const armWatch = useCallback(
-    (target: Element | null) => {
-      observerRef.current?.disconnect();
-      observerRef.current = null;
-      if (!target || typeof IntersectionObserver === "undefined") return;
-      // An `IntersectionObserver` always calls back once, synchronously
-      // (well, on the next microtask) after `observe()`, reporting whatever
-      // the target's intersection state already was — not a *change*. Right
-      // after the pan effect's own settle delay, that first read can still
-      // be marginally stale: something else nudging the page a frame or two
-      // later (a screen reader's focus-follows-scroll, or — this is what a
-      // real run turned up — a test framework's own competing
-      // scroll-into-view for an unrelated click) can leave the target just
-      // out of view at the exact instant this re-arms. Acting on that first
-      // report would end the show on a race, not on a visitor scrolling
-      // away; only a genuine transition *after* watching begins is real.
-      let first = true;
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (first) {
-            first = false;
-            return;
-          }
-          if (entry && !entry.isIntersecting) end();
-        },
-        { threshold: 0 },
-      );
-      observer.observe(target);
-      observerRef.current = observer;
-    },
-    [end],
-  );
-
-  useEffect(() => {
-    armWatch(reduced ? containerRef.current : skySliceRef.current);
-    return () => {
-      observerRef.current?.disconnect();
-      observerRef.current = null;
-    };
-  }, [armWatch, reduced]);
-
   const beat = beats[index];
   const isLast = index >= beats.length - 1;
-  // True for exactly the beats `RootSystem`'s own lateral for that year has
-  // not grown yet by the time the canopy exists — the same "before the
-  // canopy" test `rootYearFor`'s own doc comment describes. Computed at
-  // render time, straight from `beat`, rather than tracked in a ref: both
-  // the pan effect below and `awayFromCanopy` just under it need it, and a
-  // value this cheap is not worth two copies drifting apart.
-  const isRootBeat = Boolean(beat.season && beat.season.year < firstCanopyYear());
-
-  // The one signal both the viewport click-catcher and the pinned
-  // annotation actually key off: true for a root beat itself, and true a
-  // little longer than that while the pan back to the canopy is still
-  // travelling. See `settlingBack`'s own declaration for why the two
-  // clocks (which beat is playing, versus where the page has actually
-  // scrolled to) are not the same thing.
-  const awayFromCanopy = isRootBeat || settlingBack;
-
-  // The camera pan (file banner, "The camera, during the root years"): walk
-  // the page to `[data-root-system]` the instant a beat's region flips from
-  // sky to root, and back to `skySlice` the instant it flips back. A no-op
-  // on every other beat, via the `panRegionRef` guard — including both
-  // beats before the first root year (flight, seed) and every beat once the
-  // canopy exists again, which is the overwhelming majority of a run.
-  useEffect(() => {
-    if (reduced) return;
-    const region = isRootBeat ? "root" : "sky";
-    if (region === panRegionRef.current) return;
-    panRegionRef.current = region;
-
-    const figure = figureRef.current;
-    const target =
-      region === "root"
-        ? (figure?.querySelector<HTMLElement>("[data-root-system]") ?? null)
-        : skySliceRef.current;
-    if (!target) return;
-
-    // Disconnect for the duration of the pan itself, both directions — a
-    // smooth-scroll this large fires plenty of intermediate intersection
-    // changes on whatever the observer was watching before, and none of
-    // them are a visitor choosing to leave.
-    observerRef.current?.disconnect();
-    observerRef.current = null;
-    target.scrollIntoView({ behavior: "auto", block: "center" });
-
-    if (region === "root") {
-      // `awayFromCanopy` is already true by now — `isRootBeat` alone covers
-      // this direction, set during the same render that decided to pan
-      // (see its declaration above), so there is no state to arm here. No
-      // re-arm either: see the comment below on why the observer stays
-      // disconnected for the whole root dwell.
-      return;
-    }
-
-    // region === "sky": the pan back *up*. Panning down to the roots
-    // deliberately walks away from `skySlice` — the one box this observer
-    // ever watches — for as long as any root beat plays, so there is no
-    // honest "away" for it to watch for until the canopy is what the story
-    // is about again: re-arming on `skySlice` the instant the down-pan
-    // settles would find it already out of view and end the show on the
-    // very beat meant to grow it. A scroll during a root beat is
-    // deliberately left unpoliced — a visitor reading past the roots, or
-    // (this is what a real run of `origin.spec.ts` hit) a test framework
-    // auto-scrolling `[data-origin-stage]` back into view to click it — is
-    // not a "leaving the story" signal while the story itself has already
-    // moved the camera away from that stage on purpose. Escape and the
-    // per-beat timer both still work regardless of scroll position, and
-    // the observer's usual job resumes — same moment `awayFromCanopy`
-    // flips back to false — once the canopy is actually back on screen,
-    // not merely once this beat claims it is.
-    //
-    // `settlingBack` arms one frame later (see its own declaration on why
-    // this is inside a `requestAnimationFrame` callback rather than a bare
-    // call here) — the one-frame gap between `isRootBeat` going false and
-    // this actually landing is harmless: nothing here is timing-critical to
-    // a single frame, and it beats the alternative of `awayFromCanopy`
-    // going stale for the *entire* travel time this pan takes.
-    const armId = requestAnimationFrame(() => setSettlingBack(true));
-
-    // Confirmed by an `IntersectionObserver` on `target` itself, not a
-    // guessed duration: an earlier version used a plain `scrollend`/800ms
-    // timer, which flipped `settlingBack` false — dropping the click-catcher
-    // and the `z-[60]` boost with it — on its own clock, unrelated to how
-    // long an *in-flight* click's own actionability retries were taking.
-    // When those retries outlasted the timer (a slow retry loop is exactly
-    // what a header collision produces), the catcher vanished mid-retry and
-    // the next hit-test landed on bare `<html>` — a second, subtler shape of
-    // the same flake the catcher was built to close. Waiting for `skySlice`
-    // to actually report itself visible, rather than assuming the scroll is
-    // done by then, ties "stop protecting the click" to "provably safe to
-    // stop protecting it" instead of a probability.
-    let settled = false;
-    const confirm =
-      typeof IntersectionObserver === "undefined"
-        ? null
-        : new IntersectionObserver(
-            ([entry]) => {
-              if (settled || !entry?.isIntersecting) return;
-              settled = true;
-              confirm?.disconnect();
-              window.clearTimeout(timeoutId);
-              armWatch(target);
-              setSettlingBack(false);
-            },
-            { threshold: 0 },
-          );
-    confirm?.observe(target);
-    // Fallback only, for whatever `IntersectionObserver` cannot see (a
-    // zero-size box, a browser without it) — long enough that it should
-    // never fire ahead of a real confirmation on any ordinary run.
-    const timeoutId = window.setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      confirm?.disconnect();
-      armWatch(target);
-      setSettlingBack(false);
-    }, 3000);
-
-    return () => {
-      // Guards a pan superseded by another before it ever settled (a very
-      // fast Skip-driven run) — cancel the stale confirmation rather than
-      // let it fire after a *later* pan has already armed the observer
-      // itself.
-      settled = true;
-      cancelAnimationFrame(armId);
-      confirm?.disconnect();
-      window.clearTimeout(timeoutId);
-    };
-  }, [isRootBeat, reduced, armWatch]);
 
   // Mounted empty and filled a frame later — the same mount-empty-then-fill
   // discipline `TourHud.tsx`'s `role="status"` region uses, for the same
@@ -1542,24 +1229,6 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
     [end],
   );
 
-  // The `awayFromCanopy` click-catcher's own handler, not a bare `advance`
-  // — it renders *inside* the outer stage `<div>`, which carries the exact
-  // same `onClick={advance}`. A synthetic click bubbles from the catcher up
-  // to that ancestor same as any DOM click would, so without
-  // `stopPropagation` here every click on the catcher advanced the story
-  // *twice* — once from this handler, once again from the stage's own —
-  // which is exactly the kind of silent double-advance
-  // `origin.spec.ts`'s "chronological growth" test is built to catch (it
-  // counts clicks against beats one-for-one). Same idiom `handleSkip`
-  // just above already uses for the same reason.
-  const handleAwayClick = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      event.stopPropagation();
-      advance();
-    },
-    [advance],
-  );
-
   return (
     <div
       ref={containerRef}
@@ -1574,103 +1243,35 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
       // story. Reduced motion keeps the old top-pinned, unclamped box: the
       // storyboard is meant to be read start to finish, not clicked through,
       // and has more than enough height below it to grow into.
-      //
-      // `scroll-mt-[var(--header-h)]`: this element's own box, not a
-      // descendant's — a root beat's pan can leave it above the viewport,
-      // and anything that later scrolls it back (a keyboard focus jump, or
-      // — the real case this fixes — a browser/automation "bring this
-      // point into view before clicking it" step) would otherwise land its
-      // top edge exactly under the sticky header (`h-16`/`--header-h`,
-      // `z-50`), which then swallows the click. `scroll-margin-top` is
-      // honoured by the browser's own scroll-into-view algorithm regardless
-      // of who calls it, so this needs no JS of its own — see the note
-      // further down on why it turned out not to be enough by itself.
-      //
-      // `z-[60]` while `awayFromCanopy`, not the usual `z-20`: `position:
-      // absolute` (or `fixed`) *plus* an explicit `z-index` is what
-      // establishes a stacking context, so this element's own z-index is
-      // the ceiling every descendant is trapped under, no matter how high
-      // *their* z-index climbs — the viewport click-catcher further down
-      // learned this the hard way, at `z-[60]` itself and still losing to
-      // the header, until this ancestor was the thing actually raised.
-      className={cn(
-        "absolute scroll-mt-[var(--header-h)]",
-        reduced
-          ? "inset-x-0 top-0 z-20"
-          : cn("inset-0 cursor-pointer", awayFromCanopy ? "z-[60]" : "z-20"),
-      )}
+      className={cn("absolute", reduced ? "inset-x-0 top-0 z-20" : "inset-0 z-20 cursor-pointer")}
     >
       {reduced ? (
         <Storyboard seasons={seasons} />
       ) : (
         <>
           {/* The sky slice: a small, top-pinned box (the same 300×200 area
-              the old silhouette stage used) that holds both the sky layer's
-              own drawing and the floating annotation, and doubles as the
-              scroll-away observer's target — see the file banner and the
-              IntersectionObserver effect above for why neither lives on the
-              full-height click target this `<div>`'s parent now is. */}
-          <div ref={skySliceRef} className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2]">
+              the old silhouette stage used), `absolute` inside the stage
+              above — which is itself `absolute` inside the tree figure's own
+              relative box, never `fixed` to the viewport, so it scrolls with
+              the rest of the drawing as one object. Holds the sky layer's own
+              drawing, that beat's weather, and the floating annotation — see
+              the file banner, "Everything lives in the frame". `data-origin-
+              sky` is a query hook only, for `origin.spec.ts` to prove this
+              box's own bounding box never strays outside the stage's — i.e.
+              that scrolling moves the two together rather than shearing one
+              away from the other. */}
+          <div
+            ref={skySliceRef}
+            data-origin-sky
+            className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2]"
+          >
             <SkyLayer beat={beat} />
-            {!catsNarrating ? <FloatingAnnotation text={announced} pinned={awayFromCanopy} /> : null}
+            {beat.season ? <WeatherLayer season={beat.season} /> : null}
+            {!catsNarrating ? <FloatingAnnotation text={announced} /> : null}
           </div>
-          {/* Stage-wide, not scoped to the sky slice above: a root beat's own
-              camera pan (see the file banner) walks the page away from that
-              box for as long as the roots are what the story shows, and the
-              weather is meant to read at both camera positions — see
-              `WeatherLayer`'s own doc comment.
-
-              Portalled to `document.body` rather than rendered in place: this
-              `<div>`'s own `z-[60]` bump while `awayFromCanopy` (above) is a
-              *stacking context*, not just a z-index, so any descendant —
-              `WeatherLayer` included, its own `position: fixed` notwithstanding
-              — paints as part of that context, not against the page's stacking
-              tree directly. The whole z-60 box lands above the sticky header's
-              z-50 as a unit, weather and all, which is exactly the "root beat
-              draws rain over the nav bar" bug this fixes. Portalling to
-              `document.body` puts `WeatherLayer` in the same stacking context
-              the header itself lives in, so its own `z-30` finally competes
-              with the header's `z-50` directly and loses, as intended — while
-              staying `aria-hidden`/`pointer-events-none` and mounted only for
-              exactly as long as this conditional already kept it, so an exit
-              still unmounts it the same way it always did. */}
-          {beat.season ? createPortal(<WeatherLayer season={beat.season} />, document.body) : null}
           <p role="status" className="sr-only">
             {announced}
           </p>
-          {awayFromCanopy ? (
-            // The click-to-advance surface this `<div>` already is sits at
-            // the canopy (`inset-0` above, matching the drawing wrapper in
-            // *document* coordinates) — exactly where a root beat's own pan
-            // has just scrolled away from. Without this, advancing by click
-            // while away from the canopy means clicking something currently
-            // off-screen, which forces whatever dispatches the click (a
-            // real pointer, or — this is what a real Playwright run of
-            // `origin.spec.ts` hit — a test framework's own
-            // scroll-into-view for it) to scroll the page back up first,
-            // fighting the very pan that moved it and, worse, often landing
-            // the click point directly under the sticky header, which then
-            // swallows it. `fixed inset-0` sidesteps all of that: it covers
-            // whatever the *viewport* currently shows, roots included, with
-            // no scroll required to reach it — the outer `<div>`'s own
-            // `z-[60]` bump (above, same `awayFromCanopy` guard) is what
-            // actually clears the header; this element needs no z-index of
-            // its own beyond that ancestor's, and deliberately has none, so
-            // the Skip button (a later sibling, `z-10`) still paints above
-            // it rather than being covered by its own stage's click-catcher.
-            // Keyed on `awayFromCanopy` rather than `isRootBeat` directly so
-            // it stays mounted through the up-pan's own travel time too, not
-            // just up to the instant the beat that triggered it claims the
-            // canopy back — see that state's own declaration for why the
-            // two are not the same moment. `handleAwayClick` (not a bare
-            // `advance`) stops this click from also bubbling into the outer
-            // `<div>`'s own identical `onClick` and firing twice.
-            // `aria-hidden` because it adds no new control either way — it
-            // is the same `advance` click the outer `<div>` already exposes
-            // under one accessible name, just extended to reach wherever
-            // the camera put things.
-            <div aria-hidden="true" onClick={handleAwayClick} className="fixed inset-0 cursor-pointer" />
-          ) : null}
         </>
       )}
 

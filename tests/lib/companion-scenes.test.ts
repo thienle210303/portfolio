@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   advancePlay,
@@ -13,11 +13,13 @@ import {
 } from "@/components/companion/companion-play";
 import {
   detectRush,
+  planWander,
   RUSH_HOLD_MS,
   RUSH_VELOCITY,
   WANDER_MIN,
   wanderCandidates,
 } from "@/components/companion/companion-moods";
+import * as companionSpace from "@/components/companion/companion-space";
 
 /**
  * The geometry behind the three scenes that are about the page, and behind
@@ -233,6 +235,60 @@ describe("wanderCandidates", () => {
     // Which is a real answer on a window with no whitespace in it, and the
     // caller's cue to leave them standing rather than shuffle them sideways.
     expect(wanderCandidates(spots.slice(0, 2), here)).toEqual([]);
+  });
+});
+
+/**
+ * WP-P round 14 ("make them go randomly on the page instead"): `planWander`
+ * used to draw only from `standingSpots`'s own five-column grid, which is
+ * built to find whitespace *between* blocks of prose — the margins, on an
+ * ordinary page — and that is exactly the "always corners or edges" the
+ * owner reported. It now tries a uniform draw across the whole viewport
+ * first (`randomViewportPoint`), and only falls back to the old, edge-biased
+ * pool when the page genuinely has nothing free outside its own margins.
+ */
+describe("planWander", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
+  });
+
+  it("reaches into the middle of a clear page, not just the standingSpots gutters", () => {
+    // Nothing on the page is occupied — every probe reads clear.
+    document.elementsFromPoint = vi.fn(() => []);
+    const here = { x: 500, y: 400 };
+    let sawMiddle = false;
+    for (let i = 0; i < 150 && !sawMiddle; i += 1) {
+      const spots = planWander(null, here, { x: 300, y: 400 }, { x: 900, y: 700 });
+      // A page this clear should never decline outright.
+      expect(spots).not.toBeNull();
+      if (spots && Math.abs(spots.lead.x - 512) < 120) sawMiddle = true;
+    }
+    expect(sawMiddle).toBe(true);
+  });
+
+  it("falls back to the standingSpots pool when the uniform draw keeps landing somewhere it cannot stand", () => {
+    document.elementsFromPoint = vi.fn(() => []);
+    // Force every uniform draw outside the viewport, which `isClearSpot`
+    // rejects outright regardless of what is or is not occupied — so the
+    // first ten tries are guaranteed to fail and the old pool has to answer
+    // instead.
+    vi.spyOn(companionSpace, "randomViewportPoint").mockReturnValue({ x: -9999, y: -9999 });
+    const here = { x: 500, y: 400 };
+    const home = { x: 900, y: 700 };
+    const spots = planWander(null, here, { x: 300, y: 400 }, home);
+    expect(spots).not.toBeNull();
+    expect(companionSpace.randomViewportPoint).toHaveBeenCalled();
+    // The answer came from the standingSpots pool, not the (mocked, always
+    // out-of-bounds) uniform draw.
+    expect(spots!.lead).not.toEqual({ x: -9999, y: -9999 });
+  });
+
+  it("declines outright when neither the uniform draw nor the old pool can find any ground", () => {
+    // Every probe reads as occupied content.
+    document.elementsFromPoint = vi.fn(() => [document.createElement("p")]);
+    const here = { x: 500, y: 400 };
+    expect(planWander(null, here, { x: 300, y: 400 }, { x: 900, y: 700 })).toBeNull();
   });
 });
 

@@ -7,6 +7,15 @@ interface CodeBlockProps {
   readonly filename: string;
   readonly summary: string;
   readonly className?: string;
+  /**
+   * Tightens the figcaption/code padding and steps the code type down one
+   * notch (`--step--1` → `--step--2`) without touching the content or the
+   * token markup. Added for the hero code artifact (round 12, WP-K), which
+   * needed to stop "dominating the hero column" next to the identity copy —
+   * every other caller is unaffected by default (`compact` defaults to
+   * `false`, matching every existing usage).
+   */
+  readonly compact?: boolean;
 }
 
 function summaryIdFor(filename: string): string {
@@ -34,7 +43,7 @@ function summaryIdFor(filename: string): string {
  * content today; flagged in Agent 1A's report for anyone composing this
  * with more than one CodeBlock visible at once.
  */
-export function CodeBlock({ code, filename, summary, className }: CodeBlockProps) {
+export function CodeBlock({ code, filename, summary, className, compact = false }: CodeBlockProps) {
   const tokens = highlight(code);
   const summaryId = summaryIdFor(filename);
 
@@ -48,8 +57,18 @@ export function CodeBlock({ code, filename, summary, className }: CodeBlockProps
     // and 735 scroll positions. A contract that is declared and never once
     // satisfied is worse than no contract: it reads as coverage.
     <figure className={cn("min-w-0 max-w-full border border-rule bg-surface", className)}>
-      <figcaption className="flex items-center justify-between gap-4 border-b border-rule px-4 py-3">
-        <span className="wrap-anywhere font-mono text-[length:var(--step--1)] text-fg-muted">
+      <figcaption
+        className={cn(
+          "flex items-center justify-between gap-4 border-b border-rule",
+          compact ? "px-3 py-2" : "px-4 py-3",
+        )}
+      >
+        <span
+          className={cn(
+            "wrap-anywhere font-mono text-fg-muted",
+            compact ? "text-[length:var(--step--2)]" : "text-[length:var(--step--1)]",
+          )}
+        >
           {filename}
         </span>
       </figcaption>
@@ -77,9 +96,17 @@ export function CodeBlock({ code, filename, summary, className }: CodeBlockProps
         role="region"
         aria-label={filename}
         aria-describedby={summaryId}
-        className="max-w-full whitespace-pre-wrap wrap-anywhere p-4"
+        className={cn(
+          "max-w-full whitespace-pre-wrap wrap-anywhere",
+          compact ? "p-3" : "p-4",
+        )}
       >
-        <code className="font-mono text-[length:var(--step--1)] leading-relaxed">
+        <code
+          className={cn(
+            "font-mono leading-relaxed",
+            compact ? "text-[length:var(--step--2)]" : "text-[length:var(--step--1)]",
+          )}
+        >
           {tokens.map((token, index) => (
             // Tokens are a fixed, freshly computed array from a pure
             // function on every render — no reordering/insertion ever

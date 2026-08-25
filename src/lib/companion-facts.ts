@@ -1,6 +1,6 @@
 import { careerEntries, principles, profile, projects, skillCategories } from "@/content/portfolio";
 import { experiments } from "@/content/ai-experiments";
-import { buildKnowledgeTree, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
 
 /**
  * D1 — facts as a server prop.
@@ -48,6 +48,14 @@ export interface CompanionFacts {
    * work/learning/milestone counts that sum to it) is folded in beside the
    * tree's own branch/leaf/technology counts, so both faces of the merged
    * section speak from the same object.
+   *
+   * Round 12: the tree itself inverted (`buildCareerTree` in
+   * `src/lib/knowledge-tree.ts`) — a branch is now one career entry, so
+   * `branches` and `entries` are now the same number by construction, and
+   * `leaves` counts authored technologies and impact lines rather than
+   * (lens, entry) pairs. Both keys stay: `branches`/`leaves` are what the
+   * drawing itself renders, `entries`/`work`/`learning`/`milestones` are the
+   * timeline's own split, and a dialogue line is free to quote either.
    */
   readonly tree: {
     readonly branches: number;
@@ -85,8 +93,12 @@ export function buildCompanionFacts(): CompanionFacts {
 
   const totalSkills = new Set(skillCategories.flatMap((category) => category.skills)).size;
 
-  const tree = buildKnowledgeTree();
-  const leafTotal = tree.reduce((total, lens) => total + lens.branches.length, 0);
+  // Round 12: the tree inverted (see src/lib/knowledge-tree.ts) — a branch is
+  // now one career entry and a leaf is one authored technology or impact
+  // line, so `tree.length` is the branch count directly and `leafTotal` sums
+  // each branch's own leaves rather than counting (lens, entry) pairs.
+  const tree = buildCareerTree();
+  const leafTotal = tree.reduce((total, branch) => total + branch.leaves.length, 0);
 
   const verified = experiments.filter((experiment) => experiment.verification.length > 0).length;
 
