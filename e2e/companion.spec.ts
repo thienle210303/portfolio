@@ -1521,6 +1521,79 @@ test.describe("companion", () => {
       .toBe("clear");
   });
 
+  test("the follower never drops under WCAG clearance during the whole walk back from a hard scroll", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+
+    /*
+     * WP-R round 15's second follow-up ("the follower trails the lead on
+     * long walks"): the previous test above proves the ride's own frozen
+     * window and the final rest are both clear. What axe kept flaking on
+     * (~1-in-8, even with every settle spot vetted) was neither of those —
+     * it was the multi-second walk *between* them: grey and tabby used to
+     * head for two separately-computed points independently, and two
+     * animals each closing on their own target at their own capped speed
+     * can cross paths on the way however clear the two endpoints are. Gap
+     * measured as low as -36px (real overlap) at the moment axe's own fixed
+     * wait happened to land mid-transit.
+     *
+     * The fix is structural: for as long as the lead is still walking, the
+     * follower's target is his *live* position (`trailBehind`,
+     * companion-motion.ts), not a fixed point of her own — so there is no
+     * second path left to cross. This samples every ~100ms across the
+     * entire walk, not just the two endpoints the test above already
+     * covers, which is the only way to actually make the claim "never
+     * drops under the WCAG minimum" rather than "usually doesn't".
+     */
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const measure = () =>
+      page.evaluate(() => {
+        const button = document.querySelector('[aria-controls="companion-actions"]');
+        const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+        if (!button || cats.length < 2) return null;
+        const follow = cats.find((svg) => !button.contains(svg));
+        if (!follow) return null;
+        const b = button.getBoundingClientRect();
+        const f = follow.getBoundingClientRect();
+        const dxOut = Math.max(f.left - b.right, b.left - f.right);
+        const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
+        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
+      });
+
+    // The same single, instant jump the axe test makes to reach the work
+    // section's own heading — the exact shape that produced a multi-second
+    // walk back and, before this fix, the mid-transit flake.
+    await page.locator("#work-heading").scrollIntoViewIfNeeded();
+
+    // Sample continuously until the follower's own drawn position has held
+    // still for three consecutive ticks (300ms) — the walk is over — or a
+    // generous safety deadline, whichever comes first.
+    let previous: { fx: number; fy: number } | null = null;
+    let stableStreak = 0;
+    let samples = 0;
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline && stableStreak < 3) {
+      const m = await measure();
+      if (m) {
+        samples += 1;
+        expect(
+          m.gap,
+          `only ${m.gap.toFixed(1)}px clear of the toggle mid-walk (sample ${samples})`,
+        ).toBeGreaterThanOrEqual(24);
+        stableStreak =
+          previous && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5 ? stableStreak + 1 : 0;
+        previous = { fx: m.fx, fy: m.fy };
+      }
+      await page.waitForTimeout(100);
+    }
+    expect(samples, "never found a cat pair to measure").toBeGreaterThan(10);
+    expect(stableStreak, "the pair never actually settled inside the sampling window").toBeGreaterThanOrEqual(3);
+  });
+
   test("does not roam when the visitor asks for reduced motion", async ({ browser }) => {
     const context = await browser.newContext({
       viewport: { width: DESKTOP_WIDTH, height: 900 },

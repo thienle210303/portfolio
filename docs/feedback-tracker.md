@@ -661,3 +661,27 @@ Owner, seeing the merged chapter: two "Back to top"s in one screen —
 
 Gate: `pnpm verify` green, full matrix **490 passed / 0 failed**. Item 4
 (closing phrases) still awaits the owner's wording.
+
+### Follower-trailing on long walks (2026-08-25, the filed follow-up executed)
+
+The transit-crossing residual, closed structurally. On the page-length
+walks (home branch, both mood-settle sub-cases) the follower now trails
+the lead's live position via a pure `trailBehind` — one path, nothing to
+cross — and simply keeps trailing his stationary spot once he arrives.
+Wander was audited, attempted, and **reverted with evidence**: gating her
+switch on catching up broke `wanderTo`'s own arrival contract (her ramped
+follow curve never registered "settled" within the suite's own timeouts,
+reproduced twice) — a mechanism that doesn't reliably settle is worse than
+the smaller local exposure it addressed. Tour/watch/scene choreography
+untouched. Along the way a real ordering gap in `resolveFollowClear` was
+found and fixed: the fast path only content-checked when correcting a
+toggle conflict, so a trail spot clear of the toggle but on prose slipped
+through — `isClearSpot` now runs first, unconditionally (a live probe had
+the follower resting on case-study text before the fix). Bounding
+ride-drag distance was considered and not pursued — trailing alone closed
+the gap completely.
+
+Gate: `pnpm verify` green (**130 companion-suite unit tests** among 433
+total), axe case-study **12/12 repeats**, gap-sampling walk-back **6/6**,
+full matrix **491 passed / 0 failed**. Round-14 speed cap and the
+round-12/15 clearance invariants byte-untouched.

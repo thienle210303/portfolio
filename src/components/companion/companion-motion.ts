@@ -245,3 +245,45 @@ export function rideStep(tracker: RideTracker, scrollX: number, scrollY: number,
   tracker.scrollY = scrollY;
   return { dx, dy, riding: now - tracker.lastDeltaAt < RIDE_SETTLE_MS };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Trailing                                                                    */
+/*                                                                             */
+/* WP-R round 15's second follow-up: riding and its own settle chokepoints    */
+/* (searchClearOfToggle, companion-space.ts) guarantee a *resting* spot is    */
+/* clear of the toolkit toggle. They say nothing about the WALK there. Before */
+/* this, a long walk — the "no pointer, go home" branch chief among them —    */
+/* sent both cats *independently* toward two separately-computed points, and  */
+/* two animals each closing on their own target at their own capped speed can */
+/* cross paths on the way, however clear the two endpoints are. Axe caught    */
+/* this live: not mid-ride, but seconds later, mid-transit, gap measured as   */
+/* low as -36px — a real, if momentary, overlap of the follower's own drawn   */
+/* box with the lead's live button.                                          */
+/*                                                                             */
+/* `trailBehind` is not new geometry — it is the exact offset the philosophy  */
+/* mood's own lap and the ordinary pointer-chase already walk the follower by */
+/* while the lead is *going* somewhere specific, extracted here so a long walk */
+/* toward any fixed target can reuse it instead of inventing a fourth copy.   */
+/* Companion.tsx switches a walking follower onto it and off her own,         */
+/* separately-computed spot until the lead is within a few pixels of *his*    */
+/* target — at which point there is no more distance left for their paths to  */
+/* diverge, and she peels off onto her own, already clearance-vetted spot for */
+/* the last few steps. She is never far from him, so there is no second path  */
+/* to cross in the first place — a structural fix, not a wider tolerance.     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Where the follower trails while the lead is walking toward `lead`, facing
+ * `facing` — unclamped, the same as every other raw target on this layer;
+ * the caller runs this through `clampToViewport`.
+ *
+ * `width` and `gap` are the follower's own drawn width and the ordinary
+ * following distance (`CAT_W`, `FOLLOW_GAP` in `Companion.tsx`) — passed in
+ * rather than imported, so this stays a plain geometry function with no
+ * dependency on either constants module. `dy` defaults to the small downward
+ * nudge the existing lap and chase formulas both already use, so a caller
+ * that does not need to vary it can drop it entirely.
+ */
+export function trailBehind(lead: Point, facing: 1 | -1, width: number, gap: number, dy = 3): Point {
+  return { x: lead.x - facing * (width + gap), y: lead.y + dy };
+}

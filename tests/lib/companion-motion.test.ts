@@ -9,6 +9,7 @@ import {
   ramp,
   RIDE_SETTLE_MS,
   rideStep,
+  trailBehind,
 } from "@/components/companion/companion-motion";
 
 /**
@@ -176,5 +177,106 @@ describe("rideStep", () => {
     const frame = rideStep(tracker, 260, 100, 1000);
     expect(frame.dx).toBe(-160);
     expect(frame.dy).toBe(0);
+  });
+});
+
+/**
+ * WP-R round 15's second follow-up ("the follower trails the lead on long
+ * walks"): a long walk toward a fixed point used to send both cats
+ * independently toward two *separately computed* targets, and two animals
+ * each closing on their own point at their own capped speed can cross paths
+ * on the way however clear the two endpoints are — axe caught the follower
+ * transiting through the lead's own toggle clearance for seconds at a time,
+ * gap measured as low as -36px. `trailBehind` is the structural fix: for as
+ * long as the lead is still walking, the follower's target is *his live
+ * position*, not a fixed point of her own — so there is no second path left
+ * to cross. This is not new geometry (it is the exact offset the philosophy
+ * mood's lap and the ordinary pointer-chase already used), only a shared,
+ * pure home for it so a third long walk can reuse it rather than invent a
+ * fourth copy.
+ */
+describe("trailBehind", () => {
+  it("offsets by exactly width + gap along x, opposite the lead's facing", () => {
+    const lead = { x: 500, y: 500 };
+    const right = trailBehind(lead, 1, 50, 26);
+    expect(right.x).toBe(lead.x - 76);
+    const left = trailBehind(lead, -1, 50, 26);
+    expect(left.x).toBe(lead.x + 76);
+  });
+
+  it("offsets by the given dy, defaulting to the small downward nudge every existing caller used", () => {
+    const lead = { x: 0, y: 0 };
+    expect(trailBehind(lead, 1, 50, 26).y).toBe(3);
+    expect(trailBehind(lead, 1, 50, 26, 12).y).toBe(12);
+  });
+
+  it("never lands on the lead itself — trailing always keeps real separation", () => {
+    for (const facing of [1, -1] as const) {
+      const lead = { x: 300, y: 300 };
+      const follow = trailBehind(lead, facing, 50, 26);
+      expect(Math.hypot(follow.x - lead.x, follow.y - lead.y)).toBeGreaterThan(0);
+    }
+  });
+
+  it("translates with the lead — the offset itself does not depend on where he is", () => {
+    const a = trailBehind({ x: 100, y: 100 }, 1, 50, 26);
+    const b = trailBehind({ x: 9100, y: -400 }, 1, 50, 26);
+    expect(b.x - a.x).toBe(9000);
+    expect(b.y - a.y).toBe(-500);
+  });
+
+  /**
+   * The clearance property `FOLLOW_LONG_WALK_GAP` (Companion.tsx) exists to
+   * guarantee: a long-walk trail has to clear the WCAG 2.5.8 minimum on its
+   * own, every frame, not merely once she arrives — a visitor who has
+   * stopped touching the page could be looking at any one of them. Pinned
+   * here against the exact padded box `leadControlRect` (Companion.tsx)
+   * draws around the lead's own live button, so a future change to either
+   * the gap or the padding fails this before it ever reaches a browser.
+   */
+  it("a wide-enough gap clears the WCAG 2.5.8 minimum from the lead's own padded control box, every frame — not just at rest", () => {
+    const CAT_W = 50;
+    const CAT_H = 42;
+    const LEAD_PAD_X = 4;
+    const LEAD_PAD_Y = 3;
+    const WCAG_MIN = 24;
+    const FOLLOW_LONG_WALK_GAP = 34; // must match Companion.tsx's own constant
+    const lead = { x: 500, y: 500 };
+    const rect = {
+      left: lead.x - LEAD_PAD_X,
+      top: lead.y - LEAD_PAD_Y,
+      right: lead.x - LEAD_PAD_X + CAT_W + LEAD_PAD_X * 2,
+      bottom: lead.y - LEAD_PAD_Y + CAT_H + LEAD_PAD_Y * 2,
+    };
+    for (const facing of [1, -1] as const) {
+      const follow = trailBehind(lead, facing, CAT_W, FOLLOW_LONG_WALK_GAP);
+      const box = { left: follow.x, top: follow.y, right: follow.x + CAT_W, bottom: follow.y + CAT_H };
+      const dxOut = Math.max(box.left - rect.right, rect.left - box.right);
+      const dyOut = Math.max(box.top - rect.bottom, rect.top - box.bottom);
+      expect(Math.max(dxOut, dyOut)).toBeGreaterThanOrEqual(WCAG_MIN);
+    }
+  });
+
+  it("the ordinary FOLLOW_GAP, by contrast, does not clear the minimum — trailing at chase distance is motion, not rest, and is not held to this bar", () => {
+    const CAT_W = 50;
+    const CAT_H = 42;
+    const LEAD_PAD_X = 4;
+    const LEAD_PAD_Y = 3;
+    const FOLLOW_GAP = 26; // Companion.tsx's own ordinary chase/lap distance
+    const lead = { x: 500, y: 500 };
+    const rect = {
+      left: lead.x - LEAD_PAD_X,
+      top: lead.y - LEAD_PAD_Y,
+      right: lead.x - LEAD_PAD_X + CAT_W + LEAD_PAD_X * 2,
+      bottom: lead.y - LEAD_PAD_Y + CAT_H + LEAD_PAD_Y * 2,
+    };
+    const follow = trailBehind(lead, 1, CAT_W, FOLLOW_GAP);
+    const box = { left: follow.x, top: follow.y, right: follow.x + CAT_W, bottom: follow.y + CAT_H };
+    const dxOut = Math.max(box.left - rect.right, rect.left - box.right);
+    // Documents the deliberate gap this file's own note explains: ordinary
+    // trailing is watched motion, and this test would break the day someone
+    // "simplifies" the two gaps back down to one without reading why they
+    // are not the same number.
+    expect(dxOut).toBeLessThan(24);
   });
 });
