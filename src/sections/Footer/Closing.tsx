@@ -1,7 +1,17 @@
 import Section from "@/components/ui/Section";
 import SectionHeading from "@/components/ui/SectionHeading";
 import Button from "@/components/ui/Button";
-import { closing } from "@/content/portfolio";
+import { closing, closingSignoffs } from "@/content/portfolio";
+
+// One sign-off per deploy: day-of-year modulo the authored set, computed in
+// this Server Component at build time — the page is statically prerendered,
+// so the pick is frozen into the HTML and there is no client render to
+// disagree with it (the same hydration concern SiteFooter's hardcoded year
+// documents does not arise here).
+const DAY_OF_YEAR = Math.floor(
+  (Date.now() - Date.UTC(new Date().getUTCFullYear(), 0, 0)) / 86_400_000,
+);
+const signoff = closingSignoffs[DAY_OF_YEAR % closingSignoffs.length];
 
 /**
  * Server Component, tone `contrast` — the page's closing chapter, and the
@@ -34,7 +44,13 @@ export default function Closing() {
       labelledBy="closing-heading"
       eyebrow="Closing"
       tone="contrast"
-      className="no-print"
+      // Compressed against the standard section rhythm (owner, round 15:
+      // the merged closing+footer chapter read "too huge") — 60% on top,
+      // 35% below the fleuron, because the colophon line right under it is
+      // the chapter's real last line and the fleuron already provides the
+      // typographic pause. A farewell earns a full-bleed ground, not a
+      // full chapter's worth of air.
+      className="no-print pt-[calc(var(--section-y)*0.6)] pb-[calc(var(--section-y)*0.35)]"
     >
       <SectionHeading id="closing-heading">{closing.heading}</SectionHeading>
 
@@ -51,12 +67,30 @@ export default function Closing() {
         </Button>
       </div>
 
+      {/* The sign-off (round 15, item 4): the page's parting line, set in
+          the display italic with the pun's pivot word as an inline code
+          token — the site's own mono delivering the punchline. One authored
+          line per deploy (see `closingSignoffs`); a pivot-less signoff is a
+          plain italic line. Plain paragraph semantics — the code chip is
+          typography, not meaning. */}
+      <p className="mt-10 font-display text-[length:var(--step-2)] italic leading-snug text-fg">
+        {signoff.lead}
+        {signoff.pivot ? (
+          <>
+            <code className="not-italic rounded-none border border-rule bg-surface px-2 py-0.5 font-mono text-[0.72em] tracking-tight text-fg">
+              {signoff.pivot}
+            </code>
+            {signoff.tail}
+          </>
+        ) : null}
+      </p>
+
       {/* The colophon (Workstream 3, P5): a terminal ornament closing out
           the page's one contrast chapter, built the same way BusinessCard's
           own registration marks are — absolute, aria-hidden, pointer-events-
           none, drawn from `border-rule`/`bg-*` only, never a `box-shadow`.
           See `.colophon` in globals.css for the fleuron itself. */}
-      <div aria-hidden="true" className="colophon mx-auto mt-14" />
+      <div aria-hidden="true" className="colophon mx-auto mt-10" />
     </Section>
   );
 }

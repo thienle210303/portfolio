@@ -1260,3 +1260,21 @@ export const closing = {
   heading: "Thank you for spending a little time with my work.",
   body: "Whether you arrived with an opportunity, an idea, or simple curiosity, I'm glad you visited.",
 } as const;
+
+/**
+ * The sign-off (round 15, item 4): the page's parting line, one per deploy.
+ * Owner-approved wordplay in the owner's voice — approved with creative
+ * license 2026-08-25 ("whatever makes it look good, unique and outstanding").
+ *
+ * `pivot` is the word the pun lands on, rendered in the site's mono as an
+ * inline code token — the joke arrives in the same face the site writes
+ * code in, which is the whole point. A signoff with an empty `pivot` is a
+ * plain line (the chiasmus needs no costume). Rendering picks ONE by
+ * day-of-year at render time; the page is statically built, so the choice
+ * is frozen per deploy and can never mismatch between server and client.
+ */
+export const closingSignoffs = [
+  { lead: "Turn an idea into an ", pivot: "i_did", tail: "." },
+  { lead: "Practice makes ", pivot: "AI", tail: "." },
+  { lead: "Learn as you build. Build as you learn.", pivot: "", tail: "" },
+] as const;

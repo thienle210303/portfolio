@@ -522,9 +522,11 @@ them) — still awaiting a resend.
 
 **Post-round resolution of items 1 and 6:** item 6 never existed (owner
 confirmed), and item 1 turned out to be the `MaxListenersExceededWarning`
-Gzip spam itself — diagnosed as the Claude Code CLI's own log compression
-(PID long gone, zero gzip usage anywhere in this repo), benign, remedied by
-updating the CLI or ignoring it. Nothing to build.
+Gzip spam itself — benign, nothing to build. **Correction (2026-08-25):**
+the round-10 diagnosis blamed the Claude Code CLI's log compression; a
+later Playwright run caught the warning live with a `[WebServer]` prefix —
+it is emitted by the `next dev` server process itself under concurrent
+request load. Same verdict (harmless, ignorable), corrected culprit.
 
 ## Round 11 (2026-08-23) — the backlog round
 
@@ -685,3 +687,19 @@ Gate: `pnpm verify` green (**130 companion-suite unit tests** among 433
 total), axe case-study **12/12 repeats**, gap-sampling walk-back **6/6**,
 full matrix **491 passed / 0 failed**. Round-14 speed cap and the
 round-12/15 clearance invariants byte-untouched.
+
+### The sign-off (2026-08-25) — round 15 item 4 closes
+
+Owner: "whatever makes it look good, unique and outstanding." The parting
+line is the site's own joke told in its own materials: display italic with
+the pun's pivot as an inline mono code token — *Turn an idea into an*
+`i_did`. Three authored lines (`closingSignoffs`: `i_did` · Practice makes
+`AI` · Learn as you build. Build as you learn.), one per deploy by
+day-of-year, frozen into the static build so nothing can mismatch. Owner
+follow-up ("too huge") compressed the merged chapter: 60% section rhythm
+above, 35% below the fleuron — measured 900→620px.
+
+Gate: `pnpm verify` green, full matrix **491 passed / 0 failed** (one
+intermediate run failed 10 tests, all chromium-320, all unrelated specs,
+all passing 20/20 scoped — a loaded-machine shard, recorded as
+environmental). With this, every item from rounds 1–15 is shipped.
