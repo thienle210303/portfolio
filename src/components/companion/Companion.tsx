@@ -72,6 +72,7 @@ import {
   randomFacing,
   refreshSafeArea,
   safeTop,
+  searchClearOfToggle,
   setControlRects,
   setReservedRects,
   standingSpots,
@@ -661,10 +662,65 @@ function leadControlRect(pos: Point): RectLike {
  * finished `{ lead, follow }` back to its caller, means every reader after
  * that — the movement code and any arrival check alike — sees the same,
  * already-clear pair of points. Nothing downstream has to know this ran.
+ *
+ * WP-R round 15 follow-up (two passes): `keepClearOfControl`'s own
+ * candidates know nothing about content — they are chosen purely to widen
+ * the gap from the lead's control rect, on the assumption (true for the
+ * tour and watch spots this was built for, both already probed with
+ * `isClearSpot` before this ever runs) that the ground immediately around
+ * an already-clear spot is itself ground. Extending this to spots that were
+ * never probed that carefully — a section mood's own resting spot, the
+ * corner fallback, a wander stay, all round 15 additions — broke exactly
+ * that assumption: axe stayed quiet, but the cheap push itself landed the
+ * follower on a paragraph she would otherwise have been sitting clear of.
+ *
+ * The first fix simply refused a push that failed `isClearSpot` and kept
+ * the original spot — safe, but only half the promise: the follower could
+ * then *settle*, not just cross, inside the toggle's clearance zone, which
+ * axe caught as a resting violation rather than a transit one. Refusing is
+ * not the same as solving it. `resolveFollowClear` is the actual fix: when
+ * the cheap push conflicts with content, the answer is to keep searching —
+ * see its own note — never to accept either compromise.
  */
 function clearFollowOfToggle(spots: Spots): Spots {
-  const follow = keepClearOfControl(spots.follow, leadControlRect(spots.lead));
+  const follow = resolveFollowClear(spots.follow, spots.lead);
   return follow === spots.follow ? spots : { lead: spots.lead, follow };
+}
+
+/**
+ * The follower's own clearance resolution, shared by every settle chokepoint
+ * that hands her a finished spot (`clearFollowOfToggle`, above) and by the
+ * ride-freeze correction (see `step()`, where `tabby.pos` itself — not a
+ * spot being chosen — is the thing being resolved).
+ *
+ * Three tiers, cheapest first: `want` may already clear the toggle (no work
+ * to do); `keepClearOfControl`'s own four-point push may find a spot that
+ * clears it *and* is still content-clear (the common case, one function
+ * call); only when that push itself lands on content does this widen to
+ * `searchClearOfToggle` over `standingSpots(want)` — the same page-spanning
+ * sweep a settling cat's own placement already draws from, seeded nearest
+ * `want` so a widened search still lands as close to the mood's original
+ * intent as the two constraints allow.
+ *
+ * The contract this keeps for every caller: **a value that differs from
+ * `want` is always `isClearSpot`.** `searchClearOfToggle` only ever returns
+ * a content-clear candidate or `null`; the `?? want` fallback below only
+ * fires when the whole page band conflicted, in which case handing back
+ * `want` unchanged is not a new violation — it is simply not fixing an old
+ * one nothing here found room to fix. Callers that already know `want` is
+ * itself content-clear (every settle spot on this layer — each one came
+ * through `findClearSpot` or `mateSpot`) get an unconditionally safe result;
+ * the ride-freeze caller, whose `want` is a live position never itself
+ * probed for content, gets the same no-worse-than-before guarantee: a
+ * value that changes is clear, and a value that does not change is exactly
+ * what would have painted anyway.
+ */
+function resolveFollowClear(want: Point, leadPos: Point): Point {
+  const rect = leadControlRect(leadPos);
+  const pushed = keepClearOfControl(want, rect);
+  if (pushed === want) return want;
+  if (isClearSpot(pushed)) return pushed;
+  return searchClearOfToggle(standingSpots(want), rect, isClearSpot) ?? want;
 }
 
 /**
@@ -1989,19 +2045,19 @@ export function Companion({ facts }: CompanionProps) {
       // the lead away from the ball he is supposed to be batting.
       if (playRef.current) {
         moodWalk.current = null;
-        return nearbySpots();
+        return clearFollowOfToggle(nearbySpots());
       }
 
       const held = moodRun.current;
       if (held?.walked && isClearSpot(held.spots.lead) && isClearSpot(held.spots.follow)) {
-        return held.spots;
+        return clearFollowOfToggle(held.spots);
       }
 
       const plan = planMood(sectionRef.current, grey.pos, tabby.pos, homeSpot());
       if (!plan) {
         moodRun.current = null;
         moodWalk.current = null;
-        return nearbySpots();
+        return clearFollowOfToggle(nearbySpots());
       }
 
       // A lap already walked stays walked — the memory is what makes "once"
@@ -2025,7 +2081,7 @@ export function Companion({ facts }: CompanionProps) {
         }
       }
 
-      return plan.spots;
+      return clearFollowOfToggle(plan.spots);
     }
 
     /**
@@ -2067,7 +2123,7 @@ export function Companion({ facts }: CompanionProps) {
       }
 
       const chosen = planWander(sectionRef.current, grey.pos, tabby.pos, homeSpot());
-      const spots = chosen ?? nearbySpots();
+      const spots = clearFollowOfToggle(chosen ?? nearbySpots());
       wanderRun.current = {
         spots,
         arrivedAt: 0,
@@ -2131,9 +2187,11 @@ export function Companion({ facts }: CompanionProps) {
        * companion-motion.ts for why this has to run first. Both cats are
        * nudged by the same `dx`/`dy`, which is what keeps their own mutual
        * geometry (the follow gap, the toolkit-clearance invariant) exactly
-       * as it was the instant before the scroll: a uniform translation moves
+       * as it was the instant before this translation: a uniform shift moves
        * two points the same distance in the same direction, so the vector
-       * between them — and any clearance measured off it — is untouched.
+       * between them is untouched *by the ride itself*. It is the clamp
+       * right below — applied to each cat independently — that can still
+       * undo that; see the note there.
        */
       rideRef.current ??= initRide(window.scrollX, window.scrollY);
       const ride = rideStep(rideRef.current, window.scrollX, window.scrollY, now);
@@ -2804,7 +2862,13 @@ export function Companion({ facts }: CompanionProps) {
         leadWant = going.lead;
         followWant = going.follow;
       } else if (!pointer || aloneFor > sleepAfter) {
-        if (!homeSpots.current) homeSpots.current = restSpots(home, followHome(home));
+        // WP-R round 15 follow-up: `restSpots` alone does not check toggle
+        // clearance (see the note on `restingPlaces`'s own fix, above) — and
+        // this is the branch a visitor who never moves the mouse at all (the
+        // e2e case that first caught it) or who has gone idle sits in for as
+        // long as that holds, so an unvetted gap here is not a one-frame
+        // accident, it is the resting state itself.
+        if (!homeSpots.current) homeSpots.current = clearFollowOfToggle(restSpots(home, followHome(home)));
         leadWant = homeSpots.current.lead;
         followWant = homeSpots.current.follow;
       } else {
@@ -2874,8 +2938,61 @@ export function Companion({ facts }: CompanionProps) {
        * This is the lead's own final word on it; the follower gets a second
        * one, below, after her own trailing logic has had its say — see the
        * note there for why one freeze here is not enough for both of them.
+       *
+       * The same `if` also corrects `tabby.pos` itself, not just her `want` —
+       * see the note just inside it for why that is a second, genuinely new
+       * bug rather than part of the freeze above.
        */
-      if (ride.riding && !run && !rushing) leadWant = grey.pos;
+      if (ride.riding && !run && !rushing) {
+        leadWant = grey.pos;
+
+        /**
+         * WP-R round 15 follow-up: the ride's own translation is uniform —
+         * both cats move by the same `dx`/`dy`, so it cannot by itself change
+         * the vector between them — but `keepInView` two lines above clamps
+         * each of them independently, against bounds that know nothing about
+         * the *other* animal. Ride the pair far enough toward a corner — a
+         * hard vertical scroll near the top of the page is the case that
+         * actually reached this — and both cats can clamp to nearly the same
+         * box, collapsing whatever gap the ride itself preserved. Axe caught
+         * exactly that: the follower parked inside `TOGGLE_CLEARANCE` of the
+         * lead's own live button, top-right, just under the sticky header.
+         *
+         * `keepClearOfControl` is round 12's answer to this exact shape of
+         * problem, but until now it only ever ran at the moment a *target*
+         * was chosen (`clearFollowOfToggle`, for a tour or watch spot) —
+         * riding never asks for a new target at all, so that chokepoint
+         * never saw it. It is deliberately scoped to this same `riding &&
+         * !run && !rushing` branch rather than asserted every frame: an
+         * unconditional version was tried first and broke five unrelated
+         * tests (the guided tour never arrived, "stays with a visitor who is
+         * reading" never made it to bed, the wander scene test) — ordinary
+         * trailing (`FOLLOW_GAP`, 26px) and the resting-box slots both sit
+         * closer to the lead's control rect than `TOGGLE_CLEARANCE` (28px)
+         * by design, and those are *motion* or momentary states this feature
+         * has always allowed ("crossing something while it moves is fine;
+         * parking on it is not" — the file banner's own rule). Riding is the
+         * one state where that distinction collapses: `advance` is not
+         * running at all while frozen, so whatever position the clamp leaves
+         * the pair in this frame is not fleeting — it is what a visitor, or
+         * axe, sees for as long as the ride continues. That is the one new
+         * circumstance this correction exists for, so it is the only one it
+         * is asked to cover.
+         *
+         * Routed through `resolveFollowClear` — the same widened-search
+         * resolution every settle chokepoint now uses — rather than a bare
+         * `keepClearOfControl` call, for the same reason (see that
+         * function's own note): the cheap push can land on content while
+         * frozen mid-ride exactly as it can at settle time, and refusing the
+         * push outright used to leave the frame at whatever gap the ride
+         * happened to collapse it to — a real, if rarer, resting violation.
+         * `resolveFollowClear`'s contract (a changed value is always
+         * content-clear) means this can assign unconditionally.
+         */
+        const followClear = resolveFollowClear(tabby.pos, grey.pos);
+        tabby.pos.x = followClear.x;
+        tabby.pos.y = followClear.y;
+      }
 
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;

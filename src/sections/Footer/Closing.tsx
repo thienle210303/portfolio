@@ -4,10 +4,13 @@ import Button from "@/components/ui/Button";
 import { closing } from "@/content/portfolio";
 
 /**
- * Server Component, tone `contrast` — the page's closing chapter, and one of
- * only two sections that invert against the active theme (Contact is the
- * other). Ending on the inverted ground gives the two calls to action a
- * ground of their own to sit on after a long light read.
+ * Server Component, tone `contrast` — the page's closing chapter, and the
+ * page's one inverting section since Contact moved to `deep` (round 0,
+ * FB-4). Ending on the inverted ground gives the call to action a ground of
+ * its own to sit on after a long light read. Since round 15 the SiteFooter
+ * colophon shares this same tone scope and renders directly below with no
+ * separating border — chapter and colophon read as one closing block, and
+ * the page's single "Back to top" lives down there.
  *
  * Everything here — this file's own text and borders as much as the shared
  * `Button` / `SectionHeading` primitives — styles against the semantic
@@ -37,13 +40,14 @@ export default function Closing() {
 
       <p className="max-w-[68ch] text-[length:var(--step-1)] text-fg-muted">{closing.body}</p>
 
+      {/* One action, not two (round 15): the colophon line directly below —
+          same tone scope since the footer joined this chapter — already
+          carries the page's single "Back to top", so a second boxed copy a
+          few hundred pixels above it was pure duplication. "Get in touch"
+          stays as the chapter's one primary control. */}
       <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
         <Button href="#contact" variant="primary" size="md">
           Get in touch
-        </Button>
-
-        <Button href="#main" variant="secondary" size="md">
-          Back to top
         </Button>
       </div>
 

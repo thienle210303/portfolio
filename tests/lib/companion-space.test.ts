@@ -7,6 +7,7 @@ import {
   keepClearOfControl,
   randomFacing,
   randomViewportPoint,
+  searchClearOfToggle,
   setControlRects,
   setReservedRects,
   TOGGLE_CLEARANCE,
@@ -302,6 +303,83 @@ describe("keepClearOfControl — the target-size invariant", () => {
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
     }
+  });
+});
+
+/**
+ * WP-R round 15's second follow-up: `keepClearOfControl`'s own four-point
+ * push can land on content, because it knows nothing about content at all —
+ * it was built to widen a gap from a control rect, full stop. Accepting a
+ * push that lands on a paragraph trades one violation for a worse one;
+ * refusing it outright and keeping the original spot only trades it back —
+ * the follower still *rests* too close to the toggle, which is what axe
+ * caught live. `searchClearOfToggle` is the actual fix: widen the search
+ * instead of accepting either compromise, over a candidate pool the caller
+ * supplies (`standingSpots`' own page-spanning sweep, in production) with a
+ * DOM-free `isClear` predicate the caller also supplies — which is what
+ * keeps this pure and testable without a browser in the room.
+ */
+describe("searchClearOfToggle", () => {
+  it("skips a nearer candidate that fails content-clearance for a farther one that clears both", () => {
+    const leadRect = leadControlRect({ x: 500, y: 500 });
+    // Nearest first, the shape `standingSpots` itself returns: the first two
+    // clear the control but not content (a paragraph sits there), the third
+    // clears both.
+    const candidates: Point[] = [
+      { x: leadRect.left - CAT_W - TOGGLE_CLEARANCE, y: 500 }, // clears control, on content
+      { x: leadRect.right + TOGGLE_CLEARANCE, y: 500 }, // clears control, on content
+      { x: 900, y: 900 }, // clears both
+    ];
+    const onContent = new Set([0, 1]);
+    const isClear = (p: Point) => !onContent.has(candidates.indexOf(p));
+    expect(searchClearOfToggle(candidates, leadRect, isClear)).toEqual(candidates[2]);
+  });
+
+  it("never returns a content-conflicted candidate, even one with a better control gap than every clear alternative", () => {
+    const leadRect = leadControlRect({ x: 500, y: 500 });
+    const onTop: Point = { x: 500, y: 500 }; // deep control overlap, but content-clear
+    const farButConflicted: Point = { x: 2000, y: 2000 }; // huge control gap, on content
+    const isClear = (p: Point) => p !== farButConflicted;
+    // The conflicted candidate would win on control-gap alone by a mile;
+    // content-clearance still has to rule it out.
+    const result = searchClearOfToggle([farButConflicted, onTop], leadRect, isClear);
+    expect(result).toEqual(onTop);
+  });
+
+  it("resolves a pool of only conflicted-near spots to the farther, content-clear one that actually satisfies both", () => {
+    const leadRect = leadControlRect({ x: 500, y: 500 });
+    const near1: Point = { x: 495, y: 495 }; // overlapping the control, on content
+    const near2: Point = { x: 505, y: 505 }; // overlapping the control, on content
+    const farClear: Point = { x: 900, y: 500 }; // well clear of both
+    const isClear = (p: Point) => p === farClear;
+    const result = searchClearOfToggle([near1, near2, farClear], leadRect, isClear);
+    expect(result).toEqual(farClear);
+    const box = { left: result!.x, top: result!.y, right: result!.x + CAT_W, bottom: result!.y + CAT_H };
+    const gap = Math.max(
+      Math.max(box.left - leadRect.right, leadRect.left - box.right),
+      Math.max(box.top - leadRect.bottom, leadRect.top - box.bottom),
+    );
+    expect(gap).toBeGreaterThanOrEqual(TOGGLE_CLEARANCE);
+  });
+
+  it("falls back to the content-clear candidate with the best gap when none reach the full clearance — distance is always available, overlap never is", () => {
+    const leadRect = leadControlRect({ x: 500, y: 500 });
+    // Every candidate is content-clear but short of TOGGLE_CLEARANCE; the
+    // one with the largest real gap should win rather than the first or a
+    // null "give up".
+    const worse: Point = { x: leadRect.left - CAT_W - 10, y: 500 };
+    const better: Point = { x: leadRect.left - CAT_W - 18, y: 500 };
+    const result = searchClearOfToggle([worse, better], leadRect, () => true);
+    expect(result).toEqual(better);
+  });
+
+  it("returns null only when nothing in the pool is content-clear at all", () => {
+    const leadRect = leadControlRect({ x: 500, y: 500 });
+    const candidates: Point[] = [
+      { x: 0, y: 0 },
+      { x: 900, y: 900 },
+    ];
+    expect(searchClearOfToggle(candidates, leadRect, () => false)).toBeNull();
   });
 });
 

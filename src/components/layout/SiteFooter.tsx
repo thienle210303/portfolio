@@ -41,13 +41,15 @@ export default function SiteFooter() {
 
   return (
     // `tone-contrast`, matching the Closing section directly above (round 15,
-    // item 5): the page's final chapter used to end with a hard cut — dark
-    // thank-you, then a light colophon strip. The footer now lives inside the
-    // same tone scope, so every alias below (`bg-ground`, `text-fg`,
-    // `border-rule`) resolves to the contrast palette and the hairline is the
-    // only seam. No raw tokens; the companion's tone sampler picks this up
-    // like any other scope.
-    <footer className="tone-contrast border-t border-rule bg-ground text-fg">
+    // item 5, deepened by the owner's follow-up): the page's final chapter
+    // used to end with a hard cut — dark thank-you, then a light colophon
+    // strip, then TWO "Back to top" controls within one screen. The footer
+    // now lives inside the closing's tone scope with no separating border
+    // (the closing's own fleuron ornament above is the typographic break),
+    // and carries the page's single Back to top — the closing's boxed copy
+    // is gone. Aliases only; the companion's tone sampler picks this scope
+    // up like any other.
+    <footer className="tone-contrast bg-ground text-fg">
       <div className="shell">
         <div className="flex flex-wrap items-center gap-y-2 py-5 text-[length:var(--step--1)] text-fg-subtle">
           {/* `tabular-nums` (Workstream 3, P4): the year sets in this line's

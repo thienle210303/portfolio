@@ -647,3 +647,17 @@ Gate: `pnpm verify` green (**422 unit tests**), full Playwright matrix
 **489 passed / 0 failed**, first run. Lead visual pass at 1440 both themes:
 the ring-with-gates figure, the unified dark closing+footer, the seed
 landing on real ground (builder-verified with measured screenshots).
+
+### Round 15 follow-up (2026-08-24/25)
+
+Owner, seeing the merged chapter: two "Back to top"s in one screen —
+"merge the closing to footer as well."
+
+| Change | Outcome |
+| --- | --- |
+| One closing block | The closing's boxed "Back to top" deleted (the colophon's is the page's single exit); the footer's separating border removed — the fleuron is the typographic break. Thank-you → Get in touch → fleuron → colophon, one dark chapter |
+| Ride × clamp axe regression | The merge-gate matrix caught the follower resting inside the lead's toggle clearance after a hard scroll: the ride's uniform translation preserves the pair's gap but per-cat viewport clamping does not, and the ride-freeze held the collapsed arrangement. Fixed in layers: (1) the ride-freeze applies the clearance invariant to the follower's post-clamp position; (2) `clearFollowOfToggle` extended to every settle chokepoint (restingPlaces, home, wanderTo); (3) a content-safety gate the builder caught itself — a pushed candidate may never land on prose; (4) the final piece: **toggle clearance is a hard AND-ed constraint of the settle search** (`searchClearOfToggle` — content-conflicted candidates discarded outright, pool widens until both rules hold, best-gap fallback, distance always preferred over overlap). 5 new pool tests |
+| Audit samples the resting UI | The axe case-study test gained a settle-wait for the companions before auditing — sampling mid-walk fails on motion the design permits (round-8 mid-stride precedent). The transit window itself stays tracked (the filed follower-trailing chip) as a real design note |
+
+Gate: `pnpm verify` green, full matrix **490 passed / 0 failed**. Item 4
+(closing phrases) still awaits the owner's wording.

@@ -1434,6 +1434,93 @@ test.describe("companion", () => {
     await expectRestClearOfContent(page, "after a hard scroll settles");
   });
 
+  test("keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+
+    /*
+     * WP-R round 15 follow-up: the ride's own translation is uniform — both
+     * cats move by the same amount, so it cannot by itself change the vector
+     * between them — but `keepInView` clamps each cat independently, against
+     * bounds that know nothing about the other animal, and a hard, deep
+     * scroll like the one below can ride the pair far enough from wherever
+     * they were (a page-load default is the bottom-right corner) that the
+     * walk back afterwards is a real, multi-second one — during which grey
+     * and tabby are each walking toward their *own* target independently,
+     * and their paths can legitimately cross for a frame or two. That is
+     * "crossing while it moves", the same licence every other walk on this
+     * layer already has (see the file banner's rule 1) — so what this test
+     * holds honestly to two separate claims, on two different clocks: the
+     * correction holds *throughout* the ride itself (the frozen window the
+     * bug report actually described), and the pair land clear once they
+     * have actually stopped moving, not merely once some fixed delay has
+     * elapsed. Axe caught the gap live at exactly this deep-scroll shape,
+     * top-right and just under the header, after the same jump
+     * `axe.spec.ts`'s own "case-study disclosure" test makes to reach
+     * `#work-heading`.
+     */
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const measure = () =>
+      page.evaluate(() => {
+        const button = document.querySelector('[aria-controls="companion-actions"]');
+        const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+        if (!button || cats.length < 2) return null;
+        // The follower is whichever cat's own drawing is not inside the
+        // button — the lead's is, since the toggle *is* the lead cat.
+        const follow = cats.find((svg) => !button.contains(svg));
+        if (!follow) return null;
+        const b = button.getBoundingClientRect();
+        const f = follow.getBoundingClientRect();
+        const dxOut = Math.max(f.left - b.right, b.left - f.right);
+        const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
+        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
+      });
+
+    // The same single, instant jump `axe.spec.ts` makes to reach the work
+    // section's own heading — large enough, this deep in the page, to clamp
+    // both cats toward the top of the viewport in one frame.
+    await page.locator("#work-heading").scrollIntoViewIfNeeded();
+
+    // Claim one: the correction holds for as long as the ride itself does.
+    // `RIDE_SETTLE_MS` (companion-motion.ts) is 220ms; sampled well inside
+    // that window, on the loop's own render cadence (`RENDER_INTERVAL`,
+    // 32ms), so this is checking live frames rather than the same one twice.
+    for (let sample = 0; sample < 5; sample += 1) {
+      const m = await measure();
+      expect(m, "no cat pair found to measure").not.toBeNull();
+      expect(m!.gap, `only ${m!.gap.toFixed(1)}px clear of the toggle while riding`).toBeGreaterThanOrEqual(
+        24,
+      );
+      await page.waitForTimeout(35);
+    }
+
+    // Claim two: once they have actually stopped — not "once some fixed
+    // delay has passed", which is the whole reason the axe test upstream
+    // still flakes on this shape of scroll — the gap clears too. Polled the
+    // same way `expectRestClearOfContent` waits out a walk: two samples with
+    // a pause between, thrown away unless the follower's own drawn position
+    // was still (within noise) between them. WCAG 2.5.8's own target-size
+    // minimum (24px) is the bar `TOGGLE_CLEARANCE` is built to clear.
+    await expect
+      .poll(
+        async () => {
+          const a = await measure();
+          if (!a) return "no cats";
+          await page.waitForTimeout(250);
+          const b = await measure();
+          if (!b) return "no cats";
+          if (Math.hypot(b.fx - a.fx, b.fy - a.fy) > 1) return "still walking";
+          return b.gap >= 24 ? "clear" : `only ${b.gap.toFixed(1)}px clear at rest`;
+        },
+        { timeout: 20_000, message: "the pair never settled clear of the toggle" },
+      )
+      .toBe("clear");
+  });
+
   test("does not roam when the visitor asks for reduced motion", async ({ browser }) => {
     const context = await browser.newContext({
       viewport: { width: DESKTOP_WIDTH, height: 900 },
