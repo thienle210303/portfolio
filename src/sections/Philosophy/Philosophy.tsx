@@ -1,9 +1,13 @@
 /**
  * Philosophy — id="philosophy", tone "charcoal", eyebrow "02 / PHILOSOPHY".
  * Composes the section shell (Section + SectionHeading, matching
- * SelectedWork.tsx's conventions) around the two owned list components and
- * a closing pull-quote. Every fact rendered here comes from
- * `@/content/portfolio`; nothing is invented.
+ * SelectedWork.tsx's conventions) around the owned list and graph
+ * components. Every fact rendered here comes from `@/content/portfolio`;
+ * nothing is invented — except `WorkflowGraph`'s own nodes, which are
+ * equally verbatim but drawn from `workflowStages` in
+ * `@/content/ai-experiments` instead (see that component's own doc comment
+ * for why a second content file is the honest source for a graph layer
+ * about AI-assisted engineering).
  *
  * Heading accessibility: the visible <h2> is the stylised glyph line
  * "Unsolved ≠ Unsolvable". A screen reader reading "≠" character-by-character
@@ -29,8 +33,10 @@ import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { philosophyIntro, principles, problemSolvingLoop, profile } from "@/content/portfolio";
+import { workflowStages } from "@/content/ai-experiments";
 import PrincipleList from "./PrincipleList";
 import ProblemSolvingLoop from "./ProblemSolvingLoop";
+import WorkflowGraph from "./WorkflowGraph";
 
 const HEADING_ID = "philosophy-heading";
 
@@ -74,6 +80,7 @@ export default function Philosophy() {
 
       <div className="mt-16 md:mt-20">
         <ProblemSolvingLoop steps={problemSolvingLoop} philosophy={profile.philosophy} />
+        <WorkflowGraph stages={workflowStages} />
       </div>
     </Section>
   );

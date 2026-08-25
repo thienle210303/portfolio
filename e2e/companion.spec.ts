@@ -1345,6 +1345,95 @@ test.describe("companion", () => {
     ).toEqual([]);
   });
 
+  test("rides the page during a scroll instead of drifting at scroll speed relative to the text", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    /*
+     * WP-R round 15: the owner's report from the far side of round 14's own
+     * fix — "when I scroll up and down the cat is moving really forward and
+     * backward". Round 14 capped how fast a cat *chases* a target; this bug
+     * has nothing to do with chasing at all. The cats are `position: fixed`,
+     * so a settled one holds its exact viewport pixel while the page moves
+     * underneath it — and relative to whatever paragraph it was "standing
+     * beside", a cat that has not taken a single step is the one doing the
+     * travelling. The fix is that the pair now ride the page: what has to
+     * stay constant across a scroll is their position relative to the
+     * *document*, not the viewport.
+     *
+     * `document.body` stands in for "the content" rather than any one piece
+     * of it — every element on the page moves by exactly the distance the
+     * page scrolled, so the cat's offset from the body's own rect makes the
+     * same claim a specific paragraph would, without this test depending on
+     * markup another WP-R lane owns concurrently.
+     */
+    await page.mouse.move(700, 500);
+    await page.mouse.move(700, 500);
+    // Past SETTLE_AFTER (2.4s): the pair have stopped trailing the pointer
+    // and are holding a real resting spot — the case the report is about.
+    await page.waitForTimeout(2700);
+
+    const measure = () =>
+      page.evaluate(() => {
+        const svg = document.querySelector("[data-companion] svg[data-cat]");
+        const cat = svg?.closest("[data-companion] > *") as HTMLElement | null;
+        if (!cat) return null;
+        const c = cat.getBoundingClientRect();
+        const b = document.body.getBoundingClientRect();
+        const header = document.querySelector("header");
+        return {
+          top: c.top,
+          offset: { x: c.left - b.left, y: c.top - b.top },
+          safeTop: header ? header.getBoundingClientRect().bottom : 0,
+        };
+      });
+
+    const start = await measure();
+    expect(start, "no cat found to measure").not.toBeNull();
+
+    /*
+     * Round 15's own clamp — a riding cat holds at the viewport edge rather
+     * than being carried off it — is real, deliberate behaviour, and a
+     * different claim than the one this test makes. Wherever the section
+     * mood or the pointer happened to settle the pair vertically, the scroll
+     * budget below stays inside the headroom they actually have above the
+     * header, so this exercises riding in isolation rather than conflating
+     * it with the edge clamp a further scroll would legitimately trigger.
+     */
+    const headroom = Math.max(40, start!.top - start!.safeTop - 20);
+    const total = Math.min(420, headroom);
+    const perTick = total / 6;
+
+    const baseline = start!.offset;
+    // Scroll hard, continuously, and sample throughout rather than only at
+    // the end — the claim under test is that the pair hold their place
+    // *during* the scroll, not merely that they land somewhere sensible once
+    // it stops. Each gap is well inside both the ride's own settle window
+    // and the loop's scroll-quiet debounce, so this is one continuous ride
+    // from the loop's point of view, the same as a visitor's own scrolling.
+    for (let tick = 0; tick < 6; tick += 1) {
+      await page.mouse.wheel(0, perTick);
+      await page.waitForTimeout(50);
+      const now = await measure();
+      expect(now, "no cat found to measure").not.toBeNull();
+      const drift = Math.hypot(now!.offset.x - baseline.x, now!.offset.y - baseline.y);
+      // The honest contract: not "did not move" (a chase that merely lags
+      // still moves), but "moved far less than the total scroll this loop
+      // just applied" — the gap between riding the page and sliding across
+      // the text at scroll speed.
+      expect(drift, `drifted ${drift.toFixed(1)}px from the content mid-scroll`).toBeLessThan(60);
+    }
+
+    // And once the page actually stops moving, the pair are still somewhere
+    // legal: not stranded off their anchor, not left parked on a paragraph by
+    // the walk back to wherever their mode wants them once the ride ends.
+    await expectRestClearOfContent(page, "after a hard scroll settles");
+  });
+
   test("does not roam when the visitor asks for reduced motion", async ({ browser }) => {
     const context = await browser.newContext({
       viewport: { width: DESKTOP_WIDTH, height: 900 },

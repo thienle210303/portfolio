@@ -5,7 +5,10 @@ import {
   FOLLOW_BRAKE,
   FOLLOW_MAX,
   followTarget,
+  initRide,
   ramp,
+  RIDE_SETTLE_MS,
+  rideStep,
 } from "@/components/companion/companion-motion";
 
 /**
@@ -103,5 +106,75 @@ describe("ramp", () => {
     const speed = ramp(0, wish);
     expect(speed).toBeCloseTo(FOLLOW_ACCEL, 5);
     expect(speed).toBeLessThan(FOLLOW_MAX);
+  });
+});
+
+/**
+ * WP-R round 15 ("the cat is moving really forward and backward" on scroll):
+ * round 14 capped the speed a cat *chases* a target at, but a settled cat
+ * chases nothing — `want` and `pos` already agree, so `advance` correctly
+ * does nothing while the fixed cat holds its viewport pixel and the whole
+ * page slides past underneath it. `rideStep` is the other half: not a speed
+ * cap, but the exact, uncapped correction that keeps a fixed element's
+ * *content-relative* position constant across a real scroll, so there is
+ * nothing left for `advance` to chase in the first place.
+ */
+describe("rideStep", () => {
+  it("reports no delta and is not riding before the page has ever scrolled", () => {
+    const tracker = initRide(0, 500);
+    const frame = rideStep(tracker, 0, 500, 1000);
+    expect(frame).toEqual({ dx: 0, dy: 0, riding: false });
+  });
+
+  it("reports the exact, uncapped offset a fixed element needs to hold its place over the content", () => {
+    // Scrolling down by 800 (the page's own y growing) moves the content
+    // *up* by 800 in the viewport — so a rider follows it up, not down.
+    const tracker = initRide(0, 500);
+    const frame = rideStep(tracker, 0, 500 + 800, 1000);
+    expect(frame.dx).toBe(0);
+    expect(frame.dy).toBe(-800);
+    expect(frame.riding).toBe(true);
+  });
+
+  it("is not capped the way advance() is — a scroll-sized jump reports the whole distance in one call", () => {
+    // The very case round 14 exists to cap for a *chase* is exactly the case
+    // riding must not cap at all: the correction has to be exact or the cat
+    // visibly drifts off the content it was meant to hold its place beside.
+    const tracker = initRide(0, 0);
+    const frame = rideStep(tracker, 0, 20_000, 1000);
+    expect(frame.dy).toBe(-20_000);
+  });
+
+  it("keeps riding for a beat after the delta stops, then settles", () => {
+    const tracker = initRide(0, 0);
+    rideStep(tracker, 0, 300, 1000);
+    // The scroll position has stopped changing, but not long enough ago.
+    const stillRiding = rideStep(tracker, 0, 300, 1000 + RIDE_SETTLE_MS - 1);
+    expect(stillRiding).toEqual({ dx: 0, dy: 0, riding: true });
+    // Now it has been quiet for the full settle window.
+    const settled = rideStep(tracker, 0, 300, 1000 + RIDE_SETTLE_MS + 1);
+    expect(settled).toEqual({ dx: 0, dy: 0, riding: false });
+  });
+
+  it("a momentum scroll's own sparse, sub-pixel ticks still read as one continuous ride", () => {
+    // Real momentum scrolling does not deliver a delta every frame — a tick
+    // arrives, then a gap under the settle window, then another tick. None
+    // of those gaps should read as "settled" on their own.
+    const tracker = initRide(0, 0);
+    let now = 0;
+    let y = 0;
+    for (let tick = 0; tick < 5; tick += 1) {
+      y += 40;
+      const frame = rideStep(tracker, 0, y, now);
+      expect(frame.riding).toBe(true);
+      now += RIDE_SETTLE_MS - 40; // a gap, but inside the settle window
+    }
+  });
+
+  it("moves the axis the page actually scrolled, and only that axis", () => {
+    const tracker = initRide(100, 100);
+    const frame = rideStep(tracker, 260, 100, 1000);
+    expect(frame.dx).toBe(-160);
+    expect(frame.dy).toBe(0);
   });
 });

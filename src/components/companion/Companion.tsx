@@ -47,7 +47,7 @@ import {
   type StoryBeatKind,
 } from "./companion-dialogue";
 import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
-import { advance, followTarget, ramp } from "./companion-motion";
+import { advance, followTarget, initRide, ramp, rideStep, type RideTracker } from "./companion-motion";
 import {
   TOUR_STOPS,
   isLastStop,
@@ -1298,6 +1298,14 @@ export function Companion({ facts }: CompanionProps) {
   const rushRef = useRef<{ dir: 1 | -1; until: number } | null>(null);
   const rushWindow = useRef<{ y: number; at: number } | null>(null);
 
+  /** WP-R round 15: the scroll tracker `rideStep` needs between frames — see
+   *  its own file banner in companion-motion.ts. Lazily primed on the loop's
+   *  first frame (`??=` below) rather than at mount, so a visitor who scrolls
+   *  before the roaming loop ever starts (reduced motion, a touch device,
+   *  "resting") never has a stale scroll position to report a phantom ride
+   *  against once it does. */
+  const rideRef = useRef<RideTracker | null>(null);
+
   const committed = useRef<Frame>(INITIAL_FRAME);
   const lastCommit = useRef(0);
   const lastTone = useRef(0);
@@ -2117,6 +2125,25 @@ export function Companion({ facts }: CompanionProps) {
       const run = escortRef.current;
       const home = homeSpot();
 
+      /**
+       * WP-R round 15: ride the page before anything else this frame decides
+       * where the pair are going — see the file banner on `rideStep` in
+       * companion-motion.ts for why this has to run first. Both cats are
+       * nudged by the same `dx`/`dy`, which is what keeps their own mutual
+       * geometry (the follow gap, the toolkit-clearance invariant) exactly
+       * as it was the instant before the scroll: a uniform translation moves
+       * two points the same distance in the same direction, so the vector
+       * between them — and any clearance measured off it — is untouched.
+       */
+      rideRef.current ??= initRide(window.scrollX, window.scrollY);
+      const ride = rideStep(rideRef.current, window.scrollX, window.scrollY, now);
+      if (ride.dx !== 0 || ride.dy !== 0) {
+        grey.pos.x += ride.dx;
+        grey.pos.y += ride.dy;
+        tabby.pos.x += ride.dx;
+        tabby.pos.y += ride.dy;
+      }
+
       // Before anything else decides where they are going: make sure they are
       // still somewhere they can be seen. Every *target* below is clamped, but
       // a target is only consulted when a cat is going somewhere, and a cat
@@ -2124,7 +2151,10 @@ export function Companion({ facts }: CompanionProps) {
       // exactly where it is — so a viewport that shrinks out from under it (a
       // rotation, a window drag, devtools opening) strands it off-screen with
       // nothing to bring it back. `overflow-x: clip` on the document means
-      // there is not even a scrollbar to hint at where it went.
+      // there is not even a scrollbar to hint at where it went. It is also
+      // what keeps a rider from being carried off-screen: round 15's "does
+      // not vanish" is this same clamp, run every frame regardless of why
+      // `pos` moved.
       keepInView(grey.pos);
       keepInView(tabby.pos);
 
@@ -2810,6 +2840,43 @@ export function Companion({ facts }: CompanionProps) {
         }
       }
 
+      /**
+       * WP-R round 15: while the page is riding, `leadWant`/`followWant`
+       * above are not wrong exactly — they are answering a question that
+       * does not matter yet. Every one of those branches was computed
+       * against `pos` values already carrying this frame's ride, so a target
+       * that tracks content live (a nap spot, a tour stop, the watch) has
+       * already moved by the same amount the ride just did and asking
+       * `advance` to close that gap would spend a frame of real walking
+       * speed correcting an error the ride already corrected — the fight the
+       * file banner on `rideStep` describes. A target that does *not* track
+       * content live — a held mood spot, `settleSpots`, a wander stay — is
+       * worse than merely redundant: it is still sitting in the pre-scroll
+       * viewport coordinates, and closing the gap to it would walk the pair
+       * *against* the very ride that is holding them still over the content.
+       * Either way the answer this frame is "exactly where the ride already
+       * put them" — so `want` collapses onto the post-ride `pos`, `advance`
+       * below correctly measures a zero-length gap and does nothing, and the
+       * pose logic reads "not walking", same as any other cat truly holding
+       * station.
+       *
+       * Two exceptions, both because they are the page already reacting to
+       * this same scroll in their own, established way: `run` (the escort)
+       * is walking the pair to the corner on a hard, second-counted budget,
+       * and freezing it mid-scroll risks blowing `HERD_MAX`/`ESCORT_MAX` for
+       * no benefit — nothing about being escorted is "reading", so there is
+       * no content relationship here worth preserving. `rushing` is the
+       * *other* answer this codebase already has for a fast, sustained
+       * scroll — duck to the leading edge, out of the way — and letting the
+       * ride override it here would silently replace one deliberate,
+       * already-tested reaction with another mid-flight.
+       *
+       * This is the lead's own final word on it; the follower gets a second
+       * one, below, after her own trailing logic has had its say — see the
+       * note there for why one freeze here is not enough for both of them.
+       */
+      if (ride.riding && !run && !rushing) leadWant = grey.pos;
+
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
       const leadStep = advance(
@@ -2914,6 +2981,14 @@ export function Companion({ facts }: CompanionProps) {
           ? DASH_SPEED
           : followTarget(distance(tabby.pos, followWant), 0);
       }
+
+      // The follower's own target gets a second, final freeze here rather
+      // than trusting the one set alongside the lead's above: the `chase`
+      // branch just above recomputes `followWant` unconditionally (the
+      // "behind him" trailing spot), which would otherwise undo it. This is
+      // the value `advance` actually sees below, so it is the one that has
+      // to be frozen last.
+      if (ride.riding && !run && !rushing) followWant = tabby.pos;
 
       tabby.speed = ramp(tabby.speed, followWish);
       const followDx = followWant.x - tabby.pos.x;

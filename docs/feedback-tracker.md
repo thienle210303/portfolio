@@ -629,3 +629,21 @@ Owner's items 1–3 (item 4 eaten by the terminal twice — still awaited).
 Gate: `pnpm verify` green (**410 unit tests**, up from 388), full Playwright
 matrix **463 passed / 0 failed**, first run. Lead visual pass: tree at 1024
 + 390 both themes, mini-Thien at 3× both themes.
+
+## Round 15 (2026-08-24)
+
+Six items (the twice-eaten item 4 finally arrived: wordplay phrases).
+
+| Item | Owner | Outcome |
+| --- | --- | --- |
+| 1 · Seed drops into empty air | Sonnet (WP-Q) | Measured: 2875px drawing, sky box covering the top 725px — the seed landed ~2150px above the ground. A new bottom-pinned `groundSlice` hosts the flight/seed beats (seed now ~37px off the true ground line); weather stays at the canopy where it belongs; captions follow their beat's box. New e2e pins the ground box to the stage's bottom edge within 2px. 12/12 scoped |
+| 2 · Cats slide during scroll | Sonnet (WP-R) | The cats ride the page: per-frame scroll delta applied before any movement logic (uniform translation — preserves the round-12 clearance invariant), targets frozen while riding so the mover doesn't fight the correction (escort + the existing fast-scroll duck exempted, as the page's own scroll reactions), viewport clamp holds them on screen, 220ms settle then a capped-speed walk back. Wheel-tick e2e pins <60px content-relative drift; all 44 companion tests untouched-green |
+| 3 · Loop + graph → workflow system | Sonnet (WP-S) | The ring stays the engine; an "Around the loop" layer attaches by one hairline bracket: four curated `workflowStages` drawn as verification gates (`watchFor`, hollow squares) and human checkpoints (`humanOwns`, hollow circles), every string verbatim, link back to the Lab. Declined honestly: the other six stages (legibility curation, not a content gap), the principles (already rendered a screen above), and any per-station edges (the two loops share no authored mapping). Mobile gets a compact list, not a mini-graph. Axe 4/4 both widths and themes |
+| 4 · Wordplay phrases in the closing | Lead | Placement approved (closing); three drafts offered ("Turn an idea into an I-did" · "Practice makes AI" · "Learn as you build. Build as you learn.") — **awaiting the owner's wording approval**; ships as a follow-up content edit |
+| 5 · Closing vs footer clash | Lead | The footer joins the closing's `tone-contrast` scope — one continuous dark final chapter, the hairline as the only seam; aliases only, axe-clean over the contrast palette |
+| 6 · "I'll come to you" — how it works | Lead, answered | Same `/api/contact` route and the same three Resend env vars as the full form; until set, it opens the visitor's mail app prefilled, honestly labeled |
+
+Gate: `pnpm verify` green (**422 unit tests**), full Playwright matrix
+**489 passed / 0 failed**, first run. Lead visual pass at 1440 both themes:
+the ring-with-gates figure, the unified dark closing+footer, the seed
+landing on real ground (builder-verified with measured screenshots).
