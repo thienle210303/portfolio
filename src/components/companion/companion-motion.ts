@@ -139,3 +139,151 @@ export function followTarget(away: number, gap: number): number {
 export function ramp(from: number, to: number): number {
   return from + clamp(to - from, -FOLLOW_BRAKE, FOLLOW_ACCEL);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Riding the page                                                            */
+/*                                                                             */
+/* WP-R round 15 ("when I scroll up and down the cat is moving really forward */
+/* and backward"): round 14's cap, above, only ever fixed *half* of the       */
+/* scroll problem — the half where the cats *chase* a content-anchored target */
+/* too fast. The other half is that they are `position: fixed`, so on an      */
+/* ordinary scroll they do not chase anything at all: `want` and `pos` are    */
+/* already equal, `advance` correctly returns a zero step, and the cat holds  */
+/* its exact pixel in the *viewport* while the page slides past underneath    */
+/* it. Relative to the paragraph it was "standing beside", that is the cat    */
+/* doing the travelling — forward while the page goes one way, backward when  */
+/* it goes the other — even though not one call to `advance` has fired.       */
+/*                                                                             */
+/* A speed cap cannot fix that, because nothing is *moving* in the vocabulary */
+/* the cap understands: `want` is a settled mood's spot, held in viewport     */
+/* coordinates precisely so a stationary visitor does not watch two cats      */
+/* re-probe the page every frame (see `restingPlaces` in `Companion.tsx`).    */
+/* Scrolling does not change that held value at all — it changes what it      */
+/* *means*, out from under it, every frame the wheel turns.                   */
+/*                                                                             */
+/* `rideStep` answers a different question, deliberately outside `advance`'s  */
+/* target-and-cap vocabulary: not "where do you want to be" but "how far did  */
+/* the ground just move under you". A `RideTracker` remembers `window.scroll` */
+/* from the previous frame; each call reports the `dx`/`dy` a fixed element   */
+/* has to be nudged by to hold its place over the content — already the sign  */
+/* a caller adds straight onto a position, so the page scrolling down by `dy` */
+/* moves the content *up* by `dy` and a companion riding along follows it up  */
+/* by the same amount, not down. `Companion.tsx` applies that nudge to both   */
+/* cats before anything else that frame decides where they are going, then    */
+/* — for as long as `riding` reads true — holds `want` at the ridden `pos`    */
+/* rather than letting `advance` spend a frame's worth of speed pulling them  */
+/* back toward a target that is now stale by exactly the same amount the ride */
+/* just corrected for. That is what makes the two agree instead of fight: the */
+/* ride is an exact, uncapped correction for a real, uncapped event, and the  */
+/* speed cap is left to do only the job it was built for — closing a gap once */
+/* there genuinely is one to close.                                          */
+/*                                                                             */
+/* `riding` is a settle detector, not a scroll-event flag, which is the whole */
+/* reason this lives beside `advance` rather than behind a `window.addEvent   */
+/* Listener("scroll", …)` of its own: `Companion`'s rAF loop already samples  */
+/* `window.scrollX/Y` every frame it runs, so asking it again here costs      */
+/* nothing new and needs no listener at all. "Settled" is defined honestly on */
+/* elapsed time since the scroll position last actually changed, not merely   */
+/* since a `scroll` event last fired — a momentum scroll's own last few       */
+/* sub-pixel ticks arrive seconds apart, and a detector keyed to the event     */
+/* stream rather than the position itself would read every one of those gaps  */
+/* as "settled, walk home" and back again, which is the flicker this exists   */
+/* to avoid.                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** How long the scroll position has to hold still before a rider calls it
+ *  settled and goes back to walking under its own power. Long enough that a
+ *  momentum scroll's last, seconds-apart sub-pixel ticks still read as one
+ *  continuous ride rather than a flicker between riding and settled, short
+ *  enough that "the page stopped moving" reads as immediate to a visitor. */
+export const RIDE_SETTLE_MS = 220;
+
+/** What `rideStep` remembers between frames — the scroll position it last
+ *  saw, and the last frame that position actually differed from the one
+ *  before it. One instance covers the whole page: both cats ride the same
+ *  scroll, so there is exactly one `RideTracker`, not one per animal. */
+export interface RideTracker {
+  scrollX: number;
+  scrollY: number;
+  lastDeltaAt: number;
+}
+
+/** A tracker primed at the page's current scroll position, so the very first
+ *  call to `rideStep` reports a zero delta for whatever scrolling happened
+ *  before anyone was watching, rather than one enormous "ride" on the first
+ *  frame the loop runs. */
+export function initRide(scrollX: number, scrollY: number): RideTracker {
+  return { scrollX, scrollY, lastDeltaAt: 0 };
+}
+
+/** One frame's worth of riding: how far a fixed element has to move to hold
+ *  its place over the content, and whether the page is still moving recently
+ *  enough that this counts as a ride rather than a settled stop. */
+export interface RideFrame {
+  readonly dx: number;
+  readonly dy: number;
+  readonly riding: boolean;
+}
+
+/**
+ * Advance `tracker` to `(scrollX, scrollY)` at `now`, and report this frame's
+ * ride.
+ *
+ * `dx`/`dy` are the *previous* scroll position minus the current one — the
+ * page scrolling down moves the content up, so a caller adds this straight
+ * onto a `Spot` with no sign to remember. `riding` is `true` on the frame a
+ * delta actually happens and stays `true` for `RIDE_SETTLE_MS` after the
+ * last one, which is what lets a caller freeze ordinary target-chasing for
+ * exactly as long as the ride is doing that job instead — see the file
+ * banner above.
+ */
+export function rideStep(tracker: RideTracker, scrollX: number, scrollY: number, now: number): RideFrame {
+  const dx = tracker.scrollX - scrollX;
+  const dy = tracker.scrollY - scrollY;
+  if (dx !== 0 || dy !== 0) tracker.lastDeltaAt = now;
+  tracker.scrollX = scrollX;
+  tracker.scrollY = scrollY;
+  return { dx, dy, riding: now - tracker.lastDeltaAt < RIDE_SETTLE_MS };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Trailing                                                                    */
+/*                                                                             */
+/* WP-R round 15's second follow-up: riding and its own settle chokepoints    */
+/* (searchClearOfToggle, companion-space.ts) guarantee a *resting* spot is    */
+/* clear of the toolkit toggle. They say nothing about the WALK there. Before */
+/* this, a long walk — the "no pointer, go home" branch chief among them —    */
+/* sent both cats *independently* toward two separately-computed points, and  */
+/* two animals each closing on their own target at their own capped speed can */
+/* cross paths on the way, however clear the two endpoints are. Axe caught    */
+/* this live: not mid-ride, but seconds later, mid-transit, gap measured as   */
+/* low as -36px — a real, if momentary, overlap of the follower's own drawn   */
+/* box with the lead's live button.                                          */
+/*                                                                             */
+/* `trailBehind` is not new geometry — it is the exact offset the philosophy  */
+/* mood's own lap and the ordinary pointer-chase already walk the follower by */
+/* while the lead is *going* somewhere specific, extracted here so a long walk */
+/* toward any fixed target can reuse it instead of inventing a fourth copy.   */
+/* Companion.tsx switches a walking follower onto it and off her own,         */
+/* separately-computed spot until the lead is within a few pixels of *his*    */
+/* target — at which point there is no more distance left for their paths to  */
+/* diverge, and she peels off onto her own, already clearance-vetted spot for */
+/* the last few steps. She is never far from him, so there is no second path  */
+/* to cross in the first place — a structural fix, not a wider tolerance.     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Where the follower trails while the lead is walking toward `lead`, facing
+ * `facing` — unclamped, the same as every other raw target on this layer;
+ * the caller runs this through `clampToViewport`.
+ *
+ * `width` and `gap` are the follower's own drawn width and the ordinary
+ * following distance (`CAT_W`, `FOLLOW_GAP` in `Companion.tsx`) — passed in
+ * rather than imported, so this stays a plain geometry function with no
+ * dependency on either constants module. `dy` defaults to the small downward
+ * nudge the existing lap and chase formulas both already use, so a caller
+ * that does not need to vary it can drop it entirely.
+ */
+export function trailBehind(lead: Point, facing: 1 | -1, width: number, gap: number, dy = 3): Point {
+  return { x: lead.x - facing * (width + gap), y: lead.y + dy };
+}

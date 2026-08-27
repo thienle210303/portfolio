@@ -522,9 +522,11 @@ them) — still awaiting a resend.
 
 **Post-round resolution of items 1 and 6:** item 6 never existed (owner
 confirmed), and item 1 turned out to be the `MaxListenersExceededWarning`
-Gzip spam itself — diagnosed as the Claude Code CLI's own log compression
-(PID long gone, zero gzip usage anywhere in this repo), benign, remedied by
-updating the CLI or ignoring it. Nothing to build.
+Gzip spam itself — benign, nothing to build. **Correction (2026-08-25):**
+the round-10 diagnosis blamed the Claude Code CLI's log compression; a
+later Playwright run caught the warning live with a `[WebServer]` prefix —
+it is emitted by the `next dev` server process itself under concurrent
+request load. Same verdict (harmless, ignorable), corrected culprit.
 
 ## Round 11 (2026-08-23) — the backlog round
 
@@ -629,3 +631,75 @@ Owner's items 1–3 (item 4 eaten by the terminal twice — still awaited).
 Gate: `pnpm verify` green (**410 unit tests**, up from 388), full Playwright
 matrix **463 passed / 0 failed**, first run. Lead visual pass: tree at 1024
 + 390 both themes, mini-Thien at 3× both themes.
+
+## Round 15 (2026-08-24)
+
+Six items (the twice-eaten item 4 finally arrived: wordplay phrases).
+
+| Item | Owner | Outcome |
+| --- | --- | --- |
+| 1 · Seed drops into empty air | Sonnet (WP-Q) | Measured: 2875px drawing, sky box covering the top 725px — the seed landed ~2150px above the ground. A new bottom-pinned `groundSlice` hosts the flight/seed beats (seed now ~37px off the true ground line); weather stays at the canopy where it belongs; captions follow their beat's box. New e2e pins the ground box to the stage's bottom edge within 2px. 12/12 scoped |
+| 2 · Cats slide during scroll | Sonnet (WP-R) | The cats ride the page: per-frame scroll delta applied before any movement logic (uniform translation — preserves the round-12 clearance invariant), targets frozen while riding so the mover doesn't fight the correction (escort + the existing fast-scroll duck exempted, as the page's own scroll reactions), viewport clamp holds them on screen, 220ms settle then a capped-speed walk back. Wheel-tick e2e pins <60px content-relative drift; all 44 companion tests untouched-green |
+| 3 · Loop + graph → workflow system | Sonnet (WP-S) | The ring stays the engine; an "Around the loop" layer attaches by one hairline bracket: four curated `workflowStages` drawn as verification gates (`watchFor`, hollow squares) and human checkpoints (`humanOwns`, hollow circles), every string verbatim, link back to the Lab. Declined honestly: the other six stages (legibility curation, not a content gap), the principles (already rendered a screen above), and any per-station edges (the two loops share no authored mapping). Mobile gets a compact list, not a mini-graph. Axe 4/4 both widths and themes |
+| 4 · Wordplay phrases in the closing | Lead | Placement approved (closing); three drafts offered ("Turn an idea into an I-did" · "Practice makes AI" · "Learn as you build. Build as you learn.") — **awaiting the owner's wording approval**; ships as a follow-up content edit |
+| 5 · Closing vs footer clash | Lead | The footer joins the closing's `tone-contrast` scope — one continuous dark final chapter, the hairline as the only seam; aliases only, axe-clean over the contrast palette |
+| 6 · "I'll come to you" — how it works | Lead, answered | Same `/api/contact` route and the same three Resend env vars as the full form; until set, it opens the visitor's mail app prefilled, honestly labeled |
+
+Gate: `pnpm verify` green (**422 unit tests**), full Playwright matrix
+**489 passed / 0 failed**, first run. Lead visual pass at 1440 both themes:
+the ring-with-gates figure, the unified dark closing+footer, the seed
+landing on real ground (builder-verified with measured screenshots).
+
+### Round 15 follow-up (2026-08-24/25)
+
+Owner, seeing the merged chapter: two "Back to top"s in one screen —
+"merge the closing to footer as well."
+
+| Change | Outcome |
+| --- | --- |
+| One closing block | The closing's boxed "Back to top" deleted (the colophon's is the page's single exit); the footer's separating border removed — the fleuron is the typographic break. Thank-you → Get in touch → fleuron → colophon, one dark chapter |
+| Ride × clamp axe regression | The merge-gate matrix caught the follower resting inside the lead's toggle clearance after a hard scroll: the ride's uniform translation preserves the pair's gap but per-cat viewport clamping does not, and the ride-freeze held the collapsed arrangement. Fixed in layers: (1) the ride-freeze applies the clearance invariant to the follower's post-clamp position; (2) `clearFollowOfToggle` extended to every settle chokepoint (restingPlaces, home, wanderTo); (3) a content-safety gate the builder caught itself — a pushed candidate may never land on prose; (4) the final piece: **toggle clearance is a hard AND-ed constraint of the settle search** (`searchClearOfToggle` — content-conflicted candidates discarded outright, pool widens until both rules hold, best-gap fallback, distance always preferred over overlap). 5 new pool tests |
+| Audit samples the resting UI | The axe case-study test gained a settle-wait for the companions before auditing — sampling mid-walk fails on motion the design permits (round-8 mid-stride precedent). The transit window itself stays tracked (the filed follower-trailing chip) as a real design note |
+
+Gate: `pnpm verify` green, full matrix **490 passed / 0 failed**. Item 4
+(closing phrases) still awaits the owner's wording.
+
+### Follower-trailing on long walks (2026-08-25, the filed follow-up executed)
+
+The transit-crossing residual, closed structurally. On the page-length
+walks (home branch, both mood-settle sub-cases) the follower now trails
+the lead's live position via a pure `trailBehind` — one path, nothing to
+cross — and simply keeps trailing his stationary spot once he arrives.
+Wander was audited, attempted, and **reverted with evidence**: gating her
+switch on catching up broke `wanderTo`'s own arrival contract (her ramped
+follow curve never registered "settled" within the suite's own timeouts,
+reproduced twice) — a mechanism that doesn't reliably settle is worse than
+the smaller local exposure it addressed. Tour/watch/scene choreography
+untouched. Along the way a real ordering gap in `resolveFollowClear` was
+found and fixed: the fast path only content-checked when correcting a
+toggle conflict, so a trail spot clear of the toggle but on prose slipped
+through — `isClearSpot` now runs first, unconditionally (a live probe had
+the follower resting on case-study text before the fix). Bounding
+ride-drag distance was considered and not pursued — trailing alone closed
+the gap completely.
+
+Gate: `pnpm verify` green (**130 companion-suite unit tests** among 433
+total), axe case-study **12/12 repeats**, gap-sampling walk-back **6/6**,
+full matrix **491 passed / 0 failed**. Round-14 speed cap and the
+round-12/15 clearance invariants byte-untouched.
+
+### The sign-off (2026-08-25) — round 15 item 4 closes
+
+Owner: "whatever makes it look good, unique and outstanding." The parting
+line is the site's own joke told in its own materials: display italic with
+the pun's pivot as an inline mono code token — *Turn an idea into an*
+`i_did`. Three authored lines (`closingSignoffs`: `i_did` · Practice makes
+`AI` · Learn as you build. Build as you learn.), one per deploy by
+day-of-year, frozen into the static build so nothing can mismatch. Owner
+follow-up ("too huge") compressed the merged chapter: 60% section rhythm
+above, 35% below the fleuron — measured 900→620px.
+
+Gate: `pnpm verify` green, full matrix **491 passed / 0 failed** (one
+intermediate run failed 10 tests, all chromium-320, all unrelated specs,
+all passing 20/20 scoped — a loaded-machine shard, recorded as
+environmental). With this, every item from rounds 1–15 is shipped.

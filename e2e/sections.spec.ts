@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { careerEntries, codeTabs, profile, skillCategories } from "../src/content/portfolio";
-import { experiments } from "../src/content/ai-experiments";
+import { careerEntries, codeTabs, problemSolvingLoop, profile, skillCategories } from "../src/content/portfolio";
+import { experiments, workflowStages } from "../src/content/ai-experiments";
 import type { SkillCategory } from "../src/types/portfolio";
 
 // Widened for the same reason src/lib/knowledge-tree.ts widens careerEntries:
@@ -117,6 +117,63 @@ test.describe("hero", () => {
     await page.keyboard.press("Home");
     await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("region", { name: codeTabs[0].filename })).toBeVisible();
+  });
+});
+
+/**
+ * Round 15: the graph layer attached to the problem-solving ring — a small,
+ * curated set of `workflowStages` gates (`watchFor`) and checkpoints
+ * (`humanOwns[0]`), rendered verbatim by `WorkflowGraph.tsx`. See that
+ * component's own doc comment for why these four stages and not the other
+ * six, and why it attaches to the ring as a whole rather than to any one
+ * station. `ProblemSolvingLoop.tsx` itself (built round 7, hardened round 8)
+ * is untouched by this round; the first test below is the guard for that.
+ */
+test.describe("philosophy", () => {
+  const philosophy = (page: Page) => page.locator("#philosophy");
+
+  test("the problem-solving ring keeps its nine authored stations, untouched by the graph layer", async ({
+    page,
+  }) => {
+    const loop = philosophy(page).getByRole("list", { name: "The loop" });
+    // Direct children only: two of the nine stations (`test`, `iterate`) carry
+    // their own nested `<ul role="list">` fork of branches
+    // (ProblemSolvingLoop.tsx's `Fork`), and an unscoped `getByRole("listitem")`
+    // matches those nested items too, along with the nine stations themselves.
+    await expect(loop.locator(":scope > li")).toHaveCount(problemSolvingLoop.length);
+  });
+
+  test("the graph layer renders a curated stage's gate and checkpoint, verbatim", async ({ page }) => {
+    const stage = workflowStages.find((candidate) => candidate.id === "tests");
+    if (!stage) throw new Error("content fixture assumption failed: no 'tests' workflow stage found");
+    const checkpoint = stage.humanOwns[0];
+    if (!checkpoint) {
+      throw new Error("content fixture assumption failed: 'tests' workflow stage has no humanOwns entry");
+    }
+
+    const gates = philosophy(page).getByRole("list", { name: "Verification gates" });
+    const checkpoints = philosophy(page).getByRole("list", { name: "Human checkpoints" });
+    await expect(gates.getByText(stage.watchFor)).toBeVisible();
+    await expect(checkpoints.getByText(checkpoint)).toBeVisible();
+  });
+
+  test("a workflow stage outside the curated set draws nothing, even though it carries an equally authored gate", async ({
+    page,
+  }) => {
+    const undrawn = workflowStages.find((candidate) => candidate.id === "diagnose");
+    if (!undrawn) throw new Error("content fixture assumption failed: no 'diagnose' workflow stage found");
+    await expect(philosophy(page).getByText(undrawn.watchFor)).toHaveCount(0);
+  });
+
+  test("the graph layer's connecting bracket to the ring only draws at >=1024px", async ({ page }) => {
+    const bracket = philosophy(page).locator("[data-philosophy-graph-bracket]");
+    await expect(bracket).toHaveCount(1);
+    const display = await bracket.evaluate((element) => getComputedStyle(element).display);
+    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
+      expect(display).not.toBe("none");
+    } else {
+      expect(display).toBe("none");
+    }
   });
 });
 

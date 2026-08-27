@@ -98,25 +98,47 @@ import {
  * it again on unmount regardless of how the exit happened — both calls are
  * safe because releasing an already-released tree is a no-op.
  *
- * ## The sky, not a cover
+ * ## The sky, not a cover — and, since round 15, the ground too
  *
- * `SkyLayer` is `pointer-events-none` and only ever draws over the canopy
- * (the same 300×200 box the old silhouette used) — never a `bg-ground`
- * backdrop, because there is no longer anything underneath it that needs
- * covering. The stage `<div>` itself is what catches clicks-to-advance, and
- * it is sized to the *whole* drawing wrapper (`inset-0`, matching
- * `KnowledgeTree.tsx`'s relative box around `<DrawnTree>`), not just the sky
- * slice — a click anywhere the real, growing tree is still visible still
- * advances the story. That wrapper exists only while this component is
- * mounted, so the instant the story ends and `WatchOrigin.tsx` swaps this
- * player back out for its button, the tree underneath is exactly as
- * interactive as it always was.
+ * `SkyLayer` is `pointer-events-none` and only ever draws over the drawing
+ * — never a `bg-ground` backdrop, because there is no longer anything
+ * underneath it that needs covering. The stage `<div>` itself is what
+ * catches clicks-to-advance, and it is sized to the *whole* drawing wrapper
+ * (`inset-0`, matching `KnowledgeTree.tsx`'s relative box around
+ * `<DrawnTree>`), not just either sky/ground slice — a click anywhere the
+ * real, growing tree is still visible still advances the story. That
+ * wrapper exists only while this component is mounted, so the instant the
+ * story ends and `WatchOrigin.tsx` swaps this player back out for its
+ * button, the tree underneath is exactly as interactive as it always was.
  *
- * `WeatherLayer` (a season's rain/sun/wind/storm) and `FloatingAnnotation`
- * (the visible caption stand-in) both live inside `skySlice`, the same
- * small, top-pinned-*to-the-drawing* box `SkyLayer` draws in — `absolute`
- * inside `skySlice`, which is itself `absolute` inside the stage. See each
- * component's own doc comment for what it used to do instead.
+ * Two small boxes share that wrapper, not one. Through round 14 every beat
+ * — flight, seed, every season, still — drew inside one top-pinned
+ * `skySlice`, sized off the canopy the way the old covering silhouette was.
+ * That was honest for a season's weather (rain and sun belong over the
+ * crown) but not for flight and seed, which are *not yet* anything about
+ * the canopy — a bird carrying a seed, before it has been planted. On a
+ * career with enough years to draw a tall trunk, that top-pinned box put the
+ * seed's own landing a full trunk-length above the ground it was meant to
+ * drop into (the owner's report: "the ground and the root is a huge space
+ * because the tree body right now really big and long"). `groundSlice`,
+ * below, is the fix: `absolute inset-x-0 bottom-0`, pinned to the drawing's
+ * own bottom edge — the same edge `TrunkFoot`'s `bottom-0` and the root
+ * plinth's own top border already share in `DrawnTree.tsx`/
+ * `KnowledgeTree.tsx`, i.e. the real ground line, not a sky-box stand-in for
+ * it. `skySlice` keeps its top-pinned canopy position and everything that
+ * honestly belongs there; `groundSlice` takes over flight and seed.
+ *
+ * `WeatherLayer` (a season's rain/sun/wind/storm) lives inside `skySlice`,
+ * unchanged. `SkyLayer` itself now mounts in exactly one of the two boxes
+ * per beat, never both: `groundSlice` for flight and seed (with
+ * `GROUND_VIEW_BOX`, cropped tight to the ground line rather than leaving
+ * the sky box's own headroom above it), nothing in `skySlice` for those two
+ * beats at all. `FloatingAnnotation` follows whichever box its own beat
+ * drew in, so the caption never stands apart from the picture it is
+ * captioning. Still, the closing beat, draws nothing in either box — its
+ * subject is the shoot at the very top of the real tree, so it keeps
+ * `skySlice`'s canopy position, which is now the *more* correct one for it,
+ * not merely the leftover one.
  *
  * ## Narration, in two forms
  *
@@ -129,10 +151,10 @@ import {
  * answers `detail: "stop"` — the watch dropping mid-show without the run
  * itself ending — so the annotation resumes instead of leaving the story
  * fully dark for whatever remains of it. The annotation renders only while
- * `catsNarrating` is false, near the horizon `GroundLine` draws at y=150 of
- * `skySlice`'s own 300×200 coordinate space — "near the ground line" the
- * spec asks for is the sky's own ground, not the real tree's, which is
- * often thousands of pixels further down the page.
+ * `catsNarrating` is false, inside whichever of the two boxes (see above)
+ * the current beat itself draws in — near that box's own ground line for
+ * flight and seed (`groundSlice`, now close to the real one), near the
+ * canopy for everything else (`skySlice`).
  */
 
 type BeatKind = "flight" | "seed" | SeasonKind | "still";
@@ -346,6 +368,21 @@ function releaseShoot(groups: readonly OriginGroup[]): void {
  *  the canopy, the same 300:200 box the old silhouette stage used. */
 const VIEW_BOX = "0 0 300 200";
 
+/**
+ * The flight and seed beats' own viewBox — a tight 300:160 crop of the same
+ * coordinate space `VIEW_BOX` uses, rather than a second drawing. Nothing
+ * either beat ever draws sits below the ground line at y=150 (`GroundLine`,
+ * `MOUND_D`'s deepest point) — the 50 units of blank canvas from y=150 to
+ * y=200 in `VIEW_BOX` exist only because the *sky* box also has to leave
+ * headroom above the canopy for `WeatherLayer`'s sun/rain/wind. `groundSlice`
+ * (the box below) has no such headroom to leave: it is pinned to the
+ * drawing's own bottom edge, so the closer its own ground line sits to its
+ * *own* bottom edge, the closer it reads to the real ground the trunk stands
+ * on. 160 leaves ten units of margin below y=150 rather than shaving it
+ * flush, so a hairline stroke at the ground line is never clipped.
+ */
+const GROUND_VIEW_BOX = "0 0 300 160";
+
 /** A bird as four strokes — a shallow double chevron, the plainest shape
  *  that still reads as wings mid-flap. */
 const BIRD_D = "M-8 3L-2 0M-2 0L0 2M0 2L2 0M2 0L8 3";
@@ -414,15 +451,29 @@ function SeedGlyph() {
  *  itself is `WeatherLayer`, below, not this box) or "still", where the real
  *  tree's own shoot is the entire story. `pointer-events-none` throughout:
  *  this layer is decoration drawn *over* the canopy, never a click target and
- *  never a cover. Sized to fill whatever box its caller (the `skySlice`
- *  wrapper below) already gives it — that wrapper is what carries the actual
- *  position/aspect-ratio/observer duties now, so this stays a plain, fully-
+ *  never a cover.
+ *
+ *  Round 15 ("the seed drops into empty air"): flight and seed are the two
+ *  kinds this ever actually draws anything for, and both are the two beats
+ *  before the tree has any canopy to speak of — a bird carrying a seed, not
+ *  yet planted. The owner's report was that both played in the same
+ *  top-pinned box the *canopy's own weather* uses, so on a tall tree the seed
+ *  visibly landed a full trunk-length above the ground it was supposed to
+ *  drop into. This component no longer decides where it renders — that is
+ *  now the caller's job (see the render below, which mounts it inside
+ *  `groundSlice`, pinned to the drawing's bottom edge, for exactly these two
+ *  beats, and never mounts it inside `skySlice` at all). `viewBox` is the one
+ *  thing that *does* still vary by caller: `groundSlice` passes
+ *  `GROUND_VIEW_BOX`, the same coordinate space cropped to the ten units of
+ *  margin below the ground line rather than the sky box's own fifty. Sized to
+ *  fill whatever box its caller already gives it — that box is what carries
+ *  the actual position/aspect-ratio duties, so this stays a plain, fully-
  *  filling `<svg>`. */
-function SkyLayer({ beat }: { readonly beat: Beat }) {
+function SkyLayer({ beat, viewBox = VIEW_BOX }: { readonly beat: Beat; readonly viewBox?: string }) {
   return (
     <svg
       {...strokeProps}
-      viewBox={VIEW_BOX}
+      viewBox={viewBox}
       preserveAspectRatio="xMidYMid meet"
       className="h-full w-full text-fg-subtle"
     >
@@ -639,14 +690,20 @@ function WeatherLayer({ season }: { readonly season: Season }) {
  *  false. `aria-hidden` because it duplicates the accessible `role="status"`
  *  region below it; a screen reader should hear the story once, not twice.
  *
- *  Always `absolute` inside `skySlice`, the same box `SkyLayer` draws in —
- *  round 12 deleted the camera pan that used to walk the page away from that
- *  box for a root beat (see the file banner), so there is no second camera
- *  position left for this annotation to survive by switching to
- *  `position: fixed`, and it no longer does. `bg-ground/90` keeps the text
- *  legible over whatever part of the drawing sits behind it — canopy or
- *  root, either theme, any tone (checked against the deep tone's own paper,
- *  the pairing that fails first — see CLAUDE.md's contrast note). */
+ *  Always `absolute` inside whichever of `skySlice`/`groundSlice` the current
+ *  beat itself drew in (round 15 split what was one box into two — see the
+ *  file banner's "The sky, not a cover" — round 12 deleted the camera pan
+ *  that used to walk the page away from that box for a root beat, so there
+ *  is no second camera position left for this annotation to survive by
+ *  switching to `position: fixed`, and it no longer does, in either box).
+ *  `bottom-2` puts it at that box's own bottom edge — for `groundSlice`
+ *  (flight, seed) that is now close to the real ground line, the same fix
+ *  `SkyLayer`'s own doc comment describes; for `skySlice` (every other beat)
+ *  it is the canopy's own bottom edge, as it always was. `bg-ground/90` keeps
+ *  the text legible over whatever part of the drawing sits behind it —
+ *  canopy or root, either theme, any tone (checked against the deep tone's
+ *  own paper, the pairing that fails first — see CLAUDE.md's contrast
+ *  note). */
 function FloatingAnnotation({ text }: { readonly text: string }) {
   return (
     <p
@@ -838,11 +895,17 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   const [catsNarrating, setCatsNarrating] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  // The small, top-pinned "sky slice" box `SkyLayer`, `WeatherLayer` and
-  // `FloatingAnnotation` all render inside — see the file banner. Unused
-  // (stays null) under reduced motion, where the Storyboard branch renders
-  // none of them.
+  // The small, top-pinned "sky slice" box `WeatherLayer` renders inside, and
+  // `FloatingAnnotation` too for every beat except flight/seed — see the file
+  // banner. Unused (stays null) under reduced motion, where the Storyboard
+  // branch renders none of them.
   const skySliceRef = useRef<HTMLDivElement>(null);
+  // The bottom-pinned "ground slice" box — round 15's fix for the seed
+  // dropping into empty air above a tall tree (see the file banner and
+  // `SkyLayer`'s own doc comment). `SkyLayer` and `FloatingAnnotation` render
+  // inside this one instead of `skySlice` for exactly the flight and seed
+  // beats. Unused (stays null) under reduced motion, same as `skySliceRef`.
+  const groundSliceRef = useRef<HTMLDivElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const ended = useRef(false);
   // Captured once, at the setup effect below — read at unmount time via this
@@ -1059,6 +1122,11 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
 
   const beat = beats[index];
   const isLast = index >= beats.length - 1;
+  // Flight and seed are the only two beats `SkyLayer` still draws anything
+  // for, and — since round 15 — the only two that render inside
+  // `groundSlice` rather than `skySlice`. See `SkyLayer`'s and the file
+  // banner's own doc comments for why.
+  const isGroundBeat = beat.kind === "flight" || beat.kind === "seed";
 
   // Mounted empty and filled a frame later — the same mount-empty-then-fill
   // discipline `TourHud.tsx`'s `role="status"` region uses, for the same
@@ -1253,21 +1321,39 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
               the old silhouette stage used), `absolute` inside the stage
               above — which is itself `absolute` inside the tree figure's own
               relative box, never `fixed` to the viewport, so it scrolls with
-              the rest of the drawing as one object. Holds the sky layer's own
-              drawing, that beat's weather, and the floating annotation — see
-              the file banner, "Everything lives in the frame". `data-origin-
-              sky` is a query hook only, for `origin.spec.ts` to prove this
-              box's own bounding box never strays outside the stage's — i.e.
-              that scrolling moves the two together rather than shearing one
-              away from the other. */}
+              the rest of the drawing as one object. Holds a season's weather,
+              and — for every beat except flight/seed (round 15; see the file
+              banner) — the floating annotation too. `data-origin-sky` is a
+              query hook only, for `origin.spec.ts` to prove this box's own
+              bounding box never strays outside the stage's — i.e. that
+              scrolling moves the two together rather than shearing one away
+              from the other. */}
           <div
             ref={skySliceRef}
             data-origin-sky
             className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2]"
           >
-            <SkyLayer beat={beat} />
             {beat.season ? <WeatherLayer season={beat.season} /> : null}
-            {!catsNarrating ? <FloatingAnnotation text={announced} /> : null}
+            {!catsNarrating && !isGroundBeat ? <FloatingAnnotation text={announced} /> : null}
+          </div>
+          {/* The ground slice: round 15's fix for "the seed drops into empty
+              air" — a small box mirroring `skySlice` but `bottom-0` instead
+              of `top-0`, pinned to the drawing's own bottom edge (the same
+              edge `TrunkFoot`'s `bottom-0` and the root plinth's top border
+              already share — see `SkyLayer`'s and the file banner's own doc
+              comments). Holds the sky layer's own drawing — the bird's
+              flight, the seed's landing — and the floating annotation, for
+              exactly those two beats; every other beat renders neither here,
+              leaving this box empty. `data-origin-ground` is a query hook
+              only, the same "stays inside the stage while scrolling" contract
+              `data-origin-sky` already proves, in `origin.spec.ts`. */}
+          <div
+            ref={groundSliceRef}
+            data-origin-ground
+            className="pointer-events-none absolute inset-x-0 bottom-0 aspect-[15/8]"
+          >
+            {isGroundBeat ? <SkyLayer beat={beat} viewBox={GROUND_VIEW_BOX} /> : null}
+            {!catsNarrating && isGroundBeat ? <FloatingAnnotation text={announced} /> : null}
           </div>
           <p role="status" className="sr-only">
             {announced}

@@ -417,6 +417,63 @@ export function keepClearOfControl(pos: Point, rect: RectLike): Point {
 }
 
 /**
+ * The widened search `keepClearOfControl` hands off to when its own cheap
+ * push lands somewhere it should not — WP-R round 15's own follow-up.
+ *
+ * The four-candidate push above answers one question — "is there room
+ * *immediately* beside this position" — and knows nothing about content, on
+ * the assumption (true for the tour and watch spots it was built for) that
+ * the caller already probed the *starting* position for content and the
+ * ground right around an already-clear spot is itself clear. Extending the
+ * correction to spots that were never probed that carefully broke that
+ * assumption outright: the push can legitimately land on a paragraph, and
+ * accepting it there trades one violation (the toggle) for a worse one
+ * (content). Reverting to the original position does not fix anything
+ * either — it is exactly the too-close spot the push was trying to escape.
+ *
+ * The honest answer, per round 9's own lesson about weights and the page —
+ * "the weights say what the companion would rather do, the page decides
+ * what it can do" — is to keep looking rather than accept either compromise.
+ * `candidates` is expected ordered nearest-preferred-first (`standingSpots`'
+ * own shape: a coarse sweep of the whole page band, not just the four points
+ * immediately around `rect`), and this returns the first one that clears
+ * *both* `rect` (by the ordinary `TOGGLE_CLEARANCE` margin) and content (via
+ * `isClear`, injected rather than imported so this stays a pure function a
+ * test can drive without a browser in the room — the DOM-dependent half of
+ * the question is the caller's business, same as every other probe on this
+ * layer).
+ *
+ * A candidate that fails `isClear` is discarded outright, never merely
+ * scored — overlapping content is not a "worse but usable" outcome the way
+ * a narrow toggle gap is, so it never becomes the running best. If nothing
+ * in the whole pool clears the control by the full margin, the content-clear
+ * candidate that came *closest* is returned instead of `null` — "distance is
+ * always available; overlap never is", so a real resting position, merely
+ * short of the preferred gap, beats no answer at all. Only when the pool has
+ * no content-clear candidate whatsoever — the whole page band conflicted,
+ * which should not happen on a real page — does this return `null`, leaving
+ * the caller to fall back to whatever it already had.
+ */
+export function searchClearOfToggle(
+  candidates: readonly Point[],
+  rect: RectLike,
+  isClear: (point: Point) => boolean,
+): Point | null {
+  let best: Point | null = null;
+  let bestGap = -Infinity;
+  for (const candidate of candidates) {
+    if (!isClear(candidate)) continue;
+    const gap = gapToRect(catBox(candidate), rect);
+    if (gap >= TOGGLE_CLEARANCE) return candidate;
+    if (gap > bestGap) {
+      bestGap = gap;
+      best = candidate;
+    }
+  }
+  return best;
+}
+
+/**
  * Three probes, not one: the cat's middle and both of the points its feet
  * actually rest on. A single centre sample lets a cat straddle the edge of a
  * paragraph with half of it on the text, which is the case this exists to stop.

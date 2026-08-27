@@ -105,6 +105,35 @@ test.describe("interactive states", () => {
     const trigger = page.locator("#work").getByRole("button", { name: /Read the full case study/ }).first();
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    // Let the companions finish moving before the audit. The scroll above
+    // sends the pair on a multi-second walk back to the reading band, and
+    // during that transit the follower can pass through the lead's toggle
+    // clearance — the same mid-stride state round 8 ruled a permitted
+    // design behavior when a placement test photographed it (companion
+    // tests poll for settled before asserting for exactly this reason).
+    // The audit's contract is the resting UI. The transit window itself is
+    // real and tracked for shrinking (follower should trail the lead's
+    // live position on long walks — see the round-15 tracker entry), but
+    // sampling mid-walk here would fail on motion the design permits.
+    await page
+      .waitForFunction(
+        () => {
+          const buttons = document.querySelectorAll<HTMLElement>(
+            "button.pointer-events-auto.absolute",
+          );
+          const now = [...buttons].map((b) => b.style.transform).join("|");
+          const w = window as unknown as { __axeCatSample?: string; __axeCatStable?: number };
+          w.__axeCatStable = w.__axeCatSample === now ? (w.__axeCatStable ?? 0) + 1 : 0;
+          w.__axeCatSample = now;
+          return w.__axeCatStable >= 3;
+        },
+        { polling: 250, timeout: 20_000 },
+      )
+      .catch(() => {
+        // Cats that never fully settle (a scheduled scene) shouldn't dead-end
+        // the audit; the assertion below still runs against whatever state
+        // exists, exactly as it always did.
+      });
     await auditHasNoViolations(page);
   });
 

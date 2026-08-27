@@ -174,6 +174,72 @@ test.describe("the player", () => {
 });
 
 /**
+ * Round 15, "the seed drops into empty air": the owner's report was that the
+ * flight and seed beats played in the same top-pinned box the canopy's own
+ * weather uses, so on a tall tree the seed visually landed a full
+ * trunk-length above the ground it was meant to drop into. The fix is
+ * `groundSlice`, a second box `bottom-0` against the drawing rather than
+ * `top-0` (`OriginStory.tsx`'s file banner and `SkyLayer`'s own doc comment)
+ * — `[data-origin-ground]`, checked here directly rather than trusted from
+ * the source alone.
+ */
+test.describe("ground anchoring", () => {
+  test("flight and seed draw in a box pinned to the drawing's own ground line, not the canopy", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
+    const sky = page.locator("[data-origin-sky]");
+    const ground = page.locator("[data-origin-ground]");
+    const status = stage.getByRole("status");
+    await expect(status).not.toHaveText("");
+
+    // Flight is beat 0: the bird's own drawing lives in `groundSlice` now,
+    // and `skySlice` — with no season and no weather to show yet — draws
+    // nothing at all.
+    await expect(ground.locator("svg")).toHaveCount(1);
+    await expect(sky.locator("svg")).toHaveCount(0);
+
+    const stageBox = await stage.boundingBox();
+    const groundBox = await ground.boundingBox();
+    const skyBox = await sky.boundingBox();
+    expect(stageBox, "stage has no box").not.toBeNull();
+    expect(groundBox, "ground layer has no box").not.toBeNull();
+    expect(skyBox, "sky layer has no box").not.toBeNull();
+
+    // Pinned to the drawing's own bottom edge — the real ground line
+    // `TrunkFoot`'s `bottom-0` and the root plinth's top border share
+    // (`DrawnTree.tsx`/`KnowledgeTree.tsx`) — not floating up near the
+    // canopy with the sky box's own weather.
+    expect(Math.abs(groundBox!.y + groundBox!.height - (stageBox!.y + stageBox!.height))).toBeLessThan(2);
+    // And meaningfully below the sky box's own top: proof this is a
+    // different, lower box, not the same one under a second name.
+    expect(groundBox!.y).toBeGreaterThan(skyBox!.y + skyBox!.height / 2);
+
+    // Advance to the seed beat (beat 1) — the same box keeps drawing there,
+    // not just for the flight.
+    const flightCaption = await status.textContent();
+    await stage.click({ position: { x: 5, y: 5 } });
+    await expect(status).not.toHaveText(flightCaption ?? "");
+    await expect(ground.locator("svg")).toHaveCount(1);
+    await expect(sky.locator("svg")).toHaveCount(0);
+
+    // And the caption follows the picture: whenever the floating annotation
+    // is rendering at all (the cats may or may not be narrating instead —
+    // see "narration without the cats" above), it lives inside `groundSlice`,
+    // beside the seed, never left behind in the empty `skySlice`.
+    const annotationCount = await stage.locator("[data-origin-annotation]").count();
+    if (annotationCount > 0) {
+      await expect(ground.locator("[data-origin-annotation]")).toHaveCount(1);
+      await expect(sky.locator("[data-origin-annotation]")).toHaveCount(0);
+    }
+  });
+});
+
+/**
  * v2's own coverage: the conductor documented at the top of `OriginStory.tsx`
  * — chronological release, the never-partial-tree exit guarantee on every
  * path out, and the two forms narration takes depending on whether the cats
@@ -424,15 +490,25 @@ test.describe("everything lives in the frame", () => {
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
     const sky = page.locator("[data-origin-sky]");
+    // Round 15 split the one sky box into two — `skySlice` (top-pinned, over
+    // the canopy) and `groundSlice` (bottom-pinned, at the drawing's own
+    // ground line) — see OriginStory.tsx's file banner, "The sky, not a
+    // cover — and, since round 15, the ground too". Both are `absolute`
+    // inside the same stage, so both must hold the same "never shears apart
+    // while scrolling" contract the original sky box alone used to prove.
+    const ground = page.locator("[data-origin-ground]");
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
 
     // Contained at rest, before any scrolling happens at all.
     const startStageBox = await stage.boundingBox();
     const startSkyBox = await sky.boundingBox();
+    const startGroundBox = await ground.boundingBox();
     expect(startStageBox, "stage has no box").not.toBeNull();
     expect(startSkyBox, "sky layer has no box").not.toBeNull();
+    expect(startGroundBox, "ground layer has no box").not.toBeNull();
     expect(boxContains(startStageBox!, startSkyBox!)).toBe(true);
+    expect(boxContains(startStageBox!, startGroundBox!)).toBe(true);
 
     const beforeScroll = await status.textContent();
 
@@ -445,13 +521,17 @@ test.describe("everything lives in the frame", () => {
     // Still mounted and still running off-screen — Skip is still there.
     await expect(stage.getByRole("button", { name: "Skip" })).toBeAttached();
 
-    // Even scrolled away, nothing has sheared apart: the sky layer's box is
-    // still exactly where the stage's own box says it should be.
+    // Even scrolled away, nothing has sheared apart: both the sky and ground
+    // layers' boxes are still exactly where the stage's own box says they
+    // should be.
     const awayStageBox = await stage.boundingBox();
     const awaySkyBox = await sky.boundingBox();
+    const awayGroundBox = await ground.boundingBox();
     expect(awayStageBox, "stage has no box while scrolled away").not.toBeNull();
     expect(awaySkyBox, "sky layer has no box while scrolled away").not.toBeNull();
+    expect(awayGroundBox, "ground layer has no box while scrolled away").not.toBeNull();
     expect(boxContains(awayStageBox!, awaySkyBox!)).toBe(true);
+    expect(boxContains(awayStageBox!, awayGroundBox!)).toBe(true);
 
     // The story kept advancing the whole time nobody was looking — a season
     // beat is 2s (`SEASON_MS`), so a caption change here can only mean the
@@ -466,13 +546,16 @@ test.describe("everything lives in the frame", () => {
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
     await expect(stage).toBeInViewport();
 
-    // Contained again, back on screen: the sky layer travelled with the
-    // stage in both directions, never left pinned to some other position.
+    // Contained again, back on screen: both layers travelled with the stage
+    // in both directions, never left pinned to some other position.
     const backStageBox = await stage.boundingBox();
     const backSkyBox = await sky.boundingBox();
+    const backGroundBox = await ground.boundingBox();
     expect(backStageBox, "stage has no box after scrolling back").not.toBeNull();
     expect(backSkyBox, "sky layer has no box after scrolling back").not.toBeNull();
+    expect(backGroundBox, "ground layer has no box after scrolling back").not.toBeNull();
     expect(boxContains(backStageBox!, backSkyBox!)).toBe(true);
+    expect(boxContains(backStageBox!, backGroundBox!)).toBe(true);
 
     // And it still ends cleanly, the same as every other exit path.
     await page.keyboard.press("Escape");

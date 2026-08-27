@@ -5,7 +5,11 @@ import {
   FOLLOW_BRAKE,
   FOLLOW_MAX,
   followTarget,
+  initRide,
   ramp,
+  RIDE_SETTLE_MS,
+  rideStep,
+  trailBehind,
 } from "@/components/companion/companion-motion";
 
 /**
@@ -103,5 +107,176 @@ describe("ramp", () => {
     const speed = ramp(0, wish);
     expect(speed).toBeCloseTo(FOLLOW_ACCEL, 5);
     expect(speed).toBeLessThan(FOLLOW_MAX);
+  });
+});
+
+/**
+ * WP-R round 15 ("the cat is moving really forward and backward" on scroll):
+ * round 14 capped the speed a cat *chases* a target at, but a settled cat
+ * chases nothing — `want` and `pos` already agree, so `advance` correctly
+ * does nothing while the fixed cat holds its viewport pixel and the whole
+ * page slides past underneath it. `rideStep` is the other half: not a speed
+ * cap, but the exact, uncapped correction that keeps a fixed element's
+ * *content-relative* position constant across a real scroll, so there is
+ * nothing left for `advance` to chase in the first place.
+ */
+describe("rideStep", () => {
+  it("reports no delta and is not riding before the page has ever scrolled", () => {
+    const tracker = initRide(0, 500);
+    const frame = rideStep(tracker, 0, 500, 1000);
+    expect(frame).toEqual({ dx: 0, dy: 0, riding: false });
+  });
+
+  it("reports the exact, uncapped offset a fixed element needs to hold its place over the content", () => {
+    // Scrolling down by 800 (the page's own y growing) moves the content
+    // *up* by 800 in the viewport — so a rider follows it up, not down.
+    const tracker = initRide(0, 500);
+    const frame = rideStep(tracker, 0, 500 + 800, 1000);
+    expect(frame.dx).toBe(0);
+    expect(frame.dy).toBe(-800);
+    expect(frame.riding).toBe(true);
+  });
+
+  it("is not capped the way advance() is — a scroll-sized jump reports the whole distance in one call", () => {
+    // The very case round 14 exists to cap for a *chase* is exactly the case
+    // riding must not cap at all: the correction has to be exact or the cat
+    // visibly drifts off the content it was meant to hold its place beside.
+    const tracker = initRide(0, 0);
+    const frame = rideStep(tracker, 0, 20_000, 1000);
+    expect(frame.dy).toBe(-20_000);
+  });
+
+  it("keeps riding for a beat after the delta stops, then settles", () => {
+    const tracker = initRide(0, 0);
+    rideStep(tracker, 0, 300, 1000);
+    // The scroll position has stopped changing, but not long enough ago.
+    const stillRiding = rideStep(tracker, 0, 300, 1000 + RIDE_SETTLE_MS - 1);
+    expect(stillRiding).toEqual({ dx: 0, dy: 0, riding: true });
+    // Now it has been quiet for the full settle window.
+    const settled = rideStep(tracker, 0, 300, 1000 + RIDE_SETTLE_MS + 1);
+    expect(settled).toEqual({ dx: 0, dy: 0, riding: false });
+  });
+
+  it("a momentum scroll's own sparse, sub-pixel ticks still read as one continuous ride", () => {
+    // Real momentum scrolling does not deliver a delta every frame — a tick
+    // arrives, then a gap under the settle window, then another tick. None
+    // of those gaps should read as "settled" on their own.
+    const tracker = initRide(0, 0);
+    let now = 0;
+    let y = 0;
+    for (let tick = 0; tick < 5; tick += 1) {
+      y += 40;
+      const frame = rideStep(tracker, 0, y, now);
+      expect(frame.riding).toBe(true);
+      now += RIDE_SETTLE_MS - 40; // a gap, but inside the settle window
+    }
+  });
+
+  it("moves the axis the page actually scrolled, and only that axis", () => {
+    const tracker = initRide(100, 100);
+    const frame = rideStep(tracker, 260, 100, 1000);
+    expect(frame.dx).toBe(-160);
+    expect(frame.dy).toBe(0);
+  });
+});
+
+/**
+ * WP-R round 15's second follow-up ("the follower trails the lead on long
+ * walks"): a long walk toward a fixed point used to send both cats
+ * independently toward two *separately computed* targets, and two animals
+ * each closing on their own point at their own capped speed can cross paths
+ * on the way however clear the two endpoints are — axe caught the follower
+ * transiting through the lead's own toggle clearance for seconds at a time,
+ * gap measured as low as -36px. `trailBehind` is the structural fix: for as
+ * long as the lead is still walking, the follower's target is *his live
+ * position*, not a fixed point of her own — so there is no second path left
+ * to cross. This is not new geometry (it is the exact offset the philosophy
+ * mood's lap and the ordinary pointer-chase already used), only a shared,
+ * pure home for it so a third long walk can reuse it rather than invent a
+ * fourth copy.
+ */
+describe("trailBehind", () => {
+  it("offsets by exactly width + gap along x, opposite the lead's facing", () => {
+    const lead = { x: 500, y: 500 };
+    const right = trailBehind(lead, 1, 50, 26);
+    expect(right.x).toBe(lead.x - 76);
+    const left = trailBehind(lead, -1, 50, 26);
+    expect(left.x).toBe(lead.x + 76);
+  });
+
+  it("offsets by the given dy, defaulting to the small downward nudge every existing caller used", () => {
+    const lead = { x: 0, y: 0 };
+    expect(trailBehind(lead, 1, 50, 26).y).toBe(3);
+    expect(trailBehind(lead, 1, 50, 26, 12).y).toBe(12);
+  });
+
+  it("never lands on the lead itself — trailing always keeps real separation", () => {
+    for (const facing of [1, -1] as const) {
+      const lead = { x: 300, y: 300 };
+      const follow = trailBehind(lead, facing, 50, 26);
+      expect(Math.hypot(follow.x - lead.x, follow.y - lead.y)).toBeGreaterThan(0);
+    }
+  });
+
+  it("translates with the lead — the offset itself does not depend on where he is", () => {
+    const a = trailBehind({ x: 100, y: 100 }, 1, 50, 26);
+    const b = trailBehind({ x: 9100, y: -400 }, 1, 50, 26);
+    expect(b.x - a.x).toBe(9000);
+    expect(b.y - a.y).toBe(-500);
+  });
+
+  /**
+   * The clearance property `FOLLOW_LONG_WALK_GAP` (Companion.tsx) exists to
+   * guarantee: a long-walk trail has to clear the WCAG 2.5.8 minimum on its
+   * own, every frame, not merely once she arrives — a visitor who has
+   * stopped touching the page could be looking at any one of them. Pinned
+   * here against the exact padded box `leadControlRect` (Companion.tsx)
+   * draws around the lead's own live button, so a future change to either
+   * the gap or the padding fails this before it ever reaches a browser.
+   */
+  it("a wide-enough gap clears the WCAG 2.5.8 minimum from the lead's own padded control box, every frame — not just at rest", () => {
+    const CAT_W = 50;
+    const CAT_H = 42;
+    const LEAD_PAD_X = 4;
+    const LEAD_PAD_Y = 3;
+    const WCAG_MIN = 24;
+    const FOLLOW_LONG_WALK_GAP = 34; // must match Companion.tsx's own constant
+    const lead = { x: 500, y: 500 };
+    const rect = {
+      left: lead.x - LEAD_PAD_X,
+      top: lead.y - LEAD_PAD_Y,
+      right: lead.x - LEAD_PAD_X + CAT_W + LEAD_PAD_X * 2,
+      bottom: lead.y - LEAD_PAD_Y + CAT_H + LEAD_PAD_Y * 2,
+    };
+    for (const facing of [1, -1] as const) {
+      const follow = trailBehind(lead, facing, CAT_W, FOLLOW_LONG_WALK_GAP);
+      const box = { left: follow.x, top: follow.y, right: follow.x + CAT_W, bottom: follow.y + CAT_H };
+      const dxOut = Math.max(box.left - rect.right, rect.left - box.right);
+      const dyOut = Math.max(box.top - rect.bottom, rect.top - box.bottom);
+      expect(Math.max(dxOut, dyOut)).toBeGreaterThanOrEqual(WCAG_MIN);
+    }
+  });
+
+  it("the ordinary FOLLOW_GAP, by contrast, does not clear the minimum — trailing at chase distance is motion, not rest, and is not held to this bar", () => {
+    const CAT_W = 50;
+    const CAT_H = 42;
+    const LEAD_PAD_X = 4;
+    const LEAD_PAD_Y = 3;
+    const FOLLOW_GAP = 26; // Companion.tsx's own ordinary chase/lap distance
+    const lead = { x: 500, y: 500 };
+    const rect = {
+      left: lead.x - LEAD_PAD_X,
+      top: lead.y - LEAD_PAD_Y,
+      right: lead.x - LEAD_PAD_X + CAT_W + LEAD_PAD_X * 2,
+      bottom: lead.y - LEAD_PAD_Y + CAT_H + LEAD_PAD_Y * 2,
+    };
+    const follow = trailBehind(lead, 1, CAT_W, FOLLOW_GAP);
+    const box = { left: follow.x, top: follow.y, right: follow.x + CAT_W, bottom: follow.y + CAT_H };
+    const dxOut = Math.max(box.left - rect.right, rect.left - box.right);
+    // Documents the deliberate gap this file's own note explains: ordinary
+    // trailing is watched motion, and this test would break the day someone
+    // "simplifies" the two gaps back down to one without reading why they
+    // are not the same number.
+    expect(dxOut).toBeLessThan(24);
   });
 });

@@ -40,7 +40,16 @@ export default function SiteFooter() {
   );
 
   return (
-    <footer className="border-t border-rule bg-ground text-fg">
+    // `tone-contrast`, matching the Closing section directly above (round 15,
+    // item 5, deepened by the owner's follow-up): the page's final chapter
+    // used to end with a hard cut — dark thank-you, then a light colophon
+    // strip, then TWO "Back to top" controls within one screen. The footer
+    // now lives inside the closing's tone scope with no separating border
+    // (the closing's own fleuron ornament above is the typographic break),
+    // and carries the page's single Back to top — the closing's boxed copy
+    // is gone. Aliases only; the companion's tone sampler picks this scope
+    // up like any other.
+    <footer className="tone-contrast bg-ground text-fg">
       <div className="shell">
         <div className="flex flex-wrap items-center gap-y-2 py-5 text-[length:var(--step--1)] text-fg-subtle">
           {/* `tabular-nums` (Workstream 3, P4): the year sets in this line's
