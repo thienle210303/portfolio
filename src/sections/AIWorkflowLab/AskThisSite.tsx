@@ -465,6 +465,27 @@ function TurnItem({
 /* The thread                                                                  */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The thread, hoisted out of the component on purpose.
+ *
+ * This component's only mount is now the hero code artifact's "Ask Thien"
+ * tab, and `Tabs` (src/components/ui/Tabs.tsx) renders only the active
+ * panel — so looking at `builder.ts` and coming back is a real unmount and
+ * remount. Component state would be thrown away by that, which would make
+ * the tab strip feel like it eats conversations. Module scope survives it,
+ * and still resets on a page load, which is the honesty contract this
+ * component already had: nothing is persisted anywhere.
+ */
+let cachedTurns: readonly Turn[] = [];
+let cachedLastAsked: string | null = null;
+
+/** Empties the module-scoped thread. The component's own "Clear
+ *  conversation" control calls this; tests call it between cases. */
+export function clearThreadCache(): void {
+  cachedTurns = [];
+  cachedLastAsked = null;
+}
+
 export default function AskThisSite({ liveModeConfigured }: Props) {
   const fieldId = useId();
   const threadId = useId();
@@ -475,8 +496,17 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
   const logRef = useRef<HTMLDivElement | null>(null);
 
   const [query, setQuery] = useState("");
-  const [turns, setTurns] = useState<readonly Turn[]>([]);
-  const [lastAsked, setLastAsked] = useState<string | null>(null);
+  const [turns, setTurns] = useState<readonly Turn[]>(() => cachedTurns);
+  const [lastAsked, setLastAsked] = useState<string | null>(() => cachedLastAsked);
+
+  // Mirror every thread change into module scope, so the next mount starts
+  // from where this one left off. Deliberately an effect rather than a write
+  // inside `ask()`: `updateTurn` and `askLive` both mutate turns too, and
+  // this way there is exactly one place that has to stay in sync.
+  useEffect(() => {
+    cachedTurns = turns;
+    cachedLastAsked = lastAsked;
+  }, [turns, lastAsked]);
 
   const isBusy = turns.some((turn) => turn.answer.kind === "pending");
 
@@ -508,6 +538,7 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
   }, [turns]);
 
   function handleClear() {
+    clearThreadCache();
     setTurns([]);
     setLastAsked(null);
     // Nothing was persisted to begin with, so "clear" is just resetting this

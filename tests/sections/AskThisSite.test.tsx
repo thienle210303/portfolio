@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import AskThisSite from "@/sections/AIWorkflowLab/AskThisSite";
+import AskThisSite, { clearThreadCache } from "@/sections/AIWorkflowLab/AskThisSite";
 
 /**
  * The scrolling thread + "Clear conversation" control (round 12, WP-K).
@@ -53,6 +53,13 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  // The thread now lives in module scope (so it survives a tab switch --
+  // see the comment above `cachedTurns` in AskThisSite.tsx), which means it
+  // also survives from one test in this file to the next unless something
+  // clears it. Every pre-existing test here renders a fresh component
+  // expecting an empty thread, so isolation has to cover the whole file,
+  // not just the new "thread persistence" cases below.
+  clearThreadCache();
 });
 
 describe("AskThisSite -- scrolling thread window", () => {
@@ -144,5 +151,43 @@ describe("AskThisSite -- Clear conversation", () => {
     expect(screen.queryByRole("button", { name: "Clear conversation" })).not.toBeInTheDocument();
     expect(screen.getByText(/No question asked yet/)).toBeInTheDocument();
     expect(questionField()).toHaveFocus();
+  });
+});
+
+describe("thread persistence across unmount", () => {
+  afterEach(() => {
+    clearThreadCache();
+  });
+
+  it("keeps the conversation when the component is unmounted and mounted again", async () => {
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={false} />);
+
+    const input = screen.getByRole("textbox");
+    await user.type(input, "What did Thien build at DoorDash?");
+    await user.keyboard("{Enter}");
+
+    const question = await screen.findByText("What did Thien build at DoorDash?");
+    expect(question).toBeInTheDocument();
+
+    // The tab switch: Tabs unmounts the panel that is not active.
+    first.unmount();
+    render(<AskThisSite liveModeConfigured={false} />);
+
+    expect(screen.getByText("What did Thien build at DoorDash?")).toBeInTheDocument();
+  });
+
+  it("clearThreadCache empties the thread for the next mount", async () => {
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={false} />);
+    await user.type(screen.getByRole("textbox"), "What did Thien build at DoorDash?");
+    await user.keyboard("{Enter}");
+    await screen.findByText("What did Thien build at DoorDash?");
+
+    first.unmount();
+    clearThreadCache();
+    render(<AskThisSite liveModeConfigured={false} />);
+
+    expect(screen.queryByText("What did Thien build at DoorDash?")).not.toBeInTheDocument();
   });
 });
