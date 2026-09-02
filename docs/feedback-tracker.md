@@ -703,3 +703,26 @@ Gate: `pnpm verify` green, full matrix **491 passed / 0 failed** (one
 intermediate run failed 10 tests, all chromium-320, all unrelated specs,
 all passing 20/20 scoped — a loaded-machine shard, recorded as
 environmental). With this, every item from rounds 1–15 is shipped.
+
+## Round 16 (2026-09-02) — Playground Earth
+
+Design: `docs/superpowers/specs/2026-09-02-playground-earth-design.md`.
+
+### Performance baseline
+
+Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
+~1.6 Mbps. Re-run after every step that touches the initial chunk set.
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| Before round 16 | 207.4 KB | 14.2 KB | 331.4 KB | 3884 ms | 359 ms | 0 | 4369 |
+
+LCP element is the hero intro paragraph. Two standing facts this table exists
+to keep honest:
+
+- LCP is already past the 2.5 s "good" threshold on a phone. Nothing new may
+  be added to the first screen.
+- Newsreader **italic** is 143.6 KB of the 331.4 KB and is used in exactly two
+  places (`BusinessCard.tsx:275`, `Closing.tsx:76`). Dropping that one axis is
+  the single largest win available and is tracked as its own decision, not
+  bundled into this work.
