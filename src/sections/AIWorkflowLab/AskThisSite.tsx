@@ -475,15 +475,39 @@ function TurnItem({
  * the tab strip feel like it eats conversations. Module scope survives it,
  * and still resets on a page load, which is the honesty contract this
  * component already had: nothing is persisted anywhere.
+ *
+ * This repo's lint config (`react-hooks/globals`, `react-hooks/immutability`
+ * — the React Compiler's rules) refuses to let component or hook code touch
+ * a module-scoped value directly: not a bare reassignment, and not writing
+ * one of its object properties either, because both are a side effect whose
+ * timing the render/effect model no longer controls once the compiler may
+ * memoize or reorder things. `updateTurn`, below, is exactly the case that
+ * needs to write here from outside that model — it can run long after this
+ * component has unmounted, resolving `askLive`'s fetch — so the write has to
+ * happen somewhere the linter doesn't consider "component or hook" code at
+ * all: a plain top-level function. `writeCachedTurns` is that function; it
+ * is the *only* place, besides `clearThreadCache` (also plain and top-level)
+ * below, allowed to assign into `threadCache.turns`. Every read of the
+ * current thread, from anywhere, still goes through `threadCache.turns`
+ * directly — only the write is funneled through the one function.
  */
-let cachedTurns: readonly Turn[] = [];
-let cachedLastAsked: string | null = null;
+const threadCache: { turns: readonly Turn[]; lastAsked: string | null } = {
+  turns: [],
+  lastAsked: null,
+};
+
+/** Assigns the next thread into the cache and hands it back, so a caller can
+ *  turn around and pass the same array to `setTurns` in one line. */
+function writeCachedTurns(turns: readonly Turn[]): readonly Turn[] {
+  threadCache.turns = turns;
+  return turns;
+}
 
 /** Empties the module-scoped thread. The component's own "Clear
  *  conversation" control calls this; tests call it between cases. */
 export function clearThreadCache(): void {
-  cachedTurns = [];
-  cachedLastAsked = null;
+  threadCache.turns = [];
+  threadCache.lastAsked = null;
 }
 
 export default function AskThisSite({ liveModeConfigured }: Props) {
@@ -496,16 +520,16 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
   const logRef = useRef<HTMLDivElement | null>(null);
 
   const [query, setQuery] = useState("");
-  const [turns, setTurns] = useState<readonly Turn[]>(() => cachedTurns);
-  const [lastAsked, setLastAsked] = useState<string | null>(() => cachedLastAsked);
+  const [turns, setTurns] = useState<readonly Turn[]>(() => threadCache.turns);
+  const [lastAsked, setLastAsked] = useState<string | null>(() => threadCache.lastAsked);
 
   // Mirror every thread change into module scope, so the next mount starts
   // from where this one left off. Deliberately an effect rather than a write
   // inside `ask()`: `updateTurn` and `askLive` both mutate turns too, and
   // this way there is exactly one place that has to stay in sync.
   useEffect(() => {
-    cachedTurns = turns;
-    cachedLastAsked = lastAsked;
+    threadCache.turns = turns;
+    threadCache.lastAsked = lastAsked;
   }, [turns, lastAsked]);
 
   const isBusy = turns.some((turn) => turn.answer.kind === "pending");
@@ -558,16 +582,23 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
   // `prev` inside `setTurns(prev => ...)` would only ever run while mounted,
   // and a live answer that arrives after the visitor has looked away would
   // vanish, leaving that turn stuck on its "pending" spinner forever once
-  // they switch back. `cachedTurns` is instead treated as the one
-  // authoritative copy: it is always current (the effect below keeps it in
+  // they switch back. `threadCache.turns` is instead treated as the one
+  // authoritative copy: it is always current (the effect above keeps it in
   // step with `turns` on every render this component is mounted for), so
   // computing the next value from it and assigning back to it works whether
   // or not a component instance exists to receive it. `setTurns` is still
   // called after, as a no-op if this instance is gone and a real update if
-  // it is still mounted and watching.
+  // it is still mounted and watching. If the visitor cleared the thread
+  // first (`handleClear`, below), `threadCache.turns` is already `[]` by the
+  // time a late `updateTurn` call lands, `id` no longer matches anything in
+  // it, and `.map` returns that same empty array unchanged — so a late
+  // arrival can never resurrect a cleared conversation. The assignment back
+  // into `threadCache.turns` happens inside `writeCachedTurns`, a plain
+  // top-level function — see the doc comment above `threadCache` for why
+  // this can't be written inline here, in the component's own body.
   function updateTurn(id: string, next: TurnAnswer) {
-    cachedTurns = cachedTurns.map((turn) => (turn.id === id ? { ...turn, answer: next } : turn));
-    setTurns(cachedTurns);
+    const updated = threadCache.turns.map((turn) => (turn.id === id ? { ...turn, answer: next } : turn));
+    setTurns(writeCachedTurns(updated));
   }
 
   async function askLive(id: string, question: string, historySoFar: readonly Turn[]) {
