@@ -45,11 +45,11 @@ const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 const IS_WINDOWS = process.platform === "win32";
 
-// Page order per src/app/page.tsx: about, philosophy, work, skills, tree,
-// lab, contact, closing. No standalone "journey" or "resume" section any
-// more — journey folded into tree (see CareerTree.tsx), résumé moved to its
-// own route (captured separately, below).
-const SECTIONS = ["about", "philosophy", "work", "skills", "tree", "lab", "contact", "closing"];
+// Page order per src/app/page.tsx: about, work, skills, tree, lab, contact,
+// closing. No standalone "journey" or "resume" section any more — journey
+// folded into tree (see CareerTree.tsx), résumé moved to its own route
+// (captured separately, below); Philosophy removed entirely (round 16).
+const SECTIONS = ["about", "work", "skills", "tree", "lab", "contact", "closing"];
 
 const outPath = (name) => path.join(OUT_DIR, `${name}.png`);
 

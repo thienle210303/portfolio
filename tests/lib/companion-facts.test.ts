@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { careerEntries, principles, projects, skillCategories } from "@/content/portfolio";
+import { careerEntries, projects, skillCategories } from "@/content/portfolio";
 import { experiments } from "@/content/ai-experiments";
 import { buildCompanionFacts } from "@/lib/companion-facts";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
@@ -21,11 +21,6 @@ describe("buildCompanionFacts", () => {
       .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
     expect(facts.about.role).toBe(current?.role ?? "");
     expect(facts.about.organization).toBe(current?.organization ?? "");
-  });
-
-  it("counts the principles", () => {
-    expect(facts.philosophy.principles).toBe(principles.length);
-    expect(facts.philosophy.principles).toBeGreaterThan(0);
   });
 
   it("counts case studies and their sourced metrics", () => {

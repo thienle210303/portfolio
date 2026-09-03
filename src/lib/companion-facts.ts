@@ -1,4 +1,4 @@
-import { careerEntries, principles, profile, projects, skillCategories } from "@/content/portfolio";
+import { careerEntries, profile, projects, skillCategories } from "@/content/portfolio";
 import { experiments } from "@/content/ai-experiments";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
 
@@ -29,9 +29,6 @@ export interface CompanionFacts {
   readonly about: {
     readonly role: string;
     readonly organization: string;
-  };
-  readonly philosophy: {
-    readonly principles: number;
   };
   readonly work: {
     readonly caseStudies: number;
@@ -106,9 +103,6 @@ export function buildCompanionFacts(): CompanionFacts {
     about: {
       role: currentRole?.role ?? "",
       organization: currentRole?.organization ?? "",
-    },
-    philosophy: {
-      principles: principles.length,
     },
     work: {
       caseStudies: projects.length,

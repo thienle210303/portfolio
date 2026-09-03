@@ -82,10 +82,6 @@ const AMBIENT: Record<string, SceneBuilder> = {
           tabby("Mrrrow?", "That's the headline. The page is the proof."),
         ]
       : null,
-  philosophy: (f) => [
-    tabby("Meow meow meow!", `${f.philosophy.principles} principles! I counted them myself!`),
-    grey("Mrp.", "One loop. He runs it on everything."),
-  ],
   work: (f) => [
     tabby("Mrrrow-meow!", `Ooh — ${f.work.caseStudies} case studies live here!`),
     grey("Meow. Mrp.", `${f.work.sourcedMetrics} sourced figures between them.`),
@@ -134,10 +130,6 @@ const TOUR: Record<string, SceneBuilder> = {
         ? `${f.about.role}. ${f.about.organization}${endStop(f.about.organization)} The facts hold.`
         : "The start of the page. The facts hold.",
     ),
-  ],
-  philosophy: (f) => [
-    grey("Mrp.", `${f.philosophy.principles} principles. He runs them on everything.`),
-    tabby("Meow-meow!", "One loop, over and over. I've watched it work."),
   ],
   work: (f) => [
     tabby("Mrrrow-meow!", `${f.work.caseStudies} case studies! Real problems, real fixes!`),

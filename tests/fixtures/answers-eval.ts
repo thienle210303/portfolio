@@ -112,10 +112,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   },
   {
     query: "how does he decide what is worth working on",
-    expect: [
-      "Unsolved is not the same as unsolvable",
-      "less interested in whether a problem is hard",
-    ],
+    expect: ["Unsolved is not the same as unsolvable"],
     probes: "judgement, asked plainly",
   },
   {

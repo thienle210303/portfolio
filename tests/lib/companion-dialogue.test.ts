@@ -18,7 +18,6 @@ import type { CompanionFacts } from "@/lib/companion-facts";
 
 const FACTS: CompanionFacts = {
   about: { role: "Software Engineer", organization: "DoorDash, Inc." },
-  philosophy: { principles: 5 },
   work: { caseStudies: 3, sourcedMetrics: 14 },
   skills: { categories: 6, distinctSkills: 38 },
   tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
@@ -26,7 +25,7 @@ const FACTS: CompanionFacts = {
   contact: { email: "x@y.z" },
 };
 
-const AMBIENT_SECTIONS = ["about", "philosophy", "work", "skills", "tree", "lab"];
+const AMBIENT_SECTIONS = ["about", "work", "skills", "tree", "lab"];
 
 describe("scene bank", () => {
   it("has a hello scene with both speakers and alternation", () => {

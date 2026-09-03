@@ -1,5 +1,4 @@
 import Hero from "@/sections/Hero/Hero";
-import Philosophy from "@/sections/Philosophy/Philosophy";
 import SelectedWork from "@/sections/SelectedWork/SelectedWork";
 import AIWorkflowLab from "@/sections/AIWorkflowLab/AIWorkflowLab";
 import Skills from "@/sections/Skills/Skills";
@@ -22,8 +21,8 @@ export default function Home() {
       {/*
         Order is an argument about what a visitor needs, in what order.
 
-        Who he is, how he works, what he built, where he has been, the formal
-        record, then the specialist material, then how to reach him.
+        Who he is, what he built, where he has been, the formal record, then
+        the specialist material, then how to reach him.
 
         The AI Workflow Lab used to sit between Selected Work and the career
         timeline. It is the single largest section on the page and putting it
@@ -53,7 +52,6 @@ export default function Home() {
         doubles as the page's table of contents.
       */}
       <Hero />
-      <Philosophy />
       <SelectedWork />
       <Skills />
       <CareerTree />

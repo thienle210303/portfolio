@@ -8,7 +8,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { origin, philosophyIntro, principles, problemSolvingLoop } from "@/content/portfolio";
+import { origin } from "@/content/portfolio";
 import { scrapingPlaybook, scrapingPlaybookIntro } from "@/content/ai-experiments";
 
 /**
@@ -44,18 +44,14 @@ const CORPUS = new Set<string>([
   ]),
   ...education.map((school) => `${school.credential}, ${school.institution} (${school.dateRange}).`),
   ...skillsIndexable.map((category) => category.evidence),
-  // Philosophy, the origin flight and the problem-solving loop were reachable
-  // from src/content/portfolio.ts but never indexed — corpus expansion for
-  // round 10 (WP-D), so "Ask this site" can answer career/background/how he
-  // works questions, not just the lab.
+  // The origin flight was reachable from src/content/portfolio.ts but never
+  // indexed — corpus expansion for round 10 (WP-D), so "Ask this site" can
+  // answer career/background questions, not just the lab. Philosophy's own
+  // paragraphs, principles and problem-solving loop were indexed here too
+  // until round 16 removed the section and its corpus documents with it —
+  // `profile.philosophy` above is the one line from that section still
+  // reachable, re-tagged to About.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
-  ...philosophyIntro,
-  ...principles.flatMap((principle) => [
-    principle.summary,
-    principle.detail,
-    ...(principle.evidence ? [principle.evidence.body] : []),
-  ]),
-  ...problemSolvingLoop.map((step) => step.detail),
   // The scraping playbook (round 11): the owner's approved prose, indexed
   // verbatim from src/content/ai-experiments.ts.
   scrapingPlaybookIntro,
@@ -64,7 +60,7 @@ const CORPUS = new Set<string>([
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé
  *  is its own route now, so `#resume` would be a dead anchor. */
-const LINKABLE_SECTIONS = /^(about|philosophy|work|lab|journey|skills)$/;
+const LINKABLE_SECTIONS = /^(about|work|lab|journey|skills)$/;
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {

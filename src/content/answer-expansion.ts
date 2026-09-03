@@ -363,19 +363,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
  */
 export const sectionExpansions: Record<string, readonly string[]> = {
   about: ["who", "bio", "introduction", "background", "profile", "himself"],
-  philosophy: [
-    "philosophy",
-    "value",
-    "belief",
-    "believes",
-    "principle",
-    "mindset",
-    "approach",
-    "decide",
-    "decision",
-    "choose",
-    "judgement",
-  ],
   // "work" itself was missing, which is easy to miss because it is the section's
   // own key — but the key is not indexed, only these strings are.
   work: ["work", "project", "portfolio", "case study", "shipped", "built"],

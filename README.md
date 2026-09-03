@@ -3,10 +3,10 @@
 A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
-The site is a single narrative page: a code-led hero, a problem-solving
-philosophy, six case studies, an AI Workflow Lab with a dated learning log, a
-career timeline, an interactive résumé, and a contact experience that starts from
-what the visitor actually came to say.
+The site is a single narrative page: a code-led hero, six case studies, an AI
+Workflow Lab with a dated learning log, a career timeline, an interactive
+résumé, and a contact experience that starts from what the visitor actually
+came to say.
 
 Visually it is **Blueprint**: a cool paper ground ruled with a faint measurement
 grid, one blue reserved for annotation and measured values, and a margin rail
@@ -84,9 +84,6 @@ a fact **computed from the content layer** — a count, a date, a source — nev
 a restatement of the prose beside it, and never a fact that exists nowhere
 else. `SelectedWork` and `AIWorkflowLab` are the reference examples.
 
-Philosophy deliberately has no rail: `ProblemSolvingLoop` lays out nine
-columns, and surrendering the margin drops each to ~127px.
-
 ### Colour and contrast
 
 Blue is the only hue in the palette, reserved for annotation, links, measured
@@ -141,7 +138,7 @@ date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, philosophy, career entries, case studies, skills, education, certifications, achievements, contact intents |
+| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, contact intents, and the retired Philosophy section's principles/loop/intro (unrendered, kept for a future section) |
 | `src/content/ai-experiments.ts` | Workflow stages, AI experiments, learning log |
 | `src/types/portfolio.ts` | The types both files are checked against |
 
