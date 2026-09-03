@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { answer, SUGGESTED_QUESTIONS } from "@/lib/answers";
+import { buildDocuments } from "@/lib/answer-corpus";
 import {
   careerIndexable,
   education,
@@ -79,6 +80,22 @@ describe("answer", () => {
         expect(result.source.trim()).not.toBe("");
         expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
       }
+    }
+  });
+
+  it("builds no document that points at a dead section id", () => {
+    // The test above only checks LINKABLE_SECTIONS against whatever a
+    // handful of probe queries happen to retrieve — a *sampled* guard on a
+    // *structural* property. A document with a bad sectionId that none of
+    // those probes surfaces would pass silently, which is exactly the
+    // failure mode this round's plan was written about (a removed section
+    // leaving behind a document that still points at it). Iterating the
+    // whole corpus instead makes the guard hold for every document, not
+    // just the ones ranking queries happen to surface.
+    for (const doc of buildDocuments()) {
+      expect(doc.sectionId, `document "${doc.label}" points at a section that no longer exists`).toMatch(
+        LINKABLE_SECTIONS,
+      );
     }
   });
 

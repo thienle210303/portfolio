@@ -69,6 +69,13 @@ chat's retrieval corpus cites them — pending a future plan that re-homes them
 into a new section. Do not treat "unreferenced" as "dead": these are live
 content, just without a home yet.
 
+The same holds one layer up, for code derived from that content rather than
+the content itself: `src/lib/answer-sources.ts`'s `experimentsIndexable` has
+zero consumers today, and is kept on purpose as the adapter the next plan
+re-uses once the Lab's content is re-homed — do not delete it as dead code.
+
+
+
 The career tree draws only authored relationships. Since round 12 each
 branch is one career entry (chronological, each exactly once) and its leaves
 are that entry's own `technologies` and `impact` fields, verbatim. Do not

@@ -1553,20 +1553,6 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
-    const measure = () =>
-      page.evaluate(() => {
-        const button = document.querySelector('[aria-controls="companion-actions"]');
-        const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
-        if (!button || cats.length < 2) return null;
-        const follow = cats.find((svg) => !button.contains(svg));
-        if (!follow) return null;
-        const b = button.getBoundingClientRect();
-        const f = follow.getBoundingClientRect();
-        const dxOut = Math.max(f.left - b.right, b.left - f.right);
-        const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
-        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
-      });
-
     // The same single, instant jump the axe test makes to reach the work
     // section's own heading.
     //
@@ -1586,56 +1572,135 @@ test.describe("companion", () => {
     // a content-removal task. Sampling below is tuned to what this smaller,
     // safe jump actually produces; it is not a claim that every jump is
     // safe.
-    await page.locator("#work-heading").scrollIntoViewIfNeeded();
+    //
+    // Round 16 follow-up: this used to sample from Node, one `page.evaluate`
+    // round trip and a 20ms `waitForTimeout` per loop iteration (30-80ms
+    // effective under six-worker contention), *after* awaiting
+    // `scrollIntoViewIfNeeded` to completion. With the walk itself now
+    // settling in well under 100ms, that round trip reliably lost the race:
+    // the first sample already landed at rest, `movedSamples` stayed 0, and
+    // the "never actually observed the walk" assertion fired on a passing
+    // page — which is exactly what happened once in a full matrix run. The
+    // sampler now runs *inside* the page: a `requestAnimationFrame` loop is
+    // armed first, and the scroll is triggered in the same `page.evaluate`
+    // call immediately after, so there is no round trip between "armed" and
+    // "walking" and every rendered frame is a candidate sample. The trace is
+    // read back once the in-page loop reports it is done.
+    await page.evaluate(() => {
+      const button = document.querySelector('[aria-controls="companion-actions"]');
+      const trace: Array<{ gap: number; fx: number; fy: number; stable: boolean; moved: boolean }> = [];
+      (window as unknown as { __companionTrace: typeof trace }).__companionTrace = trace;
+      (window as unknown as { __companionTraceDone: boolean }).__companionTraceDone = false;
 
-    // Sample continuously until the follower's own drawn position has held
-    // still for three consecutive ticks (60ms) — the walk is over — or a
-    // generous safety deadline, whichever comes first. The interval is
-    // tighter than round 15's (100ms) because the walk it is now sampling
-    // is shorter; a coarser interval on a short walk risks missing every
-    // in-flight frame and only ever seeing the already-settled endpoint.
-    let previous: { fx: number; fy: number } | null = null;
-    let stableStreak = 0;
-    let samples = 0;
-    // Distinct from `samples`: this only counts samples where the follower's
-    // drawn position actually differs from the previous one — i.e. a frame
-    // caught mid-walk, not at rest. `samples` alone is not a reliable proxy
-    // for "the walk was actually observed": the loop's own exit condition
-    // (`stableStreak >= 3`) is satisfiable by three consecutive *identical*
-    // readings, so a walk that is over before the second sample would still
-    // rack up a "samples" count without ever seeing the cat in motion. A
-    // regression that let the follower cut through the toggle mid-walk could
-    // pass silently if every sample the loop happened to catch was already
-    // at rest. Requiring at least one moved sample is what keeps this test
-    // honest about having watched the walk, not just its two endpoints.
-    let movedSamples = 0;
-    const deadline = Date.now() + 15_000;
-    while (Date.now() < deadline && stableStreak < 3) {
-      const m = await measure();
-      if (m) {
-        samples += 1;
-        expect(
-          m.gap,
-          `only ${m.gap.toFixed(1)}px clear of the toggle mid-walk (sample ${samples})`,
-        ).toBeGreaterThanOrEqual(24);
-        // `previous` is null only on the very first sample, when there is
-        // nothing yet to compare against — that sample is neither "moved"
-        // nor "stable" by construction, so it resets the streak exactly as
-        // it did before `movedSamples` existed (round 15's original logic),
-        // and it is not counted toward `movedSamples` either.
-        const stable = previous !== null && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5;
-        if (previous !== null && !stable) movedSamples += 1;
-        stableStreak = stable ? stableStreak + 1 : 0;
-        previous = { fx: m.fx, fy: m.fy };
+      function measure() {
+        const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+        if (!button || cats.length < 2) return null;
+        const follow = cats.find((svg) => !button.contains(svg));
+        if (!follow) return null;
+        const b = button.getBoundingClientRect();
+        const f = follow.getBoundingClientRect();
+        const dxOut = Math.max(f.left - b.right, b.left - f.right);
+        const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
+        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
       }
-      await page.waitForTimeout(20);
-    }
-    expect(samples, "never found a cat pair to measure").toBeGreaterThanOrEqual(3);
-    expect(stableStreak, "the pair never actually settled inside the sampling window").toBeGreaterThanOrEqual(3);
+
+      let previous: { fx: number; fy: number } | null = null;
+      let stableStreak = 0;
+      const deadline = performance.now() + 15_000;
+
+      function tick() {
+        const m = measure();
+        if (m) {
+          // `previous` is null only if the pre-scroll seed below failed to
+          // find a cat pair at all (the pair genuinely was not there yet) —
+          // once seeded, every ticked frame has something to compare against,
+          // including the very first one, which is what lets that first
+          // frame register the ride's single-frame jump as "moved" rather
+          // than being exempted from comparison the way an unseeded first
+          // sample would be.
+          const stable = previous !== null && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5;
+          const moved = previous !== null && !stable;
+          trace.push({ ...m, stable, moved });
+          stableStreak = stable ? stableStreak + 1 : 0;
+          previous = { fx: m.fx, fy: m.fy };
+        }
+        if (stableStreak >= 3 || performance.now() > deadline) {
+          (window as unknown as { __companionTraceDone: boolean }).__companionTraceDone = true;
+          return;
+        }
+        requestAnimationFrame(tick);
+      }
+
+      // Seed `previous` with a reading taken *before* the scroll is
+      // triggered, in the same synchronous task — but do not push it into
+      // `trace` itself. The ride shift this jump produces (`rideStep`,
+      // companion-motion.ts) is a single-frame correction: the browser's own
+      // instant, non-smooth `scrollIntoView` reports the fully-scrolled
+      // position the very first time the animation loop reads
+      // `window.scrollY`, so the whole ride delta lands in one rAF tick
+      // rather than being spread across several. Without this pre-scroll
+      // baseline to compare the first tick against, that entire shift would
+      // happen *between* "armed" and the first sampled frame, so the first
+      // trace entry would already show the settled position and the move
+      // would go uncounted even though it demonstrably happened — exactly
+      // the false "never observed" failure this guard exists to catch, just
+      // moved one step earlier.
+      //
+      // The seed reading itself is deliberately excluded from `trace`: it is
+      // the cats' ambient, pre-test wandering position, which this test has
+      // no claim about (they are still roaming when the walk-back test
+      // starts, and that idle position can itself sit a couple of pixels
+      // either side of 24px — a different, ambient-wander invariant, not
+      // the "walk back" one this test asserts). Pushing it would have this
+      // test spuriously fail on ambient jitter that has nothing to do with
+      // the jump or the walk back from it.
+      const initial = measure();
+      if (initial) previous = { fx: initial.fx, fy: initial.fy };
+      requestAnimationFrame(tick);
+
+      // Triggered from inside the same task the sampler was just armed in —
+      // no gap for the walk to start and finish unobserved before Node gets
+      // a chance to do anything else.
+      document.getElementById("work-heading")?.scrollIntoView();
+    });
+
+    await page.waitForFunction(() => (window as unknown as { __companionTraceDone?: boolean }).__companionTraceDone === true, null, {
+      timeout: 20_000,
+    });
+    const trace = await page.evaluate(
+      () => (window as unknown as { __companionTrace: Array<{ gap: number; stable: boolean; moved: boolean }> }).__companionTrace,
+    );
+
+    expect(trace.length, "never found a cat pair to measure").toBeGreaterThanOrEqual(3);
+
+    // Checked before the clearance assertions below, on purpose: they are
+    // only meaningful if the walk was actually watched happening, not just
+    // its two endpoints. Distinct from trace.length: this only counts frames
+    // where the follower's own drawn position actually differed from the
+    // previous frame — i.e. a frame caught mid-walk, not at rest.
+    // trace.length alone is not a reliable proxy for "the walk was actually
+    // observed": the loop's own exit condition (`stableStreak >= 3`) is
+    // satisfiable by three consecutive *identical* readings, so a walk that
+    // is over before the second sampled frame would still produce a trace
+    // without ever showing the cat in motion. A regression that let the
+    // follower cut through the toggle mid-walk could pass silently if every
+    // frame this run happened to catch was already at rest. Requiring at
+    // least one moved frame is what keeps this test honest about having
+    // watched the walk, not just its two endpoints.
+    const movedSamples = trace.filter((t) => t.moved).length;
     expect(
       movedSamples,
-      "every sample was already at rest — this run never actually observed the walk, so the clearance assertions above proved nothing",
+      "every sampled frame was already at rest — this run never actually observed the walk, so the clearance assertions below would prove nothing",
     ).toBeGreaterThan(0);
+
+    const lastThree = trace.slice(-3);
+    expect(
+      lastThree.length === 3 && lastThree.every((t) => t.stable),
+      "the pair never actually settled inside the sampling window",
+    ).toBe(true);
+
+    const worst = trace.reduce((min, t) => Math.min(min, t.gap), Infinity);
+    expect(worst, `only ${worst.toFixed(1)}px clear of the toggle at the worst sampled frame`).toBeGreaterThanOrEqual(24);
   });
 
   // Recorded, not fixed: `trailBehind` (companion-motion.ts) can let the

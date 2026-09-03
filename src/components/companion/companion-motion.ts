@@ -261,8 +261,9 @@ export function rideStep(tracker: RideTracker, scrollX: number, scrollY: number,
 /* box with the lead's live button.                                          */
 /*                                                                             */
 /* `trailBehind` is not new geometry — it is the exact offset the philosophy  */
-/* mood's own lap and the ordinary pointer-chase already walk the follower by */
-/* while the lead is *going* somewhere specific, extracted here so a long walk */
+/* mood's own lap (before round 16 removed that mood along with the section)  */
+/* and the ordinary pointer-chase already walked the follower by while the    */
+/* lead is *going* somewhere specific, extracted here so a long walk          */
 /* toward any fixed target can reuse it instead of inventing a fourth copy.   */
 /* Companion.tsx switches a walking follower onto it and off her own,         */
 /* separately-computed spot until the lead is within a few pixels of *his*    */

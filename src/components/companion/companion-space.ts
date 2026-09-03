@@ -731,9 +731,10 @@ const TONES = ".tone-contrast,.tone-deep,.tone-base";
  * rounds only the loud one mattered. Then the cats became opaque: they knock
  * themselves out of the page in `var(--ground)`, and `--ground` on a `deep`
  * section is a visible half-step darker than the base one (`#e3e8ec` against
- * `#edf0f2`). A cat carrying the base ground across Philosophy, Skills or
- * Contact would be a paler cat-shaped patch on a darker page — which is the
- * same class of bug as the transparent cat, arrived at from the other side.
+ * `#edf0f2`). A cat carrying the base ground across Skills or Contact (or,
+ * before round 16 removed it, Philosophy) would be a paler cat-shaped patch
+ * on a darker page — which is the same class of bug as the transparent cat,
+ * arrived at from the other side.
  *
  * Written straight to the DOM rather than through React state: it changes with
  * position, and position is deliberately not in React.

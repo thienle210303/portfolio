@@ -752,3 +752,29 @@ to keep honest:
   places (`BusinessCard.tsx:275`, `Closing.tsx:76`). Dropping that one axis is
   the single largest win available and is tracked as its own decision, not
   bundled into this work.
+
+### Outstanding: WCAG AA clearance regression on deep jumps to Contact
+
+Round 15's "the follower trails the lead on long walks" fixed the
+transit-crossing case (two independently-walking cats) but did not cover
+every shape of jump, and the round-16 branch review found a live gap in
+`trailBehind` (companion-motion.ts) rather than in anything this round
+touched:
+
+- A single deep jump straight to `#contact-heading` — reachable from the
+  nav, the tour, or a bare URL fragment — measures **19.0px** of clearance
+  between the follower and the toggle, below the 24px WCAG 2.5.8 target-size
+  floor. **Confirmed pre-existing**: the same measurement, taken the same
+  way, reproduces on unmodified `main`, so this is not something round 16
+  introduced.
+- A compound jump (landing somewhere and re-triggering a second walk before
+  the first settles) measures **−45px** — real overlap, not just under the
+  floor. This number is **unverified against `main`**; only the single-jump
+  figure above has been cross-checked.
+
+Recorded live as `test.fixme("the follower stays clear of the toggle during
+a deep single jump to Contact", ...)` in `e2e/companion.spec.ts`, immediately
+after the walk-back clearance test, so the defect survives in the tree
+rather than only in a task report. Fixing `trailBehind`'s clamping for large
+or back-to-back jumps is out of scope for this round (content removal) and
+is not attempted here.

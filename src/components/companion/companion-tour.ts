@@ -69,7 +69,7 @@ const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop])
  * The five stops in the order one route walks them. Both routes are the
  * same *set* of five — nothing is skipped, nothing is invented — and they
  * agree on the first two (About, Work) and the last one (Contact); only the
- * three in between change order, per `TourRoute`'s own doc comment.
+ * two in between change order, per `TourRoute`'s own doc comment.
  */
 export function stopsFor(route: TourRoute): readonly TourStop[] {
   const middle = route === "grey" ? GREY_MIDDLE : [...GREY_MIDDLE].reverse();
