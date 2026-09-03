@@ -191,3 +191,55 @@ describe("thread persistence across unmount", () => {
     expect(screen.queryByText("What did Thien build at DoorDash?")).not.toBeInTheDocument();
   });
 });
+
+describe("thread persistence across unmount -- live mode in flight", () => {
+  afterEach(() => {
+    clearThreadCache();
+    vi.unstubAllGlobals();
+  });
+
+  /** Waits out a macrotask so every already-settled microtask (the chain of
+   *  `await`s inside `askLive`, including its own `await response.json()`)
+   *  has had a turn to run, without needing a mounted component for
+   *  `findBy*`/`waitFor` to poll. */
+  function flushMicrotasks() {
+    return new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+
+  it("delivers a live answer into the cache even after the panel that asked has unmounted, instead of leaving it stuck on pending", async () => {
+    let resolveFetch!: (response: Pick<Response, "json">) => void;
+    const fetchPromise = new Promise<Pick<Response, "json">>((resolve) => {
+      resolveFetch = resolve;
+    });
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(fetchPromise));
+
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={true} />);
+
+    await user.type(screen.getByRole("textbox"), "What did Thien build at DoorDash?");
+    await user.keyboard("{Enter}");
+
+    expect(await screen.findByText(/Asking the live model/)).toBeInTheDocument();
+
+    // The tab switch: the panel that asked the question -- and is waiting on
+    // its response -- unmounts before the network call returns.
+    first.unmount();
+
+    resolveFetch({
+      json: () =>
+        Promise.resolve({
+          ok: true,
+          grounded: false,
+          text: "He built the Dasher-facing tools at DoorDash.",
+        }),
+    });
+    await flushMicrotasks();
+
+    // Remounting (switching back to the tab) should show the answer that
+    // arrived while nobody was watching, not a spinner stuck forever.
+    render(<AskThisSite liveModeConfigured={true} />);
+
+    expect(screen.getByText("He built the Dasher-facing tools at DoorDash.")).toBeInTheDocument();
+    expect(screen.queryByText(/Asking the live model/)).not.toBeInTheDocument();
+  });
+});

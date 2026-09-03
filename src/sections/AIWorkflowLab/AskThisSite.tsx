@@ -548,8 +548,26 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
     fieldRef.current?.focus();
   }
 
+  // Writes through the module cache rather than through `setTurns`'s updater
+  // callback, and that is load-bearing, not a style choice: this is the
+  // resolution of `askLive`'s fetch, which can land long after a tab switch
+  // has unmounted this instance. A `setState` dispatched on an unmounted
+  // component in React 18+ is silently dropped before the fiber tree is ever
+  // re-rendered, which means an updater *function* passed to it is never
+  // invoked either — so a version of this that computed the next array from
+  // `prev` inside `setTurns(prev => ...)` would only ever run while mounted,
+  // and a live answer that arrives after the visitor has looked away would
+  // vanish, leaving that turn stuck on its "pending" spinner forever once
+  // they switch back. `cachedTurns` is instead treated as the one
+  // authoritative copy: it is always current (the effect below keeps it in
+  // step with `turns` on every render this component is mounted for), so
+  // computing the next value from it and assigning back to it works whether
+  // or not a component instance exists to receive it. `setTurns` is still
+  // called after, as a no-op if this instance is gone and a real update if
+  // it is still mounted and watching.
   function updateTurn(id: string, next: TurnAnswer) {
-    setTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, answer: next } : turn)));
+    cachedTurns = cachedTurns.map((turn) => (turn.id === id ? { ...turn, answer: next } : turn));
+    setTurns(cachedTurns);
   }
 
   async function askLive(id: string, question: string, historySoFar: readonly Turn[]) {
