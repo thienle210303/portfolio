@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import HeroCodeArtifact from "@/sections/Hero/HeroCodeArtifact";
 
 /**
@@ -16,12 +17,14 @@ import HeroCodeArtifact from "@/sections/Hero/HeroCodeArtifact";
 // so this file can assert the tab *exists* and is wired into the same
 // tablist without needing jsdom to resolve a dynamic import.
 vi.mock("@/sections/Hero/AskThienHeroTab", () => ({
-  default: () => <div data-testid="ask-thien-mock">Ask Thien panel</div>,
+  default: ({ liveModeConfigured }: { liveModeConfigured: boolean }) => (
+    <div data-testid="ask-thien-mock">Ask Thien panel live={String(liveModeConfigured)}</div>
+  ),
 }));
 
 describe("HeroCodeArtifact", () => {
   it("renders exactly four tabs: the three authored code tabs plus Ask Thien, in that order", () => {
-    render(<HeroCodeArtifact />);
+    render(<HeroCodeArtifact liveModeConfigured={false} />);
     const tablist = screen.getByRole("tablist", { name: "Code artifact tabs" });
     const tabs = within(tablist).getAllByRole("tab");
     expect(tabs.map((tab) => tab.textContent)).toEqual([
@@ -33,7 +36,7 @@ describe("HeroCodeArtifact", () => {
   });
 
   it("keeps the first authored tab (Profile) active by default, not Ask Thien", () => {
-    render(<HeroCodeArtifact />);
+    render(<HeroCodeArtifact liveModeConfigured={false} />);
     expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Ask Thien" })).toHaveAttribute("aria-selected", "false");
     // Only the active panel mounts (Tabs' own contract) -- the mocked Ask
@@ -42,7 +45,7 @@ describe("HeroCodeArtifact", () => {
   });
 
   it("renders the active authored tab's CodeBlock in compact mode (smaller padding than the ordinary default)", () => {
-    const { container } = render(<HeroCodeArtifact />);
+    const { container } = render(<HeroCodeArtifact liveModeConfigured={false} />);
     const region = screen.getByRole("region", { name: "builder.ts" });
     expect(region).toHaveClass("p-3");
     expect(region).not.toHaveClass("p-4");
@@ -52,9 +55,15 @@ describe("HeroCodeArtifact", () => {
   });
 
   it("tightened the wrapper's own padding from p-4 to p-3", () => {
-    const { container } = render(<HeroCodeArtifact />);
+    const { container } = render(<HeroCodeArtifact liveModeConfigured={false} />);
     const wrapper = container.querySelector('[data-hero-step="code"]');
     expect(wrapper).toHaveClass("p-3");
     expect(wrapper).not.toHaveClass("p-4");
+  });
+
+  it("hands the live-mode flag to the Ask Thien panel", async () => {
+    render(<HeroCodeArtifact liveModeConfigured={true} />);
+    await userEvent.setup().click(screen.getByRole("tab", { name: "Ask Thien" }));
+    expect(screen.getByTestId("ask-thien-mock")).toHaveTextContent("live=true");
   });
 });
