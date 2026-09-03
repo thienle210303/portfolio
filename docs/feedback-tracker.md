@@ -718,6 +718,7 @@ Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
 | Before round 16 | 207.4 KB | 14.2 KB | 331.4 KB | 3884 ms | 359 ms | 0 | 4369 |
 | After the chat moved into the hero tab | 192.7 KB | 14.2 KB | 331.4 KB | 3840 ms | 456 ms | 0 | 4120 |
 | After, same-commit re-run | 192.7 KB | 14.2 KB | 331.4 KB | 4032 ms | 260 ms | 0 | 4120 |
+| After Philosophy and the Lab were removed | 188.2 KB | 13.5 KB | 331.4 KB | 4148 ms / 3692 ms | 580 ms / 474 ms | 0 | 3325 |
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
 JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms
@@ -725,6 +726,22 @@ baseline, but the same-commit re-run above measured 260 ms — a 196 ms swing
 with no code change between the two, consistent with this machine's known
 run-to-run TBT noise, not a confirmed regression. JS, CSS, fonts, LCP, CLS
 and DOM nodes did not move materially.
+
+Removing Philosophy and the AI Workflow Lab (`ProblemSolvingLoop` alone was
+~1,040 lines of client code with a 2,048-sample table computed at module
+scope) took a further 4.5 KB off the initial JavaScript (192.7 KB → 188.2 KB)
+and 0.7 KB off CSS (14.2 KB → 13.5 KB), against the row above. DOM nodes fell
+from 4,120 to 3,325 — a 795-node drop, the largest single move this table has
+recorded, consistent with two large sections and their markup leaving the
+tree entirely. Fonts held at 331.4 KB, as expected: this round touched no
+typefaces. Two `pnpm perf` runs against the same build disagreed on LCP
+(4148 ms vs. 3692 ms, a 456 ms spread) and TBT (580 ms vs. 474 ms, a 106 ms
+spread) — both cells record both numbers rather than picking one. Neither run
+undercuts the 260–456 ms TBT band already on file, so no TBT change is
+claimed either way; if anything both readings sit above the prior row's
+best case, but given the documented 196 ms same-commit swing that is noise,
+not a regression claim. LCP remains anchored to the same hero intro
+paragraph and stays past the 2.5 s "good" threshold, as already noted below.
 
 LCP element is the hero intro paragraph. Two standing facts this table exists
 to keep honest:
