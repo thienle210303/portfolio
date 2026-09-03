@@ -40,10 +40,17 @@ const verified = experiments.filter((experiment) => experiment.verification.leng
 // string renders below; the key, model and URL never leave this module.
 const liveModeConfigured = askLiveModeConfigured();
 
+// The rail no longer carries a "Runs live" fact: that entry described the
+// chat box, which lived in this section through round 15 and moved into the
+// hero's code artifact in round 16 (see AskThisSite.tsx). Nothing in this
+// section runs live any more -- the rail's own rule is that it restates a
+// fact already true in the content layer, and there is no longer a true one
+// here to restate. Dropped rather than reworded to point at the hero: this
+// section has no authored relationship to the hero's tabs to draw a rail
+// fact from, and inventing one would be exactly what the rule forbids.
 const RAIL: readonly RailNote[] = [
   { term: "Experiments", detail: `${experiments.length}` },
   { term: "With results", detail: `${verified} verified · ${experiments.length - verified} still open` },
-  { term: "Runs live", detail: liveModeConfigured ? "The chat box, when it has a grounded answer" : "Nothing on this page" },
   { term: "Last updated", detail: formatIsoDate(LAB_LAST_UPDATED) },
 ];
 

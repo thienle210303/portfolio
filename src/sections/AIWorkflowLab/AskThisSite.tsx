@@ -22,8 +22,12 @@ import {
 } from "./scoring-excerpt";
 
 /**
- * "Ask this site" — a chat thread over the portfolio's own content, and the
- * AI Workflow Lab's lead feature now that the workflow explorer has retired.
+ * "Ask this site" — a chat thread over the portfolio's own content. Through
+ * round 15 this lived as a static import inside the AI Workflow Lab section;
+ * since round 16 it lives behind the hero's "Ask Thien" tab instead, reached
+ * by a dynamic `import()` (see `HeroCodeArtifact.tsx`) so the chat engine no
+ * longer rides along in the page's initial JavaScript. The Lab section still
+ * exists, but this component is no longer part of it.
  *
  * It looks unlike the sections around it on purpose. Everything else on the
  * page is a document being read; this is an instrument being operated, so it
@@ -34,9 +38,9 @@ import {
  *
  * ## Two engines, one thread
  *
- * `liveModeConfigured` (a prop, computed once server-side in
- * `AIWorkflowLab.tsx` from `ASK_LLM_API_KEY` / `ASK_LLM_MODEL` / `ASK_LLM_URL`
- * — see `src/lib/ask-live-config.ts`) decides which engine every turn in the
+ * `liveModeConfigured` (a prop, computed once server-side in `Hero.tsx` from
+ * `ASK_LLM_API_KEY` / `ASK_LLM_MODEL` / `ASK_LLM_URL` — see
+ * `src/lib/ask-live-config.ts`) decides which engine every turn in the
  * thread uses, for the life of the page load:
  *
  *  - **Off (the default, free mode):** `answer()` from `src/lib/answers.ts`
@@ -53,8 +57,13 @@ import {
  *    that decline plainly, distinct from "Live model", because no model
  *    actually ran.
  *
- * All state — the whole thread — lives in this component and nothing is
- * persisted; reloading the page starts a new conversation.
+ * The whole thread is component state, `useState` in this very component —
+ * but since round 16 it is mirrored into a module-scoped cache (see
+ * `threadCache` below) so that switching the hero's code artifact to another
+ * tab and back does not throw the conversation away. Nothing is ever sent
+ * anywhere to persist it: a hard reload of the page still starts a new
+ * conversation, exactly as it always did. See the doc comment on
+ * `threadCache` for what does and does not survive, and why.
  *
  * ## The scroll window
  *
@@ -116,8 +125,8 @@ const LIVE_NETWORK_FAILED =
   "Couldn't reach the live model — the connection failed before an answer came back. Try again.";
 
 interface Props {
-  /** Computed once, server-side, in `AIWorkflowLab.tsx`. Never mutates for
-   *  the life of the page load. */
+  /** Computed once, server-side, in `Hero.tsx`. Never mutates for the life
+   *  of the page load. */
   readonly liveModeConfigured: boolean;
 }
 
@@ -472,28 +481,45 @@ function TurnItem({
  * tab, and `Tabs` (src/components/ui/Tabs.tsx) renders only the active
  * panel — so looking at `builder.ts` and coming back is a real unmount and
  * remount. Component state would be thrown away by that, which would make
- * the tab strip feel like it eats conversations. Module scope survives it,
- * and still resets on a page load, which is the honesty contract this
- * component already had: nothing is persisted anywhere.
+ * the tab strip feel like it eats conversations. Module scope survives it.
+ *
+ * What that module scope does and does not survive is worth being exact
+ * about, because it is not simply "a page load": a hard reload (typing the
+ * URL again, hitting the browser's reload button) tears down the whole JS
+ * module graph and does clear it — a fresh conversation, same as always.
+ * But `/` and `/resume` link to each other with `next/link`
+ * (`HeroIdentity.tsx`, `resume/page.tsx`), and the App Router's client-side
+ * navigation between two routes in the same build does *not* reload the
+ * page or reset the webpack module registry — so `threadCache` (and
+ * whatever conversation is in it) survives a `/` → `/resume` → `/` round
+ * trip intact. That is a deliberate trade, not an oversight: treating a
+ * same-build route change as a fresh session would mean re-fetching and
+ * re-evaluating this module's own dynamically-imported chunk for no reason
+ * other than the visitor glanced at the résumé, and the thread is transient
+ * scratch state, not anything sensitive, so there is nothing at risk in
+ * letting it ride along.
  *
  * This repo's lint config (`react-hooks/globals`, `react-hooks/immutability`
- * — the React Compiler's rules) refuses to let component or hook code touch
- * a module-scoped value directly: not a bare reassignment, and not writing
- * one of its object properties either, because both are a side effect whose
- * timing the render/effect model no longer controls once the compiler may
- * memoize or reorder things. `updateTurn`, below, is exactly the case that
- * needs to write here from outside that model — it can run long after this
- * component has unmounted, resolving `askLive`'s fetch — so the write has to
- * happen somewhere the linter doesn't consider "component or hook" code at
- * all: a plain top-level function. `writeCachedTurns` is that function; it
- * is the *only* place, besides `clearThreadCache` (also plain and top-level)
- * below, allowed to assign into `threadCache.turns`. Every read of the
- * current thread, from anywhere, still goes through `threadCache.turns`
- * directly — only the write is funneled through the one function.
+ * — the React Compiler's rules) refuses to let component or hook *body* code
+ * touch a module-scoped value directly, because that is a side effect whose
+ * timing the render model no longer controls once the compiler may memoize
+ * or reorder things. An effect body is a different story — it already runs
+ * outside that model, on its own schedule, which is why the thread-mirroring
+ * effect a little further down is allowed to assign into
+ * `threadCache.turns` and `threadCache.lastAsked` directly. `updateTurn`,
+ * below, is the case the linter actually blocks: a plain function invoked
+ * from component-body event handlers, but one that also needs to keep
+ * writing long after this component has unmounted, resolving `askLive`'s
+ * fetch. `writeCachedTurns` is how it gets there — a plain top-level
+ * function, which the linter doesn't consider "component or hook" code at
+ * all. Every read of the current thread, from anywhere, still goes through
+ * `threadCache.turns` directly; only a write from component-body code is
+ * funneled through it.
  */
-const threadCache: { turns: readonly Turn[]; lastAsked: string | null } = {
+const threadCache: { turns: readonly Turn[]; lastAsked: string | null; nextId: number } = {
   turns: [],
   lastAsked: null,
+  nextId: 0,
 };
 
 /** Assigns the next thread into the cache and hands it back, so a caller can
@@ -503,18 +529,38 @@ function writeCachedTurns(turns: readonly Turn[]): readonly Turn[] {
   return turns;
 }
 
+/**
+ * Mints the next turn id and advances the counter, both against the cache
+ * rather than a per-mount `useRef`. A `useRef(0)` here would reset to 0 on
+ * every mount, but the thread restored from `threadCache.turns` keeps its
+ * old ids -- so the very first question asked after a tab switch would mint
+ * `turn-0` again, colliding with the `turn-0` already sitting in the
+ * restored thread. That collision is a duplicate React key at the call site
+ * (`<TurnItem key={turn.id}>`), which makes React reconcile the two turns
+ * against one fiber and lose or share the per-turn "Answer view" `Tabs`
+ * state between them -- and, in live mode, makes `updateTurn(id, ...)` match
+ * *both* turns, so one response overwrites an already-answered turn as well
+ * as the pending one it was actually meant for. Counting from the cache
+ * instead means the id space is as durable as the thread it labels.
+ */
+function nextCachedTurnId(): string {
+  const id = `turn-${threadCache.nextId}`;
+  threadCache.nextId += 1;
+  return id;
+}
+
 /** Empties the module-scoped thread. The component's own "Clear
  *  conversation" control calls this; tests call it between cases. */
 export function clearThreadCache(): void {
   threadCache.turns = [];
   threadCache.lastAsked = null;
+  threadCache.nextId = 0;
 }
 
 export default function AskThisSite({ liveModeConfigured }: Props) {
   const fieldId = useId();
   const threadId = useId();
   const viewId = useId();
-  const nextTurnId = useRef(0);
   const fieldRef = useRef<HTMLInputElement | null>(null);
   /** The scroll window itself — see the scroll-to-bottom effect below. */
   const logRef = useRef<HTMLDivElement | null>(null);
@@ -645,8 +691,7 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
     setQuery("");
     setLastAsked(trimmed);
 
-    const id = `turn-${nextTurnId.current}`;
-    nextTurnId.current += 1;
+    const id = nextCachedTurnId();
 
     if (!liveModeConfigured) {
       const results = answer(trimmed);

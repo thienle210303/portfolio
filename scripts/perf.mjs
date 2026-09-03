@@ -17,7 +17,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require("@playwright/test");
 
-const URL = process.env.PERF_URL || "http://localhost:3100/";
+const targetUrl = process.env.PERF_URL || "http://localhost:3100/";
 
 const browser = await chromium.launch();
 const context = await browser.newContext({
@@ -74,7 +74,7 @@ page.on("response", async (response) => {
   }
 });
 
-await page.goto(URL, { waitUntil: "load" });
+await page.goto(targetUrl, { waitUntil: "load" });
 await page.waitForTimeout(8000);
 
 const metrics = await page.evaluate(() => {

@@ -177,6 +177,57 @@ describe("thread persistence across unmount", () => {
     expect(screen.getByText("What did Thien build at DoorDash?")).toBeInTheDocument();
   });
 
+  it("mints a fresh turn id after an unmount and remount, instead of colliding with the restored thread", async () => {
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={false} />);
+
+    // Both questions are picked from SUGGESTED_QUESTIONS specifically because
+    // they resolve to real, non-empty results -- the point of this test is
+    // the two turns' own "Answer view" `Tabs` instances, which a no-results
+    // turn never renders at all.
+    await user.click(screen.getByRole("button", { name: "What does he do at DoorDash?" }));
+    await screen.findByRole("tablist", { name: "Answer view" });
+
+    // The tab switch: unmount (a `useRef(0)` counter would reset here, even
+    // though the restored thread below keeps its old ids) and remount.
+    first.unmount();
+    render(<AskThisSite liveModeConfigured={false} />);
+
+    await user.click(screen.getByRole("button", { name: "Where did he study?" }));
+    await screen.findAllByRole("tablist", { name: "Answer view" });
+
+    // Both turns are present, independently -- not reconciled into one
+    // fiber by a duplicate key.
+    const region = conversationRegion();
+    const turns = within(region).getByRole("list", { name: "Conversation" });
+    const items = within(turns).getAllByRole("listitem", { hidden: false }).filter(
+      (el) => el.parentElement === turns,
+    );
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("What does he do at DoorDash?");
+    expect(items[1]).toHaveTextContent("Where did he study?");
+
+    // Each turn's own "Answer view" tablist is independently present and
+    // interactive -- the symptom a duplicate `turn.id` key produces is a
+    // shared or lost `Tabs` instance between the two turns.
+    const firstTablist = within(items[0]).getByRole("tablist", { name: "Answer view" });
+    const secondTablist = within(items[1]).getByRole("tablist", { name: "Answer view" });
+    expect(firstTablist).toBeInTheDocument();
+    expect(secondTablist).toBeInTheDocument();
+    expect(firstTablist).not.toBe(secondTablist);
+
+    // The turn id itself is otherwise invisible (it is a React key and an id
+    // prefix, not rendered text) -- but `Tabs` (src/components/ui/Tabs.tsx)
+    // threads its `idPrefix` (built from `turn.id`) straight into real DOM
+    // ids on each tab button, so the two turns' ids are directly observable
+    // and directly assertable here: distinct, not a `turn-0` collision.
+    const firstTabId = within(firstTablist).getByRole("tab", { name: "Prose" }).id;
+    const secondTabId = within(secondTablist).getByRole("tab", { name: "Prose" }).id;
+    expect(firstTabId).toContain("turn-0");
+    expect(secondTabId).toContain("turn-1");
+    expect(firstTabId).not.toBe(secondTabId);
+  });
+
   it("clearThreadCache empties the thread for the next mount", async () => {
     const user = userEvent.setup();
     const first = render(<AskThisSite liveModeConfigured={false} />);

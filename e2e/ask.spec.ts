@@ -37,7 +37,7 @@ function viewportWidth(page: Page): number {
 async function openHeroChat(page: Page) {
   await page.goto("/");
   await page.getByRole("tab", { name: "Ask Thien" }).click();
-  await expect(page.getByRole("textbox").first()).toBeVisible({ timeout: 15_000 });
+  await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
 }
 
 /** The conversation list — one `<li>` per question asked so far. Unscoped:
@@ -330,10 +330,11 @@ test.describe("ask this site", () => {
     await expect(conversation(page)).toHaveCount(0);
     await expect(questionField(page)).toBeFocused();
 
-    // Nothing was ever persisted, so a reload starts fresh either way. A
-    // reload also resets the hero back to its default "Profile" tab, so the
-    // chat has to be reopened before this can be confirmed.
-    await page.reload();
+    // Nothing was ever persisted, so a fresh page load starts empty either
+    // way. `openHeroChat` already does a full `page.goto("/")` -- a second,
+    // separate reload before it would just repeat that navigation -- and a
+    // fresh load also resets the hero back to its default "Profile" tab, so
+    // reopening the chat here is what actually re-confirms the thread is gone.
     await openHeroChat(page);
     await expect(page.getByRole("button", { name: "Clear conversation" })).toHaveCount(0);
     await expect(conversation(page)).toHaveCount(0);
@@ -358,7 +359,7 @@ test.describe("ask this site", () => {
 
   test("the conversation survives switching to another code tab and back", async ({ page }) => {
     await openHeroChat(page);
-    const input = page.getByRole("textbox").first();
+    const input = questionField(page);
     await input.fill("What did Thien build at DoorDash?");
     await input.press("Enter");
     await expect(page.getByText("What did Thien build at DoorDash?")).toBeVisible();
@@ -405,7 +406,7 @@ test.describe("hero code artifact — compact rendering", () => {
     // (`HeroCodeArtifact.tsx` passes `compact` only to those), not a global
     // change to every CodeBlock the hero renders.
     await heroAskTab(page).click();
-    await expect(page.getByRole("textbox").first()).toBeVisible({ timeout: 15_000 });
+    await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "Where did he study?" }).click();
     const turn = conversation(page).locator(":scope > li").last();
     await turn.getByRole("tablist", { name: "Answer view" }).getByRole("tab", { name: "Code" }).click();
