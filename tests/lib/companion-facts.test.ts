@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { careerEntries, projects, skillCategories } from "@/content/portfolio";
-import { experiments } from "@/content/ai-experiments";
 import { buildCompanionFacts } from "@/lib/companion-facts";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
 
@@ -53,13 +52,6 @@ describe("buildCompanionFacts", () => {
     expect(facts.tree.learning).toBe(careerEntries.filter((e) => e.type === "learning").length);
     expect(facts.tree.milestones).toBe(careerEntries.filter((e) => e.type === "milestone").length);
     expect(facts.tree.work + facts.tree.learning + facts.tree.milestones).toBe(facts.tree.entries);
-  });
-
-  it("counts lab experiments and how many are verified", () => {
-    expect(facts.lab.experiments).toBe(experiments.length);
-    expect(facts.lab.verified).toBe(
-      experiments.filter((experiment) => experiment.verification.length > 0).length,
-    );
   });
 
   it("carries the same contact email the Contact section links to", () => {

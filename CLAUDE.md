@@ -61,6 +61,14 @@ fact. One career entry feeds the timeline, the résumé, the knowledge tree and
 the hero's "Now" line at once. Practical recipes — adding a metric, adding a
 role, attaching a case study — are in [docs/editing.md](docs/editing.md).
 
+Round 16 removed the AI Workflow Lab section. Every array in
+`src/content/ai-experiments.ts` (`experiments`, `learningLog`,
+`scrapingPlaybook`, `workflowStages`, `aiTools` and the rest) is retained but
+currently unrendered — nothing on the page reads them and nothing in the
+chat's retrieval corpus cites them — pending a future plan that re-homes them
+into a new section. Do not treat "unreferenced" as "dead": these are live
+content, just without a home yet.
+
 The career tree draws only authored relationships. Since round 12 each
 branch is one career entry (chronological, each exactly once) and its leaves
 are that entry's own `technologies` and `impact` fields, verbatim. Do not

@@ -1,6 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { careerEntries, codeTabs, profile, skillCategories } from "../src/content/portfolio";
-import { experiments } from "../src/content/ai-experiments";
 import type { SkillCategory } from "../src/types/portfolio";
 
 // Widened for the same reason src/lib/knowledge-tree.ts widens careerEntries:
@@ -143,21 +142,6 @@ test.describe("selected work", () => {
       return panel ? panel.contains(document.activeElement) : false;
     }, panelId);
     expect(stillInsidePanel, "Tab from the collapsed trigger must not land inside its panel").toBe(false);
-  });
-});
-
-test.describe("ai workflow lab", () => {
-  test("an Exploring experiment shows no fabricated outcome", async ({ page }) => {
-    const exploring = experiments.find((experiment) => experiment.status === "Exploring");
-    if (!exploring) throw new Error("content fixture assumption failed: no Exploring experiment found");
-
-    const article = page
-      .locator("article")
-      .filter({ has: page.getByRole("heading", { name: exploring.title, level: 4 }) });
-    await article.getByRole("button", { name: /Read the full experiment/ }).click();
-
-    await expect(article.getByText("No results yet — this is an open question.")).toBeVisible();
-    await expect(article.getByText("Outcome", { exact: true })).toHaveCount(0);
   });
 });
 

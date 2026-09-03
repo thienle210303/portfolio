@@ -330,30 +330,6 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "model",
   ],
   platforms: ["cloud", "hosting", "infrastructure", "devops", "deployment", "gcp", "serverless"],
-
-  /* --- Lab experiments --------------------------------------------------- */
-
-  "retailer-feasibility": ["feasibility", "viability", "multi-agent", "parallel", "assessment"],
-  "spec-first-portfolio": ["specification", "spec", "brief", "this site", "this website"],
-  "context-reuse": ["context", "reuse", "project instructions", "memory", "conventions"],
-  "parallel-exploration": ["parallel", "unfamiliar", "codebase", "onboarding", "exploration"],
-  "verification-gates": [
-    "verification",
-    "verify",
-    "check",
-    "checked",
-    "checking",
-    "test",
-    "testing",
-    "quality",
-    "ship",
-    "shipping",
-    "gate",
-    "guardrail",
-    "safety",
-    "review",
-    "approval",
-  ],
 };
 
 /**
@@ -366,7 +342,6 @@ export const sectionExpansions: Record<string, readonly string[]> = {
   // "work" itself was missing, which is easy to miss because it is the section's
   // own key — but the key is not indexed, only these strings are.
   work: ["work", "project", "portfolio", "case study", "shipped", "built"],
-  lab: ["experiment", "ai", "research"],
   journey: ["career", "history", "job", "role", "timeline", "employment", "worked"],
   skills: ["skill", "technology", "tech", "tool", "stack", "experience"],
 };

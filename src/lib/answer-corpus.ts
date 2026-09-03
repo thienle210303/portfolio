@@ -1,10 +1,8 @@
-import { scrapingPlaybook, scrapingPlaybookIntro } from "@/content/ai-experiments";
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
 import { origin } from "@/content/portfolio";
 import {
   careerIndexable,
   education,
-  experimentsIndexable,
   profile,
   projectsIndexable,
   skillsIndexable,
@@ -212,52 +210,6 @@ export function buildDocuments(): Document[] {
         ),
       });
     }
-  }
-
-  for (const experiment of experimentsIndexable) {
-    docs.push({
-      text: experiment.question,
-      source: `AI Workflow Lab — ${experiment.title} (${experiment.status})`,
-      sectionId: "lab",
-      sectionLabel: "AI Workflow Lab",
-      label: label(
-        "lab",
-        experiment.id,
-        experiment.title,
-        experiment.status,
-        "agent workflow question exploring trying",
-      ),
-    });
-
-    for (const finding of experiment.verification) {
-      docs.push({
-        text: finding,
-        source: `AI Workflow Lab — ${experiment.title}, verified`,
-        sectionId: "lab",
-        sectionLabel: "AI Workflow Lab",
-        label: label("lab", experiment.id, experiment.title, "result verified finding measured"),
-      });
-    }
-  }
-
-  // The scraping playbook: the owner's approved prose, verbatim. Each move's
-  // title rides in `label` so "how does he approach scraping?" matches the
-  // right move without the title needing to be part of the quoted answer.
-  docs.push({
-    text: scrapingPlaybookIntro,
-    source: "AI Workflow Lab — the scraping playbook",
-    sectionId: "lab",
-    sectionLabel: "AI Workflow Lab",
-    label: label("lab", undefined, "scraping playbook web scraper collection approach lessons"),
-  });
-  for (const move of scrapingPlaybook) {
-    docs.push({
-      text: move.body,
-      source: `AI Workflow Lab — the scraping playbook: ${move.title}`,
-      sectionId: "lab",
-      sectionLabel: "AI Workflow Lab",
-      label: label("lab", undefined, move.title, "scraping playbook web scraper collection lesson"),
-    });
   }
 
   for (const entry of careerIndexable) {

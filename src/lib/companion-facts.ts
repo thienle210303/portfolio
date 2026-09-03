@@ -1,5 +1,4 @@
 import { careerEntries, profile, projects, skillCategories } from "@/content/portfolio";
-import { experiments } from "@/content/ai-experiments";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
 
 /**
@@ -15,8 +14,8 @@ import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
  * count, on purpose: SelectedWork.tsx (case studies, sourced figures),
  * Skills.tsx (categories, distinct skills), CareerTree.tsx (branches,
  * leaves, technologies, and — since the tree absorbed Journey — the entries
- * and the work/learning/milestone split too), AIWorkflowLab.tsx (experiments,
- * verified) and Hero.tsx (the current role). Changing what a rail says and
+ * and the work/learning/milestone split too) and Hero.tsx (the current
+ * role). Changing what a rail says and
  * forgetting this file is exactly the drift the plan rules out — so if a
  * rail's expression ever changes, this one has to change with it.
  *
@@ -63,10 +62,6 @@ export interface CompanionFacts {
     readonly learning: number;
     readonly milestones: number;
   };
-  readonly lab: {
-    readonly experiments: number;
-    readonly verified: number;
-  };
   readonly contact: {
     readonly email: string;
   };
@@ -97,8 +92,6 @@ export function buildCompanionFacts(): CompanionFacts {
   const tree = buildCareerTree();
   const leafTotal = tree.reduce((total, branch) => total + branch.leaves.length, 0);
 
-  const verified = experiments.filter((experiment) => experiment.verification.length > 0).length;
-
   return {
     about: {
       role: currentRole?.role ?? "",
@@ -120,10 +113,6 @@ export function buildCompanionFacts(): CompanionFacts {
       work: countOf("work"),
       learning: countOf("learning"),
       milestones: countOf("milestone"),
-    },
-    lab: {
-      experiments: experiments.length,
-      verified,
     },
     contact: {
       email: profile.email,

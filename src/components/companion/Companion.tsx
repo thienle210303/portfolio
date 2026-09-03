@@ -1797,8 +1797,8 @@ export function Companion({ facts }: CompanionProps) {
     const section = sectionRef.current;
     if (!section) return;
     // Once a section's ambient scene has already had its once-per-visit
-    // showing, an encore is the next thing to offer — but only tree and lab
-    // have one. Everywhere else, replay the ambient scene rather than going
+    // showing, an encore is the next thing to offer — but only tree has
+    // one. Everywhere else, replay the ambient scene rather than going
     // silent for the rest of the visit; `duetShown` already has the section,
     // so this replay does not touch it again.
     const scene = duetShown.current.has(section)
@@ -2403,7 +2403,7 @@ export function Companion({ facts }: CompanionProps) {
            * ending the tour drops whichever of these happens to be open
            * along with everything else.
            */
-          if (stop.sectionId === "work" || stop.sectionId === "lab") {
+          if (stop.sectionId === "work") {
             cheerRef.current = { until: now + CHEER_MS };
             setCheer(true);
             window.setTimeout(() => setCheer(false), CHEER_MS);

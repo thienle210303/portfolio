@@ -282,5 +282,5 @@ export const SUGGESTED_QUESTIONS: readonly string[] = [
   "What is he exploring with AI agents?",
   "Where did he study?",
   "Where is he originally from?",
-  "How does he approach a new problem?",
+  "How does he approach a problem?",
 ];

@@ -296,11 +296,13 @@ const ROAM_WEIGHTS: Record<SceneKind, number> = {
 };
 
 /**
- * What the moment is, for the one weight round 11 makes situational: the moth
- * is a creature drawn to a light, and the AI Workflow Lab is the one section
- * that answers back — the Ask This Site chat is the page's lit window. It
- * is 3x as likely to lead there, and 2x at night, when a lit lab reads as the
- * one bright thing on the page rather than merely the busiest.
+ * What the moment is. Round 11 made one weight situational: the moth led more
+ * often in the AI Workflow Lab, the one section that answered back. Round 16
+ * removed that section along with the boost, so there is currently no rule
+ * left to apply — but `SceneFlavor` stays, because `Companion.tsx` still
+ * hands in `{ night, section }` on every call, and the next situational rule
+ * (if one is ever authored) has somewhere to land without every caller
+ * needing to change.
  *
  * Both fields are optional, and omitting the object entirely is the same as
  * passing `{}` — the ordinary weights, unmodified — which is what keeps every
@@ -311,19 +313,11 @@ export interface SceneFlavor {
   readonly section?: string | null;
 }
 
-/** How much more likely the moth is to lead in `#lab`, by time of day. */
-const LAB_MOTH_BOOST = { day: 3, night: 2 } as const;
-
-function flavoredWeights(
-  base: Record<SceneKind, number>,
-  flavor: SceneFlavor | undefined,
-): Record<SceneKind, number> {
-  if (!flavor || flavor.section !== "lab") return base;
-  return { ...base, moth: base.moth * (flavor.night ? LAB_MOTH_BOOST.night : LAB_MOTH_BOOST.day) };
-}
-
 export function sceneOrder(wandering = false, flavor?: SceneFlavor): SceneKind[] {
-  const weights = flavoredWeights(wandering ? WANDER_WEIGHTS : ROAM_WEIGHTS, flavor);
+  // No situational rule reads `flavor` today (see the doc comment above) —
+  // it is accepted, not yet consulted, so the ordinary weights always apply.
+  void flavor;
+  const weights = wandering ? WANDER_WEIGHTS : ROAM_WEIGHTS;
   // A weighted shuffle rather than a weighted pick: every scene keeps its
   // chance of being *first*, which is what the weights are about, and the rest
   // of the list is only consulted when the page has refused the ones above it.

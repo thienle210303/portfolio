@@ -90,16 +90,6 @@ export const EVAL_CASES: readonly EvalCase[] = [
     probes: "leadership, asked as a hiring question",
   },
   {
-    query: "does he check his work before shipping",
-    expect: [
-      "What is the smallest set of automated checks",
-      "TypeScript strict type checking",
-      "147 component and unit tests",
-      "140 browser tests",
-    ],
-    probes: "verification, asked as a hiring question",
-  },
-  {
     query: "is he any good at making slow things fast",
     expect: [
       "99% runtime reduction",
@@ -224,7 +214,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   },
   {
     query: "typescript",
-    expect: ["TypeScript on Wordification", "TypeScript strict type checking"],
+    expect: ["TypeScript on Wordification"],
     probes: "a common language, which should not be swamped by prose",
   },
   {
@@ -250,12 +240,11 @@ export const EVAL_CASES: readonly EvalCase[] = [
     expect: [
       "Deciding whether a retailer could be onboarded",
       "A full retailer assessment completes in under an hour",
-      "Can a set of agents working in parallel",
       "The valuable output was never the data",
       "Time to a feasibility answer",
       "Multi-agent feasibility workflow at DoorDash",
     ],
-    probes: "a project referred to by shorthand",
+    probes: "a project referred to by shorthand — the dd-feasibility-agent case study in Work, since round 16 removed the Lab's own experiment document",
   },
   {
     query: "how many retailers has he integrated",
@@ -319,14 +308,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   },
   {
     query: "what is he exploring with ai agents",
-    expect: [
-      "Can a set of agents working in parallel",
-      "When several agents explore the same unfamiliar system",
-      "Which is the more durable artefact",
-      "If the factual content is separated out",
-      "What is the smallest set of automated checks",
-      "Multi-agent feasibility workflow at DoorDash",
-    ],
+    expect: ["Multi-agent feasibility workflow at DoorDash"],
     probes: "the lab, asked in the site's own terms",
   },
 ];

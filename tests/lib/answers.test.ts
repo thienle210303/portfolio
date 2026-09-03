@@ -3,13 +3,11 @@ import { answer, SUGGESTED_QUESTIONS } from "@/lib/answers";
 import {
   careerIndexable,
   education,
-  experimentsIndexable,
   profile,
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { origin } from "@/content/portfolio";
-import { scrapingPlaybook, scrapingPlaybookIntro } from "@/content/ai-experiments";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -30,13 +28,6 @@ const CORPUS = new Set<string>([
     ...project.proof,
     ...project.metrics.map((m) => `${m.label}: ${m.before} → ${m.after}.`),
   ]),
-  // Lab experiments were missing from this list entirely, and the index has
-  // always been able to return them — the vacuous assertion above is why nobody
-  // noticed.
-  ...experimentsIndexable.flatMap((experiment) => [
-    experiment.question,
-    ...experiment.verification,
-  ]),
   ...careerIndexable.flatMap((entry) => [
     ...(entry.summary ? [entry.summary] : []),
     ...entry.impact,
@@ -46,21 +37,18 @@ const CORPUS = new Set<string>([
   ...skillsIndexable.map((category) => category.evidence),
   // The origin flight was reachable from src/content/portfolio.ts but never
   // indexed — corpus expansion for round 10 (WP-D), so "Ask this site" can
-  // answer career/background questions, not just the lab. Philosophy's own
+  // answer career/background questions, not just the work. Philosophy's own
   // paragraphs, principles and problem-solving loop were indexed here too
   // until round 16 removed the section and its corpus documents with it —
   // `profile.philosophy` above is the one line from that section still
-  // reachable, re-tagged to About.
+  // reachable, re-tagged to About. Round 16 also removed the Lab and its
+  // experiment and scraping-playbook documents.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
-  // The scraping playbook (round 11): the owner's approved prose, indexed
-  // verbatim from src/content/ai-experiments.ts.
-  scrapingPlaybookIntro,
-  ...scrapingPlaybook.map((move) => move.body),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé
  *  is its own route now, so `#resume` would be a dead anchor. */
-const LINKABLE_SECTIONS = /^(about|work|lab|journey|skills)$/;
+const LINKABLE_SECTIONS = /^(about|work|journey|skills)$/;
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {

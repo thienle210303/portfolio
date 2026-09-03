@@ -67,7 +67,7 @@ describe("stopsFor", () => {
 
   it("walks the builder's route work outward, and the curious route in reverse", () => {
     const middle = (route: TourRoute) => stopsFor(route).slice(2, -1).map((stop) => stop.sectionId);
-    expect(middle("grey")).toEqual(["skills", "tree", "lab"]);
-    expect(middle("tabby")).toEqual(["lab", "tree", "skills"]);
+    expect(middle("grey")).toEqual(["skills", "tree"]);
+    expect(middle("tabby")).toEqual(["tree", "skills"]);
   });
 });

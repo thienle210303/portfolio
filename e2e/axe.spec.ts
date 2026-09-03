@@ -44,7 +44,7 @@ async function auditHasNoViolations(page: Page, include?: string): Promise<void>
 
 /**
  * Scroll-before-audit (Workstream 3 — the ink-reveal pass's own test-impact
- * note). `#lab` and `#closing` sit well below the fold, and every section's
+ * note). `#skills` and `#closing` sit well below the fold, and every section's
  * eyebrow/h2/lead/rail now settle via `InkReveal` (`Section`/`SectionHeading`,
  * globals.css) — pre-reveal, that text sits at `opacity: 0` until the section
  * scrolls into view. Auditing it unscrolled would ask axe to run its colour-
@@ -198,12 +198,12 @@ test.describe("interactive states", () => {
  * `contrast` changes the ground out from under every nested component at once.
  */
 test.describe("off-base section tones", () => {
-  test("AI Workflow Lab (#lab, tone deep) has zero WCAG violations", async ({ page }) => {
+  test("Skills (#skills, tone deep) has zero WCAG violations", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#lab");
-    await auditHasNoViolations(page, "#lab");
+    await scrollIntoViewAndSettle(page, "#skills");
+    await auditHasNoViolations(page, "#skills");
   });
 
   test("closing section (#closing, tone contrast) has zero WCAG violations", async ({ page }) => {
@@ -250,8 +250,8 @@ test.describe("night theme", () => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#lab");
-    await auditHasNoViolations(page, "#lab");
+    await scrollIntoViewAndSettle(page, "#skills");
+    await auditHasNoViolations(page, "#skills");
     await scrollIntoViewAndSettle(page, "#closing");
     await auditHasNoViolations(page, "#closing");
   });

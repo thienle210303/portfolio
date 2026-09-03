@@ -96,7 +96,7 @@ test.describe("ask this site", () => {
     await expect(first).toContainText(/DoorDash/i);
     await expect(first.getByRole("link", { name: /Read it in/ })).toHaveAttribute(
       "href",
-      /^#(about|work|lab|journey|resume)$/,
+      /^#(about|work|journey|resume)$/,
     );
   });
 

@@ -6,7 +6,7 @@ component to change what the site says.
 | What you want to change | File |
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
-| AI experiments, workflow stages, the learning log | `src/content/ai-experiments.ts` |
+| AI experiments, workflow stages, the learning log, the scraping playbook — currently unrendered since round 16 removed the AI Workflow Lab, kept for a future section | `src/content/ai-experiments.ts` |
 
 After any edit, run `pnpm verify`. It typechecks, lints, re-measures colour
 contrast, runs the unit tests and builds. If a number you removed was being

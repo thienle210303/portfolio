@@ -57,7 +57,7 @@ import {
  * already written down here.
  */
 
-export type MoodKind = "hero" | "work" | "skills" | "tree" | "lab" | "contact";
+export type MoodKind = "hero" | "work" | "skills" | "tree" | "contact";
 
 export interface MoodSpots {
   readonly lead: Point;
@@ -220,16 +220,6 @@ function treeMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Lab: beside the workflow tabs                                               */
-/* -------------------------------------------------------------------------- */
-
-function labMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
-  const rect = rectOf(document.querySelector('#lab [role="tablist"]'));
-  if (!rect) return null;
-  return besideRect(rect, lead, follow, home, "lab");
-}
-
-/* -------------------------------------------------------------------------- */
 /* Work: beside the case study you are actually reading                        */
 /* -------------------------------------------------------------------------- */
 
@@ -319,7 +309,6 @@ export function planMood(
   if (section === "work") return workMood(lead, follow, home);
   if (section === "skills") return skillsMood(lead, follow, home);
   if (section === "tree") return treeMood(lead, follow, home);
-  if (section === "lab") return labMood(lead, follow, home);
   if (section === "contact") return contactMood(follow, home);
   return null;
 }
