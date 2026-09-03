@@ -1521,7 +1521,7 @@ test.describe("companion", () => {
       .toBe("clear");
   });
 
-  test("the follower never drops under WCAG clearance during the whole walk back from a hard scroll", async ({
+  test("the follower never drops under WCAG clearance while the walk back is observed", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1541,10 +1541,13 @@ test.describe("companion", () => {
      * The fix is structural: for as long as the lead is still walking, the
      * follower's target is his *live* position (`trailBehind`,
      * companion-motion.ts), not a fixed point of her own — so there is no
-     * second path left to cross. This samples every ~100ms across the
+     * second path left to cross. This samples every ~20ms across the
      * entire walk, not just the two endpoints the test above already
      * covers, which is the only way to actually make the claim "never
-     * drops under the WCAG minimum" rather than "usually doesn't".
+     * drops under the WCAG minimum" rather than "usually doesn't" — but
+     * only if at least one sample actually lands mid-walk; see the
+     * `movedSamples` assertion below for why that is checked explicitly
+     * rather than assumed.
      */
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -1572,17 +1575,17 @@ test.describe("companion", () => {
     // With Philosophy gone the jump is short — about 3600px of page height
     // left with it — and landing on it settles in well under 100ms rather
     // than drifting for seconds. That is not a regression to work around:
-    // measured directly (a diagnostic scroll to several other headings, and
-    // to deliberately larger jumps than any real nav link on this page
-    // produces), the walk stays clear of the 24px minimum throughout for
-    // every jump this page can actually produce. Only a *compound* jump —
-    // landing somewhere else first and immediately re-triggering a second
-    // walk before the first has settled — reproduces the old multi-sample
-    // window, and it does so on the pre-round-16 page too (confirmed against
-    // main), so it is a pre-existing property of `trailBehind`
-    // (companion-motion.ts), not something this round introduced or should
-    // fix in a content-removal task. Sampling below is tuned to what a
-    // single, natural jump on today's page actually produces.
+    // measured directly, this specific jump (page-load to `#work-heading`)
+    // stays clear of the 24px minimum throughout. It is NOT true of every
+    // jump this page can produce — a jump all the way to `#contact-heading`
+    // measured 19.0px, below the floor, on a page anyone can reach from the
+    // nav, the tour, or a bare URL fragment. That is a separate, pre-existing
+    // defect in `trailBehind` (companion-motion.ts) — recorded as a
+    // `test.fixme` right below this test rather than fixed here, because
+    // fixing it means changing motion internals, which is out of scope for
+    // a content-removal task. Sampling below is tuned to what this smaller,
+    // safe jump actually produces; it is not a claim that every jump is
+    // safe.
     await page.locator("#work-heading").scrollIntoViewIfNeeded();
 
     // Sample continuously until the follower's own drawn position has held
@@ -1594,6 +1597,18 @@ test.describe("companion", () => {
     let previous: { fx: number; fy: number } | null = null;
     let stableStreak = 0;
     let samples = 0;
+    // Distinct from `samples`: this only counts samples where the follower's
+    // drawn position actually differs from the previous one — i.e. a frame
+    // caught mid-walk, not at rest. `samples` alone is not a reliable proxy
+    // for "the walk was actually observed": the loop's own exit condition
+    // (`stableStreak >= 3`) is satisfiable by three consecutive *identical*
+    // readings, so a walk that is over before the second sample would still
+    // rack up a "samples" count without ever seeing the cat in motion. A
+    // regression that let the follower cut through the toggle mid-walk could
+    // pass silently if every sample the loop happened to catch was already
+    // at rest. Requiring at least one moved sample is what keeps this test
+    // honest about having watched the walk, not just its two endpoints.
+    let movedSamples = 0;
     const deadline = Date.now() + 15_000;
     while (Date.now() < deadline && stableStreak < 3) {
       const m = await measure();
@@ -1603,15 +1618,84 @@ test.describe("companion", () => {
           m.gap,
           `only ${m.gap.toFixed(1)}px clear of the toggle mid-walk (sample ${samples})`,
         ).toBeGreaterThanOrEqual(24);
-        stableStreak =
-          previous && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5 ? stableStreak + 1 : 0;
+        // `previous` is null only on the very first sample, when there is
+        // nothing yet to compare against — that sample is neither "moved"
+        // nor "stable" by construction, so it resets the streak exactly as
+        // it did before `movedSamples` existed (round 15's original logic),
+        // and it is not counted toward `movedSamples` either.
+        const stable = previous !== null && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5;
+        if (previous !== null && !stable) movedSamples += 1;
+        stableStreak = stable ? stableStreak + 1 : 0;
         previous = { fx: m.fx, fy: m.fy };
       }
       await page.waitForTimeout(20);
     }
     expect(samples, "never found a cat pair to measure").toBeGreaterThanOrEqual(3);
     expect(stableStreak, "the pair never actually settled inside the sampling window").toBeGreaterThanOrEqual(3);
+    expect(
+      movedSamples,
+      "every sample was already at rest — this run never actually observed the walk, so the clearance assertions above proved nothing",
+    ).toBeGreaterThan(0);
   });
+
+  // Recorded, not fixed: `trailBehind` (companion-motion.ts) can let the
+  // follower drop below the 24px WCAG target-size clearance during a
+  // sufficiently deep single scroll jump, or a compound jump (landing
+  // somewhere and immediately re-triggering a second walk before the first
+  // settles). Confirmed pre-existing and unrelated to round 16's Philosophy
+  // removal: a jump straight to `#contact-heading` measures ~18-19px of
+  // clearance (below the 24px floor) on both this branch and unmodified
+  // `main`, using the exact same measurement the test above makes. The
+  // compound-jump shape measures worse still (down to -45px, real overlap)
+  // on this branch; that shape has NOT been cross-checked against `main`, so
+  // treat only the single-deep-jump finding as confirmed pre-existing and
+  // the compound-jump number as unverified pending someone actually doing
+  // that comparison. Fixing `trailBehind`'s clamping for large or
+  // back-to-back jumps is out of scope for a content-removal task — this
+  // `fixme` exists so the finding survives in the tree rather than only in a
+  // task report that gets deleted.
+  test.fixme(
+    "the follower stays clear of the toggle during a deep single jump to Contact",
+    async ({ page }) => {
+      test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await companionAwake(page);
+
+      const measure = () =>
+        page.evaluate(() => {
+          const button = document.querySelector('[aria-controls="companion-actions"]');
+          const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+          if (!button || cats.length < 2) return null;
+          const follow = cats.find((svg) => !button.contains(svg));
+          if (!follow) return null;
+          const b = button.getBoundingClientRect();
+          const f = follow.getBoundingClientRect();
+          const dxOut = Math.max(f.left - b.right, b.left - f.right);
+          const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
+          return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
+        });
+
+      await page.locator("#contact-heading").scrollIntoViewIfNeeded();
+
+      let previous: { fx: number; fy: number } | null = null;
+      let stableStreak = 0;
+      const deadline = Date.now() + 15_000;
+      while (Date.now() < deadline && stableStreak < 3) {
+        const m = await measure();
+        if (m) {
+          expect(
+            m.gap,
+            `only ${m.gap.toFixed(1)}px clear of the toggle mid-walk`,
+          ).toBeGreaterThanOrEqual(24);
+          stableStreak =
+            previous && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5 ? stableStreak + 1 : 0;
+          previous = { fx: m.fx, fy: m.fy };
+        }
+        await page.waitForTimeout(20);
+      }
+    },
+  );
 
   test("does not roam when the visitor asks for reduced motion", async ({ browser }) => {
     const context = await browser.newContext({
