@@ -29,7 +29,7 @@ import AskThienHeroTab from "@/sections/Hero/AskThienHeroTab";
  */
 const chunkState = vi.hoisted(() => ({ fail: false }));
 
-vi.mock("@/sections/AIWorkflowLab/AskThisSite", () => ({
+vi.mock("@/sections/Hero/AskThisSite", () => ({
   get default() {
     if (chunkState.fail) throw new Error("chunk failed");
     return function Chat({ liveModeConfigured }: { readonly liveModeConfigured: boolean }) {

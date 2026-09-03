@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, type ComponentType } from "react";
 /**
  * The hero code artifact's fourth tab, "Ask Thien" — a plain `import()`
  * boundary around the actual full chat (`AskThisSite.tsx`, under
- * `src/sections/AIWorkflowLab/`), same idiom as `CareerTree/WatchOrigin.tsx`'s
+ * `src/sections/Hero/`), same idiom as `CareerTree/WatchOrigin.tsx`'s
  * player chunk.
  *
  * This file is the reason the chat costs the hero's initial JS nothing. It
@@ -43,7 +43,7 @@ export function AskThienHeroTab({ liveModeConfigured }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    import("@/sections/AIWorkflowLab/AskThisSite")
+    import("@/sections/Hero/AskThisSite")
       .then((mod) => {
         // Read `mod.default` here, synchronously inside `.then`, rather than
         // deferring it into the `setChat` updater function below: React may

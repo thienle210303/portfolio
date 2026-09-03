@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   SCORING_EXCERPT,
   SCORING_MATH,
-} from "@/sections/AIWorkflowLab/scoring-excerpt";
+} from "@/sections/Hero/scoring-excerpt";
 
 /**
  * The "How this answers" panel shows a hand-copied excerpt of the ranking loop
