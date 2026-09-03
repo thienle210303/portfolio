@@ -716,6 +716,10 @@ Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
 | When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
 |---|---|---|---|---|---|---|---|
 | Before round 16 | 207.4 KB | 14.2 KB | 331.4 KB | 3884 ms | 359 ms | 0 | 4369 |
+| After the chat moved into the hero tab | 192.7 KB | 14.2 KB | 331.4 KB | 3840 ms | 456 ms | 0 | 4120 |
+
+Moving the chat into the hero's fourth tab took 14.7 KB off the initial
+JavaScript; nothing else in the table moved materially.
 
 LCP element is the hero intro paragraph. Two standing facts this table exists
 to keep honest:
