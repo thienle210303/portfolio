@@ -717,9 +717,14 @@ Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
 |---|---|---|---|---|---|---|---|
 | Before round 16 | 207.4 KB | 14.2 KB | 331.4 KB | 3884 ms | 359 ms | 0 | 4369 |
 | After the chat moved into the hero tab | 192.7 KB | 14.2 KB | 331.4 KB | 3840 ms | 456 ms | 0 | 4120 |
+| After, same-commit re-run | 192.7 KB | 14.2 KB | 331.4 KB | 4032 ms | 260 ms | 0 | 4120 |
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
-JavaScript; nothing else in the table moved materially.
+JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms
+baseline, but the same-commit re-run above measured 260 ms — a 196 ms swing
+with no code change between the two, consistent with this machine's known
+run-to-run TBT noise, not a confirmed regression. JS, CSS, fonts, LCP, CLS
+and DOM nodes did not move materially.
 
 LCP element is the hero intro paragraph. Two standing facts this table exists
 to keep honest:
