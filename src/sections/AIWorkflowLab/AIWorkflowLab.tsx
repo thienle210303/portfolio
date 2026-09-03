@@ -15,7 +15,6 @@ import {
   workflowStages,
 } from "@/content/ai-experiments";
 import { askLiveModeConfigured } from "@/lib/ask-live-config";
-import AskThisSite from "./AskThisSite";
 import { ExperimentEntry } from "./ExperimentEntry";
 import { LearningLog } from "./LearningLog";
 import { ScrapingPlaybook } from "./ScrapingPlaybook";
@@ -37,8 +36,8 @@ const verified = experiments.filter((experiment) => experiment.verification.leng
 
 // Computed once, server-side, from the same three env vars
 // `src/app/api/ask/route.ts` re-checks independently — see
-// `src/lib/ask-live-config.ts`. Only this boolean ever crosses to the
-// client island below; the key, model and URL never do.
+// `src/lib/ask-live-config.ts`. This boolean only picks which callout
+// string renders below; the key, model and URL never leave this module.
 const liveModeConfigured = askLiveModeConfigured();
 
 const RAIL: readonly RailNote[] = [
@@ -49,19 +48,19 @@ const RAIL: readonly RailNote[] = [
 ];
 
 /**
- * AI Workflow Lab (SECTIONS.md §4). A Server Component -- the only client
- * island anywhere in this section is `AskThisSite`. Every fact here comes
- * from `@/content/ai-experiments` or `@/content/portfolio`; nothing is
+ * AI Workflow Lab (SECTIONS.md §4). A Server Component -- this section has
+ * no client island at all; the chat that used to live here moved into the
+ * hero's code artifact (round 16). Every fact here comes from
+ * `@/content/ai-experiments` or `@/content/portfolio`; nothing is
  * hardcoded, and `stripNeedsInput` runs over every long-form string this
  * section touches (see ExperimentEntry.tsx for the one field that actually
  * carries an embedded `[NEEDS INPUT: ...]` marker today).
  *
  * `liveModeConfigured` follows the same shape as `page.tsx`'s
  * `emailDeliveryConfigured` for Contact -- a boolean computed once on the
- * server and handed down as a prop, with the three env vars that produce it
- * never leaving this module. It decides two things: which of `labIntro[0]`
- * / `labLiveNotice` renders in the callout below, and whether `AskThisSite`
- * calls `/api/ask` at all.
+ * server, used here only to choose which of `labIntro[0]` / `labLiveNotice`
+ * renders in the callout below. The three env vars that produce it never
+ * leave this module.
  */
 export default function AIWorkflowLab() {
   const [staticNotice, ...restIntro] = labIntro;
@@ -123,29 +122,13 @@ export default function AIWorkflowLab() {
         Last updated <time dateTime={LAB_LAST_UPDATED}>{formatIsoDate(LAB_LAST_UPDATED)}</time>
       </p>
 
-      {/* Directly under the "runs live" notice on purpose: this is the one
-          thing on the page that answers back, and a reader should meet it
-          while that claim is still on screen -- whichever of the two claims
-          it currently is. AskThisSite is the section's lead feature now that
-          the workflow explorer has retired; everything below it is
-          supporting material for a visitor who wants to go deeper. */}
-      <div className="mt-16 sm:mt-20">
-        <h3
-          id="lab-ask-heading"
-          className="font-display text-[length:var(--step-3)] leading-tight tracking-[-0.01em] text-[color:var(--fg)]"
-        >
-          Ask about it
-        </h3>
-        <div className="mt-8">
-          <AskThisSite liveModeConfigured={liveModeConfigured} />
-        </div>
-      </div>
-
       {/* Round 7's deferred content, approved in round 11: the owner's own
-          reading on what scraping work taught him. Placed between the chat
-          and the experiments — after the thing that answers questions, before
-          the material a deep reader continues into. */}
-      <div className="mt-20 sm:mt-24">
+          reading on what scraping work taught him. Sits right under the
+          "runs live" notice and before the experiments -- supporting
+          material for a visitor who wants to go deeper. The chat that used
+          to open this stretch of the section moved into the hero's code
+          artifact in round 16; nothing here answers back anymore. */}
+      <div className="mt-16 sm:mt-20">
         <ScrapingPlaybook intro={scrapingPlaybookIntro} moves={scrapingPlaybook} />
       </div>
 

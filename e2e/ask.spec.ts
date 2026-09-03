@@ -1,18 +1,20 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * "Ask this site" — a chat thread over the portfolio's own content — plus,
- * since round 12 (WP-K), the hero's compact code artifact and its fourth
- * tab, "Ask Thien". Both live in this one file per the round's file
- * ownership split: every hero-chat e2e test belongs here, not in
- * `sections.spec.ts`.
+ * "Ask this site" — a chat thread over the portfolio's own content. Since
+ * round 12 (WP-K) this file also owned the hero's compact code artifact and
+ * its fourth tab, "Ask Thien"; since round 16 that tab is the *only* place
+ * the chat lives. The Lab used to render this same component (`AskThisSite`)
+ * directly in its own section; that static import is gone, so the chat no
+ * longer exists anywhere until a visitor opens the hero's "Ask Thien" tab.
+ * Every hero-chat e2e test still belongs here, not in `sections.spec.ts`.
  *
  * The property worth testing is not answer quality — that is pinned by unit
  * tests against the index in tests/lib/answers.test.ts, and the live-mode
  * route's own contract is pinned in tests/api/ask.test.ts. What matters here
- * is the promise the surrounding section makes: by default this box answers
- * questions *without* running a model, so it must work with no network,
- * invent nothing, say plainly when the site has no answer, and behave like an
+ * is the promise the chat makes: by default this box answers questions
+ * *without* running a model, so it must work with no network, invent
+ * nothing, say plainly when the site has no answer, and behave like an
  * actual conversation — every turn stays in the thread, in order, and the
  * thread itself scrolls rather than the page — and the visitor never has to
  * reach for the mouse to ask a follow-up. This suite runs with no ASK_LLM_*
@@ -26,15 +28,30 @@ function viewportWidth(page: Page): number {
   return page.viewportSize()?.width ?? 0;
 }
 
-/** The conversation list — one `<li>` per question asked so far. */
+/**
+ * The chat moved out of the Lab and into the hero's code artifact (round 16).
+ * Reaching it is now: load the page, select the fourth tab. The panel is a
+ * lazily imported chunk, so the wait is for the question field, not for the
+ * tab's own click to settle.
+ */
+async function openHeroChat(page: Page) {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Ask Thien" }).click();
+  await expect(page.getByRole("textbox").first()).toBeVisible({ timeout: 15_000 });
+}
+
+/** The conversation list — one `<li>` per question asked so far. Unscoped:
+ *  the chat now mounts in exactly one place on the page (the hero's "Ask
+ *  Thien" panel, and only while it is the active tab), so there is nothing
+ *  else on the page this could accidentally match. */
 function conversation(page: Page) {
-  return page.locator("#lab").getByRole("list", { name: "Conversation" });
+  return page.getByRole("list", { name: "Conversation" });
 }
 
 /** The scrolling thread window (round 12, WP-K) that `conversation` nests
  *  inside — its own accessible name, independent of the list's. */
 function conversationLog(page: Page) {
-  return page.locator("#lab").getByRole("log", { name: "Conversation thread" });
+  return page.getByRole("log", { name: "Conversation thread" });
 }
 
 /**
@@ -66,8 +83,7 @@ function questionField(page: Page) {
 test.describe("ask this site", () => {
   test("answers a suggested question with sourced, linked evidence", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     await page.getByRole("button", { name: "What does he do at DoorDash?" }).click();
 
@@ -86,12 +102,7 @@ test.describe("ask this site", () => {
 
   test("says so plainly when the site has no answer, and invents nothing", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    // Wait for hydration before typing. Without this the Enter key lands on a
-    // form React has not attached to yet, the browser performs its own native
-    // submit, and the assertion below fails against a freshly reloaded page —
-    // the failure log shows a navigation to "/?" rather than a missing string.
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     await questionField(page).fill("what is the capital of France");
     await page.keyboard.press("Enter");
@@ -103,8 +114,7 @@ test.describe("ask this site", () => {
 
   test("works with the network offline — there is no model to fetch", async ({ page, context }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     // Everything the feature needs already shipped with the page. If a model
     // or an API ever creeps in behind this box while live mode is off, this
@@ -117,10 +127,9 @@ test.describe("ask this site", () => {
 
   test("every suggested question is a live control, not a dead one", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
-    const suggestions = page.locator("#lab ul li button");
+    const suggestions = page.locator('[data-hero-step="code"] ul li button');
     const count = await suggestions.count();
     expect(count).toBeGreaterThan(0);
 
@@ -137,8 +146,7 @@ test.describe("ask this site", () => {
 
   test("offers the same answer as a code artifact, one view at a time", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     await page.getByRole("button", { name: "Where did he study?" }).click();
     const turn = lastTurn(page);
@@ -172,8 +180,7 @@ test.describe("ask this site", () => {
 
   test("the code view is reachable by keyboard alone", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     await page.getByRole("button", { name: "Where did he study?" }).click();
     const turn = lastTurn(page);
@@ -188,8 +195,7 @@ test.describe("ask this site", () => {
 
   test("is keyboard operable end to end", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     const field = questionField(page);
     await field.focus();
@@ -200,8 +206,7 @@ test.describe("ask this site", () => {
 
   test("is a real thread: every turn stays in the thread, in order, and the thread scrolls — not the page", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     // Round 10's contract was "every question asked stays on screen" — an
     // unbounded thread made that literally true by growing the *page* one
@@ -249,8 +254,7 @@ test.describe("ask this site", () => {
 
   test("scrolls the thread window internally, without the page lurching to follow it", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     // A real bug found while building this: `lastTurn.scrollIntoView()`
     // walks every scrollable ancestor, including the page — Chromium will
@@ -260,19 +264,9 @@ test.describe("ask this site", () => {
     // detached repro scrolled `window.scrollY` by five figures for a target
     // already inside a correctly-configured `overflow:auto` box). The fix
     // scrolls the log region itself via `Element.scrollTo()`, which is
-    // scoped to that one box and never touches an ancestor.
-    //
-    // This does not assert `window.scrollY` is *unchanged* end to end —
-    // `ask()` still calls `fieldRef.current.focus()` after every question
-    // (round 10, "keeps focus in hand"), and focusing an off-screen input
-    // legitimately scrolls the page a little to reveal it; measured directly
-    // across three questions here, that follow-focus movement lands under
-    // 1000px total. What the old bug did was different in kind, not degree:
-    // five- and six-figure page-level jumps for a single turn, scaling with
-    // how far down the *page* the thread happened to sit. 2000px is
-    // comfortably above the measured legitimate nudge and comfortably below
-    // what an ancestor-climbing regression would produce.
-    await page.evaluate(() => document.getElementById("lab")?.scrollIntoView());
+    // scoped to that one box and never touches an ancestor. The hero sits at
+    // the top of the page, so there is no large pre-existing scroll to undo
+    // here the way there was when the chat lived in the Lab further down.
     const windowScrollBefore = await page.evaluate(() => window.scrollY);
 
     for (const question of [
@@ -301,8 +295,7 @@ test.describe("ask this site", () => {
 
   test("the scroll region is keyboard-reachable, with a proper accessible name, and does not trap focus", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     // Idle: nothing to scroll yet, so no extra tab stop.
     await expect(conversationLog(page)).not.toHaveAttribute("tabindex");
@@ -323,8 +316,7 @@ test.describe("ask this site", () => {
 
   test("Clear conversation is state-only: it appears once a turn exists, empties the thread, and returns focus to the input", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     await expect(page.getByRole("button", { name: "Clear conversation" })).toHaveCount(0);
 
@@ -338,18 +330,18 @@ test.describe("ask this site", () => {
     await expect(conversation(page)).toHaveCount(0);
     await expect(questionField(page)).toBeFocused();
 
-    // Nothing was ever persisted, so a reload starts fresh either way — this
-    // just confirms clearing didn't leave the thread in some half-cleared
-    // state a reload would then contradict.
+    // Nothing was ever persisted, so a reload starts fresh either way. A
+    // reload also resets the hero back to its default "Profile" tab, so the
+    // chat has to be reopened before this can be confirmed.
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
     await expect(page.getByRole("button", { name: "Clear conversation" })).toHaveCount(0);
+    await expect(conversation(page)).toHaveCount(0);
   });
 
   test("keeps focus in the input after asking, ready for a follow-up with no mouse", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openHeroChat(page);
 
     const field = questionField(page);
     await field.focus();
@@ -363,10 +355,24 @@ test.describe("ask this site", () => {
     await page.getByRole("button", { name: "Where did he study?" }).click();
     await expect(questionField(page)).toBeFocused();
   });
+
+  test("the conversation survives switching to another code tab and back", async ({ page }) => {
+    await openHeroChat(page);
+    const input = page.getByRole("textbox").first();
+    await input.fill("What did Thien build at DoorDash?");
+    await input.press("Enter");
+    await expect(page.getByText("What did Thien build at DoorDash?")).toBeVisible();
+
+    await page.getByRole("tab", { name: "Profile" }).click();
+    await expect(page.getByText("What did Thien build at DoorDash?")).toHaveCount(0);
+
+    await page.getByRole("tab", { name: "Ask Thien" }).click();
+    await expect(page.getByText("What did Thien build at DoorDash?")).toBeVisible();
+  });
 });
 
 /* -------------------------------------------------------------------------- */
-/* The hero: compact code artifact + the "Ask Thien" tab (round 12, WP-K)     */
+/* The hero's code artifact: three authored tabs plus "Ask Thien" (round 12)  */
 /* -------------------------------------------------------------------------- */
 
 function heroTablist(page: Page) {
@@ -377,16 +383,8 @@ function heroAskTab(page: Page) {
   return heroTablist(page).getByRole("tab", { name: "Ask Thien" });
 }
 
-/** The mini chat's own question field, distinct in accessible name from the
- *  Lab's `questionField` above — the two must never be confused by a shared
- *  locator, since a test that meant the Lab's full thread must not silently
- *  end up typing into the hero's single-turn mini chat instead. */
-function heroQuestionField(page: Page) {
-  return page.getByRole("textbox", { name: "Ask Thien a question about this portfolio" });
-}
-
 test.describe("hero code artifact — compact rendering", () => {
-  test("renders noticeably smaller padding than an ordinary CodeBlock (the Lab's own, once opened)", async ({ page }) => {
+  test("renders noticeably smaller padding than an ordinary CodeBlock (a turn's own Code view, once opened)", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "layout is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -401,17 +399,19 @@ test.describe("hero code artifact — compact rendering", () => {
     const heroRegionPadding = await heroRegion.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
     expect(heroRegionPadding).toBeLessThan(16);
 
-    // A CodeBlock elsewhere on the page (a turn's own "answer, as data" view
-    // in the Lab) keeps the ordinary size — proving compact is scoped to
-    // the hero, not a global change to every CodeBlock on the site.
+    // A CodeBlock elsewhere in the same artifact (a turn's own "answer, as
+    // data" view inside the "Ask Thien" tab) keeps the ordinary size —
+    // proving compact is scoped to the three authored tabs
+    // (`HeroCodeArtifact.tsx` passes `compact` only to those), not a global
+    // change to every CodeBlock the hero renders.
+    await heroAskTab(page).click();
+    await expect(page.getByRole("textbox").first()).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "Where did he study?" }).click();
-    await lastTurn(page)
-      .getByRole("tablist", { name: "Answer view" })
-      .getByRole("tab", { name: "Code" })
-      .click();
-    const labRegion = page.getByRole("region", { name: "answer-1.ts" });
-    const labRegionPadding = await labRegion.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
-    expect(labRegionPadding).toBe(16);
+    const turn = conversation(page).locator(":scope > li").last();
+    await turn.getByRole("tablist", { name: "Answer view" }).getByRole("tab", { name: "Code" }).click();
+    const answerRegion = page.getByRole("region", { name: "answer-1.ts" });
+    const answerRegionPadding = await answerRegion.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
+    expect(answerRegionPadding).toBe(16);
   });
 
   test("the three authored tabs' content is unchanged — only the rendering shrank", async ({ page }) => {
@@ -474,8 +474,8 @@ test.describe("hero code artifact — Ask Thien tab", () => {
     await page.waitForLoadState("networkidle");
 
     // Tabs only ever mounts the active panel (Profile, by default), so the
-    // mini chat's field must not exist in the DOM before its tab is chosen.
-    await expect(heroQuestionField(page)).toHaveCount(0);
+    // chat's own field must not exist in the DOM before its tab is chosen.
+    await expect(questionField(page)).toHaveCount(0);
 
     const chunkRequest = page.waitForRequest(
       (request) => request.resourceType() === "script" && request.url().includes("/_next/static/"),
@@ -485,60 +485,7 @@ test.describe("hero code artifact — Ask Thien tab", () => {
     // the `import()` behind it, not something already on the page.
     await chunkRequest;
 
-    await expect(heroQuestionField(page)).toBeVisible();
-  });
-
-  test("answers with the same sourced evidence as the Lab, latest turn only, no Code view, and links back to the Lab", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    await heroAskTab(page).click();
-    await expect(page.getByText("A lexical index over this page — no model.")).toBeVisible();
-
-    const field = heroQuestionField(page);
-    await field.fill("What does he do at DoorDash?");
-    await field.press("Enter");
-
-    const results = page.getByRole("list", { name: "Sourced answers" });
-    await expect(results.getByRole("listitem").first()).toBeVisible();
-    await expect(results).toContainText(/DoorDash/i);
-
-    // Prose only — no second "answer, as data" view here.
-    await expect(page.locator('[data-hero-step="code"]').getByRole("tab", { name: "Code" })).toHaveCount(0);
-
-    // A second question replaces the first turn rather than appending —
-    // the mini chat shows the latest turn only. Scoped to the hero wrapper:
-    // the Lab further down the page has its own "What does he do at
-    // DoorDash?" suggestion button, which an unscoped query would also
-    // match regardless of the mini chat's own state.
-    await field.fill("Where did he study?");
-    await field.press("Enter");
-    await expect(
-      page.locator('[data-hero-step="code"]').getByText("What does he do at DoorDash?"),
-    ).toHaveCount(0);
-
-    const link = page.getByRole("link", { name: /Full conversation in the Lab/ });
-    await expect(link).toHaveAttribute("href", "#lab");
-
-    // Static engine, no live network call — the hero tab never wires up
-    // `/api/ask` regardless of live-mode configuration.
-    await expect(page.getByText("Live mode")).toHaveCount(0);
-  });
-
-  test("keeps focus in the mini chat's field after asking, and stays keyboard-operable end to end", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    await heroAskTab(page).click();
-    const field = heroQuestionField(page);
-    await field.focus();
-    await field.fill("scraper");
-    await page.keyboard.press("Enter");
-
-    await expect(field).toBeFocused();
-    await expect(page.getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
+    await expect(questionField(page)).toBeVisible();
   });
 
   // Deliberately not viewport-gated, unlike the tests above: this is the one
@@ -561,8 +508,8 @@ test.describe("hero code artifact — Ask Thien tab", () => {
     expect(tabBox?.height ?? 0).toBeGreaterThanOrEqual(44);
 
     await askTab.click();
-    const field = heroQuestionField(page);
-    await expect(field).toBeVisible();
+    const field = questionField(page);
+    await expect(field).toBeVisible({ timeout: 15_000 });
     await field.fill("scraper");
     await field.press("Enter");
     await expect(page.getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
