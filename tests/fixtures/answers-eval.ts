@@ -307,9 +307,9 @@ export const EVAL_CASES: readonly EvalCase[] = [
     probes: "the core belief",
   },
   {
-    query: "what is he exploring with ai agents",
+    query: "how does he use ai agents",
     expect: ["Multi-agent feasibility workflow at DoorDash"],
-    probes: "the lab, asked in the site's own terms",
+    probes: "the site's own suggested question, reworded after the AI Workflow Lab was removed",
   },
 ];
 

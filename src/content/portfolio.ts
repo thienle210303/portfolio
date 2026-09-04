@@ -1098,7 +1098,7 @@ export const skillCategories = [
       "Model fine-tuning",
     ],
     evidence:
-      "Multi-agent feasibility workflow at DoorDash; DistilBERT fine-tuning at 92% accuracy; see the AI Workflow Lab for dated experiments.",
+      "Multi-agent feasibility workflow at DoorDash; DistilBERT fine-tuning at 92% accuracy.",
     lenses: ["ai-workflows", "automation"],
   },
   {

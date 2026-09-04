@@ -279,7 +279,7 @@ export const SUGGESTED_QUESTIONS: readonly string[] = [
   "What does he do at DoorDash?",
   "What has he actually measured?",
   "What did he learn from work that failed?",
-  "What is he exploring with AI agents?",
+  "How does he use AI agents?",
   "Where did he study?",
   "Where is he originally from?",
   "How does he approach a problem?",
