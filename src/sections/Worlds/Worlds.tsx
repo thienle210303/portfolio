@@ -32,9 +32,16 @@ const KM = crossingKm();
 
 const PLAQUE_COUNT = WORLDS.reduce((total, world) => total + world.plaques.length, 0);
 const DECORATION_COUNT = WORLDS.reduce((total, world) => total + world.decorations.length, 0);
+// Animals (the plinth) and Technology (orbit) are the two worlds `resolveWorlds()`
+// never gives a map point (`point` resolves to `null` for both — see
+// `src/lib/worlds.ts`'s `anchorPoint`). A reader could only get this by
+// opening both panels and noticing neither one's "where" line names a spot on
+// the globe — unlike the raw world count, which the heading, the numbered
+// list and its 01–07 numerals already all say by themselves.
+const OFF_MAP_COUNT = WORLDS.filter((world) => world.point === null).length;
 
 const RAIL: readonly RailNote[] = [
-  { term: "Worlds", detail: `${WORLDS.length}` },
+  { term: "Off the map", detail: `${OFF_MAP_COUNT} — the plinth and the orbit, not projected onto the globe` },
   { term: "Plaques", detail: `${PLAQUE_COUNT} — each one field, quoted whole` },
   { term: "Decorations", detail: `${DECORATION_COUNT} — drawings, carrying no fact` },
   { term: "Crossing", detail: `${KM.toLocaleString("en-US")} km · computed from the two pins` },

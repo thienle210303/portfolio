@@ -30,8 +30,18 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
     await page.goto("/#worlds");
     const rail = page.locator("#worlds dl");
     const plaques = WORLDS.reduce((total, world) => total + world.plaques.length, 0);
-    await expect(rail).toContainText(String(WORLDS.length));
-    await expect(rail).toContainText(String(plaques));
+    const offMap = WORLDS.filter((world) => world.point === null).length;
+
+    // Scoped to each note's own <dd> — the whole <dl>'s text also contains
+    // the crossing's km figure and the other notes' own numbers, so an
+    // unscoped toContainText can pass for a reason that has nothing to do
+    // with the fact it claims to check: move the two pins and 19 plaques
+    // could just as easily read "13,719 km", which also contains a "19".
+    const offMapRow = rail.locator("div", { hasText: "Off the map" });
+    const plaquesRow = rail.locator("div", { hasText: "Plaques" });
+
+    await expect(offMapRow.locator("dd")).toContainText(String(offMap));
+    await expect(plaquesRow.locator("dd")).toContainText(String(plaques));
   });
 
   test("the seven buttons are reachable by keyboard alone", async ({ page }) => {

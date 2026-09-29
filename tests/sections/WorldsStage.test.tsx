@@ -80,11 +80,32 @@ describe("WorldsStage, with no canvas at all", () => {
     }
   });
 
-  it("gives the stage a focusable group with a globe roledescription", () => {
+  it("gives the stage a group with a globe roledescription, not yet focusable", () => {
     renderStage();
     const stage = screen.getByRole("group", { name: /playground earth/i });
     expect(stage).toHaveAttribute("aria-roledescription", "globe");
-    expect(stage).toHaveAttribute("tabindex", "0");
+    // Not "0": there is nothing to drag and the arrow keys are inert until a
+    // canvas supplies real GlobeControls, so a keyboard user should not tab
+    // into an empty box a screen reader announces as a globe. The task that
+    // creates that canvas is the one that flips this to "0", once
+    // `controlsReady` can actually become true.
+    expect(stage).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("keeps the two globe controls reachable and clearly disabled, not vanished", () => {
+    renderStage();
+    const fly = screen.getByRole("button", { name: /loading the globe/i });
+    const reset = screen.getByRole("button", { name: /face việt nam/i });
+    for (const control of [fly, reset]) {
+      // `aria-disabled`, never the native `disabled` attribute: a truly
+      // `disabled` button drops out of the tab order, and the whole point of
+      // this pattern (see WorldsStage.tsx's own comment on it) is that a
+      // control which vanishes and reappears is worse than one that says
+      // "not yet" — which only works if it stays reachable while it says it.
+      expect(control).toHaveAttribute("aria-disabled", "true");
+      expect(control).not.toHaveAttribute("disabled");
+      expect(control).not.toHaveAttribute("tabindex", "-1");
+    }
   });
 
   it("announces the open world in a status region", async () => {

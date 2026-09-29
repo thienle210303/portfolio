@@ -59,6 +59,10 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
   const [currentId, setCurrentId] = useState(worlds[0]?.id ?? "");
   const [announcement, setAnnouncement] = useState("");
   const [Canvas, setCanvas] = useState<CanvasComponent | null>(null);
+  // Set only on the `.catch()` path below, and never cleared: once the chunk
+  // has failed there is no retry, so the resting label it drives ("Globe not
+  // available") is permanent rather than reverting to "Loading" on a re-render.
+  const [canvasFailed, setCanvasFailed] = useState(false);
   const controlsRef = useRef<GlobeControls | null>(null);
   const [controlsReady, setControlsReady] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -110,9 +114,13 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
             if (!cancelled) setCanvas(() => module.default);
           })
           .catch(() => {
-            // The chunk failed (offline, a flaky deploy). Nothing to do and
-            // nothing to say: the list, the panel and every plaque are already
-            // on screen, which is the whole feature.
+            // The chunk failed (offline, a flaky deploy). Silent — no
+            // console, no alert, the list and the panel are already the
+            // whole feature — but not a lie: without this, "Loading the
+            // globe…" is the permanent label for exactly the one visitor who
+            // hit a real failure, promising progress that has already
+            // stopped. `canvasFailed` retires that label for good.
+            if (!cancelled) setCanvasFailed(true);
           });
       },
       { rootMargin: "200px" },
@@ -156,10 +164,20 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
       <div>
         <div
           ref={stageRef}
-          tabIndex={0}
+          // -1 until a real canvas exists: there is nothing to drag and the
+          // arrow keys are inert, so a keyboard user should never tab into a
+          // ~560px empty box a screen reader announces as a globe. The
+          // IntersectionObserver watches `stageRef` regardless of tabIndex,
+          // so this does not affect when the canvas chunk is fetched. Task 8
+          // flips this to 0 once `controlsReady` can become true.
+          tabIndex={controlsReady ? 0 : -1}
           role="group"
           aria-roledescription="globe"
-          aria-label="Playground Earth. Drag to roll it, or use the arrow keys. Every world is also a button in the list beside it."
+          aria-label={
+            controlsReady
+              ? "Playground Earth. Drag to roll it, or use the arrow keys. Every world is also a button in the list beside it."
+              : "Playground Earth. Every world is also a button in the list beside it."
+          }
           onKeyDown={handleKeyDown}
           // pan-y, never none: `none` would swallow the page scroll on a phone.
           className="relative mx-auto aspect-[1/1.12] w-full max-w-[560px] touch-pan-y"
@@ -181,11 +199,20 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
             aria-disabled={!controlsReady}
             onClick={() => controlsRef.current?.fly()}
             className={cn(
-              "min-h-11 border border-[color:var(--accent)] bg-[color:var(--accent)] px-5 text-[color:var(--fg-inverse)]",
-              !controlsReady && "pointer-events-none opacity-70",
+              "min-h-11 px-5",
+              // The accent fill is reserved for a control that is actually
+              // the primary action right now (SPEC: blue is never
+              // decoration). Disabled, this matches the reset button's own
+              // resting style exactly rather than fading the accent fill —
+              // faded accent-on-fg-inverse measured under AA (3.69:1 day,
+              // 4.22:1 night at 70% opacity); this combination measures the
+              // same as the already-AA reset button beside it.
+              controlsReady
+                ? "border border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)]"
+                : "pointer-events-none border border-rule text-[color:var(--fg)] opacity-70",
             )}
           >
-            {controlsReady ? "Take the flight" : "Loading the globe…"}
+            {controlsReady ? "Take the flight" : canvasFailed ? "Globe not available" : "Loading the globe…"}
           </button>
           <button
             type="button"

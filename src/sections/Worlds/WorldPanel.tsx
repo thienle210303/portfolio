@@ -47,7 +47,22 @@ export function WorldPanel({ world }: { readonly world: ResolvedWorld }) {
                   {plaque.link ? (
                     <>
                       {" · "}
-                      <a href={plaque.link} className="ink-link">
+                      <a
+                        href={plaque.link}
+                        className="ink-link"
+                        // Two of these can be open in the same world (Technology
+                        // has one per case study): identical visible text is
+                        // fine to look at, but identical accessible names are
+                        // not — a screen reader's "list all links" gives no way
+                        // to tell them apart. `plaque.attribution` is already
+                        // resolved to the destination's own title whenever
+                        // `plaque.link` exists (see the "project" branch of
+                        // `resolvePlaque`), so naming it here composes nothing
+                        // new.
+                        aria-label={
+                          plaque.attribution ? `see it proven — ${plaque.attribution}` : "see it proven"
+                        }
+                      >
                         see it proven
                       </a>
                     </>
