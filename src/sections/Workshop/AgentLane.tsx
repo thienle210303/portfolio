@@ -10,11 +10,19 @@ import { agentLaneIntro } from "@/content/workshop";
  * 2 removed 1,045 lines of client island from this page and took the DOM from
  * 4,369 nodes to 3,325; rendering ten stages' `agentDoes`, `humanOwns` and
  * `watchFor` open would put a few hundred of them straight back. A collapsed
- * `Disclosure` keeps the content in the document — findable by in-page search,
- * present with no JavaScript — while paying for the layout of only what is
- * open. (Its inner wrapper flips `visibility` while closed, so the collapsed
- * subtree is out of the tab order and out of the accessibility tree rather
- * than clipped-but-reachable; see that component's own doc comment.)
+ * `Disclosure` is server-rendered whole and stays in the document, so the
+ * stage's own content costs no second request and no client fetch to reveal —
+ * while the page pays for the layout of only what is open.
+ *
+ * What a collapsed stage is *not*: reachable. Its inner wrapper flips
+ * `visibility` while closed (see that component's own doc comment), which
+ * takes the subtree out of the tab order and out of the accessibility tree —
+ * deliberately, because a focusable element stranded off-screen is worse than
+ * one that is absent. Browser find-in-page skips `visibility: hidden` text
+ * too, so a closed stage is not findable that way either, and with JavaScript
+ * off the markup is present but the trigger cannot open it. Every one of these
+ * stages has to be *clicked* to be read, which is also why `e2e/workshop.spec.ts`
+ * clicks each one rather than asserting its text is already visible.
  *
  * Each stage's question is part of its trigger rather than hidden inside its
  * panel. Ten identical closed rows carrying nothing but a title is the wall

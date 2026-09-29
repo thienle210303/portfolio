@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answer, SUGGESTED_QUESTIONS } from "@/lib/answers";
+import { answer, SUGGESTED_QUESTIONS, tokenize } from "@/lib/answers";
 import { buildDocuments } from "@/lib/answer-corpus";
 import {
   careerIndexable,
@@ -150,32 +150,118 @@ describe("answer", () => {
     for (const offTopic of [
       "what is the capital of France",
       "recipe for sourdough bread",
-      // Round 16 replaced "how do I file my taxes" here, and the reason is
-      // worth writing down rather than quietly editing away.
+      // Round 16 replaced "how do I file my taxes" here. It is now pinned as a
+      // known hole in its own case below — see "the `file` hole" — rather than
+      // only deleted, so that an engine change which closes it and one which
+      // widens it do not look identical to this suite.
       //
-      // The Workshop indexed each agent stage's `watchFor`, three of which
-      // mention source *files* — the only documents in the corpus containing
-      // that word. English stop words eat four of that question's six words
-      // ("how", "do", "i", "my"), leaving the index two terms, one of which
-      // is a homograph it now legitimately holds. Two terms means
-      // `requiredMatches` admits on one (see answers.ts), and a term in 3 of
-      // 134 documents carries a near-maximal IDF, so one incidental "files"
-      // cleared the bar on its own.
+      // These two are not equal in strength, and a reader should not think
+      // they are:
       //
-      // Tightening that gate was measured, not assumed: requiring two matches
-      // at two terms drops the retrieval eval's recall@3 from ≥90% to 83.3%
-      // and MRR from ≥0.8 to 0.761, because real two-term questions ("what
-      // awards has he won", "where did he go to school") genuinely match on
-      // one. The engine is tuned; the probe was the fragile part. Both
-      // replacements below are off-topic without depending on a word the
-      // corpus might one day acquire, and the second is the stronger test of
-      // the two: "who" and "won" are *both* real index terms, so it is the
-      // coverage gate rather than vocabulary that has to refuse it.
+      //  - "how do I renew my passport" is a **zero-signal control**. Neither
+      //    "renew" nor "passport" is in the vocabulary at all, so it refuses
+      //    for the same trivial reason "capital of France" does. It is here to
+      //    keep a plain out-of-domain case in the set, not to test anything
+      //    subtle.
+      //  - "who won the world cup" is the **load-bearing** probe, and the
+      //    strongest refusal case in this file. Three of its four terms are
+      //    genuine index terms ("who" is a deliberate non-stop-word aliased
+      //    onto About; "won" is in an award line; "world" is on the globe), so
+      //    vocabulary alone does not save it. It refuses only because
+      //    `requiredMatches` demands two matches in one document at four
+      //    terms, and no document holds two of them. Loosen that gate and this
+      //    is the probe that goes red first.
       "how do I renew my passport",
       "who won the world cup",
     ]) {
       expect(answer(offTopic), `"${offTopic}" should return nothing`).toEqual([]);
     }
+  });
+
+  /**
+   * The `file` hole — pinned as **shipped behaviour, not desired behaviour.**
+   *
+   * Read this as a regression fence around a known defect, never as an
+   * endorsement of it. The site currently answers "how do I file my taxes"
+   * with three sentences about source files, and that is wrong. It is pinned
+   * because the alternative is worse: while the hole is unpinned, a future
+   * engine change that *closes* it and one that *widens* it both leave this
+   * suite green, and nobody finds out which happened.
+   *
+   * ## What the hole is
+   *
+   * Round 16 indexed each agent stage's `watchFor`. Three of them mention
+   * source *files*, and they are the only documents in the whole corpus
+   * holding that word — so "file" carries a near-maximal IDF (3.82, against a
+   * ~4.9 ceiling for a term in a single document). English stop words then eat
+   * four of the six words in "how do I file my taxes" ("how", "do", "i",
+   * "my"), leaving the index two terms, one of which is a homograph it now
+   * legitimately has. At two terms `requiredMatches` admits on a single match
+   * (see answers.ts), so one incidental "files" clears the bar alone.
+   *
+   * ## Why the engine was not changed instead
+   *
+   * Measured, not assumed. Making `requiredMatches` demand two matches at two
+   * terms drops the retrieval eval from recall@3 ≥90% to 83.3% and MRR ≥0.8
+   * to 0.761, and breaks "answers every suggested question with something" —
+   * because real two-term questions genuinely match on one term ("what awards
+   * has he won" -> ["award","won"], "where did he go to school" ->
+   * ["go","school"], "how big were the datasets he handled" ->
+   * ["dataset","handled"]). The engine is tuned; the probe was the fragile
+   * part.
+   *
+   * ## Blast radius, measured
+   *
+   * Exactly **one- and two-term queries whose only corpus term is `file`**. A
+   * third term restores the two-match gate and the hole closes by itself:
+   * "my tax return files" (["tax","return","file"]) correctly returns nothing,
+   * which is the boundary this case asserts last.
+   *
+   * ## If you are here because you changed the engine
+   *
+   * Good. **Update this case to the new, narrower truth — do not invert it in
+   * place.** If a query below now returns nothing, the hole has closed and
+   * these queries should move up into the refusal case above. If a query that
+   * returned nothing starts returning something, the hole has widened and that
+   * is a regression. Either way the change belongs in this file's diff.
+   */
+  it("DOCUMENTED HOLE (not desired): a short query whose only corpus term is `file` reaches the agent lane", () => {
+    // Derived from the content, not transcribed: these are the stage failure
+    // modes that actually contain the term, so a content edit that drops the
+    // word closes the hole and fails this test loudly rather than leaving a
+    // stale fixture behind.
+    const fileLines = workflowStages
+      .map((stage) => stage.watchFor)
+      .filter((line) => tokenize(line).includes("file"));
+    expect(
+      fileLines.length,
+      "no stage failure mode mentions files any more — the hole may be closed; see this case's doc comment",
+    ).toBe(3);
+
+    // Two terms, one of them `file`: admitted on the single match.
+    for (const reaching of [
+      "how do I file my taxes",
+      "how do I file a bug",
+      "can I get the project files",
+    ]) {
+      const results = answer(reaching);
+      expect(results.length, `"${reaching}" no longer reaches — see this case's doc comment`).toBe(3);
+      expect(new Set(results.map((result) => result.text))).toEqual(new Set(fileLines));
+      // All three carry the same near-maximal weight, which is the mechanism
+      // rather than a coincidence: one rare term matched, and nothing else.
+      for (const result of results) expect(result.score).toBeCloseTo(3.82, 1);
+      // The hole is a precision failure, not a fabrication one. Whatever it
+      // reaches is still verbatim content, still sourced, still linkable —
+      // which is why it is a defect worth fixing rather than one worth
+      // panicking about.
+      for (const result of results) {
+        expect(CORPUS.has(result.text)).toBe(true);
+        expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
+      }
+    }
+
+    // The boundary: a third term restores the two-match gate.
+    expect(answer("my tax return files")).toEqual([]);
   });
 
   it("returns nothing for an empty or punctuation-only question", () => {

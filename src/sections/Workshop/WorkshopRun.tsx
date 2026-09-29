@@ -47,7 +47,20 @@ export function WorkshopRun({ runs, defaultProjectId }: WorkshopRunProps) {
       <FilterGroup
         label="Run the loop with"
         idPrefix="workshop-run"
-        value={projectId}
+        // `run.projectId`, not the raw `projectId` state. The two agree on
+        // every path a visitor can reach, and the difference is an
+        // accessibility defect rather than a cosmetic one: `?? runs[0]` above
+        // falls the *render* back when an id does not resolve, but the state
+        // would still hold the unresolvable id. `FilterGroup` would then find
+        // no option matching `value`, leave every chip `aria-checked={false}`
+        // — and because it owns a single tab stop for the radiogroup
+        // (`tabIndex={checked ? 0 : -1}`, which is the correct pattern), the
+        // whole project switcher would drop out of the tab order with no
+        // visible symptom. Deriving the checked chip from the run actually
+        // being shown makes "the checked chip is the run on screen" a
+        // structural property rather than one the initial state has to get
+        // right.
+        value={run.projectId}
         onChange={setProjectId}
         // `count` is not decoration: it is how many of the nine stations that
         // project can fill, which is the one number that makes switching worth

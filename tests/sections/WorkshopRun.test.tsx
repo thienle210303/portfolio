@@ -79,6 +79,28 @@ describe("WorkshopRun", () => {
     );
   });
 
+  it("keeps the switcher keyboard-reachable even when the default project does not resolve", () => {
+    // The defect this pins was invisible to every other case here, and to the
+    // e2e: `?? runs[0]` falls the *render* back when an id does not resolve,
+    // but the raw state would still hold the unresolvable id. `FilterGroup`
+    // would then match no option, leave every chip `aria-checked={false}`, and
+    // — because it owns a single tab stop for the radiogroup
+    // (`tabIndex={checked ? 0 : -1}`) — take the whole project switcher out of
+    // the tab order with nothing visibly wrong. An e2e's `.focus()` forces
+    // focus regardless of tabindex, so it cannot see this either.
+    render(<WorkshopRun runs={RUNS} defaultProjectId="a-project-that-left-the-content-layer" />);
+
+    const chips = screen.getAllByRole("radio");
+    const checked = chips.filter((chip) => chip.getAttribute("aria-checked") === "true");
+    expect(checked, "no chip is checked, so the radiogroup has no tab stop").toHaveLength(1);
+    expect(checked[0]).toHaveAttribute("tabindex", "0");
+    // And the checked chip is the run actually on screen, not merely *a* chip.
+    const shown = RUNS[0];
+    if (!shown) throw new Error("there are no runs");
+    expect(checked[0]).toHaveAccessibleName(new RegExp(shown.title, "i"));
+    expect(screen.getByText(shown.stations[0]?.evidence[0] ?? "")).toBeInTheDocument();
+  });
+
   it("counts on each chip how many of the nine stations that project fills", () => {
     renderRun();
     // The count is the one number that makes switching worth doing, so it is
