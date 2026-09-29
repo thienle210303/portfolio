@@ -4143,8 +4143,10 @@ export function Companion({ facts }: CompanionProps) {
 
   /**
    * The HUD's fork in the walk, offered once — see `TourHud`'s
-   * `showRouteChoice` — after Work's scene, the second stop now that
-   * Philosophy is gone. Picking either cat settles
+   * `showRouteChoice` — after About's scene, the only stop every route still
+   * shares now that Work has moved into the derived middle alongside
+   * Worlds, Skills and Journey (round 16 — see `companion-tour.ts`'s
+   * `GREY_MIDDLE` and `stopsFor`). Picking either cat settles
    * `route` for the rest of the walk and immediately does what "Next stop"
    * would have: the choice replaces that button at this one juncture, it
    * does not sit beside it.
@@ -4600,12 +4602,12 @@ export function Companion({ facts }: CompanionProps) {
           label={stopsFor(tourView.route)[tourView.index].label}
           lines={tourView.lines}
           isLast={isLastStop(tourView.index)}
-          // The one fork in the walk: offered exactly at Work (index 1, the
-          // second stop now that Philosophy is gone) once its scene has
-          // actually arrived — not while the pair are still walking there —
-          // replacing "Next stop" rather than sitting beside it. See
-          // `chooseRoute`.
-          showRouteChoice={tourView.index === 1 && tourView.lines.length > 0 && !tourView.routeChosen}
+          // The one fork in the walk: offered exactly at About (index 0, the
+          // only stop every route still shares — see `stopsFor`) once its
+          // scene has actually arrived — not while the pair are still
+          // walking there — replacing "Next stop" rather than sitting
+          // beside it. See `chooseRoute`.
+          showRouteChoice={tourView.index === 0 && tourView.lines.length > 0 && !tourView.routeChosen}
           onChooseRoute={chooseRoute}
           onNext={advanceTour}
           onEnd={endTour}

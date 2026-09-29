@@ -1,5 +1,6 @@
 import { careerEntries, profile, projects, skillCategories } from "@/content/portfolio";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
+import { crossingKm, resolveWorlds } from "@/lib/worlds";
 
 /**
  * D1 — facts as a server prop.
@@ -14,20 +15,37 @@ import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
  * count, on purpose: SelectedWork.tsx (case studies, sourced figures),
  * Skills.tsx (categories, distinct skills), CareerTree.tsx (branches,
  * leaves, technologies, and — since the tree absorbed Journey — the entries
- * and the work/learning/milestone split too) and Hero.tsx (the current
- * role). Changing what a rail says and
+ * and the work/learning/milestone split too), Hero.tsx (the current role)
+ * and — since round 16 — Worlds.tsx (plaques, decorations and the crossing's
+ * length, via `resolveWorlds()`/`crossingKm()` in `src/lib/worlds.ts`).
+ * Changing what a rail says and
  * forgetting this file is exactly the drift the plan rules out — so if a
  * rail's expression ever changes, this one has to change with it.
  *
  * Pure and server-safe: no DOM, no `Math.random`, nothing but arithmetic over
- * `src/content/*`. `layout.tsx` calls this once, on the server, and hands the
- * small object down — the content arrays themselves never reach the client
- * chunk that the cats ship in.
+ * `src/content/*` (and, for `worlds`, the same arithmetic `src/lib/worlds.ts`
+ * already does over it). `layout.tsx` calls this once, on the server, and
+ * hands the small object down — the content arrays themselves never reach
+ * the client chunk that the cats ship in.
  */
 export interface CompanionFacts {
   readonly about: {
     readonly role: string;
     readonly organization: string;
+  };
+  /**
+   * Round 16. The globe's own counts — computed by `resolveWorlds()` and
+   * `crossingKm()` rather than typed here, the same discipline every other
+   * fact in this file follows: a dialogue line that quotes a number quotes
+   * the one already computed for the section's own margin rail
+   * (`src/sections/Worlds/Worlds.tsx`), never a second, independently-typed
+   * guess at it.
+   */
+  readonly worlds: {
+    readonly count: number;
+    readonly plaques: number;
+    readonly decorations: number;
+    readonly crossingKm: number;
   };
   readonly work: {
     readonly caseStudies: number;
@@ -92,10 +110,20 @@ export function buildCompanionFacts(): CompanionFacts {
   const tree = buildCareerTree();
   const leafTotal = tree.reduce((total, branch) => total + branch.leaves.length, 0);
 
+  const resolvedWorlds = resolveWorlds();
+  const plaqueTotal = resolvedWorlds.reduce((total, world) => total + world.plaques.length, 0);
+  const decorationTotal = resolvedWorlds.reduce((total, world) => total + world.decorations.length, 0);
+
   return {
     about: {
       role: currentRole?.role ?? "",
       organization: currentRole?.organization ?? "",
+    },
+    worlds: {
+      count: resolvedWorlds.length,
+      plaques: plaqueTotal,
+      decorations: decorationTotal,
+      crossingKm: crossingKm(),
     },
     work: {
       caseStudies: projects.length,

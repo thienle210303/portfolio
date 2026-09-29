@@ -22,6 +22,12 @@ describe("buildCompanionFacts", () => {
     expect(facts.about.organization).toBe(current?.organization ?? "");
   });
 
+  it("carries the globe's own counts", () => {
+    expect(facts.worlds.count).toBe(7);
+    expect(facts.worlds.plaques).toBeGreaterThan(0);
+    expect(facts.worlds.crossingKm).toBeGreaterThan(12_000);
+  });
+
   it("counts case studies and their sourced metrics", () => {
     expect(facts.work.caseStudies).toBe(projects.length);
     let metrics = 0;

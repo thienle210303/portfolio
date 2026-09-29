@@ -123,6 +123,18 @@ const TOUR: Record<string, SceneBuilder> = {
         : "The start of the page. The facts hold.",
     ),
   ],
+  // Round 16: Playground Earth. "Seven worlds" is not templated from
+  // `f.worlds.count` — the globe always draws exactly seven, by the same
+  // authored-content contract `tests/lib/worlds.test.ts` pins, so it is
+  // prose rather than a number that could ever disagree with the facts.
+  // `plaques` and `decorations` are real counts and are quoted from `f`.
+  worlds: (f) => [
+    tabby("Mrrrow!", `Seven worlds! ${f.worlds.plaques} plaques and we guard all of them!`),
+    grey(
+      "Mrp. Meow.",
+      `${f.worlds.decorations} of these are just drawings. They say so themselves.`,
+    ),
+  ],
   work: (f) => [
     tabby("Mrrrow-meow!", `${f.work.caseStudies} case studies! Real problems, real fixes!`),
     grey("Meow. Mrp.", `${f.work.sourcedMetrics} numbers, every one sourced. Proof, not vibes.`),

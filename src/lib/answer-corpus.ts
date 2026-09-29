@@ -7,6 +7,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
+import { resolveWorlds } from "@/lib/worlds";
 
 /**
  * The retrieval corpus for "Ask this site" — every document `src/lib/answers.ts`
@@ -143,6 +144,23 @@ export function buildDocuments(): Document[] {
       "judgement",
     ),
   });
+
+  // Round 16. Every plaque on the globe is already a verbatim authored field,
+  // which makes the whole set exactly the shape this corpus wants: a quoted
+  // string with a named source. They are indexed under `worlds` rather than
+  // their original section so an answer's "Read it in Worlds →" link lands
+  // where the visitor can actually see the plaque.
+  for (const world of resolveWorlds()) {
+    for (const plaque of world.plaques) {
+      docs.push({
+        text: plaque.text,
+        source: `${world.name} — ${plaque.source}`,
+        sectionId: "worlds",
+        sectionLabel: "Worlds",
+        label: label("worlds", undefined, world.name, plaque.source),
+      });
+    }
+  }
 
   for (const project of projectsIndexable) {
     const where = project.organization ? `${project.title} — ${project.organization}` : project.title;

@@ -9,6 +9,7 @@ import {
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { origin } from "@/content/portfolio";
+import { resolveWorlds } from "@/lib/worlds";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -45,11 +46,16 @@ const CORPUS = new Set<string>([
   // reachable, re-tagged to About. Round 16 also removed the Lab and its
   // experiment and scraping-playbook documents.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
+  // Round 16: Playground Earth. Every plaque is a document (buildDocuments in
+  // answer-corpus.ts), and every plaque's `text` is already a member of one
+  // of the sets above or below — built from resolveWorlds() rather than
+  // transcribed by hand, so a typo here can never silently under-cover it.
+  ...resolveWorlds().flatMap((world) => world.plaques.map((plaque) => plaque.text)),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé
  *  is its own route now, so `#resume` would be a dead anchor. */
-const LINKABLE_SECTIONS = /^(about|work|journey|skills)$/;
+const LINKABLE_SECTIONS = /^(about|worlds|work|journey|skills)$/;
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {

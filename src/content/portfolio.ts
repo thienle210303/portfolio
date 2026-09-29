@@ -164,6 +164,8 @@ export const socialLinks = [
 // now answers both #tree and #journey (src/sections/CareerTree/anchors.ts).
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
+  // Round 16: Playground Earth takes the slot Philosophy used to hold.
+  { id: "nav-worlds", sectionId: "worlds", label: "Worlds" },
   { id: "nav-work", sectionId: "work", label: "Work" },
   { id: "nav-skills", sectionId: "skills", label: "Skills" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },

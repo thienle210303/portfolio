@@ -54,20 +54,36 @@ describe("stopsFor", () => {
     }
   });
 
-  it("agrees on the shared prefix (About, Work) and the shared suffix (Contact)", () => {
+  it("agrees on the shared first stop (About) and the shared last stop (Contact)", () => {
+    // Round 16: Work moved into the derived middle (see stopsFor's own
+    // comment) so a sixth section could join without a second hard-coded
+    // prefix stop — it is no longer a stop both routes share in the same
+    // position. Only the very first and very last stops stay fixed.
     const grey = stopsFor("grey");
     const tabby = stopsFor("tabby");
     expect(grey[0]).toEqual(tabby[0]);
-    expect(grey[1]).toEqual(tabby[1]);
     expect(grey[0].sectionId).toBe("about");
-    expect(grey[1].sectionId).toBe("work");
     expect(grey.at(-1)).toEqual(tabby.at(-1));
     expect(grey.at(-1)!.sectionId).toBe("contact");
   });
 
   it("walks the builder's route work outward, and the curious route in reverse", () => {
-    const middle = (route: TourRoute) => stopsFor(route).slice(2, -1).map((stop) => stop.sectionId);
-    expect(middle("grey")).toEqual(["skills", "tree"]);
-    expect(middle("tabby")).toEqual(["tree", "skills"]);
+    const middle = (route: TourRoute) => stopsFor(route).slice(1, -1).map((stop) => stop.sectionId);
+    expect(middle("grey")).toEqual(["worlds", "work", "skills", "tree"]);
+    expect(middle("tabby")).toEqual(["tree", "skills", "work", "worlds"]);
+  });
+
+  it("visits every nav section, in an order that includes the new ones", () => {
+    const grey = stopsFor("grey").map((stop) => stop.sectionId);
+    expect(grey).toEqual(navItems.map((item) => item.sectionId));
+  });
+
+  it("never yields an undefined stop for either route", () => {
+    for (const route of ["grey", "tabby"] as const) {
+      for (const stop of stopsFor(route)) {
+        expect(stop).toBeDefined();
+        expect(stop.sectionId).toBeTruthy();
+      }
+    }
   });
 });
