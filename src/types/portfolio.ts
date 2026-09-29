@@ -103,6 +103,23 @@ export interface Origin {
   };
 }
 
+/**
+ * One of the two cats who live on this page — real animals, named by their
+ * owner on 2026-09-02, which is why `authoredOn` is here: this is the one
+ * record on the site whose provenance is "he told me", with no document
+ * behind it, and the globe's Animals world says so on the plaque.
+ */
+export interface Companion {
+  readonly id: string;
+  readonly name: string;
+  /** What she looks like, in the drawing's own terms. */
+  readonly coat: string;
+  /** What she does, which is also which of the two drawn cats she is. */
+  readonly habit: string;
+  /** ISO date the owner authored this. */
+  readonly authoredOn: string;
+}
+
 export type SocialPlatform = "GitHub" | "LinkedIn" | "Email";
 
 export interface SocialLink {

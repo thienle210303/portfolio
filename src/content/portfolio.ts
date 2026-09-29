@@ -19,6 +19,7 @@ import type {
   CareerEntry,
   Certification,
   CodeTab,
+  Companion,
   ContactIntent,
   EducationEntry,
   LoopStep,
@@ -103,6 +104,28 @@ export const origin = {
     to: { lat: 39.83, lon: -98.58 },
   },
 } satisfies Origin;
+
+/**
+ * The two cats. Order is load-bearing: the lead cat is first, which is the
+ * same order `Companion.tsx` draws them in and the order the globe's plinth
+ * labels them under.
+ */
+export const companions = [
+  {
+    id: "moon",
+    name: "Moon",
+    coat: "the blue cat",
+    habit: "Leads, and sets the pace.",
+    authoredOn: "2026-09-02",
+  },
+  {
+    id: "mi",
+    name: "Mi",
+    coat: "the grey tabby",
+    habit: "Follows, and gets distracted.",
+    authoredOn: "2026-09-02",
+  },
+] satisfies readonly Companion[];
 
 export const socialLinks = [
   {

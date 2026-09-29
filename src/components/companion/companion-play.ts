@@ -12,6 +12,7 @@ import {
   viewport,
   type Point,
 } from "./companion-space";
+import { type SceneName } from "./scene-names";
 
 /**
  * Play: the short scenes the cats occasionally act out.
@@ -121,15 +122,10 @@ const DASH_BOW = 30;
  * skipped outright, which is how the bowl drops its nudge when there is nowhere
  * clear for the nudged cat to retreat to.
  */
-export type SceneKind =
-  | "yarn"
-  | "moth"
-  | "bowl"
-  | "chase"
-  | "gift"
-  | "peek"
-  | "scratch"
-  | "stalk";
+// Derived, not duplicated: the names live in `scene-names.ts`, which carries
+// no "use client" so the globe's Animals world can cite the same list from a
+// server component. See that file's own note.
+export type SceneKind = SceneName;
 
 type PlayPhase =
   | "enter"
@@ -284,7 +280,7 @@ const WANDER_WEIGHTS: Record<SceneKind, number> = {
   gift: 1,
 };
 
-const ROAM_WEIGHTS: Record<SceneKind, number> = {
+export const ROAM_WEIGHTS: Record<SceneKind, number> = {
   chase: 24,
   bowl: 18,
   yarn: 14,

@@ -5,6 +5,7 @@ import {
   hideCut,
   sceneOrder,
   peekStands,
+  ROAM_WEIGHTS,
   ruleSpot,
   shownSpot,
   stalkSpots,
@@ -20,6 +21,8 @@ import {
   wanderCandidates,
 } from "@/components/companion/companion-moods";
 import * as companionSpace from "@/components/companion/companion-space";
+import { SCENE_NAMES } from "@/components/companion/scene-names";
+import { companions } from "@/content/portfolio";
 
 /**
  * The geometry behind the three scenes that are about the page, and behind
@@ -518,5 +521,37 @@ describe("the peek, beat by beat", () => {
   it("reaches for the panel's top with one paw, and only in the middle beat", () => {
     expect(advancePlay(peeking("paw", 800), 1000, { x: 200, y: 386 }).followPose).toBe("bat");
     expect(advancePlay(peeking("tuck", 800), 1000, { x: 200, y: 386 }).followPose).toBe("sit");
+  });
+});
+
+describe("SCENE_NAMES, the one list of play scenes", () => {
+  it("names all eight scenes the play engine actually weights", () => {
+    // ROAM_WEIGHTS is the real registry — every scene the engine can pick has
+    // a weight in it. If a scene is added there and not here, the Animals
+    // world's plaque quietly under-reports, which is exactly the kind of
+    // silent drift a duplicated list produces.
+    expect([...SCENE_NAMES].sort()).toEqual(Object.keys(ROAM_WEIGHTS).sort());
+  });
+
+  it("has no duplicates", () => {
+    expect(new Set(SCENE_NAMES).size).toBe(SCENE_NAMES.length);
+  });
+
+  it("does not contain the mockup's invented scene", () => {
+    expect(SCENE_NAMES).not.toContain("dinner");
+  });
+});
+
+describe("companions", () => {
+  it("names both cats, in the order they walk", () => {
+    expect(companions.map((cat) => cat.name)).toEqual(["Moon", "Mi"]);
+  });
+
+  it("gives each one a coat and a habit, and says when it was authored", () => {
+    for (const cat of companions) {
+      expect(cat.coat.length).toBeGreaterThan(0);
+      expect(cat.habit.length).toBeGreaterThan(0);
+      expect(cat.authoredOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
   });
 });
