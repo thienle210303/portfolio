@@ -4598,7 +4598,7 @@ export const stationGap = (field: string): string =>
   `Nothing is authored in this project's ${field}, so this station is empty on this run.`;
 
 export const workshopIntro =
-  "Nine steps, one real project, and every line below quoted from that project's own write-up. Switch the project to see which steps it can fill — and which it cannot.";
+  "Nine steps, one real project, and every piece of evidence below quoted from that project's own write-up. Switch the project to see which steps it can fill — and which it cannot.";
 
 /** The run a visitor sees first. `dd-feasibility-agent` is the only project
  *  that authors `whatFailed`, so it is the one run where all nine stations
@@ -5076,9 +5076,10 @@ import WorkshopRun from "./WorkshopRun";
  * This is where the nine loop steps ended up. They used to be a 1,045-line
  * client island inside Philosophy, animating a diagram of the method in the
  * abstract; plan 2 deleted the island and kept the nine steps. Here they are
- * run against a real project, with every line quoted from that project's own
- * write-up, and the steps a project cannot fill left visibly empty. The method
- * is the same. The difference is that this version can be checked.
+ * run against a real project, with every piece of evidence quoted from that
+ * project's own write-up, and the steps a project cannot fill left visibly
+ * empty. The method is the same. The difference is that this version can be
+ * checked.
  *
  * The agent lane underneath is the surviving half of the AI Workflow Lab — the
  * ten stages, and specifically each one's failure mode. The five experiment
