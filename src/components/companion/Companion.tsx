@@ -2629,17 +2629,29 @@ export function Companion({ facts }: CompanionProps) {
         // idle sleep must never override it for as long as the attribute
         // stands — sitting up, not settling in, is the whole point of the
         // reaction.
-        (forced !== "watch" &&
-          forced !== "secret" &&
-          !wandering &&
-          pointer !== null &&
-          aloneFor > sleepAfter &&
-          !beat);
+        (forced !== "watch" && forced !== "secret" && !wandering && aloneFor > sleepAfter && !beat);
       /**
-       * Idle sleep — the ephemeral one. Gated on a pointer having existed at
-       * some point, because `lastMoveRef` starts at zero: without that check a
-       * fresh page load is already "idle" and the first thing a visitor would
-       * see is two cats in a bed they never sent them to.
+       * Idle sleep — the ephemeral one.
+       *
+       * This used to carry a `pointer !== null` clause, guarding against the
+       * idle clocks starting at zero: without it a fresh load was already
+       * "idle" and the first thing a visitor saw was two cats in a bed they
+       * never sent them to. The clocks are stamped when the loop starts now
+       * (see the effect's setup), which answers that directly, and the proxy
+       * has gone with it — because it answered a different question than the
+       * one it was asked. "Has a pointer ever moved" is not "is anybody here":
+       * a visitor who reads by scrolling, one who tabs through from the
+       * keyboard, and a laptop left open on the page all answer no forever, and
+       * for all three the pair never dozed, never reached `pose === "sleep"`,
+       * and so `keepGoing` below never went false. Measured: 60 frames a second
+       * for as long as the tab was open, on a page nobody was touching. Never a
+       * phone — `roams` needs `(pointer: fine)` — which means it was always a
+       * laptop, on battery, being asked for a frame every 16ms to redraw two
+       * cats who were not moving.
+       *
+       * The arrival the old clause was reaching for is still honoured, by the
+       * clock rather than by a proxy for it: `aloneFor` cannot exceed the
+       * threshold until the pair have been on screen that long.
        *
        * A running scene holds the bed off. Play can only *start* inside the
        * window between settling and dozing, but the last beat of a yarn ball —
@@ -2647,8 +2659,7 @@ export function Companion({ facts }: CompanionProps) {
        * cats walking away mid-scene to go to bed is the one way this could read
        * as broken.
        */
-      const wantsBed =
-        !forced && !wandering && pointer !== null && aloneFor > sleepAfter && !beat;
+      const wantsBed = !forced && !wandering && aloneFor > sleepAfter && !beat;
 
       // Starting one is the last thing considered, and the narrowest: settled,
       // standing still, nobody around, not on the way to bed, and the clock is
@@ -3638,6 +3649,16 @@ export function Companion({ facts }: CompanionProps) {
 
     restart.current = start;
     refreshSafeArea();
+    // The presence clock starts when the pair do. Both refs begin at zero, so
+    // without this `aloneFor` is really "how long since navigation started" —
+    // and a page that took its time getting here, or one restored into a
+    // foreground tab, would hand a visitor two cats already past the bedtime
+    // threshold the first frame they are drawn. Stamped for exactly the reason
+    // `onVisibility` above and the teardown below already stamp it: the pair
+    // coming alive is not evidence that nobody is here, and it must not be
+    // counted as fourteen seconds of it.
+    lastSignRef.current = performance.now();
+    lastMoveRef.current = lastSignRef.current;
     start();
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("scroll", onScroll, { passive: true });

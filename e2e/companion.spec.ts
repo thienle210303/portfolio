@@ -122,6 +122,42 @@ async function companionAwake(page: Page): Promise<void> {
     .toBe(2);
 }
 
+/**
+ * Animation frames requested page-wide over one second, against the counter the
+ * rest test installs before load. Reads and waits, and drives nothing: a
+ * `page.evaluate` is not a sign of life, so a page measured this way is still a
+ * page nobody has touched.
+ */
+async function framesPerSecond(page: Page): Promise<number> {
+  const read = () => page.evaluate(() => (window as unknown as { __frames: number }).__frames);
+  const before = await read();
+  await page.waitForTimeout(1_000);
+  return (await read()) - before;
+}
+
+/**
+ * How many cats are outside the corner furniture, or -1 if there is no corner.
+ * The tolerance is the same four pixels in every direction, because the claim
+ * is "in the bed", not "drawn to the pixel".
+ */
+function catsOutsideBed(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
+    if (!box) return -1;
+    return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).filter(
+      (svg) => {
+        const r = svg.getBoundingClientRect();
+        return (
+          r.left < box.left - 4 ||
+          r.right > box.right + 4 ||
+          r.top < box.top - 4 ||
+          r.bottom > box.bottom + 4
+        );
+      },
+    ).length;
+  });
+}
+
 /** Open the panel from the keyboard, which works whether or not the cat
  *  happens to be walking. See "Driving the cats" above. */
 async function openToolkit(page: Page): Promise<void> {
@@ -1162,8 +1198,9 @@ test.describe("companion", () => {
 
     await companionAwake(page);
 
-    // One move, then nothing. Idle sleep is gated on a pointer having existed,
-    // so a page nobody has touched keeps the old corner behaviour.
+    // One move, then nothing — the visitor who arrived, looked, and went back
+    // to reading. The page nobody touches at all reaches the same bed by the
+    // same clock; that it also stops costing frames there is the test below.
     await page.mouse.move(600, 400);
 
     // `[data-cat-bed]` is the whole corner now — the bed, the cardboard box and
@@ -1195,25 +1232,10 @@ test.describe("companion", () => {
     // somewhere expected read as cats, and cats that go quiet in whatever margin
     // they were standing in read as a bug.
     await expect
-      .poll(
-        () =>
-          page.evaluate(() => {
-            const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
-            if (!box) return -1;
-            return Array.from(
-              document.querySelectorAll("[data-companion] svg[data-cat]"),
-            ).filter((svg) => {
-              const r = svg.getBoundingClientRect();
-              return (
-                r.left < box.left - 4 ||
-                r.right > box.right + 4 ||
-                r.top < box.top - 4 ||
-                r.bottom > box.bottom + 4
-              );
-            }).length;
-          }),
-        { timeout: 30_000, message: "a cat never made it into the bed" },
-      )
+      .poll(() => catsOutsideBed(page), {
+        timeout: 30_000,
+        message: "a cat never made it into the bed",
+      })
       .toBe(0);
 
     // It is a moment, not a preference — the distinction the resting box owns.
@@ -1232,6 +1254,78 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await expect(catButton(page)).toBeVisible();
     await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+  });
+
+  test("costs nothing on a page nobody has touched, and wakes on the next scroll", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Real time, for the same reason as the test above: this is the threshold a
+    // visitor reaches by reading rather than by doing anything.
+    test.setTimeout(120_000);
+
+    /*
+     * The claim is about cost, so it is measured in animation frames rather
+     * than in poses: a page at rest should request none. Counted page-wide
+     * rather than per-loop on purpose — "the cats stopped asking" is not the
+     * claim, "nothing on this page is asking" is, and a loop that stops while
+     * some other one spends the same budget has not bought the visitor
+     * anything.
+     *
+     * The distinguishing case from the test above is the pointer: this visitor
+     * never moves one. That used to be the difference between a page that came
+     * to rest and a page that ran at 60Hz for as long as it was open, because
+     * both the doze and the walk to bed were gated on a pointer having
+     * existed. A reader who scrolls, a visitor who tabs through, and a laptop
+     * left open on a page all live in exactly that gap.
+     */
+    await page.addInitScript(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      let frames = 0;
+      window.requestAnimationFrame = (callback) => {
+        frames += 1;
+        return raf(callback);
+      };
+      Object.defineProperty(window, "__frames", { get: () => frames });
+    });
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    // Nothing is touched from here until the wheel below — no move, no click,
+    // no key. `framesPerSecond` reads a counter and waits; it drives nothing.
+    await expect
+      .poll(() => framesPerSecond(page), {
+        timeout: 60_000,
+        intervals: [1_000],
+        message: "the page never stopped requesting animation frames",
+      })
+      .toBe(0);
+
+    // Asleep, not abandoned: they got to the bed under their own steam, and the
+    // lead cat is still the control it always was. The corner is the whole
+    // point — two cats who go quiet in whatever margin they were standing in
+    // read as a bug, whether or not a pointer was ever involved.
+    await expect(page.locator("[data-cat-bed]")).toBeVisible();
+    expect(await catsOutsideBed(page), "a cat never made it into the bed").toBe(0);
+    await expect(catButton(page)).toBeVisible();
+
+    // And the page moving is a sign of life, exactly as it is for a visitor who
+    // did move a pointer once: frames come back, and so do the cats.
+    await page.mouse.wheel(0, 600);
+    expect(await framesPerSecond(page)).toBeGreaterThan(0);
+    await expect(page.locator("[data-cat-bed]")).toHaveCount(0, { timeout: 5_000 });
+
+    // Then it settles again, which is what makes this a resting state rather
+    // than a one-off.
+    await expect
+      .poll(() => framesPerSecond(page), {
+        timeout: 60_000,
+        intervals: [1_000],
+        message: "the page never came back to rest after a scroll",
+      })
+      .toBe(0);
   });
 
   test("stays with a visitor who is reading, and comes back when the page moves", async ({
