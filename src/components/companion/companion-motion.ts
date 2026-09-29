@@ -56,6 +56,69 @@ export interface MutablePoint {
   y: number;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Frames, and why none of these constants is really "per frame"              */
+/*                                                                             */
+/* Round 17: every speed on this layer is a plain number of pixels, and the    */
+/* loop used to spend one of them per rAF *callback*. That is only a speed if  */
+/* every display ticks at the same rate, and displays do not: the pair crossed */
+/* the page in half the time on a 120 Hz monitor and double on a 30 Hz one,    */
+/* while the state machine around them — every threshold, every dwell, the     */
+/* bedtime clock — was already wall-clock. The motion was the one part of the  */
+/* companion that measured time in callbacks.                                  */
+/*                                                                             */
+/* So the constants are re-read as "per *reference* frame" — one 60 Hz tick,   */
+/* which is what they were tuned against — and every rate they feed is         */
+/* multiplied by how many reference frames the callback was actually worth.    */
+/* At 60 Hz that multiplier is exactly 1 and nothing about the drawing         */
+/* changes, which is the point: this is a correction for every other display,  */
+/* not a retune of the one it was authored on.                                 */
+/*                                                                             */
+/* Two rules for applying it, and they are not the same rule:                  */
+/*                                                                             */
+/*  - A **linear rate** — a speed cap, an acceleration limit — scales by       */
+/*    multiplication. Twice the time, twice the pixels.                        */
+/*  - A **gap-closer** — "move 14% of the remaining distance" — has to         */
+/*    *compound*: `1 - (1-k)^frames`, never `k * frames`. Closing 14% twice    */
+/*    leaves 74%, not 72%, and the naive form overshoots hardest at low frame  */
+/*    rates, which is exactly where an arrival ease is meant to be gentlest.   */
+/*                                                                             */
+/* `advance` below is both at once, which is why it is the one place this is   */
+/* easy to get wrong.                                                         */
+/* -------------------------------------------------------------------------- */
+
+/** One 60 Hz frame, in ms: the tick every speed on this layer is quoted in. */
+export const REFERENCE_FRAME_MS = 1000 / 60;
+
+/**
+ * The most reference frames a single callback is allowed to be worth.
+ *
+ * Without a ceiling, a tab that comes back after a minute in the background
+ * hands the loop a delta the size of the whole absence, and the pair teleport
+ * across the page on the frame the visitor returns to. Three frames — 50ms —
+ * clamps nothing at or above 20Hz, so it costs a real slow display nothing and
+ * only ever bites the case it exists for.
+ */
+export const MAX_FRAME_STEP = 3;
+
+/**
+ * How many reference frames `elapsedMs` is worth — the multiplier every rate
+ * below is scaled by.
+ *
+ * Zero for a gap of zero or less rather than anything negative: two callbacks
+ * inside the same millisecond are a frame with no time in it, and a frame with
+ * no time in it moves nothing.
+ */
+export function frameStep(elapsedMs: number): number {
+  if (!(elapsedMs > 0)) return 0;
+  return Math.min(elapsedMs / REFERENCE_FRAME_MS, MAX_FRAME_STEP);
+}
+
+/** The arrival ease: the fraction of the remaining gap one reference frame
+ *  closes once the cat is near enough that this, rather than its speed cap,
+ *  is the binding term. Compounded over `frames`, never multiplied. */
+const ARRIVAL_EASE = 0.14;
+
 /**
  * Move `pos` toward `want` by at most `maxSpeed`, and report how far it
  * actually travelled — which is what the gait speed (walk-cycle phase) is
@@ -70,13 +133,21 @@ export interface MutablePoint {
  * pixels off and a target ten thousand pixels off (a page-length scroll
  * jump) both cap out at the same `maxSpeed` this call is allowed to spend.
  */
-export function advance(pos: MutablePoint, want: Point, maxSpeed: number): number {
-  if (maxSpeed <= 0) return 0;
+export function advance(
+  pos: MutablePoint,
+  want: Point,
+  maxSpeed: number,
+  frames = 1,
+): number {
+  if (maxSpeed <= 0 || frames <= 0) return 0;
   const dx = want.x - pos.x;
   const dy = want.y - pos.y;
   const dist = Math.hypot(dx, dy);
   if (dist < 0.6) return 0;
-  const step = Math.min(maxSpeed, dist * 0.14, dist);
+  // The cap is a rate and multiplies; the ease is a gap-closer and compounds.
+  // See the frames banner above for why those cannot be the same arithmetic.
+  const eased = dist * (1 - Math.pow(1 - ARRIVAL_EASE, frames));
+  const step = Math.min(maxSpeed * frames, eased, dist);
   pos.x += (dx / dist) * step;
   pos.y += (dy / dist) * step;
   return step;
@@ -99,10 +170,12 @@ export function advance(pos: MutablePoint, want: Point, maxSpeed: number): numbe
 /** How far past her comfortable distance she has to be before she is running
  *  flat out. */
 export const FOLLOW_RANGE = 200;
-/** Her top speed, in px/frame — a hard ceiling `followTarget` cannot be asked
- *  to exceed no matter how far `away` grows past `FOLLOW_RANGE`. */
+/** Her top speed, in px per reference frame — a hard ceiling `followTarget`
+ *  cannot be asked to exceed no matter how far `away` grows past
+ *  `FOLLOW_RANGE`. Scaled by `frames` where it is spent, not here. */
 export const FOLLOW_MAX = 6.4;
-/** How fast she is allowed to speed up, and slow down, in px/frame/frame.
+/** How fast she is allowed to speed up, and slow down, in px per reference
+ *  frame, per reference frame.
  *  Braking is quicker than accelerating, which is true of cats and also
  *  keeps her from sailing past whatever she was heading for. */
 export const FOLLOW_ACCEL = 0.34;
@@ -136,8 +209,8 @@ export function followTarget(away: number, gap: number): number {
  *  instead of freezing mid-stride — and a target that jumps drops her back
  *  to the *start* of the ramp rather than letting her inherit a speed she
  *  never actually built up to. */
-export function ramp(from: number, to: number): number {
-  return from + clamp(to - from, -FOLLOW_BRAKE, FOLLOW_ACCEL);
+export function ramp(from: number, to: number, frames = 1): number {
+  return from + clamp(to - from, -FOLLOW_BRAKE * frames, FOLLOW_ACCEL * frames);
 }
 
 /* -------------------------------------------------------------------------- */

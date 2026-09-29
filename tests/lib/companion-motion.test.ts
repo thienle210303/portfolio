@@ -5,7 +5,9 @@ import {
   FOLLOW_BRAKE,
   FOLLOW_MAX,
   followTarget,
+  frameStep,
   initRide,
+  MAX_FRAME_STEP,
   ramp,
   RIDE_SETTLE_MS,
   rideStep,
@@ -61,6 +63,104 @@ describe("advance", () => {
   });
 });
 
+/**
+ * The speed constants on this layer are quoted per *reference frame* — one
+ * 60 Hz tick — and the loop that spends them runs at whatever rate the display
+ * asks for. `frameStep` is the conversion, and these pin the two ends of it
+ * that actually bite: a 120 Hz monitor must not walk the cats twice as fast,
+ * and a tab returning from the background must not teleport them.
+ */
+describe("frameStep", () => {
+  it("is exactly one at 60 Hz — the rate every constant on this layer is quoted in", () => {
+    expect(frameStep(1000 / 60)).toBeCloseTo(1, 9);
+  });
+
+  it("halves at 120 Hz and doubles at 30 Hz", () => {
+    expect(frameStep(1000 / 120)).toBeCloseTo(0.5, 9);
+    expect(frameStep(1000 / 30)).toBeCloseTo(2, 9);
+  });
+
+  it("clamps a long gap, so a tab returning from the background does not teleport them", () => {
+    expect(frameStep(10_000)).toBe(MAX_FRAME_STEP);
+    expect(frameStep(1000 / 20)).toBeCloseTo(MAX_FRAME_STEP, 9);
+  });
+
+  it("is zero for a gap of zero or less, rather than negative", () => {
+    expect(frameStep(0)).toBe(0);
+    expect(frameStep(-5)).toBe(0);
+  });
+});
+
+/**
+ * Round 17: the same class of defect the globe next door had. Every constant
+ * here is px per reference frame, and `advance` used to spend one of them per
+ * *callback* — so the cats crossed the page in half the time on a 120 Hz
+ * display and double on a 30 Hz one. These pin the property that fixes it:
+ * equal wall-clock time buys equal distance, whatever the display is doing.
+ *
+ * The subtlety is that `advance` is two rules in one. The `maxSpeed` cap is a
+ * linear rate and scales by multiplication; the `dist * 0.14` arrival ease is
+ * a gap-closer and has to *compound*, because closing 14% twice is 26%, not
+ * 28%. Getting that wrong overshoots at low frame rates, which is exactly
+ * where an arrival ease is supposed to be gentlest.
+ */
+describe("advance across refresh rates", () => {
+  it("covers the same ground per unit time at 30, 60 and 120 Hz while the speed cap is what binds", () => {
+    const far = { x: 100_000, y: 0 };
+    const travel = (frames: number, ticks: number) => {
+      const pos = { x: 0, y: 0 };
+      for (let i = 0; i < ticks; i += 1) advance(pos, far, 4.4, frames);
+      return pos.x;
+    };
+    // One second of wall clock, three different displays.
+    expect(travel(0.5, 120)).toBeCloseTo(travel(1, 60), 6);
+    expect(travel(2, 30)).toBeCloseTo(travel(1, 60), 6);
+  });
+
+  it("compounds the arrival ease rather than multiplying it — one long frame equals two short ones", () => {
+    // Close enough in that the ease is the binding term, not the cap.
+    const near = { x: 10, y: 0 };
+    const once = { x: 0, y: 0 };
+    advance(once, near, 1000, 2);
+
+    const twice = { x: 0, y: 0 };
+    advance(twice, near, 1000, 1);
+    advance(twice, near, 1000, 1);
+
+    expect(once.x).toBeCloseTo(twice.x, 9);
+    // And the naive form — 0.14 * 2 = 28% — would have gone further.
+    expect(once.x).toBeLessThan(10 * 0.28);
+  });
+
+  it("still never exceeds the speed its frames are worth, however far the target jumped", () => {
+    for (const frames of [0.25, 0.5, 1, 2, MAX_FRAME_STEP]) {
+      const pos = { x: 0, y: 0 };
+      const step = advance(pos, { x: 500_000, y: 0 }, 4.4, frames);
+      expect(step).toBeCloseTo(4.4 * frames, 6);
+    }
+  });
+
+  it("never overshoots the target, even on the longest frame it will ever be handed", () => {
+    const pos = { x: 0, y: 0 };
+    advance(pos, { x: 3, y: 0 }, 1000, MAX_FRAME_STEP);
+    expect(pos.x).toBeLessThanOrEqual(3);
+  });
+
+  it("does nothing on a frame worth no time at all", () => {
+    const pos = { x: 0, y: 0 };
+    expect(advance(pos, { x: 500, y: 500 }, 4.4, 0)).toBe(0);
+    expect(pos).toEqual({ x: 0, y: 0 });
+  });
+
+  it("defaults to one reference frame, so every existing caller reads the same", () => {
+    const withDefault = { x: 0, y: 0 };
+    const explicit = { x: 0, y: 0 };
+    advance(withDefault, { x: 900, y: 0 }, 4.4);
+    advance(explicit, { x: 900, y: 0 }, 4.4, 1);
+    expect(withDefault).toEqual(explicit);
+  });
+});
+
 describe("followTarget", () => {
   it("saturates at FOLLOW_MAX — a scroll-sized gap asks for no more speed than an ordinary far-off one", () => {
     const ordinary = followTarget(10_000, 0);
@@ -107,6 +207,25 @@ describe("ramp", () => {
     const speed = ramp(0, wish);
     expect(speed).toBeCloseTo(FOLLOW_ACCEL, 5);
     expect(speed).toBeLessThan(FOLLOW_MAX);
+  });
+
+  it("spends acceleration per unit time, not per callback", () => {
+    // A limiter quoted in px/frame/frame has the same defect `advance` had:
+    // on a 120 Hz display she would reach top speed in half the wall-clock
+    // time, which is the difference between a cat gathering herself and a cat
+    // snapping to a sprint.
+    expect(ramp(0, 1000, 2)).toBeCloseTo(FOLLOW_ACCEL * 2, 6);
+    expect(ramp(0, 1000, 0.5)).toBeCloseTo(FOLLOW_ACCEL * 0.5, 6);
+    expect(ramp(FOLLOW_MAX, 0, 2)).toBeCloseTo(FOLLOW_MAX - FOLLOW_BRAKE * 2, 6);
+  });
+
+  it("still never overshoots, however long the frame", () => {
+    expect(ramp(0, FOLLOW_MAX, MAX_FRAME_STEP)).toBeLessThanOrEqual(FOLLOW_MAX);
+    expect(ramp(FOLLOW_MAX, 0, MAX_FRAME_STEP)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("defaults to one reference frame, so every existing caller reads the same", () => {
+    expect(ramp(0, 1000, 1)).toBe(ramp(0, 1000));
   });
 });
 

@@ -50,6 +50,7 @@ import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from ".
 import {
   advance,
   followTarget,
+  frameStep,
   initRide,
   ramp,
   rideStep,
@@ -2003,16 +2004,28 @@ export function Companion({ facts }: CompanionProps) {
     const tabby = follow.current;
     let running = false;
     let frameId = 0;
+    /**
+     * When the previous frame ran, or 0 for "there was no previous frame".
+     *
+     * Cleared by `stop` rather than merely left behind, which matters more
+     * here than in a loop that never rests: this one is *designed* to stop for
+     * minutes at a time, and the gap either side of a nap is not time the pair
+     * spent walking. A stale sentinel would hand the first frame after every
+     * wake the whole clamp (see `MAX_FRAME_STEP`) and start them with a jump.
+     */
+    let lastFrameAt = 0;
 
     const stop = () => {
       running = false;
       if (frameId) cancelAnimationFrame(frameId);
       frameId = 0;
+      lastFrameAt = 0;
     };
 
     const start = () => {
       if (running || document.hidden) return;
       running = true;
+      lastFrameAt = 0;
       frameId = requestAnimationFrame(step);
     };
 
@@ -2256,6 +2269,24 @@ export function Companion({ facts }: CompanionProps) {
       if (!running) return;
 
       const now = performance.now();
+      /**
+       * How many 60Hz frames' worth of time this callback is actually worth —
+       * the multiplier every speed below is spent through. Exactly 1 on the
+       * 60Hz display these constants were tuned against; a half on a 120Hz
+       * one, where the pair used to cross the page in half the time.
+       *
+       * The first frame after a start is worth one reference frame by
+       * definition rather than by measurement: there is no previous timestamp
+       * to subtract, and guessing one is how a loop starts with a lurch.
+       */
+      // The floor is for a degenerate case only: a frame with no measurable
+      // time in it cannot occur between two rAF callbacks, but if one ever did,
+      // zero would divide into the rates below and collapse `busy` — the flag
+      // that keeps a *walking* pair awake — which would stop the loop
+      // mid-stride. A twentieth of a reference frame is below any display that
+      // exists; it would take 1200Hz to reach it.
+      const frames = lastFrameAt === 0 ? 1 : Math.max(frameStep(now - lastFrameAt), 0.05);
+      lastFrameAt = now;
       /** How long the pointer has held still — what "settle" is measured on. */
       const idleFor = now - lastMoveRef.current;
       /** How long *nobody* has done anything: no pointer, no scroll, no key,
@@ -2653,17 +2684,29 @@ export function Companion({ facts }: CompanionProps) {
         // idle sleep must never override it for as long as the attribute
         // stands — sitting up, not settling in, is the whole point of the
         // reaction.
-        (forced !== "watch" &&
-          forced !== "secret" &&
-          !wandering &&
-          pointer !== null &&
-          aloneFor > sleepAfter &&
-          !beat);
+        (forced !== "watch" && forced !== "secret" && !wandering && aloneFor > sleepAfter && !beat);
       /**
-       * Idle sleep — the ephemeral one. Gated on a pointer having existed at
-       * some point, because `lastMoveRef` starts at zero: without that check a
-       * fresh page load is already "idle" and the first thing a visitor would
-       * see is two cats in a bed they never sent them to.
+       * Idle sleep — the ephemeral one.
+       *
+       * This used to carry a `pointer !== null` clause, guarding against the
+       * idle clocks starting at zero: without it a fresh load was already
+       * "idle" and the first thing a visitor saw was two cats in a bed they
+       * never sent them to. The clocks are stamped when the loop starts now
+       * (see the effect's setup), which answers that directly, and the proxy
+       * has gone with it — because it answered a different question than the
+       * one it was asked. "Has a pointer ever moved" is not "is anybody here":
+       * a visitor who reads by scrolling, one who tabs through from the
+       * keyboard, and a laptop left open on the page all answer no forever, and
+       * for all three the pair never dozed, never reached `pose === "sleep"`,
+       * and so `keepGoing` below never went false. Measured: 60 frames a second
+       * for as long as the tab was open, on a page nobody was touching. Never a
+       * phone — `roams` needs `(pointer: fine)` — which means it was always a
+       * laptop, on battery, being asked for a frame every 16ms to redraw two
+       * cats who were not moving.
+       *
+       * The arrival the old clause was reaching for is still honoured, by the
+       * clock rather than by a proxy for it: `aloneFor` cannot exceed the
+       * threshold until the pair have been on screen that long.
        *
        * A running scene holds the bed off. Play can only *start* inside the
        * window between settling and dozing, but the last beat of a yarn ball —
@@ -2671,8 +2714,7 @@ export function Companion({ facts }: CompanionProps) {
        * cats walking away mid-scene to go to bed is the one way this could read
        * as broken.
        */
-      const wantsBed =
-        !forced && !wandering && pointer !== null && aloneFor > sleepAfter && !beat;
+      const wantsBed = !forced && !wandering && aloneFor > sleepAfter && !beat;
 
       // Starting one is the last thing considered, and the narrowest: settled,
       // standing still, nobody around, not on the way to bed, and the clock is
@@ -3133,18 +3175,27 @@ export function Companion({ facts }: CompanionProps) {
         grey.pos,
         leadWant,
         run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : LEAD_SPEED,
+        frames,
       );
+      /**
+       * The same movement as a *speed* rather than a distance, because every
+       * threshold below asks a question about speed — "is he really walking",
+       * "is anybody still busy" — and a distance answers it differently on
+       * every display. Quoted per reference frame, so each number these are
+       * compared against still means exactly what it meant at 60Hz.
+       */
+      const leadRate = frames > 0 ? leadStep / frames : 0;
       // Round 14: once he has actually stopped at a wandered-to spot, his
       // facing holds the roll `wanderTo` made on arrival rather than
       // whatever the travel-direction check just above last left it as —
-      // see the note on `WanderRun`. Gated on `leadStep <= 0.3`, the same
+      // see the note on `WanderRun`. Gated on `leadRate <= 0.3`, the same
       // "not really walking any more" threshold the pose branches below
       // read, so this never fights the travel-direction facing while he is
       // still closing the last few pixels of the walk.
-      if (wandering && wanderRun.current?.arrivedAt && leadStep <= 0.3) {
+      if (wandering && wanderRun.current?.arrivedAt && leadRate <= 0.3) {
         grey.facing = wanderRun.current.faceLead;
       }
-      if (leadStep > 0.3) {
+      if (leadRate > 0.3) {
         calmIdle(grey, now);
         grey.pose = "walk";
       } else if (beat) {
@@ -3167,12 +3218,13 @@ export function Companion({ facts }: CompanionProps) {
         // He never bats: the tail he would be batting at is his own.
         grey.pose = tickIdle(grey, now, false);
       }
-      if (leadStep > 0.3) grey.phase = (grey.phase + leadStep * 0.013) % 1;
+      if (leadRate > 0.3) grey.phase = (grey.phase + leadStep * 0.013) % 1;
       // The idle rate is what a still cat's tail does. A beat may ask for the
       // wound-up one instead — the crouch before a pounce, the rake along a
       // rule — which is the same phase run at about the speed walking gives it,
       // so one number still drives the tail, the ear and the batting paw.
-      else if (grey.pose !== "sleep") grey.phase = (grey.phase + (beat?.stir ? 0.02 : 0.006)) % 1;
+      else if (grey.pose !== "sleep")
+        grey.phase = (grey.phase + (beat?.stir ? 0.02 : 0.006) * frames) % 1;
 
       /* -------------------------------------------------------- follower -- */
 
@@ -3240,17 +3292,19 @@ export function Companion({ facts }: CompanionProps) {
       // to be frozen last.
       if (ride.riding && !run && !rushing) followWant = tabby.pos;
 
-      tabby.speed = ramp(tabby.speed, followWish);
+      tabby.speed = ramp(tabby.speed, followWish, frames);
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
-      const followStep = advance(tabby.pos, followWant, tabby.speed);
+      const followStep = advance(tabby.pos, followWant, tabby.speed, frames);
+      /** Her half of `leadRate` above, and for the same reason. */
+      const followRate = frames > 0 ? followStep / frames : 0;
       // Round 14, her half of the same rule the lead gets above: once she has
       // actually stopped at a wandered-to spot, her facing holds `wanderTo`'s
       // own roll rather than the travel-direction check just above.
-      if (wandering && wanderRun.current?.arrivedAt && followStep <= 0.3) {
+      if (wandering && wanderRun.current?.arrivedAt && followRate <= 0.3) {
         tabby.facing = wanderRun.current.faceFollow;
       }
-      if (kicking && followStep <= 0.3) {
+      if (kicking && followRate <= 0.3) {
         // Outranks the sleep branch below, which would otherwise have her curled
         // up before the paw ever landed: by the time she reaches the bed the
         // idle clock is well past the threshold that says "asleep".
@@ -3259,7 +3313,7 @@ export function Companion({ facts }: CompanionProps) {
         // The cluster is always to her right — the kick spot is off its left
         // edge — so the shove runs away from her and into the corner.
         tabby.facing = 1;
-      } else if (followStep > 0.3) {
+      } else if (followRate > 0.3) {
         calmIdle(tabby, now);
         tabby.pose = "walk";
       } else if (beat) {
@@ -3288,8 +3342,8 @@ export function Companion({ facts }: CompanionProps) {
       if (chase && tabby.mood === "watch" && followStep === 0) {
         tabby.facing = chase.x > tabby.pos.x + CAT_W / 2 ? 1 : -1;
       }
-      if (followStep > 0.3) tabby.phase = (tabby.phase + followStep * 0.0115) % 1;
-      else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + 0.0045) % 1;
+      if (followRate > 0.3) tabby.phase = (tabby.phase + followStep * 0.0115) % 1;
+      else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + 0.0045 * frames) % 1;
 
       /* ---------------------------------------------------------- police -- */
 
@@ -3304,9 +3358,10 @@ export function Companion({ facts }: CompanionProps) {
               : { x: -CAT_W - 60, y: cop.pos.y };
         const copDx = want.x - cop.pos.x;
         if (Math.abs(copDx) > 2) cop.facing = copDx > 0 ? 1 : -1;
-        const copStep = advance(cop.pos, want, POLICE_SPEED);
-        cop.pose = copStep > 0.3 ? "walk" : "sit";
-        if (copStep > 0.3) cop.phase = (cop.phase + copStep * 0.014) % 1;
+        const copStep = advance(cop.pos, want, POLICE_SPEED, frames);
+        const copRate = frames > 0 ? copStep / frames : 0;
+        cop.pose = copRate > 0.3 ? "walk" : "sit";
+        if (copRate > 0.3) cop.phase = (cop.phase + copStep * 0.014) % 1;
         // Standing over them: face the corner he has just put them in, not the
         // door he came through.
         if (run.phase === "watching") cop.facing = 1;
@@ -3373,7 +3428,7 @@ export function Companion({ facts }: CompanionProps) {
         const target = thienTarget.current;
         const thienDx = target.x - thien.current.pos.x;
         if (Math.abs(thienDx) > 2) thien.current.facing = thienDx > 0 ? 1 : -1;
-        advance(thien.current.pos, target, THIEN_SPEED);
+        advance(thien.current.pos, target, THIEN_SPEED, frames);
       } else if (thienTarget.current !== null || thienSpeaker.current !== null) {
         // The scene ended by some other path than the ones that already know
         // to clear these — there are several (see every `duetRef.current =
@@ -3507,7 +3562,7 @@ export function Companion({ facts }: CompanionProps) {
       }
 
       const asleep = grey.pose === "sleep" && tabby.pose === "sleep";
-      const busy = leadStep > 0.05 || followStep > 0.05 || run !== null;
+      const busy = leadRate > 0.05 || followRate > 0.05 || run !== null;
       // Idle sleep in the bed *is* asleep: once they are curled up in it the
       // loop stops exactly as it always did when they fell asleep on the spot.
       // The pointer handler restarts it.
@@ -3666,6 +3721,16 @@ export function Companion({ facts }: CompanionProps) {
 
     restart.current = start;
     refreshSafeArea();
+    // The presence clock starts when the pair do. Both refs begin at zero, so
+    // without this `aloneFor` is really "how long since navigation started" —
+    // and a page that took its time getting here, or one restored into a
+    // foreground tab, would hand a visitor two cats already past the bedtime
+    // threshold the first frame they are drawn. Stamped for exactly the reason
+    // `onVisibility` above and the teardown below already stamp it: the pair
+    // coming alive is not evidence that nobody is here, and it must not be
+    // counted as fourteen seconds of it.
+    lastSignRef.current = performance.now();
+    lastMoveRef.current = lastSignRef.current;
     start();
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("scroll", onScroll, { passive: true });
