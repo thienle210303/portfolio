@@ -89,9 +89,20 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
   }, []);
 
   const handleLanded = useCallback(() => {
-    setAnnouncement(
-      "The flight landed in the United States. A seed dropped at the arrival pin, and the career tree grows from that spot.",
-    );
+    // Only the sentence that is true right now. The seed, the sapling and the
+    // handoff to the career tree arrive with the task that actually draws
+    // them, and this line grows back then.
+    //
+    // This is not a style note. Until the canvas existed this string was
+    // unreachable — the stub never called `onReady`, so `controlsReady` stayed
+    // false, the flight control was `pointer-events-none` and said "Loading
+    // the globe…", and nothing could fire `onLanded`. The moment a real globe
+    // hands its controls back, one button press reaches it. And because the
+    // region is `sr-only`, the only people who would ever have received the
+    // seed sentence are the ones who cannot see that nothing was dropped —
+    // which is the one audience a section built on "it never says anything
+    // untrue" must not say an untrue thing to.
+    setAnnouncement("The flight landed in the United States.");
   }, []);
 
   // The canvas chunk, fetched once the stage is near the viewport. An

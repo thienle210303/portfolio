@@ -208,6 +208,10 @@ export default function GlobeCanvas({
     landed: false,
     orbit: 0,
     running: false,
+    /** The pending `requestAnimationFrame` id, or 0. Kept in the bag rather
+     *  than closed over by `start` so the unmount effect can reach it however
+     *  many spin-downs ago it was scheduled. */
+    frame: 0,
     hits: [] as Hit[],
     size: { width: 0, height: 0 },
     stroke: { cx: 0, cy: 0, radius: 0, plinth: 0 } as Viewport & { plinth: number },
@@ -428,6 +432,9 @@ export default function GlobeCanvas({
     v.running = true;
 
     function step() {
+      // This callback has fired, so there is nothing pending to cancel until
+      // the tail of this function schedules the next one.
+      v.frame = 0;
       let busy = false;
 
       v.orbit = (v.orbit + 0.004) % (Math.PI * 2);
@@ -457,15 +464,49 @@ export default function GlobeCanvas({
       }
 
       v.tilt = clampTilt(v.tilt);
+      // Unconditional, and `e2e/worlds.spec.ts` depends on it being so: its
+      // `framesAtRest()` counts this canvas's `clearRect` calls as the number
+      // of frames this loop ran, because it cannot see them any other way (the
+      // page's own rAF count is dominated by another component's loop). Put an
+      // early return above this line, or draw on only every Nth frame, and
+      // that assertion quietly stops measuring anything — so if this ever
+      // needs to change, change the measurement in that spec with it. It
+      // asserts the one-draw-per-frame identity directly while the globe is
+      // moving, which is the tripwire for exactly that edit.
       draw();
 
       // The orbit is *not* a reason to keep the loop alive. See the file note.
-      if (busy) requestAnimationFrame(step);
+      if (busy) v.frame = requestAnimationFrame(step);
       else v.running = false;
     }
 
-    requestAnimationFrame(step);
+    v.frame = requestAnimationFrame(step);
   }, [draw]);
+
+  /* Unmount. A spin-down in flight is a ~2s tail that would draw into a canvas
+     that has gone, which `draw()`'s own null guard makes harmless — but an
+     unmount *mid-drag* is not harmless, and it is reachable by a client-side
+     navigation or a hot reload while a finger is down. The pointer listeners
+     tear down with the effect below, so `release` never runs, `v.drag` stays
+     set, `busy` stays true, and the loop reschedules itself forever against a
+     dead canvas: invisible, because every pass early-returns before drawing.
+     That is precisely the failure this file's header promises cannot happen,
+     so it is cancelled rather than argued about. */
+  useEffect(() => {
+    // Captured here rather than read in the cleanup, which is what
+    // `react-hooks/exhaustive-deps` asks for — and it is sound rather than
+    // merely quiet: this ref holds one mutable bag created at mount and never
+    // reassigned, so `v` in the cleanup is the same object the loop is
+    // mutating. (The rule's real target is a ref pointing at a React-rendered
+    // node, which can legitimately have changed by teardown.)
+    const v = view.current;
+    return () => {
+      if (v.frame) cancelAnimationFrame(v.frame);
+      v.frame = 0;
+      v.drag = null;
+      v.running = false;
+    };
+  }, []);
 
   /* Sizing. Measured from the element, drawn at the device ratio, capped at 2
      — past that a hairline stops being a hairline and the fill rate is spent
@@ -581,19 +622,26 @@ export default function GlobeCanvas({
     };
 
     /**
-     * `pointerup` and `pointercancel` are the same event to this file, and
-     * that is not a shortcut — the browser sends `pointercancel`, never
+     * `pointerup` and `pointercancel` **tear the gesture down identically**,
+     * and that is not a shortcut — the browser sends `pointercancel`, never
      * `pointerup`, the instant it decides the gesture belongs to the page
      * scroll. Handle only `pointerup` and a finger that scrolls away leaves
      * `drag` set forever: the loop stays busy, the planet keeps turning under
      * nobody, and the next tap is interpreted as the continuation of a drag
      * that ended a minute ago.
+     *
+     * What the two do *not* share is the tap. A cancel with almost no movement
+     * is a real and ordinary event — a long-press opening the context menu,
+     * palm rejection, a system edge gesture — and it would otherwise satisfy
+     * `moved < TAP_SLOP_PX` and open a world, or swing the planet round, out
+     * of a gesture the person abandoned. A cancelled gesture is by definition
+     * not a completed one, so only `pointerup` may commit one.
      */
     const release = (event: PointerEvent) => {
       if (!v.drag) return;
       const moved = v.drag.moved;
       v.drag = null;
-      if (moved < TAP_SLOP_PX) {
+      if (event.type === "pointerup" && moved < TAP_SLOP_PX) {
         const rect = canvas.getBoundingClientRect();
         const px = event.clientX - rect.left;
         const py = event.clientY - rect.top;

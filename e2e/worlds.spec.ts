@@ -67,33 +67,51 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
 });
 
 /**
- * Frames the globe itself asks for, plus what the whole page asked for, over
- * `ms` of rest.
+ * What the globe drew over `ms`, how many animation frames did the drawing,
+ * and how fast the whole page was asking for frames while that happened.
  *
- * Counting `window.requestAnimationFrame` on the whole page cannot express
- * this claim on *this* page, and pretending it could would make the test wrong
- * in both directions. `Companion.tsx` — the pair of cats who roam the whole
- * document, a separate component with its own contract — holds a 60 Hz rAF
- * loop open for as long as they are awake, which in a fresh browser reporting
- * `(pointer: fine)` and no reduced-motion preference is indefinitely (measured:
- * ~120 callbacks per two seconds, still ~120 after 25 seconds of total idle,
- * every one of them from that loop). A whole-page count would therefore fail
- * with a perfect globe, and could only ever pass by the accident of the cats
- * being asleep.
+ * ## Why the globe's own frames are not counted directly
  *
- * So the measurement is attributed instead. Every pass of the globe's loop
- * begins with exactly one `clearRect` on its own canvas, and nothing else on
- * the page draws to that canvas. Counting those is stricter than counting the
- * globe's rAF calls rather than looser: a `draw()` reached from the resize or
- * theme observers instead of from the loop is also work happening at rest, and
- * is also counted here.
+ * Counting `window.requestAnimationFrame` page-wide cannot express this claim
+ * on *this* page, and pretending it could would make the test wrong in both
+ * directions. `Companion.tsx` — the pair of cats who roam the whole document,
+ * a separate component with its own contract — holds a 60 Hz rAF loop open for
+ * as long as they are awake, which in a fresh browser reporting
+ * `(pointer: fine)` and no reduced-motion preference is indefinitely
+ * (measured: 121 callbacks per two seconds, and still 60/s after 110 seconds
+ * of total idle, every one of them from that one caller). A page-wide count
+ * would therefore fail with a perfect globe, and could only ever pass by the
+ * accident of the cats being asleep.
+ *
+ * ## The coupling this leans on, and where it is pinned
+ *
+ * So `draws` is attributed instead: `clearRect` calls on the globe's own
+ * canvas, which nothing else on the page draws to. Reading `draws === 0` as
+ * "the globe asked for no frames" is only sound while the globe's loop draws
+ * on every pass — `step()` in `GlobeCanvas.tsx` calls `draw()`
+ * unconditionally, and there is a comment there pointing back here.
+ *
+ * That coupling is not left to the comments. `framesThatDrew` counts the rAF
+ * callbacks during which such a draw happened, and the drag case asserts the
+ * one-draw-per-frame identity directly *while the globe is moving*. An early
+ * return added to `step()`, or a draw throttled to every Nth frame, breaks
+ * that assertion instead of silently disarming this one.
+ *
+ * Attributing this way is also stricter than counting the globe's rAF calls
+ * rather than looser: a `draw()` reached from the resize or theme observers
+ * instead of from the loop is also work happening at rest, and is also
+ * counted.
+ *
+ * `pageHz` is asserted rather than merely reported — see `expectAtRest`.
  */
-async function framesAtRest(page: Page, ms: number) {
+async function measureGlobeFrames(page: Page, ms: number) {
   return page.evaluate(async (duration) => {
     const canvas = document.querySelector<HTMLCanvasElement>("#worlds canvas");
-    if (!canvas) return { globe: -1, page: -1 };
-    let globe = 0;
+    if (!canvas) return { draws: -1, framesThatDrew: -1, pageHz: -1 };
+    let draws = 0;
+    let framesThatDrew = 0;
     let everything = 0;
+    let drewInThisFrame = false;
 
     const clearRect = CanvasRenderingContext2D.prototype.clearRect;
     CanvasRenderingContext2D.prototype.clearRect = function patched(
@@ -103,21 +121,52 @@ async function framesAtRest(page: Page, ms: number) {
       width: number,
       height: number,
     ) {
-      if (this.canvas === canvas) globe += 1;
+      if (this.canvas === canvas) {
+        draws += 1;
+        drewInThisFrame = true;
+      }
       clearRect.call(this, x, y, width, height);
     };
     const raf = window.requestAnimationFrame;
     window.requestAnimationFrame = (callback) => {
       everything += 1;
-      return raf.call(window, callback);
+      // rAF callbacks never nest, so one shared flag is enough to say which
+      // frame a draw belonged to.
+      return raf.call(window, (time) => {
+        drewInThisFrame = false;
+        callback(time);
+        if (drewInThisFrame) framesThatDrew += 1;
+      });
     };
 
     await new Promise((resolve) => setTimeout(resolve, duration));
 
     CanvasRenderingContext2D.prototype.clearRect = clearRect;
     window.requestAnimationFrame = raf;
-    return { globe, page: everything };
+    return { draws, framesThatDrew, pageHz: (everything * 1000) / duration };
   }, ms);
+}
+
+/**
+ * The rest contract, in one place because five cases assert it.
+ *
+ * Two halves. The globe drew nothing, which given the coupling above means it
+ * asked for no frames. And the page was asking for frames no faster than a
+ * single 60 Hz loop — the cats' — which is what turns `pageHz` from a number
+ * printed in a failure message into an actual assertion: a globe running a
+ * loop that somehow never drew would roughly double this and be caught here
+ * rather than slipping past the `draws` count. (CPU contention only ever
+ * pushes the rate down, so the ceiling cannot flake upward.)
+ */
+async function expectAtRest(page: Page, ms: number, what: string) {
+  const frames = await measureGlobeFrames(page, ms);
+  expect(frames.draws, `${what} — the globe drew at rest (page: ${frames.pageHz.toFixed(0)} Hz)`).toBe(
+    0,
+  );
+  expect(
+    frames.pageHz,
+    `${what} — the page is running more than one animation loop at rest`,
+  ).toBeLessThan(100);
 }
 
 /** A cheap fingerprint of what is currently on the globe, so a test can say
@@ -169,13 +218,11 @@ test.describe("the live globe", () => {
     await waitForLiveGlobe(page);
     // Nothing has been touched, so there was never any inertia to decay: the
     // first draw comes from the sizing effect, not from a frame.
-    const frames = await framesAtRest(page, 2_000);
-
     // The whole argument for a hand-written loop over a library: a globe at
     // rest costs nothing. A non-zero number here means something is animating
     // that nobody asked for — most likely the satellite's orbit being counted
     // as "busy".
-    expect(frames.globe, `the globe drew while at rest (page total: ${frames.page})`).toBe(0);
+    await expectAtRest(page, 2_000, "untouched since load");
   });
 
   test("a drag rolls the planet and then stops", async ({ page }) => {
@@ -192,6 +239,23 @@ test.describe("the live globe", () => {
     }
     await page.mouse.up();
 
+    // Straight away, while the inertia is still running: this is the one
+    // window in the file where the loop can be watched working, so it is
+    // where the identity every rest assertion leans on gets pinned — one draw
+    // per animation frame, no more and no fewer. If `step()` ever gains an
+    // early return, or draws on only every Nth frame, this fails here instead
+    // of quietly turning `expectAtRest` into a test of nothing.
+    const moving = await measureGlobeFrames(page, 400);
+    expect(moving.draws, "the inertia was not drawing frame by frame").toBeGreaterThan(10);
+    // `draws` may lead by exactly one: the frame already queued when the
+    // instrumentation went in was scheduled through the real rAF, so its draw
+    // is counted but its callback is not wrapped.
+    expect(
+      moving.draws - moving.framesThatDrew,
+      `${moving.draws} draws across ${moving.framesThatDrew} frames — the loop no longer draws once per frame`,
+    ).toBeLessThanOrEqual(1);
+    expect(moving.framesThatDrew).toBeLessThanOrEqual(moving.draws);
+
     // It rolled. Without this the rest of the test passes on a globe that
     // never moved, which is the one failure it exists to catch.
     expect(await globeSignature(page)).not.toBe(before);
@@ -202,8 +266,7 @@ test.describe("the live globe", () => {
     // rest and measuring the tail of the spin.
     await page.waitForTimeout(3_000);
     const settled = await globeSignature(page);
-    const frames = await framesAtRest(page, 1_500);
-    expect(frames.globe, `the globe never settled (page total: ${frames.page})`).toBe(0);
+    await expectAtRest(page, 1_500, "after a drag");
     // And the inertia left it where it stopped rather than creeping on.
     expect(await globeSignature(page)).toBe(settled);
   });
@@ -231,11 +294,75 @@ test.describe("the live globe", () => {
       .not.toBe(before);
 
     await page.waitForTimeout(3_000);
-    const frames = await framesAtRest(page, 1_500);
+    await expectAtRest(page, 1_500, "after a cancelled gesture");
+  });
+
+  test("a cancelled gesture tears down, but does not commit a tap", async ({ page }) => {
+    // The other half of handling `pointercancel` like `pointerup`: identical
+    // *teardown* is the requirement, and committing a tap is not part of it. A
+    // browser-initiated cancel with little or no movement is ordinary — a
+    // long-press opening the context menu, palm rejection, a system edge
+    // gesture — and it must not open a world or swing the planet round out of
+    // a gesture the person abandoned.
+    await page.goto("/#worlds");
+    const section = page.locator("#worlds");
+    const list = section.getByRole("list", { name: /the seven/i });
+    const stage = await waitForLiveGlobe(page);
+    const animals = list.getByRole("button", { name: /Animals/i });
+    const vietnam = list.getByRole("button", { name: /Việt Nam/ });
+
+    // Animals lives on the plinth, so opening it moves `aria-current` off
+    // Việt Nam without moving the view — which leaves Việt Nam's marker at the
+    // centre of the disc, where both gestures below land.
+    await animals.click();
+    await expect(animals).toHaveAttribute("aria-current", "true");
+    await page.waitForTimeout(1_200);
+
+    const press = (end: "pointerup" | "pointercancel") =>
+      stage.evaluate((element, type) => {
+        const canvas = element.querySelector("canvas");
+        if (!canvas) throw new Error("no canvas");
+        const rect = canvas.getBoundingClientRect();
+        // Dead centre of the near hemisphere, and not one pixel of movement,
+        // so `moved` is 0 and only the event type can decide what happens.
+        const base = {
+          bubbles: true,
+          pointerId: 3,
+          pointerType: "touch",
+          clientX: rect.left + rect.width / 2,
+          clientY: rect.top + rect.height * 0.44,
+        };
+        canvas.dispatchEvent(new PointerEvent("pointerdown", base));
+        canvas.dispatchEvent(new PointerEvent(type, base));
+      }, end);
+
+    await press("pointercancel");
+    // A second of settling, instrumented — so the `aria-current` check below
+    // is looking at a finished state rather than racing a React update it
+    // would otherwise pass straight through.
+    const afterCancel = await measureGlobeFrames(page, 1_000);
+
+    // Nothing was opened.
+    await expect(animals).toHaveAttribute("aria-current", "true");
+
+    // And nothing was turned. Measured rather than eyeballed, because both
+    // halves of a committed tap animate for about a second and neither leaves
+    // a mark a fingerprint could separate from one step of the satellite's
+    // orbit: a committed tap draws tens of frames here, and a gesture that
+    // commits nothing wakes the loop just long enough to find nothing to do.
+    // (Verified by mutation: dropping the `pointerup` guard makes this 29.)
     expect(
-      frames.globe,
-      `the globe never came to rest after a cancelled gesture (page total: ${frames.page})`,
-    ).toBe(0);
+      afterCancel.draws,
+      `a cancelled gesture moved the planet (${afterCancel.draws} frames)`,
+    ).toBeLessThanOrEqual(3);
+    await expectAtRest(page, 1_000, "after a cancelled tap");
+
+    // The control. The same press, at the same point, completed rather than
+    // cancelled: now it is a tap and it opens the world under it. Without this
+    // half the assertions above would pass on a globe where no gesture did
+    // anything at all.
+    await press("pointerup");
+    await expect(vietnam).toHaveAttribute("aria-current", "true", { timeout: 5_000 });
   });
 
   test("the arrow keys rotate it and Home brings Việt Nam back", async ({ page }) => {
@@ -287,8 +414,7 @@ test.describe("the live globe", () => {
 
     // And then it stops, which is the same rest contract on the keyboard path.
     await page.waitForTimeout(2_000);
-    const frames = await framesAtRest(page, 1_500);
-    expect(frames.globe, `the keyboard path never settled (page total: ${frames.page})`).toBe(0);
+    await expectAtRest(page, 1_500, "after the keyboard path");
   });
 
   test("everything the drag does is reachable with single clicks, no dragging", async ({
@@ -326,6 +452,13 @@ test.describe("the live globe", () => {
     //    asserting Task 9. What exists to check today is the status region the
     //    stage already writes when `onLanded` fires, and it is the observable
     //    proof that a whole crossing completed from single clicks and no drag.
+    //
+    //    That region says only "The flight landed in the United States." on
+    //    purpose, and this assertion is why the wording matters: an e2e that
+    //    demands a sentence makes the sentence an acceptance criterion, and the
+    //    region is `sr-only`, so the only people who would ever hear it are the
+    //    ones who cannot see whether it is true. Task 9 adds the seed back to
+    //    both the drawing and the sentence in the same commit.
     await section.getByRole("button", { name: /take the flight/i }).click();
     await expect(section.getByRole("status")).toHaveText(/landed/i, { timeout: 10_000 });
   });
@@ -429,8 +562,7 @@ test.describe("the live globe", () => {
     });
     await expect.poll(() => globeSignature(page), { timeout: 5_000 }).not.toBe(before);
     // Exactly one redraw, and then back to costing nothing.
-    const frames = await framesAtRest(page, 1_500);
-    expect(frames.globe, `the theme switch left a loop running (page total: ${frames.page})`).toBe(0);
+    await expectAtRest(page, 1_500, "after a theme switch");
   });
 
   test("scrolling works with a finger on the globe", async ({ page }) => {
