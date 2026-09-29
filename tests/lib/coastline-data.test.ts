@@ -34,8 +34,8 @@ describe("COASTLINES", () => {
 });
 
 describe("the import fence", () => {
-  // Unskipped in Task 8, which creates the one file allowed to import this.
-  it.skip("is imported by GlobeCanvas and nothing else", () => {
+  // Unskipped in Task 8, which filled in the one file allowed to import this.
+  it("is imported by GlobeCanvas and nothing else", () => {
     // 53 KB of raw data is affordable in one lazily imported chunk and
     // nowhere else. A server component that imports this — even for a type —
     // puts all of it in the initial bundle, and nothing in the test suite
