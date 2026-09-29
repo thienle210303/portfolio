@@ -91,10 +91,17 @@ export const profile = {
  * from this block — never a second, independently-typed place name.
  */
 export const origin = {
-  from: "Rạch Giá, Việt Nam",
+  // Province level, no city (owner's decision, 2026-09-02). This one string
+  // serves the globe's pin, the origin story's captions and the résumé — the
+  // site must never carry two names for one place.
+  from: "Kiên Giang, Việt Nam",
   to: "United States",
   arrived: "December 2018",
   arrivedYear: 2018,
+  coordinates: {
+    from: { lat: 10.0, lon: 105.1 },
+    to: { lat: 39.83, lon: -98.58 },
+  },
 } satisfies Origin;
 
 export const socialLinks = [

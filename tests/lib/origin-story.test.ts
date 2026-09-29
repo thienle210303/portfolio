@@ -109,7 +109,7 @@ describe("seasonsFor", () => {
         CAPTION_MAX_CHARS,
       );
       expect(season.caption.startsWith(String(season.year)), season.caption).toBe(true);
-      expect(season.caption).not.toMatch(/Rạch|Việt|Taylors|Columbia|Cheraw/);
+      expect(season.caption).not.toMatch(/Kiên|Việt|Taylors|Columbia|Cheraw/);
     }
   });
 });
@@ -320,6 +320,30 @@ describe("planRelease", () => {
       candidate("leaf", 2020, TIER_LEAF),
     ];
     expect(planRelease(candidates, 2020, zero)).toEqual(planRelease(candidates, 2020, zero));
+  });
+});
+
+describe("origin, as the globe's two pins", () => {
+  it("names the place at province level, with no city", () => {
+    expect(origin.from).toBe("Kiên Giang, Việt Nam");
+    expect(origin.from).not.toContain("Rạch Giá");
+  });
+
+  it("carries coordinates for both ends of the crossing", () => {
+    expect(origin.coordinates.from.lat).toBeCloseTo(10.0, 1);
+    expect(origin.coordinates.from.lon).toBeCloseTo(105.1, 1);
+    // The United States pin is the country centroid, unlabelled below country
+    // level — decision 3. Not a city, on purpose: no city is authored
+    // anywhere, and the globe may not be the one place that invents one.
+    expect(origin.coordinates.to.lat).toBeCloseTo(39.83, 1);
+    expect(origin.coordinates.to.lon).toBeCloseTo(-98.58, 1);
+  });
+
+  it("keeps latitudes and longitudes inside the real world", () => {
+    for (const point of [origin.coordinates.from, origin.coordinates.to]) {
+      expect(Math.abs(point.lat)).toBeLessThanOrEqual(90);
+      expect(Math.abs(point.lon)).toBeLessThanOrEqual(180);
+    }
   });
 });
 

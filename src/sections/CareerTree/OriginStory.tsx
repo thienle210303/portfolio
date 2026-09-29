@@ -176,8 +176,8 @@ const STILL_MS = 2500;
 
 /**
  * The one geographic fact the player is allowed to name, composed rather
- * than typed a second time. `origin.from` carries the city
- * ("Rạch Giá, Việt Nam"); this renders only the segment after the last
+ * than typed a second time. `origin.from` carries the province
+ * ("Kiên Giang, Việt Nam"); this renders only the segment after the last
  * ", " — the country — matching the exact ban `tests/lib/origin-story.test.ts`
  * already holds every `Season.caption` to.
  */

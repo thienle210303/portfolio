@@ -67,6 +67,14 @@ export interface Profile {
   readonly resumePdfLabel: string;
 }
 
+/** A point on the globe, in degrees. Positive latitude is north, positive
+ *  longitude is east — the convention Natural Earth and every web map use, so
+ *  a coordinate can be read off a map and typed in unchanged. */
+export interface GeoPoint {
+  readonly lat: number;
+  readonly lon: number;
+}
+
 /**
  * The one geographic fact the origin story may draw on. Every other place
  * that touches the story — captions, the player's flight label, the
@@ -78,6 +86,21 @@ export interface Origin {
   readonly to: string;
   readonly arrived: string;
   readonly arrivedYear: number;
+
+  /**
+   * Where the two ends of the crossing are. Authored here rather than in
+   * `src/content/worlds.ts` because they are facts about the crossing itself,
+   * which this record already owns — and because the globe, the flight arc,
+   * the Sea world's derived midpoint and the Sky world's derived apex must
+   * every one of them agree, which they only do if there is one pair of
+   * numbers on the site.
+   *
+   * `to` is the United States country centroid, deliberately not a city.
+   */
+  readonly coordinates: {
+    readonly from: GeoPoint;
+    readonly to: GeoPoint;
+  };
 }
 
 export type SocialPlatform = "GitHub" | "LinkedIn" | "Email";

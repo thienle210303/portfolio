@@ -174,7 +174,7 @@ describe("story scenes", () => {
     for (const kind of ALL_KINDS) {
       const year = SEASON_KINDS.includes(kind) ? 2021 : null;
       const scene = storyBeatScene(kind, year, FACTS, "grey");
-      expect(scene!.beats[0].sub).not.toMatch(/Rạch|Giá|Việt Nam/);
+      expect(scene!.beats[0].sub).not.toMatch(/Kiên|Giang|Việt Nam/);
     }
   });
 
