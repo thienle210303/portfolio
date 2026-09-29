@@ -1,10 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
 import { workflowStages } from "@/content/ai-experiments";
-import { problemSolvingLoop, projects } from "@/content/portfolio";
-import { agentLaneIntro, defaultRunProjectId, workshopStations } from "@/content/workshop";
+import { careerEntries, problemSolvingLoop, projects } from "@/content/portfolio";
+import {
+  agentLaneIntro,
+  defaultRunProjectId,
+  workshopIntro,
+  workshopStations,
+} from "@/content/workshop";
 import { resolveRun, runnableProjects } from "@/lib/workshop";
 import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
-import type { Project } from "@/types/portfolio";
+import { isNeedsInput, type Project } from "@/types/portfolio";
+
+/**
+ * What a project authored under one field, as lines — worked out here from the
+ * raw record rather than taken from the resolver. A string is one line, a list
+ * is its entries, and anything absent, blank or still a `[NEEDS INPUT]` marker
+ * is none.
+ */
+function authoredLines(value: string | readonly string[] | undefined): readonly string[] {
+  const lines: readonly string[] = typeof value === "string" ? [value] : (value ?? []);
+  return lines.filter((line) => line.length > 0 && !isNeedsInput(line));
+}
 
 describe("the station map", () => {
   it("has one station per authored loop step, in the loop's own order", () => {
@@ -59,6 +75,40 @@ describe("resolveRun", () => {
     }
   });
 
+  it("quotes its own project verbatim and whole: the header, then every station's field", () => {
+    // The central invariant. Everything a run says about its project is compared
+    // with the project's own record, and the lines are worked out here from the
+    // raw fields, with each step's field read from the authored map — so the
+    // resolver marks none of its own work. A fallback that fills a gap from
+    // anywhere else (the default project, or this project's `learned`) quotes a
+    // line the field does not hold and fails here; so does a lookup of the wrong
+    // field, or a list cut short, at any of the nine stations.
+    //
+    // It pins no per-project counts, on purpose: authoring a `whatFailed` for a
+    // second project should not break it.
+    for (const project of projects) {
+      const record: Project = project;
+      const run = resolveRun(project.id);
+      if (!run) throw new Error(`${project.id} did not resolve`);
+
+      expect(run.projectId).toBe(project.id);
+      expect(run.title).toBe(project.title);
+      expect(run.learned).toBe(project.learned);
+      expect(run.organization).toBe(
+        careerEntries.find((entry) => entry.id === project.careerEntryId)?.organization,
+      );
+
+      for (const { step, field } of workshopStations) {
+        const station = run.stations.find((candidate) => candidate.id === step);
+        expect(station?.field, `${project.id}/${step} quotes the wrong field`).toBe(field);
+        expect(
+          station?.evidence,
+          `${project.id}/${step} should quote all of ${field}, and nothing else`,
+        ).toEqual(authoredLines(record[field]));
+      }
+    }
+  });
+
   it("returns null for a project that does not exist", () => {
     expect(resolveRun("no-such-project")).toBeNull();
   });
@@ -86,13 +136,17 @@ describe("resolveRun", () => {
   });
 
   it("hands back nothing but plain data, so it can cross into a client component", () => {
+    // Two round trips, because each lets through what the other stops.
     // `structuredClone` throws on a function and quietly flattens a class
     // instance into a plain object, which `toStrictEqual` then rejects on type
-    // — between them, the two things that would break the server-to-client
-    // hand-off at build time.
+    // — but it carries a Map, a Set or a Date straight through. JSON turns each
+    // of those into something else, so `toEqual` fails on them; it would not
+    // notice a class instance, which is why the first one stays. Between them
+    // they cover what would break the server-to-client hand-off at build time.
     for (const project of projects) {
       const run = resolveRun(project.id);
       expect(structuredClone(run)).toStrictEqual(run);
+      expect(JSON.parse(JSON.stringify(run))).toEqual(run);
     }
   });
 });
@@ -185,7 +239,7 @@ describe("the gaps are disclosed, never hidden and never borrowed", () => {
     }
   });
 
-  it("drops a [NEEDS INPUT] marker wherever it sits, so a half-authored field is a gap", () => {
+  it("drops a [NEEDS INPUT] marker wherever it sits, leaving a gap only where nothing real is left", () => {
     // No project holds a marker today, so the test above can only pass on the
     // content as it stands. This one makes the resolver meet the three shapes a
     // half-authored field can take — a marker in a `Maybe` field, a marker
@@ -238,6 +292,16 @@ describe("the gaps are disclosed, never hidden and never borrowed", () => {
     for (const project of projects) {
       expect(JSON.stringify(resolveRun(project.id))).not.toContain("undefined");
     }
+  });
+});
+
+describe("the workshop's intro", () => {
+  it("counts the steps the loop actually holds", () => {
+    // Spelled out in words, like the agent lane's count below, so nothing
+    // computes it. If a step is added to or removed from `problemSolvingLoop`
+    // this fails until the sentence catches up.
+    expect(problemSolvingLoop).toHaveLength(9);
+    expect(workshopIntro).toContain("Nine steps");
   });
 });
 

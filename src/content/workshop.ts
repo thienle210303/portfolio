@@ -47,7 +47,7 @@ export const stationGap = (field: string): string =>
   `Nothing is authored in this project's ${field}, so this station is empty on this run.`;
 
 export const workshopIntro =
-  "Nine steps, one real project, and every line below quoted from that project's own write-up. Switch the project to see which steps it can fill — and which it cannot.";
+  "Nine steps, one real project, and every piece of evidence below quoted from that project's own write-up. Switch the project to see which steps it can fill — and which it cannot.";
 
 /** The run a visitor sees first. `dd-feasibility-agent` is the only project
  *  that authors `whatFailed`, so it is the one run where all nine stations

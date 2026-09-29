@@ -23,7 +23,8 @@ import {
  * Everything returned is plain strings and numbers. The Workshop hands runs
  * from a server component to a client one as props, so a function or a class
  * in here would stop the section building. `tests/lib/workshop.test.ts`
- * round-trips every run through `structuredClone` to keep that true.
+ * round-trips every run through `structuredClone` and through JSON to keep
+ * that true.
  */
 
 export interface ResolvedStation {
@@ -57,9 +58,11 @@ export interface ResolvedRun {
  * `project[field]` is indexed with its real type rather than cast through
  * `unknown`, on purpose. Every `ProjectEvidenceField` is a single line, a
  * `Maybe` line, or a list of lines, and the two branches below cover exactly
- * those. Map a station to anything else — `metrics`, say — and `.length` on a
- * before/after pair stops the build, instead of the station quietly reading as
- * empty and being reported as a gap when the project had authored it.
+ * those. Widen the union to anything else — `metrics`, say — and `.length` on a
+ * before/after pair stops the build here, instead of the station quietly
+ * reading as empty and being reported as a gap when the project had authored
+ * it. (Naming a field the union does not hold never gets this far: the
+ * `satisfies` in `src/content/workshop.ts` rejects it first.)
  */
 function evidenceFor(project: Project, field: ProjectEvidenceField): readonly string[] {
   const value = project[field];
