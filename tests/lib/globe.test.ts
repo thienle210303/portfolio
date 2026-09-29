@@ -4,8 +4,12 @@ import {
   arcKm,
   arcMidpoint,
   clampTilt,
+  easeFraction,
+  FRAME_MS,
+  frameStep,
   graticule,
   greatCircle,
+  MAX_FRAME_STEP,
   MAX_TILT_RADIANS,
   project,
   rotate,
@@ -253,5 +257,71 @@ describe("clampTilt", () => {
     expect(clampTilt(-99)).toBeCloseTo(-MAX_TILT_RADIANS, 10);
     expect(clampTilt(99)).toBeCloseTo(MAX_TILT_RADIANS, 10);
     expect(clampTilt(0.1)).toBeCloseTo(0.1, 10);
+  });
+});
+
+describe("frameStep / easeFraction", () => {
+  it("is 1 on the 60 Hz display every rate in the canvas was tuned on", () => {
+    // The identity the whole change rests on: at the reference rate, scaling
+    // by `frameStep` must leave the authored numbers exactly as they were.
+    expect(frameStep(FRAME_MS)).toBe(1);
+    expect(easeFraction(0.13, 1)).toBeCloseTo(0.13, 12);
+  });
+
+  it("scales with the real gap, in both directions", () => {
+    expect(frameStep(FRAME_MS * 2)).toBeCloseTo(2, 12);
+    expect(frameStep(FRAME_MS / 2)).toBeCloseTo(0.5, 12);
+    expect(frameStep(0)).toBe(0);
+  });
+
+  it("clamps a tab returning from the background instead of teleporting", () => {
+    // rAF is suspended in a hidden tab, so the first callback after it returns
+    // carries a gap measured in seconds. Unclamped, the bird crosses the ocean
+    // and the sapling snaps to full size in one frame.
+    expect(frameStep(30_000)).toBe(MAX_FRAME_STEP);
+    expect(frameStep(Number.POSITIVE_INFINITY)).toBe(1);
+    expect(frameStep(Number.NaN)).toBe(1);
+    // A clock that ran backwards must not run the animation backwards.
+    expect(frameStep(-500)).toBe(0);
+  });
+
+  it("gives a timeline the same duration at 30, 60 and 120 Hz", () => {
+    // The seed: 40 reference frames, whatever the display is doing.
+    const advance = (hz: number) => {
+      let seed = 0.001;
+      let ms = 0;
+      while (seed < 1) {
+        seed = Math.min(1, seed + frameStep(1000 / hz) / 40);
+        ms += 1000 / hz;
+      }
+      return ms;
+    };
+    for (const hz of [30, 60, 120, 144]) {
+      // Within one frame of 667 ms, which is the granularity the last partial
+      // step can be measured to.
+      expect(advance(hz), `${hz} Hz`).toBeGreaterThan(660);
+      expect(advance(hz), `${hz} Hz`).toBeLessThan(667 + 1000 / hz);
+    }
+  });
+
+  it("closes the same fraction of an easing gap per millisecond, at any rate", () => {
+    // Compounding is the point: 0.13 thirty times is not 0.13 * 30, and an
+    // easing scaled the naive way at a low frame rate eventually asks to close
+    // more than the whole gap and overshoots what it was easing toward.
+    const remaining = (hz: number, ms: number) => {
+      const frames = frameStep(1000 / hz);
+      let gap = 1;
+      for (let elapsed = 0; elapsed < ms; elapsed += 1000 / hz) {
+        gap *= 1 - easeFraction(0.13, frames);
+      }
+      return gap;
+    };
+    const reference = remaining(60, 500);
+    for (const hz of [30, 120, 144]) {
+      expect(remaining(hz, 500), `${hz} Hz`).toBeCloseTo(reference, 2);
+    }
+    // And it never overshoots, even at the clamp.
+    expect(easeFraction(0.13, MAX_FRAME_STEP)).toBeLessThan(1);
+    expect(easeFraction(0.9, MAX_FRAME_STEP)).toBeLessThan(1);
   });
 });

@@ -236,3 +236,46 @@ export function resolveWorlds(list: readonly World[] = authoredWorlds): readonly
     })),
   }));
 }
+
+/**
+ * The ids of worlds whose map point an earlier world in the list already
+ * claimed — the ones a renderer has to step aside.
+ *
+ * `usa` and `plants` both anchor `origin-to`, and that is authored rather than
+ * a mistake: the sapling grows *on* the arrival pin. Drawn naively they
+ * overprint — the second glyph hides the first, and two left-aligned names land
+ * on one baseline and composite into neither of them. Worse, and quieter: a
+ * canvas hit list scanned backwards and broken on the first match makes the
+ * *earlier* marker unreachable by tap altogether, so `usa` could not be opened
+ * from the globe at all.
+ *
+ * Coordinates are compared rather than ids matched against a list, so this
+ * keeps working when the content layer moves a pin or lands a third world on
+ * one — and compared *exactly*, not by projected proximity, which would
+ * falsely pair two genuinely distant places that happen to crowd together near
+ * the limb.
+ *
+ * Order is load-bearing: the first world to claim a point keeps it, so
+ * `src/content/worlds.ts`'s order decides which marker stays put and which one
+ * moves. The two worlds that are not on the map (`plinth`, `orbit`) have no
+ * point and are never flagged.
+ *
+ * This lives here rather than inside `GlobeCanvas.tsx` for one reason: there it
+ * could not be tested without a canvas. See `tests/lib/worlds.test.ts`.
+ */
+export function coLocatedWorldIds(
+  list: readonly Pick<ResolvedWorld, "id" | "point">[],
+): ReadonlySet<string> {
+  const claimed: GeoPoint[] = [];
+  const ids = new Set<string>();
+  for (const world of list) {
+    const point = world.point;
+    if (!point) continue;
+    if (claimed.some((other) => other.lat === point.lat && other.lon === point.lon)) {
+      ids.add(world.id);
+    } else {
+      claimed.push(point);
+    }
+  }
+  return ids;
+}

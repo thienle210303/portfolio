@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   clampTilt,
+  easeFraction,
+  FRAME_MS,
+  frameStep,
   graticule,
   greatCircle,
   project,
@@ -14,7 +17,7 @@ import {
 } from "@/lib/globe";
 import { companions, origin } from "@/content/portfolio";
 import type { GeoPoint } from "@/types/portfolio";
-import type { ResolvedWorld } from "@/lib/worlds";
+import { coLocatedWorldIds, type ResolvedWorld } from "@/lib/worlds";
 import type { GlobeControls } from "./WorldsStage";
 import { GLYPHS } from "./glyphs";
 import { COASTLINES } from "./coastline-data";
@@ -48,6 +51,15 @@ import { COASTLINES } from "./coastline-data";
  * frame rate stayed inside a single loop. The satellite's orbit is
  * deliberately excluded from "something is moving" for exactly this reason: a
  * decoration that never stops is a decoration that never lets the CPU sleep.
+ *
+ * ## The rule about time
+ *
+ * Every rate in this file is per **reference frame** — one 60 Hz frame — and
+ * `step()` scales all of them by how long the last callback actually covered.
+ * A rate added here without that scaling is a beat whose length is a property
+ * of the visitor's display: the landing was exactly that until this commit,
+ * two thirds of a second at 60 Hz and twice that at 33. The constants block
+ * below states the two rules for adding one.
  *
  * One press is exempt from the loop entirely, and only under
  * `prefers-reduced-motion: reduce`: "Take the flight" then produces the
@@ -108,10 +120,49 @@ const TAP_SLOP_PX = 6;
 const REST_EPSILON = 4e-4;
 const DECAY = 0.93;
 
+/**
+ * Every rate in this file is written **per reference frame**, not per
+ * callback.
+ *
+ * `step()` measures how long the last callback actually covered, divides by
+ * `FRAME_MS`, and scales all of them — so `1 / 130`, `1 / 40`, `0.13`, `0.1`,
+ * `0.004` and `DECAY` still mean exactly what they meant when they were tuned
+ * on a 60 Hz display, and mean the same thing on every other one. This is not
+ * a refinement: before it, the whole landing was two thirds of a second only
+ * at 60 Hz — twice that at 33, half at 120 — because the seed's growth and the
+ * camera's settle were both counted in callbacks. A moment whose length is a
+ * property of the visitor's hardware is a moment nobody tuned.
+ *
+ * Two rules for adding a rate here. Write it per reference frame and multiply
+ * it by `frames`; and if it eases toward something rather than advancing
+ * along a timeline, compound it with `easeFraction` rather than multiplying
+ * the coefficient, which overshoots when a frame runs long.
+ */
+const FLIGHT_FRAMES = 130;
+const SEED_FRAMES = 40;
+
 /** How much of the seed's growth is the seed *falling* rather than the sapling
  *  rising. Two beats out of one number, because that is what the moment is:
- *  something drops, and then something grows from where it dropped. */
+ *  something drops, and then something grows from where it dropped.
+ *
+ *  0.3 of `SEED_FRAMES` is twelve reference frames — 200 ms of falling, then
+ *  about 470 ms of rising — and since the seed's clock is wall-clock now, that
+ *  split is a real pair of durations rather than a ratio that stretched to
+ *  whatever the display felt like. */
 const SEED_DROP = 0.3;
+
+/**
+ * The world whose marker **is** the sapling the flight plants, rather than a
+ * marker standing next to one.
+ *
+ * This is not a rendering preference, it is what the content layer already
+ * says: `plants.where` reads "A sapling on the arrival pin — the seed the bird
+ * dropped, one beat later", and `plants.anchor` is `origin-to`, the arrival
+ * pin itself. So the landing has to *grow this glyph*. Drawing a second sprout
+ * beside it would put two objects on the map both claiming to be the one
+ * sapling, which is the kind of thing this section exists not to do.
+ */
+const SAPLING_WORLD_ID = "plants";
 
 const GRATICULE = graticule(30);
 // The same 72 segments the resolver uses, so the arc drawn here and the
@@ -247,10 +298,25 @@ export default function GlobeCanvas({
      *  than closed over by `start` so the unmount effect can reach it however
      *  many spin-downs ago it was scheduled. */
     frame: 0,
+    /** The timestamp of the previous animation callback, or 0 for "the loop
+     *  just woke". Cleared every time the loop stops, because the gap across
+     *  a rest — seconds, or an afternoon — is not elapsed animation time and
+     *  must not be handed to `frameStep` as if it were. */
+    last: 0,
     hits: [] as Hit[],
     size: { width: 0, height: 0 },
     stroke: { cx: 0, cy: 0, radius: 0, plinth: 0 } as Viewport & { plinth: number },
   });
+
+  /**
+   * World ids whose map point an earlier world already claimed, so the draw
+   * loop can step those markers aside instead of overprinting them.
+   *
+   * The rule itself is `coLocatedWorldIds` in `src/lib/worlds.ts` — kept there
+   * because a rule about the content layer's geometry should be testable
+   * without a canvas, and this file has none to give it.
+   */
+  const sharesAPin = useMemo(() => coLocatedWorldIds(worlds), [worlds]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -398,6 +464,9 @@ export default function GlobeCanvas({
 
     /* The worlds that live on the ball. */
     v.hits = [];
+    /** Where this frame drew the sapling's foot, for the falling seed to aim
+     *  at. Null while that marker is on the far side. */
+    let saplingFoot: { x: number; y: number } | null = null;
     for (const world of worlds) {
       if (!world.point) continue;
       const p = at(world.point);
@@ -406,62 +475,79 @@ export default function GlobeCanvas({
       if (!p.front) continue;
       const open = world.id === currentIdRef.current;
       const scale = 0.62 + 0.32 * p.depth;
+      // A marker whose point an earlier world already claimed steps a
+      // marker-width to the left and takes its name to that side — see
+      // `sharesAPin`. Everything right of a ring is where names go, so left of
+      // it is the one side nothing else is using.
+      const shares = sharesAPin.has(world.id);
+      const x = shares ? p.x - 36 * scale : p.x;
+      const radius = 15 * scale;
+      // How far the sapling has risen, or null for every other marker and for
+      // this one before the seed has touched down. `GLYPHS.sprout`'s stem foot
+      // is at +9 in its own 24-unit box; the glyph's origin is lifted by
+      // `9 * size` so the foot stays planted and the plant gets taller, which
+      // is what makes it *rise* rather than inflate.
+      const risen =
+        world.id === SAPLING_WORLD_ID && v.seed >= SEED_DROP
+          ? (v.seed - SEED_DROP) / (1 - SEED_DROP)
+          : null;
+      const foot = p.y + 9 * scale * 0.82;
       ctx.fillStyle = c.ground;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 15 * scale, 0, Math.PI * 2);
+      ctx.arc(x, p.y, radius, 0, Math.PI * 2);
       ctx.fill();
-      glyph(GLYPHS[world.glyph], p.x, p.y, scale * 0.82, open ? c.accent : c.fg, open ? 1.4 : 1.1);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 15 * scale, 0, Math.PI * 2);
-      ctx.strokeStyle = open ? c.accent : c.rule;
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      if (risen === null) {
+        glyph(GLYPHS[world.glyph], x, p.y, scale * 0.82, open ? c.accent : c.fg, open ? 1.4 : 1.1);
+        ctx.beginPath();
+        ctx.arc(x, p.y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = open ? c.accent : c.rule;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else {
+        /* The page's one hand-off, and the drawing says it before the prose
+           does: the career tree grows from this spot. Accent, because it is a
+           relationship between two sections rather than decoration — the same
+           reason the crossing is accent.
+
+           No ring once it has grown. A ring says "this is a pin, press it";
+           a sapling that has actually come up is the thing the pin stood for,
+           and it keeps its name and its hit either way, so nothing about
+           reaching the world changes.
+
+           But it still has to *say* when it is the open world, and say it with
+           something other than colour. Accent is already this glyph's resting
+           ink — it is the hand-off, open or not — so unlike every ringed marker
+           it cannot use ink to mark selection, and the label alone would leave
+           the state signalled by hue only. A ringed marker carries a
+           stroke-weight change beside its accent for exactly that reason; this
+           one carries the weight change alone. */
+        const size = scale * 0.82 * (1 + 0.5 * risen);
+        glyph(GLYPHS.sprout, x, foot - 9 * size, size, c.accent, open ? 1.9 : 1.3);
+      }
       if (open || p.depth > 0.62) {
         ctx.fillStyle = open ? c.accent : c.muted;
         ctx.font = `600 9.5px ${mono}`;
-        ctx.textAlign = "left";
-        ctx.fillText(world.name.toUpperCase(), p.x + 15 * scale + 5, p.y + 3.4);
+        ctx.textAlign = shares ? "right" : "left";
+        ctx.fillText(
+          world.name.toUpperCase(),
+          shares ? x - radius - 5 : x + radius + 5,
+          p.y + 3.4,
+        );
       }
-      v.hits.push({ id: world.id, x: p.x, y: p.y, r: 18 * scale });
+      if (world.id === SAPLING_WORLD_ID) saplingFoot = { x, y: foot };
+      v.hits.push({ id: world.id, x, y: p.y, r: 18 * scale });
     }
 
-    /* The seed, one beat after the landing, and then the sapling it becomes.
-       This is the page's one hand-off: the career tree grows from this spot,
-       and the drawing says so before the prose does. Blue, because it is a
-       relationship between two sections rather than decoration — the same
-       reason the crossing itself is blue.
-
-       Planted to the **left** of the arrival pin and low, which is not an
-       aesthetic choice: `origin.coordinates.to` is where *two* worlds anchor
-       (`usa` and `plants` both use `origin-to` — see `src/content/worlds.ts`),
-       and a marker's name is drawn to the right of its ring, so everything
-       right of the pin is already occupied. Left of the ring is the one clear
-       side. Skipped outright when the pin is on the far side, for the same
-       reason far-side markers are. */
-    if (v.seed > 0) {
-      const pin = at(origin.coordinates.to);
-      if (pin.front) {
-        const x = pin.x - 24;
-        // Where the seed comes to rest and the stem stands: `GLYPHS.sprout`'s
-        // foot is at +9 in its own 24-unit box, so the glyph's origin is
-        // lifted by `9 * scale` off this line.
-        const ground = pin.y + 8;
-        if (v.seed < SEED_DROP) {
-          // The seed itself, falling the last few pixels onto the spot. A
-          // beat, not an animation — under a fifth of a second at 60fps.
-          ctx.fillStyle = c.accent;
-          ctx.beginPath();
-          ctx.arc(x, ground - 14 * (1 - v.seed / SEED_DROP), 2, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          // And then it is a sapling, rising out of the point the seed came to
-          // rest at. Scaling about the foot rather than the middle is what
-          // makes it *grow* instead of inflate.
-          const risen = (v.seed - SEED_DROP) / (1 - SEED_DROP);
-          const scale = 0.22 + 0.78 * risen;
-          glyph(GLYPHS.sprout, x, ground - 9 * scale, scale, c.accent, 1.2);
-        }
-      }
+    /* The seed, in the one beat between the bird landing and the sapling
+       taking: it falls onto the Plants marker, which then grows out of where
+       it came to rest. Drawn after the markers so it is never underneath one,
+       and aimed at the foot that marker actually got drawn at rather than at a
+       position computed twice. */
+    if (v.seed > 0 && v.seed < SEED_DROP && saplingFoot) {
+      ctx.fillStyle = c.accent;
+      ctx.beginPath();
+      ctx.arc(saplingFoot.x, saplingFoot.y - 16 * (1 - v.seed / SEED_DROP), 2, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     /* Technology, in orbit, counter-rotating so it always faces you. */
@@ -485,7 +571,7 @@ export default function GlobeCanvas({
 
     /* Animals: the plinth is its marker. */
     v.hits.push({ id: "animals", x: catX + 16, y: geo.plinth - 9, r: 34 });
-  }, [worlds]);
+  }, [sharesAPin, worlds]);
 
   /**
    * Wake the loop, if it is not already awake. `view.running` is the whole
@@ -505,40 +591,85 @@ export default function GlobeCanvas({
     if (v.running) return;
     v.running = true;
 
-    function step() {
+    function step(time: number) {
       // This callback has fired, so there is nothing pending to cancel until
       // the tail of this function schedules the next one.
       v.frame = 0;
       let busy = false;
 
-      v.orbit = (v.orbit + 0.004) % (Math.PI * 2);
+      /* How much of one 60 Hz frame this callback covers, which is what every
+         rate below is multiplied by. `frames` is 1 on the display these
+         numbers were tuned on, ~2 on a 30 Hz phone, ~0.5 on a 120 Hz laptop,
+         and `frameStep` caps it at three so a tab returning from the
+         background resumes the animation rather than teleporting it. The
+         first callback after a wake has no previous timestamp to subtract, and
+         takes 1: guessing a full frame for the one frame nobody can measure is
+         the same guess the whole loop used to make for all of them. */
+      const frames = v.last === 0 ? 1 : frameStep(time - v.last);
+      v.last = time;
+
+      v.orbit = (v.orbit + 0.004 * frames) % (Math.PI * 2);
 
       if (v.playing) {
-        // 130 frames, a little over two seconds at 60fps. The camera follows
-        // the bird rather than the bird following a camera: spin and tilt
-        // chase the point he is currently over, which is what makes the played
-        // version look like the dragged one.
-        v.flight = Math.min(1, v.flight + 1 / 130);
+        // 130 reference frames — about 2.2 seconds, and now the same 2.2
+        // seconds on any display. The camera follows the bird rather than the
+        // bird following a camera: spin and tilt chase the point he is
+        // currently over, which is what makes the played version look like the
+        // dragged one.
+        v.flight = Math.min(1, v.flight + frames / FLIGHT_FRAMES);
         const point = toGeo(CROSSING.points[Math.floor(v.flight * (CROSSING.points.length - 1))]);
         const delta = Math.atan2(
           Math.sin(-point.lon * DEG - v.spin),
           Math.cos(-point.lon * DEG - v.spin),
         );
-        v.spin += delta * 0.1;
-        v.tilt += (clampTilt(-point.lat * DEG * 0.55) - v.tilt) * 0.1;
+        // Compounded, not multiplied — and that is what keeps the chase's lag
+        // constant rather than merely keeping its duration constant. The bird
+        // advances `frames` times as far per callback, and `easeFraction`
+        // closes correspondingly more of the gap, so the camera trails him by
+        // the same ~12° whatever the display is doing. A naive `0.1 * frames`
+        // would leave a 33 Hz visitor twice as far behind, and the handover
+        // below — which assumes those twelve degrees — would be sized for a
+        // gap that is not there.
+        const chase = easeFraction(0.1, frames);
+        v.spin += delta * chase;
+        v.tilt += (clampTilt(-point.lat * DEG * 0.55) - v.tilt) * chase;
         busy = true;
         if (v.flight >= 1) {
           v.playing = false;
           v.landed = true;
           v.seed = 0.001;
+          // Chasing at 0.1 a reference frame against a bird covering ~1.2° of
+          // one leaves the camera a steady ~12° behind him, and this is the
+          // frame the chase stops — so without this the planet would simply
+          // rest 12° short of the pin it just drew a line to, and the played
+          // landing would not be the same frame the reduced-motion one
+          // produces. Handed to `target` rather than snapped: the seed keeps
+          // the loop alive for another 667 ms, which is more than the ~557 ms
+          // that easing 0.209 rad down to 0.002 at 0.13 a reference frame
+          // needs, so the last twelve degrees arrive smoothly and still land
+          // exactly on the pin. Both of those are wall-clock now, so the
+          // margin between them is the same on every display rather than a
+          // coincidence of 60 Hz. One landing, one resting position, whichever
+          // way you got there.
+          v.target = {
+            spin: -origin.coordinates.to.lon * DEG,
+            tilt: clampTilt(-origin.coordinates.to.lat * DEG * 0.55),
+          };
           onLandedRef.current();
         }
       }
 
       if (v.seed > 0 && v.seed < 1) {
-        // Forty frames, about two thirds of a second — long enough to read as
-        // growth, short enough that nobody waits for it.
-        v.seed = Math.min(1, v.seed + 1 / 40);
+        // Forty reference frames: two thirds of a second — long enough to read
+        // as growth, short enough that nobody waits for it — on every display
+        // rather than on the one this was tuned on.
+        //
+        // All three ways a seed starts land here, which is why this is the
+        // only place the growth needed normalising: `fly()` reaches it through
+        // the played crossing above, `nudge()` sets `seed = 0.001` for the
+        // keyboard, and `move()` sets it for a drag east. None of them advances
+        // the seed itself; they only light the fuse this branch burns.
+        v.seed = Math.min(1, v.seed + frames / SEED_FRAMES);
         busy = true;
       }
 
@@ -553,17 +684,28 @@ export default function GlobeCanvas({
             Math.cos(v.target.spin - v.spin),
           );
           const dTilt = v.target.tilt - v.tilt;
-          v.spin += dSpin * 0.13;
-          v.tilt += dTilt * 0.13;
+          // The camera's one easing, and every other camera move in the file
+          // goes through it. Compounded for the same reason the chase above
+          // is: a long frame must close *more* of the gap, but an easing that
+          // multiplied its coefficient by three would close 0.39 of it in one
+          // step and read as a lurch, and a slower easing scaled the same way
+          // would eventually close more than all of it and overshoot the pin.
+          const settle = easeFraction(0.13, frames);
+          v.spin += dSpin * settle;
+          v.tilt += dTilt * settle;
           if (Math.abs(dSpin) > 0.002 || Math.abs(dTilt) > 0.002) busy = true;
           else v.target = null;
         } else if (v.drag) {
           busy = true;
         } else {
-          v.spin += v.vSpin;
-          v.tilt += v.vTilt;
-          v.vSpin *= DECAY;
-          v.vTilt *= DECAY;
+          // `vSpin` is radians per reference frame — `move()` divides by the
+          // real time the pointer took, so the flick's speed is already a
+          // wall-clock measurement and only its playback was not.
+          v.spin += v.vSpin * frames;
+          v.tilt += v.vTilt * frames;
+          const decay = Math.pow(DECAY, frames);
+          v.vSpin *= decay;
+          v.vTilt *= decay;
           if (Math.abs(v.vSpin) > REST_EPSILON || Math.abs(v.vTilt) > REST_EPSILON) busy = true;
           else {
             v.vSpin = 0;
@@ -585,12 +727,56 @@ export default function GlobeCanvas({
       draw();
 
       // The orbit is *not* a reason to keep the loop alive. See the file note.
-      if (busy) v.frame = requestAnimationFrame(step);
-      else v.running = false;
+      if (busy) {
+        v.frame = requestAnimationFrame(step);
+      } else {
+        v.running = false;
+        // A fresh clock for the next wake. The gap across a rest is however
+        // long the visitor looked away for, and handing that to `frameStep` as
+        // elapsed animation time would spend the clamp on the first frame of
+        // every gesture instead of on the one case it is for.
+        v.last = 0;
+      }
     }
 
     v.frame = requestAnimationFrame(step);
   }, [draw]);
+
+  /**
+   * Point the camera at a place: eased over about a second, or *there already*
+   * when the visitor has asked for reduced motion.
+   *
+   * Every camera move that is not the flight itself goes through this — the
+   * seven list buttons via `focusWorld`, "Face Việt Nam" and `Home` via
+   * `reset`, and a single click on bare planet. That last one is the reason
+   * this is one helper rather than a branch inside `fly()`: click-to-orient is
+   * the section's declared WCAG 2.5.7 substitute for dragging, the path a
+   * visitor on a head pointer or eye-gaze actually uses, and leaving it easing
+   * while the two buttons snapped would have meant that visitor had no
+   * non-animating way to move the globe at all. Việt Nam → United States is
+   * also the same ~156° swing "Take the flight" refuses to animate, so
+   * refusing it there and performing it here was never coherent.
+   *
+   * Reduced motion draws once, synchronously, and never calls `start()`: no
+   * frame is requested to produce the result.
+   */
+  const lookAt = useCallback(
+    (spin: number, tilt: number) => {
+      const v = view.current;
+      v.vSpin = 0;
+      v.vTilt = 0;
+      if (reducedMotion()) {
+        v.target = null;
+        v.spin = spin;
+        v.tilt = clampTilt(tilt);
+        draw();
+        return;
+      }
+      v.target = { spin, tilt: clampTilt(tilt) };
+      start();
+    },
+    [draw, start],
+  );
 
   /* Unmount. A spin-down in flight is a ~2s tail that would draw into a canvas
      that has gone, which `draw()`'s own null guard makes harmless — but an
@@ -621,6 +807,9 @@ export default function GlobeCanvas({
       // ignore the hand that woke it.
       v.playing = false;
       v.running = false;
+      // Same bag, same reason: a timestamp from before the teardown is not
+      // elapsed animation time for whatever the remount does next.
+      v.last = 0;
     };
   }, []);
 
@@ -730,9 +919,14 @@ export default function GlobeCanvas({
           onLandedRef.current();
         }
       }
+      // Radians per *reference* frame, not per 16 ms: `step()` plays this back
+      // as `vSpin * frames`, where `frames` is the callback gap over
+      // `FRAME_MS`, so measuring the flick against anything else would make a
+      // released drag 4% faster than the hand that threw it. Same number to
+      // three significant figures, but one unit rather than two.
       const dt = Math.max(1, performance.now() - v.drag.at);
-      v.vSpin = dx * k * (16 / dt);
-      v.vTilt = -dy * k * (16 / dt);
+      v.vSpin = dx * k * (FRAME_MS / dt);
+      v.vTilt = -dy * k * (FRAME_MS / dt);
       v.drag.x = event.clientX;
       v.drag.y = event.clientY;
       v.drag.at = performance.now();
@@ -781,14 +975,9 @@ export default function GlobeCanvas({
         // whole section.
         if (!hitSomething) {
           const place = unproject(px, py, v.spin, v.tilt, v.stroke);
-          if (place) {
-            v.vSpin = 0;
-            v.vTilt = 0;
-            v.target = {
-              spin: -place.lon * DEG,
-              tilt: clampTilt(-place.lat * DEG * 0.55),
-            };
-          }
+          // Through `lookAt`, so this path honours reduced motion too — it is
+          // the one a pointer that cannot hold a drag depends on.
+          if (place) lookAt(-place.lon * DEG, -place.lat * DEG * 0.55);
         }
       }
       start();
@@ -804,7 +993,7 @@ export default function GlobeCanvas({
       canvas.removeEventListener("pointerup", release);
       canvas.removeEventListener("pointercancel", release);
     };
-  }, [start]);
+  }, [lookAt, start]);
 
   /* Hand the controls up, so the stage's focus and buttons can drive a globe
      they do not own. */
@@ -860,46 +1049,20 @@ export default function GlobeCanvas({
         v.flight = 0;
         v.landed = false;
         v.seed = 0;
-        v.vSpin = 0;
-        v.vTilt = 0;
-        const spin = -origin.coordinates.from.lon * DEG;
-        const tilt = -12 * DEG;
-        if (reducedMotion()) {
-          // The other half of the promise `fly()` makes above. Swinging back
-          // across the planet from the arrival pin is the same size of motion
-          // as flying there, so it gets the same answer — and these two are
-          // one row of two buttons, where only one of them honouring the
-          // preference would read worse than neither doing.
-          //
-          // Deliberately *not* extended to `focusWorld` or to click-to-orient:
-          // those are the marker interaction rather than this control row, and
-          // they still ease. That gap is real and is better closed in one pass
-          // over all of them than half-closed here.
-          v.target = null;
-          v.spin = spin;
-          v.tilt = tilt;
-          draw();
-          return;
-        }
-        v.target = { spin, tilt };
-        start();
+        // Swinging back across the planet from the arrival pin is the same
+        // size of motion as flying there, so `lookAt` gives it the same answer
+        // under reduced motion that `fly()` gives above.
+        lookAt(-origin.coordinates.from.lon * DEG, -12 * DEG);
       },
       focusWorld: (id) => {
         const world = worlds.find((candidate) => candidate.id === id);
-        const v = view.current;
         if (!world?.point) return;
-        v.vSpin = 0;
-        v.vTilt = 0;
-        v.target = {
-          spin: -world.point.lon * DEG,
-          tilt: clampTilt(-world.point.lat * DEG * 0.55),
-        };
-        start();
+        lookAt(-world.point.lon * DEG, -world.point.lat * DEG * 0.55);
       },
     };
     onReady(controls);
     return () => onReady(null);
-  }, [draw, onReady, start, worlds]);
+  }, [draw, lookAt, onReady, start, worlds]);
 
   return (
     <canvas

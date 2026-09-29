@@ -7,7 +7,7 @@ import {
   projects,
 } from "@/content/portfolio";
 import { worlds } from "@/content/worlds";
-import { DECORATION_LABEL, crossingKm, resolveWorlds } from "@/lib/worlds";
+import { DECORATION_LABEL, coLocatedWorldIds, crossingKm, resolveWorlds } from "@/lib/worlds";
 import { buildCareerTree, stillGrowingCaption, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
@@ -239,5 +239,86 @@ describe("crossingKm", () => {
   it("computes the crossing from the two pins rather than carrying a number", () => {
     expect(crossingKm()).toBeGreaterThan(12_000);
     expect(crossingKm()).toBeLessThan(15_000);
+  });
+});
+
+describe("co-located markers", () => {
+  /** The shape `coLocatedWorldIds` actually reads — an id and a point, nothing
+   *  else, which is why it takes a `Pick` rather than a whole `ResolvedWorld`. */
+  const at = (id: string, lat: number | null, lon = 0) => ({
+    id,
+    point: lat === null ? null : { lat, lon },
+  });
+
+  it("flags nothing when every world has the map to itself", () => {
+    expect([...coLocatedWorldIds([at("a", 1), at("b", 2), at("c", 3)])]).toEqual([]);
+  });
+
+  it("flags the second of two worlds on one point, and not the first", () => {
+    // The first claim keeps the point. Which one that is comes from
+    // `src/content/worlds.ts`'s order, so this asymmetry is the whole contract.
+    expect([...coLocatedWorldIds([at("first", 10, 20), at("second", 10, 20)])]).toEqual(["second"]);
+  });
+
+  it("flags every later world when three share a point", () => {
+    const ids = coLocatedWorldIds([at("a", 5, 5), at("b", 5, 5), at("c", 5, 5)]);
+    expect([...ids]).toEqual(["b", "c"]);
+  });
+
+  it("is order-dependent, so reversing the list moves the flag", () => {
+    expect([...coLocatedWorldIds([at("x", 1, 1), at("y", 1, 1)])]).toEqual(["y"]);
+    expect([...coLocatedWorldIds([at("y", 1, 1), at("x", 1, 1)])]).toEqual(["x"]);
+  });
+
+  it("ignores the worlds that are not on the map at all", () => {
+    // `plinth` and `orbit` resolve to `null`, and any number of them share
+    // that. Treating null as a claimable point would flag the second one and
+    // send the satellite sideways for no reason.
+    expect([...coLocatedWorldIds([at("plinth", null), at("orbit", null), at("real", 3, 3)])]).toEqual(
+      [],
+    );
+  });
+
+  it("does not pair two distinct places that merely sit close together", () => {
+    // Guards the choice of exact comparison over projected proximity. A tenth
+    // of a degree apart is a few kilometres — near the limb those two project
+    // within a pixel of each other, and displacing one of them there would be
+    // a marker drawn away from a point it is the only claimant of.
+    expect([...coLocatedWorldIds([at("a", 39.83, -98.58), at("b", 39.93, -98.58)])]).toEqual([]);
+  });
+
+  it("flags Plants and only Plants in the real content", () => {
+    // The regression this whole rule exists for: `usa` and `plants` both anchor
+    // `origin-to`, so the globe drew two markers at one x/y — the sprout hid
+    // the star, "UNITED STATES" and "PLANTS" composited on one baseline, and
+    // because the canvas scans its hit list backwards and stops at the first
+    // match, `usa` could not be opened from the globe at all.
+    //
+    // If this fails because the set is now empty, the content layer has given
+    // Plants its own anchor and the displacement in `GlobeCanvas.tsx` is dead
+    // code. If it fails with an extra id, a new world has landed on an occupied
+    // pin and wants checking by eye at that pin in both themes.
+    expect([...coLocatedWorldIds(resolved)]).toEqual(["plants"]);
+  });
+
+  it("leaves every on-globe world a point of its own once the flagged ones step aside", () => {
+    // States the outcome rather than the mechanism: after the flagged ids are
+    // removed, no two worlds left on the ball share coordinates. That is the
+    // property the drawing depends on, and it holds for any content whose
+    // co-locations the rule has caught.
+    const flagged = coLocatedWorldIds(resolved);
+    const keys = resolved
+      .filter((world) => world.point && !flagged.has(world.id))
+      .map((world) => `${world.point?.lat},${world.point?.lon}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("agrees with the anchors the content layer authored", () => {
+    // Independent of the resolver: read the two anchors straight from the
+    // content and assert they are the same `origin-to`. This is the *cause*,
+    // where the test above is the symptom.
+    const anchorOf = (id: string) => worlds.find((world) => world.id === id)?.anchor.at;
+    expect(anchorOf("usa")).toBe("origin-to");
+    expect(anchorOf("plants")).toBe("origin-to");
   });
 });

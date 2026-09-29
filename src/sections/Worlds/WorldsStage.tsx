@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
+import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 import { origin } from "@/content/portfolio";
 import type { ResolvedWorld } from "@/lib/worlds";
@@ -126,8 +127,20 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
     // Pressing it a second time replays the crossing from Việt Nam, which
     // clears the seed for the two seconds it takes — so the claim goes with
     // it, rather than sitting under a globe that has nothing on it.
-    setLanded(false);
-    setAnnouncement("");
+    //
+    // `flushSync` is load-bearing and not a performance hedge. Under reduced
+    // motion `fly()` reaches `handleLanded` *synchronously*, so without this
+    // the clear and the re-landing batch into one render — and because the
+    // landed sentence is byte-identical to the one already in the live region,
+    // React commits no DOM change at all and a screen reader has nothing new
+    // to read. A second press would be silent. Flushing the empty region first
+    // gives the region two distinct states, which is what makes it speak
+    // again. No frame is requested to do it: this is synchronous DOM work, so
+    // the zero-frame contract is untouched.
+    flushSync(() => {
+      setLanded(false);
+      setAnnouncement("");
+    });
     controlsRef.current?.fly();
   }, []);
 

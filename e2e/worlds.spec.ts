@@ -601,12 +601,38 @@ test.describe("the landing", () => {
     await expect(handoff).toBeVisible({ timeout: 10_000 });
     await expect(section.getByRole("status")).toContainText(/landed/i);
 
-    // The seed finishes growing about forty frames after the landing, and then
-    // there is nothing left moving: the played crossing must clear its own
-    // `playing` flag and the sapling must stop at full size. A flight that
-    // ended by looping forever would still pass every assertion above.
+    // The seed finishes growing 667 ms after the landing and the camera's last
+    // twelve degrees arrive inside that, and then there is nothing left
+    // moving: the played crossing must clear its own `playing` flag and the
+    // sapling must stop at full size. A flight that ended by looping forever
+    // would still pass every assertion above.
+    //
+    // This wait is also the regression guard for the tail's *duration*, which
+    // is why it is a fixed wall-clock number and not a poll on a state signal.
+    // Those 667 ms used to be forty animation frames and the settle another
+    // ~34, so at the 33 Hz this project reports at 375px the tail ran past 1.2
+    // s and this assertion caught draws that should have finished — the beat
+    // was twice its intended length on that device and half of it on a 120 Hz
+    // one. `frameStep` in `src/lib/globe.ts` makes both of those durations
+    // wall-clock, so 1.5 s is now a 2.2× margin at every frame rate instead of
+    // a coin flip at low ones. Put the frame counting back and this fails on
+    // the slow projects again, which is the intent.
     await page.waitForTimeout(1_500);
     await expectAtRest(page, 1_500, "after the played flight");
+
+    // Where it came to rest is deliberately *not* asserted here. The camera
+    // chases the bird at 0.1 a frame against a bird covering ~1.2° a frame, so
+    // the chase alone leaves it a steady ~12° short of the pin — which is why
+    // `step()` hands the last twelve degrees to `target` on completion, so the
+    // played landing ends on the same frame the reduced-motion one produces
+    // directly. Pinning that in a test would mean computing where the pin
+    // projects, and the only honest way to do that is to re-derive the disc's
+    // centre and radius from the stage box — three layout formulas that live
+    // in `GlobeCanvas`'s resize effect. Copying them here would create a
+    // second source of truth for the geometry, which rots the moment the
+    // stage's aspect changes. (A click at the disc's centre does not work as a
+    // proxy: tilt compensates only 0.55 of latitude, so the arrival pin rests
+    // ~70px above the centre by design.)
 
     // And the claim is retractable, which is the other half of only saying
     // true things: facing Việt Nam again takes the seed off the globe, so the
@@ -665,42 +691,194 @@ test.describe("reduced motion", () => {
     // companion cats have no roaming loop and the origin story's player never
     // starts one, so the page is genuinely silent and the globe is the only
     // thing that could ask for a frame.
-    const pressAndCountFrames = (label: RegExp) =>
+    // `statusWrites` rides along with the frame count because both are facts
+    // about one press that can only be observed while it happens. A live
+    // region handed text byte-identical to what it already holds
+    // produces no DOM mutation and a screen reader reads nothing — which is
+    // exactly what a *second* press under reduced motion would do, since the
+    // landing is synchronous there and React would batch the clear and the
+    // re-landing into one no-op commit. Counting mutations is the only way to
+    // assert "it spoke again" from outside a screen reader.
+    const press = (label: RegExp) =>
       page.evaluate(
         async (pattern) => {
-          let count = 0;
+          let frames = 0;
+          let statusWrites = 0;
           const original = window.requestAnimationFrame;
           window.requestAnimationFrame = (callback) => {
-            count += 1;
+            frames += 1;
             return original.call(window, callback);
           };
+          const status = document.querySelector('#worlds [role="status"]');
+          const observer = new MutationObserver((records) => {
+            statusWrites += records.length;
+          });
+          if (status) {
+            observer.observe(status, { childList: true, characterData: true, subtree: true });
+          }
           const match = new RegExp(pattern.source, pattern.flags);
           const button = [...document.querySelectorAll<HTMLButtonElement>("#worlds button")].find(
             (candidate) => match.test(candidate.textContent ?? ""),
           );
           button?.click();
           await new Promise((resolve) => setTimeout(resolve, 1_500));
+          observer.disconnect();
           window.requestAnimationFrame = original;
-          return count;
+          return { frames, statusWrites };
         },
         { source: label.source, flags: label.flags },
       );
 
+    const beforeFlight = await globeSignature(page);
+    const landing = await press(/take the flight/i);
+
     // The outcome, not a slower animation — and not one frame requested to
     // produce it.
-    expect(
-      await pressAndCountFrames(/take the flight/i),
-      "reduced motion asked for animation frames to land the flight",
-    ).toBe(0);
+    expect(landing.frames, "reduced motion asked for animation frames to land").toBe(0);
+    // And the outcome is on the *canvas*, not only in the DOM. Without this
+    // the whole test passes with the synchronous `draw()` deleted from
+    // `fly()`'s reduced-motion branch: the link and the status line are React
+    // state, and nothing else would ever ask the globe to repaint, so the
+    // planet would sit at Việt Nam under a sentence saying he had landed.
+    const landed = await globeSignature(page);
+    expect(landed, "the finished frame was never drawn").not.toBe(beforeFlight);
     await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
     await expect(section.getByRole("status")).toContainText(/landed/i);
+    expect(landing.statusWrites, "the landing was never announced").toBeGreaterThan(0);
+
+    // Pressing it again reaches the same finished frame — and says so again.
+    // The frame is identical (nothing moved, and nothing is animating to make
+    // it differ), so the announcement is the only observable, which is the
+    // whole point: a control that does something must not be silent.
+    const again = await press(/take the flight/i);
+    expect(again.frames, "a replay under reduced motion asked for frames").toBe(0);
+    expect(again.statusWrites, "a second press announced nothing").toBeGreaterThan(0);
+    await expect(section.getByRole("status")).toContainText(/landed/i);
+    expect(await globeSignature(page)).toBe(landed);
 
     // And the way back, which is the same size of motion: one row of two
     // buttons, both of which owe the same answer to the same preference.
-    expect(
-      await pressAndCountFrames(/face việt nam/i),
-      "reduced motion asked for animation frames to come home",
-    ).toBe(0);
+    const home = await press(/face việt nam/i);
+    expect(home.frames, "reduced motion asked for animation frames to come home").toBe(0);
     await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(0);
+    expect(await globeSignature(page), "the globe never came home").not.toBe(landed);
+  });
+
+  test("orienting the globe with one click asks for no frames either", async ({ page }) => {
+    // The WCAG 2.5.7 path, which is the one that matters most here: a visitor
+    // on a head pointer or eye-gaze cannot hold a drag, so click-to-orient is
+    // how they move the planet at all. Before this it was the last camera move
+    // still easing under reduced motion — which left that visitor with no
+    // non-animating way to move the globe while the two buttons beside it had
+    // one.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    const box = await stage.boundingBox();
+    if (!box) throw new Error("the stage has no box");
+
+    const before = await globeSignature(page);
+    const frames = await page.evaluate(
+      async ([x, y]) => {
+        let count = 0;
+        const original = window.requestAnimationFrame;
+        window.requestAnimationFrame = (callback) => {
+          count += 1;
+          return original.call(window, callback);
+        };
+        const canvas = document.querySelector<HTMLCanvasElement>("#worlds canvas");
+        // Dispatched in-page for the same reason the press above is: the
+        // counter has to be installed before the gesture, or the frames the
+        // gesture causes cannot be told from the ones it did not.
+        if (canvas) {
+          const base = { bubbles: true, pointerId: 7, pointerType: "mouse", clientX: x, clientY: y };
+          canvas.dispatchEvent(new PointerEvent("pointerdown", base));
+          canvas.dispatchEvent(new PointerEvent("pointerup", base));
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1_500));
+        window.requestAnimationFrame = original;
+        return count;
+      },
+      [box.x + box.width * 0.35, box.y + box.height * 0.3] as const,
+    );
+
+    // One frame is allowed and one only: `release` wakes the loop
+    // unconditionally, because a real drag's inertia needs it to, and that
+    // pass finds nothing to do and stops. What must not happen is a second of
+    // easing, which is ~60.
+    expect(frames, "click-to-orient is still easing under reduced motion").toBeLessThanOrEqual(1);
+    // It moved, so the assertion above is about a gesture that did something.
+    expect(await globeSignature(page), "the click did not orient the globe").not.toBe(before);
+  });
+
+  test("picking a world from the list asks for no frames either", async ({ page }) => {
+    // The path all seven list buttons take, and the one holding the largest
+    // swing the section can be asked for: Việt Nam → United States is the
+    // crossing itself, ~156° of planet, the same distance "Take the flight"
+    // above refuses to animate. Easing it here while the button beside it
+    // snapped would have made the preference depend on which control the
+    // visitor happened to reach for.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const list = page.locator("#worlds").getByRole("list", { name: /the seven/i });
+
+    const pickFromTheList = (label: RegExp) =>
+      page.evaluate(
+        async (pattern) => {
+          let frames = 0;
+          const original = window.requestAnimationFrame;
+          window.requestAnimationFrame = (callback) => {
+            frames += 1;
+            return original.call(window, callback);
+          };
+          const match = new RegExp(pattern.source, pattern.flags);
+          // Scoped to the list rather than to `#worlds button`: "Face Việt
+          // Nam" is also a button whose text contains that name, and it is
+          // `reset`, a different path that the test above already covers.
+          const button = [
+            ...document.querySelectorAll<HTMLButtonElement>(
+              '#worlds ul[aria-labelledby="worlds-list-label"] button',
+            ),
+          ].find((candidate) => match.test(candidate.textContent ?? ""));
+          // Thrown rather than optional-chained away: a selector that stopped
+          // matching would otherwise report zero frames and pass, which is the
+          // one failure this test cannot afford to call a success.
+          if (!button) throw new Error(`no world in the list matching ${match}`);
+          button.click();
+          await new Promise((resolve) => setTimeout(resolve, 1_500));
+          window.requestAnimationFrame = original;
+          return frames;
+        },
+        { source: label.source, flags: label.flags },
+      );
+
+    // Face Việt Nam from the list first, so the press being measured is the
+    // half-planet swing rather than whatever distance the globe happened to
+    // mount at — and so this press is itself held to the same contract.
+    expect(await pickFromTheList(/việt nam/i), "facing Việt Nam from the list eased").toBe(0);
+    const facingVietnam = await globeSignature(page);
+
+    // Zero, not click-to-orient's "at most one": `focusWorld` reaches `lookAt`
+    // and nothing else, and `lookAt`'s reduced-motion branch draws once
+    // synchronously and never calls `start()`. `release` is the only path that
+    // wakes the loop unconditionally, which is why that test has one frame to
+    // spend and this one has none.
+    expect(
+      await pickFromTheList(/united states/i),
+      "picking a world is still easing under reduced motion",
+    ).toBe(0);
+
+    // And the swing happened. Without both halves this passes just as well on a
+    // `focusWorld` that was quietly made to do nothing at all.
+    await expect(list.getByRole("button", { name: /united states/i })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(await globeSignature(page), "the globe never swung to the far pin").not.toBe(
+      facingVietnam,
+    );
+    // It arrived, rather than easing on after the counter was put back.
+    await expectAtRest(page, 700, "after picking a world under reduced motion");
   });
 });

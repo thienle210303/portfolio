@@ -21,6 +21,14 @@ import type { GeoPoint } from "@/types/portfolio";
  * makes the interesting half of the globe testable in Vitest, and it is why
  * every geometric bug in this feature is a unit-test failure rather than a
  * screenshot someone has to squint at.
+ *
+ * The last three exports are not geometry, and they are here for that same
+ * reason rather than by accident: `frameStep` and `easeFraction` are the rule
+ * that turns `GlobeCanvas`'s per-frame rates into per-millisecond ones, and a
+ * claim like "the landing lasts the same two thirds of a second at 33 Hz and
+ * at 120 Hz" is arithmetic. Left inside the canvas component it could only be
+ * checked by watching a browser at a frame rate nobody can reproduce on
+ * demand; here it is three unit tests.
  */
 
 const DEG = Math.PI / 180;
@@ -225,4 +233,65 @@ export function unproject(
 
 export function clampTilt(tilt: number): number {
   return Math.max(-MAX_TILT_RADIANS, Math.min(MAX_TILT_RADIANS, tilt));
+}
+
+/**
+ * One frame of a 60 Hz display, and the reference every per-frame rate in
+ * `GlobeCanvas.tsx` is written against.
+ */
+export const FRAME_MS = 1000 / 60;
+
+/**
+ * The most a single animation callback may advance, in reference frames —
+ * three of them, 50 ms.
+ *
+ * Something has to give when a callback arrives late: either the animation
+ * jumps to where a wall clock says it should be, or it runs slow. A
+ * backgrounded tab suspends `requestAnimationFrame` entirely, so the first
+ * callback after it returns carries a gap measured in seconds, and unclamped
+ * that gap teleports the bird across the ocean and snaps the sapling to full
+ * size in one frame — the visitor comes back to a landing that already
+ * happened rather than to one in progress.
+ *
+ * Three is where the two costs cross. Above 20 Hz nothing is clamped at all,
+ * so the whole point of normalising — a constant wall-clock duration — holds
+ * everywhere a real device lives. Below 20 Hz the honest answer is to run slow
+ * rather than to skip, because at that rate the frames are too sparse to draw
+ * motion with anyway. And the shortest beat in the landing survives it: the
+ * seed's fall is 0.3 of a 40-frame timeline, twelve frames, so even a clamped
+ * device draws it four times over and it reads as a fall instead of a blink.
+ */
+export const MAX_FRAME_STEP = 3;
+
+/**
+ * How many reference frames the gap between two animation callbacks covers,
+ * clamped.
+ *
+ * This is the whole of the frame-rate independence: a loop multiplies every
+ * rate it was given "per frame" by this, and a number tuned on a 60 Hz laptop
+ * keeps its meaning on a 33 Hz phone and a 120 Hz display. Without it a
+ * timeline counted in frames is a timeline whose duration is a property of the
+ * hardware.
+ */
+export function frameStep(elapsedMs: number): number {
+  if (!Number.isFinite(elapsedMs)) return 1;
+  return Math.max(0, Math.min(MAX_FRAME_STEP, elapsedMs / FRAME_MS));
+}
+
+/**
+ * The fraction of a remaining gap that an easing written as `perFrame` per
+ * reference frame should close across `frames` of them.
+ *
+ * Exponential easing does not scale linearly, and the difference matters at
+ * exactly the frame rates this exists for. Closing `0.13` of the gap thirty
+ * times leaves 1.5% of it; the naive `0.13 * frames` at half the frame rate
+ * asks for 0.26 a frame, which is not the same curve — and at `MAX_FRAME_STEP`
+ * the naive form would ask for 0.39, while a slower easing (or a lower frame
+ * rate still, before the clamp existed) would ask for more than 1 and
+ * overshoot the target it was easing toward. Compounding cannot: `1 - (1-k)^n`
+ * approaches 1 and never reaches it, so the camera arrives from one side at
+ * every frame rate.
+ */
+export function easeFraction(perFrame: number, frames: number): number {
+  return 1 - Math.pow(1 - perFrame, frames);
 }
