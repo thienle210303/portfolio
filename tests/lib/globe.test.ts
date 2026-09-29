@@ -147,6 +147,7 @@ describe("greatCircle", () => {
   it("survives exact antipodes without returning NaN", () => {
     for (const [x, y, z] of greatCircle({ lat: 10, lon: 0 }, { lat: -10, lon: 180 }, 8).points) {
       expect(Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)).toBe(true);
+      expect(Math.hypot(x, y, z)).toBeCloseTo(1, 8);
     }
   });
 });

@@ -107,6 +107,13 @@ export interface GreatCircle {
  * identical points make `sin(d)` zero, and exact antipodes make the shortest
  * path ambiguous. Both return the start point repeated, which draws nothing
  * and flies nowhere — the honest rendering of "there is no crossing here".
+ *
+ * The degenerate guard uses sin < 1e-6 rather than sin < 1e-9. `Math.acos`
+ * loses about eight decimal digits of precision near ±1, so inputs very close
+ * to antipodal (dot ≈ -1) return an angle ε short of π, giving sin ≈ ε.
+ * This epsilon can be ~1e-8 without reaching the tighter threshold, allowing
+ * SLERP's denominator to become tiny and cause catastrophic cancellation,
+ * producing zero vectors. The 1e-6 threshold catches these cases.
  */
 export function greatCircle(a: GeoPoint, b: GeoPoint, segments: number): GreatCircle {
   const va = toVector(a);
@@ -116,7 +123,7 @@ export function greatCircle(a: GeoPoint, b: GeoPoint, segments: number): GreatCi
   const sin = Math.sin(radians);
   const points: Vec3[] = [];
   for (let i = 0; i <= segments; i += 1) {
-    if (sin < 1e-9) {
+    if (sin < 1e-6) {
       points.push(va);
       continue;
     }
