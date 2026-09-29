@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { answer, SUGGESTED_QUESTIONS } from "@/lib/answers";
+import { buildDocuments } from "@/lib/answer-corpus";
 import {
   careerIndexable,
   education,
-  experimentsIndexable,
   profile,
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { origin, philosophyIntro, principles, problemSolvingLoop } from "@/content/portfolio";
-import { scrapingPlaybook, scrapingPlaybookIntro } from "@/content/ai-experiments";
+import { origin } from "@/content/portfolio";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -30,13 +29,6 @@ const CORPUS = new Set<string>([
     ...project.proof,
     ...project.metrics.map((m) => `${m.label}: ${m.before} → ${m.after}.`),
   ]),
-  // Lab experiments were missing from this list entirely, and the index has
-  // always been able to return them — the vacuous assertion above is why nobody
-  // noticed.
-  ...experimentsIndexable.flatMap((experiment) => [
-    experiment.question,
-    ...experiment.verification,
-  ]),
   ...careerIndexable.flatMap((entry) => [
     ...(entry.summary ? [entry.summary] : []),
     ...entry.impact,
@@ -44,27 +36,20 @@ const CORPUS = new Set<string>([
   ]),
   ...education.map((school) => `${school.credential}, ${school.institution} (${school.dateRange}).`),
   ...skillsIndexable.map((category) => category.evidence),
-  // Philosophy, the origin flight and the problem-solving loop were reachable
-  // from src/content/portfolio.ts but never indexed — corpus expansion for
-  // round 10 (WP-D), so "Ask this site" can answer career/background/how he
-  // works questions, not just the lab.
+  // The origin flight was reachable from src/content/portfolio.ts but never
+  // indexed — corpus expansion for round 10 (WP-D), so "Ask this site" can
+  // answer career/background questions, not just the work. Philosophy's own
+  // paragraphs, principles and problem-solving loop were indexed here too
+  // until round 16 removed the section and its corpus documents with it —
+  // `profile.philosophy` above is the one line from that section still
+  // reachable, re-tagged to About. Round 16 also removed the Lab and its
+  // experiment and scraping-playbook documents.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
-  ...philosophyIntro,
-  ...principles.flatMap((principle) => [
-    principle.summary,
-    principle.detail,
-    ...(principle.evidence ? [principle.evidence.body] : []),
-  ]),
-  ...problemSolvingLoop.map((step) => step.detail),
-  // The scraping playbook (round 11): the owner's approved prose, indexed
-  // verbatim from src/content/ai-experiments.ts.
-  scrapingPlaybookIntro,
-  ...scrapingPlaybook.map((move) => move.body),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé
  *  is its own route now, so `#resume` would be a dead anchor. */
-const LINKABLE_SECTIONS = /^(about|philosophy|work|lab|journey|skills)$/;
+const LINKABLE_SECTIONS = /^(about|work|journey|skills)$/;
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {
@@ -95,6 +80,22 @@ describe("answer", () => {
         expect(result.source.trim()).not.toBe("");
         expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
       }
+    }
+  });
+
+  it("builds no document that points at a dead section id", () => {
+    // The test above only checks LINKABLE_SECTIONS against whatever a
+    // handful of probe queries happen to retrieve — a *sampled* guard on a
+    // *structural* property. A document with a bad sectionId that none of
+    // those probes surfaces would pass silently, which is exactly the
+    // failure mode this round's plan was written about (a removed section
+    // leaving behind a document that still points at it). Iterating the
+    // whole corpus instead makes the guard hold for every document, not
+    // just the ones ranking queries happen to surface.
+    for (const doc of buildDocuments()) {
+      expect(doc.sectionId, `document "${doc.label}" points at a section that no longer exists`).toMatch(
+        LINKABLE_SECTIONS,
+      );
     }
   });
 

@@ -134,11 +134,9 @@ export const socialLinks = [
 // now answers both #tree and #journey (src/sections/CareerTree/anchors.ts).
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
-  { id: "nav-philosophy", sectionId: "philosophy", label: "Philosophy" },
   { id: "nav-work", sectionId: "work", label: "Work" },
   { id: "nav-skills", sectionId: "skills", label: "Skills" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
-  { id: "nav-lab", sectionId: "lab", label: "AI Workflow Lab" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 
@@ -1100,7 +1098,7 @@ export const skillCategories = [
       "Model fine-tuning",
     ],
     evidence:
-      "Multi-agent feasibility workflow at DoorDash; DistilBERT fine-tuning at 92% accuracy; see the AI Workflow Lab for dated experiments.",
+      "Multi-agent feasibility workflow at DoorDash; DistilBERT fine-tuning at 92% accuracy.",
     lenses: ["ai-workflows", "automation"],
   },
   {

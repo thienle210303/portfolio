@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import AskThisSite, { clearThreadCache } from "@/sections/AIWorkflowLab/AskThisSite";
+import AskThisSite, { clearThreadCache } from "@/sections/Hero/AskThisSite";
 
 /**
  * The scrolling thread + "Clear conversation" control (round 12, WP-K).

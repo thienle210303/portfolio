@@ -3,10 +3,10 @@
 A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
-The site is a single narrative page: a code-led hero, a problem-solving
-philosophy, six case studies, an AI Workflow Lab with a dated learning log, a
-career timeline, an interactive résumé, and a contact experience that starts from
-what the visitor actually came to say.
+The site is a single narrative page: a code-led hero (with a chat that
+answers questions about the page, grounded only in what it says), six case
+studies, a skills inventory, a career timeline, an interactive résumé, and a
+contact experience that starts from what the visitor actually came to say.
 
 Visually it is **Blueprint**: a cool paper ground ruled with a faint measurement
 grid, one blue reserved for annotation and measured values, and a margin rail
@@ -82,10 +82,7 @@ tones with no per-tone branch anywhere. A raw token freezes it into one.
 at ≥1024px, stacking after the body as endnotes below that. Every note must be
 a fact **computed from the content layer** — a count, a date, a source — never
 a restatement of the prose beside it, and never a fact that exists nowhere
-else. `SelectedWork` and `AIWorkflowLab` are the reference examples.
-
-Philosophy deliberately has no rail: `ProblemSolvingLoop` lays out nine
-columns, and surrendering the margin drops each to ~127px.
+else. `SelectedWork` and `Skills` are the reference examples.
 
 ### Colour and contrast
 
@@ -141,8 +138,8 @@ date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, philosophy, career entries, case studies, skills, education, certifications, achievements, contact intents |
-| `src/content/ai-experiments.ts` | Workflow stages, AI experiments, learning log |
+| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, contact intents, and the retired Philosophy section's principles/loop/intro (unrendered, kept for a future section) |
+| `src/content/ai-experiments.ts` | Workflow stages, AI experiments, learning log, scraping playbook (unrendered since round 16's removal of the AI Workflow Lab — kept for a future section) |
 | `src/types/portfolio.ts` | The types both files are checked against |
 
 `careerEntries` is the canonical source for organisations, roles and dates. Case
@@ -221,7 +218,10 @@ same narrative arc, and the fields are named for it:
 
 ### Adding an AI experiment
 
-Append to `experiments` in `src/content/ai-experiments.ts`.
+Round 16 removed the AI Workflow Lab section that used to render this array,
+so `experiments` is currently unrendered — kept because a future section is
+expected to re-home it. Append to `experiments` in
+`src/content/ai-experiments.ts`.
 
 ```ts
 {
@@ -247,8 +247,9 @@ Append to `experiments` in `src/content/ai-experiments.ts`.
 Rules enforced by review, not by the compiler:
 
 - An `Exploring` experiment has an **empty `verification` array and no
-  `outcome`**. The UI renders "no results yet" for these. Do not add an outcome
-  to make an entry look complete.
+  `outcome`**. The AI Workflow Lab used to render "no results yet" for these;
+  nothing renders this data today, but the rule still holds for whichever
+  section re-homes it. Do not add an outcome to make an entry look complete.
 - Any claim about a tool's current capabilities needs a `sources` entry linking
   to the vendor's own documentation, because those capabilities change faster
   than this file does.
@@ -256,6 +257,7 @@ Rules enforced by review, not by the compiler:
 
 ### Updating the learning log
 
+Also currently unrendered, for the same reason as `experiments` above.
 `learningLog` in `src/content/ai-experiments.ts`:
 
 - `lastUpdated` — bump this whenever you touch the log; it drives the

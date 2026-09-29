@@ -10,7 +10,7 @@ import { askLiveConfig } from "@/lib/ask-live-config";
  * network surface this route touches is one POST to `ASK_LLM_URL`.
  *
  * Contract with the client (`AskThisSite.tsx`):
- *  - The client only calls this route when `AIWorkflowLab.tsx` (a Server
+ *  - The client only calls this route when `Hero.tsx` (a Server
  *    Component) told it live mode is configured — the same
  *    compute-once-on-the-server, hand-down-a-boolean shape `page.tsx` uses
  *    for Contact's `emailDeliveryConfigured`. This route re-checks
@@ -82,7 +82,7 @@ function respond(body: AskApiResponse, status: number): NextResponse<AskApiRespo
  * is declining.
  */
 const UNGROUNDED_REPLY =
-  "I don't have anything grounded on this page to answer that from, so I'd rather say so than guess. Try asking about his career, the work, how he approaches problems, his background, or the AI Workflow Lab.";
+  "I don't have anything grounded on this page to answer that from, so I'd rather say so than guess. Try asking about his career, the work, his background, or his skills.";
 
 /* -------------------------------------------------------------------------- */
 /* Rate limiting                                                              */
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<AskApiRes
     return respond({ ok: false, reason: "rate-limited" }, 429);
   }
 
-  // Re-checked independently of the boolean `AIWorkflowLab.tsx` handed the
+  // Re-checked independently of the boolean `Hero.tsx` handed the
   // client — see the file banner for why.
   const config = askLiveConfig();
   if (!config) {

@@ -82,10 +82,6 @@ const AMBIENT: Record<string, SceneBuilder> = {
           tabby("Mrrrow?", "That's the headline. The page is the proof."),
         ]
       : null,
-  philosophy: (f) => [
-    tabby("Meow meow meow!", `${f.philosophy.principles} principles! I counted them myself!`),
-    grey("Mrp.", "One loop. He runs it on everything."),
-  ],
   work: (f) => [
     tabby("Mrrrow-meow!", `Ooh — ${f.work.caseStudies} case studies live here!`),
     grey("Meow. Mrp.", `${f.work.sourcedMetrics} sourced figures between them.`),
@@ -97,10 +93,6 @@ const AMBIENT: Record<string, SceneBuilder> = {
   tree: (f) => [
     tabby("Mrrrow! Meow!", `A tree! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
     grey("Meow.", "We planted nothing. It grew from the timeline."),
-  ],
-  lab: (f) => [
-    grey("Mrp. Meow.", `${f.lab.experiments} experiments. ${f.lab.verified} verified.`),
-    tabby("Mrrrow-mrrp!", "The rest say 'no results yet' — honestly!"),
   ],
 };
 
@@ -116,10 +108,6 @@ const ENCORE: Record<string, SceneBuilder> = {
     grey("Mrp. Mrp.", `${f.tree.entries} entries fed it. ${f.tree.work} were work.`),
     tabby("Meow!", `${f.tree.milestones} milestones. Confetti days, every one.`),
   ],
-  lab: () => [
-    tabby("Meow-meow?", "What about the unverified ones?"),
-    grey("Mrp.", "Open questions, and labelled as such."),
-  ],
 };
 
 const TOUR: Record<string, SceneBuilder> = {
@@ -134,10 +122,6 @@ const TOUR: Record<string, SceneBuilder> = {
         ? `${f.about.role}. ${f.about.organization}${endStop(f.about.organization)} The facts hold.`
         : "The start of the page. The facts hold.",
     ),
-  ],
-  philosophy: (f) => [
-    grey("Mrp.", `${f.philosophy.principles} principles. He runs them on everything.`),
-    tabby("Meow-meow!", "One loop, over and over. I've watched it work."),
   ],
   work: (f) => [
     tabby("Mrrrow-meow!", `${f.work.caseStudies} case studies! Real problems, real fixes!`),
@@ -156,10 +140,6 @@ const TOUR: Record<string, SceneBuilder> = {
     grey("Mrp.", `${f.tree.technologies} technologies hang there. We planted nothing.`),
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} of them are work.`),
     tabby("Mrrrow!", "I napped through the rest — they still count!"),
-  ],
-  lab: (f) => [
-    grey("Meow. Mrp.", `${f.lab.experiments} experiments. ${f.lab.verified} hold up so far.`),
-    tabby("Mrrrow?!", "The rest say 'no results yet' — that made me jump!"),
   ],
   contact: () => [
     tabby("Mrrrow-meow-meow!", "Say hi! He answers — usually before I wake up."),

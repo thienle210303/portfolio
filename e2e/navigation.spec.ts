@@ -26,7 +26,7 @@ test.describe("desktop primary nav", () => {
 
     const nav = page.getByRole("navigation", { name: "Primary" });
     for (const item of navItems) {
-      // exact: true — "Work" is otherwise a substring match of "AI Workflow Lab".
+      // exact: true — "Work" was otherwise a substring match of "AI Workflow Lab" before round 16 removed that nav item; kept defensively.
       await nav.getByRole("link", { name: item.label, exact: true }).click();
       await expect(page.locator(`#${item.sectionId}`)).toBeInViewport();
       await expect(nav.getByRole("link", { name: item.label, exact: true })).toHaveAttribute(
@@ -75,7 +75,7 @@ test.describe("mobile nav", () => {
       const panel = page.getByRole("navigation", { name: "Mobile" });
       await expect(panel).toBeVisible();
 
-      // exact: true — "Work" is otherwise a substring match of "AI Workflow Lab".
+      // exact: true — "Work" was otherwise a substring match of "AI Workflow Lab" before round 16 removed that nav item; kept defensively.
       await panel.getByRole("link", { name: item.label, exact: true }).click();
 
       await expect(panel).toBeHidden();

@@ -51,11 +51,12 @@ export function CodeBlock({ code, filename, summary, className, compact = false 
     // No `data-cat-hide` here, and it is worth saying why not: this figure
     // carried it for one commit. A cat hides by standing in the clear band
     // *above* a panel's top edge, and every code figure on this page has
-    // something in that band — the hero's has its tab buttons, the lab's has
-    // the ask form painting over it. Swept every 40px of the page at 1440 and
-    // 1024, the attribute here produced zero usable hiding places out of 695
-    // and 735 scroll positions. A contract that is declared and never once
-    // satisfied is worse than no contract: it reads as coverage.
+    // something in that band — the hero's has its tab buttons, and the AI
+    // Workflow Lab's (removed round 16) had the ask form painting over it.
+    // Swept every 40px of the page at 1440 and 1024, the attribute here
+    // produced zero usable hiding places out of 695 and 735 scroll positions.
+    // A contract that is declared and never once satisfied is worse than no
+    // contract: it reads as coverage.
     <figure className={cn("min-w-0 max-w-full border border-rule bg-surface", className)}>
       <figcaption
         className={cn(

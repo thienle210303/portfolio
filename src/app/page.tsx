@@ -1,7 +1,5 @@
 import Hero from "@/sections/Hero/Hero";
-import Philosophy from "@/sections/Philosophy/Philosophy";
 import SelectedWork from "@/sections/SelectedWork/SelectedWork";
-import AIWorkflowLab from "@/sections/AIWorkflowLab/AIWorkflowLab";
 import Skills from "@/sections/Skills/Skills";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import Contact from "@/sections/Contact/Contact";
@@ -22,15 +20,8 @@ export default function Home() {
       {/*
         Order is an argument about what a visitor needs, in what order.
 
-        Who he is, how he works, what he built, where he has been, the formal
-        record, then the specialist material, then how to reach him.
-
-        The AI Workflow Lab used to sit between Selected Work and the career
-        timeline. It is the single largest section on the page and putting it
-        there split the career story down the middle: proof, a long detour into
-        agent experiments, then back to the timeline. It now comes last of the
-        substantive sections, where an interested reader still finds it and a
-        hiring manager can stop before it.
+        Who he is, what he built, where he has been, the formal record, then
+        how to reach him.
 
         There is deliberately no résumé section. It was a 5,000px second
         telling of this same page — the experience is the timeline, the
@@ -53,11 +44,9 @@ export default function Home() {
         doubles as the page's table of contents.
       */}
       <Hero />
-      <Philosophy />
       <SelectedWork />
       <Skills />
       <CareerTree />
-      <AIWorkflowLab />
       <Contact emailDeliveryConfigured={emailDeliveryConfigured} />
       <Closing />
     </>

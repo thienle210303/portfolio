@@ -45,11 +45,13 @@ const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 const IS_WINDOWS = process.platform === "win32";
 
-// Page order per src/app/page.tsx: about, philosophy, work, skills, tree,
-// lab, contact, closing. No standalone "journey" or "resume" section any
-// more — journey folded into tree (see CareerTree.tsx), résumé moved to its
-// own route (captured separately, below).
-const SECTIONS = ["about", "philosophy", "work", "skills", "tree", "lab", "contact", "closing"];
+// Page order per src/app/page.tsx: about, work, skills, tree, contact,
+// closing. No standalone "journey" or "resume" section any more — journey
+// folded into tree (see CareerTree.tsx), résumé moved to its own route
+// (captured separately, below); Philosophy and the AI Workflow Lab both
+// removed entirely (round 16) — the Lab's chat lives on in the hero's "Ask
+// Thien" tab, captured separately below rather than as a section shot.
+const SECTIONS = ["about", "work", "skills", "tree", "contact", "closing"];
 
 const outPath = (name) => path.join(OUT_DIR, `${name}.png`);
 
@@ -163,14 +165,20 @@ async function captureDesktop(browser) {
   await settle(page, 250);
   await tree.screenshot({ path: outPath("tree-list-1440") });
 
-  // AI Workflow Lab's "Ask this site" chat, with one turn asked from the
-  // suggested-questions list (the workflow explorer this used to capture
-  // retired — see AskThisSite.tsx).
-  const askPanel = page.locator("#lab-ask-heading + div");
-  await askPanel.scrollIntoViewIfNeeded();
+  // The "Ask Thien" chat, with one turn asked from the suggested-questions
+  // list. Round 16 moved this out of the AI Workflow Lab section (deleted)
+  // and into the hero's fourth code-artifact tab, so getting the shot now
+  // means switching to that tab first rather than scrolling to a section.
+  const heroTablist = page.getByRole("tablist", { name: "Code artifact tabs" });
+  await heroTablist.scrollIntoViewIfNeeded();
+  await heroTablist.getByRole("tab", { name: "Ask Thien" }).click();
+  const askPanel = page.getByRole("tabpanel", { name: "Ask Thien" });
+  // The chat is a lazily imported chunk, so wait for it to actually mount
+  // before reaching for the suggested-questions list inside it.
+  await askPanel.getByRole("textbox", { name: "Ask a question about this portfolio" }).waitFor();
   await askPanel.locator('[aria-label="Try asking"] button').first().click();
   await settle(page, 400);
-  await askPanel.screenshot({ path: outPath("lab-ask-turn-1440") });
+  await askPanel.screenshot({ path: outPath("ask-thien-turn-1440") });
 
   // Contact form with an intent selected (prefills reason + message).
   const contact = page.locator("#contact");

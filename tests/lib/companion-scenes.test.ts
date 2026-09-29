@@ -330,38 +330,32 @@ describe("sceneOrder", () => {
   });
 
   /**
-   * Round 11's one situational weight: the moth is drawn to `#lab`'s own lit
-   * tablist, more so by day than by night (the boost is smaller then — see
-   * `LAB_MOTH_BOOST` in companion-play.ts, which this only observes through
-   * its effect). Every other section, and every other flavour shape, is the
-   * ordinary unweighted list — flavour is additive, not a second table.
+   * Round 11's one situational weight was the moth's boost in `#lab`'s own
+   * lit tablist — see `LAB_MOTH_BOOST` in companion-play.ts's history. Round
+   * 16 removed the section and the boost with it, and `flavoredWeights` has
+   * had no rule to apply since: every flavour shape, section or no section,
+   * night or day, produces the same unweighted list.
    */
-  it("leads with the moth far more often in #lab than elsewhere", () => {
-    const mothLeads = (section: string | null) => {
+  it("is unaffected by any flavour — no situational weight exists any more", () => {
+    const mothLeads = (flavor?: { section?: string | null; night?: boolean }) => {
       let count = 0;
       for (let run = 0; run < 2000; run += 1) {
-        if (sceneOrder(false, { section })[0] === "moth") count += 1;
+        if (sceneOrder(false, flavor)[0] === "moth") count += 1;
       }
       return count / 2000;
     };
-    expect(mothLeads("lab")).toBeGreaterThan(mothLeads("work") * 1.5);
-    expect(mothLeads("lab")).toBeGreaterThan(mothLeads(null) * 1.5);
+    const baseline = mothLeads(undefined);
+    const withSection = mothLeads({ section: "work" });
+    const atNight = mothLeads({ section: "work", night: true });
+    // Loose bound, not an exact match — this is comparing independent random
+    // samples of the same distribution, not the same draw.
+    expect(Math.abs(withSection - baseline)).toBeLessThan(0.05);
+    expect(Math.abs(atNight - baseline)).toBeLessThan(0.05);
   });
 
-  it("boosts the moth in #lab less at night than by day", () => {
-    const mothLeads = (night: boolean) => {
-      let count = 0;
-      for (let run = 0; run < 3000; run += 1) {
-        if (sceneOrder(false, { section: "lab", night })[0] === "moth") count += 1;
-      }
-      return count / 3000;
-    };
-    expect(mothLeads(false)).toBeGreaterThan(mothLeads(true));
-  });
-
-  it("is unaffected by a flavour naming an unrelated section", () => {
-    // Same eight scenes, same shape — flavour only ever touches the moth's own
-    // weight in `#lab`, and never removes or adds a scene from the pool.
+  it("carries the same eight scenes regardless of flavour", () => {
+    // Same eight scenes, same shape — flavour no longer touches any weight,
+    // and never removes or adds a scene from the pool.
     for (const flavor of [undefined, { section: "work" }, { section: null }]) {
       const order = sceneOrder(false, flavor);
       expect([...order].sort()).toEqual([...KINDS].sort());

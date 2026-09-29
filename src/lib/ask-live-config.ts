@@ -1,19 +1,19 @@
 /**
  * The live-mode gate for "Ask this site" — same shape as `page.tsx`'s
  * `emailDeliveryConfigured` for Contact, but computed here rather than in
- * `page.tsx` itself, per the round-10 file split: AIWorkflowLab.tsx is
- * already a Server Component, so it can read its own env vars and hand only
- * the resulting boolean down to the client island, without a second file
+ * `page.tsx` itself, per the round-10 file split: the component that needs
+ * the boolean is already a Server Component, so it can read its own env vars
+ * and hand only the result down to the client island, without a second file
  * needing to know these three names exist.
  *
- * Three call sites import this one function, so the three env var names it
+ * Two call sites import this one function, so the three env var names it
  * reads exist in exactly one place: `Hero.tsx` (to decide the boolean it
- * hands down to `AskThisSite`, the chat's only home since round 16),
- * `AIWorkflowLab.tsx` (to pick which of `labIntro[0]` / `labLiveNotice`
- * renders — a callout the Lab still owns even though the chat itself moved
- * out), and `src/app/api/ask/route.ts` (to defend itself independently, the
- * same reason `/api/contact` re-checks its own three env vars rather than
- * trusting the prop it was handed).
+ * hands down to `AskThisSite`, the chat's only home since round 16 — it used
+ * to also gate `AIWorkflowLab.tsx`'s own live-mode callout, but round 16
+ * removed that section along with the choice between `labIntro[0]` and
+ * `labLiveNotice`, both now unrendered) and `src/app/api/ask/route.ts` (to
+ * defend itself independently, the same reason `/api/contact` re-checks its
+ * own three env vars rather than trusting the prop it was handed).
  */
 
 export interface AskLiveConfig {

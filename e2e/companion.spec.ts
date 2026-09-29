@@ -1615,7 +1615,7 @@ test.describe("companion", () => {
       .toBe("clear");
   });
 
-  test("the follower never drops under WCAG clearance during the whole walk back from a hard scroll", async ({
+  test("the follower never drops under WCAG clearance while the walk back is observed", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1635,18 +1635,58 @@ test.describe("companion", () => {
      * The fix is structural: for as long as the lead is still walking, the
      * follower's target is his *live* position (`trailBehind`,
      * companion-motion.ts), not a fixed point of her own — so there is no
-     * second path left to cross. This samples every ~100ms across the
+     * second path left to cross. This samples every ~20ms across the
      * entire walk, not just the two endpoints the test above already
      * covers, which is the only way to actually make the claim "never
-     * drops under the WCAG minimum" rather than "usually doesn't".
+     * drops under the WCAG minimum" rather than "usually doesn't" — but
+     * only if at least one sample actually lands mid-walk; see the
+     * `movedSamples` assertion below for why that is checked explicitly
+     * rather than assumed.
      */
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
-    const measure = () =>
-      page.evaluate(() => {
-        const button = document.querySelector('[aria-controls="companion-actions"]');
+    // The same single, instant jump the axe test makes to reach the work
+    // section's own heading.
+    //
+    // Round 16 note: this used to be a genuinely multi-second walk, because
+    // Philosophy sat between Hero and Work and made the jump a deep one.
+    // With Philosophy gone the jump is short — about 3600px of page height
+    // left with it — and landing on it settles in well under 100ms rather
+    // than drifting for seconds. That is not a regression to work around:
+    // measured directly, this specific jump (page-load to `#work-heading`)
+    // stays clear of the 24px minimum throughout. It is NOT true of every
+    // jump this page can produce — a jump all the way to `#contact-heading`
+    // measured 19.0px, below the floor, on a page anyone can reach from the
+    // nav, the tour, or a bare URL fragment. That is a separate, pre-existing
+    // defect in `trailBehind` (companion-motion.ts) — recorded as a
+    // `test.fixme` right below this test rather than fixed here, because
+    // fixing it means changing motion internals, which is out of scope for
+    // a content-removal task. Sampling below is tuned to what this smaller,
+    // safe jump actually produces; it is not a claim that every jump is
+    // safe.
+    //
+    // Round 16 follow-up: this used to sample from Node, one `page.evaluate`
+    // round trip and a 20ms `waitForTimeout` per loop iteration (30-80ms
+    // effective under six-worker contention), *after* awaiting
+    // `scrollIntoViewIfNeeded` to completion. With the walk itself now
+    // settling in well under 100ms, that round trip reliably lost the race:
+    // the first sample already landed at rest, `movedSamples` stayed 0, and
+    // the "never actually observed the walk" assertion fired on a passing
+    // page — which is exactly what happened once in a full matrix run. The
+    // sampler now runs *inside* the page: a `requestAnimationFrame` loop is
+    // armed first, and the scroll is triggered in the same `page.evaluate`
+    // call immediately after, so there is no round trip between "armed" and
+    // "walking" and every rendered frame is a candidate sample. The trace is
+    // read back once the in-page loop reports it is done.
+    await page.evaluate(() => {
+      const button = document.querySelector('[aria-controls="companion-actions"]');
+      const trace: Array<{ gap: number; fx: number; fy: number; stable: boolean; moved: boolean }> = [];
+      (window as unknown as { __companionTrace: typeof trace }).__companionTrace = trace;
+      (window as unknown as { __companionTraceDone: boolean }).__companionTraceDone = false;
+
+      function measure() {
         const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
         if (!button || cats.length < 2) return null;
         const follow = cats.find((svg) => !button.contains(svg));
@@ -1656,37 +1696,165 @@ test.describe("companion", () => {
         const dxOut = Math.max(f.left - b.right, b.left - f.right);
         const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
         return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
-      });
-
-    // The same single, instant jump the axe test makes to reach the work
-    // section's own heading — the exact shape that produced a multi-second
-    // walk back and, before this fix, the mid-transit flake.
-    await page.locator("#work-heading").scrollIntoViewIfNeeded();
-
-    // Sample continuously until the follower's own drawn position has held
-    // still for three consecutive ticks (300ms) — the walk is over — or a
-    // generous safety deadline, whichever comes first.
-    let previous: { fx: number; fy: number } | null = null;
-    let stableStreak = 0;
-    let samples = 0;
-    const deadline = Date.now() + 15_000;
-    while (Date.now() < deadline && stableStreak < 3) {
-      const m = await measure();
-      if (m) {
-        samples += 1;
-        expect(
-          m.gap,
-          `only ${m.gap.toFixed(1)}px clear of the toggle mid-walk (sample ${samples})`,
-        ).toBeGreaterThanOrEqual(24);
-        stableStreak =
-          previous && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5 ? stableStreak + 1 : 0;
-        previous = { fx: m.fx, fy: m.fy };
       }
-      await page.waitForTimeout(100);
-    }
-    expect(samples, "never found a cat pair to measure").toBeGreaterThan(10);
-    expect(stableStreak, "the pair never actually settled inside the sampling window").toBeGreaterThanOrEqual(3);
+
+      let previous: { fx: number; fy: number } | null = null;
+      let stableStreak = 0;
+      const deadline = performance.now() + 15_000;
+
+      function tick() {
+        const m = measure();
+        if (m) {
+          // `previous` is null only if the pre-scroll seed below failed to
+          // find a cat pair at all (the pair genuinely was not there yet) —
+          // once seeded, every ticked frame has something to compare against,
+          // including the very first one, which is what lets that first
+          // frame register the ride's single-frame jump as "moved" rather
+          // than being exempted from comparison the way an unseeded first
+          // sample would be.
+          const stable = previous !== null && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5;
+          const moved = previous !== null && !stable;
+          trace.push({ ...m, stable, moved });
+          stableStreak = stable ? stableStreak + 1 : 0;
+          previous = { fx: m.fx, fy: m.fy };
+        }
+        if (stableStreak >= 3 || performance.now() > deadline) {
+          (window as unknown as { __companionTraceDone: boolean }).__companionTraceDone = true;
+          return;
+        }
+        requestAnimationFrame(tick);
+      }
+
+      // Seed `previous` with a reading taken *before* the scroll is
+      // triggered, in the same synchronous task — but do not push it into
+      // `trace` itself. The ride shift this jump produces (`rideStep`,
+      // companion-motion.ts) is a single-frame correction: the browser's own
+      // instant, non-smooth `scrollIntoView` reports the fully-scrolled
+      // position the very first time the animation loop reads
+      // `window.scrollY`, so the whole ride delta lands in one rAF tick
+      // rather than being spread across several. Without this pre-scroll
+      // baseline to compare the first tick against, that entire shift would
+      // happen *between* "armed" and the first sampled frame, so the first
+      // trace entry would already show the settled position and the move
+      // would go uncounted even though it demonstrably happened — exactly
+      // the false "never observed" failure this guard exists to catch, just
+      // moved one step earlier.
+      //
+      // The seed reading itself is deliberately excluded from `trace`: it is
+      // the cats' ambient, pre-test wandering position, which this test has
+      // no claim about (they are still roaming when the walk-back test
+      // starts, and that idle position can itself sit a couple of pixels
+      // either side of 24px — a different, ambient-wander invariant, not
+      // the "walk back" one this test asserts). Pushing it would have this
+      // test spuriously fail on ambient jitter that has nothing to do with
+      // the jump or the walk back from it.
+      const initial = measure();
+      if (initial) previous = { fx: initial.fx, fy: initial.fy };
+      requestAnimationFrame(tick);
+
+      // Triggered from inside the same task the sampler was just armed in —
+      // no gap for the walk to start and finish unobserved before Node gets
+      // a chance to do anything else.
+      document.getElementById("work-heading")?.scrollIntoView();
+    });
+
+    await page.waitForFunction(() => (window as unknown as { __companionTraceDone?: boolean }).__companionTraceDone === true, null, {
+      timeout: 20_000,
+    });
+    const trace = await page.evaluate(
+      () => (window as unknown as { __companionTrace: Array<{ gap: number; stable: boolean; moved: boolean }> }).__companionTrace,
+    );
+
+    expect(trace.length, "never found a cat pair to measure").toBeGreaterThanOrEqual(3);
+
+    // Checked before the clearance assertions below, on purpose: they are
+    // only meaningful if the walk was actually watched happening, not just
+    // its two endpoints. Distinct from trace.length: this only counts frames
+    // where the follower's own drawn position actually differed from the
+    // previous frame — i.e. a frame caught mid-walk, not at rest.
+    // trace.length alone is not a reliable proxy for "the walk was actually
+    // observed": the loop's own exit condition (`stableStreak >= 3`) is
+    // satisfiable by three consecutive *identical* readings, so a walk that
+    // is over before the second sampled frame would still produce a trace
+    // without ever showing the cat in motion. A regression that let the
+    // follower cut through the toggle mid-walk could pass silently if every
+    // frame this run happened to catch was already at rest. Requiring at
+    // least one moved frame is what keeps this test honest about having
+    // watched the walk, not just its two endpoints.
+    const movedSamples = trace.filter((t) => t.moved).length;
+    expect(
+      movedSamples,
+      "every sampled frame was already at rest — this run never actually observed the walk, so the clearance assertions below would prove nothing",
+    ).toBeGreaterThan(0);
+
+    const lastThree = trace.slice(-3);
+    expect(
+      lastThree.length === 3 && lastThree.every((t) => t.stable),
+      "the pair never actually settled inside the sampling window",
+    ).toBe(true);
+
+    const worst = trace.reduce((min, t) => Math.min(min, t.gap), Infinity);
+    expect(worst, `only ${worst.toFixed(1)}px clear of the toggle at the worst sampled frame`).toBeGreaterThanOrEqual(24);
   });
+
+  // Recorded, not fixed: `trailBehind` (companion-motion.ts) can let the
+  // follower drop below the 24px WCAG target-size clearance during a
+  // sufficiently deep single scroll jump, or a compound jump (landing
+  // somewhere and immediately re-triggering a second walk before the first
+  // settles). Confirmed pre-existing and unrelated to round 16's Philosophy
+  // removal: a jump straight to `#contact-heading` measures ~18-19px of
+  // clearance (below the 24px floor) on both this branch and unmodified
+  // `main`, using the exact same measurement the test above makes. The
+  // compound-jump shape measures worse still (down to -45px, real overlap)
+  // on this branch; that shape has NOT been cross-checked against `main`, so
+  // treat only the single-deep-jump finding as confirmed pre-existing and
+  // the compound-jump number as unverified pending someone actually doing
+  // that comparison. Fixing `trailBehind`'s clamping for large or
+  // back-to-back jumps is out of scope for a content-removal task — this
+  // `fixme` exists so the finding survives in the tree rather than only in a
+  // task report that gets deleted.
+  test.fixme(
+    "the follower stays clear of the toggle during a deep single jump to Contact",
+    async ({ page }) => {
+      test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await companionAwake(page);
+
+      const measure = () =>
+        page.evaluate(() => {
+          const button = document.querySelector('[aria-controls="companion-actions"]');
+          const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+          if (!button || cats.length < 2) return null;
+          const follow = cats.find((svg) => !button.contains(svg));
+          if (!follow) return null;
+          const b = button.getBoundingClientRect();
+          const f = follow.getBoundingClientRect();
+          const dxOut = Math.max(f.left - b.right, b.left - f.right);
+          const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
+          return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
+        });
+
+      await page.locator("#contact-heading").scrollIntoViewIfNeeded();
+
+      let previous: { fx: number; fy: number } | null = null;
+      let stableStreak = 0;
+      const deadline = Date.now() + 15_000;
+      while (Date.now() < deadline && stableStreak < 3) {
+        const m = await measure();
+        if (m) {
+          expect(
+            m.gap,
+            `only ${m.gap.toFixed(1)}px clear of the toggle mid-walk`,
+          ).toBeGreaterThanOrEqual(24);
+          stableStreak =
+            previous && Math.hypot(m.fx - previous.fx, m.fy - previous.fy) < 0.5 ? stableStreak + 1 : 0;
+          previous = { fx: m.fx, fy: m.fy };
+        }
+        await page.waitForTimeout(20);
+      }
+    },
+  );
 
   test("does not roam when the visitor asks for reduced motion", async ({ browser }) => {
     const context = await browser.newContext({
@@ -1811,7 +1979,7 @@ test.describe("companion", () => {
 
   /* ------------------------------------------------------------- D4/D5: the guided tour -- */
 
-  test("walks all seven stops, choosing a route at the fork, and ends back on the cat", async ({
+  test("walks all five stops, choosing a route at the fork, and ends back on the cat", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1825,8 +1993,8 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    for (let stop = 1; stop <= 7; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 7`, "i"))).toBeVisible({
+    for (let stop = 1; stop <= 5; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 5`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       const before = await page.evaluate(() => window.scrollY);
@@ -1843,16 +2011,17 @@ test.describe("companion", () => {
         expect(after).not.toBe(before);
       }
       if (stop === 2) {
-        // The one fork in the walk: "Next stop" is gone here, replaced by
-        // the two routes — both of which reach every one of the seven
-        // stops, just in a different order. This run follows Grey's.
+        // The one fork in the walk, now after Work rather than Philosophy:
+        // "Next stop" is gone here, replaced by the two routes — both of
+        // which reach every one of the five stops, just in a different
+        // order. This run follows Grey's.
         await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
         await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
         await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
         await hud.getByRole("button", { name: /follow grey/i }).click();
         continue;
       }
-      const isLast = stop === 7;
+      const isLast = stop === 5;
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
 
@@ -1874,27 +2043,27 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    // To the fork — About, then Philosophy — and pick the cat the other test
-    // did not: the curious route, which walks the middle four stops in the
+    // To the fork — About, then Work — and pick the cat the other test did
+    // not: the curious route, which walks the middle two stops in the
     // opposite order.
-    await expect(hud.getByText(/stop 1 of 7/i)).toBeVisible({ timeout: 10_000 });
+    await expect(hud.getByText(/stop 1 of 5/i)).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /next stop/i }).click();
 
-    await expect(hud.getByText(/stop 2 of 7/i)).toBeVisible({ timeout: 10_000 });
+    await expect(hud.getByText(/stop 2 of 5/i)).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /follow tabby/i }).click();
 
-    for (let stop = 3; stop <= 7; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 7`, "i"))).toBeVisible({
+    for (let stop = 3; stop <= 5; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 5`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       await expect(status).not.toHaveText("", { timeout: 10_000 });
-      const isLast = stop === 7;
+      const isLast = stop === 5;
       if (isLast) {
         // Both routes share the same last stop — Contact — regardless of
-        // which way the middle four were walked.
-        await expect(hud.getByText(/stop 7 of 7.*contact/i)).toBeVisible();
+        // which way the middle two were walked.
+        await expect(hud.getByText(/stop 5 of 5.*contact/i)).toBeVisible();
       }
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }

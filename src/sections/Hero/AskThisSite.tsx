@@ -26,8 +26,9 @@ import {
  * round 15 this lived as a static import inside the AI Workflow Lab section;
  * since round 16 it lives behind the hero's "Ask Thien" tab instead, reached
  * by a dynamic `import()` (see `HeroCodeArtifact.tsx`) so the chat engine no
- * longer rides along in the page's initial JavaScript. The Lab section still
- * exists, but this component is no longer part of it.
+ * longer rides along in the page's initial JavaScript. Round 16 went on to
+ * remove the Lab section entirely — this component is the one thing that
+ * moved out of it ahead of the demolition, under `src/sections/Hero/`.
  *
  * It looks unlike the sections around it on purpose. Everything else on the
  * page is a document being read; this is an instrument being operated, so it

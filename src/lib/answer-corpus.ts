@@ -1,10 +1,8 @@
-import { scrapingPlaybook, scrapingPlaybookIntro } from "@/content/ai-experiments";
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
-import { origin, philosophyIntro, principles, problemSolvingLoop } from "@/content/portfolio";
+import { origin } from "@/content/portfolio";
 import {
   careerIndexable,
   education,
-  experimentsIndexable,
   profile,
   projectsIndexable,
   skillsIndexable,
@@ -112,77 +110,39 @@ export function buildDocuments(): Document[] {
     ),
   });
 
+  // Philosophy the section is gone (round 16), but this line is still
+  // rendered live in three places — the hero's rail, the business card, the
+  // career tree's plinth — so the document stays and is re-tagged to About,
+  // the hero's own section id (Hero.tsx renders `id="about"`), rather than
+  // being dropped with the rest of the section's corpus.
+  //
+  // The words below used to live on `sectionExpansions.philosophy`, spread
+  // across every document the old section contributed. With only this one
+  // line left, they belong here instead, field-specific rather than
+  // section-wide — the same scope rule this file's own banner states.
   docs.push({
     text: profile.philosophy,
     source: "The idea the whole site hangs from",
-    sectionId: "philosophy",
-    sectionLabel: "Philosophy",
-    label: label("philosophy", undefined, "believe", "thinks"),
+    sectionId: "about",
+    sectionLabel: "About",
+    label: label(
+      "about",
+      undefined,
+      "believe",
+      "thinks",
+      "philosophy",
+      "value",
+      "belief",
+      "believes",
+      "principle",
+      "mindset",
+      "approach",
+      "decide",
+      "decision",
+      "choose",
+      "judgement",
+    ),
   });
-
-  // The two paragraphs that actually open the Philosophy section — present on
-  // the page since it was built, but never reachable through this box until
-  // now. "Impossible" is exactly the kind of word a visitor types that these
-  // two paragraphs, and nothing else on the page, answer.
-  for (const paragraph of philosophyIntro) {
-    docs.push({
-      text: paragraph,
-      source: "Philosophy, in his own words",
-      sectionId: "philosophy",
-      sectionLabel: "Philosophy",
-      label: label("philosophy", undefined, "impossible", "possible", "unsolved", "unsolvable"),
-    });
-  }
-
-  for (const principle of principles) {
-    const shared = [principle.title, "principle"];
-
-    docs.push({
-      text: principle.summary,
-      source: `Philosophy — ${principle.title}`,
-      sectionId: "philosophy",
-      sectionLabel: "Philosophy",
-      label: label("philosophy", principle.id, ...shared, "summary"),
-    });
-
-    docs.push({
-      text: principle.detail,
-      source: `Philosophy — ${principle.title}`,
-      sectionId: "philosophy",
-      sectionLabel: "Philosophy",
-      label: label("philosophy", principle.id, ...shared, "explain reasoning why how"),
-    });
-
-    if (principle.evidence) {
-      docs.push({
-        text: principle.evidence.body,
-        source: `Philosophy — ${principle.title}, in practice (${principle.evidence.context})`,
-        sectionId: "philosophy",
-        sectionLabel: "Philosophy",
-        label: label(
-          "philosophy",
-          principle.id,
-          ...shared,
-          "example evidence practice applied",
-          principle.evidence.context,
-        ),
-      });
-    }
-  }
-
-  // The nine-step loop is the philosophy's own working process, stated as
-  // steps rather than as belief -- "what do you actually do" is a different
-  // question from "what do you believe", and until now only the second had
-  // an answer in this index.
-  for (const step of problemSolvingLoop) {
-    docs.push({
-      text: step.detail,
-      source: `Philosophy — problem-solving loop, ${step.label}`,
-      sectionId: "philosophy",
-      sectionLabel: "Philosophy",
-      label: label("philosophy", `loop-${step.id}`, step.label, "step", "process", "approach"),
-    });
-  }
 
   for (const project of projectsIndexable) {
     const where = project.organization ? `${project.title} — ${project.organization}` : project.title;
@@ -250,52 +210,6 @@ export function buildDocuments(): Document[] {
         ),
       });
     }
-  }
-
-  for (const experiment of experimentsIndexable) {
-    docs.push({
-      text: experiment.question,
-      source: `AI Workflow Lab — ${experiment.title} (${experiment.status})`,
-      sectionId: "lab",
-      sectionLabel: "AI Workflow Lab",
-      label: label(
-        "lab",
-        experiment.id,
-        experiment.title,
-        experiment.status,
-        "agent workflow question exploring trying",
-      ),
-    });
-
-    for (const finding of experiment.verification) {
-      docs.push({
-        text: finding,
-        source: `AI Workflow Lab — ${experiment.title}, verified`,
-        sectionId: "lab",
-        sectionLabel: "AI Workflow Lab",
-        label: label("lab", experiment.id, experiment.title, "result verified finding measured"),
-      });
-    }
-  }
-
-  // The scraping playbook: the owner's approved prose, verbatim. Each move's
-  // title rides in `label` so "how does he approach scraping?" matches the
-  // right move without the title needing to be part of the quoted answer.
-  docs.push({
-    text: scrapingPlaybookIntro,
-    source: "AI Workflow Lab — the scraping playbook",
-    sectionId: "lab",
-    sectionLabel: "AI Workflow Lab",
-    label: label("lab", undefined, "scraping playbook web scraper collection approach lessons"),
-  });
-  for (const move of scrapingPlaybook) {
-    docs.push({
-      text: move.body,
-      source: `AI Workflow Lab — the scraping playbook: ${move.title}`,
-      sectionId: "lab",
-      sectionLabel: "AI Workflow Lab",
-      label: label("lab", undefined, move.title, "scraping playbook web scraper collection lesson"),
-    });
   }
 
   for (const entry of careerIndexable) {

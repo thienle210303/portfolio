@@ -1,5 +1,4 @@
 import { test, expect, type Page } from "@playwright/test";
-import { experiments } from "../src/content/ai-experiments";
 
 const DESKTOP_MIN_WIDTH = 1024;
 
@@ -57,36 +56,6 @@ test("no [NEEDS INPUT marker is rendered with the mobile menu open", async ({ pa
   await expect(page.getByRole("navigation", { name: "Mobile" })).toBeVisible();
   const bodyText = await page.locator("body").innerText();
   expect(bodyText).not.toContain("[NEEDS INPUT");
-});
-
-test("every Exploring AI experiment shows 'no results yet' and no fabricated outcome", async ({ page }) => {
-  const exploring = experiments.filter((experiment) => experiment.status === "Exploring");
-  expect(exploring.length, "content fixture assumption failed: no Exploring experiments found").toBeGreaterThan(0);
-
-  for (const experiment of exploring) {
-    const article = page
-      .locator("article")
-      .filter({ has: page.getByRole("heading", { name: experiment.title, level: 4 }) });
-    // Clicked inside a retry block rather than once: the trigger is
-    // server-rendered and therefore clickable before React has attached its
-    // listener, and a click that lands in that gap is silently lost — seen
-    // once at chromium-390 with six workers contending for the dev server.
-    // A real pointer can't meaningfully hit a tens-of-milliseconds window,
-    // so the retry belongs here, not in the component.
-    const trigger = article.getByRole("button", { name: /Read the full experiment/ });
-    await expect(async () => {
-      if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
-      expect(await trigger.getAttribute("aria-expanded")).toBe("true");
-    }).toPass();
-
-    await expect(
-      article.getByText("No results yet — this is an open question."),
-      `"${experiment.title}" must show the no-results line`,
-    ).toBeVisible();
-    await expect(article.getByText("Outcome", { exact: true }), `"${experiment.title}" must not show an Outcome`).toHaveCount(
-      0,
-    );
-  }
 });
 
 test("every displayed metric has a visible, non-empty source string", async ({ page }) => {

@@ -177,7 +177,7 @@ const FOLLOW_SLACK = 58;
 /**
  * How far behind the lead the follower trails on a *long* walk — round 15's
  * own follow-up, and deliberately wider than the ordinary `FOLLOW_GAP` the
- * pointer-chase and the philosophy lap still use unchanged.
+ * pointer-chase still uses unchanged.
  *
  * The two questions read the same ("how far behind him is she") but are not
  * the same question. Ordinary trailing is *motion the visitor is watching* —
@@ -451,11 +451,18 @@ interface EscortRun {
 /**
  * A section mood in flight — see companion-moods for what one is.
  *
- * `walked` is what makes the Philosophy lap happen *once* rather than every
+ * `walked` is what would make a mood's lap happen *once* rather than every
  * time the pair re-settle: the plan is recomputed constantly (a scroll moves
  * every rectangle it is built from), so the memory of having already walked it
  * has to live outside the plan. Reset when the visitor moves to another
  * section, which is the only thing that makes a mood new again.
+ *
+ * No mood currently supplies a non-empty `path` — the one that did, the
+ * Philosophy loop diagram, was removed with the section (round 16) — so
+ * `walked` is always true and `MoodWalk` below is never populated. Left in
+ * place rather than stripped: it is client-side motion machinery with its
+ * own tests, and this task's scope is the section, not the companion's
+ * walking mechanics.
  */
 interface MoodRun {
   readonly kind: MoodKind;
@@ -1791,8 +1798,8 @@ export function Companion({ facts }: CompanionProps) {
     const section = sectionRef.current;
     if (!section) return;
     // Once a section's ambient scene has already had its once-per-visit
-    // showing, an encore is the next thing to offer — but only tree and lab
-    // have one. Everywhere else, replay the ambient scene rather than going
+    // showing, an encore is the next thing to offer — but only tree has
+    // one. Everywhere else, replay the ambient scene rather than going
     // silent for the rest of the visit; `duetShown` already has the section,
     // so this replay does not touch it again.
     const scene = duetShown.current.has(section)
@@ -2410,7 +2417,7 @@ export function Companion({ facts }: CompanionProps) {
 
           /**
            * The play's choreography: one beat per stop, existing mechanics
-           * only. About, Philosophy and Tree get nothing here on purpose —
+           * only. About and Tree get nothing here on purpose —
            * the pair's own default sit, and the facing they already carry in
            * from the walk, already read as "peering up" and "looking up at
            * the figure"; adding a forced pose to a cat already sitting still
@@ -2427,7 +2434,7 @@ export function Companion({ facts }: CompanionProps) {
            * ending the tour drops whichever of these happens to be open
            * along with everything else.
            */
-          if (stop.sectionId === "work" || stop.sectionId === "lab") {
+          if (stop.sectionId === "work") {
             cheerRef.current = { until: now + CHEER_MS };
             setCheer(true);
             window.setTimeout(() => setCheer(false), CHEER_MS);
@@ -4201,7 +4208,8 @@ export function Companion({ facts }: CompanionProps) {
 
   /**
    * The HUD's fork in the walk, offered once — see `TourHud`'s
-   * `showRouteChoice` — after Philosophy's scene. Picking either cat settles
+   * `showRouteChoice` — after Work's scene, the second stop now that
+   * Philosophy is gone. Picking either cat settles
    * `route` for the rest of the walk and immediately does what "Next stop"
    * would have: the choice replaces that button at this one juncture, it
    * does not sit beside it.
@@ -4657,10 +4665,11 @@ export function Companion({ facts }: CompanionProps) {
           label={stopsFor(tourView.route)[tourView.index].label}
           lines={tourView.lines}
           isLast={isLastStop(tourView.index)}
-          // The one fork in the walk: offered exactly at Philosophy (index 1,
-          // the second stop) once its scene has actually arrived — not while
-          // the pair are still walking there — replacing "Next stop" rather
-          // than sitting beside it. See `chooseRoute`.
+          // The one fork in the walk: offered exactly at Work (index 1, the
+          // second stop now that Philosophy is gone) once its scene has
+          // actually arrived — not while the pair are still walking there —
+          // replacing "Next stop" rather than sitting beside it. See
+          // `chooseRoute`.
           showRouteChoice={tourView.index === 1 && tourView.lines.length > 0 && !tourView.routeChosen}
           onChooseRoute={chooseRoute}
           onNext={advanceTour}
