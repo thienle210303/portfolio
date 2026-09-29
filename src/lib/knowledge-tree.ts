@@ -228,6 +228,17 @@ export function totalTechnologies(): number {
 }
 
 /**
+ * Every leaf across a set of branches: every technology and every impact
+ * line any of them lists, summed. Takes the built tree rather than building
+ * its own — `CareerTree.tsx`'s rail and `src/lib/worlds.ts`'s Plants-world
+ * plaque each already have one in hand, and this was previously written out
+ * as the same `reduce` in both places.
+ */
+export function totalLeaves(branches: readonly TreeBranch[]): number {
+  return branches.reduce((total, branch) => total + branch.leaves.length, 0);
+}
+
+/**
  * The career's span, in whole years — first and last `startYear` across
  * every career entry, and the count of years that spans inclusively. `2021`
  * through `2025` is five years, not four: a growth ring is drawn for each

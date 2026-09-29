@@ -13,9 +13,10 @@ import {
   greatCircle,
   type GreatCircle,
 } from "@/lib/globe";
-import { buildCareerTree, stillGrowingCaption, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildCareerTree, stillGrowingCaption, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
+import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
 import {
   resolved as unwrap,
   type ComputedFactId,
@@ -79,9 +80,8 @@ function computedFact(id: ComputedFactId): { text: string; source: string } | nu
   switch (id) {
     case "tree-shape": {
       const branches = buildCareerTree();
-      const leaves = branches.reduce((total, branch) => total + branch.leaves.length, 0);
       return {
-        text: `${branches.length} branches · ${leaves} authored leaves · ${totalTechnologies()} distinct technologies`,
+        text: `${branches.length} branches · ${totalLeaves(branches)} authored leaves · ${totalTechnologies()} distinct technologies`,
         source: "buildCareerTree() — computed, not typed",
       };
     }
@@ -103,12 +103,12 @@ function computedFact(id: ComputedFactId): { text: string; source: string } | nu
     case "play-scenes":
       return {
         text: `${SCENE_NAMES.length} scenes: ${SCENE_NAMES.join(" · ")}`,
-        source: "companion-play.ts — the scenes the pair actually play",
+        source: "scene-names.ts — the scenes the pair actually play",
       };
     case "ai-tools":
       return {
         text: aiTools.map((tool) => tool.name).join(" · "),
-        source: "aiTools — each links to its vendor's own docs",
+        source: "aiTools — the name of every tool in the reference",
       };
   }
 }
@@ -183,7 +183,12 @@ function resolvePlaque(glyph: GlyphId, ref: PlaqueRef): ResolvedPlaque | null {
         text: value,
         source: `projects.${project.id} · ${ref.field}`,
         attribution: project.title,
-        link: ref.link,
+        // Derived here, not authored on the ref: `SelectedWork.tsx` renders
+        // every entry of `projects` as its own case study, so any project
+        // this branch can find always has a real anchor — one spelling of it
+        // (`caseStudyAnchorId`), computed from the id already in hand rather
+        // than carried on the content layer as a second, hand-typed string.
+        link: `#${caseStudyAnchorId(project.id)}`,
       };
     }
     case "companion": {
@@ -192,8 +197,11 @@ function resolvePlaque(glyph: GlyphId, ref: PlaqueRef): ResolvedPlaque | null {
       return {
         glyph,
         kind: "field",
-        // Three whole fields, joined. Not a sentence written about her.
-        text: `${cat.name}, ${cat.coat}. ${cat.habit}`,
+        // Just the name — a single authored field, not a sentence the
+        // resolver composes about her. `coat` and `habit` ride in
+        // `attribution`, the slot that exists for exactly this shape.
+        text: cat.name,
+        attribution: `${cat.coat} · ${cat.habit}`,
         source: `companions.${cat.id} — a real animal, named ${cat.authoredOn}`,
       };
     }

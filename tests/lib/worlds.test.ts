@@ -8,7 +8,7 @@ import {
 } from "@/content/portfolio";
 import { worlds } from "@/content/worlds";
 import { DECORATION_LABEL, crossingKm, resolveWorlds } from "@/lib/worlds";
-import { buildCareerTree, stillGrowingCaption, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildCareerTree, stillGrowingCaption, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
 import { isNeedsInput } from "@/types/portfolio";
@@ -33,12 +33,16 @@ for (const project of projects) {
   AUTHORED.add(project.learned);
   AUTHORED.add(project.nextQuestion);
 }
-for (const cat of companions) AUTHORED.add(`${cat.name}, ${cat.coat}. ${cat.habit}`);
+// Just the name: the companion plaque's `text` is `cat.name` alone (`coat`
+// and `habit` ride in `attribution` instead), so this stays a genuinely
+// independent check rather than seeding AUTHORED with the same composition
+// the resolver builds.
+for (const cat of companions) AUTHORED.add(cat.name);
 
 /** What a `computed` plaque is allowed to say, recomputed here from the same
  *  functions the resolver calls. */
 const COMPUTED = new Set<string>([
-  `${buildCareerTree().length} branches · ${buildCareerTree().reduce((n, b) => n + b.leaves.length, 0)} authored leaves · ${totalTechnologies()} distinct technologies`,
+  `${buildCareerTree().length} branches · ${totalLeaves(buildCareerTree())} authored leaves · ${totalTechnologies()} distinct technologies`,
   stillGrowingCaption(),
   `${origin.from} → ${origin.to} · ${origin.arrived}`,
   `${seasonsFor().length} seasons since ${origin.arrived}`,
@@ -73,6 +77,36 @@ describe("the seven worlds", () => {
     expect(byId.get("animals")?.point).toBeNull();
     expect(byId.get("tech")?.point).toBeNull();
     expect(byId.get("tech")?.orbits).toBe(true);
+  });
+});
+
+describe("resolution keeps everything it should", () => {
+  // The resolver's designed failure mode is silent dropping — a broken
+  // `careerEntryById`, a renamed content id — and the honesty-rule tests
+  // below only ever iterate the plaques that *did* survive. A field-path
+  // failure that drops every field plaque would leave those tests green on
+  // an empty set. These two pin the actual numbers, so that failure mode
+  // shows up here instead of on the page.
+  it("resolves the exact plaque and decoration count for every world", () => {
+    expect(
+      resolved.map((world) => [world.id, world.plaques.length, world.decorations.length]),
+    ).toEqual([
+      ["vietnam", 1, 1],
+      ["usa", 5, 0],
+      ["sea", 3, 1],
+      ["sky", 2, 1],
+      ["plants", 2, 0],
+      ["animals", 3, 0],
+      ["tech", 3, 0],
+    ]);
+  });
+
+  it("resolves both field and computed plaques, not just whichever kind survives if the other path breaks", () => {
+    const counts = { field: 0, computed: 0 };
+    for (const world of resolved) {
+      for (const plaque of world.plaques) counts[plaque.kind] += 1;
+    }
+    expect(counts).toEqual({ field: 12, computed: 7 });
   });
 });
 

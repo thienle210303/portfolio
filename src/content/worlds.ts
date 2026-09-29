@@ -1,4 +1,4 @@
-import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
+import { origin } from "@/content/portfolio";
 import type { World } from "@/types/portfolio";
 
 /**
@@ -16,13 +16,11 @@ import type { World } from "@/types/portfolio";
  * what was under the flight, what was above it, what grew from it — then the
  * two worlds that are not on the map at all.
  *
- * The two Technology plaques link to their case studies via
- * `caseStudyAnchorId()` (`src/sections/SelectedWork/anchors.ts`) rather than
- * a hand-typed `#work-<id>` string — that helper is already the one spelling
- * of a case-study anchor every other jump link on the site agrees on
- * (`DrawnTree.tsx`, `KnowledgeTreeList.tsx`, `CaseStudy.tsx`,
- * `SelectedWork.tsx`), and a second, hand-rolled copy here is exactly the
- * kind of drift that convention exists to prevent.
+ * This file only ever holds a record id, a field name and — for a
+ * `careerEntryLine` — a list index. Anything that has to be *computed* from
+ * that address, including the Technology world's case-study links, is
+ * `src/lib/worlds.ts`'s job: keeping this file to plain data is what keeps it
+ * from importing outward into `src/sections/`.
  */
 export const worlds = [
   {
@@ -30,7 +28,7 @@ export const worlds = [
     name: "Việt Nam",
     glyph: "comtam",
     anchor: { at: "origin-from" },
-    where: "Kiên Giang, Việt Nam — province level, no city",
+    where: `${origin.from} — province level, no city`,
     plaques: [{ glyph: "comtam", ref: { of: "computed", id: "crossing" } }],
     decorations: [
       { glyph: "comtam", draws: "a plate of cơm tấm — broken rice, a grilled chop, a fried egg" },
@@ -51,6 +49,10 @@ export const worlds = [
       { glyph: "trophy", ref: { of: "careerEntry", id: "cockyhacks", field: "role" } },
       { glyph: "trophy", ref: { of: "careerEntry", id: "code-to-give", field: "role" } },
       { glyph: "ribbon", ref: { of: "careerEntry", id: "magellan", field: "role" } },
+      // `index` is positional against `usc-ta.impact` as authored today — a
+      // reorder of that array silently repoints this plaque to a different
+      // line. Nothing fails, because every line in it is already in
+      // `AUTHORED`; this is the one place that has to be kept in sync by eye.
       { glyph: "chalk", ref: { of: "careerEntryLine", id: "usc-ta", field: "impact", index: 1 } },
     ],
     // No decorations, on purpose: the mockup's mug and library were
@@ -65,6 +67,9 @@ export const worlds = [
     anchor: { at: "arc-midpoint" },
     where: "The midpoint of the crossing — derived from the two pins, not typed",
     plaques: [
+      // Positional against `usc-scraping.built`/`.impact` — see the note on
+      // the USA world's `usc-ta` plaque above. A reorder of either array
+      // silently repoints these two.
       { glyph: "net", ref: { of: "careerEntryLine", id: "usc-scraping", field: "built", index: 1 } },
       { glyph: "buoy", ref: { of: "careerEntryLine", id: "usc-scraping", field: "impact", index: 0 } },
       { glyph: "book", ref: { of: "careerEntry", id: "usc-scraping", field: "learned" } },
@@ -120,24 +125,8 @@ export const worlds = [
     // itself stays in `src/content/ai-experiments.ts`, unrendered, which is what
     // makes that decision reversible.
     plaques: [
-      {
-        glyph: "chip",
-        ref: {
-          of: "project",
-          id: "dd-scraper-platform",
-          field: "tagline",
-          link: `#${caseStudyAnchorId("dd-scraper-platform")}`,
-        },
-      },
-      {
-        glyph: "magnifier",
-        ref: {
-          of: "project",
-          id: "dd-feasibility-agent",
-          field: "tagline",
-          link: `#${caseStudyAnchorId("dd-feasibility-agent")}`,
-        },
-      },
+      { glyph: "chip", ref: { of: "project", id: "dd-scraper-platform", field: "tagline" } },
+      { glyph: "magnifier", ref: { of: "project", id: "dd-feasibility-agent", field: "tagline" } },
       { glyph: "sat", ref: { of: "computed", id: "ai-tools" } },
     ],
     decorations: [],

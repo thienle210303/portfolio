@@ -167,10 +167,11 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
           );
         })}
       </ul>
-      {/* `ListGrowingTip` computes its own year from `careerYearSpan()`, the
-          same source `tree`'s own last entry traces back to. Guarded rather
-          than assumed: `KnowledgeTree.tsx` never renders this component with
-          an empty tree, but nothing here should crash if it ever did. */}
+      {/* `ListGrowingTip` takes no argument and reads `careerYearSpan()`
+          itself, so nothing here could crash on an empty `tree` even without
+          this guard. It stays because an empty career section has nothing to
+          be "still growing" — the tip would be asserting a fact about a list
+          that does not exist. */}
       {tree.length > 0 ? <ListGrowingTip /> : null}
     </div>
   );
