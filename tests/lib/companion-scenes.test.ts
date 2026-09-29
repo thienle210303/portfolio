@@ -526,10 +526,14 @@ describe("the peek, beat by beat", () => {
 
 describe("SCENE_NAMES, the one list of play scenes", () => {
   it("names all eight scenes the play engine actually weights", () => {
-    // ROAM_WEIGHTS is the real registry — every scene the engine can pick has
-    // a weight in it. If a scene is added there and not here, the Animals
-    // world's plaque quietly under-reports, which is exactly the kind of
-    // silent drift a duplicated list produces.
+    // The real gate is `tsc`, not this assertion: `SceneKind` derives from
+    // SCENE_NAMES, and ROAM_WEIGHTS, WANDER_WEIGHTS and PROP are all typed
+    // `Record<SceneKind, …>`, so TypeScript's exact-literal checking already
+    // forces every one of them to carry exactly these eight keys — a real
+    // mismatch fails at typecheck, which runs before `test` in `pnpm verify`.
+    // What this assertion catches is the one path typecheck doesn't cover: a
+    // standalone `pnpm vitest run` with no preceding `tsc`. Redundant under
+    // the gated pipeline, still worth keeping for that path.
     expect([...SCENE_NAMES].sort()).toEqual(Object.keys(ROAM_WEIGHTS).sort());
   });
 
