@@ -1,4 +1,5 @@
 import Hero from "@/sections/Hero/Hero";
+import Worlds from "@/sections/Worlds/Worlds";
 import SelectedWork from "@/sections/SelectedWork/SelectedWork";
 import Skills from "@/sections/Skills/Skills";
 import CareerTree from "@/sections/CareerTree/CareerTree";
@@ -19,6 +20,11 @@ export default function Home() {
     <>
       {/*
         Order is an argument about what a visitor needs, in what order.
+
+        Round 16 puts Playground Earth second, in the slot Philosophy used to
+        hold: below the fold, before the evidence. It is the one section that
+        is an argument about the person rather than the work, and it earns that
+        position by being made entirely of the work's own facts.
 
         Who he is, what he built, where he has been, the formal record, then
         how to reach him.
@@ -44,6 +50,7 @@ export default function Home() {
         doubles as the page's table of contents.
       */}
       <Hero />
+      <Worlds />
       <SelectedWork />
       <Skills />
       <CareerTree />
