@@ -703,3 +703,35 @@ Gate: `pnpm verify` green, full matrix **491 passed / 0 failed** (one
 intermediate run failed 10 tests, all chromium-320, all unrelated specs,
 all passing 20/20 scoped — a loaded-machine shard, recorded as
 environmental). With this, every item from rounds 1–15 is shipped.
+
+## Round 16 (2026-09-02) — Playground Earth
+
+Design: `docs/superpowers/specs/2026-09-02-playground-earth-design.md`.
+
+### Performance baseline
+
+Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
+~1.6 Mbps. Re-run after every step that touches the initial chunk set.
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| Before round 16 | 207.4 KB | 14.2 KB | 331.4 KB | 3884 ms | 359 ms | 0 | 4369 |
+| After the chat moved into the hero tab | 192.7 KB | 14.2 KB | 331.4 KB | 3840 ms | 456 ms | 0 | 4120 |
+| After, same-commit re-run | 192.7 KB | 14.2 KB | 331.4 KB | 4032 ms | 260 ms | 0 | 4120 |
+
+Moving the chat into the hero's fourth tab took 14.7 KB off the initial
+JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms
+baseline, but the same-commit re-run above measured 260 ms — a 196 ms swing
+with no code change between the two, consistent with this machine's known
+run-to-run TBT noise, not a confirmed regression. JS, CSS, fonts, LCP, CLS
+and DOM nodes did not move materially.
+
+LCP element is the hero intro paragraph. Two standing facts this table exists
+to keep honest:
+
+- LCP is already past the 2.5 s "good" threshold on a phone. Nothing new may
+  be added to the first screen.
+- Newsreader **italic** is 143.6 KB of the 331.4 KB and is used in exactly two
+  places (`BusinessCard.tsx:275`, `Closing.tsx:76`). Dropping that one axis is
+  the single largest win available and is tracked as its own decision, not
+  bundled into this work.

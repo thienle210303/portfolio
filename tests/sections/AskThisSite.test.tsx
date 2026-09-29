@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import AskThisSite from "@/sections/AIWorkflowLab/AskThisSite";
+import AskThisSite, { clearThreadCache } from "@/sections/AIWorkflowLab/AskThisSite";
 
 /**
  * The scrolling thread + "Clear conversation" control (round 12, WP-K).
@@ -53,6 +53,13 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  // The thread now lives in module scope (so it survives a tab switch --
+  // see the comment above `cachedTurns` in AskThisSite.tsx), which means it
+  // also survives from one test in this file to the next unless something
+  // clears it. Every pre-existing test here renders a fresh component
+  // expecting an empty thread, so isolation has to cover the whole file,
+  // not just the new "thread persistence" cases below.
+  clearThreadCache();
 });
 
 describe("AskThisSite -- scrolling thread window", () => {
@@ -144,5 +151,146 @@ describe("AskThisSite -- Clear conversation", () => {
     expect(screen.queryByRole("button", { name: "Clear conversation" })).not.toBeInTheDocument();
     expect(screen.getByText(/No question asked yet/)).toBeInTheDocument();
     expect(questionField()).toHaveFocus();
+  });
+});
+
+describe("thread persistence across unmount", () => {
+  afterEach(() => {
+    clearThreadCache();
+  });
+
+  it("keeps the conversation when the component is unmounted and mounted again", async () => {
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={false} />);
+
+    const input = screen.getByRole("textbox");
+    await user.type(input, "What did Thien build at DoorDash?");
+    await user.keyboard("{Enter}");
+
+    const question = await screen.findByText("What did Thien build at DoorDash?");
+    expect(question).toBeInTheDocument();
+
+    // The tab switch: Tabs unmounts the panel that is not active.
+    first.unmount();
+    render(<AskThisSite liveModeConfigured={false} />);
+
+    expect(screen.getByText("What did Thien build at DoorDash?")).toBeInTheDocument();
+  });
+
+  it("mints a fresh turn id after an unmount and remount, instead of colliding with the restored thread", async () => {
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={false} />);
+
+    // Both questions are picked from SUGGESTED_QUESTIONS specifically because
+    // they resolve to real, non-empty results -- the point of this test is
+    // the two turns' own "Answer view" `Tabs` instances, which a no-results
+    // turn never renders at all.
+    await user.click(screen.getByRole("button", { name: "What does he do at DoorDash?" }));
+    await screen.findByRole("tablist", { name: "Answer view" });
+
+    // The tab switch: unmount (a `useRef(0)` counter would reset here, even
+    // though the restored thread below keeps its old ids) and remount.
+    first.unmount();
+    render(<AskThisSite liveModeConfigured={false} />);
+
+    await user.click(screen.getByRole("button", { name: "Where did he study?" }));
+    await screen.findAllByRole("tablist", { name: "Answer view" });
+
+    // Both turns are present, independently -- not reconciled into one
+    // fiber by a duplicate key.
+    const region = conversationRegion();
+    const turns = within(region).getByRole("list", { name: "Conversation" });
+    const items = within(turns).getAllByRole("listitem", { hidden: false }).filter(
+      (el) => el.parentElement === turns,
+    );
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("What does he do at DoorDash?");
+    expect(items[1]).toHaveTextContent("Where did he study?");
+
+    // Each turn's own "Answer view" tablist is independently present and
+    // interactive -- the symptom a duplicate `turn.id` key produces is a
+    // shared or lost `Tabs` instance between the two turns.
+    const firstTablist = within(items[0]).getByRole("tablist", { name: "Answer view" });
+    const secondTablist = within(items[1]).getByRole("tablist", { name: "Answer view" });
+    expect(firstTablist).toBeInTheDocument();
+    expect(secondTablist).toBeInTheDocument();
+    expect(firstTablist).not.toBe(secondTablist);
+
+    // The turn id itself is otherwise invisible (it is a React key and an id
+    // prefix, not rendered text) -- but `Tabs` (src/components/ui/Tabs.tsx)
+    // threads its `idPrefix` (built from `turn.id`) straight into real DOM
+    // ids on each tab button, so the two turns' ids are directly observable
+    // and directly assertable here: distinct, not a `turn-0` collision.
+    const firstTabId = within(firstTablist).getByRole("tab", { name: "Prose" }).id;
+    const secondTabId = within(secondTablist).getByRole("tab", { name: "Prose" }).id;
+    expect(firstTabId).toContain("turn-0");
+    expect(secondTabId).toContain("turn-1");
+    expect(firstTabId).not.toBe(secondTabId);
+  });
+
+  it("clearThreadCache empties the thread for the next mount", async () => {
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={false} />);
+    await user.type(screen.getByRole("textbox"), "What did Thien build at DoorDash?");
+    await user.keyboard("{Enter}");
+    await screen.findByText("What did Thien build at DoorDash?");
+
+    first.unmount();
+    clearThreadCache();
+    render(<AskThisSite liveModeConfigured={false} />);
+
+    expect(screen.queryByText("What did Thien build at DoorDash?")).not.toBeInTheDocument();
+  });
+});
+
+describe("thread persistence across unmount -- live mode in flight", () => {
+  afterEach(() => {
+    clearThreadCache();
+    vi.unstubAllGlobals();
+  });
+
+  /** Waits out a macrotask so every already-settled microtask (the chain of
+   *  `await`s inside `askLive`, including its own `await response.json()`)
+   *  has had a turn to run, without needing a mounted component for
+   *  `findBy*`/`waitFor` to poll. */
+  function flushMicrotasks() {
+    return new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+
+  it("delivers a live answer into the cache even after the panel that asked has unmounted, instead of leaving it stuck on pending", async () => {
+    let resolveFetch!: (response: Pick<Response, "json">) => void;
+    const fetchPromise = new Promise<Pick<Response, "json">>((resolve) => {
+      resolveFetch = resolve;
+    });
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(fetchPromise));
+
+    const user = userEvent.setup();
+    const first = render(<AskThisSite liveModeConfigured={true} />);
+
+    await user.type(screen.getByRole("textbox"), "What did Thien build at DoorDash?");
+    await user.keyboard("{Enter}");
+
+    expect(await screen.findByText(/Asking the live model/)).toBeInTheDocument();
+
+    // The tab switch: the panel that asked the question -- and is waiting on
+    // its response -- unmounts before the network call returns.
+    first.unmount();
+
+    resolveFetch({
+      json: () =>
+        Promise.resolve({
+          ok: true,
+          grounded: false,
+          text: "He built the Dasher-facing tools at DoorDash.",
+        }),
+    });
+    await flushMicrotasks();
+
+    // Remounting (switching back to the tab) should show the answer that
+    // arrived while nobody was watching, not a spinner stuck forever.
+    render(<AskThisSite liveModeConfigured={true} />);
+
+    expect(screen.getByText("He built the Dasher-facing tools at DoorDash.")).toBeInTheDocument();
+    expect(screen.queryByText(/Asking the live model/)).not.toBeInTheDocument();
   });
 });

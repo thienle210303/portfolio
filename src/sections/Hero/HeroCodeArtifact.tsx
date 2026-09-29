@@ -27,7 +27,13 @@ import { Tabs } from "@/components/ui/Tabs";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import AskThienHeroTab from "./AskThienHeroTab";
 
-export default function HeroCodeArtifact() {
+interface HeroCodeArtifactProps {
+  /** Computed server-side in `Hero.tsx`; handed to the chat behind the
+   *  fourth tab. */
+  readonly liveModeConfigured: boolean;
+}
+
+export default function HeroCodeArtifact({ liveModeConfigured }: HeroCodeArtifactProps) {
   const tabs = [
     ...codeTabs.map((tab) => ({
       id: tab.id,
@@ -37,7 +43,7 @@ export default function HeroCodeArtifact() {
     {
       id: "ask",
       label: "Ask Thien",
-      panel: <AskThienHeroTab />,
+      panel: <AskThienHeroTab liveModeConfigured={liveModeConfigured} />,
     },
   ];
 

@@ -6,11 +6,14 @@
  * the resulting boolean down to the client island, without a second file
  * needing to know these three names exist.
  *
- * Both `AIWorkflowLab.tsx` (to decide what to render and what to tell the
- * client) and `src/app/api/ask/route.ts` (to defend itself independently,
- * the same reason `/api/contact` re-checks its own three env vars rather
- * than trusting the prop it was handed) import this one function, so the
- * three names it reads exist in exactly one place.
+ * Three call sites import this one function, so the three env var names it
+ * reads exist in exactly one place: `Hero.tsx` (to decide the boolean it
+ * hands down to `AskThisSite`, the chat's only home since round 16),
+ * `AIWorkflowLab.tsx` (to pick which of `labIntro[0]` / `labLiveNotice`
+ * renders — a callout the Lab still owns even though the chat itself moved
+ * out), and `src/app/api/ask/route.ts` (to defend itself independently, the
+ * same reason `/api/contact` re-checks its own three env vars rather than
+ * trusting the prop it was handed).
  */
 
 export interface AskLiveConfig {
