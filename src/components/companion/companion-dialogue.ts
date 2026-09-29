@@ -151,6 +151,13 @@ const TOUR: Record<string, SceneBuilder> = {
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} of them are work.`),
     tabby("Mrrrow!", "I napped through the rest — they still count!"),
   ],
+  // Round 16: the Workshop. Grey's line is the section's own argument in one
+  // sentence — the empty stations are the point, not an omission — and both
+  // numbers come from `f.workshop`, never typed.
+  workshop: (f) => [
+    tabby("Mrrrow-meow!", `${f.workshop.steps} steps! He does them in order, mostly!`),
+    grey("Mrp.", `${f.workshop.authored} of them have proof on this run. The empty ones say so.`),
+  ],
   contact: () => [
     tabby("Mrrrow-meow-meow!", "Say hi! He answers — usually before I wake up."),
     grey("Mrp.", "The form works. So does plain email. Either lands."),

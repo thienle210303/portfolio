@@ -169,6 +169,14 @@ export const navItems = [
   { id: "nav-work", sectionId: "work", label: "Work" },
   { id: "nav-skills", sectionId: "skills", label: "Skills" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
+  // Round 16: the Workshop. Seven items is the most this nav has carried, so
+  // it was measured rather than assumed: at 1024px (SiteNav's own `lg:`
+  // breakpoint, the narrowest width the desktop row exists at) the seven
+  // items occupy 449px of the header's 907px of content box and leave 257px
+  // spare — one row, nothing clipped, no horizontal overflow, and 368px/624px
+  // spare at 1152px/1440px. `gap-6` is therefore unchanged; an eighth item
+  // would still fit before the gap has to give.
+  { id: "nav-workshop", sectionId: "workshop", label: "Workshop" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 

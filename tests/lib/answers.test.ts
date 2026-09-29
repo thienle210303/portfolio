@@ -9,6 +9,9 @@ import {
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { origin } from "@/content/portfolio";
+import { workflowStages } from "@/content/ai-experiments";
+import { defaultRunProjectId } from "@/content/workshop";
+import { resolveRun } from "@/lib/workshop";
 import { resolveWorlds } from "@/lib/worlds";
 
 /**
@@ -58,11 +61,25 @@ const CORPUS = new Set<string>([
   // content, not invented — is what tests/lib/worlds.test.ts's honesty-rule
   // suite proves.
   ...resolveWorlds().flatMap((world) => world.plaques.map((plaque) => plaque.text)),
+  // Round 16: the Workshop. A station's evidence is a verbatim project field
+  // and is therefore already covered by the project sets above — but only for
+  // the fields those sets happen to list, and the stations quote nine
+  // different ones (`assumption`, `constraints`, `pathsExplored`, …) that no
+  // other document type indexes. Built from the same resolver
+  // `answer-corpus.ts` builds its documents from, never transcribed: a
+  // station mapping changed in `src/content/workshop.ts` has to move both at
+  // once or not at all. Each `watchFor` is authored in
+  // `src/content/ai-experiments.ts` and appears nowhere else in this file.
+  ...(resolveRun(defaultRunProjectId)?.stations.flatMap((station) => station.evidence) ?? []),
+  ...workflowStages.map((stage) => stage.watchFor),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé
- *  is its own route now, so `#resume` would be a dead anchor. */
-const LINKABLE_SECTIONS = /^(about|worlds|work|journey|skills)$/;
+ *  is its own route now, so `#resume` would be a dead anchor. `workshop` joined
+ *  in round 16, in the same commit that rendered the section — a document
+ *  pointing at a section id the page does not have is exactly the dead
+ *  fragment the second case below exists to catch. */
+const LINKABLE_SECTIONS = /^(about|worlds|work|journey|skills|workshop)$/;
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {
@@ -133,7 +150,29 @@ describe("answer", () => {
     for (const offTopic of [
       "what is the capital of France",
       "recipe for sourdough bread",
-      "how do I file my taxes",
+      // Round 16 replaced "how do I file my taxes" here, and the reason is
+      // worth writing down rather than quietly editing away.
+      //
+      // The Workshop indexed each agent stage's `watchFor`, three of which
+      // mention source *files* — the only documents in the corpus containing
+      // that word. English stop words eat four of that question's six words
+      // ("how", "do", "i", "my"), leaving the index two terms, one of which
+      // is a homograph it now legitimately holds. Two terms means
+      // `requiredMatches` admits on one (see answers.ts), and a term in 3 of
+      // 134 documents carries a near-maximal IDF, so one incidental "files"
+      // cleared the bar on its own.
+      //
+      // Tightening that gate was measured, not assumed: requiring two matches
+      // at two terms drops the retrieval eval's recall@3 from ≥90% to 83.3%
+      // and MRR from ≥0.8 to 0.761, because real two-term questions ("what
+      // awards has he won", "where did he go to school") genuinely match on
+      // one. The engine is tuned; the probe was the fragile part. Both
+      // replacements below are off-topic without depending on a word the
+      // corpus might one day acquire, and the second is the stronger test of
+      // the two: "who" and "won" are *both* real index terms, so it is the
+      // coverage gate rather than vocabulary that has to refuse it.
+      "how do I renew my passport",
+      "who won the world cup",
     ]) {
       expect(answer(offTopic), `"${offTopic}" should return nothing`).toEqual([]);
     }

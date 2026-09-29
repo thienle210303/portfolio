@@ -1,5 +1,14 @@
-import { careerEntries, profile, projects, skillCategories } from "@/content/portfolio";
+import { workflowStages } from "@/content/ai-experiments";
+import {
+  careerEntries,
+  problemSolvingLoop,
+  profile,
+  projects,
+  skillCategories,
+} from "@/content/portfolio";
+import { defaultRunProjectId } from "@/content/workshop";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
+import { resolveRun } from "@/lib/workshop";
 import { crossingKm, resolveWorlds } from "@/lib/worlds";
 
 /**
@@ -80,6 +89,21 @@ export interface CompanionFacts {
     readonly learning: number;
     readonly milestones: number;
   };
+  /**
+   * Round 16. The Workshop's three numbers, and the third is the interesting
+   * one: `authored` is how many of the nine stations the *default* run can
+   * fill, which is the number the section prints above its own stations
+   * (`WorkshopRun.tsx`) — so the cat quotes the figure a visitor can see
+   * rather than a second count of the same thing. It is resolved through
+   * `resolveRun` for the same reason `worlds` goes through `resolveWorlds`:
+   * the count has to come from the resolver the section renders from, or the
+   * two can drift.
+   */
+  readonly workshop: {
+    readonly steps: number;
+    readonly stages: number;
+    readonly authored: number;
+  };
   readonly contact: {
     readonly email: string;
   };
@@ -109,6 +133,13 @@ export function buildCompanionFacts(): CompanionFacts {
   // each branch's own leaves rather than counting (lens, entry) pairs.
   const tree = buildCareerTree();
   const leafTotal = tree.reduce((total, branch) => total + branch.leaves.length, 0);
+
+  // The default run is the one the section opens on, so its filled-station
+  // count is the one already on screen. A default that stopped resolving
+  // would make this 0 rather than throw — the same "nothing to say" the rest
+  // of this file's facts degrade to, and `workshop` scenes quoting a 0 is
+  // honest if the run really is empty.
+  const defaultRun = resolveRun(defaultRunProjectId);
 
   const resolvedWorlds = resolveWorlds();
   const plaqueTotal = resolvedWorlds.reduce((total, world) => total + world.plaques.length, 0);
@@ -141,6 +172,11 @@ export function buildCompanionFacts(): CompanionFacts {
       work: countOf("work"),
       learning: countOf("learning"),
       milestones: countOf("milestone"),
+    },
+    workshop: {
+      steps: problemSolvingLoop.length,
+      stages: workflowStages.length,
+      authored: defaultRun?.authoredStations ?? 0,
     },
     contact: {
       email: profile.email,

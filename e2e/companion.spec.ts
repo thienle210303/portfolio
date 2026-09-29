@@ -1885,7 +1885,7 @@ test.describe("companion", () => {
 
   /* ------------------------------------------------------------- D4/D5: the guided tour -- */
 
-  test("walks all six stops, choosing a route at the fork, and ends back on the cat", async ({
+  test("walks all seven stops, choosing a route at the fork, and ends back on the cat", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -1899,8 +1899,8 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    for (let stop = 1; stop <= 6; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 6`, "i"))).toBeVisible({
+    for (let stop = 1; stop <= 7; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 7`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       const before = await page.evaluate(() => window.scrollY);
@@ -1919,18 +1919,18 @@ test.describe("companion", () => {
       if (stop === 1) {
         // The one fork in the walk, now after About rather than Work: round
         // 16 folded Work into the derived middle alongside Worlds, Skills
-        // and Journey (see companion-tour.ts's GREY_MIDDLE/stopsFor), so
-        // About is the only stop every route still shares. "Next stop" is
-        // gone here, replaced by the two routes — both of which reach every
-        // one of the six stops, just in a different order. This run follows
-        // Grey's.
+        // Journey and (round 16's Workshop) — see companion-tour.ts's
+        // GREY_MIDDLE/stopsFor — so About is the only stop every route still
+        // shares. "Next stop" is gone here, replaced by the two routes —
+        // both of which reach every one of the seven stops, just in a
+        // different order. This run follows Grey's.
         await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
         await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
         await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
         await hud.getByRole("button", { name: /follow grey/i }).click();
         continue;
       }
-      const isLast = stop === 6;
+      const isLast = stop === 7;
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
 
@@ -1954,21 +1954,21 @@ test.describe("companion", () => {
 
     // To the fork — About alone, now that round 16 folded Work into the
     // derived middle — and pick the cat the other test did not: the curious
-    // route, which walks the middle four stops in the opposite order.
-    await expect(hud.getByText(/stop 1 of 6/i)).toBeVisible({ timeout: 10_000 });
+    // route, which walks the middle five stops in the opposite order.
+    await expect(hud.getByText(/stop 1 of 7/i)).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /follow tabby/i }).click();
 
-    for (let stop = 2; stop <= 6; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 6`, "i"))).toBeVisible({
+    for (let stop = 2; stop <= 7; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 7`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       await expect(status).not.toHaveText("", { timeout: 10_000 });
-      const isLast = stop === 6;
+      const isLast = stop === 7;
       if (isLast) {
         // Both routes share the same last stop — Contact — regardless of
-        // which way the middle four were walked.
-        await expect(hud.getByText(/stop 6 of 6.*contact/i)).toBeVisible();
+        // which way the middle five were walked.
+        await expect(hud.getByText(/stop 7 of 7.*contact/i)).toBeVisible();
       }
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
