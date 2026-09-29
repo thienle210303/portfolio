@@ -167,12 +167,11 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
           );
         })}
       </ul>
-      {/* The newest entry is always last — `tree` is chronological, oldest
-          first (see the file banner) — so its own year is the tip's. Guarded
-          rather than assumed: `KnowledgeTree.tsx` never renders this
-          component with an empty tree, but nothing here should crash if it
-          ever did. */}
-      {tree.length > 0 ? <ListGrowingTip year={tree[tree.length - 1].startYear} /> : null}
+      {/* `ListGrowingTip` computes its own year from `careerYearSpan()`, the
+          same source `tree`'s own last entry traces back to. Guarded rather
+          than assumed: `KnowledgeTree.tsx` never renders this component with
+          an empty tree, but nothing here should crash if it ever did. */}
+      {tree.length > 0 ? <ListGrowingTip /> : null}
     </div>
   );
 }

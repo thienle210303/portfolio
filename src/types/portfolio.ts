@@ -462,3 +462,92 @@ export interface CodeTab {
   readonly summary: string;
   readonly code: string;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Playground Earth                                                            */
+/*                                                                             */
+/* The globe's schema is deliberately a schema of *references*. A world does    */
+/* not hold the sentence a plaque renders; it holds the address of the field    */
+/* that sentence already lives in, and `src/lib/worlds.ts` fetches it. That is  */
+/* the difference between a globe that is culturally rich and a globe that      */
+/* invents things about its subject, and `tests/lib/worlds.test.ts` enforces    */
+/* it string-for-string.                                                        */
+/*                                                                             */
+/* `where` and `disclosure` are the one exception, and they are not an           */
+/* exception to the rule so much as outside its scope: they are prose about the  */
+/* *drawing* ("country centroid, because no city is authored anywhere"), never  */
+/* a claim about him. A test asserts no plaque ever renders one of them.         */
+/* -------------------------------------------------------------------------- */
+
+export type GlyphId =
+  | "comtam"
+  | "cap"
+  | "trophy"
+  | "ribbon"
+  | "chalk"
+  | "net"
+  | "buoy"
+  | "jelly"
+  | "bird"
+  | "plane"
+  | "sprout"
+  | "cat"
+  | "sat"
+  | "chip"
+  | "star"
+  | "book"
+  | "magnifier";
+
+export type WorldAnchor =
+  | { readonly at: "origin-from" }
+  | { readonly at: "origin-to" }
+  | { readonly at: "arc-midpoint" }
+  | { readonly at: "arc-apex" }
+  | { readonly at: "plinth" }
+  | { readonly at: "orbit" };
+
+export type ComputedFactId =
+  | "tree-shape"
+  | "tree-still-growing"
+  | "crossing"
+  | "seasons"
+  | "play-scenes"
+  | "ai-tools";
+
+export type PlaqueRef =
+  | { readonly of: "careerEntry"; readonly id: string; readonly field: "role" | "context" | "learned" }
+  | {
+      readonly of: "careerEntryLine";
+      readonly id: string;
+      readonly field: "impact" | "built";
+      readonly index: number;
+    }
+  | {
+      readonly of: "project";
+      readonly id: string;
+      readonly field: "tagline" | "learned" | "nextQuestion";
+      readonly link?: string;
+    }
+  | { readonly of: "companion"; readonly id: string }
+  | { readonly of: "computed"; readonly id: ComputedFactId };
+
+export interface WorldPlaque {
+  readonly glyph: GlyphId;
+  readonly ref: PlaqueRef;
+}
+
+export interface WorldDecoration {
+  readonly glyph: GlyphId;
+  readonly draws: string;
+}
+
+export interface World {
+  readonly id: string;
+  readonly name: string;
+  readonly glyph: GlyphId;
+  readonly anchor: WorldAnchor;
+  readonly where: string;
+  readonly plaques: readonly WorldPlaque[];
+  readonly decorations: readonly WorldDecoration[];
+  readonly disclosure?: string;
+}

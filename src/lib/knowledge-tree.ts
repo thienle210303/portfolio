@@ -249,6 +249,16 @@ export function careerYearSpan(): { firstYear: number; lastYear: number; years: 
 }
 
 /**
+ * The caption the drawing puts under the one shoot that never resolves into a
+ * leaf. It lived as a JSX literal in two components (`DrawnTree.tsx` and
+ * `list-ink.tsx`) and is now also quoted by the globe's Plants world, which
+ * makes three — one too many for a string to be written down three times.
+ */
+export function stillGrowingCaption(): string {
+  return `still growing · ${careerYearSpan().lastYear}`;
+}
+
+/**
  * A CSS-token-safe slug for a free-text technology name: lower-cased,
  * anything that is not `a-z0-9` collapsed to a single `-`, and no leading or
  * trailing `-`. Used only as a DOM attribute value (`data-tree-tech`) for the
