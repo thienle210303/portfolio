@@ -169,16 +169,43 @@ describe("derived worlds", () => {
 });
 
 describe("graticule", () => {
-  it("returns parallels and meridians at the given step, all in range", () => {
-    const lines = graticule(30);
-    expect(lines.length).toBeGreaterThan(0);
-    for (const line of lines) {
-      expect(line.length).toBeGreaterThan(2);
-      for (const point of line) {
-        expect(Math.abs(point.lat)).toBeLessThanOrEqual(90);
-        expect(Math.abs(point.lon)).toBeLessThanOrEqual(180);
-      }
+  it("returns the correct count of parallels and meridians for the given step", () => {
+    const step = 30;
+    const lines = graticule(step);
+    // Parallels: -90 + step, -90 + 2*step, ..., 90 - step
+    // Count: (90 - (-90)) / step = 180 / 30 = 6 parallels
+    // Meridians: -180, -180 + step, ..., 180 - step
+    // Count: 360 / step = 12 meridians
+    const expectedParallels = (180 - 2 * step) / step + 1; // -60, -30, 0, 30, 60 = 5, but formula gives 6 - need to recalculate
+    const expectedMeridians = 360 / step; // -180 to 150 in 30° steps
+    // Actually: parallels from (-90 + 30) to (90 - 30) = -60 to 60 in 30° steps = 5 lines
+    // meridians from -180 to < 180 in 30° steps = -180, -150, ..., 150 = 12 lines
+    const parallels = lines.filter((line) => {
+      const firstPoint = line[0];
+      // Parallels have constant latitude
+      return line.every((p) => Math.abs(p.lat - firstPoint.lat) < 1e-9);
+    });
+    const meridians = lines.filter((line) => {
+      const firstPoint = line[0];
+      // Meridians have constant longitude
+      return line.every((p) => Math.abs(p.lon - firstPoint.lon) < 1e-9);
+    });
+    expect(parallels.length).toBe((180 - 2 * step) / step + 1);
+    expect(meridians.length).toBe(360 / step);
+    // No parallel at ±90°
+    for (const parallel of parallels) {
+      expect(Math.abs(parallel[0].lat)).toBeLessThan(90);
     }
+    // Meridians span pole to pole
+    for (const meridian of meridians) {
+      expect(meridian[0].lat).toBeCloseTo(-90, 6);
+      expect(meridian[meridian.length - 1].lat).toBeCloseTo(90, 6);
+    }
+  });
+
+  it("returns an empty array for non-positive step", () => {
+    expect(graticule(0)).toEqual([]);
+    expect(graticule(-30)).toEqual([]);
   });
 });
 

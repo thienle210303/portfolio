@@ -155,8 +155,12 @@ export function arcApex(arc: GreatCircle): GeoPoint {
  *
  * Parallels stop short of the poles (a parallel at ±90° is a point) and
  * meridians run pole to pole.
+ *
+ * Non-positive steps return an empty array rather than hanging: a graticule
+ * is decoration, and nonsense input should produce no grid lines, not a hang.
  */
 export function graticule(stepDegrees: number): readonly (readonly GeoPoint[])[] {
+  if (stepDegrees <= 0) return [];
   const lines: GeoPoint[][] = [];
   for (let lat = -90 + stepDegrees; lat <= 90 - stepDegrees + 1e-9; lat += stepDegrees) {
     const parallel: GeoPoint[] = [];
@@ -192,10 +196,10 @@ function unrotate(v: Vec3, spin: number, tilt: number): Vec3 {
  * With this, one click brings the place you clicked round to face you, which
  * is what the drag is for. See `GlobeCanvas.tsx`'s release handler.
  *
- * The `max(0, …)` before the square root is load-bearing: a click exactly on
- * the limb computes `1 - nx² - ny²` as a very small negative number about half
- * the time, and `Math.sqrt` of that is NaN — which would silently rotate the
- * globe to nowhere.
+ * The early return `if (squared > 1) return null;` is the guard against
+ * negative radicands at the limb: IEEE-754 guarantees that when it is false,
+ * `1 - squared` cannot be negative. The `Math.max(0, …)` is belt-and-braces
+ * against a future edit that removes or loosens that return.
  */
 export function unproject(
   x: number,
