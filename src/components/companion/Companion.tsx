@@ -676,6 +676,69 @@ function leadControlRect(pos: Point): RectLike {
 }
 
 /**
+ * Hold a cat out of the open toolkit — the second target-size invariant on
+ * this layer, and the one the first could not reach.
+ *
+ * `clearsControls`/`keepClearOfControl` (companion-space.ts) keep the
+ * *follower* off the *lead's* button. This is the other pairing, and it went
+ * unguarded: both cats are controls — the lead carries the toggle, the tabby
+ * carries the storyteller tap — and the panel is a column of controls
+ * anchored to the very corner they are both called home to. `homeSpot` clears
+ * the panel's bottom edge by a pixel, which is what the panel's own class
+ * list was designed for, so the pair are safe once they *arrive*. Getting
+ * there was the hole: at `LEAD_SPEED` a walk in from the middle of the page is
+ * a full second spent under the menu, with the cat's own target and the menu
+ * item's both cut well below the 24px WCAG 2.5.8 asks for. Axe caught it about
+ * one run in six, which is all a scan of a single instant can do against a
+ * moving cat; `e2e/companion.spec.ts` watches every frame of the walk instead.
+ *
+ * There is no route to fix. On a 375px window the panel spans x 47–351 of it,
+ * so every approach from above crosses the column and no path around it
+ * exists — a cat that is over the panel when the menu opens has to leave by
+ * the bottom or not at all. So it leaves by the bottom, onto the corner's own
+ * line (`homeSpot().y`), keeping whatever x it had. That happens on the frame
+ * the panel itself appears, and what is left of the walk is the trot along the
+ * corridor to the corner: the pair drop out of the way of their own menu and
+ * then go and sit under it. A cat already in the corridor, or clear of the
+ * column to either side, is not touched.
+ *
+ * `panel` is the measured box, and measured rather than derived on purpose —
+ * the opposite call from the one `setControlRects` makes about the lead's own
+ * rect, for the opposite reasons. That rect moves every frame and is pure
+ * arithmetic on state this loop already owns, so a photograph of it goes
+ * stale; this one cannot be computed at all (`19rem` is not 304px for every
+ * visitor, and the height grows by a line when a scene is refused) and does
+ * not move while it is up, so the only way to be right about it is to look.
+ *
+ * Only three of its four edges are used. The top is deliberately ignored — a
+ * cat above the panel is a cat that still has to come down through it to reach
+ * the corner, so treating the column as running to the top of the window is
+ * what keeps the one relocation at the moment the menu opens, rather than
+ * springing it on the visitor mid-walk when the cat would otherwise saunter
+ * down to the panel's top edge and drop through it.
+ *
+ * `padX`/`padY` are the margin the caller's button carries around its drawing
+ * — `LEAD_PAD_*` for the lead, nothing for the tabby, whose button is her
+ * drawing — because it is the *target* that has to clear the menu, not the
+ * animal inside it.
+ *
+ * The corner's line is the whole of the promise: on a window too short for
+ * `clampToViewport` to leave `homeSpot` beneath the panel at all, this hands
+ * back the same spot the pair already rest on, which is not a new violation —
+ * it is the resting contract's own limit, unchanged.
+ */
+function keepOutOfPanel(pos: Point, padX: number, padY: number, panel: RectLike): Point {
+  if (
+    pos.x + CAT_W + padX <= panel.left ||
+    pos.x - padX >= panel.right ||
+    pos.y - padY >= panel.bottom
+  ) {
+    return pos;
+  }
+  return clampToViewport({ x: pos.x, y: homeSpot().y });
+}
+
+/**
  * The target-size invariant, applied once at the source rather than at
  * movement time.
  *
@@ -2321,6 +2384,23 @@ export function Companion({ facts }: CompanionProps) {
         if (secret.rect.bottom < safeTop() || secret.rect.top > viewport().height) secret = null;
       }
 
+      // The open panel, on the same "reads first" pass as the two rects above
+      // and for the same reason. Its box does not move for as long as it is
+      // up, so this is one measurement off one element on the frames a visitor
+      // has the menu open, and nothing at all the rest of the time — see
+      // `keepOutOfPanel`, the only thing that wants it.
+      //
+      // Off the panel's own ref rather than off `openRef`, which is the same
+      // fact one frame late: it is written from a `useEffect`, so on the first
+      // frame the panel is mounted — and painted, and already covering
+      // whatever the cats were standing on — it still reads false. A ref is
+      // populated during the commit that mounts the element, which makes
+      // "there is a panel on screen" and "there is a box here to stay out of"
+      // the same question, asked once.
+      const panelBox = roamingRef.current
+        ? (panelRef.current?.getBoundingClientRect() ?? null)
+        : null;
+
       /**
        * D4: the guided tour, advanced before `forced` reads it.
        *
@@ -3355,6 +3435,26 @@ export function Companion({ facts }: CompanionProps) {
         // stale mark.
         thienTarget.current = null;
         thienSpeaker.current = null;
+      }
+
+      /* ------------------------------------------------ room for the menu -- */
+
+      /**
+       * Both cats' positions are final for the frame here, whichever of the
+       * dozen branches above chose them — which is the only place an
+       * invariant about where a cat may *be* can live, for exactly the reason
+       * the note on `keepClearOfControl` gives about the other one.
+       * `panelBox` is non-null only while the menu is on screen *and* the
+       * pair are roaming: pinned to the corner by CSS there is no transform
+       * to correct and no walk to catch.
+       */
+      if (panelBox) {
+        const leadRoom = keepOutOfPanel(grey.pos, LEAD_PAD_X, LEAD_PAD_Y, panelBox);
+        grey.pos.x = leadRoom.x;
+        grey.pos.y = leadRoom.y;
+        const followRoom = keepOutOfPanel(tabby.pos, 0, 0, panelBox);
+        tabby.pos.x = followRoom.x;
+        tabby.pos.y = followRoom.y;
       }
 
       /* ----------------------------------------------------------- paint -- */

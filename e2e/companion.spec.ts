@@ -1673,6 +1673,88 @@ test.describe("companion", () => {
     await context.close();
   });
 
+  /**
+   * The same rule the axe scan below can only catch by luck.
+   *
+   * Both cats are buttons — the lead carries the toolkit toggle, the tabby
+   * carries the storyteller tap — and the panel is anchored to the corner
+   * they are both called home to. On a phone that panel is nearly as wide as
+   * the window and the corner sits directly beneath it, so for as long as a
+   * cat is still walking home it is walking *under the open menu*, with its
+   * own target and the menu item’s both cut below the 24px WCAG 2.5.8 asks
+   * for. The scan below sees one instant, and mostly sees the walk already
+   * finished — it caught this about one run in six. This watches every frame
+   * of the walk instead, which is what makes the contract testable at all.
+   */
+  test("neither cat obscures the open toolkit while walking home to it", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    // Put the pair well up the page first: a visitor with a pointer drags them
+    // to wherever they are reading, which is the state the toggle is actually
+    // pressed from. Straight from the corner there is no walk to catch.
+    await page.mouse.move(Math.round(viewportWidth(page) / 3), 220);
+    await page.waitForTimeout(400);
+    await page.mouse.move(Math.round(viewportWidth(page) / 3) + 8, 232);
+    await page.waitForTimeout(1200);
+
+    // And they have to have actually gone, or the assertion below would pass
+    // by meaning nothing the day something keeps them parked in the corner.
+    const strayed = await page.evaluate(() => {
+      const cat = document
+        .querySelector('[data-companion] button[aria-controls="companion-actions"]')!
+        .getBoundingClientRect();
+      return window.innerHeight - cat.bottom;
+    });
+    expect(strayed, "the cats never left the corner, so nothing was tested").toBeGreaterThan(120);
+
+    await openToolkit(page);
+    await expect(toolkit(page)).toBeVisible();
+
+    // Sampled on the companion’s own clock rather than on a poll: the lead
+    // walks at ~4.4px a frame, so a 100ms poll would step straight over the
+    // frames that matter.
+    const worst = await page.evaluate(
+      () =>
+        new Promise<{ overlap: number; cat: string; item: string }>((resolve) => {
+          const panel = document.querySelector("#companion-actions");
+          const items = panel ? Array.from(panel.querySelectorAll("button")) : [];
+          let worstSoFar = { overlap: 0, cat: "none", item: "none" };
+          const started = performance.now();
+          const sample = () => {
+            for (const button of Array.from(
+              document.querySelectorAll<HTMLElement>("[data-companion] button"),
+            )) {
+              if (panel?.contains(button)) continue;
+              const a = button.getBoundingClientRect();
+              for (const item of items) {
+                const b = item.getBoundingClientRect();
+                const overlap =
+                  Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+                  Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+                if (overlap > worstSoFar.overlap) {
+                  worstSoFar = {
+                    overlap,
+                    cat: (button.textContent ?? "").trim().slice(0, 40),
+                    item: (item.textContent ?? "").trim().slice(0, 40),
+                  };
+                }
+              }
+            }
+            if (performance.now() - started > 2500) resolve(worstSoFar);
+            else requestAnimationFrame(sample);
+          };
+          requestAnimationFrame(sample);
+        }),
+    );
+
+    expect(
+      worst.overlap,
+      `"${worst.cat}" covered ${worst.overlap.toFixed(0)}px² of "${worst.item}"`,
+    ).toBe(0);
+  });
+
   test("adds no WCAG violations with its toolkit open", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
