@@ -72,15 +72,20 @@ const GREY_MIDDLE = ["worlds", "work", "skills", "tree"] as const;
 const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop]));
 
 /**
- * The six stops in the order one route walks them. Both routes are the
- * same *set* of six — nothing is skipped, nothing is invented — and they
- * agree only on the first stop (About) and the last (Contact); everything
- * between the two is `GREY_MIDDLE`, in order or reversed, per `TourRoute`'s
- * own doc comment.
+ * The stops in the order one route walks them — six today, for a
+ * well-formed `GREY_MIDDLE`. Both routes are the same *set* — nothing is
+ * skipped, nothing is invented — and they agree only on the first stop
+ * (About) and the last (Contact); everything between the two is
+ * `GREY_MIDDLE`, in order or reversed, per `TourRoute`'s own doc comment.
  *
  * The `filter` below (rather than a non-null assertion on the `Map.get`)
- * is deliberate: a typo or a stale id in `GREY_MIDDLE` now drops that one
- * stop instead of throwing partway through a visitor's tour.
+ * stops *this function* from throwing on a typo or a stale id in
+ * `GREY_MIDDLE` — it drops that one stop instead. That is only half a
+ * safety net by itself: the array this returns is then shorter than
+ * `TOUR_STOPS.length`, and every caller has to measure against *this*
+ * array's own length rather than assume the two agree, or the walk goes
+ * looking for a stop one past the real end and throws there instead —
+ * `Companion.tsx`'s own render, one function call away. See `isLastStop`.
  */
 export function stopsFor(route: TourRoute): readonly TourStop[] {
   const middle = route === "grey" ? GREY_MIDDLE : [...GREY_MIDDLE].reverse();
@@ -113,6 +118,13 @@ export function startTour(): TourRun {
   return { index: 0, phase: "walking", arrivedAt: 0, route: "grey", routeChosen: false };
 }
 
-export function isLastStop(index: number): boolean {
-  return index >= TOUR_STOPS.length - 1;
+/**
+ * `totalStops` must be the length of `stopsFor(route)` for whichever route
+ * is actually running — never `TOUR_STOPS.length`. The two only agree when
+ * `GREY_MIDDLE` is well-formed; a caller that passes the fixed length
+ * instead would keep this returning `false` one stop past the real end,
+ * sending the walk looking for a stop `stopsFor` never produced.
+ */
+export function isLastStop(index: number, totalStops: number): boolean {
+  return index >= totalStops - 1;
 }

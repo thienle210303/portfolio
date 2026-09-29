@@ -34,10 +34,19 @@ describe("startTour", () => {
 });
 
 describe("isLastStop", () => {
-  it("is true only for the final index", () => {
-    expect(isLastStop(TOUR_STOPS.length - 1)).toBe(true);
-    expect(isLastStop(0)).toBe(TOUR_STOPS.length === 1);
-    expect(isLastStop(TOUR_STOPS.length)).toBe(true);
+  it("is true only for the final index of the given total", () => {
+    expect(isLastStop(TOUR_STOPS.length - 1, TOUR_STOPS.length)).toBe(true);
+    expect(isLastStop(0, TOUR_STOPS.length)).toBe(TOUR_STOPS.length === 1);
+    expect(isLastStop(TOUR_STOPS.length, TOUR_STOPS.length)).toBe(true);
+  });
+
+  it("measures against the total it is given, not a fixed count — a shorter list ends sooner", () => {
+    // This is the property a caller that kept comparing against
+    // `TOUR_STOPS.length` instead of `stopsFor(route).length` would get
+    // wrong: a `GREY_MIDDLE` typo drops a stop, `stopsFor` returns a
+    // shorter array, and "last stop" has to mean the end of *that* array.
+    expect(isLastStop(3, 4)).toBe(true);
+    expect(isLastStop(2, 4)).toBe(false);
   });
 });
 
