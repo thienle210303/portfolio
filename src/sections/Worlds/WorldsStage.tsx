@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
 import { cn } from "@/lib/cn";
+import { origin } from "@/content/portfolio";
 import type { ResolvedWorld } from "@/lib/worlds";
 import WorldPanel from "./WorldPanel";
 
@@ -29,9 +30,12 @@ import WorldPanel from "./WorldPanel";
 export interface GlobeControls {
   /** Rotate by a delta, in radians. */
   readonly nudge: (deltaSpin: number, deltaTilt: number) => void;
-  /** Play the crossing. */
+  /** Play the crossing — or, under `prefers-reduced-motion: reduce`, land it
+   *  in one frame. Either way `onLanded` fires exactly once. */
   readonly fly: () => void;
-  /** Back to the Việt Nam pin, flight and seed cleared. */
+  /** Back to the Việt Nam pin, flight and seed cleared. The caller clears the
+   *  handoff link with it: the seed being gone is what makes the link untrue
+   *  again. */
   readonly reset: () => void;
   /** Turn a world to face the viewer. */
   readonly focusWorld: (id: string) => void;
@@ -63,6 +67,11 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
   // has failed there is no retry, so the resting label it drives ("Globe not
   // available") is permanent rather than reverting to "Loading" on a re-render.
   const [canvasFailed, setCanvasFailed] = useState(false);
+  // Whether a seed is on the globe *right now*, which is the only thing that
+  // entitles this component to render the handoff link. Cleared by the reset
+  // and by a re-press of the flight, because both of them take the seed away
+  // again — see `handleReset` and `handleFly`.
+  const [landed, setLanded] = useState(false);
   const controlsRef = useRef<GlobeControls | null>(null);
   const [controlsReady, setControlsReady] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -89,20 +98,47 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
   }, []);
 
   const handleLanded = useCallback(() => {
-    // Only the sentence that is true right now. The seed, the sapling and the
-    // handoff to the career tree arrive with the task that actually draws
-    // them, and this line grows back then.
+    setLanded(true);
+    // Every clause here is now something the canvas has actually drawn. Round
+    // 16's previous pass deliberately cut this back to the first sentence,
+    // because the seed it claimed did not exist yet and this region is
+    // `sr-only` — the only people who would have heard the claim were the ones
+    // who could not see it was false. `GlobeCanvas` draws the seed and the
+    // sapling as of this commit, so the rest of the sentence is true again and
+    // comes back with it.
     //
-    // This is not a style note. Until the canvas existed this string was
-    // unreachable — the stub never called `onReady`, so `controlsReady` stayed
-    // false, the flight control was `pointer-events-none` and said "Loading
-    // the globe…", and nothing could fire `onLanded`. The moment a real globe
-    // hands its controls back, one button press reaches it. And because the
-    // region is `sr-only`, the only people who would ever have received the
-    // seed sentence are the ones who cannot see that nothing was dropped —
-    // which is the one audience a section built on "it never says anything
-    // untrue" must not say an untrue thing to.
-    setAnnouncement("The flight landed in the United States.");
+    // The place name is read from `origin.to`, never typed: `portfolio.ts`
+    // carries one name for that place under a doc comment forbidding a second.
+    // It gets a sentence of its own rather than following a preposition, which
+    // is the same shape every other reader of `origin.to` uses (`answer-
+    // corpus.ts`, `worlds.ts`, `OriginStory.tsx`) and for the same reason —
+    // "landed in United States" wants an article that only this one value
+    // happens to need, and typing "the" here would be typing half a place
+    // name. The link is mentioned because a live region's job is to tell
+    // someone who cannot see the page that something new appeared on it.
+    setAnnouncement(
+      `The flight landed. ${origin.to}. A seed dropped where he came down, ` +
+        "and a link to the career tree it grows into is now below the globe.",
+    );
+  }, []);
+
+  const handleFly = useCallback(() => {
+    // Pressing it a second time replays the crossing from Việt Nam, which
+    // clears the seed for the two seconds it takes — so the claim goes with
+    // it, rather than sitting under a globe that has nothing on it.
+    setLanded(false);
+    setAnnouncement("");
+    controlsRef.current?.fly();
+  }, []);
+
+  const handleReset = useCallback(() => {
+    // The canvas half and the DOM half of one fact: `reset()` takes the seed
+    // off the globe, and `setLanded(false)` takes the sentence that describes
+    // it off the page. Doing only the first would leave a link claiming a seed
+    // that a visitor can see is not there.
+    controlsRef.current?.reset();
+    setLanded(false);
+    setAnnouncement(`Back at ${origin.from}, with the flight and the seed cleared.`);
   }, []);
 
   // The canvas chunk, fetched once the stage is near the viewport. An
@@ -162,7 +198,9 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
         controls.nudge(0, -KEY_STEP);
         break;
       case "Home":
-        controls.reset();
+        // `handleReset`, not `controls.reset()`: the seed and the sentence
+        // about it have to come off together, whichever control asked.
+        handleReset();
         break;
       default:
         return;
@@ -208,7 +246,7 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
           <button
             type="button"
             aria-disabled={!controlsReady}
-            onClick={() => controlsRef.current?.fly()}
+            onClick={handleFly}
             className={cn(
               "min-h-11 px-5",
               // The accent fill is reserved for a control that is actually
@@ -228,7 +266,7 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
           <button
             type="button"
             aria-disabled={!controlsReady}
-            onClick={() => controlsRef.current?.reset()}
+            onClick={handleReset}
             className={cn(
               "min-h-11 border border-rule px-5 text-[color:var(--fg)]",
               !controlsReady && "pointer-events-none opacity-70",
@@ -240,6 +278,21 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
         <p className="eyebrow mt-2 text-center">
           {crossingKm.toLocaleString("en-US")} km · drag east to fly him yourself
         </p>
+        {/* Rendered only once a seed is actually on the globe. Before the
+            flight this sentence would be a claim about something that has not
+            happened, and the whole argument of this section is that it says
+            only things that are currently true — so it appears with the
+            landing and leaves again with the reset, rather than sitting here
+            greyed out. The one link out of this section, and it is the link
+            the drawing has just made: the career tree grows from that spot. */}
+        {landed ? (
+          <p className="mt-3 text-center text-[length:var(--step--1)] text-[color:var(--fg-muted)]">
+            A seed dropped where he came down.{" "}
+            <a href="#tree" className="ink-link">
+              The career tree grows from that spot →
+            </a>
+          </p>
+        ) : null}
       </div>
 
       <div>

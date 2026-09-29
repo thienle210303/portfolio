@@ -114,4 +114,36 @@ describe("WorldsStage, with no canvas at all", () => {
     await user.click(screen.getByRole("button", { name: /united states/i }));
     expect(screen.getByRole("status")).toHaveTextContent(/United States/);
   });
+
+  it("does not claim a seed was dropped before anything has flown", () => {
+    renderStage();
+    // The handoff link is a claim about something that happened. Before the
+    // flight it must not be on the page at all — the section's whole argument
+    // is that it only says things that are currently true.
+    expect(screen.queryByRole("link", { name: /career tree/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps the flight control present but disabled, and pressing it claims nothing", async () => {
+    const user = userEvent.setup();
+    renderStage();
+    // jsdom has no IntersectionObserver, so the canvas never loads here — which
+    // makes this the exact state a visitor on a flaky deploy sees. The control
+    // says "not yet" rather than vanishing, and it is not pressable.
+    const fly = screen.getByRole("button", { name: /loading the globe/i });
+    expect(fly).toHaveAttribute("aria-disabled", "true");
+
+    // The half that is this task's: a press with no globe behind it must
+    // produce no landing, no link and no announcement. jsdom does not apply
+    // the `pointer-events-none` that actually stops the press in a browser, so
+    // the handler really does run here — which is exactly the path worth
+    // covering, because it is the one a missing canvas leaves exposed.
+    await user.click(fly);
+
+    expect(screen.queryByRole("link", { name: /career tree/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  // The presence half — the link appearing once a seed is genuinely on the
+  // globe — is in `e2e/worlds.spec.ts`, not here. It needs a real canvas, and
+  // a test that mounted a fake one to check a link would be testing the fake.
 });

@@ -6,6 +6,7 @@ import {
   graticule,
   greatCircle,
   project,
+  toGeo,
   toVector,
   unproject,
   type GreatCircle,
@@ -38,10 +39,21 @@ import { COASTLINES } from "./coastline-data";
  * the inertia decays below its threshold and no flight is in progress, the
  * loop returns without scheduling, `view.running` goes false, and the page
  * costs nothing until the visitor touches it again. `e2e/worlds.spec.ts`
- * counts `requestAnimationFrame` callbacks over two seconds at rest and
- * asserts zero. The satellite's orbit is deliberately excluded from
- * "something is moving" for exactly this reason: a decoration that never stops
- * is a decoration that never lets the CPU sleep.
+ * measures exactly that — but *not* by counting `requestAnimationFrame`
+ * page-wide, which cannot express the claim here: the companion cats hold a
+ * 60 Hz loop of their own open on this page, so a page-wide count would fail
+ * against a perfect globe. Its `measureGlobeFrames` attributes frames to this
+ * canvas instead (`clearRect` calls on it, which nothing else draws to), and
+ * `expectAtRest` asserts both halves: the globe drew nothing, and the page's
+ * frame rate stayed inside a single loop. The satellite's orbit is
+ * deliberately excluded from "something is moving" for exactly this reason: a
+ * decoration that never stops is a decoration that never lets the CPU sleep.
+ *
+ * One press is exempt from the loop entirely, and only under
+ * `prefers-reduced-motion: reduce`: "Take the flight" then produces the
+ * finished frame — crossing drawn, sapling grown, view on the arrival pin —
+ * from a single synchronous `draw()`, with no frame requested at all. That is
+ * not a cheaper animation; it is the outcome, which is what was asked for.
  *
  * ## Colour
  *
@@ -96,6 +108,11 @@ const TAP_SLOP_PX = 6;
 const REST_EPSILON = 4e-4;
 const DECAY = 0.93;
 
+/** How much of the seed's growth is the seed *falling* rather than the sapling
+ *  rising. Two beats out of one number, because that is what the moment is:
+ *  something drops, and then something grows from where it dropped. */
+const SEED_DROP = 0.3;
+
 const GRATICULE = graticule(30);
 // The same 72 segments the resolver uses, so the arc drawn here and the
 // distance printed in the rail describe one curve. The kilometre figure itself
@@ -138,6 +155,16 @@ const MONO_FALLBACK = 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospac
 function monoFamily(element: Element): string {
   const value = getComputedStyle(element).getPropertyValue("--font-mono").trim();
   return value ? `${value}, ${MONO_FALLBACK}` : MONO_FALLBACK;
+}
+
+/**
+ * Read at press time rather than cached in a listener, because the answer only
+ * matters at the one moment it is asked: a visitor who changes the setting
+ * mid-visit gets the new answer on their next press without this file holding
+ * a subscription it would otherwise have to tear down.
+ */
+function reducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -206,6 +233,14 @@ export default function GlobeCanvas({
     target: null as { spin: number; tilt: number } | null,
     flight: 0,
     landed: false,
+    /** 0 before the landing, then 0→1 across the drop and the sapling's rise.
+     *  One number for two beats — see `SEED_DROP`. */
+    seed: 0,
+    /** True only while `fly()` is playing the crossing itself. It suppresses
+     *  the target/drag/inertia branch outright rather than competing with it:
+     *  two things steering the same two angles is a flight that fights the
+     *  hand that started it. */
+    playing: false,
     orbit: 0,
     running: false,
     /** The pending `requestAnimationFrame` id, or 0. Kept in the bag rather
@@ -390,6 +425,45 @@ export default function GlobeCanvas({
       v.hits.push({ id: world.id, x: p.x, y: p.y, r: 18 * scale });
     }
 
+    /* The seed, one beat after the landing, and then the sapling it becomes.
+       This is the page's one hand-off: the career tree grows from this spot,
+       and the drawing says so before the prose does. Blue, because it is a
+       relationship between two sections rather than decoration — the same
+       reason the crossing itself is blue.
+
+       Planted to the **left** of the arrival pin and low, which is not an
+       aesthetic choice: `origin.coordinates.to` is where *two* worlds anchor
+       (`usa` and `plants` both use `origin-to` — see `src/content/worlds.ts`),
+       and a marker's name is drawn to the right of its ring, so everything
+       right of the pin is already occupied. Left of the ring is the one clear
+       side. Skipped outright when the pin is on the far side, for the same
+       reason far-side markers are. */
+    if (v.seed > 0) {
+      const pin = at(origin.coordinates.to);
+      if (pin.front) {
+        const x = pin.x - 24;
+        // Where the seed comes to rest and the stem stands: `GLYPHS.sprout`'s
+        // foot is at +9 in its own 24-unit box, so the glyph's origin is
+        // lifted by `9 * scale` off this line.
+        const ground = pin.y + 8;
+        if (v.seed < SEED_DROP) {
+          // The seed itself, falling the last few pixels onto the spot. A
+          // beat, not an animation — under a fifth of a second at 60fps.
+          ctx.fillStyle = c.accent;
+          ctx.beginPath();
+          ctx.arc(x, ground - 14 * (1 - v.seed / SEED_DROP), 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // And then it is a sapling, rising out of the point the seed came to
+          // rest at. Scaling about the foot rather than the middle is what
+          // makes it *grow* instead of inflate.
+          const risen = (v.seed - SEED_DROP) / (1 - SEED_DROP);
+          const scale = 0.22 + 0.78 * risen;
+          glyph(GLYPHS.sprout, x, ground - 9 * scale, scale, c.accent, 1.2);
+        }
+      }
+    }
+
     /* Technology, in orbit, counter-rotating so it always faces you. */
     const orbitCx = geo.cx;
     const orbitCy = geo.cy - geo.radius * 0.55;
@@ -439,33 +513,68 @@ export default function GlobeCanvas({
 
       v.orbit = (v.orbit + 0.004) % (Math.PI * 2);
 
-      if (v.target) {
-        const dSpin = Math.atan2(
-          Math.sin(v.target.spin - v.spin),
-          Math.cos(v.target.spin - v.spin),
+      if (v.playing) {
+        // 130 frames, a little over two seconds at 60fps. The camera follows
+        // the bird rather than the bird following a camera: spin and tilt
+        // chase the point he is currently over, which is what makes the played
+        // version look like the dragged one.
+        v.flight = Math.min(1, v.flight + 1 / 130);
+        const point = toGeo(CROSSING.points[Math.floor(v.flight * (CROSSING.points.length - 1))]);
+        const delta = Math.atan2(
+          Math.sin(-point.lon * DEG - v.spin),
+          Math.cos(-point.lon * DEG - v.spin),
         );
-        const dTilt = v.target.tilt - v.tilt;
-        v.spin += dSpin * 0.13;
-        v.tilt += dTilt * 0.13;
-        if (Math.abs(dSpin) > 0.002 || Math.abs(dTilt) > 0.002) busy = true;
-        else v.target = null;
-      } else if (v.drag) {
+        v.spin += delta * 0.1;
+        v.tilt += (clampTilt(-point.lat * DEG * 0.55) - v.tilt) * 0.1;
         busy = true;
-      } else {
-        v.spin += v.vSpin;
-        v.tilt += v.vTilt;
-        v.vSpin *= DECAY;
-        v.vTilt *= DECAY;
-        if (Math.abs(v.vSpin) > REST_EPSILON || Math.abs(v.vTilt) > REST_EPSILON) busy = true;
-        else {
-          v.vSpin = 0;
-          v.vTilt = 0;
+        if (v.flight >= 1) {
+          v.playing = false;
+          v.landed = true;
+          v.seed = 0.001;
+          onLandedRef.current();
+        }
+      }
+
+      if (v.seed > 0 && v.seed < 1) {
+        // Forty frames, about two thirds of a second — long enough to read as
+        // growth, short enough that nobody waits for it.
+        v.seed = Math.min(1, v.seed + 1 / 40);
+        busy = true;
+      }
+
+      // Suppressed while a flight is playing: the played crossing owns both
+      // angles for its two seconds, and letting inertia or a queued `target`
+      // pull at them at the same time is how a flight ends up landing
+      // somewhere other than the pin it drew a line to.
+      if (!v.playing) {
+        if (v.target) {
+          const dSpin = Math.atan2(
+            Math.sin(v.target.spin - v.spin),
+            Math.cos(v.target.spin - v.spin),
+          );
+          const dTilt = v.target.tilt - v.tilt;
+          v.spin += dSpin * 0.13;
+          v.tilt += dTilt * 0.13;
+          if (Math.abs(dSpin) > 0.002 || Math.abs(dTilt) > 0.002) busy = true;
+          else v.target = null;
+        } else if (v.drag) {
+          busy = true;
+        } else {
+          v.spin += v.vSpin;
+          v.tilt += v.vTilt;
+          v.vSpin *= DECAY;
+          v.vTilt *= DECAY;
+          if (Math.abs(v.vSpin) > REST_EPSILON || Math.abs(v.vTilt) > REST_EPSILON) busy = true;
+          else {
+            v.vSpin = 0;
+            v.vTilt = 0;
+          }
         }
       }
 
       v.tilt = clampTilt(v.tilt);
       // Unconditional, and `e2e/worlds.spec.ts` depends on it being so: its
-      // `framesAtRest()` counts this canvas's `clearRect` calls as the number
+      // `measureGlobeFrames()` counts this canvas's `clearRect` calls as the number
       // of frames this loop ran, because it cannot see them any other way (the
       // page's own rAF count is dominated by another component's loop). Put an
       // early return above this line, or draw on only every Nth frame, and
@@ -504,6 +613,13 @@ export default function GlobeCanvas({
       if (v.frame) cancelAnimationFrame(v.frame);
       v.frame = 0;
       v.drag = null;
+      // Same hazard as the stranded drag, one flight along: a played crossing
+      // torn down mid-air leaves `playing` true in a bag that survives the
+      // teardown (StrictMode's remount reuses this very object), and the next
+      // `start()` would resume a flight nobody asked for — with the
+      // drag/inertia branch suppressed under it, so the planet would also
+      // ignore the hand that woke it.
+      v.playing = false;
       v.running = false;
     };
   }, []);
@@ -610,6 +726,7 @@ export default function GlobeCanvas({
         v.flight = Math.min(1, v.flight + (dx * k) / EAST_FOR_FLIGHT);
         if (v.flight >= 1) {
           v.landed = true;
+          v.seed = 0.001;
           onLandedRef.current();
         }
       }
@@ -702,23 +819,69 @@ export default function GlobeCanvas({
           v.flight = Math.min(1, v.flight + deltaSpin / EAST_FOR_FLIGHT);
           if (v.flight >= 1) {
             v.landed = true;
+            v.seed = 0.001;
             onLandedRef.current();
           }
         }
         start();
       },
       fly: () => {
-        // Task 9 replaces this with the played crossing. Until then, pressing
-        // it does what a full eastward roll does.
-        controls.nudge(EAST_FOR_FLIGHT, 0);
+        const v = view.current;
+        v.playing = false;
+        v.flight = 0;
+        v.landed = false;
+        v.seed = 0;
+        v.target = null;
+        v.vSpin = 0;
+        v.vTilt = 0;
+        if (reducedMotion()) {
+          // Not a lesser version: the finished frame, immediately. Someone who
+          // has asked their operating system not to animate things has asked
+          // for the outcome, not for a slower animation — so the whole of it
+          // arrives in one synchronous draw, and `start()` is never called.
+          // `e2e/worlds.spec.ts` installs a `requestAnimationFrame` counter
+          // before the press and asserts zero, which is the only way to state
+          // "no frames" as something other than a promise in a comment.
+          v.flight = 1;
+          v.landed = true;
+          v.seed = 1;
+          v.spin = -origin.coordinates.to.lon * DEG;
+          v.tilt = clampTilt(-origin.coordinates.to.lat * DEG * 0.55);
+          onLandedRef.current();
+          draw();
+          return;
+        }
+        v.playing = true;
+        start();
       },
       reset: () => {
         const v = view.current;
+        v.playing = false;
         v.flight = 0;
         v.landed = false;
+        v.seed = 0;
         v.vSpin = 0;
         v.vTilt = 0;
-        v.target = { spin: -origin.coordinates.from.lon * DEG, tilt: -12 * DEG };
+        const spin = -origin.coordinates.from.lon * DEG;
+        const tilt = -12 * DEG;
+        if (reducedMotion()) {
+          // The other half of the promise `fly()` makes above. Swinging back
+          // across the planet from the arrival pin is the same size of motion
+          // as flying there, so it gets the same answer — and these two are
+          // one row of two buttons, where only one of them honouring the
+          // preference would read worse than neither doing.
+          //
+          // Deliberately *not* extended to `focusWorld` or to click-to-orient:
+          // those are the marker interaction rather than this control row, and
+          // they still ease. That gap is real and is better closed in one pass
+          // over all of them than half-closed here.
+          v.target = null;
+          v.spin = spin;
+          v.tilt = tilt;
+          draw();
+          return;
+        }
+        v.target = { spin, tilt };
         start();
       },
       focusWorld: (id) => {
@@ -736,7 +899,7 @@ export default function GlobeCanvas({
     };
     onReady(controls);
     return () => onReady(null);
-  }, [onReady, start, worlds]);
+  }, [draw, onReady, start, worlds]);
 
   return (
     <canvas

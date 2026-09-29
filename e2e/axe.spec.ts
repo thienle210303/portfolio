@@ -189,6 +189,31 @@ test.describe("interactive states", () => {
     // chat's own markup with a turn on screen, not the whole page over again.
     await auditHasNoViolations(page, '[data-hero-step="code"]');
   });
+
+  test("zero WCAG violations with the globe landed and the handoff link shown", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    // The one piece of UI on this page that does not exist until a visitor
+    // does something: `#worlds` renders the career-tree handoff link only once
+    // the flight has actually landed and a seed is on the globe (see
+    // `WorldsStage.tsx`). Every other audit in this file sees the section in
+    // its pre-flight state, so without this the link ships with no automated
+    // coverage at all — and it is a prose link on a `tone="deep"` ground,
+    // which is both a contrast pair and axe's `link-in-text-block` rule (a
+    // link may not be distinguished from its surrounding text by colour
+    // alone; `.ink-link`'s resting underline is what satisfies it).
+    await scrollIntoViewAndSettle(page, "#worlds-heading");
+    const fly = page.locator("#worlds").getByRole("button", { name: /take the flight/i });
+    await expect(fly).toBeVisible({ timeout: 30_000 });
+    await fly.click();
+    await expect(
+      page.locator("#worlds").getByRole("link", { name: /career tree/i }),
+    ).toBeVisible({ timeout: 15_000 });
+    await auditHasNoViolations(page, "#worlds");
+  });
 });
 
 /**

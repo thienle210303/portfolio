@@ -446,21 +446,15 @@ test.describe("the live globe", () => {
       section.getByRole("heading", { level: 3, name: WORLDS[1].name }),
     ).toBeVisible();
 
-    // 3. Complete the signature moment. The landing's *visible* consequence —
-    //    the seed, the sapling, and the handoff link into the career tree — is
-    //    Task 9's to build; asserting a link that does not exist yet would be
-    //    asserting Task 9. What exists to check today is the status region the
-    //    stage already writes when `onLanded` fires, and it is the observable
-    //    proof that a whole crossing completed from single clicks and no drag.
-    //
-    //    That region says only "The flight landed in the United States." on
-    //    purpose, and this assertion is why the wording matters: an e2e that
-    //    demands a sentence makes the sentence an acceptance criterion, and the
-    //    region is `sr-only`, so the only people who would ever hear it are the
-    //    ones who cannot see whether it is true. Task 9 adds the seed back to
-    //    both the drawing and the sentence in the same commit.
+    // 3. Complete the signature moment, end to end, from single clicks: the
+    //    crossing plays, the status region says he landed, and the handoff
+    //    link into the career tree appears. Both halves are asserted because
+    //    the sr-only region and the visible link are the two audiences, and a
+    //    press that reached only one of them has not completed the moment for
+    //    someone using a head pointer or eye-gaze.
     await section.getByRole("button", { name: /take the flight/i }).click();
     await expect(section.getByRole("status")).toHaveText(/landed/i, { timeout: 10_000 });
+    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
   });
 
   test("draws in system colours when forced colours are active", async ({ page }) => {
@@ -581,5 +575,132 @@ test.describe("the live globe", () => {
       return canvas ? getComputedStyle(canvas).touchAction : "no canvas";
     });
     expect(canvasTouchAction).toBe("pan-y");
+  });
+});
+
+/**
+ * The end of the moment. What is asserted here is deliberately not "the globe
+ * looks different": the landing's contract is that something was drawn, that
+ * the page then says one true thing about it, and that the whole lot comes to
+ * rest — and every one of those is observable without reading pixels.
+ */
+test.describe("the landing", () => {
+  test("playing the flight lands him, drops a seed, offers the tree — and then stops", async ({
+    page,
+  }) => {
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const section = page.locator("#worlds");
+
+    // Nothing has flown, so nothing may be claimed.
+    await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(0);
+
+    await section.getByRole("button", { name: /take the flight/i }).click();
+
+    const handoff = section.getByRole("link", { name: /career tree/i });
+    await expect(handoff).toBeVisible({ timeout: 10_000 });
+    await expect(section.getByRole("status")).toContainText(/landed/i);
+
+    // The seed finishes growing about forty frames after the landing, and then
+    // there is nothing left moving: the played crossing must clear its own
+    // `playing` flag and the sapling must stop at full size. A flight that
+    // ended by looping forever would still pass every assertion above.
+    await page.waitForTimeout(1_500);
+    await expectAtRest(page, 1_500, "after the played flight");
+
+    // And the claim is retractable, which is the other half of only saying
+    // true things: facing Việt Nam again takes the seed off the globe, so the
+    // sentence about it leaves the page with it.
+    await section.getByRole("button", { name: /face việt nam/i }).click();
+    await expect(handoff).toHaveCount(0);
+  });
+
+  test("the landing link actually reaches the tree", async ({ page }) => {
+    // A handoff that does not hand off is worse than no handoff: the link is
+    // the only thing in this section that points at another one.
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const section = page.locator("#worlds");
+    await section.getByRole("button", { name: /take the flight/i }).click();
+    await section.getByRole("link", { name: /career tree/i }).click({ timeout: 10_000 });
+    await expect(page.locator("#tree")).toBeInViewport();
+  });
+
+  test("the keyboard alone reaches the whole signature moment", async ({ page }) => {
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    await stage.focus();
+    // Rolling east flies him, 12° at a time, and 2.6 radians completes the
+    // crossing — so about thirteen presses, with a margin. The keyboard reaches
+    // the landing by *flying* it, not by a shortcut that jumps to the end.
+    for (let press = 0; press < 20; press += 1) {
+      await page.keyboard.press("ArrowRight");
+    }
+    const section = page.locator("#worlds");
+    await expect(section.getByRole("status")).toContainText(/landed/i, { timeout: 10_000 });
+    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
+  });
+});
+
+test.describe("reduced motion", () => {
+  test("gives the finished frame and the caption, and asks for no frames", async ({ page }) => {
+    // `emulateMedia` rather than `test.use({ reducedMotion })`: as of
+    // Playwright 1.62 that option is no longer on `PlaywrightTestOptions` (it
+    // lives under `contextOptions`), and this is the same idiom the
+    // forced-colors test above already uses. Set before `goto`, so the cats
+    // and the origin story's player see it at mount and never start a loop.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const section = page.locator("#worlds");
+
+    // The counter has to be installed *before* the press, so the click happens
+    // in-page too. Everything else in this file drives the UI with Playwright
+    // locators; this one block is the exception, and that is the reason — a
+    // `locator.click()` would land after the counter was already running and
+    // could not be told apart from a frame the press itself caused.
+    //
+    // Page-wide `requestAnimationFrame` is the right instrument here, unlike
+    // everywhere else in this file: under `prefers-reduced-motion: reduce` the
+    // companion cats have no roaming loop and the origin story's player never
+    // starts one, so the page is genuinely silent and the globe is the only
+    // thing that could ask for a frame.
+    const pressAndCountFrames = (label: RegExp) =>
+      page.evaluate(
+        async (pattern) => {
+          let count = 0;
+          const original = window.requestAnimationFrame;
+          window.requestAnimationFrame = (callback) => {
+            count += 1;
+            return original.call(window, callback);
+          };
+          const match = new RegExp(pattern.source, pattern.flags);
+          const button = [...document.querySelectorAll<HTMLButtonElement>("#worlds button")].find(
+            (candidate) => match.test(candidate.textContent ?? ""),
+          );
+          button?.click();
+          await new Promise((resolve) => setTimeout(resolve, 1_500));
+          window.requestAnimationFrame = original;
+          return count;
+        },
+        { source: label.source, flags: label.flags },
+      );
+
+    // The outcome, not a slower animation — and not one frame requested to
+    // produce it.
+    expect(
+      await pressAndCountFrames(/take the flight/i),
+      "reduced motion asked for animation frames to land the flight",
+    ).toBe(0);
+    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
+    await expect(section.getByRole("status")).toContainText(/landed/i);
+
+    // And the way back, which is the same size of motion: one row of two
+    // buttons, both of which owe the same answer to the same preference.
+    expect(
+      await pressAndCountFrames(/face việt nam/i),
+      "reduced motion asked for animation frames to come home",
+    ).toBe(0);
+    await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(0);
   });
 });
