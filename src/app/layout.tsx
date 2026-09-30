@@ -8,6 +8,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Companion from "@/components/companion/Companion";
 import InkReveal from "@/components/ui/InkReveal";
+import SiteAnalytics from "@/components/layout/SiteAnalytics";
 import "./globals.css";
 
 // Fraunces is variable on `opsz` and `wght`, which is the reason a variable
@@ -233,6 +234,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             doc comment for why its two jobs (section settles + the header
             hairline sentinel above) live in a single mount rather than two. */}
         <InkReveal />
+        {/* Vercel Web Analytics + Speed Insights, and nothing on a preview or
+            a local build — see that file for why the gate is `VERCEL_ENV`
+            rather than `NODE_ENV`, and what breaks without it. */}
+        <SiteAnalytics />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}

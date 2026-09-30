@@ -143,3 +143,48 @@ test("no console.error and no React hydration warnings on load", async ({ page }
   const hydrationHits = [...errors, ...warnings].filter((message) => hydrationPattern.test(message));
   expect(hydrationHits, `hydration-related console messages: ${hydrationHits.join(" | ")}`).toEqual([]);
 });
+
+/**
+ * The guard on the test directly above. `SiteAnalytics.tsx` mounts Vercel Web
+ * Analytics and Speed Insights only when `VERCEL_ENV === "production"`, which
+ * is never true in dev or under Playwright — and that gate is what keeps the
+ * zero-`console.error` assertion above honest. Ungated, `@vercel/analytics`
+ * fetches a debug script from va.vercel-scripts.com on every dev page load, so
+ * an offline or sandboxed run would fail that test for a reason that has
+ * nothing to do with the page.
+ *
+ * Asserted on the network rather than on the absence of a `<script>` tag,
+ * because both packages inject their tag from an effect: a tag-only check
+ * would pass while the request was still going out.
+ */
+test("ships no analytics requests outside a production deployment", async ({ page }) => {
+  const analyticsRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = request.url();
+    if (/va\.vercel-scripts\.com|\/_vercel\/(insights|speed-insights)/.test(url)) {
+      analyticsRequests.push(url);
+    }
+  });
+
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+
+  expect(
+    analyticsRequests,
+    `analytics requests leaked into a non-production build: ${analyticsRequests.join(" | ")}`,
+  ).toEqual([]);
+});
+
+/**
+ * The disclosure the analytics gate above is the other half of. Vercel Web
+ * Analytics needs no consent banner (cookieless, no personal data), so this
+ * one colophon line is the whole of what the page says about measuring itself
+ * — which makes it worth pinning, so it cannot quietly disappear while the
+ * scripts stay.
+ */
+test("the footer discloses the analytics in one plain line", async ({ page }) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("contentinfo").getByText("Anonymous page counts, no cookies (Vercel)"),
+  ).toBeVisible();
+});

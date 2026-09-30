@@ -87,6 +87,18 @@ export default function SiteFooter() {
           ))}
 
           {divider}
+          {/* The site's one piece of self-referential copy, and it earns the
+              space by naming a source the way every plaque and rail figure
+              does. Vercel Web Analytics is cookieless and stores nothing
+              personal, so no consent banner is required — but "we measure
+              this" is still a fact about the page, and the alternative to
+              saying it here is not saying it anywhere. Deliberately plain
+              text, not a link: an outbound link would be the only one in the
+              colophon that is not Thien's own. Only true in production; see
+              `SiteAnalytics.tsx`. */}
+          <p className="inline-flex items-center py-1">Anonymous page counts, no cookies (Vercel)</p>
+
+          {divider}
           {/* This was the one boxed clickable on the page with neither a
               hover state nor a transition to it (Workstream 3, P3) — every
               other bordered control on the site darkens/accents on hover and

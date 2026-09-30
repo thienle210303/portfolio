@@ -381,6 +381,38 @@ an empty config file only overrides detection that is already correct.
 3. **Add the domain** (Project → Settings → Domains) and point DNS at it. Then
    set `NEXT_PUBLIC_SITE_URL` to it and redeploy, so canonical URLs, the
    sitemap and the JSON-LD all agree with where the site actually is.
+4. **Turn on Web Analytics and Speed Insights** (Project → Analytics, and
+   Project → Speed Insights). The code is already there and inert until you
+   do — there is nothing to install and no key to set.
+
+### Analytics
+
+`src/components/layout/SiteAnalytics.tsx` mounts Vercel Web Analytics and
+Speed Insights, and it is gated on `VERCEL_ENV === "production"` — set by
+Vercel itself, never by hand. Previews and local builds render nothing at all.
+
+That gate is not a preference, it is load-bearing in two places:
+
+- `e2e/accessibility.spec.ts` allows **zero** `console.error` on load, and the
+  Playwright suite runs against `pnpm dev`, where `@vercel/analytics` fetches a
+  debug script from `va.vercel-scripts.com`. Ungated, an offline or sandboxed
+  run would fail that gate for a reason unrelated to the page. A second test in
+  that file asserts no analytics request is made outside production, so
+  removing the gate fails loudly instead of going quietly flaky.
+- Events are counted **per team, not per project** — 50,000/month on Hobby, a
+  pageview being one event. Preview traffic is almost entirely your own
+  reloads, so counting it would spend the allowance and skew the number.
+
+Both services are cookieless and store nothing personal, which is why there is
+no consent banner. The footer carries one plain line saying so; if you ever
+remove the scripts, remove that line with them.
+
+Because the gate reads `VERCEL_ENV`, a plain `pnpm perf` run measures the
+build *without* analytics. To measure the real production page, set it:
+
+```bash
+VERCEL_ENV=production pnpm build
+```
 
 Two things to know before it is live:
 
