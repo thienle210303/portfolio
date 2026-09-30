@@ -30,7 +30,11 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Pinned rather than `ubuntu-latest`: GitHub migrates that label to
+    # Ubuntu 26 on 19 October 2026, and a runner image changing under a
+    # gate is a failure nobody will read as a distro change. Bump it
+    # deliberately, when a green run can confirm the move.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
