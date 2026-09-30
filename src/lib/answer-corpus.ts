@@ -1,4 +1,3 @@
-import { workflowStages } from "@/content/ai-experiments";
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
 import { origin } from "@/content/portfolio";
 import { defaultRunProjectId } from "@/content/workshop";
@@ -317,8 +316,7 @@ export function buildDocuments(): Document[] {
   }
 
   // Round 16. The stations' evidence is already a verbatim project field, and
-  // each `watchFor` is the one thing about an agent stage a reader cannot get
-  // from a vendor. Both are indexed under `workshop`, where they are visible.
+  // it is indexed under `workshop`, where a reader can go and see it.
   //
   // Only the *default* run is indexed, not all five. The other four runs quote
   // the same project fields the `work` documents above already carry, so
@@ -339,15 +337,22 @@ export function buildDocuments(): Document[] {
     }
   }
 
-  for (const stage of workflowStages) {
-    docs.push({
-      text: stage.watchFor,
-      source: `Workshop — ${stage.label}`,
-      sectionId: "workshop",
-      sectionLabel: "Workshop",
-      label: label("workshop", undefined, stage.label, stage.question, "risk", "failure"),
-    });
-  }
+  // Each stage's `watchFor` is deliberately *not* indexed, though round 16
+  // indexed it — and shipped a precision hole doing so. Three of the ten
+  // failure modes mention source *files*, and they were the corpus's only
+  // carriers of that word, which handed "file" a near-maximal IDF. So "how do
+  // I file my taxes" reduced to two terms, matched one of them incidentally,
+  // and the site answered a tax question with three sentences about source
+  // files.
+  //
+  // Both fixes were measured on the retrieval eval rather than argued. Gating
+  // `requiredMatches` harder closes it and costs recall@3 93.3% → 83.3% and
+  // MRR 0.851 → 0.761; dropping these ten strings closes it with the eval
+  // byte-identical to baseline. That is the same trade `source` lost above:
+  // text whose vocabulary is generic costs precision everywhere and earns
+  // recall nowhere the eval can see. The strings are still authored, still
+  // rendered by `AgentLane`, just not askable — and
+  // `tests/lib/answers.test.ts` fails if they come back.
 
   return docs;
 }
