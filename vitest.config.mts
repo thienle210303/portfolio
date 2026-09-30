@@ -30,6 +30,23 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // Vitest's default is 5s, which was never calibrated for this suite and
+    // produced a flake that looked like three unrelated bugs.
+    //
+    // Several tests legitimately take 0.9-1.7s: they render a large React tree
+    // through jsdom, and one `user.type()` of a ~33-character question is a
+    // re-render per keystroke at ~25ms each. Alone, every file passes. Run as
+    // 31 files in parallel, wall-clock inflates 3-6x on this machine, and
+    // whichever file happens to hold the slowest test crosses 5s at random --
+    // observed in `tests/api/ask.test.ts`, `tests/sections/AskThisSite.test.tsx`
+    // and `tests/sections/WorldsStage.test.tsx` in turn, always as
+    // "Test timed out in 5000ms", never as a failed assertion.
+    //
+    // Raising the budget per file just moves the failure to the next-slowest
+    // file, so it is set once here: ~12x the slowest test observed, which
+    // contention cannot reach, while a genuinely hung test still fails
+    // promptly rather than hanging the suite.
+    testTimeout: 20_000,
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
     exclude: [...configDefaults.exclude, "e2e/**"],
