@@ -96,8 +96,8 @@ test.describe("the player", () => {
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
     // The one geographic fact the story is allowed to name is the arrival —
-    // "<country> → United States · December 2018" — never the city
-    // (`origin.from`, "Rạch Giá, Việt Nam") and never a schooling location.
+    // "<country> → United States · December 2018" — never the province
+    // (`origin.from`, "Kiên Giang, Việt Nam") and never a schooling location.
     // `origin-story.test.ts` holds `Season.caption` to the same ban; this is
     // the flight caption's own copy of it.
     //
@@ -108,7 +108,7 @@ test.describe("the player", () => {
     const status = stage.getByRole("status");
     await expect(status).toContainText("December 2018");
     const captionText = await status.textContent();
-    expect(captionText ?? "").not.toMatch(/Rạch|Taylors|Columbia|Cheraw/);
+    expect(captionText ?? "").not.toMatch(/Kiên|Taylors|Columbia|Cheraw/);
   });
 
   test("clicking the stage advances to the next beat", async ({ page }) => {

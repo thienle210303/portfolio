@@ -34,10 +34,19 @@ describe("startTour", () => {
 });
 
 describe("isLastStop", () => {
-  it("is true only for the final index", () => {
-    expect(isLastStop(TOUR_STOPS.length - 1)).toBe(true);
-    expect(isLastStop(0)).toBe(TOUR_STOPS.length === 1);
-    expect(isLastStop(TOUR_STOPS.length)).toBe(true);
+  it("is true only for the final index of the given total", () => {
+    expect(isLastStop(TOUR_STOPS.length - 1, TOUR_STOPS.length)).toBe(true);
+    expect(isLastStop(0, TOUR_STOPS.length)).toBe(TOUR_STOPS.length === 1);
+    expect(isLastStop(TOUR_STOPS.length, TOUR_STOPS.length)).toBe(true);
+  });
+
+  it("measures against the total it is given, not a fixed count — a shorter list ends sooner", () => {
+    // This is the property a caller that kept comparing against
+    // `TOUR_STOPS.length` instead of `stopsFor(route).length` would get
+    // wrong: a `GREY_MIDDLE` typo drops a stop, `stopsFor` returns a
+    // shorter array, and "last stop" has to mean the end of *that* array.
+    expect(isLastStop(3, 4)).toBe(true);
+    expect(isLastStop(2, 4)).toBe(false);
   });
 });
 
@@ -54,20 +63,36 @@ describe("stopsFor", () => {
     }
   });
 
-  it("agrees on the shared prefix (About, Work) and the shared suffix (Contact)", () => {
+  it("agrees on the shared first stop (About) and the shared last stop (Contact)", () => {
+    // Round 16: Work moved into the derived middle (see stopsFor's own
+    // comment) so a sixth section could join without a second hard-coded
+    // prefix stop — it is no longer a stop both routes share in the same
+    // position. Only the very first and very last stops stay fixed.
     const grey = stopsFor("grey");
     const tabby = stopsFor("tabby");
     expect(grey[0]).toEqual(tabby[0]);
-    expect(grey[1]).toEqual(tabby[1]);
     expect(grey[0].sectionId).toBe("about");
-    expect(grey[1].sectionId).toBe("work");
     expect(grey.at(-1)).toEqual(tabby.at(-1));
     expect(grey.at(-1)!.sectionId).toBe("contact");
   });
 
   it("walks the builder's route work outward, and the curious route in reverse", () => {
-    const middle = (route: TourRoute) => stopsFor(route).slice(2, -1).map((stop) => stop.sectionId);
-    expect(middle("grey")).toEqual(["skills", "tree"]);
-    expect(middle("tabby")).toEqual(["tree", "skills"]);
+    const middle = (route: TourRoute) => stopsFor(route).slice(1, -1).map((stop) => stop.sectionId);
+    expect(middle("grey")).toEqual(["worlds", "work", "skills", "tree", "workshop"]);
+    expect(middle("tabby")).toEqual(["workshop", "tree", "skills", "work", "worlds"]);
+  });
+
+  it("visits every nav section, in an order that includes the new ones", () => {
+    const grey = stopsFor("grey").map((stop) => stop.sectionId);
+    expect(grey).toEqual(navItems.map((item) => item.sectionId));
+  });
+
+  it("never yields an undefined stop for either route", () => {
+    for (const route of ["grey", "tabby"] as const) {
+      for (const stop of stopsFor(route)) {
+        expect(stop).toBeDefined();
+        expect(stop.sectionId).toBeTruthy();
+      }
+    }
   });
 });

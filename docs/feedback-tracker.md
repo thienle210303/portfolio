@@ -719,6 +719,8 @@ Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
 | After the chat moved into the hero tab | 192.7 KB | 14.2 KB | 331.4 KB | 3840 ms | 456 ms | 0 | 4120 |
 | After, same-commit re-run | 192.7 KB | 14.2 KB | 331.4 KB | 4032 ms | 260 ms | 0 | 4120 |
 | After Philosophy and the Lab were removed | 188.2 KB | 13.5 KB | 331.4 KB | 4148 ms / 3692 ms | 580 ms / 474 ms | 0 | 3325 |
+| Same row re-measured today at `61bef53` (3 runs) | 188.1 KB | 13.5 KB | 331.4 KB | 2928–4676 ms | 389–863 ms | 0 | 3325 |
+| After the globe and the Workshop, `f794749` (4 runs) | 192.2 KB | 13.9 KB | 372.0 KB | 3520–4464 ms | 375–1087 ms | 0 | 3764 |
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
 JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms
@@ -752,6 +754,149 @@ to keep honest:
   places (`BusinessCard.tsx:275`, `Closing.tsx:76`). Dropping that one axis is
   the single largest win available and is tracked as its own decision, not
   bundled into this work.
+
+### The globe and the Workshop (2026-09-29)
+
+Plan: `.superpowers/sdd/2026-09-28-playground-earth-globe-and-workshop/`.
+
+**What shipped.** Two sections, both `tone="deep"`.
+
+- **`#worlds`** — seven worlds on a drawn globe: 19 plaques, 3 decorations, 2
+  worlds deliberately off the map. A Canvas 2D orthographic projector
+  (`src/lib/globe.ts`), a build-time simplified coastline, and **no runtime
+  dependency at all**. The canvas is an island reached through one `import()`
+  in `WorldsStage.tsx`; the server-rendered list beside it carries every
+  world, every plaque and every source, so the section is complete with the
+  chunk blocked — `e2e/worlds.spec.ts` asserts that by aborting the request.
+- **`#workshop`** — the nine-step loop run against one real project, five runs
+  selectable, plus the ten agent stages underneath. Every piece of evidence is
+  one authored field of that project, quoted verbatim; a station whose field
+  is empty stays on screen and names the missing field.
+
+**The honesty rule, and the test that holds it.** Every drawn object on the
+globe is either a plaque — a typed reference to one field of one authored
+record, rendered verbatim, no sub-sentences — or a decoration, which carries
+no fact and is labelled `no plaque · decoration` in its own accessible name.
+`tests/lib/worlds.test.ts` enforces the distinction string-for-string: a
+plaque whose text is not `===` a string the content layer produces fails, and
+the fix is always the reference or the authored field, never the assertion.
+
+#### The measurement
+
+Both ends measured **today, on this machine, with the same script**: a
+detached worktree at `61bef53` (the commit before this plan's first change)
+and one at `f794749` (HEAD), each built and served from its own directory so
+nothing shared a `.next`. Seven `pnpm perf` runs in all, **zero skipped
+responses in every one**.
+
+**The headline is the delta, not the absolute:**
+
+| | Before (`61bef53`) | After (`f794749`) | Δ |
+|---|---|---|---|
+| **Initial JS** — `pnpm perf`, `request.sizes()` | 188.1 KB | 192.2 KB | **+4.1 KB** |
+| **Initial JS** — CDP `encodedDataLength` (out of band — see below) | 192.2 KB | 196.3 KB | **+4.1 KB** |
+| Initial script responses | 11 | 11 | 0 |
+| CSS | 13.5 KB | 13.9 KB | +0.4 KB |
+| Fonts | 331.4 KB | 372.0 KB | **+40.6 KB** |
+| Font responses | 5 | 8 | +3 |
+| LCP | 2928–4676 ms | 3520–4464 ms | within noise |
+| TBT | 389–863 ms | 375–1087 ms | within noise |
+| CLS | 0 | 0 | 0 |
+| DOM nodes | 3,325 | 3,764 | +439 |
+
+**Two methods, one answer — but only one of them is `pnpm perf`.** `pnpm perf`
+sums `request.sizes().responseBodySize`, and prints a second column summing
+the `content-length` header (`scripts/perf.mjs`). The `encodedDataLength` row
+above came from a **separate, out-of-band CDP session** driven by hand for
+this comparison; the string `encodedDataLength` appears nowhere in this
+repository, and nothing in `README.md`'s `pnpm perf` recipe reproduces that
+row. Re-measuring it means attaching to `Network.loadingFinished` yourself.
+The two numbers differ by a constant 4.1 KB at both ends — eleven responses'
+worth of response headers, which `encodedDataLength` counts and
+`responseBodySize` does not — and they agree on the delta **exactly**. The
+tracker's recorded 188.2 KB also reproduced today at 188.1 KB, so that row was
+sound.
+
+**The 223.0 KB figure is reconciled, and it was never a discrepancy.** A
+parallel pass put this branch at 223.0 KB against the tracker's 188.2 KB. It
+was measuring a different thing: scroll the page until `#worlds` is within
+200px of the viewport and the globe's `import()` fires, adding **27.3 KB in
+two chunks** (22.9 + 4.4). 196.3 + 27.3 = **223.6 KB**. That is the cost of
+the globe *once a visitor scrolls to it*, which is exactly what the lazy load
+is for — and it is not in the initial bundle. Verified by name: no
+`GlobeCanvas` or coastline chunk appears among the 11 initial scripts, at
+either commit.
+
+**A third-party note on the `content-length` cross-check:** it does not work
+for scripts here. `next start` sends JS and CSS chunked, with no
+`Content-Length` header at all, so that column reads 0.0 KB for both and is
+only meaningful for fonts (where it matched to the byte: 372.0 KB). `pnpm perf`
+prints it anyway, labelled as a floor, because a silent zero is worse than a
+stated one.
+
+**Fonts moved, and that is the one number worth arguing about.** +40.6 KB and
+three extra font files, against a line this table already flags as the
+single largest remaining win. The likeliest cause is the Vietnamese
+`unicode-range` subsets: this round is the first to put "Kiên Giang", "Việt
+Nam" and "cơm tấm" on the page, and a subset is only fetched once a glyph in
+its range is used. Not investigated further here, and **not** something the
+globe's chunk can be blamed for — it is a consequence of the content, not the
+canvas. Worth its own look before the Newsreader-italic decision is taken.
+
+**Two things that make "the lazy chunk does not touch the initial bundle" a
+per-build claim rather than a guarantee:**
+
+- **Next 16 dropped `First Load JS` from `next build` output**, as inaccurate
+  for RSC. There is no build-time number to read any more, which is why
+  `pnpm perf` exists and why this table is the only record.
+- **Turbopack merges chunks under 50 KB uncompressed.** An `import()` is a
+  request for a separate chunk, not a promise of one. Whether `GlobeCanvas`
+  and its 53 KB of coastline stayed out has to be checked per build, by name,
+  in the network log — which is what the check above does.
+
+LCP is still anchored to the hero's intro paragraph (`P.mt-6.max-w-[56ch]`) at
+both commits, so the "nothing new on the first screen" rule held: both new
+sections are below the fold at 412×823.
+
+#### Three mockup strings that did not survive contact with the rule
+
+1. *The landing announcement.* The mockup's sr-only line said "A seed dropped
+   at the arrival pin, and the career tree grows from that spot." Nothing drew
+   a seed. It became "The flight landed in the United States." (`8e3fd7b`) and
+   grew back to the fuller sentence only once `c004c1f` actually drew the
+   seed. The region is sr-only, so the only people who would ever have
+   received the false half were the ones who could not see that nothing was
+   there.
+2. *The United States world's decorations.* The mockup drew a mug and a
+   library. Nobody had authored either, so the world ships with
+   `decorations: []` and no `disclosure` — the recorded reason is the code
+   comment beside it in `src/content/worlds.ts`, not a line on the page. The
+   sentence "One object so far, and he named it himself. Nothing here was
+   invented to fill the space." belongs to **Việt Nam**, which has one
+   decoration and bounds the claim about it. Same instinct, two different
+   mechanisms, and neither world states the other's.
+3. *The Workshop's intro.* It claimed every line below was quoted from the
+   project's own write-up. It is not: each step's label and detail are the
+   loop's own method text, and on four of the five runs a station carries the
+   gap sentence instead. It now says every piece of *evidence* is quoted,
+   which is true (`9502cbd`), and the plan's own copy was narrowed to match so
+   no implementer would transcribe the old claim back in (`7198972`).
+
+#### Still open, both carried over from the spec, neither blocking
+
+- **The four rewritten strings still need Thien's approval.**
+  `labPositioning`, `labIntro[0]`, `labLiveNotice` and `heroAskCaption` in
+  `src/content/ai-experiments.ts` were authored when the chat lived in the AI
+  Workflow Lab and still describe "the chat box below". All four are
+  unrendered — grep across `src/` finds no consumer of any of them — so
+  nothing false reaches the page today, which is why this is a decision
+  waiting on him rather than a defect.
+- **The Workshop's `test` station is empty for four of five projects.** Only
+  `dd-feasibility-agent` authors `whatFailed`. This no longer needs content:
+  the station stays on screen and says *which field* is missing, so the gap is
+  checkable against the case study. Four runs in five show it, which makes the
+  disclosure the normal case rather than an apology. Authoring `whatFailed`
+  for the other four is available as an improvement, not a fix.
 
 ### Outstanding: WCAG AA clearance regression on deep jumps to Contact
 

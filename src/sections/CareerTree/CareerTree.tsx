@@ -38,7 +38,7 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { careerEntries, skillCategories } from "@/content/portfolio";
-import { buildCareerTree, careerYearSpan, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildCareerTree, careerYearSpan, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
 import KnowledgeTree from "./KnowledgeTree";
 import Timeline from "./Timeline";
 import { ViewToggle } from "./ViewToggle";
@@ -51,7 +51,7 @@ const TREE = buildCareerTree();
  *  branch lists, summed. Round 12 inverted what a branch and a leaf are —
  *  see `src/lib/knowledge-tree.ts` — so this is no longer "one row per
  *  (lens, career entry) pair"; it is "one row per authored fact". */
-const LEAF_TOTAL = TREE.reduce((total, branch) => total + branch.leaves.length, 0);
+const LEAF_TOTAL = totalLeaves(TREE);
 
 /** The branch with the most to show — the entry whose own technologies and
  *  impact lines, combined, outnumber every other entry's. Ties go to the

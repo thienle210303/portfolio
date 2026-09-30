@@ -167,12 +167,12 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
           );
         })}
       </ul>
-      {/* The newest entry is always last — `tree` is chronological, oldest
-          first (see the file banner) — so its own year is the tip's. Guarded
-          rather than assumed: `KnowledgeTree.tsx` never renders this
-          component with an empty tree, but nothing here should crash if it
-          ever did. */}
-      {tree.length > 0 ? <ListGrowingTip year={tree[tree.length - 1].startYear} /> : null}
+      {/* `ListGrowingTip` takes no argument and reads `careerYearSpan()`
+          itself, so nothing here could crash on an empty `tree` even without
+          this guard. It stays because an empty career section has nothing to
+          be "still growing" — the tip would be asserting a fact about a list
+          that does not exist. */}
+      {tree.length > 0 ? <ListGrowingTip /> : null}
     </div>
   );
 }

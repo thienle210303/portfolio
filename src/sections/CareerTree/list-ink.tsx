@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { stillGrowingCaption } from "@/lib/knowledge-tree";
 
 /**
  * Decorative ink for the mobile/AT career list — the drawing DrawnTree.tsx
@@ -193,10 +194,10 @@ export function EntryInk({ seed, showRing }: EntryInkProps) {
  * The unfinished shoot at the newest end of the list, mirroring
  * `DrawnTree.tsx`'s own `GrowingTip` in miniature: a thinner, open-ended
  * line continuing past the last row with two small bud ticks rather than a
- * resolved leaf, plus the same "still growing · {year}" caption in the
- * drawing's own eyebrow convention. The year is not a new fact — it is the
- * last row's own year, already visible one line above — the same restraint
- * `DrawnTree.tsx`'s tip observes toward its rail's "Rings" note.
+ * resolved leaf, plus the same `stillGrowingCaption()` text in the drawing's
+ * own eyebrow convention. The year in that caption is not a new fact — it is
+ * the last row's own year, already visible one line above — the same
+ * restraint `DrawnTree.tsx`'s tip observes toward its rail's "Rings" note.
  *
  * A plain flow element after the list, not absolutely positioned against
  * it: the trunk above already ends exactly at the `<ul>`'s own bottom edge
@@ -204,7 +205,7 @@ export function EntryInk({ seed, showRing }: EntryInkProps) {
  * normal document flow to read as a continuation, with nothing to keep in
  * sync by hand.
  */
-export function ListGrowingTip({ year }: { readonly year: number }) {
+export function ListGrowingTip() {
   const trunkX = vary("list-tip|tx", 8, 12);
 
   return (
@@ -231,7 +232,7 @@ export function ListGrowingTip({ year }: { readonly year: number }) {
         data-tree-list-shoot-label
         className="eyebrow relative ml-1 inline-block pt-1 text-fg-subtle"
       >
-        still growing · {year}
+        {stillGrowingCaption()}
       </span>
     </div>
   );

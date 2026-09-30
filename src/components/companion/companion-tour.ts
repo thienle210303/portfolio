@@ -7,7 +7,7 @@ import { navItems } from "@/content/portfolio";
  *
  * The duet's ambient banter (companion-dialogue.ts) is decorative; this is the
  * opposite — a visitor presses "Show me around" in the toolkit panel, and the
- * pair walk the page's own five sections, performing a short scene at each
+ * pair walk the page's own seven sections, performing a short scene at each
  * stop through the HUD's `role="status"`. It is the only thing the companion
  * narrates out loud, on purpose: everything else it does is a drawing, and a
  * drawing that starts talking to a screen reader unprompted is noise. Asked
@@ -16,7 +16,7 @@ import { navItems } from "@/content/portfolio";
  *
  * `TOUR_STOPS` is derived from `navItems` rather than kept as a parallel
  * list, so the tour can never visit a section the nav does not, or skip one
- * it does — the two are structurally the same five entries. `stopsFor`
+ * it does — the two are structurally the same seven entries. `stopsFor`
  * re-orders that same set for the one fork in the walk — see `TourRoute` —
  * without ever adding to or subtracting from it. The lines spoken at each
  * stop are not here: they come from companion-dialogue.ts's `tour-*` scenes,
@@ -40,45 +40,67 @@ export const TOUR_STOPS: readonly TourStop[] = navItems.map((item) => ({
 export type TourPhase = "walking" | "arrived";
 
 /**
- * The one fork in the walk. Both cats narrate the first two stops and the
- * last one identically — the visitor has not chosen anyone yet at Work, and
- * Contact is where every route ends up regardless — so the routes only ever
- * disagree about the two stops in between: `grey`'s is the order the page
- * itself is laid out in (the builder's route, work outward through the
- * evidence), `tabby`'s runs it backwards (the curious route, starting from
- * what she finds most interesting and working back to how it was built). See
- * `stopsFor`.
+ * The one fork in the walk. Both cats narrate the first stop and the last
+ * one identically — the visitor has not chosen anyone yet at About, and
+ * Contact is where every route ends up regardless — so the routes only
+ * ever disagree about the stops in between, `GREY_MIDDLE`: `grey`'s is the
+ * order the page itself is laid out in (the builder's route, work outward
+ * through the evidence), `tabby`'s runs it backwards (the curious route,
+ * starting from what she finds most interesting and working back to how it
+ * was built). See `stopsFor`.
  */
 export type TourRoute = "grey" | "tabby";
 
-/** The two stops between Work and Contact, in `grey`'s order — the
- *  same order `TOUR_STOPS` already puts them in, named here rather than
- *  re-sliced at every call site. `tabby`'s route is this, reversed.
+/** Every stop between the first (About) and the last (Contact), in `grey`'s
+ *  order — the order the page itself is laid out in. `tabby`'s route is
+ *  this, reversed. `stopsFor` derives the *whole* middle from this one list
+ *  rather than hard-coding a second shared stop, which is what keeps a
+ *  section added to `navItems` from silently being visited twice (if it
+ *  lands in both the hard-coded prefix and this list) or never (if it lands
+ *  in neither).
  *
  *  Round 10: the tree absorbed Journey, so this list is one shorter than it
  *  used to be — `journey` retired as a section id, and the tree's own tour
  *  scene (`companion-dialogue.ts`) narrates both faces at its one stop.
  *  Round 16: Philosophy's removal dropped it to three and shifted the fork
  *  to the second stop, now Work rather than Philosophy; the Lab's removal
- *  dropped it again, to two. */
-const GREY_MIDDLE = ["skills", "tree"] as const;
+ *  dropped it again, to two. Playground Earth's addition put Work back into
+ *  the middle — rather than growing a second hard-coded prefix stop in
+ *  `stopsFor` — so the list went back to four: Worlds, Work, Skills,
+ *  Journey. The Workshop is the fifth, added here and nowhere else: it is
+ *  the whole of what the tour had to learn, because `TOUR_STOPS` already
+ *  derives from `navItems` and `stopsFor` derives the middle from this one
+ *  list. A section added to `navItems` and forgotten here would be visited
+ *  by neither route — `stopsFor`'s filter drops nothing, but the middle it
+ *  builds would simply never name it — which is the silent skip
+ *  `tests/lib/companion-tour.test.ts`'s "visits every nav section" case
+ *  exists to catch. */
+const GREY_MIDDLE = ["worlds", "work", "skills", "tree", "workshop"] as const;
 
 const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop]));
 
 /**
- * The five stops in the order one route walks them. Both routes are the
- * same *set* of five — nothing is skipped, nothing is invented — and they
- * agree on the first two (About, Work) and the last one (Contact); only the
- * two in between change order, per `TourRoute`'s own doc comment.
+ * The stops in the order one route walks them — seven today, for a
+ * well-formed `GREY_MIDDLE`. Both routes are the same *set* — nothing is
+ * skipped, nothing is invented — and they agree only on the first stop
+ * (About) and the last (Contact); everything between the two is
+ * `GREY_MIDDLE`, in order or reversed, per `TourRoute`'s own doc comment.
+ *
+ * The `filter` below (rather than a non-null assertion on the `Map.get`)
+ * stops *this function* from throwing on a typo or a stale id in
+ * `GREY_MIDDLE` — it drops that one stop instead. That is only half a
+ * safety net by itself: the array this returns is then shorter than
+ * `TOUR_STOPS.length`, and every caller has to measure against *this*
+ * array's own length rather than assume the two agree, or the walk goes
+ * looking for a stop one past the real end and throws there instead —
+ * `Companion.tsx`'s own render, one function call away. See `isLastStop`.
  */
 export function stopsFor(route: TourRoute): readonly TourStop[] {
   const middle = route === "grey" ? GREY_MIDDLE : [...GREY_MIDDLE].reverse();
-  return [
-    TOUR_STOPS[0],
-    TOUR_STOPS[1],
-    ...middle.map((sectionId) => STOP_BY_SECTION.get(sectionId)!),
-    TOUR_STOPS[TOUR_STOPS.length - 1],
-  ];
+  const stops = middle
+    .map((sectionId) => STOP_BY_SECTION.get(sectionId))
+    .filter((stop): stop is TourStop => stop !== undefined);
+  return [TOUR_STOPS[0], ...stops, TOUR_STOPS[TOUR_STOPS.length - 1]];
 }
 
 /**
@@ -104,6 +126,13 @@ export function startTour(): TourRun {
   return { index: 0, phase: "walking", arrivedAt: 0, route: "grey", routeChosen: false };
 }
 
-export function isLastStop(index: number): boolean {
-  return index >= TOUR_STOPS.length - 1;
+/**
+ * `totalStops` must be the length of `stopsFor(route)` for whichever route
+ * is actually running — never `TOUR_STOPS.length`. The two only agree when
+ * `GREY_MIDDLE` is well-formed; a caller that passes the fixed length
+ * instead would keep this returning `false` one stop past the real end,
+ * sending the walk looking for a stop `stopsFor` never produced.
+ */
+export function isLastStop(index: number, totalStops: number): boolean {
+  return index >= totalStops - 1;
 }

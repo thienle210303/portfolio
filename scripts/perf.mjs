@@ -61,16 +61,38 @@ await cdp.send("Network.emulateNetworkConditions", {
 await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
 
 const bytes = { script: 0, stylesheet: 0, font: 0, other: 0 };
+
+/*
+ * The same responses, read a second and independent way.
+ *
+ * `sizes()` asks the browser what it actually received, and throws for a
+ * response that never finished. `content-length` is what the server said it
+ * was sending, and is in the headers either way. Both are encoded (on-the-wire)
+ * bytes, so they should agree — and when they do not, the gap *is* the error
+ * bar on this measurement. Printing one number and not the other is how a run
+ * that quietly lost three chunks reads as a clean 35 KB improvement.
+ */
+const headerBytes = { script: 0, stylesheet: 0, font: 0, other: 0 };
+let skipped = 0;
+let noContentLength = 0;
+
 page.on("response", async (response) => {
   const type = response.request().resourceType();
+  const bucket = type in bytes ? type : "other";
+
+  const declared = Number(response.headers()["content-length"]);
+  if (Number.isFinite(declared)) headerBytes[bucket] += declared;
+  else noContentLength += 1;
+
   try {
     const sizes = await response.request().sizes();
-    const n = sizes.responseBodySize || 0;
-    if (type in bytes) bytes[type] += n;
-    else bytes.other += n;
+    bytes[bucket] += sizes.responseBodySize || 0;
   } catch {
     // A response that never finished has no sizes. Skipping it under-reports
-    // rather than crashing the run, which is the right trade for a metric.
+    // rather than crashing the run, which is the right trade for a metric —
+    // but only if the run says how much it skipped. Counted, and printed
+    // below, so an under-report cannot be mistaken for a smaller bundle.
+    skipped += 1;
   }
 });
 
@@ -106,7 +128,17 @@ console.log("| JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |");
 console.log("|---|---|---|---|---|---|---|");
 console.log("| " + row + " |");
 console.log("");
+console.log(
+  skipped === 0
+    ? "Responses with no sizes(): 0 — nothing was dropped from the totals above."
+    : `Responses with no sizes(): ${skipped} — THE TOTALS ABOVE ARE UNDER-REPORTED. ` +
+        "Re-run before recording the number anywhere.",
+);
+console.log(
+  `content-length cross-check: JS ${kb(headerBytes.script)} KB, CSS ${kb(headerBytes.stylesheet)} KB, ` +
+    `fonts ${kb(headerBytes.font)} KB (${noContentLength} response(s) declared none, so this is a floor).`,
+);
 console.log("LCP element: " + metrics.lcpEl);
-console.log(JSON.stringify({ bytes, ...metrics }, null, 2));
+console.log(JSON.stringify({ bytes, headerBytes, skipped, noContentLength, ...metrics }, null, 2));
 
 await browser.close();

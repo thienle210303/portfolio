@@ -1,7 +1,9 @@
 import Hero from "@/sections/Hero/Hero";
+import Worlds from "@/sections/Worlds/Worlds";
 import SelectedWork from "@/sections/SelectedWork/SelectedWork";
 import Skills from "@/sections/Skills/Skills";
 import CareerTree from "@/sections/CareerTree/CareerTree";
+import Workshop from "@/sections/Workshop/Workshop";
 import Contact from "@/sections/Contact/Contact";
 import Closing from "@/sections/Footer/Closing";
 
@@ -19,6 +21,11 @@ export default function Home() {
     <>
       {/*
         Order is an argument about what a visitor needs, in what order.
+
+        Round 16 puts Playground Earth second, in the slot Philosophy used to
+        hold: below the fold, before the evidence. It is the one section that
+        is an argument about the person rather than the work, and it earns that
+        position by being made entirely of the work's own facts.
 
         Who he is, what he built, where he has been, the formal record, then
         how to reach him.
@@ -40,13 +47,23 @@ export default function Home() {
         after both, and it belongs to neither. Each of the two ends with a
         single link into it.
 
+        The Workshop comes after the tree and before Contact. It is the one
+        section that is about *method* rather than about the record, so it can
+        only be read once the record it runs against is already on the page —
+        it quotes one case study's own fields and links back into `#work` for
+        the full telling. Last chapter before the ask, which is also where the
+        nine loop steps' argument ("here is the method, checked") lands
+        hardest.
+
         `navItems` in src/content/portfolio.ts must stay in this order: the nav
         doubles as the page's table of contents.
       */}
       <Hero />
+      <Worlds />
       <SelectedWork />
       <Skills />
       <CareerTree />
+      <Workshop />
       <Contact emailDeliveryConfigured={emailDeliveryConfigured} />
       <Closing />
     </>

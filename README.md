@@ -4,9 +4,12 @@ A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
 The site is a single narrative page: a code-led hero (with a chat that
-answers questions about the page, grounded only in what it says), six case
-studies, a skills inventory, a career timeline, an interactive résumé, and a
-contact experience that starts from what the visitor actually came to say.
+answers questions about the page, grounded only in what it says), a drawn
+globe of seven worlds made entirely of the site's own authored facts, five case
+studies, a skills inventory, a career tree, a workshop that runs a nine-step
+method against one real project, and a contact experience that starts from
+what the visitor actually came to say. The résumé is its own route at
+`/resume`, reading the same content.
 
 Visually it is **Blueprint**: a cool paper ground ruled with a faint measurement
 grid, one blue reserved for annotation and measured values, and a margin rail
@@ -125,22 +128,35 @@ pnpm dev            # http://localhost:3000
 | `pnpm test:watch` | Vitest in watch mode |
 | `pnpm test:e2e` | Playwright browser + responsive tests |
 | `pnpm verify` | typecheck → lint → contrast → test → build, in order |
+| `pnpm screenshots` | Captures every section at 320/390/1440 into a tmp dir |
+| `pnpm perf` | Measures a running production build: JS/CSS/font bytes, LCP, TBT, CLS, DOM nodes |
 
 `pnpm test:e2e` starts its own dev server. If you already have one running on
 port 3000 it will reuse it.
+
+`pnpm perf` does **not** start one — it is deliberately outside `pnpm verify`,
+which must stay hermetic. Run `pnpm build`, then `PORT=3100 pnpm start`, then
+`pnpm perf` against it. Read its skipped-response count: a run that reports
+any is under-reported and the number must not be recorded. The measured table
+lives in [`docs/feedback-tracker.md`](docs/feedback-tracker.md).
 
 ---
 
 ## Where the content lives
 
-**All facts live in two files.** Nothing factual is written inline in JSX, so a
-date, employer or metric exists in exactly one place.
+**Every fact lives in `src/content/`.** Nothing factual is written inline in
+JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, contact intents, and the retired Philosophy section's principles/loop/intro (unrendered, kept for a future section) |
-| `src/content/ai-experiments.ts` | Workflow stages, AI experiments, learning log, scraping playbook (unrendered since round 16's removal of the AI Workflow Lab — kept for a future section) |
-| `src/types/portfolio.ts` | The types both files are checked against |
+| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, contact intents, the Philosophy section's retired `principles[].detail` prose (unrendered), `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — and `problemSolvingLoop` — the nine steps, now rendered as the Workshop's stations |
+| `src/content/ai-experiments.ts` | `workflowStages`, rendered as the Workshop's agent lane; plus the AI experiments, learning log and scraping playbook, still unrendered since round 16's removal of the AI Workflow Lab and kept for a future section |
+| `src/content/worlds.ts` | The seven worlds of the globe — **addresses, not sentences**: each plaque names a record and a field in `portfolio.ts`, and the words are quoted from it verbatim |
+| `src/content/workshop.ts` | Which authored field is the evidence for which step of the loop, one field per station, plus what a station says when the field is empty |
+| `src/types/portfolio.ts` | The types every one of them is checked against |
+
+(`src/content/answer-expansion.ts` sits beside them but holds no facts — it is
+checked-in search vocabulary for "Ask this site", not anything the page says.)
 
 `careerEntries` is the canonical source for organisations, roles and dates. Case
 studies reference a career entry by `careerEntryId` rather than restating them,
@@ -421,8 +437,8 @@ src/
   types/          the contracts content is checked against
   hooks/          small client-side hooks
   lib/            pure helpers (cn, highlight, content)
-docs/             generated contrast table
-scripts/          contrast measurement, screenshots
+docs/             generated contrast table, editing recipes, feedback tracker
+scripts/          contrast measurement, screenshots, `pnpm perf`
 tests/            Vitest component tests
 e2e/              Playwright specs
 public/           résumé PDF

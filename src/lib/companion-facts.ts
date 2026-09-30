@@ -1,5 +1,15 @@
-import { careerEntries, profile, projects, skillCategories } from "@/content/portfolio";
+import { workflowStages } from "@/content/ai-experiments";
+import {
+  careerEntries,
+  problemSolvingLoop,
+  profile,
+  projects,
+  skillCategories,
+} from "@/content/portfolio";
+import { defaultRunProjectId } from "@/content/workshop";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
+import { resolveRun } from "@/lib/workshop";
+import { crossingKm, resolveWorlds } from "@/lib/worlds";
 
 /**
  * D1 — facts as a server prop.
@@ -14,20 +24,37 @@ import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
  * count, on purpose: SelectedWork.tsx (case studies, sourced figures),
  * Skills.tsx (categories, distinct skills), CareerTree.tsx (branches,
  * leaves, technologies, and — since the tree absorbed Journey — the entries
- * and the work/learning/milestone split too) and Hero.tsx (the current
- * role). Changing what a rail says and
+ * and the work/learning/milestone split too), Hero.tsx (the current role)
+ * and — since round 16 — Worlds.tsx (plaques, decorations and the crossing's
+ * length, via `resolveWorlds()`/`crossingKm()` in `src/lib/worlds.ts`).
+ * Changing what a rail says and
  * forgetting this file is exactly the drift the plan rules out — so if a
  * rail's expression ever changes, this one has to change with it.
  *
  * Pure and server-safe: no DOM, no `Math.random`, nothing but arithmetic over
- * `src/content/*`. `layout.tsx` calls this once, on the server, and hands the
- * small object down — the content arrays themselves never reach the client
- * chunk that the cats ship in.
+ * `src/content/*` (and, for `worlds`, the same arithmetic `src/lib/worlds.ts`
+ * already does over it). `layout.tsx` calls this once, on the server, and
+ * hands the small object down — the content arrays themselves never reach
+ * the client chunk that the cats ship in.
  */
 export interface CompanionFacts {
   readonly about: {
     readonly role: string;
     readonly organization: string;
+  };
+  /**
+   * Round 16. The globe's own counts — computed by `resolveWorlds()` and
+   * `crossingKm()` rather than typed here, the same discipline every other
+   * fact in this file follows: a dialogue line that quotes a number quotes
+   * the one already computed for the section's own margin rail
+   * (`src/sections/Worlds/Worlds.tsx`), never a second, independently-typed
+   * guess at it.
+   */
+  readonly worlds: {
+    readonly count: number;
+    readonly plaques: number;
+    readonly decorations: number;
+    readonly crossingKm: number;
   };
   readonly work: {
     readonly caseStudies: number;
@@ -62,6 +89,21 @@ export interface CompanionFacts {
     readonly learning: number;
     readonly milestones: number;
   };
+  /**
+   * Round 16. The Workshop's three numbers, and the third is the interesting
+   * one: `authored` is how many of the nine stations the *default* run can
+   * fill, which is the number the section prints above its own stations
+   * (`WorkshopRun.tsx`) — so the cat quotes the figure a visitor can see
+   * rather than a second count of the same thing. It is resolved through
+   * `resolveRun` for the same reason `worlds` goes through `resolveWorlds`:
+   * the count has to come from the resolver the section renders from, or the
+   * two can drift.
+   */
+  readonly workshop: {
+    readonly steps: number;
+    readonly stages: number;
+    readonly authored: number;
+  };
   readonly contact: {
     readonly email: string;
   };
@@ -92,10 +134,27 @@ export function buildCompanionFacts(): CompanionFacts {
   const tree = buildCareerTree();
   const leafTotal = tree.reduce((total, branch) => total + branch.leaves.length, 0);
 
+  // The default run is the one the section opens on, so its filled-station
+  // count is the one already on screen. A default that stopped resolving
+  // would make this 0 rather than throw — the same "nothing to say" the rest
+  // of this file's facts degrade to, and `workshop` scenes quoting a 0 is
+  // honest if the run really is empty.
+  const defaultRun = resolveRun(defaultRunProjectId);
+
+  const resolvedWorlds = resolveWorlds();
+  const plaqueTotal = resolvedWorlds.reduce((total, world) => total + world.plaques.length, 0);
+  const decorationTotal = resolvedWorlds.reduce((total, world) => total + world.decorations.length, 0);
+
   return {
     about: {
       role: currentRole?.role ?? "",
       organization: currentRole?.organization ?? "",
+    },
+    worlds: {
+      count: resolvedWorlds.length,
+      plaques: plaqueTotal,
+      decorations: decorationTotal,
+      crossingKm: crossingKm(),
     },
     work: {
       caseStudies: projects.length,
@@ -113,6 +172,11 @@ export function buildCompanionFacts(): CompanionFacts {
       work: countOf("work"),
       learning: countOf("learning"),
       milestones: countOf("milestone"),
+    },
+    workshop: {
+      steps: problemSolvingLoop.length,
+      stages: workflowStages.length,
+      authored: defaultRun?.authoredStations ?? 0,
     },
     contact: {
       email: profile.email,

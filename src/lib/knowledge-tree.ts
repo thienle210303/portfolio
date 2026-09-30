@@ -228,6 +228,17 @@ export function totalTechnologies(): number {
 }
 
 /**
+ * Every leaf across a set of branches: every technology and every impact
+ * line any of them lists, summed. Takes the built tree rather than building
+ * its own — `CareerTree.tsx`'s rail and `src/lib/worlds.ts`'s Plants-world
+ * plaque each already have one in hand, and this was previously written out
+ * as the same `reduce` in both places.
+ */
+export function totalLeaves(branches: readonly TreeBranch[]): number {
+  return branches.reduce((total, branch) => total + branch.leaves.length, 0);
+}
+
+/**
  * The career's span, in whole years — first and last `startYear` across
  * every career entry, and the count of years that spans inclusively. `2021`
  * through `2025` is five years, not four: a growth ring is drawn for each
@@ -246,6 +257,16 @@ export function careerYearSpan(): { firstYear: number; lastYear: number; years: 
   const firstYear = Math.min(...years);
   const lastYear = Math.max(...years);
   return { firstYear, lastYear, years: lastYear - firstYear + 1 };
+}
+
+/**
+ * The caption the drawing puts under the one shoot that never resolves into a
+ * leaf. It lived as a JSX literal in two components (`DrawnTree.tsx` and
+ * `list-ink.tsx`) and is now also quoted by the globe's Plants world, which
+ * makes three — one too many for a string to be written down three times.
+ */
+export function stillGrowingCaption(): string {
+  return `still growing · ${careerYearSpan().lastYear}`;
 }
 
 /**

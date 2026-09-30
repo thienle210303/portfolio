@@ -45,13 +45,16 @@ const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 const IS_WINDOWS = process.platform === "win32";
 
-// Page order per src/app/page.tsx: about, work, skills, tree, contact,
-// closing. No standalone "journey" or "resume" section any more — journey
-// folded into tree (see CareerTree.tsx), résumé moved to its own route
-// (captured separately, below); Philosophy and the AI Workflow Lab both
-// removed entirely (round 16) — the Lab's chat lives on in the hero's "Ask
-// Thien" tab, captured separately below rather than as a section shot.
-const SECTIONS = ["about", "work", "skills", "tree", "contact", "closing"];
+// Page order per src/app/page.tsx: about, worlds, work, skills, tree,
+// workshop, contact, closing. No standalone "journey" or "resume" section
+// any more — journey folded into tree (see CareerTree.tsx), résumé moved to its own
+// route (captured separately, below); Philosophy and the AI Workflow Lab
+// both removed entirely (round 16) — the Lab's chat lives on in the hero's
+// "Ask Thien" tab, captured separately below rather than as a section shot.
+// Playground Earth's "worlds" section joined the same round, second in page
+// order, right after the hero; the Workshop joined it, last chapter before
+// Contact, carrying the nine loop steps Philosophy used to animate.
+const SECTIONS = ["about", "worlds", "work", "skills", "tree", "workshop", "contact", "closing"];
 
 const outPath = (name) => path.join(OUT_DIR, `${name}.png`);
 

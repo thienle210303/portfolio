@@ -19,6 +19,7 @@ import type {
   CareerEntry,
   Certification,
   CodeTab,
+  Companion,
   ContactIntent,
   EducationEntry,
   LoopStep,
@@ -91,11 +92,40 @@ export const profile = {
  * from this block — never a second, independently-typed place name.
  */
 export const origin = {
-  from: "Rạch Giá, Việt Nam",
+  // Province level, no city (owner's decision, 2026-09-02). This one string
+  // serves the globe's pin, the origin story's captions and the résumé — the
+  // site must never carry two names for one place.
+  from: "Kiên Giang, Việt Nam",
   to: "United States",
   arrived: "December 2018",
   arrivedYear: 2018,
+  coordinates: {
+    from: { lat: 10.0, lon: 105.1 },
+    to: { lat: 39.83, lon: -98.58 },
+  },
 } satisfies Origin;
+
+/**
+ * The two cats. Order is load-bearing: the lead cat is first, which is the
+ * same order `Companion.tsx` draws them in and the order the globe's plinth
+ * labels them under.
+ */
+export const companions = [
+  {
+    id: "moon",
+    name: "Moon",
+    coat: "the blue cat",
+    habit: "Leads, and sets the pace.",
+    authoredOn: "2026-09-02",
+  },
+  {
+    id: "mi",
+    name: "Mi",
+    coat: "the grey tabby",
+    habit: "Follows, and gets distracted.",
+    authoredOn: "2026-09-02",
+  },
+] satisfies readonly Companion[];
 
 export const socialLinks = [
   {
@@ -134,9 +164,19 @@ export const socialLinks = [
 // now answers both #tree and #journey (src/sections/CareerTree/anchors.ts).
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
+  // Round 16: Playground Earth takes the slot Philosophy used to hold.
+  { id: "nav-worlds", sectionId: "worlds", label: "Worlds" },
   { id: "nav-work", sectionId: "work", label: "Work" },
   { id: "nav-skills", sectionId: "skills", label: "Skills" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
+  // Round 16: the Workshop. Seven items is the most this nav has carried, so
+  // it was measured rather than assumed: at 1024px (SiteNav's own `lg:`
+  // breakpoint, the narrowest width the desktop row exists at) the seven
+  // items occupy 449px of the header's 907px of content box and leave 257px
+  // spare — one row, nothing clipped, no horizontal overflow, and 368px/624px
+  // spare at 1152px/1440px. `gap-6` is therefore unchanged; an eighth item
+  // would still fit before the gap has to give.
+  { id: "nav-workshop", sectionId: "workshop", label: "Workshop" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 

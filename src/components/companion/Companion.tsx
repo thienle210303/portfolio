@@ -2157,9 +2157,12 @@ export function Companion({ facts }: CompanionProps) {
      * Where a tour stop wants the pair standing.
      *
      * The stop's section id is deliberately the same string `planMood`
-     * dispatches on — `TOUR_STOPS` is built from `navItems`, and every section
-     * id there already has a mood — so the tour's placement is the section
-     * mood, asked for on demand instead of waiting for a settle. Recomputed
+     * dispatches on, so wherever a mood exists the tour's placement is that
+     * mood, asked for on demand instead of waiting for a settle. Not every
+     * stop has one: `planMood` (companion-moods.ts) only knows
+     * about/work/skills/tree/contact, so `worlds` (round 16) falls straight
+     * through to the cruder top-edge fallback below, same as any section
+     * whose own mood declines. Recomputed
      * every frame the tour is walking to a stop rather than held like an
      * ordinary mood: the section is still scrolling into view, so its anchor
      * is moving, and a spot probed once at the start of that scroll would be
@@ -2453,75 +2456,89 @@ export function Companion({ facts }: CompanionProps) {
        */
       let tour = tourRef.current;
       if (tour && !run) {
-        const stop = stopsFor(tour.route)[tour.index];
-        const spots = tourStopSpots(stop.sectionId);
-        // `clearFollowOfToggle` here, not at movement time: the "have we
-        // arrived" check just below reads `tourSpots.current.follow`
-        // directly, so the corrected value has to be what gets stored, or
-        // the movement code and the arrival check end up chasing two
-        // different points — see that function's own note.
-        if (spots) tourSpots.current = clearFollowOfToggle(spots);
-        if (!tourSpots.current) {
-          // Nowhere at all for this stop. Skip it rather than strand the tour
-          // on a section that has, for whatever reason, nothing clear near it;
-          // give up only if it was the last one.
-          if (isLastStop(tour.index)) {
-            tourRef.current = null;
-            tour = null;
-            setTourView(null);
-            duetRef.current = null;
-            setDuetBeat(null);
-          } else {
-            tour.index += 1;
-            tour.phase = "walking";
-            tour.arrivedAt = 0;
-            tourSpots.current = null;
-            setTourView({ index: tour.index, lines: [], route: tour.route, routeChosen: tour.routeChosen });
-          }
-        } else if (
-          tour.phase === "walking" &&
-          now - lastScrollAt.current > TOUR_SCROLL_SILENCE &&
-          distance(grey.pos, tourSpots.current.lead) < 4 &&
-          distance(tabby.pos, tourSpots.current.follow) < 4
-        ) {
-          tour.phase = "arrived";
-          tour.arrivedAt = now;
-          const stopScene = sceneFor("tour", stop.sectionId, facts);
-          setTourView({
-            index: tour.index,
-            lines: stopScene?.beats ?? [],
-            route: tour.route,
-            routeChosen: tour.routeChosen,
-          });
-          if (stopScene) playDuetScene(stopScene, now);
+        const tourStopList = stopsFor(tour.route);
+        const stop = tourStopList[tour.index];
+        if (!stop) {
+          // Defensive only — see `stopsFor`'s own comment. A well-formed
+          // `GREY_MIDDLE` never produces a gap, and the increment below is
+          // gated on this same array's length via `isLastStop`, so
+          // `tour.index` should never outrun it. If it ever does, ending the
+          // tour beats reading a field off `undefined` one line below.
+          tourRef.current = null;
+          tour = null;
+          setTourView(null);
+          duetRef.current = null;
+          setDuetBeat(null);
+        } else {
+          const spots = tourStopSpots(stop.sectionId);
+          // `clearFollowOfToggle` here, not at movement time: the "have we
+          // arrived" check just below reads `tourSpots.current.follow`
+          // directly, so the corrected value has to be what gets stored, or
+          // the movement code and the arrival check end up chasing two
+          // different points — see that function's own note.
+          if (spots) tourSpots.current = clearFollowOfToggle(spots);
+          if (!tourSpots.current) {
+            // Nowhere at all for this stop. Skip it rather than strand the tour
+            // on a section that has, for whatever reason, nothing clear near it;
+            // give up only if it was the last one.
+            if (isLastStop(tour.index, tourStopList.length)) {
+              tourRef.current = null;
+              tour = null;
+              setTourView(null);
+              duetRef.current = null;
+              setDuetBeat(null);
+            } else {
+              tour.index += 1;
+              tour.phase = "walking";
+              tour.arrivedAt = 0;
+              tourSpots.current = null;
+              setTourView({ index: tour.index, lines: [], route: tour.route, routeChosen: tour.routeChosen });
+            }
+          } else if (
+            tour.phase === "walking" &&
+            now - lastScrollAt.current > TOUR_SCROLL_SILENCE &&
+            distance(grey.pos, tourSpots.current.lead) < 4 &&
+            distance(tabby.pos, tourSpots.current.follow) < 4
+          ) {
+            tour.phase = "arrived";
+            tour.arrivedAt = now;
+            const stopScene = sceneFor("tour", stop.sectionId, facts);
+            setTourView({
+              index: tour.index,
+              lines: stopScene?.beats ?? [],
+              route: tour.route,
+              routeChosen: tour.routeChosen,
+            });
+            if (stopScene) playDuetScene(stopScene, now);
 
-          /**
-           * The play's choreography: one beat per stop, existing mechanics
-           * only. About and Tree get nothing here on purpose —
-           * the pair's own default sit, and the facing they already carry in
-           * from the walk, already read as "peering up" and "looking up at
-           * the figure"; adding a forced pose to a cat already sitting still
-           * would be drawing the same thing twice. The rest reuse exactly
-           * the windows `origin-story-beat` arms elsewhere in this file:
-           * `cheerRef` for the pair flourish (grey stretches, tabby bats —
-           * see the "Honestly" note on that handler for why a *pair* cheer
-           * stands in for "tabby cheer" / "tabby startle-hop" alike), and a
-           * `{ dir, until }` / plain-until window read directly from the
-           * tour's own branches below rather than through the generic
-           * `rushing`/huddle checks, which never get a turn while `forced`
-           * is already `"tour"`. Every window self-expires on its own clock
-           * and is read only from inside the tour's own code paths, so
-           * ending the tour drops whichever of these happens to be open
-           * along with everything else.
-           */
-          if (stop.sectionId === "work") {
-            cheerRef.current = { until: now + CHEER_MS };
-            setCheer(true);
-            window.setTimeout(() => setCheer(false), CHEER_MS);
-          } else if (stop.sectionId === "skills") {
-            tourHuddleUntil.current = now + HUDDLE_MS;
-          } else if (stop.sectionId === "contact") {
-            tourNapUntil.current = now + CONTACT_NAP_MS;
+            /**
+             * The play's choreography: one beat per stop, existing mechanics
+             * only. About and Tree get nothing here on purpose —
+             * the pair's own default sit, and the facing they already carry in
+             * from the walk, already read as "peering up" and "looking up at
+             * the figure"; adding a forced pose to a cat already sitting still
+             * would be drawing the same thing twice. The rest reuse exactly
+             * the windows `origin-story-beat` arms elsewhere in this file:
+             * `cheerRef` for the pair flourish (grey stretches, tabby bats —
+             * see the "Honestly" note on that handler for why a *pair* cheer
+             * stands in for "tabby cheer" / "tabby startle-hop" alike), and a
+             * `{ dir, until }` / plain-until window read directly from the
+             * tour's own branches below rather than through the generic
+             * `rushing`/huddle checks, which never get a turn while `forced`
+             * is already `"tour"`. Every window self-expires on its own clock
+             * and is read only from inside the tour's own code paths, so
+             * ending the tour drops whichever of these happens to be open
+             * along with everything else.
+             */
+            if (stop.sectionId === "work") {
+              cheerRef.current = { until: now + CHEER_MS };
+              setCheer(true);
+              window.setTimeout(() => setCheer(false), CHEER_MS);
+            } else if (stop.sectionId === "skills") {
+              tourHuddleUntil.current = now + HUDDLE_MS;
+            } else if (stop.sectionId === "contact") {
+              tourNapUntil.current = now + CONTACT_NAP_MS;
+            }
           }
         }
       }
@@ -2947,7 +2964,13 @@ export function Companion({ facts }: CompanionProps) {
         // cascade above already dropped the tour the one frame it could have
         // nothing to offer.
         const spots = tourSpots.current ?? nearbySpots();
-        const stopId = stopsFor(tour!.route)[tour!.index].sectionId;
+        // Optional chaining, not `!`: see `stopsFor`'s own comment. A stale
+        // id in `GREY_MIDDLE` shortens the list, so this index can run off
+        // the end — falling through to the plain (non-huddle) branch below
+        // beats reading `sectionId` off `undefined`. This *should* always be
+        // defined, the same hedge the tour's render makes at
+        // `currentTourStop`; it is not a claim that it cannot be.
+        const stopId = stopsFor(tour!.route)[tour!.index]?.sectionId;
         if (stopId === "skills" && now < tourHuddleUntil.current) {
           // The huddle: she comes in beside him instead of behind, the same
           // nudge the rain beat gives the watch above.
@@ -4290,7 +4313,11 @@ export function Companion({ facts }: CompanionProps) {
   function advanceTour() {
     const run = tourRef.current;
     if (!run) return;
-    if (isLastStop(run.index)) {
+    // Measured against *this* route's own stop list, not `TOUR_STOPS.length`
+    // — see `isLastStop`'s and `stopsFor`'s comments for why the two can
+    // disagree.
+    const stops = stopsFor(run.route);
+    if (isLastStop(run.index, stops.length)) {
       endTour();
       return;
     }
@@ -4301,15 +4328,20 @@ export function Companion({ facts }: CompanionProps) {
     setTourView({ index: run.index, lines: [], route: run.route, routeChosen: run.routeChosen });
     duetRef.current = null;
     setDuetBeat(null);
-    scrollToStop(stopsFor(run.route)[run.index].sectionId);
+    // `isLastStop` just proved `run.index` is in range for `stops`; the
+    // guard is defensive only, same reasoning as the movement effect above.
+    const nextStop = stops[run.index];
+    if (nextStop) scrollToStop(nextStop.sectionId);
     lastSignRef.current = performance.now();
     wake();
   }
 
   /**
    * The HUD's fork in the walk, offered once — see `TourHud`'s
-   * `showRouteChoice` — after Work's scene, the second stop now that
-   * Philosophy is gone. Picking either cat settles
+   * `showRouteChoice` — after About's scene, the only stop every route still
+   * shares now that Work has moved into the derived middle alongside
+   * Worlds, Skills and Journey (round 16 — see `companion-tour.ts`'s
+   * `GREY_MIDDLE` and `stopsFor`). Picking either cat settles
    * `route` for the rest of the walk and immediately does what "Next stop"
    * would have: the choice replaces that button at this one juncture, it
    * does not sit beside it.
@@ -4488,6 +4520,17 @@ export function Companion({ facts }: CompanionProps) {
       <CompanionCat variant="grey" {...frame.lead} />
     </span>
   );
+
+  // The tour's own current stop list — computed once here rather than three
+  // times inside the JSX below (`totalStops`, `label` and `isLast` all need
+  // it). `stopsFor(route).length` is the count that matters, never the
+  // fixed `TOUR_STOPS.length`: see `stopsFor`'s and `isLastStop`'s own
+  // comments for why a stale id in `GREY_MIDDLE` can make the two disagree.
+  // `currentTourStop` guards the render itself against that same case —
+  // `stopsFor` never produces a gap, so this should always be defined, but
+  // an `undefined` label beats a render-time crash if it somehow is not.
+  const tourStops = tourView ? stopsFor(tourView.route) : null;
+  const currentTourStop = tourStops && tourView ? tourStops[tourView.index] : undefined;
 
   return (
     // `data-companion` is how the placement probes recognise the cats' own
@@ -4758,19 +4801,19 @@ export function Companion({ facts }: CompanionProps) {
           the toolkit panel above and this are mutually exclusive by
           construction, since starting a tour closes the panel and the panel
           offers no route back into itself until the tour ends. */}
-      {tourView ? (
+      {tourView && tourStops ? (
         <TourHud
           stopIndex={tourView.index}
-          totalStops={TOUR_STOPS.length}
-          label={stopsFor(tourView.route)[tourView.index].label}
+          totalStops={tourStops.length}
+          label={currentTourStop?.label ?? ""}
           lines={tourView.lines}
-          isLast={isLastStop(tourView.index)}
-          // The one fork in the walk: offered exactly at Work (index 1, the
-          // second stop now that Philosophy is gone) once its scene has
-          // actually arrived — not while the pair are still walking there —
-          // replacing "Next stop" rather than sitting beside it. See
-          // `chooseRoute`.
-          showRouteChoice={tourView.index === 1 && tourView.lines.length > 0 && !tourView.routeChosen}
+          isLast={isLastStop(tourView.index, tourStops.length)}
+          // The one fork in the walk: offered exactly at About (index 0, the
+          // only stop every route still shares — see `stopsFor`) once its
+          // scene has actually arrived — not while the pair are still
+          // walking there — replacing "Next stop" rather than sitting
+          // beside it. See `chooseRoute`.
+          showRouteChoice={tourView.index === 0 && tourView.lines.length > 0 && !tourView.routeChosen}
           onChooseRoute={chooseRoute}
           onNext={advanceTour}
           onEnd={endTour}

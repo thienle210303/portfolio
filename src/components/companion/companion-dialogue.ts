@@ -123,6 +123,16 @@ const TOUR: Record<string, SceneBuilder> = {
         : "The start of the page. The facts hold.",
     ),
   ],
+  // Round 16: Playground Earth. Every number here is quoted from `f.worlds`,
+  // never typed — the same discipline every other scene in this file keeps.
+  // Plaques and decorations are disjoint sets (`DECORATION_LABEL` is
+  // literally "no plaque · decoration"), so the second line says "more",
+  // not "of these" — nineteen plaques plus three decorations is twenty-two
+  // objects, not three of nineteen.
+  worlds: (f) => [
+    tabby("Mrrrow!", `${f.worlds.count} worlds! ${f.worlds.plaques} plaques and we guard all of them!`),
+    grey("Mrp. Meow.", `${f.worlds.decorations} more are just drawings. They say so themselves.`),
+  ],
   work: (f) => [
     tabby("Mrrrow-meow!", `${f.work.caseStudies} case studies! Real problems, real fixes!`),
     grey("Meow. Mrp.", `${f.work.sourcedMetrics} numbers, every one sourced. Proof, not vibes.`),
@@ -140,6 +150,13 @@ const TOUR: Record<string, SceneBuilder> = {
     grey("Mrp.", `${f.tree.technologies} technologies hang there. We planted nothing.`),
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} of them are work.`),
     tabby("Mrrrow!", "I napped through the rest — they still count!"),
+  ],
+  // Round 16: the Workshop. Grey's line is the section's own argument in one
+  // sentence — the empty stations are the point, not an omission — and both
+  // numbers come from `f.workshop`, never typed.
+  workshop: (f) => [
+    tabby("Mrrrow-meow!", `${f.workshop.steps} steps! He does them in order, mostly!`),
+    grey("Mrp.", `${f.workshop.authored} of them have proof on this run. The empty ones say so.`),
   ],
   contact: () => [
     tabby("Mrrrow-meow-meow!", "Say hi! He answers — usually before I wake up."),

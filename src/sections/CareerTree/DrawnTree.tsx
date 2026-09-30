@@ -2,7 +2,13 @@ import type { CSSProperties } from "react";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { skillCategories } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
-import { careerYearSpan, techSlug, type TreeBranch, type TreeLeaf } from "@/lib/knowledge-tree";
+import {
+  careerYearSpan,
+  stillGrowingCaption,
+  techSlug,
+  type TreeBranch,
+  type TreeLeaf,
+} from "@/lib/knowledge-tree";
 import { firstCanopyYear, rootYearFor } from "@/lib/origin-story";
 import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
 import { JourneyEntryCrossLink } from "./cross-link";
@@ -456,7 +462,7 @@ function GrowingTip() {
         className="eyebrow pointer-events-none absolute left-1/2 whitespace-nowrap"
         style={{ top: -SHOOT_H + 2, transform: "translateX(18px)" }}
       >
-        still growing · {lastYear}
+        {stillGrowingCaption()}
       </span>
     </>
   );

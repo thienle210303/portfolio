@@ -1,5 +1,7 @@
+import { workflowStages } from "@/content/ai-experiments";
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
 import { origin } from "@/content/portfolio";
+import { defaultRunProjectId } from "@/content/workshop";
 import {
   careerIndexable,
   education,
@@ -7,6 +9,8 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
+import { resolveRun } from "@/lib/workshop";
+import { resolveWorlds } from "@/lib/worlds";
 
 /**
  * The retrieval corpus for "Ask this site" — every document `src/lib/answers.ts`
@@ -143,6 +147,23 @@ export function buildDocuments(): Document[] {
       "judgement",
     ),
   });
+
+  // Round 16. Every plaque on the globe is already a verbatim authored field,
+  // which makes the whole set exactly the shape this corpus wants: a quoted
+  // string with a named source. They are indexed under `worlds` rather than
+  // their original section so an answer's "Read it in Worlds →" link lands
+  // where the visitor can actually see the plaque.
+  for (const world of resolveWorlds()) {
+    for (const plaque of world.plaques) {
+      docs.push({
+        text: plaque.text,
+        source: `${world.name} — ${plaque.source}`,
+        sectionId: "worlds",
+        sectionLabel: "Worlds",
+        label: label("worlds", undefined, world.name, plaque.source),
+      });
+    }
+  }
 
   for (const project of projectsIndexable) {
     const where = project.organization ? `${project.title} — ${project.organization}` : project.title;
@@ -292,6 +313,39 @@ export function buildDocuments(): Document[] {
         category.skills.join(" "),
         "know knows used uses familiar",
       ),
+    });
+  }
+
+  // Round 16. The stations' evidence is already a verbatim project field, and
+  // each `watchFor` is the one thing about an agent stage a reader cannot get
+  // from a vendor. Both are indexed under `workshop`, where they are visible.
+  //
+  // Only the *default* run is indexed, not all five. The other four runs quote
+  // the same project fields the `work` documents above already carry, so
+  // indexing them would put the identical string in the corpus twice under two
+  // different section ids and let a query's top slots fill with duplicates of
+  // one answer. The default run is the one a visitor lands on, so it is the one
+  // whose "Read it in Workshop →" link lands on something they can see.
+  const run = resolveRun(defaultRunProjectId);
+  for (const station of run?.stations ?? []) {
+    for (const line of station.evidence) {
+      docs.push({
+        text: line,
+        source: `Workshop — ${station.label}`,
+        sectionId: "workshop",
+        sectionLabel: "Workshop",
+        label: label("workshop", run?.projectId, station.label, station.field),
+      });
+    }
+  }
+
+  for (const stage of workflowStages) {
+    docs.push({
+      text: stage.watchFor,
+      source: `Workshop — ${stage.label}`,
+      sectionId: "workshop",
+      sectionLabel: "Workshop",
+      label: label("workshop", undefined, stage.label, stage.question, "risk", "failure"),
     });
   }
 

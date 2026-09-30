@@ -67,6 +67,14 @@ export interface Profile {
   readonly resumePdfLabel: string;
 }
 
+/** A point on the globe, in degrees. Positive latitude is north, positive
+ *  longitude is east — the convention Natural Earth and every web map use, so
+ *  a coordinate can be read off a map and typed in unchanged. */
+export interface GeoPoint {
+  readonly lat: number;
+  readonly lon: number;
+}
+
 /**
  * The one geographic fact the origin story may draw on. Every other place
  * that touches the story — captions, the player's flight label, the
@@ -78,6 +86,38 @@ export interface Origin {
   readonly to: string;
   readonly arrived: string;
   readonly arrivedYear: number;
+
+  /**
+   * Where the two ends of the crossing are. Authored here rather than in
+   * `src/content/worlds.ts` because they are facts about the crossing itself,
+   * which this record already owns — and because the globe, the flight arc,
+   * the Sea world's derived midpoint and the Sky world's derived apex must
+   * every one of them agree, which they only do if there is one pair of
+   * numbers on the site.
+   *
+   * `to` is the United States country centroid, deliberately not a city.
+   */
+  readonly coordinates: {
+    readonly from: GeoPoint;
+    readonly to: GeoPoint;
+  };
+}
+
+/**
+ * One of the two cats who live on this page — real animals, named by their
+ * owner on 2026-09-02, which is why `authoredOn` is here: this is the one
+ * record on the site whose provenance is "he told me", with no document
+ * behind it, and the globe's Animals world says so on the plaque.
+ */
+export interface Companion {
+  readonly id: string;
+  readonly name: string;
+  /** What she looks like, in the drawing's own terms. */
+  readonly coat: string;
+  /** What she does, which is also which of the two drawn cats she is. */
+  readonly habit: string;
+  /** ISO date the owner authored this. */
+  readonly authoredOn: string;
 }
 
 export type SocialPlatform = "GitHub" | "LinkedIn" | "Email";
@@ -421,4 +461,140 @@ export interface CodeTab {
   /** A description of what the snippet says, for assistive technology. */
   readonly summary: string;
   readonly code: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Playground Earth                                                            */
+/*                                                                             */
+/* The globe's schema is deliberately a schema of *references*. A world does    */
+/* not hold the sentence a plaque renders; it holds the address of the field    */
+/* that sentence already lives in, and `src/lib/worlds.ts` fetches it. That is  */
+/* the difference between a globe that is culturally rich and a globe that      */
+/* invents things about its subject, and `tests/lib/worlds.test.ts` enforces    */
+/* it string-for-string.                                                        */
+/*                                                                             */
+/* `where` and `disclosure` are the one exception, and they are not an           */
+/* exception to the rule so much as outside its scope: they are prose about the  */
+/* *drawing* ("country centroid, because no city is authored anywhere"), never  */
+/* a claim about him. A test asserts no plaque ever renders one of them.         */
+/* -------------------------------------------------------------------------- */
+
+export type GlyphId =
+  | "comtam"
+  | "cap"
+  | "trophy"
+  | "ribbon"
+  | "chalk"
+  | "net"
+  | "buoy"
+  | "jelly"
+  | "bird"
+  | "plane"
+  | "sprout"
+  | "cat"
+  | "sat"
+  | "chip"
+  | "star"
+  | "book"
+  | "magnifier";
+
+export type WorldAnchor =
+  | { readonly at: "origin-from" }
+  | { readonly at: "origin-to" }
+  | { readonly at: "arc-midpoint" }
+  | { readonly at: "arc-apex" }
+  | { readonly at: "plinth" }
+  | { readonly at: "orbit" };
+
+export type ComputedFactId =
+  | "tree-shape"
+  | "tree-still-growing"
+  | "crossing"
+  | "seasons"
+  | "play-scenes"
+  | "ai-tools";
+
+export type PlaqueRef =
+  | { readonly of: "careerEntry"; readonly id: string; readonly field: "role" | "context" | "learned" }
+  | {
+      readonly of: "careerEntryLine";
+      readonly id: string;
+      readonly field: "impact" | "built";
+      readonly index: number;
+    }
+  | {
+      readonly of: "project";
+      readonly id: string;
+      readonly field: "tagline" | "learned" | "nextQuestion";
+      readonly link?: string;
+    }
+  | { readonly of: "companion"; readonly id: string }
+  | { readonly of: "computed"; readonly id: ComputedFactId };
+
+export interface WorldPlaque {
+  readonly glyph: GlyphId;
+  readonly ref: PlaqueRef;
+}
+
+export interface WorldDecoration {
+  readonly glyph: GlyphId;
+  readonly draws: string;
+}
+
+export interface World {
+  readonly id: string;
+  readonly name: string;
+  readonly glyph: GlyphId;
+  readonly anchor: WorldAnchor;
+  readonly where: string;
+  readonly plaques: readonly WorldPlaque[];
+  readonly decorations: readonly WorldDecoration[];
+  readonly disclosure?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* The Workshop                                                               */
+/*                                                                            */
+/* Two vocabularies meet here. `problemSolvingLoop` is the method, stated in  */
+/* the abstract; a `Project` is one run of it, stated concretely. Which field */
+/* is the evidence for which step is authored in `src/content/workshop.ts` —  */
+/* never inferred — for the reason the career tree refuses to match skill     */
+/* names against technology strings: two vocabularies only relate if a person */
+/* says how. `tests/lib/workshop.test.ts` holds the join to the record.       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The `Project` fields that hold plain authored text — one string, or a list
+ * of strings — and so can be quoted line by line. `metrics` and `workflow`
+ * are structured (before/after pairs, a diagram) and cannot be quoted as a
+ * line, so they are not members. Naming one as a station's field fails the
+ * `satisfies` in `src/content/workshop.ts`; adding one to this union fails
+ * `evidenceFor` in `src/lib/workshop.ts`, which quotes only text.
+ *
+ * Not every member is a station today. `src/content/workshop.ts` says which
+ * are, and why the rest are not.
+ */
+export type ProjectEvidenceField =
+  | "problem"
+  | "whyItMattered"
+  | "assumption"
+  | "constraints"
+  | "responsibility"
+  | "decisions"
+  | "pathsExplored"
+  | "whatFailed"
+  | "failureLesson"
+  | "built"
+  | "proof"
+  | "learned"
+  | "nextQuestion";
+
+/**
+ * One step of the loop joined to the project field that is its evidence.
+ * `step` is a `problemSolvingLoop` id; `tests/lib/workshop.test.ts` holds the
+ * list of these to the loop's own ids and order.
+ */
+export interface WorkshopStation {
+  readonly step: string;
+  readonly field: ProjectEvidenceField;
 }

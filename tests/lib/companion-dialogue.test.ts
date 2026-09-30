@@ -14,17 +14,23 @@ import {
   storyBeatScene,
   type StoryBeatKind,
 } from "@/components/companion/companion-dialogue";
+import { TOUR_STOPS } from "@/components/companion/companion-tour";
 import type { CompanionFacts } from "@/lib/companion-facts";
 
 const FACTS: CompanionFacts = {
   about: { role: "Software Engineer", organization: "DoorDash, Inc." },
+  worlds: { count: 7, plaques: 19, decorations: 3, crossingKm: 13000 },
   work: { caseStudies: 3, sourcedMetrics: 14 },
   skills: { categories: 6, distinctSkills: 38 },
   tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
+  workshop: { steps: 9, stages: 10, authored: 9 },
   contact: { email: "x@y.z" },
 };
 
 const AMBIENT_SECTIONS = ["about", "work", "skills", "tree"];
+// Tour-only stops: sections the guided tour visits but the ambient banter
+// never does, because neither has an AMBIENT builder of its own.
+const TOUR_ONLY_SECTIONS = ["contact", "worlds", "workshop"];
 
 describe("scene bank", () => {
   it("has a hello scene with both speakers and alternation", () => {
@@ -47,10 +53,19 @@ describe("scene bank", () => {
   });
 
   it("has a tour scene for every nav section", () => {
-    for (const section of [...AMBIENT_SECTIONS, "contact"]) {
+    for (const section of [...AMBIENT_SECTIONS, ...TOUR_ONLY_SECTIONS]) {
       const scene = sceneFor("tour", section, FACTS);
       expect(scene, section).not.toBeNull();
       expect(scene!.beats.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("has a tour scene for every stop the tour actually visits", () => {
+    for (const stop of TOUR_STOPS) {
+      expect(
+        sceneFor("tour", stop.sectionId, FACTS),
+        `the pair walk to #${stop.sectionId} and have nothing to say`,
+      ).not.toBeNull();
     }
   });
 
@@ -64,7 +79,7 @@ describe("scene bank", () => {
   it("keeps every subtitle inside the budget and every meow non-empty", () => {
     const kinds = ["hello", "ambient", "encore", "tour"] as const;
     for (const kind of kinds) {
-      for (const section of [null, ...AMBIENT_SECTIONS, "contact"]) {
+      for (const section of [null, ...AMBIENT_SECTIONS, ...TOUR_ONLY_SECTIONS]) {
         const scene = sceneFor(kind, section, FACTS);
         if (!scene) continue;
         for (const beat of scene.beats) {
@@ -80,7 +95,7 @@ describe("scene bank", () => {
     const factNumbers = new Set<string>(
       JSON.stringify(FACTS).match(/\d+/g) ?? [],
     );
-    for (const section of AMBIENT_SECTIONS) {
+    for (const section of [...AMBIENT_SECTIONS, ...TOUR_ONLY_SECTIONS]) {
       for (const kind of ["ambient", "encore", "tour"] as const) {
         const scene = sceneFor(kind, section, FACTS);
         if (!scene) continue;
@@ -103,7 +118,7 @@ describe("scene bank", () => {
     // so any template that blindly appends its own "." would show "Inc..".
     const kinds = ["hello", "ambient", "encore", "tour"] as const;
     for (const kind of kinds) {
-      for (const section of [null, ...AMBIENT_SECTIONS, "contact"]) {
+      for (const section of [null, ...AMBIENT_SECTIONS, ...TOUR_ONLY_SECTIONS]) {
         const scene = sceneFor(kind, section, FACTS);
         if (!scene) continue;
         for (const beat of scene.beats) {
@@ -174,7 +189,7 @@ describe("story scenes", () => {
     for (const kind of ALL_KINDS) {
       const year = SEASON_KINDS.includes(kind) ? 2021 : null;
       const scene = storyBeatScene(kind, year, FACTS, "grey");
-      expect(scene!.beats[0].sub).not.toMatch(/Rạch|Giá|Việt Nam/);
+      expect(scene!.beats[0].sub).not.toMatch(/Kiên|Giang|Việt Nam/);
     }
   });
 

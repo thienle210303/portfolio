@@ -339,9 +339,27 @@ export const subjectExpansions: Record<string, readonly string[]> = {
  */
 export const sectionExpansions: Record<string, readonly string[]> = {
   about: ["who", "bio", "introduction", "background", "profile", "himself"],
+  // Round 16: Playground Earth. Every plaque document is indexed under this
+  // section (see buildDocuments in answer-corpus.ts), so its aliases are the
+  // vocabulary for the globe itself rather than for any one plaque's field.
+  worlds: ["globe", "world", "map", "earth", "vietnam", "việt nam", "kiên giang", "cat", "cats", "moon", "mi", "origin"],
   // "work" itself was missing, which is easy to miss because it is the section's
   // own key — but the key is not indexed, only these strings are.
   work: ["work", "project", "portfolio", "case study", "shipped", "built"],
   journey: ["career", "history", "job", "role", "timeline", "employment", "worked"],
   skills: ["skill", "technology", "tech", "tool", "stack", "experience"],
+  // Round 16: the Workshop. These describe the *section* — the method and the
+  // agent lane — and are inherited by every station and stage document under
+  // it. Anything that describes one station's own field ("risk", "failure")
+  // is passed at the call site instead, per the scope rule above.
+  workshop: [
+    "workflow",
+    "process",
+    "method",
+    "loop",
+    "agent",
+    "ai",
+    "how he works",
+    "steps",
+  ],
 };
