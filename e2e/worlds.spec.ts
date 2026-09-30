@@ -76,12 +76,14 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
  * on *this* page, and pretending it could would make the test wrong in both
  * directions. `Companion.tsx` — the pair of cats who roam the whole document,
  * a separate component with its own contract — holds a 60 Hz rAF loop open for
- * as long as they are awake, which in a fresh browser reporting
- * `(pointer: fine)` and no reduced-motion preference is indefinitely
- * (measured: 121 callbacks per two seconds, and still 60/s after 110 seconds
- * of total idle, every one of them from that one caller). A page-wide count
- * would therefore fail with a perfect globe, and could only ever pass by the
- * accident of the cats being asleep.
+ * as long as they are awake, and in a fresh browser reporting `(pointer: fine)`
+ * and no reduced-motion preference that is every window in this file. They do
+ * now reach rest rather than running forever (`d363739`, merged from `main`),
+ * but on a fourteen-second idle clock, and the longest measurement here is two
+ * seconds: measured on this branch, every non-reduced-motion window below
+ * reads 52.5–60.5 Hz, all of it theirs. A page-wide count would therefore fail
+ * with a perfect globe, and could only ever pass by the accident of the cats
+ * being asleep.
  *
  * ## The coupling this leans on, and where it is pinned
  *
@@ -148,25 +150,47 @@ async function measureGlobeFrames(page: Page, ms: number) {
 }
 
 /**
- * The rest contract, in one place because five cases assert it.
+ * The ceiling `pageHz` has to stay under, for the two kinds of page this file
+ * measures. Both numbers are measured, not assumed — see `expectAtRest`.
+ */
+const CATS_AWAKE_HZ = 100;
+const SILENT_HZ = 5;
+
+/**
+ * The rest contract, in one place because eight cases assert it.
  *
  * Two halves. The globe drew nothing, which given the coupling above means it
- * asked for no frames. And the page was asking for frames no faster than a
- * single 60 Hz loop — the cats' — which is what turns `pageHz` from a number
+ * asked for no frames. And the page as a whole was no busier than what is
+ * legitimately running on it, which is what turns `pageHz` from a number
  * printed in a failure message into an actual assertion: a globe running a
- * loop that somehow never drew would roughly double this and be caught here
- * rather than slipping past the `draws` count. (CPU contention only ever
- * pushes the rate down, so the ceiling cannot flake upward.)
+ * loop that somehow never drew would add ~60 Hz here and be caught, rather
+ * than slipping past the `draws` count. (CPU contention only ever pushes the
+ * rate down, so a ceiling cannot flake upward — it can only fail to bite.)
+ *
+ * What "no busier" means depends on the page, and the difference is large
+ * enough that one number cannot serve both. Measured on this branch, headless
+ * Chromium, at 390 and 1440:
+ *
+ * - With motion allowed, **52.5–60.5 Hz** at every site. That is the cats, and
+ *   it is not a loop the merge from `main` left running: they reach rest now,
+ *   but on a fourteen-second idle clock, and the longest window here is two
+ *   seconds. `CATS_AWAKE_HZ` sits above that and below the ~120 a second loop
+ *   would read.
+ * - Under `prefers-reduced-motion: reduce`, **0.00 Hz** — not a low rate, no
+ *   callbacks at all, six runs out of six. The cats never start a loop there.
+ *   That page takes `SILENT_HZ`, because leaving it at the awake ceiling would
+ *   hand a globe spinning an undrawn loop a free 60 Hz to hide in, which is
+ *   the exact failure this half of the assertion exists to catch.
  */
-async function expectAtRest(page: Page, ms: number, what: string) {
+async function expectAtRest(page: Page, ms: number, what: string, ceilingHz = CATS_AWAKE_HZ) {
   const frames = await measureGlobeFrames(page, ms);
   expect(frames.draws, `${what} — the globe drew at rest (page: ${frames.pageHz.toFixed(0)} Hz)`).toBe(
     0,
   );
   expect(
     frames.pageHz,
-    `${what} — the page is running more than one animation loop at rest`,
-  ).toBeLessThan(100);
+    `${what} — the page is running more than one animation loop at rest (ceiling ${ceilingHz} Hz)`,
+  ).toBeLessThan(ceilingHz);
 }
 
 /** A cheap fingerprint of what is currently on the globe, so a test can say
@@ -878,7 +902,9 @@ test.describe("reduced motion", () => {
     expect(await globeSignature(page), "the globe never swung to the far pin").not.toBe(
       facingVietnam,
     );
-    // It arrived, rather than easing on after the counter was put back.
-    await expectAtRest(page, 700, "after picking a world under reduced motion");
+    // It arrived, rather than easing on after the counter was put back. This
+    // is the one site that measures a genuinely silent page — no cats — so it
+    // is held to `SILENT_HZ` rather than to the ceiling the other seven need.
+    await expectAtRest(page, 700, "after picking a world under reduced motion", SILENT_HZ);
   });
 });

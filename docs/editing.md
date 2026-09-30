@@ -1,12 +1,21 @@
 # Updating the site
 
-Everything factual lives in two files. You should almost never need to open a
-component to change what the site says.
+Everything factual lives in `src/content/`. You should almost never need to
+open a component to change what the site says.
 
 | What you want to change | File |
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
-| AI experiments, workflow stages, the learning log, the scraping playbook — currently unrendered since round 16 removed the AI Workflow Lab, kept for a future section | `src/content/ai-experiments.ts` |
+| The ten agent stages the Workshop's lower lane renders | `src/content/ai-experiments.ts` (`workflowStages`) |
+| AI experiments, the learning log, the scraping playbook, the AI tools — still unrendered since round 16 removed the AI Workflow Lab, kept for a future section | `src/content/ai-experiments.ts` |
+| Which objects sit on which world of the globe | `src/content/worlds.ts` |
+| Which authored field is the evidence for which step of the loop | `src/content/workshop.ts` |
+
+The last two hold **addresses, not sentences**. A plaque on the globe and a
+station in the Workshop each name a record and a field; the words a visitor
+reads come out of `src/content/portfolio.ts`, verbatim. So if a line reads
+badly in either place, the fix is in the field it points at — that same string
+is on screen somewhere else too.
 
 After any edit, run `pnpm verify`. It typechecks, lints, re-measures colour
 contrast, runs the unit tests and builds. If a number you removed was being
@@ -116,6 +125,92 @@ using the same spelling you use elsewhere.
 
 `tests/lib/knowledge-tree.test.ts` fails if anyone reintroduces guessing.
 
+## Add a plaque to a world
+
+A plaque is a typed reference to **one field of one authored record**, rendered
+verbatim. Pick the record and the field first, then add a `{ glyph, ref }`
+entry to that world's `plaques` in `src/content/worlds.ts`:
+
+```ts
+{ glyph: "cap", ref: { of: "careerEntry", id: "graduation", field: "role" } },
+```
+
+`of` says what kind of record it is — `careerEntry`, `careerEntryLine`,
+`project`, `companion` or `computed` — `id` picks the record, and `field`
+picks the field. A `careerEntryLine` also takes an `index`, because it quotes
+one line out of a list, and that index is **positional against the array as
+authored today**: reordering `impact` silently repoints the plaque at a
+different line. That is the one thing in this file kept in sync by eye.
+
+Then:
+
+```
+pnpm vitest run tests/lib/worlds.test.ts
+```
+
+Two rules that test exists to hold, and neither is negotiable:
+
+- **The text comes from the field.** If a plaque reads badly on the globe,
+  **edit the field**, not the plaque. You cannot quote half of it — a plaque
+  that is not `===` a string the content layer produces fails the test, and
+  the fix is never to relax the comparison to a substring.
+- **A reference that resolves to nothing is dropped, not rendered.** So a
+  plaque pointing at a field you later delete disappears from the globe
+  quietly, and the rail's count goes down with it. Nothing on the globe is
+  ever a string that exists only on the globe.
+
+## Add a decoration
+
+A decoration is the other half of the rule: a drawing that **carries no fact**.
+Add the glyph path to `src/sections/Worlds/glyphs.ts` — open strokes, no
+fills, drawn in a 24-unit box centred on the origin inside `GLYPH_VIEWBOX`,
+the same vocabulary as the companion cats — add its name to `GlyphId` in
+`src/types/portfolio.ts`, then add the entry to that world's `decorations`:
+
+```ts
+{ glyph: "comtam", draws: "a plate of cơm tấm — broken rice, a grilled chop, a fried egg" },
+```
+
+`draws` is **what the drawing is**, not what it means, because it becomes the
+accessible name — rendered alongside the literal words `no plaque ·
+decoration`. A screen-reader user is told, in those words, that this object is
+a picture and not evidence. A `draws` string that smuggles in a claim ("the
+food he grew up on") breaks that promise, and no test can catch it for you.
+
+If a world has nothing authored, leave `decorations: []` and say so in its
+`disclosure`. The United States world does exactly that: the mockup's mug and
+library were placeholders nobody had authored, and an empty world that says
+"nothing here was invented to fill the space" is worth more than a full one
+that was.
+
+## Change which field a Workshop station quotes
+
+One line in `src/content/workshop.ts`:
+
+```ts
+{ step: "test", field: "whatFailed" },
+```
+
+Then:
+
+```
+pnpm vitest run tests/lib/workshop.test.ts
+```
+
+**Each field appears exactly once**, across all nine stations. That is a real
+constraint rather than tidiness: a line used as evidence for two different
+steps is a line doing a job it was not written for, and it makes a run look
+like it had more material than it did. The test fails on a duplicate.
+
+Five fields are deliberately unmapped — `whyItMattered`, `responsibility`,
+`proof`, `metrics` and `workflow`. They belong to the case study's own telling
+in `#work`, and the Workshop links there instead of repeating it.
+
+A station whose field is empty on the project being run **stays on screen and
+says what is missing**, via `stationGap`. Four of the five projects author no
+`whatFailed`, so that is four runs in five — the empty station is the normal
+case, not an edge case, and the disclosure is the feature.
+
 ## Contact delivery
 
 The contact form and the one-field "ask me to reach out" both post to
@@ -142,3 +237,25 @@ half-step-darker ground is where they fail first.
 pnpm verify      # typecheck → lint → contrast → test → build
 pnpm test:e2e    # both themes, six viewports, keyboard, print, accessibility
 ```
+
+And if you touched the globe's chunk — `src/lib/globe.ts`,
+`src/sections/Worlds/*`, or anything that might import them — re-measure and
+record the row:
+
+```
+pnpm build
+PORT=3100 pnpm start      # in one terminal
+pnpm perf                 # in another
+```
+
+Read **initial JS** first. A move of more than a kilobyte or two means the
+canvas engine or the 53 KB of coastline data has leaked out of the lazy chunk:
+`GlobeCanvas` reaches the page only through the `import()` in
+`WorldsStage.tsx`, and a static import of it from anything server-rendered
+drags both into the initial bundle.
+`tests/lib/coastline-data.test.ts` fences the data side of that.
+
+`pnpm perf` prints a skipped-response count and a `content-length`
+cross-check beside its own totals. A run reporting any skipped responses is
+under-reported — re-run it rather than recording the number. The table lives
+in [feedback-tracker.md](feedback-tracker.md).

@@ -177,14 +177,10 @@ describe("graticule", () => {
   it("returns the correct count of parallels and meridians for the given step", () => {
     const step = 30;
     const lines = graticule(step);
-    // Parallels: -90 + step, -90 + 2*step, ..., 90 - step
-    // Count: (90 - (-90)) / step = 180 / 30 = 6 parallels
-    // Meridians: -180, -180 + step, ..., 180 - step
-    // Count: 360 / step = 12 meridians
-    const expectedParallels = (180 - 2 * step) / step + 1; // -60, -30, 0, 30, 60 = 5, but formula gives 6 - need to recalculate
-    const expectedMeridians = 360 / step; // -180 to 150 in 30° steps
-    // Actually: parallels from (-90 + 30) to (90 - 30) = -60 to 60 in 30° steps = 5 lines
-    // meridians from -180 to < 180 in 30° steps = -180, -150, ..., 150 = 12 lines
+    // Parallels run from -90 + step to 90 - step inclusive, so at 30° that is
+    // -60, -30, 0, 30, 60 — five lines, `(180 - 2 * step) / step + 1`.
+    // Meridians run from -180 to < 180, so at 30° that is -180, -150, … 150 —
+    // twelve lines, `360 / step`. Both counts are asserted below.
     const parallels = lines.filter((line) => {
       const firstPoint = line[0];
       // Parallels have constant latitude
