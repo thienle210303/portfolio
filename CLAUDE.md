@@ -96,8 +96,13 @@ role, attaching a case study — are in [docs/editing.md](docs/editing.md).
 
 Round 16 removed the AI Workflow Lab section, and round 16's second plan
 re-homed exactly one of its arrays: `workflowStages` is now rendered by
-`#workshop`'s agent lane, and is read by `src/lib/answer-corpus.ts` (so the
-chat cites it) and by `src/lib/companion-facts.ts`. `experiments`,
+`#workshop`'s agent lane and counted by `src/lib/companion-facts.ts`. It is
+deliberately **not** in the chat's corpus: round 16 indexed each stage's
+`watchFor`, and that shipped a precision hole — three of them were the corpus's
+only carriers of the word "file", so "how do I file my taxes" retrieved them.
+The strings left the indexed surface instead, which the retrieval eval prices at
+zero, where gating the engine harder cost ten points of recall@3. Do not
+re-index them; `tests/lib/answers.test.ts` fails if you do. `experiments`,
 `learningLog` and `scrapingPlaybook` are still retained and still unrendered
 — nothing on the page reads them and nothing in the corpus cites them —
 pending a future plan that gives them a home. Four strings in that file are

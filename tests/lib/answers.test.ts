@@ -68,10 +68,12 @@ const CORPUS = new Set<string>([
   // other document type indexes. Built from the same resolver
   // `answer-corpus.ts` builds its documents from, never transcribed: a
   // station mapping changed in `src/content/workshop.ts` has to move both at
-  // once or not at all. Each `watchFor` is authored in
-  // `src/content/ai-experiments.ts` and appears nowhere else in this file.
+  // once or not at all. `workflowStages[].watchFor` is deliberately *not*
+  // here, though it was: those ten strings left the indexed surface, so an
+  // answer carrying one is now a regression this whitelist should catch rather
+  // than permit. The case that fences the surface itself is near the bottom of
+  // this file.
   ...(resolveRun(defaultRunProjectId)?.stations.flatMap((station) => station.evidence) ?? []),
-  ...workflowStages.map((stage) => stage.watchFor),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé
@@ -173,94 +175,90 @@ describe("answer", () => {
       //    is the probe that goes red first.
       "how do I renew my passport",
       "who won the world cup",
+      // These two were pinned below as a shipped hole until
+      // `workflowStages[].watchFor` left the indexed surface — see that case
+      // for the measurement. Be honest about their strength now: dropping
+      // those ten strings removed "file" from the vocabulary altogether, so
+      // these refuse for the same trivial reason "passport" does rather than
+      // by out-reasoning the gate. They are here to catch the surface coming
+      // back, and the mechanism assertion that actually pins it is below.
+      "how do I file my taxes",
+      "how do I file a bug",
     ]) {
       expect(answer(offTopic), `"${offTopic}" should return nothing`).toEqual([]);
     }
   });
 
   /**
-   * The `file` hole — pinned as **shipped behaviour, not desired behaviour.**
+   * Each agent stage's `watchFor` is deliberately **outside** the indexed
+   * surface, and this case is what keeps it there.
    *
-   * Read this as a regression fence around a known defect, never as an
-   * endorsement of it. The site currently answers "how do I file my taxes"
-   * with three sentences about source files, and that is wrong. It is pinned
-   * because the alternative is worse: while the hole is unpinned, a future
-   * engine change that *closes* it and one that *widens* it both leave this
-   * suite green, and nobody finds out which happened.
+   * ## The hole this replaced
    *
-   * ## What the hole is
+   * Round 16 indexed `workflowStages[].watchFor`, and it shipped a precision
+   * defect: three of the ten failure modes mention source *files* and were the
+   * only documents in the whole corpus holding that word, so "file" carried a
+   * near-maximal IDF (3.82, against a ~4.9 ceiling for a single-document
+   * term). English stop words then eat four of the six words in "how do I file
+   * my taxes" ("how", "do", "i", "my"), leaving two terms — and at two terms
+   * `requiredMatches` admits a document on one match. One incidental "files"
+   * cleared the bar alone, so the site answered a tax question with three
+   * sentences about source files.
    *
-   * Round 16 indexed each agent stage's `watchFor`. Three of them mention
-   * source *files*, and they are the only documents in the whole corpus
-   * holding that word — so "file" carries a near-maximal IDF (3.82, against a
-   * ~4.9 ceiling for a term in a single document). English stop words then eat
-   * four of the six words in "how do I file my taxes" ("how", "do", "i",
-   * "my"), leaving the index two terms, one of which is a homograph it now
-   * legitimately has. At two terms `requiredMatches` admits on a single match
-   * (see answers.ts), so one incidental "files" clears the bar alone.
+   * ## Why the surface moved and the engine did not
    *
-   * ## Why the engine was not changed instead
+   * Both arms were measured against `answers-retrieval.test.ts`, not argued.
    *
-   * Measured, not assumed. Making `requiredMatches` demand two matches at two
-   * terms drops the retrieval eval from recall@3 ≥90% to 83.3% and MRR ≥0.8
-   * to 0.761, and breaks "answers every suggested question with something" —
-   * because real two-term questions genuinely match on one term ("what awards
-   * has he won" -> ["award","won"], "where did he go to school" ->
-   * ["go","school"], "how big were the datasets he handled" ->
-   * ["dataset","handled"]). The engine is tuned; the probe was the fragile
-   * part.
+   *  - **Gate harder** (`requiredMatches` demanding two matches at two terms):
+   *    closes it, and costs recall@1 76.7% → 70.0%, recall@3 93.3% → 83.3%,
+   *    recall@5 96.7% → 83.3%, MRR 0.851 → 0.761, plus the "How does he
+   *    approach a problem?" suggestion chip. Real two-term questions genuinely
+   *    match on one term ("what awards has he won" → ["award","won"], "where
+   *    did he go to school" → ["go","school"]), so the cost is structural, not
+   *    a tuning accident.
+   *  - **Drop these ten strings from the surface**: closes it with the eval
+   *    **byte-identical to baseline** on all four thresholds.
    *
-   * ## Blast radius, measured
+   * So the engine is tuned and this content was the part not paying for its
+   * precision cost. The precedent is in `answer-corpus.ts` already — `source`
+   * is excluded from the surface for the same class of reason.
    *
-   * Exactly **one- and two-term queries whose only corpus term is `file`**. A
-   * third term restores the two-match gate and the hole closes by itself:
-   * "my tax return files" (["tax","return","file"]) correctly returns nothing,
-   * which is the boundary this case asserts last.
+   * ## What did not close, and is not this case's job
    *
-   * ## If you are here because you changed the engine
-   *
-   * Good. **Update this case to the new, narrower truth — do not invert it in
-   * place.** If a query below now returns nothing, the hole has closed and
-   * these queries should move up into the refusal case above. If a query that
-   * returned nothing starts returning something, the hole has widened and that
-   * is a regression. Either way the change belongs in this file's diff.
+   * The *instance*, not the *class*. `requiredMatches` still admits on one
+   * match out of two terms, so any future corpus term that is rare here and
+   * common in English can do this again. "can I get the project files" still
+   * returns three lines — now on "project", at 1.45 — which is a defensible
+   * answer rather than a wrong one, and is why it is not in the refusal list
+   * above. If that gate is ever reopened, the numbers above are what a change
+   * has to beat.
    */
-  it("DOCUMENTED HOLE (not desired): a short query whose only corpus term is `file` reaches the agent lane", () => {
-    // Derived from the content, not transcribed: these are the stage failure
-    // modes that actually contain the term, so a content edit that drops the
-    // word closes the hole and fails this test loudly rather than leaving a
-    // stale fixture behind.
+  it("keeps each agent stage's failure mode out of the indexed surface", () => {
+    // Derived from the content, not transcribed: if the stages are reworded so
+    // that none mentions files, this tripwire goes off and the account above
+    // needs re-checking rather than trusting.
     const fileLines = workflowStages
       .map((stage) => stage.watchFor)
       .filter((line) => tokenize(line).includes("file"));
     expect(
       fileLines.length,
-      "no stage failure mode mentions files any more — the hole may be closed; see this case's doc comment",
+      "no stage failure mode mentions files any more — re-read this case's doc comment before trusting it",
     ).toBe(3);
 
-    // Two terms, one of them `file`: admitted on the single match.
-    for (const reaching of [
-      "how do I file my taxes",
-      "how do I file a bug",
-      "can I get the project files",
-    ]) {
-      const results = answer(reaching);
-      expect(results.length, `"${reaching}" no longer reaches — see this case's doc comment`).toBe(3);
-      expect(new Set(results.map((result) => result.text))).toEqual(new Set(fileLines));
-      // All three carry the same near-maximal weight, which is the mechanism
-      // rather than a coincidence: one rare term matched, and nothing else.
-      for (const result of results) expect(result.score).toBeCloseTo(3.82, 1);
-      // The hole is a precision failure, not a fabrication one. Whatever it
-      // reaches is still verbatim content, still sourced, still linkable —
-      // which is why it is a defect worth fixing rather than one worth
-      // panicking about.
-      for (const result of results) {
-        expect(CORPUS.has(result.text)).toBe(true);
-        expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
-      }
+    // The load-bearing assertion, on the surface rather than on a query: these
+    // strings are authored, rendered by AgentLane, and absent from the index.
+    // Re-index them and the two "file" queries in the refusal case above go
+    // red with them.
+    const indexed = new Set(buildDocuments().map((document) => document.text));
+    for (const line of workflowStages.map((stage) => stage.watchFor)) {
+      expect(
+        indexed.has(line),
+        `indexed again, so the \`file\` hole is back: "${line.slice(0, 48)}…"`,
+      ).toBe(false);
     }
 
-    // The boundary: a third term restores the two-match gate.
+    // The gate boundary the old pin asserted last, kept because it is the one
+    // thing here that is about the engine rather than the corpus.
     expect(answer("my tax return files")).toEqual([]);
   });
 
