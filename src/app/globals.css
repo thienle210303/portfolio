@@ -618,11 +618,39 @@
    *
    * Headings already compose `font-display` with a step from the type scale at
    * the point of use, which is the established pattern across every section,
-   * and Newsreader is variable on `opsz` — with `font-optical-sizing: auto`
+   * and Fraunces is variable on `opsz` — with `font-optical-sizing: auto`
    * being the browser default, a 4rem headline and a 1rem note already get the
    * right optical size without anything being declared. A wrapper class would
    * only have restated the size in a second place.
    */
+
+  /*
+   * Fraunces' two personality axes, held off everywhere the display face is
+   * used. This is the other half of the `axes: ["opsz", "SOFT", "WONK"]`
+   * request in layout.tsx and neither half works alone: next/font has to ship
+   * a file carrying the axes before CSS can pin them, and without the pin the
+   * file's own defaults render the whimsical cut of the face.
+   *
+   * `SOFT 0` keeps the terminals cut rather than rounded; `WONK 0` keeps the
+   * conventional double-storey g and the upright leg forms instead of the
+   * splayed ones the family is named for. What is left is the sharpest corner
+   * of Fraunces — high stroke contrast without the character, which is the
+   * whole reason it was chosen over Newsreader.
+   *
+   * `opsz` is deliberately absent: `font-optical-sizing: auto` is steering it
+   * per element, and naming it here would freeze every heading at one optical
+   * size and undo the argument for a variable face in the first place.
+   *
+   * One rule on the utility class rather than a per-element declaration: every
+   * consumer of the display face on this site reaches it through
+   * `.font-display`, so this is the one place it can be said once. No layer
+   * conflict — nothing else sets `font-variation-settings`.
+   */
+  .font-display {
+    font-variation-settings:
+      "SOFT" 0,
+      "WONK" 0;
+  }
 
   /*
    * The margin rail — the device this direction is named for.

@@ -721,6 +721,40 @@ Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
 | After Philosophy and the Lab were removed | 188.2 KB | 13.5 KB | 331.4 KB | 4148 ms / 3692 ms | 580 ms / 474 ms | 0 | 3325 |
 | Same row re-measured today at `61bef53` (3 runs) | 188.1 KB | 13.5 KB | 331.4 KB | 2928–4676 ms | 389–863 ms | 0 | 3325 |
 | After the globe and the Workshop, `f794749` (4 runs) | 192.2 KB | 13.9 KB | 372.0 KB | 3520–4464 ms | 375–1087 ms | 0 | 3764 |
+| Round 17 stage 1, boxes → rules, `55d0a43` (3 runs) | 197.0 KB | 14.1 KB | 372.0 KB | 3512–3992 ms | 484–541 ms | 0 | 3649 |
+| Round 17 stage 2, Newsreader → Fraunces (3 runs) | 197.0 KB | 14.1 KB | **375.5 KB** | 3416–3636 ms | 229–719 ms | 0 | 3649 |
+
+**Round 17, stage 2 — the display face swap costs 3.5 KB.** Newsreader gave
+way to Fraunces (variable on `opsz` and `wght`, with `SOFT` and `WONK`
+requested only so CSS can pin them to 0). The two rows above are the same
+commit before and after that one change, so the delta is attributable: fonts
+372.0 KB → 375.5 KB, **+3.5 KB**, with JS, CSS, CLS and DOM nodes identical
+to the byte and to the node. LCP and TBT both land inside the run-to-run
+noise this table has documented since round 16 — the Fraunces LCP range is
+narrower than the baseline's and its TBT range is wider, and neither is a
+signal at three runs.
+
+Both rows report **0 responses with no `sizes()`**, so neither is
+under-reported.
+
+A fourth run, taken before these, measured fonts at 59.0 KB and CSS at
+0.0 KB. It is discarded, and recorded here because the failure mode is worth
+knowing: the `pnpm start` for it never bound, so the *previous* run's server
+process was still on :3100 serving a `.next` that a later `pnpm build` had
+overwritten underneath it. The stylesheet was then requested under a build id
+that no longer existed — a 404 contributes no bytes, which is why CSS read as
+zero. A CSS total of 0.0 KB on a page that obviously has styles is the tell.
+Check the listening PID's start time against the build's, not just that the
+port answers 200.
+
+**Not attempted here, and worth its own look:** the tracker's earlier note
+that Newsreader *italic* was 143.6 KB of the font payload for two usages
+applies to Fraunces too — the italic file is still fetched for what is now
+three call sites (`BusinessCard`, `Closing`, `WorldPanel`). Dropping
+`style: ["normal", "italic"]` to `["normal"]` would be by far the largest
+font win available, much larger than this whole swap, but it changes how
+three authored pieces of copy read and so is a design decision rather than a
+measurement.
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
 JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms

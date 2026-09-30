@@ -34,7 +34,7 @@ reliable systems.*
 | Icons | **lucide-react** | Lightweight, tree-shaken |
 | Validation | **Zod** | Server-side contact validation |
 | Email | **Resend** | Optional — the form degrades honestly without it |
-| Fonts | **next/font** | Newsreader, IBM Plex Sans, IBM Plex Mono, self-hosted, `display: swap` |
+| Fonts | **next/font** | Fraunces, IBM Plex Sans, IBM Plex Mono, self-hosted, `display: swap` |
 | Tests | **Vitest** + Testing Library, **Playwright** | Component behaviour and real-viewport smoke tests |
 | Package manager | **pnpm** | Exclusively — do not introduce another lockfile |
 
