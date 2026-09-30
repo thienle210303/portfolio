@@ -726,10 +726,10 @@ Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
 
 **Round 17, stage 2 — the display face swap costs 3.5 KB.** Newsreader gave
 way to Fraunces (variable on `opsz` and `wght`, with `SOFT` and `WONK`
-requested only so CSS can pin them to 0). The two rows above are the same
-commit before and after that one change, so the delta is attributable: fonts
-372.0 KB → 375.5 KB, **+3.5 KB**, with JS, CSS, CLS and DOM nodes identical
-to the byte and to the node. LCP and TBT both land inside the run-to-run
+requested only so CSS can pin them to 0). The stage 1 and stage 2 rows are
+the same commit before and after that one change, so the delta is
+attributable: fonts 372.0 KB → 375.5 KB, **+3.5 KB**, with JS, CSS, CLS and
+DOM nodes identical to the byte and to the node. LCP and TBT both land inside the run-to-run
 noise this table has documented since round 16 — the Fraunces LCP range is
 narrower than the baseline's and its TBT range is wider, and neither is a
 signal at three runs.
@@ -801,6 +801,72 @@ and 24/24). Run as a pair on a loaded machine they produced one failure each
 time, a *different* test on each run — `axe:318` at 375 and then `axe:347` at
 1440 — and both passed in isolation immediately after. That is this repo's
 documented worker-saturation flake, not a regression.
+
+### Analytics (2026-09-30) — `d834264`
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| Round 17 stage 4, analytics added, gate on (3 runs) | **198.8 KB** | 14.0 KB | 223.8 KB | 3336–3572 ms | 278–524 ms | 0 | **3651** |
+
+**Vercel Web Analytics and Speed Insights cost 1.8 KB of initial JavaScript
+and two DOM nodes — and the `VERCEL_ENV` gate reclaims none of it.** Read
+against the stage 3 row above: JS 197.0 KB → **198.8 KB**, DOM nodes 3649 →
+**3651**, with CSS, fonts and CLS unmoved.
+
+The A/B this was meant to be did not work, and the reason is the finding.
+Two builds were taken from one working tree at `d834264` with `VERCEL_ENV` as
+the only variable, three `pnpm perf` runs each. They came back **identical in
+every byte column** — JS 198.8 KB, CSS 14.0 KB, fonts 223.8 KB, CLS 0, 3651
+DOM nodes, both ways. So the gate is not where the cost is, and a
+gate-off/gate-on delta measures nothing. A third build, at `d834264^`, is
+what actually isolates it: 197.0 KB / 14.0 KB / 223.8 KB / 3649 nodes, which
+reproduces the stage 3 row to the tenth of a kilobyte and to the node. The
+1.8 KB and the two nodes are therefore `d834264` itself, and `dad2553`, the
+only other source change in between, moved no bytes at all.
+
+**The commit message's bundle claim does not hold.** `d834264` says that
+because every route prerenders, "on a preview or local build neither vendor
+package reaches the client bundle at all, rather than shipping and then
+no-oping at runtime." Capturing every response for both builds and diffing
+the two lists (26 responses each) shows otherwise:
+`_next/static/chunks/01v6f8nq-k-ez.js` — 28,861 bytes on the wire — carries
+both vendor packages' code and their script URLs, and the homepage requests
+it in **both** builds. Total script bytes are 203,620 either way. That chunk
+is shared, not a vendor chunk: it also carries app code, so the 1.8 KB above
+is the honest figure for what the packages added, not its 28.9 KB.
+
+What the gate does change on the wire is three things and all of them small:
+the document grows 117,691 → 117,828 bytes, the `/resume` RSC prefetch grows
+2,799 → 2,845 bytes, and the gate-on build makes two extra script requests,
+`/_vercel/insights/script.js` and `/_vercel/speed-insights/script.js`. Under
+`pnpm start` both 404 with a zero-byte body — those paths are served by
+Vercel's edge, not by Next — so their real cost is **not** in the row above
+and will only be measurable against the deployed site.
+
+None of this undercuts the gate's two stated reasons for existing, which are
+about behaviour rather than bytes: it still keeps `@vercel/analytics` from
+fetching its debug script during the Playwright run, and it still keeps
+preview traffic out of a per-team event allowance. It just does not keep the
+packages out of the initial chunk set, and the tracker should not be read as
+saying it does. Reclaiming the 1.8 KB, if it is worth reclaiming, needs the
+import to go behind something the bundler can drop — not the gate.
+
+The two DOM nodes are ungated: they are `SiteFooter`'s disclosure line and
+the divider before it, which render in every environment even though the
+sentence they carry is only true in production — the component's own comment
+says as much.
+
+All nine runs across the three builds report **0 responses with no
+`sizes()`**. Timings are noise at this sample size and no timing claim is
+made: the three builds' LCP ranges (3108–5156, 3780–4836, 3336–3572 ms)
+overlap, and their TBT ranges (476–1046, 406–1064, 278–524 ms) overlap too,
+with the gate-on build — the one carrying *more* code — reading fastest on
+both, which is the tell that the machine, not the build, is what moved.
+
+Builds and servers for this row were run in a throwaway `git worktree` on
+:3100, because `next build` clears `.next` and Next 16's dev server lives in
+`.next/dev` — building in the main checkout would have pulled the floor out
+from under a dev server that was already running on :3000.
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
 JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms
