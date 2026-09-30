@@ -721,6 +721,86 @@ Measured with `pnpm perf` against a production build, Chromium at 4x CPU and
 | After Philosophy and the Lab were removed | 188.2 KB | 13.5 KB | 331.4 KB | 4148 ms / 3692 ms | 580 ms / 474 ms | 0 | 3325 |
 | Same row re-measured today at `61bef53` (3 runs) | 188.1 KB | 13.5 KB | 331.4 KB | 2928–4676 ms | 389–863 ms | 0 | 3325 |
 | After the globe and the Workshop, `f794749` (4 runs) | 192.2 KB | 13.9 KB | 372.0 KB | 3520–4464 ms | 375–1087 ms | 0 | 3764 |
+| Round 17 stage 1, boxes → rules, `55d0a43` (3 runs) | 197.0 KB | 14.1 KB | 372.0 KB | 3512–3992 ms | 484–541 ms | 0 | 3649 |
+| Round 17 stage 2, Newsreader → Fraunces (3 runs) | 197.0 KB | 14.1 KB | **375.5 KB** | 3416–3636 ms | 229–719 ms | 0 | 3649 |
+
+**Round 17, stage 2 — the display face swap costs 3.5 KB.** Newsreader gave
+way to Fraunces (variable on `opsz` and `wght`, with `SOFT` and `WONK`
+requested only so CSS can pin them to 0). The two rows above are the same
+commit before and after that one change, so the delta is attributable: fonts
+372.0 KB → 375.5 KB, **+3.5 KB**, with JS, CSS, CLS and DOM nodes identical
+to the byte and to the node. LCP and TBT both land inside the run-to-run
+noise this table has documented since round 16 — the Fraunces LCP range is
+narrower than the baseline's and its TBT range is wider, and neither is a
+signal at three runs.
+
+Both rows report **0 responses with no `sizes()`**, so neither is
+under-reported.
+
+A fourth run, taken before these, measured fonts at 59.0 KB and CSS at
+0.0 KB. It is discarded, and recorded here because the failure mode is worth
+knowing: the `pnpm start` for it never bound, so the *previous* run's server
+process was still on :3100 serving a `.next` that a later `pnpm build` had
+overwritten underneath it. The stylesheet was then requested under a build id
+that no longer existed — a 404 contributes no bytes, which is why CSS read as
+zero. A CSS total of 0.0 KB on a page that obviously has styles is the tell.
+Check the listening PID's start time against the build's, not just that the
+port answers 200.
+
+**The italic follow-up, now taken — see the row below.**
+
+| Round 17 stage 3, display italic dropped (3 runs) | 197.0 KB | 14.0 KB | **223.8 KB** | 4592–5952 ms | 603–1128 ms | 0 | 3649 |
+
+**Round 17, stage 3 — dropping the display italic saves 151.7 KB.** The
+tracker's long-standing note that Newsreader *italic* was 143.6 KB for two
+usages proved out against Fraunces: `style: ["normal", "italic"]` →
+`["normal"]` takes fonts from 375.5 KB to **223.8 KB**, 40% of the font
+payload and roughly forty times what swapping the whole display family cost.
+CSS drops 0.1 KB with the second `@font-face` block. JS, CLS and DOM nodes
+are unchanged.
+
+It bought four italic lines, all now set in roman: the business card's
+philosophy quote, the two world names (`WorldPanel`, `WorldsStage`), and the
+closing sign-off.
+
+**Read the LCP and TBT columns on these two rows against each other, not
+against the rows above them.** This machine was materially slower during
+stage 3 than during stage 2, and the control proves it rather than assuming
+it: the *with-italic* build was re-measured back to back in the same session
+and came back at 4212–5524 ms LCP / 345–1179 ms TBT, against its own earlier
+3416–3636 ms / 229–719 ms with no code change between them. Against that
+matched control the no-italic build measures 4584–5712 ms / 584–1185 ms —
+overlapping ranges, no signal. Which is the expected result: the fonts load
+`display: swap` and off the critical path, so removing one changes what is
+downloaded, not when the page paints. The saving here is a byte saving and is
+claimed as nothing else.
+
+All rows in this stage report **0 responses with no `sizes()`**.
+
+**A faux oblique is not a fallback.** With the file gone, a browser shears the
+roman for any `italic` left on a `font-display` element, and on a
+high-contrast serif at `--step-2` that reads as a rendering fault — so all
+four call sites were changed to roman rather than left to synthesise.
+Verified in the browser: three faces load (Fraunces normal, Plex Sans normal,
+Plex Mono normal) and zero `.font-display` elements compute a non-normal
+`font-style`. Note that Plex Sans and Plex Mono have never shipped an italic,
+so every sans and mono italic on the page — the code block's strings and
+comments included — has always been synthesised; this change makes the
+display face consistent with them instead of being the one exception that
+cost a file.
+
+**The one to look at is the sign-off.** Of the four, it was the only line
+where the slope did real work, marking the change of voice that makes a
+parting line read as spoken rather than as one more heading. The mono pivot
+chip now carries that alone, and a pivot-less signoff is genuinely quieter
+than it was. If the slope is wanted back there, the honest options are paying
+for the file or accepting the shear; there is no third one.
+
+**e2e note.** `axe` and `responsive` both pass in full when run alone (14/14
+and 24/24). Run as a pair on a loaded machine they produced one failure each
+time, a *different* test on each run — `axe:318` at 375 and then `axe:347` at
+1440 — and both passed in isolation immediately after. That is this repo's
+documented worker-saturation flake, not a regression.
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
 JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms

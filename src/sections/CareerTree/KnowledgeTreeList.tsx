@@ -1,5 +1,4 @@
 import { Disclosure } from "@/components/ui/Disclosure";
-import { Tag } from "@/components/ui/Tag";
 import { cn } from "@/lib/cn";
 import { techSlug, type TreeBranch } from "@/lib/knowledge-tree";
 import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
@@ -115,25 +114,28 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                     <ul
                       role="list"
                       aria-label={`Technologies used — ${branch.label}`}
-                      className="flex flex-wrap gap-2"
+                      className="token-run"
                     >
                       {technologyLeaves.map((leaf) => (
                         <li key={leaf.text} data-tree-tech={techSlug(leaf.text)}>
-                          <Tag>
-                            <span className="wrap-anywhere">{leaf.text}</span>
-                            {/* Recurrence is the whole point of a tree view: it
-                                is what shows a technology running through more
-                                than one branch instead of sitting in one. */}
-                            {leaf.alsoUsedIn ? (
-                              <span className="text-accent">
-                                +{leaf.alsoUsedIn}
-                                <span className="sr-only">
-                                  {" "}
-                                  other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
-                                </span>
+                          {/* The text span stays the `<li>`'s first element
+                              child: globals.css brightens
+                              `[data-tree-tech][data-tree-hit] > span:first-child`
+                              on cross-highlight, and that selector reaches one
+                              level, not through a wrapper. */}
+                          <span className="wrap-anywhere">{leaf.text}</span>
+                          {/* Recurrence is the whole point of a tree view: it
+                              is what shows a technology running through more
+                              than one branch instead of sitting in one. */}
+                          {leaf.alsoUsedIn ? (
+                            <span className="text-accent">
+                              +{leaf.alsoUsedIn}
+                              <span className="sr-only">
+                                {" "}
+                                other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
                               </span>
-                            ) : null}
-                          </Tag>
+                            </span>
+                          ) : null}
                         </li>
                       ))}
                     </ul>

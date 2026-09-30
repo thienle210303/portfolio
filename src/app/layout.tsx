@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { cn } from "@/lib/cn";
 import { careerEntries, education, profile, socialLinks, SITE_URL } from "@/content/portfolio";
 import { buildCompanionFacts } from "@/lib/companion-facts";
@@ -10,29 +10,58 @@ import Companion from "@/components/companion/Companion";
 import InkReveal from "@/components/ui/InkReveal";
 import "./globals.css";
 
-// Newsreader is variable on both `opsz` and `wght`, which is the reason it is
-// here: the same family sets a 4rem headline and a 400-word case study without
-// a second display face. Do not pin `weight` — that would collapse the
-// variation axes the type scale relies on.
+// Fraunces is variable on `opsz` and `wght`, which is the reason a variable
+// display face is here at all: the same family sets a 4rem headline and a
+// 400-word case study without a second display face. Do not pin `weight` —
+// that would collapse the variation axes the type scale relies on.
 //
-// `axes: ["opsz"]` (Workstream 3, P4) is what actually turns that on.
-// next/font only ships the axes it's told to request beyond the default
-// `wght` — without this, `font-optical-sizing: auto` had nothing to steer,
-// because the one variable font file next/font was fetching never carried an
-// `opsz` axis in the first place, silent-substitution rather than a visible
-// bug. With it, the same variable file now genuinely reshapes letterforms
-// between the hero's ~4rem headline and a ~13px rail note — heavier stroke
-// contrast and taller x-height at small sizes, closer to the display cut at
-// large ones — which is the actual reading behind Newsreader being chosen
-// over a static serif at all. Verified in devtools: computed
-// `font-variation-settings` on the h1 now carries a nonzero `opsz`, where it
-// previously read 0.
-const newsreader = Newsreader({
-  style: ["normal", "italic"],
+// `axes` (Workstream 3, P4) is what actually turns that on. next/font only
+// ships the axes it's told to request beyond the default `wght` — without
+// this, `font-optical-sizing: auto` has nothing to steer, because the one
+// variable file next/font fetches never carries an `opsz` axis in the first
+// place: silent substitution rather than a visible bug. With it, the same file
+// genuinely reshapes letterforms between the hero's ~4rem headline and a ~13px
+// note — heavier stroke contrast and a taller x-height at small sizes, closer
+// to the display cut at large ones.
+//
+// `SOFT` and `WONK` are requested for the opposite reason: to pin them off.
+// They are Fraunces' two personality axes — `SOFT` rounds the terminals,
+// `WONK` swaps in the single-storey g and the splayed leg forms — and both
+// default to a value this design does not want. An axis cannot be set to 0 in
+// CSS unless the file carries it, so they are fetched here and then held at 0
+// by the `.font-display` rule in globals.css. That pairing is load-bearing:
+// drop either half and the page renders the whimsical cut of the face.
+//
+// Fraunces replaces Newsreader (round 17). Newsreader is a reading serif with
+// low stroke contrast, which is why the page read sober rather than expensive;
+// Fraunces at SOFT 0 / WONK 0 is the same variable-axis argument with the
+// contrast a display face needs. The cost is measured, not assumed — see the
+// perf row in docs/feedback-tracker.md.
+// `style` is normal only, and that is the single largest asset decision on
+// the site. The display italic is its own font file: dropping it took the
+// font payload from 375.5 KB to 223.8 KB — **151.7 KB**, 40% of everything
+// the page downloads in fonts, and roughly forty times what swapping the
+// whole display family cost. It bought four italic lines: a quote on the
+// business card, two world names, and the closing sign-off.
+//
+// Nothing here synthesises a replacement on purpose. A browser will shear the
+// roman into a faux oblique for any `italic` left in the markup, and on a
+// high-contrast serif at --step-2 that looks like a rendering fault, so all
+// four call sites were set in roman instead. Adding `italic` back to a
+// `font-display` element without adding it here will look wrong, not fall
+// back gracefully.
+//
+// Plex Sans and Plex Mono below have always been loaded without an italic,
+// so every sans and mono italic on this page — including the code block's
+// strings and comments — has been a synthesised oblique all along. This
+// change makes the display face consistent with them rather than being the
+// one exception that cost a file.
+const fraunces = Fraunces({
+  style: ["normal"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
-  axes: ["opsz"],
+  axes: ["opsz", "SOFT", "WONK"],
 });
 
 // Plex Sans and Plex Mono ship as static faces, so the weights actually used
@@ -169,7 +198,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       // and always will. Suppression does not extend to any child, so a real
       // mismatch anywhere inside the tree still surfaces.
       suppressHydrationWarning
-      className={cn(newsreader.variable, plexSans.variable, plexMono.variable)}
+      className={cn(fraunces.variable, plexSans.variable, plexMono.variable)}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

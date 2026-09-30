@@ -67,17 +67,30 @@ export default function Closing() {
         </Button>
       </div>
 
-      {/* The sign-off (round 15, item 4): the page's parting line, set in
-          the display italic with the pun's pivot word as an inline code
-          token — the site's own mono delivering the punchline. One authored
-          line per deploy (see `closingSignoffs`); a pivot-less signoff is a
-          plain italic line. Plain paragraph semantics — the code chip is
-          typography, not meaning. */}
-      <p className="mt-10 font-display text-[length:var(--step-2)] italic leading-snug text-fg">
+      {/* The sign-off (round 15, item 4): the page's parting line, set in the
+          display face with the pun's pivot word as an inline code token — the
+          site's own mono delivering the punchline. One authored line per
+          deploy (see `closingSignoffs`); a pivot-less signoff is a plain
+          line. Plain paragraph semantics — the code chip is typography, not
+          meaning.
+
+          Round 17 took the italic off this line, and it was the only one of
+          the four display italics where the slope was doing real work: it
+          marked the change of voice that makes a parting line read as spoken
+          rather than as one more heading. It went because the display
+          italic is its own font file — 151.7 KB measured, 40% of the font
+          payload — and this was one line below the fold. The code chip still
+          carries the voice shift, and it is now the only thing that does, so
+          a pivot-less signoff is a genuinely quieter line than it used to
+          be. If the slope is ever wanted back here, the honest options are
+          paying for the file or accepting a synthesised oblique; a
+          faux-sheared high-contrast serif at --step-2 is why the second was
+          not taken. */}
+      <p className="mt-10 font-display text-[length:var(--step-2)] leading-snug text-fg">
         {signoff.lead}
         {signoff.pivot ? (
           <>
-            <code className="not-italic rounded-none border border-rule bg-surface px-2 py-0.5 font-mono text-[0.72em] tracking-tight text-fg">
+            <code className="rounded-none border border-rule bg-surface px-2 py-0.5 font-mono text-[0.72em] tracking-tight text-fg">
               {signoff.pivot}
             </code>
             {signoff.tail}

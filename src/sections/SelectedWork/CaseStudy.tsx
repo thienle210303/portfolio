@@ -34,7 +34,6 @@ import { cn } from "@/lib/cn";
 import { careerEntryById } from "@/content/portfolio";
 import { resolved, type Project } from "@/types/portfolio";
 import { Disclosure } from "@/components/ui/Disclosure";
-import { Tag } from "@/components/ui/Tag";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { caseStudyAnchorId, caseStudyNumeral } from "./anchors";
@@ -300,12 +299,10 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
           <p id={techLabelId} className={MICRO_LABEL_CLASS}>
             Technologies
           </p>
-          <ul role="list" aria-labelledby={techLabelId} className="mt-3 flex flex-wrap gap-2">
+          <ul role="list" aria-labelledby={techLabelId} className="token-run mt-3">
             {project.technologies.map((tech) => (
               <li key={tech}>
-                <Tag>
-                  <span className="wrap-anywhere">{tech}</span>
-                </Tag>
+                <span className="wrap-anywhere">{tech}</span>
               </li>
             ))}
           </ul>

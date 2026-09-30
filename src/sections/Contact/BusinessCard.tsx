@@ -268,11 +268,17 @@ export default function BusinessCard({ className }: BusinessCardProps) {
             own content width on one line without help, and an arbitrary
             character clamp narrower than that width only forced an
             unnecessary second line. */}
-        {/* `.hanging-quote` (Workstream 3, P4): this is the one quoted,
-            italic line inside this workstream's file scope — Safari hangs
-            the opening curly quote fractionally outside the text's own
-            left edge; every other engine ignores the unknown declaration. */}
-        <p className="hanging-quote mt-2 font-display text-[length:var(--step--1)] leading-snug text-fg-muted italic">
+        {/* `.hanging-quote` (Workstream 3, P4): this is the one quoted line
+            inside this workstream's file scope — Safari hangs the opening
+            curly quote fractionally outside the text's own left edge; every
+            other engine ignores the unknown declaration.
+
+            No italic since round 17. The curly quotes already say this is
+            quoted and the muted tone already says it is an aside, so the
+            slope was a third signal for one job — which made this the
+            cheapest of the four display italics to give up when that font
+            file turned out to be 151.7 KB. */}
+        <p className="hanging-quote mt-2 font-display text-[length:var(--step--1)] leading-snug text-fg-muted">
           &ldquo;{profile.philosophy}&rdquo;
         </p>
       </div>
