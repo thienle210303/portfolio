@@ -35,7 +35,10 @@ jobs:
     # gate is a failure nobody will read as a distro change. Bump it
     # deliberately, when a green run can confirm the move.
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # 30 rather than 20: measured locally, the vitest phase alone is ~187s at
+    # 3 workers and `next build` sits on top of that, so a 2-core hosted
+    # runner has less headroom than a laptop suggests.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -52,4 +55,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # If this ever fails with `[vitest-pool]: Failed to start forks worker
+      # ... Timeout waiting for worker to respond`, that is contention
+      # starting workers, not a broken test: files never run at all, so the
+      # summary reports errors with zero failed assertions. Pin
+      # `--maxWorkers` low rather than hunting for a test that failed.
       - run: pnpm verify
