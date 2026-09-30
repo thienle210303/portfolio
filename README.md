@@ -5,7 +5,7 @@ experience, performance, and workflows that did not previously exist.
 
 The site is a single narrative page: a code-led hero (with a chat that
 answers questions about the page, grounded only in what it says), a drawn
-globe of seven worlds made entirely of the site's own authored facts, six case
+globe of seven worlds made entirely of the site's own authored facts, five case
 studies, a skills inventory, a career tree, a workshop that runs a nine-step
 method against one real project, and a contact experience that starts from
 what the visitor actually came to say. The résumé is its own route at
@@ -149,8 +149,8 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, contact intents, the Philosophy section's retired `principles[].detail` prose (unrendered), and `problemSolvingLoop` — the nine steps, now rendered as the Workshop's stations |
-| `src/content/ai-experiments.ts` | `workflowStages`, rendered as the Workshop's agent lane; plus the AI experiments, learning log, scraping playbook and AI tools, still unrendered since round 16's removal of the AI Workflow Lab and kept for a future section |
+| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, contact intents, the Philosophy section's retired `principles[].detail` prose (unrendered), `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — and `problemSolvingLoop` — the nine steps, now rendered as the Workshop's stations |
+| `src/content/ai-experiments.ts` | `workflowStages`, rendered as the Workshop's agent lane; plus the AI experiments, learning log and scraping playbook, still unrendered since round 16's removal of the AI Workflow Lab and kept for a future section |
 | `src/content/worlds.ts` | The seven worlds of the globe — **addresses, not sentences**: each plaque names a record and a field in `portfolio.ts`, and the words are quoted from it verbatim |
 | `src/content/workshop.ts` | Which authored field is the evidence for which step of the loop, one field per station, plus what a station says when the field is empty |
 | `src/types/portfolio.ts` | The types every one of them is checked against |

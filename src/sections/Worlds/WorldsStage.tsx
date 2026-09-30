@@ -26,6 +26,8 @@ import WorldPanel from "./WorldPanel";
  * globe controls are `aria-disabled` rather than absent — the same pattern
  * `WatchOrigin.tsx` uses for the origin-story player, and for the same reason:
  * a control that vanishes and reappears is worse than one that says "not yet".
+ * `aria-disabled` announces; it does not enforce — so, as there, each handler
+ * opens by refusing the press itself.
  */
 
 export interface GlobeControls {
@@ -124,6 +126,17 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
   }, []);
 
   const handleFly = useCallback(() => {
+    // Nothing behind the button yet — or nothing ever, if the chunk failed —
+    // and the press has to die here rather than in CSS. `pointer-events:
+    // none` suppresses *pointer* hit-testing only: these two controls carry
+    // `aria-disabled` and never the native `disabled` (deliberately — they
+    // have to stay in the tab order to say "not yet" to the person who
+    // reached them by keyboard, which `tests/sections/WorldsStage.test.tsx`
+    // pins), so Enter or Space on a focused one still fires `click` in a real
+    // browser. Without this guard a keyboard visitor could write a sentence
+    // about a flight into the live region before any globe existed. The same
+    // opening line `WatchOrigin.tsx` uses, for the same reason.
+    if (!controlsReady) return;
     // Pressing it a second time replays the crossing from Việt Nam, which
     // clears the seed for the two seconds it takes — so the claim goes with
     // it, rather than sitting under a globe that has nothing on it.
@@ -142,9 +155,14 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
       setAnnouncement("");
     });
     controlsRef.current?.fly();
-  }, []);
+  }, [controlsReady]);
 
   const handleReset = useCallback(() => {
+    // Same guard, and this one is the sharper of the two: with no globe, the
+    // announcement below would tell a screen-reader user that a flight and a
+    // seed had been cleared when neither had ever existed. See `handleFly`
+    // above for why `pointer-events-none` does not cover a keyboard press.
+    if (!controlsReady) return;
     // The canvas half and the DOM half of one fact: `reset()` takes the seed
     // off the globe, and `setLanded(false)` takes the sentence that describes
     // it off the page. Doing only the first would leave a link claiming a seed
@@ -152,7 +170,7 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
     controlsRef.current?.reset();
     setLanded(false);
     setAnnouncement(`Back at ${origin.from}, with the flight and the seed cleared.`);
-  }, []);
+  }, [controlsReady]);
 
   // The canvas chunk, fetched once the stage is near the viewport. An
   // IntersectionObserver rather than a mount-time import: the section is below

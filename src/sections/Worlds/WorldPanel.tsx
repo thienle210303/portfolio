@@ -1,5 +1,5 @@
 import { GLYPHS, GLYPH_VIEWBOX } from "./glyphs";
-import type { ResolvedWorld } from "@/lib/worlds";
+import { DECORATION_LABEL, type ResolvedWorld } from "@/lib/worlds";
 
 /**
  * One world, in words. Pure presentation — every string it renders was
@@ -76,7 +76,12 @@ export function WorldPanel({ world }: { readonly world: ResolvedWorld }) {
 
       {world.decorations.length > 0 ? (
         <div className="mt-4 border-t border-dashed border-rule pt-3">
-          <p className="eyebrow">no plaque · decoration</p>
+          {/* The constant, never a second copy of the words. Each glyph's
+              own accessible name already ends in this exact string (see
+              `resolveWorlds`), so a re-typed heading here could drift out of
+              step with what a screen reader is told — and this one string is
+              the whole honesty rule. */}
+          <p className="eyebrow">{DECORATION_LABEL}</p>
           <div className="mt-2 flex flex-wrap items-center gap-4">
             {world.decorations.map((decoration) => (
               <svg

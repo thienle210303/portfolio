@@ -49,8 +49,16 @@ export interface ResolvedRun {
   readonly href: string;
   readonly stations: readonly ResolvedStation[];
   readonly authoredStations: number;
-  readonly learned: string;
+  /** The project's own `learned` line, or `null` when it holds a marker or
+   *  nothing. It is a quote like any other on this page, so it goes through
+   *  `evidenceFor` rather than being read straight off the record — see
+   *  `LEARNED_FIELD` below. */
+  readonly learned: string | null;
 }
+
+/** The field `learned` quotes, named once so the resolver and the provenance
+ *  line the Workshop prints under it cannot disagree about it. */
+export const LEARNED_FIELD = "learned" satisfies ProjectEvidenceField;
 
 /**
  * The lines a project authored for one field, or none.
@@ -116,6 +124,13 @@ export function resolveRun(projectId: string): ResolvedRun | null {
     href: `#${caseStudyAnchorId(project.id)}`,
     stations,
     authoredStations: stations.filter((station) => station.evidence.length > 0).length,
-    learned: project.learned,
+    // Through `evidenceFor`, not `project.learned`. This is the one quoted
+    // line in the Workshop that is not a station's evidence, and it used to
+    // be the one that skipped both of the things every other quote gets: the
+    // `[NEEDS INPUT: …]` guard, and a provenance line naming where the words
+    // came from. A marker typed into `learned` would have been printed to the
+    // page verbatim. `null` rather than `""` so the renderer has to decide
+    // what an absent lesson looks like instead of emitting an empty node.
+    learned: evidenceFor(project, LEARNED_FIELD)[0] ?? null,
   };
 }

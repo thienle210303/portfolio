@@ -2884,10 +2884,12 @@ export function Companion({ facts }: CompanionProps) {
         // cascade above already dropped the tour the one frame it could have
         // nothing to offer.
         const spots = tourSpots.current ?? nearbySpots();
-        // Optional chaining, not `!`: see `stopsFor`'s own comment — a
-        // well-formed `GREY_MIDDLE` always has a stop here, but a stale id
-        // would not, and falling through to the plain (non-huddle) branch
-        // below beats indexing off the end of a shortened array.
+        // Optional chaining, not `!`: see `stopsFor`'s own comment. A stale
+        // id in `GREY_MIDDLE` shortens the list, so this index can run off
+        // the end — falling through to the plain (non-huddle) branch below
+        // beats reading `sectionId` off `undefined`. This *should* always be
+        // defined, the same hedge the tour's render makes at
+        // `currentTourStop`; it is not a claim that it cannot be.
         const stopId = stopsFor(tour!.route)[tour!.index]?.sectionId;
         if (stopId === "skills" && now < tourHuddleUntil.current) {
           // The huddle: she comes in beside him instead of behind, the same

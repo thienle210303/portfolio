@@ -30,7 +30,13 @@ export const GLYPHS: Record<GlyphId, string> = {
   chalk: "M-8 6L4 -6L8 -2L-4 10ZM-8 6L-9 10L-5 9",
   net: "M-10 -6H10L7 8H-7ZM-6 -6L-4 8M0 -6V8M6 -6L4 8M-9 -1H9M-8 3H8",
   buoy: "M-5 3H5L3 -3H-3ZM0 -3V-9M-3 -9H3M0 -11V-9M-7 5C-4 7 4 7 7 5M-9 8C-5 10 5 10 9 8",
-  jelly: "M-8 -1A8 8 0 0116 0H-8ZM-5 -1C-5 4 -7 6 -6 9M-2 -1C-2 5 -3 7 -2 10M2 -1C2 5 1 7 2 10M5 -1C5 4 7 6 6 9",
+  // The dome's arc ends at x=8, not 16. At 16 the chord is 24 units against a
+  // 16-unit diameter, so SVG scales the radii up to 12.01 to make the arc
+  // reachable at all: the dome then spans x −8…16, overflowing `GLYPH_VIEWBOX`
+  // on the right, and centres at x≈4 while the four tentacles below still
+  // centre on 0. At 8 the dome spans −8…8.02, y −8.52…0, and the whole figure
+  // stays inside the ±12 box every other glyph here keeps to.
+  jelly: "M-8 -1A8 8 0 0 1 8 0H-8ZM-5 -1C-5 4 -7 6 -6 9M-2 -1C-2 5 -3 7 -2 10M2 -1C2 5 1 7 2 10M5 -1C5 4 7 6 6 9",
   bird: "M-11 2Q-5 -7 0 0Q5 -7 11 2",
   plane: "M-10 -2L10 -7L2 3L0 9L-2 3Z M-2 3L10 -7",
   sprout: "M0 9V-2M0 1C-4 1 -7 -2 -7 -6C-3 -6 0 -3 0 1M0 -2C4 -2 7 -5 7 -9C3 -9 0 -6 0 -2",

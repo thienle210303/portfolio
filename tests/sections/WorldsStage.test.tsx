@@ -123,24 +123,43 @@ describe("WorldsStage, with no canvas at all", () => {
     expect(screen.queryByRole("link", { name: /career tree/i })).not.toBeInTheDocument();
   });
 
-  it("keeps the flight control present but disabled, and pressing it claims nothing", async () => {
+  it("keeps both globe controls present but disabled, and pressing either claims nothing", async () => {
     const user = userEvent.setup();
     renderStage();
     // jsdom has no IntersectionObserver, so the canvas never loads here — which
-    // makes this the exact state a visitor on a flaky deploy sees. The control
-    // says "not yet" rather than vanishing, and it is not pressable.
+    // makes this the exact state a visitor on a flaky deploy sees. Both
+    // controls say "not yet" rather than vanishing.
     const fly = screen.getByRole("button", { name: /loading the globe/i });
+    const reset = screen.getByRole("button", { name: /face việt nam/i });
     expect(fly).toHaveAttribute("aria-disabled", "true");
+    expect(reset).toHaveAttribute("aria-disabled", "true");
 
     // The half that is this task's: a press with no globe behind it must
-    // produce no landing, no link and no announcement. jsdom does not apply
-    // the `pointer-events-none` that actually stops the press in a browser, so
-    // the handler really does run here — which is exactly the path worth
-    // covering, because it is the one a missing canvas leaves exposed.
+    // produce no landing, no link and no announcement.
+    //
+    // `pointer-events-none` is *not* what makes that true, in jsdom or in a
+    // browser. It suppresses pointer hit-testing only, and neither control
+    // carries the native `disabled` attribute (see the test above — they have
+    // to stay in the tab order), so Enter or Space on a focused one fires a
+    // real `click` on a real page. The handler running here is therefore the
+    // production keyboard path, not a jsdom artefact, and the guard at the
+    // top of each handler is the only thing standing in it.
     await user.click(fly);
-
     expect(screen.queryByRole("link", { name: /career tree/i })).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
+
+    // The reset is the one that could speak a whole false sentence: its
+    // announcement claims a flight and a seed were cleared, and before the
+    // canvas loads there has never been either. Pressed by keyboard, which is
+    // the path that reaches it.
+    reset.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    await user.keyboard(" ");
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    await user.click(reset);
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(screen.queryByRole("link", { name: /career tree/i })).not.toBeInTheDocument();
   });
 
   // The presence half — the link appearing once a seed is genuinely on the

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FilterGroup } from "@/components/ui/FilterGroup";
-import type { ResolvedRun } from "@/lib/workshop";
+import { LEARNED_FIELD, type ResolvedRun } from "@/lib/workshop";
 
 /**
  * The loop, run.
@@ -134,12 +134,22 @@ export function WorkshopRun({ runs, defaultProjectId }: WorkshopRunProps) {
         ))}
       </ol>
 
+      {/* The lesson is a quote like every other one on this page, so it
+          carries its own provenance line — and it is rendered only when
+          there is something to attribute. A project whose `learned` held a
+          `[NEEDS INPUT: …]` marker resolves to `null`, and then the link
+          stands on its own rather than trailing an empty sentence. */}
       <p className="prose-measure mt-6 text-[length:var(--step--1)] text-fg-muted">
-        {run.learned}{" "}
+        {run.learned ? `${run.learned} ` : null}
         <a href={run.href} className="ink-link">
           Read the whole case study →
         </a>
       </p>
+      {run.learned ? (
+        <p className="eyebrow mt-2 normal-case tracking-normal">
+          quoted from projects.{run.projectId} · {LEARNED_FIELD}
+        </p>
+      ) : null}
     </div>
   );
 }

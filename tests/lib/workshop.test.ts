@@ -253,6 +253,10 @@ describe("the gaps are disclosed, never hidden and never borrowed", () => {
       assumption: "[NEEDS INPUT: what this project assumed]",
       constraints: ["[NEEDS INPUT: the real constraints]", "a real constraint"],
       whatFailed: "",
+      // Not a station's field: `learned` is the closing line under the nine,
+      // and it is the one quote that used to be read straight off the record
+      // and printed. A marker here has to drop like any other.
+      learned: "[NEEDS INPUT: what he took away from it]",
     };
 
     // `projects` is typed as the five authored shapes, and a half-authored
@@ -271,6 +275,7 @@ describe("the gaps are disclosed, never hidden and never borrowed", () => {
       expect(station("constraints")?.evidence).toEqual(["a real constraint"]);
       expect(station("test")?.evidence).toEqual([]);
       expect(station("test")?.gap).toContain("whatFailed");
+      expect(run.learned).toBeNull();
       expect(JSON.stringify(run)).not.toContain("[NEEDS INPUT");
     } finally {
       lookup.mockRestore();
@@ -302,6 +307,17 @@ describe("the workshop's intro", () => {
     // this fails until the sentence catches up.
     expect(problemSolvingLoop).toHaveLength(9);
     expect(workshopIntro).toContain("Nine steps");
+  });
+
+  it("claims only the evidence is quoted, not every line on the page", () => {
+    // The narrower claim, pinned. An earlier draft said every line below was
+    // quoted from the project's own write-up; it is not — each station's
+    // label and detail are the loop's own method text, and on four of the
+    // five runs a station carries a gap sentence instead of a quote. The
+    // sentence was narrowed to "every piece of evidence", and it has already
+    // been widened back once by accident, so the narrow form is asserted
+    // rather than trusted.
+    expect(workshopIntro).toContain("every piece of evidence");
   });
 });
 

@@ -7,7 +7,8 @@ open a component to change what the site says.
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
 | The ten agent stages the Workshop's lower lane renders | `src/content/ai-experiments.ts` (`workflowStages`) |
-| AI experiments, the learning log, the scraping playbook, the AI tools — still unrendered since round 16 removed the AI Workflow Lab, kept for a future section | `src/content/ai-experiments.ts` |
+| AI experiments, the learning log, the scraping playbook — still unrendered since round 16 removed the AI Workflow Lab, kept for a future section | `src/content/ai-experiments.ts` |
+| The AI tools reference (`aiTools`), whose tool names the globe's Technology plaque is composed from | `src/content/portfolio.ts` |
 | Which objects sit on which world of the globe | `src/content/worlds.ts` |
 | Which authored field is the evidence for which step of the loop | `src/content/workshop.ts` |
 
@@ -177,11 +178,18 @@ decoration`. A screen-reader user is told, in those words, that this object is
 a picture and not evidence. A `draws` string that smuggles in a claim ("the
 food he grew up on") breaks that promise, and no test can catch it for you.
 
-If a world has nothing authored, leave `decorations: []` and say so in its
-`disclosure`. The United States world does exactly that: the mockup's mug and
-library were placeholders nobody had authored, and an empty world that says
-"nothing here was invented to fill the space" is worth more than a full one
-that was.
+If a world has nothing authored, leave `decorations: []`. The United States
+world does exactly that: the mockup's mug and a library were placeholders
+nobody had authored, so the world ships with none, and the code comment beside
+`decorations: []` in `src/content/worlds.ts` is where that is recorded — it
+carries no `disclosure`, because a panel line saying "there is nothing here"
+would itself be a sentence nobody authored.
+
+A `disclosure` is for the other case: a world that *does* draw something and
+wants to bound the claim. Việt Nam is the only world that has one — one
+decoration, and the line "One object so far, and he named it himself. Nothing
+here was invented to fill the space." The two are independent: an empty world
+needs no disclosure, and a disclosure does not imply an empty world.
 
 ## Change which field a Workshop station quotes
 

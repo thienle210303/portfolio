@@ -153,7 +153,10 @@ describe("WorkshopRun", () => {
 
     await user.click(screen.getByRole("radio", { name: new RegExp(withGap.title, "i") }));
 
+    // One provenance line per authored station, and one more for the closing
+    // lesson — which is a quote from the same record and now says so. An
+    // empty station still contributes none, which is the claim being made.
     const quoted = screen.queryAllByText(/^quoted from projects\./).length;
-    expect(quoted).toBe(withGap.authoredStations);
+    expect(quoted).toBe(withGap.authoredStations + (withGap.learned === null ? 0 : 1));
   });
 });

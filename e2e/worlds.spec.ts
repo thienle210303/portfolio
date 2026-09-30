@@ -9,7 +9,25 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
   }) => {
     // Not "with JavaScript off" — with the *canvas* gone, which is the claim
     // the spec actually makes and the one a flaky deploy actually produces.
-    await page.route(/GlobeCanvas/, (route) => route.abort());
+    //
+    // Two spellings, because two are real. A route pattern can only match a
+    // chunk *file name*, and the bundler picks that: a production build names
+    // the lazy chunk after the module it holds, while `next dev`'s Turbopack
+    // names it after the directory those modules share —
+    // `src_sections_Worlds_<hash>._.js`, in which the string "GlobeCanvas"
+    // does not appear anywhere in the URL. This suite runs against `pnpm dev`
+    // (see `playwright.config.ts`), so for as long as the pattern was
+    // `/GlobeCanvas/` alone nothing was ever aborted and every assertion
+    // below passed against a fully live globe.
+    //
+    // Hence the counter, and the label check at the end. A silent pass with
+    // the canvas present is the one failure this test cannot survive, so the
+    // block is asserted rather than assumed.
+    let aborted = 0;
+    await page.route(/GlobeCanvas|src_sections_Worlds_/, (route) => {
+      aborted += 1;
+      return route.abort();
+    });
     await page.goto("/#worlds");
 
     const section = page.locator("#worlds");
@@ -24,24 +42,51 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
         await expect(section.getByText(plaque.text, { exact: true })).toBeVisible();
       }
     }
+
+    // The stage is in view by now (the loop above clicked through all seven
+    // worlds beside it), so the IntersectionObserver has fired and the
+    // `import()` has been attempted. If nothing was blocked, this test proved
+    // nothing about a missing canvas.
+    expect(
+      aborted,
+      "no canvas chunk request was aborted — the bundler renamed the chunk, so the route pattern above needs a third spelling",
+    ).toBeGreaterThan(0);
+
+    // And the import did not merely go unattempted: this label is set on the
+    // `.catch()` path in `WorldsStage.tsx` and nowhere else, so it can only
+    // be on screen if the chunk was requested and refused. That is the state
+    // the flaky deploy produces, and it is the state everything above was
+    // asserted in.
+    await expect(section.getByRole("button", { name: "Globe not available" })).toBeVisible();
   });
 
   test("the rail's counts match the resolved content", async ({ page }) => {
     await page.goto("/#worlds");
     const rail = page.locator("#worlds dl");
-    const plaques = WORLDS.reduce((total, world) => total + world.plaques.length, 0);
+    // Split by kind, exactly as the rail states it. Asserting only the total
+    // would let the rail go back to calling all nineteen plaques quotes while
+    // still passing, which is the claim this row had to stop making: seven of
+    // them are computations over the content layer, not quoted fields.
+    const count = (kind: "field" | "computed") =>
+      WORLDS.reduce(
+        (total, world) => total + world.plaques.filter((plaque) => plaque.kind === kind).length,
+        0,
+      );
+    const quoted = count("field");
+    const computed = count("computed");
     const offMap = WORLDS.filter((world) => world.point === null).length;
 
     // Scoped to each note's own <dd> — the whole <dl>'s text also contains
     // the crossing's km figure and the other notes' own numbers, so an
     // unscoped toContainText can pass for a reason that has nothing to do
-    // with the fact it claims to check: move the two pins and 19 plaques
-    // could just as easily read "13,719 km", which also contains a "19".
+    // with the fact it claims to check: move the two pins and the two
+    // off-the-map worlds could just as easily be read out of "13,712 km",
+    // which also contains a "2".
     const offMapRow = rail.locator("div", { hasText: "Off the map" });
     const plaquesRow = rail.locator("div", { hasText: "Plaques" });
 
     await expect(offMapRow.locator("dd")).toContainText(String(offMap));
-    await expect(plaquesRow.locator("dd")).toContainText(String(plaques));
+    await expect(plaquesRow.locator("dd")).toHaveText(`${quoted} quoted whole · ${computed} computed`);
   });
 
   test("the seven buttons are reachable by keyboard alone", async ({ page }) => {
@@ -625,8 +670,9 @@ test.describe("the landing", () => {
     await expect(handoff).toBeVisible({ timeout: 10_000 });
     await expect(section.getByRole("status")).toContainText(/landed/i);
 
-    // The seed finishes growing 667 ms after the landing and the camera's last
-    // twelve degrees arrive inside that, and then there is nothing left
+    // The seed finishes growing 667 ms after the landing and the camera's
+    // last few degrees arrive inside that (~502 ms of settle from a residual
+    // of 0.133 rad), and then there is nothing left
     // moving: the played crossing must clear its own `playing` flag and the
     // sapling must stop at full size. A flight that ended by looping forever
     // would still pass every assertion above.
@@ -646,10 +692,11 @@ test.describe("the landing", () => {
 
     // Where it came to rest is deliberately *not* asserted here. The camera
     // chases the bird at 0.1 a frame against a bird covering ~1.2° a frame, so
-    // the chase alone leaves it a steady ~12° short of the pin — which is why
-    // `step()` hands the last twelve degrees to `target` on completion, so the
-    // played landing ends on the same frame the reduced-motion one produces
-    // directly. Pinning that in a test would mean computing where the pin
+    // the chase alone leaves it ~7.6° short of the pin (5.9–8.6° across
+    // 20–120 Hz) — which is why `step()` hands that last gap to `target` on
+    // completion, so the played landing ends on the same frame the
+    // reduced-motion one produces directly.
+    // Pinning that in a test would mean computing where the pin
     // projects, and the only honest way to do that is to re-derive the disc's
     // centre and radius from the stage box — three layout formulas that live
     // in `GlobeCanvas`'s resize effect. Copying them here would create a

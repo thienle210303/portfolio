@@ -6,12 +6,18 @@ import WorldsStage from "./WorldsStage";
 /**
  * Playground Earth: seven worlds, two cats, and one rule.
  *
- * The rule is the section. Everything drawn on the globe is either a plaque —
- * one authored field, quoted whole, with its source named — or a decoration
- * that says in its own accessible name that it carries no fact. There is no
- * third category, and `tests/lib/worlds.test.ts` proves it string-for-string.
- * That is what lets a portfolio draw cơm tấm and a jellyfish without the site
- * inventing a single claim about the person it is about.
+ * The rule is the section. Everything drawn on the globe is either a plaque or
+ * a decoration — nothing is drawn that is neither, and
+ * `tests/lib/worlds.test.ts` proves it string-for-string. A decoration says in
+ * its own accessible name that it carries no fact. A plaque comes in two
+ * kinds, both of which name their source in the panel: `kind: "field"` quotes
+ * one authored field whole, and `kind: "computed"` renders one named
+ * computation over the content layer (`computedFact()` in
+ * `src/lib/worlds.ts` — a count of branches, a count of seasons, the list of
+ * scene names). Neither kind is a sentence this section wrote, and the rail
+ * below counts the two separately rather than claiming every plaque is a
+ * quote. That is what lets a portfolio draw cơm tấm and a jellyfish without
+ * the site inventing a single claim about the person it is about.
  *
  * Placement is the design's central engineering decision: one section, below
  * the fold, never in the LCP viewport. The measured LCP before this round was
@@ -20,9 +26,10 @@ import WorldsStage from "./WorldsStage";
  * chunk that is not fetched until the stage is near the viewport, and the
  * section is complete before it arrives.
  *
- * The rail counts what a reader cannot count by looking: how many of the
- * panel's lines are quotes versus drawings, and how far the crossing actually
- * is. Both are computed from the content layer — see `src/lib/worlds.ts`.
+ * The rail counts what a reader cannot count by looking: how the panels' lines
+ * split between quoted fields, named computations and drawings, and how far
+ * the crossing actually is. All of them are computed from the content layer —
+ * see `src/lib/worlds.ts`.
  */
 
 const HEADING_ID = "worlds-heading";
@@ -30,7 +37,21 @@ const HEADING_ID = "worlds-heading";
 const WORLDS = resolveWorlds();
 const KM = crossingKm();
 
-const PLAQUE_COUNT = WORLDS.reduce((total, world) => total + world.plaques.length, 0);
+// Split by kind rather than totalled, because the total is the one number in
+// this rail a reader *can* get by looking — every row of the list beside the
+// globe already names its own plaque count. How many of those lines are a
+// field quoted whole and how many are a computation over the content layer is
+// only visible by opening all seven panels and reading every source line.
+// Counted off the resolved worlds, so a reference that stopped resolving
+// leaves both numbers, not just the total.
+const QUOTED_COUNT = WORLDS.reduce(
+  (total, world) => total + world.plaques.filter((plaque) => plaque.kind === "field").length,
+  0,
+);
+const COMPUTED_COUNT = WORLDS.reduce(
+  (total, world) => total + world.plaques.filter((plaque) => plaque.kind === "computed").length,
+  0,
+);
 const DECORATION_COUNT = WORLDS.reduce((total, world) => total + world.decorations.length, 0);
 // Animals (the plinth) and Technology (orbit) are the two worlds `resolveWorlds()`
 // never gives a map point (`point` resolves to `null` for both — see
@@ -42,7 +63,7 @@ const OFF_MAP_COUNT = WORLDS.filter((world) => world.point === null).length;
 
 const RAIL: readonly RailNote[] = [
   { term: "Off the map", detail: `${OFF_MAP_COUNT} — the plinth and the orbit, not projected onto the globe` },
-  { term: "Plaques", detail: `${PLAQUE_COUNT} — each one field, quoted whole` },
+  { term: "Plaques", detail: `${QUOTED_COUNT} quoted whole · ${COMPUTED_COUNT} computed` },
   { term: "Decorations", detail: `${DECORATION_COUNT} — drawings, carrying no fact` },
   { term: "Crossing", detail: `${KM.toLocaleString("en-US")} km · computed from the two pins` },
 ];

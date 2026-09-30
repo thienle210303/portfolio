@@ -219,6 +219,24 @@ function reducedMotion(): boolean {
 }
 
 /**
+ * What `seed` becomes at the instant the crossing completes: a hair above zero
+ * so the fall-and-grow beat plays, or already **1** — the finished sapling, in
+ * the frame it was planted — for someone who asked their operating system not
+ * to animate things.
+ *
+ * All three ways a crossing completes have to agree on this. `fly()` reads
+ * the setting itself and never reaches the played path under reduced motion,
+ * so `step()`'s landing does not need the branch; a drag east (`move`) and an
+ * arrow key (`nudge`) do, and used to set 0.001 unconditionally. The keyboard
+ * one is the sharper omission: an arrow key is the non-pointer route through
+ * the signature moment, so the visitor most likely to be using it is the one
+ * least likely to want 667 ms of growth played at them.
+ */
+function seedOnLanding(): number {
+  return reducedMotion() ? 1 : 0.001;
+}
+
+/**
  * The section's own ink, read off the canvas at draw time.
  *
  * The forced-colors branch is not a nicety. In Windows High Contrast the
@@ -622,14 +640,21 @@ export default function GlobeCanvas({
           Math.sin(-point.lon * DEG - v.spin),
           Math.cos(-point.lon * DEG - v.spin),
         );
-        // Compounded, not multiplied — and that is what keeps the chase's lag
-        // constant rather than merely keeping its duration constant. The bird
-        // advances `frames` times as far per callback, and `easeFraction`
-        // closes correspondingly more of the gap, so the camera trails him by
-        // the same ~12° whatever the display is doing. A naive `0.1 * frames`
-        // would leave a 33 Hz visitor twice as far behind, and the handover
-        // below — which assumes those twelve degrees — would be sized for a
-        // gap that is not there.
+        // Compounded, not multiplied. The bird advances `frames` times as far
+        // per callback and `easeFraction` closes correspondingly more of the
+        // gap, so the camera trails him by roughly the same amount whatever
+        // the display is doing — simulated against the real crossing, the
+        // residual at the last frame is 7.64° of spin at 60 Hz and stays in
+        // 5.9–8.6° across 20–120 Hz.
+        //
+        // The benefit is the *tail's duration*, not a smaller lag: a naive
+        // `0.1 * frames` closes more of the gap per callback at low frame
+        // rates, so it actually ends a little closer (7.27° at 33 Hz against
+        // 7.79° here) and a little further away at high ones, and the settle
+        // that follows runs 409–546 ms instead of the 476–538 ms compounding
+        // holds it to. One rule for every rate in this file rather than an
+        // exception here — see `easeFraction`'s own comment in
+        // `src/lib/globe.ts` for the form that does overshoot.
         const chase = easeFraction(0.1, frames);
         v.spin += delta * chase;
         v.tilt += (clampTilt(-point.lat * DEG * 0.55) - v.tilt) * chase;
@@ -639,18 +664,22 @@ export default function GlobeCanvas({
           v.landed = true;
           v.seed = 0.001;
           // Chasing at 0.1 a reference frame against a bird covering ~1.2° of
-          // one leaves the camera a steady ~12° behind him, and this is the
-          // frame the chase stops — so without this the planet would simply
-          // rest 12° short of the pin it just drew a line to, and the played
-          // landing would not be the same frame the reduced-motion one
-          // produces. Handed to `target` rather than snapped: the seed keeps
-          // the loop alive for another 667 ms, which is more than the ~557 ms
-          // that easing 0.209 rad down to 0.002 at 0.13 a reference frame
-          // needs, so the last twelve degrees arrive smoothly and still land
+          // one leaves the camera short of him, and this is the frame the
+          // chase stops — so without this the planet would rest a few degrees
+          // off the pin it just drew a line to, and the played landing would
+          // not be the same frame the reduced-motion one produces. Simulated
+          // against the real crossing, the residual is 7.64° of spin (0.133
+          // rad) at 60 Hz, and 5.9–8.6° across 20–120 Hz.
+          //
+          // Handed to `target` rather than snapped: the seed keeps the loop
+          // alive for another 667 ms, and easing 0.133 rad down to 0.002 at
+          // 0.13 a reference frame takes ~502 ms (517 ms measured, tilt
+          // included), so the last few degrees arrive smoothly and still land
           // exactly on the pin. Both of those are wall-clock now, so the
           // margin between them is the same on every display rather than a
-          // coincidence of 60 Hz. One landing, one resting position, whichever
-          // way you got there.
+          // coincidence of 60 Hz — at the worst frame rate simulated the
+          // settle is 538 ms, still inside the budget. One landing, one
+          // resting position, whichever way you got there.
           v.target = {
             spin: -origin.coordinates.to.lon * DEG,
             tilt: clampTilt(-origin.coordinates.to.lat * DEG * 0.55),
@@ -666,9 +695,12 @@ export default function GlobeCanvas({
         //
         // All three ways a seed starts land here, which is why this is the
         // only place the growth needed normalising: `fly()` reaches it through
-        // the played crossing above, `nudge()` sets `seed = 0.001` for the
-        // keyboard, and `move()` sets it for a drag east. None of them advances
-        // the seed itself; they only light the fuse this branch burns.
+        // the played crossing above, `nudge()` lights it for the keyboard, and
+        // `move()` for a drag east. None of them advances the seed itself;
+        // they only light the fuse this branch burns — and under reduced
+        // motion all three hand it straight to 1 instead (`seedOnLanding`,
+        // and `fly()`'s own branch), so this condition is false and nothing
+        // animates at all.
         v.seed = Math.min(1, v.seed + frames / SEED_FRAMES);
         busy = true;
       }
@@ -915,7 +947,7 @@ export default function GlobeCanvas({
         v.flight = Math.min(1, v.flight + (dx * k) / EAST_FOR_FLIGHT);
         if (v.flight >= 1) {
           v.landed = true;
-          v.seed = 0.001;
+          v.seed = seedOnLanding();
           onLandedRef.current();
         }
       }
@@ -1008,7 +1040,7 @@ export default function GlobeCanvas({
           v.flight = Math.min(1, v.flight + deltaSpin / EAST_FOR_FLIGHT);
           if (v.flight >= 1) {
             v.landed = true;
-            v.seed = 0.001;
+            v.seed = seedOnLanding();
             onLandedRef.current();
           }
         }

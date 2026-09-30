@@ -794,7 +794,7 @@ responses in every one**.
 | | Before (`61bef53`) | After (`f794749`) | Δ |
 |---|---|---|---|
 | **Initial JS** — `pnpm perf`, `request.sizes()` | 188.1 KB | 192.2 KB | **+4.1 KB** |
-| **Initial JS** — CDP `encodedDataLength` | 192.2 KB | 196.3 KB | **+4.1 KB** |
+| **Initial JS** — CDP `encodedDataLength` (out of band — see below) | 192.2 KB | 196.3 KB | **+4.1 KB** |
 | Initial script responses | 11 | 11 | 0 |
 | CSS | 13.5 KB | 13.9 KB | +0.4 KB |
 | Fonts | 331.4 KB | 372.0 KB | **+40.6 KB** |
@@ -804,10 +804,15 @@ responses in every one**.
 | CLS | 0 | 0 | 0 |
 | DOM nodes | 3,325 | 3,764 | +439 |
 
-**Two methods, one answer.** `pnpm perf` sums `request.sizes()
-.responseBodySize`; the cross-check sums the CDP network layer's own
-`encodedDataLength`. They differ by a constant 4.1 KB at both ends — eleven
-responses' worth of response headers, which `encodedDataLength` counts and
+**Two methods, one answer — but only one of them is `pnpm perf`.** `pnpm perf`
+sums `request.sizes().responseBodySize`, and prints a second column summing
+the `content-length` header (`scripts/perf.mjs`). The `encodedDataLength` row
+above came from a **separate, out-of-band CDP session** driven by hand for
+this comparison; the string `encodedDataLength` appears nowhere in this
+repository, and nothing in `README.md`'s `pnpm perf` recipe reproduces that
+row. Re-measuring it means attaching to `Network.loadingFinished` yourself.
+The two numbers differ by a constant 4.1 KB at both ends — eleven responses'
+worth of response headers, which `encodedDataLength` counts and
 `responseBodySize` does not — and they agree on the delta **exactly**. The
 tracker's recorded 188.2 KB also reproduced today at 188.1 KB, so that row was
 sound.
@@ -815,8 +820,8 @@ sound.
 **The 223.0 KB figure is reconciled, and it was never a discrepancy.** A
 parallel pass put this branch at 223.0 KB against the tracker's 188.2 KB. It
 was measuring a different thing: scroll the page until `#worlds` is within
-200px of the viewport and the globe's `import()` fires, adding **27.2 KB in
-two chunks** (22.9 + 4.4). 196.3 + 27.2 = **223.6 KB**. That is the cost of
+200px of the viewport and the globe's `import()` fires, adding **27.3 KB in
+two chunks** (22.9 + 4.4). 196.3 + 27.3 = **223.6 KB**. That is the cost of
 the globe *once a visitor scrolls to it*, which is exactly what the lazy load
 is for — and it is not in the initial bundle. Verified by name: no
 `GlobeCanvas` or coastline chunk appears among the 11 initial scripts, at
@@ -864,9 +869,12 @@ sections are below the fold at 412×823.
    there.
 2. *The United States world's decorations.* The mockup drew a mug and a
    library. Nobody had authored either, so the world ships with
-   `decorations: []` — the same move the Việt Nam world makes, which says
-   plainly that one object is here so far and nothing was invented to fill the
-   space.
+   `decorations: []` and no `disclosure` — the recorded reason is the code
+   comment beside it in `src/content/worlds.ts`, not a line on the page. The
+   sentence "One object so far, and he named it himself. Nothing here was
+   invented to fill the space." belongs to **Việt Nam**, which has one
+   decoration and bounds the claim about it. Same instinct, two different
+   mechanisms, and neither world states the other's.
 3. *The Workshop's intro.* It claimed every line below was quoted from the
    project's own write-up. It is not: each step's label and detail are the
    loop's own method text, and on four of the five runs a station carries the
