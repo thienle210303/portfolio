@@ -37,8 +37,27 @@ import "./globals.css";
 // Fraunces at SOFT 0 / WONK 0 is the same variable-axis argument with the
 // contrast a display face needs. The cost is measured, not assumed — see the
 // perf row in docs/feedback-tracker.md.
+// `style` is normal only, and that is the single largest asset decision on
+// the site. The display italic is its own font file: dropping it took the
+// font payload from 375.5 KB to 223.8 KB — **151.7 KB**, 40% of everything
+// the page downloads in fonts, and roughly forty times what swapping the
+// whole display family cost. It bought four italic lines: a quote on the
+// business card, two world names, and the closing sign-off.
+//
+// Nothing here synthesises a replacement on purpose. A browser will shear the
+// roman into a faux oblique for any `italic` left in the markup, and on a
+// high-contrast serif at --step-2 that looks like a rendering fault, so all
+// four call sites were set in roman instead. Adding `italic` back to a
+// `font-display` element without adding it here will look wrong, not fall
+// back gracefully.
+//
+// Plex Sans and Plex Mono below have always been loaded without an italic,
+// so every sans and mono italic on this page — including the code block's
+// strings and comments — has been a synthesised oblique all along. This
+// change makes the display face consistent with them rather than being the
+// one exception that cost a file.
 const fraunces = Fraunces({
-  style: ["normal", "italic"],
+  style: ["normal"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",

@@ -747,14 +747,60 @@ zero. A CSS total of 0.0 KB on a page that obviously has styles is the tell.
 Check the listening PID's start time against the build's, not just that the
 port answers 200.
 
-**Not attempted here, and worth its own look:** the tracker's earlier note
-that Newsreader *italic* was 143.6 KB of the font payload for two usages
-applies to Fraunces too — the italic file is still fetched for what is now
-three call sites (`BusinessCard`, `Closing`, `WorldPanel`). Dropping
-`style: ["normal", "italic"]` to `["normal"]` would be by far the largest
-font win available, much larger than this whole swap, but it changes how
-three authored pieces of copy read and so is a design decision rather than a
-measurement.
+**The italic follow-up, now taken — see the row below.**
+
+| Round 17 stage 3, display italic dropped (3 runs) | 197.0 KB | 14.0 KB | **223.8 KB** | 4592–5952 ms | 603–1128 ms | 0 | 3649 |
+
+**Round 17, stage 3 — dropping the display italic saves 151.7 KB.** The
+tracker's long-standing note that Newsreader *italic* was 143.6 KB for two
+usages proved out against Fraunces: `style: ["normal", "italic"]` →
+`["normal"]` takes fonts from 375.5 KB to **223.8 KB**, 40% of the font
+payload and roughly forty times what swapping the whole display family cost.
+CSS drops 0.1 KB with the second `@font-face` block. JS, CLS and DOM nodes
+are unchanged.
+
+It bought four italic lines, all now set in roman: the business card's
+philosophy quote, the two world names (`WorldPanel`, `WorldsStage`), and the
+closing sign-off.
+
+**Read the LCP and TBT columns on these two rows against each other, not
+against the rows above them.** This machine was materially slower during
+stage 3 than during stage 2, and the control proves it rather than assuming
+it: the *with-italic* build was re-measured back to back in the same session
+and came back at 4212–5524 ms LCP / 345–1179 ms TBT, against its own earlier
+3416–3636 ms / 229–719 ms with no code change between them. Against that
+matched control the no-italic build measures 4584–5712 ms / 584–1185 ms —
+overlapping ranges, no signal. Which is the expected result: the fonts load
+`display: swap` and off the critical path, so removing one changes what is
+downloaded, not when the page paints. The saving here is a byte saving and is
+claimed as nothing else.
+
+All rows in this stage report **0 responses with no `sizes()`**.
+
+**A faux oblique is not a fallback.** With the file gone, a browser shears the
+roman for any `italic` left on a `font-display` element, and on a
+high-contrast serif at `--step-2` that reads as a rendering fault — so all
+four call sites were changed to roman rather than left to synthesise.
+Verified in the browser: three faces load (Fraunces normal, Plex Sans normal,
+Plex Mono normal) and zero `.font-display` elements compute a non-normal
+`font-style`. Note that Plex Sans and Plex Mono have never shipped an italic,
+so every sans and mono italic on the page — the code block's strings and
+comments included — has always been synthesised; this change makes the
+display face consistent with them instead of being the one exception that
+cost a file.
+
+**The one to look at is the sign-off.** Of the four, it was the only line
+where the slope did real work, marking the change of voice that makes a
+parting line read as spoken rather than as one more heading. The mono pivot
+chip now carries that alone, and a pivot-less signoff is genuinely quieter
+than it was. If the slope is wanted back there, the honest options are paying
+for the file or accepting the shear; there is no third one.
+
+**e2e note.** `axe` and `responsive` both pass in full when run alone (14/14
+and 24/24). Run as a pair on a loaded machine they produced one failure each
+time, a *different* test on each run — `axe:318` at 375 and then `axe:347` at
+1440 — and both passed in isolation immediately after. That is this repo's
+documented worker-saturation flake, not a regression.
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
 JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms

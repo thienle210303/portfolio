@@ -345,7 +345,7 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
                 )}
               >
                 <span className="eyebrow">{String(index + 1).padStart(2, "0")}</span>
-                <span className="font-display text-[length:var(--step-0)] italic text-[color:var(--fg)]">
+                <span className="font-display text-[length:var(--step-0)] text-[color:var(--fg)]">
                   {world.name}
                 </span>
                 <span className="eyebrow tabular-nums">
