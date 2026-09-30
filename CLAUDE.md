@@ -49,6 +49,39 @@ Rules that keep that working:
   4.5:1**. Check tertiary tones against `--color-paper-deep`, not
   `--color-paper` — the half-step-darker ground is where they fail first.
 
+### The globe
+
+Every drawn object in `#worlds` is exactly one of two things, and the
+distinction is the section's whole reason to exist. A **plaque** comes in two
+kinds, and both name their source in the panel. `kind: "field"` is a typed
+reference to one field of one authored record, rendered **verbatim** — no
+plaque may quote a sub-sentence, and a reference that resolves to nothing is
+dropped rather than rendered. `kind: "computed"` renders one named computation
+over the content layer (`computedFact()` in `src/lib/worlds.ts`: a count of
+branches, a count of seasons, the list of scene names, the list of tool
+names); its `source` names the computation rather than a record and a field.
+Twelve of the nineteen plaques are quoted fields and seven are computations,
+and the rail says so — do not let any prose round that back to "every plaque
+is one field, quoted whole". A **decoration** carries no fact at all and is
+labelled `no plaque · decoration` in its own accessible name.
+`tests/lib/worlds.test.ts` enforces this string-for-string. If a quoted
+plaque's text is not `===` a string the content layer produces, fix the
+reference or edit the authored field — never relax the assertion to a
+substring or a normalised comparison.
+
+**No 3D library, and that was measured, not assumed.** Against the initial-JS
+budget (207 KB when the comparison was made, 188.2 KB after the demolition), a
+minimal three.js scene is ~133 KB gz, `@react-three/fiber` + `drei` ~254 KB,
+and `globe.gl` ~509 KB. The globe uses no runtime dependency at all: an
+orthographic projector in `src/lib/globe.ts`, Canvas 2D, and a pre-generated
+simplified coastline. Do not add one.
+
+`src/sections/Worlds/coastline-data.ts` is fenced: `GlobeCanvas.tsx` is the
+only file allowed to import it, and `tests/lib/coastline-data.test.ts` fails if
+anything else does. `GlobeCanvas` itself reaches the page only through the
+`import()` in `WorldsStage.tsx` — a static import of it from anything
+server-rendered pulls the engine *and* the coastlines into the initial bundle.
+
 ## Changing what the site says
 
 There is no résumé section on the page — it is a route, `/resume`, that reads
@@ -61,13 +94,23 @@ fact. One career entry feeds the timeline, the résumé, the knowledge tree and
 the hero's "Now" line at once. Practical recipes — adding a metric, adding a
 role, attaching a case study — are in [docs/editing.md](docs/editing.md).
 
-Round 16 removed the AI Workflow Lab section. Every array in
-`src/content/ai-experiments.ts` (`experiments`, `learningLog`,
-`scrapingPlaybook`, `workflowStages`, `aiTools` and the rest) is retained but
-currently unrendered — nothing on the page reads them and nothing in the
-chat's retrieval corpus cites them — pending a future plan that re-homes them
-into a new section. Do not treat "unreferenced" as "dead": these are live
-content, just without a home yet.
+Round 16 removed the AI Workflow Lab section, and round 16's second plan
+re-homed exactly one of its arrays: `workflowStages` is now rendered by
+`#workshop`'s agent lane, and is read by `src/lib/answer-corpus.ts` (so the
+chat cites it) and by `src/lib/companion-facts.ts`. `experiments`,
+`learningLog` and `scrapingPlaybook` are still retained and still unrendered
+— nothing on the page reads them and nothing in the corpus cites them —
+pending a future plan that gives them a home. Four strings in that file are
+dead in a stronger sense and are a separate question: `labPositioning`,
+`labIntro`, `labLiveNotice` and `heroAskCaption` were the removed Lab's own
+copy, they describe a section that no longer exists, and they are awaiting
+Thien's decision rather than a home. Do not treat "unreferenced" as "dead":
+the three content arrays are live content, just without a home yet.
+
+`problemSolvingLoop` and `aiTools` are **not** in that file — both are
+`src/content/portfolio.ts` content, and both are rendered. The nine loop steps
+are `#workshop`'s stations; `aiTools` composes the globe's Technology plaque
+through `computedFact("ai-tools")`.
 
 The same holds one layer up, for code derived from that content rather than
 the content itself: `src/lib/answer-sources.ts`'s `experimentsIndexable` has
@@ -96,3 +139,12 @@ also run `pnpm dev` and check the change in a real browser **in both themes**,
 then run `pnpm test:e2e` (Playwright + axe-core) — it audits both themes and
 all three tones, and checks keyboard nav, focus restoration, reduced motion,
 and horizontal overflow at 320–1440px.
+
+For any change that touches the globe's chunk — `src/lib/globe.ts`,
+`src/sections/Worlds/*`, or anything that might import them — also re-run
+`pnpm perf` against a production build and record the row in
+[docs/feedback-tracker.md](docs/feedback-tracker.md). Read initial JS first: a
+move of more than a kilobyte or two means the engine or the coastline data has
+leaked out of the lazy chunk. `pnpm perf` prints a skipped-response count and a
+`content-length` cross-check beside its own total; a run reporting any skipped
+responses is under-reported and must not be recorded.
