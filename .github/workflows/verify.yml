@@ -1,0 +1,51 @@
+# The gate CLAUDE.md already asks every change to pass, run on every pull
+# request instead of only on the author's machine.
+#
+# Until this existed the only checks on a PR were Vercel's deployment build,
+# so "CI green" meant "it deployed" — nothing ran the tests, the linter or the
+# contrast audit. A test-suite flake that failed roughly three runs in ten
+# went unnoticed by CI entirely, because CI never ran the tests.
+#
+# `pnpm verify` is typecheck → lint → contrast → test → build, in that order
+# and failing fast, so this is deliberately one job and one command rather
+# than five parallel ones: it is the same gate, in the same order, that the
+# project asks a person to run locally, and keeping the two identical means a
+# green run here means exactly what a green run there means.
+#
+# The e2e suite (`pnpm test:e2e`) is deliberately NOT here. It is ~164 tests
+# across six viewports, and one spec alone takes 12 minutes locally, so it
+# belongs in its own workflow with its own trigger rather than bolted onto
+# the gate every push has to clear.
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push to the same branch makes the first run irrelevant.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Before setup-node, so its `cache: pnpm` can find the store.
+      # Version comes from package.json's `packageManager` field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # package.json declares `engines.node >= 22.12.0`.
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm verify
