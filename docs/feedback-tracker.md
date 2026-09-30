@@ -809,9 +809,11 @@ documented worker-saturation flake, not a regression.
 | Round 17 stage 4, analytics added, gate on (3 runs) | **198.8 KB** | 14.0 KB | 223.8 KB | 3336–3572 ms | 278–524 ms | 0 | **3651** |
 
 **Vercel Web Analytics and Speed Insights cost 1.8 KB of initial JavaScript
-and two DOM nodes — and the `VERCEL_ENV` gate reclaims none of it.** Read
-against the stage 3 row above: JS 197.0 KB → **198.8 KB**, DOM nodes 3649 →
-**3651**, with CSS, fonts and CLS unmoved.
+and two DOM nodes — and at `d834264` the `VERCEL_ENV` gate reclaimed neither.**
+Read against the stage 3 row above: JS 197.0 KB → **198.8 KB**, DOM nodes
+3649 → **3651**, with CSS, fonts and CLS unmoved. The two nodes were reclaimed
+afterwards by gating the footer line; the byte cost still is not, and cannot
+be by this gate. See [Footer gate](#footer-gate-2026-09-30) below.
 
 The A/B this was meant to be did not work, and the reason is the finding.
 Two builds were taken from one working tree at `d834264` with `VERCEL_ENV` as
@@ -851,10 +853,13 @@ packages out of the initial chunk set, and the tracker should not be read as
 saying it does. Reclaiming the 1.8 KB, if it is worth reclaiming, needs the
 import to go behind something the bundler can drop — not the gate.
 
-The two DOM nodes are ungated: they are `SiteFooter`'s disclosure line and
-the divider before it, which render in every environment even though the
-sentence they carry is only true in production — the component's own comment
-says as much.
+The two DOM nodes were `SiteFooter`'s disclosure line and the divider before
+it, and at `d834264` they were **ungated**: they rendered in every
+environment even though the sentence they carry is only true in production, so
+a local or a preview build claimed measurement that was not happening. That
+was the bug this row surfaced, and it is fixed below — the line now rides
+`analyticsEnabled()` like the scripts do, which is what makes this row's node
+count gate-dependent.
 
 All nine runs across the three builds report **0 responses with no
 `sizes()`**. Timings are noise at this sample size and no timing claim is
@@ -867,6 +872,60 @@ Builds and servers for this row were run in a throwaway `git worktree` on
 :3100, because `next build` clears `.next` and Next 16's dev server lives in
 `.next/dev` — building in the main checkout would have pulled the floor out
 from under a dev server that was already running on :3000.
+
+### Footer gate (2026-09-30)
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| Footer line gated, `VERCEL_ENV=production` build (3 runs) | 198.8 KB | 14.0 KB | 223.8 KB | 3892–4964 ms | 674–1193 ms | 0 | **3651** |
+| Footer line gated, plain build (3 runs) | 198.8 KB | 14.0 KB | 223.8 KB | 4240–5284 ms | 478–593 ms | 0 | **3649** |
+
+**The disclosure line now rides `analyticsEnabled()`, so the page says it is
+being measured only where it is.** `SiteFooter`'s "Anonymous page counts, no
+cookies (Vercel)" and the `·` before it used to render in every environment
+while the scripts they describe render in production only — the stage 4 row
+above recorded the two nodes as ungated, and that was the finding, not a
+footnote. The sentence is a claim about the page in the same register as a
+rail figure or a globe plaque, and a claim that is false everywhere except a
+production deployment does not belong in the content layer.
+
+**Both rows were measured, not derived.** The node count is now
+gate-dependent, so arithmetic on the old row would have been a guess: two
+builds in a throwaway worktree on :3100, three `pnpm perf` runs each.
+Gate-on reads **3651**, identical to the stage 4 row — the production page did
+not change, which is the point. Gate-off reads **3649**, identical to the
+stage 3 row, which is what the two reclaimed nodes look like.
+
+**The bytes did not move, either way.** JS 198.8 KB, CSS 14.0 KB, fonts
+223.8 KB, CLS 0 across all six runs. That is the stage 4 finding holding:
+the gate is a behavioural boundary, not a bundle one, and the 1.8 KB the
+vendor packages cost is still in the shared chunk in both builds. Gating one
+paragraph of copy was never going to reclaim it.
+
+All six runs report **0 responses with no `sizes()`**. No timing claim is
+made — the two builds' LCP ranges (3892–4964, 4240–5284 ms) and TBT ranges
+(674–1193, 478–593 ms) overlap, and the *lighter* build read slower on LCP,
+which is this machine, not the code. The stage 4 row's own LCP/TBT columns
+were left as recorded rather than overwritten with today's noise.
+
+**e2e note.** The full suite at default workers came back 36 failed / 589
+passed in 39.2m; at `--workers=2` the same tree came back **3 failed / 622
+passed** in 31.0m. All three survivors are at the 1440 viewport and all three
+are `toBeVisible` timeouts on elements that arrive after animation
+(`ask.spec.ts:115`, `companion.spec.ts:748`, `origin.spec.ts:375`) — this
+repo's documented worker-saturation flake, not a regression: a 36 → 3 collapse
+from halving concurrency is load, not code. `e2e/accessibility.spec.ts` run
+alone at `--workers=2` passes **42/42** across all six viewports, including
+both analytics tests.
+
+`e2e/accessibility.spec.ts` changed shape with this. It used to assert the
+line is **visible**; Playwright only ever runs against `pnpm dev`, where
+`VERCEL_ENV` is unset, so that test could only have kept passing if the gate
+were broken. It now asserts the line is **absent**, which is the arm that
+suite is in a position to see, and it sits directly beside the existing
+"ships no analytics requests outside a production deployment" test — together:
+no analytics traffic, and no sentence claiming there is. Both arms are pinned
+in `tests/ui/SiteFooter.test.tsx`, which can stub the environment.
 
 Moving the chat into the hero's fourth tab took 14.7 KB off the initial
 JavaScript. TBT in the first "after" run measured 456 ms vs. a 359 ms

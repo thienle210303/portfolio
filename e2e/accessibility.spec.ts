@@ -176,15 +176,21 @@ test("ships no analytics requests outside a production deployment", async ({ pag
 });
 
 /**
- * The disclosure the analytics gate above is the other half of. Vercel Web
- * Analytics needs no consent banner (cookieless, no personal data), so this
- * one colophon line is the whole of what the page says about measuring itself
- * — which makes it worth pinning, so it cannot quietly disappear while the
- * scripts stay.
+ * The disclosure the analytics gate above is the other half of, and it rides
+ * the same predicate. Vercel Web Analytics needs no consent banner
+ * (cookieless, no personal data), so this one colophon line is the whole of
+ * what the page says about measuring itself — which is exactly why it must
+ * not appear where the measuring is not happening. This suite always runs
+ * against `pnpm dev` with `VERCEL_ENV` unset, so the *absent* arm is the only
+ * one it can observe; `tests/ui/SiteFooter.test.tsx` pins both.
+ *
+ * Paired with the request assertion above, the two together say: no analytics
+ * traffic here, and no sentence claiming there is.
  */
-test("the footer discloses the analytics in one plain line", async ({ page }) => {
+test("the footer makes no analytics claim outside a production deployment", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByRole("contentinfo")).toBeVisible();
   await expect(
     page.getByRole("contentinfo").getByText("Anonymous page counts, no cookies (Vercel)"),
-  ).toBeVisible();
+  ).toHaveCount(0);
 });

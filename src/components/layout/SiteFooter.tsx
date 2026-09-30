@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { analyticsEnabled } from "@/components/layout/SiteAnalytics";
 import { profile, socialLinks } from "@/content/portfolio";
 
 /**
@@ -86,7 +87,6 @@ export default function SiteFooter() {
             </Fragment>
           ))}
 
-          {divider}
           {/* The site's one piece of self-referential copy, and it earns the
               space by naming a source the way every plaque and rail figure
               does. Vercel Web Analytics is cookieless and stores nothing
@@ -94,9 +94,22 @@ export default function SiteFooter() {
               this" is still a fact about the page, and the alternative to
               saying it here is not saying it anywhere. Deliberately plain
               text, not a link: an outbound link would be the only one in the
-              colophon that is not Thien's own. Only true in production; see
-              `SiteAnalytics.tsx`. */}
-          <p className="inline-flex items-center py-1">Anonymous page counts, no cookies (Vercel)</p>
+              colophon that is not Thien's own.
+
+              Behind the same `analyticsEnabled()` predicate as the scripts
+              themselves, and for the same reason the rail never carries a
+              fact that is false: ungated, a preview or a local build claimed
+              measurement that was not happening. The line and the two nodes
+              it costs (itself and its divider) now appear exactly where the
+              sentence is true. */}
+          {analyticsEnabled() ? (
+            <Fragment>
+              {divider}
+              <p className="inline-flex items-center py-1">
+                Anonymous page counts, no cookies (Vercel)
+              </p>
+            </Fragment>
+          ) : null}
 
           {divider}
           {/* This was the one boxed clickable on the page with neither a

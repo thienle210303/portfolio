@@ -29,9 +29,16 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
  *    the section exists to report.
  *
  * Every route on this site prerenders, so this predicate is evaluated at
- * build time and the branch is gone from the output entirely — on a preview
- * or local build neither vendor package reaches the client bundle at all,
- * rather than shipping and then no-oping at runtime.
+ * build time and the `<Analytics />` / `<SpeedInsights />` elements are gone
+ * from the output. That is *not* the same as the packages leaving the bundle:
+ * round 17 stage 4 diffed the full response list of a gate-off and a gate-on
+ * build and found `_next/static/chunks/01v6f8nq-k-ez.js` — 28,861 bytes,
+ * carrying both vendor packages' code and their script URLs — requested by
+ * both, with total script bytes identical either way. The gate is about
+ * behaviour, not bytes; see `docs/feedback-tracker.md`.
+ *
+ * This predicate is also what gates `SiteFooter`'s disclosure line, so the
+ * sentence and the scripts it describes can only appear together.
  */
 export function analyticsEnabled(): boolean {
   return process.env.VERCEL_ENV === "production";
@@ -45,7 +52,8 @@ export function analyticsEnabled(): boolean {
  *
  * Neither collects personal data or sets a cookie, which is why the site
  * carries no consent banner — one honest line in `SiteFooter` instead, which
- * is the only self-referential copy on the page.
+ * is the only self-referential copy on the page and is gated on the same
+ * predicate, so it is never present where it would not be true.
  */
 export default function SiteAnalytics() {
   if (!analyticsEnabled()) return null;

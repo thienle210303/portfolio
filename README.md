@@ -404,8 +404,11 @@ That gate is not a preference, it is load-bearing in two places:
   reloads, so counting it would spend the allowance and skew the number.
 
 Both services are cookieless and store nothing personal, which is why there is
-no consent banner. The footer carries one plain line saying so; if you ever
-remove the scripts, remove that line with them.
+no consent banner. The footer carries one plain line saying so, behind the same
+`analyticsEnabled()` predicate — so a preview or a local build never claims
+measurement that is not happening, and removing the scripts takes the sentence
+with them. It costs a gate-off build two DOM nodes fewer (the line and its
+divider); see the round 17 stage 4 row in `docs/feedback-tracker.md`.
 
 Because the gate reads `VERCEL_ENV`, a plain `pnpm perf` run measures the
 build *without* analytics. To measure the real production page, set it:
