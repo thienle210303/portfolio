@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * `/api/ask` — live-mode RAG for "Ask this site".
@@ -15,6 +15,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * `vi.stubEnv` before each request is enough — no module reset needed for
  * env, only for the in-memory rate-limit map (isolated below by using a
  * distinct `x-forwarded-for` per test instead).
+ *
+ * ## Why the route is imported in `beforeAll` and not inside the tests
+ *
+ * Importing this route costs ~1.4s the first time — it pulls in `next/server`,
+ * `zod` and the whole answers index, and Vite has to transform all of it. The
+ * route call itself costs ~10ms. Measured: `IMPORT_MS=1421 ROUTE_MS=10`.
+ *
+ * When that import lived inside the first `it()`, the first test was billed
+ * for the entire module graph against the 5s `testTimeout`, while every other
+ * test in the file ran in 2–11ms. Alone it passed in ~870ms; under a full-suite
+ * run, with the other test files competing for CPU, it intermittently crossed
+ * 5s and timed out — roughly two runs in five.
+ *
+ * The timeout was not the whole damage, and this is the part worth
+ * remembering: Vitest does not cancel a timed-out test's work. The abandoned
+ * `POST` kept going, reached its `fetch`, and called whatever global `fetch`
+ * was installed *by then* — which was the next test's spy. So a test asserting
+ * "the model is never called" saw one call, carrying the previous test's
+ * question under this test's stubbed env. Two failures, one cause, and the
+ * second looked like a bug in the route rather than a timeout next door.
+ *
+ * Paying the import once in a hook — with its own generous budget, rather than
+ * a test's — removes both. Nothing else about the file's isolation changes:
+ * the module is cached after the first import either way, and env is still
+ * stubbed per test.
  */
 
 function post(body: unknown, ip = "203.0.113.1"): NextRequest {
@@ -25,12 +50,16 @@ function post(body: unknown, ip = "203.0.113.1"): NextRequest {
   });
 }
 
-async function importRoute() {
-  const mod = await import("@/app/api/ask/route");
-  return mod.POST;
-}
+type Route = typeof import("@/app/api/ask/route");
+let POST: Route["POST"];
 
 describe("/api/ask", () => {
+  // Generous on purpose: this budget covers a cold transform of the whole
+  // route module graph on a loaded machine, and it is not measuring anything.
+  beforeAll(async () => {
+    ({ POST } = await import("@/app/api/ask/route"));
+  }, 60_000);
+
   beforeEach(() => {
     vi.stubEnv("ASK_LLM_API_KEY", "");
     vi.stubEnv("ASK_LLM_MODEL", "");
@@ -45,7 +74,6 @@ describe("/api/ask", () => {
   });
 
   it("refuses to run when the three env vars aren't all set", async () => {
-    const POST = await importRoute();
     const res = await POST(post({ question: "What does he do at DoorDash?" }, "198.51.100.10"));
     expect(res.status).toBe(503);
     await expect(res.json()).resolves.toEqual({ ok: false, reason: "not-configured" });
@@ -57,7 +85,6 @@ describe("/api/ask", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
 
-    const POST = await importRoute();
     const res = await POST(post({ question: "" }, "198.51.100.11"));
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -70,7 +97,6 @@ describe("/api/ask", () => {
     vi.stubEnv("ASK_LLM_API_KEY", "sk-test");
     vi.stubEnv("ASK_LLM_MODEL", "gpt-test");
 
-    const POST = await importRoute();
     const res = await POST(post({ question: "x".repeat(500) }, "198.51.100.12"));
     expect(res.status).toBe(400);
   });
@@ -79,7 +105,6 @@ describe("/api/ask", () => {
     vi.stubEnv("ASK_LLM_API_KEY", "sk-test");
     vi.stubEnv("ASK_LLM_MODEL", "gpt-test");
 
-    const POST = await importRoute();
     const history = Array.from({ length: 10 }, (_, i) => ({
       question: `q${i}`,
       answer: `a${i}`,
@@ -94,7 +119,6 @@ describe("/api/ask", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
 
-    const POST = await importRoute();
     const res = await POST(post({ question: "what is the capital of France" }, "198.51.100.14"));
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -115,7 +139,6 @@ describe("/api/ask", () => {
     );
     vi.stubGlobal("fetch", fetchSpy);
 
-    const POST = await importRoute();
     const res = await POST(post({ question: "What does he do at DoorDash?" }, "198.51.100.15"));
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -147,7 +170,6 @@ describe("/api/ask", () => {
       vi.fn(async () => new Response("server error", { status: 500 })),
     );
 
-    const POST = await importRoute();
     const res = await POST(post({ question: "What does he do at DoorDash?" }, "198.51.100.16"));
     expect(res.status).toBe(502);
     await expect(res.json()).resolves.toEqual({ ok: false, reason: "upstream-failed" });
@@ -163,7 +185,6 @@ describe("/api/ask", () => {
       }),
     );
 
-    const POST = await importRoute();
     const res = await POST(post({ question: "What does he do at DoorDash?" }, "198.51.100.17"));
     expect(res.status).toBe(502);
   });
@@ -176,7 +197,6 @@ describe("/api/ask", () => {
       vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "" } }] }), { status: 200 })),
     );
 
-    const POST = await importRoute();
     const res = await POST(post({ question: "What does he do at DoorDash?" }, "198.51.100.18"));
     expect(res.status).toBe(502);
   });
@@ -190,7 +210,6 @@ describe("/api/ask", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
 
-    const POST = await importRoute();
     const ip = "198.51.100.19";
     const statuses: number[] = [];
     for (let i = 0; i < 13; i++) {

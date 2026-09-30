@@ -22,6 +22,31 @@ import AskThisSite, { clearThreadCache } from "@/sections/Hero/AskThisSite";
  * outer viewport. `Element.scrollTo()` is scoped to the single scrolling box
  * it is called on and never touches an ancestor -- see the doc comment on
  * the effect in `AskThisSite.tsx` for the full account.
+ *
+ * ## Why this file sets its own timeout, and types with `delay: null`
+ *
+ * These tests are legitimately slow, and the 5s default was never calibrated
+ * for them. Every test that types a question runs ~1.4-1.7s; every test that
+ * only clicks runs ~0.3s. The difference is one `user.type()` of a ~33-char
+ * question: each keystroke is a real React re-render of the whole panel
+ * through jsdom, measured at ~25ms/char even with the inter-key delay
+ * switched off.
+ *
+ * `delay: null` removes the part that was pure waste -- `userEvent`'s default
+ * delay between keystrokes, measured at 2143ms vs 829ms for the same 33
+ * characters. Nothing here asserts anything about typing cadence, so that
+ * delay bought nothing. The remaining ~800ms is real work and cannot be
+ * optimised away from the test side; `onChange` only calls `setQuery`, and
+ * retrieval (`answer()`) runs in the submit handler, not per keystroke, so
+ * there is no product-side inefficiency behind it either -- checked.
+ *
+ * That left ~3x headroom against the old 5s default, on a machine where a
+ * full parallel suite inflates wall-clock 3-6x, and four full-suite runs in
+ * ten timed out here while the file passed every time in isolation. That part
+ * was never specific to this file -- the same timeout took out two other files
+ * in turn -- so the budget is set once, globally, in `vitest.config.mts`. What
+ * stays here is `delay: null`, which removed real waste rather than buying
+ * headroom.
  */
 
 function conversationRegion() {
@@ -71,7 +96,7 @@ describe("AskThisSite -- scrolling thread window", () => {
   });
 
   it("becomes a keyboard-reachable, bounded scroll region once a turn exists", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
     await user.click(screen.getByRole("button", { name: "Where did he study?" }));
@@ -88,7 +113,7 @@ describe("AskThisSite -- scrolling thread window", () => {
   });
 
   it("scrolls the scroll window to its bottom when a turn is added, smoothly by default", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
     await user.click(screen.getByRole("button", { name: "Where did he study?" }));
@@ -104,7 +129,7 @@ describe("AskThisSite -- scrolling thread window", () => {
 
   it("scrolls instantly, not smoothly, under prefers-reduced-motion", async () => {
     matchMediaMatches = true;
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
     await user.click(screen.getByRole("button", { name: "Where did he study?" }));
@@ -114,7 +139,7 @@ describe("AskThisSite -- scrolling thread window", () => {
   });
 
   it("keeps every turn in the thread and in order as more are asked (the honest round-10 contract)", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
     await user.click(screen.getByRole("button", { name: "What does he do at DoorDash?" }));
@@ -139,7 +164,7 @@ describe("AskThisSite -- Clear conversation", () => {
   });
 
   it("appears once a turn exists, empties the thread when pressed, and returns focus to the question field", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
     await user.click(screen.getByRole("button", { name: "Where did he study?" }));
@@ -160,7 +185,7 @@ describe("thread persistence across unmount", () => {
   });
 
   it("keeps the conversation when the component is unmounted and mounted again", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const first = render(<AskThisSite liveModeConfigured={false} />);
 
     const input = screen.getByRole("textbox");
@@ -178,7 +203,7 @@ describe("thread persistence across unmount", () => {
   });
 
   it("mints a fresh turn id after an unmount and remount, instead of colliding with the restored thread", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const first = render(<AskThisSite liveModeConfigured={false} />);
 
     // Both questions are picked from SUGGESTED_QUESTIONS specifically because
@@ -229,7 +254,7 @@ describe("thread persistence across unmount", () => {
   });
 
   it("clearThreadCache empties the thread for the next mount", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const first = render(<AskThisSite liveModeConfigured={false} />);
     await user.type(screen.getByRole("textbox"), "What did Thien build at DoorDash?");
     await user.keyboard("{Enter}");
@@ -264,7 +289,7 @@ describe("thread persistence across unmount -- live mode in flight", () => {
     });
     vi.stubGlobal("fetch", vi.fn().mockReturnValue(fetchPromise));
 
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const first = render(<AskThisSite liveModeConfigured={true} />);
 
     await user.type(screen.getByRole("textbox"), "What did Thien build at DoorDash?");
