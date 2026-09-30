@@ -9,12 +9,19 @@ interface TagProps {
 /**
  * A small, non-interactive token — a technology, a stage, a category.
  *
- * Not uppercase, and no longer boxed. It is used about sixty times across the
- * lab, the résumé and the timeline, and almost every value is a proper noun:
- * "Playwright" is the way that word is spelled, "PLAYWRIGHT" is not. Sixty
- * hairline boxes was also the single densest source of rules on the page, so
- * the box gives way to a soft surface fill — still visibly a discrete token,
- * one line lighter each.
+ * Not uppercase, and not boxed: almost every value is a proper noun, and
+ * "Playwright" is the way that word is spelled where "PLAYWRIGHT" is not. The
+ * hairline box gave way to a soft surface fill — still visibly a discrete
+ * token, one line lighter.
+ *
+ * It used to render about sixty times across the résumé, the timeline, the
+ * case studies and the skills grid, which made it the densest source of
+ * objects on the page. Those four consumers are now `.token-run` in
+ * globals.css, which sets a technology list as one divided line instead of a
+ * row of chips. What is left here is the case a run cannot serve: a lone
+ * token with no neighbours — the timeline's "Work"/"Education" type label —
+ * where there is nothing to divide and the value really is a discrete object.
+ * One consumer is the honest count; do not reach for this for a list.
  *
  * Styled entirely through the semantic aliases, so it reads correctly in both
  * themes and in all three section tones without a branch.

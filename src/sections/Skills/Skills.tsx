@@ -1,6 +1,5 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { Tag } from "@/components/ui/Tag";
 import { careerEntries, certifications, skillCategories } from "@/content/portfolio";
 import { TreeCrossLink } from "@/sections/CareerTree/cross-link";
 import { resolved } from "@/types/portfolio";
@@ -95,10 +94,10 @@ export default function Skills() {
           >
             <h3 className="font-display text-[length:var(--step-1)] text-fg">{category.label}</h3>
 
-            <ul role="list" className="flex flex-wrap gap-2">
+            <ul role="list" className="token-run">
               {category.skills.map((skill) => (
                 <li key={skill}>
-                  <Tag className="wrap-anywhere">{skill}</Tag>
+                  <span className="wrap-anywhere">{skill}</span>
                 </li>
               ))}
             </ul>

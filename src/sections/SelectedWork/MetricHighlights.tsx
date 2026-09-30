@@ -94,12 +94,22 @@ export default function MetricHighlights({
         {" "}
         <VisuallyHidden>— {projectTitle}</VisuallyHidden>
       </p>
+      {/*
+        Three plinths, not a hairline table.
+        The `gap-px` over a rule-coloured ground was a neat trick — it drew
+        every internal division and the outer frame from one background — but
+        it also meant the section's evidence arrived inside the same box as
+        everything else on the page, and the frame carried no information.
+        Each figure now opens on its own 2px accent rule instead, which is the
+        one edge on this component that is allowed to be blue: the palette rule
+        reserves the accent for measured values, and a sourced figure is the
+        most literal measured value the site has. The outer border is gone with
+        the frame, so a row of figures reads as three tablets standing on the
+        ground rather than as a grid drawn on it.
+      */}
       <ul
         aria-labelledby={labelId}
-        className={cn(
-          "mt-3 grid gap-px border border-[color:var(--rule-color)] bg-[color:var(--rule-color)]",
-          COLUMNS[shown.length] ?? "sm:grid-cols-3",
-        )}
+        className={cn("mt-3 grid gap-4", COLUMNS[shown.length] ?? "sm:grid-cols-3")}
       >
         {shown.map((metric) => (
           <li
@@ -108,7 +118,7 @@ export default function MetricHighlights({
             // evidence, and lifting them onto the same raised paper the cards
             // and code panel use is what separates proof from the prose
             // around it — without spending a second colour to do it.
-            className="flex flex-col gap-1.5 bg-[color:var(--surface)] px-5 py-5"
+            className="flex flex-col gap-1.5 border-t-2 border-[color:var(--accent)] bg-[color:var(--surface)] px-5 pb-5 pt-4"
           >
             <span
               className={cn(

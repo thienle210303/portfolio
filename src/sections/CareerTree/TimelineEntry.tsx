@@ -207,12 +207,10 @@ export function TimelineEntry({ entry, isFirst, isLast }: TimelineEntryProps) {
                 {entry.technologies.length > 0 ? (
                   <div>
                     <p className={MICRO_LABEL_CLASS}>Technologies</p>
-                    <ul role="list" aria-label="Technologies" className="mt-2 flex flex-wrap gap-2">
+                    <ul role="list" aria-label="Technologies" className="token-run mt-2">
                       {entry.technologies.map((tech) => (
                         <li key={tech}>
-                          <Tag>
-                            <span className="wrap-anywhere">{tech}</span>
-                          </Tag>
+                          <span className="wrap-anywhere">{tech}</span>
                         </li>
                       ))}
                     </ul>

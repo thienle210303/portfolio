@@ -569,8 +569,44 @@
     }
   }
 
+  /* `position: relative` is for the lead-in below, not decoration. The
+     ink-reveal block further down repeats the same declaration under its own
+     selector for its `::before`; both are idempotent. */
   .hairline-t {
     border-top: var(--rule) solid var(--rule-color);
+    position: relative;
+  }
+
+  /*
+   * The section rule's accent lead-in: a 2.5rem, 2px segment sitting exactly
+   * on the hairline's own line at its left end.
+   *
+   * It is the drafting convention for "this rule is a measurement, and it
+   * starts here", and it is not a new device — the margin rail already opens
+   * on `border-top: var(--rule) solid var(--accent)` (see `.rail` below). One
+   * accent-tipped horizontal rule per section boundary and one per rail is
+   * the same idea stated twice; before this the two were unrelated.
+   *
+   * `::after`, not `::before`: the ink-reveal block further down owns
+   * `.hairline-t::before` to draw the rule in, and that element's `scaleX`
+   * cannot carry a second segment of a different width. The two are gated
+   * together there, so the lead-in is hidden until the line it tips has
+   * finished drawing rather than floating alone over a transparent border.
+   *
+   * `top: -1px` is the border's own line, not one pixel above it: the border
+   * sits *outside* the padding box, so the element's origin is already below
+   * it. 2px tall against a 1px rule means it reads as a deliberate weight
+   * change rather than as a colour change nobody notices.
+   */
+  .hairline-t::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 2.5rem;
+    height: 2px;
+    background-color: var(--accent);
+    pointer-events: none;
   }
 
   .prose-measure {
@@ -745,6 +781,105 @@
     color: var(--fg-subtle);
   }
 
+  /*
+   * The section opener's own eyebrow, and deliberately NOT part of `.eyebrow`
+   * itself. That class lands in about sixty-five places — inline `<span>`s
+   * inside a line of résumé text, an absolutely positioned year marker beside
+   * a tree leaf, an `inline-flex` cross-link — and every one of them would
+   * break under a `display: flex` rule box. `Section` is the one consumer
+   * where the label is always a standalone block opening a chapter, so the
+   * modifier lives with that role rather than with the type.
+   *
+   * What the rule buys is the tracking. At 0.1em sixty-five uppercase labels
+   * read as a banner; the accent segment separates the label from the ground
+   * well enough that the letters no longer have to, so tracking comes down to
+   * 0.06em and the label reads as a drafting annotation instead. It is drawn
+   * as a `border-top` on an empty `::before`, never as a character, so it
+   * contributes nothing to the accessible name.
+   *
+   * `flex: none` on the rule matters: without it the segment is a flex item
+   * with `width: 18px` and `flex-shrink: 1`, so a long label at 320px
+   * squeezes the annotation down to a few pixels instead of wrapping.
+   */
+  .eyebrow-lead {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    letter-spacing: 0.06em;
+  }
+
+  .eyebrow-lead::before {
+    content: "";
+    flex: none;
+    width: 18px;
+    border-top: var(--rule) solid var(--accent);
+  }
+
+  /*
+   * A run of technology names set as one divided line rather than as a row of
+   * filled tokens.
+   *
+   * The count is the argument. `Tag` renders about sixty times across the
+   * timeline, the résumé, the case studies and the skills grid, and sixty
+   * filled rectangles was the densest object on the page while carrying no
+   * more information than the words inside them. A technology list is a
+   * caption, so this sets it as one: hairline separators, no fill, no box.
+   *
+   * It is applied to the LIST, not to `Tag`, and that is the whole design. A
+   * divider's position is a fact about an item's place in a run, which a tag
+   * cannot know about itself — and `Tag` still has one genuinely standalone
+   * consumer (the timeline's "Work"/"Education" type label), where a lone
+   * token with no neighbours does want to stay a discrete object. So `Tag`
+   * keeps its own fill and only loses it inside a run.
+   *
+   * The run carries its own type rather than wrapping each item in `Tag`, and
+   * that is not a shortcut. `Tag`'s fill is a Tailwind utility, so it sits in
+   * the `utilities` layer and outranks anything this file could say about it
+   * from `components` — an override here would lose the cascade silently. More
+   * to the point, an item in a ruled run is not a token any more: it is a word
+   * in a divided line, and the only thing it needs is the line's own type.
+   *
+   * `Tag` itself is untouched and still has a consumer: the timeline's
+   * "Work"/"Education" type label, a lone token with no neighbours, which does
+   * still want to be a discrete filled object.
+   */
+  .token-run {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--fg-muted);
+  }
+
+  /* `gap` is for the one item that has a second child — the career tree's
+     recurrence badge ("Playwright +2"), which used to get its spacing from
+     `Tag`'s own `gap-1`. Every other run holds a single span, where it is
+     inert. */
+  .token-run > li {
+    display: flex;
+    gap: 0.25rem;
+    padding-inline: 0.75rem;
+    border-left: var(--rule) solid var(--rule-color);
+  }
+
+  /*
+   * Only the first item in the run loses its divider. CSS has no selector for
+   * "first on its line", so an item that wraps to a new row keeps one, and its
+   * rule lands flush with the container's left edge — directly under the
+   * label above it. That is a deliberate acceptance, not an oversight: at the
+   * left margin the rule reads as a continuation tick on a ruled line, where
+   * the alternative (pulling the whole run left by the padding to hide it)
+   * would break the run's alignment with every other block in the column.
+   * The Skills runs are where this shows: they wrap two and three deep at
+   * 320px.
+   */
+  .token-run > li:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+
   /* ---------------------------------------------------------------------- */
   /* Ink reveal — the shared settle primitive (Workstream 3, P1)            */
   /*                                                                        */
@@ -822,6 +957,23 @@
       transform: scaleX(1);
       transition: transform var(--dur-draw) var(--ease-ink);
       transition-delay: var(--ink-delay, 0ms);
+    }
+
+    /*
+     * The accent lead-in waits for the rule it tips. Hidden while the
+     * `::before` above is still drawing, then faded in once that stroke has
+     * had its full `--dur-draw` — a 2px accent stub sitting alone over a
+     * transparent border reads as a rendering fault, and a lead-in that
+     * scaled with the line would be a second animation racing the first.
+     * Opacity, not transform: it has no arc to shape, it is just ink landing.
+     */
+    [data-ink-ready] [data-ink-root].hairline-t::after {
+      opacity: 0;
+    }
+    [data-ink-ready] [data-ink-root].hairline-t[data-inked]::after {
+      opacity: 1;
+      transition: opacity var(--dur-quick) var(--ease-ink);
+      transition-delay: calc(var(--ink-delay, 0ms) + var(--dur-draw));
     }
   }
 

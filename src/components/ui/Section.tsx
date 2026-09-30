@@ -103,7 +103,7 @@ export function Section({
       <div className="shell">
         {eyebrow ? (
           <p
-            className="eyebrow mb-8"
+            className="eyebrow eyebrow-lead mb-8"
             {...(reveal ? { "data-ink": "" } : {})}
             style={reveal ? ({ "--ink-delay": "0ms" } as CSSProperties) : undefined}
           >
