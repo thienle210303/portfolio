@@ -3,12 +3,14 @@ import {
   careerEntries,
   companions,
   aiTools,
+  navItems,
   origin,
   projects,
 } from "@/content/portfolio";
 import { worlds } from "@/content/worlds";
 import { DECORATION_LABEL, coLocatedWorldIds, crossingKm, resolveWorlds } from "@/lib/worlds";
 import { buildCareerTree, stillGrowingCaption, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
+import { ACT_IDS, actAnchorId } from "@/lib/anchors";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
 import { isNeedsInput } from "@/types/portfolio";
@@ -329,5 +331,46 @@ describe("co-located markers", () => {
     const anchorOf = (id: string) => worlds.find((world) => world.id === id)?.anchor.at;
     expect(anchorOf("usa")).toBe("origin-to");
     expect(anchorOf("plants")).toBe("origin-to");
+  });
+});
+
+describe("plaque links", () => {
+  /**
+   * Every id the content layer DECLARES as a link target — the seven acts,
+   * plus the section ids.
+   *
+   * Read the name precisely: these are *declared*, not *rendered*. This test
+   * is deliberately one link in a two-link chain, and on its own it proves
+   * only that a plaque's target is a declared id rather than a hand-typed
+   * string that drifted. The other link — that every declared act id is an id
+   * something actually puts in the DOM — is asserted by
+   * `tests/ui/Stage.test.tsx`, which renders the stage and requires
+   * `document.getElementById(actAnchorId(act.id))` to be non-null for all
+   * seven acts.
+   *
+   * Both halves are needed and neither is sufficient. This one cannot catch a
+   * declared act that nothing renders, because `ACT_IDS` is also where the
+   * link is built from; that one cannot catch a plaque pointing at a string
+   * outside `ACT_IDS` altogether.
+   */
+  const DECLARED_IDS = new Set<string>([
+    ...ACT_IDS.map(actAnchorId),
+    ...navItems.map((item) => item.sectionId),
+  ]);
+
+  it("points every link at a declared id, never a hand-typed string", () => {
+    // A plaque linking to a dead anchor is the quietest possible failure:
+    // the visitor clicks, nothing happens, and no test, type or build
+    // complains. Round 18 deletes the section every project link pointed at,
+    // which is exactly when this needs to be loud.
+    for (const world of resolved) {
+      for (const plaque of world.plaques) {
+        if (!plaque.link) continue;
+        expect(plaque.link.startsWith("#"), plaque.link).toBe(true);
+        expect(DECLARED_IDS, `${world.id}: ${plaque.link}`).toContain(
+          plaque.link.slice(1)
+        );
+      }
+    }
   });
 });
