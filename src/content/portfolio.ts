@@ -75,13 +75,14 @@ export const profile = {
     "I write software for retail data at DoorDash. Before that I built scrapers at research scale, shipped features for an educational spelling platform, and replaced paper workflows on a manufacturing floor.",
   ],
   email: "thienle210303@gmail.com",
-  // Deliberately unset, not missing. The hero renders no metadata row at all
-  // when these are undefined, which is the intended presentation: LinkedIn
-  // already carries the location, and an availability line either advertises
-  // a job search to a current employer or discourages inbound. Set either to
-  // a string to make the row appear — no other change is needed.
-  location: undefined,
-  availability: undefined,
+  // Round 18: both set, and the round-17 comment explaining why they were
+  // deliberately blank is superseded rather than deleted — the reason it gave
+  // was real (an availability line advertises a job search to a current
+  // employer, and a location discourages inbound), and the owner has decided
+  // that trade is worth making. Recording the decision matters more than
+  // recording the hesitation.
+  location: "Taylors, South Carolina",
+  availability: "Open to remote, and to relocation when it's worth it.",
   resumePdf: "/thien-le-resume.pdf",
   resumePdfLabel: "Thien Le — Résumé (PDF)",
 } satisfies Profile;

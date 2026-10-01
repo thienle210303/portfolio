@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
+import { profile, origin } from "@/content/portfolio";
+import { resolved } from "@/types/portfolio";
 
 describe("formatIsoDate", () => {
   it("formats a valid ISO date as 'D Month YYYY'", () => {
@@ -213,5 +215,23 @@ describe("isEntirelyNeedsInput", () => {
     // callers use this to decide whether to render the field at all, and an
     // empty string should not render either way.
     expect(isEntirelyNeedsInput("")).toBe(true);
+  });
+});
+
+describe("the profile's own metadata row", () => {
+  it("names a location and an availability, both resolved", () => {
+    // Both were deliberately `undefined` through round 17, which made the
+    // hero render no metadata row at all. Round 18 fills them, so the row
+    // appears — and `resolved()` must give real strings, not markers.
+    expect(resolved(profile.location)).toBe("Taylors, South Carolina");
+    expect(resolved(profile.availability)).toBe(
+      "Open to remote, and to relocation when it's worth it."
+    );
+  });
+
+  it("names the same place the crossing lands in", () => {
+    // One place, one spelling. If these ever disagree the site is carrying
+    // two names for one town.
+    expect(resolved(profile.location)).toBe(origin.to);
   });
 });
