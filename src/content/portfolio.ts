@@ -109,10 +109,10 @@ export const origin = {
   english: "Basic reading, writing and listening. No speaking.",
   coordinates: {
     from: { lat: 10.0, lon: 105.1 },
-    // Taylors, South Carolina. VERIFY against a gazetteer before shipping —
-    // this is the one coordinate pair on the site not taken from a source
-    // document.
-    to: { lat: 34.9226, lon: -82.3068 },
+    // Taylors, South Carolina — 34°54′48″N 82°18′39″W per Wikipedia and
+    // TopoZone (GNIS). The one coordinate pair on this site that is not from
+    // the résumé or the old repo, so it names its source instead.
+    to: { lat: 34.9133, lon: -82.3108 },
   },
 } satisfies Origin;
 

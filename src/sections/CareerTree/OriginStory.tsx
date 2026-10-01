@@ -175,19 +175,15 @@ const SEASON_MS = 2000;
 const STILL_MS = 2500;
 
 /**
- * The one geographic fact the player is allowed to name, composed rather
- * than typed a second time. `origin.from` carries the province
- * ("Kiên Giang, Việt Nam"); this renders only the segment after the last
- * ", " — the country — matching the exact ban `tests/lib/origin-story.test.ts`
- * already holds every `Season.caption` to.
+ * The flight is the one beat allowed to name both places, and it names them
+ * exactly as authored — `origin.from` and `origin.to` whole, composed rather
+ * than typed a second time. This is the same string `computedFact("crossing")`
+ * produces for the globe, so the two captions cannot diverge. The ban on place
+ * names in `tests/lib/origin-story.test.ts` applies to every `Season.caption`,
+ * not to this beat.
  */
-function countryOf(place: string): string {
-  const parts = place.split(", ");
-  return parts[parts.length - 1] ?? place;
-}
-
 function flightCaption(): string {
-  return `${countryOf(origin.from)} → ${origin.to} · ${origin.arrived}`;
+  return `${origin.from} → ${origin.to} · ${origin.arrived}`;
 }
 
 function buildBeats(seasons: readonly Season[]): readonly Beat[] {

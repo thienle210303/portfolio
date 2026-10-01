@@ -334,10 +334,11 @@ describe("origin, as the globe's two pins", () => {
   it("carries coordinates for both ends of the crossing", () => {
     expect(origin.coordinates.from.lat).toBeCloseTo(10.0, 1);
     expect(origin.coordinates.from.lon).toBeCloseTo(105.1, 1);
-    // Taylors, South Carolina. This was the country centroid (39.83, -98.58)
-    // until round 18 authored a city; see the VERIFY note in the content.
-    expect(origin.coordinates.to.lat).toBeCloseTo(34.9226, 1);
-    expect(origin.coordinates.to.lon).toBeCloseTo(-82.3068, 1);
+    // Taylors, South Carolina (34°54′48″N 82°18′39″W, sourced in the content
+    // layer). This was the country centroid (39.83, -98.58) until round 18
+    // authored a city.
+    expect(origin.coordinates.to.lat).toBeCloseTo(34.9133, 3);
+    expect(origin.coordinates.to.lon).toBeCloseTo(-82.3108, 3);
   });
 
   it("keeps latitudes and longitudes inside the real world", () => {

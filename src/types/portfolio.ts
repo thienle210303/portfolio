@@ -489,7 +489,7 @@ export interface CodeTab {
 /*                                                                             */
 /* `where` and `disclosure` are the one exception, and they are not an           */
 /* exception to the rule so much as outside its scope: they are prose about the  */
-/* *drawing* ("country centroid, because no city is authored anywhere"), never  */
+/* *drawing* ("the arrival pin, the first place he lived here"), never           */
 /* a claim about him. A test asserts no plaque ever renders one of them.         */
 /* -------------------------------------------------------------------------- */
 

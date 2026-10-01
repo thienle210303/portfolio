@@ -153,8 +153,8 @@ describe("the honesty rule", () => {
 
   it("never lets a world's own prose become a plaque", () => {
     // `where` and `disclosure` are the one place worlds.ts authors prose, and
-    // it is prose *about the drawing* ("country centroid, because no city is
-    // authored"), never a fact about him. A plaque that quoted one would be
+    // it is prose *about the drawing* ("the arrival pin, the first place he
+    // lived here"), never a fact about him. A plaque that quoted one would be
     // the site inventing a claim about its subject, which is the exact failure
     // the whole schema exists to prevent.
     const panelProse = new Set(
