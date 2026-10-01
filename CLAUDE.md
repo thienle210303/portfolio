@@ -88,41 +88,28 @@ There is no résumé section on the page — it is a route, `/resume`, that read
 the same content. Do not reintroduce it as a section: it was almost entirely a
 second rendering of the timeline and the case studies.
 
-Everything factual lives in `src/content/portfolio.ts` and
-`src/content/ai-experiments.ts`; components read from them and never restate a
-fact. One career entry feeds the timeline, the résumé, the knowledge tree and
+Everything factual lives in `src/content/portfolio.ts`; components read from it
+and never restate a fact. One career entry feeds the timeline, the résumé, the knowledge tree and
 the hero's "Now" line at once. Practical recipes — adding a metric, adding a
 role, attaching a case study — are in [docs/editing.md](docs/editing.md).
 
-Round 16 removed the AI Workflow Lab section, and round 16's second plan
-re-homed exactly one of its arrays: `workflowStages` is now rendered by
-`#workshop`'s agent lane and counted by `src/lib/companion-facts.ts`. It is
-deliberately **not** in the chat's corpus: round 16 indexed each stage's
-`watchFor`, and that shipped a precision hole — three of them were the corpus's
+Round 18 deleted the AI Workflow Lab's content outright: `src/content/ai-experiments.ts`
+no longer exists, and neither do `workflowStages`, `experiments`, `learningLog`,
+`scrapingPlaybook`, the four Lab strings, `experimentsIndexable`, the Workshop
+section and the invented `problemSolvingLoop` / `principles` / `philosophyIntro`.
+Nothing is "retained pending a home". If a later plan wants any of it back, it
+comes from git history and a decision by Thien, not from this file.
+
+One rule from that history is still true and worth keeping: **never index
+agent-stage failure-mode strings** (the old `workflowStages[].watchFor`). Round
+16 indexed them and shipped a precision hole — three of them were the corpus's
 only carriers of the word "file", so "how do I file my taxes" retrieved them.
-The strings left the indexed surface instead, which the retrieval eval prices at
-zero, where gating the engine harder cost ten points of recall@3. Do not
-re-index them; `tests/lib/answers.test.ts` fails if you do. `experiments`,
-`learningLog` and `scrapingPlaybook` are still retained and still unrendered
-— nothing on the page reads them and nothing in the corpus cites them —
-pending a future plan that gives them a home. Four strings in that file are
-dead in a stronger sense and are a separate question: `labPositioning`,
-`labIntro`, `labLiveNotice` and `heroAskCaption` were the removed Lab's own
-copy, they describe a section that no longer exists, and they are awaiting
-Thien's decision rather than a home. Do not treat "unreferenced" as "dead":
-the three content arrays are live content, just without a home yet.
-
-`problemSolvingLoop` and `aiTools` are **not** in that file — both are
-`src/content/portfolio.ts` content, and both are rendered. The nine loop steps
-are `#workshop`'s stations; `aiTools` composes the globe's Technology plaque
-through `computedFact("ai-tools")`.
-
-The same holds one layer up, for code derived from that content rather than
-the content itself: `src/lib/answer-sources.ts`'s `experimentsIndexable` has
-zero consumers today, and is kept on purpose as the adapter the next plan
-re-uses once the Lab's content is re-homed — do not delete it as dead code.
-
-
+The fix was to take the strings off the indexed surface, which the retrieval
+eval priced at zero, where gating the engine harder instead cost ten points of
+recall@3. The strings are gone now, so no test fences them; the lesson is that
+text whose vocabulary is generic costs precision everywhere and earns recall
+nowhere the eval can see. `aiTools` is `src/content/portfolio.ts` content and
+composes the globe's Technology plaque through `computedFact("ai-tools")`.
 
 The career tree draws only authored relationships. Since round 12 each
 branch is one career entry (chronological, each exactly once) and its leaves

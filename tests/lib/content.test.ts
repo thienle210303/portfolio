@@ -346,7 +346,12 @@ describe("the invented layer is gone", () => {
   it("opens on the crossing, not on an abstraction", () => {
     // The old intro opened with "difficult, undefined problems". The reader
     // this site wants to keep has been given no reason to care yet.
-    expect(profile.about[0]).toContain("Kiên Giang");
+    // Guarded against `origin`, not against a second literal: the opening is
+    // prose, so it stays a sentence, but the places and the date it names
+    // belong to `origin` and must not drift from it.
+    expect(profile.about[0]).toContain(origin.from);
+    expect(profile.about[0]).toContain(origin.to);
+    expect(profile.about[0]).toContain(origin.arrived);
   });
 
   it("keeps the motto, because he likes it", () => {

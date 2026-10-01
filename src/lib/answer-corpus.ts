@@ -76,12 +76,13 @@ export function buildDocuments(): Document[] {
     });
   }
 
-  // The hero's one-line self-introduction. It used to be the last sentence of
-  // `about`, and so was indexed with it; round 18 moved it to `positioning` and
-  // wrote a different `about`, which left the plainest question a visitor asks
-  // ("who is he", "doordash") without the one line that answered it.
+  // The hero's introduction line, rendered inside #about by HeroIdentity. It is
+  // indexed because a document must be a sentence the page actually shows:
+  // `profile.positioning` is not (it reaches only the metadata and the social
+  // card), so an answer quoting it would link to "About" where a visitor could
+  // not find it.
   docs.push({
-    text: profile.positioning,
+    text: profile.intro,
     source: "About, in his own words",
     sectionId: "about",
     sectionLabel: "About",

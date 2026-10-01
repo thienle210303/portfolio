@@ -22,7 +22,7 @@ import { resolveWorlds } from "@/lib/worlds";
 /** Every verbatim string the content layer can legitimately produce. */
 const CORPUS = new Set<string>([
   ...profile.about,
-  profile.positioning,
+  profile.intro,
   profile.focus,
   profile.philosophy,
   ...projectsIndexable.flatMap((project) => [

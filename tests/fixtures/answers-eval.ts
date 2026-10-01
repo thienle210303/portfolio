@@ -175,7 +175,6 @@ export const EVAL_CASES: readonly EvalCase[] = [
     query: "doordash",
     expect: [
       "Retail data",
-      "I write software for retail data at DoorDash",
       "Multi-agent feasibility workflow at DoorDash",
     ],
     probes: "employer lookup",
@@ -259,7 +258,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   {
     query: "who is he",
     expect: [
-      "I write software for retail data at DoorDash",
+      "Software engineer on retail data",
       "I moved from Kiên Giang, Việt Nam to Taylors, South Carolina",
       "Automated collection and integration systems",
       "three million records collected unattended",
@@ -273,11 +272,6 @@ export const EVAL_CASES: readonly EvalCase[] = [
       "The degree he finished, in computer science",
       "Graduated with a 3.8 GPA",
       "The cybersecurity minor changed how I read systems",
-      // Round 18: the rewritten About says where schooling happened (high
-      // school in South Carolina, then a start in chemical engineering). It
-      // names no institution, but it is a defensible answer to the question,
-      // which is the standard this list holds every other entry to.
-      "I started university in chemical engineering",
     ],
     probes: "education, asked plainly",
   },
