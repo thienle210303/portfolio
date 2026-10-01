@@ -670,7 +670,7 @@ export const careerEntries = [
     // is only the list of things he actually did, which he supplied, and the
     // act renders exactly that until he says otherwise.
     context:
-      "Nobody set him a problem for two and a half years, so he picked his own: investing and the stock market, growing plants, keeping an aquarium alive. Drove for Uber Eats.",
+      "Nobody set him a problem between landing and starting university, so he picked his own: investing and the stock market, growing plants, keeping an aquarium alive. Drove for Uber Eats. He still does some of it.",
     responsibilities: [],
     built: [],
     impact: [],
