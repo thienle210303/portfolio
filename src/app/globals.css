@@ -1501,7 +1501,7 @@
        "still growing" words, the root labels and the ground plinth's own
        name/inscription carry none of those classes, so without this they
        would sit at full opacity next to a bare, undrawn tree and break the
-       "nothing here yet" illusion the story is trying to tell. Five targets,
+       "nothing here yet" illusion the story is trying to tell. Three targets,
        each already an existing hook (no new markup beyond the two
        `data-tree-shoot-label`/`data-origin-tier` attributes the
        choreography pass added in `DrawnTree.tsx`):
@@ -1524,22 +1524,30 @@
            `OriginStory.tsx`'s `queryGroups` treats it as another shoot
            (`isShoot`) so it is still released only by the closing beat, in
            lockstep with the mark it names, not merely tied to whatever year
-           the mark happens to share;
-         - `[data-tree-root]` (every root label under the plinth) and the
-           plinth's own name/philosophy/count line (`[data-cat-nap] > p`) are
-           not conducted by any beat at all, so they simply stay hidden for
-           the whole run and return the instant it ends.
+           the mark happens to share.
+
+       There were five until round 18. The other two were `[data-tree-root]`
+       (every root label under the plinth) and the plinth's own
+       name/philosophy/count line (`[data-cat-nap] > p`), neither conducted by
+       any beat — they simply stayed hidden for the whole run. Round 18
+       replaced the figure that drew them with the pinned stage: `RootLabels`
+       and the plinth have no mounter now, so both selectors matched nothing,
+       and a rule claiming to fade root furniture is a claim that there is root
+       furniture on the page. They are deleted rather than kept "in case": if
+       either comes back, its rule comes back with it, written against whatever
+       actually renders at the time.
+
        The leaf, panel and shoot-label rules each need the extra
        `[data-origin-pending]` ancestor to out-specify their own release rule
        below, the same reason the four pending shapes above do.
 
        `opacity: 0` alone was a WCAG 2.4.7 hole: a leaf's disclosure
-       `<button>` (and, for the root/plinth targets, an ordinary link) stays
-       hit-testable and in the tab order at zero opacity, so a keyboard
-       visitor could Tab onto a focus ring nobody can see, and — for the root
-       labels and the plinth links, which sit *outside* this stage's own
-       click-catcher entirely — a pointer could still click something
-       invisible. `visibility: hidden` fixes both (it drops an element from
+       `<button>` stays hit-testable and in the tab order at zero opacity, so a
+       keyboard visitor could Tab onto a focus ring nobody can see; and while
+       the root labels and the plinth links were still rendered, they sat
+       *outside* this stage's own click-catcher entirely, so a pointer could
+       still click something invisible. `visibility: hidden` fixes both (it
+       drops an element from
        hit-testing and the tab order together) without losing the fade:
        `visibility` is a discrete property, so listing it in `transition`
        alongside `opacity` with the same duration holds it `visible` for the
@@ -1551,7 +1559,7 @@
        instant reappearance every other pending group already gets). The
        panel and shoot-label targets carry no focusable content of their own
        (a card is plain text, the shoot's words are `aria-hidden`), but
-       `visibility: hidden` costs nothing extra here and keeps all five
+       `visibility: hidden` costs nothing extra here and keeps all three
        targets in this block behaving identically. */
     [data-origin-running] [data-tree-entry][data-origin-pending] > div {
       visibility: hidden;
@@ -1586,14 +1594,6 @@
     [data-origin-running] [data-tree-shoot-label] {
       visibility: visible;
       opacity: 1;
-      transition:
-        opacity var(--dur-settle) var(--ease-ink),
-        visibility var(--dur-settle) var(--ease-ink);
-    }
-    [data-origin-running] [data-tree-root],
-    [data-origin-running] [data-cat-nap] > p {
-      visibility: hidden;
-      opacity: 0;
       transition:
         opacity var(--dur-settle) var(--ease-ink),
         visibility var(--dur-settle) var(--ease-ink);
@@ -2083,6 +2083,35 @@
     [data-stage][data-stage-live][data-through="5"]:not([data-released]) [data-branch-act="6"]:not(:focus-within) {
       opacity: 0;
       pointer-events: none;
+    }
+
+    /* "Watch how it grew" (`WatchOrigin.tsx`) belongs to the finished tree, not
+       to the journey through it: it is drawn at the crown of the drawing, which
+       the camera only reaches once the acts have played out, and the stage says
+       when that is with `data-at-end` (the last act is current, or the pin is
+       released). Until then it is not a second control competing with the
+       scrubber.
+
+       `visibility: hidden`, not `opacity: 0`: a transparent button is still
+       hit-testable and still in the tab order, so a keyboard reader three acts
+       in would find a focus ring on a control nobody can see — and, inside a
+       clipped frame, one they could not scroll to either. `visibility` drops
+       an element from hit-testing and the tab order together, which is the
+       same reason the origin story's own chrome-fade above reaches for it.
+
+       Not `display: none`, which would be the obvious choice and does not work
+       here: the button carries Tailwind's `inline-flex`, and utilities are a
+       later cascade layer than `components`, so a layered `display` here loses
+       regardless of specificity. `visibility` is not set by any utility on the
+       button, so it is the one of the two that this block can actually win.
+       The button is `position: absolute`, so neither property would have
+       reserved space for it anyway.
+
+       Only inside this query. Everywhere the pin never engages — under 1280px,
+       under `prefers-reduced-motion`, in print, with JavaScript off — the tree
+       on screen is already the finished one and the button simply shows. */
+    [data-stage][data-stage-live]:not([data-at-end]) [data-origin-watch] {
+      visibility: hidden;
     }
 
     /* The acts: a column of captions beside the pinned frame, each one tall

@@ -21,8 +21,11 @@
  * directly, so a number here cannot drift from the drawing beside it. The tree
  * excludes the nine credentials (`DEMOTED_ENTRY_IDS`) — they are one line on
  * the stage now — so everything about *the drawing* is counted from the drawn
- * branches, while the entry counts are of the whole record, which `/resume`
- * still renders in full. "Heaviest" is deliberate rather than tactful: one
+ * branches, while the entry counts are of the whole record. (Not of what
+ * `/resume` renders: that page's Experience list is `type === "work"` only, so
+ * none of the thirteen non-work entries appears on it — see the note on
+ * `DEMOTED_ENTRY_IDS` in `src/lib/knowledge-tree.ts`.) "Heaviest" is
+ * deliberate rather than tactful: one
  * entry authored several times the technologies and impact lines of the
  * next-busiest, the drawing is visibly lopsided because of it, and a rail that
  * quietly omitted that would be hiding the one thing the shape is saying.
@@ -42,6 +45,7 @@ import DrawnTree from "./DrawnTree";
 import KnowledgeTreeList from "./KnowledgeTreeList";
 import Stage from "./Stage";
 import UnbranchedCaseStudies from "./UnbranchedCaseStudies";
+import { WatchOrigin } from "./WatchOrigin";
 
 const HEADING_ID = "tree-heading";
 
@@ -114,10 +118,30 @@ export default function CareerTree() {
           the server, and handed to the stage as slots: none of them has a hook
           or a handler, and passing them keeps the drawing and the case-study
           prose inside its branches out of the client bundle. The stage only
-          ever says which act is current. */}
+          ever says which act is current.
+
+          `[data-origin-host]` is the drawing's own relative box, and it is
+          deliberately one element doing two jobs that must never come apart:
+          it is what `OriginStory.tsx` overlays (`absolute inset-0`) and what
+          that player walks up to with `closest()` to find the growable
+          groups it conducts. `WatchOrigin` is its sibling inside it — the
+          always-loaded half of the origin story, which `import()`s the
+          ~1,400-line player only on press, so the show costs the initial
+          page nothing until somebody asks for it. The stylesheet shows the
+          button only on the finished tree; see `WatchOrigin.tsx`.
+
+          `hidden lg:block` is on the wrapper rather than on the drawing, so
+          below 1024px — where the list is the presentation and there is no
+          drawing for a story to grow — the button is not in the document's
+          layout either. Both halves of the figure appear together. */}
       <Stage
         acts={ACTS}
-        drawing={<DrawnTree tree={DRAWN} className="hidden lg:block" />}
+        drawing={
+          <div data-origin-host="" className="relative hidden lg:block">
+            <DrawnTree tree={DRAWN} />
+            <WatchOrigin />
+          </div>
+        }
         list={<KnowledgeTreeList tree={DRAWN} className="mt-6 lg:hidden" />}
         credentials={<CredentialsStrip className="mt-8" />}
       >

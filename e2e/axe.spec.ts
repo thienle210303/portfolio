@@ -143,30 +143,44 @@ test.describe("interactive states", () => {
     await page.waitForLoadState("networkidle");
     await scrollIntoViewAndSettle(page, "#tree-heading");
     const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
+    // Round 18's second plan put this control on the *finished* tree: while the
+    // pin is in force and the acts are still running, the stylesheet hides it so
+    // it cannot compete with the scrubber. "Show me the whole tree" is the end
+    // state. The locator above is unchanged; only the route to it is new.
+    await page.locator("#tree").getByRole("button", { name: "Show me the whole tree" }).click();
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
     // The stage mounting is also the instant `OriginStory.tsx`'s conductor
     // stamps `data-origin-running` and starts fading out the tree's own
-    // non-growable chrome — the plinth's inscription and the root labels
-    // (globals.css, "Origin story v2 — chronological growth": `[data-origin-
-    // running] [data-tree-root]` / `[data-cat-nap] > p`) — over `--dur-settle`
-    // (500ms), holding `visibility: visible` for nearly the whole transition
-    // so the fade actually plays. Auditing the instant the stage appears
-    // catches that fade mid-flight: a paragraph at `opacity: 0.05` and
-    // `visibility: visible` is a real, if momentary, contrast violation to
-    // axe, even though it is seconds away from settling honestly (hidden) or
-    // reverting (Skip/Escape). Polling the plinth's own `[data-cat-nap] > p`
-    // for the computed `visibility` this transition ends on — rather than a
-    // fixed wait guessing how long that takes — settles exactly when the
-    // fade actually finishes, on any machine.
+    // non-growable chrome — a branch's summary card and a leaf's disclosure
+    // text (globals.css, "Origin story v2 — chronological growth":
+    // `[data-origin-running] [data-origin-pending] [data-tree-panel]` and
+    // friends) — over `--dur-settle` (500ms), holding `visibility: visible` for
+    // nearly the whole transition so the fade actually plays. Auditing the
+    // instant the stage appears catches that fade mid-flight: a card at
+    // `opacity: 0.05` and `visibility: visible` is a real, if momentary,
+    // contrast violation to axe, even though it is milliseconds away from
+    // settling honestly (hidden) or reverting (Skip/Escape). Polling for the
+    // computed `visibility` that transition ends on — rather than a fixed wait
+    // guessing how long it takes — settles exactly when the fade finishes, on
+    // any machine.
+    //
+    // This polled the root plinth's own `[data-cat-nap] > p` until round 18
+    // stopped rendering the plinth and the root labels; the branch panels are
+    // what carries the same fade now. `-1` rather than `0` when there are no
+    // panels at all, so a drawing that stopped rendering them could not make
+    // this poll succeed by having nothing to wait for.
     await expect
       .poll(() =>
-        page
-          .locator("[data-cat-nap] > p")
-          .first()
-          .evaluate((el) => getComputedStyle(el).visibility),
+        page.evaluate(() => {
+          const panels = Array.from(
+            document.querySelectorAll<HTMLElement>("#tree [data-tree-panel]"),
+          );
+          if (panels.length === 0) return -1;
+          return panels.filter((el) => getComputedStyle(el).visibility === "hidden").length;
+        }),
       )
-      .toBe("hidden");
+      .toBeGreaterThan(0);
     await auditHasNoViolations(page);
   });
 

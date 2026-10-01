@@ -26,6 +26,31 @@ import { cn } from "@/lib/cn";
  * visitor press the same button again — the honest failure mode for a
  * feature that was never load-bearing to begin with.
  *
+ * ## Where it lives, and when it shows (round 18)
+ *
+ * Through round 17 this button sat at the top-right of the drawing inside
+ * `KnowledgeTree.tsx`'s figure. Round 18 replaced that figure with the pinned
+ * stage, and round 18's second plan re-homed this control onto the stage's
+ * own drawing: `CareerTree.tsx` renders it inside `[data-origin-host]`, the
+ * relative wrapper around `<DrawnTree>` that is also the box
+ * `OriginStory.tsx` overlays and conducts. The position is unchanged —
+ * top-right of the drawing, which on the finished tree is the crown.
+ *
+ * It is the *finished* tree's control, not a second way through the acts. In
+ * the pinned layout the stylesheet shows it only once the stage is at its end
+ * state (`[data-at-end]` on `[data-stage]`: the last act, or released) — see
+ * the "Journey stage" block in `globals.css`. Everywhere the pin never
+ * engages at all — under 1280px, under `prefers-reduced-motion`, in print,
+ * with JavaScript off — the tree on screen is already the finished one, so
+ * the button simply shows. `data-origin-watch` is that stylesheet's only hook
+ * into this file.
+ *
+ * Pressing this button while the pin is still in force also releases the pin,
+ * for free: `Stage.tsx` releases on any click on a control inside the drawing,
+ * because a clipped frame cannot show what a reader just reached into. That is
+ * what the story needs anyway — the player draws over the *whole* drawing, and
+ * inside the frame all but one screen of it would be clipped away.
+ *
  * Closing the player restores focus to this button, but only when the
  * player says focus was still inside it when it ended (`onClose`'s
  * `restoreFocus` argument — see `OriginStory.tsx`). A visitor who pressed
@@ -118,6 +143,7 @@ export function WatchOrigin({ className }: WatchOriginProps) {
       <button
         ref={buttonRef}
         type="button"
+        data-origin-watch=""
         onClick={handlePress}
         aria-busy={state === "loading"}
         // Not `disabled`: a disabled control is pulled out of the tab order

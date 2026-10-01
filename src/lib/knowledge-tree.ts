@@ -236,19 +236,73 @@ export function totalTechnologies(): number {
  * The entries that stop being branches in round 18 and become one credentials
  * line on the Journey's stage.
  *
- * Three are bare milestones (a title, an organisation and a date and nothing
- * else); the rest carry at most a line or two of `built` or `impact`, which
- * `/resume` still shows in full. A branch has to earn the room it takes on a
- * drawing that has to fit one screen, and a one-line credential does not.
+ * ## Why: eleven limbs fit one screen and twenty do not
  *
- * They are not deleted from the content layer: `careerEntries` is unchanged,
- * `/resume` still reads all nine, and the globe and the answer corpus still
- * see them. Only the drawing stops giving each a limb.
+ * That is the whole reason, and it is a reason about space rather than about
+ * worth. The stage pins one viewport and grows a tree inside it; twenty limbs
+ * at that height are a thicket in which no single branch can be read, and the
+ * drawing stops being an argument and becomes texture. Eleven fit. So nine
+ * entries render as `CredentialsStrip`'s one line each — `role · organization ·
+ * dateRange`, plus a repository link where the entry authored one — instead of
+ * as branches.
  *
- * This lives in `lib/` rather than beside the strip that renders them because
- * the globe's "tree-shape" plaque has to count the same branches the Journey
- * draws, and nothing under `lib/` may import from `sections/`. It is a set, not
- * a sequence: the strip sorts by `sortKey`, the same way the tree does.
+ * An earlier version of this comment said the nine carry nothing. That was
+ * false, and the correction is the reason the real reason is written down here.
+ *
+ * ## What the demotion costs
+ *
+ * Checked against `src/content/portfolio.ts` entry by entry on 2026-10-01.
+ * **Five of the nine carry authored content** beyond a title, an organisation
+ * and a date:
+ *
+ *   - `usc-degree` — two `impact` lines and a `learned`
+ *   - `cockyhacks` — a `built` line, an `impact` line, three technologies
+ *   - `code-to-give` — a `built` line, an `impact` line, four technologies
+ *   - `capstone` — a `built` line, four technologies
+ *   - `llm-classifier` — a `built` line, an `impact` line, five technologies
+ *
+ * A sixth, `acm-webmaster`, carries one `responsibilities` line. Only
+ * `graduation`, `magellan` and `deans-list` are bare in the way the old comment
+ * claimed of all nine — and even they carry a `context` sentence.
+ *
+ * So real text leaves the drawing: those `impact` lines and technologies were
+ * leaves, and they are not drawn any more. **`llm-classifier` is the one entry
+ * whose authored `built` and `impact` text is now rendered nowhere on the
+ * site** — it has no project record, so no case study carries it; no globe
+ * plaque quotes it; and `/resume` never showed it (see below). Thien was shown
+ * this and accepted it explicitly: it is a deliberate cost of fitting the
+ * drawing on one screen, not an oversight. `capstone`, `cockyhacks` and
+ * `code-to-give` lose their `built` lines the same way. `capstone` at least
+ * keeps its project (`automotive-genai`) as a case study under the stage, and
+ * the two hackathons keep their repository links on the strip — but links
+ * rendered is not the same claim as content rendered, and this comment is not
+ * using the one to excuse the other.
+ *
+ * `impact`, `learned` and `context` are still indexed for the site's own chat
+ * (`careerIndexable` in `src/lib/answer-sources.ts`), so that text stays
+ * answerable where it is no longer drawn. `built` and `responsibilities` are
+ * indexed nowhere.
+ *
+ * ## What `/resume` does and does not do
+ *
+ * It does **not** render these nine. Its Experience list is
+ * `careerEntries.filter(type === "work")`, and all nine are `milestone` or
+ * `learning`. The degree, the awards and the webmaster year reach that page
+ * through the separately authored `education[0].details` and `achievements`
+ * records, which state the same facts in their own words — not through these
+ * entries. An earlier version of this comment said `/resume` "still shows them
+ * in full"; it never did.
+ *
+ * Nothing is deleted from the content layer: `careerEntries` is unchanged, the
+ * globe still quotes four of these entries' `role` fields on its plaques, and
+ * the chat still indexes all nine. Only the drawing stops giving each a limb.
+ *
+ * ## Why it lives here
+ *
+ * In `lib/` rather than beside the strip that renders them, because the globe's
+ * "tree-shape" plaque has to count the same branches the Journey draws, and
+ * nothing under `lib/` may import from `sections/`. It is a set, not a
+ * sequence: the strip sorts by `sortKey`, the same way the tree does.
  */
 export const DEMOTED_ENTRY_IDS = [
   "usc-degree",

@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import CareerTree from "@/sections/CareerTree/CareerTree";
+import { ACTS } from "@/sections/CareerTree/acts";
 import { DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
+import { ACT_IDS, actAnchorId, actForEntry } from "@/lib/anchors";
 import { caseStudyAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries, projects } from "@/content/portfolio";
 import { resolveWorlds } from "@/lib/worlds";
+import type { CareerEntry } from "@/types/portfolio";
 
 /**
  * The section as a whole, rendered once. Anything that is true of "the Journey"
@@ -72,5 +75,191 @@ describe("the Journey section", () => {
     const claimed = Number(/(\d+) branches ·/.exec(plaque.text)?.[1]);
     expect(claimed).toBe(document.querySelectorAll("[data-tree-branch][data-branch-act]").length);
     expect(document.body.textContent).toContain(`${claimed} drawn · `);
+  });
+});
+
+/**
+ * What the Journey *draws* is decided here, not in `Stage`: the drawing, the
+ * list and the credentials strip are built by this component and handed to the
+ * stage as slots. These tests lived in `Stage.test.tsx` through round 18's
+ * first pass and rendered `<CareerTree />` from there, which named the wrong
+ * subject; they are the same tests, filed under the component they render.
+ */
+describe("what the Journey draws", () => {
+  it("leaves the nine demoted entries off the drawing, and keeps the rest", () => {
+    render(<CareerTree />);
+    for (const id of DEMOTED_ENTRY_IDS) {
+      expect(document.querySelector(`[data-tree-branch="${id}"]`), id).toBeNull();
+    }
+    const drawn = careerEntries.filter(
+      (entry) => !(DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id),
+    );
+    expect(drawn.length).toBe(careerEntries.length - DEMOTED_ENTRY_IDS.length);
+    for (const entry of drawn) {
+      expect(document.querySelector(`[data-tree-branch="${entry.id}"]`), entry.id).not.toBeNull();
+    }
+  });
+
+  it("puts the credentials strip in exactly one act, the one that says it shows it", () => {
+    render(<CareerTree />);
+    const strips = document.querySelectorAll("[data-credentials-strip]");
+    expect(strips).toHaveLength(1);
+    const owner = ACTS.find((candidate) => candidate.showsCredentials);
+    if (!owner) throw new Error("no act shows the credentials strip");
+    // The same claim `src/lib/anchors.ts` makes in its ENTRY_ACTS comment:
+    // `deans-list` is filed in `two-jobs` because that is where the strip is.
+    expect(owner.id).toBe("two-jobs");
+    expect(document.getElementById(actAnchorId(owner.id))).toContainElement(
+      strips[0] as HTMLElement,
+    );
+  });
+
+  it("names all nine demoted entries on the strip, read from the content layer", () => {
+    render(<CareerTree />);
+    const strip = document.querySelector("[data-credentials-strip]");
+    if (!(strip instanceof HTMLElement)) throw new Error("no credentials strip rendered");
+    const items = within(strip).getAllByRole("listitem");
+    expect(items).toHaveLength(DEMOTED_ENTRY_IDS.length);
+    for (const id of DEMOTED_ENTRY_IDS) {
+      const entry = careerEntries.find((candidate) => candidate.id === id);
+      if (!entry) throw new Error(`demoted id ${id} is not a career entry`);
+      expect(strip.textContent, id).toContain(entry.role);
+    }
+  });
+
+  it("keeps the repository links the demoted entries carry", () => {
+    render(<CareerTree />);
+    const strip = document.querySelector("[data-credentials-strip]");
+    if (!(strip instanceof HTMLElement)) throw new Error("no credentials strip rendered");
+    const entries: readonly CareerEntry[] = careerEntries;
+    const linked = entries.flatMap((entry) =>
+      (DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id) && entry.link
+        ? [{ entry, link: entry.link }]
+        : [],
+    );
+    // Not vacuous: the two hackathon entries each point at a real repository.
+    expect(linked.length).toBeGreaterThan(0);
+    for (const { entry, link } of linked) {
+      // A predicate rather than a `RegExp` built from content: a role holding a
+      // regex metacharacter would throw a `SyntaxError` here instead of failing
+      // with something a reader could act on. The role is part of the name, not
+      // all of it — `ExternalLink` appends its own "(opens in a new tab)".
+      const anchor = within(strip).getByRole("link", {
+        name: (name: string) => name.includes(entry.role),
+      });
+      expect(anchor, entry.id).toHaveAttribute("href", link.href);
+      // The authored `label` too: `careerEntry.link` is read in this one file
+      // and `/resume` does not read it at all, so if the strip drops the label
+      // that string exists nowhere on the site.
+      expect(strip.textContent, entry.id).toContain(link.label);
+    }
+    // A line, not a re-expansion: still one list item per entry.
+    expect(within(strip).getAllByRole("listitem")).toHaveLength(DEMOTED_ENTRY_IDS.length);
+  });
+
+  it("never draws the degree beside the roles inside it", () => {
+    // `usc-degree` contains every 2021-2025 role rather than running alongside
+    // them (see `concurrentWith` in src/lib/knowledge-tree.ts), and it is
+    // demoted, so it is not a drawn branch for anything to be concurrent with.
+    render(<CareerTree />);
+    expect(document.querySelector('[data-tree-branch="usc-degree"]')).toBeNull();
+    const overlapping = document.querySelectorAll("[data-tree-branch][data-concurrent-with]");
+    // Not vacuous: the two jobs of 2024 genuinely overlap and must be marked.
+    expect(overlapping.length).toBeGreaterThan(0);
+    for (const branch of overlapping) {
+      const ids = (branch.getAttribute("data-concurrent-with") ?? "").split(" ");
+      expect(ids).not.toContain("usc-degree");
+      for (const id of ids) {
+        expect(document.querySelector(`[data-tree-branch="${id}"]`), id).not.toBeNull();
+      }
+    }
+    expect(
+      document
+        .querySelector('[data-tree-branch="schaeffler"]')
+        ?.getAttribute("data-concurrent-with")
+        ?.split(" "),
+    ).toContain("wordification");
+  });
+
+  it("marks every branch with the act it is drawn in, and keeps all of them in the document", () => {
+    render(<CareerTree />);
+    // The drawing's branches carry `data-branch-act`; the list shown below
+    // 1024px is the other presentation of the same branches and does not.
+    const branches = document.querySelectorAll("[data-tree-branch][data-branch-act]");
+    expect(branches).toHaveLength(careerEntries.length - DEMOTED_ENTRY_IDS.length);
+    for (const branch of branches) {
+      const id = branch.getAttribute("data-tree-branch") ?? "";
+      expect(Number(branch.getAttribute("data-branch-act")), id).toBe(
+        ACT_IDS.indexOf(actForEntry(id) ?? "crossing"),
+      );
+    }
+    // Scrubbing to the end changes no branch's presence, only the stage's
+    // `data-through`; nothing is ever removed to make it "not yet".
+    fireEvent.change(screen.getByRole("slider", { name: /year/i }), {
+      target: { value: String(ACTS.length - 1) },
+    });
+    expect(document.querySelectorAll("[data-tree-branch][data-branch-act]")).toHaveLength(
+      branches.length,
+    );
+  });
+});
+
+/**
+ * The origin-story player, re-homed by round 18's second plan (Decision A).
+ *
+ * `WatchOrigin` is the always-loaded half — a small button that `import()`s the
+ * ~1,400-line player on press. These tests are about where it is mounted and
+ * what it is mounted *inside*, because that is the part a refactor breaks
+ * silently: the player positions itself `absolute inset-0` against
+ * `[data-origin-host]` and walks up to the same element with `closest()` to
+ * find the growable groups it conducts, so the button, the overlay and the
+ * drawing all have to share one box.
+ */
+describe("the way back into the origin story", () => {
+  it("offers \"Watch how it grew\" inside the section", () => {
+    render(<CareerTree />);
+    const section = document.getElementById("tree");
+    if (!(section instanceof HTMLElement)) throw new Error("no #tree section");
+    // The same locator `e2e/axe.spec.ts` and `e2e/companion.spec.ts` use.
+    expect(within(section).getByRole("button", { name: "Watch how it grew" })).toBeInTheDocument();
+  });
+
+  it("mounts the button inside the one box the player overlays and conducts", () => {
+    render(<CareerTree />);
+    const host = document.querySelector("[data-origin-host]");
+    if (!(host instanceof HTMLElement)) {
+      throw new Error("no [data-origin-host] around the drawing");
+    }
+    expect(host).toContainElement(within(host).getByRole("button", { name: "Watch how it grew" }));
+    // The host is the drawing's own box, not the stage's: the player's ground
+    // slice is pinned to its bottom edge, which has to be the tree's own ground
+    // line (`e2e/origin.spec.ts`, "ground anchoring").
+    expect(
+      host.querySelectorAll("[data-tree-branch][data-branch-act]").length,
+      "the host does not contain the drawing",
+    ).toBeGreaterThan(0);
+    // And the groups the conductor releases are reachable from it.
+    expect(
+      host.querySelectorAll("[data-origin-year]").length,
+      "nothing inside the host carries data-origin-year, so no beat could release anything",
+    ).toBeGreaterThan(0);
+  });
+
+  it("keeps the player itself out of the render: one button, no stage", () => {
+    render(<CareerTree />);
+    // The chunk is fetched on press. Nothing of the player may be in the
+    // document before that, or it is not a lazy boundary any more.
+    expect(document.querySelectorAll("[data-origin-stage]")).toHaveLength(0);
+    expect(document.querySelectorAll("[data-origin-watch]")).toHaveLength(1);
+  });
+
+  it("does not bring the roots back with it", () => {
+    // Decision A, requirement 4: the player came back, the root furniture did
+    // not. `RootLabels`, `RootSystem`, `TreeFigure` and the plinth stay
+    // unmounted.
+    render(<CareerTree />);
+    expect(document.querySelectorAll("[data-tree-root]")).toHaveLength(0);
+    expect(document.querySelectorAll("[data-cat-nap]")).toHaveLength(0);
+    expect(document.querySelectorAll("[data-tree-figure]")).toHaveLength(0);
   });
 });

@@ -2462,6 +2462,11 @@ test.describe("companion", () => {
     await companionAwake(page);
 
     const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
+    // Round 18's second plan put this control on the *finished* tree: while the
+    // pin is in force and the acts are still running, the stylesheet hides it so
+    // it cannot compete with the scrubber. "Show me the whole tree" is the end
+    // state. The locator above is unchanged; only the route to it is new.
+    await page.locator("#tree").getByRole("button", { name: "Show me the whole tree" }).click();
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
 

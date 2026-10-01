@@ -1,13 +1,9 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import Stage from "@/sections/CareerTree/Stage";
-import CareerTree from "@/sections/CareerTree/CareerTree";
 import { ACTS } from "@/sections/CareerTree/acts";
-import { DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
-import { ACT_IDS, actAnchorId, actForEntry } from "@/lib/anchors";
-import { careerEntries } from "@/content/portfolio";
-import type { CareerEntry } from "@/types/portfolio";
+import { ACT_IDS, actAnchorId } from "@/lib/anchors";
 
 /**
  * jsdom ships no IntersectionObserver, and Stage has to survive that (an old
@@ -201,131 +197,125 @@ describe("how the stage follows the reader", () => {
 });
 
 /**
- * The whole section, because what the Journey *draws* is decided by
- * `CareerTree` — the drawing, the list and the strip are built there and
- * handed to the stage.
+ * The stage's other half is a stylesheet, so these tests read the stylesheet.
+ * Nothing is rendered here — every claim is about `globals.css` itself.
  */
-describe("what the Journey draws", () => {
-  it("leaves the nine demoted entries off the drawing, and keeps the rest", () => {
-    render(<CareerTree />);
-    for (const id of DEMOTED_ENTRY_IDS) {
-      expect(document.querySelector(`[data-tree-branch="${id}"]`), id).toBeNull();
-    }
-    const drawn = careerEntries.filter(
-      (entry) => !(DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id),
-    );
-    expect(drawn.length).toBe(careerEntries.length - DEMOTED_ENTRY_IDS.length);
-    for (const entry of drawn) {
-      expect(document.querySelector(`[data-tree-branch="${entry.id}"]`), entry.id).not.toBeNull();
-    }
-  });
-
-  it("puts the credentials strip in exactly one act, the one that says it shows it", () => {
-    render(<CareerTree />);
-    const strips = document.querySelectorAll("[data-credentials-strip]");
-    expect(strips).toHaveLength(1);
-    const owner = ACTS.find((candidate) => candidate.showsCredentials);
-    if (!owner) throw new Error("no act shows the credentials strip");
-    // The same claim `src/lib/anchors.ts` makes in its ENTRY_ACTS comment:
-    // `deans-list` is filed in `two-jobs` because that is where the strip is.
-    expect(owner.id).toBe("two-jobs");
-    expect(document.getElementById(actAnchorId(owner.id))).toContainElement(
-      strips[0] as HTMLElement,
-    );
-  });
-
-  it("names all nine demoted entries on the strip, read from the content layer", () => {
-    render(<CareerTree />);
-    const strip = document.querySelector("[data-credentials-strip]");
-    if (!(strip instanceof HTMLElement)) throw new Error("no credentials strip rendered");
-    const items = within(strip).getAllByRole("listitem");
-    expect(items).toHaveLength(DEMOTED_ENTRY_IDS.length);
-    for (const id of DEMOTED_ENTRY_IDS) {
-      const entry = careerEntries.find((candidate) => candidate.id === id);
-      if (!entry) throw new Error(`demoted id ${id} is not a career entry`);
-      expect(strip.textContent, id).toContain(entry.role);
-    }
-  });
-
-  it("keeps the repository links the demoted entries carry", () => {
-    render(<CareerTree />);
-    const strip = document.querySelector("[data-credentials-strip]");
-    if (!(strip instanceof HTMLElement)) throw new Error("no credentials strip rendered");
-    const entries: readonly CareerEntry[] = careerEntries;
-    const linked = entries.flatMap((entry) =>
-      (DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id) && entry.link
-        ? [{ entry, link: entry.link }]
-        : [],
-    );
-    // Not vacuous: the two hackathon entries each point at a real repository.
-    expect(linked.length).toBeGreaterThan(0);
-    for (const { entry, link } of linked) {
-      const anchor = within(strip).getByRole("link", { name: new RegExp(entry.role, "i") });
-      expect(anchor, entry.id).toHaveAttribute("href", link.href);
-    }
-    // A line, not a re-expansion: still one list item per entry.
-    expect(within(strip).getAllByRole("listitem")).toHaveLength(DEMOTED_ENTRY_IDS.length);
-  });
-
-  it("never draws the degree beside the roles inside it", () => {
-    // `usc-degree` contains every 2021-2025 role rather than running alongside
-    // them (see `concurrentWith` in src/lib/knowledge-tree.ts), and it is
-    // demoted, so it is not a drawn branch for anything to be concurrent with.
-    render(<CareerTree />);
-    expect(document.querySelector('[data-tree-branch="usc-degree"]')).toBeNull();
-    const overlapping = document.querySelectorAll("[data-tree-branch][data-concurrent-with]");
-    // Not vacuous: the two jobs of 2024 genuinely overlap and must be marked.
-    expect(overlapping.length).toBeGreaterThan(0);
-    for (const branch of overlapping) {
-      const ids = (branch.getAttribute("data-concurrent-with") ?? "").split(" ");
-      expect(ids).not.toContain("usc-degree");
-      for (const id of ids) {
-        expect(document.querySelector(`[data-tree-branch="${id}"]`), id).not.toBeNull();
+describe("the stylesheet the stage drives", () => {
+  /** Index of the `}` closing the block whose `{` is at `open`. */
+  function closingBrace(css: string, open: number): number {
+    let depth = 0;
+    for (let index = open; index < css.length; index += 1) {
+      if (css[index] === "{") depth += 1;
+      else if (css[index] === "}") {
+        depth -= 1;
+        if (depth === 0) return index;
       }
     }
-    expect(
-      document
-        .querySelector('[data-tree-branch="schaeffler"]')
-        ?.getAttribute("data-concurrent-with")
-        ?.split(" "),
-    ).toContain("wordification");
-  });
+    throw new Error("unbalanced braces in globals.css");
+  }
 
-  it("marks every branch with the act it is drawn in, and keeps all of them in the document", () => {
-    render(<CareerTree />);
-    // The drawing's branches carry `data-branch-act`; the list shown below
-    // 1024px is the other presentation of the same branches and does not.
-    const branches = document.querySelectorAll("[data-tree-branch][data-branch-act]");
-    expect(branches).toHaveLength(careerEntries.length - DEMOTED_ENTRY_IDS.length);
-    for (const branch of branches) {
-      const id = branch.getAttribute("data-tree-branch") ?? "";
-      expect(Number(branch.getAttribute("data-branch-act")), id).toBe(
-        ACT_IDS.indexOf(actForEntry(id) ?? "crossing"),
-      );
+  /** The declarations of the block whose selector list starts at `at`. */
+  function declarationsAt(css: string, at: number): string {
+    const open = css.indexOf("{", at);
+    return css.slice(open + 1, closingBrace(css, open));
+  }
+
+  /** One selector list split into its selectors, at top level, so the commas
+   *  inside `:is(...)` stay where they belong. */
+  function selectors(selectorList: string): readonly string[] {
+    const out: string[] = [];
+    let depth = 0;
+    let current = "";
+    for (const character of selectorList) {
+      if (character === "(") depth += 1;
+      else if (character === ")") depth -= 1;
+      if (character === "," && depth === 0) {
+        out.push(current);
+        current = "";
+      } else current += character;
     }
-    // Scrubbing to the end changes no branch's presence, only the stage's
-    // `data-through`; nothing is ever removed to make it "not yet".
-    fireEvent.change(screen.getByRole("slider", { name: /year/i }), {
-      target: { value: String(ACTS.length - 1) },
-    });
-    expect(document.querySelectorAll("[data-tree-branch][data-branch-act]")).toHaveLength(
-      branches.length,
-    );
-  });
+    out.push(current);
+    return out;
+  }
 
-  it("has a stylesheet rule for every act that can hide a branch", () => {
+  it("hides every later act's branches at every act before it", () => {
     // CSS cannot compare `data-through` with `data-branch-act`, so `globals.css`
-    // spells out one rule per value of `data-through` that has a later act to
-    // hide. If the act list grows and the rules do not, the new act's branches
-    // would be visible from the first frame, and nothing else would notice.
+    // spells out one selector per value of `data-through` that has a later act
+    // to hide, each naming every act it hides. If the act list grows and the
+    // rules do not, the new act's branches would be visible from the first
+    // frame and nothing else would notice.
+    //
+    // The *pairing* is what is asserted, not the two axes separately: checking
+    // only that every `data-through` value and every `data-branch-act` value
+    // appears somewhere would still pass with `[data-branch-act="4"]` deleted
+    // from the `data-through="1"` selector — both substrings survive in other
+    // selectors — while an act-4 branch stayed visible at through=1.
+    expect(
+      ACT_IDS.length,
+      "a one-act stage has no act with a later one to hide, so the loop below would assert nothing",
+    ).toBeGreaterThan(1);
+
     const css = readFileSync("src/app/globals.css", "utf8");
+
+    // The rules only mean anything inside the pin's own media query: that query
+    // is what decides there is a pin at all, and a hide rule outside it would
+    // blank branches under reduced motion and on narrow screens, where the
+    // stage is simply the finished tree.
+    const query =
+      "@media screen and (min-width: 80rem) and (prefers-reduced-motion: no-preference)";
+    const queryAt = css.indexOf(query);
+    expect(queryAt, `globals.css has no ${query}`).toBeGreaterThan(-1);
+    const queryEnd = closingBrace(css, css.indexOf("{", queryAt));
+
+    const hideAt = css.indexOf('[data-stage][data-stage-live][data-through="0"]');
+    expect(hideAt, 'no hide rule keyed off data-through="0"').toBeGreaterThan(-1);
+    expect(
+      hideAt > queryAt && hideAt < queryEnd,
+      "the hide rules are outside the pin's media query",
+    ).toBe(true);
+
+    const selectorList = selectors(css.slice(hideAt, css.indexOf("{", hideAt)));
+    expect(declarationsAt(css, hideAt), "the hide rule does not hide anything").toContain(
+      "opacity: 0",
+    );
+
     for (let through = 0; through < ACT_IDS.length - 1; through += 1) {
-      expect(css, `no rule for data-through="${through}"`).toContain(`[data-through="${through}"]`);
-    }
-    for (let act = 1; act < ACT_IDS.length; act += 1) {
-      expect(css, `no rule that hides data-branch-act="${act}"`).toContain(
-        `[data-branch-act="${act}"]`,
+      const selector = selectorList.find((candidate) =>
+        candidate.includes(`[data-through="${through}"]`),
       );
+      expect(selector, `no hide selector for data-through="${through}"`).toBeDefined();
+      for (let later = through + 1; later < ACT_IDS.length; later += 1) {
+        expect(
+          selector,
+          `data-through="${through}" does not hide data-branch-act="${later}"`,
+        ).toContain(`[data-branch-act="${later}"]`);
+      }
     }
+  });
+
+  it("keeps the origin-story button off the pin until the acts have played out", () => {
+    // Decision A of round 18's second plan: "Watch how it grew" belongs to the
+    // finished tree, not to the journey through it. `Stage` says when that is
+    // (`data-at-end`); the stylesheet is what acts on it, so the stylesheet is
+    // what this reads.
+    const css = readFileSync("src/app/globals.css", "utf8");
+    const at = css.indexOf("[data-stage][data-stage-live]:not([data-at-end]) [data-origin-watch]");
+    expect(at, "nothing keeps the origin-story button off the pinned stage").toBeGreaterThan(-1);
+    // `visibility: hidden`, not `opacity: 0`: a transparent button is still in
+    // the tab order, and inside a clipped frame a keyboard reader could not
+    // scroll to the focus ring they just landed on. (Not `display: none`
+    // either — see the rule's own comment: the button carries a Tailwind
+    // `inline-flex`, and utilities outrank this layer.)
+    expect(declarationsAt(css, at)).toContain("visibility: hidden");
+  });
+
+  it("no longer claims to fade root furniture the page does not render", () => {
+    // The player's chrome-fade used to target `[data-tree-root]` and the
+    // plinth's `[data-cat-nap] > p`, neither of which has had a mounter since
+    // round 18. A selector for absent furniture is a claim the page is not
+    // making.
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).not.toContain("[data-origin-running] [data-tree-root]");
+    expect(css).not.toContain("[data-origin-running] [data-cat-nap] > p");
   });
 });

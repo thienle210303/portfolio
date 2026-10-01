@@ -15,9 +15,15 @@ const ENTRIES: readonly CareerEntry[] = careerEntries;
  * of its own — it takes a class name and nothing else.
  *
  * An entry that carries a `link` (two of the hackathon entries point at a real
- * repository) keeps it: the role is the anchor. That is the whole of what the
- * strip adds to a line — it is not a re-expansion of the branch the entry used
- * to be.
+ * repository) keeps it: the role is the anchor, and the link's own authored
+ * `label` — the repository path — is set after the date. A sighted visitor
+ * learns nothing from the label they could not get by hovering the anchor; it
+ * is rendered because `careerEntry.link` is read in exactly this one file now
+ * (`/resume` does not read it at all), so without this the authored string
+ * would appear nowhere on the site. One extra run of muted mono at the end of
+ * a line that already wraps — `wrap-anywhere` was there for the role before
+ * this — is the whole cost. That is the whole of what the strip adds to a
+ * line: it is not a re-expansion of the branch the entry used to be.
  */
 export default function CredentialsStrip({ className }: { readonly className?: string }) {
   const entries = ENTRIES
@@ -46,6 +52,12 @@ export default function CredentialsStrip({ className }: { readonly className?: s
             {entry.organization ? <> · {entry.organization}</> : null}
             {" · "}
             {entry.dateRange}
+            {entry.link ? (
+              <>
+                {" · "}
+                <span className="font-mono">{entry.link.label}</span>
+              </>
+            ) : null}
           </li>
         ))}
       </ul>

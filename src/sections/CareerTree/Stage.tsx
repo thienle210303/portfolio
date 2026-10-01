@@ -55,6 +55,12 @@ import type { Act } from "./acts";
  *   data-through      the index of the current act. The stylesheet compares it
  *                     with each branch's `data-branch-act`.
  *   data-released     the reader asked for the whole tree.
+ *   data-at-end       the acts have played out — the last one is current, or
+ *                     the pin is released. The stylesheet uses it for the one
+ *                     control that belongs to the finished tree rather than to
+ *                     the journey through it: "Watch how it grew"
+ *                     (`WatchOrigin.tsx`), drawn at the crown, which stays out
+ *                     of the way until there is a finished tree to watch grow.
  *
  * `prefers-reduced-motion` is not read here. The pin rules in `globals.css`
  * are inside `@media (prefers-reduced-motion: no-preference)`, so under reduced
@@ -155,7 +161,20 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
     const measure = () => {
       const camera = cameraRef.current;
       const frame = windowRef.current;
-      if (!camera || !frame) return;
+      const pin = pinRef.current;
+      if (!camera || !frame || !pin) return;
+      // Nothing below 1280px, under reduced motion or in print reads either
+      // variable, and the drawing this measures is `display: none` there.
+      // Measuring anyway costs a forced synchronous layout over a 4,300-node
+      // document — one `getBoundingClientRect()` for the camera, one per drawn
+      // branch, plus `offsetHeight` — on mount and again on the `live` flip.
+      // The gate is the stylesheet's own answer read back, rather than a second
+      // copy of its media query in JavaScript: the frame is `position: sticky`
+      // exactly when the pin is in force, which is exactly when these two
+      // variables mean anything. `releaseForReading` below asks the same
+      // question the same way. `getComputedStyle` recalculates style, not
+      // layout, so the case this skips stays cheap.
+      if (getComputedStyle(pin).position !== "sticky") return;
       const top = camera.getBoundingClientRect().top;
       let front = Number.POSITIVE_INFINITY;
       for (const branch of camera.querySelectorAll<HTMLElement>("[data-branch-act]")) {
@@ -241,6 +260,14 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
   const releaseForReading = (target: Element) => {
     const pin = pinRef.current;
     if (released || !pin || getComputedStyle(pin).position !== "sticky") return;
+    // One control here is a special case that deliberately is *not* handled:
+    // "Watch how it grew" replaces itself with the player, so the element this
+    // would scroll back to is gone by the time the effect runs. Nothing is done
+    // about it, because nothing needs to be — `OriginStory.tsx` focuses its own
+    // Skip button in a layout effect, and the browser scrolls that into view,
+    // which lands the top of the drawing on screen. Measured in a browser: an
+    // earlier version of this scrolled the drawing's ground line up instead and
+    // the focus overrode it every time.
     pendingScroll.current = { element: target, block: "center" };
     setActive(lastAct);
     setReleased(true);
@@ -275,6 +302,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
       data-stage=""
       data-stage-live={live ? "" : undefined}
       data-through={active}
+      data-at-end={released || active === lastAct ? "" : undefined}
       data-released={released ? "" : undefined}
       className="mt-10 scroll-mt-24"
     >

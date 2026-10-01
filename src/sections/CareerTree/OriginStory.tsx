@@ -48,8 +48,9 @@ import {
  * Every visual this file draws — the sky layer, the weather, the sr-only
  * caption's visible stand-in, the year numeral — is `position: absolute`
  * inside the stage `<div>` below, which is itself `position: absolute`
- * inside the tree figure's own relative box (`KnowledgeTree.tsx`'s wrapper
- * around `<DrawnTree>`). Nothing in this file is ever `position: fixed` to
+ * inside the drawing's own relative box — `[data-origin-host]`, the wrapper
+ * `CareerTree.tsx` puts around `<DrawnTree>`. Nothing in this file is ever
+ * `position: fixed` to
  * the viewport. That used to be untrue: an earlier pass pinned the weather
  * to the viewport and, for root-year beats, panned the whole page with
  * `scrollIntoView` so a `RootSystem` lateral growing far below the canopy
@@ -74,9 +75,11 @@ import {
  *
  * ## The conductor, and the one rule it can never break
  *
- * On start, the stage walks up to the real `[data-tree-figure]` (via
- * `closest` — the same idiom `TreeFigure.tsx`'s own cross-highlight island
- * uses to reach the same wrapper), stamps `data-origin-running` on it, finds
+ * On start, the stage walks up to the real `[data-origin-host]` (via
+ * `closest` — the wrapper `CareerTree.tsx` puts around `<DrawnTree>`, which is
+ * also the box this player's own overlay is `absolute inset-0` inside of, so
+ * the element it conducts and the element it draws over cannot drift apart),
+ * stamps `data-origin-running` on it, finds
  * every `[data-origin-year]` group inside it exactly once, and stamps every
  * one `data-origin-pending`. From there each beat only ever *releases*
  * (`removeAttribute("data-origin-pending")`) — nothing is ever re-pended.
@@ -104,8 +107,9 @@ import {
  * — never a `bg-ground` backdrop, because there is no longer anything
  * underneath it that needs covering. The stage `<div>` itself is what
  * catches clicks-to-advance, and it is sized to the *whole* drawing wrapper
- * (`inset-0`, matching `KnowledgeTree.tsx`'s relative box around
- * `<DrawnTree>`), not just either sky/ground slice — a click anywhere the
+ * (`inset-0`, matching `[data-origin-host]`, the relative box
+ * `CareerTree.tsx` puts around `<DrawnTree>`), not just either sky/ground
+ * slice — a click anywhere the
  * real, growing tree is still visible still advances the story. That
  * wrapper exists only while this component is mounted, so the instant the
  * story ends and `WatchOrigin.tsx` swaps this player back out for its
@@ -123,9 +127,11 @@ import {
  * because the tree body right now really big and long"). `groundSlice`,
  * below, is the fix: `absolute inset-x-0 bottom-0`, pinned to the drawing's
  * own bottom edge — the same edge `TrunkFoot`'s `bottom-0` and the root
- * plinth's own top border already share in `DrawnTree.tsx`/
- * `KnowledgeTree.tsx`, i.e. the real ground line, not a sky-box stand-in for
- * it. `skySlice` keeps its top-pinned canopy position and everything that
+ * own `TrunkFoot` sits on in `DrawnTree.tsx` — i.e. the real ground line, not
+ * a sky-box stand-in for it. (Through round 17 the root plinth's own top
+ * border was that same edge. Round 18 stopped rendering the plinth, so the
+ * drawing's own bottom edge is the ground line on its own now.) `skySlice`
+ * keeps its top-pinned canopy position and everything that
  * honestly belongs there; `groundSlice` takes over flight and seed.
  *
  * `WeatherLayer` (a season's rain/sun/wind/storm) lives inside `skySlice`,
@@ -1065,7 +1071,7 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // regardless.
   useEffect(() => {
     if (reduced) return;
-    const figure = containerRef.current?.closest<HTMLElement>("[data-tree-figure]");
+    const figure = containerRef.current?.closest<HTMLElement>("[data-origin-host]");
     if (!figure) return;
     // Reset every ref-based bookkeeping set this effect (and everything
     // downstream of it) builds on, rather than trusting it to already be
@@ -1301,7 +1307,7 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
       data-origin-stage
       onClick={reduced ? undefined : advance}
       // Non-reduced: `inset-0` matches the *whole* drawing wrapper
-      // `KnowledgeTree.tsx` puts around `<DrawnTree>` — the click-to-advance
+      // `CareerTree.tsx` puts around `<DrawnTree>` — the click-to-advance
       // target the whole real tree draws inside, not just the sky slice — so
       // a click anywhere the growing tree is visible still advances the
       // story. Reduced motion keeps the old top-pinned, unclamped box: the

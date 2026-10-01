@@ -7,13 +7,21 @@
  * inventory — and the tree is the one place their content is shown as a
  * single shape alongside the chronology. Journey used to be the third of
  * these, a separate section this one pointed back at; round 10 folded the
- * timeline into this section as its own "List" face (see `CareerTree.tsx`
- * and `Timeline.tsx`), so there is no longer a third section to point at —
- * only Work and Skills end with a pointer here (`TreeCrossLink`, below), and
- * the tree no longer needs a pointer back the other way, because the
- * chronology it used to point at is now inside it. Its branch panels still
- * link to the case studies in `#work`, and its roots still link to the skill
- * groups in `#skills`. Nothing anywhere explains the relationship in prose;
+ * timeline into this section as its own "List" face, and round 18 replaced
+ * both the timeline and the toggle over it with the pinned stage (see
+ * `CareerTree.tsx` and `Stage.tsx`; `Timeline.tsx` is deleted). So there is
+ * no longer a third section to point at — only Work and Skills end with a
+ * pointer here (`TreeCrossLink`, below), and the tree needs no pointer back
+ * the other way, because the chronology it used to point at is now inside it.
+ *
+ * Two pointers *out* of the tree went the same way, and neither is a link any
+ * more. Its branch panels used to link to the case studies in `#work`; since
+ * round 18 each panel renders its case study inline, in full, so there is
+ * nothing left to point at — `DrawnTree.tsx` carries no `#work` link and no
+ * `caseStudyAnchorId`. Its roots used to link to the skill groups in
+ * `#skills`; the roots are `RootLabels.tsx`, which only `KnowledgeTree.tsx`
+ * ever mounted, and that file has no importer today, so no root label is on
+ * the page to link from. Nothing anywhere explains the relationship in prose;
  * the link is the explanation.
  *
  * Rendered from one component in both inbound places rather than typed out
@@ -34,11 +42,15 @@
  * leaf to the branch along with the rest of the tree's interaction (see the
  * "Why the branch panel alone is interactive" note in `DrawnTree.tsx`) — a
  * leaf is now a single authored fact (a technology, an impact line) with no
- * link of its own to carry, so there is exactly one of these per branch
- * (fourteen, not one per leaf), and it is rendered **only inside that
- * branch's open panel**, never on the row that summarises it — one link per
- * branch on the collapsed drawing would be fourteen new tab stops through a
- * figure whose entire interaction is "open the one you want". `Disclosure`
+ * link of its own to carry, so there was exactly one of these per branch —
+ * one per branch, not one per leaf — and it was rendered **only inside that
+ * branch's open panel**, never on the row that summarises it, because one
+ * link per branch on the collapsed drawing would be one new tab stop per
+ * branch through a figure whose entire interaction is "open the one you
+ * want". (Round 12 drew fourteen branches; round 18 draws eleven, the nine
+ * demoted entries having become the credentials strip. No count is written
+ * here on purpose — see the round-18 note at the end of this comment:
+ * nothing renders this component at all today.) `Disclosure`
  * flips its panel to `visibility: hidden` while collapsed, so a closed
  * branch's link is out of the tab order and out of the accessibility tree,
  * and the cost is paid only by the branches a visitor actually opened.
@@ -105,10 +117,12 @@ interface JourneyEntryCrossLinkProps {
  * The pointer from one leaf to the timeline entry it came from. Render it
  * inside the leaf's panel only — see the note above.
  *
- * The visible text is short because twenty-five of these exist; the entry it
- * points at is named in the hidden half, so a screen-reader user listing the
- * page's links hears twenty-five distinct destinations rather than twenty-five
- * identical ones. The explicit `{" "}` before it is the same fix Disclosure
+ * The visible text is short because, when something rendered this, there was
+ * one per drawn branch; the entry it points at is named in the hidden half,
+ * so a screen-reader user listing the page's links hears one distinct
+ * destination per branch rather than a run of identical ones. Nothing renders
+ * it today (see the file comment), so the live count is zero. The explicit
+ * `{" "}` before it is the same fix Disclosure
  * documents: a space written inside the hidden span is trimmed when its
  * contribution to the accessible name is computed, a sibling text node is not.
  */

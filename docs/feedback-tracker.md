@@ -1129,7 +1129,19 @@ rather than only in a task report. Fixing `trailBehind`'s clamping for large
 or back-to-back jumps is out of scope for this round (content removal) and
 is not attempted here.
 
-### The pinned stage (round 18, Task 11)
+### The pinned stage at 412x823, where the pin is inert (round 18, Task 11)
+
+**Read the title literally.** Every rule that makes the pin a pin — `position:
+sticky`, the camera transform, the unborn-height transition, the six
+`data-through` rules, the branch opacity transition — sits inside
+`@media screen and (min-width: 80rem) and (prefers-reduced-motion:
+no-preference)` (`src/app/globals.css:1983`), and `scripts/perf.mjs:24` runs a
+**412 x 823** viewport. 80rem is 1280px, so none of it matched: nothing was
+pinned, nothing transitioned, and the six new rules never applied. The numbers
+below are real and the sizes are the point of the row, but **the pin's own
+runtime cost is not measured here at all** — the title said it was, which is
+why the title changed. The +0.5 KB of CSS is roughly 2.5 ms of parse on this
+pipe.
 
 Measured with `pnpm perf`'s script against two production builds served from
 their own directories (`:3142` the commit before the task, `96221c6`;
@@ -1149,6 +1161,7 @@ not depend on the browser build.
 | CLS | 0 | 0 | 0 |
 | LCP (3 runs) | 3324 / 4520 / 4848 ms | 5348 / 5156 / 5604 ms | see below |
 | TBT (3 runs) | 519 / 717 / 584 ms | 1331 / 1155 / 659 ms | see below |
+| LCP element | not recorded per build | not recorded per build | see below |
 
 Initial JS did not move: the stage is a client component, but it is handed the
 drawing, the list, the credentials strip and the case-study prose as slots by
@@ -1159,8 +1172,27 @@ a 17 KB gz chunk in the initial scripts; that was the leak this row exists to
 catch.
 
 **LCP and TBT were higher in all three pairs after the change**, and this table
-does not explain why. The LCP element is the hero paragraph, which the stage
-does not touch; the numbers here already vary by a second or more between
-runs of the same build in this file's earlier rows (see "Performance
-baseline"). Treated as unresolved rather than as noise: if it reproduces on a
-quieter machine it is the one thing to chase from this row.
+does not explain why.
+
+**The LCP element line is blank on purpose.** This file's convention is to name
+the selector per build (line 1062 names `P.mt-6.max-w-[56ch]`), and the task
+report for these runs says only "the LCP element is the hero paragraph" without
+distinguishing the two builds. The per-run output was not kept and `pnpm perf`
+is deliberately not re-run in the fix round that wrote this paragraph, so the
+honest entry is "not recorded", not a selector copied from a sentence that did
+not claim to be per-build. **If the selector turns out to differ between the two
+builds, the delta is an artefact and this question closes for free** — that is
+the first thing to check when it is next measured.
+
+What is known: every pin rule was inert at this viewport (see the heading note),
+so the delta cannot be the pin's own work; the "Read the LCP and TBT columns on
+these two rows against each other" note earlier in this file records the *same
+build* re-measured back to back at 4212–5524 ms LCP against its own earlier
+3416–3636 ms — non-overlapping ranges with no code change at all — and the delta
+here is that shape and that size. Treated as unresolved rather
+than explained away.
+
+**The re-measurement belongs to Task 14, not here**, and it needs a matched
+same-build control arm. It also has to wait for Task 12: `src/app/page.tsx:55`
+and `:57` both render the case-study prose today, so anything timed against this
+tree is timing a page with the same prose on it twice.
