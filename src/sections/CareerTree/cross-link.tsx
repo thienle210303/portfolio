@@ -48,11 +48,12 @@
  * an element that does not exist is a link that silently does nothing — worse
  * than no link.
  *
- * Following it does more than navigate: the timeline it points at is this
- * same section's own "List" face, which may not be the one currently on
- * screen. `Timeline.tsx`'s own hashchange/click handling is what switches the
- * face and lands the scroll — see `./view-state.ts` for why that lives there
- * rather than here.
+ * Round 18 removed the timeline this pointed at (and the Tree / List toggle
+ * that chose between it and the drawing): the stage replaced both. Nothing in
+ * the Journey renders this link any more — a branch is the entry, so a link
+ * from it back to itself would be circular — and it stays only because the
+ * anchors it builds (`journey-entry-<id>`) are still the ids old bookmarks
+ * and the résumé carry.
  */
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { journeyEntryAnchor } from "./anchors";

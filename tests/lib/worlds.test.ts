@@ -344,7 +344,7 @@ describe("plaque links", () => {
    * only that a plaque's target is a declared id rather than a hand-typed
    * string that drifted. The other link — that every declared act id is an id
    * something actually puts in the DOM — is asserted by
-   * `tests/ui/Stage.test.tsx` (added by the stage task), which renders the
+   * `tests/sections/Stage.test.tsx` (added by the stage task), which renders the
    * stage and requires `document.getElementById(actAnchorId(act.id))` to be
    * non-null for all seven acts.
    *

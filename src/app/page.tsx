@@ -38,9 +38,10 @@ export default function Home() {
 
         The career tree comes after Work and Skills rather than after Work,
         Journey and Skills: round 10 folded the Journey section's own
-        chronological timeline into the tree as its own "List" face (see
-        src/sections/CareerTree/CareerTree.tsx and ViewToggle.tsx), so there is
-        no longer a separate Journey section to place. What is left is the
+        chronological timeline into the tree as its own "List" face, and round
+        18 replaced that face with the pinned stage (see
+        src/sections/CareerTree/Stage.tsx), so there is no longer a separate
+        Journey section to place. What is left is the
         synthesis of the other two — the case studies and the inventory, shown
         as one shape alongside the chronology itself — so it can only be read
         after both, and it belongs to neither. Each of the two ends with a

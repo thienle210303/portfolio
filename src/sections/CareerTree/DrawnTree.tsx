@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { Disclosure } from "@/components/ui/Disclosure";
-import { skillCategories } from "@/content/portfolio";
+import { projects, skillCategories } from "@/content/portfolio";
+import { ACT_IDS, actForEntry } from "@/lib/anchors";
 import { cn } from "@/lib/cn";
 import {
   careerYearSpan,
@@ -10,9 +11,8 @@ import {
   type TreeLeaf,
 } from "@/lib/knowledge-tree";
 import { firstCanopyYear, rootYearFor } from "@/lib/origin-story";
-import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
-import { JourneyEntryCrossLink } from "./cross-link";
-import { KIND_LABEL } from "./tree-labels";
+import CaseStudy from "./CaseStudy";
+import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
 
 /**
  * The career tree, actually drawn — the presentation used at >=1024px, where
@@ -132,6 +132,26 @@ import { KIND_LABEL } from "./tree-labels";
 interface DrawnTreeProps {
   readonly tree: readonly TreeBranch[];
   readonly className?: string;
+  /**
+   * The index (into `ACT_IDS`) of the latest act the stage has reached. A
+   * branch whose own act comes after it is marked `data-undrawn`.
+   *
+   * Marked, not removed: every branch stays in the DOM whatever this says, so
+   * the finished tree is what a reader gets with JavaScript off, under
+   * reduced motion and in print. `globals.css` is what turns `data-undrawn`
+   * into "not yet", and only while the pinned stage is live — see the
+   * "Journey stage" block there. Omitted, every branch is drawn.
+   */
+  readonly throughAct?: number;
+}
+
+/** Which act a branch is drawn in, as an index into `ACT_IDS`. The map from
+ *  entry to act lives in `src/lib/anchors.ts` and nowhere else; this only asks
+ *  it. -1 for an entry the map does not place, which the caller treats as
+ *  "always drawn". */
+function actIndexOf(branch: TreeBranch): number {
+  const act = actForEntry(branch.id);
+  return act === undefined ? -1 : ACT_IDS.indexOf(act);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1144,8 +1164,9 @@ function Bough({
 /**
  * The card at a bough's own end: one career entry, named. Collapsed it
  * carries the role, the organisation and the year; opened it adds the kind
- * and date range, any case study built in that role, and the way back to it
- * on the timeline. What it deliberately does *not* repeat is the entry's
+ * and date range, which drawn branches ran at the same time, and every case
+ * study built in that role, in full (round 18 — they were a section of their
+ * own). What it deliberately does *not* repeat is the entry's
  * technologies or impact lines — those are drawn as this bough's own leaves,
  * always visible on the twig below, so the panel never restates a fact
  * already on the page beside it.
@@ -1156,7 +1177,16 @@ function Bough({
  * `Disclosure` — trigger and panel together — fades with the rest of this
  * bough while the growth story has not reached it yet).
  */
-function BranchPanel({ branch, side }: { readonly branch: TreeBranch; readonly side: "left" | "right" }) {
+function BranchPanel({
+  branch,
+  side,
+  siblings,
+}: {
+  readonly branch: TreeBranch;
+  readonly side: "left" | "right";
+  /** Drawn branches that ran at the same time as this one. */
+  readonly siblings: readonly TreeBranch[];
+}) {
   const accessibleSuffix = `${branch.label}${branch.organization ? `, ${branch.organization}` : ""}`;
 
   return (
@@ -1189,31 +1219,25 @@ function BranchPanel({ branch, side }: { readonly branch: TreeBranch; readonly s
             {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
           </p>
 
-          {branch.caseStudies.length > 0 ? (
+          {/* What ran at the same time, computed from the entries' own dates
+              (`concurrentWith`) and limited to branches that are drawn — see
+              `drawnSiblings`. A fact the content layer already holds, said
+              where a reader is looking at the branch it belongs to. */}
+          {siblings.length > 0 ? (
             <p className="text-[length:var(--step--1)] leading-relaxed text-fg-muted">
-              Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
-              {branch.caseStudies.map((caseStudy, index) => (
-                <span key={caseStudy.id}>
-                  {index > 0 ? ", " : ""}
-                  <a
-                    href={`#${caseStudyAnchorId(caseStudy.id)}`}
-                    className="text-accent underline-offset-4 hover:underline"
-                  >
-                    {caseStudy.title}
-                  </a>
-                </span>
-              ))}
+              Ran alongside {siblingsLabel(siblings)}
             </p>
           ) : null}
 
-          {/* The way back to this entry on the timeline. Inside the panel and
-              nowhere else: fourteen collapsed panels must not become
-              fourteen tab stops — see ./cross-link.tsx. */}
-          <JourneyEntryCrossLink
-            entryId={branch.id}
-            label={branch.label}
-            organization={branch.organization}
-          />
+          {/* The case studies built in this role, in full. They used to be a
+              section of their own; the prose is the site's best writing and
+              is not trimmed to fit a branch. Inside the disclosure, so a
+              collapsed branch costs nothing in the tab order. */}
+          {branch.caseStudies.map((caseStudy) => {
+            const project = projects.find((candidate) => candidate.id === caseStudy.id);
+            if (!project) return null;
+            return <CaseStudy key={project.id} project={project} index={projects.indexOf(project)} />;
+          })}
         </div>
       </Disclosure>
     </div>
@@ -1458,19 +1482,34 @@ function placements(tree: readonly TreeBranch[]): readonly Placement[] {
       ? Math.min(Math.max(partner.leaves.length - branch.leaves.length, 0) * 16, 160)
       : 0;
 
+    // A partner that genuinely ran at the same time is drawn level with this
+    // one, side by side, instead of staggered down the trunk. The stagger
+    // exists so two limbs do not look like an org chart; it also says "this
+    // one came after that one", which for two jobs held at once is the wrong
+    // thing to say. `concurrentWith` is read off the entries' own dates, and
+    // `partner` is always a drawn branch, so the degree — which contains every
+    // role inside it rather than running beside them, and is demoted — can
+    // never be the thing a branch is level with.
+    const isConcurrent = partner !== undefined && branch.concurrentWith.includes(partner.id);
+
     return {
       column,
       row: totalPairs - Math.floor(index / 2),
       // Base offset and jitter both tuned down alongside `lean` above — a
       // calmer stagger to match the tighter leaf pitch.
-      drop: (column === 2 ? 28 + lean : 0) + vary(`${branch.id}|d`, 0, 14),
+      // Level means the same drop as the partner's own jitter, not merely no
+      // stagger on top of a different one.
+      drop:
+        partner && isConcurrent
+          ? vary(`${partner.id}|d`, 0, 14)
+          : (column === 2 ? 28 + lean : 0) + vary(`${branch.id}|d`, 0, 14),
     };
   });
 }
 
 /* -------------------------------------------------------------------------- */
 
-export function DrawnTree({ tree, className }: DrawnTreeProps) {
+export function DrawnTree({ tree, className, throughAct }: DrawnTreeProps) {
   const placed = placements(tree);
 
   return (
@@ -1484,6 +1523,11 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
           // One placement per branch, in the same order.
           const place = placed[index];
           const side = place.column === 1 ? "left" : "right";
+          const actIndex = actIndexOf(branch);
+          // Concurrency, limited to what is on the drawing — see
+          // `drawnSiblings` for why that limit is where the degree is dealt
+          // with.
+          const siblings = drawnSiblings(branch, tree);
           // One twig x for the whole bough (round 14 — see the note on
           // `twigX`), not one per leaf: every leaf shares it, so the run
           // reads as a single straight spine.
@@ -1496,6 +1540,13 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
               data-tree-branch={branch.id}
               data-origin-year={branch.startYear}
               data-origin-tier="branch"
+              data-branch-act={actIndex >= 0 ? actIndex : undefined}
+              data-undrawn={
+                throughAct !== undefined && actIndex > throughAct ? "" : undefined
+              }
+              data-concurrent-with={
+                siblings.length > 0 ? siblings.map((sibling) => sibling.id).join(" ") : undefined
+              }
               className="relative"
               // Placed with `style` rather than utilities on purpose: the row
               // index and the drop are computed, and Tailwind can only
@@ -1513,7 +1564,7 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                   while its outer edge steps in by a different amount per
                   branch. Fourteen panels all reaching the same margin was
                   most of what made the old drawing read as two columns. */}
-              <BranchPanel branch={branch} side={side} />
+              <BranchPanel branch={branch} side={side} siblings={siblings} />
 
               {branch.leaves.length > 0 ? (
                 <ul

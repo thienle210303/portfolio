@@ -1,10 +1,10 @@
 import { Disclosure } from "@/components/ui/Disclosure";
+import { projects } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { techSlug, type TreeBranch } from "@/lib/knowledge-tree";
-import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
-import { JourneyEntryCrossLink } from "./cross-link";
+import CaseStudy from "./CaseStudy";
 import { EntryInk, ListGrowingTip, ListTrunk } from "./list-ink";
-import { KIND_LABEL } from "./tree-labels";
+import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
 
 /**
  * The career tree as an indented disclosure list — the presentation used
@@ -57,6 +57,7 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
           // A ring ticks the trunk wherever the year changes — including the
           // very first row, which starts the whole list's oldest ring.
           const showRing = branchIndex === 0 || branch.startYear !== tree[branchIndex - 1].startYear;
+          const siblings = drawnSiblings(branch, tree);
 
           return (
             <li
@@ -93,20 +94,9 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                 }
               >
                 <div className="mb-5 space-y-3 border-t border-rule pb-4 pt-3">
-                  {branch.caseStudies.length > 0 ? (
+                  {siblings.length > 0 ? (
                     <p className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]">
-                      Case {branch.caseStudies.length === 1 ? "study" : "studies"}:{" "}
-                      {branch.caseStudies.map((caseStudy, index) => (
-                        <span key={caseStudy.id}>
-                          {index > 0 ? ", " : ""}
-                          <a
-                            href={`#${caseStudyAnchorId(caseStudy.id)}`}
-                            className="text-accent underline-offset-4 hover:underline"
-                          >
-                            {caseStudy.title}
-                          </a>
-                        </span>
-                      ))}
+                      Ran alongside {siblingsLabel(siblings)}
                     </p>
                   ) : null}
 
@@ -158,11 +148,21 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                     </ul>
                   ) : null}
 
-                  <JourneyEntryCrossLink
-                    entryId={branch.id}
-                    label={branch.label}
-                    organization={branch.organization}
-                  />
+                  {/* The case studies built in this role, in full — the same
+                      ones the drawing renders inside its own branch panels.
+                      Only one of the two presentations is ever displayed. */}
+                  {branch.caseStudies.map((caseStudy) => {
+                    const project = projects.find((candidate) => candidate.id === caseStudy.id);
+                    if (!project) return null;
+                    return (
+                      <CaseStudy
+                        key={project.id}
+                        project={project}
+                        index={projects.indexOf(project)}
+                        idScope="list"
+                      />
+                    );
+                  })}
                 </div>
               </Disclosure>
             </li>

@@ -1,0 +1,355 @@
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FocusEvent,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import { actAnchorId } from "@/lib/anchors";
+import type { TreeBranch } from "@/lib/knowledge-tree";
+import type { Act } from "./acts";
+import CredentialsStrip, { isDemotedEntry } from "./CredentialsStrip";
+import DrawnTree from "./DrawnTree";
+import KnowledgeTreeList from "./KnowledgeTreeList";
+
+/**
+ * The Journey's pinned stage.
+ *
+ * One screen holds still and time moves through it. The drawing is `sticky`;
+ * the seven acts scroll beside it, and whichever one is crossing the middle of
+ * the viewport is the moment the drawing is showing.
+ *
+ * Three rules this component exists to keep:
+ *
+ * 1. **Every act is always in the DOM.** Visibility is CSS. Conditional
+ *    rendering would mean six of seven acts are unreachable with JavaScript
+ *    off and under `prefers-reduced-motion`, and this section is the page's
+ *    whole argument — it does not get to require scripting. The same goes for
+ *    the drawing: every branch is rendered, and `data-undrawn` is a mark the
+ *    stylesheet turns into "not yet" only while the pin is live.
+ * 2. **The active act comes from an IntersectionObserver, never a scroll
+ *    listener.** A scroll handler on the main thread is what makes this kind
+ *    of effect stutter on a mid-range phone. There is exactly one observer,
+ *    watching all seven acts.
+ * 3. **Nothing steals focus.** No `inert`, no `tabindex="-1"` on act content,
+ *    no focus moved when the act changes. A reader tabbing through is reading,
+ *    not navigating a carousel — which is why *entering* the drawing with the
+ *    keyboard releases the pin rather than fighting it (see `releaseForReading`).
+ *
+ * ## What is JavaScript and what is CSS
+ *
+ * JavaScript decides two things only: which act is active (`aria-current` on
+ * the act, and the `Year` slider's value) and where the camera should look.
+ * Everything that makes the pin *behave* — the sticky frame, the two columns,
+ * the dimming, the fade-in of branches, the camera's transition — is in
+ * `globals.css` under "Journey stage", hanging off the attributes below:
+ *
+ *   data-stage-live   set once this component has mounted in a browser that
+ *                     has an IntersectionObserver. Until then — no
+ *                     JavaScript, an old browser, the server render — the
+ *                     stage is simply the finished tree above seven stacked
+ *                     cards. The pin is an enhancement of that, never the
+ *                     other way round.
+ *   data-released     the reader asked for the whole tree.
+ *
+ * `prefers-reduced-motion` is not read here. The pin rules in `globals.css`
+ * are inside `@media (prefers-reduced-motion: no-preference)`, so under reduced
+ * motion they never match and the stage is the static layout — decided by the
+ * same media query the user's setting drives, not by a JavaScript branch that
+ * could disagree with it. The same is true below 1280px, where there is not
+ * room for a drawing and a column of captions side by side.
+ */
+interface StageProps {
+  readonly acts: readonly Act[];
+  readonly tree: readonly TreeBranch[];
+  /** Rendered once, after the acts, across the full width — for content that
+   *  belongs to the story but has no branch to open from. Passed in rather
+   *  than imported so it stays a Server Component. */
+  readonly children?: ReactNode;
+}
+
+/** Space left above the newest branch's top edge so its bough has somewhere
+ *  to be drawn from. */
+const FRONT_MARGIN = 80;
+
+/** How much of the foot of the tree is shown before any branch has grown. */
+const BARE_GROUND = 200;
+
+const noopSubscribe = () => () => {};
+const hasObserver = () => typeof IntersectionObserver !== "undefined";
+const noObserver = () => false;
+
+interface PendingScroll {
+  readonly element: Element;
+  readonly block: ScrollLogicalPosition;
+}
+
+export default function Stage({ acts, tree, children }: StageProps) {
+  const [active, setActive] = useState(0);
+  const [released, setReleased] = useState(false);
+  // False on the server and during hydration, true afterwards in any browser
+  // that can observe intersections. `useSyncExternalStore` rather than an
+  // effect that sets state: it is exactly "a value the server cannot know".
+  const live = useSyncExternalStore(noopSubscribe, hasObserver, noObserver);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
+  const windowRef = useRef<HTMLDivElement>(null);
+  const cameraRef = useRef<HTMLDivElement>(null);
+  const actRefs = useRef<(HTMLElement | null)[]>([]);
+  const pendingScroll = useRef<PendingScroll | null>(null);
+
+  const lastAct = acts.length - 1;
+  const drawnBranches = tree.filter((branch) => !isDemotedEntry(branch.id));
+  const current = acts[active];
+  const throughAct = released ? lastAct : active;
+
+  // Which act is current. One observer for the whole stage, watching a band
+  // across the middle of the viewport, so an act becomes current when it is
+  // being read rather than when its top edge appears.
+  useEffect(() => {
+    if (released || !live) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Taking the most-intersecting entry rather than the first means a
+        // short act between two long ones still gets its turn.
+        const best = entries
+          .filter((entry) => entry.isIntersecting)
+          .toSorted((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!best) return;
+        const index = actRefs.current.indexOf(best.target as HTMLElement);
+        if (index >= 0) setActive(index);
+      },
+      { rootMargin: "-45% 0px -45% 0px", threshold: [0, 0.5, 1] },
+    );
+    for (const element of actRefs.current) {
+      if (element) observer.observe(element);
+    }
+    return () => observer.disconnect();
+  }, [released, live, acts.length]);
+
+  // Where the camera looks. The drawing is the whole finished tree, much
+  // taller than the screen, and it grows upward from the ground — so the
+  // frame follows the growth: the ground while the tree is short, the newest
+  // branch's top once it is not. `--front` is how far down the tree has
+  // actually grown, and the stylesheet hides everything above it, which is
+  // what makes the trunk lengthen instead of standing finished from act one.
+  //
+  // This writes two CSS custom properties and nothing else; whether either is
+  // used is the stylesheet's business (it is not, under reduced motion).
+  useEffect(() => {
+    if (released) return;
+    const measure = () => {
+      const camera = cameraRef.current;
+      const frame = windowRef.current;
+      if (!camera || !frame) return;
+      const top = camera.getBoundingClientRect().top;
+      let front = Number.POSITIVE_INFINITY;
+      for (const branch of camera.querySelectorAll<HTMLElement>("[data-branch-act]")) {
+        if (Number(branch.dataset.branchAct) > active) continue;
+        front = Math.min(front, branch.getBoundingClientRect().top - top);
+      }
+      const height = camera.offsetHeight;
+      let frontY: number;
+      if (active >= lastAct) frontY = 0;
+      else if (Number.isFinite(front)) frontY = Math.max(0, front - FRONT_MARGIN);
+      else frontY = Math.max(0, height - BARE_GROUND);
+      const offset = Math.min(frontY, Math.max(0, height - frame.clientHeight));
+      camera.style.setProperty("--front", `${Math.round(frontY)}px`);
+      camera.style.setProperty("--camera", `${-Math.round(offset)}px`);
+    };
+    measure();
+    // A resize reflows the drawing (the two columns re-wrap), and the camera
+    // must follow it. A resize is not a scroll: this fires on a rotation or a
+    // window drag, not on every frame of a flick.
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [active, released, live, lastAct]);
+
+  // Scrolling that has to wait for a state change to have reached the DOM:
+  // releasing the pin changes the layout, and the thing the reader was
+  // looking at has to be brought back into view afterwards.
+  useEffect(() => {
+    const pending = pendingScroll.current;
+    pendingScroll.current = null;
+    if (pending && typeof pending.element.scrollIntoView === "function") {
+      pending.element.scrollIntoView({ block: pending.block });
+    }
+  }, [released]);
+
+  // A link into the stage — `#act-retail-data` from a globe plaque, say — is
+  // followed by the browser against the *static* layout the server rendered,
+  // and the pin then reshapes the page under it: seven stacked cards become a
+  // column of tall captions beside a sticky frame, so the target is somewhere
+  // else by the time the stage is live. Say the landing again once the layout
+  // has settled. Only for a target inside this stage; anything else on the page
+  // did not move.
+  useEffect(() => {
+    if (!live) return;
+    let id = window.location.hash.slice(1);
+    try {
+      id = decodeURIComponent(id);
+    } catch {
+      // A malformed escape in the fragment: use it as written, which names
+      // nothing, and the lookup below finds no target.
+    }
+    const target = id ? document.getElementById(id) : null;
+    if (target && rootRef.current?.contains(target) && typeof target.scrollIntoView === "function") {
+      target.scrollIntoView();
+    }
+  }, [live]);
+
+  const onScrub = useCallback(
+    (value: number) => {
+      setActive(value);
+      const target = document.getElementById(actAnchorId(acts[value].id));
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({ block: "center" });
+      }
+    },
+    [acts],
+  );
+
+  const toggleRelease = () => {
+    pendingScroll.current = rootRef.current ? { element: rootRef.current, block: "start" } : null;
+    // Pinning again starts the show over; releasing shows the last frame, so
+    // the year in the corner agrees with the finished tree beneath it.
+    setActive(released ? 0 : lastAct);
+    setReleased((value) => !value);
+  };
+
+  // Reaching into the drawing — with the keyboard, or by pressing something in
+  // it — is a reader choosing to read it, not to watch it. The frame clips, so
+  // a branch opened inside it could not be scrolled to; the honest answer is to
+  // let go of the pin and put the thing they reached back on screen. Only while
+  // the pin is actually in force: in the static layout (reduced motion, narrow
+  // screens, no pin) the browser's own focus scroll is already right and there
+  // is nothing to release.
+  const releaseForReading = (target: Element) => {
+    const pin = pinRef.current;
+    if (released || !pin || getComputedStyle(pin).position !== "sticky") return;
+    pendingScroll.current = { element: target, block: "center" };
+    setActive(lastAct);
+    setReleased(true);
+  };
+
+  // Keyboard focus only. A pointer press focuses its target on the way down,
+  // and releasing the pin at that moment moves the target out from under the
+  // pointer before the click completes, so the press does nothing; the click
+  // handler below takes that case after the click has landed.
+  const onDrawingFocus = (event: FocusEvent<HTMLDivElement>) => {
+    let byKeyboard = false;
+    try {
+      byKeyboard = event.target.matches(":focus-visible");
+    } catch {
+      // A browser without `:focus-visible` — treat as pointer; the click path
+      // still releases.
+    }
+    if (byKeyboard) releaseForReading(event.target);
+  };
+
+  const onDrawingClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest("button, a")) {
+      releaseForReading(event.target);
+    }
+  };
+
+  return (
+    // `data-stage` is what globals.css hangs the pin on. See the note above on
+    // why reduced motion is decided there and not here.
+    <div
+      ref={rootRef}
+      data-stage=""
+      data-stage-live={live ? "" : undefined}
+      data-released={released ? "" : undefined}
+      className="mt-10 scroll-mt-24"
+    >
+      <div ref={pinRef} data-stage-pin="">
+        <div data-stage-bar="">
+          <p className="font-mono text-[length:var(--step--1)] text-fg-muted">{current.year}</p>
+          <button
+            type="button"
+            onClick={toggleRelease}
+            className="min-h-11 text-[length:var(--step--1)] text-fg underline decoration-rule underline-offset-4 hover:decoration-fg"
+          >
+            {released ? "Watch it grow again" : "Show me the whole tree"}
+          </button>
+        </div>
+
+        {/* The scrubber is *before* the drawing in the DOM and painted under it
+            (`order` in globals.css). Drawing's own controls — a branch's
+            disclosure — release the pin the moment the keyboard reaches them,
+            so a keyboard reader who could only get to the scrubber by tabbing
+            through all of them would never be able to use it. Tab order
+            follows the DOM, and here it is the useful one. */}
+        <label data-stage-scrub="">
+          <span className="eyebrow shrink-0">Year</span>
+          <input
+            type="range"
+            min={0}
+            max={lastAct}
+            step={1}
+            value={active}
+            onChange={(event) => onScrub(Number(event.target.value))}
+            aria-valuetext={`${current.year} — ${current.title}`}
+            className="w-full accent-(--accent)"
+          />
+        </label>
+
+        <div
+          ref={windowRef}
+          data-stage-window=""
+          onFocusCapture={onDrawingFocus}
+          onClickCapture={onDrawingClick}
+        >
+          <div ref={cameraRef} data-stage-camera="">
+            {/* Everything above the point the tree has grown to. Decorative:
+                the branches under it are still in the document and still
+                reachable, this only paints ground over the part of the
+                drawing that has not happened yet. */}
+            <div data-stage-unborn="" aria-hidden="true" />
+            <DrawnTree tree={drawnBranches} throughAct={throughAct} className="hidden lg:block" />
+            <KnowledgeTreeList tree={drawnBranches} className="mt-6 lg:hidden" />
+          </div>
+        </div>
+      </div>
+
+      <div data-stage-acts="">
+        {acts.map((act, index) => (
+          <section
+            key={act.id}
+            id={actAnchorId(act.id)}
+            ref={(element) => {
+              actRefs.current[index] = element;
+            }}
+            data-act=""
+            aria-current={index === active && !released ? "step" : undefined}
+          >
+            {/* Always rendered, and the section itself is never faded: the
+                stylesheet dims the *title* of an act that is not current, by
+                `opacity` alone — no `display: none`, no `visibility: hidden` —
+                so the text stays in the accessible tree and Ctrl-F still
+                finds it. The dim stops at 0.6 on purpose: body text at that
+                opacity falls under 4.5:1 on paper, and an act is not a
+                disabled control. */}
+            <h3
+              data-act-title=""
+              className="font-display text-[length:var(--step-1)] font-normal leading-snug tracking-(--tracking-display-sm) text-fg"
+            >
+              {act.title}
+            </h3>
+            <p className="mt-2 font-mono text-[length:var(--step--1)] text-fg-muted">{act.year}</p>
+            {act.showsCredentials ? <CredentialsStrip className="mt-8" /> : null}
+          </section>
+        ))}
+      </div>
+
+      {children ? <div className="col-span-full">{children}</div> : null}
+    </div>
+  );
+}

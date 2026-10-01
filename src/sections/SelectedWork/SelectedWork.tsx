@@ -20,7 +20,7 @@ import { projects } from "@/content/portfolio";
 import { TreeCrossLink } from "@/sections/CareerTree/cross-link";
 import { resolved } from "@/types/portfolio";
 import { caseStudyAnchorId, caseStudyNumeral } from "./anchors";
-import CaseStudy from "./CaseStudy";
+import CaseStudy from "@/sections/CareerTree/CaseStudy";
 import ProjectIndex, { type ProjectIndexItem } from "./ProjectIndex";
 
 const HEADING_ID = "work-heading";

@@ -158,13 +158,14 @@ async function captureDesktop(browser) {
   await settle(page, 250);
   await article.screenshot({ path: outPath("case-study-open-1440") });
 
-  // Career tree's List face, forced on via the real toggle button — desktop
-  // defaults to the drawn Tree face (already captured as part of
-  // shootSections above), so this is the same section with the visitor's
-  // explicit override applied instead.
+  // The Journey with the pin released, via the real "Show me the whole tree"
+  // button — the pinned stage is what shootSections above captures at
+  // whatever act the page happened to be scrolled to, so this is the finished
+  // tree in normal flow instead. (Round 18 replaced the Tree / List toggle
+  // this used to click.)
   const tree = page.locator("#tree");
   await tree.scrollIntoViewIfNeeded();
-  await page.locator('[data-tree-view-toggle="list"]').click();
+  await page.getByRole("button", { name: "Show me the whole tree" }).click();
   await settle(page, 250);
   await tree.screenshot({ path: outPath("tree-list-1440") });
 

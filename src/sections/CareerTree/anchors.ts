@@ -47,3 +47,36 @@ const RENDERED_IDS: ReadonlySet<string> = new Set(careerEntries.map((entry) => e
 export function journeyEntryAnchor(entryId: string): string | undefined {
   return RENDERED_IDS.has(entryId) ? journeyEntryAnchorId(entryId) : undefined;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Case studies                                                                */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The two identifiers a case-study article and anything linking at it have to
+ * agree on. They moved here from `SelectedWork/anchors.ts` in round 18 along
+ * with `CaseStudy.tsx` itself, because the case studies now render inside the
+ * Journey's branches and the section they used to live in is going away.
+ * `SelectedWork/anchors.ts` re-exports these two until that section is
+ * deleted, so its own files keep resolving.
+ *
+ * Derived from `project.id`, never authored: a project added to or removed
+ * from `projects` renumbers everything without anyone editing a list.
+ */
+
+/**
+ * Anchor id for a case study's `<article>`.
+ *
+ * Deliberately not `case-study-${id}`: `Disclosure` already derives
+ * `case-study-${id}-trigger` and `case-study-${id}-panel` from that string
+ * inside every case study, and two id namespaces one suffix apart is how a
+ * duplicate id gets shipped.
+ */
+export function caseStudyAnchorId(projectId: string): string {
+  return `work-${projectId}`;
+}
+
+/** Two-digit index numeral, e.g. `03`. */
+export function caseStudyNumeral(index: number): string {
+  return String(index + 1).padStart(2, "0");
+}
