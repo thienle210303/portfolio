@@ -1218,6 +1218,146 @@ export const projects = [
     inProgressNote:
       "Team project — the full case study is still being written up with my specific contributions separated out.",
   },
+
+  /* ---------------------------------------------------------------------- */
+  /* Round 18: recovered from `D:\Project\Portfolio-v2`.                     */
+  /*                                                                         */
+  /* Four builds the content layer never knew about, each with a real screen */
+  /* recording in that repo's `src/assets/experience`. Plan C wires the       */
+  /* recordings in; this file only records that they exist.                  */
+  /* ---------------------------------------------------------------------- */
+  {
+    id: "chess-minmax",
+    title: "A chess engine, for no reason",
+    tagline:
+      "A chess game and a min-max bot, built from a YouTube series — the only thing in this record with no class, no client and no deadline behind it.",
+    careerEntryId: "usc-degree",
+    status: "shipped",
+    featured: false,
+    problem:
+      "None. Nobody asked for this and nothing depended on it, which is the entire reason it is worth showing.",
+    whyItMattered:
+      "Every other project here answers to a course, an employer or a hackathon judge. This one is the only evidence of what he builds when the answer is nothing at all.",
+    assumption: undefined,
+    constraints: [
+      "Following along with an existing tutorial series rather than designing from scratch.",
+      "Min-max with no opening book and no endgame tables — the search is the whole engine.",
+    ],
+    responsibility: "Built it alone, start to finish.",
+    decisions: [
+      "Follow Eddie Sharick's series rather than invent an architecture, because the point was understanding search, not designing a program.",
+      "Pygame for the board, so the loop and the rendering stayed simple enough to read in one sitting.",
+    ],
+    pathsExplored: [],
+    built: [
+      "A playable chess game in Pygame, with legal move generation.",
+      "A min-max search bot playing against the human side.",
+    ],
+    proof: ["Public source, and a recorded game against the bot."],
+    learned:
+      "Min-max is simple to describe and unforgiving to implement — almost every mistake was in move generation, not in the search.",
+    nextQuestion:
+      "Where does alpha-beta pruning stop helping and the evaluation function become the whole problem?",
+    technologies: ["Python", "Pygame", "Min-max search"],
+    source: {
+      label: "github.com/thienle210303/Chess",
+      href: "https://github.com/thienle210303/Chess",
+    },
+  },
+  {
+    id: "conscea",
+    title: "Conscea — employee certificates",
+    tagline:
+      "A business application for managing employee certificates, fully functional, and demonstrated without showing a single real record.",
+    careerEntryId: "usc-degree",
+    status: "shipped",
+    featured: false,
+    problem:
+      "Certificate tracking spread across spreadsheets and inboxes, with no single place to see which employee holds which certificate and when it expires.",
+    whyItMattered:
+      "An expired certificate nobody noticed is a compliance problem, not an admin problem.",
+    assumption: undefined,
+    constraints: [
+      "A fixed academic term, delivered with a team.",
+      "Real employee data, so the demo could not show records — only the protocol.",
+    ],
+    responsibility: "Full-stack developer on the team.",
+    decisions: [
+      "Record the demo showing the application's protocol rather than its data, because the data was real and the recording was going on a public portfolio.",
+    ],
+    pathsExplored: [],
+    built: ["A certificate-management application with full CRUD, on Azure."],
+    proof: ["Delivered as coursework; recorded demonstration of the protocol."],
+    learned:
+      "The constraint that shaped the deliverable was the demo, not the build: deciding what a public recording is allowed to contain is a design decision.",
+    nextQuestion:
+      "How do you demonstrate a data-heavy application convincingly without exposing any of its data?",
+    technologies: ["C#/ASP.NET", "JavaScript/React", "Azure", "SQL"],
+  },
+  {
+    id: "degreeworks-rebuild",
+    title: "DegreeWorks, rebuilt",
+    tagline:
+      "A better version of the university's own degree-audit tool, built by the students who had to use it.",
+    careerEntryId: "usc-degree",
+    status: "shipped",
+    featured: false,
+    problem:
+      "The university's degree-audit tool was the only way to answer \"what do I still need to graduate\", and it was slow and hard to read.",
+    whyItMattered:
+      "Every student in the college depends on that answer at registration, twice a year.",
+    assumption: undefined,
+    constraints: [
+      "A software-engineering course term, delivered with a team.",
+      "A desktop GUI in Java, not a web application.",
+    ],
+    responsibility: "Developer on the team.",
+    decisions: [
+      "Rebuild rather than skin: the complaint was about what the tool showed and in what order, which a restyle cannot fix.",
+    ],
+    pathsExplored: [],
+    built: ["A JavaFX degree-audit application, built with Maven."],
+    proof: ["Public source, and a recorded walkthrough."],
+    learned:
+      "Rebuilding a tool you are forced to use is the fastest way to find out which of its problems are the data's and which are the interface's.",
+    nextQuestion:
+      "Which of this tool's problems were actually upstream, in how degree requirements are encoded?",
+    technologies: ["Java", "JavaFX", "Maven", "OOP"],
+    source: {
+      label: "github.com/AlexRishmawi/degreeauditGUI",
+      href: "https://github.com/AlexRishmawi/degreeauditGUI",
+    },
+  },
+  {
+    id: "toy-storefront",
+    title: "A toy storefront",
+    tagline:
+      "A full e-commerce platform with a team of three — the first retail thing he built, two years before retail became the job.",
+    careerEntryId: "usc-degree",
+    status: "shipped",
+    featured: false,
+    problem:
+      "Build a working storefront end to end: catalog, cart, checkout flow, and the data behind all three.",
+    whyItMattered:
+      "It is his earliest full-stack build, and the only one that happens to rhyme with what he does now for a living.",
+    assumption: undefined,
+    constraints: [
+      "A team of three over a summer.",
+      "No payment provider — the checkout flow stops at the point a real one would take over.",
+    ],
+    responsibility: "Full-stack developer on the team.",
+    decisions: [
+      "MongoDB for the catalog, because the product shapes were still changing weekly.",
+    ],
+    pathsExplored: [],
+    built: ["A React and Flask storefront with a MongoDB catalog and a cart."],
+    proof: ["Recorded walkthrough of the storefront."],
+    learned:
+      "A catalog is the easy half. Everything difficult about retail data is in keeping the catalog true to the thing it describes — which is the job he has now.",
+    nextQuestion:
+      "Nothing open. This one is finished, and its interest is historical.",
+    technologies: ["JavaScript/React", "Python/Flask", "Chakra UI", "MongoDB"],
+  },
 ] satisfies readonly Project[];
 
 /* -------------------------------------------------------------------------- */

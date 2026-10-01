@@ -294,3 +294,32 @@ describe("the content layer matches the September 2026 résumé", () => {
     }
   });
 });
+
+describe("the projects round 18 recovers from Portfolio-v2", () => {
+  it("adds all four", () => {
+    for (const id of ["chess-minmax", "conscea", "degreeworks-rebuild", "toy-storefront"]) {
+      expect(projects.find((project) => project.id === id), id).toBeDefined();
+    }
+  });
+
+  it("attaches every project to a career entry that exists", () => {
+    // A project pointing at a missing entry renders as an orphan: the tree
+    // has no branch to hang it off, and nothing fails.
+    for (const project of projects) {
+      expect(
+        careerEntries.some((entry) => entry.id === project.careerEntryId),
+        `${project.id} -> ${project.careerEntryId}`
+      ).toBe(true);
+    }
+  });
+
+  it("never links an executable", () => {
+    // Portfolio-v2 shipped chess.exe as a download. A portfolio does not
+    // hand a visitor a binary.
+    for (const project of projects) {
+      for (const href of [project.demo?.href, project.source?.href]) {
+        expect(href ?? "").not.toMatch(/\.exe($|\?)/);
+      }
+    }
+  });
+});
