@@ -105,6 +105,9 @@ export interface TreeBranch {
   readonly leaves: readonly TreeLeaf[];
   /** Case studies built in this role. */
   readonly caseStudies: readonly TreeCaseStudy[];
+  /** The ids of every other branch that was running at the same time. The
+   *  stage draws these side by side rather than stacked. */
+  readonly concurrentWith: readonly string[];
 }
 
 /** How many branches across the whole tree list a given technology. Computed
@@ -159,6 +162,7 @@ export function buildCareerTree(): readonly TreeBranch[] {
         startYear: Number(entry.sortKey.slice(0, 4)),
         leaves: [...technologyLeaves, ...impactLeaves],
         caseStudies: caseStudiesFor(entry.id),
+        concurrentWith: concurrentWith(entry.id),
       };
     });
 }
@@ -204,6 +208,7 @@ export function buildKnowledgeTree(): readonly TreeRoot[] {
           alsoUsedIn: Math.max(0, (frequency.get(name) ?? 1) - 1),
         })),
         caseStudies: caseStudiesFor(entry.id),
+        concurrentWith: concurrentWith(entry.id),
       }));
 
     const technologies = new Set(branches.flatMap((branch) => branch.leaves.map((l) => l.text)));
@@ -288,4 +293,65 @@ export function techSlug(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Overlap — which roles ran at the same time                                  */
+/* -------------------------------------------------------------------------- */
+
+/** An entry's span as two comparable `YYYY-MM` keys. A milestone is a point,
+ *  so its end is its start. An open-ended role runs to a sentinel that sorts
+ *  after every real key. */
+function span(entry: CareerEntry): { start: string; end: string } {
+  const start = entry.sortKey.slice(0, 7);
+  return { start, end: entry.endSortKey ?? (entry.type === "milestone" ? start : "9999-12") };
+}
+
+/**
+ * Which entries were running at the same time as which. Two entries overlap
+ * when neither one's span finishes before the other's begins — the standard
+ * interval test, and deliberately inclusive, because a role that ended the
+ * same month another started did genuinely overlap by a month.
+ *
+ * Milestones are excluded: a point in time technically overlaps whatever it
+ * lands inside, and reporting that "Dean's List overlapped DoorDash" is noise
+ * rather than information.
+ */
+export function concurrentWith(entryId: string): readonly string[] {
+  const subject = ENTRIES.find((entry) => entry.id === entryId);
+  if (!subject || subject.type === "milestone") return [];
+  const own = span(subject);
+  return ENTRIES
+    .filter((other) => other.id !== entryId && other.type !== "milestone")
+    .filter((other) => {
+      const theirs = span(other);
+      return own.start <= theirs.end && theirs.start <= own.end;
+    })
+    .map((other) => other.id);
+}
+
+/**
+ * The overlap relation collapsed into groups: every set of entries that were
+ * all running together. Transitively closed, so A-overlaps-B and
+ * B-overlaps-C puts all three in one group even where A and C do not touch —
+ * which is what a stage drawing "this is what one year looked like" needs.
+ */
+export function concurrentGroups(): readonly (readonly string[])[] {
+  const seen = new Set<string>();
+  const groups: string[][] = [];
+  for (const entry of ENTRIES) {
+    if (entry.type === "milestone" || seen.has(entry.id)) continue;
+    const group: string[] = [];
+    const queue = [entry.id];
+    for (let id = queue.pop(); id !== undefined; id = queue.pop()) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      group.push(id);
+      for (const neighbour of concurrentWith(id)) {
+        if (!seen.has(neighbour)) queue.push(neighbour);
+      }
+    }
+    if (group.length > 1) groups.push(group);
+  }
+  return groups;
 }

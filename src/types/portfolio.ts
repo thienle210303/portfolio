@@ -250,6 +250,12 @@ export interface CareerEntry {
   readonly dateRange: string;
   /** ISO-ish sort key: YYYY-MM. Descending sort is applied at render time. */
   readonly sortKey: string;
+  /** `YYYY-MM`, or `undefined` for an entry that is still running. The
+   *  machine-readable end of `dateRange`, added in round 18 so overlap can be
+   *  computed rather than eyeballed — the owner held three roles and a degree
+   *  at once in 2024, and a tree that draws that as a sequence is telling the
+   *  wrong story about the most impressive year in the record. */
+  readonly endSortKey?: string;
   readonly role: string;
   readonly organization: string;
   readonly locationOrMode: Maybe<string>;

@@ -3,6 +3,7 @@ import {
   buildCareerTree,
   buildKnowledgeTree,
   careerYearSpan,
+  concurrentGroups,
   techSlug,
   totalTechnologies,
 } from "@/lib/knowledge-tree";
@@ -299,5 +300,114 @@ describe("the entries round 18 adds", () => {
     const scraping = careerEntries.find((entry) => entry.id === "usc-scraping");
     expect(scraping?.sortKey).toBe("2022-08");
     expect(scraping?.dateRange).toBe("August 2022 — May 2025");
+  });
+});
+
+describe("concurrency", () => {
+  it("reports the 2024 roles as running at the same time", () => {
+    const groups = concurrentGroups();
+    const group = groups.find((ids) => ids.includes("schaeffler"));
+    expect(group).toBeDefined();
+    expect(group).toContain("wordification");
+    expect(group).toContain("usc-scraping");
+  });
+
+  it("marks each branch with what it overlapped", () => {
+    const tree = buildCareerTree();
+    const schaeffler = tree.find((branch) => branch.id === "schaeffler");
+    expect(schaeffler).toBeDefined();
+    expect(schaeffler?.concurrentWith).toContain("wordification");
+    // And never itself.
+    expect(schaeffler?.concurrentWith).not.toContain("schaeffler");
+  });
+
+  it("marks an overlap that is easy to miss — he was at the restaurant all through high school", () => {
+    const tree = buildCareerTree();
+    const highSchool = tree.find((branch) => branch.id === "eastside-high");
+    expect(highSchool).toBeDefined();
+    expect(highSchool?.concurrentWith).toContain("fu-of-kyoto");
+  });
+
+  it("carries the same overlaps on the legacy lens-grouped branches", () => {
+    const branches = buildKnowledgeTree().flatMap((root) => root.branches);
+    const schaeffler = branches.find((branch) => branch.id === "schaeffler");
+    expect(schaeffler).toBeDefined();
+    expect(schaeffler?.concurrentWith).toContain("wordification");
+  });
+
+  it("keeps milestones out of the overlap relation, in both directions", () => {
+    const milestoneIds = new Set(
+      ENTRIES.filter((entry) => entry.type === "milestone").map((entry) => entry.id),
+    );
+    for (const branch of buildCareerTree()) {
+      if (milestoneIds.has(branch.id)) expect(branch.concurrentWith).toEqual([]);
+      for (const other of branch.concurrentWith) {
+        expect(milestoneIds.has(other), `${branch.id} lists milestone ${other}`).toBe(false);
+      }
+    }
+    for (const group of concurrentGroups()) {
+      for (const id of group) expect(milestoneIds.has(id), `${id} is a milestone`).toBe(false);
+    }
+  });
+
+  it("is symmetric: if A overlapped B then B overlapped A", () => {
+    const tree = buildCareerTree();
+    for (const branch of tree) {
+      for (const other of branch.concurrentWith) {
+        const back = tree.find((candidate) => candidate.id === other);
+        expect(back?.concurrentWith, `${other} does not list ${branch.id}`).toContain(branch.id);
+      }
+    }
+  });
+
+  it("does not make a role that ended before another began overlap it", () => {
+    // Schaeffler ended August 2024; DoorDash began October 2025.
+    const tree = buildCareerTree();
+    const doordash = tree.find((branch) => branch.id === "doordash");
+    expect(doordash?.concurrentWith).toEqual([]);
+  });
+});
+
+describe("endSortKey", () => {
+  const MONTHS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+
+  // `endSortKey` restates the end of `dateRange` in machine-readable form. It
+  // is the one deliberate duplication in the content layer, so this is what
+  // stops the two drifting apart. An entry that lacks one is treated as still
+  // running — a silent failure on a role that actually ended.
+  const spans = ENTRIES.filter((entry) => entry.type !== "milestone");
+
+  it("is absent exactly where the dateRange says the role is still running", () => {
+    for (const entry of spans) {
+      const running = /—\s*Present$/.test(entry.dateRange);
+      expect(entry.endSortKey === undefined, `${entry.id}: ${entry.dateRange}`).toBe(running);
+    }
+  });
+
+  it("is a YYYY-MM key that never precedes the start", () => {
+    for (const entry of spans) {
+      if (entry.endSortKey === undefined) continue;
+      expect(entry.endSortKey, entry.id).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/);
+      expect(entry.endSortKey >= entry.sortKey.slice(0, 7), `${entry.id} ends before it starts`).toBe(true);
+    }
+  });
+
+  it("agrees with the end of dateRange wherever dateRange states one", () => {
+    for (const entry of spans) {
+      if (entry.endSortKey === undefined) continue;
+      const end = entry.dateRange.split("—").pop()?.trim() ?? "";
+      const year = /(\d{4})$/.exec(end)?.[1];
+      expect(year, `${entry.id}: no end year in "${entry.dateRange}"`).toBeDefined();
+      expect(entry.endSortKey.slice(0, 4), entry.id).toBe(year);
+      const month = MONTHS.findIndex((name) => end.startsWith(name));
+      // "August 2024" names a month and must match it. A bare "2021" does not,
+      // so only the year is checked there.
+      if (month >= 0) {
+        expect(entry.endSortKey.slice(5), entry.id).toBe(String(month + 1).padStart(2, "0"));
+      }
+    }
   });
 });
