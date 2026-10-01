@@ -16,7 +16,7 @@ import {
 import { buildCareerTree, stillGrowingCaption, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
-import { caseStudyAnchorId } from "@/sections/SelectedWork/anchors";
+import { actAnchorId, actForProject } from "@/lib/anchors";
 import {
   resolved as unwrap,
   type ComputedFactId,
@@ -183,12 +183,15 @@ function resolvePlaque(glyph: GlyphId, ref: PlaqueRef): ResolvedPlaque | null {
         text: value,
         source: `projects.${project.id} · ${ref.field}`,
         attribution: project.title,
-        // Derived here, not authored on the ref: `SelectedWork.tsx` renders
-        // every entry of `projects` as its own case study, so any project
-        // this branch can find always has a real anchor — one spelling of it
-        // (`caseStudyAnchorId`), computed from the id already in hand rather
-        // than carried on the content layer as a second, hand-typed string.
-        link: `#${caseStudyAnchorId(project.id)}`,
+        // Round 18: the Selected Work section is gone, so a case study is no
+        // longer a thing with its own anchor — it is rendered inside the
+        // Journey act of the role that produced it. Computed from the id
+        // already in hand, never carried on the content layer as a second
+        // hand-typed string.
+        ...(() => {
+          const act = actForProject(project.id);
+          return act ? { link: `#${actAnchorId(act)}` } : {};
+        })(),
       };
     }
     case "companion": {
