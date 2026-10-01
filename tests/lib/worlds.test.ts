@@ -344,9 +344,13 @@ describe("plaque links", () => {
    * only that a plaque's target is a declared id rather than a hand-typed
    * string that drifted. The other link — that every declared act id is an id
    * something actually puts in the DOM — is asserted by
-   * `tests/ui/Stage.test.tsx`, which renders the stage and requires
-   * `document.getElementById(actAnchorId(act.id))` to be non-null for all
-   * seven acts.
+   * `tests/ui/Stage.test.tsx` (added by the stage task), which renders the
+   * stage and requires `document.getElementById(actAnchorId(act.id))` to be
+   * non-null for all seven acts.
+   *
+   * The section ids are only declared too: nothing here proves `#work` or
+   * `#skills` exist in the DOM, and `navItems` is itself due to shrink in a
+   * later task.
    *
    * Both halves are needed and neither is sufficient. This one cannot catch a
    * declared act that nothing renders, because `ACT_IDS` is also where the
@@ -363,14 +367,34 @@ describe("plaque links", () => {
     // the visitor clicks, nothing happens, and no test, type or build
     // complains. Round 18 deletes the section every project link pointed at,
     // which is exactly when this needs to be loud.
+    let linked = 0;
     for (const world of resolved) {
       for (const plaque of world.plaques) {
         if (!plaque.link) continue;
-        expect(plaque.link.startsWith("#"), plaque.link).toBe(true);
+        linked += 1;
+        expect(plaque.link.startsWith("#"), `${world.id}: ${plaque.link}`).toBe(true);
         expect(DECLARED_IDS, `${world.id}: ${plaque.link}`).toContain(
           plaque.link.slice(1)
         );
       }
+    }
+    // Without this the loop above passes having asserted nothing if every
+    // link is silently dropped. Not a count: the plaque set grows with content.
+    expect(linked, "no plaque carries a link; the loop above checked nothing").toBeGreaterThan(0);
+  });
+
+  it("gives every project plaque a link", () => {
+    // `resolveWorlds` omits the link when a project has no act, which would
+    // turn "links into nothing" into "links nowhere" — invisible to the test
+    // above. A project plaque is one whose source names `projects.<id>`.
+    const projectPlaques = resolved.flatMap((world) =>
+      world.plaques
+        .filter((plaque) => plaque.source.startsWith("projects."))
+        .map((plaque) => ({ worldId: world.id, plaque }))
+    );
+    expect(projectPlaques.length, "no project plaque to check").toBeGreaterThan(0);
+    for (const { worldId, plaque } of projectPlaques) {
+      expect(plaque.link, `${worldId}: ${plaque.source} has no link`).toBeTruthy();
     }
   });
 });
