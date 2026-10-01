@@ -93,7 +93,7 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
       ) : null}
 
       <div data-hero-step="meta-actions" className="mt-8 flex flex-wrap items-center gap-4">
-        <Button href="#work">Explore my work</Button>
+        <Button href="#tree">Explore my work</Button>
         <Link href="/resume" className={RESUME_LINK_CLASS}>
           Open résumé
         </Link>

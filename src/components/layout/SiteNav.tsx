@@ -154,7 +154,7 @@ export default function SiteNav() {
   }, [open]);
 
   /*
-   * Hrefs are root-relative (`/#work`), not bare fragments (`#work`).
+   * Hrefs are root-relative (`/#tree`), not bare fragments (`#tree`).
    *
    * The header renders on /resume too, where none of these sections exist. A
    * bare fragment there just rewrites the hash and goes nowhere; the

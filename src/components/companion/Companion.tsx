@@ -1349,14 +1349,13 @@ export function Companion({ facts }: CompanionProps) {
    *  is still under way. */
   const lastScrollAt = useRef(0);
   /**
-   * The play's own choreography windows — one per stop that needs more than
-   * the pair's ordinary sit, armed at arrival (see `armTourChoreo` in the
-   * loop) and read only from inside the tour's own code paths, exactly the
-   * way `rainHuddleUntil` is read only from inside the watch's. Both are
-   * plain timestamps rather than a richer shape because both are read the
-   * same way `rainHuddleUntil` already is: "is now before this".
+   * The play's own choreography window — the one stop that needs more than
+   * the pair's ordinary sit (Contact's fake-nap), armed at arrival and read
+   * only from inside the tour's own code paths, exactly the way
+   * `rainHuddleUntil` is read only from inside the watch's. It is a plain
+   * timestamp rather than a richer shape because it is read the same way
+   * `rainHuddleUntil` already is: "is now before this".
    */
-  const tourHuddleUntil = useRef(0);
   const tourNapUntil = useRef(0);
   /** What React needs to draw the HUD: which stop, the route it is currently
    *  walking (see companion-tour's `TourRoute`), whether that route has been
@@ -2512,31 +2511,21 @@ export function Companion({ facts }: CompanionProps) {
             if (stopScene) playDuetScene(stopScene, now);
 
             /**
-             * The play's choreography: one beat per stop, existing mechanics
-             * only. About and Tree get nothing here on purpose —
-             * the pair's own default sit, and the facing they already carry in
-             * from the walk, already read as "peering up" and "looking up at
-             * the figure"; adding a forced pose to a cat already sitting still
-             * would be drawing the same thing twice. The rest reuse exactly
-             * the windows `origin-story-beat` arms elsewhere in this file:
-             * `cheerRef` for the pair flourish (grey stretches, tabby bats —
-             * see the "Honestly" note on that handler for why a *pair* cheer
-             * stands in for "tabby cheer" / "tabby startle-hop" alike), and a
-             * `{ dir, until }` / plain-until window read directly from the
-             * tour's own branches below rather than through the generic
+             * The play's choreography: Contact is the only stop that gets any,
+             * and it reuses existing mechanics only. About, Worlds and Journey
+             * get nothing here on purpose — the pair's own default sit, and
+             * the facing they already carry in from the walk, already read as
+             * "peering up" and "looking up at the figure"; adding a forced
+             * pose to a cat already sitting still would be drawing the same
+             * thing twice. Contact arms a plain-until window, read directly
+             * from the tour's own code paths rather than through the generic
              * `rushing`/huddle checks, which never get a turn while `forced`
-             * is already `"tour"`. Every window self-expires on its own clock
-             * and is read only from inside the tour's own code paths, so
-             * ending the tour drops whichever of these happens to be open
-             * along with everything else.
+             * is already `"tour"`; when it lapses, the pair's `cheerRef`
+             * flourish fires (see the startle-awake note further down). The
+             * window self-expires on its own clock, so ending the tour drops
+             * it along with everything else.
              */
-            if (stop.sectionId === "work") {
-              cheerRef.current = { until: now + CHEER_MS };
-              setCheer(true);
-              window.setTimeout(() => setCheer(false), CHEER_MS);
-            } else if (stop.sectionId === "skills") {
-              tourHuddleUntil.current = now + HUDDLE_MS;
-            } else if (stop.sectionId === "contact") {
+            if (stop.sectionId === "contact") {
               tourNapUntil.current = now + CONTACT_NAP_MS;
             }
           }
@@ -2964,22 +2953,8 @@ export function Companion({ facts }: CompanionProps) {
         // cascade above already dropped the tour the one frame it could have
         // nothing to offer.
         const spots = tourSpots.current ?? nearbySpots();
-        // Optional chaining, not `!`: see `stopsFor`'s own comment. A stale
-        // id in `GREY_MIDDLE` shortens the list, so this index can run off
-        // the end — falling through to the plain (non-huddle) branch below
-        // beats reading `sectionId` off `undefined`. This *should* always be
-        // defined, the same hedge the tour's render makes at
-        // `currentTourStop`; it is not a claim that it cannot be.
-        const stopId = stopsFor(tour!.route)[tour!.index]?.sectionId;
-        if (stopId === "skills" && now < tourHuddleUntil.current) {
-          // The huddle: she comes in beside him instead of behind, the same
-          // nudge the rain beat gives the watch above.
-          leadWant = spots.lead;
-          followWant = clampToViewport({ x: spots.lead.x - CAT_W - 6, y: spots.lead.y });
-        } else {
-          leadWant = spots.lead;
-          followWant = spots.follow;
-        }
+        leadWant = spots.lead;
+        followWant = spots.follow;
       } else if (nap) {
         const slots = napSlots(nap.rect);
         leadWant = slots.lead;
@@ -3859,7 +3834,6 @@ export function Companion({ facts }: CompanionProps) {
       // leave the HUD or a bubble on the page with nothing left driving it.
       tourRef.current = null;
       tourSpots.current = null;
-      tourHuddleUntil.current = 0;
       tourNapUntil.current = 0;
       setTourView(null);
       duetAt.current = 0;
@@ -4292,7 +4266,6 @@ export function Companion({ facts }: CompanionProps) {
     const started = startTour();
     tourRef.current = started;
     tourSpots.current = null;
-    tourHuddleUntil.current = 0;
     tourNapUntil.current = 0;
     setTourView({ index: 0, lines: [], route: started.route, routeChosen: started.routeChosen });
     scrollToStop(first.sectionId);
@@ -4339,9 +4312,8 @@ export function Companion({ facts }: CompanionProps) {
   /**
    * The HUD's fork in the walk, offered once — see `TourHud`'s
    * `showRouteChoice` — after About's scene, the only stop every route still
-   * shares now that Work has moved into the derived middle alongside
-   * Worlds, Skills and Journey (round 16 — see `companion-tour.ts`'s
-   * `GREY_MIDDLE` and `stopsFor`). Picking either cat settles
+   * shares now that Worlds and Journey are the derived middle (see
+   * `companion-tour.ts`'s `GREY_MIDDLE` and `stopsFor`). Picking either cat settles
    * `route` for the rest of the walk and immediately does what "Next stop"
    * would have: the choice replaces that button at this one juncture, it
    * does not sit beside it.
@@ -4362,7 +4334,6 @@ export function Companion({ facts }: CompanionProps) {
     if (!tourRef.current) return;
     tourRef.current = null;
     tourSpots.current = null;
-    tourHuddleUntil.current = 0;
     tourNapUntil.current = 0;
     // Left armed, either window reads as a phantom flourish the instant the
     // pair stop being forced — the same leak `origin-story`'s own "end"

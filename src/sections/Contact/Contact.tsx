@@ -18,9 +18,8 @@ import QuickConnect from "./QuickConnect";
  * to — email, GitHub, LinkedIn — plus the name, title and philosophy line
  * that make it read as an actual card rather than a link list.
  *
- * DOM order deliberately does not match visual order at >=1024px, the same
- * choice `SelectedWork` already makes for `ProjectIndex`: the card comes
- * first in markup — so it reads and tabs as what it is, an introduction,
+ * DOM order deliberately does not match visual order at >=1024px: the card
+ * comes first in markup — so it reads and tabs as what it is, an introduction,
  * ahead of the request for a message — and `lg:col-start-2` is what moves it
  * to the right visually. Below 1024px there is no grid to place it into, so
  * DOM order *is* visual order: the card stacks first, then the one field,

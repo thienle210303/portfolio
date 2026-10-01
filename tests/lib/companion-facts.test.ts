@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { careerEntries, projects, skillCategories } from "@/content/portfolio";
+import { careerEntries } from "@/content/portfolio";
 import { buildCompanionFacts } from "@/lib/companion-facts";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
 
@@ -26,19 +26,6 @@ describe("buildCompanionFacts", () => {
     expect(facts.worlds.count).toBe(7);
     expect(facts.worlds.plaques).toBeGreaterThan(0);
     expect(facts.worlds.crossingKm).toBeGreaterThan(12_000);
-  });
-
-  it("counts case studies and their sourced metrics", () => {
-    expect(facts.work.caseStudies).toBe(projects.length);
-    let metrics = 0;
-    for (const project of projects) metrics += project.metrics?.length ?? 0;
-    expect(facts.work.sourcedMetrics).toBe(metrics);
-  });
-
-  it("counts skill categories and distinct skills", () => {
-    expect(facts.skills.categories).toBe(skillCategories.length);
-    const distinct = new Set(skillCategories.flatMap((category) => category.skills));
-    expect(facts.skills.distinctSkills).toBe(distinct.size);
   });
 
   it("counts tree branches, leaves and technologies from the same builder the tree itself renders from", () => {

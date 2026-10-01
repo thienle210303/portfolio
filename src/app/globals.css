@@ -410,7 +410,7 @@
     /*
      * Deliberately *not* `scroll-behavior: smooth` here. Every intentional
      * smooth scroll on this page (SiteNav's nav links and scroll-lock
-     * restore, ProjectIndex, Timeline, ContactForm, the companion's tour)
+     * restore, ContactForm, the companion's tour)
      * already requests it explicitly on the call itself — `behavior:
      * prefersReducedMotion() ? "auto" : "smooth"` — which is what lets each
      * of them honour reduced motion without this property's help. A blanket
@@ -676,8 +676,8 @@
 
     /*
      * Sticky within the section (owner feedback, round 2 — reverses the
-     * decision this block used to argue for). On a long section — About,
-     * Skills, the AI Workflow Lab — a static rail scrolled its facts out of
+     * decision this block used to argue for). On a long section — About, for
+     * one — a static rail scrolled its facts out of
      * view well before the prose beside them did, so the counts and dates it
      * exists to surface were gone for most of the scroll. `position: sticky`
      * on a grid item ranges only over that item's own grid row (`.rail-layout`
@@ -687,10 +687,8 @@
      * never drift into the next section, and it never overlaps the content
      * beside it, because that content is a separate grid column, not
      * something the rail is stacked on top of. `top` clears the sticky header
-     * plus breathing room, matching the offset ProjectIndex already uses for
-     * the same mechanism — see that file's comment for the fuller case for
-     * *why* sticky-within-section is safe (the grid row is the sticky range,
-     * not the viewport). Scoped to this media query on purpose: below 1024px
+     * plus breathing room. Sticky-within-section is safe because the grid row is
+     * the sticky range, not the viewport. Scoped to this media query on purpose: below 1024px
      * the rail is a stacked endnote block, not a grid column, and nothing
      * about it changes.
      */
@@ -899,8 +897,8 @@
    * left margin the rule reads as a continuation tick on a ruled line, where
    * the alternative (pulling the whole run left by the padding to hide it)
    * would break the run's alignment with every other block in the column.
-   * The Skills runs are where this shows: they wrap two and three deep at
-   * 320px.
+   * The Skills runs were where this showed: they wrapped two and three deep at
+   * 320px. (The Skills section was deleted in round 18.)
    */
   .token-run > li:first-child {
     padding-left: 0;

@@ -174,14 +174,20 @@ export function buildDocuments(): Document[] {
     }
   }
 
+  // Round 18: Selected Work is gone and its case studies render inside the
+  // Journey's branches, so these documents link to `#tree`. The `label()`
+  // calls below still pass "work" as their first argument on purpose: that
+  // argument picks the vocabulary in `sectionExpansions`, which is what a
+  // query matches against, and is not the link target. Re-keying it would
+  // change retrieval, not just where "Read it in …" lands.
   for (const project of projectsIndexable) {
     const where = project.organization ? `${project.title} — ${project.organization}` : project.title;
 
     docs.push({
       text: project.problem,
       source: `${where}, the problem`,
-      sectionId: "work",
-      sectionLabel: "Selected work",
+      sectionId: "tree",
+      sectionLabel: "Journey",
       label: label(
         "work",
         project.id,
@@ -196,8 +202,8 @@ export function buildDocuments(): Document[] {
     docs.push({
       text: project.learned,
       source: `${where}, what it taught him`,
-      sectionId: "work",
-      sectionLabel: "Selected work",
+      sectionId: "tree",
+      sectionLabel: "Journey",
       // "wrong", "mistake" and "hindsight" belong here rather than on the
       // project: this is the one passage per project that actually answers
       // "did anything go wrong", and at subject level the words would land on
@@ -214,8 +220,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: claim,
         source: `${where}, evidence`,
-        sectionId: "work",
-        sectionLabel: "Selected work",
+        sectionId: "tree",
+        sectionLabel: "Journey",
         label: label("work", project.id, project.title, "result impact outcome proof evidence"),
       });
     }
@@ -224,8 +230,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: `${metric.label}: ${metric.before} → ${metric.after}.`,
         source: metric.source,
-        sectionId: "work",
-        sectionLabel: "Selected work",
+        sectionId: "tree",
+        sectionLabel: "Journey",
         label: label(
           "work",
           project.id,
@@ -309,12 +315,19 @@ export function buildDocuments(): Document[] {
   // is the document rather than the skill list, because a bare list of names is
   // a fact about the page and the evidence is an actual answer; the names still
   // reach the index through the label.
+  //
+  // Round 18: the Skills section is gone, and nothing on the page renders
+  // `skillCategories` any more except `/resume`, which is a route and cannot
+  // be a `#fragment` link. Each category's evidence line names the roles and
+  // projects it was used in, which are the Journey's branches, so these
+  // documents link to `#tree`. As above, `label("skills", …)` keeps selecting
+  // the skills vocabulary; it is not the link target.
   for (const category of skillsIndexable) {
     docs.push({
       text: category.evidence,
       source: `Skills — ${category.label}`,
-      sectionId: "skills",
-      sectionLabel: "Skills",
+      sectionId: "tree",
+      sectionLabel: "Journey",
       label: label(
         "skills",
         category.id,

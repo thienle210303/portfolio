@@ -20,13 +20,11 @@ import type { CompanionFacts } from "@/lib/companion-facts";
 const FACTS: CompanionFacts = {
   about: { role: "Software Engineer", organization: "DoorDash, Inc." },
   worlds: { count: 7, plaques: 19, decorations: 3, crossingKm: 13000 },
-  work: { caseStudies: 3, sourcedMetrics: 14 },
-  skills: { categories: 6, distinctSkills: 38 },
   tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
   contact: { email: "x@y.z" },
 };
 
-const AMBIENT_SECTIONS = ["about", "work", "skills", "tree"];
+const AMBIENT_SECTIONS = ["about", "tree"];
 // Tour-only stops: sections the guided tour visits but the ambient banter
 // never does, because neither has an AMBIENT builder of its own.
 const TOUR_ONLY_SECTIONS = ["contact", "worlds"];
@@ -71,7 +69,7 @@ describe("scene bank", () => {
   it("offers encores exactly where a second fact exists", () => {
     expect(hasEncore("tree", FACTS)).toBe(true);
     expect(hasEncore("about", FACTS)).toBe(false);
-    expect(hasEncore("skills", FACTS)).toBe(false);
+    expect(hasEncore("worlds", FACTS)).toBe(false);
     expect(hasEncore(null, FACTS)).toBe(false);
   });
 

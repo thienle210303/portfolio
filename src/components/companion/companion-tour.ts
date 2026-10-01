@@ -7,7 +7,7 @@ import { navItems } from "@/content/portfolio";
  *
  * The duet's ambient banter (companion-dialogue.ts) is decorative; this is the
  * opposite — a visitor presses "Show me around" in the toolkit panel, and the
- * pair walk the page's own seven sections, performing a short scene at each
+ * pair walk the page's own four sections, performing a short scene at each
  * stop through the HUD's `role="status"`. It is the only thing the companion
  * narrates out loud, on purpose: everything else it does is a drawing, and a
  * drawing that starts talking to a screen reader unprompted is noise. Asked
@@ -16,7 +16,7 @@ import { navItems } from "@/content/portfolio";
  *
  * `TOUR_STOPS` is derived from `navItems` rather than kept as a parallel
  * list, so the tour can never visit a section the nav does not, or skip one
- * it does — the two are structurally the same seven entries. `stopsFor`
+ * it does — the two are structurally the same four entries. `stopsFor`
  * re-orders that same set for the one fork in the walk — see `TourRoute` —
  * without ever adding to or subtracting from it. The lines spoken at each
  * stop are not here: they come from companion-dialogue.ts's `tour-*` scenes,
@@ -44,10 +44,10 @@ export type TourPhase = "walking" | "arrived";
  * one identically — the visitor has not chosen anyone yet at About, and
  * Contact is where every route ends up regardless — so the routes only
  * ever disagree about the stops in between, `GREY_MIDDLE`: `grey`'s is the
- * order the page itself is laid out in (the builder's route, work outward
- * through the evidence), `tabby`'s runs it backwards (the curious route,
- * starting from what she finds most interesting and working back to how it
- * was built). See `stopsFor`.
+ * order the page itself is laid out in (the builder's route, the world
+ * first and then the chronology behind it), `tabby`'s runs it backwards
+ * (the curious route, starting from what she finds most interesting and
+ * working back to how it was built). See `stopsFor`.
  */
 export type TourRoute = "grey" | "tabby";
 
@@ -59,29 +59,23 @@ export type TourRoute = "grey" | "tabby";
  *  lands in both the hard-coded prefix and this list) or never (if it lands
  *  in neither).
  *
- *  Round 10: the tree absorbed Journey, so this list is one shorter than it
- *  used to be — `journey` retired as a section id, and the tree's own tour
- *  scene (`companion-dialogue.ts`) narrates both faces at its one stop.
- *  Round 16: Philosophy's removal dropped it to three and shifted the fork
- *  to the second stop, now Work rather than Philosophy; the Lab's removal
- *  dropped it again, to two. Playground Earth's addition put Work back into
- *  the middle — rather than growing a second hard-coded prefix stop in
- *  `stopsFor` — so the list went back to four: Worlds, Work, Skills,
- *  Journey. Round 18 removed the Workshop, which had been a fifth; taking it
- *  out of this list and out of `navItems` is the whole of what the tour had
- *  to unlearn, because `TOUR_STOPS` already derives from `navItems` and
- *  `stopsFor` derives the middle from this one list. A section added to
- *  `navItems` and forgotten here would be visited
- *  by neither route — `stopsFor`'s filter drops nothing, but the middle it
- *  builds would simply never name it — which is the silent skip
+ *  Round 18 took it from four to two. The page lost Selected Work and
+ *  Skills (their case studies now render inside the Journey's branches), so
+ *  Worlds and Journey are all that is left between About and Contact, and
+ *  taking the two ids out of this list and out of `navItems` is the whole of
+ *  what the tour had to unlearn: `TOUR_STOPS` already derives from `navItems`
+ *  and `stopsFor` derives the middle from this one list. A section added to
+ *  `navItems` and forgotten here would be visited by neither route —
+ *  `stopsFor`'s filter drops nothing, but the middle it builds would simply
+ *  never name it — which is the silent skip
  *  `tests/lib/companion-tour.test.ts`'s "visits every nav section" case
  *  exists to catch. */
-const GREY_MIDDLE = ["worlds", "work", "skills", "tree"] as const;
+const GREY_MIDDLE = ["worlds", "tree"] as const;
 
 const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop]));
 
 /**
- * The stops in the order one route walks them — six today, for a
+ * The stops in the order one route walks them — four today, for a
  * well-formed `GREY_MIDDLE`. Both routes are the same *set* — nothing is
  * skipped, nothing is invented — and they agree only on the first stop
  * (About) and the last (Contact); everything between the two is

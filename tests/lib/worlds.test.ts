@@ -348,9 +348,10 @@ describe("plaque links", () => {
    * stage and requires `document.getElementById(actAnchorId(act.id))` to be
    * non-null for all seven acts.
    *
-   * The section ids are only declared too: nothing here proves `#work` or
-   * `#skills` exist in the DOM, and `navItems` is itself due to shrink in a
-   * later task.
+   * The section ids are only declared too: nothing here proves `#about`,
+   * `#worlds`, `#tree` or `#contact` exist in the DOM. `navItems` shrank to
+   * those four in round 18, which is what makes a plaque link to a deleted
+   * `#work` or `#skills` fail this test rather than pass it.
    *
    * Both halves are needed and neither is sufficient. This one cannot catch a
    * declared act that nothing renders, because `ACT_IDS` is also where the

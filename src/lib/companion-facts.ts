@@ -1,9 +1,4 @@
-import {
-  careerEntries,
-  profile,
-  projects,
-  skillCategories,
-} from "@/content/portfolio";
+import { careerEntries, profile } from "@/content/portfolio";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
 import { crossingKm, resolveWorlds } from "@/lib/worlds";
 
@@ -17,10 +12,9 @@ import { crossingKm, resolveWorlds } from "@/lib/worlds";
  * rather than a second, independently-typed guess at it.
  *
  * Every derivation here is copied from the rail that already renders the same
- * count, on purpose: SelectedWork.tsx (case studies, sourced figures),
- * Skills.tsx (categories, distinct skills), CareerTree.tsx (branches,
- * leaves, technologies, and — since the tree absorbed Journey — the entries
- * and the work/learning/milestone split too), Hero.tsx (the current role)
+ * count, on purpose: CareerTree.tsx (branches, leaves, technologies, and —
+ * since the tree absorbed Journey — the entries and the
+ * work/learning/milestone split too), Hero.tsx (the current role)
  * and — since round 16 — Worlds.tsx (plaques, decorations and the crossing's
  * length, via `resolveWorlds()`/`crossingKm()` in `src/lib/worlds.ts`).
  * Changing what a rail says and
@@ -51,14 +45,6 @@ export interface CompanionFacts {
     readonly plaques: number;
     readonly decorations: number;
     readonly crossingKm: number;
-  };
-  readonly work: {
-    readonly caseStudies: number;
-    readonly sourcedMetrics: number;
-  };
-  readonly skills: {
-    readonly categories: number;
-    readonly distinctSkills: number;
   };
   /**
    * Round 10: the tree absorbs Journey (one section, two faces), and the
@@ -101,13 +87,6 @@ export function buildCompanionFacts(): CompanionFacts {
     .filter((entry) => entry.type === "work")
     .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
 
-  const sourcedMetrics = projects.reduce(
-    (total, project) => total + (project.metrics?.length ?? 0),
-    0,
-  );
-
-  const totalSkills = new Set(skillCategories.flatMap((category) => category.skills)).size;
-
   // Round 12: the tree inverted (see src/lib/knowledge-tree.ts) — a branch is
   // now one career entry and a leaf is one authored technology or impact
   // line, so `tree.length` is the branch count directly and `leafTotal` sums
@@ -129,14 +108,6 @@ export function buildCompanionFacts(): CompanionFacts {
       plaques: plaqueTotal,
       decorations: decorationTotal,
       crossingKm: crossingKm(),
-    },
-    work: {
-      caseStudies: projects.length,
-      sourcedMetrics,
-    },
-    skills: {
-      categories: skillCategories.length,
-      distinctSkills: totalSkills,
     },
     tree: {
       branches: tree.length,

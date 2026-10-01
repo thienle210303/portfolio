@@ -82,14 +82,6 @@ const AMBIENT: Record<string, SceneBuilder> = {
           tabby("Mrrrow?", "That's the headline. The page is the proof."),
         ]
       : null,
-  work: (f) => [
-    tabby("Mrrrow-meow!", `Ooh — ${f.work.caseStudies} case studies live here!`),
-    grey("Meow. Mrp.", `${f.work.sourcedMetrics} sourced figures between them.`),
-  ],
-  skills: (f) => [
-    tabby("Meow-meow-meow!", `${f.skills.distinctSkills} skills in ${f.skills.categories} groups!`),
-    grey("Mrp.", "No star ratings. Evidence only. House rule."),
-  ],
   tree: (f) => [
     tabby("Mrrrow! Meow!", `A tree! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
     grey("Meow.", "We planted nothing. It grew from the timeline."),
@@ -132,14 +124,6 @@ const TOUR: Record<string, SceneBuilder> = {
   worlds: (f) => [
     tabby("Mrrrow!", `${f.worlds.count} worlds! ${f.worlds.plaques} plaques and we guard all of them!`),
     grey("Mrp. Meow.", `${f.worlds.decorations} more are just drawings. They say so themselves.`),
-  ],
-  work: (f) => [
-    tabby("Mrrrow-meow!", `${f.work.caseStudies} case studies! Real problems, real fixes!`),
-    grey("Meow. Mrp.", `${f.work.sourcedMetrics} numbers, every one sourced. Proof, not vibes.`),
-  ],
-  skills: (f) => [
-    tabby("Mrrrow!", `${f.skills.categories} shelves, ${f.skills.distinctSkills} things on them!`),
-    grey("Mrp. Meow.", "Huddle up. Each one points at where it was used."),
   ],
   // Round 10: the tree absorbed Journey, and this one stop now narrates both
   // faces — the branch/leaf/technology count first, then the timeline split

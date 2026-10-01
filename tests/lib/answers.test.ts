@@ -8,7 +8,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { origin } from "@/content/portfolio";
+import { navItems, origin } from "@/content/portfolio";
 import { resolveWorlds } from "@/lib/worlds";
 
 /**
@@ -61,12 +61,16 @@ const CORPUS = new Set<string>([
   ...resolveWorlds().flatMap((world) => world.plaques.map((plaque) => plaque.text)),
 ]);
 
-/** Sections an answer may link into. `resume` is deliberately absent: the résumé
- *  is its own route now, so `#resume` would be a dead anchor. `workshop` was
- *  here from round 16 until round 18 removed the section — a document pointing
- *  at a section id the page does not have is exactly the dead fragment the
- *  second case below exists to catch. */
-const LINKABLE_SECTIONS = /^(about|worlds|work|journey|skills)$/;
+/** Sections an answer may link into: every section the nav lists, which is
+ *  every section the page has, plus `journey`, the alias `CareerTree.tsx`
+ *  renders as its own `<span id="journey">` so the career documents' older
+ *  links keep landing. Derived from `navItems` rather than typed out: this
+ *  used to be a hand-written alternation, which still listed `work` and
+ *  `skills` after round 18 deleted both sections, and so passed while the
+ *  corpus linked every case-study answer to a section that no longer existed.
+ *  `resume` is deliberately absent: the résumé is its own route, so `#resume`
+ *  would be a dead anchor. */
+const LINKABLE_SECTIONS = new RegExp(`^(${[...navItems.map((item) => item.sectionId), "journey"].join("|")})$`);
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {

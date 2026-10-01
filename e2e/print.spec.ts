@@ -61,8 +61,8 @@ test("the home page prints its content rather than a blank sheet", async ({ page
  * not remove the 10rem track `.rail-layout` reserves for it at >=1024px — and
  * the content column, placed by `lg:order-2` alone with no explicit
  * `grid-column`, auto-flowed into that empty rail track. A whole section
- * squeezed into 160px: SelectedWork's inner grid (minmax(0,1fr) + a 10rem
- * index column + a 2rem gap) then resolved its content track to 0px, prose
+ * squeezed into 160px: Selected Work's inner grid (deleted in round 18:
+ * minmax(0,1fr) + a 10rem index column + a 2rem gap) then resolved its content track to 0px, prose
  * wrapped one character per line, and the page grew to ~340,000px — tall
  * enough that Chromium's print capture failed outright. The print stylesheet
  * now collapses `.rail-layout` to a plain block, which is what this asserts.
@@ -83,7 +83,7 @@ test("hiding the margin rail must not strand section content in its grid track",
   }
 
   // And the concrete symptom: case-study articles keep a real measure.
-  const article = page.locator("#work article").first();
+  const article = page.locator("#tree [data-unbranched-case-studies] article").first();
   const articleWidth = await article.evaluate((el) => el.getBoundingClientRect().width);
   expect(articleWidth, "case studies collapsed to zero width in print").toBeGreaterThan(200);
 });
@@ -115,7 +115,7 @@ test("print media does not create phantom horizontal overflow", async ({ page })
 test("a collapsed disclosure's content is forced open for print", async ({ page }) => {
   await page.emulateMedia({ media: "screen" });
   const trigger = page
-    .locator("#work")
+    .locator("#tree [data-unbranched-case-studies]")
     .getByRole("button", { name: /Read the full case study/ })
     .first();
   await expect(trigger).toHaveAttribute("aria-expanded", "false");

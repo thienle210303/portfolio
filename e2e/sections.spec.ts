@@ -119,11 +119,15 @@ test.describe("hero", () => {
   });
 });
 
-test.describe("selected work", () => {
+// Selected Work was deleted in round 18; its case studies render inside the
+// Journey's branches. The ones that are not inside a branch (the coursework and
+// the capstone) are always in the document, which is what makes them the one
+// place this can be exercised without first opening a branch.
+test.describe("case studies", () => {
   test("a case-study disclosure expands and collapses; collapsed content is not reachable by Tab", async ({
     page,
   }) => {
-    const work = page.locator("#work");
+    const work = page.locator("#tree [data-unbranched-case-studies]");
     const trigger = work.getByRole("button", { name: /Read the full case study/ }).first();
     const panelId = await trigger.getAttribute("aria-controls");
 
@@ -571,9 +575,15 @@ test.describe("career tree", () => {
    * The other half of that listener: it runs on *every* click in the document,
    * so the thing it must be best at is doing nothing. `TreeCrossLink`
    * (src/sections/CareerTree/cross-link.tsx) is an ordinary in-page link
-   * nearby — Skills ends with one pointing at `#tree` — clicked twice, so the
-   * second click takes exactly the branch the test above relies on and has
-   * to fall straight back out of it.
+   * nearby — Selected Work and Skills each ended with one pointing at `#tree`
+   * — clicked twice, so the second click takes exactly the branch the test
+   * above relies on and has to fall straight back out of it.
+   *
+   * Round 18 deleted both sections, and nothing renders `TreeCrossLink` now, so
+   * there is no `a[href="#tree"]` on the page for the test below to click. It
+   * was already out of date for a separate reason (the List face and its filter
+   * went in the same round) and is left for the e2e pass to rewrite or remove,
+   * not rewritten blind here.
    */
   test("an ordinary in-page link leaves the timeline's filter alone", async ({ page }) => {
     const tree = page.locator("#tree");
@@ -874,25 +884,5 @@ test.describe("career tree", () => {
 
     const backgroundColor = await band.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(backgroundColor).toBe("rgba(0, 0, 0, 0)");
-  });
-});
-
-test.describe("skills", () => {
-  test("renders every category with its evidence, and rates nothing", async ({ page }) => {
-    const skills = page.locator("#skills");
-    await expect(skills).toBeVisible();
-
-    // Skills moved here when the résumé section was removed; this is now the
-    // only place on the page they appear, so an empty render would silently
-    // lose content rather than merely look wrong.
-    const categories = skills.locator("ul > li > h3");
-    expect(await categories.count()).toBeGreaterThan(0);
-
-    // No self-assigned proficiency. Checked as *rating widgets* rather than as
-    // "no percentages anywhere" — an evidence line legitimately reads "92%
-    // accuracy", which is a sourced measurement, not a rating of himself.
-    await expect(skills.locator('[role="progressbar"], meter, progress')).toHaveCount(0);
-    await expect(skills.getByText(/\d\s*\/\s*(5|10)\b/)).toHaveCount(0);
-    await expect(skills.getByText(/★|⭐/)).toHaveCount(0);
   });
 });

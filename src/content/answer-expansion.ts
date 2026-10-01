@@ -336,6 +336,13 @@ export const subjectExpansions: Record<string, readonly string[]> = {
  * Applied to every document in a section. Kept short on purpose — a term here
  * lands on dozens of documents at once, so anything only loosely related to the
  * section costs precision everywhere rather than earning recall somewhere.
+ *
+ * The keys are retrieval vocabularies, not page sections. `work` and `skills`
+ * are still here after round 18 deleted both sections: documents for the case
+ * studies and the skill categories still pass them to `label()` in
+ * `answer-corpus.ts`, and still link to `#tree`, where that content now lives.
+ * Removing a key here changes what queries match, which the retrieval eval
+ * prices; it is not part of deleting a section.
  */
 export const sectionExpansions: Record<string, readonly string[]> = {
   about: ["who", "bio", "introduction", "background", "profile", "himself"],

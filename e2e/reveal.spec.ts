@@ -51,7 +51,7 @@ test.describe("no-JS parity", () => {
     // Sample one settling element from a section well below the fold — the
     // fact that it renders fully visible with no scrolling and no JS is the
     // actual claim under test, not merely that the attribute is absent.
-    const heading = page.locator("#skills").getByRole("heading", { level: 2 });
+    const heading = page.locator("#contact").getByRole("heading", { level: 2 });
     await heading.scrollIntoViewIfNeeded();
     await expect(heading).toHaveCSS("opacity", "1");
   });
@@ -81,7 +81,7 @@ test.describe("reduced motion from start", () => {
     // reason.
     await expect(page.locator("html[data-ink-ready]")).toHaveCount(0);
 
-    const heading = page.locator("#skills").getByRole("heading", { level: 2 });
+    const heading = page.locator("#contact").getByRole("heading", { level: 2 });
     await heading.scrollIntoViewIfNeeded();
     await expect(heading).toHaveCSS("opacity", "1");
     await expect(page.locator("h1")).toHaveCSS("opacity", "1");
@@ -95,14 +95,14 @@ test.describe("scroll-restoration guard", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "not viewport-dependent; run once");
 
     // A fragment-navigated load lands the browser already scrolled to
-    // #skills before InkReveal's own effect ever runs — this is precisely
+    // #contact before InkReveal's own effect ever runs — this is precisely
     // the "mid-page reload" case the synchronous pre-stamp in InkReveal
     // exists to cover (see that file's doc comment): without it, the
     // section would flash pending-then-settled instead of rendering
     // correct from the first frame.
-    await page.goto("/#skills");
+    await page.goto("/#contact");
 
-    const heading = page.locator("#skills").getByRole("heading", { level: 2 });
+    const heading = page.locator("#contact").getByRole("heading", { level: 2 });
     await expect(heading).toBeVisible({ timeout: 1_000 });
     await expect(heading).toHaveCSS("opacity", "1");
   });
@@ -122,11 +122,11 @@ test.describe("print visibility", () => {
     // moment of printing, every `[data-ink]` element is forced back to its
     // finished state and the section hairline's own draw-in is disabled in
     // favour of the plain always-visible border it replaces on screen.
-    const heading = page.locator("#skills").getByRole("heading", { level: 2 });
+    const heading = page.locator("#contact").getByRole("heading", { level: 2 });
     await expect(heading).toHaveCSS("opacity", "1");
 
     const rule = await page
-      .locator("#skills")
+      .locator("#contact")
       .evaluate((section) => getComputedStyle(section).borderTopColor);
     expect(rule).not.toBe("rgba(0, 0, 0, 0)");
   });

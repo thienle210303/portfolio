@@ -43,7 +43,7 @@ import { useEffect, useLayoutEffect } from "react";
  * the client — see `useIsomorphicLayoutEffect` below) is load-bearing for
  * job 1's own anti-flash guarantee. Reveal groups already on screen at
  * mount — the hero's own tone-base sibling, on a normal top-of-page load, or
- * literally anything on a `goto("/#skills")` deep link — get `[data-inked]`
+ * literally anything on a `goto("/#contact")` deep link — get `[data-inked]`
  * stamped *before* `[data-ink-ready]` goes on `<html>`, in the same
  * synchronous pass, before the browser has painted the frame that would
  * otherwise show them mid-vanish. Order matters here, not just timing: once

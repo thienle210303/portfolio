@@ -19,9 +19,9 @@ import {
  * The companion already knows *that* somebody is reading — the presence clock
  * in `Companion` is built on it. What it never knew is *what* they are reading,
  * so two cats parked in the same margin looked identical whether the visitor
- * was three paragraphs into a case study or standing on the contact card. This
+ * was three paragraphs into the Journey or standing on the contact card. This
  * module answers the second question, and nothing else: it turns "the visitor
- * is in Work" into a pair of coordinates.
+ * is in the Journey" into a pair of coordinates.
  *
  * Four rules, and they are the same four the rest of the companion lives by —
  * this module is deliberately not allowed to be the exception:
@@ -57,7 +57,7 @@ import {
  * already written down here.
  */
 
-export type MoodKind = "hero" | "work" | "skills" | "tree" | "contact";
+export type MoodKind = "hero" | "tree" | "contact";
 
 export interface MoodSpots {
   readonly lead: Point;
@@ -152,11 +152,12 @@ function mateSpot(lead: Point, side: 1 | -1): Point | null {
  * Sit down beside a rectangle, on whichever side has room — the shared shape
  * every "beside this element" mood below is built from.
  *
- * Extracted from `workMood`, which used to be the only mood that walked a
+ * Extracted from the Work mood, which used to be the only mood that walked a
  * side/offset grid to find a spot beside a moving target. Every mood added in
  * round 11 wants exactly the same thing — a place next to *an* anchor,
  * wherever that anchor currently is on screen — so the grid is shared rather
- * than copied five times with five chances to drift apart.
+ * than copied once per mood with a chance to drift apart each time. (Round 18
+ * deleted the Work and Skills moods along with their sections.)
  */
 function besideRect(
   rect: DOMRect,
@@ -191,16 +192,6 @@ function heroMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Skills: beside the list of categories                                       */
-/* -------------------------------------------------------------------------- */
-
-function skillsMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
-  const rect = rectOf(document.querySelector('#skills ul[role="list"]'));
-  if (!rect) return null;
-  return besideRect(rect, lead, follow, home, "skills");
-}
-
-/* -------------------------------------------------------------------------- */
 /* Tree: beside the plinth, not on it                                          */
 /* -------------------------------------------------------------------------- */
 
@@ -217,35 +208,6 @@ function treeMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
   const rect = rectOf(document.querySelector("#tree [data-cat-nap]"));
   if (!rect) return null;
   return besideRect(rect, lead, follow, home, "tree");
-}
-
-/* -------------------------------------------------------------------------- */
-/* Work: beside the case study you are actually reading                        */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The case study currently in the reading band.
- *
- * Read off `ProjectIndex`'s own `aria-current`, which is that component's
- * answer to exactly this question — computed from the shared `useActiveSection`
- * hook against the case-study anchors. Reading its answer rather than
- * recomputing one is what keeps the cats and the index from disagreeing about
- * which study the visitor is on, and costs one `querySelector`.
- */
-function activeCaseStudy(): DOMRect | null {
-  const current = document.querySelector<HTMLAnchorElement>('#work [aria-current="true"]');
-  const href = current?.getAttribute("href") ?? "";
-  const anchored = href.startsWith("#") ? document.getElementById(href.slice(1)) : null;
-  return rectOf(anchored) ?? rectOf(document.querySelector("#work article"));
-}
-
-function workMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
-  const rect = activeCaseStudy();
-  if (!rect) return null;
-  // Down the study's edge, starting level with its masthead — where the
-  // numeral and the title are, so the pair read as sitting *with* the row
-  // rather than as having stopped somewhere arbitrary.
-  return besideRect(rect, lead, follow, home, "work");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -306,8 +268,6 @@ export function planMood(
   home: Point,
 ): MoodPlan | null {
   if (section === "about") return heroMood(lead, follow, home);
-  if (section === "work") return workMood(lead, follow, home);
-  if (section === "skills") return skillsMood(lead, follow, home);
   if (section === "tree") return treeMood(lead, follow, home);
   if (section === "contact") return contactMood(follow, home);
   return null;

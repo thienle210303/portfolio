@@ -42,11 +42,14 @@ const MAX_SHOWN = 3;
  * filled cell beside two empty ones — which read as a rendering fault, not as
  * restraint.
  *
- * The step back to a single column at `lg` is not a whim: from 1024px the
- * section spends a fixed 10rem on the case-study index (SelectedWork.tsx),
- * and three figures in what remains set "Under 1 hour, end to end" as four
- * ragged lines — which is no longer a figure. Full width until `xl`, where
- * the column is wide enough to hold them abreast again.
+ * The step back to a single column at `lg` was not a whim: when this rendered
+ * in Selected Work, that section spent a fixed 10rem from 1024px on the
+ * case-study index, and three figures in what remained set "Under 1 hour, end
+ * to end" as four ragged lines — which is no longer a figure. Full width
+ * until `xl`, where the column was wide enough to hold them abreast again.
+ * Round 18 moved the case studies into the Journey's branch panels and
+ * deleted that index; these breakpoints were carried over unchanged and have
+ * not been re-measured against the panel's width.
  */
 const COLUMNS: Record<number, string> = {
   1: "sm:grid-cols-1",

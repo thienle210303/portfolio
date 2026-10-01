@@ -1050,8 +1050,10 @@ test.describe("companion", () => {
 
   test("settles where the visitor is reading, without covering it", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the moods need the desktop layout; run once");
-    // Four waits, two of them for the pair to stop moving rather than merely to
+    // Two waits, one of them for the pair to stop moving rather than merely to
     // arrive, and each capped at 25s: the budget is the sum, not the usual case.
+    // (There were four while Work had a mood of its own; round 18 deleted that
+    // section and the mood with it.)
     test.setTimeout(120_000);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -1067,37 +1069,6 @@ test.describe("companion", () => {
      * never on top of it — and the one it must never make, which is any claim
      * at all to a screen reader.
      */
-
-    // Work: in the margin beside the case study, not in it.
-    await readTo(page, "#work article", [300, 500]);
-    await expect
-      .poll(
-        () =>
-          page.evaluate(() => {
-            const current = document.querySelector('#work [aria-current="true"]');
-            const href = current?.getAttribute("href") ?? "";
-            const study = href.startsWith("#")
-              ? document.getElementById(href.slice(1))
-              : document.querySelector("#work article");
-            if (!study) return "no case study on screen";
-            const box = study.getBoundingClientRect();
-            const beside = Array.from(
-              document.querySelectorAll("[data-companion] svg[data-cat]"),
-            ).filter((svg) => {
-              const cat = svg.getBoundingClientRect();
-              const clearOfIt = cat.right <= box.left || cat.left >= box.right;
-              const alongside = cat.bottom > box.top && cat.top < box.bottom;
-              return clearOfIt && alongside;
-            });
-            return beside.length > 0 ? "beside it" : "nowhere near it";
-          }),
-        { timeout: 25_000, message: "the cats ignored the case study being read" },
-      )
-      .toBe("beside it");
-    await expectRestClearOfContent(
-      page,
-      "a cat came to rest on the case study it was sent to sit beside",
-    );
 
     // Contact: one of them on the edge of the business card.
     await readTo(page, "#contact aside", [300, 500]);
@@ -1552,7 +1523,8 @@ test.describe("companion", () => {
      * elapsed. Axe caught the gap live at exactly this deep-scroll shape,
      * top-right and just under the header, after the same jump
      * `axe.spec.ts`'s own "case-study disclosure" test makes to reach
-     * `#work-heading`.
+     * `#tree-heading` (it was `#work-heading` until round 18; the Journey now
+     * sits where Work did, straight after the globe).
      */
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -1574,10 +1546,13 @@ test.describe("companion", () => {
         return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
       });
 
-    // The same single, instant jump `axe.spec.ts` makes to reach the work
-    // section's own heading — large enough, this deep in the page, to clamp
-    // both cats toward the top of the viewport in one frame.
-    await page.locator("#work-heading").scrollIntoViewIfNeeded();
+    // The same single, instant jump `axe.spec.ts` makes to reach the Journey's
+    // own heading — large enough, this deep in the page, to clamp both cats
+    // toward the top of the viewport in one frame. (Round 18 retargeted this
+    // from `#work-heading`: Work is deleted and the Journey occupies the slot
+    // right after the globe that Work did, so it is the same jump by position.
+    // The distances are not identical and nothing here has re-measured them.)
+    await page.locator("#tree-heading").scrollIntoViewIfNeeded();
 
     // Claim one: the correction holds for as long as the ride itself does.
     // `RIDE_SETTLE_MS` (companion-motion.ts) is 220ms; sampled well inside
@@ -1647,17 +1622,18 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
-    // The same single, instant jump the axe test makes to reach the work
-    // section's own heading.
+    // The same single, instant jump the axe test makes to reach the Journey's
+    // own heading (`#tree-heading`; `#work-heading` until round 18 deleted
+    // Work — see the note on the test above about that retarget).
     //
     // Round 16 note: this used to be a genuinely multi-second walk, because
     // Philosophy sat between Hero and Work and made the jump a deep one.
     // With Philosophy gone the jump is short — about 3600px of page height
     // left with it — and landing on it settles in well under 100ms rather
     // than drifting for seconds. That is not a regression to work around:
-    // measured directly, this specific jump (page-load to `#work-heading`)
-    // stays clear of the 24px minimum throughout. It is NOT true of every
-    // jump this page can produce — a jump all the way to `#contact-heading`
+    // measured directly, the jump this used to make (page-load to
+    // `#work-heading`) stays clear of the 24px minimum throughout. It is NOT
+    // true of every jump this page can produce — a jump all the way to `#contact-heading`
     // measured 19.0px, below the floor, on a page anyone can reach from the
     // nav, the tour, or a bare URL fragment. That is a separate, pre-existing
     // defect in `trailBehind` (companion-motion.ts) — recorded as a
@@ -1755,7 +1731,7 @@ test.describe("companion", () => {
       // Triggered from inside the same task the sampler was just armed in —
       // no gap for the walk to start and finish unobserved before Node gets
       // a chance to do anything else.
-      document.getElementById("work-heading")?.scrollIntoView();
+      document.getElementById("tree-heading")?.scrollIntoView();
     });
 
     await page.waitForFunction(() => (window as unknown as { __companionTraceDone?: boolean }).__companionTraceDone === true, null, {
@@ -2061,7 +2037,7 @@ test.describe("companion", () => {
 
   /* ------------------------------------------------------------- D4/D5: the guided tour -- */
 
-  test("walks all six stops, choosing a route at the fork, and ends back on the cat", async ({
+  test("walks all four stops, choosing a route at the fork, and ends back on the cat", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -2075,8 +2051,8 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    for (let stop = 1; stop <= 6; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 6`, "i"))).toBeVisible({
+    for (let stop = 1; stop <= 4; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 4`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       const before = await page.evaluate(() => window.scrollY);
@@ -2093,20 +2069,20 @@ test.describe("companion", () => {
         expect(after).not.toBe(before);
       }
       if (stop === 1) {
-        // The one fork in the walk, now after About rather than Work: round
-        // 16 folded Work into the derived middle alongside Worlds, Skills
-        // Journey (the Workshop, round 16's fifth, was removed in round 18) — see companion-tour.ts's
-        // GREY_MIDDLE/stopsFor — so About is the only stop every route still
-        // shares. "Next stop" is gone here, replaced by the two routes —
-        // both of which reach every one of the six stops, just in a
-        // different order. This run follows Grey's.
+        // The one fork in the walk, after About: the derived middle is just
+        // Worlds and Journey now (round 18 removed Work, Skills and the
+        // Workshop — see companion-tour.ts's GREY_MIDDLE/stopsFor) — so About
+        // is the only stop every route still shares. "Next stop" is gone
+        // here, replaced by the two routes — both of which reach every one
+        // of the four stops, just in a different order. This run follows
+        // Grey's.
         await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
         await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
         await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
         await hud.getByRole("button", { name: /follow grey/i }).click();
         continue;
       }
-      const isLast = stop === 6;
+      const isLast = stop === 4;
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
 
@@ -2128,23 +2104,23 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    // To the fork — About alone, now that round 16 folded Work into the
-    // derived middle — and pick the cat the other test did not: the curious
-    // route, which walks the middle four stops in the opposite order.
-    await expect(hud.getByText(/stop 1 of 6/i)).toBeVisible({ timeout: 10_000 });
+    // To the fork — About alone, the derived middle being Worlds and Journey
+    // — and pick the cat the other test did not: the curious route, which
+    // walks the middle two stops in the opposite order.
+    await expect(hud.getByText(/stop 1 of 4/i)).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /follow tabby/i }).click();
 
-    for (let stop = 2; stop <= 6; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 6`, "i"))).toBeVisible({
+    for (let stop = 2; stop <= 4; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 4`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       await expect(status).not.toHaveText("", { timeout: 10_000 });
-      const isLast = stop === 6;
+      const isLast = stop === 4;
       if (isLast) {
         // Both routes share the same last stop — Contact — regardless of
-        // which way the middle four were walked.
-        await expect(hud.getByText(/stop 6 of 6.*contact/i)).toBeVisible();
+        // which way the middle two were walked.
+        await expect(hud.getByText(/stop 4 of 4.*contact/i)).toBeVisible();
       }
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
@@ -2255,7 +2231,7 @@ test.describe("companion", () => {
 
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
-    // Same wait condition "walks all six stops" uses: the status region is
+    // Same wait condition "walks all four stops" uses: the status region is
     // the arrival signal, not a fixed delay.
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     // Both voices, not one line quoting whichever cat spoke last — the tour
@@ -2440,8 +2416,8 @@ test.describe("companion", () => {
 
     // Moving to another section is a stronger claim on the cats than a
     // beat's own reading-time clock: the scene the visitor was mid-way
-    // through at #tree is about that section, not about #skills.
-    await readTo(page, "#skills", [300, 500]);
+    // through at #tree is about that section, not about #contact.
+    await readTo(page, "#contact aside", [300, 500]);
     await expect(bubble).toBeHidden({ timeout: 10_000 });
     // Thien and his caption leave with the scene, not after it.
     await expect(page.locator("[data-thien]")).toHaveCount(0);
@@ -2495,9 +2471,9 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
-    const link = page.locator('header nav a[href$="#work"]').first();
+    const link = page.locator('header nav a[href$="#tree"]').first();
     await link.hover();
-    await expect(page.locator("[data-companion][data-cat-intent='work']")).toHaveCount(1, {
+    await expect(page.locator("[data-companion][data-cat-intent='tree']")).toHaveCount(1, {
       timeout: 2_000,
     });
 

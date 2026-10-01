@@ -212,8 +212,9 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
   const reasonRef = useRef<HTMLSelectElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
 
-  // Case-study referral: SelectedWork renders "Discuss this project" links
-  // to #contact carrying `data-project-title`. Reading `location.hash`
+  // Case-study referral: `CaseStudy` (rendered inside the Journey's branch
+  // panels) renders "Discuss this project" links to #contact carrying
+  // `data-project-title`. Reading `location.hash`
   // during render would make the very first render depend on the URL,
   // which differs between the server (no hash) and the client (hash
   // present) — a hydration mismatch. This effect instead runs once, after

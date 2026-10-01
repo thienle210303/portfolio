@@ -61,7 +61,11 @@ test("no [NEEDS INPUT marker is rendered with the mobile menu open", async ({ pa
 test("every displayed metric has a visible, non-empty source string", async ({ page }) => {
   await expandAllDisclosures(page);
 
-  const tables = page.locator("#work table");
+  // Case studies render inside the Journey's branches (and, for the entries
+  // that are not branches, after the stage). The branch panels exist in two
+  // presentations with one of them `display: none`, so only the visible
+  // tables are "displayed metrics" — the others cannot show a source at all.
+  const tables = page.locator("#tree table:visible");
   const tableCount = await tables.count();
   expect(tableCount, "content fixture assumption failed: no case study has a metrics table").toBeGreaterThan(0);
 

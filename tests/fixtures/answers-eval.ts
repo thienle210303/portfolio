@@ -244,7 +244,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
       "Time to a feasibility answer",
       "Multi-agent feasibility workflow at DoorDash",
     ],
-    probes: "a project referred to by shorthand — the dd-feasibility-agent case study in Work, since round 16 removed the Lab's own experiment document",
+    probes: "a project referred to by shorthand — the dd-feasibility-agent case study (in the Journey since round 18, Work before that), since round 16 removed the Lab's own experiment document",
   },
   {
     query: "how many retailers has he integrated",

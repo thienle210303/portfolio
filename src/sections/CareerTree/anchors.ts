@@ -1,9 +1,9 @@
 /**
  * The one identifier the Journey's per-entry fragments and anything linking
  * into them have to agree on. It lives here, next to the section that renders
- * it, for the same reason `SelectedWork/anchors.ts` exists: a jump link that
- * disagrees with its target by one character fails silently — the browser
- * simply does nothing.
+ * it, because a jump link that disagrees with its target by one character
+ * fails silently — the browser simply does nothing. (Selected Work kept its
+ * own `anchors.ts` for the same reason until round 18 deleted the section.)
  *
  * Derived from `entry.id`, never authored, so an entry added to or removed
  * from `careerEntries` needs no edit anywhere else.
@@ -65,9 +65,8 @@ export function journeyEntryAnchor(entryId: string): string | undefined {
  * The two identifiers a case-study article and anything linking at it have to
  * agree on. They moved here from `SelectedWork/anchors.ts` in round 18 along
  * with `CaseStudy.tsx` itself, because the case studies now render inside the
- * Journey's branches and the section they used to live in is going away.
- * `SelectedWork/anchors.ts` re-exports these two until that section is
- * deleted, so its own files keep resolving.
+ * Journey's branches; the section they used to live in, and its `anchors.ts`,
+ * are deleted.
  *
  * Derived from `project.id`, never authored: a project added to or removed
  * from `projects` renumbers everything without anyone editing a list.

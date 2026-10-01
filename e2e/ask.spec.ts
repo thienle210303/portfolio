@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { navItems } from "../src/content/portfolio";
 
 /**
  * "Ask this site" — a chat thread over the portfolio's own content. Since
@@ -96,7 +97,11 @@ test.describe("ask this site", () => {
     await expect(first).toContainText(/DoorDash/i);
     await expect(first.getByRole("link", { name: /Read it in/ })).toHaveAttribute(
       "href",
-      /^#(about|worlds|work|journey|skills)$/,
+      // Every section the page has, plus the `#journey` alias the Journey
+      // renders. Derived from the nav rather than typed out: a hand-written
+      // alternation here kept `work` and `skills` alive after round 18 deleted
+      // both sections.
+      new RegExp(`^#(${[...navItems.map((item) => item.sectionId), "journey"].join("|")})$`),
     );
   });
 

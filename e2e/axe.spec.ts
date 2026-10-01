@@ -44,7 +44,7 @@ async function auditHasNoViolations(page: Page, include?: string): Promise<void>
 
 /**
  * Scroll-before-audit (Workstream 3 — the ink-reveal pass's own test-impact
- * note). `#skills` and `#closing` sit well below the fold, and every section's
+ * note). `#closing` sits well below the fold, and every section's
  * eyebrow/h2/lead/rail now settle via `InkReveal` (`Section`/`SectionHeading`,
  * globals.css) — pre-reveal, that text sits at `opacity: 0` until the section
  * scrolls into view. Auditing it unscrolled would ask axe to run its colour-
@@ -90,7 +90,7 @@ test.describe("interactive states", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // Settle `#work`'s own eyebrow/h2 first (Workstream 3 — see
+    // Settle `#tree`'s own eyebrow/h2 first (Workstream 3 — see
     // `scrollIntoViewAndSettle`'s own comment above), *before* jumping
     // straight to a trigger further down the section. Locator actions
     // scroll their target into view with a single instant jump, not an
@@ -101,8 +101,14 @@ test.describe("interactive states", () => {
     // can be left permanently pending. Settling it explicitly first sidesteps
     // that race rather than depending on where the trigger below happens to
     // sit relative to it.
-    await scrollIntoViewAndSettle(page, "#work-heading");
-    const trigger = page.locator("#work").getByRole("button", { name: /Read the full case study/ }).first();
+    await scrollIntoViewAndSettle(page, "#tree-heading");
+    // The coursework and capstone case studies render after the stage and are
+    // always in the document; the ones inside a branch sit in a collapsed
+    // panel, which this test would have to open first.
+    const trigger = page
+      .locator("#tree [data-unbranched-case-studies]")
+      .getByRole("button", { name: /Read the full case study/ })
+      .first();
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     // Let the companions finish moving before the audit. The scroll above
@@ -237,12 +243,12 @@ test.describe("interactive states", () => {
  * `contrast` changes the ground out from under every nested component at once.
  */
 test.describe("off-base section tones", () => {
-  test("Skills (#skills, tone deep) has zero WCAG violations", async ({ page }) => {
+  test("Worlds (#worlds, tone deep) has zero WCAG violations", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#skills");
-    await auditHasNoViolations(page, "#skills");
+    await scrollIntoViewAndSettle(page, "#worlds-heading");
+    await auditHasNoViolations(page, "#worlds");
   });
 
   test("closing section (#closing, tone contrast) has zero WCAG violations", async ({ page }) => {
@@ -289,8 +295,6 @@ test.describe("night theme", () => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#skills");
-    await auditHasNoViolations(page, "#skills");
     await scrollIntoViewAndSettle(page, "#closing");
     await auditHasNoViolations(page, "#closing");
     // The globe is `tone="deep"`: its stage and list. The full-page audits

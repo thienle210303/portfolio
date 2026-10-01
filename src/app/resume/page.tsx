@@ -22,8 +22,10 @@ import { ExternalLink } from "@/components/ui/ExternalLink";
  * It used to be a 5,000px section on the home page, and almost all of it was a
  * second telling: the experience was already in the Journey timeline, the
  * projects were already in Selected Work, the education and every award were
- * already timeline entries. Only the skills and certifications were unique,
- * and those are now their own section.
+ * already timeline entries. Only the skills and certifications were unique.
+ * Selected Work and the Skills section that briefly held them are both gone
+ * from the page now (round 18); the case studies render inside the Journey's
+ * branches, and the skills are rendered here and nowhere else.
  *
  * So the résumé stopped being something to scroll past and became what a
  * résumé actually is — one page you look at or take away. This route is the

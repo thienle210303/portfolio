@@ -1,18 +1,25 @@
 /**
- * The cross-references between this section and the two it still stands
- * apart from.
+ * The cross-references into and out of the career tree.
  *
- * The rule they follow: **one quiet link per direction, and no restated
- * facts.** Work and Skills each keep their own job — the case studies, the
- * inventory — and the tree is the one place their content is shown as a
- * single shape alongside the chronology. Journey used to be the third of
- * these, a separate section this one pointed back at; round 10 folded the
- * timeline into this section as its own "List" face, and round 18 replaced
- * both the timeline and the toggle over it with the pinned stage (see
- * `CareerTree.tsx` and `Stage.tsx`; `Timeline.tsx` is deleted). So there is
- * no longer a third section to point at — only Work and Skills end with a
- * pointer here (`TreeCrossLink`, below), and the tree needs no pointer back
- * the other way, because the chronology it used to point at is now inside it.
+ * **State of the file after round 18 — read this first.** Neither component
+ * below has a caller. `TreeCrossLink` was rendered at the end of Selected Work
+ * and at the end of Skills, and round 18 deleted both sections; the Journey is
+ * now the only place the case studies and the roles are shown, so there is
+ * nothing left that needs to point at it from a sibling section.
+ * `JourneyEntryCrossLink` had already lost its only caller when the pinned
+ * stage replaced the timeline (see its own note below). What does still have an
+ * importer is `CROSS_LINK_CLASS`, which `RootLabels.tsx` reads — and
+ * `RootLabels.tsx` is itself mounted only by `KnowledgeTree.tsx`, which nothing
+ * imports. So the whole file is on the page nowhere. It was kept rather than
+ * deleted because `journey-entry-<id>` links are what the next task of round 18
+ * exists to make resolvable, and the builder for them is here.
+ *
+ * The rule the links followed while they were live: **one quiet link per
+ * direction, and no restated facts.** Journey used to be a separate section
+ * this one pointed back at; round 10 folded the timeline into the tree as its
+ * own "List" face, and round 18 replaced both the timeline and the toggle over
+ * it with the pinned stage (see `CareerTree.tsx` and `Stage.tsx`;
+ * `Timeline.tsx` is deleted).
  *
  * Two pointers *out* of the tree went the same way, and neither is a link any
  * more. Its branch panels used to link to the case studies in `#work`; since
@@ -21,14 +28,15 @@
  * `caseStudyAnchorId`. Its roots used to link to the skill groups in
  * `#skills`; the roots are `RootLabels.tsx`, which only `KnowledgeTree.tsx`
  * ever mounted, and that file has no importer today, so no root label is on
- * the page to link from. Nothing anywhere explains the relationship in prose;
- * the link is the explanation.
+ * the page to link from — and the `#skills` section it linked to is gone too.
+ * Nothing anywhere explains the relationship in prose; the link was the
+ * explanation.
  *
- * Rendered from one component in both inbound places rather than typed out
- * twice: identical text pointing at an identical href is also the correct
- * accessibility answer — a screen-reader user listing the page's links hears
- * one repeated destination, not two differently-worded ones that turn out to
- * be the same place.
+ * `TreeCrossLink` was one component rendered in both inbound places rather
+ * than typed out twice: identical text pointing at an identical href is also
+ * the correct accessibility answer — a screen-reader user listing the page's
+ * links hears one repeated destination, not two differently-worded ones that
+ * turn out to be the same place.
  *
  * `min-h-11` is not decoration either. These sit on their own line rather
  * than inside a sentence, so WCAG 2.2's target-size minimum (2.5.8) applies
@@ -83,9 +91,10 @@ import { journeyEntryAnchor } from "./anchors";
 export const CROSS_LINK_CLASS =
   "ink-link-quiet eyebrow inline-flex min-h-11 items-center text-accent";
 
-/** The pointer into the tree, rendered at the end of Work and Skills.
- *  Deliberately says nothing about *what* connects — the section it points
- *  at is where that is shown. */
+/** The pointer into the tree. It was rendered at the end of Selected Work and
+ *  of Skills; both are deleted, so nothing renders it today (see the file
+ *  comment). Deliberately says nothing about *what* connects — the section it
+ *  points at is where that is shown. */
 export function TreeCrossLink() {
   return (
     <p className="mt-8">

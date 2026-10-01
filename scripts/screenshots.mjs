@@ -9,7 +9,7 @@
  *     no "Deep Dive" toggle there any more (that whole page is one flat
  *     view). It now gets its own navigation + full-page + print capture.
  *   - `#skills` joined the section list (it didn't exist last time this
- *     script was touched).
+ *     script was touched). Round 18 deleted it again, along with `#work`.
  *   - The old `#journey` section merged into `#tree` as a Tree/List toggle
  *     (`ViewToggle.tsx` / `view-state.ts`); the capture list follows that —
  *     one shot of each face via the real toggle buttons instead of a
@@ -45,8 +45,9 @@ const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 const IS_WINDOWS = process.platform === "win32";
 
-// Page order per src/app/page.tsx: about, worlds, work, skills, tree,
-// contact, closing. No standalone "journey" or "resume" section
+// Page order per src/app/page.tsx: about, worlds, tree, contact, closing.
+// Round 18 deleted Selected Work (`#work`) and Skills (`#skills`); the case
+// studies render inside the Journey's branches. No standalone "journey" or "resume" section
 // any more — journey folded into tree (see CareerTree.tsx), résumé moved to its own
 // route (captured separately, below); Philosophy and the AI Workflow Lab
 // both removed entirely (round 16) — the Lab's chat lives on in the hero's
@@ -54,7 +55,7 @@ const IS_WINDOWS = process.platform === "win32";
 // Playground Earth's "worlds" section joined the same round, second in page
 // order, right after the hero. The Workshop that joined it was removed in
 // round 18.
-const SECTIONS = ["about", "worlds", "work", "skills", "tree", "contact", "closing"];
+const SECTIONS = ["about", "worlds", "tree", "contact", "closing"];
 
 const outPath = (name) => path.join(OUT_DIR, `${name}.png`);
 
@@ -151,8 +152,10 @@ async function captureDesktop(browser) {
   await page.screenshot({ path: outPath("full-1440"), fullPage: true });
   await shootSections(page, 1440);
 
-  // A case-study disclosure, expanded.
-  const article = page.locator("#work article").first();
+  // A case-study disclosure, expanded. The case studies that are not inside a
+  // Journey branch (coursework and capstone) are always in the document, so
+  // they are the ones reachable without first opening a branch.
+  const article = page.locator("#tree [data-unbranched-case-studies] article").first();
   await article.scrollIntoViewIfNeeded();
   await article.locator('button[aria-expanded]').first().click();
   await settle(page, 250);
@@ -193,8 +196,10 @@ async function captureDesktop(browser) {
 
   // Print emulation, from a clean reload (no leftover interactive state).
   //
-  // As of this refresh this capture reliably fails: under `@media print`
-  // every `<article>` inside #work measures 0px wide (confirmed via
+  // As of the round-11 refresh this capture reliably failed (not re-checked
+  // since round 18 deleted the section named below): under `@media print`
+  // every `<article>` inside #work (Selected Work, since deleted — its case
+  // studies now render inside #tree) measured 0px wide (confirmed via
   // getBoundingClientRect — .shell itself is still the full 1440px, so
   // something below it collapses), which turns each case study's flowing
   // text into one character per line and inflates the section to ~230,000px

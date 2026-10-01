@@ -1,7 +1,5 @@
 import Hero from "@/sections/Hero/Hero";
 import Worlds from "@/sections/Worlds/Worlds";
-import SelectedWork from "@/sections/SelectedWork/SelectedWork";
-import Skills from "@/sections/Skills/Skills";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import Contact from "@/sections/Contact/Contact";
 import Closing from "@/sections/Footer/Closing";
@@ -19,41 +17,30 @@ export default function Home() {
   return (
     <>
       {/*
-        Order is an argument about what a visitor needs, in what order.
+        Four sections, in the order a visitor needs them: who he is, the world
+        his work lives in, where he has been, how to reach him.
 
-        Round 16 puts Playground Earth second, in the slot Philosophy used to
-        hold: below the fold, before the evidence. It is the one section that
-        is an argument about the person rather than the work, and it earns that
-        position by being made entirely of the work's own facts.
+        Round 18 took the page from six sections to four. Selected Work and
+        Skills are gone because nothing needs them any more: the case studies
+        render inside the branches of the roles that produced them, in the
+        Journey, and the globe's plaques point at the Journey's act anchors.
+        Skills as a section is gone, not the skills — `skillCategories` is
+        still content, still rendered by /resume and still in the answer
+        corpus.
 
-        Who he is, what he built, where he has been, the formal record, then
-        how to reach him.
+        There is deliberately no résumé section either. It was a second
+        telling of this same page. The résumé lives at /resume as a view to
+        read or download, which is what a résumé is.
 
-        There is deliberately no résumé section. It was a 5,000px second
-        telling of this same page — the experience is the timeline, the
-        projects are Selected Work, the education and every award are already
-        timeline entries. Only skills and certifications were unique to it, and
-        those are now their own section. The résumé lives at /resume as a view
-        to read or download, which is what a résumé is.
-
-        The career tree comes after Work and Skills rather than after Work,
-        Journey and Skills: round 10 folded the Journey section's own
-        chronological timeline into the tree as its own "List" face, and round
-        18 replaced that face with the pinned stage (see
-        src/sections/CareerTree/Stage.tsx), so there is no longer a separate
-        Journey section to place. What is left is the
-        synthesis of the other two — the case studies and the inventory, shown
-        as one shape alongside the chronology itself — so it can only be read
-        after both, and it belongs to neither. Each of the two ends with a
-        single link into it.
+        The Journey (`#tree`) follows the globe and precedes Contact: it is the
+        chronology the rest of the page's claims hang from, and the last thing
+        to read before being asked to get in touch.
 
         `navItems` in src/content/portfolio.ts must stay in this order: the nav
         doubles as the page's table of contents.
       */}
       <Hero />
       <Worlds />
-      <SelectedWork />
-      <Skills />
       <CareerTree />
       <Contact emailDeliveryConfigured={emailDeliveryConfigured} />
       <Closing />

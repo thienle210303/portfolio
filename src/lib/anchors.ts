@@ -8,9 +8,9 @@ import { careerEntries, projects } from "@/content/portfolio";
  * structural reason, not a stylistic one. Through round 17, `src/lib/worlds.ts`
  * imported `caseStudyAnchorId` from `src/sections/SelectedWork/anchors.ts` —
  * the library reaching outward into a section it should know nothing about.
- * Round 18 deletes that section, which broke the library at compile time.
- * Nothing under `lib/` imports from `sections/` once this lands, and nothing
- * should again.
+ * Round 18 deleted that section, which broke the library at compile time.
+ * Nothing under `lib/` imports from `sections/` now, and nothing should
+ * again.
  *
  * Order is story order, not date order, and it is what the stage scrubs
  * through. `crossing` has no career entry of its own: it is the arrival

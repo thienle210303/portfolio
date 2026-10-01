@@ -11,13 +11,18 @@
  * follows is ordered by what answers "did this work?" soonest: figures,
  * then the technologies, then the actions, then the deep dive.
  *
- * The numeral no longer occupies a 2/12 gutter. That column is what pays for
- * the case-study index beside the list (see SelectedWork.tsx), and a numeral
- * locked into the masthead has more presence than one parked in a margin.
+ * The numeral no longer occupies a 2/12 gutter. That column paid for a
+ * case-study index beside the list, which lived in Selected Work and went
+ * with it in round 18; a numeral locked into the masthead has more presence
+ * than one parked in a margin.
  *
- * `id` + `tabindex="-1"` are the jump-target contract with that index: it
- * scrolls here and moves focus here. `scroll-mt-*` is what keeps the landing
- * clear of the sticky header and, below 1024px, of the docked index row.
+ * `id` + `tabindex="-1"` make this article a jump target that can take focus
+ * programmatically: anything that scrolls to `#work-<id>` can move focus here
+ * too. `scroll-mt-*` is what keeps the landing clear of the sticky header. The
+ * below-1024px value (`scroll-mt-36`) was sized for the docked index row that
+ * sat under the header in Selected Work; that row is gone, so the extra is now
+ * just air, and it was left alone rather than re-tuned in a task that deletes
+ * sections.
  *
  * Every fact is read from the `Project` object or, for organisation and
  * dates, looked up once via `careerEntryById` — never restated as a literal
@@ -212,13 +217,13 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
   return (
     <article
       id={`${caseStudyAnchorId(project.id)}${scope}`}
-      // Focus target for the case-study index, which moves focus here after
-      // scrolling. Programmatic only — negative tabindex keeps the article
-      // itself out of the tab order.
+      // Focus target for a jump to this case study. Programmatic only —
+      // negative tabindex keeps the article itself out of the tab order.
       tabIndex={-1}
       aria-labelledby={titleId}
       // Landing offset for that jump: 4rem of sticky header plus, below
-      // 1024px, the docked index row (~3.5rem) and a little air. Written as
+      // 1024px, room the Selected Work index row used to need (see the
+      // component note above) and a little air. Written as
       // scale steps rather than calc() for the same reason `Section` writes
       // `scroll-mt-20` — one class, no arbitrary-value arithmetic.
       className="relative scroll-mt-36 border-t border-[color:var(--rule-color)] py-14 first:border-t-0 first:pt-0 md:py-20 lg:scroll-mt-24"

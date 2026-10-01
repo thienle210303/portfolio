@@ -107,7 +107,10 @@ test("prefers-reduced-motion: reduce is honoured", async ({ page }) => {
   const scrollBehavior = await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior);
   expect(scrollBehavior).toBe("auto");
 
-  const trigger = page.locator("#work").getByRole("button", { name: /Read the full case study/ }).first();
+  const trigger = page
+    .locator("#tree [data-unbranched-case-studies]")
+    .getByRole("button", { name: /Read the full case study/ })
+    .first();
   const panelId = await trigger.getAttribute("aria-controls");
   await trigger.click();
 
