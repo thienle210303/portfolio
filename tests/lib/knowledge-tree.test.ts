@@ -281,8 +281,9 @@ describe("the entries round 18 adds", () => {
     // round is removing.
     for (const id of ROUND_18_ENTRIES) {
       const entry = careerEntries.find((candidate) => candidate.id === id);
+      expect(entry, `${id} is missing`).toBeDefined();
       const authored =
-        entry!.impact.length + entry!.built.length + (entry!.learned ? 1 : 0);
+        (entry?.impact.length ?? 0) + (entry?.built.length ?? 0) + (entry?.learned ? 1 : 0);
       expect(authored, `${id} has nothing authored on it`).toBeGreaterThan(0);
     }
   });

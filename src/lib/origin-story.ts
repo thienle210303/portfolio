@@ -22,9 +22,10 @@ import type { CareerEntry, CareerEntryType } from "@/types/portfolio";
  * exactly this.
  *
  * Base weather + storm overlay (design-content fix, after the original
- * all-or-nothing precedence): every active year in the real content also
- * carries a milestone (2021, 2023, 2024, 2025), so a precedence rule that
- * gave `storm` first claim whenever `milestones > 0` meant the show only
+ * all-or-nothing precedence): most active years in the real content also
+ * carry a milestone (computed per year by `seasonsFor`, deliberately not
+ * listed here, so this comment cannot go stale when an entry is added), so a
+ * precedence rule that gave `storm` first claim whenever `milestones > 0` meant the show only
  * ever rendered storms, quiet and wind — sun and rain, the two the owner
  * explicitly asked to see, never appeared at all. `kindFor` below now
  * answers a different question — "what was this year's *base* weather,

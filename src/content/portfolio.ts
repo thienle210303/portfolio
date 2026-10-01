@@ -508,11 +508,12 @@ export const careerEntries = [
     id: "usc-degree",
     type: "learning",
     dateRange: "August 2021 — May 2025",
-    sortKey: "2021-08",
+    sortKey: "2021-08-b",
     role: "B.S. Computer Science, Cybersecurity minor",
     organization: "University of South Carolina",
     locationOrMode: undefined,
-    context: "Four years of computer science with a cybersecurity minor. GPA 3.8.",
+    context:
+      "The degree he finished, in computer science with a cybersecurity minor — after starting in chemical engineering. GPA 3.8.",
     responsibilities: [],
     built: [],
     impact: ["Graduated with a 3.8 GPA.", "Dean's List, 2021–2025."],
@@ -670,6 +671,17 @@ export const careerEntries = [
   /* the résumé, the old repo's project list, and one DoorDash narrative      */
   /* detail. A résumé starts at the degree. A journey does not.               */
   /* ---------------------------------------------------------------------- */
+  /*
+   * DRAFTED, PENDING THE OWNER'S APPROVAL. The facts in these six entries are
+   * his; some of the sentences are not. The `learned` field of every entry
+   * below, `usc-honors-ta.responsibilities` ("give written feedback"), and
+   * `cs-switch.context`'s remark about origin stories were written for him,
+   * not by him: they are interpretation of what he supplied, not something he
+   * said. They stay in so that five of these six entries — none of which has
+   * a metric — are not empty, but a later pass replaces each of them with his
+   * own words or removes it, and nothing here should be treated as his voice
+   * until he has approved it.
+   */
   {
     id: "eastside-high",
     type: "learning",
