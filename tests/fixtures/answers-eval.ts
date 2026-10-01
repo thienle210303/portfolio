@@ -57,7 +57,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
       "The users told me what the real problem was in the first hour",
       "The valuable output was never the data",
       "Reliability at this duration is a design property",
-      "The 99% runtime win got the attention",
+      "The 17-hours-to-3-minutes win got the attention",
     ],
     probes: "trouble, asked without any word the passages use — routes to 'what it taught him'",
   },
@@ -65,7 +65,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
     query: "how do you stop bots from getting blocked",
     expect: [
       "Collection had to run unattended",
-      "2 million+ records generated at a 99.9% success rate",
+      "3M+ Amazon and Kroger product and seller records generated at a 99.9% success rate",
       "Selenium and Playwright across production collection systems",
     ],
     probes: "anti-detection, phrased colloquially; no shared vocabulary at all",
@@ -92,7 +92,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   {
     query: "is he any good at making slow things fast",
     expect: [
-      "99% runtime reduction",
+      "17 hours to 3 minutes",
       "95% runtime reduction",
       "Legacy scraper runtime",
       "Runtime: Baseline",
@@ -139,8 +139,8 @@ export const EVAL_CASES: readonly EvalCase[] = [
     query: "how big were the datasets he handled",
     expect: [
       "Records collected",
-      "2 million+ records generated",
-      "2M+ records at USC",
+      "3M+ Amazon and Kroger product and seller records generated",
+      "3M+ records at USC",
       "The research needed millions of records",
     ],
     probes: "scale, asked as a quantity question",
@@ -229,7 +229,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
     expect: [
       "30+ production scrapers delivered in a single week",
       "Production scrapers were being built as individual artefacts",
-      "The 99% runtime win got the attention",
+      "The 17-hours-to-3-minutes win got the attention",
       "Delivered 30+ production scrapers in a single week",
       "Production scrapers delivered",
     ],
@@ -249,7 +249,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   {
     query: "how many retailers has he integrated",
     expect: [
-      "18+ live retailer integrations",
+      "20+ live retailer integrations",
       "Multiple retail partners assessed",
     ],
     probes: "a specific quantity from the current role",

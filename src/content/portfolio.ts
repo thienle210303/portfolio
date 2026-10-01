@@ -937,7 +937,7 @@ export const projects = [
     id: "dd-scraper-platform",
     title: "Thirty scrapers in a week",
     tagline:
-      "Turning one-off collection scripts into a standardised delivery system — and taking 99% off a legacy scraper's runtime along the way.",
+      "Turning one-off collection scripts into a standardised delivery system — and taking a legacy scraper from 17 hours to 3 minutes along the way.",
     careerEntryId: "doordash",
     status: "shipped",
     featured: true,
@@ -950,7 +950,7 @@ export const projects = [
       "That scraper count and maintenance burden necessarily grow together.",
 
     constraints: [
-      "18+ integrations already live and depending on continuously accurate data.",
+      "20+ integrations already live and depending on continuously accurate data.",
       "No freeze — standardisation had to happen while the existing scrapers kept running.",
       "Retailer sites change without notice, so the standard had to absorb change rather than assume stability.",
     ],
@@ -971,7 +971,7 @@ export const projects = [
     built: [
       "Standardised scraping workflows, tooling and validation used across the team.",
       "Production scrapers generating the structured datasets that power retail partner onboarding.",
-      "Maintenance of operating hours, holiday schedules and location data across 18+ live retailer integrations.",
+      "Maintenance of operating hours, holiday schedules and location data across 20+ live retailer integrations.",
     ],
     metrics: [
       {
@@ -1006,13 +1006,13 @@ export const projects = [
       },
     ],
     proof: [
-      "99% runtime reduction and 2.3× product coverage on the optimised legacy scraper, with its failures eliminated.",
+      "Re-engineered a legacy scraper from HTML crawling to a direct API: runtime 17 hours to 3 minutes, coverage 654 to 1,529 products, failures 3.9% to zero.",
       "30+ production scrapers delivered in a single week once the standard and tooling were in place.",
-      "18+ live retailer integrations kept current on hours, holidays and location data.",
+      "20+ live retailer integrations kept current on hours, holidays and location data.",
     ],
 
     learned:
-      "The 99% runtime win got the attention, but the 30-scrapers-in-a-week number is the one that actually changed the team's ceiling. Optimising one thing is a result; changing how the things get made is a different category.",
+      "The 17-hours-to-3-minutes win got the attention, but the 30-scrapers-in-a-week number is the one that actually changed the team's ceiling. Optimising one thing is a result; changing how the things get made is a different category.",
     nextQuestion:
       "Where does standardisation start costing more than it saves? Some retailers are strange enough that the standard is friction, and I don't yet have a principled way to spot those early.",
 
@@ -1023,9 +1023,9 @@ export const projects = [
 
   {
     id: "usc-research-collection",
-    title: "Two million records, unattended",
+    title: "Three million records, unattended",
     tagline:
-      "Research-scale collection that had to survive months of unsupervised production running — at a 99.9% success rate.",
+      "Research-scale collection of Amazon and Kroger data that had to survive months of unsupervised production running — at a 99.9% success rate.",
     careerEntryId: "usc-scraping",
     status: "shipped",
     featured: true,
@@ -1065,24 +1065,24 @@ export const projects = [
       {
         label: "Records collected",
         before: "—",
-        after: "2,000,000+",
-        source: "Résumé — University of South Carolina, Web Scraping Engineer",
+        after: "3,000,000+",
+        source: "Résumé, September 2026 revision — University of South Carolina, Web Scraping Engineer",
       },
       {
         label: "Success rate",
         before: "—",
         after: "99.9% across months-long runs",
-        source: "Résumé — University of South Carolina, Web Scraping Engineer",
+        source: "Résumé, September 2026 revision — University of South Carolina, Web Scraping Engineer",
       },
       {
         label: "Runtime",
         before: "Baseline",
         after: "95% reduction",
-        source: "Résumé — University of South Carolina, Web Scraping Engineer",
+        source: "Résumé, September 2026 revision — University of South Carolina, Web Scraping Engineer",
       },
     ],
     proof: [
-      "2 million+ records generated at a 99.9% success rate across months-long production runs.",
+      "3M+ Amazon and Kroger product and seller records generated at a 99.9% success rate across months-long production runs.",
       "95% runtime reduction from moving work into the page.",
     ],
 
@@ -1311,7 +1311,7 @@ export const skillCategories = [
       "Fuzzy matching",
     ],
     evidence:
-      "2M+ records at USC; 18+ live retailer integrations and 30+ scrapers in a week at DoorDash; Damerau–Levenshtein matching over 1M+ records at Schaeffler.",
+      "3M+ records at USC; 20+ live retailer integrations and 30+ scrapers in a week at DoorDash; Damerau–Levenshtein matching over 1M+ records at Schaeffler.",
     lenses: ["automation", "optimization", "engineering"],
   },
   {

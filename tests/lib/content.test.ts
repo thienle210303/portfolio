@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
-import { careerEntries, profile, origin } from "@/content/portfolio";
+import { careerEntries, projects, profile, origin } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 
 describe("formatIsoDate", () => {
@@ -271,5 +271,26 @@ describe("the content layer matches the September 2026 résumé", () => {
     const text = [...wordification.built, ...wordification.impact].join("\n");
     expect(text).toContain("Google Cloud");
     expect(text).toContain("ElevenLabs");
+  });
+
+  it("does not let the case studies argue with the career entries", () => {
+    // The two case studies once kept the pre-September figures after the
+    // entries moved on, so the page said "99%" in one place and "17 hours to
+    // 3 minutes" in another. The Technology globe quotes the tagline verbatim,
+    // which is where a stale one would be most visible.
+    const dd = projects.find((project) => project.id === "dd-scraper-platform");
+    const usc = projects.find((project) => project.id === "usc-research-collection");
+    if (!dd || !usc) throw new Error("a case study this test audits no longer exists");
+    const prose = (project: typeof dd) => JSON.stringify(project);
+
+    expect(dd.tagline).toContain("17 hours to 3 minutes");
+    expect(prose(dd)).not.toMatch(/18\+|99% runtime|2\.3×|failures eliminated/);
+    expect(prose(usc)).not.toMatch(/2 million|Two million|2,000,000/);
+    expect(usc.title).toContain("Three million");
+    expect(usc.proof.join("\n")).toContain("3M+ Amazon and Kroger");
+
+    for (const metric of [...(dd.metrics ?? []), ...(usc.metrics ?? [])]) {
+      expect(metric.source, metric.label).toContain("September 2026 revision");
+    }
   });
 });
