@@ -132,6 +132,10 @@ export interface Companion {
   readonly habit: string;
   /** ISO date the owner authored this. */
   readonly authoredOn: string;
+  /** Whose cat this is. The site implied they were his through round 17;
+   *  they are his girlfriend's. One field, because the alternative is the
+   *  resolver composing a sentence about a relationship nobody authored. */
+  readonly belongsTo: string;
 }
 
 export type SocialPlatform = "GitHub" | "LinkedIn" | "Email";

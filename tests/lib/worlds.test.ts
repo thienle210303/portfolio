@@ -180,6 +180,15 @@ describe("the honesty rule", () => {
     const everything = JSON.stringify(resolved);
     expect(everything).not.toContain("undefined");
   });
+
+  it("says whose cats they are", () => {
+    // The site implied they were his. They are his girlfriend's, and a
+    // portfolio that gets a fact about two cats wrong has no standing to
+    // claim every plaque quotes a real field.
+    for (const cat of companions) {
+      expect(cat.belongsTo).toBe("my girlfriend");
+    }
+  });
 });
 
 describe("references that resolve to nothing are dropped, not rendered", () => {
