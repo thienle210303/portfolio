@@ -348,3 +348,40 @@ export function dueByElapsed<K>(
   while (cut < plan.length && elapsedMs >= plan[cut].delayMs) cut++;
   return plan.slice(0, cut);
 }
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+
+/**
+ * His age when he landed, in whole years — `origin.born` subtracted from
+ * `origin.arrivedOn`, never typed. Uses the first of the arrival month, which
+ * is the conservative read: it can only ever understate the age by rounding
+ * down, and it never needs a day that nobody authored.
+ *
+ * Deliberately not `Date.now()`-relative. The whole page is built once at
+ * build time, so anything measured from "now" drifts stale between deploys
+ * with no content change — the same reason `careerYearSpan()` reads `sortKey`
+ * instead of `Date`.
+ */
+export function arrivedAge(): number {
+  const [bornYear, bornMonth, bornDay] = origin.born.split("-").map(Number);
+  const [arrivedYear, arrivedMonth] = origin.arrivedOn.split("-").map(Number);
+  let age = arrivedYear - bornYear;
+  // Arrived on the 1st, so a birthday later in the arrival month has not
+  // happened yet.
+  if (arrivedMonth < bornMonth || (arrivedMonth === bornMonth && bornDay > 1)) age -= 1;
+  return age;
+}
+
+/**
+ * Whether `origin.arrived` (prose) and `origin.arrivedOn` (machine) name the
+ * same month. Two spellings of one fact is the drift this content layer exists
+ * to prevent, so the test asserts it rather than a comment asking nicely.
+ */
+export function arrivedOnAgreesWithArrived(): boolean {
+  const [year, month] = origin.arrivedOn.split("-").map(Number);
+  const name = MONTHS[month - 1];
+  return name !== undefined && origin.arrived === `${name} ${year}`;
+}

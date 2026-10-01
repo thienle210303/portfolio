@@ -96,12 +96,23 @@ export const origin = {
   // serves the globe's pin, the origin story's captions and the résumé — the
   // site must never carry two names for one place.
   from: "Kiên Giang, Việt Nam",
-  to: "United States",
+  // Round 18: a city, not a country. Until now no city was authored anywhere
+  // on this site, which is why the globe pinned the geographic centre of the
+  // United States and said so out loud in the USA world's `where` line. Both
+  // change with this one field.
+  to: "Taylors, South Carolina",
   arrived: "December 2018",
+  arrivedOn: "2018-12",
   arrivedYear: 2018,
+  born: "2003-03-03",
+  withFamily: true,
+  english: "Basic reading, writing and listening. No speaking.",
   coordinates: {
     from: { lat: 10.0, lon: 105.1 },
-    to: { lat: 39.83, lon: -98.58 },
+    // Taylors, South Carolina. VERIFY against a gazetteer before shipping —
+    // this is the one coordinate pair on the site not taken from a source
+    // document.
+    to: { lat: 34.9226, lon: -82.3068 },
   },
 } satisfies Origin;
 

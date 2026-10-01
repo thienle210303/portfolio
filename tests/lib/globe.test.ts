@@ -159,10 +159,17 @@ describe("greatCircle", () => {
 describe("derived worlds", () => {
   const arc = greatCircle(origin.coordinates.from, origin.coordinates.to, 72);
 
-  it("puts the Sea's midpoint between the two pins, out over the Pacific", () => {
+  it("puts the Sea's midpoint between the two pins, on the shorter route", () => {
     const mid = arcMidpoint(arc);
+    // The route bends poleward, so the midpoint sits north of the origin pin.
     expect(mid.lat).toBeGreaterThan(origin.coordinates.from.lat);
-    expect(Math.abs(mid.lon)).toBeGreaterThan(150);
+    // And it is equidistant from both pins. This used to assert "|lon| > 150",
+    // i.e. out over the Pacific — true of the country-centroid pin and false of
+    // Taylors, whose great circle clears Siberia instead. The claim worth
+    // keeping was always "midway", which does not depend on where the pins are.
+    const dot = (p: typeof mid, q: typeof mid) =>
+      toVector(p).reduce((sum, component, i) => sum + component * toVector(q)[i], 0);
+    expect(dot(mid, origin.coordinates.from)).toBeCloseTo(dot(mid, origin.coordinates.to), 6);
   });
 
   it("puts the Sky's apex at the arc's highest latitude", () => {

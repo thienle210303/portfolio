@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { careerEntries, origin } from "@/content/portfolio";
 import { careerYearSpan } from "@/lib/knowledge-tree";
 import {
+  arrivedAge,
+  arrivedOnAgreesWithArrived,
   CAPTION_MAX_CHARS,
   dueByElapsed,
   firstCanopyYear,
@@ -332,11 +334,10 @@ describe("origin, as the globe's two pins", () => {
   it("carries coordinates for both ends of the crossing", () => {
     expect(origin.coordinates.from.lat).toBeCloseTo(10.0, 1);
     expect(origin.coordinates.from.lon).toBeCloseTo(105.1, 1);
-    // The United States pin is the country centroid, unlabelled below country
-    // level — decision 3. Not a city, on purpose: no city is authored
-    // anywhere, and the globe may not be the one place that invents one.
-    expect(origin.coordinates.to.lat).toBeCloseTo(39.83, 1);
-    expect(origin.coordinates.to.lon).toBeCloseTo(-98.58, 1);
+    // Taylors, South Carolina. This was the country centroid (39.83, -98.58)
+    // until round 18 authored a city; see the VERIFY note in the content.
+    expect(origin.coordinates.to.lat).toBeCloseTo(34.9226, 1);
+    expect(origin.coordinates.to.lon).toBeCloseTo(-82.3068, 1);
   });
 
   it("keeps latitudes and longitudes inside the real world", () => {
@@ -376,5 +377,25 @@ describe("dueByElapsed", () => {
     const before = JSON.stringify(plan);
     dueByElapsed(plan, STAGGER_STEP_MS * 2);
     expect(JSON.stringify(plan)).toBe(before);
+  });
+});
+
+describe("the crossing's own arithmetic", () => {
+  it("computes his age on arrival rather than carrying a number", () => {
+    // Born 2003-03-03, arrived 2018-12. Fifteen, and nothing in the content
+    // layer says "15" — if it did, a birthday would silently make it wrong.
+    expect(arrivedAge()).toBe(15);
+    expect(JSON.stringify(origin)).not.toContain('"arrivedAge"');
+  });
+
+  it("keeps the prose date and the machine date agreeing", () => {
+    // `arrived` is what a reader sees; `arrivedOn` is what the arithmetic
+    // uses. Two spellings of one fact is exactly the drift this site exists
+    // to prevent, so it is asserted rather than trusted.
+    expect(arrivedOnAgreesWithArrived()).toBe(true);
+  });
+
+  it("derives arrivedYear from arrivedOn rather than carrying it separately", () => {
+    expect(origin.arrivedYear).toBe(Number(origin.arrivedOn.slice(0, 4)));
   });
 });

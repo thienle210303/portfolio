@@ -43,7 +43,7 @@ export const worlds = [
     name: "United States",
     glyph: "star",
     anchor: { at: "origin-to" },
-    where: "Country centroid — no city, because no city is authored anywhere on this site",
+    where: "The arrival pin — Taylors, South Carolina, the first place he lived here",
     plaques: [
       { glyph: "cap", ref: { of: "careerEntry", id: "graduation", field: "role" } },
       { glyph: "trophy", ref: { of: "careerEntry", id: "cockyhacks", field: "role" } },

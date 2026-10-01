@@ -86,6 +86,19 @@ export interface Origin {
   readonly to: string;
   readonly arrived: string;
   readonly arrivedYear: number;
+  /** ISO date. The only birth date on the site; `arrivedAge()` subtracts it
+   *  from `arrivedOn` so no age is ever typed twice. */
+  readonly born: string;
+  /** `YYYY-MM` — the machine-readable twin of `arrived`. `arrived` is prose a
+   *  visitor reads; this is what arithmetic uses. `arrivedOnAgreesWithArrived()`
+   *  asserts they never drift apart. */
+  readonly arrivedOn: string;
+  /** He did not arrive alone. One boolean, because the alternative is a
+   *  sentence this file would be inventing. */
+  readonly withFamily: boolean;
+  /** His own description of the English he landed with, condensed from his
+   *  words and nobody else's. */
+  readonly english: string;
 
   /**
    * Where the two ends of the crossing are. Authored here rather than in
@@ -95,7 +108,8 @@ export interface Origin {
    * every one of them agree, which they only do if there is one pair of
    * numbers on the site.
    *
-   * `to` is the United States country centroid, deliberately not a city.
+   * `to` is Taylors, South Carolina, the town he arrived in — a city since
+   * round 18; before that it was the United States country centroid.
    */
   readonly coordinates: {
     readonly from: GeoPoint;
