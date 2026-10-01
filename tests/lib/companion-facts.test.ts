@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { workflowStages } from "@/content/ai-experiments";
-import { careerEntries, problemSolvingLoop, projects, skillCategories } from "@/content/portfolio";
-import { defaultRunProjectId } from "@/content/workshop";
+import { careerEntries, projects, skillCategories } from "@/content/portfolio";
 import { buildCompanionFacts } from "@/lib/companion-facts";
 import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
-import { resolveRun } from "@/lib/workshop";
 
 /**
  * D1: `buildCompanionFacts` is only trustworthy if every number in it matches
@@ -61,18 +58,6 @@ describe("buildCompanionFacts", () => {
     expect(facts.tree.learning).toBe(careerEntries.filter((e) => e.type === "learning").length);
     expect(facts.tree.milestones).toBe(careerEntries.filter((e) => e.type === "milestone").length);
     expect(facts.tree.work + facts.tree.learning + facts.tree.milestones).toBe(facts.tree.entries);
-  });
-
-  it("counts the Workshop's steps, stages and the default run's filled stations", () => {
-    expect(facts.workshop.steps).toBe(problemSolvingLoop.length);
-    expect(facts.workshop.stages).toBe(workflowStages.length);
-    // Recomputed from the stations themselves rather than read off
-    // `authoredStations`, so a resolver that miscounted its own summary
-    // would still be caught here.
-    const run = resolveRun(defaultRunProjectId);
-    const filled = run?.stations.filter((station) => station.evidence.length > 0).length ?? 0;
-    expect(facts.workshop.authored).toBe(filled);
-    expect(facts.workshop.authored).toBeLessThanOrEqual(facts.workshop.steps);
   });
 
   it("carries the same contact email the Contact section links to", () => {

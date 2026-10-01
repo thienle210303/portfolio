@@ -23,14 +23,13 @@ const FACTS: CompanionFacts = {
   work: { caseStudies: 3, sourcedMetrics: 14 },
   skills: { categories: 6, distinctSkills: 38 },
   tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
-  workshop: { steps: 9, stages: 10, authored: 9 },
   contact: { email: "x@y.z" },
 };
 
 const AMBIENT_SECTIONS = ["about", "work", "skills", "tree"];
 // Tour-only stops: sections the guided tour visits but the ambient banter
 // never does, because neither has an AMBIENT builder of its own.
-const TOUR_ONLY_SECTIONS = ["contact", "worlds", "workshop"];
+const TOUR_ONLY_SECTIONS = ["contact", "worlds"];
 
 describe("scene bank", () => {
   it("has a hello scene with both speakers and alternation", () => {

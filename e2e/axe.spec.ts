@@ -238,50 +238,6 @@ test.describe("off-base section tones", () => {
     await scrollIntoViewAndSettle(page, "#closing");
     await auditHasNoViolations(page, "#closing");
   });
-
-  test("Workshop (#workshop, tone deep) has zero WCAG violations, switched run included", async ({
-    page,
-  }) => {
-    test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#workshop");
-    const section = page.locator("#workshop");
-    await auditHasNoViolations(page, "#workshop");
-
-    // Then again with a different run selected, which is the section's one
-    // piece of state. The switcher is a radio group, so the audited change is
-    // not only the swapped evidence: it is also which chip carries
-    // `aria-checked`, and the empty stations' gap sentences, which only some
-    // runs produce and which no other audit in this file ever sees.
-    const chips = section.getByRole("radio");
-    const count = await chips.count();
-    expect(count, "the run switcher has nothing to switch to").toBeGreaterThan(1);
-
-    // `id` rather than `value`: these chips are `<button role="radio">`
-    // (FilterGroup), and a button has no value attribute — reading one would
-    // compare null to null and pass for the wrong reason.
-    const checked = () => section.getByRole("radio", { checked: true });
-    const before = await checked().getAttribute("id");
-    let clicked = false;
-    for (let index = 0; index < count; index += 1) {
-      const chip = chips.nth(index);
-      if ((await chip.getAttribute("aria-checked")) !== "true") {
-        await chip.click();
-        clicked = true;
-        break;
-      }
-    }
-    // Both halves asserted, because the audit below passes just as well on a
-    // switcher that did nothing — and an audit of the default run twice is a
-    // test of nothing dressed as coverage.
-    expect(clicked, "every chip already claimed to be checked").toBe(true);
-    await expect(checked()).toHaveCount(1);
-    expect(before, "no chip was checked to begin with").not.toBeNull();
-    expect(await checked().getAttribute("id"), "the click did not change the run").not.toBe(before);
-
-    await auditHasNoViolations(page, "#workshop");
-  });
 });
 
 /**
@@ -323,14 +279,11 @@ test.describe("night theme", () => {
     await auditHasNoViolations(page, "#skills");
     await scrollIntoViewAndSettle(page, "#closing");
     await auditHasNoViolations(page, "#closing");
-    // The two round-16 sections, both `tone="deep"`: the globe's stage and
-    // list, and the Workshop's nine stations. The full-page audits above see
-    // them too, but scoped is what reports a contrast pair against
+    // The globe is `tone="deep"`: its stage and list. The full-page audits
+    // above see it too, but scoped is what reports a contrast pair against
     // `--color-paper-deep` as belonging to the section that owns it.
     await scrollIntoViewAndSettle(page, "#worlds-heading");
     await auditHasNoViolations(page, "#worlds");
-    await scrollIntoViewAndSettle(page, "#workshop");
-    await auditHasNoViolations(page, "#workshop");
   });
 });
 

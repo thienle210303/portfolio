@@ -121,9 +121,8 @@ export const worlds = [
     where: "In orbit — it counter-rotates, so it always faces you",
     // The spec's table also listed the learning log here. Decision 4 retired it
     // from the page ("nobody is gonna read them"), so what survives is only the
-    // short, concrete evidence: two case studies and the four tools. The log
-    // itself stays in `src/content/ai-experiments.ts`, unrendered, which is what
-    // makes that decision reversible.
+    // short, concrete evidence: two case studies and the four tools. Round 18
+    // then deleted the log itself along with the rest of the AI Lab's content.
     plaques: [
       { glyph: "chip", ref: { of: "project", id: "dd-scraper-platform", field: "tagline" } },
       { glyph: "magnifier", ref: { of: "project", id: "dd-feasibility-agent", field: "tagline" } },

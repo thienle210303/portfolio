@@ -22,10 +22,8 @@ import type {
   Companion,
   ContactIntent,
   EducationEntry,
-  LoopStep,
   NavItem,
   Origin,
-  Principle,
   Profile,
   Project,
   ResumeLens,
@@ -61,18 +59,28 @@ export const profile = {
   shortName: "Thien",
   monogram: "TL",
   title: "Software Engineer",
+  // Round 18. Every sentence below traces to `origin`, a career entry, or a
+  // metric — which the previous drafts of these five fields did not. They
+  // were written *about* Thien rather than *by* him, and that is what a
+  // reader was picking up on.
+  //
+  // `about` is three short paragraphs, deliberately: the owner asked for a
+  // "quick less introduction", and this section's job is sixty seconds, not
+  // a biography.
   positioning:
-    "I engineer software that turns complex work into clear, reliable systems.",
+    "I write software for retail data at DoorDash. Before that I was a chef in my family's restaurant.",
   focus:
-    "Software engineer focused on automation, developer experience, performance, and workflows that did not exist before.",
+    "Automated collection and integration systems — the pipelines that decide whether a retail partner can be described accurately at all.",
+  // A motto he adopted, not a fact the site asserts. It was generated rather
+  // than sourced, and he asked to keep it.
   philosophy: "Unsolved is not the same as unsolvable.",
-  headline: "I build where the answer isn't obvious.",
+  headline: "I keep asking, and I go and look.",
   intro:
-    "I'm a software engineer and curious systems builder drawn to difficult, undefined problems. I question assumptions, navigate constraints, explore unconventional paths, and keep iterating until something useful emerges.",
+    "Software engineer on retail data. I like the problems where nobody has checked recently whether the thing everyone works around is still necessary.",
   about: [
-    "Most of my work has started the same way: someone hands me a process that already technically functions, and everyone has quietly agreed to live with how slow, brittle or manual it is.",
-    "I'm less interested in whether a problem is hard than in whether anyone has actually looked at it recently. Constraints move. Assumptions expire. The direct path being blocked is information, not a verdict.",
-    "I write software for retail data at DoorDash. Before that I built scrapers at research scale, shipped features for an educational spelling platform, and replaced paper workflows on a manufacturing floor.",
+    "I moved from Kiên Giang, Việt Nam to Taylors, South Carolina in December 2018, at fifteen, with my family. I could read and write English. I could not speak it.",
+    "For the next two and a half years nobody set me a problem, so I picked my own — investing, growing plants, keeping an aquarium alive — while I finished high school and worked the line and the floor at my family's restaurant. I started university in chemical engineering. My friends told me to try computer science instead.",
+    "Since then: three million records collected unattended for a research group, a paper manufacturing process taken off paper, and a retail catalog scraper taken from seventeen hours to three minutes.",
   ],
   email: "thienle210303@gmail.com",
   // Round 18: both set, and the round-17 comment explaining why they were
@@ -183,14 +191,6 @@ export const navItems = [
   { id: "nav-work", sectionId: "work", label: "Work" },
   { id: "nav-skills", sectionId: "skills", label: "Skills" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
-  // Round 16: the Workshop. Seven items is the most this nav has carried, so
-  // it was measured rather than assumed: at 1024px (SiteNav's own `lg:`
-  // breakpoint, the narrowest width the desktop row exists at) the seven
-  // items occupy 449px of the header's 907px of content box and leave 257px
-  // spare — one row, nothing clipped, no horizontal overflow, and 368px/624px
-  // spare at 1152px/1440px. `gap-6` is therefore unchanged; an eighth item
-  // would still fit before the gap has to give.
-  { id: "nav-workshop", sectionId: "workshop", label: "Workshop" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 
@@ -248,108 +248,6 @@ export const codeTabs = [
 };`,
   },
 ] satisfies readonly CodeTab[];
-
-/* -------------------------------------------------------------------------- */
-/* Philosophy                                                                  */
-/* -------------------------------------------------------------------------- */
-
-export const philosophyIntro = [
-  "I don't call something impossible just because the direct path is blocked. Most of the time, \"impossible\" is shorthand for \"nobody has re-examined this since the constraints changed.\"",
-  "That's not optimism. Plenty of things I've tried didn't work, and some problems stay unsolved. But the honest position is narrower than \"impossible\": I don't know how to do this yet, with what I currently understand.",
-];
-
-export const principles = [
-  {
-    id: "understand",
-    index: 1,
-    title: "Understand the real problem",
-    summary:
-      "The stated problem is usually a symptom someone has already interpreted for you.",
-    detail:
-      "Before writing anything, I want to know what the work actually looks like today — who touches it, where it stalls, and what people have quietly stopped expecting. The request and the problem are rarely the same sentence.",
-    evidence: {
-      context: "Schaeffler Group — manufacturing floor",
-      body: "The ask was to digitise a paper process setup sheet. Watching how operators, technicians and engineers actually used those sheets showed the paper was not the problem — the absence of version control, role-based access and reusable templates was. I built for that instead.",
-      projectId: "schaeffler-setup-sheets",
-    },
-  },
-  {
-    id: "system",
-    index: 2,
-    title: "Improve the system, not only the symptom",
-    summary:
-      "Fixing one instance is work. Removing the reason the instance exists is leverage.",
-    detail:
-      "When the same failure keeps arriving in different costumes, the individual fix is the wrong unit of work. I'd rather spend the time once on the thing that generates the failures — the tooling, the validation, the shared shape everyone builds against.",
-    evidence: {
-      context: "DoorDash — retail data",
-      body: "Rather than hand-building scrapers one at a time, I standardised the workflows, tooling and validation they all shared. That standardisation is what made delivering 30+ production scrapers in a single week possible.",
-      projectId: "dd-scraper-platform",
-    },
-  },
-  {
-    id: "measure",
-    index: 3,
-    title: "Build something useful and measurable",
-    summary:
-      "If I can't say what changed, I haven't finished — I've just moved code around.",
-    detail:
-      "I want a number, a before, and an after. Not because metrics are the point, but because they're the fastest way to find out I was wrong about which thing mattered.",
-    evidence: {
-      context: "University of South Carolina — research collection",
-      body: "Rewriting collection around DOM manipulation and in-page JavaScript execution cut scraper runtime by 95%. The number is what proved the bottleneck was the interaction model, not the network.",
-      projectId: "usc-research-collection",
-    },
-  },
-] satisfies readonly Principle[];
-
-export const problemSolvingLoop = [
-  {
-    id: "observe",
-    label: "Observe",
-    detail: "Watch the real workflow before touching it. Note where people hesitate.",
-  },
-  {
-    id: "question",
-    label: "Question assumptions",
-    detail: "Ask which constraints are physics, which are policy, and which are habit.",
-  },
-  {
-    id: "constraints",
-    label: "Understand constraints",
-    detail: "Separate the ones I must respect from the ones I merely inherited.",
-  },
-  {
-    id: "reframe",
-    label: "Reframe",
-    detail: "Restate the problem so the blocked path stops being the only path.",
-  },
-  {
-    id: "explore",
-    label: "Explore alternate paths",
-    detail: "List the approaches nobody costed out, including the unglamorous ones.",
-  },
-  {
-    id: "experiment",
-    label: "Build a small experiment",
-    detail: "Make the cheapest thing that can be wrong in an informative way.",
-  },
-  {
-    id: "test",
-    label: "Test",
-    detail: "Try to break it on purpose, at the size it will actually run.",
-  },
-  {
-    id: "learn",
-    label: "Learn",
-    detail: "Write down what the result ruled out, not just what it confirmed.",
-  },
-  {
-    id: "iterate",
-    label: "Iterate",
-    detail: "Feed it back in. Stop when it's useful, not when it's clever.",
-  },
-] satisfies readonly LoopStep[];
 
 /* -------------------------------------------------------------------------- */
 /* Career — canonical source for organisations, roles and dates                */
@@ -1261,7 +1159,7 @@ export const projects = [
     problem: "No class, no client and no résumé line is behind it.",
     whyItMattered: "It is the one thing here that nobody asked him to build.",
     assumption: undefined,
-    constraints: ["Followed an existing video rather than designing from scratch."],
+    constraints: ["Followed an existing video."],
     responsibility: "Developer.",
     decisions: [
       "Follow Professor Eddie Sharick's video, the point being to understand search.",
@@ -1283,7 +1181,7 @@ export const projects = [
     id: "conscea",
     title: "Conscea — employee certificates",
     tagline:
-      "A business application for managing employee certificates, built with classmates. The website is fully functional; the recording shows only its protocol, due to data privacy.",
+      "A business application for managing employee certificates, built with classmates. The website has fully developed functionality; the recording shows only its protocol, due to data privacy.",
     careerEntryId: "usc-degree",
     status: "shipped",
     featured: false,

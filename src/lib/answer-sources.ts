@@ -6,7 +6,6 @@ import {
   profile,
   skillCategories,
 } from "@/content/portfolio";
-import { experiments } from "@/content/ai-experiments";
 import { resolved, type Project } from "@/types/portfolio";
 
 /**
@@ -54,24 +53,6 @@ function toIndexable(project: Project): IndexableProject {
 }
 
 export const projectsIndexable: readonly IndexableProject[] = projects.map(toIndexable);
-
-export interface IndexableExperiment {
-  readonly id: string;
-  readonly title: string;
-  readonly status: string;
-  readonly question: string;
-  /** Empty for anything still `Exploring` — nothing has been verified yet, and
-   *  that emptiness is the honest answer, not a gap to paper over. */
-  readonly verification: readonly string[];
-}
-
-export const experimentsIndexable: readonly IndexableExperiment[] = experiments.map((experiment) => ({
-  id: experiment.id,
-  title: experiment.title,
-  status: experiment.status,
-  question: experiment.question,
-  verification: experiment.verification,
-}));
 
 export interface IndexableCareerEntry {
   readonly id: string;

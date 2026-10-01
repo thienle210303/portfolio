@@ -67,20 +67,21 @@ export type TourRoute = "grey" | "tabby";
  *  dropped it again, to two. Playground Earth's addition put Work back into
  *  the middle — rather than growing a second hard-coded prefix stop in
  *  `stopsFor` — so the list went back to four: Worlds, Work, Skills,
- *  Journey. The Workshop is the fifth, added here and nowhere else: it is
- *  the whole of what the tour had to learn, because `TOUR_STOPS` already
- *  derives from `navItems` and `stopsFor` derives the middle from this one
- *  list. A section added to `navItems` and forgotten here would be visited
+ *  Journey. Round 18 removed the Workshop, which had been a fifth; taking it
+ *  out of this list and out of `navItems` is the whole of what the tour had
+ *  to unlearn, because `TOUR_STOPS` already derives from `navItems` and
+ *  `stopsFor` derives the middle from this one list. A section added to
+ *  `navItems` and forgotten here would be visited
  *  by neither route — `stopsFor`'s filter drops nothing, but the middle it
  *  builds would simply never name it — which is the silent skip
  *  `tests/lib/companion-tour.test.ts`'s "visits every nav section" case
  *  exists to catch. */
-const GREY_MIDDLE = ["worlds", "work", "skills", "tree", "workshop"] as const;
+const GREY_MIDDLE = ["worlds", "work", "skills", "tree"] as const;
 
 const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop]));
 
 /**
- * The stops in the order one route walks them — seven today, for a
+ * The stops in the order one route walks them — six today, for a
  * well-formed `GREY_MIDDLE`. Both routes are the same *set* — nothing is
  * skipped, nothing is invented — and they agree only on the first stop
  * (About) and the last (Contact); everything between the two is

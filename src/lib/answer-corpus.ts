@@ -1,6 +1,5 @@
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
 import { origin } from "@/content/portfolio";
-import { defaultRunProjectId } from "@/content/workshop";
 import {
   careerIndexable,
   education,
@@ -8,7 +7,6 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { resolveRun } from "@/lib/workshop";
 import { resolveWorlds } from "@/lib/worlds";
 
 /**
@@ -77,6 +75,18 @@ export function buildDocuments(): Document[] {
       label: label("about", undefined, profile.name, profile.title),
     });
   }
+
+  // The hero's one-line self-introduction. It used to be the last sentence of
+  // `about`, and so was indexed with it; round 18 moved it to `positioning` and
+  // wrote a different `about`, which left the plainest question a visitor asks
+  // ("who is he", "doordash") without the one line that answered it.
+  docs.push({
+    text: profile.positioning,
+    source: "About, in his own words",
+    sectionId: "about",
+    sectionLabel: "About",
+    label: label("about", undefined, profile.name, profile.title),
+  });
 
   docs.push({
     text: profile.focus,
@@ -314,45 +324,6 @@ export function buildDocuments(): Document[] {
       ),
     });
   }
-
-  // Round 16. The stations' evidence is already a verbatim project field, and
-  // it is indexed under `workshop`, where a reader can go and see it.
-  //
-  // Only the *default* run is indexed, not all five. The other four runs quote
-  // the same project fields the `work` documents above already carry, so
-  // indexing them would put the identical string in the corpus twice under two
-  // different section ids and let a query's top slots fill with duplicates of
-  // one answer. The default run is the one a visitor lands on, so it is the one
-  // whose "Read it in Workshop →" link lands on something they can see.
-  const run = resolveRun(defaultRunProjectId);
-  for (const station of run?.stations ?? []) {
-    for (const line of station.evidence) {
-      docs.push({
-        text: line,
-        source: `Workshop — ${station.label}`,
-        sectionId: "workshop",
-        sectionLabel: "Workshop",
-        label: label("workshop", run?.projectId, station.label, station.field),
-      });
-    }
-  }
-
-  // Each stage's `watchFor` is deliberately *not* indexed, though round 16
-  // indexed it — and shipped a precision hole doing so. Three of the ten
-  // failure modes mention source *files*, and they were the corpus's only
-  // carriers of that word, which handed "file" a near-maximal IDF. So "how do
-  // I file my taxes" reduced to two terms, matched one of them incidentally,
-  // and the site answered a tax question with three sentences about source
-  // files.
-  //
-  // Both fixes were measured on the retrieval eval rather than argued. Gating
-  // `requiredMatches` harder closes it and costs recall@3 93.3% → 83.3% and
-  // MRR 0.851 → 0.761; dropping these ten strings closes it with the eval
-  // byte-identical to baseline. That is the same trade `source` lost above:
-  // text whose vocabulary is generic costs precision everywhere and earns
-  // recall nowhere the eval can see. The strings are still authored, still
-  // rendered by `AgentLane`, just not askable — and
-  // `tests/lib/answers.test.ts` fails if they come back.
 
   return docs;
 }

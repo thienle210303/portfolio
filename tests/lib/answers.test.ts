@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answer, SUGGESTED_QUESTIONS, tokenize } from "@/lib/answers";
+import { answer, SUGGESTED_QUESTIONS } from "@/lib/answers";
 import { buildDocuments } from "@/lib/answer-corpus";
 import {
   careerIndexable,
@@ -9,9 +9,6 @@ import {
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { origin } from "@/content/portfolio";
-import { workflowStages } from "@/content/ai-experiments";
-import { defaultRunProjectId } from "@/content/workshop";
-import { resolveRun } from "@/lib/workshop";
 import { resolveWorlds } from "@/lib/worlds";
 
 /**
@@ -25,6 +22,7 @@ import { resolveWorlds } from "@/lib/worlds";
 /** Every verbatim string the content layer can legitimately produce. */
 const CORPUS = new Set<string>([
   ...profile.about,
+  profile.positioning,
   profile.focus,
   profile.philosophy,
   ...projectsIndexable.flatMap((project) => [
@@ -61,27 +59,14 @@ const CORPUS = new Set<string>([
   // content, not invented — is what tests/lib/worlds.test.ts's honesty-rule
   // suite proves.
   ...resolveWorlds().flatMap((world) => world.plaques.map((plaque) => plaque.text)),
-  // Round 16: the Workshop. A station's evidence is a verbatim project field
-  // and is therefore already covered by the project sets above — but only for
-  // the fields those sets happen to list, and the stations quote nine
-  // different ones (`assumption`, `constraints`, `pathsExplored`, …) that no
-  // other document type indexes. Built from the same resolver
-  // `answer-corpus.ts` builds its documents from, never transcribed: a
-  // station mapping changed in `src/content/workshop.ts` has to move both at
-  // once or not at all. `workflowStages[].watchFor` is deliberately *not*
-  // here, though it was: those ten strings left the indexed surface, so an
-  // answer carrying one is now a regression this whitelist should catch rather
-  // than permit. The case that fences the surface itself is near the bottom of
-  // this file.
-  ...(resolveRun(defaultRunProjectId)?.stations.flatMap((station) => station.evidence) ?? []),
 ]);
 
 /** Sections an answer may link into. `resume` is deliberately absent: the résumé
- *  is its own route now, so `#resume` would be a dead anchor. `workshop` joined
- *  in round 16, in the same commit that rendered the section — a document
- *  pointing at a section id the page does not have is exactly the dead
- *  fragment the second case below exists to catch. */
-const LINKABLE_SECTIONS = /^(about|worlds|work|journey|skills|workshop)$/;
+ *  is its own route now, so `#resume` would be a dead anchor. `workshop` was
+ *  here from round 16 until round 18 removed the section — a document pointing
+ *  at a section id the page does not have is exactly the dead fragment the
+ *  second case below exists to catch. */
+const LINKABLE_SECTIONS = /^(about|worlds|work|journey|skills)$/;
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {
@@ -190,8 +175,10 @@ describe("answer", () => {
   });
 
   /**
-   * Each agent stage's `watchFor` is deliberately **outside** the indexed
-   * surface, and this case is what keeps it there.
+   * The engine half of a hole round 16 shipped and round 17 closed. The
+   * agent stages' `watchFor` strings, which carried the hole, were deleted in
+   * round 18 along with the Workshop; the account below is kept because the
+   * gate boundary it describes is still true of the engine.
    *
    * ## The hole this replaced
    *
@@ -233,32 +220,11 @@ describe("answer", () => {
    * above. If that gate is ever reopened, the numbers above are what a change
    * has to beat.
    */
-  it("keeps each agent stage's failure mode out of the indexed surface", () => {
-    // Derived from the content, not transcribed: if the stages are reworded so
-    // that none mentions files, this tripwire goes off and the account above
-    // needs re-checking rather than trusting.
-    const fileLines = workflowStages
-      .map((stage) => stage.watchFor)
-      .filter((line) => tokenize(line).includes("file"));
-    expect(
-      fileLines.length,
-      "no stage failure mode mentions files any more — re-read this case's doc comment before trusting it",
-    ).toBe(3);
-
-    // The load-bearing assertion, on the surface rather than on a query: these
-    // strings are authored, rendered by AgentLane, and absent from the index.
-    // Re-index them and the two "file" queries in the refusal case above go
-    // red with them.
-    const indexed = new Set(buildDocuments().map((document) => document.text));
-    for (const line of workflowStages.map((stage) => stage.watchFor)) {
-      expect(
-        indexed.has(line),
-        `indexed again, so the \`file\` hole is back: "${line.slice(0, 48)}…"`,
-      ).toBe(false);
-    }
-
-    // The gate boundary the old pin asserted last, kept because it is the one
-    // thing here that is about the engine rather than the corpus.
+  it("still refuses a two-term question that matches one incidental term", () => {
+    // The gate boundary the old pin asserted last. Round 18 deleted the ten
+    // strings this case used to fence off the indexed surface (the agent
+    // lane that rendered them went with the Workshop), so what is left is the
+    // one assertion that is about the engine rather than the corpus.
     expect(answer("my tax return files")).toEqual([]);
   });
 

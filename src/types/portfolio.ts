@@ -158,31 +158,6 @@ export interface NavItem {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Philosophy                                                                  */
-/* -------------------------------------------------------------------------- */
-
-export interface Principle {
-  readonly id: string;
-  readonly index: number;
-  readonly title: string;
-  readonly summary: string;
-  readonly detail: string;
-  /** A real, sourced example. Omitted when no example exists yet. */
-  readonly evidence?: {
-    readonly context: string;
-    readonly body: string;
-    /** id of a project in `projects`, for the "see the case study" link. */
-    readonly projectId?: string;
-  };
-}
-
-export interface LoopStep {
-  readonly id: string;
-  readonly label: string;
-  readonly detail: string;
-}
-
-/* -------------------------------------------------------------------------- */
 /* Work                                                                        */
 /* -------------------------------------------------------------------------- */
 
@@ -344,8 +319,6 @@ export interface Achievement {
 /* AI Workflow Lab                                                             */
 /* -------------------------------------------------------------------------- */
 
-export type ExperimentStatus = "Exploring" | "Tested" | "Adopted" | "Retired";
-
 export type AiToolId = "claude-code" | "codex" | "cursor" | "playwright";
 
 export interface AiTool {
@@ -355,94 +328,6 @@ export interface AiTool {
   readonly what: string;
   /** Official docs. Required for anything time-sensitive. */
   readonly href: string;
-}
-
-/**
- * One move of the scraping playbook (AI Workflow Lab). The `body` is the
- * owner's own approved prose; `evidenceHref` points at the in-page case
- * study or timeline entry that already makes the same claim with sources —
- * the playbook asserts nothing the page doesn't prove elsewhere.
- */
-export interface ScrapingPlaybookMove {
-  readonly id: string;
-  readonly title: string;
-  readonly body: string;
-  readonly evidenceHref: string;
-  readonly evidenceLabel: string;
-}
-
-/** One stage of the agentic development loop the explorer walks through. */
-export interface WorkflowStage {
-  readonly id: string;
-  readonly label: string;
-  readonly question: string;
-  /** What the agent is actually asked to do. */
-  readonly agentDoes: readonly string[];
-  /** What stays a human decision, every time. */
-  readonly humanOwns: readonly string[];
-  /** The failure mode this stage tends to produce. */
-  readonly watchFor: string;
-}
-
-export interface ExperimentSource {
-  readonly label: string;
-  readonly href: string;
-}
-
-export interface AiExperiment {
-  readonly id: string;
-  readonly title: string;
-  /**
-   * Coarse start period, e.g. "Q4 2025" or "August 2026". Deliberately not a
-   * precise ISO date: state the coarsest form that is actually true rather
-   * than inventing a day.
-   */
-  readonly started: string;
-  /** YYYY-MM, for deterministic ordering only. Never rendered. */
-  readonly sortKey: string;
-  readonly status: ExperimentStatus;
-  readonly question: string;
-  readonly hypothesis: string;
-  readonly toolIds: readonly AiToolId[];
-  readonly whyThisTool: string;
-  readonly contextSupplied: readonly string[];
-  /** ids from `workflowStages` this experiment exercised. */
-  readonly stageIds: readonly string[];
-  readonly humanDecisionPoints: readonly string[];
-  readonly safetyBoundaries: readonly string[];
-  /** Empty for `Exploring` experiments — nothing verified yet. */
-  readonly verification: readonly string[];
-  readonly outcome?: string;
-  readonly effortComparison?: string;
-  readonly limitation?: string;
-  readonly humanCorrections?: readonly string[];
-  readonly lesson?: string;
-  readonly nextExperiment: string;
-  readonly sources?: readonly ExperimentSource[];
-  /** ISO date (YYYY-MM-DD). */
-  readonly lastUpdated: string;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Learning log                                                                */
-/* -------------------------------------------------------------------------- */
-
-export interface LearningLogEntry {
-  readonly id: string;
-  /** ISO date (YYYY-MM-DD). Only add an entry you can date honestly. */
-  readonly date: string;
-  readonly title: string;
-  readonly body: string;
-  readonly tags: readonly string[];
-}
-
-export interface LearningLog {
-  /** ISO date (YYYY-MM-DD) — drives the "last updated" indicator. */
-  readonly lastUpdated: string;
-  readonly exploringNow: readonly string[];
-  readonly changedMyThinking: readonly { readonly before: string; readonly after: string }[];
-  readonly wantToTestNext: readonly string[];
-  readonly entries: readonly LearningLogEntry[];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -568,51 +453,4 @@ export interface World {
   readonly plaques: readonly WorldPlaque[];
   readonly decorations: readonly WorldDecoration[];
   readonly disclosure?: string;
-}
-
-/* -------------------------------------------------------------------------- */
-/* The Workshop                                                               */
-/*                                                                            */
-/* Two vocabularies meet here. `problemSolvingLoop` is the method, stated in  */
-/* the abstract; a `Project` is one run of it, stated concretely. Which field */
-/* is the evidence for which step is authored in `src/content/workshop.ts` —  */
-/* never inferred — for the reason the career tree refuses to match skill     */
-/* names against technology strings: two vocabularies only relate if a person */
-/* says how. `tests/lib/workshop.test.ts` holds the join to the record.       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The `Project` fields that hold plain authored text — one string, or a list
- * of strings — and so can be quoted line by line. `metrics` and `workflow`
- * are structured (before/after pairs, a diagram) and cannot be quoted as a
- * line, so they are not members. Naming one as a station's field fails the
- * `satisfies` in `src/content/workshop.ts`; adding one to this union fails
- * `evidenceFor` in `src/lib/workshop.ts`, which quotes only text.
- *
- * Not every member is a station today. `src/content/workshop.ts` says which
- * are, and why the rest are not.
- */
-export type ProjectEvidenceField =
-  | "problem"
-  | "whyItMattered"
-  | "assumption"
-  | "constraints"
-  | "responsibility"
-  | "decisions"
-  | "pathsExplored"
-  | "whatFailed"
-  | "failureLesson"
-  | "built"
-  | "proof"
-  | "learned"
-  | "nextQuestion";
-
-/**
- * One step of the loop joined to the project field that is its evidence.
- * `step` is a `problemSolvingLoop` id; `tests/lib/workshop.test.ts` holds the
- * list of these to the loop's own ids and order.
- */
-export interface WorkshopStation {
-  readonly step: string;
-  readonly field: ProjectEvidenceField;
 }
