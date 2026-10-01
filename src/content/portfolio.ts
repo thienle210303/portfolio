@@ -1228,10 +1228,11 @@ export const projects = [
   /*                                                                         */
   /* What is sourced: each title, tagline, role, skills list and link comes  */
   /* from that repo's `src/data/experience.jsx` (a title, a one-line summary, */
-  /* a skills list, a role, a course); the dates come from `usc-degree`. The */
-  /* one claim from the owner himself is that the chess project had no       */
-  /* class, no client and no résumé line behind it. Everything else a field  */
-  /* says is a restatement of those, kept short on purpose.                  */
+  /* a skills list, a role, a course). No per-project date is carried here:  */
+  /* the only dates in the content layer are `usc-degree`'s own. The one     */
+  /* claim from the owner himself is that the chess project had no class, no */
+  /* client and no résumé line behind it. Everything else a field says is a  */
+  /* restatement of those, kept short on purpose.                            */
   /* ---------------------------------------------------------------------- */
   /*
    * DRAFTED, PENDING THE OWNER'S APPROVAL. The sentences below are judgment,
@@ -1253,7 +1254,7 @@ export const projects = [
     id: "chess-minmax",
     title: "Chess and a min-max bot",
     tagline:
-      "A chess game and a min-max bot, built following a video — the only thing in this record with no class, no client and no résumé line behind it.",
+      "A chess game and a min-max bot, built from a YouTube video — no class, no client, no résumé line.",
     careerEntryId: "usc-degree",
     status: "shipped",
     featured: false,
@@ -1269,7 +1270,7 @@ export const projects = [
     built: ["A chess game in Pygame.", "A chess bot using the Min-Max strategy."],
     proof: ["Source on GitHub (thienle210303/Chess), and a screen recording."],
     learned:
-      "Followed one video from a playable chess game to a bot that plays it with Min-Max.",
+      "Followed one video to build a chess game and a bot that plays it with Min-Max.",
     nextQuestion:
       "Where does alpha-beta pruning stop helping and the evaluation function become the whole problem?",
     technologies: ["Python", "Pygame", "AI", "Min-Max algorithm"],
@@ -1329,7 +1330,7 @@ export const projects = [
     pathsExplored: [],
     built: ["A better version of UofSC DegreeWorks, in Java with JavaFX and Maven."],
     proof: [
-      "Source on GitHub, in a classmate's repository (AlexRishmawi/degreeauditGUI), and a screen recording.",
+      "Source on GitHub, in AlexRishmawi's repository (AlexRishmawi/degreeauditGUI), and a screen recording.",
     ],
     learned:
       "Rebuilding a tool is the fastest way to find out which of its problems are the data's and which are the interface's.",
@@ -1357,7 +1358,7 @@ export const projects = [
     pathsExplored: [],
     built: ["An e-commerce platform for toy sales, built with React, Flask, Chakra UI and MongoDB."],
     proof: ["A screen recording of the platform."],
-    learned: "Worked as one of a team of three on a full e-commerce platform.",
+    learned: "Worked as one of a team of three on an e-commerce platform.",
     nextQuestion:
       "Nothing open. This one is finished, and its interest is historical.",
     technologies: ["JavaScript/React", "Python/Flask", "Chakra UI", "MongoDB"],
