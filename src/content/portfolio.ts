@@ -129,6 +129,7 @@ export const companions = [
     coat: "the blue cat",
     habit: "Leads, and sets the pace.",
     authoredOn: "2026-09-02",
+    belongsTo: "my girlfriend",
   },
   {
     id: "mi",
@@ -136,6 +137,7 @@ export const companions = [
     coat: "the grey tabby",
     habit: "Follows, and gets distracted.",
     authoredOn: "2026-09-02",
+    belongsTo: "my girlfriend",
   },
 ] satisfies readonly Companion[];
 
