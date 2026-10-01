@@ -1225,40 +1225,54 @@ export const projects = [
   /* Four builds the content layer never knew about, each with a real screen */
   /* recording in that repo's `src/assets/experience`. Plan C wires the       */
   /* recordings in; this file only records that they exist.                  */
+  /*                                                                         */
+  /* What is sourced: each title, tagline, role, skills list and link comes  */
+  /* from that repo's `src/data/experience.jsx` (a title, a one-line summary, */
+  /* a skills list, a role, a course); the dates come from `usc-degree`. The */
+  /* one claim from the owner himself is that the chess project had no       */
+  /* class, no client and no résumé line behind it. Everything else a field  */
+  /* says is a restatement of those, kept short on purpose.                  */
   /* ---------------------------------------------------------------------- */
+  /*
+   * DRAFTED, PENDING THE OWNER'S APPROVAL. The sentences below are judgment,
+   * not record, and were written for him rather than by him:
+   *   chess-minmax         `problem`, `whyItMattered`, `nextQuestion`, and the
+   *                        clause "the point being to understand search" in
+   *                        `decisions`.
+   *   conscea              `whyItMattered`, `learned`, `nextQuestion`.
+   *   degreeworks-rebuild  `learned`, `nextQuestion`.
+   *   toy-storefront       `nextQuestion`.
+   * `learned` on chess-minmax and toy-storefront is a flat restatement of what
+   * the old repo says, not a lesson: no lesson from either is on record. A
+   * later pass replaces each drafted sentence with his own words or removes
+   * it, and nothing marked here should be treated as his voice until he has
+   * approved it. These fields feed the chat's index through
+   * `answer-sources.ts`, so an unapproved sentence can be quoted to a visitor.
+   */
   {
     id: "chess-minmax",
-    title: "A chess engine, for no reason",
+    title: "Chess and a min-max bot",
     tagline:
-      "A chess game and a min-max bot, built from a YouTube series — the only thing in this record with no class, no client and no deadline behind it.",
+      "A chess game and a min-max bot, built following a video — the only thing in this record with no class, no client and no résumé line behind it.",
     careerEntryId: "usc-degree",
     status: "shipped",
     featured: false,
-    problem:
-      "None. Nobody asked for this and nothing depended on it, which is the entire reason it is worth showing.",
-    whyItMattered:
-      "Every other project here answers to a course, an employer or a hackathon judge. This one is the only evidence of what he builds when the answer is nothing at all.",
+    problem: "No class, no client and no résumé line is behind it.",
+    whyItMattered: "It is the one thing here that nobody asked him to build.",
     assumption: undefined,
-    constraints: [
-      "Following along with an existing tutorial series rather than designing from scratch.",
-      "Min-max with no opening book and no endgame tables — the search is the whole engine.",
-    ],
-    responsibility: "Built it alone, start to finish.",
+    constraints: ["Followed an existing video rather than designing from scratch."],
+    responsibility: "Developer.",
     decisions: [
-      "Follow Eddie Sharick's series rather than invent an architecture, because the point was understanding search, not designing a program.",
-      "Pygame for the board, so the loop and the rendering stayed simple enough to read in one sitting.",
+      "Follow Professor Eddie Sharick's video, the point being to understand search.",
     ],
     pathsExplored: [],
-    built: [
-      "A playable chess game in Pygame, with legal move generation.",
-      "A min-max search bot playing against the human side.",
-    ],
-    proof: ["Public source, and a recorded game against the bot."],
+    built: ["A chess game in Pygame.", "A chess bot using the Min-Max strategy."],
+    proof: ["Source on GitHub (thienle210303/Chess), and a screen recording."],
     learned:
-      "Min-max is simple to describe and unforgiving to implement — almost every mistake was in move generation, not in the search.",
+      "Followed one video from a playable chess game to a bot that plays it with Min-Max.",
     nextQuestion:
       "Where does alpha-beta pruning stop helping and the evaluation function become the whole problem?",
-    technologies: ["Python", "Pygame", "Min-max search"],
+    technologies: ["Python", "Pygame", "AI", "Min-Max algorithm"],
     source: {
       label: "github.com/thienle210303/Chess",
       href: "https://github.com/thienle210303/Chess",
@@ -1268,61 +1282,60 @@ export const projects = [
     id: "conscea",
     title: "Conscea — employee certificates",
     tagline:
-      "A business application for managing employee certificates, fully functional, and demonstrated without showing a single real record.",
+      "A business application for managing employee certificates, built with classmates. The website is fully functional; the recording shows only its protocol, due to data privacy.",
     careerEntryId: "usc-degree",
     status: "shipped",
     featured: false,
-    problem:
-      "Certificate tracking spread across spreadsheets and inboxes, with no single place to see which employee holds which certificate and when it expires.",
+    problem: "A business application for managing employee certificates.",
     whyItMattered:
       "An expired certificate nobody noticed is a compliance problem, not an admin problem.",
     assumption: undefined,
     constraints: [
-      "A fixed academic term, delivered with a team.",
-      "Real employee data, so the demo could not show records — only the protocol.",
+      "Built with classmates, in a course on Azure.",
+      "The recording shows only the website's protocol, due to data privacy.",
     ],
-    responsibility: "Full-stack developer on the team.",
-    decisions: [
-      "Record the demo showing the application's protocol rather than its data, because the data was real and the recording was going on a public portfolio.",
-    ],
+    responsibility: "Full-stack Developer.",
+    decisions: [],
     pathsExplored: [],
-    built: ["A certificate-management application with full CRUD, on Azure."],
-    proof: ["Delivered as coursework; recorded demonstration of the protocol."],
+    built: [
+      "A business application for managing employee certificates, with fully developed functionality.",
+    ],
+    proof: [
+      "Built in a University of South Carolina course on Azure; the recording shows only the website's protocol, due to data privacy.",
+    ],
     learned:
       "The constraint that shaped the deliverable was the demo, not the build: deciding what a public recording is allowed to contain is a design decision.",
     nextQuestion:
       "How do you demonstrate a data-heavy application convincingly without exposing any of its data?",
-    technologies: ["C#/ASP.NET", "JavaScript/React", "Azure", "SQL"],
+    technologies: ["C#/ASP.NET", "JavaScript/React", "Azure", "AI", "SQL"],
   },
   {
     id: "degreeworks-rebuild",
-    title: "DegreeWorks, rebuilt",
+    title: "A better version of DegreeWorks",
     tagline:
-      "A better version of the university's own degree-audit tool, built by the students who had to use it.",
+      "A better version of UofSC DegreeWorks, built with classmates in a software-engineering course.",
     careerEntryId: "usc-degree",
     status: "shipped",
     featured: false,
-    problem:
-      "The university's degree-audit tool was the only way to answer \"what do I still need to graduate\", and it was slow and hard to read.",
-    whyItMattered:
-      "Every student in the college depends on that answer at registration, twice a year.",
+    problem: "Making a better version of UofSC DegreeWorks.",
+    whyItMattered: "A course project, done with classmates.",
     assumption: undefined,
     constraints: [
-      "A software-engineering course term, delivered with a team.",
-      "A desktop GUI in Java, not a web application.",
+      "Built with classmates, in a software-engineering course.",
+      "A GUI application in Java.",
     ],
-    responsibility: "Developer on the team.",
-    decisions: [
-      "Rebuild rather than skin: the complaint was about what the tool showed and in what order, which a restyle cannot fix.",
-    ],
+    responsibility: "Developer.",
+    decisions: [],
     pathsExplored: [],
-    built: ["A JavaFX degree-audit application, built with Maven."],
-    proof: ["Public source, and a recorded walkthrough."],
+    built: ["A better version of UofSC DegreeWorks, in Java with JavaFX and Maven."],
+    proof: [
+      "Source on GitHub, in a classmate's repository (AlexRishmawi/degreeauditGUI), and a screen recording.",
+    ],
     learned:
-      "Rebuilding a tool you are forced to use is the fastest way to find out which of its problems are the data's and which are the interface's.",
+      "Rebuilding a tool is the fastest way to find out which of its problems are the data's and which are the interface's.",
     nextQuestion:
       "Which of this tool's problems were actually upstream, in how degree requirements are encoded?",
-    technologies: ["Java", "JavaFX", "Maven", "OOP"],
+    technologies: ["Java", "JavaFX", "Maven", "OOP", "GUI"],
     source: {
       label: "github.com/AlexRishmawi/degreeauditGUI",
       href: "https://github.com/AlexRishmawi/degreeauditGUI",
@@ -1331,29 +1344,20 @@ export const projects = [
   {
     id: "toy-storefront",
     title: "A toy storefront",
-    tagline:
-      "A full e-commerce platform with a team of three — the first retail thing he built, two years before retail became the job.",
+    tagline: "An e-commerce platform for toy sales, built with a team of three.",
     careerEntryId: "usc-degree",
     status: "shipped",
     featured: false,
-    problem:
-      "Build a working storefront end to end: catalog, cart, checkout flow, and the data behind all three.",
-    whyItMattered:
-      "It is his earliest full-stack build, and the only one that happens to rhyme with what he does now for a living.",
+    problem: "An e-commerce platform specializing in toy sales.",
+    whyItMattered: "A team project in e-commerce, built with a team of three.",
     assumption: undefined,
-    constraints: [
-      "A team of three over a summer.",
-      "No payment provider — the checkout flow stops at the point a real one would take over.",
-    ],
-    responsibility: "Full-stack developer on the team.",
-    decisions: [
-      "MongoDB for the catalog, because the product shapes were still changing weekly.",
-    ],
+    constraints: ["A team of three."],
+    responsibility: "Full-stack Developer.",
+    decisions: [],
     pathsExplored: [],
-    built: ["A React and Flask storefront with a MongoDB catalog and a cart."],
-    proof: ["Recorded walkthrough of the storefront."],
-    learned:
-      "A catalog is the easy half. Everything difficult about retail data is in keeping the catalog true to the thing it describes — which is the job he has now.",
+    built: ["An e-commerce platform for toy sales, built with React, Flask, Chakra UI and MongoDB."],
+    proof: ["A screen recording of the platform."],
+    learned: "Worked as one of a team of three on a full e-commerce platform.",
     nextQuestion:
       "Nothing open. This one is finished, and its interest is historical.",
     technologies: ["JavaScript/React", "Python/Flask", "Chakra UI", "MongoDB"],

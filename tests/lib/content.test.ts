@@ -302,6 +302,13 @@ describe("the projects round 18 recovers from Portfolio-v2", () => {
     }
   });
 
+  it("keeps all four off the featured list", () => {
+    // They are supporting evidence, not the headline work.
+    for (const id of ["chess-minmax", "conscea", "degreeworks-rebuild", "toy-storefront"]) {
+      expect(projects.find((project) => project.id === id)?.featured, id).toBe(false);
+    }
+  });
+
   it("attaches every project to a career entry that exists", () => {
     // A project pointing at a missing entry renders as an orphan: the tree
     // has no branch to hang it off, and nothing fails.
@@ -313,12 +320,16 @@ describe("the projects round 18 recovers from Portfolio-v2", () => {
     }
   });
 
-  it("never links an executable", () => {
+  it("never links an executable or an installer", () => {
     // Portfolio-v2 shipped chess.exe as a download. A portfolio does not
-    // hand a visitor a binary.
+    // hand a visitor a binary. Case-insensitive, and the extension may be
+    // followed by a query string or a fragment.
+    const binary = /\.(exe|msi|dmg|pkg|apk|bat|cmd|scr|jar|dll|bin|zip|7z|rar|deb|rpm|appimage)(?:[?#]|$)/i;
+    expect("https://example.test/a/chess.EXE#download").toMatch(binary);
+    expect("https://github.com/thienle210303/Chess").not.toMatch(binary);
     for (const project of projects) {
       for (const href of [project.demo?.href, project.source?.href]) {
-        expect(href ?? "").not.toMatch(/\.exe($|\?)/);
+        expect(href ?? "").not.toMatch(binary);
       }
     }
   });
