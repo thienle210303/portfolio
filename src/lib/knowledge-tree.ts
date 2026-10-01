@@ -310,8 +310,17 @@ function span(entry: CareerEntry): { start: string; end: string } {
 /**
  * Which entries were running at the same time as which. Two entries overlap
  * when neither one's span finishes before the other's begins — the standard
- * interval test, and deliberately inclusive, because a role that ended the
- * same month another started did genuinely overlap by a month.
+ * interval test, and deliberately inclusive: a role that ended the same month
+ * another started overlapped by a month. That holds for months the owner
+ * authored; where an entry's `dateRange` gives only a year, its `endSortKey`
+ * month is a best reading, and a boundary touch on it is only as good as that
+ * reading.
+ *
+ * Overlap is not containment. `usc-degree` runs 2021 to 2025 and holds every
+ * role in that window inside it, so it reports all of them. It is a spine the
+ * others happen within rather than a sibling running alongside them, and a
+ * consumer drawing concurrency should treat it differently from, say,
+ * Schaeffler and Wordification, which genuinely ran side by side.
  *
  * Milestones are excluded: a point in time technically overlaps whatever it
  * lands inside, and reporting that "Dean's List overlapped DoorDash" is noise
@@ -328,30 +337,4 @@ export function concurrentWith(entryId: string): readonly string[] {
       return own.start <= theirs.end && theirs.start <= own.end;
     })
     .map((other) => other.id);
-}
-
-/**
- * The overlap relation collapsed into groups: every set of entries that were
- * all running together. Transitively closed, so A-overlaps-B and
- * B-overlaps-C puts all three in one group even where A and C do not touch —
- * which is what a stage drawing "this is what one year looked like" needs.
- */
-export function concurrentGroups(): readonly (readonly string[])[] {
-  const seen = new Set<string>();
-  const groups: string[][] = [];
-  for (const entry of ENTRIES) {
-    if (entry.type === "milestone" || seen.has(entry.id)) continue;
-    const group: string[] = [];
-    const queue = [entry.id];
-    for (let id = queue.pop(); id !== undefined; id = queue.pop()) {
-      if (seen.has(id)) continue;
-      seen.add(id);
-      group.push(id);
-      for (const neighbour of concurrentWith(id)) {
-        if (!seen.has(neighbour)) queue.push(neighbour);
-      }
-    }
-    if (group.length > 1) groups.push(group);
-  }
-  return groups;
 }

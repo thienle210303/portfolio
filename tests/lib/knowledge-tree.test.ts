@@ -3,7 +3,6 @@ import {
   buildCareerTree,
   buildKnowledgeTree,
   careerYearSpan,
-  concurrentGroups,
   techSlug,
   totalTechnologies,
 } from "@/lib/knowledge-tree";
@@ -304,19 +303,14 @@ describe("the entries round 18 adds", () => {
 });
 
 describe("concurrency", () => {
-  it("reports the 2024 roles as running at the same time", () => {
-    const groups = concurrentGroups();
-    const group = groups.find((ids) => ids.includes("schaeffler"));
-    expect(group).toBeDefined();
-    expect(group).toContain("wordification");
-    expect(group).toContain("usc-scraping");
-  });
-
   it("marks each branch with what it overlapped", () => {
     const tree = buildCareerTree();
     const schaeffler = tree.find((branch) => branch.id === "schaeffler");
     expect(schaeffler).toBeDefined();
+    // The 2024 overlap this relation exists to say: the co-op, the second
+    // role and the research ran at the same time.
     expect(schaeffler?.concurrentWith).toContain("wordification");
+    expect(schaeffler?.concurrentWith).toContain("usc-scraping");
     // And never itself.
     expect(schaeffler?.concurrentWith).not.toContain("schaeffler");
   });
@@ -345,9 +339,6 @@ describe("concurrency", () => {
         expect(milestoneIds.has(other), `${branch.id} lists milestone ${other}`).toBe(false);
       }
     }
-    for (const group of concurrentGroups()) {
-      for (const id of group) expect(milestoneIds.has(id), `${id} is a milestone`).toBe(false);
-    }
   });
 
   it("is symmetric: if A overlapped B then B overlapped A", () => {
@@ -364,7 +355,21 @@ describe("concurrency", () => {
     // Schaeffler ended August 2024; DoorDash began October 2025.
     const tree = buildCareerTree();
     const doordash = tree.find((branch) => branch.id === "doordash");
-    expect(doordash?.concurrentWith).toEqual([]);
+    const schaeffler = tree.find((branch) => branch.id === "schaeffler");
+    expect(doordash?.concurrentWith).not.toContain("schaeffler");
+    expect(schaeffler?.concurrentWith).not.toContain("doordash");
+  });
+
+  it("lets an entry with no end overlap everything that began after it", () => {
+    // He did not stop teaching himself things ("It carried on — I still do
+    // some of it"), so the self-taught entry is open-ended and runs alongside
+    // everything since 2019, DoorDash included. That is the true reading,
+    // not a spurious one.
+    const tree = buildCareerTree();
+    const selfTaught = tree.find((branch) => branch.id === "self-taught-gap");
+    expect(selfTaught).toBeDefined();
+    expect(selfTaught?.concurrentWith).toContain("doordash");
+    expect(selfTaught?.concurrentWith).toContain("schaeffler");
   });
 });
 

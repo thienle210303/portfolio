@@ -607,7 +607,7 @@ export const careerEntries = [
   {
     id: "eastside-high",
     type: "learning",
-    dateRange: "2018 — 2021",
+    dateRange: "2018 — June 2021",
     sortKey: "2018-12",
     endSortKey: "2021-06",
     role: "High school",
@@ -626,9 +626,15 @@ export const careerEntries = [
   {
     id: "fu-of-kyoto",
     type: "work",
-    dateRange: "2019 — 2021",
+    // He worked there over summers and winters through his first university
+    // year, plus a second summer, and then stopped: it ran INTO university
+    // rather than ending before it. That structural fact is the owner's
+    // (2026-10-01). The exact term is NOT settled — "2023-08" is the closest
+    // reading of "a second summer" and is pending his confirmation. Do not
+    // present it as a stated month.
+    dateRange: "2019 — 2023",
     sortKey: "2019-01",
-    endSortKey: "2021-08",
+    endSortKey: "2023-08",
     role: "Chef and server",
     organization: "Fu of Kyoto",
     locationOrMode: undefined,
@@ -648,9 +654,11 @@ export const careerEntries = [
   {
     id: "self-taught-gap",
     type: "learning",
-    dateRange: "2019 — 2021",
+    // No `endSortKey` on purpose: it has no end. The owner (2026-10-01): "It
+    // carried on — I still do some of it." An entry without one is treated as
+    // still running, which is the true reading here.
+    dateRange: "2019 — Present",
     sortKey: "2019-06",
-    endSortKey: "2021-08",
     role: "Whatever he felt like learning",
     organization: "No institution",
     locationOrMode: undefined,
@@ -674,7 +682,7 @@ export const careerEntries = [
   {
     id: "usc-cheme",
     type: "learning",
-    dateRange: "August 2021 — 2022",
+    dateRange: "August 2021 — May 2022",
     sortKey: "2021-08-a",
     endSortKey: "2022-05",
     role: "Chemical engineering",
