@@ -1536,15 +1536,30 @@ Append to `tests/lib/worlds.test.ts`:
 
 ```ts
 describe("plaque links", () => {
-  /** Every DOM id the page is known to render — the acts, plus the section
-   *  ids. Assembled from the same sources the renderers read, so it cannot
-   *  drift from them. */
-  const RENDERED_IDS = new Set<string>([
+  /**
+   * Every id the content layer DECLARES as a link target — the seven acts,
+   * plus the section ids.
+   *
+   * Read the name precisely: these are *declared*, not *rendered*. This test
+   * is deliberately one link in a two-link chain, and on its own it proves
+   * only that a plaque's target is a declared id rather than a hand-typed
+   * string that drifted. The other link — that every declared act id is an id
+   * something actually puts in the DOM — is asserted by
+   * `tests/ui/Stage.test.tsx`, which renders the stage and requires
+   * `document.getElementById(actAnchorId(act.id))` to be non-null for all
+   * seven acts.
+   *
+   * Both halves are needed and neither is sufficient. This one cannot catch a
+   * declared act that nothing renders, because `ACT_IDS` is also where the
+   * link is built from; that one cannot catch a plaque pointing at a string
+   * outside `ACT_IDS` altogether.
+   */
+  const DECLARED_IDS = new Set<string>([
     ...ACT_IDS.map(actAnchorId),
     ...navItems.map((item) => item.sectionId),
   ]);
 
-  it("points every link at an id something actually renders", () => {
+  it("points every link at a declared id, never a hand-typed string", () => {
     // A plaque linking to a dead anchor is the quietest possible failure:
     // the visitor clicks, nothing happens, and no test, type or build
     // complains. Round 18 deletes the section every project link pointed at,
@@ -1553,7 +1568,7 @@ describe("plaque links", () => {
       for (const plaque of world.plaques) {
         if (!plaque.link) continue;
         expect(plaque.link.startsWith("#"), plaque.link).toBe(true);
-        expect(RENDERED_IDS, `${world.id}: ${plaque.link}`).toContain(
+        expect(DECLARED_IDS, `${world.id}: ${plaque.link}`).toContain(
           plaque.link.slice(1)
         );
       }
@@ -1571,9 +1586,11 @@ Expected: PASS — Task 9 already repointed the links. **If it fails, Task 9 is 
 
 - [ ] **Step 3: Prove the test can fail**
 
-Temporarily change `actAnchorId` to return `"act-nonexistent"`. Run the test. Expected: FAIL. Revert the change and re-run. Expected: PASS.
+**Do not mutate `actAnchorId` to prove this.** Changing it moves *both* sides of the comparison — the link is built through the same function the expected set is built from — so the test would still pass and you would have proved nothing. That was a defect in this plan, found in Task 9's review.
 
-A test that has never been seen to fail is not evidence of anything.
+Instead, temporarily hard-code a bad target in `src/lib/worlds.ts`'s project branch — `link: "#work-dd-scraper-platform"`, the anchor this round deletes. Run the test. Expected: FAIL, naming that link. Revert and re-run. Expected: PASS.
+
+A test that has never been seen to fail is not evidence of anything — and a mutation that cannot make it fail is not a demonstration.
 
 - [ ] **Step 4: Commit**
 
