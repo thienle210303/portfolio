@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
-import { profile, origin } from "@/content/portfolio";
+import { careerEntries, profile, origin } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 
 describe("formatIsoDate", () => {
@@ -233,5 +233,43 @@ describe("the profile's own metadata row", () => {
     // One place, one spelling. If these ever disagree the site is carrying
     // two names for one town.
     expect(resolved(profile.location)).toBe(origin.to);
+  });
+});
+
+describe("the content layer matches the September 2026 résumé", () => {
+  const doordash = careerEntries.find((entry) => entry.id === "doordash")!;
+
+  it("carries the figures the résumé carries, not rounded summaries of them", () => {
+    const impact = doordash.impact.join("\n");
+    // "99% runtime reduction" is true and useless: it hides that the real
+    // number is seventeen hours to three minutes.
+    expect(impact).toContain("17 hours to 3 minutes");
+    expect(impact).toContain("654");
+    expect(impact).toContain("1,529");
+    expect(impact).toContain("$2.8M");
+    expect(impact).toContain("40+");
+  });
+
+  it("knows the eight technologies it did not know", () => {
+    for (const tech of [
+      "Kotlin", "Scrapy", "Snowflake", "Databricks", "Zyte API", "gRPC", "Docker",
+    ]) {
+      expect(doordash.technologies, tech).toContain(tech);
+    }
+  });
+
+  it("names the sites the research actually collected from", () => {
+    const scraping = careerEntries.find((entry) => entry.id === "usc-scraping")!;
+    const impact = scraping.impact.join("\n");
+    expect(impact).toContain("3M+");
+    expect(impact).toContain("Amazon");
+    expect(impact).toContain("Kroger");
+  });
+
+  it("credits both halves of the speech pipeline", () => {
+    const wordification = careerEntries.find((entry) => entry.id === "wordification")!;
+    const text = [...wordification.built, ...wordification.impact].join("\n");
+    expect(text).toContain("Google Cloud");
+    expect(text).toContain("ElevenLabs");
   });
 });
