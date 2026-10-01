@@ -120,7 +120,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
     expect: [
       "Led lab sessions for 30+ students",
       "Supported 200+ students",
-      "Assisted the honors section",
+      "Supported and graded a 24+ student honors section",
       "Two course tracks",
       "Explaining a data structure to someone who isn't a CS major",
     ],

@@ -449,10 +449,15 @@ export const careerEntries = [
     lenses: ["engineering", "automation", "optimization"],
   },
   {
+    // Round 18 date fix. `D:\Project\Portfolio-v2`'s own experience data
+    // records this role as starting August 2022; the résumé's "August 2023"
+    // is the later revision and the earlier one is right. The site was
+    // understating a year of research — and it is the year the CS switch
+    // happened, which makes it the year the two halves of the story meet.
     id: "usc-scraping",
     type: "work",
-    dateRange: "August 2023 — May 2025",
-    sortKey: "2023-08-b",
+    dateRange: "August 2022 — May 2025",
+    sortKey: "2022-08",
     role: "Web Scraping Engineer",
     organization: "University of South Carolina",
     locationOrMode: undefined,
@@ -488,13 +493,11 @@ export const careerEntries = [
     responsibilities: [
       "Lead lab sessions for Algorithm Design I & II covering data structures and algorithms.",
       "Support students during open lab hours for the introductory programming courses.",
-      "Assist the honors section and grade assignments.",
     ],
     built: [],
     impact: [
       "Led lab sessions for 30+ students in Algorithm Design I & II.",
       "Supported 200+ students during open lab hours.",
-      "Assisted the honors section and graded assignments for 24+ students.",
     ],
     learned:
       "Explaining a data structure to someone who isn't a CS major is the fastest way to find out whether you understand it.",
@@ -657,6 +660,134 @@ export const careerEntries = [
     learned: undefined,
     technologies: [],
     lenses: [],
+  },
+  /* ---------------------------------------------------------------------- */
+  /* Round 18: the years before the degree.                                  */
+  /*                                                                         */
+  /* Every fact below came from the owner directly (2026-09-30 input sheet)   */
+  /* or from `D:\Project\Portfolio-v2`. None of it is on the résumé, which is */
+  /* exactly why the site did not have it: the content layer only ever read   */
+  /* the résumé, the old repo's project list, and one DoorDash narrative      */
+  /* detail. A résumé starts at the degree. A journey does not.               */
+  /* ---------------------------------------------------------------------- */
+  {
+    id: "eastside-high",
+    type: "learning",
+    dateRange: "2018 — 2021",
+    sortKey: "2018-12",
+    role: "High school",
+    organization: "Eastside High School, Taylors, South Carolina",
+    locationOrMode: undefined,
+    context:
+      "Three years of American high school, started three weeks after landing, in a language he could read and write but not speak.",
+    responsibilities: [],
+    built: [],
+    impact: [],
+    learned:
+      "Reading a language and speaking it are different skills, and only one of them can be practised alone.",
+    technologies: [],
+    lenses: [],
+  },
+  {
+    id: "fu-of-kyoto",
+    type: "work",
+    dateRange: "2019 — 2021",
+    sortKey: "2019-01",
+    role: "Chef and server",
+    organization: "Fu of Kyoto",
+    locationOrMode: undefined,
+    context:
+      "The family restaurant. Both sides of it — cooking on the line, and waiting tables in the language he was still learning.",
+    responsibilities: [
+      "Cook on the line during service.",
+      "Serve tables, take orders, and handle the front of house.",
+    ],
+    built: [],
+    impact: [],
+    learned:
+      "Service is a system under load, and the kitchen teaches you where a process actually breaks faster than any diagram.",
+    technologies: [],
+    lenses: [],
+  },
+  {
+    id: "self-taught-gap",
+    type: "learning",
+    dateRange: "2019 — 2021",
+    sortKey: "2019-06",
+    role: "Whatever he felt like learning",
+    organization: "No institution",
+    locationOrMode: undefined,
+    // The owner's own description of this period was "just being bored and
+    // live day by day". That line is better than anything this file could
+    // write about him, and it is the one string in this round that must not
+    // ship without him approving it — he asked that nothing go public that is
+    // "not worth it". It is deliberately NOT authored here. What is authored
+    // is only the list of things he actually did, which he supplied, and the
+    // act renders exactly that until he says otherwise.
+    context:
+      "Nobody set him a problem for two and a half years, so he picked his own: investing and the stock market, growing plants, keeping an aquarium alive. Drove for Uber Eats.",
+    responsibilities: [],
+    built: [],
+    impact: [],
+    learned:
+      "This is the only stretch of the record where nothing was assigned — which makes it the only evidence of what he does when nobody is asking.",
+    technologies: [],
+    lenses: [],
+  },
+  {
+    id: "usc-cheme",
+    type: "learning",
+    dateRange: "August 2021 — 2022",
+    sortKey: "2021-08-a",
+    role: "Chemical engineering",
+    organization: "University of South Carolina",
+    locationOrMode: undefined,
+    context: "The first major. Not the one he graduated in.",
+    responsibilities: [],
+    built: [],
+    impact: [],
+    learned:
+      "Kept on the record on purpose. A portfolio that admits its author started somewhere else is worth more than one that pretends the line was straight.",
+    technologies: [],
+    lenses: [],
+  },
+  {
+    id: "cs-switch",
+    type: "milestone",
+    dateRange: "2022",
+    sortKey: "2022-01",
+    role: "Switched to computer science",
+    organization: "University of South Carolina",
+    locationOrMode: undefined,
+    context:
+      "His friends told him to try it. He tried it, and it stuck — which is a more honest account of how most people find their field than any origin story about childhood computers.",
+    responsibilities: [],
+    built: [],
+    impact: [],
+    learned: "The recommendation was worth more than the plan.",
+    technologies: [],
+    lenses: [],
+  },
+  {
+    id: "usc-honors-ta",
+    type: "work",
+    dateRange: "August 2023 — May 2025",
+    sortKey: "2023-08-c",
+    role: "Honors Teaching Assistant",
+    organization: "University of South Carolina",
+    locationOrMode: undefined,
+    context:
+      "The honors section of Introduction to Computer Concepts & General Applications Programming — students who are not computer science majors.",
+    responsibilities: [
+      "Support the honors section and lead open lab hours.",
+      "Grade assignments and give written feedback.",
+    ],
+    built: [],
+    impact: ["Supported and graded a 24+ student honors section."],
+    learned:
+      "Teaching people who did not choose this subject is the fastest way to find out which parts of it you only think you understand.",
+    technologies: ["JavaScript", "HTML/CSS", "Python"],
+    lenses: ["leadership", "engineering"],
   },
 ] satisfies readonly CareerEntry[];
 

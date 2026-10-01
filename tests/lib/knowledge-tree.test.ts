@@ -257,3 +257,46 @@ describe("buildKnowledgeTree (legacy — HeroAbout.tsx only)", () => {
     expect(roots.every((root) => root.branches.length > 0)).toBe(true);
   });
 });
+
+const ROUND_18_ENTRIES = [
+  "eastside-high",
+  "fu-of-kyoto",
+  "self-taught-gap",
+  "usc-cheme",
+  "cs-switch",
+  "usc-honors-ta",
+] as const;
+
+describe("the entries round 18 adds", () => {
+  it("adds all six", () => {
+    for (const id of ROUND_18_ENTRIES) {
+      expect(careerEntries.find((entry) => entry.id === id), id).toBeDefined();
+    }
+  });
+
+  it("gives every one of them something authored to say", () => {
+    // Finding 03 of the audit: nine of the fourteen existing entries have
+    // empty `built`, empty `impact` and no `learned`, and exist only to be
+    // counted. Adding a seventh of those would re-create the problem this
+    // round is removing.
+    for (const id of ROUND_18_ENTRIES) {
+      const entry = careerEntries.find((candidate) => candidate.id === id);
+      const authored =
+        entry!.impact.length + entry!.built.length + (entry!.learned ? 1 : 0);
+      expect(authored, `${id} has nothing authored on it`).toBeGreaterThan(0);
+    }
+  });
+
+  it("starts the record in 2018, not 2021", () => {
+    // The section is called Journey. Until this task it began at the degree.
+    expect(careerYearSpan().firstYear).toBe(2018);
+  });
+
+  it("corrects the scraping start to August 2022", () => {
+    // Portfolio-v2 is the source: "Undergraduate Research Assistant, from
+    // August 2022". The site understated it by a year.
+    const scraping = careerEntries.find((entry) => entry.id === "usc-scraping");
+    expect(scraping?.sortKey).toBe("2022-08");
+    expect(scraping?.dateRange).toBe("August 2022 — May 2025");
+  });
+});

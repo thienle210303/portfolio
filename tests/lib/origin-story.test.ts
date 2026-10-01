@@ -71,17 +71,21 @@ describe("seasonsFor", () => {
   it("carries the storm overlay independently of the base kind", () => {
     // Recomputed straight from real content (src/content/portfolio.ts),
     // the same discipline every other assertion in this describe block
-    // follows: 2021 has one learning entry and one milestone, so its base
-    // weather is rain with a storm riding in; 2023/2024/2025 each have work
-    // entries and at least one milestone, so their base weather is sun,
-    // also with a storm; 2018/2019/2020/2022 have nothing on record at all,
-    // so they are quiet with no storm.
+    // follows. Round 18 filled the years the record used to leave empty:
+    // 2018 has only high school (learning), so rain with no storm; 2019 has
+    // the restaurant (work) and the self-taught stretch (learning) in a tie,
+    // which reads as rain, and no milestone; 2020 is the one year with
+    // nothing on record, so quiet with no storm; 2021 has the degree and the
+    // first major (learning) and a milestone, so rain with a storm riding in;
+    // 2022 has the research job (work) and the switch to CS (a milestone), so
+    // sun with a storm; 2023/2024/2025 each have work entries and at least
+    // one milestone, so sun, also with a storm.
     const expected: Record<number, { kind: string; storm: boolean }> = {
-      2018: { kind: "quiet", storm: false },
-      2019: { kind: "quiet", storm: false },
+      2018: { kind: "rain", storm: false },
+      2019: { kind: "rain", storm: false },
       2020: { kind: "quiet", storm: false },
       2021: { kind: "rain", storm: true },
-      2022: { kind: "quiet", storm: false },
+      2022: { kind: "sun", storm: true },
       2023: { kind: "sun", storm: true },
       2024: { kind: "sun", storm: true },
       2025: { kind: "sun", storm: true },
@@ -193,7 +197,12 @@ describe("firstCanopyYear", () => {
  */
 describe("rootYearFor", () => {
   const first = origin.arrivedYear;
-  const last = firstCanopyYear() - 1;
+  // Round 18 put an entry in the arrival year itself (high school, 2018), so
+  // the canopy now starts the year the flight landed and there are no quiet
+  // pre-canopy years left. `rootYearFor` already handles that — its
+  // `Math.max(1, …)` clamps every root to the arrival year — so the bound
+  // here clamps the same way instead of describing an empty range.
+  const last = Math.max(first, firstCanopyYear() - 1);
 
   it("is deterministic: the same index and total always land on the same year", () => {
     expect(rootYearFor(2, 6)).toBe(rootYearFor(2, 6));
