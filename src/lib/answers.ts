@@ -231,6 +231,22 @@ function requiredMatches(termCount: number): number {
   return termCount <= 2 ? 1 : 2;
 }
 
+/**
+ * Terms that are evidence of *what is being asked* and never of what a passage
+ * says, so they are matched against a document's label (its aliases) and not
+ * against its text.
+ *
+ * "who" is the one member. As a query word it is the visitor asking about a
+ * person, which is what `sectionExpansions.about` aliases it for. Inside a
+ * passage it is a relative pronoun ("someone who isn't a CS major", "people who
+ * did not choose this subject") and says nothing about the passage's subject.
+ * Letting that match count meant an unrelated teaching-assistant line, with the
+ * word in its prose, outranked every About document, which carry it only as an
+ * alias, for the question "who is he". This holds whatever the scores are: a
+ * relative pronoun is not an answer to an identity question.
+ */
+const ALIAS_ONLY_TERMS: ReadonlySet<string> = new Set(["who"]);
+
 export function answer(question: string, limit = 3): readonly Answer[] {
   const terms = tokenize(question);
   if (terms.length === 0) return [];
@@ -245,7 +261,7 @@ export function answer(question: string, limit = 3): readonly Answer[] {
     let matched = 0;
     for (const term of unique) {
       const weight = IDF.get(term) ?? 0;
-      if (text.has(term)) {
+      if (!ALIAS_ONLY_TERMS.has(term) && text.has(term)) {
         score += weight;
         matched += 1;
       } else if (label.has(term)) {

@@ -175,6 +175,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
     query: "doordash",
     expect: [
       "Retail data",
+      "I write software for retail data at DoorDash",
       "Multi-agent feasibility workflow at DoorDash",
     ],
     probes: "employer lookup",
@@ -258,7 +259,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   {
     query: "who is he",
     expect: [
-      "Software engineer on retail data",
+      "I write software for retail data at DoorDash",
       "I moved from Kiên Giang, Việt Nam to Taylors, South Carolina",
       "Automated collection and integration systems",
       "three million records collected unattended",

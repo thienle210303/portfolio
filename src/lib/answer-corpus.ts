@@ -76,13 +76,12 @@ export function buildDocuments(): Document[] {
     });
   }
 
-  // The hero's introduction line, rendered inside #about by HeroIdentity. It is
-  // indexed because a document must be a sentence the page actually shows:
-  // `profile.positioning` is not (it reaches only the metadata and the social
-  // card), so an answer quoting it would link to "About" where a visitor could
-  // not find it.
+  // The site's one-line positioning, rendered as the lead of #about by
+  // HeroAbout. It was the last sentence of `about` before round 18 and so was
+  // indexed with it; it is rendered there again, which is what makes the
+  // "Read it in About" link on an answer truthful.
   docs.push({
-    text: profile.intro,
+    text: profile.positioning,
     source: "About, in his own words",
     sectionId: "about",
     sectionLabel: "About",

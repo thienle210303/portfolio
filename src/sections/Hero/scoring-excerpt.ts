@@ -31,7 +31,7 @@ export const SCORING_EXCERPT = `for (const { doc, text, label } of INDEX) {
   let matched = 0;
   for (const term of unique) {
     const weight = IDF.get(term) ?? 0;
-    if (text.has(term)) {
+    if (!ALIAS_ONLY_TERMS.has(term) && text.has(term)) {
       score += weight;
       matched += 1;
     } else if (label.has(term)) {
@@ -62,5 +62,6 @@ export const SCORING_EXCERPT_SUMMARY =
  */
 export const SCORING_MATH = [
   "score(d) = Σ idf(t) · w(t,d),  w = 1 if t∈text(d), 0.6 if t∈label(d) only",
+  "(\"who\" is alias-only: it is matched against label(d) and never text(d))",
   "admit d ⇔ matched(d) ≥ needed(query) and score(d) ≥ 0.8",
 ].join("\n");

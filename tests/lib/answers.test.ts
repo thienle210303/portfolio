@@ -22,7 +22,7 @@ import { resolveWorlds } from "@/lib/worlds";
 /** Every verbatim string the content layer can legitimately produce. */
 const CORPUS = new Set<string>([
   ...profile.about,
-  profile.intro,
+  profile.positioning,
   profile.focus,
   profile.philosophy,
   ...projectsIndexable.flatMap((project) => [
@@ -232,6 +232,17 @@ describe("answer", () => {
     expect(answer("")).toEqual([]);
     expect(answer("   ")).toEqual([]);
     expect(answer("???")).toEqual([]);
+  });
+
+  it("answers 'who is he' from About, never from a passage that merely contains the word 'who'", () => {
+    // "who" is a signal about what is asked (About aliases it), not a fact a
+    // passage states. In prose it is a relative pronoun, so a line like
+    // "someone who isn't a CS major" must not outrank the About documents.
+    const results = answer("who is he", 6);
+    expect(results.length).toBeGreaterThan(0);
+    for (const result of results) {
+      expect(result.sectionId, `"${result.text.slice(0, 50)}…" answered an identity question`).toBe("about");
+    }
   });
 
   it("leads with something about the employer when asked about the employer", () => {

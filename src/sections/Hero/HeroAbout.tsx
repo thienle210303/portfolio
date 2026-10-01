@@ -80,6 +80,13 @@ export default function HeroAbout() {
             viewport, so keyboard and reading order both reach the actual
             substance before the supporting facts beside it. */}
         <div className="min-w-0 space-y-4">
+          {/* The site's one-line positioning, as the lead. Until round 18 this
+              string reached only the page metadata and the social card, so the
+              sentence the whole site hangs from was never shown to a visitor
+              (and the chat linked to About for a line that was not there). */}
+          <p className="prose-measure text-[length:var(--step-1)] leading-[1.5] text-[color:var(--fg)]">
+            {profile.positioning}
+          </p>
           {profile.about.map((paragraph) => (
             <p key={paragraph} className={PROSE_CLASS}>
               {paragraph}
