@@ -1166,14 +1166,27 @@ function Bough({
  * always visible on the twig below, so the panel never restates a fact
  * already on the page beside it.
  *
- * `data-tree-panel` is a hook for two things that are not this file —
- * `TreeFigure.tsx`'s cross-highlight island and `globals.css`'s origin-story
- * fade — but **neither is rendered by the Journey today**: both were mounted by
- * `KnowledgeTree.tsx`, which the pinned stage replaced in round 18, and the
- * stage's drawing has no `TreeFigure` wrapper and no origin-story player. So
- * at present nothing reads this attribute. It stays because both consumers
- * still exist and whether they are retired or re-homed is undecided; do not
- * read its presence as a live contract.
+ * `data-tree-panel` is a hook for two things that are not this file, and the two
+ * have had different fates since round 18 split them apart. Both used to be
+ * mounted by `KnowledgeTree.tsx`, which the pinned stage replaced.
+ *
+ *   - **The origin-story fade is live again.** Round 18's second plan re-homed
+ *     the player onto the stage's own drawing (`CareerTree.tsx` renders
+ *     `WatchOrigin` inside `[data-origin-host]`), so while the show runs the
+ *     conductor stamps `data-origin-running` on that host and
+ *     `globals.css:1577` hides a still-pending branch's panel through this
+ *     attribute — which is what keeps a card from standing fully readable
+ *     beside a branch that has not grown yet. `e2e/axe.spec.ts` reads it too:
+ *     its settle poll waits for `#tree [data-tree-panel]` to finish fading
+ *     before auditing, and fails rather than passing if the selector matches
+ *     nothing. **This is a live contract. Renaming or dropping the attribute
+ *     breaks the fade and the audit together.**
+ *   - **The cross-highlight half is still not rendered.** That reader is
+ *     `TreeFigure.tsx`'s island (`globals.css:1305`), and `TreeFigure` has no
+ *     mounter — the stage's drawing has no `TreeFigure` wrapper, and round 18's
+ *     second plan deliberately did not bring one back. Those rules match
+ *     nothing today. Whether that component is retired or re-homed is still
+ *     undecided, which is why its rules are left in place rather than deleted.
  */
 function BranchPanel({
   branch,

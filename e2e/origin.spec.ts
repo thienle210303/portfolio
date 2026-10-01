@@ -113,9 +113,12 @@ test.describe("the button", () => {
     const button = watchOriginButton(page);
     if (viewportWidth(page) < DESKTOP_MIN_WIDTH) {
       // Below 1024px the list is the presentation and there is no drawing for a
-      // story to grow in, so the button is shown at no point at all.
-      await expect(button).toBeHidden();
-      await showTheFinishedTree(page);
+      // story to grow in, so `CareerTree.tsx`'s `hidden lg:block` wrapper keeps
+      // the button out of the layout entirely. There is no state to reach and
+      // no route to traverse: the pin never engages this narrow, so there is no
+      // "Show me the whole tree" control on the page to press — the whole stage
+      // is already the finished tree. One assertion, and it is the only one
+      // there is anything here to make.
       await expect(button).toBeHidden();
       return;
     }
