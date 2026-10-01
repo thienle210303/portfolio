@@ -29,11 +29,20 @@ export const ACT_IDS = [
 export type ActId = (typeof ACT_IDS)[number];
 
 /**
- * Which act each career entry is drawn in. Authored, not inferred from dates:
- * three of these entries overlap several acts, and the act a role *belongs*
- * to is an editorial judgement about the story, not a fact about its
- * calendar. The milestones land in `two-jobs`, which is where the credentials
- * strip appears.
+ * Which act each career entry is drawn in. Authored, not computed from dates:
+ * some roles overlap several acts, and the act a role *belongs* to is an
+ * editorial judgement about the story, not a fact about its calendar.
+ *
+ * Milestones are the exception in spirit: they go where the calendar puts
+ * them, with the boundary at `schaeffler`'s sortKey `2024-05-a`. `code-to-give`
+ * (2023-04), `acm-webmaster` (2024-01) and `cockyhacks` (2024-04) fall before
+ * it, so they sit in `research` (and `cs-switch`, 2022-01, in `the-switch`);
+ * `magellan` (2024-09) and the May 2025 milestones fall after it, so they sit
+ * in `two-jobs`. A Research Award in `two-jobs` beside two hackathons in
+ * `research` is therefore correct, not inverted — leave it alone. The one
+ * milestone that does not follow its start date is `deans-list`: it spans
+ * 2021 — 2025, so it is filed in `two-jobs`, where the credentials strip
+ * appears.
  *
  * `usc-degree` is the one entry placed by what hangs off it rather than by
  * where it sits in the story. Four projects (`chess-minmax`, `conscea`,
