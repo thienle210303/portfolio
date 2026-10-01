@@ -50,8 +50,13 @@ export type ActId = (typeof ACT_IDS)[number];
  * they were built between July 2023 and April 2024 — `research` (2022–2025)
  * is temporally right for all four, where `two-jobs` (2024 — May 2025) would
  * place three of them a year late. The degree is demoted and never drawn as a
- * branch, so this only decides where its projects surface. The credentials
- * strip is driven by the act's `showsCredentials`, not by this entry.
+ * branch, and its projects do not surface in this act: `UnbranchedCaseStudies`
+ * picks them by `isDemotedEntry` and renders them after all seven acts, full
+ * width. What this placement decides is the act `actForProject` reports for
+ * them, and the only consumer of that is the globe's project plaques, none of
+ * which is one of these four. It is kept right so the first one that is does
+ * not link a project into the wrong period. The credentials strip is driven by
+ * the act's `showsCredentials`, not by this entry.
  */
 const ENTRY_ACTS: Readonly<Record<string, ActId>> = {
   "eastside-high": "high-school",

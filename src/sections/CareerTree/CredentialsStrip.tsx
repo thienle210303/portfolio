@@ -1,52 +1,27 @@
+import { ExternalLink } from "@/components/ui/ExternalLink";
 import { careerEntries } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
+import { isDemotedEntry } from "@/lib/knowledge-tree";
+import type { CareerEntry } from "@/types/portfolio";
+
+// Widened once: `careerEntries` keeps each entry as a literal, so `.link` is
+// not on every member of the union it infers.
+const ENTRIES: readonly CareerEntry[] = careerEntries;
 
 /**
- * The entries that stop being branches in round 18 and become one line.
+ * The nine demoted entries (`DEMOTED_ENTRY_IDS` in `src/lib/knowledge-tree.ts`)
+ * as one wrapped line each of `role · organization · dateRange`, read from
+ * `careerEntries` and never retyped. A Server Component with no interactivity
+ * of its own — it takes a class name and nothing else.
  *
- * They were padding the tree to twenty branches. Three are bare milestones
- * (a title, an organisation and a date and nothing else); the rest carry at
- * most a line or two of `built` or `impact`, which `/resume` still shows in
- * full. A branch has to earn the room it takes on a drawing that has to fit
- * one screen, and a one-line credential does not.
- *
- * They are not deleted from the content layer: `careerEntries` is unchanged,
- * `/resume` still reads all nine, and the globe and the answer corpus still
- * see them. Only the drawing stops giving each a limb.
- *
- * This list is a set, not a sequence: the strip sorts by `sortKey`, the same
- * way the tree does, so a reader sees the credentials in the order they
- * happened whatever order the ids are written in here.
- */
-export const DEMOTED_ENTRY_IDS = [
-  "usc-degree",
-  "graduation",
-  "cockyhacks",
-  "code-to-give",
-  "capstone",
-  "llm-classifier",
-  "magellan",
-  "acm-webmaster",
-  "deans-list",
-] as const;
-
-const DEMOTED: ReadonlySet<string> = new Set(DEMOTED_ENTRY_IDS);
-
-/** Whether an entry is drawn as a credential rather than as a branch. Takes a
- *  plain `string` so a caller never needs a cast to ask the question. */
-export function isDemotedEntry(entryId: string): boolean {
-  return DEMOTED.has(entryId);
-}
-
-/**
- * The nine demoted entries as one wrapped line each of
- * `role · organization · dateRange`, read from `careerEntries` and never
- * retyped. A Server Component's worth of markup with no interactivity of its
- * own — it takes a class name and nothing else.
+ * An entry that carries a `link` (two of the hackathon entries point at a real
+ * repository) keeps it: the role is the anchor. That is the whole of what the
+ * strip adds to a line — it is not a re-expansion of the branch the entry used
+ * to be.
  */
 export default function CredentialsStrip({ className }: { readonly className?: string }) {
-  const entries = careerEntries
-    .filter((entry) => DEMOTED.has(entry.id))
+  const entries = ENTRIES
+    .filter((entry) => isDemotedEntry(entry.id))
     .toSorted((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0));
 
   return (
@@ -58,7 +33,16 @@ export default function CredentialsStrip({ className }: { readonly className?: s
             key={entry.id}
             className="wrap-anywhere text-[length:var(--step--1)] leading-snug text-fg-muted"
           >
-            <span className="text-fg">{entry.role}</span>
+            {entry.link ? (
+              <ExternalLink
+                href={entry.link.href}
+                className="text-accent underline underline-offset-4 hover:no-underline"
+              >
+                {entry.role}
+              </ExternalLink>
+            ) : (
+              <span className="text-fg">{entry.role}</span>
+            )}
             {entry.organization ? <> · {entry.organization}</> : null}
             {" · "}
             {entry.dateRange}

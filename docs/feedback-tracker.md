@@ -1128,3 +1128,39 @@ after the walk-back clearance test, so the defect survives in the tree
 rather than only in a task report. Fixing `trailBehind`'s clamping for large
 or back-to-back jumps is out of scope for this round (content removal) and
 is not attempted here.
+
+### The pinned stage (round 18, Task 11)
+
+Measured with `pnpm perf`'s script against two production builds served from
+their own directories (`:3142` the commit before the task, `96221c6`;
+`:3141` the stage with its drawing server-rendered), three runs each,
+interleaved. **Zero skipped responses in every run.** The machine's
+`chromium_headless_shell-1243` was not installed, so the script was run
+unmodified except for pointing `launch()` at the installed
+`chromium_headless_shell-1234`; sizes are what the row is about, and they do
+not depend on the browser build.
+
+| | Before (`96221c6`) | After | Δ |
+|---|---|---|---|
+| **Initial JS** — `pnpm perf`, `request.sizes()` | 200.7 KB | 199.4 KB | **−1.3 KB** |
+| CSS | 14.1 KB | 14.6 KB | +0.5 KB |
+| Fonts | 223.8 KB | 223.8 KB | 0 |
+| DOM nodes | 4,270 | 4,302 | +32 |
+| CLS | 0 | 0 | 0 |
+| LCP (3 runs) | 3324 / 4520 / 4848 ms | 5348 / 5156 / 5604 ms | see below |
+| TBT (3 runs) | 519 / 717 / 584 ms | 1331 / 1155 / 659 ms | see below |
+
+Initial JS did not move: the stage is a client component, but it is handed the
+drawing, the list, the credentials strip and the case-study prose as slots by
+`CareerTree` (a Server Component), so none of that ships as JavaScript. The
+stage's own module measures 3.9 KB raw / 1.7 KB gz inside the chunk it shares
+with other client code. A first version that imported the drawing directly put
+a 17 KB gz chunk in the initial scripts; that was the leak this row exists to
+catch.
+
+**LCP and TBT were higher in all three pairs after the change**, and this table
+does not explain why. The LCP element is the hero paragraph, which the stage
+does not touch; the numbers here already vary by a second or more between
+runs of the same build in this file's earlier rows (see "Performance
+baseline"). Treated as unresolved rather than as noise: if it reproduces on a
+quieter machine it is the one thing to chase from this row.

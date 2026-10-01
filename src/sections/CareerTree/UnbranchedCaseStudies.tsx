@@ -1,6 +1,6 @@
 import { projects } from "@/content/portfolio";
 import CaseStudy from "./CaseStudy";
-import { isDemotedEntry } from "./CredentialsStrip";
+import { isDemotedEntry } from "@/lib/knowledge-tree";
 
 const HEADING_ID = "unbranched-case-studies-heading";
 

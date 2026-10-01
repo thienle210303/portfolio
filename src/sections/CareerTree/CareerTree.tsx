@@ -30,19 +30,24 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { careerEntries } from "@/content/portfolio";
-import { buildCareerTree, totalLeaves } from "@/lib/knowledge-tree";
+import {
+  buildDrawnTree,
+  DEMOTED_ENTRY_IDS,
+  totalLeaves,
+  treeTechnologies,
+} from "@/lib/knowledge-tree";
 import { ACTS } from "./acts";
-import { DEMOTED_ENTRY_IDS, isDemotedEntry } from "./CredentialsStrip";
+import CredentialsStrip from "./CredentialsStrip";
+import DrawnTree from "./DrawnTree";
+import KnowledgeTreeList from "./KnowledgeTreeList";
 import Stage from "./Stage";
 import UnbranchedCaseStudies from "./UnbranchedCaseStudies";
 
 const HEADING_ID = "tree-heading";
 
-const TREE = buildCareerTree();
-
 /** What the stage draws: the tree without the nine entries that became one
- *  credentials line. */
-const DRAWN = TREE.filter((branch) => !isDemotedEntry(branch.id));
+ *  credentials line. The globe's "tree-shape" plaque counts the same call. */
+const DRAWN = buildDrawnTree();
 
 /** Every leaf on the drawing: every technology and every impact line any drawn
  *  branch lists, summed — one row per authored fact. */
@@ -51,9 +56,7 @@ const LEAF_TOTAL = totalLeaves(DRAWN);
 /** Distinct technologies among the drawn leaves. Not `totalTechnologies()`:
  *  that counts every entry, including the demoted ones whose technologies are
  *  no longer drawn anywhere on this stage. */
-const TECHNOLOGY_TOTAL = new Set(
-  DRAWN.flatMap((branch) => branch.leaves.filter((leaf) => leaf.kind === "technology").map((leaf) => leaf.text)),
-).size;
+const TECHNOLOGY_TOTAL = treeTechnologies(DRAWN);
 
 /** The drawn branch with the most to show — the entry whose own technologies
  *  and impact lines, combined, outnumber every other drawn entry's. Ties go to
@@ -107,7 +110,17 @@ export default function CareerTree() {
         What it adds up to
       </SectionHeading>
 
-      <Stage acts={ACTS} tree={TREE}>
+      {/* The drawing, the list and the credentials strip are built here, on
+          the server, and handed to the stage as slots: none of them has a hook
+          or a handler, and passing them keeps the drawing and the case-study
+          prose inside its branches out of the client bundle. The stage only
+          ever says which act is current. */}
+      <Stage
+        acts={ACTS}
+        drawing={<DrawnTree tree={DRAWN} className="hidden lg:block" />}
+        list={<KnowledgeTreeList tree={DRAWN} className="mt-6 lg:hidden" />}
+        credentials={<CredentialsStrip className="mt-8" />}
+      >
         <UnbranchedCaseStudies />
       </Stage>
     </Section>

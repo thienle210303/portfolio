@@ -49,11 +49,12 @@
  * than no link.
  *
  * Round 18 removed the timeline this pointed at (and the Tree / List toggle
- * that chose between it and the drawing): the stage replaced both. Nothing in
- * the Journey renders this link any more — a branch is the entry, so a link
- * from it back to itself would be circular — and it stays only because the
- * anchors it builds (`journey-entry-<id>`) are still the ids old bookmarks
- * and the résumé carry.
+ * that chose between it and the drawing): the stage replaced both. This
+ * component has **no caller in the Journey today** — a branch is the entry, so
+ * a link from it back to itself would be circular — and the anchors it builds
+ * (`journey-entry-<id>`) are rendered by nothing until the stage's acts take
+ * them over (Task 13 of round 18). It is left in place for that, not because
+ * anything still carries those ids: `/resume` does not.
  */
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { journeyEntryAnchor } from "./anchors";

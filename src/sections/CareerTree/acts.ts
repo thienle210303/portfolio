@@ -1,5 +1,5 @@
 import { careerEntries, origin } from "@/content/portfolio";
-import { ACT_IDS, actForEntry, type ActId } from "@/lib/anchors";
+import { ACT_IDS, actAnchorId, actForEntry, type ActId } from "@/lib/anchors";
 import { arrivedAge } from "@/lib/origin-story";
 
 /**
@@ -16,6 +16,10 @@ import { arrivedAge } from "@/lib/origin-story";
  */
 export interface Act {
   readonly id: ActId;
+  /** The DOM id of the act's section, `actAnchorId(id)`. Carried here so the
+   *  stage — a client component — never has to import `src/lib/anchors.ts`,
+   *  which pulls the whole content layer in after it. */
+  readonly anchorId: string;
   /** The label in the stage's corner. Prose, because "2018 — 2021" is not a
    *  number and the scrubber needs something human to stop on. */
   readonly year: string;
@@ -42,6 +46,7 @@ const TITLES: Readonly<Record<ActId, { year: string; title: string }>> = {
 
 export const ACTS: readonly Act[] = ACT_IDS.map((id) => ({
   id,
+  anchorId: actAnchorId(id),
   year: TITLES[id].year,
   title: TITLES[id].title,
   entryIds: careerEntries

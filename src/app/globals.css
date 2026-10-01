@@ -2061,14 +2061,26 @@
       background: linear-gradient(to bottom, var(--ground), transparent);
     }
 
-    /* A branch the stage has not reached. Still in the document, still in
+    /* A branch the stage has not reached: one whose `data-branch-act` is
+       greater than the stage's `data-through`. Still in the document, still in
        the accessibility tree; a keyboard user who tabs into one releases the
-       pin (see `onDrawingFocus`), and until the release lands `:focus-within`
-       keeps what they are standing on visible. */
+       pin (see `releaseForReading`), and until the release lands
+       `:focus-within` keeps what they are standing on visible.
+
+       Written out once per value rather than computed: CSS cannot compare two
+       attribute values, and the alternative — a React prop that re-renders the
+       whole drawing on every act — would make the drawing client code. There
+       are as many rules as there are acts after the first; a test reads this
+       file and fails if the act list outgrows them. */
     [data-stage][data-stage-live]:not([data-released]) [data-branch-act] {
       transition: opacity var(--dur-settle) var(--ease-ink);
     }
-    [data-stage][data-stage-live]:not([data-released]) [data-branch-act][data-undrawn]:not(:focus-within) {
+    [data-stage][data-stage-live][data-through="0"]:not([data-released]) :is([data-branch-act="1"], [data-branch-act="2"], [data-branch-act="3"], [data-branch-act="4"], [data-branch-act="5"], [data-branch-act="6"]):not(:focus-within),
+    [data-stage][data-stage-live][data-through="1"]:not([data-released]) :is([data-branch-act="2"], [data-branch-act="3"], [data-branch-act="4"], [data-branch-act="5"], [data-branch-act="6"]):not(:focus-within),
+    [data-stage][data-stage-live][data-through="2"]:not([data-released]) :is([data-branch-act="3"], [data-branch-act="4"], [data-branch-act="5"], [data-branch-act="6"]):not(:focus-within),
+    [data-stage][data-stage-live][data-through="3"]:not([data-released]) :is([data-branch-act="4"], [data-branch-act="5"], [data-branch-act="6"]):not(:focus-within),
+    [data-stage][data-stage-live][data-through="4"]:not([data-released]) :is([data-branch-act="5"], [data-branch-act="6"]):not(:focus-within),
+    [data-stage][data-stage-live][data-through="5"]:not([data-released]) [data-branch-act="6"]:not(:focus-within) {
       opacity: 0;
       pointer-events: none;
     }
@@ -2093,14 +2105,16 @@
     /* The current act is marked by a rule in the primary ink — blue is for
        annotation and measured values, and the scrubber already spends it here —
        and the rest are dimmed, but only their title and
-       only to 0.6. Body text dimmed to that falls under AA on paper
+       only to 0.65. The primary ink at that opacity measures 5.26:1 over paper
+       and 5.10:1 over paper-deep (0.6 is 4.48 / 4.36, under the 4.5 floor for
+       text that is not large). Body text dimmed that far falls under AA on paper
        (4.5:1 needs about 0.8 for the muted tone), and an act is something to
        read, not a control that is switched off. */
     [data-stage][data-stage-live]:not([data-released]) [data-act][aria-current="step"] {
       border-inline-start-color: var(--fg);
     }
     [data-stage][data-stage-live]:not([data-released]) [data-act]:not([aria-current="step"]) [data-act-title] {
-      opacity: 0.6;
+      opacity: 0.65;
     }
     [data-stage][data-stage-live]:not([data-released]) [data-act-title] {
       transition: opacity var(--dur-settle) var(--ease-ink);

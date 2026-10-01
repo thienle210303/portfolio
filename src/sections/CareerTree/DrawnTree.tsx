@@ -132,23 +132,18 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
 interface DrawnTreeProps {
   readonly tree: readonly TreeBranch[];
   readonly className?: string;
-  /**
-   * The index (into `ACT_IDS`) of the latest act the stage has reached. A
-   * branch whose own act comes after it is marked `data-undrawn`.
-   *
-   * Marked, not removed: every branch stays in the DOM whatever this says, so
-   * the finished tree is what a reader gets with JavaScript off, under
-   * reduced motion and in print. `globals.css` is what turns `data-undrawn`
-   * into "not yet", and only while the pinned stage is live — see the
-   * "Journey stage" block there. Omitted, every branch is drawn.
-   */
-  readonly throughAct?: number;
 }
 
-/** Which act a branch is drawn in, as an index into `ACT_IDS`. The map from
- *  entry to act lives in `src/lib/anchors.ts` and nowhere else; this only asks
- *  it. -1 for an entry the map does not place, which the caller treats as
- *  "always drawn". */
+/** Which act a branch is drawn in, as an index into `ACT_IDS`, stamped on the
+ *  branch as `data-branch-act`. The map from entry to act lives in
+ *  `src/lib/anchors.ts` and nowhere else; this only asks it.
+ *
+ *  The drawing never learns which act the stage is at. The stage puts that on
+ *  its own root as `data-through`, and `globals.css` compares the two — so this
+ *  stays a Server Component, rendered once, and every branch is always in the
+ *  DOM: the finished tree is what a reader gets with JavaScript off, under
+ *  reduced motion and in print. -1 for an entry the map does not place, which
+ *  is left unmarked and so is never faded. */
 function actIndexOf(branch: TreeBranch): number {
   const act = actForEntry(branch.id);
   return act === undefined ? -1 : ACT_IDS.indexOf(act);
@@ -1171,11 +1166,14 @@ function Bough({
  * always visible on the twig below, so the panel never restates a fact
  * already on the page beside it.
  *
- * `data-tree-panel` is read by two things that are not this file:
- * `TreeFigure.tsx`'s cross-highlight island (a hover or focus here brightens
- * this card) and `globals.css`'s origin-story fade (this card's whole
- * `Disclosure` — trigger and panel together — fades with the rest of this
- * bough while the growth story has not reached it yet).
+ * `data-tree-panel` is a hook for two things that are not this file —
+ * `TreeFigure.tsx`'s cross-highlight island and `globals.css`'s origin-story
+ * fade — but **neither is rendered by the Journey today**: both were mounted by
+ * `KnowledgeTree.tsx`, which the pinned stage replaced in round 18, and the
+ * stage's drawing has no `TreeFigure` wrapper and no origin-story player. So
+ * at present nothing reads this attribute. It stays because both consumers
+ * still exist and whether they are retired or re-homed is undecided; do not
+ * read its presence as a live contract.
  */
 function BranchPanel({
   branch,
@@ -1509,7 +1507,7 @@ function placements(tree: readonly TreeBranch[]): readonly Placement[] {
 
 /* -------------------------------------------------------------------------- */
 
-export function DrawnTree({ tree, className, throughAct }: DrawnTreeProps) {
+export function DrawnTree({ tree, className }: DrawnTreeProps) {
   const placed = placements(tree);
 
   return (
@@ -1541,9 +1539,6 @@ export function DrawnTree({ tree, className, throughAct }: DrawnTreeProps) {
               data-origin-year={branch.startYear}
               data-origin-tier="branch"
               data-branch-act={actIndex >= 0 ? actIndex : undefined}
-              data-undrawn={
-                throughAct !== undefined && actIndex > throughAct ? "" : undefined
-              }
               data-concurrent-with={
                 siblings.length > 0 ? siblings.map((sibling) => sibling.id).join(" ") : undefined
               }

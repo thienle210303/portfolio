@@ -3,25 +3,23 @@ import { journeyEntryAnchor, journeyEntryAnchorId } from "@/sections/CareerTree/
 import { careerEntries } from "@/content/portfolio";
 
 /**
- * `journeyEntryAnchor` is the guard between a cross-reference and a dead
- * fragment. The career tree's leaves call it and link only when it returns a
- * string, so the question it answers — "will an element with this id be in
- * the document?" — has to stay answered from `careerEntries` and nothing
- * else. A version that returned an id unconditionally would look correct
- * everywhere except in the browser, where the browser follows the link,
- * finds nothing, and does nothing at all.
+ * `journeyEntryAnchor` decides whether an id names a career entry the Journey
+ * is meant to own, and builds its fragment from the entry id and nothing else.
  *
- * The e2e suite checks the other half — that every link the tree renders
- * resolves against the rendered DOM, and that following one lands on and
- * focuses its entry even through the timeline's filter. This file checks the
- * decision itself, without a browser.
+ * **What this file does not prove, as of round 18:** that an element with the
+ * id is in the document. Through round 17 it did, because the timeline rendered
+ * exactly `careerEntries`; the pinned stage replaced the timeline and nothing
+ * renders `journey-entry-<id>` today. The assertions below are therefore about
+ * the id and the guard, and are named that way. Task 13 re-adds the anchors on
+ * the acts and is where "every one resolves against the DOM" is asserted again
+ * (`tests/sections/Stage.test.tsx` and `e2e/legacy-anchors.spec.ts`).
  */
 describe("journeyEntryAnchorId", () => {
   it("derives the id from the entry id rather than an authored string", () => {
     expect(journeyEntryAnchorId("doordash")).toBe("journey-entry-doordash");
   });
 
-  it("stays one suffix clear of the three ids TimelineEntry already emits", () => {
+  it("stays one suffix clear of the three ids the deleted timeline used to emit", () => {
     const anchor = journeyEntryAnchorId("doordash");
     for (const taken of [
       "journey-doordash-role",
@@ -34,7 +32,7 @@ describe("journeyEntryAnchorId", () => {
 });
 
 describe("journeyEntryAnchor", () => {
-  it("gives every entry the timeline renders an anchor", () => {
+  it("gives every career entry a fragment id (not proof that an element carries it — see the note above)", () => {
     expect(careerEntries.length).toBeGreaterThan(0);
     for (const entry of careerEntries) {
       expect(journeyEntryAnchor(entry.id), `no anchor for "${entry.id}"`).toBe(
@@ -43,7 +41,7 @@ describe("journeyEntryAnchor", () => {
     }
   });
 
-  it("gives nothing to an id the timeline does not render", () => {
+  it("gives nothing to an id that is not a career entry", () => {
     expect(journeyEntryAnchor("no-such-entry")).toBeUndefined();
     expect(journeyEntryAnchor("")).toBeUndefined();
     // The anchor id itself is not an entry id — asking with one back is the

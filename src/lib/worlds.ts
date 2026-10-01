@@ -13,7 +13,7 @@ import {
   greatCircle,
   type GreatCircle,
 } from "@/lib/globe";
-import { buildCareerTree, stillGrowingCaption, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildDrawnTree, stillGrowingCaption, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
 import { actAnchorId, actForProject } from "@/lib/anchors";
@@ -79,10 +79,13 @@ function anchorPoint(anchor: WorldAnchor): GeoPoint | null {
 function computedFact(id: ComputedFactId): { text: string; source: string } | null {
   switch (id) {
     case "tree-shape": {
-      const branches = buildCareerTree();
+      // The drawn tree, not every career entry: nine entries are one credentials
+      // line on the Journey now, and this plaque must say what the section
+      // beside it draws.
+      const branches = buildDrawnTree();
       return {
-        text: `${branches.length} branches · ${totalLeaves(branches)} authored leaves · ${totalTechnologies()} distinct technologies`,
-        source: "buildCareerTree() — computed, not typed",
+        text: `${branches.length} branches · ${totalLeaves(branches)} authored leaves · ${treeTechnologies(branches)} distinct technologies`,
+        source: "buildDrawnTree() — computed, not typed",
       };
     }
     case "tree-still-growing":

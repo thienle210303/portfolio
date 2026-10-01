@@ -233,6 +233,65 @@ export function totalTechnologies(): number {
 }
 
 /**
+ * The entries that stop being branches in round 18 and become one credentials
+ * line on the Journey's stage.
+ *
+ * Three are bare milestones (a title, an organisation and a date and nothing
+ * else); the rest carry at most a line or two of `built` or `impact`, which
+ * `/resume` still shows in full. A branch has to earn the room it takes on a
+ * drawing that has to fit one screen, and a one-line credential does not.
+ *
+ * They are not deleted from the content layer: `careerEntries` is unchanged,
+ * `/resume` still reads all nine, and the globe and the answer corpus still
+ * see them. Only the drawing stops giving each a limb.
+ *
+ * This lives in `lib/` rather than beside the strip that renders them because
+ * the globe's "tree-shape" plaque has to count the same branches the Journey
+ * draws, and nothing under `lib/` may import from `sections/`. It is a set, not
+ * a sequence: the strip sorts by `sortKey`, the same way the tree does.
+ */
+export const DEMOTED_ENTRY_IDS = [
+  "usc-degree",
+  "graduation",
+  "cockyhacks",
+  "code-to-give",
+  "capstone",
+  "llm-classifier",
+  "magellan",
+  "acm-webmaster",
+  "deans-list",
+] as const;
+
+const DEMOTED: ReadonlySet<string> = new Set(DEMOTED_ENTRY_IDS);
+
+/** Whether an entry is a credential rather than a branch. Takes a plain
+ *  `string` so a caller never needs a cast to ask the question. */
+export function isDemotedEntry(entryId: string): boolean {
+  return DEMOTED.has(entryId);
+}
+
+/**
+ * The tree the Journey actually draws: `buildCareerTree()` without the nine
+ * demoted entries. Everything that says how many branches, leaves or
+ * technologies there are on the drawing — the section's rail, the globe's
+ * "tree-shape" plaque — counts this, so the numbers a visitor reads on one page
+ * cannot disagree.
+ */
+export function buildDrawnTree(): readonly TreeBranch[] {
+  return buildCareerTree().filter((branch) => !isDemotedEntry(branch.id));
+}
+
+/** Distinct technology leaves across a set of branches — the drawn tree's own
+ *  count, where `totalTechnologies()` counts every entry. */
+export function treeTechnologies(branches: readonly TreeBranch[]): number {
+  return new Set(
+    branches.flatMap((branch) =>
+      branch.leaves.filter((leaf) => leaf.kind === "technology").map((leaf) => leaf.text),
+    ),
+  ).size;
+}
+
+/**
  * Every leaf across a set of branches: every technology and every impact
  * line any of them lists, summed. Takes the built tree rather than building
  * its own — `CareerTree.tsx`'s rail and `src/lib/worlds.ts`'s Plants-world

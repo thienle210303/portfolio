@@ -9,7 +9,7 @@ import {
 } from "@/content/portfolio";
 import { worlds } from "@/content/worlds";
 import { DECORATION_LABEL, coLocatedWorldIds, crossingKm, resolveWorlds } from "@/lib/worlds";
-import { buildCareerTree, stillGrowingCaption, totalLeaves, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildDrawnTree, stillGrowingCaption, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
 import { ACT_IDS, actAnchorId } from "@/lib/anchors";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
@@ -44,7 +44,7 @@ for (const cat of companions) AUTHORED.add(cat.name);
 /** What a `computed` plaque is allowed to say, recomputed here from the same
  *  functions the resolver calls. */
 const COMPUTED = new Set<string>([
-  `${buildCareerTree().length} branches · ${totalLeaves(buildCareerTree())} authored leaves · ${totalTechnologies()} distinct technologies`,
+  `${buildDrawnTree().length} branches · ${totalLeaves(buildDrawnTree())} authored leaves · ${treeTechnologies(buildDrawnTree())} distinct technologies`,
   stillGrowingCaption(),
   `${origin.from} → ${origin.to} · ${origin.arrived}`,
   `${seasonsFor().length} seasons since ${origin.arrived}`,

@@ -1,33 +1,40 @@
 /**
- * The one identifier the timeline and anything linking into it have to agree
- * on. It lives here, next to the section that renders it, for the same reason
- * `SelectedWork/anchors.ts` exists: a jump link that disagrees with its target
- * by one character fails silently — the browser simply does nothing.
+ * The one identifier the Journey's per-entry fragments and anything linking
+ * into them have to agree on. It lives here, next to the section that renders
+ * it, for the same reason `SelectedWork/anchors.ts` exists: a jump link that
+ * disagrees with its target by one character fails silently — the browser
+ * simply does nothing.
  *
  * Derived from `entry.id`, never authored, so an entry added to or removed
  * from `careerEntries` needs no edit anywhere else.
  *
- * ## Why `journey-entry-…` and not the heading's `journey-…-role`
+ * ## State of the guarantee — read this before trusting `journeyEntryAnchor`
  *
- * `TimelineEntry` already emits `journey-${entry.id}-role` on its `<h3>` and
- * hands `journey-${entry.id}` to `Disclosure`, which derives `-trigger` and
- * `-panel` from it. A fourth id in that namespace one suffix away from the
- * other three is how a duplicate id gets shipped, and the heading is the wrong
- * target regardless: it is the second thing in the entry. Below the `md`
- * breakpoint the date range and the type tag are stacked *above* it, so
- * landing on the heading puts them behind the sticky header — the entry would
- * arrive without its own date. The anchor is the `<li>`, which is the whole
- * entry in both layouts.
+ * These ids were rendered by `TimelineEntry`'s `<li>`, deleted in round 18 when
+ * the pinned stage replaced the timeline. **Nothing renders a
+ * `journey-entry-<id>` element today.** `journeyEntryAnchor` therefore says
+ * "this id is one the Journey will own", not "this id is in the document", and
+ * a link built from it is a dead fragment until the stage's acts re-add the
+ * anchors (Task 13 of round 18, which also asserts that every one resolves).
+ * Do not add a caller before then.
  *
- * The `journey-` prefix outlives the section of the same name: the timeline
- * this anchors moved into the career tree (round 10), but every existing
- * fragment — deep links from the tree's own leaves, old bookmarks, `/resume`
- * — already names entries this way, so the prefix stays rather than forcing
- * every existing link to learn a new one.
+ * ## Why `journey-entry-…` and not `journey-…-role`
+ *
+ * The timeline used to emit `journey-${entry.id}-role` on an `<h3>` and hand
+ * `journey-${entry.id}` to `Disclosure`, which derives `-trigger` and `-panel`
+ * from it. The anchor kept a different suffix on purpose, and still does:
+ * a fourth id in that namespace one suffix from the others is how a duplicate
+ * id gets shipped.
+ *
+ * The `journey-` prefix outlives the section of the same name: every existing
+ * fragment — old bookmarks, the tree's own former leaf links — names entries
+ * this way, so the prefix stays rather than forcing every existing link to
+ * learn a new one.
  */
 import { careerEntries } from "@/content/portfolio";
 
-/** Anchor id for one career entry's `<li>` on the timeline. */
+/** Anchor id for one career entry's fragment. See the note above: nothing
+ *  renders an element with this id until the stage's acts do. */
 export function journeyEntryAnchorId(entryId: string): string {
   return `journey-entry-${entryId}`;
 }
@@ -35,14 +42,16 @@ export function journeyEntryAnchorId(entryId: string): string {
 const RENDERED_IDS: ReadonlySet<string> = new Set(careerEntries.map((entry) => entry.id));
 
 /**
- * The anchor for an entry the timeline actually renders, or `undefined` when
- * no such entry exists.
+ * The anchor for a career entry that exists, or `undefined` when no such entry
+ * exists.
  *
- * Callers link only when this returns a string. That is the difference between
- * a cross-reference and a dead fragment: `Timeline` renders exactly
- * `careerEntries` (its filter hides entries, and the fragment handler in
- * Timeline.tsx un-hides them again), so membership here is the same question
- * as "will an element with this id be in the document".
+ * What this guarantees is that the id names a real entry — an id the Journey is
+ * meant to own — and rejects a round-tripped anchor or a typo. It does **not**
+ * guarantee an element with that id is in the document: through round 17 it
+ * did, because `Timeline` rendered exactly `careerEntries`; since round 18
+ * nothing renders these ids, and until the stage's acts re-add them a link
+ * built from this is a dead fragment. Task 13 closes that, and its e2e spec is
+ * what will make the stronger claim true again.
  */
 export function journeyEntryAnchor(entryId: string): string | undefined {
   return RENDERED_IDS.has(entryId) ? journeyEntryAnchorId(entryId) : undefined;

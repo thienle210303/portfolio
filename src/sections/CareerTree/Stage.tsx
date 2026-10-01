@@ -10,12 +10,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { actAnchorId } from "@/lib/anchors";
-import type { TreeBranch } from "@/lib/knowledge-tree";
 import type { Act } from "./acts";
-import CredentialsStrip, { isDemotedEntry } from "./CredentialsStrip";
-import DrawnTree from "./DrawnTree";
-import KnowledgeTreeList from "./KnowledgeTreeList";
 
 /**
  * The Journey's pinned stage.
@@ -30,8 +25,10 @@ import KnowledgeTreeList from "./KnowledgeTreeList";
  *    rendering would mean six of seven acts are unreachable with JavaScript
  *    off and under `prefers-reduced-motion`, and this section is the page's
  *    whole argument — it does not get to require scripting. The same goes for
- *    the drawing: every branch is rendered, and `data-undrawn` is a mark the
- *    stylesheet turns into "not yet" only while the pin is live.
+ *    the drawing: every branch is rendered, and `data-through` on the root, with
+ *    `data-branch-act` on each branch, is all the stylesheet needs to turn "not
+ *    yet" into a fade, and only while the pin is live. The
+ *    comparison between the two is CSS, not React.
  * 2. **The active act comes from an IntersectionObserver, never a scroll
  *    listener.** A scroll handler on the main thread is what makes this kind
  *    of effect stutter on a mid-range phone. There is exactly one observer,
@@ -55,6 +52,8 @@ import KnowledgeTreeList from "./KnowledgeTreeList";
  *                     stage is simply the finished tree above seven stacked
  *                     cards. The pin is an enhancement of that, never the
  *                     other way round.
+ *   data-through      the index of the current act. The stylesheet compares it
+ *                     with each branch's `data-branch-act`.
  *   data-released     the reader asked for the whole tree.
  *
  * `prefers-reduced-motion` is not read here. The pin rules in `globals.css`
@@ -66,7 +65,18 @@ import KnowledgeTreeList from "./KnowledgeTreeList";
  */
 interface StageProps {
   readonly acts: readonly Act[];
-  readonly tree: readonly TreeBranch[];
+  /** The finished drawing, shown from 1024px up. A slot, not an import: the
+   *  drawing is 1,600 lines of SVG geometry and the case studies inside its
+   *  branches are most of the site's prose, none of which has a hook or a
+   *  handler in it, so none of it should ship as client JavaScript because
+   *  this component happens to be the parent. Every branch carries
+   *  `data-branch-act`; this component only ever says which act is current. */
+  readonly drawing: ReactNode;
+  /** The same branches as an indented list, shown below 1024px. */
+  readonly list: ReactNode;
+  /** The credentials strip, rendered inside the act whose `showsCredentials`
+   *  is set. A slot for the same reason as the drawing. */
+  readonly credentials?: ReactNode;
   /** Rendered once, after the acts, across the full width — for content that
    *  belongs to the story but has no branch to open from. Passed in rather
    *  than imported so it stays a Server Component. */
@@ -89,7 +99,7 @@ interface PendingScroll {
   readonly block: ScrollLogicalPosition;
 }
 
-export default function Stage({ acts, tree, children }: StageProps) {
+export default function Stage({ acts, drawing, list, credentials, children }: StageProps) {
   const [active, setActive] = useState(0);
   const [released, setReleased] = useState(false);
   // False on the server and during hydration, true afterwards in any browser
@@ -105,9 +115,7 @@ export default function Stage({ acts, tree, children }: StageProps) {
   const pendingScroll = useRef<PendingScroll | null>(null);
 
   const lastAct = acts.length - 1;
-  const drawnBranches = tree.filter((branch) => !isDemotedEntry(branch.id));
   const current = acts[active];
-  const throughAct = released ? lastAct : active;
 
   // Which act is current. One observer for the whole stage, watching a band
   // across the middle of the viewport, so an act becomes current when it is
@@ -207,7 +215,7 @@ export default function Stage({ acts, tree, children }: StageProps) {
   const onScrub = useCallback(
     (value: number) => {
       setActive(value);
-      const target = document.getElementById(actAnchorId(acts[value].id));
+      const target = document.getElementById(acts[value].anchorId);
       if (target && typeof target.scrollIntoView === "function") {
         target.scrollIntoView({ block: "center" });
       }
@@ -266,6 +274,7 @@ export default function Stage({ acts, tree, children }: StageProps) {
       ref={rootRef}
       data-stage=""
       data-stage-live={live ? "" : undefined}
+      data-through={active}
       data-released={released ? "" : undefined}
       className="mt-10 scroll-mt-24"
     >
@@ -313,8 +322,8 @@ export default function Stage({ acts, tree, children }: StageProps) {
                 reachable, this only paints ground over the part of the
                 drawing that has not happened yet. */}
             <div data-stage-unborn="" aria-hidden="true" />
-            <DrawnTree tree={drawnBranches} throughAct={throughAct} className="hidden lg:block" />
-            <KnowledgeTreeList tree={drawnBranches} className="mt-6 lg:hidden" />
+            {drawing}
+            {list}
           </div>
         </div>
       </div>
@@ -323,7 +332,7 @@ export default function Stage({ acts, tree, children }: StageProps) {
         {acts.map((act, index) => (
           <section
             key={act.id}
-            id={actAnchorId(act.id)}
+            id={act.anchorId}
             ref={(element) => {
               actRefs.current[index] = element;
             }}
@@ -334,7 +343,7 @@ export default function Stage({ acts, tree, children }: StageProps) {
                 stylesheet dims the *title* of an act that is not current, by
                 `opacity` alone — no `display: none`, no `visibility: hidden` —
                 so the text stays in the accessible tree and Ctrl-F still
-                finds it. The dim stops at 0.6 on purpose: body text at that
+                finds it. The dim stops at 0.65 on purpose: body text at that
                 opacity falls under 4.5:1 on paper, and an act is not a
                 disabled control. */}
             <h3
@@ -344,7 +353,7 @@ export default function Stage({ acts, tree, children }: StageProps) {
               {act.title}
             </h3>
             <p className="mt-2 font-mono text-[length:var(--step--1)] text-fg-muted">{act.year}</p>
-            {act.showsCredentials ? <CredentialsStrip className="mt-8" /> : null}
+            {act.showsCredentials ? credentials : null}
           </section>
         ))}
       </div>
