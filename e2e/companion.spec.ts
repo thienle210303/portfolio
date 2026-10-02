@@ -369,9 +369,12 @@ function restingOnContent(page: Page, { still = false }: { still?: boolean } = {
  * a cat crossing prose on its way somewhere (allowed) is never counted and a
  * cat that has stopped is counted even while its partner is still walking.
  * Each hit is keyed by the cat and its place in the *document*, so one stop
- * sampled twice is one stop.
+ * sampled twice is one stop. `stops` is every standing cat read, hit or not,
+ * at its document position — what a caller counts distinct stops from.
  */
-function headsOnContent(page: Page): Promise<{ standing: number; hits: string[] }> {
+function headsOnContent(
+  page: Page,
+): Promise<{ standing: number; hits: string[]; stops: Array<{ cat: string; x: number; y: number }> }> {
   return page.evaluate(async () => {
     const button = document.querySelector('[aria-controls="companion-actions"]');
     const cats = () => Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
@@ -380,10 +383,11 @@ function headsOnContent(page: Page): Promise<{ standing: number; hits: string[] 
     const scrolledBefore = window.scrollY;
     await new Promise((resolve) => setTimeout(resolve, 250));
     const after = boxes();
-    if (window.scrollY !== scrolledBefore) return { standing: 0, hits: [] };
+    if (window.scrollY !== scrolledBefore) return { standing: 0, hits: [], stops: [] };
     const readable =
       "p,h1,h2,h3,h4,h5,h6,li,dt,dd,blockquote,pre,code,figure,table,a,button,input,textarea,select,label";
     let standing = 0;
+    const stops: Array<{ cat: string; x: number; y: number }> = [];
     const found = cats().flatMap((svg, index) => {
       const rect = after[index];
       const was = before[index];
@@ -392,6 +396,7 @@ function headsOnContent(page: Page): Promise<{ standing: number; hits: string[] 
       }
       standing += 1;
       const name = button?.contains(svg) ? "grey" : "tabby";
+      stops.push({ cat: name, x: rect.left + window.scrollX, y: rect.top + window.scrollY });
       const points: Array<[number, number]> = [];
       for (const dy of [6, 16]) {
         for (const x of [rect.left + 12, rect.left + rect.width / 2, rect.right - 12]) {
@@ -414,7 +419,7 @@ function headsOnContent(page: Page): Promise<{ standing: number; hits: string[] 
       const at = `${Math.round(rect.left + window.scrollX)},${Math.round(rect.top + window.scrollY)}`;
       return [`${name} at ${at}: head on ${[...new Set(hits)].join(" + ")}`];
     });
-    return { standing, hits: found };
+    return { standing, hits: found, stops };
   });
 }
 
@@ -1033,11 +1038,18 @@ test.describe("companion", () => {
     let greyLeft = 0;
     let tabbyRight = 0;
     const cells = new Set<string>();
+    // The column rule is about where they *stand*: walking cats may cross
+    // (the file banner's rule 1). So a sample counts only when both cats held
+    // still across a quarter of a second, and how many did is counted — so the
+    // check cannot pass on none.
     const shared: string[] = [];
-    // Every stop a cat stood at with its head over something readable, and how
-    // many standing cats were looked at — so the check cannot pass on none.
+    let bothStill = 0;
+    // Every stop a cat stood at with its head over something readable, and
+    // every distinct stop a standing cat was looked at — by cat and document
+    // position, 4px being the loop's own "arrived" — so the check cannot pass
+    // on none, nor on one stop sampled many times.
     const heads = new Set<string>();
-    let standingRead = 0;
+    const stopsRead: Array<{ cat: string; x: number; y: number }> = [];
     let direction = 1;
     closest = Infinity;
     for (let tick = 0; tick < 96; tick += 1) {
@@ -1053,14 +1065,23 @@ test.describe("companion", () => {
         // The other half of the ticks look at where the standing cats' heads are.
         const sample = await headsOnContent(page);
         sample.hits.forEach((hit) => heads.add(hit));
-        standingRead += sample.standing;
+        for (const stop of sample.stops) {
+          const seen = stopsRead.some(
+            (read) => read.cat === stop.cat && Math.hypot(read.x - stop.x, read.y - stop.y) <= 4,
+          );
+          if (!seen) stopsRead.push(stop);
+        }
         continue;
       }
       if (grey.centreX < DESKTOP_WIDTH / 2) greyLeft += 1;
       if (tabby.centreX >= DESKTOP_WIDTH / 2) tabbyRight += 1;
       cells.add(`grey ${grey.cell}`);
       cells.add(`tabby ${tabby.cell}`);
-      if (grey.column === tabby.column) shared.push(`tick ${tick}: column ${grey.column}`);
+      const [greyAt, tabbyAt] = await catPair(page, { still: true });
+      if (greyAt.still && tabbyAt.still) {
+        bothStill += 1;
+        if (greyAt.column === tabbyAt.column) shared.push(`tick ${tick}: column ${greyAt.column}`);
+      }
     }
 
     // The setup held: the pointer never came within chasing range.
@@ -1068,8 +1089,12 @@ test.describe("companion", () => {
     expect(greyLeft, "the grey cat never explored the left half").toBeGreaterThanOrEqual(1);
     expect(tabbyRight, "the tabby never explored the right half").toBeGreaterThanOrEqual(1);
     expect(cells.size, `only ${cells.size} places visited: ${[...cells].join(", ")}`).toBeGreaterThan(3);
+    expect(bothStill, "too few samples had both cats standing for the column check to mean anything").toBeGreaterThan(3);
     expect(shared, "the pair stood in one 60px column").toEqual([]);
-    expect(standingRead, "too few standing cats were looked at for the head check to mean anything").toBeGreaterThan(5);
+    expect(
+      stopsRead.length,
+      `too few distinct stops were looked at for the head check to mean anything: ${JSON.stringify(stopsRead)}`,
+    ).toBeGreaterThanOrEqual(3);
     expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);
   });
 
@@ -1154,8 +1179,18 @@ test.describe("companion", () => {
     // Waited out rather than sampled once: the pose turns to sleep while the
     // last fraction of a pixel of the walk is still easing in.
     await expectRestClearOfContent(page, "asleep on content");
-    // And with their heads clear too: an explorer's stop is probed in the head
-    // band as well (`headClear`), and a nap is wherever the last stop was.
+    // And with their heads clear too — which is more than the product promises
+    // every nap. A nap is wherever the held stop was (or `settled()` with no
+    // plan), and only a stop `planExplore` drew from its half of the page is
+    // probed in the head band (`exploreClear`); a perch, a `findClearSpot` or
+    // `nearbySpots()` fallback and `settled()` are probed at feet and belly
+    // alone. It holds in this setup because, 20s on, the pair have normally
+    // left the hero's perch (walk capped at 8s, stay at most 9s) for a
+    // half-page stop, and a half-page draw almost never falls back here: at
+    // 1440×900 between 39% and 61% of each half of the hero clears the head
+    // band as well, against 24 draws. So a failure here may be a nap on a
+    // perch or a fallback — this assumption breaking — rather than a
+    // half-page stop with its head on content.
     const asleep = await headsOnContent(page);
     expect(asleep.standing, "the sleeping pair were not both still").toBe(2);
     expect(asleep.hits, "asleep with a head on something readable").toEqual([]);
@@ -1905,6 +1940,8 @@ test.describe("companion", () => {
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Two polls of up to 20s each, the first waiting for the pair to stand.
+    test.setTimeout(60_000);
 
     /*
      * WP-R round 15 follow-up: the ride's own translation is uniform — both
@@ -1945,8 +1982,30 @@ test.describe("companion", () => {
         const f = follow.getBoundingClientRect();
         const dxOut = Math.max(f.left - b.right, b.left - f.right);
         const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
-        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
+        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y, lx: b.x, ly: b.y };
       });
+
+    // Explorers set off from the corner as soon as the loop is live, and two
+    // cats walking to their own stops may cross — allowed, and not what this
+    // test is about. So the jump waits until the pair are standing somewhere
+    // with the toggle clear, polled the way claim two below polls: two samples
+    // a quarter of a second apart, both cats unmoved between them.
+    await expect
+      .poll(
+        async () => {
+          const a = await measure();
+          if (!a) return "no cats";
+          await page.waitForTimeout(250);
+          const b = await measure();
+          if (!b) return "no cats";
+          if (Math.hypot(b.fx - a.fx, b.fy - a.fy) > 1 || Math.hypot(b.lx - a.lx, b.ly - a.ly) > 1) {
+            return "still walking";
+          }
+          return b.gap >= 24 ? "clear" : `only ${b.gap.toFixed(1)}px clear at rest`;
+        },
+        { timeout: 20_000, message: "the pair never stood still clear of the toggle before the jump" },
+      )
+      .toBe("clear");
 
     // The same single, instant jump `axe.spec.ts` makes to reach the Journey's
     // own heading — large enough, this deep in the page, to clamp both cats
@@ -1963,9 +2022,10 @@ test.describe("companion", () => {
     for (let sample = 0; sample < 5; sample += 1) {
       const m = await measure();
       expect(m, "no cat pair found to measure").not.toBeNull();
-      expect(m!.gap, `only ${m!.gap.toFixed(1)}px clear of the toggle while riding`).toBeGreaterThanOrEqual(
-        24,
-      );
+      expect(
+        m!.gap,
+        `sample ${sample}: only ${m!.gap.toFixed(1)}px clear of the toggle while riding`,
+      ).toBeGreaterThanOrEqual(24);
       await page.waitForTimeout(35);
     }
 

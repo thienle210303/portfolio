@@ -48,9 +48,12 @@ import { type SceneName } from "./scene-names";
  */
 
 /** How rare "rare" is: the earliest a scene may follow the last one, plus a
- *  spread on top. And only if, when the timer comes up, nobody is steering the
- *  cats and both are standing — the reader may be active or idle — which in
- *  practice makes the observed gap longer than either number. */
+ *  spread on top. And only if, when the timer comes up, no scene is running,
+ *  nobody is steering the cats, both are standing, they are not napping, and
+ *  a pointer has moved on the page at least once since it loaded (the gate in
+ *  `Companion`'s play block) — so one can open for a reader who is active or
+ *  idle short of the nap, never on a page no pointer has moved over. In
+ *  practice that makes the observed gap longer than either number. */
 const PLAY_GAP = 90_000;
 const PLAY_SPREAD = 180_000;
 /** Nowhere safe to play right now. Backing off matters: probing costs three
