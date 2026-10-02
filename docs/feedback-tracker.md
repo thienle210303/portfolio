@@ -1259,7 +1259,8 @@ absolute times here should not be compared with rows above this one.
 ### Companion explorers (2026-10-02)
 
 The cats now explore the whole page while the reader is active, Moon on the
-left and Mi on the right, and nap where they stop after 20 s with no input.
+left and Mi on the right, and nap where they stop after 20 s (17 s at night)
+with no input.
 The pointer chase only fires within 200 px of the lead. Every line is now 32
 characters or fewer, and most beats draw a small line icon in the bubble; about
 half also play an action (`bat`, `groom`, `stretch`, `eat`, `sleep`, or the new
@@ -1274,8 +1275,9 @@ and acts but before the explorers. `:3153` was the branch head `c32ade6`. The
 runs were interleaved (base, mid, head, three times). The script was run
 unmodified except that `launch()` pointed at the installed
 `chromium_headless_shell-1234`. **Zero skipped responses in all nine runs.**
-412 × 823 touch, so the cats are parked here and the explorers' runtime cost is
-not what this row measures. What it does measure is the bytes.
+`pnpm perf` measures at 412 × 823 touch, so the cats are parked here and the
+explorers' runtime cost is not what this row measures. What it does measure is
+the bytes.
 
 | | Base (`ac35d1a`) | Mid (`e9f60da`) | Head (`c32ade6`) | Δ head − base |
 |---|---|---|---|---|
@@ -1321,8 +1323,8 @@ with a fine pointer, by day and by night:
 - **Hop.** Mi was caught mid-hop in the Journey's scene, 3.9 px (day) and
   4.5 px (night) off the ground, with a branch icon and "11 branches! Climbing
   all!".
-- **Nap.** Both cats slept where they had stopped (no bed drawn, not in the
-  corner), 21.6 s (day) and 20.6 s (night) after the last input.
+- **Nap.** Both asleep away from the corner, no bed drawn, 21.6 s (day) and
+  20.6 s (night) after the last input.
 
 At 390 × 844 with touch, the pair stayed parked together bottom-right, with no
 bubble, no caption and no Thien, at the top of the page and in `#worlds`, in
