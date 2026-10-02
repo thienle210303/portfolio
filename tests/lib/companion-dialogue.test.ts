@@ -15,6 +15,7 @@ import {
   startScene,
   storyBeatScene,
   type DialogueBeat,
+  type DialogueScene,
   type StoryBeatKind,
 } from "@/components/companion/companion-dialogue";
 import { TOUR_STOPS } from "@/components/companion/companion-tour";
@@ -243,25 +244,44 @@ describe("story scenes", () => {
   });
 });
 
-/** Every beat the bank can play for FACTS: all four section-keyed kinds plus
- *  every story kind (with and without a year, with and without the storm
- *  overlay). */
+/** Every scene that must exist for FACTS: a null here means a line was
+ *  dropped (over budget, or a fact went missing), which `sceneFor` and
+ *  `storyBeatScene` do silently — so the tests below assert presence before
+ *  they look at lengths. The null-year weather kinds legitimately return
+ *  null and are deliberately not in this set. */
+const MUST_EXIST: { label: string; build: () => DialogueScene | null }[] = [
+  { label: "hello", build: () => sceneFor("hello", null, FACTS) },
+  { label: "ambient about", build: () => sceneFor("ambient", "about", FACTS) },
+  { label: "ambient tree", build: () => sceneFor("ambient", "tree", FACTS) },
+  { label: "encore tree", build: () => sceneFor("encore", "tree", FACTS) },
+  { label: "tour about", build: () => sceneFor("tour", "about", FACTS) },
+  { label: "tour worlds", build: () => sceneFor("tour", "worlds", FACTS) },
+  { label: "tour tree", build: () => sceneFor("tour", "tree", FACTS) },
+  { label: "tour contact", build: () => sceneFor("tour", "contact", FACTS) },
+  ...(["flight", "seed", "still", "rain", "sun", "storm", "quiet"] as StoryBeatKind[]).flatMap((kind) =>
+    [false, true].map((storm) => ({
+      label: `story ${kind} storm=${storm}`,
+      build: () => storyBeatScene(kind, 2019, FACTS, "grey", storm),
+    })),
+  ),
+];
+
+/** Every distinct beat of every must-exist scene, failing loudly if a scene
+ *  is missing. Deduped by scene id + beat index + subtitle, so a scene reached
+ *  twice (the storm overlay replays the storm line under three kinds) is not
+ *  counted twice, while a genuinely different line under the same id is. */
 function allBeats(): { id: string; beat: DialogueBeat }[] {
+  const seen = new Set<string>();
   const out: { id: string; beat: DialogueBeat }[] = [];
-  for (const kind of ["hello", "ambient", "encore", "tour"] as const) {
-    for (const section of [null, ...AMBIENT_SECTIONS, ...TOUR_ONLY_SECTIONS]) {
-      const scene = sceneFor(kind, section, FACTS);
-      if (scene) for (const beat of scene.beats) out.push({ id: scene.id, beat });
-    }
-  }
-  const storyKinds: StoryBeatKind[] = ["flight", "seed", "still", "rain", "sun", "storm", "quiet"];
-  for (const kind of storyKinds) {
-    for (const year of [2019, null]) {
-      for (const storm of [true, false]) {
-        const scene = storyBeatScene(kind, year, FACTS, "grey", storm);
-        if (scene) for (const beat of scene.beats) out.push({ id: scene.id, beat });
-      }
-    }
+  for (const { label, build } of MUST_EXIST) {
+    const scene = build();
+    expect(scene, `${label}: scene is missing (dropped over budget or a missing fact?)`).not.toBeNull();
+    scene!.beats.forEach((beat, index) => {
+      const key = `${scene!.id}#${index}#${beat.sub}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ id: scene!.id, beat });
+    });
   }
   return out;
 }
@@ -278,6 +298,7 @@ describe("short, playful lines", () => {
 
   it("uses only known icons and actions", () => {
     const beats = allBeats();
+    expect(beats.length).toBeGreaterThan(0);
     for (const { id, beat } of beats) {
       expect(beat.icon === undefined || CAT_ICONS.includes(beat.icon), `${id}: icon ${beat.icon}`).toBe(true);
       expect(beat.act === undefined || CAT_ACTS.includes(beat.act), `${id}: act ${beat.act}`).toBe(true);
@@ -296,12 +317,31 @@ describe("short, playful lines", () => {
     expect(CAT_ACTS).toEqual(["bat", "groom", "stretch", "eat", "sleep", "hop"]);
   });
 
-  it("drops a templated line rather than truncating it", () => {
-    const long = {
-      ...FACTS,
-      about: { role: "Software Engineer", organization: "A Very Long Organisation Name Incorporated" },
-    };
-    expect(sceneFor("ambient", "about", long)).toBeNull();
+  it("falls back to the generic tour line, with its icon, when the about facts are missing", () => {
+    const scene = sceneFor("tour", "about", { ...FACTS, about: { role: "", organization: "" } });
+    expect(scene).not.toBeNull();
+    const fallback = scene!.beats.find((beat) => beat.sub === "The human. Facts check out.");
+    expect(fallback).toBeDefined();
+    expect(fallback!.icon).toBe("paw");
+  });
+
+  it("drops a templated line rather than truncating it, exactly at the 32 boundary", () => {
+    // "Now at <organization>. Fancy!" is the organization plus 15 characters
+    // (the full stop is added because the organization does not end in one).
+    const withOrg = (organization: string) => ({ ...FACTS, about: { role: "Software Engineer", organization } });
+    const fits = "A".repeat(32 - 15);
+    const tooLong = "A".repeat(33 - 15);
+
+    const ok = sceneFor("ambient", "about", withOrg(fits));
+    expect(ok).not.toBeNull();
+    expect(ok!.beats[0].sub).toHaveLength(32);
+
+    expect(`Now at ${tooLong}. Fancy!`).toHaveLength(33);
+    expect(sceneFor("ambient", "about", withOrg(tooLong))).toBeNull();
+
+    expect(
+      sceneFor("ambient", "about", withOrg("A Very Long Organisation Name Incorporated")),
+    ).toBeNull();
   });
 });
 
