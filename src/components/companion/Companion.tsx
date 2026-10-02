@@ -9,15 +9,7 @@ import type { CompanionFacts } from "@/lib/companion-facts";
 import CompanionCat, { CAT_H, CAT_HOP_RISE, CAT_W, type CatPose } from "./CompanionCat";
 import { CatGlyph } from "./CatIcon";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
-import RestingBox, {
-  BOX_SLOT,
-  CLUSTER_H,
-  CLUSTER_INSET,
-  CLUSTER_W,
-  IdleFurniture,
-  KICK_SLOT,
-  PAPER_SLOT,
-} from "./RestingBox";
+import RestingBox, { BOX_SLOT, PAPER_SLOT } from "./RestingBox";
 import ToolkitPanel, { PANEL_ID, type PlayRequest, type TourRequest } from "./ToolkitPanel";
 import TourHud from "./TourHud";
 import {
@@ -140,7 +132,9 @@ import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
  *     every target and every position now goes through. The third was social
  *     rather than geometric: after a while they simply stopped following and
  *     went quiet wherever they were standing, which reads as a bug even when
- *     the cat is right there. Now they go to the corner, visibly. The fourth
+ *     the cat is right there. For a while the answer was a walk to a corner
+ *     bed; now they lie down where they stopped in the `sleep` pose, which
+ *     says "asleep" on the spot rather than "stuck". The fourth
  *     was optical and lasted four rounds: they were *transparent*, so two cats
  *     crossing the hero headline had the words running straight through their
  *     bodies. Every drawing on this layer now knocks the page out underneath
@@ -148,13 +142,15 @@ import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
  *
  * ## Exploring
  *
- * There is one way of being out on the page. While the pointer is moving the
- * lead trails it and everything above is about staying out of its way. The
- * rest of the time the reader is about — scrolling, typing, clicking, or a
- * pointer that has simply stopped — the pair explore: each picks a clear spot
- * in its own half of the page (see `planExplore`), walks there, stays a few
- * seconds, and picks another. When the reader has done nothing at all for
- * `EXPLORE_IDLE_MS` they walk to the corner and nap, and the page goes still.
+ * There is one way of being out on the page. While the pointer is moving
+ * within `CHASE_RADIUS` of the lead he trails it, and everything above is
+ * about staying out of its way. The rest of the time the reader is about —
+ * scrolling, typing, clicking, or moving a pointer somewhere else on the page
+ * — the pair explore: each picks a clear spot in its own half of the page (see
+ * `planExplore`), walks there, stays a few seconds, and picks another. When
+ * the reader has done nothing at all for `EXPLORE_IDLE_MS` each finishes its
+ * walk and naps where it stops, and once both are asleep the page goes
+ * still.
  *
  * Round 9 had this as a mode of its own, `wander` — the owner's note asked for
  * "a mode that cat go around instead of follow the mouse" — with the idle bed
@@ -168,7 +164,7 @@ import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
  * skipped entirely and both cats simply rest in the corner as a toolkit button.
  * The same is true for anyone who has asked for reduced motion — and because
  * that path has no roaming layer at all, the police-cat escort, the nap
- * contract, the idle bed and every idle flourish are skipped with it, landing
+ * contract, the idle nap and every idle flourish are skipped with it, landing
  * straight in their end state.
  */
 
@@ -206,20 +202,31 @@ const FOLLOW_LONG_WALK_GAP = 34;
 
 /**
  * How long before the cats stop trailing the pointer, then before they stop
- * exploring and go to bed, in ms.
+ * exploring and nap, in ms.
  *
  * Two thresholds measuring two different things, which is the whole reason they
  * read off two different clocks below. Settling is about the *pointer* holding
  * still: there is nothing to trail, so stop trailing it and go exploring.
- * Going to bed is about the *visitor* being gone — no scroll, no pointer, no
+ * Napping is about the *visitor* being gone — no scroll, no pointer, no
  * key, no click — and a visitor reading a long page holds the mouse perfectly
  * still for minutes while scrolling through it.
  */
 const SETTLE_AFTER = 2400;
 export const EXPLORE_IDLE_MS = 20_000;
-/** At night the corner is a shorter walk in visitors' heads too — the bed
- *  comes three seconds sooner. A small nudge, on purpose: this is flavour, not
- *  a second sleep threshold to keep in step with the real one. */
+/**
+ * How near the pointer has to come to the lead cat's centre, in px, before he
+ * chases it.
+ *
+ * Without it, any pointer move anywhere — a 1px nudge of a mouse a reader's
+ * hand happens to rest on — had the pair trail the cursor for `SETTLE_AFTER`,
+ * so somebody reading with a hand on the mouse never saw the explorers at all.
+ * A pointer this close is somebody playing with the cat; one further away is
+ * somebody using the page, and only stamps the activity clock.
+ */
+export const CHASE_RADIUS = 200;
+/** At night the nap comes three seconds sooner. A small nudge, on purpose: this
+ *  is flavour, not a second sleep threshold to keep in step with the real
+ *  one. */
 const NIGHT_SLEEP_TRIM = 3000;
 
 /** How long a cheer lasts — a brief lead-`stretch` and tabby-`bat`, drawn from
@@ -267,71 +274,34 @@ const DASH_SPEED = 8.6;
  *  rather than racing it there. */
 const THIEN_SPEED = 3.6;
 
-/* ------------------------------------------------------------ the corner --
+/* ------------------------------------------------------------- two sleeps --
  *
  * Two sleeps, and the difference between them is the whole point:
  *
  *  - `CompanionMode === "resting"` is a **preference**. The visitor asked for
  *    the cats to be put away, it is written to localStorage under "companion",
  *    it survives a reload, and only the corner's own "Wake the cats" button
- *    undoes it. That flow owns `RestingBox`, and it is the only one that touches
- *    storage.
- *  - Idle sleep — everything below — is a **moment**. Nobody has done anything
- *    for `EXPLORE_IDLE_MS`, so instead of dozing off in whatever margin they
- *    happened to be standing in, they walk to the corner and settle into the
- *    furniture. Nothing is written anywhere: reload and they roam, exactly as
- *    before.
+ *    undoes it. That flow owns `RestingBox` and the corner furniture, and it is
+ *    the only one that touches storage.
+ *  - The nap is a **moment**. Nobody has done anything for `EXPLORE_IDLE_MS`,
+ *    so each explorer finishes the walk it is on, lies down on the clear spot
+ *    it was walking to, and sleeps there in the `sleep` pose; once both are
+ *    down the loop stops. Any input at all wakes them. Nothing is written
+ *    anywhere: reload and they roam, exactly as before.
  *
- * Both sleeps end up in the same three pieces of furniture and the same two
- * slots — see `RestingBox`, which owns the geometry both of them read.
+ * Until the explorers the nap walked them to the corner and into the
+ * furniture, because cats that went quiet wherever the placement probe had put
+ * them read as a bug. The sleep pose answers that on the spot; a corner bed on
+ * a twenty-second clock spent half of every quiet moment walking to it, so the
+ * furniture is for the visitor who sends them there.
  *
  * "Nobody has done anything" is deliberately wider than "the pointer has not
  * moved", and the difference is the whole of `lastSignRef`. Reading a long page
  * is scrolling it with the mouse held still, so on the pointer clock a visitor
- * halfway down the page reads as absent — the cats would leave for the corner
- * while somebody was plainly still there, and nothing they could do short of
- * moving the mouse would bring them back.
- *
- * It exists because the old behaviour looked like a bug. The cats simply left,
- * quietly, to wherever the placement probe had put them — which was correct and
- * completely unreadable. Now they go somewhere on purpose, and the bed is there
- * to say so.
+ * halfway down the page reads as absent — the cats would doze off while
+ * somebody was plainly still there, and nothing they could do short of moving
+ * the mouse would wake them.
  */
-type Bed = "walking" | "asleep" | null;
-
-/**
- * How the pair go to bed, decided once when they set off for the corner.
- *
- * They always end up in the wrong furniture — the carton and the sheet of paper,
- * with the bed left empty — because that is the joke and a joke that only lands
- * a third of the time is a bug the rest of the time. The rare part is the
- * detour: now and again the tabby stops at the bed on her way past, shoves it,
- * and *then* goes to lie on the paper.
- *
- * `at` is when she arrived at the bed, and it is what turns a position into a
- * sequence: nothing about the shove can start until she is standing next to the
- * thing she is shoving.
- */
-interface SleepPlan {
-  readonly kick: boolean;
-  phase: "kick" | "settle";
-  at: number;
-}
-
-/** How long she spends booting the bed, and how far into that the bed actually
- *  moves — the shove has to land after the paw is already out, or the furniture
- *  jumps before anything touches it. */
-const KICK_MS = 760;
-const KICK_HIT = 260;
-/** How often the detour happens at all. Rare enough that a visitor who sees it
- *  twice has been here a while. */
-const KICK_ODDS = 0.22;
-
-/** How near the pointer must come before a cat asleep in the bed will get up,
- *  and how far it must travel anywhere else to have the same effect. A twitch
- *  should not drag two sleeping animals across the page; using the page should. */
-const BED_WAKE_NEAR = 190;
-const BED_WAKE_TRAVEL = 150;
 
 /** Pointer dwell before a `data-cat-nap` element calls the cats over, in ms. */
 const NAP_DWELL = 600;
@@ -639,18 +609,6 @@ interface QueuedPlay {
 const STAGE_WALK_MAX = 6000;
 
 /**
- * The furniture cluster, in viewport coordinates. Computed from the same four
- * numbers the element is positioned with, so the cats cannot miss their own
- * box.
- */
-function clusterBox(): { left: number; top: number } {
-  return {
-    left: Math.max(0, viewport().width - CLUSTER_INSET - CLUSTER_W),
-    top: Math.max(0, viewport().height - CLUSTER_INSET - CLUSTER_H),
-  };
-}
-
-/**
  * The hit-target margin the lead's button carries around its drawing.
  *
  * The button has to be bigger than the animal — 50×42 of line work is under
@@ -667,7 +625,7 @@ function clusterBox(): { left: number; top: number } {
  * So the button is pulled back by its own padding instead (see the render
  * below), which makes one statement true for every cat, padded or not: **a
  * cat's position is the top-left of the animal you can see**. The probe, the
- * clamps, the moods and the bed's slots all mean the drawing, and none of them
+ * clamps, the moods and the resting box's slots all mean the drawing, and none of them
  * has to know which cat is wearing a button.
  */
 const LEAD_PAD_X = 4;
@@ -841,26 +799,6 @@ function resolveFollowClear(want: Point, leadPos: Point): Point {
   return searchClearOfToggle(standingSpots(want), rect, isClearSpot) ?? want;
 }
 
-/**
- * Where the two of them actually sleep — and it is not the bed.
- *
- * The grey one takes the carton and the tabby takes the sheet of paper, always,
- * because the joke is about the furniture rather than about which animal gets
- * which piece: randomising it would only make the corner look unstable between
- * naps. What *is* occasionally different is how she gets there — see the kick
- * spot below.
- */
-function sleepSlots(): Spots {
-  const box = clusterBox();
-  return {
-    // `BOX_SLOT` is where `RestingBox` draws the sleeping cat inside the
-    // cluster, and a cat's position is now the drawing's own top-left, so the
-    // two are the same number with nothing subtracted from either.
-    lead: clampToViewport({ x: box.left + BOX_SLOT.x, y: box.top + BOX_SLOT.y }),
-    follow: clampToViewport({ x: box.left + PAPER_SLOT.x, y: box.top + PAPER_SLOT.y }),
-  };
-}
-
 /** Their two places in the resting box, which draws the same cluster at the
  *  same offsets — so the escort walks them exactly where the drawing that
  *  replaces them will be. */
@@ -869,20 +807,6 @@ function slotsForBox(rect: DOMRect): Spots {
     lead: clampToViewport({ x: rect.left + BOX_SLOT.x, y: rect.top + BOX_SLOT.y }),
     follow: clampToViewport({ x: rect.left + PAPER_SLOT.x, y: rect.top + PAPER_SLOT.y }),
   };
-}
-
-/** Where the tabby stands to shove the bed out of her way. */
-function kickSpot(): Point {
-  const box = clusterBox();
-  return clampToViewport({ x: box.left + KICK_SLOT.x, y: box.top + KICK_SLOT.y });
-}
-
-/** Distance from a point to the cluster's edge, zero inside it. */
-function nearBed(point: Point): boolean {
-  const box = clusterBox();
-  const dx = Math.max(box.left - point.x, 0, point.x - (box.left + CLUSTER_W));
-  const dy = Math.max(box.top - point.y, 0, point.y - (box.top + CLUSTER_H));
-  return Math.hypot(dx, dy) < BED_WAKE_NEAR;
 }
 
 /** Beneath the element that called them, centred on it. */
@@ -1281,10 +1205,6 @@ export function Companion({ facts }: CompanionProps) {
 
   const [open, setOpen] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
-  const [bed, setBed] = useState<Bed>(null);
-  /** The bed has been booted out of the way. React owns this one because it is
-   *  a CSS transition on a piece of furniture, not a per-frame position. */
-  const [shoved, setShoved] = useState(false);
   /** The running scene, as much of it as React needs to know: which one, and
    *  which prop it puts on the page. Everything else a scene does is a
    *  transform written per frame. The chase has no prop at all — `prop` stays
@@ -1321,11 +1241,6 @@ export function Companion({ facts }: CompanionProps) {
   const thienCaption = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  /** The two halves of the idle furniture — everything behind the animals, and
-   *  the carton's front panel in front of them. Both are opaque line work on the
-   *  fixed layer, so both need the tone sample. */
-  const matRef = useRef<HTMLDivElement>(null);
-  const matFrontRef = useRef<HTMLDivElement>(null);
   const wakeButtonRef = useRef<HTMLButtonElement>(null);
 
   const lead = useRef<Mover>(mover(0));
@@ -1350,7 +1265,7 @@ export function Companion({ facts }: CompanionProps) {
    * thing that ends the idle sleep is the pointer handler and the pointer never
    * moved. That is how two cats leave the screen for the rest of a visit.
    *
-   * So exploring, and the bed that ends it, read this clock instead: a scroll,
+   * So exploring, and the nap that ends it, read this clock instead: a scroll,
    * a resize, a key or a click all stamp it, and only the *settle* threshold —
    * which really is about the pointer holding still — stays on `lastMoveRef`.
    * Never read directly: the later of the two is what "alone" means, so the
@@ -1358,15 +1273,6 @@ export function Companion({ facts }: CompanionProps) {
    */
   const lastSignRef = useRef(0);
   const escortRef = useRef<EscortRun | null>(null);
-  /** The idle bed, mirrored out of React so the loop and the pointer handler
-   *  can both read it. The *loop* owns the value; everything else asks it to
-   *  reconsider by resetting the idle clock. */
-  const bedRef = useRef<Bed>(null);
-  /** How this particular bedtime goes. Rolled once, when they set off. */
-  const sleepPlan = useRef<SleepPlan | null>(null);
-  const shovedRef = useRef(false);
-  /** Pointer distance accumulated since they curled up. */
-  const travelRef = useRef(0);
   const napRef = useRef<Nap | null>(null);
   const napPointer = useRef<Element | null>(null);
   const napFocus = useRef<Element | null>(null);
@@ -1960,48 +1866,31 @@ export function Companion({ facts }: CompanionProps) {
   useEffect(() => {
     if (!roams) return;
 
-    /** Somebody is here, and steering. Resetting the idle clock is all this
-     *  has to do for the bed: the loop reads it, finds the cats are no longer
-     *  idle, and walks them out of it on its own. The explorers' plan goes too:
-     *  a moving pointer is the chase, and when it stops they should explore on
-     *  from wherever the chase left them rather than walk back to a spot picked
-     *  before it. */
-    const rouse = () => {
-      travelRef.current = 0;
+    /**
+     * Somebody is here. Every pointer move stamps the pointer clock — which is
+     * what the chase reads, and one of the two clocks a nap waits out — and
+     * gets a frame running. Whether the move is a chase is the loop's call, not
+     * this one's: only a pointer within `CHASE_RADIUS` of the lead is.
+     *
+     * Any move wakes a sleeping pair, however small. Nothing is held back for
+     * a pointer that has not travelled far enough: the cats nap where they
+     * stopped, on the page, not tucked away in a corner, and a reader whose
+     * hand moves is a reader who is back.
+     */
+    const onMove = (event: PointerEvent) => {
+      pointerRef.current = { x: event.clientX, y: event.clientY };
       lastMoveRef.current = performance.now();
       settleSpots.current = null;
-      exploreRun.current = null;
       wake();
     };
 
-    const onMove = (event: PointerEvent) => {
-      const at = { x: event.clientX, y: event.clientY };
-      const from = pointerRef.current;
-      pointerRef.current = at;
-      // Asleep in the bed, they are committed. A mouse nudged by a passing
-      // elbow should not drag two sleeping animals back across the page, so a
-      // single event is not enough: either the pointer comes over to where they
-      // are, or it travels far enough that somebody is plainly back at the
-      // page. Everything else leaves them where they are — and leaves the loop
-      // stopped, which is the point of them being asleep at all.
-      if (bedRef.current === "asleep") {
-        travelRef.current += from ? Math.hypot(at.x - from.x, at.y - from.y) : BED_WAKE_TRAVEL;
-        if (travelRef.current < BED_WAKE_TRAVEL && !nearBed(at)) return;
-      }
-      rouse();
-    };
-
-    // A click anywhere — including on the bed itself, which is the one the
-    // visitor is most likely to try — and any keystroke, which is the keyboard
-    // equivalent for a visitor who never moves a pointer at all. Both stamp the
-    // presence clock whether or not the cats are in the bed: somebody typing is
-    // somebody here, and the cats should not walk off mid-sentence. Only the
-    // pair already asleep get the full `rouse`, which is the one that also puts
-    // the pointer clock back and sends them chasing again.
+    // A click anywhere, and any keystroke — the keyboard equivalent for a
+    // visitor who never moves a pointer at all. Both stamp the presence clock:
+    // somebody typing is somebody here, and the cats should not doze off
+    // mid-sentence, and both wake a sleeping pair.
     const onPoke = () => {
       lastSignRef.current = performance.now();
-      if (bedRef.current) rouse();
-      else wake();
+      wake();
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -2408,15 +2297,18 @@ export function Companion({ facts }: CompanionProps) {
       /** How long the pointer has held still — what "settle" is measured on. */
       const idleFor = now - lastMoveRef.current;
       /** How long *nobody* has done anything: no pointer, no scroll, no key,
-       *  no click, no resize. What exploring and going to bed are measured on.
+       *  no click, no resize. What exploring and napping are measured on.
        *  Never longer than `idleFor`, so every existing reset of the pointer
        *  clock still counts as a sign of life without having to say so twice. */
       const aloneFor = now - Math.max(lastMoveRef.current, lastSignRef.current);
       const pointer = pointerRef.current;
       /** The reader is about, so the pair are out exploring whenever nothing
        *  in the cascade below has a better claim on them. Off once nobody has
-       *  done anything for `EXPLORE_IDLE_MS` — which is when the bed takes
-       *  over — and off with no roaming layer to explore in at all. */
+       *  done anything for `EXPLORE_IDLE_MS`, and off with no roaming layer to
+       *  explore in at all. The nap (`napping`, below) outranks it from
+       *  `sleepAfter` — which is `EXPLORE_IDLE_MS` by day and
+       *  `NIGHT_SLEEP_TRIM` sooner at night — and they nap where they are
+       *  heading, not in a bed. */
       const exploring = roamingRef.current && aloneFor < EXPLORE_IDLE_MS;
       const run = escortRef.current;
       const home = homeSpot();
@@ -2443,12 +2335,14 @@ export function Companion({ facts }: CompanionProps) {
         // The explorers' destination rides too, so a stop beside a paragraph
         // stays beside it rather than staying put on the glass while the
         // paragraph scrolls away. Carried out of view, it is no longer a
-        // destination at all, and is dropped for the next frame to re-pick.
+        // destination at all, and is dropped for the next frame to re-pick. A
+        // perch's follow spot is never walked to — she trails him there — so
+        // only his spot decides whether a perch is still on screen.
         const heading = exploreRun.current;
         if (heading) {
           const lead = { x: heading.spots.lead.x + ride.dx, y: heading.spots.lead.y + ride.dy };
           const follow = { x: heading.spots.follow.x + ride.dx, y: heading.spots.follow.y + ride.dy };
-          if (inView(lead) && inView(follow)) heading.spots = { lead, follow };
+          if (inView(lead) && (heading.perch || inView(follow))) heading.spots = { lead, follow };
           else exploreRun.current = null;
         }
       }
@@ -2697,13 +2591,18 @@ export function Companion({ facts }: CompanionProps) {
         window.setTimeout(() => setCheer(false), CHEER_MS);
       }
 
-      // "Parked" means the pointer is not driving them: there is none, or it
-      // has held still past `SETTLE_AFTER`. It is not "standing still" — a
-      // parked pair are usually exploring — and everything gated on it
-      // downstream (a scene may open, a scene is not dropped, the duet may
-      // speak) is gated on exactly the right thing: nobody is steering.
-      const parked = !forced && (!pointer || idleFor > SETTLE_AFTER);
-      /** Night flavour: the bed comes `NIGHT_SLEEP_TRIM` sooner. Read from a
+      // "Parked" means the pointer is not driving them: there is none, it has
+      // held still past `SETTLE_AFTER`, or it is further than `CHASE_RADIUS`
+      // from the lead — a reader using the page with a hand on the mouse, not
+      // somebody playing with the cat. It is not "standing still" — a parked
+      // pair are usually exploring — and everything gated on it downstream (a
+      // scene may open, a scene is not dropped, the duet may speak) is gated on
+      // exactly the right thing: nobody is steering. So a far-off mouse move
+      // neither starts a chase nor ends a scene.
+      const pointerNear =
+        pointer !== null && distance(pointer, centreOf(grey.pos)) <= CHASE_RADIUS;
+      const parked = !forced && (!pointerNear || idleFor > SETTLE_AFTER);
+      /** Night flavour: the nap comes `NIGHT_SLEEP_TRIM` sooner. Read from a
        *  ref rather than the two thresholds themselves, so the one number that
        *  changes with the theme is computed once a frame rather than smeared
        *  across every place the threshold is read. */
@@ -2839,12 +2738,12 @@ export function Companion({ facts }: CompanionProps) {
         // reaction.
         (forced !== "watch" && forced !== "secret" && aloneFor > sleepAfter && !beat);
       /**
-       * Idle sleep — the ephemeral one.
+       * The nap — the ephemeral sleep, as opposed to the resting box.
        *
        * This used to carry a `pointer !== null` clause, guarding against the
        * idle clocks starting at zero: without it a fresh load was already
-       * "idle" and the first thing a visitor saw was two cats in a bed they
-       * never sent them to. The clocks are stamped when the loop starts now
+       * "idle" and the first thing a visitor saw was two cats asleep they had
+       * never left alone. The clocks are stamped when the loop starts now
        * (see the effect's setup), which answers that directly, and the proxy
        * has gone with it — because it answered a different question than the
        * one it was asked. "Has a pointer ever moved" is not "is anybody here":
@@ -2861,17 +2760,16 @@ export function Companion({ facts }: CompanionProps) {
        * clock rather than by a proxy for it: `aloneFor` cannot exceed the
        * threshold until the pair have been on screen that long.
        *
-       * A running scene holds the bed off. Play can only *start* inside the
-       * window between settling and dozing, but the last beat of a yarn ball —
-       * or of a bowl the pair are still eating out of — can outlive it, and two
-       * cats walking away mid-scene to go to bed is the one way this could read
-       * as broken.
+       * A running scene holds the nap off. Play can only *start* while the
+       * reader is about, but the last beat of a yarn ball — or of a bowl the
+       * pair are still eating out of — can outlive the threshold, and two cats
+       * dropping off mid-scene is the one way this could read as broken.
        */
-      const wantsBed = !forced && aloneFor > sleepAfter && !beat;
+      const napping = !forced && aloneFor > sleepAfter && !beat;
 
       // Starting one is the last thing considered, and the narrowest: nobody
-      // steering, both standing still (an explorer between walks), not on the
-      // way to bed, and the clock is up. `openPlay` may still decline — a page
+      // steering, both standing still (an explorer between walks), not
+      // napping, and the clock is up. `openPlay` may still decline — a page
       // with no whitespace near the cats has nowhere safe for this, and an
       // anchored scene has no anchor on most of the page — in which case it
       // backs off rather than re-probing the layout on the next frame.
@@ -2882,7 +2780,7 @@ export function Companion({ facts }: CompanionProps) {
         !beat &&
         !forced &&
         parked &&
-        !wantsBed &&
+        !napping &&
         pointer !== null &&
         grey.pose !== "walk" &&
         tabby.pose !== "walk" &&
@@ -3050,9 +2948,6 @@ export function Companion({ facts }: CompanionProps) {
 
       let leadWant: Point;
       let followWant: Point;
-      /** True only on the frames the tabby is actually booting the bed, which
-       *  is the one thing that outranks "everybody is asleep" below. */
-      let kicking = false;
       /** True on the frames the cascade sent them exploring — which is what
        *  lets an explorer's arrival facing hold (see below). */
       let explored = false;
@@ -3104,7 +2999,7 @@ export function Companion({ facts }: CompanionProps) {
         // moving, which is the same "get out from underfoot" instinct the
         // corner spot already gives them for the toolkit, aimed at the top or
         // bottom of the viewport instead of a fixed corner. No content probe:
-        // like the corner and the bed, this is a reaction to the *page*
+        // like the corner, this is a reaction to the *page*
         // moving, not a place chosen against whatever happens to be printed
         // there this frame.
         const dir = rushRef.current!.dir;
@@ -3117,6 +3012,10 @@ export function Companion({ facts }: CompanionProps) {
         leadWant = grey.pos;
         followWant = tabby.pos;
       } else if (chase) {
+        // A chase is the one thing that throws the explorers' plan away: when
+        // it ends they explore on from wherever it left them, rather than walk
+        // back to a spot picked before it.
+        exploreRun.current = null;
         // Approach to the edge of the personal-space radius, on the side the cat
         // is already on, so it trails the cursor instead of crossing it.
         const from = centreOf(grey.pos);
@@ -3131,33 +3030,22 @@ export function Companion({ facts }: CompanionProps) {
                 y: grey.pos.y + (dy / dist) * (dist - LEAD_SPACE),
               });
         followWant = grey.pos;
-      } else if (wantsBed) {
-        // Bored, and going somewhere about it. No content probe: the corner *is*
-        // the destination, it is the companion's own furniture, and it is drawn
-        // where the toolkit and the resting box already are.
-        const plan = (sleepPlan.current ??= {
-          kick: Math.random() < KICK_ODDS,
-          phase: "kick",
-          at: 0,
-        });
-        const slots = sleepSlots();
-        leadWant = slots.lead;
-        if (plan.kick && plan.phase === "kick") {
-          // The detour. She walks to the bed first, and only once she is
-          // standing next to it does anything happen to it.
-          const spot = kickSpot();
-          followWant = spot;
-          if (distance(tabby.pos, spot) < 4) {
-            if (plan.at === 0) plan.at = now;
-            kicking = true;
-            if (!shovedRef.current && now - plan.at > KICK_HIT) {
-              shovedRef.current = true;
-              setShoved(true);
-            }
-            if (now - plan.at > KICK_MS) plan.phase = "settle";
-          }
+      } else if (napping) {
+        // Nobody about for `EXPLORE_IDLE_MS`: nap where they are going. Each
+        // finishes the walk it is on — the explorer's stop it was heading for,
+        // which was probed clear when it was chosen and has ridden the page
+        // since — and the dozing pose below lays it down on arrival; one
+        // already standing there lies down where it stands. No plan at all (a
+        // chase dropped it, a resize, a scene ending) means the nearest clear
+        // ground. Not the corner: the furniture is for the resting box.
+        const heading = exploreRun.current;
+        if (heading) {
+          leadWant = heading.spots.lead;
+          followWant = heading.perch ? trailLead() : heading.spots.follow;
         } else {
-          followWant = slots.follow;
+          const rest = settled();
+          leadWant = rest.lead;
+          followWant = rest.follow;
         }
       } else if (beat) {
         // Playing. Where the cats go is the scene's business now: the toy scenes
@@ -3173,7 +3061,7 @@ export function Companion({ facts }: CompanionProps) {
         // are allowed to cross anything — it is stopping on a paragraph that
         // reads as broken — and both ends of this walk were probed: they are
         // standing somewhere clear, and the place they are going is clear
-        // enough for the whole scene. It cannot outlast the bed either: the
+        // enough for the whole scene. It cannot outlast the nap either: the
         // request stamped the presence clock, and the walk gives up long before
         // `EXPLORE_IDLE_MS`.
         leadWant = walking.spots.lead;
@@ -3186,8 +3074,8 @@ export function Companion({ facts }: CompanionProps) {
         //
         // On an ordinary stop the two walk independently, each to a spot in its
         // own half of the page, 160px and a column apart (`exploreApart`), so
-        // their walks only cross when they set out from the wrong sides — out
-        // of the corner bed, say. A perch is the exception: it seats the pair
+        // their walks only cross when they set out from the wrong sides — after
+        // a chase or a perch, say. A perch is the exception: it seats the pair
         // side by side, so their walks converge, and converging walks are what
         // round 15 caught crossing the lead's toggle. So on a perch stop she
         // trails him (`trailLead`) the whole way, as every long walk that ends
@@ -3200,7 +3088,7 @@ export function Companion({ facts }: CompanionProps) {
         followWant = going.follow;
         explored = true;
       } else {
-        // Nothing to do and nowhere to go: not exploring, and not bound for bed.
+        // Nothing to do and nowhere to go: not exploring, and not napping.
         // Reached only on the frames between the end of an escort and the loop
         // being put away (no roaming layer left to explore), or on the single
         // frame the idle clock sits exactly on the threshold. Hold on clear
@@ -3446,16 +3334,7 @@ export function Companion({ facts }: CompanionProps) {
       if (explored && exploreRun.current?.arrivedAt && followRate <= 0.3) {
         tabby.facing = exploreRun.current.faceFollow;
       }
-      if (kicking && followRate <= 0.3) {
-        // Outranks the sleep branch below, which would otherwise have her curled
-        // up before the paw ever landed: by the time she reaches the bed the
-        // idle clock is well past the threshold that says "asleep".
-        calmIdle(tabby, now);
-        tabby.pose = "bat";
-        // The cluster is always to her right — the kick spot is off its left
-        // edge — so the shove runs away from her and into the corner.
-        tabby.facing = 1;
-      } else if (followRate > 0.3) {
+      if (followRate > 0.3) {
         calmIdle(tabby, now);
         tabby.pose = "walk";
       } else if (beat) {
@@ -3732,46 +3611,14 @@ export function Companion({ facts }: CompanionProps) {
         // repointing: a toy that stayed root-coloured would vanish over a
         // contrast section exactly as the cats used to.
         if (beat) syncTone(toyNode.current, beat.focus);
-        // The furniture is opaque line work on the same fixed layer, so it has
-        // the cats' problem twice over: the strokes have to be visible over a
-        // `contrast` section, and the knockout under them has to be that
-        // section's own ground. Both layers, because the carton's front panel is
-        // a separate element sitting in front of the animals. A scroll resets
-        // `lastTone` and wakes the loop for one frame, which is all this needs
-        // even once they are asleep.
-        if (matRef.current || matFrontRef.current) {
-          const box = clusterBox();
-          const at = { x: box.left + CLUSTER_W / 2, y: box.top + CLUSTER_H / 2 };
-          syncTone(matRef.current, at);
-          syncTone(matFrontRef.current, at);
-        }
       }
 
       const asleep = grey.pose === "sleep" && tabby.pose === "sleep";
       sleptLastFrame = asleep;
       const busy = leadRate > 0.05 || followRate > 0.05 || run !== null;
-      // Idle sleep in the bed *is* asleep: once they are curled up in it the
-      // loop stops exactly as it always did when they fell asleep on the spot.
-      // The pointer handler restarts it.
+      // Both asleep and neither moving: the loop stops, and the page with it.
+      // Any input restarts it — see `wake`, which every listener calls.
       const keepGoing = busy || !asleep;
-
-      // The bed shows the moment they set off for it, so a visitor watching
-      // sees where they are going rather than two cats wandering away.
-      const nextBed: Bed = wantsBed ? (asleep && !busy ? "asleep" : "walking") : null;
-      if (nextBed !== bedRef.current) {
-        bedRef.current = nextBed;
-        if (!nextBed) {
-          travelRef.current = 0;
-          // A new bedtime rolls its own detour, and the bed goes back where it
-          // belongs: the shove is part of a nap, not a fact about the corner.
-          sleepPlan.current = null;
-          if (shovedRef.current) {
-            shovedRef.current = false;
-            setShoved(false);
-          }
-        }
-        setBed(nextBed);
-      }
 
       const next: Frame = {
         lead: {
@@ -3831,7 +3678,7 @@ export function Companion({ facts }: CompanionProps) {
      *     late is a stamp that can miss.
      *  2. Get a frame running. Two sleeping cats have no frames, and every
      *     clamp, every target and every decision below lives inside one. This
-     *     is what walks them back out of the bed.
+     *     is what wakes them from a nap.
      *  3. Re-probe. The hit tests behind the resting spots and the tone sample
      *     cost real work, and a scroll fires far more often than a cat needs to
      *     reconsider where it is sitting — so that half stays throttled hard.
@@ -3877,8 +3724,13 @@ export function Companion({ facts }: CompanionProps) {
         // ground has stopped being clear. Dropping it on every scroll instead
         // would have a reader who scrolls as they read keep the pair forever
         // setting off and never arriving.
+        // A perch's follow spot is never walked to (she trails him), so only
+        // his is probed for one.
         const heading = exploreRun.current;
-        if (heading && !(isClearSpot(heading.spots.lead) && isClearSpot(heading.spots.follow))) {
+        if (
+          heading &&
+          !(isClearSpot(heading.spots.lead) && (heading.perch || isClearSpot(heading.spots.follow)))
+        ) {
           exploreRun.current = null;
         }
         lastTone.current = 0;
@@ -3932,17 +3784,12 @@ export function Companion({ facts }: CompanionProps) {
     window.addEventListener("resize", onResize);
     return () => {
       stop();
-      // Idle sleep does not outlive the loop that owns it. Whatever put the
-      // loop away — a mode change here, or the same change arriving from
-      // another tab — is a fresh start, and cats returning to a roaming page
-      // should not arrive already `EXPLORE_IDLE_MS` bored.
-      bedRef.current = null;
-      sleepPlan.current = null;
-      shovedRef.current = false;
-      travelRef.current = 0;
+      // A nap does not outlive the loop that owns it. Whatever put the loop
+      // away — a mode change here, or the same change arriving from another
+      // tab — is a fresh start, and cats returning to a roaming page should
+      // not arrive already `EXPLORE_IDLE_MS` bored. (The setup stamps both
+      // clocks again when the loop next starts; this covers the gap.)
       lastMoveRef.current = performance.now();
-      setBed(null);
-      setShoved(false);
       // Nor does a toy. It is only ever advanced from inside this loop, so one
       // left behind would be a drawing stopped mid-roll on the page.
       endPlay();
@@ -4527,24 +4374,9 @@ export function Companion({ facts }: CompanionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourView !== null]);
 
-  /** Every deliberate change of mode ends the idle sleep with it: it is a state
-   *  about being left alone, and none of these are being left alone. Leaving it
-   *  set would also gate the pointer handler, so the cats would come back from
-   *  the resting box and walk straight into the bed again. */
-  function clearBed() {
-    bedRef.current = null;
-    sleepPlan.current = null;
-    shovedRef.current = false;
-    travelRef.current = 0;
-    lastMoveRef.current = performance.now();
-    setBed(null);
-    setShoved(false);
-  }
-
   function sendToBed() {
     setOpen(false);
     endTour();
-    clearBed();
     endPlay();
     focusWish.current = "box";
     // The escort is theatre. Without a roaming layer there is nothing to
@@ -4561,7 +4393,6 @@ export function Companion({ facts }: CompanionProps) {
     placed.current = false;
     escortRef.current = null;
     setEscort(null);
-    clearBed();
     focusWish.current = "cat";
     // Back out onto the page, exploring.
     setCompanionMode("roam");
@@ -4615,21 +4446,6 @@ export function Companion({ facts }: CompanionProps) {
       data-cat-cheer={cheer ? "true" : undefined}
       className="no-print pointer-events-none fixed inset-0 z-40"
     >
-      {/* Drawn before the cats on purpose: they sleep *in* this furniture, so
-          the bed, the paper and the back of the carton have to be underneath
-          them in paint order. The carton's front panel is a second element
-          further down, after the animals — which is the only way a cat can be
-          inside a box in a drawing with no depth. Roaming only: the resting box
-          below occupies the same corner and the two never coexist. */}
-      {roams && roaming && bed ? (
-        <IdleFurniture
-          layer="back"
-          asleep={bed === "asleep"}
-          shoved={shoved}
-          containerRef={matRef}
-        />
-      ) : null}
-
       {/* The toy, under the cats in paint order so a paw lands on top of it.
           Decoration in the strictest sense: no accessible name, no pointer
           events (it inherits `none` from the root and says so anyway), and no
@@ -4825,18 +4641,6 @@ export function Companion({ facts }: CompanionProps) {
             </p>
           </div>
         </>
-      ) : null}
-
-      {/* The front of the carton, over the animal wedged into it. Pure scenery
-          and `pointer-events-none`, so the lead cat underneath is still the
-          quick-actions button across every pixel of it. */}
-      {roams && roaming && bed ? (
-        <IdleFurniture
-          layer="front"
-          asleep={bed === "asleep"}
-          shoved={shoved}
-          containerRef={matFrontRef}
-        />
       ) : null}
 
       {roams && escort ? (

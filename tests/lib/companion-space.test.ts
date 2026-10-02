@@ -117,9 +117,9 @@ describe("setReservedRects", () => {
  * registry from `setReservedRects`/`isClearSpot` above — not folded into
  * it — because the toolkit toggle, unlike a bubble, *is* the lead cat's own
  * current position. Folding it into `isClearSpot` would make the lead read
- * its own settled spot as occupied by itself every frame `restingPlaces()`
- * re-validates a held mood, dropping every mood the instant it was taken
- * up. `clearsControls` is consulted only by `findClearSpot` here and by
+ * its own settled spot as occupied by itself every time `onPageMoved`
+ * (Companion.tsx) re-probes the explorers' held stop, dropping every stop
+ * the instant he stood on it. `clearsControls` is consulted only by `findClearSpot` here and by
  * `mateSpot` in companion-moods.ts — the two places that ever compute one
  * cat's position relative to the *other's* — never by a cat validating its
  * own.

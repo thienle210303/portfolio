@@ -279,10 +279,10 @@ function reservedAt(x: number, y: number): boolean {
  * cat it belongs to, so nothing that reads a bubble as occupied ever asks
  * about a point a cat is actually standing on. The toolkit toggle *is* the
  * lead cat's own current position. Wiring it into `isClearSpot` would make
- * the lead read its own settled spot as occupied by itself on every frame
- * `restingPlaces()` re-validates a held mood (`isClearSpot(held.spots.lead)`
- * in `Companion.tsx`), which would drop every mood the instant it was taken
- * up. So this is its own registry, consulted only by the two functions that
+ * the lead read its own settled spot as occupied by itself every time
+ * `onPageMoved` in `Companion.tsx` re-probes the explorers' held stop
+ * (`isClearSpot(heading.spots.lead)`), which would drop every stop the
+ * instant he stood on it. So this is its own registry, consulted only by the two functions that
  * ever compute one cat's position *relative to the other's* — `mateSpot`
  * (companion-moods.ts) and `findClearSpot` below — never by a cat validating
  * its own spot.
@@ -818,7 +818,7 @@ function hash01(seed: string): number {
 /**
  * Left or right, deterministically, from a seed unique to one arrival.
  *
- * A wandering cat used to keep whatever facing its last step of travel left
+ * An exploring cat used to keep whatever facing its last step of travel left
  * it with — correct for a cat still walking, and the reason it is never
  * touched here, but a settled cat facing forever "the direction I most
  * recently arrived from" reads as an accident of pathfinding, not a choice.
@@ -827,7 +827,7 @@ function hash01(seed: string): number {
  * is a pure function of that arrival (call it twice with the same seed, get
  * the same face) — a property a unit test can pin down, which a live
  * `Math.random()` call at the moment of arrival cannot be. The caller (see
- * `wanderTo` in `Companion.tsx`) builds the seed from the arrival time and
+ * `exploreTo` in `Companion.tsx`) builds the seed from the arrival time and
  * the spot chosen, which is unique enough per arrival without this module
  * ever having to hold state of its own.
  */

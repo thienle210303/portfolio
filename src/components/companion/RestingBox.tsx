@@ -21,25 +21,21 @@ import styles from "./companion.module.css";
  * their bed. So there are three pieces of furniture now and the bed is the one
  * that stays empty: the grey one wedges himself into a box he is visibly too fat
  * for, the tabby flops on a single sheet of paper, and the bed — bought, placed,
- * perfectly good — is left alone. Rarely, she shoves it out of her way first.
+ * perfectly good — is left alone.
  *
- * ## What is shared, and why it has to be
+ * ## One way in
  *
- * Two different states put cats in this corner and they must look identical:
+ * `CompanionMode === "resting"` is the only thing that puts cats here. The
+ * visitor asked for the cats to be put away, it is written to localStorage
+ * under "companion", it survives a reload, and only the "Wake the cats" button
+ * undoes it. (Until the explorers, an idle nap walked the roaming pair here too,
+ * onto an empty copy of this furniture, and the tabby sometimes shoved the bed
+ * aside on the way. They nap where they stop now — see `Companion` — so the
+ * corner is the resting box's alone.)
  *
- *  - `CompanionMode === "resting"` is a **preference**. The visitor asked for
- *    the cats to be put away, it is written to localStorage under "companion",
- *    it survives a reload, and only the "Wake the cats" button undoes it. That
- *    flow owns `RestingBox`, which draws the sleeping animals itself.
- *  - Idle sleep is a **moment**. Nobody has done anything for a while, so the
- *    cats walk over and settle in, and the first sign of life gets them up.
- *    Nothing is stored. That flow owns `IdleFurniture`, which draws the same
- *    furniture *empty* — the animals asleep on it are the two real cats, walked
- *    here by the loop and positioned against the very same slot constants.
- *
- * Which is why the geometry below is exported. The furniture and the walk
- * targets are computed from one set of numbers, or the cats miss their own
- * box.
+ * The two slots are exported because the escort walks the roaming cats to
+ * exactly where this box then draws them: the walk targets and the drawing are
+ * computed from one set of numbers, or the cats miss their own box.
  *
  * ## Why the cluster is a drawing rather than a panel
  *
@@ -69,9 +65,9 @@ import styles from "./companion.module.css";
 /* -------------------------------------------------------------------------- */
 
 /** How far the cluster sits off the bottom-right corner. */
-export const CLUSTER_INSET = 24;
-export const CLUSTER_W = 186;
-export const CLUSTER_H = 60;
+const CLUSTER_INSET = 24;
+const CLUSTER_W = 186;
+const CLUSTER_H = 60;
 
 /**
  * Where each animal sleeps, as the top-left of its 50×42 drawing box in
@@ -86,18 +82,6 @@ export const CLUSTER_H = 60;
  */
 export const BOX_SLOT = { x: 70, y: 1 } as const;
 export const PAPER_SLOT = { x: 128, y: 12 } as const;
-
-/**
- * Where a cat stands to shove the bed: off the cluster's left edge, facing in.
- *
- * Left of it rather than right, so the shove runs *away* from the cat and into
- * the corner. A kick that pushed the bed towards the animal doing the kicking
- * would read as the bed attacking her.
- */
-export const KICK_SLOT = { x: -46, y: 12 } as const;
-
-/** How far a kicked bed scoots, in cluster px. About an inch on a laptop. */
-const SHOVE = 10;
 
 /* -------------------------------------------------------------------------- */
 /* The furniture itself                                                        */
@@ -165,7 +149,7 @@ const PAPER_CURL = "M 174.6 47.4 C 175.8 49.4, 177.9 50.7, 180.4 51";
  * is why it is held to the strictest version of every rule the rest of it
  * follows: `aria-hidden`, unselectable, no pointer events, no colour of its
  * own — `text-fg-subtle` is the quietest thing the palette has, and it follows
- * theme and tone through whichever piece of furniture it is sitting on. The
+ * theme and tone through the furniture it is sitting on. The
  * motion itself is three keyframes in `companion.module.css`, on a long enough
  * cycle to read as breathing, and it is removed outright under reduced motion.
  *
@@ -193,22 +177,9 @@ function Snore({ className }: { readonly className?: string }) {
   );
 }
 
-interface ArtProps {
-  /** The bed has been shoved out of the way. Only ever true on the idle path,
-   *  and never under reduced motion — see `Companion`. */
-  readonly shoved: boolean;
-}
-
-/**
- * Everything that sits *behind* the animals: the bed, the paper, and the back
- * half of the carton.
- *
- * The bed carries the shove on its own group rather than on the element, so the
- * carton and the paper stay exactly where they were — a cluster that slid as one
- * would read as the whole corner twitching rather than as one piece of furniture
- * being booted.
- */
-function FurnitureBack({ shoved }: ArtProps) {
+/** Everything that sits *behind* the animals: the bed, the paper, and the back
+ *  half of the carton. */
+function FurnitureBack() {
   return (
     <svg
       viewBox={`0 0 ${CLUSTER_W} ${CLUSTER_H}`}
@@ -218,19 +189,10 @@ function FurnitureBack({ shoved }: ArtProps) {
       focusable="false"
       className="block"
     >
-      <g
-        className="transition-transform duration-300 ease-out"
-        style={{
-          transformBox: "view-box",
-          transformOrigin: "38px 47px",
-          transform: shoved ? `translateX(${SHOVE}px) rotate(-3deg)` : undefined,
-        }}
-      >
-        <path {...MASK_AREA} d={BED_TUB} />
-        <path {...MASK_LINE} d={BED_MAT} />
-        <path {...STROKE} d={BED_TUB} />
-        <path {...STROKE} d={BED_MAT} />
-      </g>
+      <path {...MASK_AREA} d={BED_TUB} />
+      <path {...MASK_LINE} d={BED_MAT} />
+      <path {...STROKE} d={BED_TUB} />
+      <path {...STROKE} d={BED_MAT} />
 
       <path {...MASK_AREA} d={CARTON_FLAP_L} />
       <path {...MASK_AREA} d={CARTON_FLAP_R} />
@@ -269,9 +231,8 @@ function FurnitureFront() {
   );
 }
 
-/** The two sleepers, drawn into the cluster at the same slots the roaming cats
- *  are walked to. Only the resting box uses these; on the idle path the real
- *  animals are the ones lying here. */
+/** The two sleepers, drawn into the cluster at the same slots the escort walks
+ *  the roaming cats to. */
 function Sleepers() {
   return (
     <>
@@ -285,31 +246,25 @@ function Sleepers() {
   );
 }
 
-interface FurnitureProps extends ArtProps {
-  /** Draw the sleeping animals into the cluster. False on the idle path, where
-   *  the real cats do that themselves. */
+interface FurnitureProps {
+  /** Draw the sleeping animals into the cluster. False while the escort is
+   *  still walking the real ones in. */
   readonly cats: boolean;
   /** Snores only once somebody has actually arrived. */
   readonly asleep: boolean;
 }
 
-/**
- * The whole cluster in one element: back, sleepers, front, snores.
- *
- * Only the resting box can use this, and that is the point of the split. On the
- * idle path the animals asleep here are the two *real* cats, positioned by the
- * loop as siblings of the furniture — so that path needs the back and the front
- * as separate elements with the cats in between, which is what `IdleFurniture`
- * hands it.
- */
-function Furniture({ cats, asleep, shoved }: FurnitureProps) {
+/** The whole cluster in one element: back, sleepers, front, snores. The front
+ *  panel is drawn after the sleepers, which is the only way a cat can be *in* a
+ *  box in a drawing with no depth. */
+function Furniture({ cats, asleep }: FurnitureProps) {
   return (
     <span
       className="relative block"
       style={{ width: CLUSTER_W, height: CLUSTER_H }}
       aria-hidden="true"
     >
-      <FurnitureBack shoved={shoved} />
+      <FurnitureBack />
       {cats ? <Sleepers /> : null}
       <span className="absolute left-0 top-0">
         <FurnitureFront />
@@ -327,70 +282,6 @@ function Snores() {
       <Snore className="left-[104px] top-0" />
       <Snore className="left-[164px] top-[14px]" />
     </>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* The two ways cats end up here                                               */
-/* -------------------------------------------------------------------------- */
-
-interface IdleFurnitureProps extends ArtProps {
-  /** True once both cats have actually settled. Before that they are still
-   *  walking over, and the furniture is drawn a shade back so it reads as
-   *  where-they-are-going rather than as a new panel. */
-  readonly asleep: boolean;
-  /** Handed to the companion so its loop can sample the tone underneath — this
-   *  is opaque line work on a fixed layer, so it has the same problem the cats
-   *  do over a `contrast` section. */
-  readonly containerRef?: Ref<HTMLDivElement>;
-  /** "back" is drawn before the cats, "front" after them. */
-  readonly layer: "back" | "front";
-}
-
-/**
- * The furniture the cats put *themselves* in front of.
- *
- * Empty by design: the sleeping animals on it are the two real cats, which is
- * the whole point. They walk here, they settle here, and the grey one is still
- * the quick-actions button the entire time. Nothing about this is a mode,
- * nothing about it is stored, and there is deliberately no control on it: every
- * way out of the roaming state still lives in the toolkit the lead cat carries.
- *
- * `pointer-events-none` for the same reason it has no control — it is scenery
- * lying over the bottom-right corner of somebody's page, and scenery that eats
- * clicks is worse than no scenery. Waking them is owned by the companion, which
- * listens for a pointer coming near, a click, or a key.
- */
-export function IdleFurniture({ asleep, shoved, containerRef, layer }: IdleFurnitureProps) {
-  return (
-    <div
-      ref={containerRef}
-      // Only the back layer answers to `[data-cat-bed]`: it is the one the specs
-      // measure the cluster by, and two elements carrying the same hook would
-      // make every `toBeVisible` in the suite ambiguous.
-      {...(layer === "back" ? { "data-cat-bed": "" } : { "data-cat-bed-front": "" })}
-      aria-hidden="true"
-      className={cn(
-        // The colour is named here rather than inherited for the reason the
-        // cats name theirs — see the note by the toy in Companion.tsx. This is
-        // the element `syncTone` repoints, so it has to be the element that
-        // reads the alias, or the furniture keeps the root's ink and disappears
-        // into a `contrast` section's ground.
-        "pointer-events-none absolute text-fg-muted transition-opacity duration-500",
-        asleep ? "opacity-100" : "opacity-60",
-      )}
-      style={{
-        right: CLUSTER_INSET,
-        bottom: CLUSTER_INSET,
-        width: CLUSTER_W,
-        height: CLUSTER_H,
-      }}
-    >
-      {layer === "back" ? <FurnitureBack shoved={shoved} /> : <FurnitureFront />}
-      {/* Only once they have arrived: furniture snoring while the cats are still
-          walking towards it is furniture with somebody else in it. */}
-      {layer === "front" && asleep ? <Snores /> : null}
-    </div>
   );
 }
 
@@ -426,7 +317,7 @@ export function RestingBox({ occupied, onWake, containerRef, wakeRef }: RestingB
         <span
           className={cn("block transition-opacity duration-300", occupied ? "" : "opacity-40")}
         >
-          <Furniture cats={occupied} asleep={occupied} shoved={false} />
+          <Furniture cats={occupied} asleep={occupied} />
         </span>
         {/* Inherits the button's colour rather than setting its own, so the
             label and the drawing brighten together on hover. This is the only

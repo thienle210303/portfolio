@@ -228,11 +228,12 @@ export function ramp(from: number, to: number, frames = 1): number {
 /* it goes the other — even though not one call to `advance` has fired.       */
 /*                                                                             */
 /* A speed cap cannot fix that, because nothing is *moving* in the vocabulary */
-/* the cap understands: `want` is a settled mood's spot, held in viewport     */
-/* coordinates precisely so a stationary visitor does not watch two cats      */
-/* re-probe the page every frame (see `restingPlaces` in `Companion.tsx`).    */
-/* Scrolling does not change that held value at all — it changes what it      */
-/* *means*, out from under it, every frame the wheel turns.                   */
+/* the cap understands: `want` is a held spot (then a settled mood's; now an  */
+/* explorer's stop, see `ExploreRun` in `Companion.tsx`), kept in viewport    */
+/* coordinates precisely so the pair do not re-probe the page every frame.    */
+/* Scrolling does not change that held value by itself — it changes what it  */
+/* *means*, out from under it, every frame the wheel turns. (`Companion.tsx`  */
+/* now carries an explorer's stop along by the same ride; see `ExploreRun`.) */
 /*                                                                             */
 /* `rideStep` answers a different question, deliberately outside `advance`'s  */
 /* target-and-cap vocabulary: not "where do you want to be" but "how far did  */

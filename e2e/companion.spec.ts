@@ -138,37 +138,45 @@ async function framesPerSecond(page: Page): Promise<number> {
   return (await read()) - before;
 }
 
-/**
- * How many cats are outside the corner furniture, or -1 if there is no corner.
- * The tolerance is the same four pixels in every direction, because the claim
- * is "in the bed", not "drawn to the pixel".
- */
-function catsOutsideBed(page: Page): Promise<number> {
-  return page.evaluate(() => {
-    const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
-    if (!box) return -1;
-    return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).filter(
-      (svg) => {
-        const r = svg.getBoundingClientRect();
-        return (
-          r.left < box.left - 4 ||
-          r.right > box.right + 4 ||
-          r.top < box.top - 4 ||
-          r.bottom > box.bottom + 4
-        );
-      },
-    ).length;
-  });
-}
-
 /** How long the reader may do nothing before the cats nap — mirrors
  *  `EXPLORE_IDLE_MS` in `src/components/companion/Companion.tsx`, which a
  *  spec cannot import (it is a client component). */
 const EXPLORE_IDLE_MS = 20_000;
 
+/** How near the pointer has to come to the lead cat's centre before he
+ *  chases it — mirrors `CHASE_RADIUS` in Companion.tsx. */
+const CHASE_RADIUS = 200;
+
 /** The column and cell size the explorers are spaced by — mirrors
  *  `EXPLORE_COLUMN` in companion-space.ts, which measures by left edge. */
 const COLUMN = 60;
+
+/**
+ * Whether both cats are lying in the bottom-right corner, where the furniture
+ * cluster sits (`CLUSTER_INSET` 24, `CLUSTER_W` 186, `CLUSTER_H` 60 in
+ * RestingBox.tsx, four pixels of slack). Roaming cats who nap where they stop
+ * are not both there; cats who walked to a corner bed would be.
+ */
+function bothInCorner(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const width = document.documentElement.clientWidth;
+    const height = document.documentElement.clientHeight;
+    const box = { left: width - 24 - 186, top: height - 24 - 60, right: width - 24, bottom: height - 24 };
+    const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+    return (
+      cats.length === 2 &&
+      cats.every((svg) => {
+        const r = svg.getBoundingClientRect();
+        return (
+          r.left >= box.left - 4 &&
+          r.right <= box.right + 4 &&
+          r.top >= box.top - 4 &&
+          r.bottom <= box.bottom + 4
+        );
+      })
+    );
+  });
+}
 
 /** Both roaming cats' poses, grey first. The grey cat is the one inside the
  *  toolkit toggle. */
@@ -185,6 +193,7 @@ function poses(page: Page): Promise<string[]> {
 interface CatAt {
   /** Centre, in viewport x — which half of the page it is in. */
   readonly centreX: number;
+  readonly centreY: number;
   /** Which 60px column its left edge is in. */
   readonly column: number;
   /** Which 60px cell of the *document* it is in, so riding a scroll is not
@@ -205,7 +214,14 @@ async function catPair(page: Page, { still = false } = {}): Promise<[CatAt, CatA
       if (!grey || !tabby) throw new Error("two roaming cats were not on the page");
       return [grey, tabby].map((svg) => {
         const r = svg.getBoundingClientRect();
-        return { left: r.left, top: r.top, width: r.width, x: window.scrollX, y: window.scrollY };
+        return {
+          left: r.left,
+          top: r.top,
+          width: r.width,
+          height: r.height,
+          x: window.scrollX,
+          y: window.scrollY,
+        };
       });
     });
   const before = still ? await read() : null;
@@ -213,6 +229,7 @@ async function catPair(page: Page, { still = false } = {}): Promise<[CatAt, CatA
   const after = await read();
   const at = after.map((r, index) => ({
     centreX: r.left + r.width / 2,
+    centreY: r.top + r.height / 2,
     column: Math.floor(r.left / COLUMN),
     cell: `${Math.floor((r.left + r.x) / COLUMN)},${Math.floor((r.top + r.y) / COLUMN)}`,
     still:
@@ -756,19 +773,44 @@ test.describe("companion", () => {
     await companionAwake(page);
 
     /*
-     * A reader who is here and active, without driving the cats: a pointer
-     * exists, then holds still while the page scrolls a little at a time.
-     * Moving the pointer is the pointer chase, which outranks exploring, so a
-     * cursor kept on the move would be testing the chase instead.
+     * A reader with a hand on the mouse: the pointer moves in small steps the
+     * whole time and the page scrolls a little every two seconds — but the
+     * pointer is kept well away from both cats (always further than
+     * `CHASE_RADIUS` from the lead), which is a reader using the page, not
+     * one playing with the cat. A moving mouse anywhere used to be a chase.
      *
      * Read in `#worlds` because it is the one section with no mood: the first
      * stop in a section is that section's perch, and a perch seats the pair
-     * one above the other on purpose. Sampling starts once they have stopped
+     * side by side on purpose. Sampling starts once they have stopped
      * somewhere with a column each, so what is measured is the explorers and
      * not the walk in.
      */
-    await page.mouse.move(6, 450, { steps: 4 });
-    await page.mouse.move(4, 452);
+    const SPOTS = [80, 400, 720, 1040, 1360].flatMap((x) => [180, 450, 820].map((y) => ({ x, y })));
+    let pointer = { x: 720, y: 450 };
+    const far = (grey: CatAt, tabby: CatAt) =>
+      SPOTS.reduce((best, spot) => {
+        const reach = (p: { x: number; y: number }) =>
+          Math.min(
+            Math.hypot(p.x - grey.centreX, p.y - grey.centreY),
+            Math.hypot(p.x - tabby.centreX, p.y - tabby.centreY),
+          );
+        return reach(spot) > reach(best) ? spot : best;
+      });
+    /** Keep the pointer moving, in small steps, but always far from both. */
+    let nudge = 1;
+    let closest = Infinity;
+    const keepAway = async () => {
+      const [grey, tabby] = await catPair(page);
+      const fromLead = Math.hypot(pointer.x - grey.centreX, pointer.y - grey.centreY);
+      const fromTabby = Math.hypot(pointer.x - tabby.centreX, pointer.y - tabby.centreY);
+      closest = Math.min(closest, fromLead);
+      if (fromLead < CHASE_RADIUS + 160 || fromTabby < CHASE_RADIUS) pointer = far(grey, tabby);
+      else pointer = { x: pointer.x + 3 * nudge, y: pointer.y + 2 * nudge };
+      nudge = -nudge;
+      await page.mouse.move(pointer.x, pointer.y);
+      return [grey, tabby] as const;
+    };
+
     await page.evaluate(() => {
       const worlds = document.querySelector("#worlds");
       if (!worlds) throw new Error("the page has no worlds section");
@@ -778,6 +820,7 @@ test.describe("companion", () => {
     await expect
       .poll(
         async () => {
+          await keepAway();
           const [grey, tabby] = await catPair(page, { still: true });
           return grey.still && tabby.still && grey.column !== tabby.column;
         },
@@ -790,16 +833,17 @@ test.describe("companion", () => {
     const cells = new Set<string>();
     const shared: string[] = [];
     let direction = 1;
-    for (let tick = 0; tick < 48; tick += 1) {
-      // A little scroll every two seconds keeps the reader present without
-      // carrying either cat anywhere: the pair ride the page, so their place
-      // in the document only changes when they walk.
-      if (tick % 4 === 0) {
+    closest = Infinity;
+    for (let tick = 0; tick < 96; tick += 1) {
+      // A little scroll every two seconds as well: the pair ride the page, so
+      // their place in the document only changes when they walk.
+      if (tick % 8 === 0) {
         await page.mouse.wheel(0, 80 * direction);
         direction = -direction;
       }
-      await page.waitForTimeout(500);
-      const [grey, tabby] = await catPair(page);
+      await page.waitForTimeout(250);
+      const [grey, tabby] = await keepAway();
+      if (tick % 2 === 1) continue;
       if (grey.centreX < DESKTOP_WIDTH / 2) greyLeft += 1;
       if (tabby.centreX >= DESKTOP_WIDTH / 2) tabbyRight += 1;
       cells.add(`grey ${grey.cell}`);
@@ -807,12 +851,47 @@ test.describe("companion", () => {
       if (grey.column === tabby.column) shared.push(`tick ${tick}: column ${grey.column}`);
     }
 
+    // The setup held: the pointer never came within chasing range.
+    expect(closest, "the test let the pointer come within chasing range").toBeGreaterThan(CHASE_RADIUS);
     expect(greyLeft, "the grey cat never explored the left half").toBeGreaterThanOrEqual(1);
     expect(tabbyRight, "the tabby never explored the right half").toBeGreaterThanOrEqual(1);
     expect(cells.size, `only ${cells.size} places visited: ${[...cells].join(", ")}`).toBeGreaterThan(3);
     expect(shared, "the pair stood in one 60px column").toEqual([]);
-    // Active the whole time, so never in bed.
     await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+  });
+
+  test("the lead still chases a pointer that comes near him", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    await expect
+      .poll(async () => (await catPair(page, { still: true }))[0].still, {
+        timeout: 20_000,
+        message: "the lead never stood still",
+      })
+      .toBe(true);
+
+    // About a hundred pixels from him, towards the middle of the page, and
+    // then drawn away at a walking pace — never further than the chase's
+    // reach, so it is always a pointer he should come after.
+    const [start] = await catPair(page);
+    const dx = start.centreX < DESKTOP_WIDTH / 2 ? 1 : -1;
+    let pointer = { x: start.centreX + dx * 100, y: start.centreY };
+    await page.mouse.move(pointer.x, pointer.y);
+    let furthest = 0;
+    for (let tick = 0; tick < 30; tick += 1) {
+      await page.waitForTimeout(100);
+      const [grey] = await catPair(page);
+      const gap = Math.hypot(pointer.x - grey.centreX, pointer.y - grey.centreY);
+      furthest = Math.max(furthest, gap);
+      if (gap < 170) pointer = { x: Math.min(1400, Math.max(40, pointer.x + dx * 15)), y: pointer.y };
+      await page.mouse.move(pointer.x, pointer.y);
+    }
+    const [end] = await catPair(page);
+    expect(furthest, "the test let the pointer out of chasing range").toBeLessThanOrEqual(CHASE_RADIUS);
+    expect((end.centreX - start.centreX) * dx, "the lead did not come after the pointer").toBeGreaterThan(150);
+    expect(Math.hypot(pointer.x - end.centreX, pointer.y - end.centreY)).toBeLessThanOrEqual(CHASE_RADIUS);
   });
 
   test("explorers nap when the reader stops, and the page goes still", async ({ page }) => {
@@ -828,7 +907,7 @@ test.describe("companion", () => {
       };
       Object.defineProperty(window, "__frames", { get: () => frames });
     });
-    // By day: at night the bed comes `NIGHT_SLEEP_TRIM` (3s) sooner, which is
+    // By day: at night the nap comes `NIGHT_SLEEP_TRIM` (3s) sooner, which is
     // flavour this test is not about.
     await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/");
@@ -844,24 +923,30 @@ test.describe("companion", () => {
     await page.mouse.wheel(0, 120);
     const stoppedAt = Date.now();
 
-    // Not before the threshold: two seconds short of it they are still about,
-    // and have not so much as set off for bed (the bed shows the moment they do).
+    // Not before the threshold: two seconds short of it they are still about.
     await page.waitForTimeout(EXPLORE_IDLE_MS - 2_000);
-    await expect(page.locator("[data-cat-bed]"), "off to bed before the reader had been gone 20s").toHaveCount(0, { timeout: 1 });
-    expect(await poses(page), "asleep before the reader had been gone 20s").not.toEqual([
-      "sleep",
-      "sleep",
-    ]);
+    expect(await poses(page), "asleep before the reader had been gone 20s").not.toContain("sleep");
 
-    // And after it, both asleep by the time the threshold plus six seconds to
-    // walk somewhere and lie down have passed.
+    // And after it, both asleep where they stopped — by the time the threshold
+    // plus six seconds to finish a walk and lie down have passed — with no bed
+    // anywhere: napping in place is not going to bed.
     await expect
-      .poll(() => poses(page), {
-        timeout: Math.max(1_000, stoppedAt + EXPLORE_IDLE_MS + 6_000 - Date.now()),
-        intervals: [250],
-        message: "the cats were not both asleep 26s after the reader stopped",
-      })
+      .poll(
+        async () => {
+          await expect(page.locator("[data-cat-bed]")).toHaveCount(0, { timeout: 1 });
+          return poses(page);
+        },
+        {
+          timeout: Math.max(1_000, stoppedAt + EXPLORE_IDLE_MS + 6_000 - Date.now()),
+          intervals: [250],
+          message: "the cats were not both asleep 26s after the reader stopped",
+        },
+      )
       .toEqual(["sleep", "sleep"]);
+    expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
+    // Waited out rather than sampled once: the pose turns to sleep while the
+    // last fraction of a pixel of the walk is still easing in.
+    await expectRestClearOfContent(page, "asleep on content");
 
     // Asleep is still: nothing on the page is asking for frames any more.
     await expect
@@ -872,13 +957,14 @@ test.describe("companion", () => {
       })
       .toBe(0);
 
-    // One move wakes them, and each stretches on the way up.
+    // Any input wakes them — a three-pixel nudge of the mouse, nowhere near
+    // either cat, is enough — and each stretches on the way up.
     const stretched = new Set<string>();
     const noteStretches = (now: string[]) =>
       now.forEach((pose, index) => {
         if (pose === "stretch") stretched.add(index === 0 ? "grey" : "tabby");
       });
-    await page.mouse.move(1000, 200);
+    await page.mouse.move(463, 453);
     await expect
       .poll(
         async () => {
@@ -886,7 +972,7 @@ test.describe("companion", () => {
           noteStretches(now);
           return now.every((pose) => pose !== "sleep");
         },
-        { timeout: 2_000, intervals: [50], message: "one pointer move did not wake them" },
+        { timeout: 2_000, intervals: [50], message: "one small pointer move did not wake them" },
       )
       .toBe(true);
     await expect
@@ -928,6 +1014,25 @@ test.describe("companion", () => {
     expect(cells.size, `only ${cells.size} places visited: ${[...cells].join(", ")}`).toBeGreaterThan(1);
     // The corner is on the right; exploring is what takes the grey cat left.
     expect(greyLeft, "the grey cat never left the right-hand side").toBeGreaterThanOrEqual(1);
+  });
+
+  test("a key that never scrolls still counts as activity", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    // Paging down is a key *and* a scroll, so the test above cannot tell which
+    // of the two kept the cats up. Here: Tab forward and back between the first
+    // two stops on the page, every three seconds, for longer than the nap
+    // threshold — no mouse, and the page never moves.
+    for (let press = 0; press < 8; press += 1) {
+      await page.keyboard.press(press % 2 === 0 ? "Tab" : "Shift+Tab");
+      await page.waitForTimeout(3_000);
+      expect(await page.evaluate(() => window.scrollY), "the page scrolled").toBe(0);
+    }
+    expect(await poses(page), "asleep while somebody was typing").not.toContain("sleep");
   });
 
   test("draws two independently positioned cats, not one pair", async ({ page }) => {
@@ -1263,7 +1368,7 @@ test.describe("companion", () => {
       .toEqual([]);
   });
 
-  test("puts itself to bed when left alone, and does not remember doing it", async ({ page }) => {
+  test("naps where it stops when left alone, and does not remember doing it", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     // Deliberately real time: the threshold this exercises is the one a visitor
     // hits by looking away, and faking it would test a different feature.
@@ -1274,55 +1379,55 @@ test.describe("companion", () => {
     await companionAwake(page);
 
     // One move, then nothing — the visitor who arrived, looked, and went back
-    // to reading. The page nobody touches at all reaches the same bed by the
-    // same clock; that it also stops costing frames there is the test below.
+    // to reading. The page nobody touches at all naps by the same clock; that
+    // it also stops costing frames there is the test below.
     await page.mouse.move(600, 400);
 
-    // `[data-cat-bed]` is the whole corner now — the bed, the cardboard box and
-    // the sheet of paper — and it is carried by the layer drawn *behind* the
-    // animals, so it stays exactly one element. The carton's front panel is a
-    // second element with its own hook, because it has to paint over the cat
-    // wedged into the box.
-    const bed = page.locator("[data-cat-bed]");
-    await expect(bed).toBeVisible({ timeout: 40_000 });
-    await expect(page.locator("[data-cat-bed-front]")).toHaveCount(1);
-
-    // The furniture is bigger than the bed it replaced, and it is placed rather
-    // than probed — so the one thing that has to hold is that all of it is still
-    // on the screen.
-    expect(
-      await page.evaluate(() => {
-        const r = document.querySelector("[data-cat-bed]")!.getBoundingClientRect();
-        return (
-          r.left >= 0 &&
-          r.top >= 0 &&
-          r.right <= document.documentElement.clientWidth &&
-          r.bottom <= document.documentElement.clientHeight
-        );
-      }),
-    ).toBe(true);
-
-    // Both of them end up inside it — in the wrong furniture, which is the joke,
-    // but inside it. This is the whole point of the corner: cats that go quiet
-    // somewhere expected read as cats, and cats that go quiet in whatever margin
-    // they were standing in read as a bug.
+    // Both of them asleep, each where it stopped. Not in the corner: the bed
+    // is for a visitor who sent them there ("Send the cats to bed"), and a
+    // roaming pair that wandered off to it every time the reader looked away
+    // spent half the visit walking to the same spot. Sampled the whole way, so
+    // a bed that appeared and went again would still be caught.
     await expect
-      .poll(() => catsOutsideBed(page), {
-        timeout: 30_000,
-        message: "a cat never made it into the bed",
-      })
-      .toBe(0);
+      .poll(
+        async () => {
+          await expect(page.locator("[data-cat-bed]")).toHaveCount(0, { timeout: 1 });
+          return poses(page);
+        },
+        { timeout: 40_000, intervals: [500], message: "the cats never fell asleep" },
+      )
+      .toEqual(["sleep", "sleep"]);
+    expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
+    // Asleep somewhere clear — a nap on a paragraph is a cat on a paragraph —
+    // and somewhere they can be seen.
+    // Waited out rather than sampled once: the pose turns to sleep while the
+    // last fraction of a pixel of the walk is still easing in.
+    await expectRestClearOfContent(page, "asleep on content");
+    expect(
+      await page.evaluate(() =>
+        Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).every((svg) => {
+          const r = svg.getBoundingClientRect();
+          return (
+            r.left >= 0 &&
+            r.top >= 0 &&
+            r.right <= document.documentElement.clientWidth &&
+            r.bottom <= document.documentElement.clientHeight
+          );
+        }),
+      ),
+    ).toBe(true);
 
     // It is a moment, not a preference — the distinction the resting box owns.
     // Nothing is written down, so nothing has to be undone.
     expect(await page.evaluate(() => window.localStorage.getItem("companion"))).toBeNull();
 
-    // Any real sign of life releases them, and the lead cat was a working
-    // control the entire time it was asleep.
+    // Any sign of life releases them — no distance to travel first — and the
+    // lead cat was a working control the entire time it was asleep.
     await expect(catButton(page)).toBeVisible();
-    await page.mouse.move(300, 300, { steps: 12 });
-    await page.mouse.move(720, 520, { steps: 12 });
-    await expect(bed).toHaveCount(0);
+    await page.mouse.move(603, 402);
+    await expect
+      .poll(() => poses(page), { timeout: 2_000, message: "a small move did not wake them" })
+      .not.toContain("sleep");
 
     // And a reload starts them roaming, with no trace of the nap.
     await page.reload();
@@ -1378,19 +1483,23 @@ test.describe("companion", () => {
       })
       .toBe(0);
 
-    // Asleep, not abandoned: they got to the bed under their own steam, and the
-    // lead cat is still the control it always was. The corner is the whole
-    // point — two cats who go quiet in whatever margin they were standing in
-    // read as a bug, whether or not a pointer was ever involved.
-    await expect(page.locator("[data-cat-bed]")).toBeVisible();
-    expect(await catsOutsideBed(page), "a cat never made it into the bed").toBe(0);
+    // Asleep, not abandoned: both of them in the sleep pose, where they last
+    // stopped rather than walked off to a corner bed, and the lead cat still
+    // the control it always was. The pose is the point — two cats who go still
+    // in whatever margin they were standing in, *awake*, read as a bug,
+    // whether or not a pointer was ever involved.
+    expect(await poses(page), "the page went still with the cats awake").toEqual(["sleep", "sleep"]);
+    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+    expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
     await expect(catButton(page)).toBeVisible();
 
     // And the page moving is a sign of life, exactly as it is for a visitor who
     // did move a pointer once: frames come back, and so do the cats.
     await page.mouse.wheel(0, 600);
     expect(await framesPerSecond(page)).toBeGreaterThan(0);
-    await expect(page.locator("[data-cat-bed]")).toHaveCount(0, { timeout: 5_000 });
+    await expect
+      .poll(() => poses(page), { timeout: 5_000, message: "a scroll did not wake them" })
+      .not.toContain("sleep");
 
     // Then it settles again, which is what makes this a resting state rather
     // than a one-off.
@@ -1422,7 +1531,8 @@ test.describe("companion", () => {
      * three paragraphs down reads as absent. The cats walked off to the corner
      * and went to sleep while somebody was plainly there, and no amount of
      * further scrolling brought them back — the pointer handler owned the only
-     * way out of the bed, and the pointer never moved.
+     * way out of the bed, and the pointer never moved. (They nap where they
+     * stop now rather than in a corner bed; the clock is the same question.)
      *
      * Every other test in this file drives the cats with the mouse, which is
      * exactly why the suite was green while the owner was watching two cats
@@ -1447,32 +1557,22 @@ test.describe("companion", () => {
       lastTickAt = Date.now();
       if (gap > 8_000) continue;
       await expect(bed).toHaveCount(0);
+      expect(await poses(page), "asleep while somebody was reading").not.toContain("sleep");
     }
 
-    // Now actually leave. The bed is a real behaviour, not a thing to suppress
+    // Now actually leave. The nap is a real behaviour, not a thing to suppress
     // — it just has to mean "nobody is here" rather than "the mouse is still".
-    await expect(bed).toBeVisible({ timeout: 40_000 });
+    // Where they stop, not in a corner bed.
     await expect
       .poll(
-        () =>
-          page.evaluate(() => {
-            const box = document.querySelector("[data-cat-bed]")?.getBoundingClientRect();
-            if (!box) return -1;
-            return Array.from(
-              document.querySelectorAll("[data-companion] svg[data-cat]"),
-            ).filter((svg) => {
-              const r = svg.getBoundingClientRect();
-              return (
-                r.left < box.left - 4 ||
-                r.right > box.right + 4 ||
-                r.top < box.top - 4 ||
-                r.bottom > box.bottom + 4
-              );
-            }).length;
-          }),
-        { timeout: 30_000, message: "a cat never made it into the bed" },
+        async () => {
+          await expect(bed).toHaveCount(0, { timeout: 1 });
+          return poses(page);
+        },
+        { timeout: 40_000, intervals: [500], message: "the cats never fell asleep" },
       )
-      .toBe(0);
+      .toEqual(["sleep", "sleep"]);
+    expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
 
     /*
      * Two sleeping cats have no animation frames, and the clamp that keeps a
@@ -1505,7 +1605,9 @@ test.describe("companion", () => {
     // And scrolling gets them up, which is the half a visitor actually feels:
     // the page moved, so somebody is here, so the cats are back.
     await page.mouse.wheel(0, 500);
-    await expect(bed).toHaveCount(0, { timeout: 3_000 });
+    await expect
+      .poll(() => poses(page), { timeout: 3_000, message: "a scroll did not wake them" })
+      .not.toContain("sleep");
 
     expect(
       await page.evaluate(
@@ -2035,11 +2137,29 @@ test.describe("companion", () => {
 
     // Put the pair well up the page first: a visitor with a pointer drags them
     // to wherever they are reading, which is the state the toggle is actually
-    // pressed from. Straight from the corner there is no walk to catch.
-    await page.mouse.move(Math.round(viewportWidth(page) / 3), 220);
-    await page.waitForTimeout(400);
-    await page.mouse.move(Math.round(viewportWidth(page) / 3) + 8, 232);
-    await page.waitForTimeout(1200);
+    // pressed from. Straight from the corner there is no walk to catch. The
+    // lead only chases a pointer within `CHASE_RADIUS` of him, so the pointer
+    // starts beside him and leads him up, never getting further ahead than
+    // he will follow.
+    const target = { x: Math.round(viewportWidth(page) / 3), y: 220 };
+    const lead = async () => (await catPair(page))[0];
+    const start = await lead();
+    let pointer = { x: start.centreX, y: start.centreY - 60 };
+    await page.mouse.move(pointer.x, pointer.y);
+    for (let tick = 0; tick < 80; tick += 1) {
+      await page.waitForTimeout(50);
+      const grey = await lead();
+      const gap = Math.hypot(pointer.x - grey.centreX, pointer.y - grey.centreY);
+      const left = Math.hypot(target.x - pointer.x, target.y - pointer.y);
+      if (gap < 150 && left > 1) {
+        const stride = Math.min(12, left);
+        pointer = {
+          x: pointer.x + ((target.x - pointer.x) / left) * stride,
+          y: pointer.y + ((target.y - pointer.y) / left) * stride,
+        };
+      }
+      await page.mouse.move(pointer.x, pointer.y);
+    }
 
     // And they have to have actually gone, or the assertion below would pass
     // by meaning nothing the day something keeps them parked in the corner.
