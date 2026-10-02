@@ -354,10 +354,10 @@ describe("AskThisSite -- a sectioned passage links to its section", () => {
   });
 });
 
-describe("AskThisSite -- a passage rendered nowhere has no section link", () => {
+describe("AskThisSite -- a passage whose subject is rendered nowhere has no section link", () => {
   it("shows the answer and its source, but no section link at all, for a skills evidence line", async () => {
-    // Skills evidence is indexed but rendered nowhere on the page, so its
-    // document carries no section (see `Document` in answer-corpus.ts). The
+    // Skills evidence is indexed but no subject of it (a skill category) is
+    // rendered anywhere on the page, so its document carries no section (see `Document` in answer-corpus.ts). The
     // precondition is asserted rather than assumed: if this query stops
     // retrieving a sectionless passage, the test must fail, not pass having
     // checked a different answer.

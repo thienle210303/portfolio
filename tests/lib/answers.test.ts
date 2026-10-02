@@ -110,8 +110,9 @@ describe("answer", () => {
           `"${result.text}" was not drawn verbatim from content`,
         ).toBe(true);
         expect(result.source.trim()).not.toBe("");
-        // A passage rendered nowhere on the page carries no section at all
-        // (see `Document`); one that carries a section must carry a live one.
+        // A passage whose subject is rendered nowhere on the page carries no
+        // section at all (see `Document`); one that carries a section must
+        // carry a live one.
         if (result.sectionId !== undefined) expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
         expect(result.sectionId === undefined, "sectionId and sectionLabel go together").toBe(
           result.sectionLabel === undefined,
@@ -145,9 +146,10 @@ describe("answer", () => {
       );
     }
     // The only documents allowed to have no section are the skills evidence
-    // lines, whose text is rendered nowhere on the page. Pinned exactly, in
-    // both directions, so a new sectionless document has to be argued for and
-    // so this loop cannot quietly skip every document.
+    // lines, because no subject of theirs (a skill category) is rendered anywhere
+    // on the page. Pinned exactly, in both directions, so a new sectionless
+    // document has to be argued for and so this loop cannot quietly skip every
+    // document.
     expect(sectionless.sort()).toEqual(skillsIndexable.map((category) => category.evidence).sort());
     expect(sectionless.length).toBeGreaterThan(0);
   });

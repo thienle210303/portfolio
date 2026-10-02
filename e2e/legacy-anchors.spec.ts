@@ -28,8 +28,9 @@ import {
  *  1. **The served HTML.** Fetched over HTTP, parsed by nobody, scripts never
  *     started. If an id is in that byte stream it exists for a no-JS visitor by
  *     construction — this is the strongest form the claim has, and it is also the
- *     only part that scales to all 44 ids, including the per-entry fragments
- *     inside acts that are off screen.
+ *     only part that scales to the whole retired set (the four section ids, every
+ *     per-entry fragment and every `work-<projectId>`), including the per-entry
+ *     fragments inside acts that are off screen.
  *  2. **The landing, measured.** A browser context with `javaScriptEnabled:
  *     false`, navigated straight at the fragment, and then asked **where** the
  *     anchor came to rest — not merely whether the Journey is somewhere on

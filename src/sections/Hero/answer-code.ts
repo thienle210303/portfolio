@@ -196,7 +196,7 @@ export function describeAnswerLiteral(results: readonly Answer[]): string {
     return "A TypeScript object literal named answer, holding the question that was asked and an empty list of results.";
   }
   const noun = count === 1 ? "one result object" : `${count} result objects`;
-  return `A TypeScript object literal named answer, holding the question that was asked and ${noun}, each carrying the answer text, the source it came from and, where the passage is shown on this page, the section it lives in. The same answers as the prose view, written as code.`;
+  return `A TypeScript object literal named answer, holding the question that was asked and ${noun}, each carrying the answer text, the source it came from and, where the page renders what the passage is about, the section that does. The same answers as the prose view, written as code.`;
 }
 
 /**
@@ -249,5 +249,5 @@ export function describeLiveAnswerLiteral(grounded: boolean, citations: readonly
   }
   const count = citations.length;
   const noun = count === 1 ? "one citation object" : `${count} citation objects`;
-  return `A TypeScript object literal named answer, holding the question that was asked, grounded set to true, the model's composed text, and ${noun} it was grounded in, each carrying the passage text, its source and, where the passage is shown on this page, the section it lives in.`;
+  return `A TypeScript object literal named answer, holding the question that was asked, grounded set to true, the model's composed text, and ${noun} it was grounded in, each carrying the passage text, its source and, where the page renders what the passage is about, the section that does.`;
 }

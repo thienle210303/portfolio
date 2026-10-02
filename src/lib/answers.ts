@@ -6,9 +6,10 @@ import { buildDocuments, type Document } from "@/lib/answer-corpus";
  * The defining property, and the reason it works this way rather than as a
  * language model: **it cannot fabricate.** Every answer it returns is a
  * verbatim string from `src/content`, carried with the source that string
- * already had and a link to the section it lives in. There is no generation
- * step, so there is nothing to hallucinate with. When nothing matches well
- * enough, it says so rather than reaching.
+ * already had and, where the page renders what it is about, a link to the
+ * section that does. There is no generation step, so there is nothing to
+ * hallucinate with. When nothing matches well enough, it says so rather than
+ * reaching.
  *
  * That is not a consolation prize for a model. On a site whose whole claim is
  * that every figure names its origin, an extractive answer with a citation is

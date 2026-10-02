@@ -150,8 +150,9 @@ describe("/api/ask", () => {
     for (const citation of body.citations) {
       expect(typeof citation.text).toBe("string");
       expect(typeof citation.source).toBe("string");
-      // Both or neither: a passage rendered nowhere on the page (the skills
-      // evidence lines) is cited without a section, and JSON drops the keys.
+      // Both or neither: a passage whose subject is rendered nowhere on the
+      // page (the skills evidence lines) is cited without a section, and JSON
+      // drops the keys.
       expect(typeof citation.sectionId === "string").toBe(typeof citation.sectionLabel === "string");
     }
     // The positive pin. The pairing check above is also satisfied when EVERY
