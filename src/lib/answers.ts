@@ -46,11 +46,21 @@ export interface Answer {
   readonly text: string;
   /** Where the claim came from — an employer, a résumé line, a benchmark. */
   readonly source: string;
-  /** Section anchor, so the reader can go and see it in context. Absent, along
-   *  with `sectionLabel`, when the passage is rendered nowhere on the page
-   *  (see `Document` in `answer-corpus.ts`) — callers must not build a link. */
+  /**
+   * Section anchor, so the reader can go to where this passage's **subject** is
+   * rendered — the role, the project, the plaque, the About prose. Not a promise
+   * that the quoted sentence is printed in that section: for 38 of the 54 career
+   * and education documents it is not, which is why `AskThisSite` labels the link
+   * "More on this in …" rather than "Read it in …". The full contract, with the
+   * measurement, is on `Document.sectionId` in `answer-corpus.ts`.
+   *
+   * Absent, along with `sectionLabel`, when **no subject** of this passage is
+   * rendered anywhere — today the six skills evidence lines, because nothing on
+   * the site renders a skill category. Callers must not build a link then.
+   * **Both or neither.**
+   */
   readonly sectionId?: string;
-  /** Human label for the section, for the "read it in context" link. */
+  /** Human label for the section, for the "More on this in …" link. */
   readonly sectionLabel?: string;
   readonly score: number;
 }

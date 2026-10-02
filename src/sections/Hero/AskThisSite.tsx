@@ -203,6 +203,23 @@ function recentHistory(turns: readonly Turn[]): Array<{ question: string; answer
 /**
  * The prose reading: quoted evidence, its source, and a way back to it.
  *
+ * ## Why the link does not say "Read it in …"
+ *
+ * It used to, and that was a claim the corpus cannot keep. A document's
+ * `sectionId` promises that the named section renders **the subject** the quoted
+ * sentence belongs to — the role, the project, the plaque — not that the sentence
+ * itself is printed there, and for 38 of the 54 career and education documents it
+ * is not (the measurement and the reason are on `Document.sectionId` in
+ * `src/lib/answer-corpus.ts`). "Read **it** in Journey" names the sentence, so on
+ * those answers the product was promising something the contract had already
+ * disowned.
+ *
+ * "More on this in …" is true of all three cases this component renders: a
+ * passage whose sentence is in the section it names, a passage whose subject is
+ * there but whose sentence is not, and a passage with no section at all — which
+ * renders no link, because there is nothing honest to point at. Both call sites
+ * below use the same words for the same reason.
+ *
  * `role="list"` is required, not decorative: Tailwind's preflight sets
  * `list-style: none` on every `ol`/`ul`, and Chromium (matching WebKit)
  * drops the implicit ARIA `list` role the moment native markers are gone,
@@ -227,7 +244,7 @@ function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
                 href={`#${result.sectionId}`}
                 className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
               >
-                Read it in {result.sectionLabel} &rarr;
+                More on this in {result.sectionLabel} &rarr;
               </a>
             ) : null}
           </p>
@@ -259,7 +276,7 @@ function LiveProseAnswer({ text, citations }: { readonly text: string; readonly 
                     href={`#${citation.sectionId}`}
                     className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
                   >
-                    Read it in {citation.sectionLabel} &rarr;
+                    More on this in {citation.sectionLabel} &rarr;
                   </a>
                 ) : null}
               </li>

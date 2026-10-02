@@ -95,12 +95,17 @@ test.describe("ask this site", () => {
     // Every answer carries a source and a route back to where it lives.
     const first = results.first();
     await expect(first).toContainText(/DoorDash/i);
-    await expect(first.getByRole("link", { name: /Read it in/ })).toHaveAttribute(
+    // "More on this in …", not "Read it in …": a citation's section renders the
+    // passage's subject, not necessarily the sentence (see `Document.sectionId`
+    // in src/lib/answer-corpus.ts, and the note on `ProseAnswers`).
+    await expect(first.getByRole("link", { name: /More on this in/ })).toHaveAttribute(
       "href",
       // Every section the page has, plus the `#journey` alias the Journey
       // renders. Derived from the nav rather than typed out: a hand-written
       // alternation here kept `work` and `skills` alive after round 18 deleted
-      // both sections.
+      // both sections. (No document cites `journey` since round 18's Task 13 —
+      // `tests/lib/answers.test.ts` asserts that — so the alternative is an
+      // allowance this spec no longer exercises.)
       new RegExp(`^#(${[...navItems.map((item) => item.sectionId), "journey"].join("|")})$`),
     );
   });

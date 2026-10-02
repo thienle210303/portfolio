@@ -6,6 +6,8 @@ import { DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
 import { ACT_IDS, actAnchorId, actForEntry } from "@/lib/anchors";
 import { caseStudyAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries, projects } from "@/content/portfolio";
+import { buildDocuments } from "@/lib/answer-corpus";
+import { careerIndexable, education, projectsIndexable } from "@/lib/answer-sources";
 import { resolveWorlds } from "@/lib/worlds";
 import type { CareerEntry } from "@/types/portfolio";
 
@@ -294,5 +296,84 @@ describe("the way back into the origin story", () => {
     expect(document.querySelectorAll("[data-tree-root]")).toHaveLength(0);
     expect(document.querySelectorAll("[data-cat-nap]")).toHaveLength(0);
     expect(document.querySelectorAll("[data-tree-figure]")).toHaveLength(0);
+  });
+});
+
+/**
+ * The guarantee `Document.sectionId` in `src/lib/answer-corpus.ts` actually
+ * makes, enforced.
+ *
+ * That contract does **not** promise a cited sentence is printed in the section
+ * it names — for 38 of the 54 career and education documents it is not, which is
+ * measured and recorded there. What it does promise is weaker and checkable: the
+ * named section renders **the subject** the sentence belongs to. Nothing checked
+ * that, which is how the previous, stronger wording drifted 38 times without a
+ * single test going red; a 39th drift — a new document type, another section
+ * deleted, a component quietly stopping rendering a role — would have been just
+ * as invisible.
+ *
+ * This file is where it is cheapest to check, because it already renders the
+ * section. Two halves, and both are needed: that every subject `#tree` is cited
+ * for is in `#tree`, and that every document citing `#tree` belongs to one of
+ * those subjects. Half one alone would pass while a new document type cited the
+ * section for something nobody renders; half two alone would pass while the
+ * section stopped rendering all of them.
+ */
+describe("the subjects #tree is cited for", () => {
+  /** The rendered Journey's text, whitespace-normalised: `textContent` runs
+   *  adjacent elements together, so a subject split across a heading and a
+   *  sibling span still reads as one string. */
+  function journeyText(): string {
+    const section = document.getElementById("tree");
+    if (!(section instanceof HTMLElement)) throw new Error("no #tree section");
+    return (section.textContent ?? "").replace(/\s+/g, " ");
+  }
+
+  /** Every string the corpus's `#tree` documents name a subject by, and which
+   *  of them `#tree` is expected to render. Built from the same sources
+   *  `buildDocuments` reads, so it cannot drift from the corpus. */
+  function subjectNeedles(): readonly { readonly subject: string; readonly needle: string }[] {
+    return [
+      ...careerIndexable.flatMap((entry) => [
+        { subject: entry.id, needle: entry.role },
+        { subject: entry.id, needle: entry.organization },
+      ]),
+      ...projectsIndexable.map((project) => ({ subject: project.id, needle: project.title })),
+      ...education.map((school) => ({ subject: school.id, needle: school.institution })),
+    ];
+  }
+
+  it("renders every subject it is cited for", () => {
+    render(<CareerTree />);
+    const text = journeyText();
+    const needles = subjectNeedles();
+    // Not vacuous: an empty content layer would make the loop assert nothing.
+    expect(
+      needles.length,
+      "the corpus names no subjects, so the loop below would prove nothing",
+    ).toBeGreaterThan(0);
+    const missing = needles
+      .filter(({ needle }) => !text.includes(needle.replace(/\s+/g, " ")))
+      .map(({ subject, needle }) => `${subject}: ${needle}`);
+    expect(
+      missing,
+      "the Journey is cited as the place to see these subjects and does not render them",
+    ).toEqual([]);
+  });
+
+  it("cites #tree only for subjects it renders", () => {
+    const needles = subjectNeedles().map(({ needle }) => needle);
+    const cited = buildDocuments().filter((doc) => doc.sectionId === "tree");
+    expect(cited.length, "no document cites #tree, so the loop below is empty").toBeGreaterThan(0);
+    // A document names its subject in its `label` — the role and organisation for
+    // a career entry, the title for a project, the institution for a school — so
+    // a `#tree` citation for something outside the verified set shows up here.
+    const unaccounted = cited
+      .filter((doc) => !needles.some((needle) => doc.label.includes(needle)))
+      .map((doc) => doc.text.slice(0, 60));
+    expect(
+      unaccounted,
+      "a document cites #tree for a subject the test above never verified is rendered there",
+    ).toEqual([]);
   });
 });

@@ -322,7 +322,7 @@ describe("thread persistence across unmount -- live mode in flight", () => {
 });
 
 describe("AskThisSite -- a sectioned passage links to its section", () => {
-  it("renders \"Read it in X\" pointing at the passage's own section anchor", async () => {
+  it("renders \"More on this in X\" pointing at the passage's own section anchor", async () => {
     // The positive half of the pair below, and the only place the verify gate
     // asserts it (the browser-level check lives in e2e/ask.spec.ts). The
     // expectation is derived from `answer()` itself, and its precondition is
@@ -341,14 +341,21 @@ describe("AskThisSite -- a sectioned passage links to its section", () => {
     const answers = await screen.findByRole("list", { name: "Sourced answers" });
     const item = within(answers).getByText(expected.text).closest("li");
     expect(item).not.toBeNull();
-    const link = within(item as HTMLElement).getByRole("link", { name: /Read it in/ });
+    const link = within(item as HTMLElement).getByRole("link", { name: /More on this in/ });
     expect(link).toHaveAttribute("href", `#${expected.sectionId}`);
-    expect(link).toHaveTextContent(`Read it in ${expected.sectionLabel}`);
+    // The wording is load-bearing, not cosmetic: a `sectionId` promises the
+    // section renders the passage's *subject*, not the sentence (see
+    // `Document.sectionId`), so a link saying "Read it in …" would overclaim on
+    // the 38 career documents whose sentence is not rendered there.
+    expect(link).toHaveTextContent(`More on this in ${expected.sectionLabel}`);
+    expect(link.textContent, "the link must not claim the sentence is there").not.toMatch(
+      /Read it in/,
+    );
   });
 });
 
 describe("AskThisSite -- a passage rendered nowhere has no section link", () => {
-  it("shows the answer and its source, but no \"Read it in\" link, for a skills evidence line", async () => {
+  it("shows the answer and its source, but no section link at all, for a skills evidence line", async () => {
     // Skills evidence is indexed but rendered nowhere on the page, so its
     // document carries no section (see `Document` in answer-corpus.ts). The
     // precondition is asserted rather than assumed: if this query stops

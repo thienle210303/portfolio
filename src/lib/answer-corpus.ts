@@ -54,7 +54,7 @@ export interface Document {
    * `#worlds`); an entry's `context` is rendered only by `/resume`, and only for
    * the work entries; and the nine demoted entries' `context` and `impact` lines
    * are named by nothing — the credentials strip is their role, organisation and
-   * repository link, one line each. A reader who follows "Read it in Journey →" from one of those lands
+   * repository link, one line each. A reader who follows "More on this in Journey →" from one of those lands
    * on the entry's branch, its technologies, its impact leaves and its case
    * study — which is where to read about it, and is not nothing, but is not the
    * sentence.
@@ -131,7 +131,7 @@ export function buildDocuments(): Document[] {
   // The site's one-line positioning, rendered as the lead of #about by
   // HeroAbout. It was the last sentence of `about` before round 18 and so was
   // indexed with it; it is rendered there again, which is what makes the
-  // "Read it in About" link on an answer truthful.
+  // "More on this in About" link on an answer truthful.
   docs.push({
     text: profile.positioning,
     source: "About, in his own words",
@@ -214,7 +214,7 @@ export function buildDocuments(): Document[] {
   // Round 16. Every plaque on the globe is already a verbatim authored field,
   // which makes the whole set exactly the shape this corpus wants: a quoted
   // string with a named source. They are indexed under `worlds` rather than
-  // their original section so an answer's "Read it in Worlds →" link lands
+  // their original section so an answer's "More on this in Worlds →" link lands
   // where the visitor can actually see the plaque.
   for (const world of resolveWorlds()) {
     for (const plaque of world.plaques) {
@@ -233,7 +233,7 @@ export function buildDocuments(): Document[] {
   // calls below still pass "work" as their first argument on purpose: that
   // argument picks the vocabulary in `sectionExpansions`, which is what a
   // query matches against, and is not the link target. Re-keying it would
-  // change retrieval, not just where "Read it in …" lands.
+  // change retrieval, not just where "More on this in …" lands.
   for (const project of projectsIndexable) {
     const where = project.organization ? `${project.title} — ${project.organization}` : project.title;
 
@@ -333,6 +333,19 @@ export function buildDocuments(): Document[] {
       });
     }
 
+    // No rejection vocabulary here, deliberately. The label used to carry
+    // "rejected ruled out", and the **last element of every `pathsExplored`
+    // array is the path that worked** — "this is what worked", "this is what
+    // held up over months". So "what alternatives did he rule out" was
+    // retrieving the accepted approach under a rejection label; the `source`
+    // stayed honest, so no answer was false, but the match was.
+    //
+    // The alternative was to label by index — rejection terms on all but the
+    // last element — and it is not taken, because "the last one is the one that
+    // worked" is an authoring convention these four arrays happen to follow, not
+    // something the type enforces. A fifth project that ordered its paths
+    // differently would get the wrong label with nothing to notice. Words that
+    // are true of every element of the array are the version that cannot drift.
     for (const path of project.pathsExplored) {
       docs.push({
         text: path,
@@ -343,7 +356,7 @@ export function buildDocuments(): Document[] {
           "work",
           project.id,
           project.title,
-          "alternative option considered rejected ruled out instead other way explored",
+          "alternative option considered weighed explored tried approach other way",
         ),
       });
     }
@@ -442,7 +455,7 @@ export function buildDocuments(): Document[] {
   // nowhere on the site: `/resume` shows each category's label and skill names
   // but not the evidence line, and the Journey draws the categories only as
   // decorative `aria-hidden` root paths with no text. So these documents carry
-  // NO section: a "Read it in Journey" link would send the reader to a section
+  // NO section: a "More on this in Journey" link would send the reader to a section
   // that contains neither the sentence nor the category, which is the same
   // defect `profile.positioning` had (indexed, rendered nowhere, citation lying
   // about where to find it). They stay indexed — retrieval is unchanged, and
@@ -468,7 +481,7 @@ export function buildDocuments(): Document[] {
   //    refactor's to make: it changes what the section says. Left to the owner,
   //    along with the wider gap described on `Document.sectionId` above.
   //  - *Leave them section-less.* What is shipped. A document that is retrieved,
-  //    quoted and attributed with no "Read it in …" link is the one option that
+  //    quoted and attributed with no "More on this in …" link is the one option that
   //    states exactly what is true.
   for (const category of skillsIndexable) {
     docs.push({
