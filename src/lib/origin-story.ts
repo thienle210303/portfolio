@@ -237,9 +237,9 @@ export const ORDINARY_DUR_MS = 600;
  *  completed. */
 export const STAGGER_CLEANUP_MARGIN_MS = 800;
 
-/** Tier order a release sorts by before staggering — trunk/ground-break
- *  first, then branch/lens, then leaf: big, slow things settle before the
- *  small, quick things hung off them do. */
+/** Tier order a release sorts by before staggering — the trunk and its
+ *  leader first, then branches, then leaves and the shoot: big, slow things
+ *  settle before the small, quick things hung off them do. */
 export const TIER_TRUNK = 0;
 export const TIER_BRANCH = 1;
 export const TIER_LEAF = 2;

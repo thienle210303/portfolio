@@ -11,7 +11,8 @@
  * hands down to `AskThisSite`, the chat's only home since round 16 — it used
  * to also gate `AIWorkflowLab.tsx`'s own live-mode callout, but round 16
  * removed that section along with the choice between `labIntro[0]` and
- * `labLiveNotice`, both now unrendered) and `src/app/api/ask/route.ts` (to
+ * `labLiveNotice`, and round 18 deleted both strings outright) and
+ * `src/app/api/ask/route.ts` (to
  * defend itself independently, the same reason `/api/contact` re-checks its
  * own three env vars rather than trusting the prop it was handed).
  */

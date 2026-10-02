@@ -85,8 +85,8 @@ import {
  * one `data-origin-pending`. From there each beat only ever *releases*
  * (`removeAttribute("data-origin-pending")`) — nothing is ever re-pended.
  * Season beats release every group whose own year is at or before that
- * season's year (a group can be a leaf, a lens branch, a root main, or the
- * trunk/ground break — see `DrawnTree.tsx`); the shoot is deliberately
+ * season's year (a group can be a leaf, a branch, or the trunk and its
+ * leader — see `DrawnTree.tsx`); the shoot is deliberately
  * excluded from that generic sweep and released only by the closing "still
  * growing" beat, so the newest, unfinished growth is always the last thing
  * to appear, never merely tied for last with whatever year it happens to
@@ -127,9 +127,9 @@ import {
  * drop into (the owner's report: "the ground and the root is a huge space
  * because the tree body right now really big and long"). `groundSlice`,
  * below, is the fix: `absolute inset-x-0 bottom-0`, pinned to the drawing's
- * own bottom edge — the same edge `TrunkFoot`'s `bottom-0` and the root
- * own `TrunkFoot` sits on in `DrawnTree.tsx` — i.e. the real ground line, not
- * a sky-box stand-in for it. (Through round 17 the root plinth's own top
+ * own bottom edge — the same edge `TrunkFoot`'s `bottom-0` sits on in
+ * `DrawnTree.tsx` — i.e. the real ground line, not a sky-box stand-in for
+ * it. (Through round 17 the root plinth's own top
  * border was that same edge. Round 18 stopped rendering the plinth, so the
  * drawing's own bottom edge is the ground line on its own now.) `skySlice`
  * keeps its top-pinned canopy position and everything that
@@ -225,10 +225,9 @@ function originDur(ms: number): CSSProperties {
  * same frame — a trunk, five boughs and a dozen leaves all bumping into view
  * at once reads as a cut, not a growth. `tier` is what `planRelease`
  * (`origin-story.ts`) sorts a year's newly-releasing groups by before
- * staggering them: trunk/ground-break first (`TIER_TRUNK`), then
- * branch/lens and the underground's own major roots (`TIER_BRANCH`, the
- * canopy's and the root system's structural peers), then leaves
- * (`TIER_LEAF`) — big, slow things settle before the small, quick things
+ * staggering them: the trunk and its leader first (`TIER_TRUNK`), then
+ * branches (`TIER_BRANCH`, the canopy's structural peers), then leaves and
+ * the shoot (`TIER_LEAF`) — big, slow things settle before the small, quick things
  * hung off them do. Read straight off each element's own `data-origin-tier`
  * in `DrawnTree.tsx` rather than inferred here, the same "author the fact
  * where the element already lives" discipline the rest of this file's DOM
@@ -310,8 +309,9 @@ function queryGroups(figure: HTMLElement): readonly OriginGroup[] {
  * (`.tree-grow`/`.tree-grow-down`) or `opacity` (`.tree-fade`,
  * `[data-tree-panel]`, `[data-tree-entry] > div`) — the one exception,
  * `.tree-draw`'s `stroke-dashoffset`, is an SVG stroke-drawing effect this
- * package does not own (`DrawnTree.tsx`'s own ink contract, shared with the
- * page-load reveal); it predates this round and moving it to a
+ * package does not own (`DrawnTree.tsx`'s own ink contract — through round
+ * 17 it was shared with a page-load reveal, which round 18 retired); it
+ * predates this round and moving it to a
  * transform-based draw-on effect is out of this package's file ownership.
  */
 interface QueuedRelease {
@@ -704,7 +704,7 @@ function WeatherLayer({ season }: { readonly season: Season }) {
  *  `SkyLayer`'s own doc comment describes; for `skySlice` (every other beat)
  *  it is the canopy's own bottom edge, as it always was. `bg-ground/90` keeps
  *  the text legible over whatever part of the drawing sits behind it —
- *  canopy or root, either theme, any tone (checked against the deep tone's
+ *  canopy or trunk, either theme, any tone (checked against the deep tone's
  *  own paper, the pairing that fails first — see CLAUDE.md's contrast
  *  note). */
 function FloatingAnnotation({ text }: { readonly text: string }) {
@@ -726,7 +726,7 @@ function FloatingAnnotation({ text }: { readonly text: string }) {
 /** A trunk and four limbs, one path — the storyboard's own small illustration,
  *  independent of the real tree it sits over: reduced motion never stamps
  *  `data-origin-running` (the beat effect below bails out first), so the
- *  real tree stays exactly as already-inked as it always is underneath this
+ *  real tree stays exactly as fully drawn as it always is underneath this
  *  static overlay. `pathLength={1}` makes its `stroke-dashoffset` a plain
  *  0..1 fraction regardless of the real path length, the same trick every
  *  growth-drawn path in `DrawnTree.tsx` uses. */
@@ -1342,9 +1342,9 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
           {/* The ground slice: round 15's fix for "the seed drops into empty
               air" — a small box mirroring `skySlice` but `bottom-0` instead
               of `top-0`, pinned to the drawing's own bottom edge (the same
-              edge `TrunkFoot`'s `bottom-0` and the root plinth's top border
-              already share — see `SkyLayer`'s and the file banner's own doc
-              comments). Holds the sky layer's own drawing — the bird's
+              edge `TrunkFoot`'s `bottom-0` sits on — the ground line since
+              round 18 stopped rendering the root plinth; see the file
+              banner). Holds the sky layer's own drawing — the bird's
               flight, the seed's landing — and the floating annotation, for
               exactly those two beats; every other beat renders neither here,
               leaving this box empty. `data-origin-ground` is a query hook

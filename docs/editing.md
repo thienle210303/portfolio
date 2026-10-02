@@ -98,12 +98,12 @@ branch, in date order — `sortKey` decides where on the trunk):
 ```ts
 technologies: ["Python", "Playwright"],  // technology leaves on its branch
 impact: ["One sentence of what changed."],  // impact leaves on its branch
-lenses: ["engineering", "automation"],   // résumé-explorer grouping (not drawn)
+lenses: ["engineering", "automation"],   // the About band's "Where it shows up" counts (not drawn)
 ```
 
-`lenses` come from `resumeLenses` in the same file. They group entries for the
-résumé and the About band's "Where it shows up" list; the drawn tree does not
-use them.
+`lenses` come from `resumeLenses` in the same file. Their one reader is
+`buildKnowledgeTree()`, which counts entries per lens for the About band's
+"Where it shows up" list. Neither `/resume` nor the drawn tree uses them.
 
 To attach a case study to a role, set the project's `careerEntryId` to that
 entry's `id`. The case study then renders inside that role's branch on the

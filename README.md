@@ -210,7 +210,7 @@ Append to `careerEntries` in `src/content/portfolio.ts`:
   learned: "What the work taught you.",
   technologies: ["…"],
   link: { label: "example.com", href: "https://example.com" }, // optional
-  lenses: ["engineering", "automation"],   // drives the résumé lens filter
+  lenses: ["engineering", "automation"],   // counted per lens in the About band's "Where it shows up" list
 }
 ```
 

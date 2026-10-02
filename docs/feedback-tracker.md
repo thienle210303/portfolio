@@ -1238,12 +1238,16 @@ bytes. Checked by content, not by total: the coastline data (identified by a
 coordinate run from `coastline-data.ts`) lives in one ~61 KB chunk that none of
 the test build's 12 initial `<script>` tags names.
 
-**The LCP question closes.** Both builds name the same LCP element in every
-run — the hero's intro paragraph — so the delta
-the Task 11 row could not explain was not a selector artefact. With a matched
+**The LCP question narrows; it does not fully close.** Both builds measured
+here name the same LCP element in every run — the hero's intro paragraph. That
+settles the selector for the Task 11 row's *Before* build (`96221c6`, the
+control here), but the Task 11 *After* build was never re-measured, so whether
+*its* LCP element differed is still unknown, and "the delta was not a selector
+artefact" cannot be claimed for that row. What this row does show: the end of
+Plan A names the same element as the pre-stage build, and with a matched
 control in the same session the two arms' LCP ranges overlap (one test run is
 the slowest of the six, one the fastest), so there is no LCP signal in either
-direction. TBT is lower for the test build in all three pairs, consistent with
+direction between them. TBT is lower for the test build in all three pairs, consistent with
 1,131 fewer DOM nodes to hydrate around; it is reported, not claimed as a
 target.
 
