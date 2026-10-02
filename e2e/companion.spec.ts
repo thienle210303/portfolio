@@ -2466,19 +2466,48 @@ test.describe("companion", () => {
     // Sampled on the companion’s own clock rather than on a poll: the lead
     // walks at ~4.4px a frame, so a 100ms poll would step straight over the
     // frames that matter.
+    //
+    // The toggle is a target too, and the one a visitor presses to close the
+    // panel: the tabby must not cover it either. Opening the panel drops both
+    // cats onto the corner's row (`keepOutOfPanel`), and a tabby dropped on or
+    // to the right of the lead used to walk left through him to her seat —
+    // axe caught that at 375px as a `target-size` failure on the toggle. Six
+    // seconds rather than the items' two and a half, because that crossing
+    // comes at the end of the walk home, once both are on the corner's row.
     const worst = await page.evaluate(
       () =>
-        new Promise<{ overlap: number; cat: string; item: string }>((resolve) => {
+        new Promise<{
+          overlap: number;
+          cat: string;
+          item: string;
+          toggle: { overlap: number; at: number; frames: number; cat: string };
+        }>((resolve) => {
           const panel = document.querySelector("#companion-actions");
           const items = panel ? Array.from(panel.querySelectorAll("button")) : [];
+          const toggleButton = document.querySelector('[data-companion] button[aria-controls="companion-actions"]');
           let worstSoFar = { overlap: 0, cat: "none", item: "none" };
+          const toggle = { overlap: 0, at: -1, frames: 0, cat: "none" };
           const started = performance.now();
           const sample = () => {
+            const elapsed = performance.now() - started;
+            const t = toggleButton?.getBoundingClientRect();
             for (const button of Array.from(
               document.querySelectorAll<HTMLElement>("[data-companion] button"),
             )) {
               if (panel?.contains(button)) continue;
               const a = button.getBoundingClientRect();
+              if (t && button !== toggleButton && !button.contains(toggleButton)) {
+                const covered =
+                  Math.max(0, Math.min(a.right, t.right) - Math.max(a.left, t.left)) *
+                  Math.max(0, Math.min(a.bottom, t.bottom) - Math.max(a.top, t.top));
+                if (covered > 0) toggle.frames += 1;
+                if (covered > toggle.overlap) {
+                  toggle.overlap = covered;
+                  toggle.at = Math.round(elapsed);
+                  toggle.cat = (button.getAttribute("aria-label") ?? button.textContent ?? "").trim().slice(0, 40);
+                }
+              }
+              if (elapsed > 2500) continue;
               for (const item of items) {
                 const b = item.getBoundingClientRect();
                 const overlap =
@@ -2493,7 +2522,7 @@ test.describe("companion", () => {
                 }
               }
             }
-            if (performance.now() - started > 2500) resolve(worstSoFar);
+            if (elapsed > 6000) resolve({ ...worstSoFar, toggle });
             else requestAnimationFrame(sample);
           };
           requestAnimationFrame(sample);
@@ -2503,6 +2532,10 @@ test.describe("companion", () => {
     expect(
       worst.overlap,
       `"${worst.cat}" covered ${worst.overlap.toFixed(0)}px² of "${worst.item}"`,
+    ).toBe(0);
+    expect(
+      worst.toggle.overlap,
+      `"${worst.toggle.cat}" covered up to ${worst.toggle.overlap.toFixed(0)}px² of the toggle (worst ${worst.toggle.at}ms after opening, ${worst.toggle.frames} frames)`,
     ).toBe(0);
   });
 

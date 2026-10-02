@@ -3515,7 +3515,27 @@ export function Companion({ facts }: CompanionProps) {
         const leadRoom = keepOutOfPanel(grey.pos, LEAD_PAD_X, LEAD_PAD_Y, panelBox);
         grey.pos.x = leadRoom.x;
         grey.pos.y = leadRoom.y;
-        const followRoom = keepOutOfPanel(tabby.pos, 0, 0, panelBox);
+        let followRoom = keepOutOfPanel(tabby.pos, 0, 0, panelBox);
+        /*
+         * And on his row, she is never on or to the right of him. Her seat in
+         * the corner is on his left (`followHome`), and `keepOutOfPanel`
+         * drops each cat onto the corner's row keeping its own x — so a tabby
+         * that was trailing on his right lands on or past him, and her walk
+         * home then crosses straight through him: for about a third of a second
+         * she covers the toggle, the control a visitor presses to close the
+         * panel, and a click meant for it lands on her (axe: `target-size`).
+         * So while the panel is up, a tabby on his row (vertically within a
+         * cat's height of him) is held at least a seat to his left. At home
+         * `leftOfHim` is exactly `followHome().x`, so the seats they end on
+         * do not change. Known limit: with him within ~76px (`CAT_W +
+         * FOLLOW_GAP`) of the window's left edge there is no seat on his
+         * left, `clampToViewport` brings her back to the edge, and she can
+         * still overlap him there.
+         */
+        if (Math.abs(followRoom.y - grey.pos.y) < CAT_H + LEAD_PAD_Y) {
+          const leftOfHim = grey.pos.x - CAT_W - FOLLOW_GAP;
+          if (followRoom.x > leftOfHim) followRoom = clampToViewport({ x: leftOfHim, y: followRoom.y });
+        }
         tabby.pos.x = followRoom.x;
         tabby.pos.y = followRoom.y;
       }
