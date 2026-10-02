@@ -187,6 +187,7 @@ describe("the honesty rule", () => {
     // The site implied they were his. They are his girlfriend's, and a
     // portfolio that gets a fact about two cats wrong has no standing to
     // claim every plaque quotes a real field.
+    expect(companions.length, "no companions, so the loop below would check nothing").toBeGreaterThan(0);
     for (const cat of companions) {
       expect(cat.belongsTo).toBe("my girlfriend");
     }

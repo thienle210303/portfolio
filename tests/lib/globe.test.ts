@@ -159,7 +159,7 @@ describe("greatCircle", () => {
 describe("derived worlds", () => {
   const arc = greatCircle(origin.coordinates.from, origin.coordinates.to, 72);
 
-  it("puts the Sea's midpoint between the two pins, on the shorter route", () => {
+  it("puts the Sea's midpoint north of the origin pin and equidistant from both pins", () => {
     const mid = arcMidpoint(arc);
     // The route bends poleward, so the midpoint sits north of the origin pin.
     expect(mid.lat).toBeGreaterThan(origin.coordinates.from.lat);

@@ -23,9 +23,14 @@ import { test, expect, type Page } from "@playwright/test";
  *
  * Two things this spec is built not to do:
  *
- *  - **Pass vacuously.** The collected count is asserted non-zero with a
- *    message that says so, so the day the selector stops matching anything the
- *    sweep goes red instead of green. (Two older sweeps in `sections.spec.ts`
+ *  - **Pass vacuously.** Two counts of *distinct* hrefs are asserted non-zero,
+ *    each with a message that says what a green run would otherwise have
+ *    meant: the hrefs on first paint (so the day the selector stops matching
+ *    anything the sweep goes red instead of green), and the hrefs that only
+ *    appear once the worlds have been stepped through (so the globe's plaque
+ *    links cannot quietly drop out of the sweep). Not a running total: every
+ *    pass re-collects the whole page, so a cumulative count grows whether or
+ *    not anything new appeared, and an earlier version asserted on one. (Two older sweeps in `sections.spec.ts`
  *    filtered into an array and asserted `toEqual([])` over a list that had
  *    become empty; round 18 deleted both as superseded by this one.)
  *  - **See only first paint.** Disclosures are opened first, the way
