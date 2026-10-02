@@ -42,7 +42,7 @@ import {
   type Speaker,
   type StoryBeatKind,
 } from "./companion-dialogue";
-import { detectRush, exploreClear, planExplore, planMood, RUSH_HOLD_MS } from "./companion-moods";
+import { detectRush, heldExploreClear, holdExplore, planExplore, planMood, RUSH_HOLD_MS } from "./companion-moods";
 import {
   advance,
   followTarget,
@@ -1152,7 +1152,9 @@ const SECTION_IDS = navItems.map((item) => item.sectionId);
  * the ride in `step`), so a pair standing beside a paragraph stay beside it, and
  * a destination carried out of view is dropped and re-picked. A scroll that
  * settles re-probes them (`onPageMoved`) and drops them only if the ground has
- * stopped being clear.
+ * stopped being clear. `headLead`/`headFollow` are what "clear" meant for each
+ * head when the stop was planned — see `HeldExplore` and `heldExploreClear` in
+ * companion-moods.ts.
  *
  * `faceLead`/`faceFollow` are rolled once, at the same moment `arrivedAt` is
  * stamped — see round 14, "randomly facing left or right". Held here rather
@@ -1165,6 +1167,8 @@ interface ExploreRun {
   /** The section's perch rather than an ordinary stop: the follower trails the
    *  lead there instead of walking to `spots.follow` — see `exploreTo`. */
   readonly perch: boolean;
+  readonly headLead: boolean;
+  readonly headFollow: boolean;
   arrivedAt: number;
   until: number;
   faceLead: 1 | -1;
@@ -2237,8 +2241,7 @@ export function Companion({ facts }: CompanionProps) {
       const spots = clearFollowOfToggle(chosen ?? nearbySpots());
       const perch = chosen?.perch ?? false;
       exploreRun.current = {
-        spots,
-        perch,
+        ...holdExplore(spots, perch),
         arrivedAt: 0,
         until: now + (chosen ? EXPLORE_WALK_MAX : EXPLORE_DWELL),
         faceLead: 1,
@@ -3750,20 +3753,17 @@ export function Companion({ facts }: CompanionProps) {
         // ground has stopped being clear. Dropping it on every scroll instead
         // would have a reader who scrolls as they read keep the pair forever
         // setting off and never arriving.
-        // A perch's follow spot is never walked to (she trails him), so only
-        // his is probed for one. An ordinary stop is re-probed the way it was
-        // picked, head band included (`exploreClear`): the page's margin rail
-        // is `position: sticky`, so a scroll slides it over a cat that is
-        // riding the page, and it can arrive over the head with the feet still
-        // clear. A perch was picked by the three-point probe and is re-probed
-        // by it.
+        // `heldExploreClear` (companion-moods.ts) is the probe. A perch: his
+        // spot alone, three points (she trails him rather than walking to
+        // hers). Otherwise each cat's three points, plus the head band only
+        // where that head was clear when the stop was planned (`holdExplore`
+        // in `exploreTo` records it): the page's margin rail is
+        // `position: sticky`, so a scroll slides it over a cat riding the page
+        // and can bring it over a head that was clear, feet still clear — and
+        // a `findClearSpot` or `nearbySpots()` fallback planned with its head
+        // already on content is not dropped for the ground it was put on.
         const heading = exploreRun.current;
-        if (
-          heading &&
-          !(heading.perch
-            ? isClearSpot(heading.spots.lead)
-            : exploreClear(heading.spots.lead) && exploreClear(heading.spots.follow))
-        ) {
+        if (heading && !heldExploreClear(heading)) {
           exploreRun.current = null;
         }
         lastTone.current = 0;

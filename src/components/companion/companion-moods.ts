@@ -334,13 +334,61 @@ export interface ExploreSpots extends MoodSpots {
 /**
  * Clear ground for an explorer's stop: feet and belly (`isClearSpot`), then the
  * head band (`headClear`). A stop drawn from anywhere on the page must clear
- * the whole cat, not just where it stands. Used by `planExplore` to pick a
- * stop and by `Companion` to re-check a held one once the page has moved under
- * it; perches, scene stages and the `findClearSpot` fallbacks keep the
- * three-point `isClearSpot` alone.
+ * the whole cat, not just where it stands. `planExplore` picks its half-page
+ * stops with it; perches, scene stages and the `findClearSpot` fallbacks are
+ * picked by the three-point `isClearSpot` alone. A held stop is re-checked by
+ * `heldExploreClear`, not by this.
  */
 export function exploreClear(point: Point): boolean {
   return isClearSpot(point) && headClear(point);
+}
+
+/**
+ * A held explorer stop, as the re-check after a page move sees it.
+ * `headLead`/`headFollow` record whether each cat's head band was clear when
+ * the stop was planned (`holdExplore`) — true for every half-page pick, and
+ * whatever the ground said for a `findClearSpot` fallback or a declined plan's
+ * `nearbySpots()`, which were picked by the three-point probe alone. Never
+ * read for a perch.
+ */
+export interface HeldExplore {
+  readonly spots: MoodSpots;
+  readonly perch: boolean;
+  readonly headLead: boolean;
+  readonly headFollow: boolean;
+}
+
+/** Records, once, at plan time, what `heldExploreClear` later compares
+ *  against. A perch's head band is not read: it is re-checked by the
+ *  three-point probe it was picked with. */
+export function holdExplore(spots: MoodSpots, perch: boolean): HeldExplore {
+  return {
+    spots,
+    perch,
+    headLead: !perch && headClear(spots.lead),
+    headFollow: !perch && headClear(spots.follow),
+  };
+}
+
+/**
+ * Whether a held stop still stands on clear ground — `Companion`'s re-check
+ * once a scroll settles (`onPageMoved`). The stop rides with the page, so
+ * after an ordinary scroll the ground under it is the ground it was planned
+ * on, and the re-check must accept that ground or the stop is dropped on every
+ * scroll and the pair never arrive.
+ *
+ * - A perch: the lead's three-point probe alone (her spot is never walked to).
+ * - Otherwise, per cat: the three-point probe always, and the head band only
+ *   if that head was clear when the stop was planned. That still drops a
+ *   head-clear stop when the page's `position: sticky` margin rail slides
+ *   over a riding cat's head with the feet clear, and leaves a fallback whose
+ *   head was already on content where it was put.
+ */
+export function heldExploreClear(held: HeldExplore): boolean {
+  if (held.perch) return isClearSpot(held.spots.lead);
+  const still = (spot: Point, headWasClear: boolean) =>
+    isClearSpot(spot) && (!headWasClear || headClear(spot));
+  return still(held.spots.lead, held.headLead) && still(held.spots.follow, held.headFollow);
 }
 
 /**
@@ -378,8 +426,8 @@ export function planExplore(
 
   const view = viewport();
   const top = safeTop();
-  // The perch above and the `findClearSpot` fallbacks below keep the
-  // three-point probe alone; only the half-page picks clear the head band.
+  // The perch above and the `findClearSpot` fallbacks below are picked by
+  // the three-point probe alone; only the half-page picks clear the head band.
   const pick = (half: Half, other: Point | null) =>
     pickExploreSpot(half, other, view, top, exploreClear, rng);
   const leadSpot = pick("left", follow);

@@ -15,6 +15,8 @@ import {
 import {
   detectRush,
   exploreClear,
+  heldExploreClear,
+  holdExplore,
   planExplore,
   RUSH_HOLD_MS,
   RUSH_VELOCITY,
@@ -356,7 +358,7 @@ describe("planExplore", () => {
     expect(apart(spots!.lead, spots!.follow)).toBe(true);
   });
 
-  it("asks the same of a held stop as of a new one: feet, belly and head band (exploreClear)", () => {
+  it("asks a new half-page stop for feet, belly and head band (exploreClear)", () => {
     const at = { x: 100, y: 100 };
     const prose = document.createElement("p");
     // Nothing anywhere: clear.
@@ -416,6 +418,118 @@ describe("planExplore", () => {
     // Every probe reads as occupied content.
     document.elementsFromPoint = vi.fn(() => [document.createElement("p")]);
     expect(planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false)).toBeNull();
+  });
+});
+
+/**
+ * The re-check `Companion` runs on a held explorer stop once a scroll settles
+ * (`onPageMoved`). The stop rides with the page, so in the ordinary case the
+ * ground under it after a scroll is the ground it was planned on — and a
+ * re-check that refuses that same ground drops the stop on every scroll, so a
+ * reader who scrolls as they read keeps the pair re-planning and never
+ * arriving.
+ */
+describe("heldExploreClear", () => {
+  const prose = document.createElement("p");
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
+  });
+
+  /** Content across the face row (y+12..y+20) of a cat standing at `at`,
+   *  within `width` px of its left edge — and nothing anywhere else. */
+  const faceRowOf =
+    (at: { x: number; y: number }, width = CAT_W) =>
+    (x: number, y: number) =>
+      x >= at.x && x <= at.x + width && y >= at.y + 12 && y <= at.y + 20 ? [prose] : [];
+
+  it("keeps a stop on the unchanged ground it was planned on, head band or not", () => {
+    // Prose lines 14px tall every 60px, the page the head-band planner test
+    // uses. Stops picked by the three-point probe alone — what the
+    // `findClearSpot` fallbacks and `nearbySpots()` hand the explorers — often
+    // stand here with the head on a line.
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y % 60 < 14 ? [prose] : []));
+    let state = 777;
+    const rng = () => {
+      state = (Math.imul(state, 1103515245) + 12345) >>> 0;
+      return state / 2 ** 32;
+    };
+    const view = companionSpace.viewport();
+    const top = companionSpace.safeTop();
+    let headOnProse = 0;
+    let held = 0;
+    for (let i = 0; i < 100; i += 1) {
+      const lead = companionSpace.pickExploreSpot("left", null, view, top, companionSpace.isClearSpot, rng);
+      const follow = companionSpace.pickExploreSpot("right", lead, view, top, companionSpace.isClearSpot, rng);
+      if (!lead || !follow) continue;
+      held += 1;
+      if (!companionSpace.headClear(lead) || !companionSpace.headClear(follow)) headOnProse += 1;
+      const stop = holdExplore({ lead, follow }, false);
+      expect(heldExploreClear(stop), `dropped ${lead.x},${lead.y} / ${follow.x},${follow.y}`).toBe(true);
+    }
+    // Not vacuous: most draws produced a stop, and many of those had a head
+    // on a line — exactly the stops the re-check must not churn.
+    expect(held).toBeGreaterThan(80);
+    expect(headOnProse).toBeGreaterThan(10);
+  });
+
+  it("still drops a head-clear stop when the sticky rail slides over its head", () => {
+    const lead = { x: 100, y: 100 };
+    const follow = { x: 700, y: 100 };
+    document.elementsFromPoint = vi.fn(() => [] as Element[]);
+    const stop = holdExplore({ lead, follow }, false);
+    expect(stop.headLead).toBe(true);
+    expect(stop.headFollow).toBe(true);
+    expect(heldExploreClear(stop)).toBe(true);
+    // The rail arrives over his face; his feet stay clear.
+    document.elementsFromPoint = vi.fn(faceRowOf(lead));
+    expect(companionSpace.isClearSpot(lead)).toBe(true);
+    expect(heldExploreClear(stop)).toBe(false);
+  });
+
+  it("judges each cat's head by its own record", () => {
+    const lead = { x: 100, y: 100 };
+    const follow = { x: 700, y: 100 };
+    // Planned with her head already on a line and his clear.
+    document.elementsFromPoint = vi.fn(faceRowOf(follow));
+    const stop = holdExplore({ lead, follow }, false);
+    expect(stop.headLead).toBe(true);
+    expect(stop.headFollow).toBe(false);
+    // Her head on the line is how she was planned: kept.
+    expect(heldExploreClear(stop)).toBe(true);
+    // Something arriving over his head, which was clear: dropped.
+    document.elementsFromPoint = vi.fn((x: number, y: number) => [
+      ...faceRowOf(follow)(x, y),
+      ...faceRowOf(lead)(x, y),
+    ]);
+    expect(heldExploreClear(stop)).toBe(false);
+  });
+
+  it("drops a stop whose feet lose their ground, whatever its head was planned on", () => {
+    const lead = { x: 100, y: 100 };
+    const follow = { x: 700, y: 100 };
+    document.elementsFromPoint = vi.fn(faceRowOf(lead));
+    const stop = holdExplore({ lead, follow }, false);
+    expect(stop.headLead).toBe(false);
+    expect(heldExploreClear(stop)).toBe(true);
+    // A panel opens under his feet.
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= lead.y + 30 ? [prose] : []));
+    expect(heldExploreClear(stop)).toBe(false);
+  });
+
+  it("re-checks a perch by its lead's three-point probe alone, as it was picked", () => {
+    const lead = { x: 100, y: 100 };
+    const follow = { x: 700, y: 100 };
+    document.elementsFromPoint = vi.fn(() => [] as Element[]);
+    const stop = holdExplore({ lead, follow }, true);
+    // Her spot is never walked to on a perch, and his head band was never read.
+    document.elementsFromPoint = vi.fn((x: number, y: number) =>
+      x >= follow.x - 10 || (y >= lead.y + 12 && y <= lead.y + 20) ? [prose] : [],
+    );
+    expect(heldExploreClear(stop)).toBe(true);
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= lead.y + 30 ? [prose] : []));
+    expect(heldExploreClear(stop)).toBe(false);
   });
 });
 

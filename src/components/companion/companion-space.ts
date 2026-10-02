@@ -281,7 +281,7 @@ function reservedAt(x: number, y: number): boolean {
  * lead cat's own current position. Wiring it into `isClearSpot` would make
  * the lead read its own settled spot as occupied by itself every time
  * `onPageMoved` in `Companion.tsx` re-probes the explorers' held stop
- * (`isClearSpot`, through `exploreClear` for an ordinary stop, on
+ * (`isClearSpot`, through `heldExploreClear` in companion-moods.ts, on
  * `heading.spots.lead`), which would drop every stop the
  * instant he stood on it. So this is its own registry, consulted only by the two functions that
  * ever compute one cat's position *relative to the other's* — `mateSpot`
@@ -600,12 +600,14 @@ const HEAD_INSET = 12;
  * takes their clicks. Six more hit tests, same rule as the other three
  * (occupied content, or a bubble's reserved rect).
  *
- * Only the explorers ask this (`exploreClear`, companion-moods.ts: when
- * `planExplore` picks a stop, and when `Companion` re-checks a held one after
- * the page moves), because their stops are drawn uniformly from anywhere on
- * the page, where a spot that clears the feet but not the head is common.
- * Perches, the fallbacks through `findClearSpot`, and every scene's stages
- * still take the three-point `isClearSpot` alone.
+ * Only the explorers ask this, all in companion-moods.ts: `exploreClear`,
+ * when `planExplore` picks a half-page stop; `holdExplore`, which records at
+ * plan time whether each held stop's head was clear; and `heldExploreClear`,
+ * the re-check after the page moves, which reads the head band again only for
+ * a head that was clear when planned. Their half-page stops are drawn
+ * uniformly from anywhere on the page, where a spot that clears the feet but
+ * not the head is common. Perches, the fallbacks through `findClearSpot`, and
+ * every scene's stages are picked by the three-point `isClearSpot` alone.
  */
 export function headClear(point: Point): boolean {
   for (const dy of HEAD_ROWS) {
