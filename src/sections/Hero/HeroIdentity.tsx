@@ -15,12 +15,13 @@
  * full-width band `Hero` places below the fold instead of inside this
  * column — same content, same `<Section id="about">`, different composition.
  *
- * `location`/`availability` are `Maybe<string>` and currently hold literal
- * `[NEEDS INPUT: ...]` markers in content. `resolved()` is typed so those
- * collapse to `undefined` at compile time (see its doc comment in
- * @/types/portfolio) — the branch below is structurally incapable of
- * rendering a marker, not just guarded by a runtime check. Once real values
- * are supplied, this exact code renders the metadata row with no changes.
+ * `location`/`availability` are `Maybe<string>`. Through round 17 both were
+ * unsupplied and the metadata row rendered nothing; round 18 authored real
+ * values, so the row renders now (`tests/lib/content.test.ts` pins both).
+ * `resolved()` is still typed so a `[NEEDS INPUT: ...]` marker collapses to
+ * `undefined` at compile time (see its doc comment in @/types/portfolio) —
+ * the branch below is structurally incapable of rendering a marker, not just
+ * guarded by a runtime check.
  *
  * "Open résumé" points at /resume, the résumé *view*, rather than straight at
  * the PDF. The view offers the download itself, so this keeps the visitor on
