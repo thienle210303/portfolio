@@ -2635,9 +2635,12 @@ export function Companion({ facts }: CompanionProps) {
        * pointer move took it away — click "Toss the yarn", lift your hand off
        * the menu you just used, and the yarn was gone before it landed. So a
        * requested scene is held through the pointer, and through it alone.
-       * Everything else still ends it on the frame it appears: the escort, a
-       * nap spot, the panel being reopened, the page scrolling out from under
-       * the probe, the mode changing, the scene finishing.
+       * Everything else still ends it on the frame it appears: any forced
+       * state (the escort, the guided tour, a nap spot, the contact form's
+       * secret, the origin-story watch, the panel being reopened), the page
+       * scrolling or resizing out from under the probe, a focus ring arriving
+       * on the lead mid-peek, a new request, the mode changing, the scene
+       * finishing.
        */
       const asked =
         askedRef.current && (playRef.current !== null || queued.current !== null);
@@ -4146,9 +4149,12 @@ export function Companion({ facts }: CompanionProps) {
    * downstream is then the ordinary path: the same `openPlay` probe against the
    * same page and the same beat machinery. The cancellation is the ordinary one
    * too, with one exception: `askedRef` holds a requested scene through the
-   * pointer (FB-9.1 — the hand that clicked the menu is still on the mouse), so
-   * only the escort, a nap spot, the panel reopening, a scroll, a mode change
-   * or the scene finishing ends it.
+   * pointer (FB-9.1 — the hand that clicked the menu is still on the mouse).
+   * Everything else that ends a scene still ends it: any forced state (the
+   * escort, the guided tour, a nap spot, the contact form's secret, the
+   * origin-story watch, the panel reopening), a scroll or a resize, a focus
+   * ring arriving on the lead mid-peek, a new request for a scene or the tour,
+   * the loop being put away (a mode change, the bed), or the scene finishing.
    *
    * What it does *not* do any more is ask that question of one arbitrary spot.
    * Round 7 probed from wherever the cats stood at the moment of the click,
