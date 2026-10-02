@@ -867,8 +867,8 @@
    * in a divided line, and the only thing it needs is the line's own type.
    *
    * `Tag` itself was left untouched for that one consumer. Round 18 deleted
-   * the timeline and its type label with it, so nothing renders `Tag` today;
-   * see the note in `src/components/ui/Tag.tsx`.
+   * the timeline and its type label with it, and then `Tag` itself, once
+   * nothing rendered it (last present at 42d6622).
    */
   .token-run {
     display: flex;
