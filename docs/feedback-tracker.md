@@ -1255,3 +1255,84 @@ target.
 4292, started 2026-09-30, >125,000 s of CPU) held a core throughout. It was
 there for both arms equally, which is what interleaving is for, and it is why
 absolute times here should not be compared with rows above this one.
+
+### Companion explorers (2026-10-02)
+
+The cats now explore the whole page while the reader is active, Moon on the
+left and Mi on the right, and nap where they stop after 20 s with no input.
+The pointer chase only fires within 200 px of the lead. Every line is now 32
+characters or fewer, and most beats draw a small line icon in the bubble; about
+half also play an action (`bat`, `groom`, `stretch`, `eat`, `sleep`, or the new
+CSS `hop`). Spec: `docs/superpowers/specs/2026-10-02-companion-explorers-design.md`.
+The companion ships in the initial bundle, so this row checks that against the
+spec's budget, which is initial JS ≤ 3 KB gz over the plan's base.
+
+Measured with `pnpm perf`'s script against three production builds, each in
+its own detached worktree and served with `next start` on its own port.
+`:3151` was the plan's base `ac35d1a`. `:3152` was `e9f60da`, after the icons
+and acts but before the explorers. `:3153` was the branch head `c32ade6`. The
+runs were interleaved (base, mid, head, three times). The script was run
+unmodified except that `launch()` pointed at the installed
+`chromium_headless_shell-1234`. **Zero skipped responses in all nine runs.**
+412 × 823 touch, so the cats are parked here and the explorers' runtime cost is
+not what this row measures. What it does measure is the bytes.
+
+| | Base (`ac35d1a`) | Mid (`e9f60da`) | Head (`c32ade6`) | Δ head − base |
+|---|---|---|---|---|
+| **Initial JS**, `request.sizes()` | 197.7 KB (all three runs) | 198.8 KB (all three runs) | 198.1 KB (all three runs) | **+0.4 KB** (+385 B) |
+| CSS | 14.0 KB | 14.1 KB | 14.0 KB | +31 B |
+| Fonts | 223.8 KB | 223.8 KB | 223.8 KB | 0 |
+| DOM nodes | 3,138 | 3,138 | 3,138 | 0 |
+| CLS | 0 | 0 | 0 | 0 |
+| LCP (runs 1 / 2 / 3) | 3104 / 2984 / 3172 ms | 4464 / 3300 / 2396 ms | 3588 / 2696 / 4344 ms | overlapping |
+| TBT (runs 1 / 2 / 3) | 802 / 469 / 1018 ms | 864 / 972 / 413 ms | 491 / 1292 / 671 ms | overlapping |
+| LCP element (every run) | `P#.mt-6 max-w-[56ch] text-[length` | same | same | same |
+| Skipped responses | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | |
+
+**Within budget: +0.4 KB against a 3 KB allowance.** The mid arm splits the
+delta. The icons and acts (Tasks 1–2) cost **+1.1 KB** (+1,122 B), inside the
+review's estimate of 1–1.5 KB. The explorers (Tasks 3–4) then took **−0.7 KB**
+back (−737 B), because they deleted more than they added: the wander candidate
+pool, the idle bed furniture and its kick/shove, and `BED_WAKE_TRAVEL`. A
+second method gave the same deltas to the byte. I summed the gzipped bodies of
+each build's 12 initial `<script>` tags straight off the servers and got
+238,175 / 239,297 / 238,560 B. Exactly one chunk name differs between base and
+head, and that is the chunk holding the companion. The `content-length`
+cross-check is not informative here: `next start` streams these responses
+compressed with no `content-length`, so it reads 0.4 KB of JS in every run
+(16 responses declared none) for all three arms.
+
+LCP and TBT ranges overlap across all three arms, and every run names the same
+LCP element. That is no signal in either direction, which fits with zero DOM
+nodes added at this viewport.
+
+**Machine state:** the other session's node process (PID 4292) was still
+running. It affected all three arms equally.
+
+**Browser check, both themes** (a throwaway Playwright script against `:3153`;
+screenshots are in the plan's workspace under `task-5-shots/`). At 1440 × 900
+with a fine pointer, by day and by night:
+
+- **Bubble with icon.** Mi gave the hello duet's first beat with a heart icon,
+  and mini-Thien carried "A visitor! Pet me? Pet me!".
+- **Exploring.** Two moments were captured in `#worlds` while the pointer kept
+  moving far from both cats. In both, Moon was in the left half and Mi in the
+  right half, both walking.
+- **Hop.** Mi was caught mid-hop in the Journey's scene, 3.9 px (day) and
+  4.5 px (night) off the ground, with a branch icon and "11 branches! Climbing
+  all!".
+- **Nap.** Both cats slept where they had stopped (no bed drawn, not in the
+  corner), 21.6 s (day) and 20.6 s (night) after the last input.
+
+At 390 × 844 with touch, the pair stayed parked together bottom-right, with no
+bubble, no caption and no Thien, at the top of the page and in `#worlds`, in
+both themes.
+
+**Full e2e** against a production build of `c32ade6` at `--workers=2`:
+**548 passed, 6 failed, 538 skipped** (1,092 total). All six failures are one
+test, `worlds.spec.ts:7` ("every world, plaque and source is reachable with the
+canvas chunk blocked"), once per viewport. It fails identically against the
+plan's base `ac35d1a` built the same way, and again on a re-run at
+`--workers=2`. The cause is in the test itself: its route pattern matches only
+dev-server chunk names, and a production build hashes the name, so nothing is
+aborted. This branch did not cause it. Every companion test passed.
