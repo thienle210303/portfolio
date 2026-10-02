@@ -9,6 +9,7 @@ import {
   EXPLORE_TRIES,
   exploreApart,
   findClearSpot,
+  headClear,
   isClearSpot,
   keepClearOfControl,
   pickExploreSpot,
@@ -124,6 +125,74 @@ describe("setReservedRects", () => {
  * cat's position relative to the *other's* — never by a cat validating its
  * own.
  */
+/**
+ * The head band (final fix wave, item 1). `isClearSpot` reads the belly at 60%
+ * of the drawing's height and both feet, so a spot whose ears and face are on
+ * a line of prose passes it — measured in the final review at 4 of 30 explorer
+ * stops. `headClear` reads six more points, rows at y+6 and y+16, each at 12px
+ * in from both sides and at the centre, by the same rule. What is pinned here
+ * is exactly that: each of the six alone is enough to refuse, nothing below the
+ * band is its business, and it is the band `isClearSpot` never sees.
+ */
+describe("headClear", () => {
+  const at: Point = { x: 100, y: 100 };
+  const HEAD_POINTS: Array<[number, number]> = [6, 16].flatMap((dy) =>
+    [12, CAT_W / 2, CAT_W - 12].map((dx) => [at.x + dx, at.y + dy] as [number, number]),
+  );
+
+  /** Prose under exactly the one point (x, y), and nowhere else. */
+  const proseAt = (px: number, py: number) => {
+    const prose = document.createElement("p");
+    document.elementsFromPoint = vi.fn((x: number, y: number) =>
+      Math.abs(x - px) < 0.5 && Math.abs(y - py) < 0.5 ? [prose] : [],
+    );
+  };
+
+  beforeEach(() => {
+    document.elementsFromPoint = vi.fn(() => []);
+    setReservedRects([]);
+  });
+
+  it("passes a spot with nothing under any of the six points", () => {
+    expect(headClear(at)).toBe(true);
+  });
+
+  it("refuses a spot when any one of the six points is on content", () => {
+    for (const [x, y] of HEAD_POINTS) {
+      proseAt(x, y);
+      expect(headClear(at), `content at ${x},${y}`).toBe(false);
+    }
+  });
+
+  it("is the band isClearSpot never reads: a head on prose passes the three-point probe", () => {
+    // A line of prose across the face row, and nothing lower down.
+    const prose = document.createElement("p");
+    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
+      y >= at.y + 12 && y <= at.y + 20 ? [prose] : [],
+    );
+    expect(isClearSpot(at)).toBe(true);
+    expect(headClear(at)).toBe(false);
+  });
+
+  it("is not about the feet or the belly: content below the band leaves it clear", () => {
+    const prose = document.createElement("p");
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= at.y + 22 ? [prose] : []));
+    expect(headClear(at)).toBe(true);
+    expect(isClearSpot(at)).toBe(false);
+  });
+
+  it("reads a whitespace container as clear, like the other probe does", () => {
+    document.elementsFromPoint = vi.fn(() => [document.createElement("div")]);
+    expect(headClear(at)).toBe(true);
+  });
+
+  it("refuses a head under one of the companion's own bubbles", () => {
+    // Covers the left-hand ear point only.
+    setReservedRects([rect(at.x + 10, at.y + 4, 4, 4)]);
+    expect(headClear(at)).toBe(false);
+  });
+});
+
 describe("setControlRects / clearsControls — the toolkit-toggle fix", () => {
   beforeEach(() => {
     document.elementsFromPoint = vi.fn(() => []);

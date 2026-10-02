@@ -6,6 +6,7 @@ import {
   clearsControls,
   exploreApart,
   findClearSpot,
+  headClear,
   isClearSpot,
   pickExploreSpot,
   safeTop,
@@ -48,8 +49,10 @@ import {
  *
  * Cancellation needs no code here at all, which is the point of returning plain
  * geometry: outside the guided tour, a mood is only ever consulted by the
- * explorers, on frames the loop has already decided the pair are parked, so the
- * pointer moving drops it the same frame it drops any other parked position.
+ * explorers, on frames the loop has already decided the pair are parked, so a
+ * pointer moving within `CHASE_RADIUS` of the lead — the only pointer that
+ * unparks them (see `parked` in `Companion`) — drops it the same frame it drops
+ * any other parked position. A pointer moving further off drops nothing.
  *
  * The explorer planner at the foot of the file is here rather than in the loop
  * for one reason: it answers the same question these do, and it has to answer
@@ -329,6 +332,18 @@ export interface ExploreSpots extends MoodSpots {
 }
 
 /**
+ * Clear ground for an explorer's stop: feet and belly (`isClearSpot`), then the
+ * head band (`headClear`). A stop drawn from anywhere on the page must clear
+ * the whole cat, not just where it stands. Used by `planExplore` to pick a
+ * stop and by `Companion` to re-check a held one once the page has moved under
+ * it; perches, scene stages and the `findClearSpot` fallbacks keep the
+ * three-point `isClearSpot` alone.
+ */
+export function exploreClear(point: Point): boolean {
+  return isClearSpot(point) && headClear(point);
+}
+
+/**
  * Where the pair go next, or null for "stay put" — which the caller answers by
  * leaving them exactly where they are until it asks again.
  *
@@ -363,8 +378,10 @@ export function planExplore(
 
   const view = viewport();
   const top = safeTop();
+  // The perch above and the `findClearSpot` fallbacks below keep the
+  // three-point probe alone; only the half-page picks clear the head band.
   const pick = (half: Half, other: Point | null) =>
-    pickExploreSpot(half, other, view, top, isClearSpot, rng);
+    pickExploreSpot(half, other, view, top, exploreClear, rng);
   const leadSpot = pick("left", follow);
   const followSpot = pick("right", leadSpot);
   if (leadSpot && followSpot) return { lead: leadSpot, follow: followSpot, perch: false };

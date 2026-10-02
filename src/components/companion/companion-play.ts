@@ -39,18 +39,18 @@ import { type SceneName } from "./scene-names";
  *     that are only ever passed through are not probed, because crossing
  *     something is allowed and parking on it is not.
  *  3. **Interruptible at any frame.** A scene has no state anywhere but the one
- *     object the caller holds. Dropping it — because the pointer moved, because
- *     a nap spot called, because the toolkit opened — is the whole of the
- *     cleanup.
+ *     object the caller holds. Dropping it — because a moving pointer came
+ *     within reach of the lead (`CHASE_RADIUS`), because a nap spot called,
+ *     because the toolkit opened — is the whole of the cleanup.
  *
  * There is no reduced-motion or touch branch here on purpose: play only ever
  * runs inside the roaming loop, and that loop does not exist for either.
  */
 
 /** How rare "rare" is: the earliest a scene may follow the last one, plus a
- *  spread on top. And only if the visitor happens to be idle when the timer
- *  comes up, which in practice makes the observed gap longer than either
- *  number. */
+ *  spread on top. And only if, when the timer comes up, nobody is steering the
+ *  cats and both are standing — the reader may be active or idle — which in
+ *  practice makes the observed gap longer than either number. */
 const PLAY_GAP = 90_000;
 const PLAY_SPREAD = 180_000;
 /** Nowhere safe to play right now. Backing off matters: probing costs three

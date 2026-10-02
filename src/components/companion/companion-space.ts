@@ -281,7 +281,8 @@ function reservedAt(x: number, y: number): boolean {
  * lead cat's own current position. Wiring it into `isClearSpot` would make
  * the lead read its own settled spot as occupied by itself every time
  * `onPageMoved` in `Companion.tsx` re-probes the explorers' held stop
- * (`isClearSpot(heading.spots.lead)`), which would drop every stop the
+ * (`isClearSpot`, through `exploreClear` for an ordinary stop, on
+ * `heading.spots.lead`), which would drop every stop the
  * instant he stood on it. So this is its own registry, consulted only by the two functions that
  * ever compute one cat's position *relative to the other's* — `mateSpot`
  * (companion-moods.ts) and `findClearSpot` below — never by a cat validating
@@ -585,6 +586,37 @@ export function isClearSpot(point: Point): boolean {
   );
 }
 
+/** How far down the drawing the head band's two rows are: the ears, then the
+ *  face. The head is on whichever side the cat faces, so each row is read at
+ *  12px in from both sides and at the centre. */
+const HEAD_ROWS = [6, 16] as const;
+const HEAD_INSET = 12;
+
+/**
+ * The top of the drawing, which `isClearSpot` never looks at. Its three
+ * points (belly at 60% height, both feet) all sit in the bottom half of a
+ * 42px cat, so a spot can pass with the ears and face across a line of prose
+ * or a link — and the cats are buttons, so a head there hides the words and
+ * takes their clicks. Six more hit tests, same rule as the other three
+ * (occupied content, or a bubble's reserved rect).
+ *
+ * Only the explorers ask this (`exploreClear`, companion-moods.ts: when
+ * `planExplore` picks a stop, and when `Companion` re-checks a held one after
+ * the page moves), because their stops are drawn uniformly from anywhere on
+ * the page, where a spot that clears the feet but not the head is common.
+ * Perches, the fallbacks through `findClearSpot`, and every scene's stages
+ * still take the three-point `isClearSpot` alone.
+ */
+export function headClear(point: Point): boolean {
+  for (const dy of HEAD_ROWS) {
+    const y = point.y + dy;
+    for (const x of [point.x + HEAD_INSET, point.x + CAT_W / 2, point.x + CAT_W - HEAD_INSET]) {
+      if (occupied(x, y) || reservedAt(x, y)) return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Candidate whitespace near a spot the cat cannot have, nearest first.
  *
@@ -737,7 +769,8 @@ export function standingSpots(near: Point): Point[] {
 /* -------------------------------------------------------------------------- */
 
 /** How many uniformly random points one half is sampled for before the picker
- *  tries the other half. Each probe is three hit tests, and a page that is
+ *  tries the other half. Each probe is up to nine hit tests (`isClearSpot`'s
+ *  three, then `headClear`'s six), and a page that is
  *  mostly prose fails most draws, which is why this is a handful and the
  *  other half is the fallback rather than a bigger number. */
 export const EXPLORE_TRIES = 12;

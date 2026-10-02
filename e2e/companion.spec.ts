@@ -356,6 +356,69 @@ function restingOnContent(page: Page, { still = false }: { still?: boolean } = {
 }
 
 /**
+ * Every *standing* cat whose head is over something readable — the band
+ * `restingOnContent` never looks at. Its three points are the feet and the
+ * belly, all in the bottom half of a 42px drawing, so a cat could stop with
+ * its ears and face across a link or a line of prose and pass, and the cats
+ * are buttons: a head on a link hides the words and takes the click.
+ *
+ * The points are `headClear`'s own (companion-space.ts): 6px and 16px down
+ * from the drawing's top, at 12px in from either side and at the centre —
+ * either side because the head is on whichever side the cat faces. Only cats
+ * that held still across a quarter of a second are read, each on its own, so
+ * a cat crossing prose on its way somewhere (allowed) is never counted and a
+ * cat that has stopped is counted even while its partner is still walking.
+ * Each hit is keyed by the cat and its place in the *document*, so one stop
+ * sampled twice is one stop.
+ */
+function headsOnContent(page: Page): Promise<{ standing: number; hits: string[] }> {
+  return page.evaluate(async () => {
+    const button = document.querySelector('[aria-controls="companion-actions"]');
+    const cats = () => Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+    const boxes = () => cats().map((svg) => svg.getBoundingClientRect());
+    const before = boxes();
+    const scrolledBefore = window.scrollY;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const after = boxes();
+    if (window.scrollY !== scrolledBefore) return { standing: 0, hits: [] };
+    const readable =
+      "p,h1,h2,h3,h4,h5,h6,li,dt,dd,blockquote,pre,code,figure,table,a,button,input,textarea,select,label";
+    let standing = 0;
+    const found = cats().flatMap((svg, index) => {
+      const rect = after[index];
+      const was = before[index];
+      if (!rect || !was || Math.abs(rect.left - was.left) >= 0.5 || Math.abs(rect.top - was.top) >= 0.5) {
+        return [];
+      }
+      standing += 1;
+      const name = button?.contains(svg) ? "grey" : "tabby";
+      const points: Array<[number, number]> = [];
+      for (const dy of [6, 16]) {
+        for (const x of [rect.left + 12, rect.left + rect.width / 2, rect.right - 12]) {
+          points.push([x, rect.top + dy]);
+        }
+      }
+      const hits = points.flatMap(([x, y]) =>
+        document
+          .elementsFromPoint(x, y)
+          .filter((el) => !el.closest("[data-companion]"))
+          .slice(0, 1)
+          .filter((el) => el.closest(readable))
+          .map((el) => {
+            const what = el.closest(readable)!;
+            const text = (what.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 32);
+            return `${what.tagName.toLowerCase()} "${text}"`;
+          }),
+      );
+      if (hits.length === 0) return [];
+      const at = `${Math.round(rect.left + window.scrollX)},${Math.round(rect.top + window.scrollY)}`;
+      return [`${name} at ${at}: head on ${[...new Set(hits)].join(" + ")}`];
+    });
+    return { standing, hits: found };
+  });
+}
+
+/**
  * Wait for the pair to actually stop, and assert that where they stopped is
  * clear of anything readable.
  *
@@ -370,11 +433,10 @@ function restingOnContent(page: Page, { still = false }: { still?: boolean } = {
  *
  * And it has to be the *first* such sample, which is why the verdict is latched
  * out of the poll rather than being the poll's own predicate. The pair do not
- * stay where they first stop — explorers move on within seconds, and left
- * alone for twenty they walk to their corner bed, which is furniture and
- * always clear — so a poll that simply retried the
- * purity check would let a cat that parked squarely on a paragraph wait out its
- * own violation and pass on the tidy rest that followed.
+ * stay where they first stop — explorers move on within seconds — so a poll
+ * that simply retried the purity check would let a cat that parked squarely on
+ * a paragraph wait out its own violation and pass on the tidy rest that
+ * followed.
  */
 async function expectRestClearOfContent(page: Page, message: string): Promise<void> {
   let rest: string[] | null = null;
@@ -972,6 +1034,10 @@ test.describe("companion", () => {
     let tabbyRight = 0;
     const cells = new Set<string>();
     const shared: string[] = [];
+    // Every stop a cat stood at with its head over something readable, and how
+    // many standing cats were looked at — so the check cannot pass on none.
+    const heads = new Set<string>();
+    let standingRead = 0;
     let direction = 1;
     closest = Infinity;
     for (let tick = 0; tick < 96; tick += 1) {
@@ -983,7 +1049,13 @@ test.describe("companion", () => {
       }
       await page.waitForTimeout(250);
       const [grey, tabby] = await keepAway();
-      if (tick % 2 === 1) continue;
+      if (tick % 2 === 1) {
+        // The other half of the ticks look at where the standing cats' heads are.
+        const sample = await headsOnContent(page);
+        sample.hits.forEach((hit) => heads.add(hit));
+        standingRead += sample.standing;
+        continue;
+      }
       if (grey.centreX < DESKTOP_WIDTH / 2) greyLeft += 1;
       if (tabby.centreX >= DESKTOP_WIDTH / 2) tabbyRight += 1;
       cells.add(`grey ${grey.cell}`);
@@ -997,7 +1069,8 @@ test.describe("companion", () => {
     expect(tabbyRight, "the tabby never explored the right half").toBeGreaterThanOrEqual(1);
     expect(cells.size, `only ${cells.size} places visited: ${[...cells].join(", ")}`).toBeGreaterThan(3);
     expect(shared, "the pair stood in one 60px column").toEqual([]);
-    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+    expect(standingRead, "too few standing cats were looked at for the head check to mean anything").toBeGreaterThan(5);
+    expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);
   });
 
   test("the lead still chases a pointer that comes near him", async ({ page }) => {
@@ -1068,25 +1141,24 @@ test.describe("companion", () => {
     expect(await poses(page), "asleep before the reader had been gone 20s").not.toContain("sleep");
 
     // And after it, both asleep where they stopped — by the time the threshold
-    // plus six seconds to finish a walk and lie down have passed — with no bed
-    // anywhere: napping in place is not going to bed.
+    // plus six seconds to finish a walk and lie down have passed — and not in
+    // the corner: napping in place is not going to bed.
     await expect
-      .poll(
-        async () => {
-          await expect(page.locator("[data-cat-bed]")).toHaveCount(0, { timeout: 1 });
-          return poses(page);
-        },
-        {
-          timeout: Math.max(1_000, stoppedAt + EXPLORE_IDLE_MS + 6_000 - Date.now()),
-          intervals: [250],
-          message: "the cats were not both asleep 26s after the reader stopped",
-        },
-      )
+      .poll(() => poses(page), {
+        timeout: Math.max(1_000, stoppedAt + EXPLORE_IDLE_MS + 6_000 - Date.now()),
+        intervals: [250],
+        message: "the cats were not both asleep 26s after the reader stopped",
+      })
       .toEqual(["sleep", "sleep"]);
     expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
     // Waited out rather than sampled once: the pose turns to sleep while the
     // last fraction of a pixel of the walk is still easing in.
     await expectRestClearOfContent(page, "asleep on content");
+    // And with their heads clear too: an explorer's stop is probed in the head
+    // band as well (`headClear`), and a nap is wherever the last stop was.
+    const asleep = await headsOnContent(page);
+    expect(asleep.standing, "the sleeping pair were not both still").toBe(2);
+    expect(asleep.hits, "asleep with a head on something readable").toEqual([]);
 
     // Asleep is still: nothing on the page is asking for frames any more.
     await expect
@@ -1150,7 +1222,6 @@ test.describe("companion", () => {
     }
 
     expect(await poses(page)).not.toContain("sleep");
-    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
     expect(cells.size, `only ${cells.size} places visited: ${[...cells].join(", ")}`).toBeGreaterThan(1);
     // The corner is on the right; exploring is what takes the grey cat left.
     expect(greyLeft, "the grey cat never left the right-hand side").toBeGreaterThanOrEqual(1);
@@ -1526,16 +1597,11 @@ test.describe("companion", () => {
     // Both of them asleep, each where it stopped. Not in the corner: the bed
     // is for a visitor who sent them there ("Send the cats to bed"), and a
     // roaming pair that wandered off to it every time the reader looked away
-    // spent half the visit walking to the same spot. Sampled the whole way, so
-    // a bed that appeared and went again would still be caught.
+    // spent half the visit walking to the same spot. `bothInCorner` is the
+    // check: nothing on the roaming layer draws a bed any more, so there is no
+    // bed element to look for.
     await expect
-      .poll(
-        async () => {
-          await expect(page.locator("[data-cat-bed]")).toHaveCount(0, { timeout: 1 });
-          return poses(page);
-        },
-        { timeout: 40_000, intervals: [500], message: "the cats never fell asleep" },
-      )
+      .poll(() => poses(page), { timeout: 40_000, intervals: [500], message: "the cats never fell asleep" })
       .toEqual(["sleep", "sleep"]);
     expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
     // Asleep somewhere clear — a nap on a paragraph is a cat on a paragraph —
@@ -1573,7 +1639,7 @@ test.describe("companion", () => {
     await page.reload();
     await page.waitForLoadState("networkidle");
     await expect(catButton(page)).toBeVisible();
-    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
+    expect(await poses(page), "a reload woke them asleep").not.toContain("sleep");
   });
 
   test("costs nothing on a page nobody has touched, and wakes on the next scroll", async ({
@@ -1629,7 +1695,6 @@ test.describe("companion", () => {
     // in whatever margin they were standing in, *awake*, read as a bug,
     // whether or not a pointer was ever involved.
     expect(await poses(page), "the page went still with the cats awake").toEqual(["sleep", "sleep"]);
-    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
     expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
     await expect(catButton(page)).toBeVisible();
 
@@ -1662,8 +1727,6 @@ test.describe("companion", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const bed = page.locator("[data-cat-bed]");
-
     /*
      * Reading a page is scrolling it with the mouse held still, and that is the
      * shape of the bug this covers: a wheel turned under a stationary pointer
@@ -1689,14 +1752,13 @@ test.describe("companion", () => {
       //
       // Unless the harness itself stalled. Under full-suite worker load a
       // tick can arrive seconds late, and a long-enough gap in scroll events
-      // IS the product's definition of "nobody is here" — the bed engaging
+      // IS the product's definition of "nobody is here" — the nap engaging
       // then is correct behaviour, not the bug. So a late tick re-establishes
       // presence and skips its assertion instead of failing on the product
       // doing what it should.
       const gap = Date.now() - lastTickAt;
       lastTickAt = Date.now();
       if (gap > 8_000) continue;
-      await expect(bed).toHaveCount(0);
       expect(await poses(page), "asleep while somebody was reading").not.toContain("sleep");
     }
 
@@ -1704,13 +1766,7 @@ test.describe("companion", () => {
     // — it just has to mean "nobody is here" rather than "the mouse is still".
     // Where they stop, not in a corner bed.
     await expect
-      .poll(
-        async () => {
-          await expect(bed).toHaveCount(0, { timeout: 1 });
-          return poses(page);
-        },
-        { timeout: 40_000, intervals: [500], message: "the cats never fell asleep" },
-      )
+      .poll(() => poses(page), { timeout: 40_000, intervals: [500], message: "the cats never fell asleep" })
       .toEqual(["sleep", "sleep"]);
     expect(await bothInCorner(page), "they walked to the corner to sleep").toBe(false);
 
@@ -2200,11 +2256,6 @@ test.describe("companion", () => {
     // out, and there is no roaming loop here.
     await expect(page.locator("[data-cat-toy]")).toHaveCount(0);
     await expect(page.locator("[data-cat-play]")).toHaveCount(0);
-    // No idle furniture either: it belongs to the roaming layer, which does not
-    // exist here, and a corner full of furniture appearing under a pair of cats
-    // that never walked to it would be pure decoration.
-    await expect(page.locator("[data-cat-bed]")).toHaveCount(0);
-    await expect(page.locator("[data-cat-bed-front]")).toHaveCount(0);
     // Nor a bubble, mini-Thien, or his caption: none of the duet's scenes ever
     // play without the roaming loop, so the narrator this round adds never has
     // anything to translate here either — the negative control the spec asks

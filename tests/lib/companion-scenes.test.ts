@@ -14,6 +14,7 @@ import {
 } from "@/components/companion/companion-play";
 import {
   detectRush,
+  exploreClear,
   planExplore,
   RUSH_HOLD_MS,
   RUSH_VELOCITY,
@@ -353,6 +354,62 @@ describe("planExplore", () => {
     expect(spots!.follow.x + CAT_W / 2).toBeGreaterThanOrEqual(companionSpace.viewport().width / 2);
     // Picked against his fallback, not against nobody: 160px and a column apart.
     expect(apart(spots!.lead, spots!.follow)).toBe(true);
+  });
+
+  it("asks the same of a held stop as of a new one: feet, belly and head band (exploreClear)", () => {
+    const at = { x: 100, y: 100 };
+    const prose = document.createElement("p");
+    // Nothing anywhere: clear.
+    document.elementsFromPoint = vi.fn(OPEN);
+    expect(exploreClear(at)).toBe(true);
+    // A line across the face row only — what the sticky margin rail does when
+    // a scroll slides it over a cat riding the page: the feet stay clear.
+    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
+      y >= at.y + 12 && y <= at.y + 20 ? [prose] : [],
+    );
+    expect(companionSpace.isClearSpot(at)).toBe(true);
+    expect(exploreClear(at)).toBe(false);
+    // Content under the feet only: the three-point half refuses it.
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= at.y + 30 ? [prose] : []));
+    expect(companionSpace.headClear(at)).toBe(true);
+    expect(exploreClear(at)).toBe(false);
+  });
+
+  it("never stops an explorer with its head on content, which the three-point probe alone allows", () => {
+    // Lines of prose 14px tall every 60px down the page, across its whole
+    // width: plenty of ground clears the feet and belly with the ears or face
+    // on a line above them.
+    const prose = document.createElement("p");
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y % 60 < 14 ? [prose] : []));
+    const seeded = () => {
+      let state = 12345;
+      return () => {
+        state = (Math.imul(state, 1103515245) + 12345) >>> 0;
+        return state / 2 ** 32;
+      };
+    };
+    const view = companionSpace.viewport();
+    const top = companionSpace.safeTop();
+
+    // The yardstick is not vacuous: the three-point probe alone does pick
+    // spots in this page whose head is on a line.
+    const bare = seeded();
+    let headOnProse = 0;
+    for (let i = 0; i < 100; i += 1) {
+      const spot = companionSpace.pickExploreSpot("left", null, view, top, companionSpace.isClearSpot, bare);
+      if (spot && !companionSpace.headClear(spot)) headOnProse += 1;
+    }
+    expect(headOnProse).toBeGreaterThan(10);
+
+    const rng = seeded();
+    for (let i = 0; i < 100; i += 1) {
+      const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, rng);
+      expect(spots).not.toBeNull();
+      for (const spot of [spots!.lead, spots!.follow]) {
+        expect(companionSpace.isClearSpot(spot), `feet at ${spot.x},${spot.y}`).toBe(true);
+        expect(companionSpace.headClear(spot), `head at ${spot.x},${spot.y}`).toBe(true);
+      }
+    }
   });
 
   it("declines outright when no ground anywhere is clear", () => {

@@ -23,9 +23,9 @@ import { useSyncExternalStore } from "react";
  * explorers made that the default — they already go where they please — so the
  * mode had nothing left to switch, and its toggle went with it. Browsers that
  * chose it still carry the word, under this key and under a second one
- * (`companion-roam`) that only ever existed to remember it across a nap; both
- * read as `roam` and are retired once, on mount — see `read` and
- * `migrateCompanionMode`.
+ * (`companion-roam`) that only ever existed to remember it across a trip to
+ * the bed (`resting`), so that waking them restored it; both read as `roam`
+ * and are retired once, on mount — see `read` and `migrateCompanionMode`.
  *
  * An absent or unrecognised value means roaming, so a corrupted entry — or one
  * written by a future version of this file — fails towards the default rather

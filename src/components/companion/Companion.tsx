@@ -42,7 +42,7 @@ import {
   type Speaker,
   type StoryBeatKind,
 } from "./companion-dialogue";
-import { detectRush, planExplore, planMood, RUSH_HOLD_MS } from "./companion-moods";
+import { detectRush, exploreClear, planExplore, planMood, RUSH_HOLD_MS } from "./companion-moods";
 import {
   advance,
   followTarget,
@@ -3751,11 +3751,18 @@ export function Companion({ facts }: CompanionProps) {
         // would have a reader who scrolls as they read keep the pair forever
         // setting off and never arriving.
         // A perch's follow spot is never walked to (she trails him), so only
-        // his is probed for one.
+        // his is probed for one. An ordinary stop is re-probed the way it was
+        // picked, head band included (`exploreClear`): the page's margin rail
+        // is `position: sticky`, so a scroll slides it over a cat that is
+        // riding the page, and it can arrive over the head with the feet still
+        // clear. A perch was picked by the three-point probe and is re-probed
+        // by it.
         const heading = exploreRun.current;
         if (
           heading &&
-          !(isClearSpot(heading.spots.lead) && (heading.perch || isClearSpot(heading.spots.follow)))
+          !(heading.perch
+            ? isClearSpot(heading.spots.lead)
+            : exploreClear(heading.spots.lead) && exploreClear(heading.spots.follow))
         ) {
           exploreRun.current = null;
         }
