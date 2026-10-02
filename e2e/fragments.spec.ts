@@ -38,16 +38,22 @@ async function expandAllDisclosures(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const isVisible = (el: HTMLElement) => el.offsetParent !== null;
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-    let guard = 0;
-    while (guard < 200) {
+    for (let guard = 0; guard < 200; guard += 1) {
       const buttons = Array.from(
         document.querySelectorAll<HTMLElement>('#main button[aria-expanded="false"]'),
       ).filter(isVisible);
-      if (buttons.length === 0) break;
+      if (buttons.length === 0) return;
       buttons[0].click();
       await nextFrame();
-      guard++;
     }
+    // Reaching here means a trigger never flipped to expanded (it would be
+    // clicked 200 times while every other disclosure was skipped) or the page
+    // has more than 200 of them. Either way the sweep below would silently see
+    // less of the page than it reports, so say so instead.
+    const stuck = document.querySelector('#main button[aria-expanded="false"]');
+    throw new Error(
+      `expandAllDisclosures hit its 200-click cap with a collapsed trigger still present: ${stuck?.id || stuck?.textContent?.trim() || "(unnamed)"}`,
+    );
   });
 }
 
@@ -71,14 +77,19 @@ test("every in-page fragment link on the page resolves to a real element", async
   await page.waitForLoadState("networkidle");
   await expandAllDisclosures(page);
 
-  const seen: string[] = [];
+  // Distinct hrefs, not a running count. Each sweep re-collects every link on
+  // the page, so a cumulative count grows by the first-paint total on every
+  // pass whether or not anything new appeared — an earlier version of this
+  // spec asserted on that count and could not fail.
+  const hrefs = new Set<string>();
   const dead = new Set<string>();
   const take = (result: { hrefs: string[]; unresolved: string[] }) => {
-    seen.push(...result.hrefs);
+    for (const href of result.hrefs) hrefs.add(href);
     for (const href of result.unresolved) dead.add(href);
   };
+
   take(await sweep(page));
-  const withoutWorlds = seen.length;
+  const firstPaint = new Set(hrefs);
 
   // The globe's plaque links are rendered by the panel of whichever world is
   // selected, one world at a time, so a sweep of the first paint cannot see
@@ -95,18 +106,19 @@ test("every in-page fragment link on the page resolves to a real element", async
   }
 
   expect(
-    seen.length,
-    "the sweep collected no fragment links at all — its selector has stopped matching, so a green result would prove nothing",
+    firstPaint.size,
+    "the sweep collected no fragment links on first paint — its selector has stopped matching, so a green result would prove nothing",
   ).toBeGreaterThan(0);
+  const revealedByWorlds = [...hrefs].filter((href) => !firstPaint.has(href));
   expect(
-    seen.length,
-    "stepping through the worlds added no links — the plaque links went unswept, so a green result would not cover the globe",
-  ).toBeGreaterThan(withoutWorlds);
+    revealedByWorlds.length,
+    "stepping through the worlds revealed no href that was absent from first paint — the plaque links are no longer reachable, so the globe went unswept",
+  ).toBeGreaterThan(0);
   expect([...dead], `${dead.size} distinct fragment targets point at nothing`).toEqual([]);
 
   // Said in the output, not just in the assertion, so a run's evidence for
-  // "not vacuous" is a number a reader can see.
+  // "not vacuous" is two numbers a reader can see.
   console.log(
-    `[fragments] collected ${seen.length} links (${withoutWorlds} before the worlds); distinct targets: ${[...new Set(seen)].join(" ")}; unresolved: ${dead.size}`,
+    `[fragments] first paint: ${firstPaint.size} distinct hrefs (${[...firstPaint].join(" ")}); after the worlds: ${hrefs.size} (${[...hrefs].join(" ")}); revealed by the worlds: ${revealedByWorlds.join(" ")}; unresolved: ${dead.size}`,
   );
 });

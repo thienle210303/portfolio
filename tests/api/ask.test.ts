@@ -154,6 +154,14 @@ describe("/api/ask", () => {
       // evidence lines) is cited without a section, and JSON drops the keys.
       expect(typeof citation.sectionId === "string").toBe(typeof citation.sectionLabel === "string");
     }
+    // The positive pin. The pairing check above is also satisfied when EVERY
+    // citation lacks a section, so on its own it would stay green if the route
+    // stopped copying the fields at all. At least one citation here must carry
+    // a real section.
+    expect(
+      body.citations.some((citation: { sectionId?: string }) => typeof citation.sectionId === "string"),
+      "no citation carries a sectionId — the route has stopped passing it through",
+    ).toBe(true);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0];

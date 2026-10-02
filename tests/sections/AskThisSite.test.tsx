@@ -321,6 +321,32 @@ describe("thread persistence across unmount -- live mode in flight", () => {
   });
 });
 
+describe("AskThisSite -- a sectioned passage links to its section", () => {
+  it("renders \"Read it in X\" pointing at the passage's own section anchor", async () => {
+    // The positive half of the pair below, and the only place the verify gate
+    // asserts it (the browser-level check lives in e2e/ask.spec.ts). The
+    // expectation is derived from `answer()` itself, and its precondition is
+    // asserted so the test cannot pass by finding no sectioned answer to check.
+    const question = "What does he do at DoorDash?";
+    const sectioned = answer(question, 3).filter(
+      (result) => result.sectionId !== undefined && result.sectionLabel !== undefined,
+    );
+    expect(sectioned.length, "the probe no longer retrieves a sectioned passage").toBeGreaterThan(0);
+    const expected = sectioned[0];
+
+    const user = userEvent.setup({ delay: null });
+    render(<AskThisSite liveModeConfigured={false} />);
+    await user.click(screen.getByRole("button", { name: question }));
+
+    const answers = await screen.findByRole("list", { name: "Sourced answers" });
+    const item = within(answers).getByText(expected.text).closest("li");
+    expect(item).not.toBeNull();
+    const link = within(item as HTMLElement).getByRole("link", { name: /Read it in/ });
+    expect(link).toHaveAttribute("href", `#${expected.sectionId}`);
+    expect(link).toHaveTextContent(`Read it in ${expected.sectionLabel}`);
+  });
+});
+
 describe("AskThisSite -- a passage rendered nowhere has no section link", () => {
   it("shows the answer and its source, but no \"Read it in\" link, for a skills evidence line", async () => {
     // Skills evidence is indexed but rendered nowhere on the page, so its

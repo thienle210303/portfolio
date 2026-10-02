@@ -7,10 +7,10 @@ import type { Answer, Citation } from "@/lib/answers";
  * This is a *presentation* of `answer()`'s output and nothing more. It adds no
  * field that the prose view does not already show, and every string it emits is
  * the exact string the prose view renders — the answer text, its source, the
- * section label and the section anchor (when it has one), plus the visitor's own question. The
- * one thing it will not carry is `score`, because the prose view does not show
- * it either and a number nobody can check is exactly the kind of claim this
- * panel exists to avoid.
+ * section label and the section anchor (when it has one), plus the visitor's
+ * own question. The one thing it will not carry is `score`, because the prose
+ * view does not show it either and a number nobody can check is exactly the
+ * kind of claim this panel exists to avoid.
  *
  * Two properties hold for arbitrary input, which is what makes it safe to point
  * at free text a visitor typed:
