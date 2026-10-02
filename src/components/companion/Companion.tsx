@@ -1083,7 +1083,9 @@ function paint(node: HTMLElement | null, pos: Spot): void {
  * companion-space.ts; this measures the node, paints the answer, and returns
  * the box it painted so the caption can keep off the bubble painted before it.
  * `anchorW`/`anchorH` are the anchor's own drawn size (`CAT_W`×`CAT_H` for a
- * bubble beside a cat, `THIEN_W`×`THIEN_H` for a caption beside the narrator).
+ * bubble beside a sitting cat — raised by `CAT_HOP_RISE` and that much taller
+ * while it hops, see `paintBubble` — and `THIEN_W`×`THIEN_H` for a caption
+ * beside the narrator).
  */
 function paintBeside(
   node: HTMLElement | null,
@@ -4208,14 +4210,17 @@ export function Companion({ facts }: CompanionProps) {
       // Spec §2: "any growth year (forces > 0) → a small excited hop (cheer
       // on the tabby)". `forces > 0` is exactly "rain or sun as a base kind,
       // or a storm rode in" — "quiet" with no storm is the one year with
-      // nothing at all to cheer about. Honestly: there is no tabby-only hop
-      // anywhere in this file, only the existing pair flourish (grey
-      // stretches, tabby bats) D3 already gives a copy confirmation or a
-      // theme toggle — see `cheerNow` a few effects up, mirrored here rather
-      // than called directly since that closure belongs to a different
-      // effect. Reusing that pair reaction rather than inventing a one-cat
-      // version is "existing mechanics only" winning over the spec's
-      // literal "on the tabby".
+      // nothing at all to cheer about. The cheer is still the existing pair
+      // flourish (grey stretches, tabby bats) D3 already gives a copy
+      // confirmation or a theme toggle — see `cheerNow` a few effects up,
+      // mirrored here rather than called directly since that closure belongs
+      // to a different effect — not a tabby-only hop. A hop does exist now,
+      // but it is a different thing: the beat's own `hop` act (`actPose`),
+      // played by whichever cat narrates the beat, never tied to the tabby,
+      // and yielding to `cheering` in the pose chain — so on a beat that
+      // arms both, the cheer plays first and the hop only once it — and, on a
+      // storm beat, the startle dash (`choreographed`) — has lapsed, if the
+      // beat is still live by then.
       if (kind === "rain" || kind === "sun" || storm) {
         cheerRef.current = { until: now + CHEER_MS };
         setCheer(true);

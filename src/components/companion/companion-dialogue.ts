@@ -400,8 +400,9 @@ export function liveAct(run: DialogueRun | null, now: number): LiveAct | null {
 
 /**
  * How an act is drawn. Five of the six are poses the cat already has; `hop`
- * is not a shape at all but a movement, so the cat sits and the wrapper
- * bounces (`[data-cat-hop]` in globals.css).
+ * is not a shape at all but a movement, so the cat sits and its drawing (the
+ * `<svg>`, not the positioned wrapper) bounces (`[data-cat-hop]` in
+ * globals.css).
  */
 export function actPose(act: CatAct): { readonly pose: CatPose; readonly hopping: boolean } {
   return act === "hop" ? { pose: "sit", hopping: true } : { pose: act, hopping: false };
