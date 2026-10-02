@@ -6,8 +6,10 @@ import {
   SUB_MAX_CHARS,
   BEAT_MIN_MS,
   BEAT_MAX_MS,
+  actPose,
   advanceBeat,
   beatDurationMs,
+  liveAct,
   currentBeat,
   hasEncore,
   nextDuetAt,
@@ -366,6 +368,73 @@ describe("run state", () => {
     const long = { speaker: "grey" as const, meow: "Mrp.", sub: "x".repeat(SUB_MAX_CHARS) };
     expect(beatDurationMs(short)).toBe(BEAT_MIN_MS);
     expect(beatDurationMs(long)).toBe(BEAT_MAX_MS);
+  });
+});
+
+describe("acting the line out", () => {
+  const SCENE: DialogueScene = {
+    id: "test",
+    kind: "ambient",
+    beats: [
+      { speaker: "tabby", meow: "Mrrrow!", sub: "Twenty-six characters, ok.", act: "hop" },
+      { speaker: "grey", meow: "Mrp.", sub: "No act here." },
+      { speaker: "grey", meow: "Mrp...", sub: "Zzz.", act: "sleep" },
+    ],
+  };
+
+  it("is nothing when no scene is running", () => {
+    expect(liveAct(null, 1000)).toBeNull();
+  });
+
+  it("plays the beat's act on the beat's speaker, for exactly the beat's reading time", () => {
+    const run = startScene(SCENE, 1000);
+    const until = 1000 + beatDurationMs(SCENE.beats[0]);
+    expect(liveAct(run, 1000)).toEqual({ speaker: "tabby", act: "hop" });
+    // The same boundary the loop advances on (`now - beatStartedAt >
+    // beatDurationMs`), so the act and the bubble end on the same frame.
+    expect(liveAct(run, until)).toEqual({ speaker: "tabby", act: "hop" });
+    // Past it, the act is over even on a run nobody has advanced yet: an act
+    // can never outlive its beat by waiting on whoever advances the scene.
+    expect(liveAct(run, until + 1)).toBeNull();
+  });
+
+  it("is nothing on a beat that carries no act, and follows the speaker beat to beat", () => {
+    const second = advanceBeat(startScene(SCENE, 1000), 5000)!;
+    expect(liveAct(second, 5000)).toBeNull();
+    const third = advanceBeat(second, 8000)!;
+    expect(liveAct(third, 8000)).toEqual({ speaker: "grey", act: "sleep" });
+  });
+
+  it("draws hop as a sitting cat that hops, and every other act as its own pose", () => {
+    expect(actPose("hop")).toEqual({ pose: "sit", hopping: true });
+    for (const act of CAT_ACTS.filter((a) => a !== "hop")) {
+      expect(actPose(act), act).toEqual({ pose: act, hopping: false });
+    }
+  });
+
+  // The e2e icon and hop tests tap the tabby at #tree, and can land on the
+  // hello (if its fixed clock fires first), the tree's ambient scene or its
+  // encore. What they assert is only true while these hold.
+  it("opens the tree's ambient scene on the tabby hopping (the scene the e2e hop test asks for)", () => {
+    const scene = sceneFor("ambient", "tree", FACTS)!;
+    expect(liveAct(startScene(scene, 0), 0)).toEqual({ speaker: "tabby", act: "hop" });
+  });
+
+  it("gives every beat the e2e tests can land on an icon, and no act to a beat right after a hop", () => {
+    const scenes = [
+      sceneFor("hello", null, FACTS)!,
+      sceneFor("ambient", "tree", FACTS)!,
+      sceneFor("encore", "tree", FACTS)!,
+    ];
+    for (const scene of scenes) {
+      scene.beats.forEach((beat, index) => {
+        expect(beat.icon, `${scene.id}[${index}]`).toBeDefined();
+        if (index > 0 && scene.beats[index - 1].act === "hop") {
+          expect(beat.act, `${scene.id}[${index}] follows a hop`).toBeUndefined();
+        }
+      });
+    }
+    expect(scenes.some((scene) => scene.beats.some((beat) => beat.act === "hop"))).toBe(true);
   });
 });
 

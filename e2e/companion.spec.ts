@@ -2386,6 +2386,122 @@ test.describe("companion", () => {
     await expect(caption.locator("p").first()).not.toHaveText(subBefore ?? "");
   });
 
+  /**
+   * Start a scene by tapping the tabby — the only way to get one without
+   * waiting out the cadence clock — at `#tree`, whose ambient scene opens on
+   * her hopping (pinned in tests/lib/companion-dialogue.test.ts). Taps only
+   * while no bubble is showing: a tap on a running scene advances it, so the
+   * hello, if its fixed clock beats us to it, is left to finish rather than
+   * skipped through.
+   */
+  async function startTreeScene(page: Page, until: () => Promise<boolean>, message: string) {
+    await readTo(page, "#tree", [300, 500]);
+    const bubble = page.locator("[data-companion] [data-cat-bubble]");
+    const tabby = page.getByRole("button", { name: /Ask the cats about this section|Next line/i });
+    await expect
+      .poll(
+        async () => {
+          if (await until()) return true;
+          if ((await bubble.count()) === 0) await tabby.click({ force: true, timeout: 5_000 }).catch(() => {});
+          return until();
+        },
+        { timeout: 45_000, intervals: [250], message },
+      )
+      .toBe(true);
+  }
+
+  test("the meow bubble draws the beat's icon beside the meow, outside its one paragraph", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const bubble = page.locator("[data-companion] [data-cat-bubble]");
+    // Every beat this can land on — the hello, the tree's scene or its
+    // encore — carries an icon (pinned in tests/lib/companion-dialogue.test.ts),
+    // so whichever is showing has one to draw.
+    await startTreeScene(page, async () => (await bubble.count()) > 0, "no scene ever started");
+
+    await expect(bubble).toHaveAttribute("aria-hidden", "true");
+    await expect(bubble.locator("svg")).toHaveCount(1);
+    await expect(bubble.locator('svg[aria-hidden="true"]')).toHaveCount(1);
+    // The picture sits beside the paragraph, never inside it: the bubble's
+    // one `<p>` still holds the meow and nothing else.
+    await expect(bubble.locator("p")).toHaveCount(1);
+    await expect(bubble.locator("p svg")).toHaveCount(0);
+    expect(await bubble.locator("p").textContent()).toMatch(/^m[a-z!?.\- ]*$/i);
+    // Ink, not a hue: the icon strokes in the bubble's own text colour.
+    const ink = await bubble.evaluate((node) => {
+      const svg = node.querySelector("svg")!;
+      return {
+        stroke: svg.getAttribute("stroke"),
+        icon: getComputedStyle(svg).color,
+        bubble: getComputedStyle(node).color,
+      };
+    });
+    expect(ink.stroke).toBe("currentColor");
+    expect(ink.icon).toBe(ink.bubble);
+  });
+
+  test("the speaking cat hops for a hop beat, and stops when the beat ends", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(90_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const hop = page.locator("[data-companion] svg[data-cat-hop]");
+    await startTreeScene(page, async () => (await hop.count()) > 0, "no cat ever hopped");
+
+    // Exactly one cat hops, it is the one speaking, and the stylesheet is
+    // really bouncing it — not just carrying an attribute nothing reads.
+    await expect(hop).toHaveCount(1);
+    const seen = await page.evaluate(() => {
+      const svg = document.querySelector("[data-companion] svg[data-cat-hop]")!;
+      const control = svg.closest("button");
+      const label = control?.textContent ?? "";
+      const bubbleNode = document.querySelector("[data-companion] [data-cat-bubble]");
+      return {
+        hopper: /quick actions/i.test(label) ? "grey" : /next line|ask the cats/i.test(label) ? "tabby" : null,
+        speaker: bubbleNode?.getAttribute("data-cat-bubble") ?? null,
+        meow: bubbleNode?.querySelector("p")?.textContent ?? null,
+        animation: getComputedStyle(svg).animationName,
+      };
+    });
+    expect(seen.speaker, "a cat hopped with no line showing").not.toBeNull();
+    expect(seen.hopper).toBe(seen.speaker);
+    expect(seen.animation).toBe("cat-hop");
+
+    // The beat ends on its own reading-time clock (at most `BEAT_MAX_MS`,
+    // 5s), and the hop ends with it — within a commit or two, far inside the
+    // shortest beat there is, not whenever something else next re-renders.
+    // Read straight off the DOM: a locator would wait for a bubble that the
+    // end of a scene has legitimately taken away.
+    const beatKey = () =>
+      page.evaluate(() => {
+        const node = document.querySelector("[data-companion] [data-cat-bubble]");
+        return `${node?.getAttribute("data-cat-bubble") ?? null}|${node?.querySelector("p")?.textContent ?? null}`;
+      });
+    const hopBeat = `${seen.speaker}|${seen.meow}`;
+    await expect
+      .poll(beatKey, { timeout: 8_000, intervals: [50], message: "the hop beat never ended" })
+      .not.toBe(hopBeat);
+    await expect(hop).toHaveCount(0, { timeout: 500 });
+    // And stays gone for as long as whatever followed it lasts (sampled for a
+    // second): no beat that follows a hop beat in the hello, the tree's scene
+    // or its encore carries an act. If that next beat ends inside the second
+    // the sampling stops there, since whatever plays after it is a new claim.
+    const after = await beatKey();
+    for (let sample = 0; sample < 5; sample += 1) {
+      await page.waitForTimeout(200);
+      if ((await beatKey()) !== after) break;
+      expect(await hop.count(), `sample ${sample}`).toBe(0);
+    }
+  });
+
   test("scrolling to another section ends an ambient scene mid-beat", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(45_000);

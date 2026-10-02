@@ -1846,6 +1846,37 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Companion — the hop                                                         */
+/*                                                                             */
+/* The one act a cat has no pose for (`actPose` in companion-dialogue.ts): it  */
+/* sits, and its drawing bounces. Each iteration is half a hop — up on an      */
+/* ease-out, and `alternate` plays the next one backwards, which turns the     */
+/* same curve into an ease-in on the way down — so four iterations of 180ms    */
+/* are two 360ms hops that land where they started. Played once, on the frame  */
+/* the attribute appears; the cat then sits out the rest of its beat.          */
+/*                                                                             */
+/* Reduced motion never mounts a roaming cat at all, so this guard is the      */
+/* backstop, not the only thing between that visitor and a bounce. The peak   */
+/* is `CAT_HOP_RISE` (CompanionCat.tsx), which the bubble placement reserves;  */
+/* tests/ui/CatIcon.test.tsx fails if the two drift apart.                     */
+/* -------------------------------------------------------------------------- */
+@layer components {
+  @media screen and (prefers-reduced-motion: no-preference) {
+    @keyframes cat-hop {
+      from {
+        transform: translateY(0);
+      }
+      to {
+        transform: translateY(-6px);
+      }
+    }
+    [data-cat-hop] {
+      animation: cat-hop 180ms ease-out 0s 4 alternate;
+    }
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* Journey stage — the pinned tree and its seven acts                          */
 /*                                                                             */
 /* `Stage.tsx` is the markup and the two numbers JavaScript supplies (which    */

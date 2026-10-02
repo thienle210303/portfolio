@@ -6,7 +6,8 @@ import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { cn } from "@/lib/cn";
 import type { CompanionFacts } from "@/lib/companion-facts";
-import CompanionCat, { CAT_H, CAT_W, type CatPose } from "./CompanionCat";
+import CompanionCat, { CAT_H, CAT_HOP_RISE, CAT_W, type CatPose } from "./CompanionCat";
+import { CatGlyph } from "./CatIcon";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, {
   BOX_SLOT,
@@ -31,15 +32,18 @@ import {
   type SceneKind,
 } from "./companion-play";
 import {
+  actPose,
   advanceBeat,
   currentBeat,
   beatDurationMs,
   DUET_ODDS,
   hasEncore,
+  liveAct,
   nextDuetAt,
   sceneFor,
   startScene,
   storyBeatScene,
+  type CatIcon,
   type DialogueBeat,
   type DialogueRun,
   type DialogueScene,
@@ -433,6 +437,18 @@ interface Visual {
   readonly facing: 1 | -1;
   readonly blinking: boolean;
   readonly flick: number;
+  /** The `hop` act, live this frame — see `actPose`. */
+  readonly hopping: boolean;
+}
+
+/** What the JSX draws for one beat of the duet — see `beatView`. */
+interface BeatView {
+  readonly speaker: Speaker;
+  readonly meow: string;
+  readonly sub: string;
+  /** The beat's picture, drawn beside the meow; null on a beat with none. */
+  readonly icon: CatIcon | null;
+  readonly hintMore: boolean;
 }
 
 interface Frame {
@@ -487,7 +503,14 @@ interface Nap {
   readAt: number;
 }
 
-const RESTING_VISUAL: Visual = { pose: "sit", phase: 0, facing: 1, blinking: false, flick: 0 };
+const RESTING_VISUAL: Visual = {
+  pose: "sit",
+  phase: 0,
+  facing: 1,
+  blinking: false,
+  flick: 0,
+  hopping: false,
+};
 const INITIAL_FRAME: Frame = {
   lead: RESTING_VISUAL,
   // Half a cycle out of step with his, which is what keeps the parked pair from
@@ -1030,9 +1053,14 @@ function paint(node: HTMLElement | null, pos: Spot): void {
  * fires there gets cut off mid-line, which is worse than no bubble at all.
  * Measured off the node's own rendered width so the clamp holds for whichever
  * beat it is showing. The vertical offset is measured too, off the node's own
- * rendered height — a one-line note had a fixed height, but the subtitle here
- * can wrap to two lines, and a hardcoded offset put the cat drawing right over
- * the second line the moment a beat's subtitle actually wrapped.
+ * rendered height rather than a fixed figure. The bubble itself is one line —
+ * the meow, with the beat's icon beside it; the translation left it for
+ * mini-Thien's caption in round 10 — and the caption, placed by the same code,
+ * is one line for every subtitle the bank produces today (measured at 1440px:
+ * the widest, the tree's last ambient line with its "…more?", is ~205px of
+ * its 16rem). Nothing guarantees that, though: `SUB_MAX_CHARS` caps
+ * characters, not pixels, so a caption can still wrap to a second line, and
+ * a hardcoded offset would put the cat drawing over it the moment one did.
  *
  * The *y* is clamped the same way: a cat close enough to the top of the
  * viewport used to put the bubble's top edge under the sticky header — the
@@ -1078,14 +1106,46 @@ function paintBeside(
   return boxAt(at, size.width, size.height);
 }
 
-/** Both cats' drawn boxes — what no bubble or caption may be painted over. */
-function catBoxes(lead: Spot, follow: Spot): RectLike[] {
-  return [boxAt(lead, CAT_W, CAT_H), boxAt(follow, CAT_W, CAT_H)];
+/** Which of the two cats are mid-`hop` act this frame. */
+interface Hops {
+  readonly lead: boolean;
+  readonly follow: boolean;
 }
 
-/** The duet's speech bubble, clamped to the speaking cat — see `paintBeside`. */
-function paintBubble(node: HTMLElement | null, cat: Spot, keepOut: readonly RectLike[]): RectLike | null {
-  return paintBeside(node, cat, CAT_W, CAT_H, keepOut);
+const NO_HOPS: Hops = { lead: false, follow: false };
+
+/** The hops a committed frame is drawing. */
+function hopsOf(frame: Frame): Hops {
+  return { lead: frame.lead.hopping, follow: frame.follow.hopping };
+}
+
+/** One cat's drawn box, reaching `CAT_HOP_RISE` higher while it hops: the
+ *  whole height its drawing sweeps through, not just where it sits, so
+ *  nothing placed flush against the box gets bounced into. */
+function drawnBox(pos: Spot, hopping: boolean): RectLike {
+  return hopping
+    ? boxAt({ x: pos.x, y: pos.y - CAT_HOP_RISE }, CAT_W, CAT_H + CAT_HOP_RISE)
+    : boxAt(pos, CAT_W, CAT_H);
+}
+
+/** Both cats' drawn boxes — what no bubble or caption may be painted over. */
+function catBoxes(lead: Spot, follow: Spot, hops: Hops = NO_HOPS): RectLike[] {
+  return [drawnBox(lead, hops.lead), drawnBox(follow, hops.follow)];
+}
+
+/** The duet's speech bubble, clamped to the speaking cat — see `paintBeside`.
+ *  Anchored to the cat's whole drawn box, hop included: `placeBeside` leaves
+ *  only `BESIDE_GAP` between a bubble and its anchor, and a hopping cat under
+ *  a bubble anchored to where it sits would spend that gap — all of it, at
+ *  today's numbers — at the top of every bounce. */
+function paintBubble(
+  node: HTMLElement | null,
+  cat: Spot,
+  keepOut: readonly RectLike[],
+  hopping = false,
+): RectLike | null {
+  const box = drawnBox(cat, hopping);
+  return paintBeside(node, { x: box.left, y: box.top }, CAT_W, box.bottom - box.top, keepOut);
 }
 
 /** Mini-Thien's caption, clamped to him rather than to the cat he is
@@ -1129,6 +1189,7 @@ function sameVisual(a: Visual, b: Visual): boolean {
     a.pose === b.pose &&
     a.facing === b.facing &&
     a.blinking === b.blinking &&
+    a.hopping === b.hopping &&
     // Quantised: the drawing cannot show more than this, so committing more
     // than this is pure re-render cost.
     Math.round(a.phase * 24) === Math.round(b.phase * 24) &&
@@ -1435,12 +1496,7 @@ export function Companion({ facts }: CompanionProps) {
    *  field note, plus scene completion. The state mirror below is for JSX
    *  only, exactly the way `note` used to be. */
   const duetRef = useRef<DialogueRun | null>(null);
-  const [duetBeat, setDuetBeat] = useState<{
-    speaker: Speaker;
-    meow: string;
-    sub: string;
-    hintMore: boolean;
-  } | null>(null);
+  const [duetBeat, setDuetBeat] = useState<BeatView | null>(null);
 
   /* ---------------------------------------------------------- mini-Thien -- */
   /** His position and facing, mirrored out of React exactly the way the
@@ -1803,11 +1859,17 @@ export function Companion({ facts }: CompanionProps) {
    *  regardless of which cat is currently speaking. */
   const attachGreyBubble = useCallback((node: HTMLDivElement | null) => {
     greyBubble.current = node;
-    if (node) paintBubble(node, lead.current.pos, catBoxes(lead.current.pos, follow.current.pos));
+    if (node) {
+      const hops = hopsOf(committed.current);
+      paintBubble(node, lead.current.pos, catBoxes(lead.current.pos, follow.current.pos, hops), hops.lead);
+    }
   }, []);
   const attachTabbyBubble = useCallback((node: HTMLDivElement | null) => {
     tabbyBubble.current = node;
-    if (node) paintBubble(node, follow.current.pos, catBoxes(lead.current.pos, follow.current.pos));
+    if (node) {
+      const hops = hopsOf(committed.current);
+      paintBubble(node, follow.current.pos, catBoxes(lead.current.pos, follow.current.pos, hops), hops.follow);
+    }
   }, []);
 
   /** Mini-Thien and his caption get the same first-frame treatment as the
@@ -1818,13 +1880,15 @@ export function Companion({ facts }: CompanionProps) {
   }, []);
   const attachThienCaption = useCallback((node: HTMLDivElement | null) => {
     thienCaption.current = node;
-    if (node) paintCaption(node, thien.current.pos, catBoxes(lead.current.pos, follow.current.pos));
+    if (node) {
+      paintCaption(node, thien.current.pos, catBoxes(lead.current.pos, follow.current.pos, hopsOf(committed.current)));
+    }
   }, []);
 
   /** What the JSX needs to draw one beat; `hintMore` marks the last beat of
    *  an ambient scene that has an encore waiting behind it. */
   const beatView = useCallback(
-    (run: DialogueRun): { speaker: Speaker; meow: string; sub: string; hintMore: boolean } => {
+    (run: DialogueRun): BeatView => {
       const beat = currentBeat(run);
       const last = run.beatIndex === run.scene.beats.length - 1;
       const section = run.scene.kind === "ambient" ? run.scene.id.replace(/^ambient-/, "") : null;
@@ -1832,6 +1896,7 @@ export function Companion({ facts }: CompanionProps) {
         speaker: beat.speaker,
         meow: beat.meow,
         sub: beat.sub,
+        icon: beat.icon ?? null,
         hintMore: last && section !== null && hasEncore(section, facts),
       };
     },
@@ -2965,6 +3030,36 @@ export function Companion({ facts }: CompanionProps) {
         }
       }
 
+      /* ------------------------------------------------------------- act -- */
+
+      /**
+       * The running beat's act, if it has one and its reading time is not up.
+       * Derived from `duetRef` every frame (see `liveAct`) rather than stored,
+       * so it ends on the frame its beat does, by whichever path the beat
+       * ends — the clock above, a tap on the tabby, or any of the clears.
+       *
+       * Only the speaker acts, and only once everything that outranks an act
+       * has passed on the cat: each one's pose chain below reaches its act branch
+       * after walking, a play scene, dozing (the Contact stop's fake-nap is
+       * dozing) and a cheer (the storm/sun/rain flourish is a cheer). What is
+       * left is the scripted motion that is not a pose — the origin-story's
+       * storm dash and rain huddle, and the fast-scroll dash the storm
+       * borrows — and `choreographed` is that: a cat being placed by one of
+       * them does not stop to act. A cat mid-walk shows its walk; the act
+       * starts when it next stands, if the beat is still live by then.
+       *
+       * Acts never touch `keepGoing`: an act is read off its beat each frame
+       * and asks nothing of the loop, so the loop never runs a frame longer
+       * for an act than it would for the beat alone.
+       */
+      const act = liveAct(duetRef.current, now);
+      const choreographed =
+        rushing ||
+        (watch !== null &&
+          (now < rainHuddleUntil.current || (rushRef.current !== null && now < rushRef.current.until)));
+      let leadHopping = false;
+      let followHopping = false;
+
       /* ------------------------------------------------------------ lead -- */
 
       let leadWant: Point;
@@ -3301,6 +3396,12 @@ export function Companion({ facts }: CompanionProps) {
         // is drawn for this.
         calmIdle(grey, now);
         grey.pose = "stretch";
+      } else if (act?.speaker === "grey" && !choreographed) {
+        // His line, acted out — see `act` above.
+        calmIdle(grey, now);
+        const drawn = actPose(act.act);
+        grey.pose = drawn.pose;
+        leadHopping = drawn.hopping;
       } else {
         // He never bats: the tail he would be batting at is his own.
         grey.pose = tickIdle(grey, now, false);
@@ -3413,6 +3514,12 @@ export function Companion({ facts }: CompanionProps) {
       } else if (cheering) {
         calmIdle(tabby, now);
         tabby.pose = "bat";
+      } else if (act?.speaker === "tabby" && !choreographed) {
+        // Her line, acted out — see `act` above.
+        calmIdle(tabby, now);
+        const drawn = actPose(act.act);
+        tabby.pose = drawn.pose;
+        followHopping = drawn.hopping;
       } else {
         // She bats at his tail when she has ended up parked on the side he
         // keeps it — behind him, which is exactly where following him leaves
@@ -3458,6 +3565,7 @@ export function Companion({ facts }: CompanionProps) {
           facing: cop.facing,
           blinking: tickBlink(cop, now),
           flick: 0,
+          hopping: false,
         };
 
         const inBed =
@@ -3559,9 +3667,17 @@ export function Companion({ facts }: CompanionProps) {
         // cats: both are painted against the positions just written above, in
         // the same frame, so neither can be drawn over a cat that has since
         // moved — see `placeBeside`.
-        const cats = catBoxes(grey.pos, tabby.pos);
+        //
+        // A hopping cat's box reaches the top of the hop (`drawnBox`). The
+        // committed frame is read beside this one because the drawing hops on
+        // React's clock, a commit behind the loop: a cat whose act just ended
+        // is still drawn hopping until that commit lands.
+        const shown = hopsOf(committed.current);
+        const hops: Hops = { lead: leadHopping || shown.lead, follow: followHopping || shown.follow };
+        const cats = catBoxes(grey.pos, tabby.pos, hops);
         const bubble =
-          paintBubble(greyBubble.current, grey.pos, cats) ?? paintBubble(tabbyBubble.current, tabby.pos, cats);
+          paintBubble(greyBubble.current, grey.pos, cats, hops.lead) ??
+          paintBubble(tabbyBubble.current, tabby.pos, cats, hops.follow);
         paintCaption(thienCaption.current, thien.current.pos, bubble ? [...cats, bubble] : cats);
       }
 
@@ -3706,6 +3822,7 @@ export function Companion({ facts }: CompanionProps) {
           facing: grey.facing,
           blinking: tickBlink(grey, now),
           flick: tickFlick(grey, now, grey.pose !== "sleep"),
+          hopping: leadHopping,
         },
         follow: {
           pose: tabby.pose,
@@ -3713,6 +3830,7 @@ export function Companion({ facts }: CompanionProps) {
           facing: tabby.facing,
           blinking: tickBlink(tabby, now),
           flick: tickFlick(tabby, now, tabby.pose !== "sleep"),
+          hopping: followHopping,
         },
         police: policeVisual,
       };
@@ -4734,8 +4852,12 @@ export function Companion({ facts }: CompanionProps) {
             ref={duetBeat.speaker === "grey" ? attachGreyBubble : attachTabbyBubble}
             data-cat-bubble={duetBeat.speaker}
             aria-hidden="true"
-            className="pointer-events-none absolute left-0 top-0 w-max max-w-[12rem] border border-rule bg-surface px-2 py-1"
+            className="pointer-events-none absolute left-0 top-0 inline-flex w-max max-w-[12rem] items-center gap-1 border border-rule bg-surface px-2 py-1 text-fg"
           >
+            {/* The beat's picture, before the meow and outside its `<p>`: the
+                paragraph still holds the meow and nothing else. Ink is
+                `currentColor`, so `text-fg` above is the whole of its colour. */}
+            {duetBeat.icon ? <CatGlyph name={duetBeat.icon} /> : null}
             <p className="whitespace-nowrap font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle">
               {duetBeat.meow}
             </p>

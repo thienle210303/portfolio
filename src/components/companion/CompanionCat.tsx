@@ -79,6 +79,15 @@ export const CAT_W = 50;
 export const CAT_H = 42;
 
 /**
+ * How high a hopping cat rises, in px: the peak of `@keyframes cat-hop` in
+ * globals.css. Not read by the stylesheet — CSS cannot import it — but by the
+ * loop, which lifts the speaking cat's bubble, and keeps every caption off
+ * her, by this much while she hops (`catBoxes` in Companion.tsx).
+ * `tests/ui/CatIcon.test.tsx` reads the keyframes and fails if the two part.
+ */
+export const CAT_HOP_RISE = 6;
+
+/**
  * The grey coat. High enough to read as a solid-coated animal beside the
  * tabby's bare outline, low enough that the contour and the markings still
  * carry the drawing rather than being swallowed by it.
@@ -123,6 +132,15 @@ interface CompanionCatProps {
   readonly flick?: number;
   /** Drawn smaller inside the resting box. 1 everywhere else. */
   readonly scale?: number;
+  /**
+   * The `hop` act: marks the drawing `data-cat-hop`, which the stylesheet
+   * bounces — twice, once, on the frame the attribute appears — and only
+   * under `prefers-reduced-motion: no-preference`. On the `<svg>` itself
+   * rather than on anything `Companion` positions, so the bounce's
+   * `transform` composes with the wrapper's `translate3d` and the facing
+   * span's `scaleX` instead of replacing either.
+   */
+  readonly hopping?: boolean;
 }
 
 /** Exported for `MiniThien`, the one other drawing on this layer that follows
@@ -654,6 +672,7 @@ export function CompanionCat({
   blinking,
   flick = 0,
   scale = 1,
+  hopping = false,
 }: CompanionCatProps) {
   return (
     <svg
@@ -662,6 +681,7 @@ export function CompanionCat({
       // meaning "every cat" — and the specs that count animals need to keep
       // counting animals.
       data-cat=""
+      data-cat-hop={hopping ? "" : undefined}
       viewBox={`0 0 ${CAT_W} ${CAT_H}`}
       width={CAT_W * scale}
       height={CAT_H * scale}

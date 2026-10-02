@@ -3,6 +3,7 @@
 import { origin } from "@/content/portfolio";
 import type { CompanionFacts } from "@/lib/companion-facts";
 import type { SeasonKind } from "@/lib/origin-story";
+import type { CatPose } from "./CompanionCat";
 
 /**
  * The duet: one pure scene bank behind both the ambient banter and the
@@ -374,6 +375,36 @@ export function advanceBeat(run: DialogueRun, now: number): DialogueRun | null {
 export function beatDurationMs(beat: DialogueBeat): number {
   const maxForLength = BEAT_MAX_MS - (SUB_MAX_CHARS - beat.sub.length) * BEAT_MS_PER_CHAR;
   return Math.max(BEAT_MIN_MS, Math.min(BEAT_MAX_MS, maxForLength));
+}
+
+export interface LiveAct {
+  readonly speaker: Speaker;
+  readonly act: CatAct;
+}
+
+/**
+ * The act the running beat is playing at `now`: its speaker and its act, from
+ * the beat's start until `beatStartedAt + beatDurationMs(beat)` — the same
+ * boundary the loop advances a beat on, so an act and its bubble end on the
+ * same frame. Null with no scene running, on a beat that carries no act, and
+ * past the beat's own reading time even on a run nobody has advanced yet: an
+ * act is derived from the beat on every ask rather than stored beside it, so
+ * there is no second clock that could outlive the first.
+ */
+export function liveAct(run: DialogueRun | null, now: number): LiveAct | null {
+  if (!run) return null;
+  const beat = currentBeat(run);
+  if (!beat.act || now - run.beatStartedAt > beatDurationMs(beat)) return null;
+  return { speaker: beat.speaker, act: beat.act };
+}
+
+/**
+ * How an act is drawn. Five of the six are poses the cat already has; `hop`
+ * is not a shape at all but a movement, so the cat sits and the wrapper
+ * bounces (`[data-cat-hop]` in globals.css).
+ */
+export function actPose(act: CatAct): { readonly pose: CatPose; readonly hopping: boolean } {
+  return act === "hop" ? { pose: "sit", hopping: true } : { pose: act, hopping: false };
 }
 
 /** When the next spontaneous scene may play. `spread` is the caller's roll
