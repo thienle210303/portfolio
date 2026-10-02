@@ -6,17 +6,19 @@ open a component to change what the site says.
 | What you want to change | File |
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
-| The ten agent stages the Workshop's lower lane renders | `src/content/ai-experiments.ts` (`workflowStages`) |
-| AI experiments, the learning log, the scraping playbook — still unrendered since round 16 removed the AI Workflow Lab, kept for a future section | `src/content/ai-experiments.ts` |
 | The AI tools reference (`aiTools`), whose tool names the globe's Technology plaque is composed from | `src/content/portfolio.ts` |
 | Which objects sit on which world of the globe | `src/content/worlds.ts` |
-| Which authored field is the evidence for which step of the loop | `src/content/workshop.ts` |
+| Which of the Journey's seven acts draws a role | `src/lib/anchors.ts` (`ENTRY_ACTS`) |
 
-The last two hold **addresses, not sentences**. A plaque on the globe and a
-station in the Workshop each name a record and a field; the words a visitor
-reads come out of `src/content/portfolio.ts`, verbatim. So if a line reads
-badly in either place, the fix is in the field it points at — that same string
-is on screen somewhere else too.
+`src/content/worlds.ts` holds **addresses, not sentences**. A plaque on the
+globe names a record and a field; the words a visitor reads come out of
+`src/content/portfolio.ts`, verbatim. So if a line reads badly on the globe,
+the fix is in the field it points at — that same string is on screen somewhere
+else too.
+
+(Round 18 deleted `src/content/ai-experiments.ts` and `src/content/workshop.ts`
+along with the Workshop section and the AI Workflow Lab's content. If you are
+looking for either, it is in git history, not here.)
 
 After any edit, run `pnpm verify`. It typechecks, lints, re-measures colour
 contrast, runs the unit tests and builds. If a number you removed was being
@@ -33,20 +35,23 @@ Find the project in `projects` and edit its `metrics` array:
 ```ts
 metrics: [
   {
-    label: "Legacy scraper runtime",   // what was measured
-    before: "Baseline",                // the state it started from
-    after: "99% reduction",            // the headline figure
-    source: "Résumé — DoorDash, Software Engineer",  // required
+    label: "Example — what was measured",
+    before: "Example — the state it started from",
+    after: "Example — the headline figure",
+    source: "Example — where the figure came from",  // required
   },
 ],
 ```
+
+(Every value above is a placeholder, deliberately shaped so nobody mistakes it
+for one of the site's real figures.)
 
 That one object drives **four** places at once, which is why there is nowhere
 else to update:
 
 - the big figure in the case-study summary (`MetricHighlights`)
 - the full before/after table inside the case study (`MetricTable`)
-- the "Sourced figures" count in the Selected Work margin rail
+- the project's line on `/resume`
 - the answers behind "Ask this site"
 
 Three things worth knowing:
@@ -67,37 +72,54 @@ case study never ends up with no evidence in it.
 
 Add an entry to `careerEntries`. One entry feeds all of:
 
-- the **Journey** timeline
-- the **Career Tree** section (`src/sections/CareerTree/`)
-- the **résumé** at `/resume`
+- the **Journey** (`#tree`, `src/sections/CareerTree/`) — a branch on the
+  drawing and a row in the list below 1024px, or one line on the credentials
+  strip if it is one of the demoted entries (see below)
+- the **résumé** at `/resume` — its Experience list shows `type: "work"`
+  entries only
 - "Ask this site"
-- the hero's "Now" line, which reads the most recent `type: "work"` entry — so
-  changing jobs is one edit, not a hunt
+- the hero's "Now" rail note, which reads the most recent `type: "work"` entry
+  — so changing jobs is one edit, not a hunt
 
-The fields that decide what hangs off it in the tree (round 12: every entry
-is its own branch, in date order — `sortKey` decides where on the trunk):
+Then two things the entry cannot decide for itself:
+
+1. **Which act draws it.** Add its `id` to `ENTRY_ACTS` in
+   `src/lib/anchors.ts`. That is an editorial call about the story, not a date
+   computation, and `tests/lib/acts.test.ts` fails until every entry has an
+   act.
+2. **When it ended.** Set `endSortKey` (`YYYY-MM`) on any role that has ended,
+   and leave it off one that is still running. `concurrentWith()` compares
+   these months inclusively to draw "Ran alongside", so a guessed month can
+   invent an overlap — say so in a comment beside it.
+
+The fields that decide what hangs off it in the tree (every entry is its own
+branch, in date order — `sortKey` decides where on the trunk):
 
 ```ts
 technologies: ["Python", "Playwright"],  // technology leaves on its branch
-impact: ["99% runtime reduction, ..."],  // achievement leaves on its branch
+impact: ["One sentence of what changed."],  // impact leaves on its branch
 lenses: ["engineering", "automation"],   // résumé-explorer grouping (not drawn)
 ```
 
-`lenses` come from `resumeLenses` in the same file. Since the round-12
-inversion they group entries for the résumé and the hero's "Where it shows
-up" list; the drawn tree no longer uses them.
+`lenses` come from `resumeLenses` in the same file. They group entries for the
+résumé and the About band's "Where it shows up" list; the drawn tree does not
+use them.
 
 To attach a case study to a role, set the project's `careerEntryId` to that
-entry's `id`. That is also what supplies the employer and dates shown under the
-case-study title, so those can never drift apart from the timeline.
+entry's `id`. The case study then renders inside that role's branch on the
+Journey, and the role supplies the employer and dates shown under the
+case-study title, so the two can never drift apart. (A case study whose role is
+demoted has no branch to open from, so it renders after the acts, full width —
+`UnbranchedCaseStudies`.)
 
 ## Where the résumé lives
 
 There is no résumé *section* on the home page. There was, and it was a
-5,000px second telling of the page around it — the experience is the Journey
-timeline, the projects are Selected Work, the education and every award are
-already timeline entries. Only skills and certifications were unique to it, and
-those are now the Skills section.
+5,000px second telling of the page around it — the experience was the Journey
+timeline, the projects were Selected Work, the education and every award were
+already timeline entries. Only skills and certifications were unique to it.
+Round 18 deleted the Skills section that briefly held them, so they now render
+on `/resume` and nowhere else on the site.
 
 So the résumé is `/resume`: a page to read, print, or download. It reads the
 same `careerEntries`, `projects`, `skillCategories`, `education`,
@@ -109,12 +131,18 @@ pointed to by `profile.resumePdf`. **It does not regenerate itself** — if you
 change a role or a metric, update the PDF too, or the download will contradict
 the page. `Ctrl/Cmd+P` on `/resume` produces a clean copy to replace it with.
 
-## A note on the knowledge tree
+## A note on the Journey's tree
 
-The tree draws **only relationships you have written down**. Since round 12
-each branch *is* one career entry (chronological up the trunk, each exactly
-once), and its leaves are that entry's own `technologies` and `impact`
-lines — because you listed them there, never because anything matched.
+The tree draws **only relationships you have written down**. Each branch *is*
+one career entry (chronological up the trunk, each exactly once), and its
+leaves are that entry's own `technologies` and `impact` lines — because you
+listed them there, never because anything matched.
+
+Nine entries — the degree and eight milestones —
+are not drawn as branches. They are `DEMOTED_ENTRY_IDS` in
+`src/lib/knowledge-tree.ts` and render as one credentials line on the stage
+instead. Nothing is drawn under the ground line: the skill groups that used to
+label the roots are on `/resume` now, not on the tree.
 
 It deliberately does *not* try to match `skillCategories.skills` against
 `technologies`. Those are two different vocabularies — of 38 skills, 17 match a
@@ -190,34 +218,6 @@ wants to bound the claim. Việt Nam is the only world that has one — one
 decoration, and the line "One object so far, and he named it himself. Nothing
 here was invented to fill the space." The two are independent: an empty world
 needs no disclosure, and a disclosure does not imply an empty world.
-
-## Change which field a Workshop station quotes
-
-One line in `src/content/workshop.ts`:
-
-```ts
-{ step: "test", field: "whatFailed" },
-```
-
-Then:
-
-```
-pnpm vitest run tests/lib/workshop.test.ts
-```
-
-**Each field appears exactly once**, across all nine stations. That is a real
-constraint rather than tidiness: a line used as evidence for two different
-steps is a line doing a job it was not written for, and it makes a run look
-like it had more material than it did. The test fails on a duplicate.
-
-Five fields are deliberately unmapped — `whyItMattered`, `responsibility`,
-`proof`, `metrics` and `workflow`. They belong to the case study's own telling
-in `#work`, and the Workshop links there instead of repeating it.
-
-A station whose field is empty on the project being run **stays on screen and
-says what is missing**, via `stationGap`. Four of the five projects author no
-`whatFailed`, so that is four runs in five — the empty station is the normal
-case, not an edge case, and the disclosure is the feature.
 
 ## Contact delivery
 

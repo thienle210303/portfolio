@@ -346,7 +346,7 @@ Verifier findings, all fixed:
 | Finding | Outcome |
 | --- | --- |
 | Ring stations could cover each other's text (pin 02, Tab to 03) | Each panel now measures its clearance against the panels sharing its x range and opens toward the roomier side. Station 02 — longest detail, 36px below it — grows upward into empty space instead of burying 03. Verified with `elementFromPoint` over every station's text at 1024/1280/1440, both themes |
-| Document click listener had zero coverage | Two tests: re-click the current hash after filtering the entry away, and prove an ordinary in-page link leaves the filter untouched. Plus a unit test for the dead-fragment guard |
+| Document click listener had zero coverage | Two tests: re-click the current hash after filtering the entry away, and prove an ordinary in-page link leaves the filter untouched. Plus a unit test for the dead-fragment guard. *(History: round 18 deleted the timeline, its filter and that listener, and both tests went with them — neither guards anything today.)* |
 | Landing asserted `>= 64` (would pass at 400px) | Pinned to the real 80px contract |
 | "Without JS the links still work" overstated | Corrected: the *target* survives without JS; the route to it mostly does not, because the leaves are collapsed disclosures |
 | Cat probe offset 4/3px from its drawing | Real bug, worse than it sounded: 23 of 37 probe-approved spots put the drawn cat on text; 0 of 37 after. The button is now inset by its own hit-target margin, so a cat's position is the top-left of the animal you can see. Tap target unchanged; the contact perch's 3px clearance is now real (measured 3.3px) |
@@ -1161,7 +1161,7 @@ not depend on the browser build.
 | CLS | 0 | 0 | 0 |
 | LCP (3 runs) | 3324 / 4520 / 4848 ms | 5348 / 5156 / 5604 ms | see below |
 | TBT (3 runs) | 519 / 717 / 584 ms | 1331 / 1155 / 659 ms | see below |
-| LCP element | not recorded per build | not recorded per build | see below |
+| LCP element | `P.mt-6.max-w-[56ch]` — the hero intro (this build re-measured in Task 14, below) | not re-measured at this commit; its successor names the same element (below) | none |
 
 Initial JS did not move: the stage is a client component, but it is handed the
 drawing, the list, the credentials strip and the case-study prose as slots by
@@ -1174,7 +1174,8 @@ catch.
 **LCP and TBT were higher in all three pairs after the change**, and this table
 does not explain why.
 
-**The LCP element line is blank on purpose.** This file's convention is to name
+**The LCP element line was blank on purpose, and Task 14 filled it** — see the
+next section. This file's convention is to name
 the selector per build (line 1062 names `P.mt-6.max-w-[56ch]`), and the task
 report for these runs says only "the LCP element is the hero paragraph" without
 distinguishing the two builds. The per-run output was not kept and `pnpm perf`
@@ -1196,3 +1197,57 @@ than explained away.
 same-build control arm. It also has to wait for Task 12: `src/app/page.tsx:55`
 and `:57` both render the case-study prose today, so anything timed against this
 tree is timing a page with the same prose on it twice.
+
+### Round 18 close: the re-measurement, with a same-build control (Task 14)
+
+The Task 11 row above left two questions open: which element LCP named in each
+build, and whether the stage's LCP/TBT rise was the stage or the session. This
+measures both arms **in one session, interleaved** — test, control, test,
+control, test, control — so whatever the machine was doing applied to both.
+
+- **Test:** `370706c`, the end of round 18's Plan A — four sections, the
+  duplicated case-study prose gone (Task 12), and the retired tree figure
+  deleted (Task 14). Every commit after `68f2df1` touches only comments,
+  unit tests or e2e specs, so the shipped code is `68f2df1`'s.
+- **Control:** `96221c6`, the same "Before" build the Task 11 row used.
+
+Both built from clean detached worktrees with `pnpm build` (no `VERCEL_ENV`, so
+analytics off in both) and served with `pnpm start` on their own ports.
+`scripts/perf.mjs` run unmodified except for pointing `launch()` at the
+installed `chromium_headless_shell-1234`. **Zero skipped responses in all six
+runs.** 412 × 823, so — as in the row above — the pin is inert and its own
+runtime cost is still not what this measures.
+
+| | Control (`96221c6`) | Test (`370706c`) | Δ |
+|---|---|---|---|
+| **Initial JS** — `request.sizes()` | 200.7 KB (all three runs) | 197.4 KB (all three runs) | **−3.3 KB** |
+| CSS | 14.1 KB | 14.0 KB | −0.1 KB |
+| Fonts | 223.8 KB | 223.8 KB | 0 |
+| DOM nodes | 4,269 | 3,138 | **−1,131** |
+| CLS | 0 | 0 | 0 |
+| LCP (runs 1 / 2 / 3) | 5208 / 4716 / 5056 ms | 7136 / 3924 / 4660 ms | overlapping |
+| TBT (runs 1 / 2 / 3) | 1257 / 986 / 1031 ms | 488 / 508 / 606 ms | lower in all three pairs |
+| LCP element (every run) | `P#.mt-6 max-w-[56ch] text-[length` | `P#.mt-6 max-w-[56ch] text-[length` | same |
+| Skipped responses | 0 / 0 / 0 | 0 / 0 / 0 | |
+
+**Initial JS fell, it did not leak.** Against the last recorded figure (the
+Task 11 row's 199.4 KB "After") the move is −2.0 KB, and against the matched
+control −3.3 KB. Which of the round's later commits each byte came from was
+not bisected; the direction is the point — the leak this check exists to catch adds
+bytes. Checked by content, not by total: the coastline data (identified by a
+coordinate run from `coastline-data.ts`) lives in one ~61 KB chunk that none of
+the test build's 12 initial `<script>` tags names.
+
+**The LCP question closes.** Both builds name the same LCP element in every
+run — the hero's intro paragraph — so the delta
+the Task 11 row could not explain was not a selector artefact. With a matched
+control in the same session the two arms' LCP ranges overlap (one test run is
+the slowest of the six, one the fastest), so there is no LCP signal in either
+direction. TBT is lower for the test build in all three pairs, consistent with
+1,131 fewer DOM nodes to hydrate around; it is reported, not claimed as a
+target.
+
+**Machine state, said out loud:** a node process from another session (PID
+4292, started 2026-09-30, >125,000 s of CPU) held a core throughout. It was
+there for both arms equally, which is what interleaving is for, and it is why
+absolute times here should not be compared with rows above this one.

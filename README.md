@@ -3,13 +3,16 @@
 A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
-The site is a single narrative page: a code-led hero (with a chat that
-answers questions about the page, grounded only in what it says), a drawn
-globe of seven worlds made entirely of the site's own authored facts, five case
-studies, a skills inventory, a career tree, a workshop that runs a nine-step
-method against one real project, and a contact experience that starts from
-what the visitor actually came to say. The résumé is its own route at
-`/resume`, reading the same content.
+The site is a single narrative page in four sections: **About** — a
+code-led hero, with a chat that answers questions about the page grounded only
+in what it says, and an About band; **Worlds** — a drawn globe of seven worlds
+made entirely of the site's own authored facts; the **Journey** — a career
+tree on a pinned stage, told in seven acts from 2018, with the case studies
+inside it (in the branches of the roles that produced them, or after the acts
+for the coursework); and **Contact**, which
+starts from what the visitor actually came to say. The résumé is its own route
+at `/resume`, reading the same content, and it is the only place the skills
+inventory renders.
 
 Visually it is **Blueprint**: a cool paper ground ruled with a faint measurement
 grid, one blue reserved for annotation and measured values, and a margin rail
@@ -85,7 +88,8 @@ tones with no per-tone branch anywhere. A raw token freezes it into one.
 at ≥1024px, stacking after the body as endnotes below that. Every note must be
 a fact **computed from the content layer** — a count, a date, a source — never
 a restatement of the prose beside it, and never a fact that exists nowhere
-else. `SelectedWork` and `Skills` are the reference examples.
+else. `CareerTree.tsx` (every note counted off the tree it draws) and
+`Worlds.tsx` are the reference examples.
 
 ### Colour and contrast
 
@@ -149,18 +153,21 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, contact intents, the Philosophy section's retired `principles[].detail` prose (unrendered), `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — and `problemSolvingLoop` — the nine steps, now rendered as the Workshop's stations |
-| `src/content/ai-experiments.ts` | `workflowStages`, rendered as the Workshop's agent lane; plus the AI experiments, learning log and scraping playbook, still unrendered since round 16's removal of the AI Workflow Lab and kept for a future section |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, hero code tabs, career entries, case studies, résumé lenses, skills, education, certifications, achievements, `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — contact intents and the closing |
 | `src/content/worlds.ts` | The seven worlds of the globe — **addresses, not sentences**: each plaque names a record and a field in `portfolio.ts`, and the words are quoted from it verbatim |
-| `src/content/workshop.ts` | Which authored field is the evidence for which step of the loop, one field per station, plus what a station says when the field is empty |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
+
+Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's
+experiments, learning log, scraping playbook and agent stages) and
+`src/content/workshop.ts` along with the Workshop section. They are in git
+history if a later round wants them; nothing on the site reads them.
 
 (`src/content/answer-expansion.ts` sits beside them but holds no facts — it is
 checked-in search vocabulary for "Ask this site", not anything the page says.)
 
 `careerEntries` is the canonical source for organisations, roles and dates. Case
 studies reference a career entry by `careerEntryId` rather than restating them,
-so the timeline, the case studies and the résumé cannot disagree.
+so the Journey, the case studies and the résumé cannot disagree.
 
 ### The `[NEEDS INPUT]` convention
 
@@ -192,6 +199,7 @@ Append to `careerEntries` in `src/content/portfolio.ts`:
   type: "work",            // "work" | "learning" | "milestone"
   dateRange: "March 2027 — Present",
   sortKey: "2027-03",      // YYYY-MM; entries sort by this, descending
+  // endSortKey: "2028-06", // YYYY-MM once it has ended; omit while it runs
   role: "Staff Engineer",
   organization: "Company",
   locationOrMode: undefined,        // or a string, or a [NEEDS INPUT] marker
@@ -206,8 +214,13 @@ Append to `careerEntries` in `src/content/portfolio.ts`:
 }
 ```
 
-The timeline filter counts (All / Work / Learning / Milestones) are computed from
-the data — there is nothing to update.
+Two more decisions the entry cannot make for itself: which of the Journey's
+seven acts draws it (add its `id` to `ENTRY_ACTS` in `src/lib/anchors.ts` —
+`tests/lib/acts.test.ts` fails until you do), and, once it has ended, its
+`endSortKey`, which the Journey compares month by month to say what ran
+alongside what. The rail's counts are computed from the data — there is
+nothing else to update. [docs/editing.md](docs/editing.md) has the longer
+recipe.
 
 Where two entries share a `YYYY-MM`, append a disambiguating suffix to `sortKey`
 (`"2025-05-a"`, `"2025-05-b"`) — sorting is reverse-lexicographic on the string.
@@ -231,63 +244,6 @@ same narrative arc, and the fields are named for it:
   before-state is known.
 - `inProgressNote` renders a written "case study in progress" state instead of a
   half-finished deep dive.
-
-### Adding an AI experiment
-
-Round 16 removed the AI Workflow Lab section that used to render this array,
-so `experiments` is currently unrendered — kept because a future section is
-expected to re-home it. Append to `experiments` in
-`src/content/ai-experiments.ts`.
-
-```ts
-{
-  id: "unique-id",
-  title: "…",
-  started: "Q1 2027",   // coarse and true beats precise and invented
-  sortKey: "2027-01",   // YYYY-MM, used for ordering only
-  status: "Exploring",  // Exploring | Tested | Adopted | Retired
-  question: "…",
-  hypothesis: "…",
-  toolIds: ["claude-code"],   // must exist in `aiTools` in portfolio.ts
-  whyThisTool: "…",
-  contextSupplied: ["…"],
-  stageIds: ["implement"],    // must exist in `workflowStages`
-  humanDecisionPoints: ["…"],
-  safetyBoundaries: ["…"],
-  verification: [],           // MUST stay empty until something is verified
-  nextExperiment: "…",
-  lastUpdated: "2027-01-15",
-}
-```
-
-Rules enforced by review, not by the compiler:
-
-- An `Exploring` experiment has an **empty `verification` array and no
-  `outcome`**. The AI Workflow Lab used to render "no results yet" for these;
-  nothing renders this data today, but the rule still holds for whichever
-  section re-homes it. Do not add an outcome to make an entry look complete.
-- Any claim about a tool's current capabilities needs a `sources` entry linking
-  to the vendor's own documentation, because those capabilities change faster
-  than this file does.
-- Nothing on this page runs live. Never add simulated output.
-
-### Updating the learning log
-
-Also currently unrendered, for the same reason as `experiments` above.
-`learningLog` in `src/content/ai-experiments.ts`:
-
-- `lastUpdated` — bump this whenever you touch the log; it drives the
-  "Last updated" indicator.
-- `exploringNow` — what you are learning right now (undated).
-- `changedMyThinking` — `{ before, after }` pairs.
-- `wantToTestNext` — open intentions (undated).
-- `entries` — **dated** entries, `YYYY-MM-DD`. Only add an entry you can date
-  honestly; the undated arrays exist precisely so you never have to invent one.
-
-Dates are formatted by `formatIsoDate()` in `src/lib/content.ts`, which uses a
-hardcoded month table rather than `Intl` — this is deliberate, so server and
-client render identically and hydration stays clean. Do not swap it for
-`toLocaleDateString`.
 
 ### Replacing the résumé PDF
 
@@ -471,7 +427,8 @@ src/
   content/        ← all facts live here
   types/          the contracts content is checked against
   hooks/          small client-side hooks
-  lib/            pure helpers (cn, highlight, content)
+  lib/            pure helpers (cn, highlight, content, the act anchors, …);
+                  never imports from sections/
 docs/             generated contrast table, editing recipes, feedback tracker
 scripts/          contrast measurement, screenshots, `pnpm perf`
 tests/            Vitest component tests

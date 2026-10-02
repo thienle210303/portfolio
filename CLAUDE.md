@@ -84,21 +84,37 @@ server-rendered pulls the engine *and* the coastlines into the initial bundle.
 
 ## Changing what the site says
 
+The page is four sections, in this order: About (`#about` — the hero, its chat
+and the About band), Worlds (`#worlds`, the globe), the Journey (`#tree`, the
+pinned stage) and Contact (`#contact`). `navItems` in
+`src/content/portfolio.ts` is the same four items in the same order; the nav
+doubles as the page's table of contents.
+
+The retired ids — `#journey`, `#work`, `#skills`, `#workshop`, every
+`journey-entry-<id>` and every `work-<projectId>` — are all still in the
+server-rendered HTML, and the section and per-entry ones land on the Journey
+with JavaScript off (`e2e/legacy-anchors.spec.ts`). Nothing on the page links
+to most of them; they exist for inbound links the site does not control, so
+"unreferenced" is not a reason to delete one.
+
 There is no résumé section on the page — it is a route, `/resume`, that reads
 the same content. Do not reintroduce it as a section: it was almost entirely a
 second rendering of the timeline and the case studies.
 
-Everything factual lives in `src/content/portfolio.ts`; components read from it
-and never restate a fact. One career entry feeds the timeline, the résumé, the knowledge tree and
-the hero's "Now" line at once. Practical recipes — adding a metric, adding a
-role, attaching a case study — are in [docs/editing.md](docs/editing.md).
+Everything factual lives in `src/content/portfolio.ts` (the globe's addresses
+into it live in `src/content/worlds.ts`); components read from it and never
+restate a fact. One career entry feeds the Journey, the résumé, the globe's
+plaques and the hero's "Now" rail note at once. Practical recipes — adding a
+metric, adding a role, attaching a case study — are in
+[docs/editing.md](docs/editing.md).
 
-Round 18 deleted the AI Workflow Lab's content outright: `src/content/ai-experiments.ts`
-no longer exists, and neither do `workflowStages`, `experiments`, `learningLog`,
-`scrapingPlaybook`, the four Lab strings, `experimentsIndexable`, the Workshop
-section and the invented `problemSolvingLoop` / `principles` / `philosophyIntro`.
-Nothing is "retained pending a home". If a later plan wants any of it back, it
-comes from git history and a decision by Thien, not from this file.
+Round 18 deleted the AI Workflow Lab's content outright:
+`src/content/ai-experiments.ts` no longer exists, and neither do
+`workflowStages`, `experiments`, `learningLog`, `scrapingPlaybook`, the four
+Lab strings, the `experimentsIndexable` adapter, the Workshop section and the
+invented `problemSolvingLoop` / `principles` / `philosophyIntro`. Nothing is
+"retained pending a home". If a later plan wants any of it back, it comes from
+git history and a decision by Thien, not from this file.
 
 One rule from that history is still true and worth keeping: **never index
 agent-stage failure-mode strings** (the old `workflowStages[].watchFor`). Round
@@ -111,18 +127,51 @@ text whose vocabulary is generic costs precision everywhere and earns recall
 nowhere the eval can see. `aiTools` is `src/content/portfolio.ts` content and
 composes the globe's Technology plaque through `computedFact("ai-tools")`.
 
-The career tree draws only authored relationships. Since round 12 each
-branch is one career entry (chronological, each exactly once) and its leaves
-are that entry's own `technologies` and `impact` fields, verbatim. Do not
-make it infer edges by matching skill names against technology strings: the
-two vocabularies only overlap 17 of 38 ways, so loose matching invents links
-and strict matching claims real skills were never used.
-`tests/lib/knowledge-tree.test.ts` enforces this. The roots are
-`skillCategories` labels linking to the Skills section — label-only, no
-drawn category → entry edge, because nobody has authored one.
+### The Journey's tree
+
+The tree draws only authored relationships. Each branch is one career entry
+(chronological, each exactly once) and its leaves are that entry's own
+`technologies` and `impact` fields, verbatim. Do not make it infer edges by
+matching skill names against technology strings: the two vocabularies only
+overlap 17 of 38 ways, so loose matching invents links and strict matching
+claims real skills were never used. `tests/lib/knowledge-tree.test.ts`
+enforces this.
+
+- **What is drawn.** The stage draws `buildDrawnTree()`: every career entry
+  except the nine in `DEMOTED_ENTRY_IDS` (`src/lib/knowledge-tree.ts`), which
+  render as one credentials line instead. Their content is unchanged and still
+  indexed; only the limb is gone.
+- **No roots.** Nothing is drawn below the ground line. The story starts at the
+  crossing — the first act, which is the arrival itself, authored on `origin`
+  rather than on any career entry. The root labels, root system and plinth
+  that used to sit under the tree (`skillCategories` as labels linking to the
+  Skills section) were retired in round 18; skill categories now render on
+  `/resume` and in the chat corpus, not on the tree. Do not bring them back as
+  roots: no category → entry edge has ever been authored.
+- **Concurrency is computed.** A branch's "Ran alongside" line comes from
+  `concurrentWith()`, comparing the entries' own `sortKey`/`endSortKey` months
+  inclusively, limited to drawn branches by `drawnSiblings()`. `usc-degree`
+  contains every role from 2021 to 2025 rather than running beside them, and is
+  demoted, so it is never drawn as anyone's sibling. A guessed end month
+  creates overlaps by itself — see the comment on `fu-of-kyoto`.
+- **Acts are authored.** Which act draws an entry is `ENTRY_ACTS` in
+  `src/lib/anchors.ts` — an editorial call about the story, not a computation
+  over dates.
+
 `buildKnowledgeTree()` (the old lens-grouped shape) survives solely for the
-hero's "Where it shows up" list, which wants entries-per-lens — a different
-authored fact.
+About band's "Where it shows up" list, which wants entries-per-lens — a
+different authored fact.
+
+### `src/lib/` never imports from `src/sections/`
+
+Through round 17 `src/lib/worlds.ts` imported an anchor helper from a section's
+own folder, and deleting that section broke the library at compile time. Round
+18 moved everything the library needs — the act ids, the entry → act map and
+the act anchors — into `src/lib/anchors.ts`, and nothing under `src/lib/`
+imports from `src/sections/` now. Keep it that way: when a library function
+needs something a section owns, the thing moves into `lib/`. No lint rule or
+test fences this boundary, so grep for `@/sections` under `src/lib/` before
+adding an import.
 
 ## Before calling anything done
 
