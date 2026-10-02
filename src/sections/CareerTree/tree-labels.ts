@@ -2,7 +2,7 @@ import type { TreeBranch } from "@/lib/knowledge-tree";
 
 /**
  * `TreeBranch.kind` is the career entry's own `type` — `work` | `learning` |
- * `milestone` — carried through `buildKnowledgeTree()` verbatim. This is the
+ * `milestone` — carried through `buildCareerTree()` verbatim. This is the
  * one place it becomes a word a reader sees, shared by both presentations of
  * the tree so the two can never drift into calling the same entry different
  * things.

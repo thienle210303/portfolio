@@ -348,8 +348,8 @@ describe("sceneOrder", () => {
       return count / 2000;
     };
     const baseline = mothLeads(undefined);
-    const withSection = mothLeads({ section: "work" });
-    const atNight = mothLeads({ section: "work", night: true });
+    const withSection = mothLeads({ section: "tree" });
+    const atNight = mothLeads({ section: "tree", night: true });
     // Loose bound, not an exact match — this is comparing independent random
     // samples of the same distribution, not the same draw.
     expect(Math.abs(withSection - baseline)).toBeLessThan(0.05);
@@ -359,7 +359,7 @@ describe("sceneOrder", () => {
   it("carries the same eight scenes regardless of flavour", () => {
     // Same eight scenes, same shape — flavour no longer touches any weight,
     // and never removes or adds a scene from the pool.
-    for (const flavor of [undefined, { section: "work" }, { section: null }]) {
+    for (const flavor of [undefined, { section: "tree" }, { section: null }]) {
       const order = sceneOrder(false, flavor);
       expect([...order].sort()).toEqual([...KINDS].sort());
     }

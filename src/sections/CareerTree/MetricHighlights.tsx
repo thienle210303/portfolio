@@ -59,7 +59,7 @@ const COLUMNS: Record<number, string> = {
 
 /**
  * Figures are not all numbers. `after` is a verbatim content string, and the
- * real values range from "99% reduction" to "Under 1 hour, end to end" — set
+ * real values range from "Zero" to "Under 1 hour, end to end" — set
  * at one size, the long ones wrap to three ragged lines and stop reading as a
  * headline figure at all. Size steps down as the string grows so the slot
  * stays a glanceable fact either way.

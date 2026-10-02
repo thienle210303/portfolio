@@ -47,7 +47,9 @@ export interface Profile {
   readonly monogram: string;
   /** e.g. "Software Engineer" — the professional title, not a slogan. */
   readonly title: string;
-  /** The single positioning sentence the whole site hangs from. */
+  /** The single positioning sentence the whole site hangs from. Rendered as
+   *  the About band's lead (`HeroAbout.tsx`), and used as the page's meta
+   *  description and on the social card. */
   readonly positioning: string;
   /** One supporting sentence naming the actual focus areas. */
   readonly focus: string;
@@ -57,7 +59,8 @@ export interface Profile {
   readonly headline: string;
   /** Hero supporting paragraph. */
   readonly intro: string;
-  /** A short personal introduction used in the About/Philosophy lead. */
+  /** A short personal introduction — the About band's paragraphs
+   *  (`HeroAbout.tsx`), each also indexed by the chat corpus. */
   readonly about: readonly string[];
   readonly email: string;
   readonly location: Maybe<string>;

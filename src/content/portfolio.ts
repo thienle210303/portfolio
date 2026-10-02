@@ -623,12 +623,17 @@ export const careerEntries = [
   {
     id: "fu-of-kyoto",
     type: "work",
-    // He worked there over summers and winters through his first university
-    // year, plus a second summer, and then stopped: it ran INTO university
-    // rather than ending before it. That structural fact is the owner's
-    // (2026-10-01). The exact term is NOT settled — "2023-08" is the closest
-    // reading of "a second summer" and is pending his confirmation. Do not
-    // present it as a stated month.
+    // PARAPHRASE, not his words — his exact reply was not recorded anywhere in
+    // this repo. What he said (2026-10-01) amounts to: he worked the breaks
+    // through his first university year, plus a second summer, and then
+    // stopped — so it ran INTO university rather than ending before it. That
+    // structural fact is his. The exact term is NOT settled: "2023-08" is the
+    // closest reading of "a second summer" and is pending his confirmation, so
+    // do not present it as a stated month.
+    // TRAP: `concurrentWith` compares months inclusively, and `usc-ta` and
+    // `usc-honors-ta` both start 2023-08 — so this guessed month is the ONLY
+    // reason either of them overlaps this entry. Moving it to 2023-07 or
+    // earlier removes both overlaps (and the "Ran alongside" lines they draw).
     dateRange: "2019 — 2023",
     sortKey: "2019-01",
     endSortKey: "2023-08",

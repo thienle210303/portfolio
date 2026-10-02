@@ -1,7 +1,7 @@
 /**
- * The About band: profile.about's three paragraphs, promoted out of the
- * identity column and given a composition that holds at full page width
- * (FB-2). It used to render at the bottom of `HeroIdentity`, where at
+ * The About band: `profile.positioning` as its lead, then `profile.about`'s
+ * paragraphs, promoted out of the identity column and given a composition
+ * that holds at full page width (FB-2). It used to render at the bottom of `HeroIdentity`, where at
  * >=1360px that column is the narrower half of the hero's two-column grid —
  * the paragraphs sat alone with a large empty area beside them once the code
  * artifact ended.
@@ -14,13 +14,19 @@
  * targets the right id, and nothing about the section's heading contract
  * changes.
  *
+ * The lead is the site's one-line positioning (`profile.positioning`), set a
+ * step larger than the paragraphs under it. Until round 18 that sentence
+ * reached only the page metadata and the social card; see the note at the
+ * render site.
+ *
  * Everything beside the paragraphs is a fact already true in the content
  * layer, computed here rather than retyped:
- *  - the five knowledge-tree lenses, via the same `buildKnowledgeTree` the
- *    Career Tree section renders, each with the count of career entries
- *    tagged under it — proof the work spans more than one kind of problem,
- *    and a number that cannot drift from the tree because it's the same
- *    computation.
+ *  - the resume lenses, via `buildKnowledgeTree()`, each with the count of
+ *    career entries tagged under it — proof the work spans more than one kind
+ *    of problem. That is the entries' own authored `lenses` field, counted;
+ *    it is *not* what the Journey draws (the stage draws `buildDrawnTree()`,
+ *    one branch per drawn entry, no lenses), so this list is the only place on
+ *    the page the lenses appear.
  *  - `profile.focus`, which names the actual areas of focus and isn't
  *    rendered anywhere else on the page. `profile.philosophy` is
  *    deliberately left out here — this section's own rail already carries
@@ -141,9 +147,10 @@ export default function HeroAbout() {
                       </span>
                     </span>
                     {/* Visible digit plus an sr-only expansion, matching the
-                        "+N other places" pattern KnowledgeTree.tsx uses for
-                        the same underlying count — `aria-label` on a bare,
-                        roleless <span> is not reliably exposed by ATs. */}
+                        "+N other places" pattern the tree's own leaves use
+                        (`DrawnTree.tsx`, `KnowledgeTreeList.tsx`) —
+                        `aria-label` on a bare, roleless <span> is not
+                        reliably exposed by ATs. */}
                     <span className="shrink-0 font-mono text-[length:var(--step--1)] text-[color:var(--fg-subtle)]">
                       {lens.branches.length}
                       <span className="sr-only">
