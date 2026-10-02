@@ -72,12 +72,14 @@ import {
   useCompanionMode,
 } from "./companion-state";
 import {
+  boxAt,
   clamp,
   clampToViewport,
   findClearSpot,
   isClearSpot,
   keepClearOfControl,
   keepInView,
+  placeBeside,
   randomFacing,
   refreshSafeArea,
   safeTop,
@@ -1047,30 +1049,51 @@ function paint(node: HTMLElement | null, pos: Spot): void {
 /**
  * Shared by the duet's speech bubbles and mini-Thien's caption: sit above
  * whatever it is anchored to, or below it — never under the sticky header —
- * clamped to the viewport on both axes. `anchorH` is the anchor's own drawn
- * height (`CAT_H` for a bubble beside a cat, `THIEN_H` for a caption beside
- * the narrator), which is what the "flip below" fallback offsets by.
+ * clamped to the viewport on both axes, and never painted over anything in
+ * `keepOut` (the two cats, and for the caption the bubble too) when there is
+ * any clear side to put it on. The choice itself is `placeBeside` in
+ * companion-space.ts; this measures the node, paints the answer, and returns
+ * the box it painted so the caption can keep off the bubble painted before it.
+ * `anchorW`/`anchorH` are the anchor's own drawn size (`CAT_W`×`CAT_H` for a
+ * bubble beside a cat, `THIEN_W`×`THIEN_H` for a caption beside the narrator).
  */
-function paintBeside(node: HTMLElement | null, anchor: Spot, anchorH: number): void {
-  if (!node) return;
-  const margin = 8;
-  const width = node.offsetWidth;
-  const x = clamp(anchor.x, margin, Math.max(margin, window.innerWidth - width - margin));
-  const above = anchor.y - node.offsetHeight - 6;
-  const y = above < safeTop() + margin ? anchor.y + anchorH + 6 : above;
-  paint(node, { x, y });
+function paintBeside(
+  node: HTMLElement | null,
+  anchor: Spot,
+  anchorW: number,
+  anchorH: number,
+  keepOut: readonly RectLike[],
+): RectLike | null {
+  if (!node) return null;
+  const size = { width: node.offsetWidth, height: node.offsetHeight };
+  const at = placeBeside(
+    anchor,
+    anchorW,
+    anchorH,
+    size,
+    { viewportWidth: window.innerWidth, viewportHeight: window.innerHeight, safeTop: safeTop() },
+    keepOut,
+  );
+  paint(node, at);
+  return boxAt(at, size.width, size.height);
+}
+
+/** Both cats' drawn boxes — what no bubble or caption may be painted over. */
+function catBoxes(lead: Spot, follow: Spot): RectLike[] {
+  return [boxAt(lead, CAT_W, CAT_H), boxAt(follow, CAT_W, CAT_H)];
 }
 
 /** The duet's speech bubble, clamped to the speaking cat — see `paintBeside`. */
-function paintBubble(node: HTMLElement | null, cat: Spot): void {
-  paintBeside(node, cat, CAT_H);
+function paintBubble(node: HTMLElement | null, cat: Spot, keepOut: readonly RectLike[]): RectLike | null {
+  return paintBeside(node, cat, CAT_W, CAT_H, keepOut);
 }
 
 /** Mini-Thien's caption, clamped to him rather than to the cat he is
  *  standing beside — the two are never the same point once he has arrived,
- *  so this cannot simply reuse `paintBubble`'s own anchor. */
-function paintCaption(node: HTMLElement | null, thien: Spot): void {
-  paintBeside(node, thien, THIEN_H);
+ *  so this cannot simply reuse `paintBubble`'s own anchor. Kept off his own
+ *  drawing as well as off `keepOut`. */
+function paintCaption(node: HTMLElement | null, thien: Spot, keepOut: readonly RectLike[]): RectLike | null {
+  return paintBeside(node, thien, THIEN_W, THIEN_H, [...keepOut, boxAt(thien, THIEN_W, THIEN_H)]);
 }
 
 /**
@@ -1780,11 +1803,11 @@ export function Companion({ facts }: CompanionProps) {
    *  regardless of which cat is currently speaking. */
   const attachGreyBubble = useCallback((node: HTMLDivElement | null) => {
     greyBubble.current = node;
-    if (node) paintBubble(node, lead.current.pos);
+    if (node) paintBubble(node, lead.current.pos, catBoxes(lead.current.pos, follow.current.pos));
   }, []);
   const attachTabbyBubble = useCallback((node: HTMLDivElement | null) => {
     tabbyBubble.current = node;
-    if (node) paintBubble(node, follow.current.pos);
+    if (node) paintBubble(node, follow.current.pos, catBoxes(lead.current.pos, follow.current.pos));
   }, []);
 
   /** Mini-Thien and his caption get the same first-frame treatment as the
@@ -1795,7 +1818,7 @@ export function Companion({ facts }: CompanionProps) {
   }, []);
   const attachThienCaption = useCallback((node: HTMLDivElement | null) => {
     thienCaption.current = node;
-    if (node) paintCaption(node, thien.current.pos);
+    if (node) paintCaption(node, thien.current.pos, catBoxes(lead.current.pos, follow.current.pos));
   }, []);
 
   /** What the JSX needs to draw one beat; `hintMore` marks the last beat of
@@ -3532,7 +3555,14 @@ export function Companion({ facts }: CompanionProps) {
       if (duetRef.current) {
         paint(thienNode.current, thien.current.pos);
         if (thienArt.current) thienArt.current.style.transform = `scaleX(${thien.current.facing})`;
-        paintCaption(thienCaption.current, thien.current.pos);
+        // The bubble first, then the caption kept off it as well as off both
+        // cats: both are painted against the positions just written above, in
+        // the same frame, so neither can be drawn over a cat that has since
+        // moved — see `placeBeside`.
+        const cats = catBoxes(grey.pos, tabby.pos);
+        const bubble =
+          paintBubble(greyBubble.current, grey.pos, cats) ?? paintBubble(tabbyBubble.current, tabby.pos, cats);
+        paintCaption(thienCaption.current, thien.current.pos, bubble ? [...cats, bubble] : cats);
       }
 
       // Behind something. The cut is taken from each animal's own position
@@ -3560,13 +3590,12 @@ export function Companion({ facts }: CompanionProps) {
         if (toySpin.current) toySpin.current.style.transform = `rotate(${live.spin.toFixed(1)}deg)`;
       }
 
-      // The bubbles, on the same terms: painted every frame either exists
-      // rather than left static, because the settled spot they appeared
-      // beside can still be nudged by `keepInView` on a resize.
-      if (duetRef.current) {
-        paintBubble(greyBubble.current, grey.pos);
-        paintBubble(tabbyBubble.current, tabby.pos);
-      }
+      // The bubbles are painted every frame either exists, rather than left
+      // static, because the settled spot they appeared beside can still be
+      // nudged by `keepInView` on a resize — and, since the final fix wave,
+      // because the other cat can walk into the side they were on. That paint
+      // now happens with mini-Thien's caption above, before the toy, so the
+      // caption can be kept off the bubble's own box.
 
       // The collision fix: bubble and caption rects register as occupied
       // space so the placement probe (`isClearSpot`, `findClearSpot`,

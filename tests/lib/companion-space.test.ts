@@ -5,12 +5,14 @@ import {
   findClearSpot,
   isClearSpot,
   keepClearOfControl,
+  placeBeside,
   randomFacing,
   randomViewportPoint,
   searchClearOfToggle,
   setControlRects,
   setReservedRects,
   TOGGLE_CLEARANCE,
+  boxAt,
   type Point,
   type RectLike,
 } from "@/components/companion/companion-space";
@@ -456,5 +458,74 @@ describe("randomFacing", () => {
       answers.add(randomFacing(seed));
     }
     expect(answers.size).toBeGreaterThan(1);
+  });
+});
+
+/**
+ * The round-18 final fix wave. Measured at 1440×900 on the four-section hero:
+ * the only whitespace beside the hero's content is the right-hand gutter, so
+ * the pair settle in one 50px column, the follower one stride (76px) below the
+ * lead. "Above the follower" is then the gap the lead stands over, and
+ * `e2e/companion.spec.ts`'s occupied-ground test caught a cat inside a bubble
+ * or caption box five runs in five. These pin the placement rule that fixes
+ * it, on that geometry.
+ */
+describe("placeBeside — overlays are never painted over a cat", () => {
+  const FRAME = { viewportWidth: 1440, viewportHeight: 900, safeTop: 64 };
+  const BUBBLE = { width: 143, height: 25 };
+  const CAPTION = { width: 214, height: 25 };
+  const lead: Point = { x: 1381, y: 540 };
+  const follower: Point = { x: 1381, y: 616 };
+  const cats = [boxAt(lead, CAT_W, CAT_H), boxAt(follower, CAT_W, CAT_H)];
+  const hits = (a: RectLike, b: RectLike) =>
+    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+
+  it("keeps the old answer — above the cat, clamped in from the edge — when nothing is in the way", () => {
+    expect(placeBeside(follower, CAT_W, CAT_H, BUBBLE, FRAME)).toEqual({
+      x: 1440 - BUBBLE.width - 8,
+      y: follower.y - BUBBLE.height - 6,
+    });
+  });
+
+  it("keeps the old fallback — below the cat — when above would sit under the header", () => {
+    const high: Point = { x: 400, y: 70 };
+    expect(placeBeside(high, CAT_W, CAT_H, BUBBLE, FRAME)).toEqual({ x: 400, y: high.y + CAT_H + 6 });
+  });
+
+  it("moves the follower's bubble off the lead standing over it", () => {
+    // At rest the old answer clears the lead by 3px; the lead walks in along
+    // its own row, though, and a lead five pixels lower is inside it.
+    const lower = [boxAt({ x: 1381, y: 545 }, CAT_W, CAT_H), cats[1]];
+    const stale = placeBeside(follower, CAT_W, CAT_H, BUBBLE, FRAME);
+    expect(hits(boxAt(stale, BUBBLE.width, BUBBLE.height), lower[0]), "the case this fixes").toBe(true);
+    const moved = placeBeside(follower, CAT_W, CAT_H, BUBBLE, FRAME, lower);
+    for (const cat of lower) expect(hits(boxAt(moved, BUBBLE.width, BUBBLE.height), cat)).toBe(false);
+  });
+
+  it("keeps mini-Thien's caption off both cats and off the bubble", () => {
+    // He stands beside the speaking follower on the side away from the lead —
+    // here, both share a column, so to its left — and his caption is wider
+    // than the gap, so the edge clamp drags it back across the column.
+    const thien: Point = { x: 1313, y: 612 };
+    const bubble = boxAt(placeBeside(follower, CAT_W, CAT_H, BUBBLE, FRAME, cats), BUBBLE.width, BUBBLE.height);
+    const keepOut = [...cats, bubble, boxAt(thien, 30, 54)];
+    const stale = placeBeside(thien, 30, 54, CAPTION, FRAME);
+    expect(
+      [...cats, bubble].some((box) => hits(boxAt(stale, CAPTION.width, CAPTION.height), box)),
+      "the case this fixes",
+    ).toBe(true);
+    const at = placeBeside(thien, 30, 54, CAPTION, FRAME, keepOut);
+    for (const box of keepOut) expect(hits(boxAt(at, CAPTION.width, CAPTION.height), box)).toBe(false);
+  });
+
+  it("stays on screen, and falls back to the old answer when no side is clear", () => {
+    const everywhere = [{ left: 0, top: 0, right: 1440, bottom: 900 }];
+    expect(placeBeside(follower, CAT_W, CAT_H, BUBBLE, FRAME, everywhere)).toEqual(
+      placeBeside(follower, CAT_W, CAT_H, BUBBLE, FRAME),
+    );
+    const low: Point = { x: 600, y: 900 - CAT_H - 8 };
+    const at = placeBeside(low, CAT_W, CAT_H, BUBBLE, FRAME, [boxAt({ x: 600, y: low.y - 30 }, CAT_W, CAT_H)]);
+    expect(at.y + BUBBLE.height).toBeLessThanOrEqual(900 - 8);
+    expect(at.y).toBeGreaterThanOrEqual(64 + 8);
   });
 });

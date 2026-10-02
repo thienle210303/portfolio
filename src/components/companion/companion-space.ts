@@ -360,6 +360,84 @@ function catBox(pos: Point): RectLike {
   return { left: pos.x, top: pos.y, right: pos.x + CAT_W, bottom: pos.y + CAT_H };
 }
 
+/** A drawn box of `width` × `height` at `pos` — a cat's (`CAT_W` × `CAT_H`),
+ *  mini-Thien's, or a bubble's own measured size. */
+export function boxAt(pos: Point, width: number, height: number): RectLike {
+  return { left: pos.x, top: pos.y, right: pos.x + width, bottom: pos.y + height };
+}
+
+function intersects(a: RectLike, b: RectLike): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+/** What `placeBeside` needs to know about the screen, passed in rather than
+ *  read so the choice can be tested without a window. */
+export interface BesideFrame {
+  readonly viewportWidth: number;
+  readonly viewportHeight: number;
+  /** The first y below the sticky header — `safeTop()`. */
+  readonly safeTop: number;
+}
+
+const BESIDE_MARGIN = 8;
+const BESIDE_GAP = 6;
+
+/**
+ * Where a speech bubble or mini-Thien's caption goes, beside the thing it
+ * belongs to (`anchor`, drawn `anchorW` × `anchorH`): above it, or below it
+ * when above would sit under the sticky header — and, new in the round-18
+ * final fix wave, never on top of anything in `keepOut`.
+ *
+ * Why `keepOut` exists. The overlays are reserved ground for the cats' *settle*
+ * probe (`setReservedRects` above), which stops a cat choosing to sit under
+ * one — but nothing stopped an overlay being painted on top of a cat. While
+ * the pair stood side by side on a floor that never came up. When the only
+ * whitespace beside the hero's content is the right-hand gutter, though, the
+ * follower settles one stride *below* the lead in that same 50px column, and
+ * "above the follower" is then exactly the gap the lead stands over: the lead
+ * walked through its partner's bubble on the way in, and mini-Thien's caption,
+ * clamped back from the window edge, landed across the column on top of both
+ * the lead and the bubble. `e2e/companion.spec.ts`'s "register as occupied
+ * ground" test went red on that geometry, five runs in five.
+ *
+ * So the default (above, else below — unchanged) is tried first, then the
+ * other vertical side, then level with the anchor to its left and to its
+ * right; the first that is on screen and clear of every `keepOut` rect wins.
+ * If none is, the default is returned as before, so a viewport too cramped
+ * for any clear answer still gets the old one rather than none. Pure: the
+ * caller measures the node and paints the result.
+ */
+export function placeBeside(
+  anchor: Point,
+  anchorW: number,
+  anchorH: number,
+  size: { readonly width: number; readonly height: number },
+  frame: BesideFrame,
+  keepOut: readonly RectLike[] = [],
+): Point {
+  const { width, height } = size;
+  const maxX = Math.max(BESIDE_MARGIN, frame.viewportWidth - width - BESIDE_MARGIN);
+  const x = clamp(anchor.x, BESIDE_MARGIN, maxX);
+  const above: Point = { x, y: anchor.y - height - BESIDE_GAP };
+  const below: Point = { x, y: anchor.y + anchorH + BESIDE_GAP };
+  const aboveFits = above.y >= frame.safeTop + BESIDE_MARGIN;
+  const preferred = aboveFits ? above : below;
+  const candidates: Point[] = [
+    preferred,
+    aboveFits ? below : above,
+    { x: clamp(anchor.x - width - BESIDE_GAP, BESIDE_MARGIN, maxX), y: anchor.y },
+    { x: clamp(anchor.x + anchorW + BESIDE_GAP, BESIDE_MARGIN, maxX), y: anchor.y },
+  ];
+  const onScreen = (point: Point) =>
+    point.y >= frame.safeTop + BESIDE_MARGIN &&
+    point.y + height <= frame.viewportHeight - BESIDE_MARGIN;
+  const clear = (point: Point) => {
+    const box = boxAt(point, width, height);
+    return keepOut.every((rect) => !intersects(box, rect));
+  };
+  return candidates.find((point) => onScreen(point) && clear(point)) ?? preferred;
+}
+
 /**
  * Push a candidate position for the follower away from `rect` — a
  * registered control, such as the lead's own live button — until its drawn
