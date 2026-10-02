@@ -4,11 +4,13 @@ import { CAT_H, CAT_W } from "./CompanionCat";
 import {
   clampToViewport,
   clearsControls,
+  exploreApart,
   findClearSpot,
   isClearSpot,
   pickExploreSpot,
   safeTop,
   viewport,
+  type Half,
   type Point,
 } from "./companion-space";
 
@@ -28,8 +30,9 @@ import {
  *  1. **It only ever proposes places to stop.** Every spot returned here has
  *     been through `isClearSpot`, which is the same probe the resting spots and
  *     the scenes use. A mood that cannot find clear ground *declines* — returns
- *     null — and the caller falls back to the ordinary settle behaviour rather
- *     than parking a cat on a paragraph to make a point.
+ *     null — and the caller falls back to its own ordinary answer (exploring,
+ *     or the tour's spot by the section's top edge) rather than parking a cat
+ *     on a paragraph to make a point.
  *  2. **Every coordinate goes through `clampToViewport`.** That is the one
  *     function that knows about both viewport edges and the opaque sticky
  *     header painting over the companion layer, so a mood cannot invent the two
@@ -44,14 +47,15 @@ import {
  *     mood, not the companion. That is why `planMood` returns null so freely.
  *
  * Cancellation needs no code here at all, which is the point of returning plain
- * geometry: a mood is only ever consulted on the frames the loop has already
- * decided the pair are parked, so the pointer moving drops it the same frame it
- * drops any other settled position.
+ * geometry: outside the guided tour, a mood is only ever consulted by the
+ * explorers, on frames the loop has already decided the pair are parked, so the
+ * pointer moving drops it the same frame it drops any other parked position.
  *
  * The explorer planner at the foot of the file is here rather than in the loop
  * for one reason: it answers the same question these do, and it has to answer
- * it the same way. With no cursor to follow the pair need somewhere to go every
- * few seconds — which is exactly "a place to stop", exactly the four rules
+ * it the same way. While the reader is about and not steering them with the
+ * pointer the pair need somewhere to go every few seconds — which is exactly
+ * "a place to stop", exactly the four rules
  * above, and exactly the mechanisms already written down here: a section mood
  * for the first stop in a section, and clear ground anywhere else.
  */
@@ -67,10 +71,11 @@ export interface MoodPlan {
   readonly kind: MoodKind;
   readonly spots: MoodSpots;
   /**
-   * A lap the lead walks before settling, in order. Waypoints are *crossed*,
-   * not stopped on — the same licence a cat trailing the pointer already has —
-   * so they are clamped but not probed. Empty for the moods that are simply a
-   * place to sit.
+   * A lap for the lead to walk before settling, in order. Waypoints would be
+   * *crossed*, not stopped on — the same licence a cat trailing the pointer
+   * already has — so they are clamped but not probed. Empty for every mood
+   * today, and nothing in `Companion` walks one: the branch that did was the
+   * pointer-stopped settle, which the explorers replaced.
    */
   readonly path: readonly Point[];
 }
@@ -308,14 +313,20 @@ export function detectRush(distancePx: number, elapsedMs: number): boolean {
 /* -------------------------------------------------------------------------- */
 /* Exploring: the same question with nobody asking it                          */
 /*                                                                             */
-/* With no pointer to follow, the question the loop asks every few seconds —   */
-/* "where now?" — has no answer coming from the visitor at all. It is answered */
-/* here, and deliberately with the same mechanisms everything else uses: the   */
-/* section moods above for the first stop in a section, and the ordinary clear */
-/* ground probe for everywhere else. There is no second placement engine,      */
-/* because a second placement engine is a second set of rules about content to */
-/* keep in step with this one.                                                 */
+/* While the reader is about but not steering the cats with the pointer, the   */
+/* question the loop asks every few seconds — "where now?" — has no answer     */
+/* coming from the visitor at all. It is answered here, and deliberately with  */
+/* the same mechanisms everything else uses: the section moods above for the   */
+/* first stop in a section, and the ordinary clear ground probe for everywhere */
+/* else. There is no second placement engine, because a second placement       */
+/* engine is a second set of rules about content to keep in step with this one.*/
 /* -------------------------------------------------------------------------- */
+
+/** An explorer plan: where each cat goes, and whether that is the section's
+ *  perch (which seats them side by side) rather than an ordinary stop. */
+export interface ExploreSpots extends MoodSpots {
+  readonly perch: boolean;
+}
 
 /**
  * Where the pair go next, or null for "stay put" — which the caller answers by
@@ -326,9 +337,14 @@ export function detectRush(distancePx: number, elapsedMs: number): boolean {
  * mood, or one that cannot find clear ground, falls through to exploring. After
  * that the lead takes a clear spot in the left half of the page and the
  * follower one in the right (`pickExploreSpot`), so between them they cover the
- * page instead of crowding one patch of it. Whichever cat finds nothing in
- * either half is placed by `findClearSpot` instead, exactly as a settling cat
- * is; only when *both* come up empty is there nothing to propose.
+ * page instead of crowding one patch of it.
+ *
+ * A cat that finds nothing in either half is placed by `findClearSpot`
+ * instead, exactly as a settling cat is — and placed *first*, so its partner is
+ * then picked (or kept) against where it will really be, and the pair rule
+ * (`exploreApart`: 160px, a column each) still holds between them whenever the
+ * page has room for it. Only when *both* come up empty is there nothing to
+ * propose.
  */
 export function planExplore(
   section: string | null,
@@ -337,22 +353,36 @@ export function planExplore(
   home: Point,
   firstInSection: boolean,
   rng: () => number = Math.random,
-): MoodSpots | null {
+): ExploreSpots | null {
   if (firstInSection) {
     const mood = planMood(section, lead, follow, home);
-    // The lap a mood may come with belongs to the settle branch, which owns the
-    // walking of it; what exploring wants from a mood is the pair of places it
-    // chose.
-    if (mood) return mood.spots;
+    // A mood's lap (`path`) is not walked here — no mood supplies one today —
+    // so what exploring wants from a mood is the pair of places it chose.
+    if (mood) return { ...mood.spots, perch: true };
   }
 
   const view = viewport();
   const top = safeTop();
-  const leadSpot = pickExploreSpot("left", follow, view, top, isClearSpot, rng);
-  const followSpot = pickExploreSpot("right", leadSpot, view, top, isClearSpot, rng);
+  const pick = (half: Half, other: Point | null) =>
+    pickExploreSpot(half, other, view, top, isClearSpot, rng);
+  const leadSpot = pick("left", follow);
+  const followSpot = pick("right", leadSpot);
+  if (leadSpot && followSpot) return { lead: leadSpot, follow: followSpot, perch: false };
   if (!leadSpot && !followSpot) return null;
-  return {
-    lead: leadSpot ?? findClearSpot(lead, home, followSpot ?? undefined),
-    follow: followSpot ?? findClearSpot(follow, home, leadSpot ?? undefined),
-  };
+
+  if (!leadSpot) {
+    const leadAt = findClearSpot(lead, home);
+    return {
+      lead: leadAt,
+      follow: pick("right", leadAt) ?? findClearSpot(follow, home, leadAt),
+      perch: false,
+    };
+  }
+  // The lead's spot was picked against where she *was*; check it against where
+  // she is going, and pick again if the fallback moved her into his way.
+  const followAt = findClearSpot(follow, home);
+  const leadAt = exploreApart(leadSpot, followAt)
+    ? leadSpot
+    : (pick("left", followAt) ?? findClearSpot(lead, home, followAt));
+  return { lead: leadAt, follow: followAt, perch: false };
 }

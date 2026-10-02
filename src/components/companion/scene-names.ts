@@ -9,11 +9,11 @@
  *
  * `companion-play.ts` derives its own `SceneKind` from this, so there is one
  * list and the type follows it rather than the other way round. That
- * derivation is what makes `WANDER_WEIGHTS`, `ROAM_WEIGHTS` and `PROP` —
- * each typed `Record<SceneKind, …>` — exhaustive over this list at compile
- * time: TypeScript's exact-literal checking rejects any of them that is
- * missing a key or carries an extra one, so a scene added or removed here
- * without updating those three tables fails `tsc`, not silently. `tsc` runs
+ * derivation is what makes `ROAM_WEIGHTS` and `PROP` — each typed
+ * `Record<SceneKind, …>` — exhaustive over this list at compile time:
+ * TypeScript's exact-literal checking rejects either of them that is missing
+ * a key or carries an extra one, so a scene added or removed here without
+ * updating those two tables fails `tsc`, not silently. `tsc` runs
  * before `test` in `pnpm verify`, which is why typecheck is the real gate.
  * `tests/lib/companion-scenes.test.ts` also checks this list against
  * `ROAM_WEIGHTS` directly — redundant under `pnpm verify`, but it is the

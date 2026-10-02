@@ -30,11 +30,8 @@ import { type SceneName } from "./scene-names";
  *     which is the line the whole feature lives on. Round 5 asked for more of
  *     them and the gap came down by a third — from two-and-a-half-to-six minutes
  *     to one-and-a-half-to-four-and-a-half — which is as far as it goes while
- *     "rare" still means anything for somebody who is reading. The one visitor
- *     that is not true of is the one who has turned the cursor off and asked to
- *     watch instead: in `wander` the same gap is cut to a third again, because
- *     "rare" is measured against what the visitor is doing, and what they are
- *     doing is watching. See `scheduleNextPlay`.
+ *     "rare" still means anything for somebody who is reading. See
+ *     `scheduleNextPlay`.
  *  2. **Never in the way.** Every position a cat or a prop can *stop* at is
  *     probed against the page with the same content test the resting spots use,
  *     before the scene starts. A play that has nowhere safe to happen does not
@@ -56,11 +53,6 @@ import { type SceneName } from "./scene-names";
  *  number. */
 const PLAY_GAP = 90_000;
 const PLAY_SPREAD = 180_000;
-/** What both numbers are divided by while the pair are wandering. The spread is
- *  divided with the gap rather than kept: a fixed spread over a third of the gap
- *  is a schedule whose shape changes with the mode, and the thing that must not
- *  change is that consecutive gaps never come out the same length. */
-const WANDER_HASTE = 3;
 /** Nowhere safe to play right now. Backing off matters: probing costs three
  *  hit tests per candidate, and re-running that every frame over a page with no
  *  whitespace would be a per-frame reflow to decide not to do anything. */
@@ -228,17 +220,16 @@ const OVER: PlayBeat = {
 };
 
 /**
- * When the next scene may open.
+ * When the next scene may open: the gap plus a random share of the spread, so
+ * consecutive gaps never come out the same length.
  *
- * `wandering` is the visitor's own answer to how much of this they want: they
- * have taken the cursor out of it and are watching the pair get on with the
- * page, so the wait between scenes is a third of what it is for somebody who is
- * reading. Both halves of the interval are divided, so the spread stays
- * proportional and consecutive gaps still never come out the same length.
+ * There used to be a second, faster clock — a third of this — for the `wander`
+ * mode, whose visitor had asked to watch rather than read. The explorers made
+ * wandering the default for everybody, and everybody includes the reader this
+ * gap was tuned for, so there is one clock again.
  */
-export function scheduleNextPlay(now: number, wandering = false): number {
-  const haste = wandering ? WANDER_HASTE : 1;
-  return now + (PLAY_GAP + Math.random() * PLAY_SPREAD) / haste;
+export function scheduleNextPlay(now: number): number {
+  return now + PLAY_GAP + Math.random() * PLAY_SPREAD;
 }
 
 /**
@@ -251,35 +242,22 @@ export function scheduleNextPlay(now: number, wandering = false): number {
  * three of them started needing a *particular* thing on screen — a panel to
  * duck behind, a heading to stalk, a section rule to rake at — because away
  * from the one part of this page that has a panel, four rolls in five named a
- * scene that could not open, and wandering, which promises the pair working
- * the page, delivered two cats sitting down. The caller now walks this list and
- * takes the first that opens, so the weights below say what the companion would
- * *rather* do and the page decides what it can actually do.
+ * scene that could not open, and the old `wander` mode, which promised the pair
+ * working the page, delivered two cats sitting down. The caller now walks this
+ * list and takes the first that opens, so the weights below say what the
+ * companion would *rather* do and the page decides what it can actually do.
  *
- * The chase leads the reading visitor's weights because it is the only one that
+ * The chase leads the weights because it is the only one that
  * needs no clear rectangle for a prop and no pair of facing spots — on a narrow
  * viewport full of prose it is usually the only one that can open at all.
  *
- * A wandering visitor gets different weights rather than a different schedule
- * of the same ones, and the reason is what the two modes are *for*. Roaming,
- * the cats are company for somebody reading, and a scene is an interruption
+ * The cats are company for somebody reading, and a scene is an interruption
  * they happen to enjoy — so the three anchored scenes take their turn alongside
- * the yarn and the bowl and no more. Wandering, the visitor has said the page
- * is the entertainment: the scenes that touch the page lead and the props are
- * what they fall back on. All eight stay reachable in both, because a mode that
- * could only ever produce three things would run out in a minute.
+ * the yarn and the bowl and no more. (The old `wander` mode had a second table
+ * that led with the anchored scenes; it went with the mode.) All eight stay
+ * reachable, because a pool that could only ever produce three things would
+ * run out in a minute.
  */
-const WANDER_WEIGHTS: Record<SceneKind, number> = {
-  peek: 30,
-  stalk: 26,
-  scratch: 22,
-  chase: 9,
-  bowl: 5,
-  yarn: 4,
-  moth: 3,
-  gift: 1,
-};
-
 export const ROAM_WEIGHTS: Record<SceneKind, number> = {
   chase: 24,
   bowl: 18,
@@ -309,11 +287,11 @@ export interface SceneFlavor {
   readonly section?: string | null;
 }
 
-export function sceneOrder(wandering = false, flavor?: SceneFlavor): SceneKind[] {
+export function sceneOrder(flavor?: SceneFlavor): SceneKind[] {
   // No situational rule reads `flavor` today (see the doc comment above) —
   // it is accepted, not yet consulted, so the ordinary weights always apply.
   void flavor;
-  const weights = wandering ? WANDER_WEIGHTS : ROAM_WEIGHTS;
+  const weights = ROAM_WEIGHTS;
   // A weighted shuffle rather than a weighted pick: every scene keeps its
   // chance of being *first*, which is what the weights are about, and the rest
   // of the list is only consulted when the page has refused the ones above it.

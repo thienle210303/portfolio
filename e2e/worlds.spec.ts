@@ -124,8 +124,8 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
  * as long as they are awake, and in a fresh browser reporting `(pointer: fine)`
  * and no reduced-motion preference that is every window in this file. They do
  * now reach rest rather than running forever (`d363739`, merged from `main`),
- * but on a fourteen-second idle clock, and the longest measurement here is two
- * seconds: measured on this branch, every non-reduced-motion window below
+ * but on a twenty-second idle clock (`EXPLORE_IDLE_MS`; it was fourteen when
+ * this was measured), and the longest measurement here is two seconds: measured on this branch, every non-reduced-motion window below
  * reads 52.5–60.5 Hz, all of it theirs. A page-wide count would therefore fail
  * with a perfect globe, and could only ever pass by the accident of the cats
  * being asleep.
@@ -218,8 +218,8 @@ const SILENT_HZ = 5;
  *
  * - With motion allowed, **52.5–60.5 Hz** at every site. That is the cats, and
  *   it is not a loop the merge from `main` left running: they reach rest now,
- *   but on a fourteen-second idle clock, and the longest window here is two
- *   seconds. `CATS_AWAKE_HZ` sits above that and below the ~120 a second loop
+ *   but on a twenty-second idle clock (fourteen when this was measured), and
+ *   the longest window here is two seconds. `CATS_AWAKE_HZ` sits above that and below the ~120 a second loop
  *   would read.
  * - Under `prefers-reduced-motion: reduce`, **0.00 Hz** — not a low rate, no
  *   callbacks at all, six runs out of six. The cats never start a loop there.

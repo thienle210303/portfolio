@@ -1,17 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
+  boundsFor,
+  clampToViewport,
   clearsControls,
   EXPLORE_COLUMN,
   EXPLORE_MIN_GAP,
   EXPLORE_TRIES,
+  exploreApart,
   findClearSpot,
   isClearSpot,
   keepClearOfControl,
   pickExploreSpot,
   placeBeside,
   randomFacing,
-  randomViewportPoint,
   searchClearOfToggle,
   setControlRects,
   setReservedRects,
@@ -390,47 +392,53 @@ describe("searchClearOfToggle", () => {
 });
 
 /**
- * The wander-goes-random fix (WP-P round 14): `standingSpots` sweeps a grid
- * of five columns — the two gutters, the content column's middle, the two
- * quarter points — built to find the whitespace *between* blocks of prose,
- * which on an ordinary page is the margins. Wander used that same pool for
- * its own destinations, and "they always try to come to corners or edges"
- * is exactly what that grid was always going to produce. `randomViewportPoint`
- * is the other kind of pool: every point in the margin-inset box equally
- * likely, sampled rather than swept.
+ * `boundsFor` is the box every position is clamped into, made pure so the
+ * explorer picker samples exactly that box rather than re-deriving it.
  */
-describe("randomViewportPoint", () => {
-  it("draws the exact corners of the box at the extremes of the rng", () => {
-    const min = randomViewportPoint(() => 0);
-    const max = randomViewportPoint(() => 1);
-    // jsdom's default viewport: window.innerWidth/innerHeight (1024×768),
-    // since `document.documentElement.clientWidth/Height` are 0 there and
-    // `viewport()` falls back — see that function's own note.
-    expect(min).toEqual({ x: 8, y: 8 });
-    expect(max).toEqual({ x: 1024 - CAT_W - 8, y: 768 - CAT_H - 8 });
+describe("boundsFor", () => {
+  it("insets the viewport by the edge margin and the chrome above it", () => {
+    expect(boundsFor({ width: 1440, height: 900 }, 64)).toEqual({
+      minX: 8,
+      maxX: 1440 - CAT_W - 8,
+      minY: 64 + 8,
+      maxY: 900 - CAT_H - 8,
+    });
   });
 
-  it("is linear in the rng draw, not clustered towards either end", () => {
-    const mid = randomViewportPoint(() => 0.5);
-    const min = randomViewportPoint(() => 0);
-    const max = randomViewportPoint(() => 1);
-    expect(mid.x).toBeCloseTo((min.x + max.x) / 2, 5);
-    expect(mid.y).toBeCloseTo((min.y + max.y) / 2, 5);
+  it("is the box clampToViewport clamps into", () => {
+    // jsdom: no chrome measured, and a 1024×768 window (`viewport()` falls
+    // back to innerWidth/innerHeight — see that function's own note).
+    const box = boundsFor({ width: 1024, height: 768 }, 0);
+    expect(clampToViewport({ x: -500, y: -500 })).toEqual({ x: box.minX, y: box.minY });
+    expect(clampToViewport({ x: 5000, y: 5000 })).toEqual({ x: box.maxX, y: box.maxY });
   });
 
-  it("defaults to Math.random and always lands inside the box, middle included", () => {
-    let sawMiddleColumn = false;
-    for (let i = 0; i < 200; i += 1) {
-      const point = randomViewportPoint();
-      expect(point.x).toBeGreaterThanOrEqual(8);
-      expect(point.x).toBeLessThanOrEqual(1024 - CAT_W - 8);
-      expect(point.y).toBeGreaterThanOrEqual(8);
-      expect(point.y).toBeLessThanOrEqual(768 - CAT_H - 8);
-      // Unlike `standingSpots`'s five fixed columns, a uniform draw is not
-      // confined to the gutters — this is the property the fix is for.
-      if (Math.abs(point.x - 512) < 100) sawMiddleColumn = true;
-    }
-    expect(sawMiddleColumn).toBe(true);
+  it("never inverts on a window too small for a cat", () => {
+    const box = boundsFor({ width: 20, height: 20 }, 0);
+    expect(box.maxX).toBeGreaterThanOrEqual(box.minX);
+    expect(box.maxY).toBeGreaterThanOrEqual(box.minY);
+  });
+});
+
+describe("exploreApart", () => {
+  it("needs both the gap and a column of its own", () => {
+    // Far apart, different columns.
+    expect(exploreApart({ x: 100, y: 100 }, { x: 900, y: 100 })).toBe(true);
+    // Different columns, but closer than the gap.
+    expect(exploreApart({ x: 100, y: 100 }, { x: 200, y: 100 })).toBe(false);
+    // Far apart, but one above the other in the same column.
+    expect(exploreApart({ x: 100, y: 100 }, { x: 110, y: 600 })).toBe(false);
+  });
+
+  it("puts the gap's boundary at exactly EXPLORE_MIN_GAP", () => {
+    expect(exploreApart({ x: 0, y: 0 }, { x: EXPLORE_MIN_GAP, y: 0 })).toBe(true);
+    expect(exploreApart({ x: 0, y: 0 }, { x: EXPLORE_MIN_GAP - 1, y: 0 })).toBe(false);
+  });
+
+  it("measures columns by left edge", () => {
+    // 59 and 60 straddle a column boundary; 60 and 119 share one.
+    expect(exploreApart({ x: 59, y: 0 }, { x: 60, y: EXPLORE_MIN_GAP })).toBe(true);
+    expect(exploreApart({ x: 60, y: 0 }, { x: 119, y: EXPLORE_MIN_GAP })).toBe(false);
   });
 });
 

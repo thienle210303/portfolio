@@ -681,6 +681,9 @@ export function CompanionCat({
       // meaning "every cat" — and the specs that count animals need to keep
       // counting animals.
       data-cat=""
+      // The pose, named, for the one claim the specs make about a pose rather
+      // than a position: that both cats are asleep, so the page can be still.
+      data-cat-pose={pose}
       data-cat-hop={hopping ? "" : undefined}
       viewBox={`0 0 ${CAT_W} ${CAT_H}`}
       width={CAT_W * scale}

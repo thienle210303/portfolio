@@ -15,9 +15,10 @@ import type { SceneKind } from "./companion-play";
  * the cats' menu should be about the cats.
  *
  * So it is a play menu. The four items ask for one of the scenes the companion
- * already knows how to act out; below the rule, one item decides what the pair
- * are doing with themselves the rest of the time — following the cursor, or off
- * about their own business — and the last sends them to bed.
+ * already knows how to act out; below the rule, the one item that is not play
+ * sends them to bed. (There used to be a second there, "Let them wander", which
+ * took the pair off the cursor. Exploring is what they do by default now, so it
+ * had nothing left to switch.)
  *
  * ## What "on demand" is allowed to skip, and what it is not
  *
@@ -110,15 +111,12 @@ interface ToolkitPanelProps {
   /** False on touch and under reduced motion, where there is no roaming loop
    *  and therefore no scene to run. */
   readonly canPlay: boolean;
-  /** The pair are off the cursor and about their own business. */
-  readonly wandering: boolean;
   readonly onPlay: (kind: SceneKind) => PlayRequest;
   /** Same gate as `canPlay` — there is no tour without a roaming loop either —
    *  and it is a separate prop rather than `canPlay` reused because the button
    *  is still shown and still labelled when the tour itself declines; only the
    *  refusal differs. */
   readonly onTour: () => TourRequest;
-  readonly onWander: () => void;
   readonly onSendToBed: () => void;
   readonly panelRef?: Ref<HTMLDivElement>;
 }
@@ -130,10 +128,8 @@ const LABEL_CLASS =
 
 export function ToolkitPanel({
   canPlay,
-  wandering,
   onPlay,
   onTour,
-  onWander,
   onSendToBed,
   panelRef,
 }: ToolkitPanelProps) {
@@ -246,36 +242,12 @@ export function ToolkitPanel({
           : ""}
       </p>
 
-      {/* Set apart, because neither of these is play: one changes what the cats
-          are *for* until the visitor says otherwise, and the other ends the
-          companion for this visit and every visit after it. The bed is the only
-          exit now — "turn the cats off" is gone, being the same thing said twice
-          with no way back — which is exactly why the place it sends them is
-          visible and carries its own Wake control. */}
+      {/* Set apart, because it is not play: it ends the companion for this visit
+          and every visit after it. The bed is the only exit now — "turn the cats
+          off" is gone, being the same thing said twice with no way back — which
+          is exactly why the place it sends them is visible and carries its own
+          Wake control. */}
       <div className="mt-2 flex flex-col border-t border-rule">
-        {/*
-          One item, two states, and deliberately not a toggle in the ARIA sense.
-          `aria-pressed` promises a control whose *name* stays put while its
-          state flips underneath it, and the honest name for this one is the
-          thing pressing it does — which is the opposite sentence in each state.
-          So it is a plain button that says what will happen, which is true read
-          aloud and true read off the screen, and it is exactly as operable from
-          the keyboard as every other row here.
-
-          Only offered where there is a roaming loop to change the shape of. On
-          touch and under reduced motion the pair are parked in the corner and
-          "let them wander" would be a control with nothing behind it — the same
-          reason the scenes above are not offered there.
-        */}
-        {canPlay ? (
-          <button
-            type="button"
-            onClick={onWander}
-            className="flex min-h-11 items-center px-3 text-left font-mono text-[0.62rem] uppercase tracking-[0.14em] text-fg-subtle hover:text-fg"
-          >
-            {wandering ? "Follow my cursor" : "Let them wander"}
-          </button>
-        ) : null}
         <button
           type="button"
           onClick={onSendToBed}

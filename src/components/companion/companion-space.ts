@@ -102,7 +102,7 @@ const OCCUPIED = [
 
 /** How close to the viewport edge a cat may sit. Enough that it is never
  *  clipped, small enough that the page gutter still counts as whitespace. */
-export const EDGE = 8;
+const EDGE = 8;
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -174,16 +174,24 @@ export function viewport(): { width: number; height: number } {
   };
 }
 
-/** Every position a cat may hold, as the bounds of its top-left corner. */
-function bounds() {
-  const view = viewport();
-  const minY = overlayTop + EDGE;
+/**
+ * Every position a cat may hold in a viewport this size, below chrome this
+ * tall, as the bounds of its top-left corner. Pure, so the explorer picker
+ * below can sample exactly the box the clamps clamp into without a DOM.
+ */
+export function boundsFor(view: { width: number; height: number }, top: number) {
+  const minY = top + EDGE;
   return {
     minX: EDGE,
     maxX: Math.max(EDGE, view.width - CAT_W - EDGE),
     minY,
     maxY: Math.max(minY, view.height - CAT_H - EDGE),
   };
+}
+
+/** Every position a cat may hold right now. */
+function bounds() {
+  return boundsFor(viewport(), overlayTop);
 }
 
 export function clampToViewport(point: Point): Point {
@@ -742,15 +750,28 @@ export const EXPLORE_COLUMN = 60;
 export type Half = "left" | "right";
 
 /**
+ * Whether two explorers' spots keep the pair rule: at least `EXPLORE_MIN_GAP`
+ * apart centre to centre (both cats are the same size, so top-left to top-left
+ * is the same distance), and never in one `EXPLORE_COLUMN` by left edge.
+ */
+export function exploreApart(a: Point, b: Point): boolean {
+  return (
+    Math.hypot(a.x - b.x, a.y - b.y) >= EXPLORE_MIN_GAP &&
+    Math.floor(a.x / EXPLORE_COLUMN) !== Math.floor(b.x / EXPLORE_COLUMN)
+  );
+}
+
+/**
  * A place for one explorer to be, or null when neither half of the page has one.
  *
  * Pure: the viewport, the header's height, the clear-ground probe and the random
  * source are all arguments, so every rule is testable without a DOM. Samples
- * `half` of the box `bounds()` clamps into — a cat is "in" the half its
- * *centre* is in — and takes the first point that clears `probe`, is at least
- * `EXPLORE_MIN_GAP` from `other` and does not share its `EXPLORE_COLUMN`. When
- * `half` yields nothing the other half is tried, so a page whose left side is
- * all prose still sends the cat somewhere rather than nowhere.
+ * `half` of `boundsFor(view, top)` — with `top` at `safeTop()`, the very box
+ * `clampToViewport` clamps into — where a cat is "in" the half its *centre* is
+ * in, and takes the first point that clears `probe` and keeps `exploreApart`
+ * from `other`. When `half` yields nothing the other half is tried, so a page
+ * whose left side is all prose still sends the cat somewhere rather than
+ * nowhere.
  */
 export function pickExploreSpot(
   half: Half,
@@ -760,10 +781,7 @@ export function pickExploreSpot(
   probe: (point: Point) => boolean,
   rng: () => number,
 ): Point | null {
-  const minX = EDGE;
-  const maxX = Math.max(EDGE, view.width - CAT_W - EDGE);
-  const minY = top + EDGE;
-  const maxY = Math.max(minY, view.height - CAT_H - EDGE);
+  const { minX, maxX, minY, maxY } = boundsFor(view, top);
   // Left of this a cat's centre is in the left half.
   const split = clamp(view.width / 2 - CAT_W / 2, minX, maxX);
 
@@ -773,36 +791,13 @@ export function pickExploreSpot(
     for (let tries = 0; tries < EXPLORE_TRIES; tries += 1) {
       const point = { x: lo + rng() * (hi - lo), y: minY + rng() * (maxY - minY) };
       if (!probe(point)) continue;
-      if (other) {
-        if (Math.hypot(point.x - other.x, point.y - other.y) < EXPLORE_MIN_GAP) continue;
-        if (Math.floor(point.x / EXPLORE_COLUMN) === Math.floor(other.x / EXPLORE_COLUMN)) continue;
-      }
+      if (other && !exploreApart(point, other)) continue;
       return point;
     }
     return null;
   };
 
   return sample(half) ?? sample(half === "left" ? "right" : "left");
-}
-
-/**
- * A point drawn uniformly at random from the same margin-inset box every
- * settle position is clamped into — the bounds `bounds()` already computes
- * for `clampToViewport`, sampled instead of clamped towards.
- *
- * `rng` defaults to `Math.random`, exactly like every other roll on this
- * layer (see the idle flourishes in `Companion.tsx`); it takes an injectable
- * source only so a test can hand it a fixed sequence and assert the sampled
- * point lands inside the box without needing to mock the global. Nothing in
- * `src` calls it today: the explorers go through `pickExploreSpot`, which
- * samples the same box a half at a time.
- */
-export function randomViewportPoint(rng: () => number = Math.random): Point {
-  const box = bounds();
-  return {
-    x: box.minX + rng() * (box.maxX - box.minX),
-    y: box.minY + rng() * (box.maxY - box.minY),
-  };
 }
 
 /**

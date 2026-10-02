@@ -24,7 +24,7 @@ import { companions } from "@/content/portfolio";
 
 /**
  * The geometry behind the three scenes that are about the page, and behind
- * wandering.
+ * exploring.
  *
  * Everything here is arithmetic on a rectangle, which is exactly why it is
  * worth testing without a browser: the parts that need one — is this panel
@@ -32,7 +32,7 @@ import { companions } from "@/content/portfolio";
  * are hit tests the e2e suite already covers, and they are cheap to get right.
  * The arithmetic is not. Each rule below is one a visitor would notice being
  * broken: a cat drawn whole in front of a panel it is supposed to be behind, a
- * pounce that lands on the words, a wanderer that shuffles on the spot.
+ * pounce that lands on the words, an explorer that shuffles on the spot.
  */
 
 /** A panel the width of the business card at desktop, a third of the way down
@@ -227,6 +227,12 @@ describe("the stalk, beat by beat", () => {
 describe("planExplore", () => {
   const HOME = { x: 900, y: 700 };
   const OPEN = () => [] as Element[];
+  /** The pair rule, restated here rather than imported, so a planner that
+   *  breaks it cannot also break the yardstick: 160px centre to centre, and
+   *  never one 60px column (by left edge) for both. */
+  const apart = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y) >= companionSpace.EXPLORE_MIN_GAP &&
+    Math.floor(a.x / companionSpace.EXPLORE_COLUMN) !== Math.floor(b.x / companionSpace.EXPLORE_COLUMN);
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -276,14 +282,17 @@ describe("planExplore", () => {
 
     const perched = planExplore("about", here, mate, HOME, true);
     expect(perched).not.toBeNull();
-    // Right of the anchor's edge, a margin off it — not a half-page pick.
+    // Right of the anchor's edge, a margin off it — not a half-page pick —
+    // and marked as the perch, which is what has her trail him there.
     expect(perched!.lead.x).toBe(400 + 14);
     expect(perched!.lead.y).toBe(300 + 16);
+    expect(perched!.perch).toBe(true);
 
     // The same section, but not the first stop: explored like anywhere else.
     const next = planExplore("about", here, mate, HOME, false);
     expect(next).not.toBeNull();
     expect(next!.lead).not.toEqual(perched!.lead);
+    expect(next!.perch).toBe(false);
   });
 
   it("explores when the first stop's section has no mood", () => {
@@ -303,19 +312,47 @@ describe("planExplore", () => {
     expect(spots).not.toBeNull();
     expect(spots!.lead.x + CAT_W / 2).toBeLessThan(companionSpace.viewport().width / 2);
     expect(spots!.follow).toEqual({ x: 300, y: 400 });
+    expect(apart(spots!.lead, spots!.follow)).toBe(true);
+  });
+
+  it("re-picks the lead against the follower's fallback when the two would share a column", () => {
+    // Her own spot is prose, so `findClearSpot` (real probe) moves her to the
+    // nearer gutter, x = 8 — the same 60px column as the lead's first pick
+    // (x ≈ 56, with a constant 0.1 draw). The pair have to be re-checked
+    // against where she actually ends up, not where she was standing.
+    const prose = document.createElement("p");
+    document.elementsFromPoint = vi.fn((x: number) => (x >= 290 && x <= 360 ? [prose] : []));
+    const probe = vi.spyOn(companionSpace, "isClearSpot");
+    probe.mockReturnValueOnce(true).mockReturnValue(false);
+    const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, () => 0.1);
+    expect(spots).not.toBeNull();
+    expect(spots!.follow).toEqual({ x: 8, y: 400 });
+    // Nothing else in either half clears the mocked probe, so the lead falls
+    // back to where he stands — which *is* apart from her.
+    expect(spots!.lead).toEqual({ x: 500, y: 400 });
+    expect(apart(spots!.lead, spots!.follow)).toBe(true);
   });
 
   it("places the lead with findClearSpot when neither half has a clear spot for him", () => {
     document.elementsFromPoint = vi.fn(OPEN);
-    // Twice EXPLORE_TRIES draws fail (both halves, for the lead), then the
-    // follower's first draw clears.
+    // Twice EXPLORE_TRIES draws fail (both halves, for the lead), then every
+    // draw after that clears.
     const probe = vi.spyOn(companionSpace, "isClearSpot");
     for (let i = 0; i < companionSpace.EXPLORE_TRIES * 2; i += 1) probe.mockReturnValueOnce(false);
     probe.mockReturnValue(true);
-    const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, () => 0.1);
+    // A constant 0.1 for the lead's failed draws and the follower's first
+    // right-half draws — x ≈ 535, the same 60px column as the lead's fallback
+    // at x = 500 — then 0.9 for the x of the re-pick's second try, which lands
+    // well clear of him. (48 failed lead draws, 2 for her first pick against
+    // nobody, 2 for the re-pick's first try.)
+    let calls = 0;
+    const rng = () => (calls++ === companionSpace.EXPLORE_TRIES * 4 + 4 ? 0.9 : 0.1);
+    const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, rng);
     expect(spots).not.toBeNull();
     expect(spots!.lead).toEqual({ x: 500, y: 400 });
     expect(spots!.follow.x + CAT_W / 2).toBeGreaterThanOrEqual(companionSpace.viewport().width / 2);
+    // Picked against his fallback, not against nobody: 160px and a column apart.
+    expect(apart(spots!.lead, spots!.follow)).toBe(true);
   });
 
   it("declines outright when no ground anywhere is clear", () => {
@@ -332,34 +369,28 @@ describe("sceneOrder", () => {
    * The list is a fallback chain, not a shortlist. A scene missing from it is a
    * scene the page can never produce once the ones above it decline, which is
    * the failure the chain exists to prevent — so "all eight, once each" is the
-   * property that matters, in both moods.
+   * property that matters.
    */
-  it.each([false, true])("offers every scene exactly once (wandering: %s)", (wandering) => {
+  it("offers every scene exactly once", () => {
     for (let run = 0; run < 50; run += 1) {
-      const order = sceneOrder(wandering);
+      const order = sceneOrder();
       expect(order).toHaveLength(KINDS.length);
       expect([...order].sort()).toEqual([...KINDS].sort());
     }
   });
 
   /**
-   * And the weights still mean something: a visitor who asked to watch the cats
-   * work the page should get the scenes that touch the page first, and a
-   * visitor who is reading should mostly not. Asserted as a wide band rather
-   * than a figure — the point is that the two moods are different, and a
-   * threshold that only a broken build could cross does not flake.
+   * And the weights still mean something: a reader should mostly not be shown
+   * the scenes that touch the page first — they take their turn alongside the
+   * props. Asserted as a wide band rather than a figure, so it does not flake.
    */
-  it("leads with the anchored scenes when wandering, and rarely when not", () => {
+  it("leads with an anchored scene only now and then", () => {
     const anchored = new Set(["peek", "scratch", "stalk"]);
-    const leads = (wandering: boolean) => {
-      let count = 0;
-      for (let run = 0; run < 2000; run += 1) {
-        if (anchored.has(sceneOrder(wandering)[0])) count += 1;
-      }
-      return count / 2000;
-    };
-    expect(leads(true)).toBeGreaterThan(0.6);
-    expect(leads(false)).toBeLessThan(0.45);
+    let count = 0;
+    for (let run = 0; run < 2000; run += 1) {
+      if (anchored.has(sceneOrder()[0])) count += 1;
+    }
+    expect(count / 2000).toBeLessThan(0.45);
   });
 
   /**
@@ -373,7 +404,7 @@ describe("sceneOrder", () => {
     const mothLeads = (flavor?: { section?: string | null; night?: boolean }) => {
       let count = 0;
       for (let run = 0; run < 2000; run += 1) {
-        if (sceneOrder(false, flavor)[0] === "moth") count += 1;
+        if (sceneOrder(flavor)[0] === "moth") count += 1;
       }
       return count / 2000;
     };
@@ -390,7 +421,7 @@ describe("sceneOrder", () => {
     // Same eight scenes, same shape — flavour no longer touches any weight,
     // and never removes or adds a scene from the pool.
     for (const flavor of [undefined, { section: "tree" }, { section: null }]) {
-      const order = sceneOrder(false, flavor);
+      const order = sceneOrder(flavor);
       expect([...order].sort()).toEqual([...KINDS].sort());
     }
   });
@@ -557,9 +588,9 @@ describe("the peek, beat by beat", () => {
 describe("SCENE_NAMES, the one list of play scenes", () => {
   it("names all eight scenes the play engine actually weights", () => {
     // The real gate is `tsc`, not this assertion: `SceneKind` derives from
-    // SCENE_NAMES, and ROAM_WEIGHTS, WANDER_WEIGHTS and PROP are all typed
+    // SCENE_NAMES, and ROAM_WEIGHTS and PROP are both typed
     // `Record<SceneKind, …>`, so TypeScript's exact-literal checking already
-    // forces every one of them to carry exactly these eight keys — a real
+    // forces each of them to carry exactly these eight keys — a real
     // mismatch fails at typecheck, which runs before `test` in `pnpm verify`.
     // What this assertion catches is the one path typecheck doesn't cover: a
     // standalone `pnpm vitest run` with no preceding `tsc`. Redundant under
