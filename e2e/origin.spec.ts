@@ -9,11 +9,11 @@ import { origin } from "../src/content/portfolio";
  * the flight → seed → seasons → reveal → still-growing show, and its
  * reduced-motion storyboard fallback.
  *
- * The always-on changes from Task 2 (the unfinished shoot, the ground band
- * as a drawing) already have their own coverage in `sections.spec.ts` — see
- * "the unfinished shoot draws with its still-growing annotation" and "the
- * ground band renders as drawing, not a boxed card" there. This file owns
- * only the player itself.
+ * The always-on change from Task 2 that survives round 18 (the unfinished
+ * shoot) has its own coverage in `sections.spec.ts` — see "the unfinished
+ * shoot draws with its still-growing annotation" there. (Its other half, the
+ * ground band drawn as ground rather than as a card, went with the plinth.)
+ * This file owns only the player itself.
  */
 
 // Matches the `lg:` breakpoint (1024px) `CareerTree.tsx` wraps the button in

@@ -26,7 +26,8 @@ import { test, expect, type Page } from "@playwright/test";
  *  - **Pass vacuously.** The collected count is asserted non-zero with a
  *    message that says so, so the day the selector stops matching anything the
  *    sweep goes red instead of green. (Two older sweeps in `sections.spec.ts`
- *    filter into an array and assert `toEqual([])`, and iterate an empty list.)
+ *    filtered into an array and asserted `toEqual([])` over a list that had
+ *    become empty; round 18 deleted both as superseded by this one.)
  *  - **See only first paint.** Disclosures are opened first, the way
  *    `content-integrity.spec.ts` does it, because a link inside a collapsed
  *    branch panel is not in the document until its trigger has been pressed.

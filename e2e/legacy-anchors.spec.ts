@@ -47,6 +47,17 @@ import {
  * Nothing here may pass vacuously: every loop counts what it checked and asserts
  * the count, with a message saying what a green run would otherwise have proved.
  *
+ * ## What runs at every width, and what runs once
+ *
+ * The suite runs this file under six viewport projects. Only part 1 is gated,
+ * to `chromium-1440`: it reads bytes over HTTP with the `request` fixture, and
+ * the HTML a server sends does not depend on a viewport the request never had.
+ * Every landing test stays at all six widths, because where an anchor comes to
+ * rest is geometry, and geometry is exactly what a width changes. The four
+ * section ids are one test with a soft assertion per id rather than four tests
+ * — four page loads either way, but one test's setup instead of four, and a
+ * failure still names the id it failed on.
+ *
  * ## Why this spec and not `e2e/fragments.spec.ts`
  *
  * That sweep reads `main a[href^="#"]` — the links the page itself renders.
@@ -114,7 +125,11 @@ function scrollY(page: Page): Promise<number> {
 test.describe("retired URLs, with JavaScript disabled", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("the served HTML carries every retired fragment id", async ({ request }) => {
+  test("the served HTML carries every retired fragment id", async ({ request }, testInfo) => {
+    test.skip(
+      testInfo.project.use.viewport?.width !== 1440,
+      "behaviour is viewport-independent; run once",
+    );
     // Triple the timeout: this is usually the first request a run makes, and
     // against `next dev` the first render of `/` compiles the route — measured
     // here streaming a 200 for longer than the 30s default while other workers
@@ -165,23 +180,43 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(await scrollY(page), "a dead fragment scrolled the page").toBe(0);
   });
 
-  for (const id of LEGACY_SECTION_IDS) {
-    test(`/#${id} lands a scriptless browser on the Journey, at the header offset`, async ({
-      page,
-    }) => {
+  test("every retired section id lands a scriptless browser on the Journey, at the header offset", async ({
+    page,
+  }) => {
+    // Four fresh page loads in one test, each followed by a stability poll,
+    // where each used to have a test (and a 30s budget) of its own — measured
+    // running out of the default budget against `next dev` under the full
+    // matrix. The budget follows the work; nothing about the assertion is slow.
+    test.slow();
+    expect(
+      LEGACY_SECTION_IDS.length,
+      "no retired section ids, so no landing was checked",
+    ).toBeGreaterThan(0);
+
+    let checked = 0;
+    for (const id of LEGACY_SECTION_IDS) {
+      // A fresh document per id: going from `/#journey` straight to `/#work`
+      // would be a same-document hop between two co-located spans, which
+      // could look like a landing without the second one doing anything.
+      await page.goto("about:blank");
       await page.goto(`/#${id}`);
 
-      await expect(page.locator(`#${id}`)).toHaveCount(1);
+      const anchor = page.locator(`#${id}`);
+      await expect.soft(anchor, `/#${id} is not in the document exactly once`).toHaveCount(1);
       // Where it stopped, not just that the Journey is somewhere on screen.
-      expectSettledAtRestingTop(
-        await restingTop(page.locator(`#${id}`)),
-        `/#${id} must settle at the ${RESTING_TOP}px scroll margin, clear of the sticky header`,
-      );
+      const top = await restingTop(anchor);
+      const message = `/#${id} must settle at the ${RESTING_TOP}px scroll margin, clear of the sticky header (stopped at ${top}px)`;
+      expect.soft(top, message).toBeGreaterThanOrEqual(RESTING_TOP - RESTING_TOLERANCE);
+      expect.soft(top, message).toBeLessThanOrEqual(RESTING_TOP + RESTING_TOLERANCE);
       // And the section really is what the reader is now looking at.
-      await expect(page.locator("#tree")).toBeInViewport();
-      expect(await scrollY(page), `/#${id} did not scroll at all`).toBeGreaterThan(0);
-    });
-  }
+      await expect.soft(page.locator("#tree"), `/#${id} left the Journey off screen`).toBeInViewport();
+      expect.soft(await scrollY(page), `/#${id} did not scroll at all`).toBeGreaterThan(0);
+      checked += 1;
+    }
+    expect(checked, "the loop ended before every retired section id was landed on").toBe(
+      LEGACY_SECTION_IDS.length,
+    );
+  });
 
   test("per-entry fragments land on their own act, each at a different place in the document", async ({
     page,
