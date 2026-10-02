@@ -153,8 +153,10 @@ const COLUMN = 60;
 
 /**
  * Whether both cats are lying in the bottom-right corner, where the furniture
- * cluster sits (`CLUSTER_INSET` 24, `CLUSTER_W` 186, `CLUSTER_H` 60 in
- * RestingBox.tsx, four pixels of slack). Roaming cats who nap where they stop
+ * cluster sits. The numbers are restated by hand from `CLUSTER_INSET` (24),
+ * `CLUSTER_W` (186) and `CLUSTER_H` (60) in
+ * `src/components/companion/RestingBox.tsx` — a client component a spec cannot
+ * import — so change them together; four pixels of slack. Roaming cats who nap where they stop
  * are not both there; cats who walked to a corner bed would be.
  */
 function bothInCorner(page: Page): Promise<boolean> {

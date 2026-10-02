@@ -120,10 +120,13 @@ import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
  *     stops to watch the cursor or wander off when it suits her.
  *  5. Anything it does of its own accord is *rare*. The idle flourishes are
  *     tens of seconds apart and the scenes — see companion-play — are minutes
- *     apart, can only start while the cats are already settled and the visitor
- *     is not doing anything, and end on the frame the pointer moves. A
- *     companion that performs on a schedule you can feel is a companion you
- *     watch instead of reading the page. Asking for a scene from the panel
+ *     apart, can only start while nobody is steering the cats (no moving
+ *     pointer within `CHASE_RADIUS` of the lead) and both are standing still
+ *     between walks, and end on the frame a moving pointer comes within that
+ *     reach. A pointer moving elsewhere on the page is a reader using it, and
+ *     neither starts nor stops anything. A companion that performs on a
+ *     schedule you can feel is a companion you watch instead of reading the
+ *     page. Asking for a scene from the panel
  *     skips the timer and *only* the timer — see `requestPlay`, which is the
  *     same code path with the wait taken out.
  *  6. It is always somewhere you can find it. Two ways a cat used to become
@@ -1473,8 +1476,9 @@ export function Companion({ facts }: CompanionProps) {
   const endPlay = useCallback((now = performance.now()) => {
     // A requested scene still walking to its stage dies here too, and it has to
     // die *first*: every caller of this function is something with a better
-    // claim on the cats than a play — the pointer moving, the toolkit opening,
-    // the page scrolling, the loop being torn down — and a scene that has not
+    // claim on the cats than a play — a moving pointer coming within
+    // `CHASE_RADIUS` of the lead, the toolkit opening, the page scrolling, the
+    // loop being torn down — and a scene that has not
     // opened yet is no more entitled to survive one than a scene that has.
     // Without this a visitor who clicks Toss the yarn and then scrolls away
     // gets a ball of wool seconds later, from nowhere.
@@ -2174,8 +2178,10 @@ export function Companion({ facts }: CompanionProps) {
      * The plan is *held* — see `ExploreRun` — and replaced when the stay is up,
      * when they cannot get there in a reasonable time, and, from outside this
      * function, whenever something has a better claim on where they should be:
-     * the pointer moving, a section change, a scene ending, a resize, or a
-     * scroll that leaves a held spot out of view or on content.
+     * a chase actually starting (a moving pointer within `CHASE_RADIUS` of the
+     * lead — one further away leaves the plan alone), a section change, a
+     * scene ending, a resize, or a scroll that leaves a held spot out of view
+     * or on content.
      *
      * The first plan in a section is that section's perch where it has one
      * (`exploreFresh`, consumed when they arrive); after that, `planExplore`
@@ -2616,8 +2622,10 @@ export function Companion({ facts }: CompanionProps) {
        * The list of things that end one is longer than the list that starts one,
        * and that asymmetry is the design: the cats' first duty is to the
        * visitor, so anything with a claim on them — the escort, a nap spot, the
-       * toolkit, or simply the pointer moving again — drops the scene on the
-       * frame it appears rather than finishing the beat. That holds for the
+       * toolkit, or a moving pointer coming within `CHASE_RADIUS` of the lead —
+       * drops the scene on the frame it appears rather than finishing the beat.
+       * A pointer moving further off is a reader using the page, not a claim
+       * on the cats, and leaves the scene alone (see `parked`). That holds for the
        * scenes with no prop as much as for the ones with: a chase abandoned
        * mid-sprint just leaves two cats going back to trailing the cursor.
        *
@@ -4131,14 +4139,16 @@ export function Companion({ facts }: CompanionProps) {
    * A scene, because somebody asked for one.
    *
    * The whole of "on demand" is the two lines that move the settle clock. A
-   * scene may only open while the pair are parked and the visitor is doing
-   * nothing, and both of those are true the instant somebody clicks a button in
-   * a panel the cats are already sitting under — so rather than adding a second
+   * scene may only open while the pair are parked — nobody steering them with
+   * the pointer — and that is true the instant somebody clicks a button in a
+   * panel the cats are already sitting under, so rather than adding a second
    * way in past the gate, this backdates the clock the gate reads. Everything
    * downstream is then the ordinary path: the same `openPlay` probe against the
-   * same page, the same beat machinery, and the same cancellation, since the
-   * very next pointer move stamps the clock forward again and the loop drops the
-   * scene on that frame.
+   * same page and the same beat machinery. The cancellation is the ordinary one
+   * too, with one exception: `askedRef` holds a requested scene through the
+   * pointer (FB-9.1 — the hand that clicked the menu is still on the mouse), so
+   * only the escort, a nap spot, the panel reopening, a scroll, a mode change
+   * or the scene finishing ends it.
    *
    * What it does *not* do any more is ask that question of one arbitrary spot.
    * Round 7 probed from wherever the cats stood at the moment of the click,
