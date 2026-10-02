@@ -35,7 +35,11 @@ page goes still.
 - Semantic colour aliases only; blue is never decoration; no motion library,
   no icon font, no new runtime dependency.
 - Priority cascade is kept: escort, tour, nap, secret, open toolkit, origin
-  "watch", rush, pointer chase, bed and play scenes all outrank exploring.
+  "watch", rush, pointer chase, bed and play scenes all outrank exploring —
+  with one amendment (2026-10-02, after Task 4's review): the pointer chase
+  fires only when the pointer is within `CHASE_RADIUS` = 200px of the lead
+  cat. Ungated, any 1px mouse move made the pair trail the cursor for 2.4s,
+  so a reader with a hand on the mouse never saw the explorers at all.
 
 ## 1. Movement — the explorer
 
@@ -63,10 +67,12 @@ while the reader is active.
   perch (keeps `e2e/companion.spec.ts:1051`), then exploring resumes.
 - **Scroll ride.** `rideStep` behaviour is kept: a cat dwelling on a spot
   rides with the content; a target that scrolls out of view is re-picked.
-- **Idle → nap.** After `IDLE_MS` with no input each cat finishes its current
-  walk, stops on a clear spot and takes the `sleep` pose; when both sleep the
-  rAF loop stops (keeps the 0-frames assertion, `e2e/companion.spec.ts:1230`).
-  Any input wakes them: a `stretch` beat (~600 ms), then exploring resumes.
+- **Idle → nap in place.** After `IDLE_MS` with no input each cat finishes
+  its current walk, stops on a clear spot near where it is and takes the
+  `sleep` pose — while roaming they do NOT walk to the corner bed (the bed
+  stays for "Send the cats to bed"). When both sleep the rAF loop stops
+  (keeps the 0-frames assertion). Any input wakes them — no minimum travel:
+  a `stretch` beat (~600 ms), then exploring resumes.
 - **Modes.** `wander` mode (`companion-state.ts`) is folded into the default:
   explorers already wander. The stored value `wander` is read as `roam`, so
   no saved preference breaks. `resting` ("Send the cats to bed") is unchanged.
