@@ -258,7 +258,7 @@ export const careerEntries = [
     sortKey: "2025-10",
     role: "Software Engineer",
     organization: "DoorDash, Inc.",
-    // Omitted on purpose: no other timeline entry carries one, so a single
+    // Omitted on purpose: no other career entry carries one, so a single
     // location here reads as an inconsistency rather than information.
     locationOrMode: undefined,
     context:

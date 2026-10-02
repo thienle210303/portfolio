@@ -4,7 +4,8 @@ import type { CareerEntry, CareerEntryType } from "@/types/portfolio";
 
 /**
  * The origin story: one flight authored (`origin`, above), every season
- * computed from the same career entries the timeline already renders.
+ * computed from the career entries in `src/content/portfolio.ts` — all of
+ * them, the nine the Journey shows only as credentials included.
  *
  * A "season" is a year of the career, told as weather: a year with schooling
  * is rain, a plain working year is sun, and a year with nothing on record is
@@ -142,7 +143,7 @@ function captionFor(year: number, kind: SeasonKind, storm: boolean): string {
 
 /**
  * One `Season` per year from the flight's landing (`origin.arrivedYear`)
- * through the last year the career timeline records (`careerYearSpan().
+ * through the last year any career entry starts in (`careerYearSpan().
  * lastYear`), inclusive. A year with no career entry at all still gets a
  * season — it is the "quiet growth underground" a reader sees rather than a
  * gap in the tree.
@@ -168,7 +169,7 @@ export function seasonsFor(): readonly Season[] {
 
 /**
  * How far into the career's growth a given year is, as 0..1: 0 at the flight
- * landing, 1 at the last year the timeline records. Clamped outside that
+ * landing, 1 at the last year any career entry starts in. Clamped outside that
  * span so a caller never has to guard against a stray negative or an
  * overshoot past a fully-grown tree.
  */

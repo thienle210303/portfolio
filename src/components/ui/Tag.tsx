@@ -18,10 +18,12 @@ interface TagProps {
  * case studies and the skills grid, which made it the densest source of
  * objects on the page. Those four consumers are now `.token-run` in
  * globals.css, which sets a technology list as one divided line instead of a
- * row of chips. What is left here is the case a run cannot serve: a lone
+ * row of chips. What was left here was the case a run cannot serve: a lone
  * token with no neighbours — the timeline's "Work"/"Education" type label —
  * where there is nothing to divide and the value really is a discrete object.
- * One consumer is the honest count; do not reach for this for a list.
+ * Round 18 deleted the timeline, and that label with it, so **nothing renders
+ * this component today**. Whether to delete it is an open question, not one
+ * settled here; either way, do not reach for this for a list.
  *
  * Styled entirely through the semantic aliases, so it reads correctly in both
  * themes and in all three section tones without a branch.

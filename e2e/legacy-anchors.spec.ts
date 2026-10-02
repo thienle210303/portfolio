@@ -61,11 +61,14 @@ import {
  * ## Why this spec and not `e2e/fragments.spec.ts`
  *
  * That sweep reads `main a[href^="#"]` — the links the page itself renders.
- * Nothing on this page links to the section ids or the per-entry fragments on
- * purpose: they exist for inbound links the site does not control. So the sweep
- * cannot see them, and this spec is their only coverage. (The case-study
- * fragments *are* linked from the page, so they have both; they are here because
- * the sweep runs with JavaScript on and this does not.)
+ * Nothing on this page links to any fragment this spec covers — not the section
+ * ids, not the per-entry fragments, and not the case-study `work-<projectId>`
+ * ids either, which round 18 stopped linking when the Selected Work section and
+ * its index went. They exist for inbound links the site does not control, so
+ * the sweep cannot see them and this spec is their **only** coverage: an id
+ * dropped from `ALL_LEGACY_IDS` below is an id nothing checks at all. Unlinked
+ * is not unused — do not remove one from here, or from the page, for that
+ * reason.
  */
 
 /** The offset from the top of the viewport an anchor must come to rest at:

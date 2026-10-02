@@ -4,7 +4,7 @@
  * Rules this file exists to enforce:
  *  - Facts live in `src/content/*`, never inline in JSX.
  *  - Overlapping facts (dates, employers, roles) are declared once and
- *    referenced by id, so the resume, the timeline and the case studies
+ *    referenced by id, so the résumé, the Journey and the case studies
  *    cannot drift apart.
  *  - Anything not yet supplied is an explicit `NeedsInput` marker, never
  *    an invented value. Markers are content-authoring metadata; the

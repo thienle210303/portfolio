@@ -400,9 +400,11 @@ function GrowingTip() {
             with two leaves already on it, so a visitor watching the origin
             story used to see this whole tip — including its own foliage —
             fully drawn from the very first beat, years before the trunk it
-            caps had grown at all. Same year and tier as `Trunk`/`TrunkFoot`
-            below, so the tip finishes rising in the same stagger step as the
-            rest of the trunk's own hero moment, not a beat early. */}
+            caps had grown at all. Same year and tier as `Trunk` below, so the
+            tip finishes rising in the same stagger step as the trunk's own
+            hero moment, not a beat early. (`TrunkFoot` carries no origin
+            attributes at all, so the player never holds it back: the flare
+            and its roots stand on the ground line for the whole story.) */}
         <g
           data-origin-year={firstCanopyYear()}
           data-origin-tier="trunk"
@@ -484,7 +486,7 @@ function GrowingTip() {
  * `data-tree-trunk`/`data-origin-tier="trunk"` are this file's own hooks for
  * `OriginStory.tsx`'s growth choreography (a design-polish pass, after v2's
  * chronological release already existed): a year's newly-releasing groups
- * are sorted trunk first, then branch/lens, then leaf, so a whole year no
+ * are sorted trunk first, then branch, then leaf, so a whole year no
  * longer bumps into view all at once — and `data-tree-trunk` singles this one
  * group out for a slower, hero-length rise, since a trunk is the one thing on
  * this drawing large enough that "everything moves at the same speed" reads

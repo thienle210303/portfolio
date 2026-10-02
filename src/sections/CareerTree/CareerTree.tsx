@@ -127,9 +127,14 @@ export default function CareerTree() {
         <span key={id} id={id} aria-hidden="true" className="sr-only scroll-mt-20" />
       ))}
 
+      {/* The lead says nothing about scrolling. Scroll drives the drawing
+          only where the pin engages — >=1280px, motion allowed, JavaScript
+          on — and everywhere else the stage is the finished tree, so "scroll
+          to watch it grow" (the lead until the final fix wave) was false for
+          most readers. What it says now is true in every mode. */}
       <SectionHeading
         id={HEADING_ID}
-        lead="One trunk, one branch per role — in the order it happened — and every leaf hanging off it something authored on that entry: a technology used, or an impact made. Scroll to watch it grow, or open any branch to read what it involved."
+        lead="One trunk, one branch per role — in the order it happened — and every leaf hanging off it something authored on that entry: a technology used, or an impact made. Open any branch to read what it involved."
       >
         What it adds up to
       </SectionHeading>

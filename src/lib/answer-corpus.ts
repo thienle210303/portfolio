@@ -71,8 +71,9 @@ export interface Document {
    * Those six sentences are the one case where the weaker promise above also
    * fails: nothing anywhere on the page renders a skill category — `/resume`
    * prints each category's label and skill names but not its evidence line, and
-   * the Journey draws the categories as `aria-hidden` decorative root paths with
-   * no text — so there is no subject to send a reader to, never mind a sentence.
+   * the Journey draws no categories at all (round 18 retired the tree's roots,
+   * the last place they appeared) — so there is no subject to send a reader to,
+   * never mind a sentence.
    * They carry no section rather than a link that lies. See the skills loop at
    * the bottom of this file for why that was chosen over the alternatives.
    *
@@ -400,7 +401,7 @@ export function buildDocuments(): Document[] {
     // The impact lines were reachable from `answer-sources` but never indexed,
     // which meant "what has he actually delivered at DoorDash" could only be
     // answered by the one-line context blurb. They are the most concrete
-    // statements on the timeline, so they are also the most answerable.
+    // statements any career entry makes, so they are also the most answerable.
     for (const claim of entry.impact) {
       docs.push({
         text: claim,
@@ -430,8 +431,9 @@ export function buildDocuments(): Document[] {
   for (const school of education) {
     docs.push({
       text: `${school.credential}, ${school.institution} (${school.dateRange}).`,
-      // Education is a timeline entry, and #resume is no longer a section on
-      // the page — linking there would be a dead anchor.
+      // The degree is a career entry, on the Journey's credentials line, and
+      // #resume is no longer a section on the page — linking there would be a
+      // dead anchor.
       source: "Education",
       sectionId: "tree",
       sectionLabel: "Journey",
@@ -453,8 +455,9 @@ export function buildDocuments(): Document[] {
   //
   // Round 18: the Skills section is gone, and `category.evidence` is rendered
   // nowhere on the site: `/resume` shows each category's label and skill names
-  // but not the evidence line, and the Journey draws the categories only as
-  // decorative `aria-hidden` root paths with no text. So these documents carry
+  // but not the evidence line, and the Journey does not draw the categories at
+  // all — the tree's roots were retired with the rest of round 18's subtraction.
+  // So these documents carry
   // NO section: a "More on this in Journey" link would send the reader to a section
   // that contains neither the sentence nor the category, which is the same
   // defect `profile.positioning` had (indexed, rendered nowhere, citation lying

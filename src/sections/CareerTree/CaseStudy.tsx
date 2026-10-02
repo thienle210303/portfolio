@@ -26,7 +26,7 @@
  *
  * Every fact is read from the `Project` object or, for organisation and
  * dates, looked up once via `careerEntryById` — never restated as a literal
- * so the résumé, timeline and this case study cannot drift apart. Optional
+ * so the résumé, the Journey and this case study cannot drift apart. Optional
  * fields that are genuinely absent on a given project render nothing: no
  * empty heading, no placeholder.
  *
@@ -67,7 +67,7 @@ const MICRO_LABEL_CLASS = "eyebrow";
  *  quiet rest underline (Workstream 3, P3 — replacing a flat `underline
  *  hover:no-underline` with the shared fade-on-hover vocabulary every other
  *  standalone link on the site now uses), matching how every other section
- *  sets an inline link (see ExperimentEntry, TimelineEntry); `min-h-11` buys
+ *  sets an inline link; `min-h-11` buys
  *  the tap target without touching the type size. These used to render with
  *  no class at all, which left them in the browser's default link colour —
  *  the one colour on the page belonging to no palette. */

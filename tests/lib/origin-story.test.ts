@@ -177,7 +177,7 @@ describe("growthStage", () => {
 
 /**
  * `firstCanopyYear` is DrawnTree's name for the same fact `careerYearSpan`
- * already computes — the earliest year any lens-tagged entry appears. It is
+ * already computes — the earliest year any career entry starts in. It is
  * not a second computation to keep in sync by hand; it has to equal
  * `careerYearSpan().firstYear` outright.
  */

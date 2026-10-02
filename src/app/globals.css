@@ -793,11 +793,12 @@
    */
 
   /*
-   * The recurring micro-label. Tracking came down from 0.18em because this
-   * class lands in roughly sixty-five places — section eyebrows, timeline
-   * labels, metric sources, the learning log's "I used to think" pairs — and
-   * at that width every one of them read as a shout. 0.1em still separates
-   * the uppercase forms without turning a label into a banner.
+   * The recurring micro-label. Tracking came down from 0.18em when this
+   * class landed in roughly sixty-five places — section eyebrows, the
+   * timeline's labels, metric sources, the learning log's "I used to think"
+   * pairs (the timeline and the log are gone since) — and at that width every
+   * one of them read as a shout. 0.1em still separates the uppercase forms
+   * without turning a label into a banner.
    */
   .eyebrow {
     font-family: var(--font-mono);
@@ -845,7 +846,7 @@
    * A run of technology names set as one divided line rather than as a row of
    * filled tokens.
    *
-   * The count is the argument. `Tag` renders about sixty times across the
+   * The count was the argument. `Tag` rendered about sixty times across the
    * timeline, the résumé, the case studies and the skills grid, and sixty
    * filled rectangles was the densest object on the page while carrying no
    * more information than the words inside them. A technology list is a
@@ -853,10 +854,10 @@
    *
    * It is applied to the LIST, not to `Tag`, and that is the whole design. A
    * divider's position is a fact about an item's place in a run, which a tag
-   * cannot know about itself — and `Tag` still has one genuinely standalone
+   * cannot know about itself — and `Tag` had one genuinely standalone
    * consumer (the timeline's "Work"/"Education" type label), where a lone
-   * token with no neighbours does want to stay a discrete object. So `Tag`
-   * keeps its own fill and only loses it inside a run.
+   * token with no neighbours did want to stay a discrete object. So `Tag`
+   * kept its own fill and only lost it inside a run.
    *
    * The run carries its own type rather than wrapping each item in `Tag`, and
    * that is not a shortcut. `Tag`'s fill is a Tailwind utility, so it sits in
@@ -865,9 +866,9 @@
    * to the point, an item in a ruled run is not a token any more: it is a word
    * in a divided line, and the only thing it needs is the line's own type.
    *
-   * `Tag` itself is untouched and still has a consumer: the timeline's
-   * "Work"/"Education" type label, a lone token with no neighbours, which does
-   * still want to be a discrete filled object.
+   * `Tag` itself was left untouched for that one consumer. Round 18 deleted
+   * the timeline and its type label with it, so nothing renders `Tag` today;
+   * see the note in `src/components/ui/Tag.tsx`.
    */
   .token-run {
     display: flex;

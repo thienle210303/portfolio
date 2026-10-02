@@ -2,9 +2,10 @@ import { careerEntries, projects, resumeLenses } from "@/content/portfolio";
 import type { CareerEntry, ResumeLensId } from "@/types/portfolio";
 
 /**
- * The career tree: branches are the timeline, leaves are what happened there.
+ * The career tree: branches are the career, in order; leaves are what
+ * happened there.
  *
- * root (trunk)  Thien himself
+ * trunk         Thien himself
  * branch        one career entry — a role, a degree, a milestone — placed up
  *               the trunk in chronological order, oldest lowest, each entry
  *               exactly once
@@ -193,7 +194,9 @@ export function buildKnowledgeTree(): readonly TreeRoot[] {
     const tagged = ENTRIES.filter((entry) => entry.lenses.includes(lens.id));
 
     const branches = tagged
-      // Newest first, matching how the timeline itself is ordered.
+      // Newest first — the order the deleted timeline used. Nothing reads the
+      // order now: `HeroAbout.tsx` counts each lens's branches, it does not
+      // list them.
       .toSorted((a, b) => (a.sortKey > b.sortKey ? -1 : 1))
       .map((entry): TreeBranch => ({
         id: entry.id,

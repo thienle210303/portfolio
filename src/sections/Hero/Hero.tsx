@@ -37,7 +37,7 @@ import HeroAbout from "./HeroAbout";
 
 const HEADING_ID = "hero-heading";
 
-// The current role is read from careerEntries — the same list the timeline and
+// The current role is read from careerEntries — the same list the Journey and
 // the résumé read — rather than restated here, so the hero cannot be the one
 // place on the site still naming a former employer.
 const currentRole = [...careerEntries]
