@@ -222,12 +222,14 @@ function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
           </p>
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="eyebrow">{result.source}</span>
-            <a
-              href={`#${result.sectionId}`}
-              className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
-            >
-              Read it in {result.sectionLabel} &rarr;
-            </a>
+            {result.sectionId !== undefined && result.sectionLabel !== undefined ? (
+              <a
+                href={`#${result.sectionId}`}
+                className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
+              >
+                Read it in {result.sectionLabel} &rarr;
+              </a>
+            ) : null}
           </p>
         </li>
       ))}
@@ -252,12 +254,14 @@ function LiveProseAnswer({ text, citations }: { readonly text: string; readonly 
             {citations.map((citation) => (
               <li key={citation.text} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="text-[length:var(--step--1)] text-fg-muted">{citation.source}</span>
-                <a
-                  href={`#${citation.sectionId}`}
-                  className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
-                >
-                  Read it in {citation.sectionLabel} &rarr;
-                </a>
+                {citation.sectionId !== undefined && citation.sectionLabel !== undefined ? (
+                  <a
+                    href={`#${citation.sectionId}`}
+                    className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
+                  >
+                    Read it in {citation.sectionLabel} &rarr;
+                  </a>
+                ) : null}
               </li>
             ))}
           </ul>

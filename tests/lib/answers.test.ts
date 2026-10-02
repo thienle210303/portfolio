@@ -99,7 +99,12 @@ describe("answer", () => {
           `"${result.text}" was not drawn verbatim from content`,
         ).toBe(true);
         expect(result.source.trim()).not.toBe("");
-        expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
+        // A passage rendered nowhere on the page carries no section at all
+        // (see `Document`); one that carries a section must carry a live one.
+        if (result.sectionId !== undefined) expect(result.sectionId).toMatch(LINKABLE_SECTIONS);
+        expect(result.sectionId === undefined, "sectionId and sectionLabel go together").toBe(
+          result.sectionLabel === undefined,
+        );
       }
     }
   });
@@ -113,11 +118,27 @@ describe("answer", () => {
     // leaving behind a document that still points at it). Iterating the
     // whole corpus instead makes the guard hold for every document, not
     // just the ones ranking queries happen to surface.
+    const sectionless: string[] = [];
     for (const doc of buildDocuments()) {
+      // Both or neither: a label with no anchor, or an anchor with no label,
+      // is a half-built link.
+      expect(doc.sectionId === undefined, `document "${doc.label}" has only half a section`).toBe(
+        doc.sectionLabel === undefined,
+      );
+      if (doc.sectionId === undefined) {
+        sectionless.push(doc.text);
+        continue;
+      }
       expect(doc.sectionId, `document "${doc.label}" points at a section that no longer exists`).toMatch(
         LINKABLE_SECTIONS,
       );
     }
+    // The only documents allowed to have no section are the skills evidence
+    // lines, whose text is rendered nowhere on the page. Pinned exactly, in
+    // both directions, so a new sectionless document has to be argued for and
+    // so this loop cannot quietly skip every document.
+    expect(sectionless.sort()).toEqual(skillsIndexable.map((category) => category.evidence).sort());
+    expect(sectionless.length).toBeGreaterThan(0);
   });
 
   it("never surfaces a [NEEDS INPUT] marker", () => {

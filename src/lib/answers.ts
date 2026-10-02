@@ -46,10 +46,12 @@ export interface Answer {
   readonly text: string;
   /** Where the claim came from — an employer, a résumé line, a benchmark. */
   readonly source: string;
-  /** Section anchor, so the reader can go and see it in context. */
-  readonly sectionId: string;
+  /** Section anchor, so the reader can go and see it in context. Absent, along
+   *  with `sectionLabel`, when the passage is rendered nowhere on the page
+   *  (see `Document` in `answer-corpus.ts`) — callers must not build a link. */
+  readonly sectionId?: string;
   /** Human label for the section, for the "read it in context" link. */
-  readonly sectionLabel: string;
+  readonly sectionLabel?: string;
   readonly score: number;
 }
 

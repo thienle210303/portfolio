@@ -571,64 +571,6 @@ test.describe("career tree", () => {
     );
   });
 
-  /*
-   * The other half of that listener: it runs on *every* click in the document,
-   * so the thing it must be best at is doing nothing. `TreeCrossLink`
-   * (src/sections/CareerTree/cross-link.tsx) is an ordinary in-page link
-   * nearby — Selected Work and Skills each ended with one pointing at `#tree`
-   * — clicked twice, so the second click takes exactly the branch the test
-   * above relies on and has to fall straight back out of it.
-   *
-   * Round 18 deleted both sections, and nothing renders `TreeCrossLink` now, so
-   * there is no `a[href="#tree"]` on the page for the test below to click. It
-   * was already out of date for a separate reason (the List face and its filter
-   * went in the same round) and is left for the e2e pass to rewrite or remove,
-   * not rewritten blind here.
-   */
-  test("an ordinary in-page link leaves the timeline's filter alone", async ({ page }) => {
-    const tree = page.locator("#tree");
-    await tree.getByRole("button", { name: "List", exact: true }).click();
-    const status = tree.getByRole("status");
-
-    await tree.getByRole("radio", { name: "Work" }).click();
-    await expect(tree.getByRole("radio", { name: "Work" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    const filtered = await status.textContent();
-    expect(filtered, "the live region should be reporting a filtered count").toMatch(
-      /Showing \d+ of \d+ entr/,
-    );
-    await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
-
-    const crossLink = page.locator('a[href="#tree"]').first();
-    await crossLink.scrollIntoViewIfNeeded();
-    await crossLink.click();
-    await expect.poll(() => new URL(page.url()).hash).toBe("#tree");
-    // Again, now that the page is already on that fragment.
-    await crossLink.scrollIntoViewIfNeeded();
-    await crossLink.click();
-
-    await expect(tree.getByRole("radio", { name: "Work" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    await expect(status).toHaveText(filtered ?? "");
-    await expect(page.locator(`#${ENTRY_ANCHOR}`)).toHaveCount(0);
-    // And nothing pulled focus into the timeline: revealing an entry focuses
-    // its `<li>`, so this is the same claim from the other side. Asserted
-    // against the entry rather than the link, because whether a click focuses
-    // the anchor it lands on is the platform's business, not this page's.
-    expect(
-      await page.evaluate(
-        () =>
-          document.activeElement instanceof HTMLElement &&
-          document.activeElement.id.startsWith("journey-entry-"),
-      ),
-      "an ordinary in-page link must not move focus onto a timeline entry",
-    ).toBe(false);
-  });
-
   test("a cold load of an entry's fragment lands on it, clear of the header", async ({ page }) => {
     // A real cold load, not a hash hop. The file-level beforeEach has already
     // loaded "/", so going straight to the fragment from here would be a

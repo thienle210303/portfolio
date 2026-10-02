@@ -37,8 +37,15 @@ import { resolveWorlds } from "@/lib/worlds";
 export interface Document {
   readonly text: string;
   readonly source: string;
-  readonly sectionId: string;
-  readonly sectionLabel: string;
+  /**
+   * Where on the page this text is rendered, so an answer's "Read it in …"
+   * link is truthful. **Both or neither**, and omitted for a document whose
+   * text is rendered nowhere on the page (today, only the skills evidence
+   * lines — see the skills loop below). A document with no section is still
+   * retrieved and quoted; it just has nowhere to send the reader.
+   */
+  readonly sectionId?: string;
+  readonly sectionLabel?: string;
   /** Extra terms — a title, an employer — that should match without being
    *  part of the quoted answer itself. */
   readonly label: string;
@@ -316,18 +323,23 @@ export function buildDocuments(): Document[] {
   // a fact about the page and the evidence is an actual answer; the names still
   // reach the index through the label.
   //
-  // Round 18: the Skills section is gone, and nothing on the page renders
-  // `skillCategories` any more except `/resume`, which is a route and cannot
-  // be a `#fragment` link. Each category's evidence line names the roles and
-  // projects it was used in, which are the Journey's branches, so these
-  // documents link to `#tree`. As above, `label("skills", …)` keeps selecting
-  // the skills vocabulary; it is not the link target.
+  // Round 18: the Skills section is gone, and `category.evidence` is rendered
+  // nowhere on the page: `/resume` shows each category's label and skill names
+  // but not the evidence line, and the Journey draws the categories only as
+  // decorative `aria-hidden` root paths with no text. So these documents carry
+  // NO section: a "Read it in Journey" link would send the reader to a section
+  // that contains neither the sentence nor the category, which is the same
+  // defect `profile.positioning` had (indexed, rendered nowhere, citation lying
+  // about where to find it). They stay indexed — retrieval is unchanged, and
+  // `label("skills", …)` keeps selecting the skills vocabulary.
+  //
+  // TODO(round 18, Task 13): choose the permanent home for these evidence
+  // lines (render them somewhere, then cite it) against the retrieval eval.
+  // Until then they are honest rather than linked.
   for (const category of skillsIndexable) {
     docs.push({
       text: category.evidence,
-      source: `Skills — ${category.label}`,
-      sectionId: "tree",
-      sectionLabel: "Journey",
+      source: `Skill category — ${category.label}`,
       label: label(
         "skills",
         category.id,

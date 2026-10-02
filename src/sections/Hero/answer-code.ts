@@ -7,7 +7,7 @@ import type { Answer, Citation } from "@/lib/answers";
  * This is a *presentation* of `answer()`'s output and nothing more. It adds no
  * field that the prose view does not already show, and every string it emits is
  * the exact string the prose view renders — the answer text, its source, the
- * section label and the section anchor, plus the visitor's own question. The
+ * section label and the section anchor (when it has one), plus the visitor's own question. The
  * one thing it will not carry is `score`, because the prose view does not show
  * it either and a number nobody can check is exactly the kind of claim this
  * panel exists to avoid.
@@ -169,8 +169,10 @@ export function answerLiteral(question: string, results: readonly Answer[]): str
       lines.push("    {");
       lines.push(...field(6, "text", result.text));
       lines.push(...field(6, "source", result.source));
-      lines.push(...field(6, "section", result.sectionLabel));
-      lines.push(...field(6, "href", `#${result.sectionId}`));
+      if (result.sectionId !== undefined && result.sectionLabel !== undefined) {
+        lines.push(...field(6, "section", result.sectionLabel));
+        lines.push(...field(6, "href", `#${result.sectionId}`));
+      }
       lines.push("    },");
     }
     lines.push("  ],");
@@ -194,7 +196,7 @@ export function describeAnswerLiteral(results: readonly Answer[]): string {
     return "A TypeScript object literal named answer, holding the question that was asked and an empty list of results.";
   }
   const noun = count === 1 ? "one result object" : `${count} result objects`;
-  return `A TypeScript object literal named answer, holding the question that was asked and ${noun}, each carrying the answer text, the source it came from and the section of this page it lives in. The same answers as the prose view, written as code.`;
+  return `A TypeScript object literal named answer, holding the question that was asked and ${noun}, each carrying the answer text, the source it came from and, where the passage is shown on this page, the section it lives in. The same answers as the prose view, written as code.`;
 }
 
 /**
@@ -227,8 +229,10 @@ export function liveAnswerLiteral(
       lines.push("    {");
       lines.push(...field(6, "text", citation.text));
       lines.push(...field(6, "source", citation.source));
-      lines.push(...field(6, "section", citation.sectionLabel));
-      lines.push(...field(6, "href", `#${citation.sectionId}`));
+      if (citation.sectionId !== undefined && citation.sectionLabel !== undefined) {
+        lines.push(...field(6, "section", citation.sectionLabel));
+        lines.push(...field(6, "href", `#${citation.sectionId}`));
+      }
       lines.push("    },");
     }
     lines.push("  ],");
@@ -245,5 +249,5 @@ export function describeLiveAnswerLiteral(grounded: boolean, citations: readonly
   }
   const count = citations.length;
   const noun = count === 1 ? "one citation object" : `${count} citation objects`;
-  return `A TypeScript object literal named answer, holding the question that was asked, grounded set to true, the model's composed text, and ${noun} it was grounded in, each carrying the passage text, its source and the section of this page it lives in.`;
+  return `A TypeScript object literal named answer, holding the question that was asked, grounded set to true, the model's composed text, and ${noun} it was grounded in, each carrying the passage text, its source and, where the passage is shown on this page, the section it lives in.`;
 }

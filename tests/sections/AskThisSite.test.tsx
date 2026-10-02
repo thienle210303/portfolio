@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AskThisSite, { clearThreadCache } from "@/sections/Hero/AskThisSite";
+import { answer } from "@/lib/answers";
 
 /**
  * The scrolling thread + "Clear conversation" control (round 12, WP-K).
@@ -317,5 +318,30 @@ describe("thread persistence across unmount -- live mode in flight", () => {
 
     expect(screen.getByText("He built the Dasher-facing tools at DoorDash.")).toBeInTheDocument();
     expect(screen.queryByText(/Asking the live model/)).not.toBeInTheDocument();
+  });
+});
+
+describe("AskThisSite -- a passage rendered nowhere has no section link", () => {
+  it("shows the answer and its source, but no \"Read it in\" link, for a skills evidence line", async () => {
+    // Skills evidence is indexed but rendered nowhere on the page, so its
+    // document carries no section (see `Document` in answer-corpus.ts). The
+    // precondition is asserted rather than assumed: if this query stops
+    // retrieving a sectionless passage, the test must fail, not pass having
+    // checked a different answer.
+    const question = "what languages does he know";
+    const sectionless = answer(question, 3).filter((result) => result.sectionId === undefined);
+    expect(sectionless.length, "the probe no longer retrieves a skills passage").toBeGreaterThan(0);
+
+    const user = userEvent.setup({ delay: null });
+    render(<AskThisSite liveModeConfigured={false} />);
+    await user.type(questionField(), question);
+    await user.keyboard("{Enter}");
+
+    const answers = await screen.findByRole("list", { name: "Sourced answers" });
+    expect(within(answers).getByText(sectionless[0].text)).toBeInTheDocument();
+    const item = within(answers).getByText(sectionless[0].text).closest("li");
+    expect(item).not.toBeNull();
+    expect(within(item as HTMLElement).queryByRole("link")).toBeNull();
+    expect(within(item as HTMLElement).getByText(sectionless[0].source)).toBeInTheDocument();
   });
 });
