@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   clearsControls,
+  EXPLORE_COLUMN,
+  EXPLORE_MIN_GAP,
+  EXPLORE_TRIES,
   findClearSpot,
   isClearSpot,
   keepClearOfControl,
+  pickExploreSpot,
   placeBeside,
   randomFacing,
   randomViewportPoint,
@@ -427,6 +431,106 @@ describe("randomViewportPoint", () => {
       if (Math.abs(point.x - 512) < 100) sawMiddleColumn = true;
     }
     expect(sawMiddleColumn).toBe(true);
+  });
+});
+
+/**
+ * Explorer spots (companion-explorers, task 3): one cat per half of the
+ * viewport, anywhere the probe says is clear. The picker is pure — the probe,
+ * the viewport, the header height and the rng are all arguments — so every
+ * rule is stated here without a DOM, and each loop below runs over a seeded
+ * rng so a failure names the seed that broke it.
+ */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+describe("pickExploreSpot", () => {
+  const VIEW = { width: 1440, height: 900 };
+  const TOP = 64;
+  const open = () => true;
+  const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1);
+
+  it("pins its published numbers", () => {
+    expect([EXPLORE_TRIES, EXPLORE_MIN_GAP, EXPLORE_COLUMN]).toEqual([12, 160, 60]);
+  });
+
+  it("never returns a spot the probe rejects", () => {
+    const probe = (p: Point) => p.x >= 600;
+    let found = 0;
+    for (const seed of SEEDS) {
+      const spot = pickExploreSpot("left", null, VIEW, TOP, probe, mulberry32(seed));
+      if (spot) {
+        found += 1;
+        expect(spot.x, `seed ${seed}`).toBeGreaterThanOrEqual(600);
+      }
+    }
+    // Guard: the left half runs to ~695, so some seeds land in [600, 695) and
+    // the rest cross; a loop that never saw a spot would assert nothing.
+    expect(found).toBeGreaterThan(0);
+  });
+
+  it("puts the two cats in different halves, at least 160px apart, never in one column", () => {
+    for (const seed of SEEDS) {
+      const rng = mulberry32(seed);
+      const lead = pickExploreSpot("left", null, VIEW, TOP, open, rng);
+      expect(lead, `seed ${seed}`).not.toBeNull();
+      const follow = pickExploreSpot("right", lead, VIEW, TOP, open, rng);
+      expect(follow, `seed ${seed}`).not.toBeNull();
+      expect(lead!.x + CAT_W / 2, `seed ${seed}`).toBeLessThan(VIEW.width / 2);
+      expect(follow!.x + CAT_W / 2, `seed ${seed}`).toBeGreaterThanOrEqual(VIEW.width / 2);
+      expect(Math.hypot(lead!.x - follow!.x, lead!.y - follow!.y), `seed ${seed}`).toBeGreaterThanOrEqual(
+        EXPLORE_MIN_GAP,
+      );
+      expect(Math.floor(lead!.x / EXPLORE_COLUMN), `seed ${seed}`).not.toBe(
+        Math.floor(follow!.x / EXPLORE_COLUMN),
+      );
+    }
+  });
+
+  it("crosses to the other half when its own half is full", () => {
+    const probe = (p: Point) => p.x + CAT_W / 2 >= VIEW.width / 2;
+    for (const seed of SEEDS) {
+      const spot = pickExploreSpot("left", null, VIEW, TOP, probe, mulberry32(seed));
+      expect(spot, `seed ${seed}`).not.toBeNull();
+      expect(spot!.x + CAT_W / 2, `seed ${seed}`).toBeGreaterThanOrEqual(VIEW.width / 2);
+    }
+  });
+
+  it("gives up with null when nothing is clear", () => {
+    for (const seed of SEEDS) {
+      expect(pickExploreSpot("left", null, VIEW, TOP, () => false, mulberry32(seed))).toBeNull();
+      expect(pickExploreSpot("right", null, VIEW, TOP, () => false, mulberry32(seed))).toBeNull();
+    }
+  });
+
+  it("probes at most EXPLORE_TRIES points per half", () => {
+    const probe = vi.fn(() => false);
+    pickExploreSpot("left", null, VIEW, TOP, probe, mulberry32(7));
+    expect(probe).toHaveBeenCalledTimes(EXPLORE_TRIES * 2);
+  });
+
+  it("stays inside the viewport and below the header", () => {
+    let checked = 0;
+    for (const seed of SEEDS) {
+      for (const half of ["left", "right"] as const) {
+        const spot = pickExploreSpot(half, null, VIEW, TOP, open, mulberry32(seed));
+        expect(spot, `seed ${seed}`).not.toBeNull();
+        checked += 1;
+        expect(spot!.x).toBeGreaterThanOrEqual(8);
+        expect(spot!.x).toBeLessThanOrEqual(VIEW.width - 8 - CAT_W);
+        expect(spot!.y).toBeGreaterThanOrEqual(TOP + 8);
+        expect(spot!.y).toBeLessThanOrEqual(VIEW.height - 8 - CAT_H);
+      }
+    }
+    expect(checked).toBe(SEEDS.length * 2);
   });
 });
 

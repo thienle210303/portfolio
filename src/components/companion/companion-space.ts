@@ -102,7 +102,7 @@ const OCCUPIED = [
 
 /** How close to the viewport edge a cat may sit. Enough that it is never
  *  clipped, small enough that the page gutter still counts as whitespace. */
-const EDGE = 8;
+export const EDGE = 8;
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -716,22 +716,74 @@ export function standingSpots(near: Point): Point[] {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Wandering: genuinely anywhere                                               */
+/* Exploring: one cat per half of the page                                      */
 /*                                                                             */
 /* `standingSpots` above answers "every place a cat could stand", but its own   */
 /* five columns are the two gutters, the content column's middle and the two    */
 /* quarter points — a grid built to find whitespace *between* blocks of prose,  */
-/* which on an ordinary page is the margins. `wander` (companion-moods.ts)      */
-/* used exactly that pool for its own destinations, and the owner's own report  */
-/* is what that reads as from the visitor's side: "they always try to come to  */
-/* corners or edges" — correct, because the pool was built to prefer edges on   */
-/* purpose for a *different* question (where can a whole scene's stage fit).    */
-/* `randomViewportPoint` is the other kind of pool: no columns, no bias, every  */
-/* point in the margin-inset box equally likely, so a page with clear ground in */
-/* the middle of it is no longer invisible to the planner. Wander tries this    */
-/* first and falls back to `standingSpots`'s own pool only when a page has      */
-/* genuinely nothing free but its margins — see `planWander`.                   */
+/* which on an ordinary page is the margins. Used as a destination pool that    */
+/* reads, from the visitor's side, as "they always try to come to corners or    */
+/* edges". The explorers draw from the whole margin-inset box instead: every    */
+/* point equally likely, one cat per half of the viewport so the pair cover the */
+/* page between them rather than crowding one patch of it.                      */
 /* -------------------------------------------------------------------------- */
+
+/** How many uniformly random points one half is sampled for before the picker
+ *  tries the other half. Each probe is three hit tests, and a page that is
+ *  mostly prose fails most draws, which is why this is a handful and the
+ *  other half is the fallback rather than a bigger number. */
+export const EXPLORE_TRIES = 12;
+/** The closest, centre to centre, the two explorers may be. */
+export const EXPLORE_MIN_GAP = 160;
+/** Two explorers whose left edges fall in the same column of this width read as
+ *  one cat above the other, whatever the gap between them. */
+export const EXPLORE_COLUMN = 60;
+
+export type Half = "left" | "right";
+
+/**
+ * A place for one explorer to be, or null when neither half of the page has one.
+ *
+ * Pure: the viewport, the header's height, the clear-ground probe and the random
+ * source are all arguments, so every rule is testable without a DOM. Samples
+ * `half` of the box `bounds()` clamps into — a cat is "in" the half its
+ * *centre* is in — and takes the first point that clears `probe`, is at least
+ * `EXPLORE_MIN_GAP` from `other` and does not share its `EXPLORE_COLUMN`. When
+ * `half` yields nothing the other half is tried, so a page whose left side is
+ * all prose still sends the cat somewhere rather than nowhere.
+ */
+export function pickExploreSpot(
+  half: Half,
+  other: Point | null,
+  view: { width: number; height: number },
+  top: number,
+  probe: (point: Point) => boolean,
+  rng: () => number,
+): Point | null {
+  const minX = EDGE;
+  const maxX = Math.max(EDGE, view.width - CAT_W - EDGE);
+  const minY = top + EDGE;
+  const maxY = Math.max(minY, view.height - CAT_H - EDGE);
+  // Left of this a cat's centre is in the left half.
+  const split = clamp(view.width / 2 - CAT_W / 2, minX, maxX);
+
+  const sample = (side: Half): Point | null => {
+    const lo = side === "left" ? minX : split;
+    const hi = side === "left" ? split : maxX;
+    for (let tries = 0; tries < EXPLORE_TRIES; tries += 1) {
+      const point = { x: lo + rng() * (hi - lo), y: minY + rng() * (maxY - minY) };
+      if (!probe(point)) continue;
+      if (other) {
+        if (Math.hypot(point.x - other.x, point.y - other.y) < EXPLORE_MIN_GAP) continue;
+        if (Math.floor(point.x / EXPLORE_COLUMN) === Math.floor(other.x / EXPLORE_COLUMN)) continue;
+      }
+      return point;
+    }
+    return null;
+  };
+
+  return sample(half) ?? sample(half === "left" ? "right" : "left");
+}
 
 /**
  * A point drawn uniformly at random from the same margin-inset box every
@@ -739,10 +791,11 @@ export function standingSpots(near: Point): Point[] {
  * for `clampToViewport`, sampled instead of clamped towards.
  *
  * `rng` defaults to `Math.random`, exactly like every other roll on this
- * layer (see `companion-moods.ts`'s own `wanderCandidates` and the idle
- * flourishes in `Companion.tsx`); it takes an injectable source only so a
- * test can hand it a fixed sequence and assert the sampled point lands
- * inside the box without needing to mock the global.
+ * layer (see the idle flourishes in `Companion.tsx`); it takes an injectable
+ * source only so a test can hand it a fixed sequence and assert the sampled
+ * point lands inside the box without needing to mock the global. Nothing in
+ * `src` calls it today: the explorers go through `pickExploreSpot`, which
+ * samples the same box a half at a time.
  */
 export function randomViewportPoint(rng: () => number = Math.random): Point {
   const box = bounds();

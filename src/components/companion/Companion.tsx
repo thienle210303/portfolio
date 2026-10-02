@@ -50,7 +50,7 @@ import {
   type Speaker,
   type StoryBeatKind,
 } from "./companion-dialogue";
-import { detectRush, planMood, planWander, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
+import { detectRush, planExplore, planMood, RUSH_HOLD_MS, type MoodKind } from "./companion-moods";
 import {
   advance,
   followTarget,
@@ -154,7 +154,7 @@ import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
  * about staying out of its way. `wander` is round 9, and it is the same layer
  * with the pointer removed from it — the owner's note asks for "a mode that cat
  * go around instead of follow the mouse", and that is exactly what it is. The
- * pair choose their own places to be (see `planWander`), the personal-space
+ * pair choose their own places to be (see `planExplore`), the personal-space
  * radius has nothing to keep its distance from, and the scenes come three times
  * as often because a visitor who has turned the cursor off has said what they
  * are here for.
@@ -2381,7 +2381,7 @@ export function Companion({ facts }: CompanionProps) {
         return run.spots;
       }
 
-      const chosen = planWander(sectionRef.current, grey.pos, tabby.pos, homeSpot());
+      const chosen = planExplore(sectionRef.current, grey.pos, tabby.pos, homeSpot(), false);
       const spots = clearFollowOfToggle(chosen ?? nearbySpots());
       wanderRun.current = {
         spots,

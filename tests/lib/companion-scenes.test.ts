@@ -14,11 +14,9 @@ import {
 } from "@/components/companion/companion-play";
 import {
   detectRush,
-  planWander,
+  planExplore,
   RUSH_HOLD_MS,
   RUSH_VELOCITY,
-  WANDER_MIN,
-  wanderCandidates,
 } from "@/components/companion/companion-moods";
 import * as companionSpace from "@/components/companion/companion-space";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
@@ -218,80 +216,112 @@ describe("the stalk, beat by beat", () => {
   });
 });
 
-describe("wanderCandidates", () => {
-  const here = { x: 400, y: 400 };
-  const spots = [
-    { x: 410, y: 405 },
-    { x: 400, y: 400 + WANDER_MIN - 1 },
-    { x: 400, y: 400 + WANDER_MIN },
-    { x: 900, y: 700 },
-  ];
-
-  it("keeps only the places far enough away to read as a decision", () => {
-    expect(wanderCandidates(spots, here)).toEqual([
-      { x: 400, y: 400 + WANDER_MIN },
-      { x: 900, y: 700 },
-    ]);
-  });
-
-  it("offers nothing at all when everywhere is underfoot", () => {
-    // Which is a real answer on a window with no whitespace in it, and the
-    // caller's cue to leave them standing rather than shuffle them sideways.
-    expect(wanderCandidates(spots.slice(0, 2), here)).toEqual([]);
-  });
-});
-
 /**
- * WP-P round 14 ("make them go randomly on the page instead"): `planWander`
- * used to draw only from `standingSpots`'s own five-column grid, which is
- * built to find whitespace *between* blocks of prose — the margins, on an
- * ordinary page — and that is exactly the "always corners or edges" the
- * owner reported. It now tries a uniform draw across the whole viewport
- * first (`randomViewportPoint`), and only falls back to the old, edge-biased
- * pool when the page genuinely has nothing free outside its own margins.
+ * Companion explorers (task 3): `planExplore` replaces the old wander planner. The pair no
+ * longer pick from `standingSpots`'s edge-biased grid or one shared uniform
+ * draw; the lead explores the left half of the page and the follower the right
+ * (`pickExploreSpot`, which has its own unit tests in `companion-space.test.ts`).
+ * What is pinned here is the wiring: the real probe, the perch on the first stop
+ * in a section, and the two fallbacks.
  */
-describe("planWander", () => {
+describe("planExplore", () => {
+  const HOME = { x: 900, y: 700 };
+  const OPEN = () => [] as Element[];
+
   afterEach(() => {
     vi.restoreAllMocks();
+    document.body.innerHTML = "";
     document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
   });
 
-  it("reaches into the middle of a clear page, not just the standingSpots gutters", () => {
-    // Nothing on the page is occupied — every probe reads clear.
-    document.elementsFromPoint = vi.fn(() => []);
-    const here = { x: 500, y: 400 };
-    let sawMiddle = false;
-    for (let i = 0; i < 150 && !sawMiddle; i += 1) {
-      const spots = planWander(null, here, { x: 300, y: 400 }, { x: 900, y: 700 });
+  it("sends the lead to the left half and the follower to the right, 160px apart", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    const view = companionSpace.viewport();
+    let planned = 0;
+    for (let i = 0; i < 100; i += 1) {
+      const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false);
       // A page this clear should never decline outright.
       expect(spots).not.toBeNull();
-      if (spots && Math.abs(spots.lead.x - 512) < 120) sawMiddle = true;
+      planned += 1;
+      expect(spots!.lead.x + CAT_W / 2).toBeLessThan(view.width / 2);
+      expect(spots!.follow.x + CAT_W / 2).toBeGreaterThanOrEqual(view.width / 2);
+      expect(
+        Math.hypot(spots!.lead.x - spots!.follow.x, spots!.lead.y - spots!.follow.y),
+      ).toBeGreaterThanOrEqual(companionSpace.EXPLORE_MIN_GAP);
     }
-    expect(sawMiddle).toBe(true);
+    expect(planned).toBe(100);
   });
 
-  it("falls back to the standingSpots pool when the uniform draw keeps landing somewhere it cannot stand", () => {
-    document.elementsFromPoint = vi.fn(() => []);
-    // Force every uniform draw outside the viewport, which `isClearSpot`
-    // rejects outright regardless of what is or is not occupied — so the
-    // first ten tries are guaranteed to fail and the old pool has to answer
-    // instead.
-    vi.spyOn(companionSpace, "randomViewportPoint").mockReturnValue({ x: -9999, y: -9999 });
+  it("is deterministic for a given rng", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    const draw = () => {
+      let n = 0;
+      return () => ((n += 0.137) % 1);
+    };
+    const args = [null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false] as const;
+    expect(planExplore(...args, draw())).toEqual(planExplore(...args, draw()));
+  });
+
+  it("takes the section's perch on the first stop, and explores on the ones after it", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    // The hero mood hangs off `[data-cat-perch]`; give it a box with room on the
+    // right and nothing in it. jsdom has no layout, so the rect is stubbed.
+    const perch = document.createElement("div");
+    perch.setAttribute("data-cat-perch", "");
+    perch.getBoundingClientRect = () =>
+      ({ left: 100, top: 300, right: 400, bottom: 340, width: 300, height: 40 }) as DOMRect;
+    document.body.append(perch);
     const here = { x: 500, y: 400 };
-    const home = { x: 900, y: 700 };
-    const spots = planWander(null, here, { x: 300, y: 400 }, home);
-    expect(spots).not.toBeNull();
-    expect(companionSpace.randomViewportPoint).toHaveBeenCalled();
-    // The answer came from the standingSpots pool, not the (mocked, always
-    // out-of-bounds) uniform draw.
-    expect(spots!.lead).not.toEqual({ x: -9999, y: -9999 });
+    const mate = { x: 300, y: 400 };
+
+    const perched = planExplore("about", here, mate, HOME, true);
+    expect(perched).not.toBeNull();
+    // Right of the anchor's edge, a margin off it — not a half-page pick.
+    expect(perched!.lead.x).toBe(400 + 14);
+    expect(perched!.lead.y).toBe(300 + 16);
+
+    // The same section, but not the first stop: explored like anywhere else.
+    const next = planExplore("about", here, mate, HOME, false);
+    expect(next).not.toBeNull();
+    expect(next!.lead).not.toEqual(perched!.lead);
   });
 
-  it("declines outright when neither the uniform draw nor the old pool can find any ground", () => {
+  it("explores when the first stop's section has no mood", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    expect(planExplore("nowhere", { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, true)).not.toBeNull();
+  });
+
+  it("places the follower with findClearSpot when neither half has a clear spot for her", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    // The lead's first draw clears; every draw after it is occupied, so the
+    // follower's two halves both come up empty and `findClearSpot` (which has its
+    // own, untouched probe) answers for her: the nearest clear ground to where
+    // she already is.
+    const probe = vi.spyOn(companionSpace, "isClearSpot");
+    probe.mockReturnValueOnce(true).mockReturnValue(false);
+    const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, () => 0.1);
+    expect(spots).not.toBeNull();
+    expect(spots!.lead.x + CAT_W / 2).toBeLessThan(companionSpace.viewport().width / 2);
+    expect(spots!.follow).toEqual({ x: 300, y: 400 });
+  });
+
+  it("places the lead with findClearSpot when neither half has a clear spot for him", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    // Twice EXPLORE_TRIES draws fail (both halves, for the lead), then the
+    // follower's first draw clears.
+    const probe = vi.spyOn(companionSpace, "isClearSpot");
+    for (let i = 0; i < companionSpace.EXPLORE_TRIES * 2; i += 1) probe.mockReturnValueOnce(false);
+    probe.mockReturnValue(true);
+    const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, () => 0.1);
+    expect(spots).not.toBeNull();
+    expect(spots!.lead).toEqual({ x: 500, y: 400 });
+    expect(spots!.follow.x + CAT_W / 2).toBeGreaterThanOrEqual(companionSpace.viewport().width / 2);
+  });
+
+  it("declines outright when no ground anywhere is clear", () => {
     // Every probe reads as occupied content.
     document.elementsFromPoint = vi.fn(() => [document.createElement("p")]);
-    const here = { x: 500, y: 400 };
-    expect(planWander(null, here, { x: 300, y: 400 }, { x: 900, y: 700 })).toBeNull();
+    expect(planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false)).toBeNull();
   });
 });
 
