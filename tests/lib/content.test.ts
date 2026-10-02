@@ -278,22 +278,66 @@ describe("the content layer matches the September 2026 résumé", () => {
     // entries moved on, so the page said "99%" in one place and "17 hours to
     // 3 minutes" in another. The Technology globe quotes the tagline verbatim,
     // which is where a stale one would be most visible.
-    const dd = projects.find((project) => project.id === "dd-scraper-platform");
-    const usc = projects.find((project) => project.id === "usc-research-collection");
-    if (!dd || !usc) throw new Error("a case study this test audits no longer exists");
-    const prose = (project: typeof dd) => JSON.stringify(project);
+    //
+    // So this is an agreement test, read off both sides rather than a list of
+    // figures typed here: every figure a case study states in its tagline, its
+    // proof lines or its metrics has to be a figure its own career entry's
+    // `impact` states too. Change "1,529" in either place and the two stop
+    // agreeing, which is the whole point. Each pair is looked up by
+    // `careerEntryId`, so the test follows the link the page itself follows.
+    for (const id of ["dd-scraper-platform", "usc-research-collection"]) {
+      const study = projects.find((project) => project.id === id);
+      if (!study) throw new Error(`${id}: a case study this test audits no longer exists`);
+      const entry = careerEntries.find((candidate) => candidate.id === study.careerEntryId);
+      if (!entry) throw new Error(`${id}: its career entry ${study.careerEntryId} no longer exists`);
 
-    expect(dd.tagline).toContain("17 hours to 3 minutes");
-    expect(prose(dd)).not.toMatch(/18\+|99% runtime|2\.3×|failures eliminated/);
-    expect(prose(usc)).not.toMatch(/2 million|Two million|2,000,000/);
-    expect(usc.title).toContain("Three million");
-    expect(usc.proof.join("\n")).toContain("3M+ Amazon and Kroger");
+      const claimed = figures([
+        study.tagline,
+        ...study.proof,
+        ...(study.metrics ?? []).flatMap((metric) => [metric.before, metric.after]),
+      ]);
+      const backed = new Set(figures(entry.impact));
+      expect(claimed.length, `${id} states no figures, so this proves nothing`).toBeGreaterThan(0);
+      for (const figure of claimed) {
+        expect(backed.has(figure), `${id} says ${figure}; ${entry.id}'s impact does not`).toBe(true);
+      }
 
-    for (const metric of [...(dd.metrics ?? []), ...(usc.metrics ?? [])]) {
-      expect(metric.source, metric.label).toContain("September 2026 revision");
+      // Provenance, which is a different claim from agreement: every metric
+      // names the résumé revision the entry was brought up to.
+      for (const metric of study.metrics ?? []) {
+        expect(metric.source, `${id}: ${metric.label}`).toContain("September 2026 revision");
+      }
     }
   });
 });
+
+/**
+ * The figures a run of prose states, normalised so the same quantity written
+ * two ways is one figure: "3M+" and "3,000,000+" are both `3000000+`, "$2.8M"
+ * is `$2800000`, "3.9%" stays `3.9%`. The `$`, `%` and `+` are kept — "30"
+ * and "30+" are different claims. Number *words* are read too, except "one",
+ * which is nearly always idiom ("one-off", "one run") rather than a figure;
+ * "zero" (the failure rate's after-value) and "eight" (the eight-stage
+ * process) are figures here and must agree like any other.
+ */
+const NUMBER_WORDS: Record<string, number> = {
+  zero: 0, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+};
+
+function figures(texts: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const text of texts) {
+    for (const match of text.matchAll(/(\$?)(\d+(?:,\d{3})*(?:\.\d+)?)(M\b)?(%?)(\+?)/g)) {
+      const [, dollar, digits, million, percent, plus] = match;
+      const value = Number(digits.replace(/,/g, "")) * (million ? 1_000_000 : 1);
+      out.push(`${dollar}${Math.round(value * 1000) / 1000}${percent}${plus}`);
+    }
+    for (const match of text.toLowerCase().matchAll(/\b([a-z]+)\b/g)) {
+      if (match[1] in NUMBER_WORDS) out.push(String(NUMBER_WORDS[match[1]]));
+    }
+  }
+  return out;
+}
 
 describe("the projects round 18 recovers from Portfolio-v2", () => {
   it("adds all four", () => {
