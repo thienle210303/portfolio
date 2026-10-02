@@ -290,8 +290,9 @@ describe("the way back into the origin story", () => {
 
   it("does not bring the roots back with it", () => {
     // Decision A, requirement 4: the player came back, the root furniture did
-    // not. `RootLabels`, `RootSystem`, `TreeFigure` and the plinth stay
-    // unmounted.
+    // not. `RootLabels`, `RootSystem`, `TreeFigure` and the plinth were never
+    // mounted by the stage and were deleted in round 18's Task 14; these three
+    // attributes were theirs alone, so this fails if any of them returns.
     render(<CareerTree />);
     expect(document.querySelectorAll("[data-tree-root]")).toHaveLength(0);
     expect(document.querySelectorAll("[data-cat-nap]")).toHaveLength(0);

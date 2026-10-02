@@ -180,8 +180,8 @@ export function buildDocuments(): Document[] {
   // the document stays and is tagged to About, the hero's own section id
   // (Hero.tsx renders `id="about"`), rather than being dropped with the rest of
   // the section's corpus. The third place it used to be rendered was the career
-  // tree's plinth, in `KnowledgeTree.tsx`, which round 18 left without an
-  // importer; the rail is what keeps the About citation true.
+  // tree's plinth, in `KnowledgeTree.tsx`, which round 18 retired; the rail is
+  // what keeps the About citation true.
   //
   // The words below used to live on `sectionExpansions.philosophy`, spread
   // across every document the old section contributed. With only this one

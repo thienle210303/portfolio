@@ -3,7 +3,6 @@ import {
   buildCareerTree,
   buildKnowledgeTree,
   careerYearSpan,
-  techSlug,
   totalTechnologies,
 } from "@/lib/knowledge-tree";
 import { careerEntries, projects, resumeLenses } from "@/content/portfolio";
@@ -189,26 +188,6 @@ describe("careerYearSpan", () => {
     // Inclusive: the first year itself counts as one year, not zero.
     expect(span.years).toBe(expectedLast - expectedFirst + 1);
     expect(span.years).toBeGreaterThan(0);
-  });
-});
-
-describe("techSlug", () => {
-  it("is lower-case, alphanumeric-and-hyphen only, with no leading or trailing hyphen", () => {
-    const names = new Set(ENTRIES.flatMap((entry) => entry.technologies));
-    for (const name of names) {
-      const slug = techSlug(name);
-      expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
-    }
-  });
-
-  it("is unique across every technology actually listed in the content layer", () => {
-    const names = [...new Set(ENTRIES.flatMap((entry) => entry.technologies))];
-    const slugs = names.map(techSlug);
-    expect(new Set(slugs).size).toBe(names.length);
-  });
-
-  it("is stable for the same input", () => {
-    expect(techSlug("JavaScript/React")).toBe(techSlug("JavaScript/React"));
   });
 });
 

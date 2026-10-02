@@ -45,9 +45,9 @@ import type { CareerEntry, ResumeLensId } from "@/types/portfolio";
  *
  * `skillCategories[].lenses` is a *third*, independent authored edge set —
  * category → lens — that fed the roots' "Feeds …" line through round 11.
- * Round 12 retires that line along with the lens branches it named: see
- * `RootLabels.tsx` for why the roots are label-only now, with no line drawn
- * from one of them to anything above ground.
+ * Round 12 retired that line along with the lens branches it named, and round
+ * 18 retired the root labels themselves (`RootLabels.tsx`, never mounted by
+ * the pinned stage), so nothing draws a skill category on the tree at all.
  *
  * Adding a role, or listing a new technology or impact line in
  * `src/content/portfolio.ts`, changes this tree with no code change here.
@@ -387,26 +387,6 @@ export function stillGrowingCaption(): string {
   return `still growing · ${careerYearSpan().lastYear}`;
 }
 
-/**
- * A CSS-token-safe slug for a free-text technology name: lower-cased,
- * anything that is not `a-z0-9` collapsed to a single `-`, and no leading or
- * trailing `-`. Used only as a DOM attribute value (`data-tree-tech`) for the
- * cross-highlight island to match against — never shown to a reader, so it
- * does not need to be pretty, only stable and collision-free across the real
- * technology list.
- *
- * Uniqueness is a property of the actual content, not of this function in
- * isolation — "C#" and "C/C++" both slug to something starting "c" but land
- * on different strings ("c" and "c-c") because the punctuation each collapses
- * differently. `tests/lib/knowledge-tree.test.ts` proves there is no
- * collision across the real list rather than asserting it in the abstract.
- */
-export function techSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 /* -------------------------------------------------------------------------- */
 /* Overlap — which roles ran at the same time                                  */

@@ -15,8 +15,8 @@ import { careerEntries } from "@/content/portfolio";
  * `e2e/legacy-anchors.spec.ts` asserts the no-JavaScript landing a jsdom test
  * cannot reach. The gate that used to live here — `journeyEntryAnchor`, which
  * returned `undefined` for an id that was not a career entry — went with its
- * only caller; see the retirement note in
- * `src/sections/CareerTree/cross-link.tsx`.
+ * only caller, `JourneyEntryCrossLink`, which round 18 retired (and later the
+ * rest of `src/sections/CareerTree/cross-link.tsx` with it).
  */
 describe("journeyEntryAnchorId", () => {
   it("derives the id from the entry id rather than an authored string", () => {

@@ -911,10 +911,9 @@
   /*                                                                        */
   /* `InkReveal.tsx` is the only thing that ever writes `data-ink-ready`     */
   /* (on <html>) or `data-inked` (on a `[data-ink-root]`). Every rule below  */
-  /* only *reads* those two attributes, which is what lets the knowledge     */
-  /* tree's own growth CSS (see the "Career tree figure" block further      */
-  /* down) key off the identical contract with zero coordination beyond      */
-  /* agreeing on the attribute names.                                       */
+  /* only *reads* those two attributes. (Through round 17 the career tree's */
+  /* own page-load growth keyed off the identical contract; round 18        */
+  /* retired it with the figure that carried it.)                           */
   /*                                                                        */
   /* `[data-ink]` marks a settling descendant (rise 8px + fade);            */
   /* `[data-ink="fade"]` is the fade-only variant, for anything the LCP     */
@@ -1284,124 +1283,34 @@
     background-color: var(--rule-color);
   }
 
-  /*                                                                        */
-  /* Two unrelated rulesets share this block because they share one         */
-  /* wrapper (`[data-tree-figure]` in TreeFigure.tsx). Emphasis needs no    */
-  /* media guard: `data-tree-hit` is only ever stamped by a pointer or a    */
-  /* focus already in play, so there is nothing to gate. Growth is gated    */
-  /* behind reduced-motion and keyed off the *shared* `InkReveal` contract  */
-  /* — `[data-ink-ready]` is its JS-live gate, `[data-inked]` is the stamp  */
-  /* it puts on this wrapper's own `data-ink-root` once the drawing is on   */
-  /* screen — so no-JS, reduced-motion and print all see the finished tree  */
-  /* by default, before InkReveal exists to say otherwise.                  */
-  /* ---------------------------------------------------------------------- */
-  [data-tree-figure] [data-tree-hit] path,
-  [data-tree-figure] path[data-tree-hit] {
-    color: var(--fg);
-    stroke-width: 1.4;
-  }
-  [data-tree-figure] [data-tree-hit] [data-tree-panel],
-  [data-tree-figure] [data-tree-panel][data-tree-hit] {
-    border-color: var(--fg-subtle);
-  }
-  [data-tree-figure] [data-tree-hit] [data-tree-entry],
-  [data-tree-figure] [data-tree-entry][data-tree-hit] {
-    background-color: var(--surface);
-  }
-  [data-tree-figure] a[data-tree-root][data-tree-hit] {
-    text-decoration-line: underline;
-  }
-  [data-tree-figure] [data-tree-tech][data-tree-hit] > span:first-child {
-    color: var(--fg);
-  }
-
-  @media screen and (prefers-reduced-motion: no-preference) {
-    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-draw {
-      stroke-dasharray: 1;
-      stroke-dashoffset: 1;
-    }
-    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-grow {
-      transform: scaleY(0);
-      transform-origin: bottom;
-    }
-    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-grow-down {
-      transform: scaleY(0);
-      transform-origin: top;
-    }
-    [data-ink-ready] [data-tree-figure]:not([data-inked]) .tree-fade {
-      opacity: 0;
-    }
-
-    /* `:where([data-inked])`, not a bare `[data-inked]`: this block and the
-       "Origin story" one below it both give the "revealed" state of these
-       same four classes a specificity of exactly two selectors (one
-       attribute, one class) on purpose — a still-`[data-origin-pending]`
-       group's own hide (three selectors: `[data-origin-running] [data-
-       origin-pending] .tree-draw`) needs to keep beating BOTH, and the
-       origin story's own reveal needs to keep beating THIS one, purely by
-       coming later in the file at an *equal* two. Writing `[data-inked]`
-       plain here would make this block three selectors instead of two — a
-       specificity-only fix layered on top of the origin story's own reveal
-       rules found that out the hard way: matching the origin story's
-       stagger fix to *this* block's three-selector weight (by adding
-       `[data-tree-figure]` there too) made the origin story's "revealed"
-       rule tie with its OWN "pending" rule instead of losing to it, so a
-       group's `stroke-dashoffset` snapped to its finished value the instant
-       it was *tagged* pending, real transition or not — the opposite of the
-       intended fix. `:where()` contributes zero specificity regardless of
-       what it wraps, so `[data-tree-figure]:where([data-inked])` matches
-       exactly what `[data-tree-figure][data-inked]` always matched (the
-       truth value of "is this figure inked" is unchanged) while costing
-       this block only the one selector `[data-tree-figure]` already did. */
-    [data-tree-figure]:where([data-inked]) .tree-draw,
-    [data-tree-figure]:where([data-inked]) .tree-grow,
-    [data-tree-figure]:where([data-inked]) .tree-grow-down,
-    [data-tree-figure]:where([data-inked]) .tree-fade {
-      transition-delay: var(--ink-delay, 0ms);
-    }
-    [data-tree-figure]:where([data-inked]) .tree-draw {
-      stroke-dashoffset: 0;
-      transition: stroke-dashoffset var(--dur-draw) var(--ease-ink);
-    }
-    [data-tree-figure]:where([data-inked]) .tree-grow,
-    [data-tree-figure]:where([data-inked]) .tree-grow-down {
-      transform: none;
-      transition: transform var(--dur-draw) var(--ease-ink);
-    }
-    [data-tree-figure]:where([data-inked]) .tree-fade {
-      opacity: 1;
-      transition: opacity var(--dur-settle) var(--ease-ink);
-    }
-  }
-
   /* ---------------------------------------------------------------------- */
   /* Origin story v2 — chronological growth                                */
   /*                                                                        */
-  /* The same contract as the "Career tree figure" block above, keyed off a */
-  /* different pair of attributes: `[data-ink-ready]`/`[data-inked]` gate    */
-  /* the *whole tree's* one-time reveal on scroll-into-view, where           */
   /* `[data-origin-running]`/`[data-origin-pending]` gate *individual*       */
-  /* growable groups (leaves, branches, trunk, roots, the shoot — every      */
+  /* growable groups (leaves, branches, the trunk, the shoot — every         */
   /* `[data-origin-year]` in DrawnTree.tsx) as the story's conductor         */
-  /* (`OriginStory.tsx`) releases them one beat at a time. Same classes      */
-  /* (`.tree-draw` / `.tree-grow` / `.tree-grow-down` / `.tree-fade`), same   */
-  /* collapsed shapes, same `--dur-draw`/`--dur-settle`/`--ease-ink` tokens   */
-  /* the ink reveal already draws with — a group re-uses whichever ink        */
-  /* treatment it was already given; the story just decides *when* each one   */
-  /* is allowed to play it.                                                  */
+  /* (`OriginStory.tsx`) releases them one beat at a time. Four ink classes  */
+  /* (`.tree-draw` / `.tree-grow` / `.tree-grow-down` / `.tree-fade`), each   */
+  /* with one collapsed shape, drawn with the `--dur-draw`/`--dur-settle`/   */
+  /* `--ease-ink` tokens — a group plays whichever ink treatment DrawnTree   */
+  /* gave it; the story just decides *when* each one is allowed to play it.  */
   /*                                                                        */
-  /* `data-origin-running` is stamped on the figure only while the story is  */
-  /* playing (imperative DOM, the same idiom the cross-highlight island      */
-  /* above uses) and `data-origin-pending` is stamped on every growable      */
-  /* group at story start, then removed group-by-group as the beats reach     */
-  /* that group's own `data-origin-year`. A group can be the pending element  */
-  /* itself (the shoot's own `<g data-tree-shoot>`) or an ancestor of the ink  */
-  /* classes (a lens `<li>` wrapping a whole branch's boughs and leaves), so   */
-  /* both the "self" and "descendant" shapes below are needed, exactly as     */
-  /* the two `[data-tree-hit]` shapes above them are.                         */
+  /* (Through round 17 a page-load reveal, keyed off `InkReveal`'s           */
+  /* `[data-inked]` on the tree figure's wrapper, drew the same four classes */
+  /* in once on scroll-into-view. Round 18's pinned stage never mounted that */
+  /* wrapper, and its rules were retired with it, so outside a running story */
+  /* these four classes sit at their finished state from first paint.)      */
   /*                                                                        */
-  /* No `[data-ink-ready]` guard here: unlike the passive scroll reveal,      */
-  /* nothing plays this without a visitor pressing "How it grew" first, so    */
+  /* `data-origin-running` is stamped on `[data-origin-host]` only while the */
+  /* story is playing (imperative DOM) and `data-origin-pending` is stamped  */
+  /* on every growable group at story start, then removed group-by-group as  */
+  /* the beats reach that group's own `data-origin-year`. A group can be the */
+  /* pending element itself (the shoot's own `<g data-tree-shoot>`) or an    */
+  /* ancestor of the ink classes (a branch `<li>` wrapping its bough and     */
+  /* twig), so both the "self" and "descendant" shapes below are needed.     */
+  /*                                                                        */
+  /* No `[data-ink-ready]` guard here: nothing plays this without a visitor  */
+  /* pressing "Watch how it grew" first, so                                  */
   /* there is no no-JS/print/reduced-motion path where `data-origin-running`  */
   /* could appear unbidden — `OriginStory.tsx` only ever stamps it after       */
   /* checking `prefers-reduced-motion` itself, same as the block below this   */
@@ -1438,8 +1347,8 @@
 
        The `transition-delay: 0ms` below looks like the thing clearing a
        leftover `--ink-delay` stagger a group might still carry from the
-       page-load ink reveal (the "Career tree figure" block above sets that
-       custom property per element) — it is not. Each of the three
+       page-load ink reveal that round 18 retired — it is not (and no tree
+       element carries one any more). Each of the three
        per-class rules immediately after this one repeats this rule's own
        selector text exactly, so the cascade always prefers whichever comes
        later in the source, and that rule's `transition` shorthand already
@@ -1448,26 +1357,21 @@
        shorthand below was already going to produce; deleting it would
        change nothing on screen. It stays as documentation of the intended
        reset, not as the rule actually performing it. */
-    /* Bare `[data-origin-running]` — two selectors, same as it always was —
-       not `[data-tree-figure][data-origin-running]`: see the `:where()` note
-       on the page-load ink reveal just above for why that reveal's own
-       specificity was brought *down* to meet this rule instead of this rule
-       being brought up to meet it. Bringing this one up to three would have
-       tied it with this very file's own `[data-origin-running] [data-origin-
-       pending] .tree-draw` hide rule just above — which is also three,
-       deliberately, so a still-pending group keeps winning over its own
-       revealed state regardless of source order. A three-selector "revealed"
-       rule tied with that hide rule, but declared *after* it, would have
-       reversed that outcome: a group's `stroke-dashoffset` would resolve to
-       its finished value the instant `data-origin-pending` was ever stamped,
-       transition or not, which is a real regression this design-polish pass
-       hit while chasing the ink reveal's own collision — caught by sampling
-       a still-pending group's own computed `stroke-dashoffset` and finding
-       it already at its finished value. Two selectors, losing cleanly to the
-       hide rule's three whenever a group is genuinely still pending, and
-       winning the ink reveal's now-two-selector rule on source order (this
-       block comes after it) whenever it is not, is the one specificity that
-       keeps every case honest. */
+    /* Bare `[data-origin-running]` — two selectors, deliberately. Bringing
+       this up to three would tie it with this very file's own
+       `[data-origin-running] [data-origin-pending] .tree-draw` hide rule
+       just above — which is three on purpose, so a still-pending group keeps
+       winning over its own revealed state regardless of source order. A
+       three-selector "revealed" rule tied with that hide rule, but declared
+       *after* it, would reverse that outcome: a group's `stroke-dashoffset`
+       would resolve to its finished value the instant `data-origin-pending`
+       was ever stamped, transition or not — a real regression a
+       design-polish pass hit (while the retired page-load reveal still
+       existed, and a fix for its collision raised this rule to three), caught
+       by sampling a still-pending group's computed `stroke-dashoffset` and
+       finding it already finished. Two selectors, losing cleanly to the hide
+       rule's three whenever a group is genuinely still pending, is the one
+       specificity that keeps every case honest. */
     [data-origin-running] .tree-draw,
     [data-origin-running] .tree-grow,
     [data-origin-running] .tree-grow-down,
@@ -1495,21 +1399,20 @@
        self-review note; the branch panel and the shoot's own label were
        added in a later design-polish pass — see below): the pending rules
        above only ever collapse `.tree-draw`/`.tree-grow`/`.tree-fade` — a
-       leaf's disclosure text, a lens's own summary card, the shoot's
-       "still growing" words, the root labels and the ground plinth's own
-       name/inscription carry none of those classes, so without this they
-       would sit at full opacity next to a bare, undrawn tree and break the
-       "nothing here yet" illusion the story is trying to tell. Three targets,
+       leaf's label, a branch's own panel and the shoot's "still growing"
+       words carry none of those classes, so without this they would sit at
+       full opacity next to a bare, undrawn tree and break the "nothing here
+       yet" illusion the story is trying to tell. Three targets,
        each already an existing hook (no new markup beyond the two
        `data-tree-shoot-label`/`data-origin-tier` attributes the
        choreography pass added in `DrawnTree.tsx`):
-         - a leaf row's own disclosure (the `<div>` directly inside
+         - a leaf's label (the `<div>` directly inside
            `[data-tree-entry]`) fades with its own leaf's pending state,
            exactly like its ink neighbours, so the label reappears the same
            moment the leaf's twig does;
-         - a lens's own summary card (`[data-tree-panel]`, "BRANCH /
-           <lens> / <count> places · <count> technologies") fades with the
-           lens `<li>` it sits inside — a visitor who scrolled past the
+         - a branch's own panel (`[data-tree-panel]`, the role,
+           organisation and year at the bough's end) fades with the branch
+           `<li>` it sits inside — a visitor who scrolled past the
            canopy mid-story used to find every branch's card fully readable
            regardless of whether that branch had grown yet, which is the
            same "chrome outran the ink" bug the leaf rule above already
@@ -1528,10 +1431,10 @@
        (every root label under the plinth) and the plinth's own
        name/philosophy/count line (`[data-cat-nap] > p`), neither conducted by
        any beat — they simply stayed hidden for the whole run. Round 18
-       replaced the figure that drew them with the pinned stage: `RootLabels`
-       and the plinth have no mounter now, so both selectors matched nothing,
-       and a rule claiming to fade root furniture is a claim that there is root
-       furniture on the page. They are deleted rather than kept "in case": if
+       replaced the figure that drew them with the pinned stage, so both
+       selectors matched nothing (and the figure, `RootLabels` and the plinth
+       were later deleted outright); a rule claiming to fade root furniture is
+       a claim that there is root furniture on the page. They are deleted rather than kept "in case": if
        either comes back, its rule comes back with it, written against whatever
        actually renders at the time.
 

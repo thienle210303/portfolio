@@ -192,17 +192,24 @@ function heroMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Tree: beside the plinth, not on it                                          */
+/* Tree: beside the plinth, not on it (declines since round 18)               */
 /* -------------------------------------------------------------------------- */
 
 /**
- * `#tree [data-cat-nap]` is the plinth the nap contract already sleeps
- * beneath — see `Companion`'s `napRef` and `KnowledgeTree.tsx:112`, which
- * this module does not touch. That contract calls the pair *under* the
- * element on pointer dwell or focus; this is a different, narrower question —
- * a settle mood that sits *beside* the same element while the visitor is
- * simply reading the section, which is why it is a fifth mood and not a
- * second reader of the nap attribute.
+ * A settle mood that sits *beside* the career tree's plinth while the visitor
+ * is simply reading the section — a different, narrower question from the
+ * nap contract (`Companion`'s `napRef`), which calls the pair *under* a
+ * `data-cat-nap` element on pointer dwell or focus.
+ *
+ * **It always declines today.** The plinth was the only element on the site
+ * carrying `data-cat-nap`; the pinned stage never mounted it, and round 18
+ * retired it (`KnowledgeTree.tsx`). So `#tree [data-cat-nap]` matches
+ * nothing, `rectOf` returns null, and the Journey gets exactly what every
+ * mood-less section gets — the ordinary resting spots. Nothing in
+ * `e2e/companion.spec.ts` asserts a tree mood (its mood test checks the
+ * contact perch only), so this costs nothing and claims nothing; giving the
+ * Journey a mood again means choosing a new anchor on the stage, which is a
+ * design question rather than a selector fix.
  */
 function treeMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
   const rect = rectOf(document.querySelector("#tree [data-cat-nap]"));

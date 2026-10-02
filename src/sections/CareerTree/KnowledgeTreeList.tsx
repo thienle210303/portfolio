@@ -1,7 +1,7 @@
 import { Disclosure } from "@/components/ui/Disclosure";
 import { projects } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
-import { techSlug, type TreeBranch } from "@/lib/knowledge-tree";
+import type { TreeBranch } from "@/lib/knowledge-tree";
 import CaseStudy from "./CaseStudy";
 import { EntryInk, ListGrowingTip, ListTrunk } from "./list-ink";
 import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
@@ -15,8 +15,10 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * width, it is selectable and searchable, and a screen reader gets real
  * nesting rather than a picture. The drawn presentation in DrawnTree.tsx is
  * the same data with the same authored edges, laid out as an actual drawing
- * once there is width to draw in — see KnowledgeTree.tsx for why both exist
- * and how only one is ever exposed at a time.
+ * once there is width to draw in. `CareerTree.tsx` hands both to the stage
+ * and hides one at each width (`hidden lg:block` on the drawing, `lg:hidden`
+ * on this list), so only one is ever exposed at a time: `display: none` takes
+ * the other out of the accessibility tree and the tab order together.
  *
  * Round 12 flattens this list to match the drawing's own inversion: through
  * round 11 the outer `<ul>` was five resume lenses, each a `Disclosure`
@@ -35,11 +37,10 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * (`ListTrunk`), a curved bough per row (`EntryInk`), and a small "still
  * growing" tip at the newest end (`ListGrowingTip`) — see `list-ink.tsx` for
  * why all three are safe to describe as pure decoration. The list is
- * oldest-first, so the trunk's "ground" end is the top of this list, where
- * `KnowledgeTree.tsx`'s own root plaque sits just above it (see that file's
- * "Trunk stub" note) — the drawing here continues that same line down
- * through every row and past the last one, rather than starting a second,
- * disconnected trunk of its own.
+ * oldest-first, so the trunk's "ground" end is the top of this list, and the
+ * line runs down through every row and past the last one. (Through round 17 a
+ * root plaque sat just above it and a short stub carried the line down into
+ * this list; round 18 retired the plaque with the figure that mounted it.)
  */
 interface KnowledgeTreeListProps {
   readonly tree: readonly TreeBranch[];
@@ -107,12 +108,7 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                       className="token-run"
                     >
                       {technologyLeaves.map((leaf) => (
-                        <li key={leaf.text} data-tree-tech={techSlug(leaf.text)}>
-                          {/* The text span stays the `<li>`'s first element
-                              child: globals.css brightens
-                              `[data-tree-tech][data-tree-hit] > span:first-child`
-                              on cross-highlight, and that selector reaches one
-                              level, not through a wrapper. */}
+                        <li key={leaf.text}>
                           <span className="wrap-anywhere">{leaf.text}</span>
                           {/* Recurrence is the whole point of a tree view: it
                               is what shows a technology running through more

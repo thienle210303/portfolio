@@ -66,8 +66,9 @@ import {
  * illustration on the page would.
  *
  * The corollary: there is no more "the visitor scrolled away" event either.
- * A root-year beat's own `RootSystem` lateral grows wherever it already
- * sits on the page — no pan walks the viewport down to meet it — and a
+ * Every group grows wherever it already sits on the page — no pan walks the
+ * viewport to meet it (and since round 18 there is no root system below the
+ * ground line for one to grow in) — and a
  * visitor who scrolls off mid-story simply finds the story still playing,
  * in the drawing, exactly where they left it, when they scroll back. Only
  * Escape, Skip, click-to-advance, and the final beat's own timeout end the
@@ -615,9 +616,9 @@ function StormOverlay() {
  *  the second offset so they never travel in lockstep. Calm and sparse, the
  *  way "roots don't hurry" reads as motion rather than as nothing happening.
  *  Stretched horizontally with `preserveAspectRatio="none"` and drawn with
- *  `vectorEffect="non-scaling-stroke"` — the same pairing `Trunk` and
- *  `RootSystem` in `DrawnTree.tsx` already use to stretch a path without
- *  thickening its line. */
+ *  `vectorEffect="non-scaling-stroke"` — the same pairing `Trunk` in
+ *  `DrawnTree.tsx` already uses to stretch a path without thickening its
+ *  line. */
 function WindStrokes() {
   return (
     <>

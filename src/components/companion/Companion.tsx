@@ -1942,6 +1942,10 @@ export function Companion({ facts }: CompanionProps) {
    * Bound by delegation on the document rather than by querying for the
    * elements, so it costs nothing when nothing declares the attribute (the
    * common case) and needs no coordination with whichever section adds one.
+   *
+   * Nothing declares it today. Its only carrier was the career tree's plinth,
+   * which round 18 retired, so this listener is idle until a section adds a
+   * nap spot again.
    */
   useEffect(() => {
     if (!roams || !roaming) return;
@@ -2444,10 +2448,13 @@ export function Companion({ facts }: CompanionProps) {
       /**
        * D4: the guided tour, advanced before `forced` reads it.
        *
-       * Outranks the nap contract on purpose — stop 6 is the career tree, and
-       * its own plinth carries `data-cat-nap`, so without this the plinth's
-       * dwell would hijack the tour the moment the pair arrived there. It does
-       * not outrank the escort: a visitor who sends the cats to bed mid-tour
+       * Outranks the nap contract on purpose — through round 17 the career
+       * tree's plinth carried `data-cat-nap`, so without this the plinth's
+       * dwell would have hijacked the tour the moment the pair arrived at the
+       * tree. Round 18 retired the plinth and nothing on the page declares a
+       * nap spot today, so the precedence currently guards nothing; it stays
+       * so the next element that declares one cannot hijack the tour either.
+       * It does not outrank the escort: a visitor who sends the cats to bed mid-tour
        * has `sendToBed` end the tour first (see below), so `run` is never
        * actually true at the same time as `tourRef.current` in practice — the
        * `!run` guard here is the same defensive shape `nap` is read with, for

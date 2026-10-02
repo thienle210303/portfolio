@@ -130,8 +130,9 @@ interface EntryInkProps {
   readonly seed: string;
   /** True when this row's year differs from the row above it (or it is the
    *  very first row) — the trunk gets a small ring at exactly that point,
-   *  the same "one ring per year" idea `DrawnTree.tsx`'s `growthRings` draws
-   *  underground, here ticking down the trunk instead of circling a root. */
+   *  the same "one ring per year" idea the drawn tree's root system drew
+   *  underground until round 18 retired it, here ticking down the trunk
+   *  instead of circling a root. */
   readonly showRing: boolean;
 }
 

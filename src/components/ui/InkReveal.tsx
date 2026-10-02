@@ -6,8 +6,7 @@ import { useEffect, useLayoutEffect } from "react";
  * The one reveal primitive behind every settle on the page — the hero's own
  * load choreography is a separate, `data-motion`-gated system (see
  * layout.tsx's THEME_SCRIPT and the hero keyframes in globals.css), but
- * every per-section settle (`Section`/`SectionHeading`) and the knowledge
- * tree's growth draw-in (`TreeFigure.tsx`, Workstream 2) key off exactly the
+ * every per-section settle (`Section`/`SectionHeading`) keys off exactly the
  * two attributes this component owns: `html[data-ink-ready]`, the observer-
  * live gate, and `[data-inked]`, stamped once per `[data-ink-root]` the
  * moment it enters view. Nothing else in the codebase is allowed to set

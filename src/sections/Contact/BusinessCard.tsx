@@ -207,8 +207,9 @@ export default function BusinessCard({ className }: BusinessCardProps) {
   const linkedin = socialLinks.find((link) => link.platform === "LinkedIn");
 
   return (
-    // `data-cat-hide` is a cross-component contract, the twin of the
-    // `data-cat-nap` the knowledge tree's plinth carries: it says this panel is
+    // `data-cat-hide` is a cross-component contract, the twin of
+    // `data-cat-nap` (which nothing carries since round 18 retired the
+    // career tree's plinth, its only declarer): it says this panel is
     // opaque and has a top edge, and the companion cats occasionally duck behind
     // it so only their heads clear the rule. This file only declares the
     // attribute; everything that reads it lives in src/components/companion, and

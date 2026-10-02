@@ -12,7 +12,6 @@ import {
   LEAF_POP_MS,
   ORDINARY_DUR_MS,
   planRelease,
-  rootYearFor,
   seasonsFor,
   STAGGER_STEP_MS,
   TIER_BRANCH,
@@ -185,55 +184,6 @@ describe("growthStage", () => {
 describe("firstCanopyYear", () => {
   it("equals careerYearSpan().firstYear", () => {
     expect(firstCanopyYear()).toBe(careerYearSpan().firstYear);
-  });
-});
-
-/**
- * `rootYearFor` distributes the root system's major roots — which carry no
- * authored year of their own — across the quiet, pre-canopy years honestly:
- * every root lands somewhere between the flight's landing and the year
- * before the canopy started, spread by index rather than left to guess or to
- * a single shared year that would claim more precision than the drawing has.
- */
-describe("rootYearFor", () => {
-  const first = origin.arrivedYear;
-  // Round 18 put an entry in the arrival year itself (high school, 2018), so
-  // the canopy now starts the year the flight landed and there are no quiet
-  // pre-canopy years left. `rootYearFor` already handles that — its
-  // `Math.max(1, …)` clamps every root to the arrival year — so the bound
-  // here clamps the same way instead of describing an empty range.
-  const last = Math.max(first, firstCanopyYear() - 1);
-
-  it("is deterministic: the same index and total always land on the same year", () => {
-    expect(rootYearFor(2, 6)).toBe(rootYearFor(2, 6));
-  });
-
-  it("keeps every value inside [arrivedYear, firstCanopyYear - 1]", () => {
-    const total = 6;
-    for (let index = 0; index < total; index++) {
-      const year = rootYearFor(index, total);
-      expect(year, `index ${index}`).toBeGreaterThanOrEqual(first);
-      expect(year, `index ${index}`).toBeLessThanOrEqual(last);
-    }
-  });
-
-  it("uses every pre-canopy year at least once when total is at least the span", () => {
-    const span = last - first + 1;
-    const total = Math.max(span, 6);
-    const years = new Set(Array.from({ length: total }, (_, index) => rootYearFor(index, total)));
-    for (let year = first; year <= last; year++) {
-      expect(years.has(year), `year ${year} missing from ${[...years]}`).toBe(true);
-    }
-  });
-
-  it("is monotonically non-decreasing as the index climbs", () => {
-    const total = 6;
-    let previous = rootYearFor(0, total);
-    for (let index = 1; index < total; index++) {
-      const year = rootYearFor(index, total);
-      expect(year).toBeGreaterThanOrEqual(previous);
-      previous = year;
-    }
   });
 });
 
