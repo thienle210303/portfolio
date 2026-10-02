@@ -821,6 +821,9 @@ test.describe("companion", () => {
 
   test("stays visible over the section it is crossing", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Two themes, each walking the pair to the closing section and waiting
+    // for a settled reading there: two polls of up to 30s.
+    test.setTimeout(90_000);
 
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -906,9 +909,16 @@ test.describe("companion", () => {
       /*
        * The closing section is the one that proves it: the page's only
        * `contrast` tone, which in day theme is a dark band under a light page.
-       * The cats are brought there the way the visitor brought them — by
-       * trailing a cursor across it, not by being left alone, which sends them
-       * back up to whatever the visitor is actually reading.
+       * The cats are brought there the way a visitor brings them — by the lead
+       * chasing a cursor — not by being left alone, which sends them off
+       * exploring wherever their next stop happens to be. A cursor that only
+       * circles the section's middle does not do it: the lead chases a moving
+       * pointer only within `CHASE_RADIUS` (200px) of him. So the cursor is
+       * led: each step reads where he is and puts the pointer 135px from him
+       * toward the middle — inside his reach, outside the `LEAD_SPACE` (96px)
+       * he keeps from it, so he walks after it and she trails him. Once he is
+       * within 100px of the middle, the cursor circles it, small enough to
+       * stay inside his reach, so the pair stay there.
        */
       const middle = await page.evaluate(() => {
         const closing = document.querySelector("#closing");
@@ -935,11 +945,16 @@ test.describe("companion", () => {
         .poll(
           async () => {
             for (let i = 0; i < 8; i += 1) {
-              const angle = (step += 1) / 5;
-              await page.mouse.move(
-                middle.x + Math.cos(angle) * 200,
-                middle.y + Math.sin(angle) * 110,
-              );
+              const [lead] = await catPair(page);
+              const dx = middle.x - lead.centreX;
+              const dy = middle.y - lead.centreY;
+              const away = Math.hypot(dx, dy);
+              if (away > 100) {
+                await page.mouse.move(lead.centreX + (dx / away) * 135, lead.centreY + (dy / away) * 135);
+              } else {
+                const angle = (step += 1) / 5;
+                await page.mouse.move(middle.x + Math.cos(angle) * 60, middle.y + Math.sin(angle) * 30);
+              }
               await page.waitForTimeout(50);
             }
             const drawings = await sample();
@@ -1940,8 +1955,6 @@ test.describe("companion", () => {
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-    // Two polls of up to 20s each, the first waiting for the pair to stand.
-    test.setTimeout(60_000);
 
     /*
      * WP-R round 15 follow-up: the ride's own translation is uniform — both
@@ -1982,51 +1995,76 @@ test.describe("companion", () => {
         const f = follow.getBoundingClientRect();
         const dxOut = Math.max(f.left - b.right, b.left - f.right);
         const dyOut = Math.max(f.top - b.bottom, b.top - f.bottom);
-        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y, lx: b.x, ly: b.y };
+        return { gap: Math.max(dxOut, dyOut), fx: f.x, fy: f.y };
       });
 
-    // Explorers set off from the corner as soon as the loop is live, and two
-    // cats walking to their own stops may cross — allowed, and not what this
-    // test is about. So the jump waits until the pair are standing somewhere
-    // with the toggle clear, polled the way claim two below polls: two samples
-    // a quarter of a second apart, both cats unmoved between them.
-    await expect
-      .poll(
-        async () => {
-          const a = await measure();
-          if (!a) return "no cats";
-          await page.waitForTimeout(250);
-          const b = await measure();
-          if (!b) return "no cats";
-          if (Math.hypot(b.fx - a.fx, b.fy - a.fy) > 1 || Math.hypot(b.lx - a.lx, b.ly - a.ly) > 1) {
-            return "still walking";
+    /*
+     * The same single, instant jump `axe.spec.ts` makes to reach the Journey's
+     * own heading — large enough, this deep in the page, to clamp both cats
+     * toward the top of the viewport in one frame. (Round 18 retargeted this
+     * from `#work-heading`: Work is deleted and the Journey occupies the slot
+     * right after the globe that Work did, so it is the same jump by position.
+     * The distances are not identical and nothing here has re-measured them.)
+     * Made from inside the page, centred as `scrollIntoViewIfNeeded` centres,
+     * so the clock below starts at the scroll itself.
+     *
+     * Claim one: the correction holds for as long as the ride itself does,
+     * which is `RIDE_SETTLE_MS` (companion-motion.ts, 220ms) after the loop
+     * last saw the page move. Sampled on every animation frame from inside the
+     * page, because a round trip per sample from here spends most of that
+     * window in transit and lands its later samples after the ride has ended
+     * and the pair are walking again — where crossing is allowed. The first
+     * frame after the jump is skipped: the loop's own callback may run after
+     * the sampler's in that frame, so what it would read is the layout from
+     * before the loop had seen the scroll. From the second frame on, the loop
+     * has ridden and corrected at least once. Only samples taken within 220ms
+     * of the scroll are kept, and the loop sees the scroll no earlier than
+     * that, so every kept sample is inside the ride. No settle beforehand: the
+     * pair are wherever they happen to be, often mid-walk, which is the case
+     * the correction is for.
+     */
+    const RIDE_SETTLE_MS = 220;
+    const riding = await page.evaluate(async (settle) => {
+      const button = document.querySelector('[aria-controls="companion-actions"]');
+      const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+      const follow = cats.find((svg) => !button?.contains(svg));
+      const heading = document.querySelector("#tree-heading");
+      if (!button || !follow || !heading) return null;
+      const samples: Array<{ frame: number; at: number; gap: number }> = [];
+      const scrolledAt = performance.now();
+      heading.scrollIntoView({ block: "center", behavior: "instant" as ScrollBehavior });
+      await new Promise<void>((resolve) => {
+        let frame = 0;
+        const sample = () => {
+          frame += 1;
+          const at = performance.now() - scrolledAt;
+          if (at >= settle) return resolve();
+          if (frame > 1) {
+            const b = button.getBoundingClientRect();
+            const f = follow.getBoundingClientRect();
+            const gap = Math.max(
+              Math.max(f.left - b.right, b.left - f.right),
+              Math.max(f.top - b.bottom, b.top - f.bottom),
+            );
+            samples.push({ frame, at: Math.round(at), gap });
           }
-          return b.gap >= 24 ? "clear" : `only ${b.gap.toFixed(1)}px clear at rest`;
-        },
-        { timeout: 20_000, message: "the pair never stood still clear of the toggle before the jump" },
-      )
-      .toBe("clear");
-
-    // The same single, instant jump `axe.spec.ts` makes to reach the Journey's
-    // own heading — large enough, this deep in the page, to clamp both cats
-    // toward the top of the viewport in one frame. (Round 18 retargeted this
-    // from `#work-heading`: Work is deleted and the Journey occupies the slot
-    // right after the globe that Work did, so it is the same jump by position.
-    // The distances are not identical and nothing here has re-measured them.)
-    await page.locator("#tree-heading").scrollIntoViewIfNeeded();
-
-    // Claim one: the correction holds for as long as the ride itself does.
-    // `RIDE_SETTLE_MS` (companion-motion.ts) is 220ms; sampled well inside
-    // that window, on the loop's own render cadence (`RENDER_INTERVAL`,
-    // 32ms), so this is checking live frames rather than the same one twice.
-    for (let sample = 0; sample < 5; sample += 1) {
-      const m = await measure();
-      expect(m, "no cat pair found to measure").not.toBeNull();
+          requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
+      return { scrolled: window.scrollY, samples };
+    }, RIDE_SETTLE_MS);
+    expect(riding, "no cat pair or no #tree-heading to measure").not.toBeNull();
+    expect(riding!.scrolled, "the jump did not scroll the page").toBeGreaterThan(0);
+    expect(
+      riding!.samples.length,
+      `only ${riding!.samples.length} frames sampled inside the ride`,
+    ).toBeGreaterThanOrEqual(3);
+    for (const [index, { frame, at, gap }] of riding!.samples.entries()) {
       expect(
-        m!.gap,
-        `sample ${sample}: only ${m!.gap.toFixed(1)}px clear of the toggle while riding`,
+        gap,
+        `sample ${index} (frame ${frame}, ${at}ms after the jump): only ${gap.toFixed(1)}px clear of the toggle while riding`,
       ).toBeGreaterThanOrEqual(24);
-      await page.waitForTimeout(35);
     }
 
     // Claim two: once they have actually stopped — not "once some fixed

@@ -513,8 +513,14 @@ describe("heldExploreClear", () => {
     const stop = holdExplore({ lead, follow }, false);
     expect(stop.headLead).toBe(false);
     expect(heldExploreClear(stop)).toBe(true);
-    // A panel opens under his feet.
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= lead.y + 30 ? [prose] : []));
+    // By the re-check, content is under his feet too — his alone: her spot
+    // stays clear head to foot, and his head is still on the line it was
+    // planned on, so only his feet can be what drops the stop.
+    document.elementsFromPoint = vi.fn((x: number, y: number) =>
+      x >= lead.x && x <= lead.x + CAT_W && y >= lead.y + 12 ? [prose] : [],
+    );
+    expect(companionSpace.isClearSpot(follow)).toBe(true);
+    expect(companionSpace.headClear(follow)).toBe(true);
     expect(heldExploreClear(stop)).toBe(false);
   });
 

@@ -3748,11 +3748,15 @@ export function Companion({ facts }: CompanionProps) {
         settleSpots.current = null;
         // The explorers' destination has been riding with the page (see the
         // ride in `step`), so it is still beside whatever it was beside — but
-        // the page can move under a spot without scrolling it (a pinned stage,
-        // a panel opening), so it is re-probed here and dropped only if its
-        // ground has stopped being clear. Dropping it on every scroll instead
-        // would have a reader who scrolls as they read keep the pair forever
-        // setting off and never arriving.
+        // not everything moves with the document during a scroll (a sticky
+        // rail, a pinned stage), so once a scroll or resize settles it is
+        // re-probed here and dropped only if its ground has stopped being
+        // clear. Dropping it on every scroll instead would have a reader who
+        // scrolls as they read keep the pair forever setting off and never
+        // arriving. This runs on scroll and resize only: ground that shifts
+        // under a held stop with neither (a panel opening, a list re-laying
+        // out) is not re-probed, and the stop stands until its stay or walk
+        // runs out or something else drops it.
         // `heldExploreClear` (companion-moods.ts) is the probe. A perch: his
         // spot alone, three points (she trails him rather than walking to
         // hers). Otherwise each cat's three points, plus the head band only
