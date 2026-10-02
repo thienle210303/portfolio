@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { origin } from "@/content/portfolio";
 import {
+  CAT_ACTS,
+  CAT_ICONS,
   SUB_MAX_CHARS,
   BEAT_MIN_MS,
   BEAT_MAX_MS,
@@ -12,6 +14,7 @@ import {
   sceneFor,
   startScene,
   storyBeatScene,
+  type DialogueBeat,
   type StoryBeatKind,
 } from "@/components/companion/companion-dialogue";
 import { TOUR_STOPS } from "@/components/companion/companion-tour";
@@ -237,6 +240,68 @@ describe("story scenes", () => {
         expect(forced!.beats[0].meow).toBe(plain!.beats[0].meow);
       }
     });
+  });
+});
+
+/** Every beat the bank can play for FACTS: all four section-keyed kinds plus
+ *  every story kind (with and without a year, with and without the storm
+ *  overlay). */
+function allBeats(): { id: string; beat: DialogueBeat }[] {
+  const out: { id: string; beat: DialogueBeat }[] = [];
+  for (const kind of ["hello", "ambient", "encore", "tour"] as const) {
+    for (const section of [null, ...AMBIENT_SECTIONS, ...TOUR_ONLY_SECTIONS]) {
+      const scene = sceneFor(kind, section, FACTS);
+      if (scene) for (const beat of scene.beats) out.push({ id: scene.id, beat });
+    }
+  }
+  const storyKinds: StoryBeatKind[] = ["flight", "seed", "still", "rain", "sun", "storm", "quiet"];
+  for (const kind of storyKinds) {
+    for (const year of [2019, null]) {
+      for (const storm of [true, false]) {
+        const scene = storyBeatScene(kind, year, FACTS, "grey", storm);
+        if (scene) for (const beat of scene.beats) out.push({ id: scene.id, beat });
+      }
+    }
+  }
+  return out;
+}
+
+describe("short, playful lines", () => {
+  it("keeps every subtitle to 32 characters", () => {
+    expect(SUB_MAX_CHARS).toBe(32);
+    const beats = allBeats();
+    expect(beats.length).toBeGreaterThan(20);
+    for (const { id, beat } of beats) {
+      expect(beat.sub.length, `${id}: "${beat.sub}"`).toBeLessThanOrEqual(32);
+    }
+  });
+
+  it("uses only known icons and actions", () => {
+    const beats = allBeats();
+    for (const { id, beat } of beats) {
+      expect(beat.icon === undefined || CAT_ICONS.includes(beat.icon), `${id}: icon ${beat.icon}`).toBe(true);
+      expect(beat.act === undefined || CAT_ACTS.includes(beat.act), `${id}: act ${beat.act}`).toBe(true);
+    }
+    const withIcon = beats.filter(({ beat }) => beat.icon !== undefined).length / beats.length;
+    const withAct = beats.filter(({ beat }) => beat.act !== undefined).length / beats.length;
+    expect(withIcon).toBeGreaterThanOrEqual(0.6);
+    expect(withAct).toBeGreaterThanOrEqual(0.3);
+    expect(withAct).toBeLessThanOrEqual(0.7);
+  });
+
+  it("lists all twelve icons and six acts", () => {
+    expect(CAT_ICONS).toEqual([
+      "yarn", "fish", "moth", "paw", "zzz", "heart", "sparkle", "leaf", "globe", "mail", "question", "branch",
+    ]);
+    expect(CAT_ACTS).toEqual(["bat", "groom", "stretch", "eat", "sleep", "hop"]);
+  });
+
+  it("drops a templated line rather than truncating it", () => {
+    const long = {
+      ...FACTS,
+      about: { role: "Software Engineer", organization: "A Very Long Organisation Name Incorporated" },
+    };
+    expect(sceneFor("ambient", "about", long)).toBeNull();
   });
 });
 

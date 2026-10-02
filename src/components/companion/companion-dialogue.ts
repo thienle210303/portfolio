@@ -11,7 +11,9 @@ import type { SeasonKind } from "@/lib/origin-story";
  * `CompanionFacts`, the same discipline companion-tour.ts holds and for the
  * same reason. Meows are authored per beat, never generated: the grey one is
  * terse, the tabby rambles, and that difference IS the characterisation, so
- * it belongs to an author, not a generator.
+ * it belongs to an author, not a generator. Icons and acts are authored per
+ * beat too, never chosen at random: the icon is the beat's one picture, the act
+ * is what the cat does while it speaks, and a beat may carry neither.
  *
  * Pure on purpose (no DOM, no Math.random, no clocks): time comes in as
  * `now`, odds come in as `roll`, and everything here is testable in vitest
@@ -20,10 +22,48 @@ import type { SeasonKind } from "@/lib/origin-story";
 
 export type Speaker = "grey" | "tabby";
 
+/** The beat's one picture. A closed set, so the renderer can draw each one
+ *  by hand and a typo in the bank is a type error rather than a blank. */
+export type CatIcon =
+  | "yarn"
+  | "fish"
+  | "moth"
+  | "paw"
+  | "zzz"
+  | "heart"
+  | "sparkle"
+  | "leaf"
+  | "globe"
+  | "mail"
+  | "question"
+  | "branch";
+
+export const CAT_ICONS: readonly CatIcon[] = [
+  "yarn",
+  "fish",
+  "moth",
+  "paw",
+  "zzz",
+  "heart",
+  "sparkle",
+  "leaf",
+  "globe",
+  "mail",
+  "question",
+  "branch",
+];
+
+/** What the speaking cat does while the beat plays. */
+export type CatAct = "bat" | "groom" | "stretch" | "eat" | "sleep" | "hop";
+
+export const CAT_ACTS: readonly CatAct[] = ["bat", "groom", "stretch", "eat", "sleep", "hop"];
+
 export interface DialogueBeat {
   readonly speaker: Speaker;
   readonly meow: string;
   readonly sub: string;
+  readonly icon?: CatIcon;
+  readonly act?: CatAct;
 }
 
 export type SceneKind = "hello" | "ambient" | "encore" | "tour" | "story";
@@ -35,9 +75,9 @@ export interface DialogueScene {
 }
 
 /** A subtitle longer than this cannot sit beside a cat without becoming a
- *  caption — same budget philosophy NOTE_MAX_CHARS had, a hair wider because
- *  two voices earn a little more room. */
-export const SUB_MAX_CHARS = 64;
+ *  caption. A templated line that comes out longer is dropped, never
+ *  truncated: `sceneFor` returns null for the whole scene. */
+export const SUB_MAX_CHARS = 32;
 
 /** Reading-time clock for auto-advance: max-anchored, not floor-anchored — a
  *  beat starts at `BEAT_MAX_MS` and loses `BEAT_MS_PER_CHAR` for every
@@ -45,7 +85,10 @@ export const SUB_MAX_CHARS = 64;
  *  BEAT_MAX_MS]. See `beatDurationMs` below for the formula itself. */
 export const BEAT_MIN_MS = 2400;
 export const BEAT_MAX_MS = 5000;
-export const BEAT_MS_PER_CHAR = 55;
+/** Sized so the clamp window spans the whole 32-character budget: a
+ *  three-character sub lands on `BEAT_MIN_MS`, a full one on `BEAT_MAX_MS`.
+ *  At the old 55 the budget halved and `BEAT_MIN_MS` became unreachable. */
+export const BEAT_MS_PER_CHAR = 90;
 
 /** Cadence — the field notes' numbers, inherited: the duet replaces them and
  *  keeps their rhythm. The first scene of a visit is the hello. */
@@ -54,8 +97,17 @@ export const DUET_GAP_MS = 75_000;
 export const DUET_GAP_SPREAD_MS = 60_000;
 export const DUET_ODDS = 0.45;
 
-const grey = (meow: string, sub: string): DialogueBeat => ({ speaker: "grey", meow, sub });
-const tabby = (meow: string, sub: string): DialogueBeat => ({ speaker: "tabby", meow, sub });
+const voice =
+  (speaker: Speaker) =>
+  (meow: string, sub: string, icon?: CatIcon, act?: CatAct): DialogueBeat => ({
+    speaker,
+    meow,
+    sub,
+    ...(icon ? { icon } : {}),
+    ...(act ? { act } : {}),
+  });
+const grey = voice("grey");
+const tabby = voice("tabby");
 
 /** A full stop for a sentence that doesn't already end in one — "DoorDash,
  *  Inc." brings its own, "Schaeffler Group" doesn't, and a template can't
@@ -69,37 +121,37 @@ const endStop = (s: string): string => (s.endsWith(".") ? "" : ".");
 type SceneBuilder = (facts: CompanionFacts) => readonly DialogueBeat[] | null;
 
 const HELLO: SceneBuilder = () => [
-  tabby("Mrrrow! Meow meow!", "Oh! A visitor! We've been waiting all day!"),
-  grey("Mrp.", "We live here. I keep the facts straight."),
-  tabby("Meow-meow-mrrp!", "Click me whenever — I'll translate the page!"),
+  tabby("Mrrrow!", "A visitor! Pet me? Pet me!", "heart", "hop"),
+  grey("Mrp.", "I guard the facts. Mostly.", "paw"),
+  tabby("Meow-mrrp!", "Click me. I translate meows.", "question"),
 ];
 
 const AMBIENT: Record<string, SceneBuilder> = {
   about: (f) =>
     f.about.role && f.about.organization
       ? [
-          grey("Mrp. Meow.", `Now: ${f.about.role}, ${f.about.organization}${endStop(f.about.organization)}`),
-          tabby("Mrrrow?", "That's the headline. The page is the proof."),
+          grey("Mrp. Meow.", `Now at ${f.about.organization}${endStop(f.about.organization)} Fancy!`, "sparkle"),
+          tabby("Mrrrow?", "Scroll down. It gets furrier.", "paw", "hop"),
         ]
       : null,
   tree: (f) => [
-    tabby("Mrrrow! Meow!", `A tree! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
-    grey("Meow.", "We planted nothing. Every leaf is off his own record."),
+    tabby("Mrrrow! Meow!", `${f.tree.branches} branches! Climbing all!`, "branch", "hop"),
+    grey("Meow.", `${f.tree.leaves} leaves. None of them fake.`, "leaf"),
   ],
 };
 
 /**
  * Round 10: the tree absorbed Journey, and its encore is where that
- * section's own facts earned a place — the branch/leaf/technology count
- * followed by the work/learning/milestone split of the career entries, which
- * used to be `journey`'s own scene.
+ * section's own facts earned a place — the technology count, then the
+ * work/milestone split of the career entries, which used to be `journey`'s
+ * own scene.
  */
 const ENCORE: Record<string, SceneBuilder> = {
   tree: (f) => [
-    grey("Meow. Mrp.", `${f.tree.technologies} technologies hang on those branches.`),
-    tabby("Mrrrow?", "Open a branch! Its dates are tucked inside."),
-    grey("Mrp. Mrp.", `${f.tree.entries} entries in all. ${f.tree.work} were work.`),
-    tabby("Meow!", `${f.tree.milestones} milestones. Confetti days, every one.`),
+    grey("Meow. Mrp.", `${f.tree.technologies} techs. I sniffed each.`, "sparkle"),
+    tabby("Mrrrow?", "Pick a branch. Peek inside!", "question", "bat"),
+    grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} were work.`, "paw"),
+    tabby("Meow!", `${f.tree.milestones} milestones. Zoomies!`, "sparkle", "hop"),
   ],
 };
 
@@ -108,37 +160,38 @@ const TOUR: Record<string, SceneBuilder> = {
   // simply never plays, but the tour must visit every stop, so this one falls
   // back to generic prose instead of skipping the beat.
   about: (f) => [
-    tabby("Mrrrow!", "This is him! Right here, top of the page!"),
+    tabby("Mrrrow!", "Top of the page. That's him!", "heart", "hop"),
     grey(
       "Mrp. Meow.",
       f.about.role && f.about.organization
-        ? `${f.about.role}. ${f.about.organization}${endStop(f.about.organization)} The facts hold.`
-        : "The start of the page. The facts hold.",
+        ? `${f.about.organization}${endStop(f.about.organization)} Purr-fect.`
+        : "The human. Facts check out.",
+      "paw",
     ),
   ],
   // Round 16: Playground Earth. Every number here is quoted from `f.worlds`,
   // never typed — the same discipline every other scene in this file keeps.
   // Plaques and decorations are disjoint sets (`DECORATION_LABEL` is
-  // literally "no plaque · decoration"), so the second line says "more",
+  // literally "no plaque · decoration"), so the second line says "plus",
   // not "of these" — nineteen plaques plus three decorations is twenty-two
   // objects, not three of nineteen.
   worlds: (f) => [
-    tabby("Mrrrow!", `${f.worlds.count} worlds! ${f.worlds.plaques} plaques and we guard all of them!`),
-    grey("Mrp. Meow.", `${f.worlds.decorations} more are just drawings. They say so themselves.`),
+    tabby("Mrrrow!", `${f.worlds.count} worlds! I'd nap on each.`, "globe", "stretch"),
+    grey("Mrp. Meow.", `${f.worlds.plaques} plaques, plus ${f.worlds.decorations} doodles.`, "sparkle"),
   ],
   // Round 10: the tree absorbed Journey, and this one stop now narrates both
-  // faces — the branch/leaf/technology count first, then the entries' own
-  // work/learning/milestone split that used to be `journey`'s own tour stop,
-  // tabby's line preserved rather than dropped.
+  // faces — the branch/leaf/technology counts first, then the entries' own
+  // work count that used to be `journey`'s own tour stop, tabby's nap line
+  // preserved rather than dropped.
   tree: (f) => [
-    tabby("Meow meow meow!", `Look up! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
-    grey("Mrp.", `${f.tree.technologies} technologies hang there. We planted nothing.`),
-    grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} of them are work.`),
-    tabby("Mrrrow!", "I napped through the rest — they still count!"),
+    tabby("Meow meow meow!", `Look up! ${f.tree.branches} branches!`, "branch", "hop"),
+    grey("Mrp.", `${f.tree.leaves} leaves, ${f.tree.technologies} techs. Real.`, "leaf"),
+    grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} were work.`, "paw", "groom"),
+    tabby("Mrrrow!", "Napped through it. Counts!", "zzz", "sleep"),
   ],
   contact: () => [
-    tabby("Mrrrow-meow-meow!", "Say hi! He answers — usually before I wake up."),
-    grey("Mrp.", "The form works. So does plain email. Either lands."),
+    tabby("Mrrrow-meow-meow!", "Say hi! Leave a note!", "mail", "hop"),
+    grey("Mrp.", "Or just email. Fish welcome.", "fish", "eat"),
   ],
 };
 
@@ -179,16 +232,23 @@ export type StoryBeatKind = "flight" | "seed" | SeasonKind | "still";
 
 const STORY_BEAT: Record<
   StoryBeatKind,
-  { readonly meow: string; readonly sub: (year: number | null) => string | null }
+  {
+    readonly meow: string;
+    readonly sub: (year: number | null) => string | null;
+    readonly icon?: CatIcon;
+    readonly act?: CatAct;
+  }
 > = {
   flight: {
     meow: "Mrrrow...",
-    sub: () => `A long flight, a small seed. ${origin.arrived}${endStop(origin.arrived)}`,
+    sub: () => `Long flight. ${origin.arrived}${endStop(origin.arrived)}`,
+    icon: "globe",
   },
-  seed: { meow: "Mrp!", sub: () => "Right here. This exact spot." },
+  seed: { meow: "Mrp!", sub: () => "Right here. Plant it!", icon: "leaf", act: "hop" },
   rain: {
     meow: "Mrrp-meow.",
-    sub: (year) => (year === null ? null : `${year} — rain for the roots. Drink up.`),
+    sub: (year) => (year === null ? null : `${year} — rain. Slurp slurp.`),
+    icon: "leaf",
   },
   // The storm overlay's own line — played instead of the base-kind entry
   // below whenever `storyBeatScene` is asked with `storm: true`, regardless
@@ -196,17 +256,23 @@ const STORY_BEAT: Record<
   // above.
   storm: {
     meow: "Mrrrow!!",
-    sub: (year) => (year === null ? null : `${year} — a storm! Hold the trunk!`),
+    sub: (year) => (year === null ? null : `${year} — storm! Hide the yarn!`),
+    icon: "yarn",
+    act: "hop",
   },
   sun: {
     meow: "Mrrp.",
-    sub: (year) => (year === null ? null : `${year} — steady sun, steady work.`),
+    sub: (year) => (year === null ? null : `${year} — sunbeam. Purr-fect.`),
+    icon: "sparkle",
+    act: "stretch",
   },
   quiet: {
     meow: "Mrp...",
-    sub: (year) => (year === null ? null : `${year} — quiet. Roots don't hurry.`),
+    sub: (year) => (year === null ? null : `${year} — quiet. Big nap year.`),
+    icon: "zzz",
+    act: "sleep",
   },
-  still: { meow: "Meow!", sub: () => "…and still growing." },
+  still: { meow: "Meow!", sub: () => "…and still growing!", icon: "branch", act: "hop" },
 };
 
 /**
@@ -244,7 +310,14 @@ export function storyBeatScene(
   if (!entry) return null;
   const sub = entry.sub(year);
   if (sub === null || sub.length > SUB_MAX_CHARS || entry.meow.length === 0) return null;
-  return { id: `story-${kind}`, kind: "story", beats: [{ speaker, meow: entry.meow, sub }] };
+  const beat: DialogueBeat = {
+    speaker,
+    meow: entry.meow,
+    sub,
+    ...(entry.icon ? { icon: entry.icon } : {}),
+    ...(entry.act ? { act: entry.act } : {}),
+  };
+  return { id: `story-${kind}`, kind: "story", beats: [beat] };
 }
 
 /** A resolved scene, or null for "nothing to play" — over-budget subs and
