@@ -13,9 +13,10 @@
  *
  * This file is the Server Component boundary and the only thing in the
  * directory that knows it is a section. It reads the tree once, computes the
- * rail from it, keeps the `#journey` compatibility anchor, and hands the rest
- * to `Stage`. The section still answers `#journey`; the per-entry fragments
- * and the other retired section ids are a later step.
+ * rail from it, carries the compatibility anchors for every retired section id
+ * (`LEGACY_SECTION_IDS` in `./anchors.ts`), and hands the rest to `Stage`. The
+ * per-entry `journey-entry-<id>` fragments are the same promise one level down
+ * and are rendered by `Stage`, on the act that draws each entry.
  *
  * Every rail note is counted off the tree the stage draws and `careerEntries`
  * directly, so a number here cannot drift from the drawing beside it. The tree
@@ -40,6 +41,7 @@ import {
   treeTechnologies,
 } from "@/lib/knowledge-tree";
 import { ACTS } from "./acts";
+import { LEGACY_SECTION_IDS } from "./anchors";
 import CredentialsStrip from "./CredentialsStrip";
 import DrawnTree from "./DrawnTree";
 import KnowledgeTreeList from "./KnowledgeTreeList";
@@ -99,13 +101,31 @@ const RAIL: readonly RailNote[] = [
 export default function CareerTree() {
   return (
     <Section id="tree" labelledBy={HEADING_ID} eyebrow="Career tree" tone="base" rail={RAIL}>
-      {/* Every old `#journey` link and bookmark — the nav used to point here,
-          and nothing forces an external link to have noticed it moved. A
-          real, zero-size element rather than a client-side hash rewrite: this
-          way the landing works with no JavaScript at all. `scroll-mt-20`
-          matches the section's own offset (see `Section`'s `scroll-mt-20`), so
-          arriving via either id clears the sticky header by the same margin. */}
-      <span id="journey" aria-hidden="true" className="sr-only scroll-mt-20" />
+      {/* Every retired section id, kept resolvable. The nav used to point at
+          `#journey`, `#work`, `#skills` and `#workshop`; all four are in
+          bookmarks, possibly in a shared résumé PDF, and possibly indexed, and
+          nothing forces an external link to have noticed its target moved.
+          They land here because this section is where the content they named
+          went: the case studies render inside the branches of the roles that
+          produced them, and `#skills`/`#workshop` have no successor of their
+          own — the Journey is the nearest honest answer to "show me his work"
+          for a visitor arriving on a dead id, which beats a silent no-op.
+
+          Real, zero-size elements rather than a client-side hash rewrite: this
+          way the landing works with no JavaScript at all, which
+          `e2e/legacy-anchors.spec.ts` proves against the server-rendered HTML.
+          `scroll-mt-20` matches the section's own offset (see `Section`'s
+          `scroll-mt-20`), so arriving via any of these ids clears the sticky
+          header by the same margin. `aria-hidden` because they carry no
+          content: they are a destination, not a thing to read.
+
+          Nothing the site itself renders links to any of them — these exist
+          for inbound links only. The per-entry `journey-entry-<id>` fragments
+          are the same promise one level down and are rendered by `Stage`, on
+          the act that draws each entry. */}
+      {LEGACY_SECTION_IDS.map((id) => (
+        <span key={id} id={id} aria-hidden="true" className="sr-only scroll-mt-20" />
+      ))}
 
       <SectionHeading
         id={HEADING_ID}

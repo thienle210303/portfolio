@@ -38,11 +38,56 @@ export interface Document {
   readonly text: string;
   readonly source: string;
   /**
-   * Where on the page this text is rendered, so an answer's "Read it in …"
-   * link is truthful. **Both or neither**, and omitted for a document whose
-   * text is rendered nowhere on the page (today, only the skills evidence
-   * lines — see the skills loop below). A document with no section is still
-   * retrieved and quoted; it just has nowhere to send the reader.
+   * Where to send a reader who wants to see this in context — the `id` of one
+   * of the page's four sections, which `AskThisSite` turns into `#<sectionId>`.
+   * **Both or neither.**
+   *
+   * ## What this promises, precisely
+   *
+   * That the named section renders **the subject this text belongs to**: the
+   * career entry, the project, the plaque, the About prose. It does *not*
+   * promise the sentence itself is printed there, and for a good number of
+   * documents it is not — measured at round 18, 38 of the 54 career and
+   * education documents quote a field the page does not render. An entry's
+   * `learned` line is rendered nowhere on the Journey (exactly one of them,
+   * `usc-scraping`'s, is quoted by a globe plaque and so is on the page, in
+   * `#worlds`); an entry's `context` is rendered only by `/resume`, and only for
+   * the work entries; and the nine demoted entries' `context` and `impact` lines
+   * are named by nothing — the credentials strip is their role, organisation and
+   * repository link, one line each. A reader who follows "Read it in Journey →" from one of those lands
+   * on the entry's branch, its technologies, its impact leaves and its case
+   * study — which is where to read about it, and is not nothing, but is not the
+   * sentence.
+   *
+   * That is a known gap rather than a settled design, and the fix the plan
+   * prefers is to render the sentence rather than to re-point the link (the
+   * precedent is `profile.positioning`, two paragraphs down). Doing it means
+   * putting `learned` into the branch panels and the demoted entries' one-liners
+   * onto the strip, which is a change to what the Journey *says* and belongs to
+   * whoever owns that.
+   *
+   * ## Omitted entirely for the skills evidence lines
+   *
+   * Those six sentences are the one case where the weaker promise above also
+   * fails: nothing anywhere on the page renders a skill category — `/resume`
+   * prints each category's label and skill names but not its evidence line, and
+   * the Journey draws the categories as `aria-hidden` decorative root paths with
+   * no text — so there is no subject to send a reader to, never mind a sentence.
+   * They carry no section rather than a link that lies. See the skills loop at
+   * the bottom of this file for why that was chosen over the alternatives.
+   *
+   * A document with no section is still retrieved and quoted; it just has
+   * nowhere to send the reader.
+   *
+   * ## Never a compatibility anchor
+   *
+   * `#journey`, `#work`, `#skills` and `#workshop` all resolve — they are the
+   * zero-size spans `CareerTree.tsx` renders for inbound links it does not
+   * control — and no document may cite one. The career documents cited
+   * `journey` until round 18's Task 13; they cite `tree`, the section that
+   * actually exists, so that the compatibility anchors can be deleted the day
+   * the bookmarks stop arriving without taking the chat's citations with them.
+   * `tests/lib/answers.test.ts` holds that line.
    */
   readonly sectionId?: string;
   readonly sectionLabel?: string;
@@ -131,10 +176,12 @@ export function buildDocuments(): Document[] {
   });
 
   // Philosophy the section is gone (round 16), but this line is still
-  // rendered live in three places — the hero's rail, the business card, the
-  // career tree's plinth — so the document stays and is re-tagged to About,
-  // the hero's own section id (Hero.tsx renders `id="about"`), rather than
-  // being dropped with the rest of the section's corpus.
+  // rendered live in two places — the hero's rail and the business card — so
+  // the document stays and is tagged to About, the hero's own section id
+  // (Hero.tsx renders `id="about"`), rather than being dropped with the rest of
+  // the section's corpus. The third place it used to be rendered was the career
+  // tree's plinth, in `KnowledgeTree.tsx`, which round 18 left without an
+  // importer; the rail is what keeps the About citation true.
   //
   // The words below used to live on `sectionExpansions.philosophy`, spread
   // across every document the old section contributed. With only this one
@@ -233,6 +280,74 @@ export function buildDocuments(): Document[] {
       });
     }
 
+    // Two of the five deep-dive fields `CaseStudy.tsx` renders and nothing
+    // indexed. Their only path into the corpus was the agent-station documents
+    // round 18 deleted with the Workshop, which left a visitor able to read
+    // them on the page and unable to find them by asking. Each carries
+    // field-specific vocabulary rather than subject-level aliases, for the
+    // reason the banner above gives: at subject level "assumed" would land on
+    // the problem statement too.
+    //
+    // **Two, not five, and the other three were measured rather than argued
+    // about.** Against `tests/lib/answers-retrieval.test.ts` at 30 cases
+    // (baseline recall@1 73.3% / recall@3 93.3% / recall@5 96.7% / MRR 0.823):
+    //
+    //   assumption          73.3 / 93.3 / 96.7 / 0.823   byte-identical
+    //   pathsExplored       73.3 / 93.3 / 96.7 / 0.822   one case 6 -> 8
+    //   nextQuestion        63.3 / 93.3 / 93.3 / 0.772   three cases 1 -> 2
+    //   constraints         66.7 / 93.3 / 93.3 / 0.782   three cases 1 -> 2
+    //   decisions           66.7 / 93.3 / 96.7 / 0.784   two cases 1 -> 2
+    //   all five together   56.7 / 93.3 / 93.3 / 0.713
+    //
+    // Each rejected set pushes documents that were already rank 1 down by
+    // exactly one place, and the scores say why — two different mechanisms, one
+    // benign and one not. Measured on `constraints`:
+    //
+    //   "mendix"  the Schaeffler constraint line ties the gold skills-evidence
+    //             line to four decimals (4.0604 both) and wins the tie on
+    //             corpus insertion order, because these blocks are pushed
+    //             before the metrics. Same shape for "azure" (3.5610 three
+    //             ways). Nothing was out-reasoned; the order changed.
+    //   "did anything go wrong on the projects"  the DoorDash constraint line
+    //             *outscores* the three lesson lines that answer the question,
+    //             3.5304 against 2.3720. That one is a wrong answer winning.
+    //
+    // The second mechanism is the `watchFor` finding again in a milder form:
+    // text whose vocabulary the corpus already has costs ranking where it is
+    // not the answer and earns recall nowhere the eval can see. The floors are
+    // not the thing to move — see the note at the top of the retrieval test —
+    // so these three stay rendered-but-unindexed, which is the honest state and
+    // is recorded here rather than left to be rediscovered.
+    if (project.assumption) {
+      docs.push({
+        text: project.assumption,
+        source: `${where}, the assumption it rested on`,
+        sectionId: "tree",
+        sectionLabel: "Journey",
+        label: label(
+          "work",
+          project.id,
+          project.title,
+          "assumption assumed assume believed guess bet premise riskiest",
+        ),
+      });
+    }
+
+    for (const path of project.pathsExplored) {
+      docs.push({
+        text: path,
+        source: `${where}, the paths explored`,
+        sectionId: "tree",
+        sectionLabel: "Journey",
+        label: label(
+          "work",
+          project.id,
+          project.title,
+          "alternative option considered rejected ruled out instead other way explored",
+        ),
+      });
+    }
+
     for (const metric of project.metrics) {
       docs.push({
         text: `${metric.label}: ${metric.before} → ${metric.after}.`,
@@ -263,7 +378,7 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: entry.summary,
         source: where,
-        sectionId: "journey",
+        sectionId: "tree",
         sectionLabel: "Journey",
         label: label("journey", entry.id, ...shared, "did does responsibility"),
       });
@@ -277,7 +392,7 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: claim,
         source: `${where} — impact`,
-        sectionId: "journey",
+        sectionId: "tree",
         sectionLabel: "Journey",
         label: label(
           "journey",
@@ -292,7 +407,7 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: entry.learned,
         source: `${where} — what it taught him`,
-        sectionId: "journey",
+        sectionId: "tree",
         sectionLabel: "Journey",
         label: label("journey", entry.id, ...shared, "learn lesson learned learning takeaway realised"),
       });
@@ -305,7 +420,7 @@ export function buildDocuments(): Document[] {
       // Education is a timeline entry, and #resume is no longer a section on
       // the page — linking there would be a dead anchor.
       source: "Education",
-      sectionId: "journey",
+      sectionId: "tree",
       sectionLabel: "Journey",
       label: label(
         "journey",
@@ -324,7 +439,7 @@ export function buildDocuments(): Document[] {
   // reach the index through the label.
   //
   // Round 18: the Skills section is gone, and `category.evidence` is rendered
-  // nowhere on the page: `/resume` shows each category's label and skill names
+  // nowhere on the site: `/resume` shows each category's label and skill names
   // but not the evidence line, and the Journey draws the categories only as
   // decorative `aria-hidden` root paths with no text. So these documents carry
   // NO section: a "Read it in Journey" link would send the reader to a section
@@ -333,9 +448,28 @@ export function buildDocuments(): Document[] {
   // about where to find it). They stay indexed — retrieval is unchanged, and
   // `label("skills", …)` keeps selecting the skills vocabulary.
   //
-  // TODO(round 18, Task 13): choose the permanent home for these evidence
-  // lines (render them somewhere, then cite it) against the retrieval eval.
-  // Until then they are honest rather than linked.
+  // **Settled in round 18's Task 13: section-less is the answer, not a
+  // placeholder.** Three options were on the table and the retrieval eval
+  // cannot choose between them — `sectionId` is not part of a document's search
+  // surface, so recall@1/3/5 and MRR are byte-identical whichever is picked
+  // (73.3% / 93.3% / 96.7% / 0.823 over 30 cases, before and after). So it was
+  // decided on cost and on honesty instead:
+  //
+  //  - *Render the evidence on `/resume` and cite the route.* The precedent fix,
+  //    and rejected here on blast radius: `sectionId` means "a section of the
+  //    single page" to five more places than this file — `answers.ts`'s
+  //    `Answer`, `AskThisSite.tsx` twice, `answer-code.ts` twice, the
+  //    `/api/ask` route, plus `scoring-excerpt.ts`, whose text a test pins —
+  //    and a route destination is a second *kind* of citation that every one of
+  //    them would have to learn, for six documents out of 132. It also sends a
+  //    reader mid-conversation off the page they are reading, which no other
+  //    citation does.
+  //  - *Re-home the evidence into the Journey.* The better answer, and not a
+  //    refactor's to make: it changes what the section says. Left to the owner,
+  //    along with the wider gap described on `Document.sectionId` above.
+  //  - *Leave them section-less.* What is shipped. A document that is retrieved,
+  //    quoted and attributed with no "Read it in …" link is the one option that
+  //    states exactly what is true.
   for (const category of skillsIndexable) {
     docs.push({
       text: category.evidence,

@@ -367,6 +367,29 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
             data-act=""
             aria-current={index === active && !released ? "step" : undefined}
           >
+            {/* The compatibility fragments for the entries this act draws.
+                `journey-entry-<id>` was the timeline `<li>`'s id until round 18
+                replaced the timeline with this stage, and those fragments are in
+                bookmarks and in the chat's own citations; landing on the act
+                that draws an entry is the nearest true answer to "take me to
+                that role". Real zero-size elements, never a client-side hash
+                rewrite, so a bookmark lands with JavaScript disabled — the same
+                reasoning as the section-level ids in `CareerTree.tsx`.
+                `scroll-mt-20` is 5rem, which is exactly the act's own
+                `scroll-margin-top` in globals.css — so a fragment naming an
+                entry clears the sticky header by the same margin as a link
+                naming the act around it. (Under the pin the act's margin
+                becomes `20svh`, a centring one; a span inside it keeps its
+                own 5rem, which is the static answer and still clear.) */}
+            {act.entryAnchorIds.map((anchorId) => (
+              <span
+                key={anchorId}
+                id={anchorId}
+                aria-hidden="true"
+                className="sr-only scroll-mt-20"
+              />
+            ))}
+
             {/* Always rendered, and the section itself is never faded: the
                 stylesheet dims the *title* of an act that is not current, by
                 `opacity` alone — no `display: none`, no `visibility: hidden` —

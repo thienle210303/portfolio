@@ -1,18 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { journeyEntryAnchor, journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
+import { journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
+import { ACTS } from "@/sections/CareerTree/acts";
 import { careerEntries } from "@/content/portfolio";
 
 /**
- * `journeyEntryAnchor` decides whether an id names a career entry the Journey
- * is meant to own, and builds its fragment from the entry id and nothing else.
+ * `journeyEntryAnchorId` builds a career entry's fragment from the entry id and
+ * nothing else, and `./acts.ts` is what calls it — once per entry, on the act
+ * that draws that entry.
  *
- * **What this file does not prove, as of round 18:** that an element with the
- * id is in the document. Through round 17 it did, because the timeline rendered
- * exactly `careerEntries`; the pinned stage replaced the timeline and nothing
- * renders `journey-entry-<id>` today. The assertions below are therefore about
- * the id and the guard, and are named that way. Task 13 re-adds the anchors on
- * the acts and is where "every one resolves against the DOM" is asserted again
- * (`tests/sections/Stage.test.tsx` and `e2e/legacy-anchors.spec.ts`).
+ * **What this file proves and what it does not.** It proves the id's shape, and
+ * that the acts between them declare one fragment for every career entry,
+ * exactly once. It does not prove an element carries the id:
+ * `tests/sections/Stage.test.tsx` renders the stage and asserts that, and
+ * `e2e/legacy-anchors.spec.ts` asserts the no-JavaScript landing a jsdom test
+ * cannot reach. The gate that used to live here — `journeyEntryAnchor`, which
+ * returned `undefined` for an id that was not a career entry — went with its
+ * only caller; see the retirement note in
+ * `src/sections/CareerTree/cross-link.tsx`.
  */
 describe("journeyEntryAnchorId", () => {
   it("derives the id from the entry id rather than an authored string", () => {
@@ -31,21 +35,27 @@ describe("journeyEntryAnchorId", () => {
   });
 });
 
-describe("journeyEntryAnchor", () => {
-  it("gives every career entry a fragment id (not proof that an element carries it — see the note above)", () => {
+describe("the acts declare one fragment per career entry", () => {
+  it("covers every entry exactly once", () => {
     expect(careerEntries.length).toBeGreaterThan(0);
-    for (const entry of careerEntries) {
-      expect(journeyEntryAnchor(entry.id), `no anchor for "${entry.id}"`).toBe(
-        `journey-entry-${entry.id}`,
-      );
-    }
+    const declared = ACTS.flatMap((act) => act.entryAnchorIds);
+    // A sorted list rather than a set: an entry declared by two acts would ship
+    // a duplicate id, and a membership check would not notice.
+    expect(declared.toSorted()).toEqual(
+      careerEntries.map((entry) => journeyEntryAnchorId(entry.id)).toSorted(),
+    );
   });
 
-  it("gives nothing to an id that is not a career entry", () => {
-    expect(journeyEntryAnchor("no-such-entry")).toBeUndefined();
-    expect(journeyEntryAnchor("")).toBeUndefined();
-    // The anchor id itself is not an entry id — asking with one back is the
-    // shape of a caller that round-tripped the wrong value.
-    expect(journeyEntryAnchor(journeyEntryAnchorId(careerEntries[0].id))).toBeUndefined();
+  it("pairs each act's entry ids with its anchor ids, in order", () => {
+    // `entryAnchorIds` is derived from `entryIds`; asserting the pairing is how
+    // an edit that reorders one and not the other gets caught.
+    let paired = 0;
+    for (const act of ACTS) {
+      expect(act.entryAnchorIds, act.id).toEqual(act.entryIds.map(journeyEntryAnchorId));
+      paired += act.entryIds.length;
+    }
+    expect(paired, "no act names an entry, so the loop above proved nothing").toBe(
+      careerEntries.length,
+    );
   });
 });

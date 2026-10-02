@@ -30,6 +30,15 @@ export interface IndexableProject {
   readonly problem: string;
   readonly learned: string;
   readonly proof: readonly string[];
+  /** Two of the deep-dive fields `CaseStudy.tsx` renders. They reach the index
+   *  from round 18 on; the other three it renders (`constraints`, `decisions`,
+   *  `nextQuestion`) are deliberately absent, because indexing them costs
+   *  ranking — the measurement is in `answer-corpus.ts` beside the documents
+   *  these two build. `assumption` is `Maybe<string>`, so it collapses to
+   *  `undefined` here like every other optional field, and a
+   *  `[NEEDS INPUT: …]` marker can never reach the index. */
+  readonly assumption: string | undefined;
+  readonly pathsExplored: readonly string[];
   readonly technologies: readonly string[];
   readonly metrics: readonly { label: string; before: string; after: string; source: string }[];
 }
@@ -42,6 +51,8 @@ function toIndexable(project: Project): IndexableProject {
     problem: project.problem,
     learned: project.learned,
     proof: project.proof,
+    assumption: resolved(project.assumption),
+    pathsExplored: project.pathsExplored,
     technologies: project.technologies,
     metrics: (project.metrics ?? []).map((metric) => ({
       label: metric.label,

@@ -1,6 +1,7 @@
 import { careerEntries, origin } from "@/content/portfolio";
 import { ACT_IDS, actAnchorId, actForEntry, type ActId } from "@/lib/anchors";
 import { arrivedAge } from "@/lib/origin-story";
+import { journeyEntryAnchorId } from "./anchors";
 
 /**
  * The seven acts the stage scrubs through.
@@ -25,6 +26,15 @@ export interface Act {
   readonly year: string;
   readonly title: string;
   readonly entryIds: readonly string[];
+  /** `journeyEntryAnchorId` for each of `entryIds`, in the same order — the
+   *  compatibility fragments an old link names an entry by. Carried here for
+   *  the same reason `anchorId` is: the stage is handed every id it renders and
+   *  derives none, so `./anchors.ts` stays the only file that knows the format.
+   *  (`./anchors.ts` imports nothing, so the stage *could* call it directly;
+   *  having the stage build ids out of entry ids is what the symmetry is
+   *  avoiding, not an import.) Derived, never typed, so an entry added to
+   *  `careerEntries` gets its fragment without an edit here. */
+  readonly entryAnchorIds: readonly string[];
   /** The act during which the nine demoted milestones appear as one line. */
   readonly showsCredentials: boolean;
 }
@@ -44,14 +54,18 @@ const TITLES: Readonly<Record<ActId, { year: string; title: string }>> = {
   "retail-data": { year: "October 2025 — now", title: "Retail data" },
 };
 
-export const ACTS: readonly Act[] = ACT_IDS.map((id) => ({
-  id,
-  anchorId: actAnchorId(id),
-  year: TITLES[id].year,
-  title: TITLES[id].title,
-  entryIds: careerEntries
+export const ACTS: readonly Act[] = ACT_IDS.map((id) => {
+  const entryIds = careerEntries
     .filter((entry) => actForEntry(entry.id) === id)
     .toSorted((a, b) => (a.sortKey < b.sortKey ? -1 : 1))
-    .map((entry) => entry.id),
-  showsCredentials: id === "two-jobs",
-}));
+    .map((entry) => entry.id);
+  return {
+    id,
+    anchorId: actAnchorId(id),
+    year: TITLES[id].year,
+    title: TITLES[id].title,
+    entryIds,
+    entryAnchorIds: entryIds.map(journeyEntryAnchorId),
+    showsCredentials: id === "two-jobs",
+  };
+});

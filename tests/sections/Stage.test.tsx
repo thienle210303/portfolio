@@ -4,6 +4,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import Stage from "@/sections/CareerTree/Stage";
 import { ACTS } from "@/sections/CareerTree/acts";
 import { ACT_IDS, actAnchorId } from "@/lib/anchors";
+import { journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
+import { careerEntries } from "@/content/portfolio";
 
 /**
  * jsdom ships no IntersectionObserver, and Stage has to survive that (an old
@@ -317,5 +319,70 @@ describe("the stylesheet the stage drives", () => {
     const css = readFileSync("src/app/globals.css", "utf8");
     expect(css).not.toContain("[data-origin-running] [data-tree-root]");
     expect(css).not.toContain("[data-origin-running] [data-cat-nap] > p");
+  });
+});
+
+/**
+ * The per-entry compatibility fragments.
+ *
+ * `journey-entry-<id>` was the deleted timeline `<li>`'s id. The stage is what
+ * renders them now — one zero-size span per entry, inside the act that draws
+ * that entry — so the claim is asserted here, against `Stage` itself.
+ *
+ * The *section*-level retired ids (`#work`, `#skills`, `#workshop`, `#journey`)
+ * are `CareerTree`'s, not the stage's, and are asserted in
+ * `tests/sections/CareerTree.test.tsx` beside the component that renders them.
+ * Neither claim is provable without JavaScript from jsdom; that is what
+ * `e2e/legacy-anchors.spec.ts` is for.
+ */
+describe("legacy anchors", () => {
+  it("keeps every per-entry fragment resolvable", () => {
+    renderStage();
+    // Not vacuous: an empty content layer would make the loop below assert
+    // nothing at all and still pass.
+    expect(
+      careerEntries.length,
+      "no career entries, so the loop below would prove nothing",
+    ).toBeGreaterThan(0);
+    for (const entry of careerEntries) {
+      // A real zero-size element, not a client-side hash rewrite: a bookmark
+      // has to land with JavaScript disabled, the same way `#journey` already
+      // does.
+      const target = document.getElementById(journeyEntryAnchorId(entry.id));
+      expect(target, entry.id).not.toBeNull();
+      // Inside the act that draws the entry, not loose at the top of the
+      // stage — landing on the act is the whole point of a per-entry fragment.
+      const act = ACTS.find((candidate) => candidate.entryIds.includes(entry.id));
+      if (!act) throw new Error(`no act draws ${entry.id}`);
+      expect(document.getElementById(act.anchorId), entry.id).toContainElement(target);
+    }
+  });
+
+  it("carries no content and steals no tab stop", () => {
+    renderStage();
+    const anchors = careerEntries.map((entry) => {
+      const element = document.getElementById(journeyEntryAnchorId(entry.id));
+      if (!element) throw new Error(`no element for ${entry.id}`);
+      return element;
+    });
+    expect(anchors.length, "nothing to check").toBeGreaterThan(0);
+    for (const anchor of anchors) {
+      expect(anchor).toHaveAttribute("aria-hidden", "true");
+      expect(anchor.textContent, anchor.id).toBe("");
+      expect(anchor).not.toHaveAttribute("tabindex");
+      // `sr-only` keeps it out of the visual layout; `scroll-mt-*` is what
+      // makes the landing clear the sticky header.
+      expect(anchor.className, anchor.id).toContain("sr-only");
+      expect(anchor.className, anchor.id).toMatch(/\bscroll-mt-/);
+    }
+  });
+
+  it("writes each fragment id exactly once", () => {
+    renderStage();
+    for (const entry of careerEntries) {
+      const id = journeyEntryAnchorId(entry.id);
+      // `getElementById` returns the first match and would hide a duplicate.
+      expect(document.querySelectorAll(`[id="${id}"]`), id).toHaveLength(1);
+    }
   });
 });

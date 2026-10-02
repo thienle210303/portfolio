@@ -257,6 +257,29 @@ export const subjectExpansions: Record<string, readonly string[]> = {
     "grading",
   ],
 
+  // Round 18, Task 13: `usc-ta` above was the only teaching key, and round 4
+  // split the honors track into its own entry — so a query naming the honors
+  // section had no alias reaching the entry that describes it. The teaching
+  // vocabulary is repeated rather than shared because these are two authored
+  // entries with two different jobs, and "honors"/"honours" describe only this
+  // one. No leadership terms: `usc-ta` carries "lead"/"manage"/"team" because
+  // that entry's own lines are about running lab sections, and this entry's are
+  // about supporting and grading one honors section.
+  "usc-honors-ta": [
+    "teach",
+    "teaching",
+    "taught",
+    "tutor",
+    "instructor",
+    "assistant",
+    "mentor",
+    "mentoring",
+    "honors",
+    "honours",
+    "grading",
+    "graded",
+  ],
+
   "usc-degree": [
     "school",
     "university",
@@ -337,10 +360,17 @@ export const subjectExpansions: Record<string, readonly string[]> = {
  * lands on dozens of documents at once, so anything only loosely related to the
  * section costs precision everywhere rather than earning recall somewhere.
  *
- * The keys are retrieval vocabularies, not page sections. `work` and `skills`
- * are still here after round 18 deleted both sections: documents for the case
- * studies and the skill categories still pass them to `label()` in
- * `answer-corpus.ts`, and still link to `#tree`, where that content now lives.
+ * The keys are retrieval vocabularies, not page sections, and that distinction
+ * is doing real work after round 18. `work` and `skills` are still here although
+ * both sections are deleted, because the case-study and skill-category documents
+ * still pass them to `label()` in `answer-corpus.ts` — that argument picks the
+ * vocabulary a query is matched against and has nothing to do with where an
+ * answer links. The two sets do not even link to the same place any more: the
+ * case studies link to `#tree`, where they now render, and the skill categories
+ * link nowhere at all, because nothing on the site renders a skill category (see
+ * the skills loop in `answer-corpus.ts`). `journey` is in the same position — it
+ * is a vocabulary here, and the documents that use it cite `tree`.
+ *
  * Removing a key here changes what queries match, which the retrieval eval
  * prices; it is not part of deleting a section.
  */

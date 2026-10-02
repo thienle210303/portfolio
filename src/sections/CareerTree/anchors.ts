@@ -1,22 +1,37 @@
 /**
- * The one identifier the Journey's per-entry fragments and anything linking
- * into them have to agree on. It lives here, next to the section that renders
- * it, because a jump link that disagrees with its target by one character
- * fails silently — the browser simply does nothing. (Selected Work kept its
- * own `anchors.ts` for the same reason until round 18 deleted the section.)
+ * Every id the Journey owns that is not its own section id, and that something
+ * outside this directory might name: the per-entry fragments, the retired
+ * section ids, and the case-study ids at the bottom of the file. They live here,
+ * next to the section that renders them, because a jump link that disagrees with
+ * its target by one character fails silently — the browser simply does nothing.
+ * (Selected Work kept its own `anchors.ts` for the same reason until round 18
+ * deleted the section.) This file imports nothing, so anything may read it.
  *
- * Derived from `entry.id`, never authored, so an entry added to or removed
- * from `careerEntries` needs no edit anywhere else.
+ * The per-entry fragments are derived from `entry.id`, never authored, so an
+ * entry added to or removed from `careerEntries` needs no edit anywhere else.
  *
- * ## State of the guarantee — read this before trusting `journeyEntryAnchor`
+ * ## State of the guarantee
  *
- * These ids were rendered by `TimelineEntry`'s `<li>`, deleted in round 18 when
- * the pinned stage replaced the timeline. **Nothing renders a
- * `journey-entry-<id>` element today.** `journeyEntryAnchor` therefore says
- * "this id is one the Journey will own", not "this id is in the document", and
- * a link built from it is a dead fragment until the stage's acts re-add the
- * anchors (Task 13 of round 18, which also asserts that every one resolves).
- * Do not add a caller before then.
+ * These ids were rendered by `TimelineEntry`'s `<li>` until round 18 replaced
+ * the timeline with the pinned stage, which left them resolving to nothing for
+ * the length of that round. They resolve again: `./acts.ts` carries
+ * `journeyEntryAnchorId` for every entry an act draws (`Act.entryAnchorIds`)
+ * and `./Stage.tsx` renders one zero-size span per id inside that act's
+ * `<section>`. Every career entry is in exactly one act, so every entry has
+ * exactly one element.
+ *
+ * Both halves of that are asserted, because neither is worth much alone:
+ * `tests/sections/Stage.test.tsx` requires an element for every
+ * `careerEntries` entry after rendering the stage, and
+ * `e2e/legacy-anchors.spec.ts` requires the ids to be in the server-rendered
+ * HTML and to land a real browser on the Journey with JavaScript disabled —
+ * which is the case a jsdom test cannot reach.
+ *
+ * Nothing on the page links to these fragments. They exist for links the site
+ * does not control: old bookmarks, a shared résumé PDF, a search result. The
+ * component that used to build such a link in-page (`JourneyEntryCrossLink`)
+ * was retired in round 18 — a branch pointing at a fragment inside itself is
+ * circular, and its visible text named a timeline that no longer exists.
  *
  * ## Why `journey-entry-…` and not `journey-…-role`
  *
@@ -31,30 +46,27 @@
  * this way, so the prefix stays rather than forcing every existing link to
  * learn a new one.
  */
-import { careerEntries } from "@/content/portfolio";
-
-/** Anchor id for one career entry's fragment. See the note above: nothing
- *  renders an element with this id until the stage's acts do. */
-export function journeyEntryAnchorId(entryId: string): string {
-  return `journey-entry-${entryId}`;
-}
-
-const RENDERED_IDS: ReadonlySet<string> = new Set(careerEntries.map((entry) => entry.id));
 
 /**
- * The anchor for a career entry that exists, or `undefined` when no such entry
- * exists.
+ * Section ids the Journey answers besides its own `#tree`: the nav targets of
+ * the sections rounds 16 and 18 deleted. `CareerTree.tsx` renders one zero-size
+ * span per id; nothing on the site links to any of them, and nothing may — they
+ * exist for inbound links the site does not control, and
+ * `tests/lib/answers.test.ts` fails if a chat citation starts using one.
  *
- * What this guarantees is that the id names a real entry — an id the Journey is
- * meant to own — and rejects a round-tripped anchor or a typo. It does **not**
- * guarantee an element with that id is in the document: through round 17 it
- * did, because `Timeline` rendered exactly `careerEntries`; since round 18
- * nothing renders these ids, and until the stage's acts re-add them a link
- * built from this is a dead fragment. Task 13 closes that, and its e2e spec is
- * what will make the stronger claim true again.
+ * Written out rather than derived, because a deleted section leaves nothing
+ * behind to derive from: the list is a record of what used to exist, so it only
+ * ever grows. `tests/sections/CareerTree.test.tsx` and
+ * `e2e/legacy-anchors.spec.ts` keep their own copies on purpose, so removing an
+ * id from here fails them rather than silently narrowing what is checked.
  */
-export function journeyEntryAnchor(entryId: string): string | undefined {
-  return RENDERED_IDS.has(entryId) ? journeyEntryAnchorId(entryId) : undefined;
+export const LEGACY_SECTION_IDS = ["journey", "work", "skills", "workshop"] as const;
+
+/** Anchor id for one career entry's fragment. `./acts.ts` builds one of these
+ *  per entry and `./Stage.tsx` renders it; see the note above for what is
+ *  asserted about that. */
+export function journeyEntryAnchorId(entryId: string): string {
+  return `journey-entry-${entryId}`;
 }
 
 /* -------------------------------------------------------------------------- */

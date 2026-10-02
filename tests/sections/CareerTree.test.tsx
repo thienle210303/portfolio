@@ -16,9 +16,42 @@ import type { CareerEntry } from "@/types/portfolio";
  * study in two presentations did not put an id in the document twice.
  */
 describe("the Journey section", () => {
-  it("still answers #journey", () => {
+  /**
+   * Every retired section id, not just `#journey`. `#work`, `#skills` and
+   * `#workshop` were nav targets of sections rounds 16 and 18 deleted; they are
+   * in bookmarks and possibly in a shared resume PDF, and this section is where
+   * the content they named went. Real zero-size elements rather than a
+   * client-side hash rewrite, so the landing works with JavaScript disabled —
+   * which only `e2e/legacy-anchors.spec.ts` can actually prove. The per-entry
+   * `journey-entry-<id>` fragments are `Stage`'s and are asserted in
+   * `tests/sections/Stage.test.tsx`.
+   */
+  const LEGACY = ["journey", "work", "skills", "workshop"];
+
+  it("keeps every retired section id resolvable", () => {
     render(<CareerTree />);
-    expect(document.getElementById("journey")).not.toBeNull();
+    const section = document.getElementById("tree");
+    if (!(section instanceof HTMLElement)) throw new Error("no #tree section");
+    for (const id of LEGACY) {
+      const target = document.getElementById(id);
+      expect(target, id).not.toBeNull();
+      // Inside the section, so the landing is the Journey rather than wherever
+      // in the document the element happened to be written.
+      expect(section, id).toContainElement(target);
+      expect(target, id).toHaveAttribute("aria-hidden", "true");
+      expect(target?.textContent, id).toBe("");
+      expect(target?.className, id).toContain("sr-only");
+      expect(target?.className, id).toMatch(/\bscroll-mt-/);
+    }
+  });
+
+  it("writes each retired section id exactly once", () => {
+    render(<CareerTree />);
+    for (const id of LEGACY) {
+      // `getElementById` returns the first match, so a duplicate would be
+      // invisible to the test above.
+      expect(document.querySelectorAll(`[id="${id}"]`), id).toHaveLength(1);
+    }
   });
 
   it("renders every case study somewhere, whether or not its entry is a branch", () => {

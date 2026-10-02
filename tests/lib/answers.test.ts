@@ -9,6 +9,7 @@ import {
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { navItems, origin } from "@/content/portfolio";
+import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
 import { resolveWorlds } from "@/lib/worlds";
 
 /**
@@ -29,6 +30,13 @@ const CORPUS = new Set<string>([
     project.problem,
     project.learned,
     ...project.proof,
+    // Round 18, Task 13: two of the five deep-dive fields `CaseStudy.tsx`
+    // renders came into the index. The other three measurably cost ranking and
+    // stayed out — see `answer-corpus.ts`. Listing them here is not optional:
+    // the membership assertion below is the anti-fabrication guarantee, and a
+    // document type missing from this set makes it fail rather than pass.
+    ...(project.assumption ? [project.assumption] : []),
+    ...project.pathsExplored,
     ...project.metrics.map((m) => `${m.label}: ${m.before} → ${m.after}.`),
   ]),
   ...careerIndexable.flatMap((entry) => [
@@ -62,15 +70,18 @@ const CORPUS = new Set<string>([
 ]);
 
 /** Sections an answer may link into: every section the nav lists, which is
- *  every section the page has, plus `journey`, the alias `CareerTree.tsx`
- *  renders as its own `<span id="journey">` so the career documents' older
- *  links keep landing. Derived from `navItems` rather than typed out: this
- *  used to be a hand-written alternation, which still listed `work` and
+ *  every section the page has. Derived from `navItems` rather than typed out:
+ *  this used to be a hand-written alternation, which still listed `work` and
  *  `skills` after round 18 deleted both sections, and so passed while the
  *  corpus linked every case-study answer to a section that no longer existed.
  *  `resume` is deliberately absent: the résumé is its own route, so `#resume`
- *  would be a dead anchor. */
-const LINKABLE_SECTIONS = new RegExp(`^(${[...navItems.map((item) => item.sectionId), "journey"].join("|")})$`);
+ *  would be a dead anchor.
+ *
+ *  `journey` was carried here as a fifth alternative — the compatibility span
+ *  `CareerTree.tsx` renders, which the career documents cited. Task 13 moved
+ *  those documents onto `tree`, the section that actually exists, and
+ *  "no document cites a compatibility anchor" is asserted on its own below. */
+const LINKABLE_SECTIONS = new RegExp(`^(${navItems.map((item) => item.sectionId).join("|")})$`);
 
 describe("answer", () => {
   it("only ever returns strings that already exist in the content layer", () => {
@@ -139,6 +150,26 @@ describe("answer", () => {
     // so this loop cannot quietly skip every document.
     expect(sectionless.sort()).toEqual(skillsIndexable.map((category) => category.evidence).sort());
     expect(sectionless.length).toBeGreaterThan(0);
+  });
+
+  it("cites no compatibility anchor, only a real section", () => {
+    // `#journey`, `#work`, `#skills` and `#workshop` all resolve — they are the
+    // zero-size spans the Journey renders for inbound links the site does not
+    // control. A citation using one would still land, which is exactly why this
+    // needs asserting: it would look fine and would quietly make the
+    // compatibility anchors load-bearing for the site's own UI, so they could
+    // never be removed. Career documents cited `journey` until round 18's Task
+    // 13 re-pointed them at `tree`.
+    const legacy = new Set<string>(LEGACY_SECTION_IDS);
+    expect(legacy.size, "no compatibility anchors to check for").toBeGreaterThan(0);
+    const offenders = buildDocuments()
+      .filter((doc) => doc.sectionId !== undefined && legacy.has(doc.sectionId))
+      .map((doc) => `${doc.sectionId}: ${doc.text.slice(0, 50)}`);
+    expect(offenders).toEqual([]);
+    // And the guard is reachable: `tree` — the id these documents moved onto —
+    // is not itself one of the compatibility anchors, so a corpus that cited
+    // only legacy ids really would fail above.
+    expect(legacy.has("tree")).toBe(false);
   });
 
   it("never surfaces a [NEEDS INPUT] marker", () => {
