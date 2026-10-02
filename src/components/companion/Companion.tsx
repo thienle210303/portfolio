@@ -1291,7 +1291,10 @@ export function Companion({ facts }: CompanionProps) {
   /** True while the running — or still-walking — scene is one the visitor asked
    *  for from the panel rather than one the idle timer started. Exactly one rule
    *  reads it, in the loop below, and it is the difference between a scene the
-   *  companion offered and a scene the visitor chose. */
+   *  companion offered and a scene the visitor chose. Cleared by `endPlay`, and
+   *  by the two ways a walking request is dropped without one (its walk
+   *  expiring, its stage refusing it on arrival): a mark left standing with no
+   *  scene under it would be inherited by the idle timer's next scene. */
   const askedRef = useRef(false);
   /** A scene the visitor has asked for that has somewhere to happen but not
    *  where they are standing. See `stageFor`: the pair walk to it, and it opens
@@ -1484,7 +1487,9 @@ export function Companion({ facts }: CompanionProps) {
     // gets a ball of wool seconds later, from nowhere.
     queued.current = null;
     // Whatever ends a scene ends its provenance with it: the next one to start
-    // is the idle timer's until somebody asks for it again.
+    // is the idle timer's until somebody asks for it again. (The two drops of
+    // a walking request that never reach this function — the walk expiring,
+    // the stage refusing on arrival — clear it by hand, in the loop.)
     askedRef.current = false;
     if (!playRef.current) return;
     playAt.current = scheduleNextPlay(now);
@@ -2640,7 +2645,10 @@ export function Companion({ facts }: CompanionProps) {
        * secret, the origin-story watch, the panel being reopened), the page
        * scrolling or resizing out from under the probe, a focus ring arriving
        * on the lead mid-peek, a new request, the mode changing, the scene
-       * finishing.
+       * finishing. A request still walking to its stage can also die two ways
+       * a running scene cannot, neither of them through `endPlay`: its walk
+       * outlasting `STAGE_WALK_MAX`, or the stage refusing it on arrival (see
+       * "A requested scene, arriving", below).
        */
       const asked =
         askedRef.current && (playRef.current !== null || queued.current !== null);
@@ -2693,8 +2701,14 @@ export function Companion({ facts }: CompanionProps) {
        */
       const arriving = queued.current;
       if (arriving) {
+        // Both ways out of here that open nothing — the walk expiring, the
+        // re-probe declining — drop the request without passing through
+        // `endPlay`, so each clears the "asked" mark itself. Left set, the next
+        // scene the idle timer opened would inherit it and be held through the
+        // pointer as if the visitor had chosen it.
         if (now > arriving.expires) {
           queued.current = null;
+          askedRef.current = false;
         } else if (
           distance(grey.pos, arriving.spots.lead) < 3 &&
           distance(tabby.pos, arriving.spots.follow) < 3
@@ -2716,6 +2730,7 @@ export function Companion({ facts }: CompanionProps) {
             playRef.current = opened;
             setScene({ kind: opened.kind, prop: opened.prop });
           } else {
+            askedRef.current = false;
             playAt.current = now + PLAY_RETRY;
           }
         }
@@ -4155,6 +4170,10 @@ export function Companion({ facts }: CompanionProps) {
    * origin-story watch, the panel reopening), a scroll or a resize, a focus
    * ring arriving on the lead mid-peek, a new request for a scene or the tour,
    * the loop being put away (a mode change, the bed), or the scene finishing.
+   * A request that has to walk to its stage can also be dropped before it
+   * opens, in two ways that bypass `endPlay`: the walk outlasting
+   * `STAGE_WALK_MAX`, or the re-probe on arrival declining. Both clear
+   * `askedRef` themselves, so the mark never outlives the request it was for.
    *
    * What it does *not* do any more is ask that question of one arbitrary spot.
    * Round 7 probed from wherever the cats stood at the moment of the click,

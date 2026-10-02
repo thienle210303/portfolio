@@ -391,6 +391,91 @@ async function expectRestClearOfContent(page: Page, message: string): Promise<vo
   expect(rest ?? [], message).toEqual([]);
 }
 
+function scenePlaying(page: Page): Promise<string | null> {
+  return page.evaluate(
+    () => document.querySelector("[data-cat-play]")?.getAttribute("data-cat-play") ?? null,
+  );
+}
+
+/**
+ * Install the page clock, load, and leave a requested scene walking to its
+ * stage with the clock paused — one that fits somewhere, but not where the cats
+ * already stand. The panel calls them to its corner, which is where the request
+ * measures "here" from, so each try lets them get there first; inside the
+ * Journey's stage that corner sits on content, so they always have to walk.
+ */
+async function queueARequest(page: Page): Promise<void> {
+  await page.clock.install();
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await companionAwake(page);
+  await page.evaluate(() => {
+    const stage = document.querySelector("#tree");
+    if (!stage) throw new Error("no #tree on the page");
+    const top = window.scrollY + stage.getBoundingClientRect().top + 300;
+    window.scrollTo({ top, behavior: "instant" as ScrollBehavior });
+  });
+  await page.waitForTimeout(1_000);
+
+  const refused = () =>
+    page.evaluate(() =>
+      /no room/i.test(document.querySelector("#companion-actions [role='status']")?.textContent ?? ""),
+    );
+  for (const scene of SCENES) {
+    await openToolkit(page);
+    await page.waitForTimeout(2_500);
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 20);
+    await toolkit(page).getByRole("button", { name: scene.name }).focus();
+    await page.keyboard.press("Enter");
+    // Accepted (the panel closes) with nothing open yet: walking.
+    if ((await scenePlaying(page)) === null && !(await refused())) {
+      await expect(catButton(page)).toHaveAttribute("aria-expanded", "false");
+      return;
+    }
+    await page.clock.resume();
+  }
+  throw new Error("no request had to walk to its stage, so nothing could be abandoned");
+}
+
+/**
+ * Wait out the idle timer (90–270s, or `PLAY_RETRY` after a refusal) with the
+ * pointer as far from the lead as the viewport allows — a reader using the
+ * page, not somebody playing with the cat — until an unprompted scene opens.
+ * Then bring a moving pointer near the lead: a scene nobody asked for ends on
+ * that frame.
+ */
+async function expectNextUnpromptedSceneUnheld(page: Page): Promise<void> {
+  const leadCentre = async () => {
+    const box = await catButton(page).boundingBox();
+    if (!box) throw new Error("the lead cat has no box");
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  let unprompted: string | null = null;
+  for (let jump = 0; jump < 16 && unprompted === null; jump += 1) {
+    await page.clock.fastForward(jump === 0 ? 271_000 : 26_000);
+    for (let i = 0; i < 6 && unprompted === null; i += 1) {
+      const lead = await leadCentre();
+      const x = lead.x < DESKTOP_WIDTH / 2 ? DESKTOP_WIDTH - 40 : 40;
+      const y = lead.y < 450 ? 860 : 120;
+      await page.mouse.move(x, y);
+      await page.mouse.move(x + 2, y + 2);
+      await page.waitForTimeout(250);
+      unprompted = await scenePlaying(page);
+    }
+  }
+  expect(unprompted, "the idle timer never opened a scene").not.toBeNull();
+
+  const lead = await leadCentre();
+  for (let i = 0; i < 4; i += 1) {
+    await page.mouse.move(lead.x + 60 - i * 6, lead.y + i * 4);
+    await page.waitForTimeout(50);
+  }
+  expect(
+    await scenePlaying(page),
+    "an unprompted scene was held through the pointer, as if it had been asked for",
+  ).toBeNull();
+}
+
 test.describe("companion", () => {
   test("opens and closes its toolkit, and Escape returns focus to the cat", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
@@ -609,6 +694,59 @@ test.describe("companion", () => {
     await expect
       .poll(playing, { timeout: 3_000, message: "reopening the panel left the scene running" })
       .toBeNull();
+  });
+
+  /*
+   * Two routes abandon a requested scene without ever opening it: its walk to
+   * the stage expiring (`STAGE_WALK_MAX` in Companion.tsx, 6s — a tab put in
+   * the background mid-walk is the ordinary way to reach it), and the re-probe
+   * on arrival declining. Neither goes through `endPlay`, so neither used to
+   * clear the "asked for" mark — and the next scene the *idle timer* opened
+   * inherited it, and was held through the pointer as if the visitor had
+   * chosen it.
+   *
+   * The idle timer is minutes long, so both tests own the page's clock: it is
+   * paused across the request, so the walk cannot finish before the test has
+   * seen that there is one, and then jumped forward to wait the timer out.
+   */
+  test("a request whose walk expires does not hold the next unprompted scene", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await queueARequest(page);
+
+    // One frame, 7s later: the walk has expired, and the scene never opens.
+    await page.clock.fastForward(7_000);
+    await page.clock.resume();
+    await page.waitForTimeout(1_500);
+    expect(await scenePlaying(page), "the expired request opened anyway").toBeNull();
+
+    await expectNextUnpromptedSceneUnheld(page);
+  });
+
+  test("a request its stage refuses on arrival does not hold the next unprompted scene", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    await queueARequest(page);
+
+    // Content appears over the whole viewport while they walk, without a scroll
+    // or a resize to report it, so the re-probe on arrival declines.
+    await page.evaluate(() => {
+      const cover = document.createElement("p");
+      cover.id = "round-4-cover";
+      cover.textContent = "cover";
+      Object.assign(cover.style, { position: "fixed", inset: "0", margin: "0", opacity: "0" });
+      document.body.append(cover);
+    });
+    await page.clock.resume();
+    // The walk is under two seconds; the expiry is six. Taking the cover away at
+    // 3.5s means a pair still walking would open the scene before the expiry
+    // could drop it — so no scene at 4.5s is the refusal, not the expiry.
+    await page.waitForTimeout(3_500);
+    await page.evaluate(() => document.getElementById("round-4-cover")?.remove());
+    await page.waitForTimeout(1_000);
+    expect(await scenePlaying(page), "the stage did not refuse the scene").toBeNull();
+
+    await expectNextUnpromptedSceneUnheld(page);
   });
 
   /** One drawing, and how it reads against the section it is currently over. */
