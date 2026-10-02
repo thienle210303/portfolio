@@ -79,8 +79,8 @@ export const profile = {
     "Software engineer on retail data. I like the problems where nobody has checked recently whether the thing everyone works around is still necessary.",
   about: [
     "I moved from Kiên Giang, Việt Nam to Taylors, South Carolina in December 2018, at fifteen, with my family. I could read and write English. I could not speak it.",
-    "For the next two and a half years nobody set me a problem, so I picked my own — investing, growing plants, keeping an aquarium alive — while I finished high school and worked the line and the floor at my family's restaurant. I started university in chemical engineering. My friends told me to try computer science instead.",
-    "Since then: three million records collected unattended for a research group, a paper manufacturing process taken off paper, and a retail catalog scraper taken from seventeen hours to three minutes.",
+    "For the next two and a half years I finished high school, worked the line and the floor at my family's restaurant, and drove for Uber Eats. I started university in chemical engineering. My friends told me to try computer science instead.",
+    "Since then: three million records collected unattended for a research group, a paper manufacturing process taken off paper, and a retail catalog scraper taken from seventeen hours to three minutes. What I'm most curious about now is LLMs and machine learning.",
   ],
   email: "thienle210303@gmail.com",
   // Round 18: both set, and the round-17 comment explaining why they were
@@ -591,15 +591,11 @@ export const careerEntries = [
   /* detail. A résumé starts at the degree. A journey does not.               */
   /* ---------------------------------------------------------------------- */
   /*
-   * DRAFTED, PENDING THE OWNER'S APPROVAL. The facts in these six entries are
-   * his; some of the sentences are not. The `learned` field of every entry
-   * below, `usc-honors-ta.responsibilities` ("give written feedback"), and
-   * `cs-switch.context`'s remark about origin stories were written for him,
-   * not by him: they are interpretation of what he supplied, not something he
-   * said. They stay in so that five of these six entries — none of which has
-   * a metric — are not empty, but a later pass replaces each of them with his
-   * own words or removes it, and nothing here should be treated as his voice
-   * until he has approved it.
+   * The facts in these six entries are his. The `learned` field of every
+   * entry below, `usc-honors-ta.responsibilities` ("give written feedback"),
+   * and `cs-switch.context`'s remark about origin stories were drafted for
+   * him rather than by him, and he APPROVED them as written on 2026-10-02.
+   * They are his voice now; edit them as his words, not as placeholders.
    */
   {
     id: "eastside-high",
@@ -623,20 +619,16 @@ export const careerEntries = [
   {
     id: "fu-of-kyoto",
     type: "work",
-    // PARAPHRASE, not his words — his exact reply was not recorded anywhere in
-    // this repo. What he said (2026-10-01) amounts to: he worked the breaks
-    // through his first university year, plus a second summer, and then
-    // stopped — so it ran INTO university rather than ending before it. That
-    // structural fact is his. The exact term is NOT settled: "2023-08" is the
-    // closest reading of "a second summer" and is pending his confirmation, so
-    // do not present it as a stated month.
-    // TRAP: `concurrentWith` compares months inclusively, and `usc-ta` and
-    // `usc-honors-ta` both start 2023-08 — so this guessed month is the ONLY
-    // reason either of them overlaps this entry. Moving it to 2023-07 or
-    // earlier removes both overlaps (and the "Ran alongside" lines they draw).
-    dateRange: "2019 — 2023",
+    // The end is his (2026-10-02): "I believe I stop working after first
+    // summer 2022" — the summer after his first university year. So it ran
+    // INTO university, through `usc-cheme`, and stopped before the fall.
+    // "2022-07" is the last summer month that does not touch the fall
+    // semester. TRAP: `concurrentWith` compares months inclusively, and
+    // `usc-scraping` starts 2022-08 — ending this at "2022-08" would draw a
+    // "Ran alongside" line to research he says he did not overlap.
+    dateRange: "2019 — Summer 2022",
     sortKey: "2019-01",
-    endSortKey: "2023-08",
+    endSortKey: "2022-07",
     role: "Chef and server",
     organization: "Fu of Kyoto",
     locationOrMode: undefined,
@@ -669,10 +661,11 @@ export const careerEntries = [
     // write about him, and it is the one string in this round that must not
     // ship without him approving it — he asked that nothing go public that is
     // "not worth it". It is deliberately NOT authored here. What is authored
-    // is only the list of things he actually did, which he supplied, and the
-    // act renders exactly that until he says otherwise.
+    // is only what he did. On 2026-10-02 he cut the hobby list (investing,
+    // plants, aquarium — still true, "not that useful" to show); what he is
+    // curious about now, LLMs and machine learning, lives in `profile.about`.
     context:
-      "Nobody set him a problem between landing and starting university, so he picked his own: investing and the stock market, growing plants, keeping an aquarium alive. Drove for Uber Eats. He still does some of it.",
+      "Drove for Uber Eats, and taught himself whatever he was curious about.",
     responsibilities: [],
     built: [],
     impact: [],
@@ -1153,8 +1146,8 @@ export const projects = [
   /* restatement of those, kept short on purpose.                            */
   /* ---------------------------------------------------------------------- */
   /*
-   * DRAFTED, PENDING THE OWNER'S APPROVAL. The sentences below are judgment,
-   * not record, and were written for him rather than by him:
+   * APPROVED BY THE OWNER, 2026-10-02. The sentences below are judgment, not
+   * record, and were drafted for him rather than by him:
    *   chess-minmax         `problem`, `whyItMattered`, `nextQuestion`, and the
    *                        clause "the point being to understand search" in
    *                        `decisions`.
@@ -1162,11 +1155,9 @@ export const projects = [
    *   degreeworks-rebuild  `learned`, `nextQuestion`.
    *   toy-storefront       `nextQuestion`.
    * `learned` on chess-minmax and toy-storefront is a flat restatement of what
-   * the old repo says, not a lesson: no lesson from either is on record. A
-   * later pass replaces each drafted sentence with his own words or removes
-   * it, and nothing marked here should be treated as his voice until he has
-   * approved it. These fields feed the chat's index through
-   * `answer-sources.ts`, so an unapproved sentence can be quoted to a visitor.
+   * the old repo says, not a lesson: no lesson from either is on record. He
+   * approved them as written; they feed the chat's index through
+   * `answer-sources.ts`, so the chat can quote any of them to a visitor.
    */
   {
     id: "chess-minmax",
