@@ -1936,6 +1936,19 @@
     [data-stage][data-stage-live]:not([data-released]) [data-stage-camera] {
       position: relative;
       transform: translateY(var(--camera, 0px));
+    }
+
+    /* Every transition in the pin waits for `data-stage-settled`, which
+       `Stage.tsx` sets two frames after the first live act has been applied.
+       Going live changes everything at once — the camera jumps to act one's
+       ground, the unborn mask grows over the canopy, every later branch drops
+       to `opacity: 0` — and with the transitions already in force that played
+       as half a second of the finished tree un-growing, on every page load
+       and on every deep link into the stage. axe caught a branch mid-fade at
+       ~1.05:1 (Ruling 84). Gating them here makes going live a cut and every
+       later act change the animation it was always meant to be. A test reads
+       this media query and fails on any transition without the attribute. */
+    [data-stage][data-stage-live][data-stage-settled]:not([data-released]) [data-stage-camera] {
       transition: transform var(--dur-draw) var(--ease-ink);
     }
 
@@ -1951,6 +1964,8 @@
       height: var(--front, 0px);
       pointer-events: none;
       background: var(--ground);
+    }
+    [data-stage][data-stage-live][data-stage-settled]:not([data-released]) [data-stage-unborn] {
       transition: height var(--dur-draw) var(--ease-ink);
     }
     [data-stage][data-stage-live]:not([data-released]) [data-stage-unborn]::after {
@@ -1973,7 +1988,7 @@
        whole drawing on every act — would make the drawing client code. There
        are as many rules as there are acts after the first; a test reads this
        file and fails if the act list outgrows them. */
-    [data-stage][data-stage-live]:not([data-released]) [data-branch-act] {
+    [data-stage][data-stage-live][data-stage-settled]:not([data-released]) [data-branch-act] {
       transition: opacity var(--dur-settle) var(--ease-ink);
     }
     [data-stage][data-stage-live][data-through="0"]:not([data-released]) :is([data-branch-act="1"], [data-branch-act="2"], [data-branch-act="3"], [data-branch-act="4"], [data-branch-act="5"], [data-branch-act="6"]):not(:focus-within),
@@ -2029,6 +2044,8 @@
       padding-block: 0;
       border-inline-start: 2px solid transparent;
       padding-inline-start: 1.25rem;
+    }
+    [data-stage][data-stage-live][data-stage-settled]:not([data-released]) [data-act] {
       transition: border-color var(--dur-settle) var(--ease-ink);
     }
 
@@ -2046,7 +2063,7 @@
     [data-stage][data-stage-live]:not([data-released]) [data-act]:not([aria-current="step"]) [data-act-title] {
       opacity: 0.65;
     }
-    [data-stage][data-stage-live]:not([data-released]) [data-act-title] {
+    [data-stage][data-stage-live][data-stage-settled]:not([data-released]) [data-act-title] {
       transition: opacity var(--dur-settle) var(--ease-ink);
     }
   }

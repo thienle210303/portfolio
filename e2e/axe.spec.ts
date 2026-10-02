@@ -60,11 +60,31 @@ async function scrollIntoViewAndSettle(page: Page, selector: string): Promise<vo
   await page.waitForTimeout(1000);
 }
 
+/**
+ * Wait for the Journey's stage to have gone live *and* settled before a
+ * full-page audit. Going live re-styles every unreached branch from the
+ * finished tree's opacity 1 to the pin's 0; until the final fix wave that ran
+ * as a 500ms fade, and an audit landing inside it measured a branch at
+ * ~1.05:1 — a real frame, but one no reader is meant to dwell on (Ruling 84).
+ * The product fix is that nothing transitions until `data-stage-settled`
+ * (`Stage.tsx`), so the switch is a cut; this wait is the spec's own half,
+ * so an audit never samples the page between hydration and the stage's first
+ * painted act. Both attributes are set at every width wherever an
+ * IntersectionObserver exists, so this never waits on a pin that a narrow
+ * viewport does not have — and a stage that never goes live fails here, by
+ * name, instead of passing an audit of the static layout.
+ */
+async function stageSettled(page: Page): Promise<void> {
+  await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-live", "");
+  await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+}
+
 test.describe("full-page audit", () => {
   test("zero WCAG violations at a mobile viewport", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "run once, at a representative mobile width");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await stageSettled(page);
     await auditHasNoViolations(page);
   });
 
@@ -72,6 +92,7 @@ test.describe("full-page audit", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once, at a representative desktop width");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await stageSettled(page);
     await auditHasNoViolations(page);
   });
 });
@@ -288,6 +309,7 @@ test.describe("night theme", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    await stageSettled(page);
     await auditHasNoViolations(page);
   });
 

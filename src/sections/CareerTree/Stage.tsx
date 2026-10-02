@@ -32,7 +32,10 @@ import type { Act } from "./acts";
  * 2. **The active act comes from an IntersectionObserver, never a scroll
  *    listener.** A scroll handler on the main thread is what makes this kind
  *    of effect stutter on a mid-range phone. There is exactly one observer,
- *    watching all seven acts.
+ *    watching all seven acts — and it is a doorbell, not a witness: when it
+ *    rings, the stage reads which act is under the middle of the viewport
+ *    *now* rather than trusting the entries it was handed, which were
+ *    measured a frame or two earlier (see the observer below).
  * 3. **Nothing steals focus.** No `inert`, no `tabindex="-1"` on act content,
  *    no focus moved when the act changes. A reader tabbing through is reading,
  *    not navigating a carousel — which is why *entering* the drawing with the
@@ -52,6 +55,13 @@ import type { Act } from "./acts";
  *                     stage is simply the finished tree above seven stacked
  *                     cards. The pin is an enhancement of that, never the
  *                     other way round.
+ *   data-stage-settled
+ *                     set two frames after the observer's first report has
+ *                     been applied: the first live act has been painted. The
+ *                     stylesheet runs no transition before it, so going live —
+ *                     the finished tree becoming act one, or whichever act a
+ *                     deep link landed on — is a cut, not a 500ms un-growing
+ *                     (Ruling 84: axe measured a branch mid-fade at ~1.05:1).
  *   data-through      the index of the current act. The stylesheet compares it
  *                     with each branch's `data-branch-act`.
  *   data-released     the reader asked for the whole tree.
@@ -108,6 +118,10 @@ interface PendingScroll {
 export default function Stage({ acts, drawing, list, credentials, children }: StageProps) {
   const [active, setActive] = useState(0);
   const [released, setReleased] = useState(false);
+  // See `data-stage-settled` above. Flipped once and never back: after the
+  // first live frame every change is a real one, worth animating.
+  const [settled, setSettled] = useState(false);
+  const settleScheduled = useRef(false);
   // False on the server and during hydration, true afterwards in any browser
   // that can observe intersections. `useSyncExternalStore` rather than an
   // effect that sets state: it is exactly "a value the server cannot know".
@@ -126,18 +140,35 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
   // Which act is current. One observer for the whole stage, watching a band
   // across the middle of the viewport, so an act becomes current when it is
   // being read rather than when its top edge appears.
+  //
+  // The callback ignores the entries it is handed. They were measured at the
+  // last rendering update, and the scrubber can scroll the page instantly in
+  // between: press ArrowRight three times fast and the report for the first
+  // press arrives after the third press's scroll, saying act 1 is crossing a
+  // middle it left two scrolls ago — which is how three presses used to stop
+  // on act 1. So a report only says "something crossed"; the act is whichever
+  // one's box holds the viewport's vertical centre at the moment the callback
+  // runs. One rect read per act, and only when an act has crossed the band —
+  // never per scroll frame. Between acts, or with the stage off screen, no
+  // box holds the centre and the act is left as it was.
   useEffect(() => {
     if (released || !live) return;
     const observer = new IntersectionObserver(
-      (entries) => {
-        // Taking the most-intersecting entry rather than the first means a
-        // short act between two long ones still gets its turn.
-        const best = entries
-          .filter((entry) => entry.isIntersecting)
-          .toSorted((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!best) return;
-        const index = actRefs.current.indexOf(best.target as HTMLElement);
+      () => {
+        const middle = window.innerHeight / 2;
+        const index = actRefs.current.findIndex((element) => {
+          if (!element) return false;
+          const box = element.getBoundingClientRect();
+          return box.top <= middle && box.bottom > middle;
+        });
         if (index >= 0) setActive(index);
+        // The first report is the stage's first act, applied. Two frames on —
+        // one to paint that act with no transition in force, one more so that
+        // paint has happened — transitions may start.
+        if (!settleScheduled.current) {
+          settleScheduled.current = true;
+          requestAnimationFrame(() => requestAnimationFrame(() => setSettled(true)));
+        }
       },
       { rootMargin: "-45% 0px -45% 0px", threshold: [0, 0.5, 1] },
     );
@@ -301,6 +332,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
       ref={rootRef}
       data-stage=""
       data-stage-live={live ? "" : undefined}
+      data-stage-settled={live && settled ? "" : undefined}
       data-through={active}
       data-at-end={released || active === lastAct ? "" : undefined}
       data-released={released ? "" : undefined}

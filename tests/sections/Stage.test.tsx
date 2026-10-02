@@ -6,6 +6,8 @@ import { ACTS } from "@/sections/CareerTree/acts";
 import { ACT_IDS, actAnchorId } from "@/lib/anchors";
 import { journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries } from "@/content/portfolio";
+import { DrawnTree } from "@/sections/CareerTree/DrawnTree";
+import { buildDrawnTree } from "@/lib/knowledge-tree";
 
 /**
  * jsdom ships no IntersectionObserver, and Stage has to survive that (an old
@@ -41,8 +43,58 @@ class FakeObserver {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   FakeObserver.instances = [];
+  delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
 });
+
+/**
+ * jsdom lays nothing out, so every rect is zero. This stands in for a real
+ * page: the acts are 600px tall and stacked, the viewport is jsdom's own
+ * height, and `scrollIntoView` on an act "scrolls" by making that act the one
+ * whose box holds the viewport's vertical centre — instantly, the way the
+ * scrubber's own `scrollIntoView({ block: "center" })` is instant (the page
+ * has no `scroll-behavior: smooth`). Returns a setter for tests that need to
+ * put a given act under the centre without going through the scrubber.
+ */
+function layOutActs(): { scrollTo: (index: number) => void } {
+  let atCentre = 0;
+  const actIndex = (element: Element) =>
+    ACTS.findIndex((candidate) => candidate.anchorId === element.id);
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    const index = actIndex(this);
+    if (index < 0) return new DOMRect(0, 0, 0, 0);
+    const top = window.innerHeight / 2 - 300 + (index - atCentre) * 600;
+    return new DOMRect(0, top, 300, 600);
+  });
+  (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView = function (this: Element) {
+    const index = actIndex(this);
+    if (index >= 0) atCentre = index;
+  };
+  return {
+    scrollTo: (index: number) => {
+      atCentre = index;
+    },
+  };
+}
+
+/** A hand-cranked `requestAnimationFrame`: `frame()` runs whatever is queued,
+ *  which is the only way a jsdom test can say "the next frame has painted". */
+function crankFrames(): { frame: () => void } {
+  let queue: FrameRequestCallback[] = [];
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    queue.push(callback);
+    return queue.length;
+  });
+  vi.stubGlobal("cancelAnimationFrame", () => {});
+  return {
+    frame: () => {
+      const due = queue;
+      queue = [];
+      for (const callback of due) callback(performance.now());
+    },
+  };
+}
 
 /**
  * The stage on its own, with stand-ins for the slots. The real drawing, list
@@ -178,6 +230,7 @@ describe("how the stage follows the reader", () => {
 
   it("follows the act crossing the viewport through a single observer, with no scroll listener", () => {
     vi.stubGlobal("IntersectionObserver", FakeObserver);
+    const page = layOutActs();
     const scroll = vi.spyOn(window, "addEventListener");
     renderStage();
 
@@ -190,11 +243,105 @@ describe("how the stage follows the reader", () => {
 
     const target = document.getElementById(actAnchorId(ACT_IDS[5]));
     if (!target) throw new Error("act 5 is not in the document");
+    page.scrollTo(5);
     act(() => observer.cross(target));
 
     expect(screen.getByRole("slider", { name: /year/i })).toHaveValue("5");
     expect(target).toHaveAttribute("aria-current", "step");
-    scroll.mockRestore();
+  });
+
+  it("does not let a stale crossing report undo a scrub", () => {
+    // The race the final review caught in a browser: ArrowRight pressed fast
+    // on the year scrubber. Each press scrolls its act to the centre at once,
+    // but the observer's report for an *earlier* press was computed before
+    // that scroll and is delivered after it — so the act went to 3 and then
+    // back to 1, and one trial left the page on act 4 with the drawing on act
+    // 2. The report is a doorbell, not a source of truth: whatever it says,
+    // the act under the viewport's centre right now is the current one.
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    layOutActs();
+    renderStage();
+    const observer = FakeObserver.instances[0];
+    const scrubber = screen.getByRole("slider", { name: /year/i });
+
+    for (const value of ["1", "2", "3"]) fireEvent.change(scrubber, { target: { value } });
+    expect(scrubber).toHaveValue("3");
+
+    const stale = document.getElementById(ACTS[1].anchorId);
+    if (!stale) throw new Error("act 1 is not in the document");
+    act(() => observer.cross(stale));
+
+    expect(scrubber, "a report computed before the scrub moved the act backwards").toHaveValue("3");
+    expect(document.getElementById(ACTS[3].anchorId)).toHaveAttribute("aria-current", "step");
+    expect(document.querySelector("[data-stage]")).toHaveAttribute("data-through", "3");
+  });
+
+  it("leaves the act alone when nothing is under the viewport's centre", () => {
+    // Above or below the stage altogether: no act holds the centre, and the
+    // act the reader last had stays current rather than snapping to another.
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    const page = layOutActs();
+    renderStage();
+    const observer = FakeObserver.instances[0];
+    const scrubber = screen.getByRole("slider", { name: /year/i });
+    fireEvent.change(scrubber, { target: { value: "2" } });
+    page.scrollTo(-10);
+    const reported = document.getElementById(ACTS[0].anchorId);
+    if (!reported) throw new Error("act 0 is not in the document");
+    act(() => observer.cross(reported));
+    expect(scrubber).toHaveValue("2");
+  });
+});
+
+/**
+ * Ruling 84. When the stage goes live after hydration every unreached branch
+ * goes from the finished tree's opacity 1 to 0, and with the fade's transition
+ * already in force that ran for 500ms on the first live frame — axe measured a
+ * branch mid-fade at ~1.05:1, and a deep link to `#tree` at >=1280px showed the
+ * finished tree and then watched it un-grow. The stage now says when its first
+ * act has been applied and painted (`data-stage-settled`), and the stylesheet
+ * transitions nothing before that.
+ */
+describe("the first live frame does not animate", () => {
+  it("marks the stage settled only after the first report has been applied and painted", () => {
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    const frames = crankFrames();
+    const page = layOutActs();
+    const { container } = renderStage();
+    const root = container.querySelector("[data-stage]");
+    expect(root).toHaveAttribute("data-stage-live");
+    expect(root, "settled before the observer has said which act is current").not.toHaveAttribute(
+      "data-stage-settled",
+    );
+    act(() => frames.frame());
+    expect(root, "settled before the observer has said which act is current").not.toHaveAttribute(
+      "data-stage-settled",
+    );
+
+    const target = document.getElementById(ACTS[2].anchorId);
+    if (!target) throw new Error("act 2 is not in the document");
+    page.scrollTo(2);
+    act(() => FakeObserver.instances[0].cross(target));
+    expect(root).toHaveAttribute("data-through", "2");
+    // The act it landed on has to reach the screen without a transition: one
+    // frame paints it, the one after may turn transitions on.
+    act(() => frames.frame());
+    expect(root, "settled in the same frame the first act was painted").not.toHaveAttribute(
+      "data-stage-settled",
+    );
+    act(() => frames.frame());
+    expect(root).toHaveAttribute("data-stage-settled");
+  });
+
+  it("is never settled without an observer, where there is no pin to animate", () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    const frames = crankFrames();
+    const { container } = renderStage();
+    act(() => frames.frame());
+    act(() => frames.frame());
+    const root = container.querySelector("[data-stage]");
+    expect(root).not.toHaveAttribute("data-stage-live");
+    expect(root).not.toHaveAttribute("data-stage-settled");
   });
 });
 
@@ -309,6 +456,67 @@ describe("the stylesheet the stage drives", () => {
     // either — see the rule's own comment: the button carries a Tailwind
     // `inline-flex`, and utilities outrank this layer.)
     expect(declarationsAt(css, at)).toContain("visibility: hidden");
+  });
+
+  it("runs no stage transition until the stage has settled", () => {
+    // Ruling 84 — see "the first live frame does not animate" above. Every
+    // rule in the pin's media query that declares a transition must require
+    // `[data-stage-settled]`, or the switch from the static finished tree to
+    // the live stage plays as an animation.
+    const css = readFileSync("src/app/globals.css", "utf8");
+    const query =
+      "@media screen and (min-width: 80rem) and (prefers-reduced-motion: no-preference)";
+    const queryAt = css.indexOf(query);
+    expect(queryAt, `globals.css has no ${query}`).toBeGreaterThan(-1);
+    const open = css.indexOf("{", queryAt);
+    const body = css.slice(open + 1, closingBrace(css, open));
+
+    const transitioning: string[] = [];
+    const rule = /([^{}]+)\{([^{}]*)\}/g;
+    for (let match = rule.exec(body); match; match = rule.exec(body)) {
+      const selectorList = match[1].replace(/\/\*[\s\S]*?\*\//g, "").trim();
+      if (!/\btransition\s*:/.test(match[2])) continue;
+      for (const selector of selectors(selectorList)) transitioning.push(selector.trim());
+    }
+    expect(transitioning.length, "found no transitions in the pin's media query to check").toBeGreaterThan(0);
+    for (const selector of transitioning) {
+      expect(selector, `${selector} transitions before the stage has settled`).toContain(
+        "[data-stage-settled]",
+      );
+    }
+  });
+
+  it("names the branch panel the same way in DrawnTree, the stylesheet and the axe audit", () => {
+    // `data-tree-panel` is a contract with three parties: DrawnTree stamps it,
+    // globals.css hides a pending branch's panel through it while the origin
+    // story runs, and e2e/axe.spec.ts polls it for that fade to finish before
+    // auditing. Renaming it in one place breaks the other two silently — the
+    // CSS rule would match nothing and the axe poll would fail for a reason
+    // that has nothing to do with accessibility.
+    const drawn = buildDrawnTree();
+    const { container } = render(<DrawnTree tree={drawn} />);
+    const stamped = new Set<string>();
+    for (const element of container.querySelectorAll("*")) {
+      for (const name of element.getAttributeNames()) {
+        if (name.startsWith("data-tree-panel")) stamped.add(name);
+      }
+    }
+    expect([...stamped], "DrawnTree stamps no data-tree-panel* attribute").toEqual(["data-tree-panel"]);
+    expect(
+      container.querySelectorAll("[data-tree-panel]").length,
+      "a drawn branch has no panel",
+    ).toBe(drawn.length);
+
+    const css = readFileSync("src/app/globals.css", "utf8");
+    const axe = readFileSync("e2e/axe.spec.ts", "utf8");
+    expect(css).toContain("[data-tree-panel]");
+    expect(axe).toContain("[data-tree-panel]");
+    // And neither selects a variant of the name that DrawnTree does not stamp.
+    for (const source of [css, axe]) {
+      for (const name of source.match(/data-tree-panel[\w-]*/g) ?? []) {
+        expect(stamped.has(name), `${name} is selected but never stamped`).toBe(true);
+      }
+    }
   });
 
   it("no longer claims to fade root furniture the page does not render", () => {

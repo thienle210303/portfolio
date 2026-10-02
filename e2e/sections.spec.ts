@@ -407,6 +407,108 @@ test.describe("career tree", () => {
   });
 
   /*
+   * Ruling 84: going live is a cut, not a fade. Until the stage is live the
+   * page is the finished tree; going live drops every branch the first act
+   * has not reached to `opacity: 0`. With the fade's transition already in
+   * force that played as half a second of the tree un-growing on every load —
+   * and axe, landing inside it, measured a branch at ~1.05:1. `Stage.tsx` now
+   * holds every transition until `data-stage-settled`, so two frames after
+   * going live an unreached branch is already fully transparent, not 0.9 of
+   * the way through a fade. Measured from an init script, because the window
+   * this is about closes before any locator could look at it.
+   */
+  test("going live hides the unreached branches at once rather than fading them", async ({ page }) => {
+    test.skip(viewportWidth(page) < 1280, "the pin, and its fade, only engage at >=1280px");
+    await page.addInitScript(() => {
+      const record = window as unknown as { __firstLive?: string };
+      new MutationObserver((mutations, observer) => {
+        const root = mutations
+          .map((mutation) => mutation.target)
+          .find(
+            (target): target is HTMLElement =>
+              target instanceof HTMLElement && target.hasAttribute("data-stage-live"),
+          );
+        if (!root) return;
+        observer.disconnect();
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const through = Number(root.dataset.through);
+            const unreached = Array.from(root.querySelectorAll<HTMLElement>("[data-branch-act]")).filter(
+              (branch) => Number(branch.dataset.branchAct) > through,
+            );
+            const opacities = unreached.map((branch) => Number(getComputedStyle(branch).opacity));
+            record.__firstLive = `${unreached.length} unreached, max opacity ${Math.max(0, ...opacities)}`;
+          }),
+        );
+      }).observe(document, { attributes: true, attributeFilter: ["data-stage-live"], subtree: true });
+    });
+    await page.goto("about:blank");
+    await page.goto("/");
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __firstLive?: string }).__firstLive ?? ""))
+      .toMatch(/unreached/);
+    const reading = await page.evaluate(() => (window as unknown as { __firstLive?: string }).__firstLive ?? "");
+    const [count] = reading.split(" ");
+    expect(Number(count), `no unreached branch to measure: ${reading}`).toBeGreaterThan(0);
+    expect(reading).toMatch(/max opacity 0$/);
+  });
+
+  /*
+   * The year scrubber, pressed the way an impatient reader presses it. Each
+   * ArrowRight scrolls its act to the centre at once, and the stage's
+   * IntersectionObserver reports crossings a frame or two later — so a report
+   * computed before the latest press's scroll used to land after it and set
+   * the act back: three fast presses stopped on act 1 or 2 instead of 3, and
+   * one trial left the page on act 4 with the drawing showing act 2. The year
+   * label, the drawing (`data-through`), the act marked current and the act
+   * actually under the middle of the screen must all agree once it settles.
+   * Only where the pin engages (>=1280px, motion allowed): everywhere else the
+   * scrubber is not shown.
+   */
+  test("fast presses on the year scrubber land where the page is", async ({ page }) => {
+    test.skip(viewportWidth(page) < 1280, "the scrubber only exists while the stage is pinned");
+    const stage = page.locator("#tree [data-stage]");
+    await stage.scrollIntoViewIfNeeded();
+    await expect.poll(() => stageIsPinned(page)).toBe(true);
+    const scrubber = page.locator("#tree").getByRole("slider", { name: /year/i });
+    await scrubber.focus();
+    await page.keyboard.press("Home");
+    await expect(stage).toHaveAttribute("data-through", "0");
+    // Let the scroll Home caused finish reporting before the presses start.
+    await page.waitForTimeout(500);
+
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+
+    /** Everything that says which act is current, read in one go. */
+    const readings = () =>
+      page.evaluate(() => {
+        const root = document.querySelector<HTMLElement>("#tree [data-stage]");
+        const acts = Array.from(document.querySelectorAll<HTMLElement>("#tree [data-stage] [data-act]"));
+        const middle = window.innerHeight / 2;
+        const underMiddle = acts.findIndex((act) => {
+          const box = act.getBoundingClientRect();
+          return box.top <= middle && box.bottom > middle;
+        });
+        const marked = acts.findIndex((act) => act.getAttribute("aria-current") === "step");
+        const slider = document.querySelector<HTMLInputElement>('#tree [data-stage-scrub] input[type="range"]');
+        return `through=${root?.dataset.through} slider=${slider?.value} marked=${marked} underMiddle=${underMiddle}`;
+      });
+    // Settled means the same reading three times running, 200ms apart — long
+    // enough for any report still in flight to have been delivered.
+    let previous = "";
+    let stable = 0;
+    for (let attempt = 0; attempt < 40 && stable < 3; attempt += 1) {
+      await page.waitForTimeout(200);
+      const next = await readings();
+      stable = next === previous ? stable + 1 : 0;
+      previous = next;
+    }
+    expect(previous).toBe("through=3 slider=3 marked=3 underMiddle=3");
+  });
+
+  /*
    * The always-on change from the origin-story plan's Task 2 that survives:
    * the drawing never claims to be finished — an unfinished shoot,
    * annotated. (Its other half, the root plinth drawn as ground rather than
