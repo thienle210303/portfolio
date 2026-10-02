@@ -1,5 +1,5 @@
 import { careerEntries, profile } from "@/content/portfolio";
-import { buildCareerTree, totalTechnologies } from "@/lib/knowledge-tree";
+import { buildDrawnTree, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
 import { crossingKm, resolveWorlds } from "@/lib/worlds";
 
 /**
@@ -47,20 +47,16 @@ export interface CompanionFacts {
     readonly crossingKm: number;
   };
   /**
-   * Round 10: the tree absorbs Journey (one section, two faces), and the
-   * companion follows — `journey` retired as a key here rather than staying a
-   * fact nothing quotes any more. The timeline's own split (entries, and the
-   * work/learning/milestone counts that sum to it) is folded in beside the
-   * tree's own branch/leaf/technology counts, so both faces of the merged
-   * section speak from the same object.
+   * The Journey's own counts, both halves of its rail: what the drawing draws
+   * (`branches`, `leaves`, `technologies`) and the whole record it was drawn
+   * from (`entries` and its `work`/`learning`/`milestone` split).
    *
-   * Round 12: the tree itself inverted (`buildCareerTree` in
-   * `src/lib/knowledge-tree.ts`) — a branch is now one career entry, so
-   * `branches` and `entries` are now the same number by construction, and
-   * `leaves` counts authored technologies and impact lines rather than
-   * (lens, entry) pairs. Both keys stay: `branches`/`leaves` are what the
-   * drawing itself renders, `entries`/`work`/`learning`/`milestones` are the
-   * timeline's own split, and a dialogue line is free to quote either.
+   * Those are two different populations and the numbers say so. The drawing
+   * is `buildDrawnTree()` — every career entry except the nine demoted to the
+   * stage's one credentials line — so `branches` is smaller than `entries`,
+   * exactly as the rail prints "11 drawn · 9 as credentials" beside "Entries
+   * 20". A cat that said "20 branches" would be counting a tree nobody can
+   * see; Ruling 51 fixed the same contradiction on the globe's plaque.
    */
   readonly tree: {
     readonly branches: number;
@@ -87,12 +83,12 @@ export function buildCompanionFacts(): CompanionFacts {
     .filter((entry) => entry.type === "work")
     .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
 
-  // Round 12: the tree inverted (see src/lib/knowledge-tree.ts) — a branch is
-  // now one career entry and a leaf is one authored technology or impact
-  // line, so `tree.length` is the branch count directly and `leafTotal` sums
-  // each branch's own leaves rather than counting (lens, entry) pairs.
-  const tree = buildCareerTree();
-  const leafTotal = tree.reduce((total, branch) => total + branch.leaves.length, 0);
+  // The same three calls CareerTree.tsx makes for its rail — `DRAWN`,
+  // `LEAF_TOTAL` and `TECHNOLOGY_TOTAL` there — and the globe's "tree-shape"
+  // plaque makes in `src/lib/worlds.ts`. Not `buildCareerTree()` /
+  // `totalTechnologies()`: those count all twenty entries, including the nine
+  // the stage no longer draws as branches.
+  const drawn = buildDrawnTree();
 
   const resolvedWorlds = resolveWorlds();
   const plaqueTotal = resolvedWorlds.reduce((total, world) => total + world.plaques.length, 0);
@@ -110,9 +106,9 @@ export function buildCompanionFacts(): CompanionFacts {
       crossingKm: crossingKm(),
     },
     tree: {
-      branches: tree.length,
-      leaves: leafTotal,
-      technologies: totalTechnologies(),
+      branches: drawn.length,
+      leaves: totalLeaves(drawn),
+      technologies: treeTechnologies(drawn),
       entries: careerEntries.length,
       work: countOf("work"),
       learning: countOf("learning"),

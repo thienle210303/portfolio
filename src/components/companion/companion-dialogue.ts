@@ -84,20 +84,21 @@ const AMBIENT: Record<string, SceneBuilder> = {
       : null,
   tree: (f) => [
     tabby("Mrrrow! Meow!", `A tree! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
-    grey("Meow.", "We planted nothing. It grew from the timeline."),
+    grey("Meow.", "We planted nothing. Every leaf is off his own record."),
   ],
 };
 
 /**
  * Round 10: the tree absorbed Journey, and its encore is where that
  * section's own facts earned a place — the branch/leaf/technology count
- * followed by the timeline split that used to be `journey`'s own scene.
+ * followed by the work/learning/milestone split of the career entries, which
+ * used to be `journey`'s own scene.
  */
 const ENCORE: Record<string, SceneBuilder> = {
   tree: (f) => [
     grey("Meow. Mrp.", `${f.tree.technologies} technologies hang on those branches.`),
-    tabby("Mrrrow?", "Hover one! The tree lights up where it lives."),
-    grey("Mrp. Mrp.", `${f.tree.entries} entries fed it. ${f.tree.work} were work.`),
+    tabby("Mrrrow?", "Open a branch! Its dates are tucked inside."),
+    grey("Mrp. Mrp.", `${f.tree.entries} entries in all. ${f.tree.work} were work.`),
     tabby("Meow!", `${f.tree.milestones} milestones. Confetti days, every one.`),
   ],
 };
@@ -126,9 +127,9 @@ const TOUR: Record<string, SceneBuilder> = {
     grey("Mrp. Meow.", `${f.worlds.decorations} more are just drawings. They say so themselves.`),
   ],
   // Round 10: the tree absorbed Journey, and this one stop now narrates both
-  // faces — the branch/leaf/technology count first, then the timeline split
-  // that used to be `journey`'s own tour stop, tabby's line preserved rather
-  // than dropped.
+  // faces — the branch/leaf/technology count first, then the entries' own
+  // work/learning/milestone split that used to be `journey`'s own tour stop,
+  // tabby's line preserved rather than dropped.
   tree: (f) => [
     tabby("Meow meow meow!", `Look up! ${f.tree.branches} branches, ${f.tree.leaves} leaves!`),
     grey("Mrp.", `${f.tree.technologies} technologies hang there. We planted nothing.`),
