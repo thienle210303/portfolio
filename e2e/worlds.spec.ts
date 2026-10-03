@@ -295,6 +295,51 @@ async function waitForLiveGlobe(page: Page) {
   return stage;
 }
 
+/**
+ * Make sure a `page.mouse` press at (x, y) lands on the planet, and fail
+ * saying so if it cannot.
+ *
+ * Centring the stage is not enough on its own, because the cats are not
+ * content. `Companion.tsx` is a `fixed` layer above the page, its two cats are
+ * `pointer-events-auto` buttons, and they roam the whole document while
+ * awake — which they are in every test here that does not ask for reduced
+ * motion, which is every test that presses the globe through `page.mouse`
+ * (the rest dispatch straight to the canvas and never hit-test at all). A cat
+ * that happens to be standing on the press point takes the `pointerdown`, the
+ * globe never hears it, and the drag test then reports "the inertia was not
+ * drawing frame by frame" with zero draws about a loop that was never
+ * started. That is the
+ * whole of its intermittent failure: logged across 100 drags against
+ * `next dev` at 390 and 768, the five that drew nothing were exactly the five
+ * whose `pointerdown` target was inside `[data-companion]`, and the 95 that
+ * reached the canvas drew 23–25 frames in the 400 ms window, every one.
+ *
+ * So the companion layer is made transparent to the pointer for the rest of
+ * the test. Its loop keeps running — `expectAtRest`'s `CATS_AWAKE_HZ` ceiling
+ * is still measured against cats that are awake — they just cannot be pressed.
+ * The cats' own contract, including being pressable, is `companion.spec.ts`'s.
+ *
+ * Then the point is checked rather than assumed: anything else that ever comes
+ * to sit over the globe fails here, by name, instead of as a planet that did
+ * not move.
+ */
+async function aimAtGlobe(page: Page, x: number, y: number) {
+  await page.addStyleTag({
+    content: "[data-companion], [data-companion] * { pointer-events: none !important; }",
+  });
+  const hit = await page.evaluate(
+    ([px, py]) => {
+      const element = document.elementFromPoint(px, py);
+      if (!element) return "nothing";
+      return element.matches("#worlds canvas")
+        ? "canvas"
+        : `<${element.tagName.toLowerCase()} class="${element.getAttribute("class") ?? ""}">`;
+    },
+    [x, y] as const,
+  );
+  expect(hit, `a press at (${x}, ${y}) would land on ${hit}, not on the globe`).toBe("canvas");
+}
+
 test.describe("the live globe", () => {
   test("requests zero animation frames once it has settled", async ({ page }) => {
     await page.goto("/#worlds");
@@ -315,6 +360,7 @@ test.describe("the live globe", () => {
     const before = await globeSignature(page);
     const box = await stage.boundingBox();
     if (!box) throw new Error("the stage has no box");
+    await aimAtGlobe(page, box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     for (let step = 1; step <= 10; step += 1) {
@@ -488,6 +534,7 @@ test.describe("the live globe", () => {
     // journey home, so the resting image is never byte-identical twice.
     const box = await stage.boundingBox();
     if (!box) throw new Error("the stage has no box");
+    await aimAtGlobe(page, box.x + box.width / 2, box.y + box.height * 0.44);
     await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.44);
     await expect(list.getByRole("button", { name: /Việt Nam/ })).toHaveAttribute(
       "aria-current",
@@ -517,6 +564,7 @@ test.describe("the live globe", () => {
     const before = await globeSignature(page);
     const box = await stage.boundingBox();
     if (!box) throw new Error("the stage has no box");
+    await aimAtGlobe(page, box.x + box.width * 0.42, box.y + box.height * 0.3);
     await page.mouse.click(box.x + box.width * 0.42, box.y + box.height * 0.3);
     await expect.poll(() => globeSignature(page), { timeout: 5_000 }).not.toBe(before);
 
