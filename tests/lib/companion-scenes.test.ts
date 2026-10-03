@@ -311,7 +311,10 @@ describe("planExplore", () => {
     // own, untouched probe) answers for her: the nearest clear ground to where
     // she already is.
     const probe = vi.spyOn(companionSpace, "isClearSpot");
-    probe.mockReturnValueOnce(true).mockReturnValue(false);
+    // One accepted draw is probed five times: at the spot and at each corner of
+    // the rest margin (`exploreClear`).
+    for (let i = 0; i < 5; i += 1) probe.mockReturnValueOnce(true);
+    probe.mockReturnValue(false);
     const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, () => 0.1);
     expect(spots).not.toBeNull();
     expect(spots!.lead.x + CAT_W / 2).toBeLessThan(companionSpace.viewport().width / 2);
@@ -327,7 +330,10 @@ describe("planExplore", () => {
     const prose = document.createElement("p");
     document.elementsFromPoint = vi.fn((x: number) => (x >= 290 && x <= 360 ? [prose] : []));
     const probe = vi.spyOn(companionSpace, "isClearSpot");
-    probe.mockReturnValueOnce(true).mockReturnValue(false);
+    // One accepted draw is probed five times: at the spot and at each corner of
+    // the rest margin (`exploreClear`).
+    for (let i = 0; i < 5; i += 1) probe.mockReturnValueOnce(true);
+    probe.mockReturnValue(false);
     const spots = planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false, () => 0.1);
     expect(spots).not.toBeNull();
     expect(spots!.follow).toEqual({ x: 8, y: 400 });
@@ -378,17 +384,47 @@ describe("planExplore", () => {
     expect(exploreClear(at)).toBe(false);
   });
 
+  it("refuses a stop whose head or feet clear content by less than the arrival tolerance", () => {
+    // A button ending at y = 100.4 (a fractional edge, as laid-out boxes have).
+    // A cat's head row is `y + 6`, so a spot at y = 94.5 has its row at 100.5:
+    // clear by 0.1px. `advance` lets a cat rest up to 0.6px off its spot, so
+    // such a stop can end with the ears across the edge — exploreClear must
+    // refuse it while the exact-point head probe alone accepts it.
+    const button = document.createElement("button");
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y < 100.4 ? [button] : []));
+    const hair = { x: 100, y: 94.5 };
+    expect(companionSpace.headClear(hair)).toBe(true);
+    expect(exploreClear(hair)).toBe(false);
+    // A spot a pixel and a half lower clears it however the cat comes to rest.
+    expect(exploreClear({ x: 100, y: 96.5 })).toBe(true);
+    // The same for the feet: content starting at y = 200 under a cat whose feet
+    // row (`y + 36`) is 0.1px short of it.
+    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= 200 ? [button] : []));
+    const feet = { x: 100, y: 200 - 36 - 0.1 };
+    expect(companionSpace.isClearSpot(feet)).toBe(true);
+    expect(exploreClear(feet)).toBe(false);
+    expect(exploreClear({ x: 100, y: 200 - 36 - 2 })).toBe(true);
+  });
+
   it("never stops an explorer with its head on content, which the three-point probe alone allows", () => {
     // Lines of prose 14px tall every 60px down the page, across its whole
     // width: plenty of ground clears the feet and belly with the ears or face
     // on a line above them.
     const prose = document.createElement("p");
     document.elementsFromPoint = vi.fn((_x: number, y: number) => (y % 60 < 14 ? [prose] : []));
+    // mulberry32, not a bare LCG: consecutive draws of a power-of-two LCG fall
+    // on a lattice. About a quarter of this page clears the lines, so a cat
+    // that draws 2 x EXPLORE_TRIES times and finds none (about one plan in a
+    // thousand) is placed by `findClearSpot`, feet and belly only, *by design*;
+    // the seed is pinned to one where that does not happen in these 100 plans.
     const seeded = () => {
-      let state = 12345;
+      let state = 1;
       return () => {
-        state = (Math.imul(state, 1103515245) + 12345) >>> 0;
-        return state / 2 ** 32;
+        state = (state + 0x6d2b79f5) >>> 0;
+        let t = state;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
       };
     };
     const view = companionSpace.viewport();

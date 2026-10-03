@@ -332,15 +332,37 @@ export interface ExploreSpots extends MoodSpots {
 }
 
 /**
+ * How far from its spot an explorer may come to rest, which is how far a stop's
+ * ground is checked on every side. `advance` (companion-motion.ts) stops a cat
+ * once it is within 0.6px of where it was going, and it eases in from wherever
+ * it came from, so the cat stands up to 0.6px off the point that was probed. A
+ * head-band row that cleared a button's bottom edge by a fraction of a pixel
+ * therefore stopped with the ears across it, about one pick in ten in a gap
+ * that narrow, and the whole stop was bad rather than slightly bad. One pixel
+ * is the whole tolerance and a little over.
+ */
+const EXPLORE_REST_MARGIN = 1;
+
+/**
  * Clear ground for an explorer's stop: feet and belly (`isClearSpot`), then the
- * head band (`headClear`). A stop drawn from anywhere on the page must clear
- * the whole cat, not just where it stands. `planExplore` picks its half-page
- * stops with it; perches, scene stages and the `findClearSpot` fallbacks are
- * picked by the three-point `isClearSpot` alone. A held stop is re-checked by
+ * head band (`headClear`) — at the spot and at each corner of the
+ * `EXPLORE_REST_MARGIN` square round it, so the cat is clear wherever within
+ * its arrival tolerance it comes to rest, not only at the exact point. A stop
+ * drawn from anywhere on the page must clear the whole cat, not just where it
+ * stands. `planExplore` and `repickExploreSpot` pick their half-page stops with
+ * it; perches, scene stages and the `findClearSpot` fallbacks are picked by the
+ * three-point `isClearSpot` alone. A held stop is re-checked by
  * `heldExploreClear`, not by this.
  */
 export function exploreClear(point: Point): boolean {
-  return isClearSpot(point) && headClear(point);
+  if (!isClearSpot(point) || !headClear(point)) return false;
+  for (const dx of [-EXPLORE_REST_MARGIN, EXPLORE_REST_MARGIN]) {
+    for (const dy of [-EXPLORE_REST_MARGIN, EXPLORE_REST_MARGIN]) {
+      const rest = { x: point.x + dx, y: point.y + dy };
+      if (!isClearSpot(rest) || !headClear(rest)) return false;
+    }
+  }
+  return true;
 }
 
 /**
