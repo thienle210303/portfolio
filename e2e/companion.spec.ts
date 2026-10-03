@@ -1333,7 +1333,7 @@ test.describe("companion", () => {
       };
     });
     expect(shift.height, "the inserted block took no room").toBeGreaterThan(0);
-    // Not vacuous: at this instant, before a frame has run, all six probe
+    // Not vacuous: before the 250 ms re-probe can have fired, all six probe
     // points — three per cat — are on the paragraph the shift put there.
     expect(await restingOnContent(page), "the shift did not put text under the cats").toHaveLength(6);
 

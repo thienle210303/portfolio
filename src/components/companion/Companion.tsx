@@ -1308,9 +1308,10 @@ export function Companion({ facts }: CompanionProps) {
    *  hold rather than per frame. Cleared by a pointer move, a scroll or resize
    *  (at once for a resize, and when the throttled recheck in the loop effect
    *  fires for either), a scene ending (`endPlay`) or being asked for, a mode
-   *  change and a section change. Not by a change in the body's size on its
-   *  own: that recheck re-probes only the explorers' held stop, so spots
-   *  resolved before a layout shift with no scroll stand until one of the
+   *  change and a section change — and by a change in the body's size only
+   *  when its recheck drops the explorers' held stop (`scheduleRecheck`). A
+   *  body resize that drops nothing leaves them alone, so spots resolved
+   *  before a layout shift with no scroll and no drop stand until one of the
    *  above. */
   const settleSpots = useRef<Spots | null>(null);
   /** Where the explorers are heading. Null means "decide on the next frame". */
@@ -2142,7 +2143,9 @@ export function Companion({ facts }: CompanionProps) {
      * positions: it probed its own geometry against wherever they stood when it
      * opened, and a spot halfway across the page would walk the lead away from
      * the ball he is supposed to be batting), and the cascade's last fallback.
-     * Cleared whenever the page underneath them can have moved.
+     * Cleared on the events listed on the `settleSpots` ref — which are not
+     * every way the page underneath them can move: a body resize that drops
+     * no held stop leaves them standing.
      */
     function settled(): Spots {
       settleSpots.current ??= clearFollowOfToggle(nearbySpots());
@@ -2194,8 +2197,9 @@ export function Companion({ facts }: CompanionProps) {
      * function, whenever something has a better claim on where they should be:
      * a chase actually starting (a moving pointer within `CHASE_RADIUS` of the
      * lead — one further away leaves the plan alone), a section change, a
-     * scene ending, a resize, or a scroll that leaves a held spot out of view
-     * or on content.
+     * scene ending, a resize, a scroll that leaves a held spot out of view, or
+     * the re-probe (`reprobeHeld`) finding a held spot's ground no longer
+     * clear once a scroll, a resize or a change in the body's size settles.
      *
      * The first plan in a section is that section's perch where it has one
      * (`exploreFresh`, consumed when they arrive); after that, `planExplore`
@@ -3796,7 +3800,8 @@ export function Companion({ facts }: CompanionProps) {
      * first starts it, and anything inside the window rides along — exactly
      * as a second scroll always has. If any of those was a scroll or resize,
      * the timer does everything it always did for one; if all of them were
-     * body resizes, it does only the re-probe.
+     * body resizes, it does only the re-probe, plus clearing the settle spots
+     * when that drops the stop.
      *
      * A body resize on its own is not a sign that anybody is here — a page can
      * re-lay itself out with nobody watching (a lazy chunk landing, a feed
@@ -3813,7 +3818,13 @@ export function Companion({ facts }: CompanionProps) {
         const full = recheckPageMoved;
         recheckPageMoved = false;
         if (!full) {
-          if (reprobeHeld()) wake();
+          // On a drop, the settle spots go too: they were resolved under the
+          // old layout, and a pair napping with no plan falls back to them.
+          // A cache drop and nothing more — no hit tests, and only on a drop.
+          if (reprobeHeld()) {
+            settleSpots.current = null;
+            wake();
+          }
           return;
         }
         // The chrome may have grown, shrunk or unpinned, so the band the cats
@@ -3856,9 +3867,11 @@ export function Companion({ facts }: CompanionProps) {
      * Ground that moves under a resting cat with no scroll and no resize. The
      * companion layer is `position: fixed`, so nothing the cats do changes the
      * body's size, and this can never be answering the cats themselves. A
-     * `ResizeObserver` reports once as soon as it starts observing, which is
-     * the page as it already was rather than a change to it, so that first
-     * report is skipped.
+     * `ResizeObserver` reports once as soon as it starts observing, to give the
+     * size the body already has, so that first report is skipped. Skipped
+     * whole, though: a real change to the body that lands before it is
+     * delivered (the first frame after the loop starts) is folded into it and
+     * goes unseen too — a one-frame window at loop start.
      */
     let bodySeen = false;
     const bodyResized = new ResizeObserver(() => {
