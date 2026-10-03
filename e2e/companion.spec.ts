@@ -1248,6 +1248,207 @@ test.describe("companion", () => {
       .toEqual(["grey", "tabby"]);
   });
 
+  test("a layout shift with no scroll still moves resting explorers off the text it brings", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(90_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    /*
+     * The pair are out exploring from the moment they wake (the presence clock
+     * is stamped when the loop starts), so nothing is touched here: no pointer,
+     * no key, no scroll. Wait for an arrival — seen walking, then both still,
+     * and not in the corner — because a stay is 4 to 9 seconds from the
+     * moment they both get there, and everything below has to happen well
+     * inside the shortest one. On a build that never re-probes, the cats sit
+     * on the inserted text until that stay runs out; caught late in a stay,
+     * the stay's own end would move them and hide the bug.
+     */
+    let sawWalking = false;
+    await expect
+      .poll(
+        async () => {
+          const [grey, tabby] = await catPair(page, { still: true });
+          if (!grey.still || !tabby.still) {
+            sawWalking = true;
+            return "walking";
+          }
+          if (!sawWalking || (await bothInCorner(page))) return "not out exploring yet";
+          return "arrived";
+        },
+        { timeout: 20_000, intervals: [50], message: "the explorers never arrived anywhere" },
+      )
+      .toBe("arrived");
+    expect(await restingOnContent(page, { still: true }), "the stop was not clear to begin with").toEqual(
+      [],
+    );
+
+    /*
+     * Shift the ground under them with no scroll at all. Scroll anchoring is
+     * turned off first: left on, the browser would answer content inserted
+     * above the viewport's anchor by scrolling to compensate — a scroll event,
+     * which reaches the companion's existing scroll path and would let this
+     * pass without the path under test ever running. The block goes at the
+     * top of `main`, tall enough to reach past both cats, and carries one
+     * paragraph under each, so what pushes the page down is also what lands
+     * beneath them.
+     */
+    const shift = await page.evaluate(() => {
+      document.documentElement.style.overflowAnchor = "none";
+      const counted = window as unknown as { __shiftScrolls: number };
+      counted.__shiftScrolls = 0;
+      window.addEventListener("scroll", () => (counted.__shiftScrolls += 1), { passive: true });
+      const scrolledBefore = window.scrollY;
+      const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).map((svg) =>
+        svg.getBoundingClientRect(),
+      );
+      const main = document.querySelector("main");
+      if (!main) throw new Error("no <main> to shift");
+      const block = document.createElement("div");
+      block.style.position = "relative";
+      main.prepend(block);
+      const origin = block.getBoundingClientRect();
+      block.style.height = `${Math.max(...cats.map((r) => r.bottom)) + 40 - origin.top}px`;
+      for (const r of cats) {
+        const p = document.createElement("p");
+        p.textContent = "A paragraph the layout brought in under a resting cat. ".repeat(4);
+        Object.assign(p.style, {
+          position: "absolute",
+          margin: "0",
+          overflow: "hidden",
+          left: `${r.left - 20 - origin.left}px`,
+          top: `${r.top - 20 - origin.top}px`,
+          width: `${r.width + 40}px`,
+          height: `${r.height + 40}px`,
+        });
+        block.append(p);
+      }
+      return {
+        scrolledBefore,
+        height: block.getBoundingClientRect().height,
+        stops: cats.map((r) => ({ left: r.left, top: r.top })),
+      };
+    });
+    expect(shift.height, "the inserted block took no room").toBeGreaterThan(0);
+    // Not vacuous: at this instant, before a frame has run, all six probe
+    // points — three per cat — are on the paragraph the shift put there.
+    expect(await restingOnContent(page), "the shift did not put text under the cats").toHaveLength(6);
+
+    /*
+     * Within a second and a half, no cat is still resting on it: each has
+     * walked off the stop it was holding. Measured as distance from where it
+     * stood when the text arrived, not with `restingOnContent`'s `still`
+     * sample — that reports `WALKING` for the last sub-pixel of a cat easing
+     * into its stop, and a first draft that accepted `WALKING` as a pass did
+     * pass once on a build that never re-probes, with both cats still on the
+     * paragraph. Four pixels is the explorers' own "arrived" distance; a
+     * re-plan only picks ground its probe finds clear, and the paragraph
+     * reaches 20px past the cat on every side, so a cat sent anywhere new
+     * moves well past it. The stay this window sits inside is at least four
+     * seconds, so on a build that never re-probes neither cat goes anywhere.
+     */
+    await expect
+      .poll(
+        () =>
+          page.evaluate((stops) => {
+            const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+            return cats.flatMap((svg, index) => {
+              const r = svg.getBoundingClientRect();
+              const from = stops[index];
+              return from && Math.hypot(r.left - from.left, r.top - from.top) < 4
+                ? [`cat ${index} still at ${Math.round(r.left)},${Math.round(r.top)}`]
+                : [];
+            });
+          }, shift.stops),
+        { timeout: 1_500, intervals: [50], message: "a cat stayed on the text the layout put under it" },
+      )
+      .toEqual([]);
+
+    // And it was not a scroll that did it.
+    const after = await page.evaluate(() => ({
+      scrolls: (window as unknown as { __shiftScrolls: number }).__shiftScrolls,
+      scrollY: window.scrollY,
+    }));
+    expect(after.scrolls, "the shift fired a scroll event").toBe(0);
+    expect(after.scrollY, "the shift moved the page").toBe(shift.scrolledBefore);
+
+    // Where they go instead is clear: the next rest is off the text too.
+    await expectRestClearOfContent(page, "re-planned onto content after the shift");
+  });
+
+  test("a layout that keeps changing on its own does not keep the cats awake", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(120_000);
+    await page.addInitScript(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      let frames = 0;
+      window.requestAnimationFrame = (callback) => {
+        frames += 1;
+        return raf(callback);
+      };
+      Object.defineProperty(window, "__frames", { get: () => frames });
+    });
+    // By day, as in the nap test above: night trims the threshold.
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "day");
+    await companionAwake(page);
+
+    /*
+     * A block at the foot of the page that grows and shrinks every second, for
+     * the whole test, with nobody touching anything. Each change resizes
+     * `body`, which is what the companion's re-probe watches — and the test
+     * keeps its own count of those resizes, so "the cats napped through it"
+     * cannot pass on a page whose body never actually changed size. At the
+     * foot, nothing above it moves, so their stop stays clear and the re-probe
+     * has nothing to drop: what is left to see is whether a layout change is
+     * being counted as a reader, or waking cats for nothing.
+     */
+    await page.evaluate(() => {
+      const counted = window as unknown as { __bodyResizes: number };
+      counted.__bodyResizes = 0;
+      new ResizeObserver(() => (counted.__bodyResizes += 1)).observe(document.body);
+      const block = document.createElement("div");
+      block.style.height = "0px";
+      document.body.append(block);
+      window.setInterval(() => {
+        block.style.height = block.style.height === "0px" ? "240px" : "0px";
+      }, 1_000);
+    });
+    const resizes = () =>
+      page.evaluate(() => (window as unknown as { __bodyResizes: number }).__bodyResizes);
+
+    await expect
+      .poll(() => poses(page), {
+        timeout: EXPLORE_IDLE_MS + 15_000,
+        intervals: [500],
+        message: "a body that kept resizing kept the cats awake",
+      })
+      .toEqual(["sleep", "sleep"]);
+    await expect
+      .poll(() => framesPerSecond(page), {
+        timeout: 10_000,
+        intervals: [1_000],
+        message: "the page never stopped requesting animation frames",
+      })
+      .toBe(0);
+
+    // And it stays still while the body goes on resizing under them: three
+    // more one-second windows, each with a toggle in it, and not one frame.
+    const before = await resizes();
+    for (let second = 0; second < 3; second += 1) {
+      expect(await framesPerSecond(page), "a body resize woke the loop with nothing dropped").toBe(0);
+    }
+    expect(await resizes(), "the body did not resize while the frames were counted").toBeGreaterThanOrEqual(
+      before + 2,
+    );
+    expect(await poses(page)).toEqual(["sleep", "sleep"]);
+  });
+
   test("a keyboard-only reader still counts as active", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(90_000);

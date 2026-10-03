@@ -3740,6 +3740,91 @@ export function Companion({ facts }: CompanionProps) {
      * at all.
      */
     let recheck = 0;
+    /** Whether a scroll or resize is waiting on `recheck`, as opposed to only
+     *  a body resize — see `scheduleRecheck`. */
+    let recheckPageMoved = false;
+
+    /**
+     * Re-probe the explorers' held stop, and drop it if its ground has stopped
+     * being clear. Returns whether it dropped one.
+     *
+     * The destination has been riding with the page (see the ride in `step`),
+     * so after a scroll it is still beside whatever it was beside — but not
+     * everything moves with the document during a scroll (a sticky rail, a
+     * pinned stage), and not every change to the ground is a scroll at all: a
+     * placeholder swapped for the thing it held a place for, a panel opening, a
+     * list re-laying out all move content under a resting cat while the page
+     * stands still. So once a scroll, a resize or a change in the body's size
+     * settles, the stop is re-probed here and dropped only if its ground is no
+     * longer clear. Dropping it on every scroll instead would have a reader who
+     * scrolls as they read keep the pair forever setting off and never
+     * arriving.
+     *
+     * What still goes unseen: a shift that changes no size on `body` — content
+     * swapped for content of the same height, a transform, something
+     * absolutely positioned moving over the stop. That stop stands until its
+     * stay or walk runs out or something else drops it.
+     *
+     * `heldExploreClear` (companion-moods.ts) is the probe. A perch: his spot
+     * alone, three points (she trails him rather than walking to hers).
+     * Otherwise each cat's three points, plus the head band only where that
+     * head was clear when the stop was planned (`holdExplore` in `exploreTo`
+     * records it): the page's margin rail is `position: sticky`, so a scroll
+     * slides it over a cat riding the page and can bring it over a head that
+     * was clear, feet still clear — and a `findClearSpot` or `nearbySpots()`
+     * fallback planned with its head already on content is not dropped for the
+     * ground it was put on.
+     */
+    const reprobeHeld = (): boolean => {
+      const heading = exploreRun.current;
+      if (heading && !heldExploreClear(heading)) {
+        exploreRun.current = null;
+        return true;
+      }
+      return false;
+    };
+
+    /**
+     * The throttled half of `onPageMoved`, and the whole of what a body resize
+     * gets. One timer for both, so a body resize and a scroll landing inside
+     * the same 250ms cost one round of hit tests, not two: whichever arrives
+     * first starts it, and anything inside the window rides along — exactly
+     * as a second scroll always has. If any of those was a scroll or resize,
+     * the timer does everything it always did for one; if all of them were
+     * body resizes, it does only the re-probe.
+     *
+     * A body resize on its own is not a sign that anybody is here — a page can
+     * re-lay itself out with nobody watching (a lazy chunk landing, a feed
+     * filling in) — so it stamps no presence clock, ends no scene, and wakes
+     * the loop only when the re-probe dropped the stop and the pair have
+     * somewhere new to choose. A layout that keeps changing must not keep two
+     * napping cats up, or keep a page at rest asking for frames.
+     */
+    const scheduleRecheck = (pageMoved: boolean) => {
+      if (pageMoved) recheckPageMoved = true;
+      if (recheck) return;
+      recheck = window.setTimeout(() => {
+        recheck = 0;
+        const full = recheckPageMoved;
+        recheckPageMoved = false;
+        if (!full) {
+          if (reprobeHeld()) wake();
+          return;
+        }
+        // The chrome may have grown, shrunk or unpinned, so the band the cats
+        // cannot be seen in is re-measured here rather than per frame.
+        refreshSafeArea();
+        settleSpots.current = null;
+        reprobeHeld();
+        lastTone.current = 0;
+        // A scene's clearance was probed against the layout as it stood when it
+        // opened, and this is the event that says that layout has moved. The
+        // cats re-probe and shuffle; a toy cannot, so it goes.
+        endPlay();
+        wake();
+      }, 250);
+    };
+
     const onPageMoved = (resized: boolean) => {
       lastSignRef.current = performance.now();
       if (resized) {
@@ -3759,45 +3844,25 @@ export function Companion({ facts }: CompanionProps) {
         paint(followNode.current, tabby.pos);
       }
       wake();
-      if (recheck) return;
-      recheck = window.setTimeout(() => {
-        recheck = 0;
-        // The chrome may have grown, shrunk or unpinned, so the band the cats
-        // cannot be seen in is re-measured here rather than per frame.
-        refreshSafeArea();
-        settleSpots.current = null;
-        // The explorers' destination has been riding with the page (see the
-        // ride in `step`), so it is still beside whatever it was beside — but
-        // not everything moves with the document during a scroll (a sticky
-        // rail, a pinned stage), so once a scroll or resize settles it is
-        // re-probed here and dropped only if its ground has stopped being
-        // clear. Dropping it on every scroll instead would have a reader who
-        // scrolls as they read keep the pair forever setting off and never
-        // arriving. This runs on scroll and resize only: ground that shifts
-        // under a held stop with neither (a panel opening, a list re-laying
-        // out) is not re-probed, and the stop stands until its stay or walk
-        // runs out or something else drops it.
-        // `heldExploreClear` (companion-moods.ts) is the probe. A perch: his
-        // spot alone, three points (she trails him rather than walking to
-        // hers). Otherwise each cat's three points, plus the head band only
-        // where that head was clear when the stop was planned (`holdExplore`
-        // in `exploreTo` records it): the page's margin rail is
-        // `position: sticky`, so a scroll slides it over a cat riding the page
-        // and can bring it over a head that was clear, feet still clear — and
-        // a `findClearSpot` or `nearbySpots()` fallback planned with its head
-        // already on content is not dropped for the ground it was put on.
-        const heading = exploreRun.current;
-        if (heading && !heldExploreClear(heading)) {
-          exploreRun.current = null;
-        }
-        lastTone.current = 0;
-        // A scene's clearance was probed against the layout as it stood when it
-        // opened, and this is the event that says that layout has moved. The
-        // cats re-probe and shuffle; a toy cannot, so it goes.
-        endPlay();
-        wake();
-      }, 250);
+      scheduleRecheck(true);
     };
+
+    /**
+     * Ground that moves under a resting cat with no scroll and no resize. The
+     * companion layer is `position: fixed`, so nothing the cats do changes the
+     * body's size, and this can never be answering the cats themselves. A
+     * `ResizeObserver` reports once as soon as it starts observing, which is
+     * the page as it already was rather than a change to it, so that first
+     * report is skipped.
+     */
+    let bodySeen = false;
+    const bodyResized = new ResizeObserver(() => {
+      if (!bodySeen) {
+        bodySeen = true;
+        return;
+      }
+      scheduleRecheck(false);
+    });
 
     /**
      * Scroll anticipation's own half of the work — see `detectRush` in
@@ -3839,6 +3904,7 @@ export function Companion({ facts }: CompanionProps) {
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
+    bodyResized.observe(document.body);
     return () => {
       stop();
       // A nap does not outlive the loop that owns it. Whatever put the loop
@@ -3880,6 +3946,7 @@ export function Companion({ facts }: CompanionProps) {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
+      bodyResized.disconnect();
     };
     // `facts` is a dependency in name only: it is a small object computed once
     // on the server and handed down from `layout.tsx`, never reconstructed
