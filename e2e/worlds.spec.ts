@@ -3,6 +3,11 @@ import { resolveWorlds } from "../src/lib/worlds";
 
 const WORLDS = resolveWorlds();
 
+// The value of the `data-chunk` attribute on the <canvas> in
+// `src/sections/Worlds/GlobeCanvas.tsx`. No other module carries it, so only the
+// lazy canvas chunk does.
+const CANVAS_CHUNK_MARKER = "globe-canvas";
+
 test.describe("the worlds list is the feature; the canvas is decoration", () => {
   test("every world, plaque and source is reachable with the canvas chunk blocked", async ({
     page,
@@ -10,23 +15,28 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
     // Not "with JavaScript off" — with the *canvas* gone, which is the claim
     // the spec actually makes and the one a flaky deploy actually produces.
     //
-    // Two spellings, because two are real. A route pattern can only match a
-    // chunk *file name*, and the bundler picks that: a production build names
-    // the lazy chunk after the module it holds, while `next dev`'s Turbopack
-    // names it after the directory those modules share —
-    // `src_sections_Worlds_<hash>._.js`, in which the string "GlobeCanvas"
-    // does not appear anywhere in the URL. This suite runs against `pnpm dev`
-    // (see `playwright.config.ts`), so for as long as the pattern was
-    // `/GlobeCanvas/` alone nothing was ever aborted and every assertion
-    // below passed against a fully live globe.
+    // Identified by content, not by name. The bundler picks chunk file names
+    // and picks them differently per mode: `next dev`'s Turbopack names the lazy
+    // chunk after the directory its modules share (`src_sections_Worlds_<hash>`),
+    // and a production build names every chunk by hash alone
+    // (`0cz1d0mv5g_q7.js`), so no URL pattern is stable. Each script request is
+    // fetched and refused if its body carries the `globe-canvas` marker, the
+    // value of a `data-chunk` attribute that only `GlobeCanvas.tsx` sets. A
+    // string literal survives minification, and the body is read from the real
+    // response, so the same check holds in both modes.
     //
     // Hence the counter, and the label check at the end. A silent pass with
     // the canvas present is the one failure this test cannot survive, so the
     // block is asserted rather than assumed.
     let aborted = 0;
-    await page.route(/GlobeCanvas|src_sections_Worlds_/, (route) => {
-      aborted += 1;
-      return route.abort();
+    await page.route(/\.js(\?|$)/, async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes(CANVAS_CHUNK_MARKER)) {
+        aborted += 1;
+        return route.abort();
+      }
+      return route.fulfill({ response, body });
     });
     await page.goto("/#worlds");
 
@@ -46,11 +56,15 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
     // The stage is in view by now (the loop above clicked through all seven
     // worlds beside it), so the IntersectionObserver has fired and the
     // `import()` has been attempted. If nothing was blocked, this test proved
-    // nothing about a missing canvas.
-    expect(
-      aborted,
-      "no canvas chunk request was aborted — the bundler renamed the chunk, so the route pattern above needs a third spelling",
-    ).toBeGreaterThan(0);
+    // nothing about a missing canvas. Polled, not read once: the handler
+    // fetches the chunk before it decides, and a cold `next dev` compiles the
+    // chunk on that first request, which can outlast the loop above.
+    await expect
+      .poll(() => aborted, {
+        message:
+          "no canvas chunk request was aborted — no script body carried the canvas chunk marker, so either GlobeCanvas.tsx lost its data-chunk attribute or the chunk was never requested",
+      })
+      .toBeGreaterThan(0);
 
     // And the import did not merely go unattempted: this label is set on the
     // `.catch()` path in `WorldsStage.tsx` and nowhere else, so it can only

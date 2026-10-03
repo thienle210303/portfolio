@@ -1100,6 +1100,10 @@ export default function GlobeCanvas({
     <canvas
       ref={canvasRef}
       aria-hidden="true"
+      // The one string `e2e/worlds.spec.ts` recognises this chunk by. Bundlers
+      // name chunks however they like, so the test reads content, not URLs.
+      // Keep it here and nowhere else.
+      data-chunk="globe-canvas"
       // pan-y, never none. See WorldsStage.
       className="absolute inset-0 block h-full w-full touch-pan-y"
     />
