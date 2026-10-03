@@ -18,6 +18,7 @@ import {
   heldExploreClear,
   holdExplore,
   planExplore,
+  repickExploreSpot,
   RUSH_HOLD_MS,
   RUSH_VELOCITY,
 } from "@/components/companion/companion-moods";
@@ -418,6 +419,99 @@ describe("planExplore", () => {
     // Every probe reads as occupied content.
     document.elementsFromPoint = vi.fn(() => [document.createElement("p")]);
     expect(planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false)).toBeNull();
+  });
+});
+
+/**
+ * `repickExploreSpot`: when one explorer's stay is up, only that cat is sent
+ * somewhere new, against wherever its partner is going. The partner's spot is
+ * an argument and is never returned or moved; what is pinned here is that the
+ * same rules `planExplore` applies to a pair hold against that fixed spot, and
+ * that the single-null fallback is `planExplore`'s.
+ */
+describe("repickExploreSpot", () => {
+  const HOME = { x: 900, y: 700 };
+  const OPEN = () => [] as Element[];
+  const seeded = () => {
+    let state = 4242;
+    return () => {
+      state = (Math.imul(state, 1103515245) + 12345) >>> 0;
+      return state / 2 ** 32;
+    };
+  };
+  /** The pair rule restated, as in `planExplore`'s tests. */
+  const apart = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y) >= companionSpace.EXPLORE_MIN_GAP &&
+    Math.floor(a.x / companionSpace.EXPLORE_COLUMN) !== Math.floor(b.x / companionSpace.EXPLORE_COLUMN);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = "";
+    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
+  });
+
+  it("sends a lead to the left half and a follower to the right, clear to the head band", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    const half = companionSpace.viewport().width / 2;
+    const rng = seeded();
+    // Partners that are *not* in the cat's own half-opposite place, so a picker
+    // that ignored `cat` and always went one way would be caught by one of the
+    // two loops.
+    for (let i = 0; i < 100; i += 1) {
+      const lead = repickExploreSpot("lead", { x: 500, y: 400 }, { x: 1100, y: 300 }, HOME, rng);
+      expect(lead.x + CAT_W / 2).toBeLessThan(half);
+      expect(exploreClear(lead)).toBe(true);
+      const follow = repickExploreSpot("follow", { x: 900, y: 400 }, { x: 300, y: 300 }, HOME, rng);
+      expect(follow.x + CAT_W / 2).toBeGreaterThanOrEqual(half);
+      expect(exploreClear(follow)).toBe(true);
+    }
+  });
+
+  it("keeps 160px and a column from the partner's spot, even a partner on its cat's own side", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    const rng = seeded();
+    // The lead's partner stands in the *left* half, in the middle of where the
+    // lead would otherwise pick: the rule against it is what rules spots out.
+    const partner = { x: 400, y: 400 };
+    let near = 0;
+    for (let i = 0; i < 300; i += 1) {
+      const spot = repickExploreSpot("lead", { x: 500, y: 400 }, partner, HOME, rng);
+      expect(apart(spot, partner), `${spot.x},${spot.y} against ${partner.x},${partner.y}`).toBe(true);
+      // Not vacuous: unconstrained, the left half does offer spots inside the gap.
+      if (Math.hypot(spot.x - partner.x, spot.y - partner.y) < 400) near += 1;
+    }
+    expect(near, "the draws never came near the partner, so the rule was never tested").toBeGreaterThan(5);
+  });
+
+  it("is deterministic for a given rng", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    const args = ["lead", { x: 500, y: 400 }, { x: 1100, y: 300 }, HOME] as const;
+    expect(repickExploreSpot(...args, seeded())).toEqual(repickExploreSpot(...args, seeded()));
+  });
+
+  it("falls back to the nearest clear ground to where the cat stands when neither half has a spot", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    // Both halves (2 x EXPLORE_TRIES draws) fail the probe; `findClearSpot` then
+    // sees clear ground.
+    const probe = vi.spyOn(companionSpace, "isClearSpot");
+    for (let i = 0; i < companionSpace.EXPLORE_TRIES * 2; i += 1) probe.mockReturnValueOnce(false);
+    probe.mockReturnValue(true);
+    expect(repickExploreSpot("follow", { x: 900, y: 400 }, { x: 300, y: 400 }, HOME, () => 0.5)).toEqual({
+      x: 900,
+      y: 400,
+    });
+  });
+
+  it("keeps its fallback off the partner it must not stand on", () => {
+    document.elementsFromPoint = vi.fn(OPEN);
+    const probe = vi.spyOn(companionSpace, "isClearSpot");
+    for (let i = 0; i < companionSpace.EXPLORE_TRIES * 2; i += 1) probe.mockReturnValueOnce(false);
+    probe.mockReturnValue(true);
+    // The cat is standing exactly where its partner is going: the fallback
+    // has to be somewhere else.
+    const partner = { x: 900, y: 400 };
+    const spot = repickExploreSpot("follow", partner, partner, HOME, () => 0.5);
+    expect(Math.abs(spot.x - partner.x) >= CAT_W * 0.7 || Math.abs(spot.y - partner.y) >= CAT_H * 0.7).toBe(true);
   });
 });
 

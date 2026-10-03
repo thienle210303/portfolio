@@ -1136,6 +1136,93 @@ test.describe("companion", () => {
     expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);
   });
 
+  test("each explorer leaves its stop on its own clock, not both at once", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(120_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    /*
+     * The same reader as the test above (a moving pointer kept out of chasing
+     * range, in `#worlds`) — without the scrolling, because a scroll moves the
+     * cats' pose around for reasons that are not a stop ending — but what is measured is *when each cat sets off*.
+     * A departure is a cat that has not been in its walking pose for at least
+     * 800 ms (the pose, not its position, so riding a scroll is not leaving)
+     * going into it. They are recorded by a 50 ms sampler in the
+     * page, so the timing is not at the mercy of a round trip per sample.
+     *
+     * Before each cat had its own stay clock the pair set off at one instant,
+     * so every departure of one had a departure of the other within a frame or
+     * two. The check is that some departure of one cat has none of the other's
+     * within a second — two of them, because a short walk can occasionally
+     * leave one cat's pose out of the sample and one such miss must not count —
+     * and, so it cannot pass on a handful of events, that each cat made at
+     * least three.
+     */
+    await page.evaluate(() => {
+      const worlds = document.querySelector("#worlds");
+      if (!worlds) throw new Error("the page has no worlds section");
+      const box = worlds.getBoundingClientRect();
+      window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
+      const button = document.querySelector('[aria-controls="companion-actions"]');
+      const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+      const grey = cats.find((svg) => button?.contains(svg));
+      const tabby = cats.find((svg) => !button?.contains(svg));
+      if (!grey || !tabby) throw new Error("two roaming cats were not on the page");
+      const record = { grey: [] as number[], tabby: [] as number[] };
+      const track = (svg: Element, into: number[]) => {
+        let since = performance.now();
+        let walking = false;
+        setInterval(() => {
+          const now = performance.now();
+          const walks = svg.getAttribute("data-cat-pose") === "walk";
+          if (walks && !walking && now - since >= 800) into.push(now);
+          if (walks !== walking) since = now;
+          walking = walks;
+        }, 50);
+      };
+      track(grey, record.grey);
+      track(tabby, record.tabby);
+      (window as unknown as { __departures: typeof record }).__departures = record;
+    });
+
+    const SPOTS = [80, 400, 720, 1040, 1360].flatMap((x) => [180, 450, 820].map((y) => ({ x, y })));
+    let pointer = { x: 720, y: 450 };
+    let nudge = 1;
+    for (let tick = 0; tick < 160; tick += 1) {
+      await page.waitForTimeout(250);
+      const [grey, tabby] = await catPair(page);
+      const reach = (p: { x: number; y: number }) =>
+        Math.min(
+          Math.hypot(p.x - grey.centreX, p.y - grey.centreY),
+          Math.hypot(p.x - tabby.centreX, p.y - tabby.centreY),
+        );
+      const fromLead = Math.hypot(pointer.x - grey.centreX, pointer.y - grey.centreY);
+      const fromTabby = Math.hypot(pointer.x - tabby.centreX, pointer.y - tabby.centreY);
+      if (fromLead < CHASE_RADIUS + 160 || fromTabby < CHASE_RADIUS) {
+        pointer = SPOTS.reduce((best, spot) => (reach(spot) > reach(best) ? spot : best));
+      } else {
+        pointer = { x: pointer.x + 3 * nudge, y: pointer.y + 2 * nudge };
+      }
+      nudge = -nudge;
+      await page.mouse.move(pointer.x, pointer.y);
+    }
+
+    const { grey, tabby } = await page.evaluate(
+      () => (window as unknown as { __departures: { grey: number[]; tabby: number[] } }).__departures,
+    );
+    const note = `grey ${JSON.stringify(grey.map(Math.round))}, tabby ${JSON.stringify(tabby.map(Math.round))}`;
+    expect(grey.length, `too few grey departures for the comparison to mean anything: ${note}`).toBeGreaterThanOrEqual(3);
+    expect(tabby.length, `too few tabby departures for the comparison to mean anything: ${note}`).toBeGreaterThanOrEqual(3);
+    const lonely = (mine: number[], theirs: number[]) =>
+      mine.filter((t) => theirs.every((other) => Math.abs(other - t) > 1000)).length;
+    expect(
+      lonely(grey, tabby) + lonely(tabby, grey),
+      `the cats only ever set off together: ${note}`,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
   test("the lead still chases a pointer that comes near him", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     await page.goto("/");
@@ -1285,10 +1372,12 @@ test.describe("companion", () => {
      * is stamped when the loop starts), so nothing is touched here: no pointer,
      * no key, no scroll. Wait for an arrival — seen walking, then both still,
      * and not in the corner — because a stay is 4 to 9 seconds from the
-     * moment they both get there, and everything below has to happen well
-     * inside the shortest one. On a build that never re-probes, the cats sit
-     * on the inserted text until that stay runs out; caught late in a stay,
-     * the stay's own end would move them and hide the bug.
+     * moment that cat gets there (each cat has its own clock, so the pair
+     * being still together means both are mid-stay, not that they set off
+     * together), and everything below has to happen well inside the shortest
+     * one. On a build that never re-probes, the cats sit on the inserted text
+     * until their stays run out; caught late in a stay, the stay's own end
+     * would move that cat and hide the bug.
      */
     let sawWalking = false;
     await expect

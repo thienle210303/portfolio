@@ -451,3 +451,34 @@ export function planExplore(
     : (pick("left", followAt) ?? findClearSpot(lead, home, followAt));
   return { lead: leadAt, follow: followAt, perch: false };
 }
+
+/**
+ * Where one explorer goes next while its partner stays where it is: the stop
+ * for a cat whose own stay is up, picked against the partner's *current*
+ * target rather than a fresh plan for both. The same machinery as
+ * `planExplore` — the cat's own half of the page (`"left"` for the lead,
+ * `"right"` for the follower), `exploreClear`'s head-band probe, and the pair
+ * rule (`exploreApart`: 160px, a column each) measured against the partner's
+ * spot — and, when neither half has a spot that does, the same fallback it
+ * makes for a single null pick: `findClearSpot` from where the cat stands,
+ * keeping off the partner. That fallback is picked by the three-point probe
+ * alone, so the caller records the head band of whatever comes back
+ * (`headClear`) for `heldExploreClear`, as `holdExplore` does at plan time.
+ *
+ * The partner is never moved: if the fallback cannot keep the pair rule the
+ * pair simply break it until the partner's own stay is up, which is the
+ * cost of not re-planning a cat that is standing still.
+ */
+export function repickExploreSpot(
+  cat: "lead" | "follow",
+  current: Point,
+  partner: Point,
+  home: Point,
+  rng: () => number = Math.random,
+): Point {
+  const half: Half = cat === "lead" ? "left" : "right";
+  return (
+    pickExploreSpot(half, partner, viewport(), safeTop(), exploreClear, rng) ??
+    findClearSpot(current, home, partner)
+  );
+}

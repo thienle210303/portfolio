@@ -42,7 +42,15 @@ import {
   type Speaker,
   type StoryBeatKind,
 } from "./companion-dialogue";
-import { detectRush, heldExploreClear, holdExplore, planExplore, planMood, RUSH_HOLD_MS } from "./companion-moods";
+import {
+  detectRush,
+  heldExploreClear,
+  holdExplore,
+  planExplore,
+  planMood,
+  repickExploreSpot,
+  RUSH_HOLD_MS,
+} from "./companion-moods";
 import {
   advance,
   followTarget,
@@ -71,6 +79,7 @@ import {
   clamp,
   clampToViewport,
   findClearSpot,
+  headClear,
   isClearSpot,
   keepClearOfControl,
   keepInView,
@@ -1139,48 +1148,67 @@ function useMedia(query: string): boolean {
 const SECTION_IDS = navItems.map((item) => item.sectionId);
 
 /**
- * Where the explorers are heading, and when they may think of somewhere else.
+ * Where the explorers are heading, and when each may think of somewhere else.
  *
  * Held rather than recomputed: a destination chosen again every frame is not a
- * destination, it is a jitter. `arrivedAt` is what turns the plan into a stay —
- * the clock on how long they stand there does not start until they are both
- * standing there — and `until` is a cap before then, so a walk that cannot
- * finish is abandoned rather than walked at forever.
+ * destination, it is a jitter. Each cat has its own stay clock, because a pair
+ * that always set off at one instant read as one animal drawn twice (the
+ * spec's "each cat independently holds a target and, on arrival, dwells").
+ * `arrivedLead`/`arrivedFollow` are stamped when *that* cat is standing on its
+ * own spot — the clock on how long it stays does not start until then — and
+ * `untilLead`/`untilFollow` are that cat's cap before it, so a walk that cannot
+ * finish is abandoned rather than walked at forever, and its stay after. When
+ * one cat's clock runs out `exploreTo` re-picks only that cat's spot, against
+ * its partner's current one (`repickExploreSpot`), and the partner carries on.
+ *
+ * Two kinds of run are *not* independent. A perch (`perch`) seats the pair
+ * together on purpose — she trails him — so its stay is one stay, on the lead's
+ * clock (the follower's mirrors it), and when it is up the pair are re-planned
+ * together by `planExplore`; the stops after that are independent. A declined
+ * plan (`declined`: `planExplore` found nothing clear and the pair are held
+ * where they stand) is also one stay, and asks again for both when it ends.
  *
  * `spots` are viewport coordinates that ride with the page: every frame the
  * page scrolls, the loop moves them by the same distance it moves the cats (see
  * the ride in `step`), so a pair standing beside a paragraph stay beside it, and
- * a destination carried out of view is dropped and re-picked. Once a scroll or
- * a change in the body's size settles, `reprobeHeld` (run from the throttled
- * `scheduleRecheck`) re-probes them and drops them only if the ground has
- * stopped being clear; a window resize drops them outright, in `onPageMoved`,
- * before any re-probe. `headLead`/`headFollow` are what "clear" meant for each
- * head when the stop was planned — see `HeldExplore` and `heldExploreClear` in
- * companion-moods.ts.
+ * a destination carried out of view is dropped and re-picked — the whole run,
+ * not one cat's spot. Once a scroll or a change in the body's size settles,
+ * `reprobeHeld` (run from the throttled `scheduleRecheck`) re-probes them and
+ * drops the run only if the ground has stopped being clear; a window resize
+ * drops it outright, in `onPageMoved`, before any re-probe.
+ * `headLead`/`headFollow` are what "clear" meant for each head when *its*
+ * stop was planned (re-recorded when that cat alone is re-picked) — see
+ * `HeldExplore` and `heldExploreClear` in companion-moods.ts.
  *
- * `faceLead`/`faceFollow` are rolled once, at the same moment `arrivedAt` is
- * stamped — see round 14, "randomly facing left or right". Held here rather
- * than recomputed for the same reason `spots` is: a facing re-rolled every
- * frame is not a choice, it is a flicker. They mean nothing until an arrival
- * has happened, and nothing consults them while `arrivedAt` is still 0.
+ * `faceLead`/`faceFollow` are rolled once per cat, at the same moment its
+ * `arrived*` is stamped — see round 14, "randomly facing left or right". Held
+ * here rather than recomputed for the same reason `spots` is: a facing
+ * re-rolled every frame is not a choice, it is a flicker. They mean nothing
+ * until that cat has arrived, and nothing consults them while its `arrived*`
+ * is still 0.
  */
 interface ExploreRun {
   spots: Spots;
   /** The section's perch rather than an ordinary stop: the follower trails the
    *  lead there instead of walking to `spots.follow` — see `exploreTo`. */
   readonly perch: boolean;
-  readonly headLead: boolean;
-  readonly headFollow: boolean;
-  arrivedAt: number;
-  until: number;
+  /** `planExplore` had nothing: the pair are held where they stand, as one
+   *  stay, and ask again for both when it is up. */
+  readonly declined: boolean;
+  headLead: boolean;
+  headFollow: boolean;
+  arrivedLead: number;
+  arrivedFollow: number;
+  untilLead: number;
+  untilFollow: number;
   faceLead: 1 | -1;
   faceFollow: 1 | -1;
 }
 
-/** How long the explorers stay somewhere once they both get there — 4 to 9
- *  seconds, uniform — and the cap on the walk before that. Long enough that
- *  they read as having settled in, short enough that a reader sees them think
- *  of something else. */
+/** How long an explorer stays somewhere once it gets there — 4 to 9 seconds,
+ *  uniform, rolled for each cat on its own arrival — and the cap on its walk
+ *  before that. Long enough that it reads as having settled in, short enough
+ *  that a reader sees it think of something else. */
 const EXPLORE_DWELL = 4000;
 const EXPLORE_DWELL_SPREAD = 5000;
 const EXPLORE_WALK_MAX = 8000;
@@ -2194,8 +2222,10 @@ export function Companion({ facts }: CompanionProps) {
     /**
      * Where the explorers are going, and how long they stay when they get there.
      *
-     * The plan is *held* — see `ExploreRun` — and replaced when the stay is up,
-     * when they cannot get there in a reasonable time, and, from outside this
+     * The plan is *held* — see `ExploreRun` — and each cat's part of it is
+     * replaced, alone, when its own stay is up or it cannot get there in a
+     * reasonable time (a perch or a declined plan is one stay, and is replaced
+     * for both). The whole plan is dropped, from outside this
      * function, whenever something has a better claim on where they should be:
      * a chase actually starting (a moving pointer within `CHASE_RADIUS` of the
      * lead — one further away leaves the plan alone), a section change, a
@@ -2206,59 +2236,120 @@ export function Companion({ facts }: CompanionProps) {
      * The first plan in a section is that section's perch where it has one
      * (`exploreFresh`, consumed when they arrive); after that, `planExplore`
      * sends the lead to a clear spot in the left half of the page and the
-     * follower to one in the right. A declined plan is a real outcome on a
+     * follower to one in the right, and from then on each is re-sent on its own
+     * clock by `repickExploreSpot`, against wherever the other is. A declined plan is a real outcome on a
      * window with no whitespace in it, and the answer is the nearest pair of
      * clear spots: standing still somewhere legal, and asking again shortly.
      */
     function exploreTo(now: number): Spots {
       const run = exploreRun.current;
-      if (run && now < run.until) {
-        // On a perch she trails him rather than walking to a spot of her own —
-        // see the explore branch of the cascade for why — so the trail spot is
-        // where she is going, and where she has arrived.
-        const follow = run.perch ? trailLead() : run.spots.follow;
-        // The stay does not start until they are standing there. Four pixels is
-        // the same "close enough" the queued scenes and the escort use.
-        if (
-          run.arrivedAt === 0 &&
-          distance(grey.pos, run.spots.lead) < 4 &&
-          distance(tabby.pos, follow) < 4
-        ) {
-          run.arrivedAt = now;
-          run.until = now + EXPLORE_DWELL + Math.random() * EXPLORE_DWELL_SPREAD;
-          // Arrived somewhere in this section, so the perch has had its turn.
-          exploreFresh.current = false;
-          // Round 14: facing left or right at random on arrival, decoupled
-          // from whichever way they were travelling to get here — see
-          // `randomFacing`. Seeded from this arrival's own moment and spot
-          // rather than a live `Math.random()` call, which is what makes the
-          // choice a pure, testable function of "this one arrival" instead
-          // of an untestable side effect of when the frame happened to land.
-          // Not on a perch: she is sitting on his trail, which is behind him
-          // by *his* facing, so turning him round would walk her past his
-          // button to his other side. There they keep the facings they came in
-          // with.
-          run.faceLead = run.perch
-            ? grey.facing
-            : randomFacing(`lead:${now}:${run.spots.lead.x}:${run.spots.lead.y}`);
-          run.faceFollow = run.perch
-            ? tabby.facing
-            : randomFacing(`follow:${now}:${follow.x}:${follow.y}`);
+      if (run && (run.perch || run.declined)) {
+        // One stay for the pair. On a perch she trails him rather than walking
+        // to a spot of her own — see the explore branch of the cascade for why
+        // — so the trail spot is where she is going, and where she has arrived.
+        if (now < run.untilLead) {
+          const follow = run.perch ? trailLead() : run.spots.follow;
+          // The stay does not start until they are both standing there. Four
+          // pixels is the same "close enough" the queued scenes and the escort
+          // use.
+          if (
+            run.arrivedLead === 0 &&
+            distance(grey.pos, run.spots.lead) < 4 &&
+            distance(tabby.pos, follow) < 4
+          ) {
+            run.arrivedLead = now;
+            run.arrivedFollow = now;
+            run.untilLead = now + exploreDwell();
+            run.untilFollow = run.untilLead;
+            // Arrived somewhere in this section, so the perch has had its turn.
+            exploreFresh.current = false;
+            // Not on a perch: she is sitting on his trail, which is behind him
+            // by *his* facing, so turning him round would walk her past his
+            // button to his other side. There they keep the facings they came
+            // in with.
+            run.faceLead = run.perch ? grey.facing : arrivalFacing("lead", now, run.spots.lead);
+            run.faceFollow = run.perch ? tabby.facing : arrivalFacing("follow", now, follow);
+          }
+          return { lead: run.spots.lead, follow };
         }
-        return { lead: run.spots.lead, follow };
+      } else if (run) {
+        // Each cat on its own clock. A cat whose stay (or walk) is up is
+        // re-picked against where its partner is going; the partner's clock,
+        // spot and facing are not touched.
+        if (now >= run.untilLead) repickExplorer(run, "lead", now);
+        if (now >= run.untilFollow) repickExplorer(run, "follow", now);
+        if (run.arrivedLead === 0 && distance(grey.pos, run.spots.lead) < 4) {
+          run.arrivedLead = now;
+          run.untilLead = now + exploreDwell();
+          exploreFresh.current = false;
+          run.faceLead = arrivalFacing("lead", now, run.spots.lead);
+        }
+        if (run.arrivedFollow === 0 && distance(tabby.pos, run.spots.follow) < 4) {
+          run.arrivedFollow = now;
+          run.untilFollow = now + exploreDwell();
+          exploreFresh.current = false;
+          run.faceFollow = arrivalFacing("follow", now, run.spots.follow);
+        }
+        return run.spots;
       }
 
       const chosen = planExplore(sectionRef.current, grey.pos, tabby.pos, homeSpot(), exploreFresh.current);
       const spots = clearFollowOfToggle(chosen ?? nearbySpots());
       const perch = chosen?.perch ?? false;
+      const until = now + (chosen ? EXPLORE_WALK_MAX : EXPLORE_DWELL);
       exploreRun.current = {
         ...holdExplore(spots, perch),
-        arrivedAt: 0,
-        until: now + (chosen ? EXPLORE_WALK_MAX : EXPLORE_DWELL),
+        declined: !chosen,
+        arrivedLead: 0,
+        arrivedFollow: 0,
+        untilLead: until,
+        untilFollow: until,
         faceLead: 1,
         faceFollow: 1,
       };
       return { lead: spots.lead, follow: perch ? trailLead() : spots.follow };
+    }
+
+    /** A stay's length: 4 to 9 seconds, rolled once per cat per arrival. */
+    function exploreDwell(): number {
+      return EXPLORE_DWELL + Math.random() * EXPLORE_DWELL_SPREAD;
+    }
+
+    /**
+     * Round 14: facing left or right at random on arrival, decoupled from
+     * whichever way the cat was travelling to get here — see `randomFacing`.
+     * Seeded from this arrival's own moment, cat and spot rather than a live
+     * `Math.random()` call, which is what makes the choice a pure, testable
+     * function of "this one arrival" instead of an untestable side effect of
+     * when the frame happened to land.
+     */
+    function arrivalFacing(cat: "lead" | "follow", now: number, spot: Point): 1 | -1 {
+      return randomFacing(`${cat}:${now}:${spot.x}:${spot.y}`);
+    }
+
+    /**
+     * One explorer's stay (or walk) is up: give *it* somewhere new, leave its
+     * partner's spot, clock and facing alone. The new spot is picked against
+     * the partner's current target (`repickExploreSpot`), the walk cap starts
+     * over, and the cat's head-band record is renewed for `heldExploreClear` —
+     * the partner's stays as it was planned. The follower's new spot gets
+     * `clearFollowOfToggle`, as every spot handed to her does.
+     */
+    function repickExplorer(run: ExploreRun, cat: "lead" | "follow", now: number) {
+      if (cat === "lead") {
+        const lead = repickExploreSpot("lead", grey.pos, run.spots.follow, homeSpot());
+        run.spots = { lead, follow: run.spots.follow };
+        run.headLead = headClear(lead);
+        run.arrivedLead = 0;
+        run.untilLead = now + EXPLORE_WALK_MAX;
+      } else {
+        const picked = repickExploreSpot("follow", tabby.pos, run.spots.lead, homeSpot());
+        const spots = clearFollowOfToggle({ lead: run.spots.lead, follow: picked });
+        run.spots = spots;
+        run.headFollow = headClear(spots.follow);
+        run.arrivedFollow = 0;
+        run.untilFollow = now + EXPLORE_WALK_MAX;
+      }
     }
 
     /** Whether a spot is somewhere a cat can be seen — the ride's test for a
@@ -3252,7 +3343,7 @@ export function Companion({ facts }: CompanionProps) {
       // "not really walking any more" threshold the pose branches below
       // read, so this never fights the travel-direction facing while he is
       // still closing the last few pixels of the walk.
-      if (explored && exploreRun.current?.arrivedAt && leadRate <= 0.3) {
+      if (explored && exploreRun.current?.arrivedLead && leadRate <= 0.3) {
         grey.facing = exploreRun.current.faceLead;
       }
       if (leadRate > 0.3) {
@@ -3371,7 +3462,7 @@ export function Companion({ facts }: CompanionProps) {
       // Round 14, her half of the same rule the lead gets above: once she has
       // actually stopped at an explorer's stop, her facing holds `exploreTo`'s
       // own roll rather than the travel-direction check just above.
-      if (explored && exploreRun.current?.arrivedAt && followRate <= 0.3) {
+      if (explored && exploreRun.current?.arrivedFollow && followRate <= 0.3) {
         tabby.facing = exploreRun.current.faceFollow;
       }
       if (followRate > 0.3) {
