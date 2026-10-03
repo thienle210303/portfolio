@@ -1305,8 +1305,13 @@ export function Companion({ facts }: CompanionProps) {
    *  when they arrive. */
   const queued = useRef<QueuedPlay | null>(null);
   /** Content-avoiding rest spots near where the pair stand, resolved once per
-   *  hold rather than per frame. Cleared whenever the page underneath them can
-   *  have moved. */
+   *  hold rather than per frame. Cleared by a pointer move, a scroll or resize
+   *  (at once for a resize, and when the throttled recheck in the loop effect
+   *  fires for either), a scene ending (`endPlay`) or being asked for, a mode
+   *  change and a section change. Not by a change in the body's size on its
+   *  own: that recheck re-probes only the explorers' held stop, so spots
+   *  resolved before a layout shift with no scroll stand until one of the
+   *  above. */
   const settleSpots = useRef<Spots | null>(null);
   /** Where the explorers are heading. Null means "decide on the next frame". */
   const exploreRun = useRef<ExploreRun | null>(null);
