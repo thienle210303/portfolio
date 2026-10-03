@@ -251,6 +251,11 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
           // so this does not affect when the canvas chunk is fetched. Task 8
           // flips this to 0 once `controlsReady` can become true.
           tabIndex={controlsReady ? 0 : -1}
+          // The companion cats must never rest here. Until the canvas chunk
+          // lands this is an empty tabindex -1 box, which the cats would read
+          // as free ground; the canvas then mounts under a cat that settled on
+          // it, and the cat sits on the globe taking visitors' drags.
+          data-cat-avoid
           role="group"
           aria-roledescription="globe"
           aria-label={

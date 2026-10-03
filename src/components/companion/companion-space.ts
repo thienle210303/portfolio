@@ -98,6 +98,12 @@ const OCCUPIED = [
   "[role='button']",
   "[role='link']",
   "[tabindex]:not([tabindex='-1'])",
+  // Marks interactive surfaces the cats must not rest on, whether or not they
+  // have loaded yet: a surface that is an empty, tabindex -1 box until a lazy
+  // chunk mounts into it matches nothing above, so a cat could settle there and
+  // then sit on whatever mounts under it. Cats may still walk across one; this
+  // only decides where they stop.
+  "[data-cat-avoid]",
 ].join(",");
 
 /** How close to the viewport edge a cat may sit. Enough that it is never

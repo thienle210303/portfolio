@@ -465,6 +465,29 @@ function scenePlaying(page: Page): Promise<string | null> {
 }
 
 /**
+ * Pause the page's fake clock a few milliseconds from now.
+ *
+ * `Date.now()` is read in the page and `pauseAt` is a separate round trip, and
+ * the fake clock keeps running in between. On a loaded machine that gap can be
+ * longer than the 20ms of headroom, and Playwright then refuses with "Cannot
+ * fast-forward to the past". Nothing is wrong with the page when that happens:
+ * the target was simply stale, so read the time again and aim again. Any other
+ * error, and the same one on the last attempt, is rethrown untouched.
+ */
+async function pauseClockSoon(page: Page): Promise<void> {
+  const ATTEMPTS = 5;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 20);
+      return;
+    } catch (error) {
+      const stale = error instanceof Error && /fast-forward to the past/i.test(error.message);
+      if (!stale || attempt >= ATTEMPTS) throw error;
+    }
+  }
+}
+
+/**
  * Install the page clock, load, and leave a requested scene walking to its
  * stage with the clock paused — one that fits somewhere, but not where the cats
  * already stand. The panel calls them to its corner, which is where the request
@@ -491,7 +514,7 @@ async function queueARequest(page: Page): Promise<void> {
   for (const scene of SCENES) {
     await openToolkit(page);
     await page.waitForTimeout(2_500);
-    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 20);
+    await pauseClockSoon(page);
     await toolkit(page).getByRole("button", { name: scene.name }).focus();
     await page.keyboard.press("Enter");
     // Accepted (the panel closes) with nothing open yet: walking.
@@ -1717,6 +1740,116 @@ test.describe("companion", () => {
         message: "a cat came to rest on top of content",
       })
       .toEqual([]);
+  });
+
+  test("never rests on the globe stage, loaded or not", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    /*
+     * The stage is an empty, tabindex -1 box until its canvas chunk arrives, so
+     * nothing about it reads as occupied ground; once the chunk lands it is a
+     * `<canvas>` the cats' drags would land on. A cat that settled on the empty
+     * box is then sitting on the globe, and no scroll or resize happens to make
+     * the cats look again. A fast network hides this (the box is a canvas almost
+     * at once), so the chunk is held honestly here, the way a slow one is: the
+     * script response is fetched and withheld until the test releases it. The
+     * chunk is recognised by the `data-chunk="globe-canvas"` marker that only
+     * GlobeCanvas.tsx carries, as in worlds.spec.ts.
+     */
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let held = 0;
+    await page.route(/\.js(\?|$)/, async (route) => {
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes("globe-canvas")) {
+        held += 1;
+        await gate;
+      }
+      return route.fulfill({ response, body });
+    });
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const stage = page.getByRole("group", { name: /playground earth/i });
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await expect.poll(() => held, { message: "the canvas chunk was never requested" }).toBeGreaterThan(0);
+    expect(await page.locator("#worlds canvas").count(), "the canvas was already there").toBe(0);
+
+    // The pointer on the stage is where the cats come to rest nearest the
+    // reader, and the stage is the only empty ground there: a page nobody is
+    // reading from the stage would never put a cat near it.
+    const box = await stage.boundingBox();
+    if (!box) throw new Error("the stage has no box");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.move(box.x + box.width / 2 + 2, box.y + box.height / 2 + 2);
+
+    // One sample: which cats held still across a quarter second, and which of
+    // their three resting probes (the ones `isClearSpot` uses) fall on the
+    // stage's rect, and how far each cat is from that rect.
+    const sample = () =>
+      page.evaluate(async () => {
+        const stageEl = document.querySelector("#worlds [role='group'][aria-roledescription='globe']");
+        if (!stageEl) throw new Error("no stage");
+        const cats = () => Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+        const before = cats().map((svg) => svg.getBoundingClientRect());
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        const after = cats().map((svg) => svg.getBoundingClientRect());
+        const rect = stageEl.getBoundingClientRect();
+        let still = 0;
+        let near = Infinity;
+        const onStage: string[] = [];
+        after.forEach((cat, index) => {
+          const was = before[index];
+          const dx = Math.max(rect.left - cat.right, 0, cat.left - rect.right);
+          const dy = Math.max(rect.top - cat.bottom, 0, cat.top - rect.bottom);
+          near = Math.min(near, Math.hypot(dx, dy));
+          if (!was || Math.abs(cat.left - was.left) >= 0.5 || Math.abs(cat.top - was.top) >= 0.5) return;
+          still += 1;
+          const points: Array<[number, number]> = [
+            [cat.left + 6, cat.bottom - 6],
+            [cat.right - 6, cat.bottom - 6],
+            [cat.left + cat.width / 2, cat.top + cat.height * 0.6],
+          ];
+          for (const [x, y] of points) {
+            if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+              onStage.push(`cat ${index} at ${Math.round(x)},${Math.round(y)}`);
+            }
+          }
+        });
+        return { still, near, onStage };
+      });
+
+    // While the chunk is held: give the pair time to walk to the pointer and
+    // settle. What they do here is not asserted, the stage is not a canvas yet;
+    // it only has to have been in reach of the cats, or the second half
+    // proves nothing about it.
+    let closest = Infinity;
+    for (let i = 0; i < 12; i += 1) {
+      closest = Math.min(closest, (await sample()).near);
+    }
+    expect(closest, "the cats never came near the stage while it was empty").toBeLessThan(150);
+
+    release();
+    await expect(page.locator("#worlds canvas")).toHaveCount(1, { timeout: 30_000 });
+    expect(await stage.evaluate((el) => el.getBoundingClientRect().height > 0)).toBe(true);
+
+    // Now the canvas is mounted: for six seconds no still cat may have a
+    // resting probe on it. Counted, so that a run in which every sample was a
+    // walking one cannot pass.
+    let stillSamples = 0;
+    const violations: string[] = [];
+    const end = Date.now() + 6_000;
+    while (Date.now() < end) {
+      const { still, onStage } = await sample();
+      stillSamples += still;
+      violations.push(...onStage);
+    }
+    expect(stillSamples, "the cats never held still, so nothing was checked").toBeGreaterThanOrEqual(5);
+    expect(violations, "a cat came to rest on the globe stage").toEqual([]);
   });
 
   test("settles where the visitor is reading, without covering it", async ({ page }) => {

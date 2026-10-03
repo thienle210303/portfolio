@@ -299,34 +299,29 @@ async function waitForLiveGlobe(page: Page) {
  * Make sure a `page.mouse` press at (x, y) lands on the planet, and fail
  * saying so if it cannot.
  *
- * Centring the stage is not enough on its own, because the cats are not
- * content. `Companion.tsx` is a `fixed` layer above the page, its two cats are
- * `pointer-events-auto` buttons, and they roam the whole document while
- * awake — which they are in every test here that does not ask for reduced
- * motion, which is every test that presses the globe through `page.mouse`
- * (the rest dispatch straight to the canvas and never hit-test at all). A cat
- * that happens to be standing on the press point takes the `pointerdown`, the
- * globe never hears it, and the drag test then reports "the inertia was not
- * drawing frame by frame" with zero draws about a loop that was never
- * started. That is the
- * whole of its intermittent failure: logged across 100 drags against
- * `next dev` at 390 and 768, the five that drew nothing were exactly the five
- * whose `pointerdown` target was inside `[data-companion]`, and the 95 that
- * reached the canvas drew 23–25 frames in the 400 ms window, every one.
+ * Centring the stage is not enough on its own, because the cats roam.
+ * `Companion.tsx` is a `fixed` layer above the page, its two cats are
+ * `pointer-events-auto` buttons, and they walk the whole document while awake —
+ * which they are in every test here that does not ask for reduced motion. A cat
+ * standing on the press point takes the `pointerdown` and the globe never hears
+ * it; the drag test then reports "the inertia was not drawing frame by frame"
+ * with zero draws about a loop that was never started. That was this file's
+ * intermittent failure: logged across 100 drags against `next dev` at 390 and
+ * 768, the five that drew nothing were exactly the five whose `pointerdown`
+ * target was inside `[data-companion]`.
  *
- * So the companion layer is made transparent to the pointer for the rest of
- * the test. Its loop keeps running — `expectAtRest`'s `CATS_AWAKE_HZ` ceiling
- * is still measured against cats that are awake — they just cannot be pressed.
- * The cats' own contract, including being pressable, is `companion.spec.ts`'s.
+ * The cats do not rest on the stage any more (`data-cat-avoid` on it, read by
+ * `companion-space.ts`, and `companion.spec.ts` asserts it), but they may still
+ * walk across it, so a cat can in principle be passing over the press point at
+ * the instant of the check. Nothing is done about that here on purpose: the
+ * companion layer is left fully pressable, because making it transparent to the
+ * pointer would be testing a page the visitor never sees.
  *
- * Then the point is checked rather than assumed: anything else that ever comes
- * to sit over the globe fails here, by name, instead of as a planet that did
+ * So the point is checked rather than assumed: anything that comes to sit over
+ * the globe, a cat included, fails here by name instead of as a planet that did
  * not move.
  */
 async function aimAtGlobe(page: Page, x: number, y: number) {
-  await page.addStyleTag({
-    content: "[data-companion], [data-companion] * { pointer-events: none !important; }",
-  });
   const hit = await page.evaluate(
     ([px, py]) => {
       const element = document.elementFromPoint(px, py);
