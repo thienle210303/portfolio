@@ -1370,33 +1370,50 @@ test.describe("companion", () => {
     /*
      * The pair are out exploring from the moment they wake (the presence clock
      * is stamped when the loop starts), so nothing is touched here: no pointer,
-     * no key, no scroll. Wait for an arrival — seen walking, then both still,
-     * and not in the corner — because a stay is 4 to 9 seconds from the
-     * moment that cat gets there (each cat has its own clock, so the pair
-     * being still together means both are mid-stay, not that they set off
-     * together), and everything below has to happen well inside the shortest
-     * one. On a build that never re-probes, the cats sit on the inserted text
-     * until their stays run out; caught late in a stay, the stay's own end
-     * would move that cat and hide the bug.
+     * no key, no scroll. Wait for an arrival — each cat seen walking, then both
+     * still, and not in the corner — because a stay is 4 to 9 seconds from the
+     * moment *that cat* gets there, and everything below has to happen well
+     * inside the shortest one. On a build that never re-probes, the cats sit
+     * on the inserted text until their stays run out; caught late in a stay,
+     * the stay's own end would move that cat and hide the bug.
+     *
+     * Each cat has its own stay clock, so "both still" alone is not enough:
+     * one may have arrived seconds ago and be about to set off on its own,
+     * which made this setup's own first check ("cats still walking") fail
+     * about one run in thirty — measured: the tabby had been still 3.9 s when
+     * it did. Waiting for *both* to have stopped moments ago does not work
+     * either: the follower reaches her spot well before the lead reaches his,
+     * so they are almost never both fresh. What the test needs is a moment
+     * when both are still *and* at least one has just arrived, because that
+     * cat has at least 4 s - `FRESH_MS` of stay left — longer than the 1.5 s
+     * the check below waits — so if it moves off the text, the re-probe did
+     * it, not its own clock. The other may be nearer the end of its stay; if
+     * it leaves for its own reasons inside the window that proves nothing
+     * about it, and the claim rests on the fresh one. Both still have to have
+     * text put under them (below), and neither may stay on it. The verdict on
+     * the stop is taken inside the poll, so a cat that sets off between the
+     * "both still" sample and that check is simply sampled again later.
      */
-    let sawWalking = false;
+    const FRESH_MS = 1_500;
+    const lastMoved = [0, 0];
+    let stopVerdict: string[] = [];
     await expect
       .poll(
         async () => {
           const [grey, tabby] = await catPair(page, { still: true });
-          if (!grey.still || !tabby.still) {
-            sawWalking = true;
-            return "walking";
-          }
-          if (!sawWalking || (await bothInCorner(page))) return "not out exploring yet";
-          return "arrived";
+          const now = Date.now();
+          if (!grey.still) lastMoved[0] = now;
+          if (!tabby.still) lastMoved[1] = now;
+          if (!grey.still || !tabby.still) return "walking";
+          if (lastMoved.some((t) => t === 0) || (await bothInCorner(page))) return "not out exploring yet";
+          if (Math.max(...lastMoved) < now - FRESH_MS) return "nobody has just arrived";
+          stopVerdict = await restingOnContent(page, { still: true });
+          return stopVerdict.includes(WALKING) ? "walking" : "arrived";
         },
-        { timeout: 20_000, intervals: [50], message: "the explorers never arrived anywhere" },
+        { timeout: 40_000, intervals: [50], message: "the explorers never arrived anywhere" },
       )
       .toBe("arrived");
-    expect(await restingOnContent(page, { still: true }), "the stop was not clear to begin with").toEqual(
-      [],
-    );
+    expect(stopVerdict, "the stop was not clear to begin with").toEqual([]);
 
     /*
      * Shift the ground under them with no scroll at all. Scroll anchoring is
