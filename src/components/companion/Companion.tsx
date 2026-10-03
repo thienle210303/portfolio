@@ -1150,9 +1150,11 @@ const SECTION_IDS = navItems.map((item) => item.sectionId);
  * `spots` are viewport coordinates that ride with the page: every frame the
  * page scrolls, the loop moves them by the same distance it moves the cats (see
  * the ride in `step`), so a pair standing beside a paragraph stay beside it, and
- * a destination carried out of view is dropped and re-picked. A scroll that
- * settles re-probes them (`onPageMoved`) and drops them only if the ground has
- * stopped being clear. `headLead`/`headFollow` are what "clear" meant for each
+ * a destination carried out of view is dropped and re-picked. Once a scroll or
+ * a change in the body's size settles, `reprobeHeld` (run from the throttled
+ * `scheduleRecheck`) re-probes them and drops them only if the ground has
+ * stopped being clear; a window resize drops them outright, in `onPageMoved`,
+ * before any re-probe. `headLead`/`headFollow` are what "clear" meant for each
  * head when the stop was planned — see `HeldExplore` and `heldExploreClear` in
  * companion-moods.ts.
  *
