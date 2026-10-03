@@ -123,7 +123,7 @@ type SceneBuilder = (facts: CompanionFacts) => readonly DialogueBeat[] | null;
 
 const HELLO: SceneBuilder = () => [
   tabby("Mrrrow!", "A visitor! Pet me? Pet me!", "heart", "hop"),
-  grey("Mrp.", "I guard the facts. Mostly.", "paw"),
+  grey("Mrp.", "I keep the facts tidy.", "paw"),
   tabby("Meow-mrrp!", "Click me. I translate meows.", "question"),
 ];
 
@@ -137,7 +137,7 @@ const AMBIENT: Record<string, SceneBuilder> = {
       : null,
   tree: (f) => [
     tabby("Mrrrow! Meow!", `${f.tree.branches} branches! Climbing all!`, "branch", "hop"),
-    grey("Meow.", `${f.tree.leaves} leaves. None of them fake.`, "leaf"),
+    grey("Meow.", `${f.tree.leaves} leaves. Ooh, crunchy!`, "leaf"),
   ],
 };
 
@@ -186,7 +186,7 @@ const TOUR: Record<string, SceneBuilder> = {
   // preserved rather than dropped.
   tree: (f) => [
     tabby("Meow meow meow!", `Look up! ${f.tree.branches} branches!`, "branch", "hop"),
-    grey("Mrp.", `${f.tree.leaves} leaves, ${f.tree.technologies} techs. Real.`, "leaf"),
+    grey("Mrp.", `${f.tree.leaves} leaves, ${f.tree.technologies} techs!`, "leaf"),
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} were work.`, "paw", "groom"),
     tabby("Mrrrow!", "Napped through it. Counts!", "zzz", "sleep"),
   ],
@@ -269,7 +269,7 @@ const STORY_BEAT: Record<
   },
   quiet: {
     meow: "Mrp...",
-    sub: (year) => (year === null ? null : `${year} — quiet. Big nap year.`),
+    sub: (year) => (year === null ? null : `${year} — quiet. Growing slowly.`),
     icon: "zzz",
     act: "sleep",
   },
