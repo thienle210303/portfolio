@@ -197,52 +197,60 @@ export const navItems = [
 
 export const codeTabs = [
   {
-    id: "profile",
-    label: "Profile",
-    filename: "builder.ts",
+    id: "projector",
+    label: "The globe",
+    filename: "src/lib/globe.ts",
+    source: "From this site's own source code.",
     summary:
-      "A TypeScript object literal named builder, describing the role Software Engineer, a mindset of curious, practical and always learning, strengths in turning ambiguity into systems, optimizing what already exists and creating workflows from zero, the belief that unsolved is not the same as unsolvable, and the goal of building useful systems people can trust.",
-    code: `const builder = {
-  role: "Software Engineer",
-  mindset: ["curious", "practical", "always learning"],
-  strengths: [
-    "turning ambiguity into systems",
-    "optimizing what already exists",
-    "creating workflows from zero",
-  ],
-  belief: "Unsolved is not the same as unsolvable",
-  goal: "Build useful systems people can trust",
-};`,
+      "A TypeScript function named project that rotates a three-dimensional point by the globe's spin and tilt, then returns its x and y screen position, whether it faces the viewer, and its depth.",
+    code: `export function project(v: Vec3, spin: number, tilt: number, view: Viewport): Projected {
+  const r = rotate(v, spin, tilt);
+  return {
+    x: view.cx + view.radius * r[1],
+    y: view.cy - view.radius * r[2],
+    front: r[0] > 0,
+    depth: r[0],
+  };
+}`,
   },
   {
-    id: "principles",
-    label: "Principles",
-    filename: "principles.ts",
+    id: "honesty",
+    label: "The rule",
+    filename: "tests/lib/worlds.test.ts",
+    source: "From this site's own source code.",
     summary:
-      "A TypeScript object literal named principles, listing three working rules: read the system before changing it, prefer the fix that removes the whole class of problem, and measure the thing you claimed to improve. It also records that assumptions are treated as expiring, and that hard describes the current state of understanding.",
-    code: `const principles = {
-  first: "Read the system before changing it",
-  second: "Prefer the fix that removes the class of problem",
-  third: "Measure the thing you claimed to improve",
-  onAssumptions: "Treat them as expiring, not permanent",
-  onDifficulty: "Hard describes understanding, not the limit",
-};`,
+      "A TypeScript test asserting that the text of every field plaque on the globe is a string the content layer can produce.",
+    code: `  it("renders every field plaque verbatim from the content layer", () => {
+    for (const world of resolved) {
+      for (const plaque of world.plaques) {
+        if (plaque.kind !== "field") continue;
+        expect(
+          AUTHORED.has(plaque.text),
+          \`\${world.id}: "\${plaque.text}" is not a string the content layer can produce\`,
+        ).toBe(true);
+      }
+    }
+  });`,
   },
   {
-    id: "exploring",
-    label: "Currently exploring",
-    filename: "exploring.ts",
+    id: "overlap",
+    label: "The overlap",
+    filename: "src/lib/knowledge-tree.ts",
+    source: "From this site's own source code.",
     summary:
-      "A TypeScript object literal named exploring, listing current areas of study: agentic development workflows, context engineering, reverse engineering of public data surfaces, and verification as a first-class step. It notes that architecture and accountability stay human-owned.",
-    code: `const exploring = {
-  now: [
-    "agentic development workflows",
-    "context engineering for repeatable results",
-    "verification as a first-class build step",
-  ],
-  tools: ["Claude Code", "Codex", "Cursor"],
-  boundary: "Architecture and accountability stay human-owned",
-};`,
+      "A TypeScript function named concurrentWith that returns the ids of every other non-milestone career entry whose start and end months overlap the given entry's, comparing the months inclusively.",
+    code: `export function concurrentWith(entryId: string): readonly string[] {
+  const subject = ENTRIES.find((entry) => entry.id === entryId);
+  if (!subject || subject.type === "milestone") return [];
+  const own = span(subject);
+  return ENTRIES
+    .filter((other) => other.id !== entryId && other.type !== "milestone")
+    .filter((other) => {
+      const theirs = span(other);
+      return own.start <= theirs.end && theirs.start <= own.end;
+    })
+    .map((other) => other.id);
+}`,
   },
 ] satisfies readonly CodeTab[];
 

@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
-import { careerEntries, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
+import { careerEntries, codeTabs, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 
 describe("formatIsoDate", () => {
@@ -416,5 +418,48 @@ describe("the page is four sections", () => {
     // Deleting the Skills *section* is not deleting the skills. The résumé
     // route reads this, and so does the answer corpus.
     expect(skillCategories.length).toBeGreaterThan(0);
+  });
+});
+
+describe("the hero's code artifact", () => {
+  it("no longer carries the fabricated personality literals", () => {
+    const code = codeTabs.map((tab) => tab.code).join("\n");
+    expect(code).not.toContain("mindset");
+    expect(code).not.toContain("always learning");
+    expect(code).not.toContain("Unsolved is not the same as unsolvable");
+  });
+
+  it("names where every excerpt came from", () => {
+    for (const tab of codeTabs) {
+      expect(tab.source.trim(), tab.id).not.toBe("");
+    }
+  });
+
+  it("keeps every excerpt short enough for the hero's one screen", () => {
+    for (const tab of codeTabs) {
+      expect(tab.code.split("\n").length, tab.id).toBeLessThanOrEqual(14);
+    }
+  });
+
+  it("has three excerpts, so the loops here cannot pass over nothing", () => {
+    expect(codeTabs.length).toBe(3);
+  });
+
+  it("every excerpt is a byte-identical slice of the repo file it names", () => {
+    // `filename` is a repo-relative path and the only provenance this test
+    // trusts. A Windows checkout may carry CRLF line endings; a JS template
+    // literal always yields LF, so the file's line endings are normalised and
+    // nothing else is.
+    for (const tab of codeTabs) {
+      const file = readFileSync(resolve(process.cwd(), tab.filename), "utf8").replace(/\r\n/g, "\n");
+      expect(file.includes(tab.code), `${tab.filename} (${tab.id}) is not a verbatim slice of that file`).toBe(true);
+    }
+  });
+
+  it("the slice check can fail: an edited excerpt is not found", () => {
+    const tab = codeTabs[0];
+    const file = readFileSync(resolve(process.cwd(), tab.filename), "utf8").replace(/\r\n/g, "\n");
+    expect(file.includes(tab.code)).toBe(true);
+    expect(file.includes(tab.code.replace(/\w+/, "zzzz"))).toBe(false);
   });
 });

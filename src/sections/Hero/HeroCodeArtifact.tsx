@@ -38,7 +38,12 @@ export default function HeroCodeArtifact({ liveModeConfigured }: HeroCodeArtifac
     ...codeTabs.map((tab) => ({
       id: tab.id,
       label: tab.label,
-      panel: <CodeBlock code={tab.code} filename={tab.filename} summary={tab.summary} compact />,
+      panel: (
+        <>
+          <CodeBlock code={tab.code} filename={tab.filename} summary={tab.summary} compact />
+          <p className="mt-2 text-fg-subtle text-[length:var(--step--2)]">{tab.source}</p>
+        </>
+      ),
     })),
     {
       id: "ask",

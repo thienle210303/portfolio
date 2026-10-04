@@ -22,7 +22,7 @@ test.describe("hero code panel", () => {
   test("wraps at 320px and cannot scroll the page or itself sideways", async ({ page }) => {
     test.skip(viewportWidth(page) !== 320, "smallest configured viewport only");
 
-    const region = page.getByRole("region", { name: "builder.ts" });
+    const region = page.getByRole("region", { name: "src/lib/globe.ts" });
     await region.evaluate((el) => {
       el.scrollLeft = 200;
     });

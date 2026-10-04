@@ -343,7 +343,7 @@ test.describe("ask this site", () => {
     // Nothing was ever persisted, so a fresh page load starts empty either
     // way. `openHeroChat` already does a full `page.goto("/")` -- a second,
     // separate reload before it would just repeat that navigation -- and a
-    // fresh load also resets the hero back to its default "Profile" tab, so
+    // fresh load also resets the hero back to its default "The globe" tab, so
     // reopening the chat here is what actually re-confirms the thread is gone.
     await openHeroChat(page);
     await expect(page.getByRole("button", { name: "Clear conversation" })).toHaveCount(0);
@@ -374,7 +374,7 @@ test.describe("ask this site", () => {
     await input.press("Enter");
     await expect(page.getByText("What did Thien build at DoorDash?")).toBeVisible();
 
-    await page.getByRole("tab", { name: "Profile" }).click();
+    await page.getByRole("tab", { name: "The globe" }).click();
     await expect(page.getByText("What did Thien build at DoorDash?")).toHaveCount(0);
 
     await page.getByRole("tab", { name: "Ask Thien" }).click();
@@ -406,7 +406,7 @@ test.describe("hero code artifact — compact rendering", () => {
     expect(heroWrapperPadding).toBeLessThan(16);
 
     // The active tab's CodeBlock itself steps down too.
-    const heroRegion = page.getByRole("region", { name: "builder.ts" });
+    const heroRegion = page.getByRole("region", { name: "src/lib/globe.ts" });
     const heroRegionPadding = await heroRegion.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
     expect(heroRegionPadding).toBeLessThan(16);
 
@@ -425,17 +425,17 @@ test.describe("hero code artifact — compact rendering", () => {
     expect(answerRegionPadding).toBe(16);
   });
 
-  test("the three authored tabs' content is unchanged — only the rendering shrank", async ({ page }) => {
+  test("the authored tabs render their real excerpts", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "layout is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByRole("region", { name: "builder.ts" })).toContainText(
-      'role: "Software Engineer"',
+    await expect(page.getByRole("region", { name: "src/lib/globe.ts" })).toContainText(
+      "export function project(",
     );
-    await heroTablist(page).getByRole("tab", { name: "Principles" }).click();
-    await expect(page.getByRole("region", { name: "principles.ts" })).toContainText(
-      "Read the system before changing it",
+    await heroTablist(page).getByRole("tab", { name: "The rule" }).click();
+    await expect(page.getByRole("region", { name: "tests/lib/worlds.test.ts" })).toContainText(
+      "renders every field plaque verbatim",
     );
   });
 
@@ -446,9 +446,9 @@ test.describe("hero code artifact — compact rendering", () => {
 
     for (const theme of ["day", "night"] as const) {
       await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
-      const region = page.getByRole("region", { name: "builder.ts" });
+      const region = page.getByRole("region", { name: "src/lib/globe.ts" });
       await expect(region).toBeVisible();
-      await expect(region).toContainText('role: "Software Engineer"');
+      await expect(region).toContainText("export function project(");
     }
   });
 });
@@ -484,7 +484,7 @@ test.describe("hero code artifact — Ask Thien tab", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // Tabs only ever mounts the active panel (Profile, by default), so the
+    // Tabs only ever mounts the active panel (The globe, by default), so the
     // chat's own field must not exist in the DOM before its tab is chosen.
     await expect(questionField(page)).toHaveCount(0);
 

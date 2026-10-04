@@ -372,6 +372,11 @@ export interface CodeTab {
   readonly filename: string;
   /** A description of what the snippet says, for assistive technology. */
   readonly summary: string;
+  /** Where this excerpt comes from. `filename` is the repo-relative path of a
+   *  real file and `code` is a verbatim slice of it (tests/lib/content.test.ts
+   *  checks that); this line is the human-readable provenance shown under the
+   *  panel. */
+  readonly source: string;
   readonly code: string;
 }
 

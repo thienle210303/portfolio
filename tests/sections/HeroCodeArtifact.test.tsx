@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { codeTabs } from "@/content/portfolio";
 import HeroCodeArtifact from "@/sections/Hero/HeroCodeArtifact";
 
 /**
@@ -28,16 +29,16 @@ describe("HeroCodeArtifact", () => {
     const tablist = screen.getByRole("tablist", { name: "Code artifact tabs" });
     const tabs = within(tablist).getAllByRole("tab");
     expect(tabs.map((tab) => tab.textContent)).toEqual([
-      "Profile",
-      "Principles",
-      "Currently exploring",
+      "The globe",
+      "The rule",
+      "The overlap",
       "Ask Thien",
     ]);
   });
 
-  it("keeps the first authored tab (Profile) active by default, not Ask Thien", () => {
+  it("keeps the first authored tab (The globe) active by default, not Ask Thien", () => {
     render(<HeroCodeArtifact liveModeConfigured={false} />);
-    expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "The globe" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Ask Thien" })).toHaveAttribute("aria-selected", "false");
     // Only the active panel mounts (Tabs' own contract) -- the mocked Ask
     // Thien panel must not be in the document until its tab is selected.
@@ -46,12 +47,17 @@ describe("HeroCodeArtifact", () => {
 
   it("renders the active authored tab's CodeBlock in compact mode (smaller padding than the ordinary default)", () => {
     const { container } = render(<HeroCodeArtifact liveModeConfigured={false} />);
-    const region = screen.getByRole("region", { name: "builder.ts" });
+    const region = screen.getByRole("region", { name: "src/lib/globe.ts" });
     expect(region).toHaveClass("p-3");
     expect(region).not.toHaveClass("p-4");
 
     const codeEl = container.querySelector("code");
     expect(codeEl).toHaveClass("text-[length:var(--step--2)]");
+  });
+
+  it("shows where the active excerpt came from, under the panel", () => {
+    render(<HeroCodeArtifact liveModeConfigured={false} />);
+    expect(screen.getByText(codeTabs[0].source)).toBeInTheDocument();
   });
 
   it("tightened the wrapper's own padding from p-4 to p-3", () => {
