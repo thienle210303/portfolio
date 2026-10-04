@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CircleAlert, CircleCheck, Loader2, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { withCaseStudyReferral } from "@/lib/content";
 import { contactIntents, profile } from "@/content/portfolio";
 import type { ContactIntent } from "@/types/portfolio";
 import Button from "@/components/ui/Button";
@@ -115,13 +116,6 @@ function validateAll(state: FormState): FieldErrors {
     if (error) errors[field] = error;
   }
   return errors;
-}
-
-/** Folds a case-study referral into the starter text without inventing any
- * new claim — it only names the project the visitor was just reading. */
-function buildMessage(intent: ContactIntent, projectTitle: string | null): string {
-  if (!projectTitle) return intent.messageStarter;
-  return `${intent.messageStarter}Specifically, I wanted to mention your case study, "${projectTitle}."\n\n`;
 }
 
 function buildReason(intent: ContactIntent, projectTitle: string | null): string {
@@ -275,7 +269,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
     setState((prev) => ({
       ...prev,
       reason: buildReason(intent, referredProjectTitle),
-      message: buildMessage(intent, referredProjectTitle),
+      message: withCaseStudyReferral(intent.messageDraft, referredProjectTitle),
     }));
     setFieldErrors((prev) => ({ ...prev, reason: undefined, message: undefined }));
     setStatus({ kind: "idle" });

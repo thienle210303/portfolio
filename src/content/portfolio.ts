@@ -1511,32 +1511,32 @@ export const contactIntents = [
     label: "I have a career opportunity",
     description: "Roles, teams, and what the work actually looks like.",
     subject: "Career opportunity",
-    messageStarter:
-      "Hi Thien,\n\nI'm reaching out about a role I think could be a fit. Here's the team and what the work looks like:\n\n",
+    messageDraft:
+      "Hi Thien,\n\nI'm reaching out about a role. I'll send the team, what the work involves and where it's based. If it looks like a fit, let's find a time to talk.\n\nBest,",
   },
   {
     id: "crazy-idea",
     label: "I have a crazy idea",
     description: "A project, a collaboration, something nobody asked for yet.",
     subject: "A crazy idea",
-    messageStarter:
-      "Hi Thien,\n\nOkay, hear me out:\n\n",
+    messageDraft:
+      "Hi Thien,\n\nI have an idea nobody asked for, and I'd like to think it through with you. I'll explain what it is and where I think the hard part is. Tell me if it's interesting or nonsense.\n\nBest,",
   },
   {
     id: "hello",
     label: "Just want to say hello",
     description: "No agenda required. Feedback about this site lands here too.",
     subject: "Hello",
-    messageStarter:
-      "Hi Thien,\n\nJust wanted to say hello. A bit about me:\n\n",
+    messageDraft:
+      "Hi Thien,\n\nNo agenda. I found your site and wanted to say hello. I'll tell you a little about what I do, and if there's a reason to keep talking, we'll find it.\n\nBest,",
   },
   {
     id: "secret",
     label: "It's a secret \u{1F92B}",
     description: "The cats have been briefed. They'll deny everything.",
     subject: "A secret",
-    messageStarter:
-      "Hi Thien,\n\nI can't say much here. What I can say:\n\n",
+    messageDraft:
+      "Hi Thien,\n\nI can't say much here. What I can say is that it's worth a reply, and I'd rather explain it somewhere other than a contact form.\n\nBest,",
   },
 ] satisfies readonly ContactIntent[];
 

@@ -20,10 +20,12 @@ test("selecting an intent prefills subject and message, and both remain editable
   const reason = contact.locator("#contact-reason");
   const message = contact.locator("#contact-message");
   await expect(reason).toHaveValue(intent.subject);
-  await expect(message).toHaveValue(intent.messageStarter);
+  await expect(message).toHaveValue(intent.messageDraft);
 
   await expect(message).toBeEditable();
-  await message.fill(`${intent.messageStarter}Extra detail from me.`);
+  await message.fill(`${intent.messageDraft}
+
+Extra detail from me.`);
   await expect(message).toHaveValue(/Extra detail from me\.$/);
 
   await expect(reason).toBeEnabled();

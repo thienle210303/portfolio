@@ -79,3 +79,21 @@ export function stripNeedsInput(text: string): string {
 export function isEntirelyNeedsInput(text: string): boolean {
   return stripNeedsInput(text).length === 0;
 }
+
+const DRAFT_SIGN_OFF = "\n\nBest,";
+
+/**
+ * Folds a case-study referral into a contact draft as its own paragraph,
+ * before the sign-off so the message still ends on it. It only names the
+ * project the visitor was just reading and invents no claim. A draft without
+ * a trailing sign-off gets the paragraph appended.
+ */
+export function withCaseStudyReferral(draft: string, projectTitle: string | null): string {
+  if (!projectTitle) return draft;
+  const referral = `Specifically, I wanted to mention your case study, "${projectTitle}."`;
+  const trimmed = draft.trimEnd();
+  if (trimmed.endsWith(DRAFT_SIGN_OFF)) {
+    return `${trimmed.slice(0, -DRAFT_SIGN_OFF.length)}\n\n${referral}${DRAFT_SIGN_OFF}`;
+  }
+  return `${trimmed}\n\n${referral}`;
+}

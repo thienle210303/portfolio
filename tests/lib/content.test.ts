@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
-import { careerEntries, codeTabs, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
+import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput, withCaseStudyReferral } from "@/lib/content";
+import { careerEntries, codeTabs, contactIntents, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 
 describe("formatIsoDate", () => {
@@ -461,5 +461,69 @@ describe("the hero's code artifact", () => {
     const file = readFileSync(resolve(process.cwd(), tab.filename), "utf8").replace(/\r\n/g, "\n");
     expect(file.includes(tab.code)).toBe(true);
     expect(file.includes(tab.code.replace(/\w+/, "zzzz"))).toBe(false);
+  });
+});
+
+describe("contact drafts", () => {
+  it("gives every intent a message that can be sent unedited", () => {
+    expect(contactIntents.length).toBeGreaterThan(0);
+    for (const intent of contactIntents) {
+      // A draft, not an opening: the old starter stopped mid-sentence and
+      // left the visitor holding a blank textarea.
+      expect(intent.messageDraft, intent.id).toMatch(/\n\n/);
+      expect(intent.messageDraft.trimEnd(), intent.id).toMatch(/\n\nBest,$/);
+      expect(intent.messageDraft.length, intent.id).toBeGreaterThan(120);
+    }
+  });
+
+  it("never claims a feeling the sender has not expressed", () => {
+    for (const intent of contactIntents) {
+      const text = intent.messageDraft.toLowerCase();
+      expect(text, intent.id).not.toContain("impressed");
+      expect(text, intent.id).not.toContain("love your");
+    }
+  });
+
+  it("types no number into a draft", () => {
+    // Drafts speak for the sender. A digit would be a figure typed by hand
+    // instead of read from the content layer.
+    for (const intent of contactIntents) {
+      expect(intent.messageDraft, intent.id).not.toMatch(/\d/);
+    }
+  });
+
+  it("stays short enough for the mailto: fallback, with its footer", () => {
+    // Same shape buildMailtoHref in ContactForm produces: subject, then the
+    // message followed by the name/email/company lines. The footer here is a
+    // generous stand-in for those lines, not a copy of them.
+    const footer =
+      "\n\n—\nName: " + "n".repeat(80) + "\nEmail: " + "e".repeat(120) + "\nCompany: " + "c".repeat(80);
+    for (const intent of contactIntents) {
+      const referred = withCaseStudyReferral(intent.messageDraft, projects[0].title);
+      const href = `mailto:${profile.email}?subject=${encodeURIComponent(
+        `${intent.subject} — ${projects[0].title}`
+      )}&body=${encodeURIComponent(referred + footer)}`;
+      expect(href.length, intent.id).toBeLessThan(2000);
+    }
+  });
+});
+
+describe("withCaseStudyReferral", () => {
+  const draft = "Hi Thien,\n\nSomething to say.\n\nBest,";
+
+  it("returns the draft untouched when no project was being read", () => {
+    expect(withCaseStudyReferral(draft, null)).toBe(draft);
+  });
+
+  it("puts the referral in its own paragraph before the sign-off", () => {
+    expect(withCaseStudyReferral(draft, "Some Project")).toBe(
+      'Hi Thien,\n\nSomething to say.\n\nSpecifically, I wanted to mention your case study, "Some Project."\n\nBest,'
+    );
+  });
+
+  it("appends the referral when a draft has no sign-off to sit before", () => {
+    expect(withCaseStudyReferral("Hi.\n\nText", "P")).toBe(
+      'Hi.\n\nText\n\nSpecifically, I wanted to mention your case study, "P."'
+    );
   });
 });

@@ -348,8 +348,12 @@ export interface ContactIntent {
   readonly label: string;
   readonly description: string;
   readonly subject: string;
-  /** Editable starter text, never sent without an explicit action. */
-  readonly messageStarter: string;
+  /** A complete message the visitor can send without editing a word, though
+   *  the textarea stays editable. It ends on a bare "Best," because the
+   *  sender's name is the form's own field. A draft may say what the sender
+   *  wants; it may not claim feelings they have not expressed, and it holds no
+   *  figure or fact about Thien. Never sent without an explicit action. */
+  readonly messageDraft: string;
 }
 
 /* -------------------------------------------------------------------------- */
