@@ -1508,6 +1508,123 @@ test.describe("companion", () => {
     await expectRestClearOfContent(page, "re-planned onto content after the shift");
   });
 
+  test("an animation that ends over resting explorers moves them off the text it brings", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(90_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    /*
+     * The page's own entrance animations are transform-only and still running
+     * when the pair plan their first stop, so the hero's content ends up to
+     * ten pixels higher than where that stop was probed — a shift with no
+     * scroll, no resize and no change to `body`'s size, which only the end of
+     * the animation announces. Measured before the fix: a cat's stop came to
+     * rest across a hero button about two runs in a hundred and fifty
+     * (the setup check of the layout-shift test above).
+     *
+     * Here that is done deliberately and at full size. Once both have arrived,
+     * with a stay still ahead of them (the same wait as the layout-shift test
+     * above, for the same reason), one fixed paragraph per cat is put a
+     * screen's height below it, and an animation brings it up under the cat.
+     * Fixed, so nothing about `body` changes.
+     */
+    const FRESH_MS = 1_500;
+    const lastMoved = [0, 0];
+    await expect
+      .poll(
+        async () => {
+          const [grey, tabby] = await catPair(page, { still: true });
+          const now = Date.now();
+          if (!grey.still) lastMoved[0] = now;
+          if (!tabby.still) lastMoved[1] = now;
+          if (!grey.still || !tabby.still) return "walking";
+          if (lastMoved.some((t) => t === 0) || (await bothInCorner(page))) return "not out exploring yet";
+          if (Math.max(...lastMoved) < now - FRESH_MS) return "nobody has just arrived";
+          return (await restingOnContent(page, { still: true })).length === 0 ? "arrived" : "walking";
+        },
+        { timeout: 40_000, intervals: [50], message: "the explorers never arrived anywhere" },
+      )
+      .toBe("arrived");
+
+    const shift = await page.evaluate(async () => {
+      const counted = window as unknown as { __shiftScrolls: number; __shiftResizes: number };
+      counted.__shiftScrolls = 0;
+      counted.__shiftResizes = 0;
+      window.addEventListener("scroll", () => (counted.__shiftScrolls += 1), { passive: true });
+      let seen = false;
+      new ResizeObserver(() => {
+        if (seen) counted.__shiftResizes += 1;
+        seen = true;
+      }).observe(document.body);
+      const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).map((svg) =>
+        svg.getBoundingClientRect(),
+      );
+      const keyframes = document.createElement("style");
+      keyframes.textContent =
+        "@keyframes zz-arrive{from{transform:translateY(100vh)}to{transform:translateY(0)}}" +
+        "[data-zz-arrive]{animation:zz-arrive 400ms linear both}";
+      document.head.append(keyframes);
+      for (const r of cats) {
+        const p = document.createElement("p");
+        p.textContent = "A paragraph an animation brought in under a resting cat. ".repeat(4);
+        p.setAttribute("data-zz-arrive", "");
+        Object.assign(p.style, {
+          position: "fixed",
+          margin: "0",
+          overflow: "hidden",
+          left: `${r.left - 20}px`,
+          top: `${r.top - 20}px`,
+          width: `${r.width + 40}px`,
+          height: `${r.height + 40}px`,
+        });
+        document.body.append(p);
+      }
+      const arriving = Array.from(document.querySelectorAll("p[data-zz-arrive]"));
+      // Not vacuous: the cats stand where the text will be, and while it is
+      // still a screen below them nothing is on them.
+      const clear = cats.every(
+        (r) => !document.elementsFromPoint(r.left + r.width / 2, r.top + r.height * 0.6).some((el) => arriving.includes(el)),
+      );
+      await Promise.all(arriving.flatMap((p) => p.getAnimations().map((a) => a.finished)));
+      return { before: arriving.length, clear, stops: cats.map((r) => ({ left: r.left, top: r.top })) };
+    });
+    expect(shift.before, "no paragraphs were put on the page").toBe(2);
+    expect(shift.clear, "the text was already over the cat before it animated in").toBe(true);
+    // Not vacuous: the 250 ms re-probe cannot have fired yet, and all six probe
+    // points are on the paragraphs the animation brought.
+    expect(await restingOnContent(page), "the animation did not put text under the cats").toHaveLength(6);
+
+    // Within a second and a half of the animation's end, no cat is still on
+    // the stop it was holding (measured as in the layout-shift test above).
+    await expect
+      .poll(
+        () =>
+          page.evaluate((stops) => {
+            const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
+            return cats.flatMap((svg, index) => {
+              const r = svg.getBoundingClientRect();
+              const from = stops[index];
+              return from && Math.hypot(r.left - from.left, r.top - from.top) < 4
+                ? [`cat ${index} still at ${Math.round(r.left)},${Math.round(r.top)}`]
+                : [];
+            });
+          }, shift.stops),
+        { timeout: 1_500, intervals: [50], message: "a cat stayed on the text the animation put under it" },
+      )
+      .toEqual([]);
+
+    const after = await page.evaluate(() => ({
+      scrolls: (window as unknown as { __shiftScrolls: number }).__shiftScrolls,
+      resizes: (window as unknown as { __shiftResizes: number }).__shiftResizes,
+    }));
+    expect(after.scrolls, "the animation fired a scroll event").toBe(0);
+    expect(after.resizes, "the animation resized the body").toBe(0);
+  });
+
   test("a layout that keeps changing on its own does not keep the cats awake", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(120_000);

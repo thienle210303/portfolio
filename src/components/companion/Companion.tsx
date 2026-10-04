@@ -3862,10 +3862,18 @@ export function Companion({ facts }: CompanionProps) {
      * scrolls as they read keep the pair forever setting off and never
      * arriving.
      *
-     * What still goes unseen: a shift that changes no size on `body` — content
-     * swapped for content of the same height, a transform, something
-     * absolutely positioned moving over the stop. That stop stands until its
-     * stay or walk runs out or something else drops it.
+     * A CSS animation that finishes is seen too (`animationEnded` below): the
+     * page's own entrance animations are transform-only, so the hero's content
+     * is up to ten pixels lower than where it settles while the pair wake and
+     * plan their first stop, and moves up under it without a scroll, a resize or
+     * a change to `body`'s size. The re-probe runs when each one ends, not
+     * while it plays, because the ground it reads is where the content ends up.
+     *
+     * What still goes unseen: a shift that changes no size on `body` and ends
+     * no animation — content swapped for content of the same height, a
+     * transform from a script or a transition, something absolutely positioned
+     * moving over the stop. That stop stands until its stay or walk runs out or
+     * something else drops it.
      *
      * `heldExploreClear` (companion-moods.ts) is the probe. A perch: his spot
      * alone, three points (she trails him rather than walking to hers).
@@ -3976,6 +3984,21 @@ export function Companion({ facts }: CompanionProps) {
     });
 
     /**
+     * A CSS animation on the page has finished: content it was offsetting is
+     * now where it stays, so a held stop is re-probed against that (see
+     * `reprobeHeld`). `animationend` bubbles, so one listener on the document
+     * hears every animation on the page. The companion's own are skipped — a
+     * cat's animation ending moves no ground, and its drawing is not content.
+     * An animation that never ends (an infinite one) never asks, and a burst
+     * of them ending together costs one round of hit tests: `scheduleRecheck`
+     * coalesces what lands inside its window.
+     */
+    const animationEnded = (event: AnimationEvent) => {
+      if (event.target instanceof Element && event.target.closest("[data-companion]")) return;
+      scheduleRecheck(false);
+    };
+
+    /**
      * Scroll anticipation's own half of the work — see `detectRush` in
      * companion-moods.ts for the arithmetic this feeds. A window rather than a
      * single delta: one big wheel tick and a sustained flick both move the
@@ -4016,6 +4039,7 @@ export function Companion({ facts }: CompanionProps) {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
     bodyResized.observe(document.body);
+    document.addEventListener("animationend", animationEnded);
     return () => {
       stop();
       // A nap does not outlive the loop that owns it. Whatever put the loop
@@ -4058,6 +4082,7 @@ export function Companion({ facts }: CompanionProps) {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       bodyResized.disconnect();
+      document.removeEventListener("animationend", animationEnded);
     };
     // `facts` is a dependency in name only: it is a small object computed once
     // on the server and handed down from `layout.tsx`, never reconstructed
