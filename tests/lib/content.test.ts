@@ -494,14 +494,27 @@ describe("contact drafts", () => {
 
   it("stays short enough for the mailto: fallback, with its footer", () => {
     // Same shape buildMailtoHref in ContactForm produces: subject, then the
-    // message followed by the name/email/company lines. The footer here is a
-    // generous stand-in for those lines, not a copy of them.
+    // message followed by the name/email/company lines. The footer is built at
+    // the API's field maxima, which mirror NAME_MAX / EMAIL_MAX / COMPANY_MAX
+    // in src/app/api/contact/route.ts (not exported, so mirrored here), with
+    // ASCII filler: each character costs one byte in the href. The subject is
+    // the real intent subject plus the longest project title, as a case-study
+    // referral builds it. It is not a call to buildMailtoHref itself.
+    const NAME_MAX = 100;
+    const EMAIL_MAX = 200;
+    const COMPANY_MAX = 120;
     const footer =
-      "\n\n—\nName: " + "n".repeat(80) + "\nEmail: " + "e".repeat(120) + "\nCompany: " + "c".repeat(80);
+      "\n\n\u2014\nName: " +
+      "n".repeat(NAME_MAX) +
+      "\nEmail: " +
+      "e".repeat(EMAIL_MAX) +
+      "\nCompany: " +
+      "c".repeat(COMPANY_MAX);
+    const longestTitle = projects.map((p) => p.title).reduce((a, b) => (b.length > a.length ? b : a));
     for (const intent of contactIntents) {
-      const referred = withCaseStudyReferral(intent.messageDraft, projects[0].title);
+      const referred = withCaseStudyReferral(intent.messageDraft, longestTitle);
       const href = `mailto:${profile.email}?subject=${encodeURIComponent(
-        `${intent.subject} — ${projects[0].title}`
+        `${intent.subject} \u2014 ${longestTitle}`
       )}&body=${encodeURIComponent(referred + footer)}`;
       expect(href.length, intent.id).toBeLessThan(2000);
     }
