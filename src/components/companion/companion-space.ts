@@ -701,13 +701,21 @@ function overlaps(a: Point, b: Point): boolean {
  *
  * Opt-in, and only where a spot is chosen once and then held: the explorers'
  * fallbacks (`planExplore`, `repickExploreSpot`) and `Companion`'s settle
- * paths (a declined explorer plan, the cached `settled()` spots). The
- * per-frame placements — `tourStopSpots`, the moods `planMood` hands it, the
- * watch, mini-Thien — do not pass it. They recompute every frame with a live
- * cat position as `want`; a `want` rejected for its head would hand her a
- * target that moves with her, the feedback loop the controls note above
- * describes, and the extra pass would cost up to fifteen × nine more hit
- * tests on every frame.
+ * paths (a declined explorer plan, the cached `settled()` spots). Every
+ * other caller leaves it off:
+ *
+ *  - The two that pass a live cat position as `want` every frame — the
+ *    follower's fallback in the moods `planMood` builds (`mateSpot(...) ??
+ *    findClearSpot(follow, …)`), which the tour asks for each frame, and the
+ *    tour's and the watch's defensive `nearbySpots()` fallbacks. A `want`
+ *    rejected for its head would hand the cat a target that moves with her,
+ *    the feedback loop the controls note above describes, and the extra pass
+ *    would add up to fifteen × nine hit tests to every frame.
+ *  - `tourStopSpots`'s `restSpots` fallback, which is recomputed every frame
+ *    too, but from a fixed anchor by the section's top edge rather than a cat's
+ *    position: off for the per-frame cost, not for feedback.
+ *  - Mini-Thien's spot, probed once per change of speaker: he is not a cat,
+ *    and the head band is the cat drawing's geometry, not his.
  *
  * Bounded work: fifteen candidates × three hit tests, plus fifteen × nine
  * with `preferHead`.

@@ -459,13 +459,6 @@ describe("planExplore", () => {
   });
 });
 
-/**
- * `repickExploreSpot`: when one explorer's stay is up, only that cat is sent
- * somewhere new, against wherever its partner is going. The partner's spot is
- * an argument and is never returned or moved; what is pinned here is that the
- * same rules `planExplore` applies to a pair hold against that fixed spot, and
- * that the single-null fallback is `planExplore`'s.
- */
 describe("planMood — a per-frame caller of findClearSpot", () => {
   const HOME = { x: 900, y: 700 };
 
@@ -513,6 +506,13 @@ describe("planMood — a per-frame caller of findClearSpot", () => {
   });
 });
 
+/**
+ * `repickExploreSpot`: when one explorer's stay is up, only that cat is sent
+ * somewhere new, against wherever its partner is going. The partner's spot is
+ * an argument and is never returned or moved; what is pinned here is that the
+ * same rules `planExplore` applies to a pair hold against that fixed spot, and
+ * that the single-null fallback is `planExplore`'s.
+ */
 describe("repickExploreSpot", () => {
   const HOME = { x: 900, y: 700 };
   const OPEN = () => [] as Element[];

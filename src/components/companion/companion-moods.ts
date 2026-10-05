@@ -409,15 +409,16 @@ export function holdExplore(spots: MoodSpots, perch: boolean): HeldExplore {
  *
  * `groundSettled` is for the re-checks that are not a scroll: any animation
  * on the page ending — anywhere, not only under the cats — or the body
- * resizing. Most of those re-checks find the ground under the stop unchanged.
- * When it has changed, the ground a fallback was put on is gone, so every
- * non-perch head must be clear now, however it was planned; a head that was
- * already on content and still is drops the stop for a re-plan, which may
- * land on the same spot. The case it exists for: at phone widths the
- * hero's first screen is prose to its bottom edge, and the explorers plan
- * their first stop while the hero's load choreography still has the prose
- * offset by a few pixels — no head-clear ground at all, so the fallback stood
- * with both heads on the last paragraph once the animation ended. Not applied
+ * resizing. With it set, every non-perch head must be clear, however it was
+ * planned and whether or not the ground under the stop actually moved — most
+ * of those re-checks find it unchanged. So a fallback planned with its head
+ * already on content is dropped for a re-plan at the next animation end or
+ * body resize, and the re-plan may land on the same spot. The case it exists
+ * for: at phone widths the hero's first screen is prose to its bottom edge,
+ * and the explorers plan their first stop while the hero's load choreography
+ * still has the prose offset by a few pixels — no head-clear ground at all,
+ * so the fallback stood with both heads on the last paragraph once the
+ * animation ended. Not applied
  * after a scroll, for the reason in the first paragraph; animation ends and
  * body resizes are finite, so a stop that is re-planned onto the same ground
  * cannot churn.
