@@ -41,6 +41,7 @@ import {
   robotLights,
   type RobotHold,
 } from "./gl/robot";
+import { settleMotion } from "./settle";
 
 /**
  * The planet. No dependency, and zero animation frames once it stops moving.
@@ -89,6 +90,11 @@ import {
  * of the visitor's display: the landing was exactly that until this commit,
  * two thirds of a second at 60 Hz and twice that at 33. The constants block
  * below states the two rules for adding one.
+ *
+ * The stage can also ask the loop to stop early: `settle()`, called when the
+ * stage leaves the viewport, puts everything still moving at its end (a flight
+ * in the air lands, a robot mid-walk ends lit) in one draw and cancels the
+ * pending frame, so nothing animates for a visitor who has scrolled away.
  *
  * One press is exempt from the loop entirely, and only under
  * `prefers-reduced-motion: reduce`: "Take the flight" then produces the
@@ -1025,8 +1031,11 @@ export default function GlobeCanvas({
       // drag/inertia branch suppressed under it, so the planet would also
       // ignore the hand that woke it.
       v.playing = false;
-      // And a walk torn down mid-lap would resume on the next wake.
+      // And a walk torn down mid-lap is put back to "not started", not left
+      // frozen part-way: the robot effect only starts a walk from -1, so a
+      // remount with Technology still open walks it again from the start.
       v.walking = false;
+      v.robot = -1;
       v.running = false;
       // Same bag, same reason: a timestamp from before the teardown is not
       // elapsed animation time for whatever the remount does next.
@@ -1362,6 +1371,23 @@ export default function GlobeCanvas({
         }
         v.playing = true;
         start();
+      },
+      settle: () => {
+        const v = view.current;
+        // At rest there is nothing to settle and nothing to draw. Mid-drag the
+        // loop belongs to the hand holding the planet, and its release wakes
+        // the loop again anyway.
+        if (!v.running || v.drag) return;
+        if (v.frame) cancelAnimationFrame(v.frame);
+        v.frame = 0;
+        v.running = false;
+        v.last = 0;
+        const landed = settleMotion(v, {
+          spin: -origin.coordinates.to.lon * DEG,
+          tilt: clampTilt(-origin.coordinates.to.lat * DEG * 0.55),
+        });
+        if (landed) onLandedRef.current();
+        draw();
       },
       reset: () => {
         const v = view.current;

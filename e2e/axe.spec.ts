@@ -245,22 +245,22 @@ test.describe("interactive states", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // The one piece of UI on this page that does not exist until a visitor
-    // does something: `#worlds` renders the career-tree handoff link only once
-    // the flight has actually landed and a seed is on the globe (see
-    // `WorldsStage.tsx`). Every other audit in this file sees the section in
-    // its pre-flight state, so without this the link ships with no automated
-    // coverage at all — and it is a prose link on a `tone="deep"` ground,
-    // which is both a contrast pair and axe's `link-in-text-block` rule (a
-    // link may not be distinguished from its surrounding text by colour
-    // alone; `.ink-link`'s resting underline is what satisfies it).
+    // The one piece of UI in `#worlds` that does not exist until the flight
+    // has landed: the career-tree handoff link, rendered only once a seed is
+    // on the globe (see `WorldsStage.tsx`). The crossing plays itself once
+    // when half the stage is in view, so this centres the stage and waits for
+    // the stage to say it landed. Audits that never bring the stage that far
+    // into view see the section in its pre-flight state, so without this the
+    // link ships with no automated coverage at all — and it is a prose link on
+    // a `tone="deep"` ground, which is both a contrast pair and axe's
+    // `link-in-text-block` rule (a link may not be distinguished from its
+    // surrounding text by colour alone; `.ink-link`'s resting underline is
+    // what satisfies it).
     await scrollIntoViewAndSettle(page, "#worlds-heading");
-    const fly = page.locator("#worlds").getByRole("button", { name: /take the flight/i });
-    await expect(fly).toBeVisible({ timeout: 30_000 });
-    await fly.click();
-    await expect(
-      page.locator("#worlds").getByRole("link", { name: /career tree/i }),
-    ).toBeVisible({ timeout: 15_000 });
+    const stage = page.locator("#worlds").getByRole("group", { name: /playground earth/i });
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 30_000 });
+    await expect(page.locator("#worlds").getByRole("link", { name: /career tree/i })).toBeVisible();
     await auditHasNoViolations(page, "#worlds");
   });
 });

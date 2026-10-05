@@ -54,6 +54,10 @@ export interface GlobeControls {
   readonly reset: () => void;
   /** Turn a world to face the viewer. */
   readonly focusWorld: (id: string) => void;
+  /** Bring whatever is moving to where it was going, in one draw, and ask
+   *  for no further frame: a flight in the air lands (and `onLanded` fires),
+   *  a robot mid-walk ends lit. At rest it does nothing at all. */
+  readonly settle: () => void;
 }
 
 type CanvasComponent = ComponentType<{
@@ -134,6 +138,14 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   const [landed, setLanded] = useState(false);
   const controlsRef = useRef<GlobeControls | null>(null);
   const [controlsReady, setControlsReady] = useState(false);
+  // The crossing plays itself once per page load. `spentRef` is set by that
+  // autoplay and by any flight or reset the visitor makes, so neither a
+  // re-entry nor a visitor who got there first ever sees it play unasked.
+  // `quietRef` is true only while the autoplayed flight is the one in the air:
+  // its landing shows the link but writes nothing to the live region, because
+  // nobody asked for it.
+  const spentRef = useRef(false);
+  const quietRef = useRef(false);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const current = worlds.find((world) => world.id === currentId) ?? worlds[0];
@@ -174,6 +186,11 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
 
   const handleLanded = useCallback(() => {
     setLanded(true);
+    spentRef.current = true;
+    if (quietRef.current) {
+      quietRef.current = false;
+      return;
+    }
     // Every clause here is now something the canvas has actually drawn. Round
     // 16's previous pass deliberately cut this back to the first sentence,
     // because the seed it claimed did not exist yet and this region is
@@ -209,6 +226,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     // about a flight into the live region before any globe existed. The same
     // opening line `WatchOrigin.tsx` uses, for the same reason.
     if (!controlsReady) return;
+    spentRef.current = true;
+    quietRef.current = false;
     // Pressing it a second time replays the crossing from Việt Nam, which
     // clears the seed for the two seconds it takes — so the claim goes with
     // it, rather than sitting under a globe that has nothing on it.
@@ -235,6 +254,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     // seed had been cleared when neither had ever existed. See `handleFly`
     // above for why `pointer-events-none` does not cover a keyboard press.
     if (!controlsReady) return;
+    spentRef.current = true;
+    quietRef.current = false;
     // The canvas half and the DOM half of one fact: `reset()` takes the seed
     // off the globe, and `setLanded(false)` takes the sentence that describes
     // it off the page. Doing only the first would leave a link claiming a seed
@@ -282,6 +303,31 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     };
   }, [Canvas]);
 
+  // The autoplay: a second observer, kept apart from the import's (which
+  // disconnects on its first hit) because this one has to keep watching. Half
+  // the stage in view flies the crossing, once; the stage leaving the viewport
+  // settles whatever is still moving, so nothing animates for nobody.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !controlsReady) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[entries.length - 1];
+        const controls = controlsRef.current;
+        if (!controls) return;
+        if (!entry.isIntersecting) controls.settle();
+        else if (entry.intersectionRatio >= 0.5 && !spentRef.current) {
+          spentRef.current = true;
+          quietRef.current = true;
+          controls.fly();
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [controlsReady]);
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -292,6 +338,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
       case "ArrowRight":
         // Rolling east is what flies him — the same coupling a drag has, so
         // the keyboard reaches the signature moment rather than watching it.
+        // A landing it reaches is the visitor's own, so it speaks.
+        quietRef.current = false;
         controls.nudge(KEY_STEP, 0);
         break;
       case "ArrowUp":
@@ -336,6 +384,11 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
               : "Playground Earth. Every world is also a button in the list beside it."
           }
           onKeyDown={handleKeyDown}
+          // A drag east flies him too, and that landing is the visitor's.
+          onPointerDown={() => {
+            quietRef.current = false;
+          }}
+          data-crossing={landed ? "landed" : undefined}
           // pan-y, never none: `none` would swallow the page scroll on a phone.
           className="relative mx-auto aspect-[1/1.12] w-full max-w-[560px] touch-pan-y"
         >
