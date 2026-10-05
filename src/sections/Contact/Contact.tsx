@@ -14,10 +14,10 @@ import DirectLinks from "./DirectLinks";
  * Two panes at >=1024px: the form beside one business-card panel that
  * carries email, GitHub and LinkedIn plus the name, title and philosophy
  * line that make it read as an actual card rather than a link list. Under
- * the form, `DirectLinks` adds the one way out the card lacks, the résumé PDF.
- * Round 18
- * removed the one-field "leave a number" form that used to sit above the full
- * one: choosing an intent now produces a whole message, which is the
+ * the form, `DirectLinks` adds the ways out the card lacks: the résumé PDF
+ * and, when a booking URL is configured, a link to book twenty minutes.
+ * Round 18 removed the one-field "leave a number" form that used to sit above
+ * the full one: choosing an intent now produces a whole message, which is the
  * shortcut that field was standing in for.
  *
  * DOM order deliberately does not match visual order at >=1024px: the card
@@ -35,7 +35,9 @@ import DirectLinks from "./DirectLinks";
  *
  * `emailDeliveryConfigured` is computed once, server-side, in `page.tsx`
  * from the three Resend env vars. Only this boolean crosses to the client;
- * nothing here ever references `process.env` directly. `BusinessCard` never
+ * `bookingUrl` is read there too, from `BOOKING_URL`, and goes only to
+ * `DirectLinks`, a Server Component. Nothing here ever references
+ * `process.env` directly. `BusinessCard` never
  * receives it — every link on the card (mailto, GitHub, LinkedIn) works
  * identically whether or not direct sending is configured.
  *
@@ -47,9 +49,11 @@ import DirectLinks from "./DirectLinks";
 
 interface ContactProps {
   emailDeliveryConfigured: boolean;
+  /** Validated in `page.tsx`; `undefined` means no booking link renders. */
+  bookingUrl?: string;
 }
 
-export default function Contact({ emailDeliveryConfigured }: ContactProps) {
+export default function Contact({ emailDeliveryConfigured, bookingUrl }: ContactProps) {
   return (
     <Section id="contact" labelledBy="contact-heading" eyebrow="Contact" tone="deep">
       <SectionHeading
@@ -70,7 +74,7 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
           <div className="no-print max-w-[46rem]">
             <ContactForm emailDeliveryConfigured={emailDeliveryConfigured} />
           </div>
-          <DirectLinks />
+          <DirectLinks bookingUrl={bookingUrl} />
         </div>
       </div>
     </Section>

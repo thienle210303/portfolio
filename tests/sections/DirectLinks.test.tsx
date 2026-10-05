@@ -36,3 +36,50 @@ describe("Contact with the no-form row", () => {
     expect(screen.getAllByRole("link", { name: /résumé/i })).toHaveLength(1);
   });
 });
+
+describe("booking in the no-form row", () => {
+  const url = "https://cal.com/thienle/20min";
+
+  it("renders no booking link, label or 'undefined' when no URL is configured", () => {
+    const { container } = render(<DirectLinks bookingUrl={undefined} />);
+    expect(screen.queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+    expect(container.textContent).not.toMatch(/undefined|null/);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("renders a plain external link when an https URL is configured", () => {
+    const { container } = render(<DirectLinks bookingUrl={url} />);
+    const link = screen.getByRole("link", { name: /book twenty minutes/i });
+    expect(link).toHaveAttribute("href", url);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(container.querySelector("script, iframe")).toBeNull();
+    expect(container.innerHTML).not.toMatch(/\bbg-accent\b/);
+  });
+
+  it.each(["cal.com/thienle/20min", "http://cal.com/x", "javascript:alert(1)", "", "   "])(
+    "renders nothing for the non-https value %j",
+    (bad) => {
+      render(<DirectLinks bookingUrl={bad} />);
+      expect(screen.queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+      expect(screen.getAllByRole("link")).toHaveLength(1);
+    },
+  );
+
+  it("labels the row so a list of links is not unexplained", () => {
+    render(<DirectLinks bookingUrl={url} />);
+    const list = screen.getByRole("list", { name: /skip the form/i });
+    expect(within(list).getAllByRole("link")).toHaveLength(2);
+  });
+});
+
+describe("Contact with a booking URL", () => {
+  it("shows the booking link once, outside the card, only when given", () => {
+    const { container, rerender } = render(<Contact emailDeliveryConfigured={false} />);
+    expect(screen.queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+    rerender(<Contact emailDeliveryConfigured={false} bookingUrl="https://cal.com/a/b" />);
+    expect(screen.getAllByRole("link", { name: /twenty minutes/i })).toHaveLength(1);
+    const aside = container.querySelector("aside") as HTMLElement;
+    expect(within(aside).queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+  });
+});

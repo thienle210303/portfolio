@@ -3,6 +3,7 @@ import Worlds from "@/sections/Worlds/Worlds";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import Contact from "@/sections/Contact/Contact";
 import Closing from "@/sections/Footer/Closing";
+import { validBookingUrl } from "@/lib/booking";
 
 export default function Home() {
   // Server-only check: this reads process.env directly in a Server
@@ -13,6 +14,10 @@ export default function Home() {
   const emailDeliveryConfigured = Boolean(
     process.env.RESEND_API_KEY && process.env.CONTACT_TO_EMAIL && process.env.CONTACT_FROM_EMAIL
   );
+
+  // The owner's scheduling link. Anything that is not an https:// URL (unset,
+  // empty, a typo) becomes undefined and Contact renders no booking link.
+  const bookingUrl = validBookingUrl(process.env.BOOKING_URL);
 
   return (
     <>
@@ -42,7 +47,7 @@ export default function Home() {
       <Hero />
       <Worlds />
       <CareerTree />
-      <Contact emailDeliveryConfigured={emailDeliveryConfigured} />
+      <Contact emailDeliveryConfigured={emailDeliveryConfigured} bookingUrl={bookingUrl} />
       <Closing />
     </>
   );
