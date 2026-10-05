@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { rotate, unproject, type Vec3 } from "@/lib/globe";
 import { SKIN_IDS } from "@/lib/skins";
@@ -13,6 +15,7 @@ import {
 import {
   REST_STATE,
   createSphere,
+  globeStroke,
   inverseRotation,
   parseCssColor,
   sphereView,
@@ -182,6 +185,26 @@ describe("sphereView", () => {
     expect(narrow.radius).toBeCloseTo(320 * 0.42 * 1.5, 12);
     expect(narrow.width).toBe(480);
     expect(narrow.height).toBe(750);
+  });
+
+  it("is globeStroke scaled by the ratio, so the two canvases share one disc", () => {
+    for (const [w, h, ratio] of [[800, 600, 2], [320, 500, 1.5], [1440, 900, 1]] as const) {
+      const css = globeStroke(w, h);
+      const device = sphereView(w, h, ratio);
+      expect(device.cx).toBeCloseTo(css.cx * ratio, 12);
+      expect(device.cy).toBeCloseTo(css.cy * ratio, 12);
+      expect(device.radius).toBeCloseTo(css.radius * ratio, 12);
+    }
+  });
+
+  it("is the only copy of the stroke maths: GlobeCanvas calls it rather than restating it", () => {
+    // A second inline copy is how the shaded planet and the markers on top of
+    // it would drift apart the first time someone retunes the disc.
+    const source = readFileSync(resolve(__dirname, "../../src/sections/Worlds/GlobeCanvas.tsx"), "utf8");
+    expect(source).toContain("globeStroke(rect.width, rect.height)");
+    expect(source).toContain("sphereView(rect.width, rect.height, ratio)");
+    expect(source).not.toMatch(/\*\s*0\.42/);
+    expect(source).not.toMatch(/\*\s*0\.44/);
   });
 });
 

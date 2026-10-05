@@ -53,13 +53,16 @@ type CanvasComponent = ComponentType<{
   readonly onSelect: (id: string) => void;
   readonly onLanded: () => void;
   readonly onReady: (controls: GlobeControls | null) => void;
+  readonly skinId: string | null;
+  readonly onSurfaceChange: (live: boolean) => void;
 }>;
 
 interface WorldsStageProps {
   readonly worlds: readonly ResolvedChapter[];
   readonly skins: readonly ResolvedSkin[];
-  /** True once a GL surface exists to draw a skin on. Nothing makes one yet,
-   *  so every skin button is `aria-disabled` and says it needs WebGL. */
+  /** Forces the skin dial on. The page never passes it: there the dial turns
+   *  on only when `GlobeCanvas` reports a live GL surface. Tests use it,
+   *  because jsdom has no WebGL to report one. */
   readonly skinsAvailable?: boolean;
   readonly crossingKm: number;
 }
@@ -69,11 +72,17 @@ interface WorldsStageProps {
  *  that a single press does not lose the marker you were looking at. */
 const KEY_STEP = (12 * Math.PI) / 180;
 
-export function WorldsStage({ worlds, skins, skinsAvailable = false, crossingKm }: WorldsStageProps) {
+export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false, crossingKm }: WorldsStageProps) {
   const [currentId, setCurrentId] = useState(worlds[0]?.id ?? "");
   const [announcement, setAnnouncement] = useState("");
   // At most one skin is worn; pressing the worn one again takes it off.
   const [skinId, setSkinId] = useState<string | null>(null);
+  // Whether the globe has a GL surface to wear a skin on. Reported by the lazy
+  // `GlobeCanvas` rather than probed here, so nothing WebGL reaches the
+  // initial bundle. Once the canvas falls back it never reports true again,
+  // so the dial stays disabled for the visit.
+  const [surfaceLive, setSurfaceLive] = useState(false);
+  const skinsAvailable = forceSkins || surfaceLive;
   const [Canvas, setCanvas] = useState<CanvasComponent | null>(null);
   // Set only on the `.catch()` path below, and never cleared: once the chunk
   // has failed there is no retry, so the resting label it drives ("Globe not
@@ -112,6 +121,12 @@ export function WorldsStage({ worlds, skins, skinsAvailable = false, crossingKm 
     },
     [skinsAvailable],
   );
+
+  const handleSurfaceChange = useCallback((live: boolean) => {
+    setSurfaceLive(live);
+    // A skin nothing can draw is not worn.
+    if (!live) setSkinId(null);
+  }, []);
 
   const handleReady = useCallback((controls: GlobeControls | null) => {
     controlsRef.current = controls;
@@ -292,6 +307,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable = false, crossingKm 
               onSelect={select}
               onLanded={handleLanded}
               onReady={handleReady}
+              skinId={skinsAvailable ? skinId : null}
+              onSurfaceChange={handleSurfaceChange}
             />
           ) : null}
         </div>

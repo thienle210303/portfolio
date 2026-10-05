@@ -2155,7 +2155,7 @@ test.describe("companion", () => {
     const stage = page.getByRole("group", { name: /playground earth/i });
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
     await expect.poll(() => held, { message: "the canvas chunk was never requested" }).toBeGreaterThan(0);
-    expect(await page.locator("#worlds canvas").count(), "the canvas was already there").toBe(0);
+    expect(await page.locator('#worlds canvas[data-chunk="globe-canvas"]').count(), "the canvas was already there").toBe(0);
 
     // The pointer on the stage is where the cats come to rest nearest the
     // reader, and the stage is the only empty ground there: a page nobody is
@@ -2212,7 +2212,7 @@ test.describe("companion", () => {
     expect(closest, "the cats never came near the stage while it was empty").toBeLessThan(150);
 
     release();
-    await expect(page.locator("#worlds canvas")).toHaveCount(1, { timeout: 30_000 });
+    await expect(page.locator('#worlds canvas[data-chunk="globe-canvas"]')).toHaveCount(1, { timeout: 30_000 });
     expect(await stage.evaluate((el) => el.getBoundingClientRect().height > 0)).toBe(true);
 
     // Now the canvas is mounted: for six seconds no still cat may have a

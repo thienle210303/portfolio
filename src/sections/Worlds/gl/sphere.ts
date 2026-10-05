@@ -52,18 +52,33 @@ export interface Sphere {
 }
 
 /**
- * GlobeCanvas's `view.stroke` (cx = w/2, cy = 0.44h, radius =
- * min(w, 0.82h) * 0.42), scaled to device pixels. The overlay draws in CSS
- * pixels through `setTransform(ratio, …)`, so scaling by the same ratio keeps
- * the two canvases on one disc.
+ * Where the disc sits in a stage of this CSS size: the one definition both
+ * canvases use. GlobeCanvas's overlay strokes with it in CSS pixels; the GL
+ * surface gets it scaled to device pixels through `sphereView`. Two copies of
+ * this maths would let the shaded planet and the markers drift apart.
+ */
+export function globeStroke(cssWidth: number, cssHeight: number): Viewport {
+  return {
+    cx: cssWidth / 2,
+    cy: cssHeight * 0.44,
+    radius: Math.min(cssWidth, cssHeight * 0.82) * 0.42,
+  };
+}
+
+/**
+ * `globeStroke` scaled to device pixels, plus the drawing-buffer size both
+ * canvases are given. The overlay draws in CSS pixels through
+ * `setTransform(ratio, …)`, so scaling by the same ratio keeps the two
+ * canvases on one disc.
  */
 export function sphereView(cssWidth: number, cssHeight: number, ratio: number): SphereView {
+  const stroke = globeStroke(cssWidth, cssHeight);
   return {
     width: Math.round(cssWidth * ratio),
     height: Math.round(cssHeight * ratio),
-    cx: (cssWidth / 2) * ratio,
-    cy: cssHeight * 0.44 * ratio,
-    radius: Math.min(cssWidth, cssHeight * 0.82) * 0.42 * ratio,
+    cx: stroke.cx * ratio,
+    cy: stroke.cy * ratio,
+    radius: stroke.radius * ratio,
   };
 }
 

@@ -10,6 +10,11 @@ const WORLDS = resolveChapters();
 // lazy canvas chunk does.
 const CANVAS_CHUNK_MARKER = "globe-canvas";
 
+/** The 2D overlay, which carries every handler and every positional stroke,
+ *  and the GL surface under it (present only while WebGL2 is drawing). */
+const OVERLAY = '#worlds canvas[data-chunk="globe-canvas"]';
+const SURFACE = "#worlds canvas[data-globe-surface]";
+
 test.describe("the worlds list is the feature; the canvas is decoration", () => {
   test("every world, plaque and source is reachable with the canvas chunk blocked", async ({
     page,
@@ -169,9 +174,14 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
  */
 async function measureGlobeFrames(page: Page, ms: number) {
   return page.evaluate(async (duration) => {
-    const canvas = document.querySelector<HTMLCanvasElement>("#worlds canvas");
-    if (!canvas) return { draws: -1, framesThatDrew: -1, pageHz: -1 };
-    let draws = 0;
+    const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
+    if (!canvas) return { draws: -1, overlayDraws: -1, glDraws: -1, framesThatDrew: -1, pageHz: -1 };
+    // The GL surface under the overlay, when there is one. Its draws count
+    // into `draws` too: a surface looping on its own would otherwise pass "at
+    // rest" with the overlay perfectly still.
+    const surface = document.querySelector<HTMLCanvasElement>("#worlds canvas[data-globe-surface]");
+    let overlayDraws = 0;
+    let glDraws = 0;
     let framesThatDrew = 0;
     let everything = 0;
     let drewInThisFrame = false;
@@ -185,11 +195,22 @@ async function measureGlobeFrames(page: Page, ms: number) {
       height: number,
     ) {
       if (this.canvas === canvas) {
-        draws += 1;
+        overlayDraws += 1;
         drewInThisFrame = true;
       }
       clearRect.call(this, x, y, width, height);
     };
+    const GL = window.WebGL2RenderingContext?.prototype;
+    const drawArrays = GL?.drawArrays;
+    if (GL && drawArrays) {
+      GL.drawArrays = function patched(this: WebGL2RenderingContext, mode: number, first: number, count: number) {
+        if (surface && this.canvas === surface) {
+          glDraws += 1;
+          drewInThisFrame = true;
+        }
+        drawArrays.call(this, mode, first, count);
+      };
+    }
     const raf = window.requestAnimationFrame;
     window.requestAnimationFrame = (callback) => {
       everything += 1;
@@ -205,8 +226,15 @@ async function measureGlobeFrames(page: Page, ms: number) {
     await new Promise((resolve) => setTimeout(resolve, duration));
 
     CanvasRenderingContext2D.prototype.clearRect = clearRect;
+    if (GL && drawArrays) GL.drawArrays = drawArrays;
     window.requestAnimationFrame = raf;
-    return { draws, framesThatDrew, pageHz: (everything * 1000) / duration };
+    return {
+      draws: overlayDraws + glDraws,
+      overlayDraws,
+      glDraws,
+      framesThatDrew,
+      pageHz: (everything * 1000) / duration,
+    };
   }, ms);
 }
 
@@ -259,7 +287,7 @@ async function expectAtRest(page: Page, ms: number, what: string, ceilingHz = CA
  *  cannot see. */
 async function globeSignature(page: Page) {
   return page.evaluate(() => {
-    const canvas = document.querySelector<HTMLCanvasElement>("#worlds canvas");
+    const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return "no canvas";
     const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -328,13 +356,78 @@ async function aimAtGlobe(page: Page, x: number, y: number) {
     ([px, py]) => {
       const element = document.elementFromPoint(px, py);
       if (!element) return "nothing";
-      return element.matches("#worlds canvas")
+      return element.matches('#worlds canvas[data-chunk="globe-canvas"]')
         ? "canvas"
         : `<${element.tagName.toLowerCase()} class="${element.getAttribute("class") ?? ""}">`;
     },
     [x, y] as const,
   );
   expect(hit, `a press at (${x}, ${y}) would land on ${hit}, not on the globe`).toBe("canvas");
+}
+
+/**
+ * The forced-colours probe: the authored accent is nowhere on the overlay,
+ * and each system ink the globe uses is somewhere on it. See the test that
+ * uses it first for why those are the two halves that survive compositing.
+ */
+async function drewInSystemInk(page: Page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
+    if (!canvas) return "no canvas";
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "no context";
+
+    const parse = (value: string) => {
+      const probe = document.createElement("canvas").getContext("2d");
+      if (!probe) return null;
+      probe.fillStyle = "#010203";
+      probe.fillStyle = value;
+      const hex = String(probe.fillStyle);
+      if (!/^#[0-9a-f]{6}$/i.test(hex)) return null;
+      return [
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16),
+      ] as const;
+    };
+    // The four the globe is allowed, resolved through the forced palette.
+    const names = ["Canvas", "CanvasText", "GrayText", "LinkText"] as const;
+    const allowed = names.map(parse);
+    // The one the globe must not have used, read straight off the element —
+    // forced colours leave custom properties alone, which is the trap. Only
+    // `--accent`: it is a distinctive blue that no blend of the forced inks
+    // can reach, whereas the near-black `--fg` is a few levels from any
+    // anti-aliased `CanvasText`, so testing for it would flag correct work.
+    const accent = parse(getComputedStyle(canvas).getPropertyValue("--accent").trim());
+    if (!accent || allowed.some((c) => c === null)) return "could not resolve the palettes";
+
+    const near = (
+      pixel: readonly [number, number, number],
+      colour: readonly [number, number, number],
+      tolerance: number,
+    ) =>
+      Math.abs(pixel[0] - colour[0]) <= tolerance &&
+      Math.abs(pixel[1] - colour[1]) <= tolerance &&
+      Math.abs(pixel[2] - colour[2]) <= tolerance;
+
+    const found = new Set<string>();
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < data.length; i += 4) {
+      // getImageData un-premultiplies, so anti-aliasing varies alpha and
+      // leaves RGB alone — except at low alpha, where the reconstruction has
+      // almost no bits left and drifts by tens of levels. Anything that
+      // faint is invisible and says nothing either way.
+      if (data[i + 3] < 200) continue;
+      const pixel = [data[i], data[i + 1], data[i + 2]] as const;
+      if (near(pixel, accent, 8)) return `the authored accent survived: ${pixel.join(",")}`;
+      allowed.forEach((ink, index) => {
+        if (ink && near(pixel, ink, 2)) found.add(names[index]);
+      });
+    }
+    const missing = names.filter((name) => !found.has(name));
+    if (missing.length > 0) return `nothing drawn in ${missing.join(", ")}`;
+    return "ok";
+  });
 }
 
 test.describe("the live globe", () => {
@@ -372,15 +465,17 @@ test.describe("the live globe", () => {
     // early return, or draws on only every Nth frame, this fails here instead
     // of quietly turning `expectAtRest` into a test of nothing.
     const moving = await measureGlobeFrames(page, 400);
-    expect(moving.draws, "the inertia was not drawing frame by frame").toBeGreaterThan(10);
-    // `draws` may lead by exactly one: the frame already queued when the
+    expect(moving.overlayDraws, "the inertia was not drawing frame by frame").toBeGreaterThan(10);
+    // The overlay's draws, not `draws`: with a GL surface every frame is two
+    // draws, one per canvas (the next test pins that pairing). `overlayDraws`
+    // may lead by exactly one: the frame already queued when the
     // instrumentation went in was scheduled through the real rAF, so its draw
     // is counted but its callback is not wrapped.
     expect(
-      moving.draws - moving.framesThatDrew,
-      `${moving.draws} draws across ${moving.framesThatDrew} frames — the loop no longer draws once per frame`,
+      moving.overlayDraws - moving.framesThatDrew,
+      `${moving.overlayDraws} draws across ${moving.framesThatDrew} frames — the loop no longer draws once per frame`,
     ).toBeLessThanOrEqual(1);
-    expect(moving.framesThatDrew).toBeLessThanOrEqual(moving.draws);
+    expect(moving.framesThatDrew).toBeLessThanOrEqual(moving.overlayDraws);
 
     // It rolled. Without this the rest of the test passes on a globe that
     // never moved, which is the one failure it exists to catch.
@@ -397,6 +492,75 @@ test.describe("the live globe", () => {
     expect(await globeSignature(page)).toBe(settled);
   });
 
+  test("the GL surface draws once per overlay draw while moving, and never on its own", async ({
+    page,
+  }) => {
+    // The surface has no loop of its own: it draws from inside the overlay's
+    // `draw()`. So while the planet moves, every overlay draw has exactly one
+    // GL draw beside it, and at rest both counts are zero. A surface that
+    // started a loop of its own would break the first half here, and
+    // `expectAtRest` (which counts GL draws into `draws`) the second.
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    test.skip(
+      (await page.locator(SURFACE).count()) === 0,
+      "no WebGL2 surface in this browser; the fallback tests cover that page",
+    );
+
+    const box = await stage.boundingBox();
+    if (!box) throw new Error("the stage has no box");
+    await aimAtGlobe(page, box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    for (let step = 1; step <= 10; step += 1) {
+      await page.mouse.move(box.x + box.width / 2 + step * 12, box.y + box.height / 2);
+    }
+    await page.mouse.up();
+
+    const moving = await measureGlobeFrames(page, 400);
+    expect(moving.glDraws, "the surface was not drawing while the planet moved").toBeGreaterThan(10);
+    expect(
+      moving.glDraws,
+      `${moving.glDraws} GL draws against ${moving.overlayDraws} overlay draws`,
+    ).toBe(moving.overlayDraws);
+
+    await page.waitForTimeout(3_000);
+    await expectAtRest(page, 1_500, "the GL surface after a drag");
+  });
+
+  test("a skin is worn on the GL surface with one draw, and no frames after", async ({ page }) => {
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    test.skip(
+      (await page.locator(SURFACE).count()) === 0,
+      "no WebGL2 surface in this browser; the fallback tests cover that page",
+    );
+    const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
+    const first = skins.getByRole("button").first();
+    // The dial is live because the surface is, and its names stop saying
+    // otherwise.
+    await expect(first).toHaveAttribute("aria-disabled", "false");
+    await expect(first).not.toHaveAccessibleName(/needs WebGL/i);
+
+    const [during] = await Promise.all([
+      measureGlobeFrames(page, 1_200),
+      (async () => {
+        await page.waitForTimeout(150);
+        await first.click();
+      })(),
+    ]);
+    await expect(first).toHaveAttribute("aria-pressed", "true");
+    // One redraw on the press, of both canvases, and nothing else: a skin is
+    // a look, not an animation.
+    expect(during.glDraws, "the press did not redraw the surface exactly once").toBe(1);
+    expect(during.overlayDraws).toBe(1);
+    await expectAtRest(page, 1_000, "after wearing a skin");
+
+    // Pressing it again takes it off.
+    await first.click();
+    await expect(first).toHaveAttribute("aria-pressed", "false");
+  });
+
   test("a pointercancel mid-drag ends the drag like a pointerup", async ({ page }) => {
     // The browser sends this, not pointerup, the moment it claims the gesture
     // for page scrolling. Handled differently, the planet keeps turning under
@@ -406,7 +570,7 @@ test.describe("the live globe", () => {
 
     const before = await globeSignature(page);
     await stage.evaluate((element) => {
-      const canvas = element.querySelector("canvas");
+      const canvas = element.querySelector<HTMLCanvasElement>('canvas[data-chunk="globe-canvas"]');
       if (!canvas) throw new Error("no canvas");
       const base = { bubbles: true, pointerId: 1, pointerType: "touch", clientX: 100, clientY: 100 };
       canvas.dispatchEvent(new PointerEvent("pointerdown", base));
@@ -446,7 +610,7 @@ test.describe("the live globe", () => {
 
     const press = (end: "pointerup" | "pointercancel") =>
       stage.evaluate((element, type) => {
-        const canvas = element.querySelector("canvas");
+        const canvas = element.querySelector<HTMLCanvasElement>('canvas[data-chunk="globe-canvas"]');
         if (!canvas) throw new Error("no canvas");
         const rect = canvas.getBoundingClientRect();
         // Dead centre of the near hemisphere, and not one pixel of movement,
@@ -477,9 +641,10 @@ test.describe("the live globe", () => {
     // orbit: a committed tap draws tens of frames here, and a gesture that
     // commits nothing wakes the loop just long enough to find nothing to do.
     // (Verified by mutation: dropping the `pointerup` guard makes this 29.)
+    // Overlay draws: one per frame whether or not a GL surface draws beside it.
     expect(
-      afterCancel.draws,
-      `a cancelled gesture moved the planet (${afterCancel.draws} frames)`,
+      afterCancel.overlayDraws,
+      `a cancelled gesture moved the planet (${afterCancel.overlayDraws} frames)`,
     ).toBeLessThanOrEqual(3);
     await expectAtRest(page, 1_000, "after a cancelled tap");
 
@@ -610,64 +775,29 @@ test.describe("the live globe", () => {
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
 
-    const drewInSystemInk = await page.evaluate(() => {
-      const canvas = document.querySelector<HTMLCanvasElement>("#worlds canvas");
-      if (!canvas) return "no canvas";
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return "no context";
+    await expect(page.locator(SURFACE), "a GL surface survived forced colours").toHaveCount(0);
+    expect(await drewInSystemInk(page)).toBe("ok");
+  });
 
-      const parse = (value: string) => {
-        const probe = document.createElement("canvas").getContext("2d");
-        if (!probe) return null;
-        probe.fillStyle = "#010203";
-        probe.fillStyle = value;
-        const hex = String(probe.fillStyle);
-        if (!/^#[0-9a-f]{6}$/i.test(hex)) return null;
-        return [
-          parseInt(hex.slice(1, 3), 16),
-          parseInt(hex.slice(3, 5), 16),
-          parseInt(hex.slice(5, 7), 16),
-        ] as const;
-      };
-      // The four the globe is allowed, resolved through the forced palette.
-      const names = ["Canvas", "CanvasText", "GrayText", "LinkText"] as const;
-      const allowed = names.map(parse);
-      // The one the globe must not have used, read straight off the element —
-      // forced colours leave custom properties alone, which is the trap. Only
-      // `--accent`: it is a distinctive blue that no blend of the forced inks
-      // can reach, whereas the near-black `--fg` is a few levels from any
-      // anti-aliased `CanvasText`, so testing for it would flag correct work.
-      const accent = parse(getComputedStyle(canvas).getPropertyValue("--accent").trim());
-      if (!accent || allowed.some((c) => c === null)) return "could not resolve the palettes";
-
-      const near = (
-        pixel: readonly [number, number, number],
-        colour: readonly [number, number, number],
-        tolerance: number,
-      ) =>
-        Math.abs(pixel[0] - colour[0]) <= tolerance &&
-        Math.abs(pixel[1] - colour[1]) <= tolerance &&
-        Math.abs(pixel[2] - colour[2]) <= tolerance;
-
-      const found = new Set<string>();
-      const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < data.length; i += 4) {
-        // getImageData un-premultiplies, so anti-aliasing varies alpha and
-        // leaves RGB alone — except at low alpha, where the reconstruction has
-        // almost no bits left and drifts by tens of levels. Anything that
-        // faint is invisible and says nothing either way.
-        if (data[i + 3] < 200) continue;
-        const pixel = [data[i], data[i + 1], data[i + 2]] as const;
-        if (near(pixel, accent, 8)) return `the authored accent survived: ${pixel.join(",")}`;
-        allowed.forEach((ink, index) => {
-          if (ink && near(pixel, ink, 2)) found.add(names[index]);
-        });
-      }
-      const missing = names.filter((name) => !found.has(name));
-      if (missing.length > 0) return `nothing drawn in ${missing.join(", ")}`;
-      return "ok";
-    });
-    expect(drewInSystemInk).toBe("ok");
+  test("forced colours switched on later take the surface away and keep the system inks", async ({
+    page,
+  }) => {
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    test.skip(
+      (await page.locator(SURFACE).count()) === 0,
+      "no WebGL2 surface to take away in this browser; the load-time forced-colours test covers it",
+    );
+    await page.emulateMedia({ forcedColors: "active" });
+    await expect(page.locator(SURFACE)).toHaveCount(0);
+    // The overlay redrew with its own coastlines, in system ink.
+    await expect.poll(() => drewInSystemInk(page), { timeout: 5_000 }).toBe("ok");
+    const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
+    for (const button of await skins.getByRole("button").all()) {
+      await expect(button).toHaveAttribute("aria-disabled", "true");
+      await expect(button).toHaveAccessibleName(/needs WebGL/i);
+    }
+    await expectAtRest(page, 1_500, "after forced colours dropped the surface");
   });
 
   test("a theme switch at rest redraws the globe in the new ink", async ({ page }) => {
@@ -699,7 +829,7 @@ test.describe("the live globe", () => {
     // it is positioned over the stage, so its own touch-action is the one the
     // browser consults, and the stage's pan-y would not save the page.
     const canvasTouchAction = await stage.evaluate((element) => {
-      const canvas = element.querySelector("canvas");
+      const canvas = element.querySelector<HTMLCanvasElement>('canvas[data-chunk="globe-canvas"]');
       return canvas ? getComputedStyle(canvas).touchAction : "no canvas";
     });
     expect(canvasTouchAction).toBe("pan-y");
@@ -811,7 +941,7 @@ test.describe("Living Earth owns both ends of the crossing", () => {
     await list.getByRole("button", { name: /Plants/ }).click();
     await expect(list.getByRole("button", { name: /Plants/ })).toHaveAttribute("aria-current", "true");
 
-    const canvas = page.locator('#worlds canvas[data-chunk="globe-canvas"]');
+    const canvas = page.locator(OVERLAY);
     await canvas.scrollIntoViewIfNeeded();
     const box = await canvas.boundingBox();
     if (!box) throw new Error("the canvas has no box");
@@ -951,7 +1081,7 @@ test.describe("reduced motion", () => {
           count += 1;
           return original.call(window, callback);
         };
-        const canvas = document.querySelector<HTMLCanvasElement>("#worlds canvas");
+        const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
         // Dispatched in-page for the same reason the press above is: the
         // counter has to be installed before the gesture, or the frames the
         // gesture causes cannot be told from the ones it did not.
@@ -1047,5 +1177,79 @@ test.describe("reduced motion", () => {
     // is the one site that measures a genuinely silent page — no cats — so it
     // is held to `SILENT_HZ` rather than to the ceiling the other seven need.
     await expectAtRest(page, 700, "after picking a world under reduced motion", SILENT_HZ);
+  });
+});
+
+/**
+ * How many pixels of the overlay carry any ink. Coastlines are the bulk of
+ * what the overlay stops drawing once a GL surface takes them, so this is how
+ * the fallback test tells "coastlines drawn" from "coastlines left to a
+ * surface that is not there".
+ */
+async function overlayInk(page: Page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return -1;
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let inked = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 0) inked += 1;
+    return inked;
+  });
+}
+
+test.describe("without WebGL2", () => {
+  test("the shipped 2D globe draws, coastlines and all, and the skin dial says why it is off", async ({
+    page,
+    browser,
+  }) => {
+    // Every webgl2 request answers null, which is what a browser without
+    // WebGL2 (or with it blocklisted) does.
+    await page.addInitScript(() => {
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function getContext(
+        this: HTMLCanvasElement,
+        type: string,
+        options?: unknown,
+      ) {
+        if (type === "webgl2") return null;
+        return original.call(this, type as "2d", options as CanvasRenderingContext2DSettings);
+      } as typeof original;
+    });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+
+    await expect(page.locator(SURFACE)).toHaveCount(0);
+    expect(await globeSignature(page), "the fallback globe drew nothing").not.toBe("0");
+    const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
+    for (const button of await skins.getByRole("button").all()) {
+      await expect(button).toHaveAttribute("aria-disabled", "true");
+      await expect(button).toHaveAccessibleName(/needs WebGL/i);
+    }
+    await expectAtRest(page, 1_500, "the fallback globe, untouched");
+
+    // The control: the same page, same viewport, same untouched view, with
+    // WebGL2 left alone. With a surface, its overlay leaves the coastlines to
+    // the shader, so the fallback overlay must carry clearly more ink.
+    // Without this the assertions above pass on a fallback that forgot the
+    // coastlines.
+    const fallbackInk = await overlayInk(page);
+    const context = await browser.newContext({ viewport: page.viewportSize() ?? undefined });
+    const control = await context.newPage();
+    try {
+      await control.goto("/#worlds");
+      await waitForLiveGlobe(control);
+      test.skip(
+        (await control.locator(SURFACE).count()) === 0,
+        "the control page has no WebGL2 either, so there is no coastline-free overlay to compare against",
+      );
+      const glInk = await overlayInk(control);
+      expect(
+        fallbackInk,
+        `fallback overlay ${fallbackInk} inked pixels, GL overlay ${glInk}: the fallback is not drawing the coastlines`,
+      ).toBeGreaterThan(glInk * 1.1);
+    } finally {
+      await context.close();
+    }
   });
 });

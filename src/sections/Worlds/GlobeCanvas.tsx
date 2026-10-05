@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   clampTilt,
   easeFraction,
@@ -21,10 +21,32 @@ import { coLocatedWorldIds, type ResolvedChapter } from "@/lib/worlds";
 import type { GlobeControls } from "./WorldsStage";
 import { GLYPHS } from "./glyphs";
 import { COASTLINES } from "./coastline-data";
+import { acquireRenderer, pickSurface } from "./gl/context";
+import { bakeCoastlineTexture, type CoastlineTexture } from "./gl/coastline-texture";
+import {
+  createSphere,
+  globeStroke,
+  parseCssColor,
+  REST_STATE,
+  sphereView,
+  type Sphere,
+  type SphereColors,
+  type SphereView,
+} from "./gl/sphere";
+import { CHAPTER_INDEX, SKIN_INDEX } from "./gl/shaders";
 
 /**
- * The planet. No dependency, one canvas, and zero animation frames once it
- * stops moving.
+ * The planet. No dependency, and zero animation frames once it stops moving.
+ *
+ * ## Two canvases
+ *
+ * The 2D canvas (`data-chunk="globe-canvas"`) carries every handler and every
+ * stroke with a position: limb, graticule, crossing, bird, markers, satellite,
+ * plinth, cats. Under it, when WebGL2 works, a GL surface
+ * (`data-globe-surface`) shades the planet itself: its fill and its
+ * coastlines. The surface draws only from inside `draw()`, so it has no loop
+ * of its own and rests exactly when the overlay rests. Without a surface the
+ * overlay strokes the coastlines itself, which is the globe as it shipped.
  *
  * ## Why this file is imperative
  *
@@ -102,6 +124,11 @@ interface GlobeCanvasProps {
   readonly onSelect: (id: string) => void;
   readonly onLanded: () => void;
   readonly onReady: (controls: GlobeControls | null) => void;
+  /** The worn skin's id, or null. Only a live GL surface can draw one. */
+  readonly skinId: string | null;
+  /** True while a GL surface is drawing the planet; false once it has gone
+   *  for good (no WebGL2, a failed program, a lost context, forced colours). */
+  readonly onSurfaceChange: (live: boolean) => void;
 }
 
 const DEG = Math.PI / 180;
@@ -279,17 +306,56 @@ function palette(element: Element): Palette {
   };
 }
 
+/**
+ * The GL surface's three inputs, read off the element the same way `palette()`
+ * reads the overlay's, so the planet follows the tone it sits in as well as
+ * the theme. `key` is the raw strings, for "did anything change since the
+ * last upload". `colors` is null when any of them does not parse.
+ */
+function sphereColors(element: Element): { key: string; colors: SphereColors | null } {
+  const style = getComputedStyle(element);
+  const ink = style.getPropertyValue("--fg").trim();
+  const paper = style.getPropertyValue("--ground").trim();
+  const accent = style.getPropertyValue("--accent").trim();
+  const parsed = [ink, paper, accent].map(parseCssColor);
+  const [i, p, a] = parsed;
+  return {
+    key: `${ink}|${paper}|${accent}`,
+    colors: i && p && a ? { ink: i, paper: p, accent: a } : null,
+  };
+}
+
+/** Baked once per page: ~40 ms, and the rings never change. */
+let coverage: CoastlineTexture | null = null;
+function coastlineCoverage(): CoastlineTexture {
+  coverage ??= bakeCoastlineTexture(COASTLINES, 2048, 1024);
+  return coverage;
+}
+
 export default function GlobeCanvas({
   worlds,
   currentId,
   onSelect,
   onLanded,
   onReady,
+  skinId,
+  onSurfaceChange,
 }: GlobeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentIdRef = useRef(currentId);
   const onSelectRef = useRef(onSelect);
   const onLandedRef = useRef(onLanded);
+  const skinIdRef = useRef(skinId);
+  const onSurfaceChangeRef = useRef(onSurfaceChange);
+
+  /* The GL surface under the overlay. `surface` says whether its element is
+     rendered at all; it starts true and only ever goes false, because every
+     reason to drop it (no WebGL2, a failed program, a lost context, forced
+     colours) is a reason not to try again on this visit. `sphereRef` holds the
+     live renderer and the colour strings it was last given. */
+  const surfaceRef = useRef<HTMLCanvasElement>(null);
+  const [surface, setSurface] = useState(true);
+  const sphereRef = useRef<{ sphere: Sphere; key: string } | null>(null);
 
   // One mutable bag, deliberately. See the file's own note on why none of this
   // is React state.
@@ -324,6 +390,8 @@ export default function GlobeCanvas({
     hits: [] as Hit[],
     size: { width: 0, height: 0 },
     stroke: { cx: 0, cy: 0, radius: 0, plinth: 0 } as Viewport & { plinth: number },
+    /** The same disc in device pixels, for the GL surface. */
+    device: { width: 0, height: 0, cx: 0, cy: 0, radius: 0 } as SphereView,
   });
 
   /**
@@ -412,7 +480,33 @@ export default function GlobeCanvas({
     ctx.fillText((companions[0]?.name ?? "").toUpperCase(), catX, catY + 20);
     ctx.fillText((companions[1]?.name ?? "").toUpperCase(), catX + 34, catY + 20);
 
-    /* The ball: limb, graticule, coastlines. */
+    /* The planet's surface, when a GL surface is live: the fill and the
+       coastlines, from the same spin and tilt as every stroke below, in the
+       same call as the overlay's own draw. That is the whole of its render
+       loop — it never asks for a frame of its own, so it rests when this does. */
+    const held = sphereRef.current;
+    if (held) {
+      const read = sphereColors(canvas);
+      if (read.key !== held.key && read.colors) {
+        held.sphere.setColors(read.colors);
+        held.key = read.key;
+      }
+      const skin = skinIdRef.current;
+      held.sphere.draw(
+        {
+          spin: v.spin,
+          tilt: v.tilt,
+          chapter: CHAPTER_INDEX[currentIdRef.current] ?? REST_STATE.chapter,
+          skin: skin !== null && skin in SKIN_INDEX ? SKIN_INDEX[skin as keyof typeof SKIN_INDEX] : -1,
+          crossing: v.flight,
+          robot: REST_STATE.robot,
+        },
+        v.device,
+      );
+    }
+
+    /* The ball: limb, graticule, and — only when there is no GL surface to
+       draw them — the coastlines. */
     ctx.strokeStyle = c.subtle;
     ctx.beginPath();
     ctx.arc(geo.cx, geo.cy, geo.radius, 0, Math.PI * 2);
@@ -423,22 +517,24 @@ export default function GlobeCanvas({
     for (const line of GRATICULE) polyline(line);
     ctx.stroke();
 
-    ctx.strokeStyle = c.subtle;
-    ctx.globalAlpha = 0.85;
-    ctx.beginPath();
-    for (const ring of COASTLINES) {
-      let previous: { x: number; y: number; front: boolean } | null = null;
-      for (let i = 0; i < ring.length; i += 2) {
-        const p = at({ lon: ring[i], lat: ring[i + 1] });
-        if (previous && previous.front && p.front) {
-          ctx.moveTo(previous.x, previous.y);
-          ctx.lineTo(p.x, p.y);
+    if (!held) {
+      ctx.strokeStyle = c.subtle;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      for (const ring of COASTLINES) {
+        let previous: { x: number; y: number; front: boolean } | null = null;
+        for (let i = 0; i < ring.length; i += 2) {
+          const p = at({ lon: ring[i], lat: ring[i + 1] });
+          if (previous && previous.front && p.front) {
+            ctx.moveTo(previous.x, previous.y);
+            ctx.lineTo(p.x, p.y);
+          }
+          previous = p;
         }
-        previous = p;
       }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
 
     /* The crossing, drawn only as far as he has flown. */
     if (v.flight > 0) {
@@ -859,14 +955,18 @@ export default function GlobeCanvas({
       const ratio = Math.min(2, window.devicePixelRatio || 1);
       const v = view.current;
       v.size = { width: rect.width, height: rect.height };
-      v.stroke = {
-        cx: rect.width / 2,
-        cy: rect.height * 0.44,
-        radius: Math.min(rect.width, rect.height * 0.82) * 0.42,
-        plinth: rect.height * 0.44 + Math.min(rect.width, rect.height * 0.82) * 0.42 + 26,
-      };
-      canvas.width = Math.round(rect.width * ratio);
-      canvas.height = Math.round(rect.height * ratio);
+      const stroke = globeStroke(rect.width, rect.height);
+      v.stroke = { ...stroke, plinth: stroke.cy + stroke.radius + 26 };
+      // One helper sizes both buffers, so the shaded disc and the strokes on
+      // top of it are the same disc at every size and ratio.
+      v.device = sphereView(rect.width, rect.height, ratio);
+      canvas.width = v.device.width;
+      canvas.height = v.device.height;
+      const surfaceCanvas = surfaceRef.current;
+      if (surfaceCanvas) {
+        surfaceCanvas.width = v.device.width;
+        surfaceCanvas.height = v.device.height;
+      }
       const ctx = canvas.getContext("2d");
       ctx?.setTransform(ratio, 0, 0, ratio, 0, 0);
       draw();
@@ -876,6 +976,73 @@ export default function GlobeCanvas({
     if (canvas.parentElement) observer.observe(canvas.parentElement);
     return () => observer.disconnect();
   }, [draw]);
+
+  /* The latest `draw`, for the surface effect below. That effect must run once
+     per mount, not once per `draw` identity: re-running it re-compiles the
+     program and re-uploads the texture. */
+  const drawRef = useRef(draw);
+  useEffect(() => {
+    drawRef.current = draw;
+  }, [draw]);
+
+  /* The GL surface: acquire, build, decide — and keep deciding. `pickSurface`
+     makes the call at mount; a lost context or forced colours switching on
+     later make the same call again, the same way. Falling back removes the
+     element and redraws the overlay with its coastlines, which is the globe
+     that shipped before there was a surface at all. Declared after the sizing
+     effect so the surface already has its size when the first draw lands. */
+  useEffect(() => {
+    const element = surfaceRef.current;
+    const overlay = canvasRef.current;
+    if (!element || !overlay) return;
+    const forced = window.matchMedia("(forced-colors: active)");
+    const renderer = acquireRenderer(element);
+    const gl = renderer.kind === "webgl" ? renderer.gl : null;
+    const read = sphereColors(overlay);
+    const sphere =
+      gl && read.colors ? createSphere(gl, { coverage: coastlineCoverage(), colors: read.colors }) : null;
+    const choice = pickSurface({ gl, program: sphere?.program ?? null, forcedColors: forced.matches });
+
+    if (!choice.useGl || !sphere) {
+      sphere?.dispose();
+      // The overlay has drawn its coastlines from the start, because
+      // `sphereRef` was never set; all that is left is to take the empty
+      // surface away and tell the stage the skins cannot be worn.
+      setSurface(false);
+      onSurfaceChangeRef.current(false);
+      return;
+    }
+
+    let live = true;
+    const stop = () => {
+      live = false;
+      sphereRef.current = null;
+      sphere.dispose();
+      onSurfaceChangeRef.current(false);
+    };
+    const fallBack = () => {
+      if (!live) return;
+      stop();
+      setSurface(false);
+      // At rest nothing else would redraw, and the coastlines have to come
+      // back onto the overlay in the same moment the surface leaves.
+      drawRef.current();
+    };
+    sphereRef.current = { sphere, key: read.key };
+    onSurfaceChangeRef.current(true);
+    drawRef.current();
+
+    const forcedChange = () => {
+      if (forced.matches) fallBack();
+    };
+    element.addEventListener("webglcontextlost", fallBack);
+    forced.addEventListener("change", forcedChange);
+    return () => {
+      element.removeEventListener("webglcontextlost", fallBack);
+      forced.removeEventListener("change", forcedChange);
+      if (live) stop();
+    };
+  }, []);
 
   /* A theme switch at rest produces no frame, so ask for exactly one — and the
      same is true of turning High Contrast on, which changes nothing about this
@@ -905,8 +1072,10 @@ export default function GlobeCanvas({
     currentIdRef.current = currentId;
     onSelectRef.current = onSelect;
     onLandedRef.current = onLanded;
+    skinIdRef.current = skinId;
+    onSurfaceChangeRef.current = onSurfaceChange;
     draw();
-  }, [currentId, draw, onLanded, onSelect]);
+  }, [currentId, draw, onLanded, onSelect, onSurfaceChange, skinId]);
 
   /* Pointer: drag to roll, tap to open, and rolling east flies him. */
   useEffect(() => {
@@ -1099,15 +1268,27 @@ export default function GlobeCanvas({
   }, [draw, lookAt, onReady, start, worlds]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      // The one string `e2e/worlds.spec.ts` recognises this chunk by. Bundlers
-      // name chunks however they like, so the test reads content, not URLs.
-      // Keep it here and nowhere else.
-      data-chunk="globe-canvas"
-      // pan-y, never none. See WorldsStage.
-      className="absolute inset-0 block h-full w-full touch-pan-y"
-    />
+    <>
+      {surface ? (
+        // Under the overlay by document order, and never a pointer target:
+        // every press belongs to the canvas above it.
+        <canvas
+          ref={surfaceRef}
+          aria-hidden="true"
+          data-globe-surface=""
+          className="pointer-events-none absolute inset-0 block h-full w-full"
+        />
+      ) : null}
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        // The one string `e2e/worlds.spec.ts` recognises this chunk by. Bundlers
+        // name chunks however they like, so the test reads content, not URLs.
+        // Keep it here and nowhere else.
+        data-chunk="globe-canvas"
+        // pan-y, never none. See WorldsStage.
+        className="absolute inset-0 block h-full w-full touch-pan-y"
+      />
+    </>
   );
 }
