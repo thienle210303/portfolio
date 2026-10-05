@@ -83,10 +83,10 @@ test.describe("hero", () => {
   test("code artifact tabs switch panels via mouse and keyboard", async ({ page }) => {
     const tablist = page.getByRole("tablist", { name: "Code artifact tabs" });
     const tabs = tablist.getByRole("tab");
-    // The three authored code tabs plus "Ask Thien" (round 12, WP-K) — the
-    // mini chat rides the same tablist but is not a codeTabs member; its own
-    // behavior is pinned in e2e/ask.spec.ts.
-    await expect(tabs).toHaveCount(codeTabs.length + 1);
+    // Exactly the authored code tabs. Through round 17 a fourth, "Ask
+    // Thien", rode the same tablist; round 18 moved the chat to Contact's
+    // `#ask`, and its behaviour is pinned in e2e/ask.spec.ts.
+    await expect(tabs).toHaveCount(codeTabs.length);
 
     // Click-and-verify as one retried unit: `networkidle` in beforeEach only
     // approximates "the islands are live" (its own comment says so), and

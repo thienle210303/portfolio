@@ -1877,6 +1877,37 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Ask, in Contact — the room the chat will take, held before it arrives       */
+/* -------------------------------------------------------------------------- */
+/* `AskLoader` imports the chat as `#ask` nears the viewport. Without a        */
+/* reserved height the placeholder is empty and the chat ~43-68rem, so the    */
+/* swap pushed `#closing` down by ~570px under a reader already looking at    */
+/* it (End key, a jump to the bottom). These floors sit just under the idle    */
+/* chat's measured height at each breakpoint (1091/979px at 320/375, 740px    */
+/* at 640, 691-801px from 768 up), so the swap grows the slot by tens of      */
+/* pixels instead of hundreds. Gated on `html[data-motion]`, which the        */
+/* pre-paint script in layout.tsx stamps unconditionally — i.e. "JavaScript   */
+/* runs": with it off the chat never comes, and a 60rem hole around one      */
+/* <noscript> line would be the only thing left. The slot must carry no       */
+/* `min-h-*` utility: the utilities layer would win over this one.            */
+/* -------------------------------------------------------------------------- */
+@layer components {
+  html[data-motion] [data-ask-slot] {
+    min-height: 60rem;
+  }
+  @media (width >= 40rem) {
+    html[data-motion] [data-ask-slot] {
+      min-height: 45rem;
+    }
+  }
+  @media (width >= 48rem) {
+    html[data-motion] [data-ask-slot] {
+      min-height: 43rem;
+    }
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* Journey stage — the pinned tree and its seven acts                          */
 /*                                                                             */
 /* `Stage.tsx` is the markup and the two numbers JavaScript supplies (which    */

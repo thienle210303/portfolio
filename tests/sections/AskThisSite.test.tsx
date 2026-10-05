@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import AskThisSite, { clearThreadCache } from "@/sections/Hero/AskThisSite";
+import AskThisSite, { clearThreadCache } from "@/sections/Contact/AskThisSite";
 import { answer } from "@/lib/answers";
 
 /**
@@ -79,8 +79,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  // The thread now lives in module scope (so it survives a tab switch --
-  // see the comment above `cachedTurns` in AskThisSite.tsx), which means it
+  // The thread lives in module scope (so it survives an unmount and remount
+  // -- see the comment above `threadCache` in AskThisSite.tsx), which means it
   // also survives from one test in this file to the next unless something
   // clears it. Every pre-existing test here renders a fresh component
   // expecting an empty thread, so isolation has to cover the whole file,
@@ -196,7 +196,8 @@ describe("thread persistence across unmount", () => {
     const question = await screen.findByText("What did Thien build at DoorDash?");
     expect(question).toBeInTheDocument();
 
-    // The tab switch: Tabs unmounts the panel that is not active.
+    // An unmount and remount: today a client-side trip to /resume and back
+    // (through round 17, a switch of the hero's code tabs).
     first.unmount();
     render(<AskThisSite liveModeConfigured={false} />);
 
@@ -214,7 +215,7 @@ describe("thread persistence across unmount", () => {
     await user.click(screen.getByRole("button", { name: "What does he do at DoorDash?" }));
     await screen.findByRole("tablist", { name: "Answer view" });
 
-    // The tab switch: unmount (a `useRef(0)` counter would reset here, even
+    // An unmount (a `useRef(0)` counter would reset here, even
     // though the restored thread below keeps its old ids) and remount.
     first.unmount();
     render(<AskThisSite liveModeConfigured={false} />);
@@ -298,8 +299,8 @@ describe("thread persistence across unmount -- live mode in flight", () => {
 
     expect(await screen.findByText(/Asking the live model/)).toBeInTheDocument();
 
-    // The tab switch: the panel that asked the question -- and is waiting on
-    // its response -- unmounts before the network call returns.
+    // An unmount: the chat that asked the question -- and is waiting on its
+    // response -- goes away before the network call returns.
     first.unmount();
 
     resolveFetch({

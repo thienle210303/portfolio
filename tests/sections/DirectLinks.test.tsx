@@ -29,7 +29,7 @@ describe("the no-form row", () => {
 
 describe("Contact with the no-form row", () => {
   it("renders the résumé link once, outside the business card aside", () => {
-    const { container } = render(<Contact emailDeliveryConfigured={false} />);
+    const { container } = render(<Contact emailDeliveryConfigured={false} askLiveModeConfigured={false} />);
     const asides = container.querySelectorAll("aside");
     expect(asides).toHaveLength(1);
     expect(within(asides[0] as HTMLElement).queryByRole("link", { name: /résumé/i })).toBeNull();
@@ -75,9 +75,9 @@ describe("booking in the no-form row", () => {
 
 describe("Contact with a booking URL", () => {
   it("shows the booking link once, outside the card, only when given", () => {
-    const { container, rerender } = render(<Contact emailDeliveryConfigured={false} />);
+    const { container, rerender } = render(<Contact emailDeliveryConfigured={false} askLiveModeConfigured={false} />);
     expect(screen.queryByRole("link", { name: /twenty minutes/i })).toBeNull();
-    rerender(<Contact emailDeliveryConfigured={false} bookingUrl="https://cal.com/a/b" />);
+    rerender(<Contact emailDeliveryConfigured={false} askLiveModeConfigured={false} bookingUrl="https://cal.com/a/b" />);
     expect(screen.getAllByRole("link", { name: /twenty minutes/i })).toHaveLength(1);
     const aside = container.querySelector("aside") as HTMLElement;
     expect(within(aside).queryByRole("link", { name: /twenty minutes/i })).toBeNull();

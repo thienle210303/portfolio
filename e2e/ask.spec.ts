@@ -2,13 +2,14 @@ import { test, expect, type Page } from "@playwright/test";
 import { navItems } from "../src/content/portfolio";
 
 /**
- * "Ask this site" — a chat thread over the portfolio's own content. Since
- * round 12 (WP-K) this file also owned the hero's compact code artifact and
- * its fourth tab, "Ask Thien"; since round 16 that tab is the *only* place
- * the chat lives. The Lab used to render this same component (`AskThisSite`)
- * directly in its own section; that static import is gone, so the chat no
- * longer exists anywhere until a visitor opens the hero's "Ask Thien" tab.
- * Every hero-chat e2e test still belongs here, not in `sections.spec.ts`.
+ * "Ask this site" — a chat thread over the portfolio's own content. Rounds 16
+ * and 17 kept it behind the hero code artifact's fourth tab, "Ask Thien";
+ * round 18 moved it to Contact, under "Ask about my work" (`#ask`), and the
+ * hero went back to three code tabs. The chat is still a lazily imported
+ * chunk: it does not exist on the page until `#ask` nears the viewport
+ * (`AskLoader.tsx`). Every chat e2e test belongs here, not in
+ * `sections.spec.ts`, along with the hero artifact's compact rendering,
+ * which this file has owned since round 12 (WP-K).
  *
  * The property worth testing is not answer quality — that is pinned by unit
  * tests against the index in tests/lib/answers.test.ts, and the live-mode
@@ -29,22 +30,25 @@ function viewportWidth(page: Page): number {
   return page.viewportSize()?.width ?? 0;
 }
 
+/** The chat's home in Contact (round 18): a wrapper with a stable id. */
+function askBlock(page: Page) {
+  return page.locator("#ask");
+}
+
 /**
- * The chat moved out of the Lab and into the hero's code artifact (round 16).
- * Reaching it is now: load the page, select the fourth tab. The panel is a
- * lazily imported chunk, so the wait is for the question field, not for the
- * tab's own click to settle.
+ * Reaching the chat: load the page, bring `#ask` into view. The chat is a
+ * lazily imported chunk that starts loading as the block nears the viewport,
+ * so the wait is for the question field, not for the scroll to settle.
  */
-async function openHeroChat(page: Page) {
+async function openChat(page: Page) {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Ask Thien" }).click();
+  await askBlock(page).scrollIntoViewIfNeeded();
   await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
 }
 
 /** The conversation list — one `<li>` per question asked so far. Unscoped:
- *  the chat now mounts in exactly one place on the page (the hero's "Ask
- *  Thien" panel, and only while it is the active tab), so there is nothing
- *  else on the page this could accidentally match. */
+ *  the chat mounts in exactly one place on the page (Contact's `#ask`), so
+ *  there is nothing else on the page this could accidentally match. */
 function conversation(page: Page) {
   return page.getByRole("list", { name: "Conversation" });
 }
@@ -84,7 +88,7 @@ function questionField(page: Page) {
 test.describe("ask this site", () => {
   test("answers a suggested question with sourced, linked evidence", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     await page.getByRole("button", { name: "What does he do at DoorDash?" }).click();
 
@@ -112,7 +116,7 @@ test.describe("ask this site", () => {
 
   test("says so plainly when the site has no answer, and invents nothing", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     await questionField(page).fill("what is the capital of France");
     await page.keyboard.press("Enter");
@@ -124,7 +128,7 @@ test.describe("ask this site", () => {
 
   test("works with the network offline — there is no model to fetch", async ({ page, context }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     // Everything the feature needs already shipped with the page. If a model
     // or an API ever creeps in behind this box while live mode is off, this
@@ -137,9 +141,9 @@ test.describe("ask this site", () => {
 
   test("every suggested question is a live control, not a dead one", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
-    const suggestions = page.locator('[data-hero-step="code"] ul li button');
+    const suggestions = askBlock(page).locator('[aria-label="Try asking"] button');
     const count = await suggestions.count();
     expect(count).toBeGreaterThan(0);
 
@@ -156,7 +160,7 @@ test.describe("ask this site", () => {
 
   test("offers the same answer as a code artifact, one view at a time", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     await page.getByRole("button", { name: "Where did he study?" }).click();
     const turn = lastTurn(page);
@@ -190,7 +194,7 @@ test.describe("ask this site", () => {
 
   test("the code view is reachable by keyboard alone", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     await page.getByRole("button", { name: "Where did he study?" }).click();
     const turn = lastTurn(page);
@@ -205,7 +209,7 @@ test.describe("ask this site", () => {
 
   test("is keyboard operable end to end", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     const field = questionField(page);
     await field.focus();
@@ -216,7 +220,7 @@ test.describe("ask this site", () => {
 
   test("is a real thread: every turn stays in the thread, in order, and the thread scrolls — not the page", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     // Round 10's contract was "every question asked stays on screen" — an
     // unbounded thread made that literally true by growing the *page* one
@@ -264,7 +268,7 @@ test.describe("ask this site", () => {
 
   test("scrolls the thread window internally, without the page lurching to follow it", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     // A real bug found while building this: `lastTurn.scrollIntoView()`
     // walks every scrollable ancestor, including the page — Chromium will
@@ -274,9 +278,9 @@ test.describe("ask this site", () => {
     // detached repro scrolled `window.scrollY` by five figures for a target
     // already inside a correctly-configured `overflow:auto` box). The fix
     // scrolls the log region itself via `Element.scrollTo()`, which is
-    // scoped to that one box and never touches an ancestor. The hero sits at
-    // the top of the page, so there is no large pre-existing scroll to undo
-    // here the way there was when the chat lived in the Lab further down.
+    // scoped to that one box and never touches an ancestor. `openChat` has
+    // already scrolled the page to `#ask`, so this measures movement from
+    // there, not from the top.
     const windowScrollBefore = await page.evaluate(() => window.scrollY);
 
     for (const question of [
@@ -305,7 +309,7 @@ test.describe("ask this site", () => {
 
   test("the scroll region is keyboard-reachable, with a proper accessible name, and does not trap focus", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     // Idle: nothing to scroll yet, so no extra tab stop.
     await expect(conversationLog(page)).not.toHaveAttribute("tabindex");
@@ -326,7 +330,7 @@ test.describe("ask this site", () => {
 
   test("Clear conversation is state-only: it appears once a turn exists, empties the thread, and returns focus to the input", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     await expect(page.getByRole("button", { name: "Clear conversation" })).toHaveCount(0);
 
@@ -341,18 +345,17 @@ test.describe("ask this site", () => {
     await expect(questionField(page)).toBeFocused();
 
     // Nothing was ever persisted, so a fresh page load starts empty either
-    // way. `openHeroChat` already does a full `page.goto("/")` -- a second,
-    // separate reload before it would just repeat that navigation -- and a
-    // fresh load also resets the hero back to its default "The globe" tab, so
+    // way. `openChat` already does a full `page.goto("/")` -- a second,
+    // separate reload before it would just repeat that navigation -- so
     // reopening the chat here is what actually re-confirms the thread is gone.
-    await openHeroChat(page);
+    await openChat(page);
     await expect(page.getByRole("button", { name: "Clear conversation" })).toHaveCount(0);
     await expect(conversation(page)).toHaveCount(0);
   });
 
   test("keeps focus in the input after asking, ready for a follow-up with no mouse", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await openHeroChat(page);
+    await openChat(page);
 
     const field = questionField(page);
     await field.focus();
@@ -367,35 +370,40 @@ test.describe("ask this site", () => {
     await expect(questionField(page)).toBeFocused();
   });
 
-  test("the conversation survives switching to another code tab and back", async ({ page }) => {
-    await openHeroChat(page);
+  test("the conversation survives a client-side trip to the résumé and back", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    // The one remaining case that unmounts the chat (see `threadCache` in
+    // AskThisSite.tsx): `/` and `/resume` link to each other with
+    // `next/link`, so the trip is a client-side navigation and the module
+    // scope the thread lives in survives it.
+    await openChat(page);
     const input = questionField(page);
     await input.fill("What did Thien build at DoorDash?");
     await input.press("Enter");
-    await expect(page.getByText("What did Thien build at DoorDash?")).toBeVisible();
+    await expect(conversation(page).getByText("What did Thien build at DoorDash?")).toBeVisible();
 
-    await page.getByRole("tab", { name: "The globe" }).click();
-    await expect(page.getByText("What did Thien build at DoorDash?")).toHaveCount(0);
+    await page.getByRole("link", { name: "Open résumé" }).click();
+    await expect(page).toHaveURL(/\/resume$/);
+    await page.getByRole("link", { name: "Back to the site" }).click();
+    await expect(page).toHaveURL(/\/$/);
 
-    await page.getByRole("tab", { name: "Ask Thien" }).click();
-    await expect(page.getByText("What did Thien build at DoorDash?")).toBeVisible();
+    await askBlock(page).scrollIntoViewIfNeeded();
+    await expect(conversation(page).getByText("What did Thien build at DoorDash?")).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });
 
 /* -------------------------------------------------------------------------- */
-/* The hero's code artifact: three authored tabs plus "Ask Thien" (round 12)  */
+/* The hero's code artifact: three authored tabs (round 12, round 18)          */
 /* -------------------------------------------------------------------------- */
 
 function heroTablist(page: Page) {
   return page.getByRole("tablist", { name: "Code artifact tabs" });
 }
 
-function heroAskTab(page: Page) {
-  return heroTablist(page).getByRole("tab", { name: "Ask Thien" });
-}
-
 test.describe("hero code artifact — compact rendering", () => {
-  test("renders noticeably smaller padding than an ordinary CodeBlock (a turn's own Code view, once opened)", async ({ page }) => {
+  test("renders noticeably smaller padding than an ordinary CodeBlock (a chat turn's own Code view)", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "layout is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -410,12 +418,11 @@ test.describe("hero code artifact — compact rendering", () => {
     const heroRegionPadding = await heroRegion.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
     expect(heroRegionPadding).toBeLessThan(16);
 
-    // A CodeBlock elsewhere in the same artifact (a turn's own "answer, as
-    // data" view inside the "Ask Thien" tab) keeps the ordinary size —
-    // proving compact is scoped to the three authored tabs
-    // (`HeroCodeArtifact.tsx` passes `compact` only to those), not a global
-    // change to every CodeBlock the hero renders.
-    await heroAskTab(page).click();
+    // A CodeBlock elsewhere on the page (a chat turn's own "answer, as data"
+    // view, in Contact's `#ask`) keeps the ordinary size — proving compact
+    // is scoped to the hero's authored tabs (`HeroCodeArtifact.tsx` passes
+    // `compact` only to those), not a global change to every CodeBlock.
+    await askBlock(page).scrollIntoViewIfNeeded();
     await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "Where did he study?" }).click();
     const turn = conversation(page).locator(":scope > li").last();
@@ -451,76 +458,74 @@ test.describe("hero code artifact — compact rendering", () => {
       await expect(region).toContainText("export function project(");
     }
   });
+
+  test("is three code tabs, with no chat tab left behind", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    await expect(heroTablist(page).getByRole("tab")).toHaveCount(3);
+    await expect(page.getByRole("tab", { name: "Ask Thien" })).toHaveCount(0);
+    await expect(page.locator("#about").getByRole("textbox", { name: "Ask a question about this portfolio" })).toHaveCount(0);
+  });
 });
 
-test.describe("hero code artifact — Ask Thien tab", () => {
-  test("is a fourth tab in the same tablist, and keyboard behaviour (Home/End/Arrow/wrap) is unchanged", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+/* -------------------------------------------------------------------------- */
+/* Ask, in Contact (round 18)                                                  */
+/* -------------------------------------------------------------------------- */
+
+test.describe("ask, in contact", () => {
+  test("sits in #contact under its own heading, and is not the card's <aside>", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "structure is viewport-independent; run once");
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
 
-    const tabs = heroTablist(page).getByRole("tab");
-    await expect(tabs).toHaveCount(4);
-    await expect(tabs.nth(3)).toHaveAccessibleName("Ask Thien");
-
-    await tabs.nth(0).focus();
-    await page.keyboard.press("End");
-    await expect(tabs.nth(3)).toBeFocused();
-    await expect(tabs.nth(3)).toHaveAttribute("aria-selected", "true");
-
-    // Wraps past the last tab back to the first, same as any other Tabs
-    // instance on the site.
-    await page.keyboard.press("ArrowRight");
-    await expect(tabs.nth(0)).toBeFocused();
-    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-
-    await page.keyboard.press("Home");
-    await page.keyboard.press("ArrowLeft");
-    await expect(tabs.nth(3)).toBeFocused();
+    await expect(page.locator("#contact #ask")).toHaveCount(1);
+    await expect(askBlock(page).getByRole("heading", { level: 3, name: "Ask about my work" })).toBeVisible();
+    // The companion perches on the first <aside> in #contact (the business
+    // card); the chat must not become it.
+    await expect(page.locator("#contact aside")).toHaveCount(1);
+    await expect(page.locator("#contact aside #ask")).toHaveCount(0);
   });
 
-  test("the engine chunk lazy-loads only once the tab is actually activated", async ({ page }) => {
+  test("a link to /#ask lands on the chat, loaded", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await page.goto("/#ask");
+    await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
+    await expect(askBlock(page).getByRole("heading", { name: "Ask about my work" })).toBeInViewport();
+  });
+
+  test("the engine chunk lazy-loads only once #ask nears the viewport", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // Tabs only ever mounts the active panel (The globe, by default), so the
-    // chat's own field must not exist in the DOM before its tab is chosen.
+    // At the top of the page the block is thousands of pixels away, well
+    // outside its load-ahead margin, so the chat's own field must not exist.
     await expect(questionField(page)).toHaveCount(0);
 
     const chunkRequest = page.waitForRequest(
       (request) => request.resourceType() === "script" && request.url().includes("/_next/static/"),
     );
-    await heroAskTab(page).click();
-    // A new script request fires as a direct result of activating the tab —
-    // the `import()` behind it, not something already on the page.
+    await askBlock(page).scrollIntoViewIfNeeded();
+    // A new script request fires as a direct result of the block coming into
+    // range — the `import()` behind it, not something already on the page.
     await chunkRequest;
 
-    await expect(questionField(page)).toBeVisible();
+    await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
   });
 
-  // Deliberately not viewport-gated, unlike the tests above: this is the one
-  // property that is *supposed* to vary with width, and the scoped run for
-  // this work package always includes chromium-1440 plus one narrow project
-  // (`pnpm exec playwright test e2e/ask.spec.ts --project=chromium-1440
-  // --project=chromium-<width>`). Below `lg` the hero stacks (identity, then
-  // the code artifact, then the rail — see Hero.tsx) but the artifact and
-  // its tablist render exactly as they do at desktop width; the tablist's
-  // own horizontal scroll (Tabs.tsx) is what keeps a fourth tab reachable
-  // instead of wrapping or being clipped, so "Ask Thien" works the same way
-  // on a phone as it does at 1440 rather than vanishing below `lg`.
+  // Deliberately not viewport-gated: this is the one property that is
+  // *supposed* to vary with width. Contact stacks below `lg` and the chat
+  // stacks with it; it must stay usable, with 44px targets, and must not
+  // push the page wider than the screen.
   test("works at narrow viewports too, with 44px targets and no horizontal overflow", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await openChat(page);
 
-    const askTab = heroAskTab(page);
-    await askTab.scrollIntoViewIfNeeded();
-    const tabBox = await askTab.boundingBox();
-    expect(tabBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    const suggestion = askBlock(page).locator('[aria-label="Try asking"] button').first();
+    const box = await suggestion.boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
 
-    await askTab.click();
     const field = questionField(page);
-    await expect(field).toBeVisible({ timeout: 15_000 });
     await field.fill("scraper");
     await field.press("Enter");
     await expect(page.getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();

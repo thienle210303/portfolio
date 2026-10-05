@@ -17,7 +17,7 @@ import { test, expect, type Page } from "@playwright/test";
  * Journey in both of its presentations (one is `display: none` at any width,
  * and a hidden link still has to resolve), the case studies and Contact. It
  * does NOT cover the header (`a[href="/#id"]`, derived from `navItems`, which
- * `navigation.spec.ts` already exercises) or the hero chat's citations, which
+ * `navigation.spec.ts` already exercises) or the chat's citations (`#ask`), which
  * only exist after a question is asked — `tests/lib/answers.test.ts` walks the
  * whole corpus for those.
  *

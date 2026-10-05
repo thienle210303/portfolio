@@ -84,11 +84,11 @@ server-rendered pulls the engine *and* the coastlines into the initial bundle.
 
 ## Changing what the site says
 
-The page is four sections, in this order: About (`#about` — the hero, its chat
-and the About band), Worlds (`#worlds`, the globe), the Journey (`#tree`, the
-pinned stage) and Contact (`#contact`). `navItems` in
-`src/content/portfolio.ts` is the same four items in the same order; the nav
-doubles as the page's table of contents.
+The page is four sections, in this order: About (`#about` — the hero and the
+About band), Worlds (`#worlds`, the globe), the Journey (`#tree`, the pinned
+stage) and Contact (`#contact`, which also holds the chat at `#ask`).
+`navItems` in `src/content/portfolio.ts` is the same four items in the same
+order; the nav doubles as the page's table of contents.
 
 The retired ids — `#journey`, `#work`, `#skills`, `#workshop`, every
 `journey-entry-<id>` and every `work-<projectId>` — are all still in the

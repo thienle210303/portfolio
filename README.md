@@ -4,13 +4,13 @@ A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
 The site is a single narrative page in four sections: **About** — a
-code-led hero, with a chat that answers questions about the page grounded only
-in what it says, and an About band; **Worlds** — a drawn globe of seven worlds
+code-led hero and an About band; **Worlds** — a drawn globe of seven worlds
 made entirely of the site's own authored facts; the **Journey** — a career
 tree on a pinned stage, told in seven acts from 2018, with the case studies
 inside it (in the branches of the roles that produced them, or after the acts
 for the coursework); and **Contact**, which
-starts from what the visitor actually came to say. The résumé is its own route
+starts from what the visitor actually came to say, and holds a chat that
+answers questions about the page grounded only in what it says. The résumé is its own route
 at `/resume`, reading the same content, and it is the only place the skills
 inventory renders.
 

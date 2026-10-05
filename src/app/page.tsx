@@ -3,6 +3,7 @@ import Worlds from "@/sections/Worlds/Worlds";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import Contact from "@/sections/Contact/Contact";
 import Closing from "@/sections/Footer/Closing";
+import { askLiveModeConfigured } from "@/lib/ask-live-config";
 import { validBookingUrl } from "@/lib/booking";
 
 export default function Home() {
@@ -14,6 +15,11 @@ export default function Home() {
   const emailDeliveryConfigured = Boolean(
     process.env.RESEND_API_KEY && process.env.CONTACT_TO_EMAIL && process.env.CONTACT_FROM_EMAIL
   );
+
+  // The same shape for the chat's live mode: `askLiveModeConfigured()` reads
+  // ASK_LLM_API_KEY / ASK_LLM_MODEL here, on the server, and only the boolean
+  // reaches the chat in Contact. The key never crosses.
+  const liveModeConfigured = askLiveModeConfigured();
 
   // The owner's scheduling link. Anything that is not an https:// URL (unset,
   // empty, a typo) becomes undefined and Contact renders no booking link.
@@ -47,7 +53,11 @@ export default function Home() {
       <Hero />
       <Worlds />
       <CareerTree />
-      <Contact emailDeliveryConfigured={emailDeliveryConfigured} bookingUrl={bookingUrl} />
+      <Contact
+        emailDeliveryConfigured={emailDeliveryConfigured}
+        askLiveModeConfigured={liveModeConfigured}
+        bookingUrl={bookingUrl}
+      />
       <Closing />
     </>
   );

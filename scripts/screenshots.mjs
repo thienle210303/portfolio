@@ -50,8 +50,8 @@ const IS_WINDOWS = process.platform === "win32";
 // studies render inside the Journey's branches. No standalone "journey" or "resume" section
 // any more — journey folded into tree (see CareerTree.tsx), résumé moved to its own
 // route (captured separately, below); Philosophy and the AI Workflow Lab
-// both removed entirely (round 16) — the Lab's chat lives on in the hero's
-// "Ask Thien" tab, captured separately below rather than as a section shot.
+// both removed entirely (round 16) — the Lab's chat lives on in Contact's
+// `#ask` (round 18), captured with a turn asked separately below.
 // Playground Earth's "worlds" section joined the same round, second in page
 // order, right after the hero. The Workshop that joined it was removed in
 // round 18.
@@ -172,20 +172,17 @@ async function captureDesktop(browser) {
   await settle(page, 250);
   await tree.screenshot({ path: outPath("tree-list-1440") });
 
-  // The "Ask Thien" chat, with one turn asked from the suggested-questions
-  // list. Round 16 moved this out of the AI Workflow Lab section (deleted)
-  // and into the hero's fourth code-artifact tab, so getting the shot now
-  // means switching to that tab first rather than scrolling to a section.
-  const heroTablist = page.getByRole("tablist", { name: "Code artifact tabs" });
-  await heroTablist.scrollIntoViewIfNeeded();
-  await heroTablist.getByRole("tab", { name: "Ask Thien" }).click();
-  const askPanel = page.getByRole("tabpanel", { name: "Ask Thien" });
-  // The chat is a lazily imported chunk, so wait for it to actually mount
-  // before reaching for the suggested-questions list inside it.
+  // The chat, with one turn asked from the suggested-questions list. Round 18
+  // moved it from the hero's fourth code-artifact tab into Contact (`#ask`).
+  const askPanel = page.locator("#ask");
+  await askPanel.scrollIntoViewIfNeeded();
+  // The chat is a lazily imported chunk that loads as `#ask` nears the
+  // viewport, so wait for it to actually mount before reaching for the
+  // suggested-questions list inside it.
   await askPanel.getByRole("textbox", { name: "Ask a question about this portfolio" }).waitFor();
   await askPanel.locator('[aria-label="Try asking"] button').first().click();
   await settle(page, 400);
-  await askPanel.screenshot({ path: outPath("ask-thien-turn-1440") });
+  await askPanel.screenshot({ path: outPath("ask-turn-1440") });
 
   // Contact form with an intent selected (prefills reason + message).
   const contact = page.locator("#contact");

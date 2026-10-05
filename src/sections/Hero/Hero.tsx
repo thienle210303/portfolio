@@ -30,7 +30,6 @@
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { careerEntries, profile } from "@/content/portfolio";
-import { askLiveModeConfigured } from "@/lib/ask-live-config";
 import HeroIdentity from "./HeroIdentity";
 import HeroCodeArtifact from "./HeroCodeArtifact";
 import HeroAbout from "./HeroAbout";
@@ -53,11 +52,6 @@ const RAIL: readonly RailNote[] = [
 ];
 
 export default function Hero() {
-  // Server-only: reads ASK_LLM_* directly in a Server Component, so the key
-  // never enters the client bundle — only this boolean crosses. Same shape
-  // as `emailDeliveryConfigured` in page.tsx.
-  const liveModeConfigured = askLiveModeConfigured();
-
   return (
     <Section
       id="about"
@@ -120,7 +114,7 @@ export default function Hero() {
           </div>
 
           <div className="min-w-0">
-            <HeroCodeArtifact liveModeConfigured={liveModeConfigured} />
+            <HeroCodeArtifact />
           </div>
         </div>
 

@@ -24,11 +24,11 @@ import {
 /**
  * "Ask this site" — a chat thread over the portfolio's own content. Through
  * round 15 this lived as a static import inside the AI Workflow Lab section;
- * since round 16 it lives behind the hero's "Ask Thien" tab instead, reached
- * by a dynamic `import()` (see `HeroCodeArtifact.tsx`) so the chat engine no
- * longer rides along in the page's initial JavaScript. Round 16 went on to
- * remove the Lab section entirely — this component is the one thing that
- * moved out of it ahead of the demolition, under `src/sections/Hero/`.
+ * rounds 16 and 17 put it behind the hero's "Ask Thien" tab; since round 18
+ * it lives in Contact, under "Ask about my work" (`#ask`), because a visitor
+ * asking the record a question is making contact with less effort. Either
+ * way it is reached by a dynamic `import()` (see `AskLoader.tsx`), so the
+ * chat engine never rides along in the page's initial JavaScript.
  *
  * It looks unlike the sections around it on purpose. Everything else on the
  * page is a document being read; this is an instrument being operated, so it
@@ -39,7 +39,7 @@ import {
  *
  * ## Two engines, one thread
  *
- * `liveModeConfigured` (a prop, computed once server-side in `Hero.tsx` from
+ * `liveModeConfigured` (a prop, computed once server-side in `page.tsx` from
  * `ASK_LLM_API_KEY` / `ASK_LLM_MODEL` / `ASK_LLM_URL` — see
  * `src/lib/ask-live-config.ts`) decides which engine every turn in the
  * thread uses, for the life of the page load:
@@ -60,10 +60,10 @@ import {
  *
  * The whole thread is component state, `useState` in this very component —
  * but since round 16 it is mirrored into a module-scoped cache (see
- * `threadCache` below) so that switching the hero's code artifact to another
- * tab and back does not throw the conversation away. Nothing is ever sent
- * anywhere to persist it: a hard reload of the page still starts a new
- * conversation, exactly as it always did. See the doc comment on
+ * `threadCache` below) so that an unmount and remount — today, a client-side
+ * trip to `/resume` and back — does not throw the conversation away. Nothing
+ * is ever sent anywhere to persist it: a hard reload of the page still
+ * starts a new conversation, exactly as it always did. See the doc comment on
  * `threadCache` for what does and does not survive, and why.
  *
  * ## The scroll window
@@ -84,11 +84,11 @@ import {
  * ## The second view
  *
  * An answer can also be read as the object it already is — the same strings,
- * rendered through the hero's own CodeBlock as a TypeScript literal. It is a
- * flourish, and it is built to stay one: prose is the first tab and the default,
- * the code adds no field the prose card does not already show, and it is
- * generated from the engine's own output rather than from anything new (see
- * `./answer-code.ts`). Every turn in the thread owns its own `Tabs` instance
+ * rendered through the same CodeBlock the hero uses, as a TypeScript literal.
+ * It is a flourish, and it is built to stay one: prose is the first tab and
+ * the default, the code adds no field the prose card does not already show,
+ * and it is generated from the engine's own output rather than from anything
+ * new (see `./answer-code.ts`). Every turn in the thread owns its own `Tabs` instance
  * and its own `CodeBlock` filename (`answerFilename`), so more than one
  * turn's Code tab can be open at once without two panels colliding.
  *
@@ -126,7 +126,7 @@ const LIVE_NETWORK_FAILED =
   "Couldn't reach the live model — the connection failed before an answer came back. Try again.";
 
 interface Props {
-  /** Computed once, server-side, in `Hero.tsx`. Never mutates for the life
+  /** Computed once, server-side, in `page.tsx`. Never mutates for the life
    *  of the page load. */
   readonly liveModeConfigured: boolean;
 }
@@ -499,11 +499,13 @@ function TurnItem({
 /**
  * The thread, hoisted out of the component on purpose.
  *
- * This component's only mount is now the hero code artifact's "Ask Thien"
- * tab, and `Tabs` (src/components/ui/Tabs.tsx) renders only the active
- * panel — so looking at `builder.ts` and coming back is a real unmount and
- * remount. Component state would be thrown away by that, which would make
- * the tab strip feel like it eats conversations. Module scope survives it.
+ * Through round 17 this component's only mount was the hero code artifact's
+ * "Ask Thien" tab, and `Tabs` (src/components/ui/Tabs.tsx) renders only the
+ * active panel — so looking at another tab and coming back was a real
+ * unmount and remount, and component state alone would have eaten the
+ * conversation. Since round 18 it mounts once, in Contact's `#ask`, and
+ * stays mounted for as long as the home page is; the case that still
+ * unmounts it is the one below. Module scope survives it.
  *
  * What that module scope does and does not survive is worth being exact
  * about, because it is not simply "a page load": a hard reload (typing the
@@ -555,7 +557,7 @@ function writeCachedTurns(turns: readonly Turn[]): readonly Turn[] {
  * Mints the next turn id and advances the counter, both against the cache
  * rather than a per-mount `useRef`. A `useRef(0)` here would reset to 0 on
  * every mount, but the thread restored from `threadCache.turns` keeps its
- * old ids -- so the very first question asked after a tab switch would mint
+ * old ids -- so the very first question asked after a remount would mint
  * `turn-0` again, colliding with the `turn-0` already sitting in the
  * restored thread. That collision is a duplicate React key at the call site
  * (`<TurnItem key={turn.id}>`), which makes React reconcile the two turns
@@ -642,7 +644,7 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
 
   // Writes through the module cache rather than through `setTurns`'s updater
   // callback, and that is load-bearing, not a style choice: this is the
-  // resolution of `askLive`'s fetch, which can land long after a tab switch
+  // resolution of `askLive`'s fetch, which can land long after a navigation
   // has unmounted this instance. A `setState` dispatched on an unmounted
   // component in React 18+ is silently dropped before the fiber tree is ever
   // re-rendered, which means an updater *function* passed to it is never

@@ -211,24 +211,26 @@ test.describe("interactive states", () => {
     await auditHasNoViolations(page);
   });
 
-  test("zero WCAG violations with the hero's Ask Thien chat open and answered", async ({ page }) => {
+  test("zero WCAG violations with the chat in Contact loaded and answered", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // The chat moved out of the Lab and into the hero's code artifact
-    // (round 16, see AskThisSite.tsx) behind a dynamically-imported "Ask
-    // Thien" tab, so it is absent from every other audit in this file —
-    // this is now the only state that puts it in the DOM at all, and it is
-    // the page's most interactive component, so it earns its own audit.
-    await page.getByRole("tab", { name: "Ask Thien" }).click();
+    // The chat lives in Contact's `#ask` (round 18, see AskLoader.tsx) and
+    // is a dynamically-imported chunk that loads only as the block nears the
+    // viewport. Audits taken from the top run before it exists, and the ones
+    // that scroll past Contact to `#closing` may catch it loaded or mid-load,
+    // with no turn asked. It is the page's most interactive component, so it
+    // earns its own audit, loaded for certain and with a turn on screen.
+    await scrollIntoViewAndSettle(page, "#ask");
     const questionField = page.getByRole("textbox", { name: "Ask a question about this portfolio" });
     await expect(questionField).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "Where did he study?" }).click();
     await expect(page.getByRole("list", { name: "Conversation" }).getByText("Where did he study?")).toBeVisible();
-    // Scoped to the artifact region rather than the full page, same pattern
-    // as the off-base-tone audits below: the fact worth auditing here is the
-    // chat's own markup with a turn on screen, not the whole page over again.
-    await auditHasNoViolations(page, '[data-hero-step="code"]');
+    // Scoped to the chat's block rather than the full page, same pattern as
+    // the off-base-tone audits below: the fact worth auditing here is the
+    // chat's own markup with a turn on screen — in Contact's `deep` tone —
+    // not the whole page over again.
+    await auditHasNoViolations(page, "#ask");
   });
 
   test("zero WCAG violations with the globe landed and the handoff link shown", async ({

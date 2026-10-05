@@ -1338,3 +1338,27 @@ plan's base `ac35d1a` built the same way, and again on a re-run at
 `--workers=2`. The cause is in the test itself: its route pattern matches only
 dev-server chunk names, and a production build hashes the name, so nothing is
 aborted. This branch did not cause it. Every companion test passed.
+
+### The chat moves to Contact (2026-10-04, round 18 Plan B, Task 7)
+
+The chat left the hero's fourth tab for Contact's `#ask`. The lazy boundary
+moved with it: `AskLoader.tsx` imports only React and fires the `import()` of
+`AskThisSite` when `#ask` comes within 600px of the viewport, so the engine
+and its index stay out of the initial bundle. The same change also touches
+`Stage.tsx` (initial JS: a fragment below the stage is re-landed once the pin
+goes live) and globals.css (the slot's reserved height). Two production
+builds measured alternately with a throwaway copy of `scripts/perf.mjs` (only
+change: the pinned `chromium_headless_shell-1234` path), `:3101` = `194e35d`,
+`:3102` = this change, final build:
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| Before, `194e35d` (3 runs) | 197.8 KB | 14.0 KB | 223.8 KB | 2540–2832 ms | 652–897 ms | 0 | 3171 |
+| After, chat in Contact (3 runs) | 198.0 KB | 14.0 KB | 223.8 KB | 2728–3584 ms | 435–789 ms | 0 | 3175 |
+
+Initial JS: 202,584 → 202,744 bytes (**+160 B**), every run reporting 0
+responses with no `sizes()`. DOM nodes are +4 net: the `#ask` block in, the
+hero's fourth tab out. The LCP and TBT ranges overlap between the arms and
+are read as noise. The `content-length` cross-check is not usable on this
+server: 16 responses declared none, so it is a floor of 0.4 KB JS, not a
+total.

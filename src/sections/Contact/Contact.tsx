@@ -1,5 +1,6 @@
 import Section from "@/components/ui/Section";
 import SectionHeading from "@/components/ui/SectionHeading";
+import AskLoader from "./AskLoader";
 import BusinessCard from "./BusinessCard";
 import ContactForm from "./ContactForm";
 import DirectLinks from "./DirectLinks";
@@ -7,7 +8,8 @@ import DirectLinks from "./DirectLinks";
 /**
  * Server Component. Owns layout only; every interactive piece lives in a
  * client island — `ContactForm`, which turns a chosen intent into a finished
- * message — so this file itself ships with no client JS of its own.
+ * message, and `AskLoader`, the chat's lazy boundary — so this file itself
+ * ships with no client JS of its own.
  * `BusinessCard` is a Server Component too (it renders `CopyButton`, a
  * client island, as a child, which costs nothing extra here).
  *
@@ -19,6 +21,15 @@ import DirectLinks from "./DirectLinks";
  * Round 18 removed the one-field "leave a number" form that used to sit above
  * the full one: choosing an intent now produces a whole message, which is the
  * shortcut that field was standing in for.
+ *
+ * Under those, "Ask about my work" (`#ask`): the chat over the site's own
+ * content, moved here from the hero's code artifact in round 18. A visitor
+ * who would rather interrogate the record than write an email is making
+ * contact too, with less effort. It is a plain wrapper with an `<h3>`, not an
+ * `<aside>` — the business card must stay the first and only `<aside>` in
+ * this section, because the companion perches on it — and not a section of
+ * its own either: its heading sits under "Let's talk" in the outline. The
+ * chat itself only downloads as it nears the viewport (see `AskLoader`).
  *
  * DOM order deliberately does not match visual order at >=1024px: the card
  * comes first in markup — so it reads and tabs as what it is, an introduction,
@@ -33,13 +44,14 @@ import DirectLinks from "./DirectLinks";
  * row taller than the card instead of stretching the card to match, which is
  * what lets the sticky range be "this row" rather than "the whole page".
  *
- * `emailDeliveryConfigured` is computed once, server-side, in `page.tsx`
- * from the three Resend env vars. Only this boolean crosses to the client;
- * `bookingUrl` is read there too, from `BOOKING_URL`, and goes only to
- * `DirectLinks`, a Server Component. Nothing here ever references
- * `process.env` directly. `BusinessCard` never
- * receives it — every link on the card (mailto, GitHub, LinkedIn) works
- * identically whether or not direct sending is configured.
+ * Three server-side values are computed once in `page.tsx` and arrive as
+ * props; nothing here ever references `process.env` directly.
+ * `emailDeliveryConfigured` comes from the three Resend env vars and
+ * `askLiveModeConfigured` from the two `ASK_LLM_*` ones; those two booleans
+ * are all that cross to the client, never a key. `bookingUrl` comes from
+ * `BOOKING_URL` and goes only to `DirectLinks`, a Server Component.
+ * `BusinessCard` receives none of the three: every link on the card (mailto,
+ * GitHub, LinkedIn) works identically either way.
  *
  * Tone is `deep`, not `contrast`. A full inversion right where visitors do
  * their most form-focused reading read as disconnected from the rest of the
@@ -49,11 +61,17 @@ import DirectLinks from "./DirectLinks";
 
 interface ContactProps {
   emailDeliveryConfigured: boolean;
+  /** Computed in `page.tsx` by `askLiveModeConfigured()`; handed to the chat. */
+  askLiveModeConfigured: boolean;
   /** Validated in `page.tsx`; `undefined` means no booking link renders. */
   bookingUrl?: string;
 }
 
-export default function Contact({ emailDeliveryConfigured, bookingUrl }: ContactProps) {
+export default function Contact({
+  emailDeliveryConfigured,
+  askLiveModeConfigured,
+  bookingUrl,
+}: ContactProps) {
   return (
     <Section id="contact" labelledBy="contact-heading" eyebrow="Contact" tone="deep">
       <SectionHeading
@@ -75,6 +93,18 @@ export default function Contact({ emailDeliveryConfigured, bookingUrl }: Contact
             <ContactForm emailDeliveryConfigured={emailDeliveryConfigured} />
           </div>
           <DirectLinks bookingUrl={bookingUrl} />
+
+          {/* Screen-only, like the form: a printed page cannot ask anything.
+              `scroll-mt-20` clears the sticky header, the offset `Section`
+              uses for its own anchors. */}
+          <div id="ask" className="no-print mt-12 max-w-[46rem] scroll-mt-20">
+            <h3 className="font-display text-[length:var(--step-1)] font-normal leading-snug tracking-(--tracking-display-sm) text-fg">
+              Ask about my work
+            </h3>
+            <div className="mt-4">
+              <AskLoader liveModeConfigured={askLiveModeConfigured} />
+            </div>
+          </div>
         </div>
       </div>
     </Section>
