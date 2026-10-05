@@ -3,11 +3,13 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
 import { crossingKm, resolveChapters } from "@/lib/worlds";
+import { resolveSkins } from "@/lib/skins";
 
 const WORLDS = resolveChapters();
+const SKINS = resolveSkins();
 
 function renderStage() {
-  return render(<WorldsStage worlds={WORLDS} crossingKm={crossingKm()} />);
+  return render(<WorldsStage worlds={WORLDS} skins={SKINS} crossingKm={crossingKm()} />);
 }
 
 /**
@@ -165,4 +167,87 @@ describe("WorldsStage, with no canvas at all", () => {
   // The presence half — the link appearing once a seed is genuinely on the
   // globe — is in `e2e/worlds.spec.ts`, not here. It needs a real canvas, and
   // a test that mounted a fake one to check a link would be testing the fake.
+});
+
+describe("WorldsStage, the skins group", () => {
+  function skinsGroup() {
+    return screen.getByRole("group", { name: /skins/i });
+  }
+
+  it("is a separate labelled group, not part of the chapters list", () => {
+    renderStage();
+    const list = screen.getByRole("list", { name: /chapters/i });
+    expect(within(list).queryByRole("button", { name: /ice age/i })).toBeNull();
+    expect(skinsGroup().textContent).toMatch(/look/i);
+    expect(within(skinsGroup()).getAllByRole("button")).toHaveLength(SKINS.length);
+  });
+
+  it("renders nothing for skins when none are passed", () => {
+    render(<WorldsStage worlds={WORLDS} skins={[]} crossingKm={crossingKm()} />);
+    expect(screen.queryByRole("group", { name: /skins/i })).toBeNull();
+  });
+
+  it("is aria-disabled, says it needs WebGL, and never presses while no GL surface exists", async () => {
+    const user = userEvent.setup();
+    renderStage();
+    for (const button of within(skinsGroup()).getAllByRole("button")) {
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      expect(button).toHaveAccessibleName(/needs webgl/i);
+      expect(button).toHaveAttribute("aria-pressed", "false");
+      await user.click(button);
+      expect(button).toHaveAttribute("aria-pressed", "false");
+    }
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+
+  it("carries the no-fact label in every skin's accessible name", () => {
+    renderStage();
+    for (const skin of SKINS) {
+      const button = within(skinsGroup()).getByRole("button", { name: new RegExp(skin.name, "i") });
+      expect(button.getAttribute("aria-label")).toContain(skin.label);
+    }
+  });
+
+  it("is at least 44px tall", () => {
+    renderStage();
+    for (const button of within(skinsGroup()).getAllByRole("button")) {
+      expect(button.className).toMatch(/min-h-11/);
+    }
+  });
+
+  describe("once a GL surface exists", () => {
+    function renderAvailable() {
+      return render(<WorldsStage worlds={WORLDS} skins={SKINS} skinsAvailable crossingKm={crossingKm()} />);
+    }
+
+    it("drops aria-disabled and the WebGL wording", () => {
+      renderAvailable();
+      for (const button of within(skinsGroup()).getAllByRole("button")) {
+        expect(button).not.toHaveAttribute("aria-disabled", "true");
+        expect(button).not.toHaveAccessibleName(/needs webgl/i);
+      }
+    });
+
+    it("presses at most one at a time, and pressing it again clears it", async () => {
+      const user = userEvent.setup();
+      renderAvailable();
+      const [first, second] = within(skinsGroup()).getAllByRole("button");
+      await user.click(first);
+      expect(first).toHaveAttribute("aria-pressed", "true");
+      await user.click(second);
+      expect(first).toHaveAttribute("aria-pressed", "false");
+      expect(second).toHaveAttribute("aria-pressed", "true");
+      await user.click(second);
+      for (const button of within(skinsGroup()).getAllByRole("button")) {
+        expect(button).toHaveAttribute("aria-pressed", "false");
+      }
+    });
+
+    it("leaves the chapter selector alone", async () => {
+      const user = userEvent.setup();
+      renderAvailable();
+      await user.click(within(skinsGroup()).getAllByRole("button")[0]);
+      expect(worldButton(WORLDS[0].name)).toHaveAttribute("aria-current", "true");
+    });
+  });
 });

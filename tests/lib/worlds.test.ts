@@ -16,11 +16,12 @@ import {
   crossingKm,
   resolveChapters,
 } from "@/lib/worlds";
+import { SKIN_IDS, resolveSkins } from "@/lib/skins";
 import { buildDrawnTree, stillGrowingCaption, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
 import { ACT_IDS, actAnchorId } from "@/lib/anchors";
 import { seasonsFor } from "@/lib/origin-story";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
-import { isNeedsInput } from "@/types/portfolio";
+import { isNeedsInput, type Skin } from "@/types/portfolio";
 
 /**
  * Every string the content layer can hand a plaque. The honesty rule is that
@@ -450,5 +451,59 @@ describe("plaque links", () => {
     for (const { worldId, plaque } of projectPlaques) {
       expect(plaque.link, `${worldId}: ${plaque.source} has no link`).toBeTruthy();
     }
+  });
+});
+
+describe("the five skins", () => {
+  it("is five, and Ice Age is one of them", () => {
+    expect(resolveSkins().map((s) => s.id)).toEqual([
+      "ice-age",
+      "night-side",
+      "volcanic",
+      "underwater",
+      "desert",
+    ]);
+    expect(SKIN_IDS).toEqual(resolveSkins().map((s) => s.id));
+  });
+
+  it("gives every skin an accessible name that says it carries no fact", () => {
+    for (const skin of resolveSkins()) {
+      expect(skin.label, skin.id).toBe(`${skin.draws} — ${DECORATION_LABEL}`);
+    }
+  });
+
+  it("writes every draws as one short clause", () => {
+    for (const skin of resolveSkins()) {
+      expect(skin.draws.length, skin.id).toBeLessThanOrEqual(80);
+      expect(skin.draws, skin.id).not.toMatch(/[.;]/);
+    }
+  });
+
+  it("has exactly four fields on a resolved skin", () => {
+    for (const skin of resolveSkins()) {
+      expect(Object.keys(skin).sort(), skin.id).toEqual(["draws", "id", "label", "name"]);
+    }
+  });
+
+  it("makes it impossible for a skin to carry a plaque", () => {
+    // Type-level fence: `pnpm typecheck` fails here ("unused @ts-expect-error")
+    // if `Skin` ever gains a `plaques` field, because the line would then type.
+    const withPlaques: Skin = {
+      id: "x",
+      name: "X",
+      draws: "y",
+      // @ts-expect-error a skin has no field for a plaque
+      plaques: [],
+    };
+    expect(withPlaques.id).toBe("x");
+    // Runtime half, for the resolved shape the page actually renders.
+    for (const skin of resolveSkins()) {
+      expect("plaques" in skin, skin.id).toBe(false);
+    }
+  });
+
+  it("keeps the chapters' plaque count unchanged by adding skins", () => {
+    const total = resolveChapters().reduce((n, c) => n + c.plaques.length, 0);
+    expect(total).toBe(19);
   });
 });

@@ -1,6 +1,7 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { crossingKm, resolveChapters } from "@/lib/worlds";
+import { resolveSkins } from "@/lib/skins";
 import WorldsStage from "./WorldsStage";
 
 /**
@@ -35,6 +36,7 @@ import WorldsStage from "./WorldsStage";
 const HEADING_ID = "worlds-heading";
 
 const WORLDS = resolveChapters();
+const SKINS = resolveSkins();
 const KM = crossingKm();
 
 // Split by kind rather than totalled, because the total is the one number in
@@ -65,6 +67,8 @@ const RAIL: readonly RailNote[] = [
   { term: "Off the map", detail: `${OFF_MAP_COUNT} — the plinth and the orbit, not projected onto the globe` },
   { term: "Plaques", detail: `${QUOTED_COUNT} quoted whole · ${COMPUTED_COUNT} computed` },
   { term: "Decorations", detail: `${DECORATION_COUNT} — drawings, carrying no fact` },
+  // Not folded into Plaques or Decorations: a skin is a look, not a drawn object.
+  { term: "Skins", detail: `${SKINS.length} — the look only, carrying no fact` },
   { term: "Crossing", detail: `${KM.toLocaleString("en-US")} km · computed from the two pins` },
 ];
 
@@ -77,7 +81,7 @@ export default function Worlds() {
       >
         Six chapters, and two cats who look after them.
       </SectionHeading>
-      <WorldsStage worlds={WORLDS} crossingKm={KM} />
+      <WorldsStage worlds={WORLDS} skins={SKINS} crossingKm={KM} />
     </Section>
   );
 }

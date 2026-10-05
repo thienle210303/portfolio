@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState, type ComponentType, type Keyb
 import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 import { origin } from "@/content/portfolio";
+// Types only: the skins arrive as a prop from the server component, so the
+// content layer stays out of the initial client bundle.
 import type { ResolvedChapter } from "@/lib/worlds";
+import type { ResolvedSkin } from "@/lib/skins";
 import WorldPanel from "./WorldPanel";
 
 /**
@@ -54,6 +57,10 @@ type CanvasComponent = ComponentType<{
 
 interface WorldsStageProps {
   readonly worlds: readonly ResolvedChapter[];
+  readonly skins: readonly ResolvedSkin[];
+  /** True once a GL surface exists to draw a skin on. Nothing makes one yet,
+   *  so every skin button is `aria-disabled` and says it needs WebGL. */
+  readonly skinsAvailable?: boolean;
   readonly crossingKm: number;
 }
 
@@ -62,9 +69,11 @@ interface WorldsStageProps {
  *  that a single press does not lose the marker you were looking at. */
 const KEY_STEP = (12 * Math.PI) / 180;
 
-export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
+export function WorldsStage({ worlds, skins, skinsAvailable = false, crossingKm }: WorldsStageProps) {
   const [currentId, setCurrentId] = useState(worlds[0]?.id ?? "");
   const [announcement, setAnnouncement] = useState("");
+  // At most one skin is worn; pressing the worn one again takes it off.
+  const [skinId, setSkinId] = useState<string | null>(null);
   const [Canvas, setCanvas] = useState<CanvasComponent | null>(null);
   // Set only on the `.catch()` path below, and never cleared: once the chunk
   // has failed there is no retry, so the resting label it drives ("Globe not
@@ -93,6 +102,15 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
       controlsRef.current?.focusWorld(id);
     },
     [worlds],
+  );
+
+  const toggleSkin = useCallback(
+    (id: string) => {
+      // `aria-disabled` announces but does not enforce; refuse the press here.
+      if (!skinsAvailable) return;
+      setSkinId((worn) => (worn === id ? null : id));
+    },
+    [skinsAvailable],
   );
 
   const handleReady = useCallback((controls: GlobeControls | null) => {
@@ -360,6 +378,38 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
             </li>
           ))}
         </ul>
+
+        {skins.length > 0 ? (
+          <div role="group" aria-labelledby="worlds-skins-label" className="mt-6">
+            <p className="eyebrow" id="worlds-skins-label">
+              Skins · these change only the look
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {skins.map((skin) => (
+                <button
+                  key={skin.id}
+                  type="button"
+                  aria-pressed={skinId === skin.id}
+                  aria-disabled={!skinsAvailable}
+                  aria-label={
+                    skinsAvailable
+                      ? `${skin.name}. ${skin.label}`
+                      : `${skin.name} — needs WebGL. ${skin.label}`
+                  }
+                  onClick={() => toggleSkin(skin.id)}
+                  className={cn(
+                    "min-h-11 border px-4 text-left text-[length:var(--step--1)] text-[color:var(--fg)]",
+                    skinId === skin.id ? "border-[color:var(--fg-subtle)] bg-surface" : "border-rule",
+                    !skinsAvailable && "pointer-events-none opacity-70",
+                  )}
+                >
+                  {skin.name}
+                  {skinsAvailable ? null : <span className="eyebrow block">needs WebGL</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {current ? <WorldPanel world={current} /> : null}
         <p role="status" aria-live="polite" className="sr-only">

@@ -450,6 +450,19 @@ export interface WorldDecoration {
   readonly draws: string;
 }
 
+/**
+ * A look for the globe. It deliberately has no `plaques` field, and no other
+ * place to put a fact: a skin changes what the planet looks like and says
+ * nothing. `tests/lib/worlds.test.ts` holds a `@ts-expect-error` literal that
+ * stops typechecking if this interface ever grows one.
+ */
+export interface Skin {
+  readonly id: string;
+  readonly name: string;
+  /** One short clause saying what the skin draws. */
+  readonly draws: string;
+}
+
 export interface World {
   readonly id: string;
   readonly name: string;
