@@ -193,7 +193,7 @@ the same vocabulary as the companion cats — add its name to `GlyphId` in
 `src/types/portfolio.ts`, then add the entry to that world's `decorations`:
 
 ```ts
-{ glyph: "comtam", draws: "a plate of cơm tấm — broken rice, a grilled chop, a fried egg" },
+{ glyph: "comtam", draws: "a plate of cơm tấm" },
 ```
 
 `draws` is **what the drawing is**, not what it means, because it becomes the

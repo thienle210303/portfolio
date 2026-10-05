@@ -27,7 +27,7 @@ export const GLYPHS: Record<GlyphId, string> = {
   // soup, and the drawing claims nothing that tells them apart.
   bowl: "M-11 -2H11M-10 -2C-9 6 -5 10 0 10C5 10 9 6 10 -2M-3 -4C-5 -7 -1 -8 -3 -11M3 -4C1 -7 5 -8 3 -11",
   jar: "M-5 -10H5M-4 -10V-7C-8 -5 -8 -2 -8 2V7C-8 10 -5 11 0 11S8 10 8 7V2C8 -2 8 -5 4 -7V-10M-4 0H4V5H-4Z",
-  // Tết — five round petals and a centre, the shape of a hoa mai.
+  // Tết — five round petals around a centre.
   blossom:
     "M-3.5 -6.5a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0M2.7 -2a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0" +
     "M0.3 5.3a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0M-7.3 5.3a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0" +
