@@ -1693,6 +1693,15 @@ async function elementsStillMoving(page: Page) {
   });
 }
 
+/** Skins are worn on the GL surface. This environment's headless shell runs
+ *  WebGL2, so its absence is a failure to name, never a reason to skip. */
+async function requireSurface(page: Page) {
+  await expect(
+    page.locator(SURFACE),
+    "no GL surface appeared: WebGL2 is unavailable or the globe failed to create it, so no skin can be tested",
+  ).toHaveCount(1, { timeout: 15_000 });
+}
+
 test.describe("reduced motion across every chapter and skin", () => {
   test("nothing in #worlds animates or transitions, and the crossing is already landed", async ({
     page,
@@ -1733,21 +1742,18 @@ test.describe("reduced motion across every chapter and skin", () => {
     const skins = section.getByRole("group", { name: /skins/i });
     const buttons = skins.getByRole("button");
     expect(await buttons.count()).toBe(resolveSkins().length);
-    const live = (await page.locator(SURFACE).count()) > 0;
+    await requireSurface(page);
     for (const skin of resolveSkins()) {
       const button = skins.getByRole("button", { name: new RegExp(`^${skin.name}\\b`) });
       await expect(button).toBeVisible();
-      if (!live) continue;
       await button.click();
       await expect(button).toHaveAttribute("aria-pressed", "true");
       await expectAtRest(page, 400, `after wearing ${skin.name}`, SILENT_HZ);
     }
-    if (live) {
-      // Pressing the worn skin takes it off.
-      await buttons.last().click();
-      await expect(buttons.last()).toHaveAttribute("aria-pressed", "false");
-      await expectAtRest(page, 400, "after taking the skin off", SILENT_HZ);
-    }
+    // Pressing the worn skin takes it off.
+    await buttons.last().click();
+    await expect(buttons.last()).toHaveAttribute("aria-pressed", "false");
+    await expectAtRest(page, 400, "after taking the skin off", SILENT_HZ);
 
     // The robot's two laps exist only under reduced motion, on Technology.
     await list.getByRole("button", { name: /technology/i }).click();
@@ -1777,7 +1783,7 @@ test.describe("the chapter list and the skin group by keyboard", () => {
     await page.keyboard.press("End");
     await expect(chapters.last()).toBeFocused();
     await page.keyboard.press("ArrowDown");
-    await expect(chapters.first(), "ArrowDown from the last chapter does not wrap").toBeFocused();
+    await expect(chapters.first(), "ArrowDown from the last chapter should wrap to the first").toBeFocused();
     await page.keyboard.press("ArrowUp");
     await expect(chapters.last()).toBeFocused();
     await page.keyboard.press("Home");
@@ -1798,13 +1804,39 @@ test.describe("the chapter list and the skin group by keyboard", () => {
     await page.keyboard.press("ArrowRight");
     await expect(skins.first()).toBeFocused();
 
-    // Operable: Space presses it, where a surface exists to wear it on.
-    if ((await page.locator(SURFACE).count()) > 0) {
-      await page.keyboard.press("Space");
-      await expect(skins.first()).toHaveAttribute("aria-pressed", "true");
-      await page.keyboard.press("Space");
-      await expect(skins.first()).toHaveAttribute("aria-pressed", "false");
-    }
+    // Operable: Space presses it. Needs the GL surface to wear it on.
+    await requireSurface(page);
+    await page.keyboard.press("Space");
+    await expect(skins.first()).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("Space");
+    await expect(skins.first()).toHaveAttribute("aria-pressed", "false");
+
+    // Modified arrows belong to the browser (Alt+Left is Back): never swallowed.
+    await chapters.first().focus();
+    const prevented = await page.evaluate(() => {
+      const button = document.activeElement as HTMLElement;
+      const results: boolean[] = [];
+      for (const init of [
+        { key: "ArrowLeft", altKey: true },
+        { key: "ArrowRight", altKey: true },
+        { key: "Home", ctrlKey: true },
+        { key: "End", metaKey: true },
+        { key: "ArrowDown", shiftKey: true },
+      ]) {
+        const event = new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true });
+        button.dispatchEvent(event);
+        results.push(event.defaultPrevented);
+      }
+      return results;
+    });
+    expect(prevented, "a modified arrow/Home/End was swallowed by the toolbar").toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    await expect(chapters.first()).toBeFocused();
     // And a chapter: Enter on the focused one chooses it.
     await chapters.nth(2).focus();
     await page.keyboard.press("Enter");

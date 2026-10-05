@@ -411,10 +411,10 @@ test.describe("the globe's chapters and skins", () => {
       test(`${theme}: the ${skin.name} skin on Living Earth`, async ({ page }) => {
         test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
         await openGlobe(page, theme);
-        test.skip(
-          (await page.locator("#worlds canvas[data-globe-surface]").count()) === 0,
-          "no WebGL2 surface, so no skin to wear",
-        );
+        await expect(
+          page.locator("#worlds canvas[data-globe-surface]"),
+          "no GL surface appeared: WebGL2 is unavailable or the globe failed to create it, so no skin can be audited",
+        ).toHaveCount(1, { timeout: 15_000 });
         const section = page.locator("#worlds");
         await section.getByRole("list", { name: /chapters/i }).getByRole("button", { name: /living earth/i }).click();
         const button = section

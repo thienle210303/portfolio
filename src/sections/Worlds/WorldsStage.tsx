@@ -101,6 +101,8 @@ const REDUCE = "(prefers-reduced-motion: reduce)";
  * group, and a skipped Tab stop would hide the pressed state from the order.
  */
 function moveFocusAmongButtons(event: KeyboardEvent<HTMLElement>) {
+  // Alt+Left/Right is Back/Forward, Ctrl/Cmd+Home/End scroll the page.
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
   const keys: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
   const step = keys[event.key];
   if (step === undefined && event.key !== "Home" && event.key !== "End") return;
