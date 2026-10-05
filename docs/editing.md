@@ -221,14 +221,14 @@ needs no disclosure, and a disclosure does not imply an empty world.
 
 ## Contact delivery
 
-The contact form and the one-field "ask me to reach out" both post to
-`/api/contact`, which needs three environment variables:
+The contact form posts to `/api/contact`, which needs three environment
+variables:
 
 ```
 RESEND_API_KEY, CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL
 ```
 
-With any of them missing, both fall back to opening the visitor's own mail app
+With any of them missing, it falls back to opening the visitor's own mail app
 with the message prefilled. That fallback is deliberate — it means the site
 never claims to have sent something it did not. See `.env.example`.
 

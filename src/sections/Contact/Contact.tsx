@@ -51,7 +51,7 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
     <Section id="contact" labelledBy="contact-heading" eyebrow="Contact" tone="deep">
       <SectionHeading
         id="contact-heading"
-        lead="Pick a reason and the message is already written. Nothing is sent until you send it."
+        lead="Pick a reason. The message is already written."
       >
         Let&rsquo;s talk
       </SectionHeading>

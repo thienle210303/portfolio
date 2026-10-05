@@ -215,6 +215,87 @@ describe("the contact form, with an intent chosen", () => {
   });
 });
 
+describe("the contact form, fix round 1", () => {
+  async function fillAndSend(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("radio", { name: opportunity.label }));
+    await user.type(screen.getByLabelText(/your name/i), "Jamie");
+    await user.type(screen.getByLabelText(/where to reply/i), "jamie@example.com");
+    await user.click(screen.getByRole("button", { name: /send it as written/i }));
+  }
+
+  it("keeps focus inside Contact after a successful send", async () => {
+    // The send clears the intent, unmounting the focused button; focus must
+    // land on the confirmation, not fall to <body> (WCAG 2.4.3).
+    okFetch();
+    const user = userEvent.setup();
+    render(
+      <section id="contact">
+        <ContactForm emailDeliveryConfigured={true} />
+      </section>,
+    );
+    await fillAndSend(user);
+    const status = await screen.findByRole("status");
+    await screen.findByText(/message sent/i);
+    expect(screen.queryByRole("button", { name: /send it/i })).toBeNull();
+    expect(status).toHaveFocus();
+    expect(document.activeElement?.closest("#contact")).not.toBeNull();
+  });
+
+  it("keeps focus inside Contact after opening the email app", async () => {
+    const user = userEvent.setup();
+    render(
+      <section id="contact">
+        <ContactForm emailDeliveryConfigured={false} />
+      </section>,
+    );
+    await fillAndSend(user);
+    expect(openMailClient).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement?.closest("#contact")).not.toBeNull();
+  });
+
+  it("keeps the visitor's own words when the intent changes, but not an untouched draft", async () => {
+    const user = userEvent.setup();
+    render(<ContactForm emailDeliveryConfigured={true} />);
+    const hello = contactIntents.find((intent) => intent.id === "hello")!;
+
+    // Untouched: the textarea still holds the draft, so a new intent resets it.
+    await user.click(screen.getByRole("radio", { name: opportunity.label }));
+    await user.click(screen.getByRole("button", { name: /add a line of my own/i }));
+    await user.click(screen.getByRole("radio", { name: hello.label }));
+    expect(screen.queryByRole("textbox", { name: /your message/i })).toBeNull();
+    expect(within(form()).getByText(hello.messageDraft.split("\n\n")[1])).toBeVisible();
+
+    // Edited: the words stay, and only the subject follows the new intent.
+    await user.click(screen.getByRole("button", { name: /add a line of my own/i }));
+    const textarea = screen.getByRole("textbox", { name: /your message/i });
+    await user.type(textarea, " A line of my own.");
+    const written = `${hello.messageDraft} A line of my own.`;
+    expect(textarea).toHaveValue(written);
+    await user.click(screen.getByRole("radio", { name: opportunity.label }));
+    expect(screen.getByRole("textbox", { name: /your message/i })).toHaveValue(written);
+    expect(within(form()).getByText(opportunity.subject)).toBeVisible();
+  });
+
+  it("leaves an opened textarea alone when a referral arrives, while the subject gains the title", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <a href="#contact" data-project-title="Chess">
+          Discuss this project
+        </a>
+        <ContactForm emailDeliveryConfigured={true} />
+      </>,
+    );
+    await user.click(screen.getByRole("radio", { name: opportunity.label }));
+    await user.click(screen.getByRole("button", { name: /add a line of my own/i }));
+    await user.click(screen.getByRole("link", { name: "Discuss this project" }));
+
+    expect(screen.getByRole("textbox", { name: /your message/i })).toHaveValue(opportunity.messageDraft);
+    expect(within(form()).getByText(`${opportunity.subject} — Chess`)).toBeVisible();
+  });
+});
+
 describe("the contact form without email delivery", () => {
   it("offers the same send, and opens the visitor's email app with the same message", async () => {
     // The mailto: fallback is intentional. Choosing an intent and sending

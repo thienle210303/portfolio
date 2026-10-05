@@ -263,8 +263,11 @@ metrics. When it changes, reconcile `careerEntries`, `education`,
 The form has two honest modes and picks one **on the server** at render time.
 
 **Unconfigured (default).** The send button reads **"Send it as written"** in both
-modes; here a note beside it says it opens your email app, and pressing it
-builds a URL-encoded `mailto:` link (under 2,000 characters for every intent).
+modes, or **"Send it"** once "Add a line of my own" has opened the draft for
+editing. Here a note beside it says it opens your email app, and pressing it
+builds a URL-encoded `mailto:` link. For every unedited draft that link stays
+under 2,000 characters; a long hand-typed message can exceed it, and nothing
+caps it.
 No message is ever sent without an explicit visitor action, and a success message
 is never shown for a send that did not happen. Copy-email, LinkedIn and GitHub
 alternatives are always offered.

@@ -70,7 +70,22 @@ test("adding a line opens the draft in an editable textarea", async ({ page }) =
   await expect(contact.getByRole("button", { name: "Send it", exact: true })).toBeVisible();
   await expect(contact.getByRole("button", { name: "Add a line of my own" })).toHaveCount(0);
 
-  // Choosing again goes back to that intent's own draft.
+  // Words the visitor typed survive a change of intent, arrow keys included;
+  // only the subject follows the new choice.
+  const edited = await message.inputValue();
+  await contact.getByRole("radio", { name: intent.label, exact: true }).focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(contact.getByRole("radio", { name: contactIntents[0].label, exact: true })).toBeChecked();
+  await expect(message).toHaveValue(edited);
+  await expect(contact.getByText(contactIntents[0].subject, { exact: true })).toBeVisible();
+});
+
+test("an untouched draft in the textarea follows a change of intent", async ({ page }) => {
+  const contact = page.locator("#contact");
+  await contact.getByRole("radio", { name: contactIntents[1].label, exact: true }).check();
+  await contact.getByRole("button", { name: "Add a line of my own" }).click();
+  await expect(contact.locator("#contact-message")).toHaveValue(contactIntents[1].messageDraft);
+
   await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
   await expect(contact.locator("#contact-message")).toHaveCount(0);
   await expect(contact.getByRole("button", { name: "Send it as written" })).toBeVisible();
@@ -135,6 +150,9 @@ test("with email delivery unconfigured, the same send opens the email app and ne
   await expect(status).not.toContainText(/message sent/i);
   await expect(page.getByText(/message sent/i)).toHaveCount(0);
   await expect(form.getByRole("alert")).toHaveText("");
+  // Focus stays where the visitor was (WCAG 2.4.3); the Resend path's own
+  // focus move is unit-tested, since this suite runs without Resend.
+  expect(await page.evaluate(() => document.activeElement?.closest("#contact") !== null)).toBe(true);
 });
 
 test("the honeypot field is present and not reachable by Tab", async ({ page }) => {

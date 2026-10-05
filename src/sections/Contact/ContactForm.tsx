@@ -27,7 +27,10 @@ import IntentChooser from "./IntentChooser";
  * is about to send these words over their own name, so they are in front of
  * them before any interaction. "Add a line of my own" swaps the paragraphs for
  * a textarea seeded with the same text; from then on the textarea is what is
- * sent. Choosing another intent goes back to that intent's draft.
+ * sent. Choosing another intent (arrow keys in the radio group included)
+ * goes back to that intent's draft only while the textarea still holds the
+ * current draft untouched; once the visitor has written anything of their
+ * own, their text stays and only the subject follows the new intent.
  *
  * With no intent chosen there is nothing to send: the form holds only the
  * honeypot and the two live regions, and the chooser's legend says what
@@ -147,6 +150,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
   // Set by "Add a line of my own", read once by the effect below: the
   // textarea does not exist until the render that follows the click.
   const focusMessageNext = useRef(false);
@@ -180,6 +184,14 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
+  // A successful send clears the intent, which unmounts the focused submit
+  // button. Focus goes to the status line that confirms the send, rather
+  // than dropping to <body> (WCAG 2.4.3). The mailto paths keep the intent,
+  // so the button and its focus stay where they are.
+  useEffect(() => {
+    if (status.kind === "success") statusRef.current?.focus();
+  }, [status]);
+
   useEffect(() => {
     if (expanded && focusMessageNext.current) {
       focusMessageNext.current = false;
@@ -201,9 +213,13 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
 
   function chooseIntent(intent: ContactIntent) {
     setSelectedIntentId(intent.id);
-    setExpanded(false);
-    setBody("");
-    setFieldErrors((prev) => ({ ...prev, message: undefined }));
+    // `draft` is still the previous intent's here. A body that differs from
+    // it holds words the visitor typed, which a radio change must not erase.
+    if (!expanded || body === draft) {
+      setExpanded(false);
+      setBody("");
+      setFieldErrors((prev) => ({ ...prev, message: undefined }));
+    }
     setStatus({ kind: "idle" });
   }
 
@@ -464,7 +480,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
               )}
               {emailDeliveryConfigured ? null : (
                 <p id="contact-send-note" className="text-[length:var(--step--1)] text-fg-muted">
-                  Opens your email app with this message in it. Nothing is sent until you send it from there.
+                  Opens your email app with this message. You send it from there.
                 </p>
               )}
             </div>
@@ -494,7 +510,9 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
             have anything to announce, and the success status outlives the
             draft it confirms. */}
         <p
+          ref={statusRef}
           role="status"
+          tabIndex={-1}
           className={cn(
             "flex items-center gap-2 text-[length:var(--step--1)] text-fg",
             infoMessage && "border border-rule bg-surface px-4 py-3",

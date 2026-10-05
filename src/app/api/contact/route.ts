@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
+// Field limits are shared with the form's own validation, so the two cannot drift.
 import { EMAIL_MAX, MESSAGE_MAX, MESSAGE_MIN, NAME_MAX, REASON_MAX } from "@/lib/contact";
 
 /**
@@ -24,11 +25,6 @@ import { EMAIL_MAX, MESSAGE_MAX, MESSAGE_MIN, NAME_MAX, REASON_MAX } from "@/lib
 
 export const runtime = "nodejs";
 
-// The other limits live in src/lib/contact.ts, shared with the form's own
-// validation so the two cannot drift. The form no longer collects a company;
-// the field stays optional here for any client that still sends one.
-const COMPANY_MAX = 120;
-
 const contactSchema = z.object({
   name: z
     .string()
@@ -37,7 +33,6 @@ const contactSchema = z.object({
   email: z
     .email("Enter a valid email address.")
     .max(EMAIL_MAX, `Keep your email under ${EMAIL_MAX} characters.`),
-  company: z.string().max(COMPANY_MAX, `Keep the company name under ${COMPANY_MAX} characters.`),
   reason: z.string().max(REASON_MAX, `Keep the reason under ${REASON_MAX} characters.`),
   message: z
     .string()
@@ -51,7 +46,6 @@ type FieldErrors = Partial<Record<ContactField, string>>;
 const CONTACT_FIELDS: readonly ContactField[] = [
   "name",
   "email",
-  "company",
   "reason",
   "message",
 ];
@@ -177,7 +171,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
   const parsed = contactSchema.safeParse({
     name: asString(body.name),
     email: asString(body.email),
-    company: asString(body.company),
     reason: asString(body.reason),
     message: asString(body.message),
   });
@@ -189,14 +182,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     );
   }
 
-  const { name, email, company, reason, message } = parsed.data;
+  const { name, email, reason, message } = parsed.data;
 
   try {
     const resend = new Resend(apiKey);
 
     const subject = reason ? `Portfolio contact — ${reason}` : "New message from your portfolio site";
     const textLines = [message, "", "—", `Name: ${name}`, `Email: ${email}`];
-    if (company) textLines.push(`Company: ${company}`);
 
     const { error } = await resend.emails.send({
       from: fromEmail,
