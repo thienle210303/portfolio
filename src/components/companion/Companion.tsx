@@ -1336,7 +1336,8 @@ export function Companion({ facts }: CompanionProps) {
   const queued = useRef<QueuedPlay | null>(null);
   /** Content-avoiding rest spots near where the pair stand, resolved once per
    *  hold rather than per frame. Cleared by a pointer move while no scene is
-   *  playing (a scene holds them until `endPlay`), a scroll or resize
+   *  playing or walking to its stage (a scene holds them until `endPlay`), a
+   *  scroll or resize
    *  (at once for a resize, and when the throttled recheck in the loop effect
    *  fires for either), a scene ending (`endPlay`) or being asked for, a mode
    *  change and a section change — and by a change in the body's size only
@@ -1933,7 +1934,10 @@ export function Companion({ facts }: CompanionProps) {
       // A scene that survives the pointer (one the visitor asked for) holds
       // the spots it opened on until it ends — `endPlay` clears them then.
       // Clearing them here re-probed the page every frame the hand moved.
-      if (!playRef.current) settleSpots.current = null;
+      // The walk to an asked-for scene's stage is left alone too: nothing
+      // reads the spots while it lasts (the request cleared them), so a move
+      // has nothing to clear, and gating it keeps that so if a branch ever does.
+      if (!playRef.current && !queued.current) settleSpots.current = null;
       wake();
     };
 

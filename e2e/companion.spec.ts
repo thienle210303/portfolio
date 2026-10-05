@@ -840,6 +840,76 @@ test.describe("companion", () => {
   });
 
   /*
+   * The same rule for a scene the visitor asked for that is still walking to
+   * its stage. Too short to measure a still second beside it, so it is held
+   * to the frame count. Measured over ~33 frames of walking with the hand
+   * moving: 2-4 calls; with `settled()` called in the walk (a mutant), 201-226.
+   */
+  test("an asked-for scene walking to its stage does not re-probe on every pointer move", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+
+    await page.addInitScript(() => {
+      const counted = window as unknown as { __probes: number; __frames: number };
+      counted.__probes = 0;
+      counted.__frames = 0;
+      const original = document.elementsFromPoint.bind(document);
+      document.elementsFromPoint = (x: number, y: number) => {
+        counted.__probes += 1;
+        return original(x, y);
+      };
+      const tick = () => {
+        counted.__frames += 1;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    // Inside the Journey's stage the panel's corner sits on content, so an
+    // accepted request has to walk (see `queueARequest`).
+    await page.evaluate(() => {
+      const stage = document.querySelector("#tree");
+      if (!stage) throw new Error("no #tree on the page");
+      window.scrollTo({ top: window.scrollY + stage.getBoundingClientRect().top + 300, behavior: "instant" as ScrollBehavior });
+    });
+    await page.waitForTimeout(1_000);
+
+    const read = () =>
+      page.evaluate(() => {
+        const counted = window as unknown as { __probes: number; __frames: number };
+        return { probes: counted.__probes, frames: counted.__frames };
+      });
+    const refused = () =>
+      page.evaluate(() =>
+        /no room/i.test(document.querySelector("#companion-actions [role='status']")?.textContent ?? ""),
+      );
+
+    let measured: { probes: number; frames: number } | null = null;
+    for (const scene of SCENES) {
+      await openToolkit(page);
+      await page.waitForTimeout(2_500);
+      await toolkit(page).getByRole("button", { name: scene.name }).focus();
+      await page.keyboard.press("Enter");
+      if ((await scenePlaying(page)) !== null || (await refused())) continue;
+
+      const from = await read();
+      for (let i = 0; i < 8; i += 1) {
+        await page.mouse.move(320 + i * 20, 300 + i * 8);
+        await page.waitForTimeout(50);
+      }
+      const to = await read();
+      // Still walking at the end: no scene has opened under them yet.
+      if ((await scenePlaying(page)) !== null) continue;
+      measured = { probes: to.probes - from.probes, frames: to.frames - from.frames };
+      break;
+    }
+    expect(measured, "no request had to walk to its stage, so there was nothing to measure").not.toBeNull();
+    const { probes, frames } = measured!;
+    expect(probes, `${probes} probes over ${frames} frames of walking`).toBeLessThanOrEqual(frames);
+  });
+
+  /*
    * Two routes abandon a requested scene without ever opening it: its walk to
    * the stage expiring (`STAGE_WALK_MAX` in Companion.tsx, 6s — a tab put in
    * the background mid-walk is the ordinary way to reach it), and the re-probe
