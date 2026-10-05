@@ -711,7 +711,7 @@ describe("placeBeside — overlays are never painted over a cat", () => {
   });
 });
 
-describe("findClearSpot prefers somewhere the whole cat is clear", () => {
+describe("findClearSpot's preferHead option", () => {
   const prose = document.createElement("p");
 
   beforeEach(() => {
@@ -729,7 +729,7 @@ describe("findClearSpot prefers somewhere the whole cat is clear", () => {
     );
     expect(isClearSpot(want)).toBe(true);
     expect(headClear(want)).toBe(false);
-    const got = findClearSpot(want, { x: 900, y: 700 });
+    const got = findClearSpot(want, { x: 900, y: 700 }, undefined, { preferHead: true });
     expect(got).not.toEqual(want);
     expect(isClearSpot(got)).toBe(true);
     expect(headClear(got)).toBe(true);
@@ -745,6 +745,15 @@ describe("findClearSpot prefers somewhere the whole cat is clear", () => {
       return within < 20 ? [prose] : [];
     });
     expect(isClearSpot(want)).toBe(true);
+    expect(findClearSpot(want, { x: 900, y: 700 }, undefined, { preferHead: true })).toEqual(want);
+  });
+
+  it("leaves the preference off unless asked — the per-frame callers' default", () => {
+    const want: Point = { x: 300, y: 300 };
+    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
+      y >= want.y + 4 && y <= want.y + 18 ? [prose] : [],
+    );
+    expect(headClear(want)).toBe(false);
     expect(findClearSpot(want, { x: 900, y: 700 })).toEqual(want);
   });
 });

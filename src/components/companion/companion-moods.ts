@@ -407,10 +407,13 @@ export function holdExplore(spots: MoodSpots, perch: boolean): HeldExplore {
  *   over a riding cat's head with the feet clear, and leaves a fallback whose
  *   head was already on content where it was put.
  *
- * `groundSettled` is for the re-checks that are not a scroll: an animation on
- * the page ending, or the body resizing. Then the ground a fallback was put on
- * is no longer there to be faithful to, so every non-perch head must be clear
- * now, however it was planned. The case it exists for: at phone widths the
+ * `groundSettled` is for the re-checks that are not a scroll: any animation
+ * on the page ending — anywhere, not only under the cats — or the body
+ * resizing. Most of those re-checks find the ground under the stop unchanged.
+ * When it has changed, the ground a fallback was put on is gone, so every
+ * non-perch head must be clear now, however it was planned; a head that was
+ * already on content and still is drops the stop for a re-plan, which may
+ * land on the same spot. The case it exists for: at phone widths the
  * hero's first screen is prose to its bottom edge, and the explorers plan
  * their first stop while the hero's load choreography still has the prose
  * offset by a few pixels — no head-clear ground at all, so the fallback stood
@@ -425,6 +428,11 @@ export function heldExploreClear(held: HeldExplore, groundSettled = false): bool
     isClearSpot(spot) && (!(headWasClear || groundSettled) || headClear(spot));
   return still(held.spots.lead, held.headLead) && still(held.spots.follow, held.headFollow);
 }
+
+/** The explorers' `findClearSpot` fallbacks choose a stop once and hold it,
+ *  so they opt in to its head-band preference; the per-frame callers (mood
+ *  perches, tour stops) do not — see `findClearSpot`. */
+const HELD = { preferHead: true } as const;
 
 /**
  * Where the pair go next, or null for "stay put" — which the caller answers by
@@ -472,19 +480,19 @@ export function planExplore(
   if (!leadSpot && !followSpot) return null;
 
   if (!leadSpot) {
-    const leadAt = findClearSpot(lead, home);
+    const leadAt = findClearSpot(lead, home, undefined, HELD);
     return {
       lead: leadAt,
-      follow: pick("right", leadAt) ?? findClearSpot(follow, home, leadAt),
+      follow: pick("right", leadAt) ?? findClearSpot(follow, home, leadAt, HELD),
       perch: false,
     };
   }
   // The lead's spot was picked against where she *was*; check it against where
   // she is going, and pick again if the fallback moved her into his way.
-  const followAt = findClearSpot(follow, home);
+  const followAt = findClearSpot(follow, home, undefined, HELD);
   const leadAt = exploreApart(leadSpot, followAt)
     ? leadSpot
-    : (pick("left", followAt) ?? findClearSpot(lead, home, followAt));
+    : (pick("left", followAt) ?? findClearSpot(lead, home, followAt, HELD));
   return { lead: leadAt, follow: followAt, perch: false };
 }
 
@@ -515,6 +523,6 @@ export function repickExploreSpot(
   const half: Half = cat === "lead" ? "left" : "right";
   return (
     pickExploreSpot(half, partner, viewport(), safeTop(), exploreClear, rng) ??
-    findClearSpot(current, home, partner)
+    findClearSpot(current, home, partner, HELD)
   );
 }

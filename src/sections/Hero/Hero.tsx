@@ -25,13 +25,14 @@
  * into it, so About is one layout rather than two: there is no second band.
  * "One fold" means that, not one screen tall — the `min-h` above is a floor,
  * and with the About paragraphs in the identity column the fold runs past
- * the first screen. What has to land in the first screen at desktop widths
- * is the opening argument: the <h1>, the positioning line, the Kiên Giang
- * paragraph and the code artifact (checked at 1440×900). Below 1024px the
- * code artifact stacks after the paragraphs, so a phone's first screen holds
- * the words and not the code. The band's computed counts and its
- * lens list were dropped rather than moved here — the Journey already draws
- * the career they counted.
+ * the first screen. At >=1360px, where identity and code sit side by side,
+ * the opening argument lands in the first screen: the <h1>, the positioning
+ * line, the Kiên Giang paragraph and the code artifact (checked at 1360×900
+ * and 1440×900). Below 1360px the code artifact stacks after the paragraphs,
+ * so the first screen holds the <h1>, the positioning line and the Kiên Giang
+ * paragraph, and the code starts below it (at 1280×800 its top is at 912px; at
+ * 1024×768, 886px). The band's computed counts and its lens list were dropped
+ * rather than moved here — the Journey already draws the career they counted.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { careerEntries, profile } from "@/content/portfolio";

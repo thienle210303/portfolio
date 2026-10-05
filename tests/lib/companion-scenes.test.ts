@@ -18,6 +18,7 @@ import {
   heldExploreClear,
   holdExplore,
   planExplore,
+  planMood,
   repickExploreSpot,
   RUSH_HOLD_MS,
   RUSH_VELOCITY,
@@ -465,6 +466,53 @@ describe("planExplore", () => {
  * same rules `planExplore` applies to a pair hold against that fixed spot, and
  * that the single-null fallback is `planExplore`'s.
  */
+describe("planMood — a per-frame caller of findClearSpot", () => {
+  const HOME = { x: 900, y: 700 };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = "";
+    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
+  });
+
+  it("does not get findClearSpot's head preference: a follower standing feet-clear keeps her spot", () => {
+    // The tour asks `planMood` every frame with the follower's live position;
+    // rejecting that position for her head would give her a target that moves
+    // with her. So the hero perch's fallback for her must be her own spot when
+    // her feet are clear, whatever is across her face.
+    const perch = document.createElement("div");
+    perch.setAttribute("data-cat-perch", "");
+    perch.getBoundingClientRect = () =>
+      ({ left: 100, top: 300, right: 400, bottom: 340, width: 300, height: 40 }) as DOMRect;
+    document.body.append(perch);
+    const lead = { x: 500, y: 400 };
+    const follow = { x: 700, y: 500 };
+    const prose = document.createElement("p");
+    const inside = (x: number, y: number, l: number, t: number, r: number, b: number) =>
+      x >= l && x < r && y >= t && y < b;
+    document.elementsFromPoint = vi.fn((x: number, y: number) =>
+      // The three places `mateSpot` tries beside the perch spot (414, 316) —
+      // below, above and behind — are content, so the fallback is reached …
+      inside(x, y, 415, 385, 466, 405) ||
+      inside(x, y, 415, 290, 466, 306) ||
+      inside(x, y, 355, 340, 400, 354) ||
+      // … and a line of prose runs across the follower's face, nowhere else.
+      inside(x, y, 700, 504, 760, 518)
+        ? [prose]
+        : [],
+    );
+    expect(companionSpace.isClearSpot(follow)).toBe(true);
+    expect(companionSpace.headClear(follow)).toBe(false);
+
+    const plan = planMood("about", lead, follow, HOME);
+    expect(plan).not.toBeNull();
+    expect(plan!.spots.lead).toEqual({ x: 414, y: 316 });
+    expect(plan!.spots.follow).toEqual(follow);
+    // The same call with the preference would have moved her.
+    expect(companionSpace.findClearSpot(follow, HOME, plan!.spots.lead, { preferHead: true })).not.toEqual(follow);
+  });
+});
+
 describe("repickExploreSpot", () => {
   const HOME = { x: 900, y: 700 };
   const OPEN = () => [] as Element[];

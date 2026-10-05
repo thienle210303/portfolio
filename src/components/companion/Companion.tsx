@@ -2121,10 +2121,16 @@ export function Companion({ facts }: CompanionProps) {
       frameId = requestAnimationFrame(step);
     };
 
-    function restSpots(leadAnchor: Point, followAnchor: Point): Spots {
+    /** `preferHead` only where the answer is chosen once and held — see
+     *  `findClearSpot`. The tour's and the watch's per-frame fallbacks leave
+     *  it off. */
+    function restSpots(leadAnchor: Point, followAnchor: Point, preferHead = false): Spots {
       const home = homeSpot();
-      const spot = findClearSpot(leadAnchor, home);
-      return { lead: spot, follow: findClearSpot(followAnchor, followHome(home), spot) };
+      const spot = findClearSpot(leadAnchor, home, undefined, { preferHead });
+      return {
+        lead: spot,
+        follow: findClearSpot(followAnchor, followHome(home), spot, { preferHead }),
+      };
     }
 
     /**
@@ -2178,14 +2184,16 @@ export function Companion({ facts }: CompanionProps) {
      * no held stop leaves them standing.
      */
     function settled(): Spots {
-      settleSpots.current ??= clearFollowOfToggle(nearbySpots());
+      settleSpots.current ??= clearFollowOfToggle(nearbySpots(true));
       return settleSpots.current;
     }
 
     /** The nearest pair of places to where they are standing — what a held
-     *  scene stands on, and what a declined explorer plan falls back to. */
-    function nearbySpots(): Spots {
-      return restSpots(grey.pos, { x: grey.pos.x - CAT_W - FOLLOW_GAP, y: grey.pos.y });
+     *  scene stands on, and what a declined explorer plan falls back to. Both
+     *  of those hold the answer, so they pass `preferHead`; the tour's and the
+     *  watch's defensive per-frame fallbacks do not. */
+    function nearbySpots(preferHead = false): Spots {
+      return restSpots(grey.pos, { x: grey.pos.x - CAT_W - FOLLOW_GAP, y: grey.pos.y }, preferHead);
     }
 
     /**
@@ -2294,7 +2302,7 @@ export function Companion({ facts }: CompanionProps) {
       }
 
       const chosen = planExplore(sectionRef.current, grey.pos, tabby.pos, homeSpot(), exploreFresh.current);
-      const spots = clearFollowOfToggle(chosen ?? nearbySpots());
+      const spots = clearFollowOfToggle(chosen ?? nearbySpots(true));
       const perch = chosen?.perch ?? false;
       const until = now + (chosen ? EXPLORE_WALK_MAX : EXPLORE_DWELL);
       exploreRun.current = {
