@@ -91,11 +91,16 @@ async function stageWithLiveGlobe() {
     <WorldsStage worlds={resolveChapters()} skins={resolveSkins()} crossingKm={crossingKm()} />,
   );
   importObserver()?.report(1);
-  await screen.findByRole("button", { name: /take the flight/i });
+  // Testing Library's own 1 s default, not vitest's 20 s, governs these two
+  // waits; the first pays for the dynamic import, which under full-suite load
+  // runs 3-6x slower than alone (see vitest.config.mts).
+  await screen.findByRole("button", { name: /take the flight/i }, { timeout: 10_000 });
   // The observer is made in a passive effect, which can run just after the
   // label above has painted.
-  await waitFor(() =>
-    expect(autoplayObserver(), "one autoplay observer, once the controls exist").toHaveLength(1),
+  await waitFor(
+    () =>
+      expect(autoplayObserver(), "one autoplay observer, once the controls exist").toHaveLength(1),
+    { timeout: 10_000 },
   );
   const observers = autoplayObserver();
   const controls = globe.controls;
