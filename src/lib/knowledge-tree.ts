@@ -38,14 +38,11 @@ import type { CareerEntry } from "@/types/portfolio";
  * Through round 17 the old lens-grouped shape (`buildKnowledgeTree`) stayed
  * in this file for one reader, the About band's "Where it shows up" list.
  * Round 18 merged that band into the hero fold without the list, and the
- * function went with it. The entries' authored `lenses` field is still on
- * every career entry; nothing on the site reads it now.
- *
- * `skillCategories[].lenses` is a second, independent authored edge set —
- * category → lens — that fed the roots' "Feeds …" line through round 11.
- * Round 12 retired that line along with the lens branches it named, and round
- * 18 retired the root labels themselves (`RootLabels.tsx`, never mounted by
- * the pinned stage), so nothing draws a skill category on the tree at all.
+ * function went with it — and with nothing left reading them, so did the
+ * lenses themselves: the `lenses` fields on career entries and skill
+ * categories and the `ResumeLensId` type. Round 18 also retired the tree's
+ * root labels (`RootLabels.tsx`, never mounted by the pinned stage), so
+ * nothing draws a skill category on the tree at all.
  *
  * Adding a role, or listing a new technology or impact line in
  * `src/content/portfolio.ts`, changes this tree with no code change here.
@@ -53,7 +50,7 @@ import type { CareerEntry } from "@/types/portfolio";
 
 /*
  * `careerEntries` is declared with `satisfies`, which keeps each entry's
- * `lenses` and `technologies` as literal tuples. That is exactly what makes
+ * `technologies` as literal tuples. That is exactly what makes
  * the content layer self-checking, but it also means `.includes()` on the
  * union of those tuples narrows its parameter to `never`. Widening once here,
  * at the boundary, keeps the precise types at the content layer where they do

@@ -153,7 +153,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, hero code tabs, career entries, case studies, résumé lenses, skills, education, certifications, achievements, `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — contact intents and the closing |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — contact intents and the closing |
 | `src/content/worlds.ts` | The seven worlds of the globe — **addresses, not sentences**: each plaque names a record and a field in `portfolio.ts`, and the words are quoted from it verbatim |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
@@ -210,7 +210,6 @@ Append to `careerEntries` in `src/content/portfolio.ts`:
   learned: "What the work taught you.",
   technologies: ["…"],
   link: { label: "example.com", href: "https://example.com" }, // optional
-  lenses: ["engineering", "automation"],   // authored, but read by nothing on the site since round 18
 }
 ```
 

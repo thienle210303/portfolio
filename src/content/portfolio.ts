@@ -305,7 +305,6 @@ export const careerEntries = [
       "SQL",
       "Claude Code",
     ],
-    lenses: ["engineering", "automation", "optimization", "ai-workflows", "leadership"],
   },
   {
     id: "wordification",
@@ -338,7 +337,6 @@ export const careerEntries = [
       label: "wordification.scholastechnology.com",
       href: "https://wordification.scholastechnology.com/",
     },
-    lenses: ["engineering"],
   },
   {
     id: "schaeffler",
@@ -367,7 +365,6 @@ export const careerEntries = [
     learned:
       "Low-code platforms are a constraint, not a ceiling. The interesting work was deciding exactly where to escape into real Java and where the platform was genuinely faster.",
     technologies: ["Mendix", "Java", "External APIs", "Damerau–Levenshtein"],
-    lenses: ["engineering", "automation", "optimization"],
   },
   {
     // Round 18 date fix. `D:\Project\Portfolio-v2`'s own experience data
@@ -401,7 +398,6 @@ export const careerEntries = [
     learned:
       "Reliability over months is a different discipline from correctness on one run. Everything that could drift, eventually did.",
     technologies: ["Python", "Selenium", "JavaScript", "DOM", "BFS"],
-    lenses: ["engineering", "automation", "optimization"],
   },
   {
     id: "usc-ta",
@@ -426,7 +422,6 @@ export const careerEntries = [
     learned:
       "Explaining a data structure to someone who isn't a CS major is the fastest way to find out whether you understand it.",
     technologies: ["Java", "Data structures", "OOP", "Python", "JavaScript", "HTML/CSS"],
-    lenses: ["leadership", "engineering"],
   },
   {
     id: "usc-degree",
@@ -445,7 +440,6 @@ export const careerEntries = [
     learned:
       "The cybersecurity minor changed how I read systems — I started looking for what a system assumes about the people using it.",
     technologies: [],
-    lenses: ["engineering"],
   },
   {
     id: "graduation",
@@ -461,7 +455,6 @@ export const careerEntries = [
     impact: [],
     learned: undefined,
     technologies: [],
-    lenses: ["engineering"],
   },
   {
     id: "cockyhacks",
@@ -482,7 +475,6 @@ export const careerEntries = [
       label: "github.com/aarshrpatel/MentorHub",
       href: "https://github.com/aarshrpatel/MentorHub",
     },
-    lenses: ["engineering", "leadership"],
   },
   {
     id: "code-to-give",
@@ -503,7 +495,6 @@ export const careerEntries = [
       label: "github.com/mellieho9/MSCodeToGive2023Project",
       href: "https://github.com/mellieho9/MSCodeToGive2023Project",
     },
-    lenses: ["engineering"],
   },
   {
     id: "capstone",
@@ -521,7 +512,6 @@ export const careerEntries = [
     impact: [],
     learned: undefined,
     technologies: ["C#/ASP.NET", "JavaScript/React", "Azure", "AI"],
-    lenses: ["engineering", "ai-workflows"],
   },
   {
     id: "llm-classifier",
@@ -537,7 +527,6 @@ export const careerEntries = [
     impact: ["92% accuracy."],
     learned: undefined,
     technologies: ["PyTorch", "Transformers", "DistilBERT", "GPT-2", "Fine-tuning"],
-    lenses: ["engineering", "ai-workflows"],
   },
   {
     id: "magellan",
@@ -553,7 +542,6 @@ export const careerEntries = [
     impact: [],
     learned: undefined,
     technologies: [],
-    lenses: ["engineering"],
   },
   {
     id: "acm-webmaster",
@@ -569,7 +557,6 @@ export const careerEntries = [
     impact: [],
     learned: undefined,
     technologies: [],
-    lenses: ["leadership"],
   },
   {
     id: "deans-list",
@@ -585,7 +572,6 @@ export const careerEntries = [
     impact: [],
     learned: undefined,
     technologies: [],
-    lenses: [],
   },
   /* ---------------------------------------------------------------------- */
   /* Round 18: the years before the degree.                                  */
@@ -620,7 +606,6 @@ export const careerEntries = [
     learned:
       "Reading a language and speaking it are different skills, and only one of them can be practised alone.",
     technologies: [],
-    lenses: [],
   },
   {
     id: "fu-of-kyoto",
@@ -649,7 +634,6 @@ export const careerEntries = [
     learned:
       "Service is a system under load, and the kitchen teaches you where a process actually breaks faster than any diagram.",
     technologies: [],
-    lenses: [],
   },
   {
     id: "self-taught-gap",
@@ -678,7 +662,6 @@ export const careerEntries = [
     learned:
       "This is the only stretch of the record where nothing was assigned — which makes it the only evidence of what he does when nobody is asking.",
     technologies: [],
-    lenses: [],
   },
   {
     id: "usc-cheme",
@@ -696,7 +679,6 @@ export const careerEntries = [
     learned:
       "Kept on the record on purpose. A portfolio that admits its author started somewhere else is worth more than one that pretends the line was straight.",
     technologies: [],
-    lenses: [],
   },
   {
     id: "cs-switch",
@@ -713,7 +695,6 @@ export const careerEntries = [
     impact: [],
     learned: "The recommendation was worth more than the plan.",
     technologies: [],
-    lenses: [],
   },
   {
     id: "usc-honors-ta",
@@ -735,7 +716,6 @@ export const careerEntries = [
     learned:
       "Teaching people who did not choose this subject is the fastest way to find out which parts of it you only think you understand.",
     technologies: ["JavaScript", "HTML/CSS", "Python"],
-    lenses: ["leadership", "engineering"],
   },
 ] satisfies readonly CareerEntry[];
 
@@ -1303,7 +1283,6 @@ export const skillCategories = [
     ],
     evidence:
       "Python and JavaScript across all collection work; Java at Schaeffler and as a TA; TypeScript on Wordification and this site.",
-    lenses: ["engineering"],
   },
   {
     id: "data",
@@ -1311,7 +1290,6 @@ export const skillCategories = [
     skills: ["PostgreSQL", "SQL", "MongoDB", "GraphQL", "Prisma"],
     evidence:
       "GraphQL and Prisma on Wordification; relational data throughout the DoorDash retail pipelines.",
-    lenses: ["engineering"],
   },
   {
     id: "frameworks",
@@ -1329,7 +1307,6 @@ export const skillCategories = [
     ],
     evidence:
       "Selenium and Playwright across production collection systems; RedwoodJS on Wordification; PyTorch for the DistilBERT fine-tuning project.",
-    lenses: ["engineering", "automation"],
   },
   {
     id: "practices",
@@ -1344,7 +1321,6 @@ export const skillCategories = [
     ],
     evidence:
       "3M+ records at USC; 20+ live retailer integrations and 30+ scrapers in a week at DoorDash; Damerau–Levenshtein matching over 1M+ records at Schaeffler.",
-    lenses: ["automation", "optimization", "engineering"],
   },
   {
     id: "ai",
@@ -1359,7 +1335,6 @@ export const skillCategories = [
     ],
     evidence:
       "Multi-agent feasibility workflow at DoorDash; DistilBERT fine-tuning at 92% accuracy.",
-    lenses: ["ai-workflows", "automation"],
   },
   {
     id: "platforms",
@@ -1367,7 +1342,6 @@ export const skillCategories = [
     skills: ["AWS", "Azure", "Google Cloud", "Mendix", "Git/GitHub"],
     evidence:
       "Azure on the capstone and Conscea projects; Mendix throughout the Schaeffler co-op.",
-    lenses: ["engineering"],
   },
 ] satisfies readonly SkillCategory[];
 

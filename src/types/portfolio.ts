@@ -268,21 +268,11 @@ export interface CareerEntry {
   readonly learned: Maybe<string>;
   readonly technologies: readonly string[];
   readonly link?: ProjectLink;
-  /** Lenses this entry is relevant to. Authored data; since round 18 nothing
-   *  on the site reads it (the About band's lens list was its last reader). */
-  readonly lenses: readonly ResumeLensId[];
 }
 
 /* -------------------------------------------------------------------------- */
 /* Resume                                                                      */
 /* -------------------------------------------------------------------------- */
-
-export type ResumeLensId =
-  | "engineering"
-  | "automation"
-  | "optimization"
-  | "ai-workflows"
-  | "leadership";
 
 export type ResumeDepth = "quick-scan" | "deep-dive";
 
@@ -292,7 +282,6 @@ export interface SkillCategory {
   readonly skills: readonly string[];
   /** Where these show up in real work. No proficiency percentages, ever. */
   readonly evidence: string;
-  readonly lenses: readonly ResumeLensId[];
 }
 
 export interface EducationEntry {
