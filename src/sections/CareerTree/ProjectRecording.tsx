@@ -9,28 +9,32 @@
  * After it: `preload="none"`, muted, never `autoplay` (the one `play()` call
  * is the user's own press), and no `loop` under reduced motion.
  */
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Button } from "@/components/ui/Button";
+import { useEffect, useRef, useState } from "react";
 import type { Project } from "@/types/portfolio";
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
-function subscribeReducedMotion(onChange: () => void): () => void {
-  const list = window.matchMedia(REDUCED_MOTION);
-  list.addEventListener("change", onChange);
-  return () => list.removeEventListener("change", onChange);
-}
-
-const reducedMotionNow = () => window.matchMedia(REDUCED_MOTION).matches;
+/* The shared Button's `secondary`/`sm` classes, in its own order, written out
+   by hand (as CaseStudy's "Discuss this project" link is) so this client
+   component does not pull Button and ExternalLink into the page's initial
+   JS. `tests/sections/ProjectRecording.test.tsx` holds the two equal. */
+const PLAY_BUTTON_CLASS =
+  "relative inline-flex min-h-11 items-center gap-2 border font-sans font-medium transition-colors duration-200 disabled:pointer-events-none disabled:opacity-50 " +
+  "justify-center px-4 py-2 text-[length:var(--step--1)] " +
+  "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] " +
+  "active:translate-y-px";
 
 interface RecordingVideoProps {
   readonly recording: string;
   readonly title: string;
   readonly loop: boolean;
+  /** The id of the case study's own authored prose that says what the
+   *  recording is of: its text alternative (WCAG 1.2.1), invented nowhere. */
+  readonly describedBy: string;
 }
 
 /** The mounted state, split out so the server markup of it can be asserted. */
-export function RecordingVideo({ recording, title, loop }: RecordingVideoProps) {
+export function RecordingVideo({ recording, title, loop, describedBy }: RecordingVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     // Runs only after the press mounted this element. The button it replaced
@@ -50,7 +54,10 @@ export function RecordingVideo({ recording, title, loop }: RecordingVideoProps) 
       controls
       loop={loop}
       aria-label={`${title} — screen recording`}
-      className="w-full border border-[color:var(--rule-color)] bg-[color:var(--surface)]"
+      aria-describedby={describedBy}
+      // Every recording is 1280×720: holding 16:9 before the poster arrives
+      // keeps the press from shifting what is below it.
+      className="aspect-video w-full border border-[color:var(--rule-color)] bg-[color:var(--surface)]"
     />
   );
 }
@@ -58,23 +65,33 @@ export function RecordingVideo({ recording, title, loop }: RecordingVideoProps) 
 interface ProjectRecordingProps {
   readonly project: Pick<Project, "title">;
   readonly recording: string;
+  readonly describedBy: string;
 }
 
-export default function ProjectRecording({ project, recording }: ProjectRecordingProps) {
-  const [pressed, setPressed] = useState(false);
+export default function ProjectRecording({ project, recording, describedBy }: ProjectRecordingProps) {
+  // The motion preference only matters at the press, so it is read once,
+  // there, rather than subscribed to by every closed case study on the page.
+  const [pressed, setPressed] = useState<null | { readonly loop: boolean }>(null);
   if (!pressed) {
     return (
-      <Button variant="secondary" size="sm" onClick={() => setPressed(true)}>
+      <button
+        type="button"
+        // Four of these sit on the page; the title tells them apart. The
+        // visible text leads the name, so speech input still matches it.
+        aria-label={`Play the screen recording of ${project.title}`}
+        onClick={() => setPressed({ loop: !window.matchMedia(REDUCED_MOTION).matches })}
+        className={PLAY_BUTTON_CLASS}
+      >
         Play the screen recording
-      </Button>
+      </button>
     );
   }
-  return <PressedRecording recording={recording} title={project.title} />;
-}
-
-/** Reads the motion preference only once there is a video to apply it to, so
- *  the thirty-odd closed case studies on the page subscribe to nothing. */
-function PressedRecording({ recording, title }: Omit<RecordingVideoProps, "loop">) {
-  const reduced = useSyncExternalStore(subscribeReducedMotion, reducedMotionNow, () => false);
-  return <RecordingVideo recording={recording} title={title} loop={!reduced} />;
+  return (
+    <RecordingVideo
+      recording={recording}
+      title={project.title}
+      loop={pressed.loop}
+      describedBy={describedBy}
+    />
+  );
 }

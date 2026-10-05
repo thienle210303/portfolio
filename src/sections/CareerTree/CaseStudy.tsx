@@ -187,6 +187,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
   const scope = idScope ? `-${idScope}` : "";
 
   const titleId = `${project.id}-title${scope}`;
+  const taglineId = `${project.id}-tagline${scope}`;
   const techLabelId = `${project.id}-tech-label${scope}`;
   const proofLabelId = `${project.id}-proof-label${scope}`;
   const metricsLabelId = `${project.id}-metrics-label${scope}`;
@@ -264,7 +265,10 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
           {project.title}
         </h3>
 
-        <p className="prose-measure mt-4 text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg)]">
+        <p
+          id={taglineId}
+          className="prose-measure mt-4 text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg)]"
+        >
           {project.tagline}
         </p>
       </header>
@@ -375,7 +379,13 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
         >
           {project.recording ? (
             <div className="pt-4">
-              <ProjectRecording project={project} recording={project.recording} />
+              {/* The tagline is the recording's text alternative: the
+                  author's own sentence for what the project is. */}
+              <ProjectRecording
+                project={project}
+                recording={project.recording}
+                describedBy={taglineId}
+              />
             </div>
           ) : null}
           <div className="divide-y divide-[color:var(--rule-color)]">
