@@ -122,7 +122,7 @@ test.describe("ask this site", () => {
     await page.keyboard.press("Enter");
 
     const turn = lastTurn(page);
-    await expect(turn.getByText(/Nothing on this page answers that/)).toBeVisible();
+    await expect(turn.getByText(/Nothing written for this site answers that/)).toBeVisible();
     await expect(turn.getByRole("list", { name: "Sourced answers" })).toHaveCount(0);
   });
 
@@ -152,7 +152,7 @@ test.describe("ask this site", () => {
       const turn = lastTurn(page);
       // Either real results or the honest "nothing here" line — never blank.
       const answered = await turn.getByRole("list", { name: "Sourced answers" }).getByRole("listitem").count();
-      const declined = await turn.getByText(/Nothing on this page answers that/).count();
+      const declined = await turn.getByText(/Nothing written for this site answers that/).count();
       expect(answered + declined, `suggestion ${index} produced no response`).toBeGreaterThan(0);
       expect(answered, `suggestion ${index} is a dead control`).toBeGreaterThan(0);
     }
@@ -237,7 +237,7 @@ test.describe("ask this site", () => {
 
     await questionField(page).fill("what is the capital of France");
     await page.keyboard.press("Enter");
-    await expect(lastTurn(page).getByText(/Nothing on this page answers that/)).toBeVisible();
+    await expect(lastTurn(page).getByText(/Nothing written for this site answers that/)).toBeVisible();
 
     await page.getByRole("button", { name: "Where did he study?" }).click();
     await expect(lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
@@ -281,21 +281,33 @@ test.describe("ask this site", () => {
     // scoped to that one box and never touches an ancestor. `openChat` has
     // already scrolled the page to `#ask`, so this measures movement from
     // there, not from the top.
+    //
+    // The bound is tight on purpose: the old 2000px allowance could not
+    // fail. And it is only meaningful if the page *could* lurch that far, so
+    // the room below is asserted first.
+    const LURCH = 50;
     const windowScrollBefore = await page.evaluate(() => window.scrollY);
+    const roomBelow = await page.evaluate(
+      () => document.documentElement.scrollHeight - window.innerHeight - window.scrollY,
+    );
+    expect(roomBelow, "the page has no room to lurch, so this test could not fail").toBeGreaterThan(LURCH);
 
     for (const question of [
       "What does he do at DoorDash?",
       "Where did he study?",
       "What has he actually measured?",
     ]) {
-      await page.getByRole("button", { name: question }).click();
+      // `dispatchEvent`, not `click()`: Playwright scrolls a target into view
+      // before clicking it, which would move the window itself and hide or
+      // fake the very movement this measures.
+      await page.getByRole("button", { name: question }).dispatchEvent("click");
       await expect(
         lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first(),
       ).toBeVisible();
     }
 
     const windowScrollAfter = await page.evaluate(() => window.scrollY);
-    expect(Math.abs(windowScrollAfter - windowScrollBefore)).toBeLessThan(2000);
+    expect(Math.abs(windowScrollAfter - windowScrollBefore)).toBeLessThan(LURCH);
 
     // The log region did scroll internally, though — it wound up somewhere
     // past its own top, not stuck at 0 with three turns' worth of content
@@ -503,15 +515,49 @@ test.describe("ask, in contact", () => {
     // outside its load-ahead margin, so the chat's own field must not exist.
     await expect(questionField(page)).toHaveCount(0);
 
-    const chunkRequest = page.waitForRequest(
-      (request) => request.resourceType() === "script" && request.url().includes("/_next/static/"),
+    // Every script the page has already asked for, so the request awaited
+    // below has to be a NEW one — and one whose body is the chat itself (its
+    // field's accessible name is a string literal in that chunk), not any
+    // other late script.
+    const loaded = new Set(
+      await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => entry.name)),
+    );
+    const chunkResponse = page.waitForResponse(
+      async (response) =>
+        response.request().resourceType() === "script" &&
+        !loaded.has(response.url()) &&
+        (await response.text()).includes("Ask a question about this portfolio"),
     );
     await askBlock(page).scrollIntoViewIfNeeded();
-    // A new script request fires as a direct result of the block coming into
-    // range — the `import()` behind it, not something already on the page.
-    await chunkRequest;
+    await chunkResponse;
 
     await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
+  });
+
+  // The chat's room (`--ask-room` in globals.css) is reserved before it
+  // loads, so nothing after it moves when it lands. Measured where the
+  // breakpoints put different heights in force.
+  test("the chat landing does not move what follows it", async ({ page }) => {
+    test.skip(viewportWidth(page) === 390, "covered by 375; five widths are enough");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+    await expect(questionField(page)).toHaveCount(0);
+
+    const closingOffset = () =>
+      page.evaluate(() => {
+        const closing = document.querySelector("#closing");
+        if (!closing) throw new Error("the page has no closing section");
+        return closing.getBoundingClientRect().top + window.scrollY;
+      });
+    const before = await closingOffset();
+
+    await askBlock(page).scrollIntoViewIfNeeded();
+    await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(300);
+    const after = await closingOffset();
+
+    expect(Math.abs(after - before), `#closing moved ${after - before}px when the chat landed`).toBeLessThanOrEqual(2);
   });
 
   // Deliberately not viewport-gated: this is the one property that is

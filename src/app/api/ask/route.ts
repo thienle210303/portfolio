@@ -82,7 +82,7 @@ function respond(body: AskApiResponse, status: number): NextResponse<AskApiRespo
  * is declining.
  */
 const UNGROUNDED_REPLY =
-  "I don't have anything grounded on this page to answer that from, so I'd rather say so than guess. Try asking about his career, the work, his background, or his skills.";
+  "I don't have anything written for this site to answer that from, so I'd rather say so than guess. Try asking about his career, the work, his background, or his skills.";
 
 /* -------------------------------------------------------------------------- */
 /* Rate limiting                                                              */

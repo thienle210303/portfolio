@@ -178,10 +178,37 @@ describe("AskLoader holds the chat's room before it arrives", () => {
     expect(container.querySelector("[data-ask-slot]")).toBeNull();
   });
 
-  it("is given a height by the stylesheet, only when JavaScript runs", () => {
+  it("gives the slot and the chat's root the same height, only when JavaScript runs", () => {
     // jsdom applies no stylesheet, so the rule is read as text. The gate is
-    // `html[data-motion]`, stamped by layout.tsx's pre-paint script.
+    // `html[data-motion]`, stamped by layout.tsx's pre-paint script. One
+    // rule for both, so the two can never disagree about the height.
     const css = readFileSync("src/app/globals.css", "utf8");
-    expect(css).toMatch(/html\[data-motion\] \[data-ask-slot\] \{\s*min-height: \d+rem;/);
+    expect(css).toMatch(
+      /html\[data-motion\] \[data-ask-slot\],\s*html\[data-motion\] \[data-ask-chat\] \{\s*min-height: var\(--ask-room\);/,
+    );
+  });
+
+  it("keeps the chat's root free of a min-h utility that would override the room", () => {
+    const source = readFileSync("src/sections/Contact/AskThisSite.tsx", "utf8");
+    const root = source.match(/<div data-ask-chat="" className="([^"]*)"/);
+    expect(root, "the chat's root lost its data-ask-chat attribute").not.toBeNull();
+    expect(root?.[1]).not.toMatch(/min-h-/);
+  });
+});
+
+describe("AskLoader's lazy boundary", () => {
+  it("never imports the chat or the answer engine statically", () => {
+    // The whole point of this file: a static import of either would pull the
+    // engine and its index into the chunk Contact ships with. Only the
+    // dynamic `import("./AskThisSite")` may name the chat.
+    const source = readFileSync("src/sections/Contact/AskLoader.tsx", "utf8");
+    const staticImports = [...source.matchAll(/^\s*import\s[^;]*?from\s+["']([^"']+)["']/gm)].map(
+      (match) => match[1],
+    );
+    expect(staticImports).not.toContain("./AskThisSite");
+    expect(staticImports).not.toContain("@/sections/Contact/AskThisSite");
+    expect(staticImports).not.toContain("@/lib/answers");
+    expect(staticImports.every((specifier) => specifier === "react")).toBe(true);
+    expect(source).toMatch(/import\("\.\/AskThisSite"\)/);
   });
 });

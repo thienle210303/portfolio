@@ -109,12 +109,12 @@ import {
  */
 
 const NOTHING_FOUND =
-  "Nothing on this page answers that. Everything here is drawn from what's actually written in the sections above — if it isn't there, I'd rather say so than guess.";
+  "Nothing written for this site answers that. Everything here is quoted from what's written for this site — if it isn't there, I'd rather say so than guess.";
 
 /** Shown before the first question — the thread's resting state, rather
  *  than a blank gap above the input. */
 const IDLE_HINT =
-  "No question asked yet. Pick one below, or type your own — the answer lands here, sourced, and linked back to the page it came from. Ask a follow-up any time; the whole conversation stays on screen.";
+  "No question asked yet. Pick one below, or type your own — the answer lands here with its source, and a link to the section it belongs to when there is one. Ask a follow-up any time; the whole conversation stays on screen.";
 
 const LIVE_UPSTREAM_FAILED =
   "The live model didn't answer that time — nothing was sent anywhere that shouldn't have been, it just failed to respond. Try again, or ask something else.";
@@ -741,7 +741,9 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
   }
 
   return (
-    <div className="border border-rule bg-surface">
+    // `data-ask-chat`: globals.css gives this root the same min-height the
+    // loader's placeholder had, so the chat landing does not move the page.
+    <div data-ask-chat="" className="border border-rule bg-surface">
       {/* Prompt bar. The one place on the site that borrows a terminal's
           vocabulary, because this is the one place that takes a command. */}
       <div className="flex items-center gap-2 border-b border-rule px-4 py-2.5">
@@ -760,7 +762,7 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
         <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
           {liveModeConfigured
             ? "Ask about the work, his background, or how he thinks. Retrieval runs the same way it always does; a live model composes the answer from exactly what it found, and says so."
-            : "Every answer below is a sentence lifted straight out of this page, shown with where it came from. No model, nothing generated — if the answer isn’t written somewhere on the site, you get told so."}
+            : "Every answer below is quoted word for word from what Thien wrote for this site, with its source. No model, nothing generated. If he hasn’t written it down, you’re told so."}
         </p>
 
         <div className="mt-4">

@@ -21,8 +21,9 @@ export default function Home() {
   // reaches the chat in Contact. The key never crosses.
   const liveModeConfigured = askLiveModeConfigured();
 
-  // The owner's scheduling link. Anything that is not an https:// URL (unset,
-  // empty, a typo) becomes undefined and Contact renders no booking link.
+  // The owner's scheduling link. Anything that is not https:// followed by a
+  // host (unset, empty, a typo, a bare "https://") becomes undefined and
+  // Contact renders no booking link.
   const bookingUrl = validBookingUrl(process.env.BOOKING_URL);
 
   return (

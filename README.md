@@ -10,7 +10,7 @@ tree on a pinned stage, told in seven acts from 2018, with the case studies
 inside it (in the branches of the roles that produced them, or after the acts
 for the coursework); and **Contact**, which
 starts from what the visitor actually came to say, and holds a chat that
-answers questions about the page grounded only in what it says. The résumé is its own route
+answers questions about the page quoting only what's written for the site. The résumé is its own route
 at `/resume`, reading the same content, and it is the only place the skills
 inventory renders.
 

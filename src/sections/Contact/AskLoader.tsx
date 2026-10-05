@@ -27,9 +27,10 @@ import { useCallback, useEffect, useRef, useState, type ComponentType } from "re
  *
  * A browser without IntersectionObserver imports at once rather than never.
  *
- * Every state before the chat carries `data-ask-slot`, which globals.css
- * gives roughly the idle chat's height, so the swap does not shove the
- * closing section down under a reader who jumped straight to the bottom.
+ * Every state before the chat carries `data-ask-slot`, and the chat's root
+ * carries `data-ask-chat`; globals.css gives both the same min-height
+ * (`--ask-room`, at or above the idle chat's measured height), so the swap
+ * does not move the closing section under a reader who jumped to the bottom.
  */
 type ChatComponent = ComponentType<{ readonly liveModeConfigured: boolean }>;
 

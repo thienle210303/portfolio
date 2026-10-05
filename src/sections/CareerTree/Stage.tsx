@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -113,6 +114,18 @@ const noObserver = () => false;
 interface PendingScroll {
   readonly element: Element;
   readonly block: ScrollLogicalPosition;
+}
+
+/** The element the URL's fragment names, or `null`. A malformed escape in the
+ *  fragment is used as written, which names nothing. */
+function fragmentTarget(): HTMLElement | null {
+  let id = window.location.hash.slice(1);
+  try {
+    id = decodeURIComponent(id);
+  } catch {
+    // Use it as written; the lookup below then finds no target.
+  }
+  return id ? document.getElementById(id) : null;
 }
 
 export default function Stage({ acts, drawing, list, credentials, children }: StageProps) {
@@ -248,16 +261,25 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
   // has settled. The same goes for a target below the stage — Contact, `#ask`
   // — which the reshaping moved too; a target above it did not move, and is
   // left where the browser put it.
+  //
+  // Only if the browser actually landed there. After a reload Chromium
+  // restores the reader's own scroll position rather than the fragment's, and
+  // re-landing would then yank them away from what they were reading. So at
+  // mount — on a server-rendered load that is the hydration pass, before the
+  // stage goes live and reshapes anything — this records whether the target's
+  // top sits on its `scroll-margin-top` line (±2px), which is where a fragment
+  // navigation puts it. The live flip re-lands only when it did.
+  const landedOnFragment = useRef(false);
+  useLayoutEffect(() => {
+    const target = fragmentTarget();
+    if (!target) return;
+    const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+    landedOnFragment.current = Math.abs(target.getBoundingClientRect().top - margin) <= 2;
+  }, []);
+
   useEffect(() => {
-    if (!live) return;
-    let id = window.location.hash.slice(1);
-    try {
-      id = decodeURIComponent(id);
-    } catch {
-      // A malformed escape in the fragment: use it as written, which names
-      // nothing, and the lookup below finds no target.
-    }
-    const target = id ? document.getElementById(id) : null;
+    if (!live || !landedOnFragment.current) return;
+    const target = fragmentTarget();
     const root = rootRef.current;
     const moved =
       target !== null &&

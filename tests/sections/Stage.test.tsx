@@ -639,4 +639,29 @@ describe("a fragment landing, said again once the pin has reshaped the page", ()
   it("leaves a target above the stage alone: nothing above it moved", () => {
     expect(landOn("above-the-stage")).toHaveLength(0);
   });
+
+  it("leaves a reader alone who is not at the target: a reload restored their own scroll", () => {
+    // After a reload Chromium restores where the reader was, not the
+    // fragment. The target is then nowhere near its landing line, and
+    // saying the landing again would yank the reader to it.
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      return this.id === "below-the-stage" ? new DOMRect(0, 2400, 300, 600) : new DOMRect(0, 0, 0, 0);
+    });
+    expect(landOn("below-the-stage")).toHaveLength(0);
+  });
+
+  it("still re-lands a target the browser did land on, at its scroll margin", () => {
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      return this.id === "below-the-stage" ? new DOMRect(0, 81, 300, 600) : new DOMRect(0, 0, 0, 0);
+    });
+    const original = window.getComputedStyle;
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = original(element, pseudo);
+      if ((element as Element).id !== "below-the-stage") return style;
+      return new Proxy(style, {
+        get: (target, key) => (key === "scrollMarginTop" ? "80px" : Reflect.get(target, key)),
+      });
+    });
+    expect(landOn("below-the-stage").map((element) => element.id)).toContain("below-the-stage");
+  });
 });

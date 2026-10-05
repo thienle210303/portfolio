@@ -211,7 +211,7 @@ test.describe("interactive states", () => {
     await auditHasNoViolations(page);
   });
 
-  test("zero WCAG violations with the chat in Contact loaded and answered", async ({ page }) => {
+  test("zero WCAG violations with the chat in Contact loaded and answered, by day and by night", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -230,7 +230,13 @@ test.describe("interactive states", () => {
     // the off-base-tone audits below: the fact worth auditing here is the
     // chat's own markup with a turn on screen — in Contact's `deep` tone —
     // not the whole page over again.
-    await auditHasNoViolations(page, "#ask");
+    for (const theme of ["day", "night"] as const) {
+      if ((await page.locator("html").getAttribute("data-theme")) !== theme) {
+        await page.getByRole("button", { name: `Switch to ${theme} theme` }).click();
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      }
+      await auditHasNoViolations(page, "#ask");
+    }
   });
 
   test("zero WCAG violations with the globe landed and the handoff link shown", async ({

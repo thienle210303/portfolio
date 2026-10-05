@@ -1355,8 +1355,12 @@ change: the pinned `chromium_headless_shell-1234` path), `:3101` = `194e35d`,
 |---|---|---|---|---|---|---|---|
 | Before, `194e35d` (3 runs) | 197.8 KB | 14.0 KB | 223.8 KB | 2540–2832 ms | 652–897 ms | 0 | 3171 |
 | After, chat in Contact (3 runs) | 198.0 KB | 14.0 KB | 223.8 KB | 2728–3584 ms | 435–789 ms | 0 | 3175 |
+| After fix round 1: `--ask-room`, Stage landing gate (3 runs) | 198.1 KB | 14.0 KB | 223.8 KB | 2740–2800 ms | 351–850 ms | 0 | 3175 |
 
-Initial JS: 202,584 → 202,744 bytes (**+160 B**), every run reporting 0
+Initial JS: 202,584 → 202,744 bytes (**+160 B**), and 202,822 B (**+238 B**)
+after fix round 1. That arm was measured on its own and compared with the
+byte count of the `194e35d` build measured earlier the same day: bytes are
+fixed per build, and its timings are not compared. Every run reported 0
 responses with no `sizes()`. DOM nodes are +4 net: the `#ask` block in, the
 hero's fourth tab out. The LCP and TBT ranges overlap between the arms and
 are read as noise. The `content-length` cross-check is not usable on this

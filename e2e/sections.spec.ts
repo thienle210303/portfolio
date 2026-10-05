@@ -533,3 +533,46 @@ test.describe("career tree", () => {
     ).toHaveCount(1);
   });
 });
+
+/*
+ * Stage.tsx says a fragment landing again once the pin has reshaped the page,
+ * for targets inside the stage and below it (Contact, `#ask`). It must do that
+ * only when the browser actually landed on the fragment: a reload restores the
+ * reader's own scroll position, and re-landing then would yank them away.
+ */
+test.describe("fragment landings around the Journey", () => {
+  test("a cold load of /#ask lands on it, after the pin has reshaped the page", async ({ page }) => {
+    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the pin only reshapes the page from lg up");
+    await page.goto("about:blank");
+    await page.goto("/#ask");
+    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+    await page.waitForLoadState("networkidle");
+    expectSettledAtScrollMargin(
+      await restingTop(page.locator("#ask")),
+      "a cold load must settle #ask at its 80px scroll margin",
+    );
+  });
+
+  test("a reload after scrolling away from the fragment does not jump back to it", async ({ page }) => {
+    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the pin only reshapes the page from lg up");
+    await page.goto("about:blank");
+    await page.goto("/#contact");
+    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+
+    // Read somewhere else: the Worlds section, far above Contact.
+    await page.locator("#worlds").evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.waitForTimeout(500);
+    const before = await page.evaluate(() => window.scrollY);
+
+    await page.reload();
+    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(500);
+
+    // Not vacuous: Contact really is far from where the reader was.
+    const contactTop = await page.locator("#contact").evaluate((el) => el.getBoundingClientRect().top);
+    expect(Math.abs(contactTop)).toBeGreaterThan(1000);
+    const after = await page.evaluate(() => window.scrollY);
+    expect(Math.abs(after - before), "the reload jumped the reader").toBeLessThan(50);
+  });
+});
