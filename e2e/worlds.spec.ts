@@ -153,8 +153,11 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
  *
  * ## The coupling this leans on, and where it is pinned
  *
- * So `draws` is attributed instead: `clearRect` calls on the globe's own
- * canvas, which nothing else on the page draws to. Reading `draws === 0` as
+ * So `draws` is attributed instead, to the globe's two canvases and nothing
+ * else on the page: `clearRect` calls on the 2D overlay (`overlayDraws`) plus
+ * `drawArrays` calls on the GL surface under it, when there is one
+ * (`glDraws`). Counting both is what stops a surface looping on its own from
+ * passing as "at rest" beside a still overlay. Reading `draws === 0` as
  * "the globe asked for no frames" is only sound while the globe's loop draws
  * on every pass — `step()` in `GlobeCanvas.tsx` calls `draw()`
  * unconditionally, and there is a comment there pointing back here.
@@ -1183,7 +1186,7 @@ test.describe("reduced motion", () => {
 /**
  * How many pixels of the overlay carry any ink. Coastlines are the bulk of
  * what the overlay stops drawing once a GL surface takes them, so this is how
- * the fallback test tells "coastlines drawn" from "coastlines left to a
+ * the context-loss test tells "coastlines drawn" from "coastlines left to a
  * surface that is not there".
  */
 async function overlayInk(page: Page) {
@@ -1198,58 +1201,107 @@ async function overlayInk(page: Page) {
   });
 }
 
+/** Every webgl2 request answers null, which is what a browser without WebGL2
+ *  (or with it blocklisted) does. */
+async function withoutWebGL2(page: Page) {
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function getContext(
+      this: HTMLCanvasElement,
+      type: string,
+      options?: unknown,
+    ) {
+      if (type === "webgl2") return null;
+      return original.call(this, type as "2d", options as CanvasRenderingContext2DSettings);
+    } as typeof original;
+  });
+}
+
+/**
+ * The overlay's ink and fingerprint after two fresh redraws, once the fonts
+ * have settled. Two pages compared with this were last drawn under the same
+ * conditions, so any difference is in what they draw rather than in when a
+ * web font happened to arrive. A theme flip there and back is the existing
+ * at-rest redraw hook, and it leaves the page in the theme it started in.
+ */
+async function settledOverlay(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    const root = document.documentElement;
+    const theme = root.dataset.theme;
+    root.dataset.theme = theme === "night" ? "day" : "night";
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    root.dataset.theme = theme;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+  return { ink: await overlayInk(page), signature: await globeSignature(page) };
+}
+
+async function expectDialOff(page: Page) {
+  const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
+  for (const button of await skins.getByRole("button").all()) {
+    await expect(button).toHaveAttribute("aria-disabled", "true");
+    await expect(button).toHaveAccessibleName(/needs WebGL/i);
+  }
+}
+
 test.describe("without WebGL2", () => {
-  test("the shipped 2D globe draws, coastlines and all, and the skin dial says why it is off", async ({
-    page,
-    browser,
-  }) => {
-    // Every webgl2 request answers null, which is what a browser without
-    // WebGL2 (or with it blocklisted) does.
-    await page.addInitScript(() => {
-      const original = HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext = function getContext(
-        this: HTMLCanvasElement,
-        type: string,
-        options?: unknown,
-      ) {
-        if (type === "webgl2") return null;
-        return original.call(this, type as "2d", options as CanvasRenderingContext2DSettings);
-      } as typeof original;
-    });
+  test("the shipped 2D globe draws, and the skin dial says why it is off", async ({ page }) => {
+    await withoutWebGL2(page);
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
 
     await expect(page.locator(SURFACE)).toHaveCount(0);
     expect(await globeSignature(page), "the fallback globe drew nothing").not.toBe("0");
-    const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
-    for (const button of await skins.getByRole("button").all()) {
-      await expect(button).toHaveAttribute("aria-disabled", "true");
-      await expect(button).toHaveAccessibleName(/needs WebGL/i);
-    }
+    await expectDialOff(page);
     await expectAtRest(page, 1_500, "the fallback globe, untouched");
+  });
 
-    // The control: the same page, same viewport, same untouched view, with
-    // WebGL2 left alone. With a surface, its overlay leaves the coastlines to
-    // the shader, so the fallback overlay must carry clearly more ink.
-    // Without this the assertions above pass on a fallback that forgot the
-    // coastlines.
-    const fallbackInk = await overlayInk(page);
+  test("a lost context falls back to exactly the globe a browser without WebGL2 gets", async ({
+    page,
+    browser,
+  }) => {
+    // The fourth of R3's triggers, and the strongest statement of what
+    // "fall back" means: after the context goes, the overlay is the same
+    // drawing, pixel for pixel by these two measures, as the page that never
+    // had WebGL2. A fallback that left the coastlines to a dead surface
+    // differs here by every coastline pixel.
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    test.skip(
+      (await page.locator(SURFACE).count()) === 0,
+      "no WebGL2 surface to lose in this browser; the stubbed test above covers that page",
+    );
+    const withSurface = await settledOverlay(page);
+
+    await page.evaluate(() => {
+      const surface = document.querySelector<HTMLCanvasElement>("#worlds canvas[data-globe-surface]");
+      const gl = surface?.getContext("webgl2");
+      const lose = gl?.getExtension("WEBGL_lose_context");
+      if (!lose) throw new Error("WEBGL_lose_context is unavailable");
+      lose.loseContext();
+    });
+    await expect(page.locator(SURFACE), "the surface outlived its context").toHaveCount(0);
+    await expectDialOff(page);
+    const lost = await settledOverlay(page);
+
+    // The coastlines came back onto the overlay: it carries more ink than it
+    // did while the shader held them.
+    expect(lost.ink, "the overlay did not take the coastlines back").toBeGreaterThan(withSurface.ink);
+
     const context = await browser.newContext({ viewport: page.viewportSize() ?? undefined });
     const control = await context.newPage();
     try {
+      await withoutWebGL2(control);
       await control.goto("/#worlds");
       await waitForLiveGlobe(control);
-      test.skip(
-        (await control.locator(SURFACE).count()) === 0,
-        "the control page has no WebGL2 either, so there is no coastline-free overlay to compare against",
-      );
-      const glInk = await overlayInk(control);
-      expect(
-        fallbackInk,
-        `fallback overlay ${fallbackInk} inked pixels, GL overlay ${glInk}: the fallback is not drawing the coastlines`,
-      ).toBeGreaterThan(glInk * 1.1);
+      await expect(control.locator(SURFACE)).toHaveCount(0);
+      const never = await settledOverlay(control);
+      expect(lost.ink, "inked pixels: context lost vs never had WebGL2").toBe(never.ink);
+      expect(lost.signature, "overlay fingerprint: context lost vs never had WebGL2").toBe(never.signature);
     } finally {
       await context.close();
     }
+    await expectAtRest(page, 1_500, "after the context was lost");
   });
 });

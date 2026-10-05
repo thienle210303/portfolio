@@ -126,8 +126,16 @@ void main() {
   vec3 light = normalize(vec3(0.82, -0.45, 0.35));
   float lambert = clamp(dot(view, light), 0.0, 1.0);
 
-  vec3 sea = mix(uPaper, uInk, 0.3);
-  vec3 shore = mix(uPaper, uInk, 0.08);
+  // The overlay's labels are drawn to read against the ground, so the
+  // unskinned planet stays within a short step of it: sea and shadow at most
+  // 0.14 of the way to ink, which keeps accent and muted labels above 4.5:1
+  // on the disc in both themes. \`shadow\` is that step taken toward whichever
+  // of ink and paper is darker, so in night it is the ground itself and the
+  // unlit side only ever gains contrast. Skins keep the deeper terminator:
+  // they are an asked-for look, and their own palettes leave that range.
+  vec3 sea = mix(uPaper, uInk, 0.1);
+  vec3 shore = mix(uPaper, uInk, 0.02);
+  vec3 shadow = mix(uPaper, darkest, 0.14);
   float glow = 0.0;
 
   if (uSkin == SKIN_ICE_AGE) {
@@ -167,10 +175,11 @@ void main() {
     vec2 grid = abs(fract(uv * vec2(48.0, 24.0)) - 0.5);
     float wire = smoothstep(0.44, 0.5, max(grid.x, grid.y));
     // Ink on a paper-faded surface: the lattice carries no fact, so no blue.
-    color = mix(mix(color, uPaper, 0.55), uInk, wire * 0.6);
+    color = mix(mix(color, uPaper, 0.55), uInk, wire * 0.1);
   }
 
-  color = mix(mix(color, darkest, 0.65), color, lambert);
+  bool skinned = uSkin >= 0;
+  color = mix(mix(color, skinned ? darkest : shadow, skinned ? 0.65 : 0.8), color, lambert);
 
   float rim = smoothstep(0.75, 1.0, d);
   if (uSkin == SKIN_UNDERWATER) {
@@ -179,7 +188,7 @@ void main() {
   } else if (uSkin == SKIN_DESERT) {
     color = mix(color, mix(palest, darkest, 0.25), rim * 0.5);
   } else {
-    color = mix(color, darkest, rim * 0.25);
+    color = mix(color, skinned ? darkest : shadow, rim * 0.25);
   }
 
   color = mix(color, uAccent, glow);
