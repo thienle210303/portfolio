@@ -1885,12 +1885,15 @@
 /* bottom). So one height per breakpoint, `--ask-room`, is the min-height of  */
 /* BOTH the loader's pre-chat states (`data-ask-slot`) and the chat's own     */
 /* root (`data-ask-chat`): each value is at or above the tallest idle chat    */
-/* measured anywhere in its breakpoint's width range, static or live mode,    */
-/* so the box is the same height before and after the chat lands. Re-measure  */
-/* if the chat's idle copy or suggestions change (at 1rem = 16px, widths      */
-/* 320-1920, both modes, natural height with this rule switched off);         */
-/* e2e/ask.spec.ts fails at five widths if `#closing` moves by more than 2px  */
-/* across the load.                                                           */
+/* measured anywhere in its step's width range, so the box is the same       */
+/* height before and after the chat lands. Re-measure if the chat's idle copy */
+/* or suggestions change (at 1rem = 16px, widths 320-1920 every 4px, both     */
+/* modes, natural height with this rule switched off). Last measured with    */
+/* round 18's copy: live mode was never taller than static at any width (up  */
+/* to 28px shorter), so one set of values serves both and is not keyed on the */
+/* mode. e2e/ask.spec.ts fails at five widths if `#closing` moves by more     */
+/* than 2px across the load, and fails between 400 and 639px if the room is   */
+/* short of the chat or more than 200px taller than it.                       */
 /*                                                                            */
 /* Gated on `html[data-motion]`, which the pre-paint script in layout.tsx     */
 /* stamps unconditionally, i.e. "JavaScript runs": with it off the chat never */
@@ -1902,24 +1905,34 @@
   :root {
     --ask-room: 67.5rem; /* tallest measured: 1065px at 320 */
   }
+  @media (width >= 25rem) {
+    :root {
+      --ask-room: 63rem; /* 1006px at 400 */
+    }
+  }
+  @media (width >= 32.5rem) {
+    :root {
+      --ask-room: 49rem; /* 776px at 544 */
+    }
+  }
   @media (width >= 40rem) {
     :root {
-      --ask-room: 48.5rem; /* 767px at 640 */
+      --ask-room: 48.5rem; /* 768px at 648 */
     }
   }
   @media (width >= 48rem) {
     :root {
-      --ask-room: 44rem; /* 691px at 768, live mode */
+      --ask-room: 44rem; /* 695px at 1020 */
     }
   }
   @media (width >= 64rem) {
     :root {
-      --ask-room: 50.5rem; /* 802px at 1024, live mode */
+      --ask-room: 50.5rem; /* 802px at 1024 */
     }
   }
   @media (width >= 80rem) {
     :root {
-      --ask-room: 44.5rem; /* 695px at 1280, live mode */
+      --ask-room: 44.5rem; /* 695px at 1280 */
     }
   }
   html[data-motion] [data-ask-slot],

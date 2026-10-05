@@ -560,6 +560,33 @@ test.describe("ask, in contact", () => {
     expect(Math.abs(after - before), `#closing moved ${after - before}px when the chat landed`).toBeLessThanOrEqual(2);
   });
 
+  // The other half of that room: not so tall that the landed chat sits over a
+  // blank gap. The matrix has no width between 390 and 768, where the idle
+  // chat shrinks from ~1006px to ~750px, so this walks that range itself.
+  test("the chat's room is never much taller than the chat, between the phone and tablet widths", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "walks its own widths; run once");
+    await openChat(page);
+
+    const gaps: string[] = [];
+    for (let width = 400; width < 640; width += 8) {
+      await page.setViewportSize({ width, height: 900 });
+      const { natural, reserved } = await page.evaluate(() => {
+        const chat = document.querySelector<HTMLElement>("[data-ask-chat]");
+        if (!chat) throw new Error("the chat has no root");
+        chat.style.minHeight = "0px";
+        const height = chat.getBoundingClientRect().height;
+        chat.style.minHeight = "";
+        return { natural: height, reserved: parseFloat(getComputedStyle(chat).minHeight) };
+      });
+      // Never short (the #closing test above needs that), and never more
+      // than 200px of blank under the chat (330px before the 400px step).
+      if (reserved < natural - 1 || reserved - natural > 200) {
+        gaps.push(`${width}px: room ${reserved}px for a ${Math.round(natural)}px chat`);
+      }
+    }
+    expect(gaps).toEqual([]);
+  });
+
   // Deliberately not viewport-gated: this is the one property that is
   // *supposed* to vary with width. Contact stacks below `lg` and the chat
   // stacks with it; it must stay usable, with 44px targets, and must not
