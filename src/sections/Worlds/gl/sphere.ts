@@ -10,25 +10,22 @@ export interface SphereState {
   readonly tilt: number;      // radians, already through clampTilt()
   readonly chapter: number;   // CHAPTER_INDEX[id]
   readonly skin: number;      // SKIN_INDEX[id], or -1 for none
-  readonly crossing: number;  // 0..1, the arc's draw progress
   readonly robot: number;     // 0..1 across both passes, or -1 for absent
 }
 
-/** The at-rest state: Living Earth, no skin, the crossing drawn, no robot. */
+/** The at-rest state: Living Earth, no skin, no robot. */
 export const REST_STATE: SphereState = {
   spin: 0,
   tilt: 0,
   chapter: CHAPTER_INDEX["living-earth"],
   skin: -1,
-  crossing: 1,
   robot: -1,
 };
 
-/** `--fg`, `--ground` and `--accent`, parsed to 0..1. */
+/** `--fg` and `--ground`, parsed to 0..1. */
 export interface SphereColors {
   readonly ink: Vec3;
   readonly paper: Vec3;
-  readonly accent: Vec3;
 }
 
 export interface SphereOptions {
@@ -186,7 +183,6 @@ export function createSphere(gl: WebGL2RenderingContext | null, options: SphereO
     gl.useProgram(program);
     gl.uniform3f(at.uInk, ...colors.ink);
     gl.uniform3f(at.uPaper, ...colors.paper);
-    gl.uniform3f(at.uAccent, ...colors.accent);
   };
   gl.useProgram(program);
   gl.uniform1i(at.uCoastlines, 0);
@@ -216,7 +212,6 @@ export function createSphere(gl: WebGL2RenderingContext | null, options: SphereO
       gl.uniformMatrix3fv(at.uInverseRotation, false, matrix);
       gl.uniform1i(at.uChapter, state.chapter);
       gl.uniform1i(at.uSkin, state.skin);
-      gl.uniform1f(at.uCrossing, state.crossing);
       gl.uniform1f(at.uRobot, state.robot);
       const lights = robotLights(state.robot);
       gl.uniform1f(at.uRobotLon, lights ? (lights.lonDegrees * Math.PI) / 180 : 0);

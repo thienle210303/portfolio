@@ -53,8 +53,8 @@ describe("the sphere's uniform surface", () => {
     // the shader, the planet renders, and the feature simply does nothing.
     expect(SPHERE_UNIFORMS).toEqual([
       "uResolution", "uCenter", "uRadius", "uInverseRotation", "uCoastlines",
-      "uChapter", "uSkin", "uCrossing", "uRobot", "uRobotLon", "uCityLight",
-      "uInk", "uPaper", "uAccent",
+      "uChapter", "uSkin", "uRobot", "uRobotLon", "uCityLight",
+      "uInk", "uPaper",
     ]);
     expect(declaredUniforms(FRAGMENT_SOURCE)).toEqual([...SPHERE_UNIFORMS]);
   });
@@ -68,7 +68,7 @@ describe("the sphere's uniform surface", () => {
 });
 
 describe("the shader's colours", () => {
-  it("contains no colour literal: only ink, paper and accent, mixed", () => {
+  it("contains no colour literal: only ink and paper, mixed", () => {
     // Two themes and three tones. A literal colour freezes the planet into one
     // of six combinations, which is exactly the bug the alias layer exists to
     // prevent.
@@ -76,11 +76,13 @@ describe("the shader's colours", () => {
     expect(FRAGMENT_SOURCE).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });
 
-  it("uses the accent only for the Night and Volcanic coastline glow", () => {
-    // Blue is never decoration: one declaration and one mix, and the glow it
-    // mixes by is set only in those two skins.
-    expect(FRAGMENT_SOURCE.match(/\buAccent\b/g)).toHaveLength(2);
-    expect(FRAGMENT_SOURCE).toContain("color = mix(color, uAccent, glow);");
+  it("uses no accent at all: the Night and Volcanic coastline glow is the palest of ink and paper", () => {
+    // Blue is never decoration, and the surface carries no fact, so it has no
+    // way to paint blue: no accent uniform, and no read of one.
+    expect(FRAGMENT_SOURCE).not.toMatch(/uAccent/);
+    expect(SPHERE_UNIFORMS).not.toContain("uAccent");
+    expect(FRAGMENT_SOURCE).toContain("color = mix(color, palest, glow);");
+    // The glow is still drawn, and only in those two skins.
     const glowSets = [...FRAGMENT_SOURCE.matchAll(/^\s*glow = /gm)];
     expect(glowSets).toHaveLength(2);
     for (const set of glowSets) {
@@ -89,7 +91,7 @@ describe("the shader's colours", () => {
     }
   });
 
-  it("draws the robot and its city lights in the Technology chapter, in ink, never accent", () => {
+  it("draws the robot and its city lights in the Technology chapter, in ink", () => {
     // R9: the walk belongs to Technology, not to a skin. Every read of the
     // three robot uniforms sits inside that chapter's branch.
     const tech = FRAGMENT_SOURCE.indexOf("if (uChapter == CHAPTER_TECH) {");
@@ -104,9 +106,8 @@ describe("the shader's colours", () => {
       expect(inBranch.length, `${name} is read outside the Technology branch`).toBe(reads.length);
     }
     // The lights are the planet's own ink, so they read as light by night and
-    // as dark points by day; the accent stays confined (test above).
-    // Applied after the lighting, so a light on the unlit side still shines.
-    expect(branch).not.toMatch(/uAccent/);
+    // as dark points by day. Applied after the lighting, so a light on the
+    // unlit side still shines.
     expect(branch).toMatch(/cityGlow = /);
     expect(FRAGMENT_SOURCE).toContain("color = mix(color, uInk, cityGlow);");
     expect(FRAGMENT_SOURCE.match(/^\s*cityGlow = /gm)?.length).toBe(branch.match(/^\s*cityGlow = /gm)?.length);
@@ -322,7 +323,7 @@ describe("parseCssColor", () => {
   });
 });
 
-const COLORS: SphereColors = { ink: [0, 0, 0], paper: [1, 1, 1], accent: [0, 0, 1] };
+const COLORS: SphereColors = { ink: [0, 0, 0], paper: [1, 1, 1] };
 const COVERAGE = { width: 4, height: 2, data: new Uint8ClampedArray(4 * 2 * 4) };
 
 /** A WebGL2 stand-in that records every call by name. */
@@ -448,7 +449,7 @@ describe("createSphere", () => {
     expect(fake.named("viewport").at(-1)?.args).toEqual([0, 0, view.width, view.height]);
   });
 
-  it("sends the three colours, and re-sends them on setColors", () => {
+  it("sends the two colours, and re-sends them on setColors", () => {
     const fake = fakeGl();
     const sphere = createSphere(fake.gl, { coverage: COVERAGE, colors: COLORS });
     const sent = () =>
@@ -456,13 +457,11 @@ describe("createSphere", () => {
     expect(sent()).toEqual([
       ["uInk", 0, 0, 0],
       ["uPaper", 1, 1, 1],
-      ["uAccent", 0, 0, 1],
     ]);
-    sphere.setColors({ ink: [1, 1, 1], paper: [0, 0, 0], accent: [0.5, 0.5, 1] });
-    expect(sent().slice(3)).toEqual([
+    sphere.setColors({ ink: [1, 1, 1], paper: [0, 0, 0] });
+    expect(sent().slice(2)).toEqual([
       ["uInk", 1, 1, 1],
       ["uPaper", 0, 0, 0],
-      ["uAccent", 0.5, 0.5, 1],
     ]);
   });
 

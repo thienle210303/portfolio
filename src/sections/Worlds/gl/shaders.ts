@@ -12,9 +12,10 @@ import { CHAPTER_IDS } from "@/lib/worlds";
  * TypeScript from `rotate()`. `surfaceGeo()` in `sphere.ts` is the TS twin of
  * this mapping, tested against `unproject()`.
  *
- * Colour enters only through `uInk`, `uPaper` and `uAccent`. "Darkest" and
- * "palest" are whichever of ink and paper is darker or paler, so a skin that
- * says "pale" or "dark" stays true in both themes.
+ * Colour enters only through `uInk` and `uPaper`. "Darkest" and "palest" are
+ * whichever of ink and paper is darker or paler, so a skin that says "pale" or
+ * "dark" stays true in both themes. There is no accent input: the surface
+ * carries no fact, and blue is never decoration.
  */
 
 /** `CHAPTER` + `"living-earth"` → `CHAPTER_LIVING_EARTH`. */
@@ -54,13 +55,11 @@ uniform mat3 uInverseRotation;
 uniform sampler2D uCoastlines;
 uniform int uChapter;
 uniform int uSkin;
-uniform float uCrossing;
 uniform float uRobot;
 uniform float uRobotLon;
 uniform vec2 uCityLight;
 uniform vec3 uInk;
 uniform vec3 uPaper;
-uniform vec3 uAccent;
 
 out vec4 fragColor;
 
@@ -162,6 +161,7 @@ void main() {
     sea = mix(darkest, palest, 0.06);
     shore = mix(darkest, palest, 0.14);
     lambert = 1.0 - lambert;
+    // The coastlines lit, strongest on the unlit side.
     glow = coast * (0.35 + 0.65 * lambert);
   } else if (uSkin == SKIN_VOLCANIC) {
     sea = mix(darkest, palest, 0.1);
@@ -219,18 +219,17 @@ void main() {
 
   // After the lighting, so a light on the unlit side still shines.
   color = mix(color, uInk, cityGlow);
-  color = mix(color, uAccent, glow);
+  color = mix(color, palest, glow);
   fragColor = vec4(color, 1.0);
 }`;
 
 /** Every uniform the fragment shader declares, in declaration order. A
  *  misspelled name is a silent no-op, so the test pins this list to the
- *  source. `uCrossing` is declared for Task 6 and not yet read, so a
- *  compiler may optimise it out and report no location. */
+ *  source. */
 export const SPHERE_UNIFORMS = [
   "uResolution", "uCenter", "uRadius", "uInverseRotation", "uCoastlines",
-  "uChapter", "uSkin", "uCrossing", "uRobot", "uRobotLon", "uCityLight",
-  "uInk", "uPaper", "uAccent",
+  "uChapter", "uSkin", "uRobot", "uRobotLon", "uCityLight",
+  "uInk", "uPaper",
 ] as const;
 
 export type SphereUniform = (typeof SPHERE_UNIFORMS)[number];

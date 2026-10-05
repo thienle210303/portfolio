@@ -345,21 +345,20 @@ function palette(element: Element): Palette {
 }
 
 /**
- * The GL surface's three inputs, read off the element the same way `palette()`
+ * The GL surface's two inputs, read off the element the same way `palette()`
  * reads the overlay's, so the planet follows the tone it sits in as well as
  * the theme. `key` is the raw strings, for "did anything change since the
- * last upload". `colors` is null when any of them does not parse.
+ * last upload". `colors` is null when either does not parse.
  */
 function sphereColors(element: Element): { key: string; colors: SphereColors | null } {
   const style = getComputedStyle(element);
   const ink = style.getPropertyValue("--fg").trim();
   const paper = style.getPropertyValue("--ground").trim();
-  const accent = style.getPropertyValue("--accent").trim();
-  const parsed = [ink, paper, accent].map(parseCssColor);
-  const [i, p, a] = parsed;
+  const i = parseCssColor(ink);
+  const p = parseCssColor(paper);
   return {
-    key: `${ink}|${paper}|${accent}`,
-    colors: i && p && a ? { ink: i, paper: p, accent: a } : null,
+    key: `${ink}|${paper}`,
+    colors: i && p ? { ink: i, paper: p } : null,
   };
 }
 
@@ -558,7 +557,6 @@ export default function GlobeCanvas({
           tilt: v.tilt,
           chapter: CHAPTER_INDEX[currentIdRef.current] ?? REST_STATE.chapter,
           skin: skin !== null && skin in SKIN_INDEX ? SKIN_INDEX[skin as keyof typeof SKIN_INDEX] : -1,
-          crossing: v.flight,
           robot: currentIdRef.current === TECH_WORLD_ID ? v.robot : REST_STATE.robot,
         },
         v.device,
