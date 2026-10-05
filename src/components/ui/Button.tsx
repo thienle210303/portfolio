@@ -96,7 +96,7 @@ const QUIET_SIZE_CLASSES: Record<ButtonSize, string> = {
 // primary control per screen. `after:inset-[3px]` sits inside the fill, not
 // on its edge, so it reads as a mark pressed into the surface rather than a
 // second border racing the element's own; invisible at rest, never past 40%
-// on hover. SiteHeader's "Let's talk" and QuickConnect's submit carry the
+// on hover. SiteHeader's "Let's talk" and ContactForm's send button carry the
 // identical recipe by hand, since neither renders through this component.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:

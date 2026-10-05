@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput, withCaseStudyReferral } from "@/lib/content";
 import { careerEntries, codeTabs, contactIntents, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
+import { buildMailtoHref, buildReason, EMAIL_MAX, NAME_MAX } from "@/lib/contact";
 
 describe("formatIsoDate", () => {
   it("formats a valid ISO date as 'D Month YYYY'", () => {
@@ -493,29 +494,19 @@ describe("contact drafts", () => {
   });
 
   it("stays short enough for the mailto: fallback, with its footer", () => {
-    // Same shape buildMailtoHref in ContactForm produces: subject, then the
-    // message followed by the name/email/company lines. The footer is built at
-    // the API's field maxima, which mirror NAME_MAX / EMAIL_MAX / COMPANY_MAX
-    // in src/app/api/contact/route.ts (not exported, so mirrored here), with
-    // ASCII filler: each character costs one byte in the href. The subject is
-    // the real intent subject plus the longest project title, as a case-study
-    // referral builds it. It is not a call to buildMailtoHref itself.
-    const NAME_MAX = 100;
-    const EMAIL_MAX = 200;
-    const COMPANY_MAX = 120;
-    const footer =
-      "\n\n\u2014\nName: " +
-      "n".repeat(NAME_MAX) +
-      "\nEmail: " +
-      "e".repeat(EMAIL_MAX) +
-      "\nCompany: " +
-      "c".repeat(COMPANY_MAX);
+    // The real href: buildReason and buildMailtoHref are the functions the
+    // form calls. Name and reply address are ASCII filler at the API's own
+    // maxima (each character costs one byte in the href), and the case study
+    // is the longest project title, the worst referral the form can build.
     const longestTitle = projects.map((p) => p.title).reduce((a, b) => (b.length > a.length ? b : a));
     for (const intent of contactIntents) {
-      const referred = withCaseStudyReferral(intent.messageDraft, longestTitle);
-      const href = `mailto:${profile.email}?subject=${encodeURIComponent(
-        `${intent.subject} \u2014 ${longestTitle}`
-      )}&body=${encodeURIComponent(referred + footer)}`;
+      const href = buildMailtoHref(profile.email, {
+        subject: buildReason(intent, longestTitle),
+        message: withCaseStudyReferral(intent.messageDraft, longestTitle),
+        name: "n".repeat(NAME_MAX),
+        email: "e".repeat(EMAIL_MAX),
+      });
+      expect(href, intent.id).toContain(encodeURIComponent(longestTitle));
       expect(href.length, intent.id).toBeLessThan(2000);
     }
   });

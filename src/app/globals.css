@@ -410,7 +410,7 @@
     /*
      * Deliberately *not* `scroll-behavior: smooth` here. Every intentional
      * smooth scroll on this page (SiteNav's nav links and scroll-lock
-     * restore, ContactForm, the companion's tour)
+     * restore, the companion's tour)
      * already requests it explicitly on the call itself — `behavior:
      * prefersReducedMotion() ? "auto" : "smooth"` — which is what lets each
      * of them honour reduced motion without this property's help. A blanket

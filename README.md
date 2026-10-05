@@ -262,8 +262,9 @@ metrics. When it changes, reconcile `careerEntries`, `education`,
 
 The form has two honest modes and picks one **on the server** at render time.
 
-**Unconfigured (default).** The submit button reads **"Open email app"**, the UI
-says so before you submit, and submitting builds a URL-encoded `mailto:` link.
+**Unconfigured (default).** The send button reads **"Send it as written"** in both
+modes; here a note beside it says it opens your email app, and pressing it
+builds a URL-encoded `mailto:` link (under 2,000 characters for every intent).
 No message is ever sent without an explicit visitor action, and a success message
 is never shown for a send that did not happen. Copy-email, LinkedIn and GitHub
 alternatives are always offered.

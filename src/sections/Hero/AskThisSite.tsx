@@ -162,7 +162,7 @@ function isAskApiResponse(value: unknown): value is AskApiResponse {
   return typeof value === "object" && value !== null && "ok" in value;
 }
 
-/** Same check `ContactForm.tsx` runs — `prefers-reduced-motion` skips the
+/** `prefers-reduced-motion` skips the
  *  scroll window's smooth-scrolling and jumps straight to the newest turn
  *  instead. */
 function prefersReducedMotion(): boolean {

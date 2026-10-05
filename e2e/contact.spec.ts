@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { contactIntents } from "../src/content/portfolio";
 
 test.beforeEach(async ({ page }) => {
@@ -11,56 +12,101 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState("networkidle");
 });
 
-test("selecting an intent prefills subject and message, and both remain editable", async ({ page }) => {
+/** The form that owns the name field — the one the companion also watches. */
+function contactForm(page: Page) {
+  return page.locator("#contact form", { has: page.locator("#contact-name") });
+}
+
+test("Contact holds one form, and nothing to send until an intent is chosen", async ({ page }) => {
+  const contact = page.locator("#contact");
+  // The one-field "leave a number" form is gone (round 18): choosing an
+  // intent now produces the whole message instead.
+  await expect(contact.locator("form")).toHaveCount(1);
+  await expect(contact.getByRole("button", { name: /send it/i })).toHaveCount(0);
+  await expect(contact.locator("#contact-name")).toHaveCount(0);
+  await expect(contact.getByRole("group", { name: /pick one and a finished message appears below/i })).toBeVisible();
+});
+
+test("choosing an intent shows its whole draft as paragraphs, with no textarea", async ({ page }) => {
+  const contact = page.locator("#contact");
+  for (const intent of contactIntents) {
+    await contact.getByRole("radio", { name: intent.label, exact: true }).check();
+    const form = contactForm(page);
+    const paragraphs = intent.messageDraft.split("\n\n");
+    for (const paragraph of paragraphs) {
+      const node = form.getByText(paragraph, { exact: true });
+      await expect(node).toBeVisible();
+      expect(await node.evaluate((el) => el.tagName), paragraph).toBe("P");
+    }
+    await expect(form.getByText(intent.subject, { exact: true })).toBeVisible();
+    await expect(form.locator("textarea")).toHaveCount(0);
+  }
+});
+
+test("after choosing, the send button is the only blue fill in Contact", async ({ page }) => {
+  const contact = page.locator("#contact");
+  await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
+  const send = contact.getByRole("button", { name: "Send it as written" });
+  await expect(send).toBeVisible();
+  const blue = await contact.evaluate((root) =>
+    Array.from(root.querySelectorAll("*"))
+      .filter((el) => /(^|\s)bg-accent(\s|$)/.test(el.getAttribute("class") ?? ""))
+      .map((el) => el.textContent?.trim()),
+  );
+  expect(blue).toEqual(["Send it as written"]);
+});
+
+test("adding a line opens the draft in an editable textarea", async ({ page }) => {
   const contact = page.locator("#contact");
   const intent = contactIntents[1];
+  await contact.getByRole("radio", { name: intent.label, exact: true }).check();
+  await contact.getByRole("button", { name: "Add a line of my own" }).click();
 
-  await contact.getByRole("radio", { name: intent.label }).check();
-
-  const reason = contact.locator("#contact-reason");
   const message = contact.locator("#contact-message");
-  await expect(reason).toHaveValue(intent.subject);
   await expect(message).toHaveValue(intent.messageDraft);
-
-  await expect(message).toBeEditable();
-  await message.fill(`${intent.messageDraft}
-
-Extra detail from me.`);
+  await expect(message).toBeFocused();
+  await message.fill(`${intent.messageDraft}\n\nExtra detail from me.`);
   await expect(message).toHaveValue(/Extra detail from me\.$/);
+  await expect(contact.getByRole("button", { name: "Send it", exact: true })).toBeVisible();
+  await expect(contact.getByRole("button", { name: "Add a line of my own" })).toHaveCount(0);
 
-  await expect(reason).toBeEnabled();
-  await reason.selectOption(contactIntents[0].subject);
-  await expect(reason).toHaveValue(contactIntents[0].subject);
+  // Choosing again goes back to that intent's own draft.
+  await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
+  await expect(contact.locator("#contact-message")).toHaveCount(0);
+  await expect(contact.getByRole("button", { name: "Send it as written" })).toBeVisible();
 });
 
 test("the secret intent declares data-cat-secret on the form, and only while selected", async ({ page }) => {
   const contact = page.locator("#contact");
-  // Two forms live in #contact (quick connect above, the full form below);
-  // anchor on the field only the full form has rather than on DOM order.
-  const form = contact.locator("form", { has: page.locator("#contact-name") });
+  const form = contactForm(page);
   const secret = contactIntents.find((intent) => intent.id === "secret");
   if (!secret) throw new Error("The secret intent left the content layer — update this spec with it.");
 
   // Declaration side of the companion contract only: the cats' reaction is
   // pinned in companion.spec.ts. Here the form must raise the flag while the
   // secret intent is selected and lower it the moment another intent is.
-  await expect(form).not.toHaveAttribute("data-cat-secret");
-  await contact.getByRole("radio", { name: secret.label }).check();
+  // The bare `form` element exists before any choice; the name field (and so
+  // this locator) only once one is made.
+  await expect(contact.locator("form")).not.toHaveAttribute("data-cat-secret");
+  await contact.getByRole("radio", { name: secret.label, exact: true }).check();
   await expect(form).toHaveAttribute("data-cat-secret", "");
-  await contact.getByRole("radio", { name: contactIntents[0].label }).check();
+  await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
   await expect(form).not.toHaveAttribute("data-cat-secret");
 });
 
-test("submitting with empty required fields shows inline validation, not a submission", async ({ page }) => {
-  const form = page.locator("#contact form");
+test("sending with no name or reply address shows inline validation, not a submission", async ({ page }) => {
+  const contact = page.locator("#contact");
+  await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
+  const form = contactForm(page);
 
-  await form.getByRole("button", { name: "Open email app" }).click();
+  await form.getByRole("button", { name: "Send it as written" }).click();
 
   await expect(form.getByRole("alert")).toHaveText(/fix the highlighted field/i);
   await expect(page.locator("#contact-name")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#contact-name")).toBeFocused();
   await expect(page.locator("#contact-name-error")).toHaveText("Enter your name.");
   await expect(page.locator("#contact-email-error")).toHaveText("Enter your email address.");
-  await expect(page.locator("#contact-message-error")).toHaveText(/at least 10 characters/);
+  await expect(page.locator("#contact-email")).toHaveAttribute("type", "email");
 
   await expect(form.getByRole("status")).toHaveText("");
   await expect(page).toHaveURL(/\/$/);
@@ -70,52 +116,45 @@ test("submitting with empty required fields shows inline validation, not a submi
 // environment has no RESEND_API_KEY / CONTACT_TO_EMAIL / CONTACT_FROM_EMAIL
 // configured, so the form must degrade to an honest mailto: fallback and
 // must never claim a message was actually sent.
-test('with email delivery unconfigured, submit reads "Open email app" and never claims success', async ({
+test("with email delivery unconfigured, the same send opens the email app and never claims success", async ({
   page,
 }) => {
-  const form = page.locator("#contact form");
-  const submit = form.getByRole("button", { name: "Open email app" });
-  await expect(submit).toBeVisible();
-  await expect(form.getByRole("button", { name: "Send message" })).toHaveCount(0);
+  const contact = page.locator("#contact");
+  await contact.getByRole("radio", { name: contactIntents[2].label, exact: true }).check();
+  const form = contactForm(page);
+  const send = form.getByRole("button", { name: "Send it as written" });
+  await expect(send).toBeVisible();
+  await expect(send).toHaveAccessibleDescription(/opens your email app/i);
 
   await page.locator("#contact-name").fill("Jamie Reviewer");
   await page.locator("#contact-email").fill("jamie@example.com");
-  await page.locator("#contact-message").fill("Just checking the contact form behaves as documented.");
-
-  await submit.click();
+  await send.click();
 
   const status = form.getByRole("status");
   await expect(status).toContainText("email app should now be open");
   await expect(status).not.toContainText(/message sent/i);
   await expect(page.getByText(/message sent/i)).toHaveCount(0);
   await expect(form.getByRole("alert")).toHaveText("");
-  await expect(submit).toHaveText("Open email app");
 });
 
 test("the honeypot field is present and not reachable by Tab", async ({ page }) => {
-  const form = page.locator("#contact form");
+  const contact = page.locator("#contact");
+  const form = contact.locator("form");
   const honeypot = form.locator("#contact-website");
 
   await expect(honeypot).toHaveCount(1);
   await expect(honeypot).toHaveAttribute("tabindex", "-1");
   await expect(honeypot).toHaveAttribute("aria-hidden", "true");
 
-  await form.locator("#contact-message").focus();
+  // The honeypot sits after the last control in DOM order, so tabbing off
+  // the last button is the step that would land on it.
+  await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
+  await form.getByRole("button", { name: "Add a line of my own" }).focus();
   await page.keyboard.press("Tab");
-
   await expect(honeypot).not.toBeFocused();
-  await expect(form.getByRole("button", { name: "Open email app" })).toBeFocused();
+  await expect(form.getByRole("button", { name: "Add a line of my own" })).not.toBeFocused();
 });
 
-/**
- * The one-field "ask me to reach out" path that sits above the full form.
- *
- * It exists so a visitor can start a conversation without composing one, so
- * what matters here is that it stays operable and honest: it must never claim
- * to have sent something it did not, and its direct links must go where they
- * say. Delivery itself is not exercised — the suite runs without Resend
- * configured, which is exactly the mailto-fallback state the site ships in.
- */
 /**
  * The right-hand business card (BusinessCard.tsx, >=1024px only). Its
  * column is a fixed `22rem`/`24rem` (Contact.tsx), never a fluid width, so
@@ -218,42 +257,48 @@ test.describe("business card", () => {
   });
 });
 
-test.describe("quick connect", () => {
-  test("offers email, GitHub and LinkedIn as direct one-tap links", async ({ page }) => {
-    await page.goto("/");
-    const quick = page.locator("#contact form").first();
+test("the card offers email, GitHub and LinkedIn as direct links, no form needed", async ({ page }) => {
+  const card = page.locator('#contact aside[aria-label$="business card"]');
 
-    // Email is a real mailto, not a JS handler.
-    const mailto = page.locator('#contact a[href^="mailto:"]').first();
-    await expect(mailto).toBeVisible();
+  // Email is a real mailto, not a JS handler.
+  await expect(card.locator('a[href^="mailto:"]').first()).toBeVisible();
 
-    for (const name of [/^GitHub/, /^LinkedIn/]) {
-      const link = page.locator("#contact").getByRole("link", { name });
-      await expect(link.first()).toHaveAttribute("rel", "noopener noreferrer");
-      await expect(link.first()).toHaveAttribute("target", "_blank");
-    }
-
-    await expect(quick.getByPlaceholder("Email or phone number")).toBeVisible();
-  });
-
-  test("rejects an empty submission without claiming to have sent anything", async ({ page }) => {
-    await page.goto("/");
-    const field = page.getByPlaceholder("Email or phone number");
-    await field.scrollIntoViewIfNeeded();
-    await page.getByRole("button", { name: "I'll come to you" }).click();
-
-    await expect(field).toHaveAttribute("aria-invalid", "true");
-    await expect(page.getByText(/Enter an email address or a phone number/)).toBeVisible();
-    await expect(page.getByText(/I'll be in touch/)).toHaveCount(0);
-  });
-
-  test("the field advertises exactly one autofill purpose", async ({ page }) => {
-    await page.goto("/");
-    const field = page.getByPlaceholder("Email or phone number");
-    // The autocomplete spec allows one field-name token, so the field cannot
-    // claim both purposes — `email tel` is invalid and axe fails it under
-    // 1.3.5. Pinned here because the temptation to "helpfully" add `tel` back
-    // is real.
-    await expect(field).toHaveAttribute("autocomplete", "email");
-  });
+  for (const name of [/^GitHub/, /^LinkedIn/]) {
+    const link = card.getByRole("link", { name });
+    await expect(link.first()).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(link.first()).toHaveAttribute("target", "_blank");
+  }
 });
+
+/**
+ * The page-wide axe audits (axe.spec.ts) see Contact only before an intent is
+ * chosen, when the draft, the fields and the send button do not exist yet.
+ * This audits the states this form adds, scoped to #contact, in both themes.
+ */
+for (const theme of ["day", "night"] as const) {
+  test(`the chosen, expanded and invalid states add no WCAG violations (${theme})`, async ({ page }) => {
+    test.skip(page.viewportSize()?.width !== 1440, "contrast and ARIA are viewport-independent; run once");
+    await page.addInitScript((value) => window.localStorage.setItem("theme", value), theme);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+
+    const contact = page.locator("#contact");
+    const audit = async (state: string) => {
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+        .include("#contact")
+        .analyze();
+      expect(violations.map((v) => `${state}: [${v.id}] ${v.nodes.map((n) => n.target.join(" ")).join("; ")}`)).toEqual([]);
+    };
+
+    await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
+    await contact.getByRole("button", { name: "Send it as written" }).click();
+    await expect(page.locator("#contact-name-error")).toBeVisible();
+    await audit("chosen, invalid");
+
+    await contact.getByRole("button", { name: "Add a line of my own" }).click();
+    await expect(page.locator("#contact-message")).toBeFocused();
+    await audit("expanded");
+  });
+}

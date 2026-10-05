@@ -25,8 +25,8 @@ test("the site header is not visible in print", async ({ page }) => {
 });
 
 test("no contact form is visible in print", async ({ page }) => {
-  // Two of them now — the one-field quick-connect and the full form — so this
-  // asserts over every match rather than assuming a single one.
+  // Asserts over every match rather than assuming a single form, so a second
+  // one added to Contact is covered without editing this test.
   const forms = page.locator("#contact form");
   expect(await forms.count()).toBeGreaterThan(0);
   for (const form of await forms.all()) {

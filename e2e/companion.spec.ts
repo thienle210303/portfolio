@@ -3733,10 +3733,9 @@ test.describe("companion", () => {
 
     const contact = page.locator("#contact");
     await contact.scrollIntoViewIfNeeded();
-    // #contact holds two forms — QuickConnect's one-field form above the
-    // full one — so this has to be anchored on the full form specifically,
-    // the same way e2e/contact.spec.ts's own data-cat-secret test does, or
-    // Playwright's strict mode fails with "resolved to 2 elements".
+    // Anchored on the form that owns the name field, the same way
+    // e2e/contact.spec.ts's own data-cat-secret test does, rather than on
+    // DOM order inside #contact.
     const form = contact.locator("form", { has: page.locator("#contact-name") });
 
     // WP-E declares the attribute; this is the companion's own half of the
@@ -3801,10 +3800,9 @@ test.describe("companion", () => {
 
     const contact = page.locator("#contact");
     await contact.scrollIntoViewIfNeeded();
-    // #contact holds two forms — QuickConnect's one-field form above the
-    // full one — so this has to be anchored on the full form specifically,
-    // the same way e2e/contact.spec.ts's own data-cat-secret test does, or
-    // Playwright's strict mode fails with "resolved to 2 elements".
+    // Anchored on the form that owns the name field, the same way
+    // e2e/contact.spec.ts's own data-cat-secret test does, rather than on
+    // DOM order inside #contact.
     const form = contact.locator("form", { has: page.locator("#contact-name") });
     await contact.getByRole("radio", { name: secret.label }).check();
     await expect(form).toHaveAttribute("data-cat-secret", "");

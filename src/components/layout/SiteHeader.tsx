@@ -46,7 +46,7 @@ export default function SiteHeader() {
               The etched inner keyline (Workstream 3, P3) is the one rich
               hover this site allows itself, reserved for the single primary
               control per screen — this button, `Button`'s own `primary`
-              variant, and QuickConnect's submit share the identical recipe.
+              variant, and ContactForm's send button share the identical recipe.
               `after:inset-[3px]` sits inside the fill rather than on its
               edge, so it reads as a mark pressed into the surface instead of
               a second border competing with the element's own; it is
