@@ -1366,3 +1366,32 @@ hero's fourth tab out. The LCP and TBT ranges overlap between the arms and
 are read as noise. The `content-length` cross-check is not usable on this
 server: 16 responses declared none, so it is a floor of 0.4 KB JS, not a
 total.
+
+### The living Earth, measured (2026-10-05, round 18 Plan C, Task 11)
+
+Plan C put a hand-written WebGL2 surface (`src/sections/Worlds/gl/`) under the
+globe's Canvas 2D overlay, with the shipped 2D globe as the fallback. One
+production build of `3b1ac4c` served on `:3111`, measured with a throwaway copy
+of `scripts/perf.mjs` (only change: the pinned `chromium_headless_shell-1234`
+path), against `main` at `71e3638` measured the same way (202,734 B):
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| Before, `main` `71e3638` (initial JS only) | 198.0 KB | not re-measured | not re-measured | not re-measured | not re-measured | not re-measured | not re-measured |
+| After, Plan C (3 runs) | 199.9 KB | 14.0 KB | 223.8 KB | 3236–4260 ms | 422–977 ms | 0 | 3187 |
+
+Initial JS: 202,734 → 204,678 bytes (**+1,944 B**, inside Plan C's +1–2 KB
+budget). All three runs reported 0 responses with no `sizes()` and an identical
+byte count, which is fixed per build. LCP and TBT spread widely between runs
+and are not compared with the earlier rows. The `content-length` cross-check is
+still a floor (16 responses declare none): 0.4 KB JS.
+
+**Content check.** Of the 12 scripts the page loads initially, none contains
+`#version 300 es`, a run of twelve consecutive decimal coordinates, or the skins' `draws`
+strings. All of them are in one lazy chunk (78,728 B raw; 29,353 B with
+Python's default gzip, not `pnpm perf`'s measure), which the page reaches only
+through `WorldsStage.tsx`'s `import()`.
+
+**Full e2e** against that build at `--workers=2`: 709 passed, 1 failed, 736
+skipped. The failure was `worlds.spec.ts:548` ("a drag rolls the planet and
+then stops") at 768 px, once; re-run alone it passed at all six viewports.

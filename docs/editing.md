@@ -7,7 +7,7 @@ open a component to change what the site says.
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
 | The AI tools reference (`aiTools`), whose tool names the globe's Technology plaque is composed from | `src/content/portfolio.ts` |
-| Which objects sit on which world of the globe | `src/content/worlds.ts` |
+| Which objects sit in which of the globe's six chapters | `src/content/worlds.ts` |
 | Which of the Journey's seven acts draws a role | `src/lib/anchors.ts` (`ENTRY_ACTS`) |
 
 `src/content/worlds.ts` holds **addresses, not sentences**. A quoted plaque on
@@ -202,7 +202,7 @@ decoration`. A screen-reader user is told, in those words, that this object is
 a picture and not evidence. A `draws` string that smuggles in a claim ("the
 food he grew up on") breaks that promise, and no test can catch it for you.
 
-If a chapter has nothing authored, leave `decorations: []`. Plants, Animals and Technology
+If a chapter has nothing authored, leave `decorations: []`. Plants and Animals
 do exactly that, and carry no `disclosure`, because a panel line saying "there
 is nothing here" would itself be a sentence nobody authored.
 
@@ -250,7 +250,8 @@ pnpm perf                 # in another
 ```
 
 Read **initial JS** first. A move of more than a kilobyte or two means the
-canvas engine or the 53 KB of coastline data has leaked out of the lazy chunk:
+globe engine (the WebGL2 shaders included) or the 53 KB of coastline data has
+leaked out of the lazy chunk:
 `GlobeCanvas` reaches the page only through the `import()` in
 `WorldsStage.tsx`, and a static import of it from anything server-rendered
 drags both into the initial bundle.

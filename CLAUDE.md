@@ -70,11 +70,21 @@ reference or edit the authored field — never relax the assertion to a
 substring or a normalised comparison.
 
 **No 3D library, and that was measured, not assumed.** Against the initial-JS
-budget (207 KB when the comparison was made, 188.2 KB after the demolition), a
+budget (207 KB when the comparison was made, 199.9 KB measured now), a
 minimal three.js scene is ~133 KB gz, `@react-three/fiber` + `drei` ~254 KB,
-and `globe.gl` ~509 KB. The globe uses no runtime dependency at all: an
-orthographic projector in `src/lib/globe.ts`, Canvas 2D, and a pre-generated
-simplified coastline. Do not add one.
+and `globe.gl` ~509 KB. The globe uses no runtime dependency at all: a
+hand-written WebGL2 surface (`src/sections/Worlds/gl/`: `context`,
+`coastline-texture`, `shaders`, `sphere`) under a Canvas 2D overlay, an
+orthographic projector in `src/lib/globe.ts`, and a pre-generated simplified
+coastline. The shipped 2D globe is the fallback, and it takes over for good
+when there is no WebGL2, a program fails to compile or link, the context is
+lost, or `forced-colors` is active. Do not add a library.
+
+**Chapters carry facts; skins carry none.** The globe has six chapters
+(`living-earth`, `sea`, `sky`, `plants`, `animals`, `tech`, in
+`src/content/worlds.ts`) and five skins (`src/content/skins.ts`, resolved in
+`src/lib/skins.ts`). A skin is a look, labelled `no plaque · decoration` in
+its own accessible name, and it may never carry a plaque.
 
 `src/sections/Worlds/coastline-data.ts` is fenced: `GlobeCanvas.tsx` is the
 only file allowed to import it, and `tests/lib/coastline-data.test.ts` fails if
