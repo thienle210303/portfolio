@@ -17,12 +17,21 @@ export const GLYPH_VIEWBOX = "-14 -14 28 28";
 
 export const GLYPHS: Record<GlyphId, string> = {
   // cơm tấm — the plate: broken rice, a grilled chop, a fried egg. Named by
-  // the owner; the only object Living Earth draws, and its panel says so.
+  // the owner; one of the five objects Living Earth draws, and its panel says so.
   comtam:
     "M-12 2A12 12 0 0012 2A12 12 0 00-12 2M-12 2C-12 6 -6 8 0 8S12 6 12 2" +
     "M-9 0C-8 -5 -3 -7 1 -6C0 -2 -3 0 -9 0" +
     "M2 -1C2 -5 6 -7 9 -5C11 -3 10 0 7 1C5 1.6 3 1 2 -1M4 -4L7.5 -2.6" +
     "M-6 1.5A3.2 3.2 0 00.4 1.5A3.2 3.2 0 00-6 1.5M-3.4 1.2A1.2 1.2 0 00-1 1.2A1.2 1.2 0 00-3.4 1.2",
+  // bún bò Huế and bún cá Rạch Giá share this bowl: both are a bowl of noodle
+  // soup, and the drawing claims nothing that tells them apart.
+  bowl: "M-11 -2H11M-10 -2C-9 6 -5 10 0 10C5 10 9 6 10 -2M-3 -4C-5 -7 -1 -8 -3 -11M3 -4C1 -7 5 -8 3 -11",
+  jar: "M-5 -10H5M-4 -10V-7C-8 -5 -8 -2 -8 2V7C-8 10 -5 11 0 11S8 10 8 7V2C8 -2 8 -5 4 -7V-10M-4 0H4V5H-4Z",
+  // Tết — five round petals and a centre, the shape of a hoa mai.
+  blossom:
+    "M-3.5 -6.5a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0M2.7 -2a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0" +
+    "M0.3 5.3a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0M-7.3 5.3a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0" +
+    "M-9.7 -2a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0M-1.2 0a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0",
   cap: "M-11 -3L0 -8L11 -3L0 2ZM-6 -1V5C-6 7 6 7 6 5V-1M11 -3V4",
   trophy:
     "M-6 -8H6V-2C6 2 3 4 0 4S-6 2 -6 -2ZM-6 -6H-9V-4C-9 -1 -7 0 -6 0M6 -6H9V-4C9 -1 7 0 6 0M0 4V8M-4 8H4",

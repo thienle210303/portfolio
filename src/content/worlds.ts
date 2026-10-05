@@ -45,11 +45,15 @@ export const worlds = [
       { glyph: "chalk", ref: { of: "careerEntryLine", id: "usc-ta", field: "impact", index: 1 } },
     ],
     decorations: [
-      { glyph: "comtam", draws: "a plate of cơm tấm — broken rice, a grilled chop, a fried egg" },
+      { glyph: "comtam", draws: "a plate of cơm tấm" },
+      { glyph: "bowl", draws: "a bowl of bún bò Huế" },
+      { glyph: "bowl", draws: "a bowl of bún cá Rạch Giá" },
+      { glyph: "jar", draws: "a jar of mắm" },
+      { glyph: "blossom", draws: "Tết, the new year" },
     ],
-    // The owner named one object. The panel says so plainly rather than
+    // The owner named all five. The panel says so plainly rather than
     // padding the chapter out with invented ones.
-    disclosure: "One object so far, and he named it himself. Nothing here was invented to fill the space.",
+    disclosure: "Five objects, and he named every one. Nothing here was invented to fill the space.",
   },
   {
     id: "sea",

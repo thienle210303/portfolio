@@ -387,6 +387,9 @@ export interface CodeTab {
 
 export type GlyphId =
   | "comtam"
+  | "bowl"
+  | "jar"
+  | "blossom"
   | "cap"
   | "trophy"
   | "ribbon"

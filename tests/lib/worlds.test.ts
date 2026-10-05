@@ -8,6 +8,7 @@ import {
   projects,
 } from "@/content/portfolio";
 import { worlds } from "@/content/worlds";
+import { GLYPHS } from "@/sections/Worlds/glyphs";
 import {
   CHAPTER_IDS,
   DECORATION_LABEL,
@@ -108,7 +109,7 @@ describe("resolution keeps everything it should", () => {
     expect(
       resolved.map((world) => [world.id, world.plaques.length, world.decorations.length]),
     ).toEqual([
-      ["living-earth", 6, 1],
+      ["living-earth", 6, 5],
       ["sea", 3, 1],
       ["sky", 2, 1],
       ["plants", 2, 0],
@@ -157,6 +158,30 @@ describe("the honesty rule", () => {
         expect(plaque.source.trim()).not.toBe("");
       }
     }
+  });
+
+  it("furnishes Việt Nam with the five things he named", () => {
+    const living = resolved.find((chapter) => chapter.id === "living-earth")!;
+    expect(living.decorations).toHaveLength(5);
+    const draws = living.decorations.map((decoration) => decoration.label).join("\n");
+    for (const thing of ["cơm tấm", "bún bò Huế", "bún cá Rạch Giá", "mắm", "Tết"]) {
+      expect(draws, thing).toContain(thing);
+    }
+  });
+
+  it("draws every decoration with a glyph that exists", () => {
+    for (const world of resolved) {
+      for (const decoration of world.decorations) {
+        expect(GLYPHS[decoration.glyph], decoration.glyph).toBeTruthy();
+      }
+    }
+  });
+
+  it("says five objects, not one, and keeps the no-invention line", () => {
+    const living = worlds.find((world) => world.id === "living-earth")!;
+    expect(living.disclosure).toBe(
+      "Five objects, and he named every one. Nothing here was invented to fill the space.",
+    );
   });
 
   it("labels every decoration as carrying no fact", () => {

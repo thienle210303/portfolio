@@ -207,9 +207,9 @@ do exactly that, and carry no `disclosure`, because a panel line saying "there
 is nothing here" would itself be a sentence nobody authored.
 
 A `disclosure` is for the other case: a world that *does* draw something and
-wants to bound the claim. Living Earth is the only chapter that has one — one
-decoration, and the line "One object so far, and he named it himself. Nothing
-here was invented to fill the space." The two are independent: an empty world
+wants to bound the claim. Living Earth is the only chapter that has one — five
+decorations, and the line "Five objects, and he named every one. Nothing here
+was invented to fill the space." The two are independent: an empty world
 needs no disclosure, and a disclosure does not imply an empty world.
 
 ## Contact delivery
