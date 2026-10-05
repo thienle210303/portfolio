@@ -4,7 +4,7 @@ A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
 The site is a single narrative page in four sections: **About** — one
-code-led fold with the About paragraphs in it; **Worlds** — a drawn globe of seven worlds
+code-led fold with the About paragraphs in it; **Worlds** — a drawn globe of six chapters
 made entirely of the site's own authored facts; the **Journey** — a career
 tree on a pinned stage, told in seven acts from 2018, with the case studies
 inside it (in the branches of the roles that produced them, or after the acts
@@ -156,7 +156,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 | File | Contains |
 |---|---|
 | `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — contact intents and the closing |
-| `src/content/worlds.ts` | The seven worlds of the globe — **addresses, not sentences**: a quoted plaque names a record and a field in `portfolio.ts` and renders it verbatim; a computed plaque names a computation over the content |
+| `src/content/worlds.ts` | The six chapters of the globe — **addresses, not sentences**: a quoted plaque names a record and a field in `portfolio.ts` and renders it verbatim; a computed plaque names a computation over the content |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
 Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's

@@ -451,7 +451,9 @@ export interface World {
   readonly id: string;
   readonly name: string;
   readonly glyph: GlyphId;
-  readonly anchor: WorldAnchor;
+  /** Where on the map the chapter has a pin. Empty for the two that are not
+   *  on it; two for Living Earth, whose crossing has two ends. */
+  readonly anchors: readonly WorldAnchor[];
   readonly where: string;
   readonly plaques: readonly WorldPlaque[];
   readonly decorations: readonly WorldDecoration[];

@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState, type ComponentType, type Keyb
 import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 import { origin } from "@/content/portfolio";
-import type { ResolvedWorld } from "@/lib/worlds";
+import type { ResolvedChapter } from "@/lib/worlds";
 import WorldPanel from "./WorldPanel";
 
 /**
- * The seven worlds as a list of buttons, a panel, and a stage the canvas will
+ * The six chapters as a list of buttons, a panel, and a stage the canvas will
  * later mount into.
  *
  * Read the split before changing anything: **the list is the feature and the
@@ -45,7 +45,7 @@ export interface GlobeControls {
 }
 
 type CanvasComponent = ComponentType<{
-  readonly worlds: readonly ResolvedWorld[];
+  readonly worlds: readonly ResolvedChapter[];
   readonly currentId: string;
   readonly onSelect: (id: string) => void;
   readonly onLanded: () => void;
@@ -53,7 +53,7 @@ type CanvasComponent = ComponentType<{
 }>;
 
 interface WorldsStageProps {
-  readonly worlds: readonly ResolvedWorld[];
+  readonly worlds: readonly ResolvedChapter[];
   readonly crossingKm: number;
 }
 
@@ -333,7 +333,7 @@ export function WorldsStage({ worlds, crossingKm }: WorldsStageProps) {
 
       <div>
         <p className="eyebrow" id="worlds-list-label">
-          The seven
+          Chapters
         </p>
         <ul aria-labelledby="worlds-list-label" className="mt-2 grid gap-px">
           {worlds.map((world, index) => (

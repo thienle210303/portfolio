@@ -1,10 +1,10 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { crossingKm, resolveWorlds } from "@/lib/worlds";
+import { crossingKm, resolveChapters } from "@/lib/worlds";
 import WorldsStage from "./WorldsStage";
 
 /**
- * Playground Earth: seven worlds, two cats, and one rule.
+ * Playground Earth: six chapters, two cats, and one rule.
  *
  * The rule is the section. Everything drawn on the globe is either a plaque or
  * a decoration — nothing is drawn that is neither, and
@@ -34,14 +34,14 @@ import WorldsStage from "./WorldsStage";
 
 const HEADING_ID = "worlds-heading";
 
-const WORLDS = resolveWorlds();
+const WORLDS = resolveChapters();
 const KM = crossingKm();
 
 // Split by kind rather than totalled, because the total is the one number in
 // this rail a reader *can* get by looking — every row of the list beside the
 // globe already names its own plaque count. How many of those lines are a
 // field quoted whole and how many are a computation over the content layer is
-// only visible by opening all seven panels and reading every source line.
+// only visible by opening all six panels and reading every source line.
 // Counted off the resolved worlds, so a reference that stopped resolving
 // leaves both numbers, not just the total.
 const QUOTED_COUNT = WORLDS.reduce(
@@ -53,13 +53,13 @@ const COMPUTED_COUNT = WORLDS.reduce(
   0,
 );
 const DECORATION_COUNT = WORLDS.reduce((total, world) => total + world.decorations.length, 0);
-// Animals (the plinth) and Technology (orbit) are the two worlds `resolveWorlds()`
-// never gives a map point (`point` resolves to `null` for both — see
+// Animals (the plinth) and Technology (orbit) are the two chapters
+// `resolveChapters()` never gives a map point (`points` is empty for both — see
 // `src/lib/worlds.ts`'s `anchorPoint`). A reader could only get this by
 // opening both panels and noticing neither one's "where" line names a spot on
-// the globe — unlike the raw world count, which the heading, the numbered
-// list and its 01–07 numerals already all say by themselves.
-const OFF_MAP_COUNT = WORLDS.filter((world) => world.point === null).length;
+// the globe — unlike the raw chapter count, which the heading, the numbered
+// list and its 01–06 numerals already all say by themselves.
+const OFF_MAP_COUNT = WORLDS.filter((world) => world.points.length === 0).length;
 
 const RAIL: readonly RailNote[] = [
   { term: "Off the map", detail: `${OFF_MAP_COUNT} — the plinth and the orbit, not projected onto the globe` },
@@ -75,7 +75,7 @@ export default function Worlds() {
         id={HEADING_ID}
         lead="Roll the planet. Everything on it is something already written down somewhere else on this site — and anything that is only a drawing says so."
       >
-        Seven worlds, and two cats who look after them.
+        Six chapters, and two cats who look after them.
       </SectionHeading>
       <WorldsStage worlds={WORLDS} crossingKm={KM} />
     </Section>

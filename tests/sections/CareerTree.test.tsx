@@ -8,7 +8,7 @@ import { caseStudyAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries, projects } from "@/content/portfolio";
 import { buildDocuments } from "@/lib/answer-corpus";
 import { careerIndexable, education, projectsIndexable } from "@/lib/answer-sources";
-import { resolveWorlds } from "@/lib/worlds";
+import { resolveChapters } from "@/lib/worlds";
 import type { CareerEntry } from "@/types/portfolio";
 
 /**
@@ -103,7 +103,7 @@ describe("the Journey section", () => {
     // the drawing and a plaque on the globe. They once disagreed (20 against 11)
     // because only one of them knew nine entries had become credentials.
     render(<CareerTree />);
-    const plaque = resolveWorlds()
+    const plaque = resolveChapters()
       .flatMap((world) => world.plaques)
       .find((candidate) => /\d+ branches ·/.test(candidate.text));
     if (!plaque) throw new Error("no tree-shape plaque on the globe");

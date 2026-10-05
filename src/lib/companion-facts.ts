@@ -1,6 +1,6 @@
 import { careerEntries, profile } from "@/content/portfolio";
 import { buildDrawnTree, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
-import { crossingKm, resolveWorlds } from "@/lib/worlds";
+import { crossingKm, resolveChapters } from "@/lib/worlds";
 
 /**
  * D1 — facts as a server prop.
@@ -16,7 +16,7 @@ import { crossingKm, resolveWorlds } from "@/lib/worlds";
  * since the tree absorbed Journey — the entries and the
  * work/learning/milestone split too), Hero.tsx (the current role)
  * and — since round 16 — Worlds.tsx (plaques, decorations and the crossing's
- * length, via `resolveWorlds()`/`crossingKm()` in `src/lib/worlds.ts`).
+ * length, via `resolveChapters()`/`crossingKm()` in `src/lib/worlds.ts`).
  * Changing what a rail says and
  * forgetting this file is exactly the drift the plan rules out — so if a
  * rail's expression ever changes, this one has to change with it.
@@ -33,7 +33,7 @@ export interface CompanionFacts {
     readonly organization: string;
   };
   /**
-   * Round 16. The globe's own counts — computed by `resolveWorlds()` and
+   * Round 16. The globe's own counts — computed by `resolveChapters()` and
    * `crossingKm()` rather than typed here, the same discipline every other
    * fact in this file follows: a dialogue line that quotes a number quotes
    * the one already computed for the section's own margin rail
@@ -90,7 +90,7 @@ export function buildCompanionFacts(): CompanionFacts {
   // the stage no longer draws as branches.
   const drawn = buildDrawnTree();
 
-  const resolvedWorlds = resolveWorlds();
+  const resolvedWorlds = resolveChapters();
   const plaqueTotal = resolvedWorlds.reduce((total, world) => total + world.plaques.length, 0);
   const decorationTotal = resolvedWorlds.reduce((total, world) => total + world.decorations.length, 0);
 

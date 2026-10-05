@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
-import { resolveWorlds } from "../src/lib/worlds";
+import { resolveChapters } from "../src/lib/worlds";
 
-const WORLDS = resolveWorlds();
+const WORLDS = resolveChapters();
 
 // The value of the `data-chunk` attribute on the <canvas> in
 // `src/sections/Worlds/GlobeCanvas.tsx`. No other module carries it, so only the
@@ -44,7 +44,7 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
     await expect(section).toBeVisible();
 
     // Scoped to the list: "Face Việt Nam" is also a button containing that name.
-    const list = section.getByRole("list", { name: /the seven/i });
+    const list = section.getByRole("list", { name: /chapters/i });
     for (const world of WORLDS) {
       await list.getByRole("button", { name: new RegExp(world.name, "i") }).click();
       await expect(section.getByRole("heading", { level: 3, name: world.name })).toBeVisible();
@@ -53,7 +53,7 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
       }
     }
 
-    // The stage is in view by now (the loop above clicked through all seven
+    // The stage is in view by now (the loop above clicked through all six
     // worlds beside it), so the IntersectionObserver has fired and the
     // `import()` has been attempted. If nothing was blocked, this test proved
     // nothing about a missing canvas. Polled, not read once: the handler
@@ -88,7 +88,7 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
       );
     const quoted = count("field");
     const computed = count("computed");
-    const offMap = WORLDS.filter((world) => world.point === null).length;
+    const offMap = WORLDS.filter((world) => world.points.length === 0).length;
 
     // Scoped to each note's own <dd> — the whole <dl>'s text also contains
     // the crossing's km figure and the other notes' own numbers, so an
@@ -103,11 +103,11 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
     await expect(plaquesRow.locator("dd")).toHaveText(`${quoted} quoted whole · ${computed} computed`);
   });
 
-  test("the seven buttons are reachable by keyboard alone", async ({ page }) => {
+  test("the six buttons are reachable by keyboard alone", async ({ page }) => {
     await page.goto("/#worlds");
     const section = page.locator("#worlds");
     const first = section
-      .getByRole("list", { name: /the seven/i })
+      .getByRole("list", { name: /chapters/i })
       .getByRole("button", { name: new RegExp(WORLDS[0].name, "i") });
     await first.focus();
     await expect(first).toBeFocused();
@@ -430,10 +430,10 @@ test.describe("the live globe", () => {
     // a gesture the person abandoned.
     await page.goto("/#worlds");
     const section = page.locator("#worlds");
-    const list = section.getByRole("list", { name: /the seven/i });
+    const list = section.getByRole("list", { name: /chapters/i });
     const stage = await waitForLiveGlobe(page);
     const animals = list.getByRole("button", { name: /Animals/i });
-    const vietnam = list.getByRole("button", { name: /Việt Nam/ });
+    const livingEarth = list.getByRole("button", { name: /Living Earth/ });
 
     // Animals lives on the plinth, so opening it moves `aria-current` off
     // Việt Nam without moving the view — which leaves Việt Nam's marker at the
@@ -486,13 +486,13 @@ test.describe("the live globe", () => {
     // half the assertions above would pass on a globe where no gesture did
     // anything at all.
     await press("pointerup");
-    await expect(vietnam).toHaveAttribute("aria-current", "true", { timeout: 5_000 });
+    await expect(livingEarth).toHaveAttribute("aria-current", "true", { timeout: 5_000 });
   });
 
   test("the arrow keys rotate it and Home brings Việt Nam back", async ({ page }) => {
     await page.goto("/#worlds");
     const section = page.locator("#worlds");
-    const list = section.getByRole("list", { name: /the seven/i });
+    const list = section.getByRole("list", { name: /chapters/i });
     const stage = await waitForLiveGlobe(page);
     // The stage is tabbable only once the canvas has handed its controls back
     // — before that the arrow keys are inert and there is nothing to focus.
@@ -531,7 +531,7 @@ test.describe("the live globe", () => {
     if (!box) throw new Error("the stage has no box");
     await aimAtGlobe(page, box.x + box.width / 2, box.y + box.height * 0.44);
     await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.44);
-    await expect(list.getByRole("button", { name: /Việt Nam/ })).toHaveAttribute(
+    await expect(list.getByRole("button", { name: /Living Earth/ })).toHaveAttribute(
       "aria-current",
       "true",
       { timeout: 5_000 },
@@ -565,7 +565,7 @@ test.describe("the live globe", () => {
 
     // 2. Open any world.
     await section
-      .getByRole("list", { name: /the seven/i })
+      .getByRole("list", { name: /chapters/i })
       .getByRole("button", { name: new RegExp(WORLDS[1].name, "i") })
       .click();
     await expect(
@@ -940,8 +940,8 @@ test.describe("reduced motion", () => {
   });
 
   test("picking a world from the list asks for no frames either", async ({ page }) => {
-    // The path all seven list buttons take, and the one holding the largest
-    // swing the section can be asked for: Việt Nam → United States is the
+    // The path all six list buttons take, and the one holding the largest
+    // swing the section can be asked for: Living Earth → Plants (Việt Nam to the arrival pin) is the
     // crossing itself, ~156° of planet, the same distance "Take the flight"
     // above refuses to animate. Easing it here while the button beside it
     // snapped would have made the preference depend on which control the
@@ -949,7 +949,7 @@ test.describe("reduced motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
-    const list = page.locator("#worlds").getByRole("list", { name: /the seven/i });
+    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
 
     const pickFromTheList = (label: RegExp) =>
       page.evaluate(
@@ -984,7 +984,7 @@ test.describe("reduced motion", () => {
     // Face Việt Nam from the list first, so the press being measured is the
     // half-planet swing rather than whatever distance the globe happened to
     // mount at — and so this press is itself held to the same contract.
-    expect(await pickFromTheList(/việt nam/i), "facing Việt Nam from the list eased").toBe(0);
+    expect(await pickFromTheList(/living earth/i), "facing Living Earth from the list eased").toBe(0);
     const facingVietnam = await globeSignature(page);
 
     // Zero, not click-to-orient's "at most one": `focusWorld` reaches `lookAt`
@@ -993,13 +993,13 @@ test.describe("reduced motion", () => {
     // wakes the loop unconditionally, which is why that test has one frame to
     // spend and this one has none.
     expect(
-      await pickFromTheList(/united states/i),
+      await pickFromTheList(/plants/i),
       "picking a world is still easing under reduced motion",
     ).toBe(0);
 
     // And the swing happened. Without both halves this passes just as well on a
     // `focusWorld` that was quietly made to do nothing at all.
-    await expect(list.getByRole("button", { name: /united states/i })).toHaveAttribute(
+    await expect(list.getByRole("button", { name: /plants/i })).toHaveAttribute(
       "aria-current",
       "true",
     );

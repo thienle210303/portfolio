@@ -202,15 +202,12 @@ decoration`. A screen-reader user is told, in those words, that this object is
 a picture and not evidence. A `draws` string that smuggles in a claim ("the
 food he grew up on") breaks that promise, and no test can catch it for you.
 
-If a world has nothing authored, leave `decorations: []`. The United States
-world does exactly that: the mockup's mug and a library were placeholders
-nobody had authored, so the world ships with none, and the code comment beside
-`decorations: []` in `src/content/worlds.ts` is where that is recorded — it
-carries no `disclosure`, because a panel line saying "there is nothing here"
-would itself be a sentence nobody authored.
+If a chapter has nothing authored, leave `decorations: []`. Plants and Animals
+do exactly that, and carry no `disclosure`, because a panel line saying "there
+is nothing here" would itself be a sentence nobody authored.
 
 A `disclosure` is for the other case: a world that *does* draw something and
-wants to bound the claim. Việt Nam is the only world that has one — one
+wants to bound the claim. Living Earth is the only chapter that has one — one
 decoration, and the line "One object so far, and he named it himself. Nothing
 here was invented to fill the space." The two are independent: an empty world
 needs no disclosure, and a disclosure does not imply an empty world.

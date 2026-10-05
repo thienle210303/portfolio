@@ -17,7 +17,7 @@ import {
 } from "@/lib/globe";
 import { companions, origin } from "@/content/portfolio";
 import type { GeoPoint } from "@/types/portfolio";
-import { coLocatedWorldIds, type ResolvedWorld } from "@/lib/worlds";
+import { coLocatedWorldIds, type ResolvedChapter } from "@/lib/worlds";
 import type { GlobeControls } from "./WorldsStage";
 import { GLYPHS } from "./glyphs";
 import { COASTLINES } from "./coastline-data";
@@ -97,7 +97,7 @@ import { COASTLINES } from "./coastline-data";
  */
 
 interface GlobeCanvasProps {
-  readonly worlds: readonly ResolvedWorld[];
+  readonly worlds: readonly ResolvedChapter[];
   readonly currentId: string;
   readonly onSelect: (id: string) => void;
   readonly onLanded: () => void;
@@ -486,74 +486,75 @@ export default function GlobeCanvas({
      *  at. Null while that marker is on the far side. */
     let saplingFoot: { x: number; y: number } | null = null;
     for (const world of worlds) {
-      if (!world.point) continue;
-      const p = at(world.point);
-      // Far-side markers are not drawn at all rather than faded: a marker you
-      // can half-see is a marker you try to press.
-      if (!p.front) continue;
-      const open = world.id === currentIdRef.current;
-      const scale = 0.62 + 0.32 * p.depth;
-      // A marker whose point an earlier world already claimed steps a
-      // marker-width to the left and takes its name to that side — see
-      // `sharesAPin`. Everything right of a ring is where names go, so left of
-      // it is the one side nothing else is using.
-      const shares = sharesAPin.has(world.id);
-      const x = shares ? p.x - 36 * scale : p.x;
-      const radius = 15 * scale;
-      // How far the sapling has risen, or null for every other marker and for
-      // this one before the seed has touched down. `GLYPHS.sprout`'s stem foot
-      // is at +9 in its own 24-unit box; the glyph's origin is lifted by
-      // `9 * size` so the foot stays planted and the plant gets taller, which
-      // is what makes it *rise* rather than inflate.
-      const risen =
-        world.id === SAPLING_WORLD_ID && v.seed >= SEED_DROP
-          ? (v.seed - SEED_DROP) / (1 - SEED_DROP)
-          : null;
-      const foot = p.y + 9 * scale * 0.82;
-      ctx.fillStyle = c.ground;
-      ctx.beginPath();
-      ctx.arc(x, p.y, radius, 0, Math.PI * 2);
-      ctx.fill();
-      if (risen === null) {
-        glyph(GLYPHS[world.glyph], x, p.y, scale * 0.82, open ? c.accent : c.fg, open ? 1.4 : 1.1);
+      for (const point of world.points) {
+        const p = at(point);
+        // Far-side markers are not drawn at all rather than faded: a marker you
+        // can half-see is a marker you try to press.
+        if (!p.front) continue;
+        const open = world.id === currentIdRef.current;
+        const scale = 0.62 + 0.32 * p.depth;
+        // A marker whose point an earlier world already claimed steps a
+        // marker-width to the left and takes its name to that side — see
+        // `sharesAPin`. Everything right of a ring is where names go, so left of
+        // it is the one side nothing else is using.
+        const shares = sharesAPin.has(world.id);
+        const x = shares ? p.x - 36 * scale : p.x;
+        const radius = 15 * scale;
+        // How far the sapling has risen, or null for every other marker and for
+        // this one before the seed has touched down. `GLYPHS.sprout`'s stem foot
+        // is at +9 in its own 24-unit box; the glyph's origin is lifted by
+        // `9 * size` so the foot stays planted and the plant gets taller, which
+        // is what makes it *rise* rather than inflate.
+        const risen =
+          world.id === SAPLING_WORLD_ID && v.seed >= SEED_DROP
+            ? (v.seed - SEED_DROP) / (1 - SEED_DROP)
+            : null;
+        const foot = p.y + 9 * scale * 0.82;
+        ctx.fillStyle = c.ground;
         ctx.beginPath();
         ctx.arc(x, p.y, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = open ? c.accent : c.rule;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      } else {
-        /* The page's one hand-off, and the drawing says it before the prose
-           does: the career tree grows from this spot. Accent, because it is a
-           relationship between two sections rather than decoration — the same
-           reason the crossing is accent.
+        ctx.fill();
+        if (risen === null) {
+          glyph(GLYPHS[world.glyph], x, p.y, scale * 0.82, open ? c.accent : c.fg, open ? 1.4 : 1.1);
+          ctx.beginPath();
+          ctx.arc(x, p.y, radius, 0, Math.PI * 2);
+          ctx.strokeStyle = open ? c.accent : c.rule;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        } else {
+          /* The page's one hand-off, and the drawing says it before the prose
+             does: the career tree grows from this spot. Accent, because it is a
+             relationship between two sections rather than decoration — the same
+             reason the crossing is accent.
 
-           No ring once it has grown. A ring says "this is a pin, press it";
-           a sapling that has actually come up is the thing the pin stood for,
-           and it keeps its name and its hit either way, so nothing about
-           reaching the world changes.
+             No ring once it has grown. A ring says "this is a pin, press it";
+             a sapling that has actually come up is the thing the pin stood for,
+             and it keeps its name and its hit either way, so nothing about
+             reaching the world changes.
 
-           But it still has to *say* when it is the open world, and say it with
-           something other than colour. Accent is already this glyph's resting
-           ink — it is the hand-off, open or not — so unlike every ringed marker
-           it cannot use ink to mark selection, and the label alone would leave
-           the state signalled by hue only. A ringed marker carries a
-           stroke-weight change beside its accent for exactly that reason; this
-           one carries the weight change alone. */
-        const size = scale * 0.82 * (1 + 0.5 * risen);
-        glyph(GLYPHS.sprout, x, foot - 9 * size, size, c.accent, open ? 1.9 : 1.3);
+             But it still has to *say* when it is the open world, and say it with
+             something other than colour. Accent is already this glyph's resting
+             ink — it is the hand-off, open or not — so unlike every ringed marker
+             it cannot use ink to mark selection, and the label alone would leave
+             the state signalled by hue only. A ringed marker carries a
+             stroke-weight change beside its accent for exactly that reason; this
+             one carries the weight change alone. */
+          const size = scale * 0.82 * (1 + 0.5 * risen);
+          glyph(GLYPHS.sprout, x, foot - 9 * size, size, c.accent, open ? 1.9 : 1.3);
+        }
+        if (open || p.depth > 0.62) {
+          ctx.fillStyle = open ? c.accent : c.muted;
+          ctx.font = `600 9.5px ${mono}`;
+          ctx.textAlign = shares ? "right" : "left";
+          ctx.fillText(
+            world.name.toUpperCase(),
+            shares ? x - radius - 5 : x + radius + 5,
+            p.y + 3.4,
+          );
+        }
+        if (world.id === SAPLING_WORLD_ID) saplingFoot = { x, y: foot };
+        v.hits.push({ id: world.id, x, y: p.y, r: 18 * scale });
       }
-      if (open || p.depth > 0.62) {
-        ctx.fillStyle = open ? c.accent : c.muted;
-        ctx.font = `600 9.5px ${mono}`;
-        ctx.textAlign = shares ? "right" : "left";
-        ctx.fillText(
-          world.name.toUpperCase(),
-          shares ? x - radius - 5 : x + radius + 5,
-          p.y + 3.4,
-        );
-      }
-      if (world.id === SAPLING_WORLD_ID) saplingFoot = { x, y: foot };
-      v.hits.push({ id: world.id, x, y: p.y, r: 18 * scale });
     }
 
     /* The seed, in the one beat between the bird landing and the sapling
@@ -779,7 +780,7 @@ export default function GlobeCanvas({
    * when the visitor has asked for reduced motion.
    *
    * Every camera move that is not the flight itself goes through this — the
-   * seven list buttons via `focusWorld`, "Face Việt Nam" and `Home` via
+   * six list buttons via `focusWorld`, "Face Việt Nam" and `Home` via
    * `reset`, and a single click on bare planet. That last one is the reason
    * this is one helper rather than a branch inside `fly()`: click-to-orient is
    * the section's declared WCAG 2.5.7 substitute for dragging, the path a
@@ -1002,7 +1003,7 @@ export default function GlobeCanvas({
         // Movements, AA) requires that everything a drag does be achievable
         // with a single pointer and no drag, for people using a head pointer,
         // eye-gaze or a mouth stick. Keyboard support does not satisfy it;
-        // that is 2.1.1, a different criterion. This plus the seven list
+        // that is 2.1.1, a different criterion. This plus the six list
         // buttons and "Take the flight" is the non-dragging path through the
         // whole section.
         if (!hitSomething) {
@@ -1088,8 +1089,9 @@ export default function GlobeCanvas({
       },
       focusWorld: (id) => {
         const world = worlds.find((candidate) => candidate.id === id);
-        if (!world?.point) return;
-        lookAt(-world.point.lon * DEG, -world.point.lat * DEG * 0.55);
+        const point = world?.points[0];
+        if (!point) return;
+        lookAt(-point.lon * DEG, -point.lat * DEG * 0.55);
       },
     };
     onReady(controls);

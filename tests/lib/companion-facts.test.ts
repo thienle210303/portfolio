@@ -23,7 +23,7 @@ describe("buildCompanionFacts", () => {
   });
 
   it("carries the globe's own counts", () => {
-    expect(facts.worlds.count).toBe(7);
+    expect(facts.worlds.count).toBe(6);
     expect(facts.worlds.plaques).toBeGreaterThan(0);
     expect(facts.worlds.crossingKm).toBeGreaterThan(12_000);
   });

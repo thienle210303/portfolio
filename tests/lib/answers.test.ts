@@ -10,7 +10,7 @@ import {
 } from "@/lib/answer-sources";
 import { navItems, origin } from "@/content/portfolio";
 import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
-import { resolveWorlds } from "@/lib/worlds";
+import { resolveChapters } from "@/lib/worlds";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -60,13 +60,13 @@ const CORPUS = new Set<string>([
   // of the sets above (career and project fields) — but not all of it: a
   // computed plaque (the tree's shape, the crossing, the scene list, the AI
   // tools joined) or a companion plaque (`cat.name`) is composed by
-  // resolveWorlds() and appears nowhere else in this file, so this line
-  // covers those too. Built from resolveWorlds() rather than transcribed by
+  // resolveChapters() and appears nowhere else in this file, so this line
+  // covers those too. Built from resolveChapters() rather than transcribed by
   // hand, so a typo here can never silently under-cover it; the other half
   // of the guarantee — that each composed string really is drawn from real
   // content, not invented — is what tests/lib/worlds.test.ts's honesty-rule
   // suite proves.
-  ...resolveWorlds().flatMap((world) => world.plaques.map((plaque) => plaque.text)),
+  ...resolveChapters().flatMap((world) => world.plaques.map((plaque) => plaque.text)),
 ]);
 
 /** Sections an answer may link into: every section the nav lists, which is

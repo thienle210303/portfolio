@@ -8,7 +8,13 @@ import {
   projects,
 } from "@/content/portfolio";
 import { worlds } from "@/content/worlds";
-import { DECORATION_LABEL, coLocatedWorldIds, crossingKm, resolveWorlds } from "@/lib/worlds";
+import {
+  CHAPTER_IDS,
+  DECORATION_LABEL,
+  coLocatedWorldIds,
+  crossingKm,
+  resolveChapters,
+} from "@/lib/worlds";
 import { buildDrawnTree, stillGrowingCaption, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
 import { ACT_IDS, actAnchorId } from "@/lib/anchors";
 import { seasonsFor } from "@/lib/origin-story";
@@ -52,32 +58,41 @@ const COMPUTED = new Set<string>([
   aiTools.map((tool) => tool.name).join(" · "),
 ]);
 
-const resolved = resolveWorlds();
+const resolved = resolveChapters();
 
-describe("the seven worlds", () => {
-  it("are seven, in the spec's order", () => {
-    expect(resolved.map((world) => world.id)).toEqual([
-      "vietnam",
-      "usa",
-      "sea",
-      "sky",
-      "plants",
-      "animals",
-      "tech",
-    ]);
+describe("the six chapters", () => {
+  it("are six, in story order", () => {
+    const ids = ["living-earth", "sea", "sky", "plants", "animals", "tech"];
+    expect(resolved.map((chapter) => chapter.id)).toEqual(ids);
+    expect([...CHAPTER_IDS]).toEqual(ids);
+  });
+
+  it("keeps every plaque the seven worlds had", () => {
+    // The merge must not lose a fact: six chapters carry the same nineteen
+    // plaques the seven worlds did.
+    const total = resolved.reduce((n, chapter) => n + chapter.plaques.length, 0);
+    expect(total).toBe(19);
+  });
+
+  it("puts both ends of the crossing in one chapter", () => {
+    const living = resolved.find((chapter) => chapter.id === "living-earth");
+    expect(living?.name).toBe("Living Earth");
+    expect(living?.points).toHaveLength(2);
+    expect(living?.points).toContainEqual(origin.coordinates.from);
+    expect(living?.points).toContainEqual(origin.coordinates.to);
   });
 
   it("puts the two authored pins where origin says, and derives the rest", () => {
-    const byId = new Map(resolved.map((world) => [world.id, world]));
-    expect(byId.get("vietnam")?.point).toEqual(origin.coordinates.from);
-    expect(byId.get("usa")?.point).toEqual(origin.coordinates.to);
+    const byId = new Map(resolved.map((chapter) => [chapter.id, chapter]));
+    expect(byId.get("living-earth")?.points).toEqual([origin.coordinates.from, origin.coordinates.to]);
     // Sea and Sky are derived from the arc, so they must not equal either pin.
-    expect(byId.get("sea")?.point).not.toEqual(origin.coordinates.from);
-    expect(byId.get("sky")?.point).not.toEqual(origin.coordinates.to);
+    expect(byId.get("sea")?.points).toHaveLength(1);
+    expect(byId.get("sea")?.points).not.toContainEqual(origin.coordinates.from);
+    expect(byId.get("sky")?.points).not.toContainEqual(origin.coordinates.to);
     // Animals lives on the plinth and Technology in orbit: neither is on the
-    // map, and both say so by having no point at all.
-    expect(byId.get("animals")?.point).toBeNull();
-    expect(byId.get("tech")?.point).toBeNull();
+    // map, and both say so by having no points at all.
+    expect(byId.get("animals")?.points).toEqual([]);
+    expect(byId.get("tech")?.points).toEqual([]);
     expect(byId.get("tech")?.orbits).toBe(true);
   });
 });
@@ -93,8 +108,7 @@ describe("resolution keeps everything it should", () => {
     expect(
       resolved.map((world) => [world.id, world.plaques.length, world.decorations.length]),
     ).toEqual([
-      ["vietnam", 1, 1],
-      ["usa", 5, 0],
+      ["living-earth", 6, 1],
       ["sea", 3, 1],
       ["sky", 2, 1],
       ["plants", 2, 0],
@@ -196,7 +210,7 @@ describe("the honesty rule", () => {
 
 describe("references that resolve to nothing are dropped, not rendered", () => {
   it("drops a plaque whose record id does not exist", () => {
-    const dropped = resolveWorlds([
+    const dropped = resolveChapters([
       {
         ...worlds[0],
         plaques: [
@@ -209,7 +223,7 @@ describe("references that resolve to nothing are dropped, not rendered", () => {
   });
 
   it("drops a plaque whose list index is past the end", () => {
-    const dropped = resolveWorlds([
+    const dropped = resolveChapters([
       {
         ...worlds[0],
         plaques: [
@@ -226,7 +240,7 @@ describe("references that resolve to nothing are dropped, not rendered", () => {
     // it. No field in `src/content/portfolio.ts` currently holds a marker, so
     // this is the reachable half of that behaviour; the invariant for the other
     // half is asserted over every real plaque above.
-    const absent = resolveWorlds([
+    const absent = resolveChapters([
       {
         ...worlds[0],
         plaques: [
@@ -240,7 +254,7 @@ describe("references that resolve to nothing are dropped, not rendered", () => {
   it("drops a plaque whose companion id does not exist", () => {
     const animals = worlds.find((world) => world.id === "animals");
     if (!animals) throw new Error("the Animals world left the content layer");
-    const dropped = resolveWorlds([
+    const dropped = resolveChapters([
       { ...animals, plaques: [{ glyph: "cat", ref: { of: "companion", id: "not-a-cat" } }] },
     ]);
     expect(dropped[0].plaques).toHaveLength(0);
@@ -256,10 +270,10 @@ describe("crossingKm", () => {
 
 describe("co-located markers", () => {
   /** The shape `coLocatedWorldIds` actually reads — an id and a point, nothing
-   *  else, which is why it takes a `Pick` rather than a whole `ResolvedWorld`. */
+   *  else, which is why it takes a `Pick` rather than a whole `ResolvedChapter`. */
   const at = (id: string, lat: number | null, lon = 0) => ({
     id,
-    point: lat === null ? null : { lat, lon },
+    points: lat === null ? [] : [{ lat, lon }],
   });
 
   it("flags nothing when every world has the map to itself", () => {
@@ -299,8 +313,20 @@ describe("co-located markers", () => {
     expect([...coLocatedWorldIds([at("a", 39.83, -98.58), at("b", 39.93, -98.58)])]).toEqual([]);
   });
 
+  it("flags a chapter that lands on any one of an earlier chapter's several points", () => {
+    // A chapter can own two pins now. The second one is as good a claim as
+    // the first, and a later chapter on it must still step aside.
+    const two = { id: "two", points: [{ lat: 1, lon: 1 }, { lat: 2, lon: 2 }] };
+    expect([...coLocatedWorldIds([two, at("a", 2, 2), at("b", 3, 3)])]).toEqual(["a"]);
+  });
+
+  it("does not flag a chapter against its own points", () => {
+    const twin = { id: "twin", points: [{ lat: 1, lon: 1 }, { lat: 1, lon: 1 }] };
+    expect([...coLocatedWorldIds([twin])]).toEqual([]);
+  });
+
   it("flags Plants and only Plants in the real content", () => {
-    // The regression this whole rule exists for: `usa` and `plants` both anchor
+    // The regression this whole rule exists for: `living-earth` and `plants` both anchor
     // `origin-to`, so the globe drew two markers at one x/y — the sprout hid
     // the star, "UNITED STATES" and "PLANTS" composited on one baseline, and
     // because the canvas scans its hit list backwards and stops at the first
@@ -320,8 +346,8 @@ describe("co-located markers", () => {
     // co-locations the rule has caught.
     const flagged = coLocatedWorldIds(resolved);
     const keys = resolved
-      .filter((world) => world.point && !flagged.has(world.id))
-      .map((world) => `${world.point?.lat},${world.point?.lon}`);
+      .filter((world) => !flagged.has(world.id))
+      .flatMap((world) => world.points.map((point) => `${point.lat},${point.lon}`));
     expect(new Set(keys).size).toBe(keys.length);
   });
 
@@ -329,9 +355,10 @@ describe("co-located markers", () => {
     // Independent of the resolver: read the two anchors straight from the
     // content and assert they are the same `origin-to`. This is the *cause*,
     // where the test above is the symptom.
-    const anchorOf = (id: string) => worlds.find((world) => world.id === id)?.anchor.at;
-    expect(anchorOf("usa")).toBe("origin-to");
-    expect(anchorOf("plants")).toBe("origin-to");
+    const anchorsOf = (id: string) =>
+      worlds.find((world) => world.id === id)?.anchors.map((anchor) => anchor.at);
+    expect(anchorsOf("living-earth")).toContain("origin-to");
+    expect(anchorsOf("plants")).toContain("origin-to");
   });
 });
 
@@ -386,7 +413,7 @@ describe("plaque links", () => {
   });
 
   it("gives every project plaque a link", () => {
-    // `resolveWorlds` omits the link when a project has no act, which would
+    // `resolveChapters` omits the link when a project has no act, which would
     // turn "links into nothing" into "links nowhere" — invisible to the test
     // above. A project plaque is one whose source names `projects.<id>`.
     const projectPlaques = resolved.flatMap((world) =>

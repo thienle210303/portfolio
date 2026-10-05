@@ -5,7 +5,7 @@ import {
   origin,
   projects,
 } from "@/content/portfolio";
-import { worlds as authoredWorlds } from "@/content/worlds";
+import { worlds as authoredChapters } from "@/content/worlds";
 import {
   arcApex,
   arcKm,
@@ -28,7 +28,7 @@ import {
 } from "@/types/portfolio";
 
 /**
- * Turns the seven worlds' *references* into the flat, serializable shape the
+ * Turns the six chapters' *references* into the flat, serializable shape the
  * section renders — and drops, silently and deliberately, anything that does
  * not resolve.
  *
@@ -136,14 +136,15 @@ export interface ResolvedDecoration {
   readonly label: string;
 }
 
-export interface ResolvedWorld {
+export interface ResolvedChapter {
   readonly id: string;
   readonly name: string;
   readonly glyph: GlyphId;
   readonly where: string;
   readonly disclosure?: string;
-  /** `null` for the two worlds that are not on the map. */
-  readonly point: GeoPoint | null;
+  /** Empty for the two chapters that are not on the map; two for Living
+   *  Earth, which owns both ends of the crossing. */
+  readonly points: readonly GeoPoint[];
   readonly orbits: boolean;
   readonly plaques: readonly ResolvedPlaque[];
   readonly decorations: readonly ResolvedDecoration[];
@@ -219,20 +220,27 @@ function resolvePlaque(glyph: GlyphId, ref: PlaqueRef): ResolvedPlaque | null {
   }
 }
 
+/** The chapter ids, in story order, derived from the content layer. The globe
+ *  hard-codes `"tech"` for the satellite's hit, so renaming it there is a
+ *  string change no compiler sees — this is the one list to check against. */
+export const CHAPTER_IDS: readonly string[] = authoredChapters.map((chapter) => chapter.id);
+
 /**
  * `list` exists for the tests, which need to resolve a deliberately broken
  * world without corrupting the real content to do it. Production callers pass
  * nothing.
  */
-export function resolveWorlds(list: readonly World[] = authoredWorlds): readonly ResolvedWorld[] {
+export function resolveChapters(list: readonly World[] = authoredChapters): readonly ResolvedChapter[] {
   return list.map((world) => ({
     id: world.id,
     name: world.name,
     glyph: world.glyph,
     where: world.where,
     ...(world.disclosure ? { disclosure: world.disclosure } : {}),
-    point: anchorPoint(world.anchor),
-    orbits: world.anchor.at === "orbit",
+    points: world.anchors
+      .map(anchorPoint)
+      .filter((point): point is GeoPoint => point !== null),
+    orbits: world.anchors.some((anchor) => anchor.at === "orbit"),
     plaques: world.plaques
       .map((plaque) => resolvePlaque(plaque.glyph, plaque.ref))
       .filter((plaque): plaque is ResolvedPlaque => plaque !== null),
@@ -244,11 +252,11 @@ export function resolveWorlds(list: readonly World[] = authoredWorlds): readonly
 }
 
 /**
- * The ids of worlds whose map point an earlier world in the list already
+ * The ids of chapters whose map point an earlier chapter in the list already
  * claimed — the ones a renderer has to step aside.
  *
- * `usa` and `plants` both anchor `origin-to`, and that is authored rather than
- * a mistake: the sapling grows *on* the arrival pin. Drawn naively they
+ * `living-earth` (its second pin) and `plants` both anchor `origin-to`, and
+ * that is authored rather than a mistake: the sapling grows *on* the arrival pin. Drawn naively they
  * overprint — the second glyph hides the first, and two left-aligned names land
  * on one baseline and composite into neither of them. Worse, and quieter: a
  * canvas hit list scanned backwards and broken on the first match makes the
@@ -256,32 +264,32 @@ export function resolveWorlds(list: readonly World[] = authoredWorlds): readonly
  * from the globe at all.
  *
  * Coordinates are compared rather than ids matched against a list, so this
- * keeps working when the content layer moves a pin or lands a third world on
+ * keeps working when the content layer moves a pin or lands a third chapter on
  * one — and compared *exactly*, not by projected proximity, which would
  * falsely pair two genuinely distant places that happen to crowd together near
  * the limb.
  *
- * Order is load-bearing: the first world to claim a point keeps it, so
+ * Order is load-bearing: the first chapter to claim a point keeps it, so
  * `src/content/worlds.ts`'s order decides which marker stays put and which one
- * moves. The two worlds that are not on the map (`plinth`, `orbit`) have no
- * point and are never flagged.
+ * moves. The two chapters that are not on the map (`plinth`, `orbit`) have no
+ * points and are never flagged.
  *
  * This lives here rather than inside `GlobeCanvas.tsx` for one reason: there it
  * could not be tested without a canvas. See `tests/lib/worlds.test.ts`.
  */
 export function coLocatedWorldIds(
-  list: readonly Pick<ResolvedWorld, "id" | "point">[],
+  list: readonly Pick<ResolvedChapter, "id" | "points">[],
 ): ReadonlySet<string> {
   const claimed: GeoPoint[] = [];
   const ids = new Set<string>();
-  for (const world of list) {
-    const point = world.point;
-    if (!point) continue;
-    if (claimed.some((other) => other.lat === point.lat && other.lon === point.lon)) {
-      ids.add(world.id);
-    } else {
-      claimed.push(point);
-    }
+  for (const chapter of list) {
+    // Judged against what *earlier* chapters claimed, never against the
+    // chapter's own points: a chapter does not step aside from itself.
+    const taken = chapter.points.some((point) =>
+      claimed.some((other) => other.lat === point.lat && other.lon === point.lon),
+    );
+    if (taken) ids.add(chapter.id);
+    claimed.push(...chapter.points);
   }
   return ids;
 }

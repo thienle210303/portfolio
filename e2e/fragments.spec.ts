@@ -103,7 +103,7 @@ test("every in-page fragment link on the page resolves to a real element", async
   // round 18 repointed at the Journey's act anchors, and the ones a deleted
   // section would have orphaned.
   const section = page.locator("#worlds");
-  const buttons = section.getByRole("list", { name: /the seven/i }).getByRole("button");
+  const buttons = section.getByRole("list", { name: /chapters/i }).getByRole("button");
   const worldCount = await buttons.count();
   expect(worldCount, "found no world buttons to step through — the plaque links went unswept").toBeGreaterThan(0);
   for (let index = 0; index < worldCount; index += 1) {

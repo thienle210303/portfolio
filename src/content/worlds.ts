@@ -2,7 +2,7 @@ import { origin } from "@/content/portfolio";
 import type { World } from "@/types/portfolio";
 
 /**
- * Seven worlds, and not one sentence about Thien among them.
+ * Six chapters, and not one sentence about Thien among them.
  *
  * Every plaque below is an *address*: which record, which field. The strings
  * a visitor reads come from `src/content/portfolio.ts` via
@@ -12,9 +12,9 @@ import type { World } from "@/types/portfolio";
  * `tests/lib/worlds.test.ts` for the test that keeps it true.
  *
  * Order is the order the list renders and the numbering a visitor reads
- * (01–07). It runs the crossing's own story: where he left, where he landed,
- * what was under the flight, what was above it, what grew from it — then the
- * two worlds that are not on the map at all.
+ * (01–06). It runs the crossing's own story: both ends of it, what was under
+ * the flight, what was above it, what grew from it — then the two chapters
+ * that are not on the map at all.
  *
  * This file only ever holds a record id, a field name and — for a
  * `careerEntryLine` — a list index. Anything that has to be *computed* from
@@ -24,27 +24,16 @@ import type { World } from "@/types/portfolio";
  */
 export const worlds = [
   {
-    id: "vietnam",
-    name: "Việt Nam",
-    glyph: "comtam",
-    anchor: { at: "origin-from" },
-    where: `${origin.from} — province level, no city`,
-    plaques: [{ glyph: "comtam", ref: { of: "computed", id: "crossing" } }],
-    decorations: [
-      { glyph: "comtam", draws: "a plate of cơm tấm — broken rice, a grilled chop, a fried egg" },
-    ],
-    // The owner named one object. The panel says so plainly rather than
-    // padding the world out with four invented ones, which is what an earlier
-    // draft of the spec proposed and he replaced.
-    disclosure: "One object so far, and he named it himself. Nothing here was invented to fill the space.",
-  },
-  {
-    id: "usa",
-    name: "United States",
+    id: "living-earth",
+    name: "Living Earth",
     glyph: "star",
-    anchor: { at: "origin-to" },
-    where: `The arrival pin — ${origin.to}, the first place he lived here`,
+    // Both ends of the crossing, in the order he travelled them. One chapter
+    // owns both pins: they belong to the same moment, and a marker on either
+    // opens this panel.
+    anchors: [{ at: "origin-from" }, { at: "origin-to" }],
+    where: `Both ends of the crossing — ${origin.from} (province level, no city) and ${origin.to}, the first place he lived here`,
     plaques: [
+      { glyph: "comtam", ref: { of: "computed", id: "crossing" } },
       { glyph: "cap", ref: { of: "careerEntry", id: "graduation", field: "role" } },
       { glyph: "trophy", ref: { of: "careerEntry", id: "cockyhacks", field: "role" } },
       { glyph: "trophy", ref: { of: "careerEntry", id: "code-to-give", field: "role" } },
@@ -55,16 +44,18 @@ export const worlds = [
       // `AUTHORED`; this is the one place that has to be kept in sync by eye.
       { glyph: "chalk", ref: { of: "careerEntryLine", id: "usc-ta", field: "impact", index: 1 } },
     ],
-    // No decorations, on purpose: the mockup's mug and library were
-    // placeholders nobody authored, and the honest move is the same one the
-    // Việt Nam world makes — say what is here and stop.
-    decorations: [],
+    decorations: [
+      { glyph: "comtam", draws: "a plate of cơm tấm — broken rice, a grilled chop, a fried egg" },
+    ],
+    // The owner named one object. The panel says so plainly rather than
+    // padding the chapter out with invented ones.
+    disclosure: "One object so far, and he named it himself. Nothing here was invented to fill the space.",
   },
   {
     id: "sea",
     name: "Sea",
     glyph: "net",
-    anchor: { at: "arc-midpoint" },
+    anchors: [{ at: "arc-midpoint" }],
     where: "The midpoint of the crossing — derived from the two pins, not typed",
     plaques: [
       // Positional against `usc-scraping.built`/`.impact` — see the note on
@@ -80,7 +71,7 @@ export const worlds = [
     id: "sky",
     name: "Sky",
     glyph: "bird",
-    anchor: { at: "arc-apex" },
+    anchors: [{ at: "arc-apex" }],
     where: "The apex of the flight arc — the highest latitude the crossing reaches",
     plaques: [
       { glyph: "bird", ref: { of: "computed", id: "crossing" } },
@@ -92,7 +83,7 @@ export const worlds = [
     id: "plants",
     name: "Plants",
     glyph: "sprout",
-    anchor: { at: "origin-to" },
+    anchors: [{ at: "origin-to" }],
     where: "A sapling on the arrival pin — the seed the bird dropped, one beat later",
     plaques: [
       { glyph: "sprout", ref: { of: "computed", id: "tree-shape" } },
@@ -104,7 +95,7 @@ export const worlds = [
     id: "animals",
     name: "Animals",
     glyph: "cat",
-    anchor: { at: "plinth" },
+    anchors: [{ at: "plinth" }],
     where: "Not on the globe — on the plinth. The cats live in the room, not on the map.",
     plaques: [
       { glyph: "cat", ref: { of: "companion", id: "moon" } },
@@ -117,7 +108,7 @@ export const worlds = [
     id: "tech",
     name: "Technology",
     glyph: "sat",
-    anchor: { at: "orbit" },
+    anchors: [{ at: "orbit" }],
     where: "In orbit — it counter-rotates, so it always faces you",
     // The spec's table also listed the learning log here. Decision 4 retired it
     // from the page ("nobody is gonna read them"), so what survives is only the

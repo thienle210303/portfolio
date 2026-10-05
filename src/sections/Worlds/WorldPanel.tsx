@@ -1,5 +1,5 @@
 import { GLYPHS, GLYPH_VIEWBOX } from "./glyphs";
-import { DECORATION_LABEL, type ResolvedWorld } from "@/lib/worlds";
+import { DECORATION_LABEL, type ResolvedChapter } from "@/lib/worlds";
 
 /**
  * One world, in words. Pure presentation — every string it renders was
@@ -13,7 +13,7 @@ import { DECORATION_LABEL, type ResolvedWorld } from "@/lib/worlds";
  * names, which is the whole point of the honesty rule being in the DOM rather
  * than only in the design.
  */
-export function WorldPanel({ world }: { readonly world: ResolvedWorld }) {
+export function WorldPanel({ world }: { readonly world: ResolvedChapter }) {
   return (
     <div className="mt-4 border border-rule bg-surface p-5">
       <h3 className="font-display text-[length:var(--step-2)] leading-tight text-[color:var(--fg)]">
@@ -78,7 +78,7 @@ export function WorldPanel({ world }: { readonly world: ResolvedWorld }) {
         <div className="mt-4 border-t border-dashed border-rule pt-3">
           {/* The constant, never a second copy of the words. Each glyph's
               own accessible name already ends in this exact string (see
-              `resolveWorlds`), so a re-typed heading here could drift out of
+              `resolveChapters`), so a re-typed heading here could drift out of
               step with what a screen reader is told — and this one string is
               the whole honesty rule. */}
           <p className="eyebrow">{DECORATION_LABEL}</p>

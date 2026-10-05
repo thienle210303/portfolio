@@ -7,7 +7,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { resolveWorlds } from "@/lib/worlds";
+import { resolveChapters } from "@/lib/worlds";
 
 /**
  * The retrieval corpus for "Ask this site" — every document `src/lib/answers.ts`
@@ -222,7 +222,7 @@ export function buildDocuments(): Document[] {
   // computation — which is exactly the shape this corpus wants. They are indexed under `worlds` rather than
   // their original section so an answer's "More on this in Worlds →" link lands
   // where the visitor can actually see the plaque.
-  for (const world of resolveWorlds()) {
+  for (const world of resolveChapters()) {
     for (const plaque of world.plaques) {
       docs.push({
         text: plaque.text,

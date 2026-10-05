@@ -177,7 +177,7 @@ const TOUR: Record<string, SceneBuilder> = {
   // not "of these" — nineteen plaques plus three decorations is twenty-two
   // objects, not three of nineteen.
   worlds: (f) => [
-    tabby("Mrrrow!", `${f.worlds.count} worlds! I'd nap on each.`, "globe", "stretch"),
+    tabby("Mrrrow!", `${f.worlds.count} chapters! I'd nap on each.`, "globe", "stretch"),
     grey("Mrp. Meow.", `${f.worlds.plaques} plaques, plus ${f.worlds.decorations} doodles.`, "sparkle"),
   ],
   // Round 10: the tree absorbed Journey, and this one stop now narrates both
