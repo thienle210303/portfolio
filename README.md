@@ -3,8 +3,8 @@
 A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
-The site is a single narrative page in four sections: **About** — a
-code-led hero and an About band; **Worlds** — a drawn globe of seven worlds
+The site is a single narrative page in four sections: **About** — one
+code-led fold with the About paragraphs in it; **Worlds** — a drawn globe of seven worlds
 made entirely of the site's own authored facts; the **Journey** — a career
 tree on a pinned stage, told in seven acts from 2018, with the case studies
 inside it (in the branches of the roles that produced them, or after the acts
@@ -210,7 +210,7 @@ Append to `careerEntries` in `src/content/portfolio.ts`:
   learned: "What the work taught you.",
   technologies: ["…"],
   link: { label: "example.com", href: "https://example.com" }, // optional
-  lenses: ["engineering", "automation"],   // counted per lens in the About band's "Where it shows up" list
+  lenses: ["engineering", "automation"],   // authored, but read by nothing on the site since round 18
 }
 ```
 

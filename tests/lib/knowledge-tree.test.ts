@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCareerTree,
-  buildKnowledgeTree,
   careerYearSpan,
   totalTechnologies,
 } from "@/lib/knowledge-tree";
-import { careerEntries, projects, resumeLenses } from "@/content/portfolio";
+import { careerEntries, projects } from "@/content/portfolio";
 import type { CareerEntry } from "@/types/portfolio";
 
 // Widened for the same reason knowledge-tree.ts widens it — see the note there.
@@ -25,12 +24,6 @@ const ENTRIES: readonly CareerEntry[] = careerEntries;
  * anti-inference assertions carry over unchanged in *kind*, just retargeted:
  * a leaf must still exist only where its own entry authored it, and nothing
  * here may still join skill names against technology strings.
- *
- * `buildKnowledgeTree` — the pre-round-12 shape, kept only for
- * `HeroAbout.tsx` — gets its own smaller describe block further down: the
- * anti-inference guarantee has to hold for it too, since it is still built
- * from the same authored `entry.lenses` edge, but it is no longer what the
- * tree itself renders from, so it does not need the same depth of coverage.
  */
 describe("buildCareerTree", () => {
   const tree = buildCareerTree();
@@ -191,52 +184,6 @@ describe("careerYearSpan", () => {
   });
 });
 
-/**
- * `buildKnowledgeTree` — the pre-round-12, lens-grouped shape. Nothing in
- * `src/sections/CareerTree` reads this any more (see `buildCareerTree`
- * above); it survives only because `src/sections/Hero/HeroAbout.tsx` (a
- * different work package this round) still calls it for its "Where it shows
- * up" list. The anti-inference guarantee still has to hold for it — it is
- * still built from the authored `entry.lenses` edge, and a fuzzy join here
- * would be exactly the mistake the rest of this file refuses — so it keeps a
- * light version of the same coverage the old, pre-inversion suite held in
- * full, rather than none at all.
- */
-describe("buildKnowledgeTree (legacy — HeroAbout.tsx only)", () => {
-  const roots = buildKnowledgeTree();
-
-  it("draws only branches the content layer actually tags with that lens", () => {
-    for (const root of roots) {
-      for (const branch of root.branches) {
-        const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
-        expect(entry, `branch ${branch.id} has no career entry`).toBeDefined();
-        expect(
-          entry?.lenses.includes(root.id),
-          `${branch.id} appears under "${root.id}" but is not tagged with it`,
-        ).toBe(true);
-      }
-    }
-  });
-
-  it("never renders an empty root", () => {
-    for (const root of roots) {
-      expect(root.branches.length, `"${root.label}" has no branches`).toBeGreaterThan(0);
-    }
-  });
-
-  it("covers every lens that has anything tagged to it", () => {
-    const tagged = resumeLenses.filter((lens) =>
-      ENTRIES.some((entry) => entry.lenses.includes(lens.id)),
-    );
-    expect(roots.map((root) => root.id).sort()).toEqual(tagged.map((lens) => lens.id).sort());
-  });
-
-  it("is worth HeroAbout rendering at all", () => {
-    expect(roots.length).toBeGreaterThan(0);
-    expect(roots.every((root) => root.branches.length > 0)).toBe(true);
-  });
-});
-
 const ROUND_18_ENTRIES = [
   "eastside-high",
   "fu-of-kyoto",
@@ -299,13 +246,6 @@ describe("concurrency", () => {
     const highSchool = tree.find((branch) => branch.id === "eastside-high");
     expect(highSchool).toBeDefined();
     expect(highSchool?.concurrentWith).toContain("fu-of-kyoto");
-  });
-
-  it("carries the same overlaps on the legacy lens-grouped branches", () => {
-    const branches = buildKnowledgeTree().flatMap((root) => root.branches);
-    const schaeffler = branches.find((branch) => branch.id === "schaeffler");
-    expect(schaeffler).toBeDefined();
-    expect(schaeffler?.concurrentWith).toContain("wordification");
   });
 
   it("keeps milestones out of the overlap relation, in both directions", () => {

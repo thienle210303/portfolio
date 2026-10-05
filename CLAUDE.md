@@ -84,9 +84,10 @@ server-rendered pulls the engine *and* the coastlines into the initial bundle.
 
 ## Changing what the site says
 
-The page is four sections, in this order: About (`#about` — the hero and the
-About band), Worlds (`#worlds`, the globe), the Journey (`#tree`, the pinned
-stage) and Contact (`#contact`, which also holds the chat at `#ask`).
+The page is four sections, in this order: About (`#about` — one fold: the hero
+with the About paragraphs in it), Worlds (`#worlds`, the globe), the Journey
+(`#tree`, the pinned stage) and Contact (`#contact`, which also holds the chat
+at `#ask`).
 `navItems` in `src/content/portfolio.ts` is the same four items in the same
 order; the nav doubles as the page's table of contents.
 
@@ -157,10 +158,6 @@ enforces this.
 - **Acts are authored.** Which act draws an entry is `ENTRY_ACTS` in
   `src/lib/anchors.ts` — an editorial call about the story, not a computation
   over dates.
-
-`buildKnowledgeTree()` (the old lens-grouped shape) survives solely for the
-About band's "Where it shows up" list, which wants entries-per-lens — a
-different authored fact.
 
 ### `src/lib/` never imports from `src/sections/`
 

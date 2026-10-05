@@ -48,8 +48,8 @@ export interface Profile {
   /** e.g. "Software Engineer" — the professional title, not a slogan. */
   readonly title: string;
   /** The single positioning sentence the whole site hangs from. Rendered as
-   *  the About band's lead (`HeroAbout.tsx`), and used as the page's meta
-   *  description and on the social card. */
+   *  the lead of About in the hero's identity column (`HeroIdentity.tsx`),
+   *  and used as the page's meta description and on the social card. */
   readonly positioning: string;
   /** One supporting sentence naming the actual focus areas. */
   readonly focus: string;
@@ -59,8 +59,9 @@ export interface Profile {
   readonly headline: string;
   /** Hero supporting paragraph. */
   readonly intro: string;
-  /** A short personal introduction — the About band's paragraphs
-   *  (`HeroAbout.tsx`), each also indexed by the chat corpus. */
+  /** A short personal introduction — About's paragraphs, in the hero's
+   *  identity column (`HeroIdentity.tsx`), each also indexed by the chat
+   *  corpus. */
   readonly about: readonly string[];
   readonly email: string;
   readonly location: Maybe<string>;
@@ -269,7 +270,8 @@ export interface CareerEntry {
   readonly learned: Maybe<string>;
   readonly technologies: readonly string[];
   readonly link?: ProjectLink;
-  /** Lenses this entry is relevant to, used by the resume explorer. */
+  /** Lenses this entry is relevant to. Authored data; since round 18 nothing
+   *  on the site reads it (the About band's lens list was its last reader). */
   readonly lenses: readonly ResumeLensId[];
 }
 
@@ -283,12 +285,6 @@ export type ResumeLensId =
   | "optimization"
   | "ai-workflows"
   | "leadership";
-
-export interface ResumeLens {
-  readonly id: ResumeLensId;
-  readonly label: string;
-  readonly description: string;
-}
 
 export type ResumeDepth = "quick-scan" | "deep-dive";
 

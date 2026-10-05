@@ -129,10 +129,12 @@ export function buildDocuments(): Document[] {
     });
   }
 
-  // The site's one-line positioning, rendered as the lead of #about by
-  // HeroAbout. It was the last sentence of `about` before round 18 and so was
-  // indexed with it; it is rendered there again, which is what makes the
-  // "More on this in About" link on an answer truthful.
+  // The site's one-line positioning, rendered as the lead of About in the
+  // hero's identity column (HeroIdentity). It was the last sentence of `about`
+  // before round 18 and so was indexed with it; it is rendered there again,
+  // which is what makes the "More on this in About" link on an answer truthful.
+  // `profile.focus`, next, is printed in #about's margin rail (Hero.tsx) for
+  // the same reason. tests/sections/Hero.test.tsx holds both.
   docs.push({
     text: profile.positioning,
     source: "About, in his own words",

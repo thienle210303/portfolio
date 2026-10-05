@@ -98,12 +98,12 @@ branch, in date order — `sortKey` decides where on the trunk):
 ```ts
 technologies: ["Python", "Playwright"],  // technology leaves on its branch
 impact: ["One sentence of what changed."],  // impact leaves on its branch
-lenses: ["engineering", "automation"],   // the About band's "Where it shows up" counts (not drawn)
+lenses: ["engineering", "automation"],   // authored; nothing on the site reads it
 ```
 
-`lenses` come from `resumeLenses` in the same file. Their one reader is
-`buildKnowledgeTree()`, which counts entries per lens for the About band's
-"Where it shows up" list. Neither `/resume` nor the drawn tree uses them.
+`lenses` are typed by `ResumeLensId` in `src/types/portfolio.ts`. Their last
+reader was the About band's "Where it shows up" list, which round 18 removed;
+neither `/resume` nor the drawn tree uses them.
 
 To attach a case study to a role, set the project's `careerEntryId` to that
 entry's `id`. The case study then renders inside that role's branch on the

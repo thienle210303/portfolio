@@ -706,9 +706,9 @@
    * `font-variant-numeric` to fix. The same is true of most of the site's
    * other figures (case-study numerals, the code artifact, MetricHighlights'
    * headline value); the explicit utility only earns its place on the
-   * handful of *sans* figures — MetricTable, the footer copyright,
-   * HeroAbout's "Since {year}" line — where digits would otherwise sit at
-   * their proportional widths beside letters and misalign column to column.
+   * handful of *sans* figures — MetricTable and the footer copyright — where
+   * digits would otherwise sit at their proportional widths beside letters
+   * and misalign column to column.
    */
   .rail {
     display: flex;

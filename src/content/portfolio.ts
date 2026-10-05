@@ -26,7 +26,6 @@ import type {
   Origin,
   Profile,
   Project,
-  ResumeLens,
   SkillCategory,
   SocialLink,
 } from "@/types/portfolio";
@@ -1288,34 +1287,6 @@ export const projects = [
 
 export const resumeSummary =
   "Software engineer working on retail data at DoorDash. I build automated collection and integration systems, and I'm at my best on problems where the path isn't defined yet — optimising what already exists, or creating a workflow that didn't previously exist. B.S. Computer Science, University of South Carolina, 3.8 GPA.";
-
-export const resumeLenses = [
-  {
-    id: "engineering",
-    label: "Software engineering",
-    description: "Shipping production systems across the stack.",
-  },
-  {
-    id: "automation",
-    label: "Automation",
-    description: "Removing manual steps from work that repeats.",
-  },
-  {
-    id: "optimization",
-    label: "Optimization",
-    description: "Making existing systems measurably faster or more reliable.",
-  },
-  {
-    id: "ai-workflows",
-    label: "AI workflows",
-    description: "Agentic development, with verification kept human-owned.",
-  },
-  {
-    id: "leadership",
-    label: "Leadership",
-    description: "Setting standards, teaching, and raising a team's ceiling.",
-  },
-] satisfies readonly ResumeLens[];
 
 export const skillCategories = [
   {

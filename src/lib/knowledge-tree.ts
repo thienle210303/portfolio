@@ -1,5 +1,5 @@
-import { careerEntries, projects, resumeLenses } from "@/content/portfolio";
-import type { CareerEntry, ResumeLensId } from "@/types/portfolio";
+import { careerEntries, projects } from "@/content/portfolio";
+import type { CareerEntry } from "@/types/portfolio";
 
 /**
  * The career tree: branches are the career, in order; leaves are what
@@ -35,16 +35,13 @@ import type { CareerEntry, ResumeLensId } from "@/types/portfolio";
  * one entry. The duplication is structurally gone because nothing is grouped
  * by lens any more.
  *
- * `buildKnowledgeTree` — the *old* shape — stays in this file, unchanged in
- * behaviour, purely because `src/sections/Hero/HeroAbout.tsx` (owned by a
- * different work package this round) still calls it for its "Where it shows
- * up" list, which legitimately wants a *different* fact: how many entries
- * carry each lens, as proof the work spans more than one kind of problem.
- * That is still an authored edge (`entry.lenses`) and still true regardless
- * of how the tree itself is drawn, so it survives untouched. Do not remove
- * it or change its return shape without updating that file too.
+ * Through round 17 the old lens-grouped shape (`buildKnowledgeTree`) stayed
+ * in this file for one reader, the About band's "Where it shows up" list.
+ * Round 18 merged that band into the hero fold without the list, and the
+ * function went with it. The entries' authored `lenses` field is still on
+ * every career entry; nothing on the site reads it now.
  *
- * `skillCategories[].lenses` is a *third*, independent authored edge set —
+ * `skillCategories[].lenses` is a second, independent authored edge set —
  * category → lens — that fed the roots' "Feeds …" line through round 11.
  * Round 12 retired that line along with the lens branches it named, and round
  * 18 retired the root labels themselves (`RootLabels.tsx`, never mounted by
@@ -166,68 +163,6 @@ export function buildCareerTree(): readonly TreeBranch[] {
         concurrentWith: concurrentWith(entry.id),
       };
     });
-}
-
-/* -------------------------------------------------------------------------- */
-/* Legacy shape — HeroAbout.tsx only. See the file banner.                    */
-/* -------------------------------------------------------------------------- */
-
-export interface TreeRoot {
-  readonly id: ResumeLensId;
-  readonly label: string;
-  readonly description: string;
-  readonly branches: readonly TreeBranch[];
-  /** Distinct technologies across every branch — the headline count. */
-  readonly technologyCount: number;
-}
-
-/**
- * The tree's pre-round-12 shape: one root per resume lens, its branches the
- * career entries tagged with it. Kept only for `HeroAbout.tsx` — see the file
- * banner. Nothing in `src/sections/CareerTree` reads this any more; the
- * drawing itself calls `buildCareerTree` above.
- */
-export function buildKnowledgeTree(): readonly TreeRoot[] {
-  const frequency = technologyFrequency();
-
-  const roots = resumeLenses.map((lens): TreeRoot => {
-    const tagged = ENTRIES.filter((entry) => entry.lenses.includes(lens.id));
-
-    const branches = tagged
-      // Newest first — the order the deleted timeline used. Nothing reads the
-      // order now: `HeroAbout.tsx` counts each lens's branches, it does not
-      // list them.
-      .toSorted((a, b) => (a.sortKey > b.sortKey ? -1 : 1))
-      .map((entry): TreeBranch => ({
-        id: entry.id,
-        label: entry.role,
-        organization: entry.organization || undefined,
-        dateRange: entry.dateRange,
-        kind: entry.type,
-        startYear: Number(entry.sortKey.slice(0, 4)),
-        leaves: [...new Set(entry.technologies)].map((name) => ({
-          kind: "technology",
-          text: name,
-          alsoUsedIn: Math.max(0, (frequency.get(name) ?? 1) - 1),
-        })),
-        caseStudies: caseStudiesFor(entry.id),
-        concurrentWith: concurrentWith(entry.id),
-      }));
-
-    const technologies = new Set(branches.flatMap((branch) => branch.leaves.map((l) => l.text)));
-
-    return {
-      id: lens.id,
-      label: lens.label,
-      description: lens.description,
-      branches,
-      technologyCount: technologies.size,
-    };
-  });
-
-  // A lens nobody has tagged anything with is empty and tells HeroAbout
-  // nothing. Drop it rather than list it.
-  return roots.filter((root) => root.branches.length > 0);
 }
 
 /** Distinct technologies across the whole tree, for the summary line. */

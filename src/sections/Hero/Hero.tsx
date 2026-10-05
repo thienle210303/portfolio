@@ -8,7 +8,8 @@
  * `<section>` it renders, so the height floor and vertical centring live on a
  * wrapper inside its children slot instead. That wrapper subtracts the sticky
  * header and Section's own block padding from `100svh` rather than ignoring
- * them, so the hero occupies one screen instead of a screen plus chrome. It is
+ * them, so the floor is one screen rather than a screen plus chrome; it is a
+ * floor, not a cap, so a fold whose content is taller simply grows. It is
  * `svh`, not `vh`, per SPEC §3.
  *
  * Layout, widest to narrowest — all reflow, nothing is ever hidden:
@@ -20,19 +21,17 @@
  * The two magic numbers in the split are explained at the point of use below;
  * both come from measurement, not from the breakpoint scale.
  *
- * `HeroAbout` — the About paragraphs — renders below all of that, as a
- * sibling of the fold wrapper rather than inside it (FB-2). It used to sit at
- * the bottom of the identity column, where at >=1360px it was a lone narrow
- * stack beside a large empty area once the code artifact ended. Keeping it
- * outside the `min-h-[...svh]` wrapper matters: that wrapper is deliberately
- * budgeted to one screen, and About is meant to grow with its content rather
- * than fight that budget.
+ * Round 18 (Plan B) merged the About band that used to sit below the fold
+ * into it: with `profile.about` cut to three short paragraphs they fit the
+ * identity column, so the second full-width layout had nothing left to do.
+ * The band's computed counts and its lens list went with it rather than
+ * moving here — the Journey already draws the career they counted.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { careerEntries, profile } from "@/content/portfolio";
+import { resolved } from "@/types/portfolio";
 import HeroIdentity from "./HeroIdentity";
 import HeroCodeArtifact from "./HeroCodeArtifact";
-import HeroAbout from "./HeroAbout";
 
 const HEADING_ID = "hero-heading";
 
@@ -43,10 +42,24 @@ const currentRole = [...careerEntries]
   .filter((entry) => entry.type === "work")
   .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
 
+// `location` and `availability` are `Maybe<string>`: `resolved()` collapses an
+// unset field or a `[NEEDS INPUT: ...]` marker to `undefined`, so either one
+// going back to unset drops its row here rather than printing a marker. Nothing
+// else on the site renders either field — the identity column's old
+// "Location" / "Availability" row is gone, so each is said once.
+const location = resolved(profile.location);
+const availability = resolved(profile.availability);
+
+// `focus` sits in the rail because the chat cites #about for it
+// (answer-corpus.ts), so About has to print it, and the identity column is
+// kept to the headline, the positioning line and the three About paragraphs.
 const RAIL: readonly RailNote[] = [
   ...(currentRole
     ? [{ term: "Now", detail: `${currentRole.role}, ${currentRole.organization}` }]
     : []),
+  ...(location ? [{ term: "Based", detail: location }] : []),
+  ...(availability ? [{ term: "Open to", detail: availability }] : []),
+  { term: "Focus", detail: profile.focus },
   { term: "Holds", detail: profile.philosophy },
   { term: "Reach me", detail: profile.email },
 ];
@@ -127,8 +140,6 @@ export default function Hero() {
           <span className="eyebrow">Scroll</span>
         </div>
       </div>
-
-      <HeroAbout />
     </Section>
   );
 }
