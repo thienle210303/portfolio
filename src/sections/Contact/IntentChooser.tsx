@@ -25,8 +25,8 @@ import type { ContactIntent } from "@/types/portfolio";
  * longer line after it, instead of running both together as one name.
  *
  * Choosing is how the form starts: there is no draft, no field and no send
- * button until one is chosen (see ContactForm), so the legend says what
- * choosing does rather than calling it optional.
+ * button until one is chosen (see ContactForm). The section's lead already
+ * says what choosing does, so the legend only asks the question.
  */
 
 interface IntentChooserProps {
@@ -48,8 +48,7 @@ export default function IntentChooser({
   return (
     <fieldset className="m-0 border-0 p-0">
       <legend id={legendId} className="mb-4 text-[length:var(--step-0)] font-medium text-fg">
-        What brings you here?{" "}
-        <span className="font-normal text-fg-subtle">Pick one and a finished message appears below.</span>
+        What brings you here?
       </legend>
       <div className="grid gap-3 sm:grid-cols-2">
         {intents.map((intent) => {

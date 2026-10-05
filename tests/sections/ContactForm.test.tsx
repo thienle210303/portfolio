@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 describe("the contact form, before an intent is chosen", () => {
-  it("has nothing to send yet, and says what choosing does", () => {
+  it("has nothing to send yet, and asks its question once", () => {
     render(<ContactForm emailDeliveryConfigured={true} />);
     // The form element exists from the first render: the companion watches
     // it for `data-cat-secret` with an attribute observer, which only sees
@@ -48,7 +48,9 @@ describe("the contact form, before an intent is chosen", () => {
     expect(form()).toBeInTheDocument();
     expect(within(form()).queryByRole("button")).toBeNull();
     expect(within(form()).queryByRole("textbox")).toBeNull();
-    expect(screen.getByRole("group", { name: /pick one and a finished message appears below/i })).toBeVisible();
+    // The section's lead already says what choosing does ("Pick a reason. The
+    // message is already written."), so the legend only asks the question.
+    expect(screen.getByRole("group", { name: "What brings you here?" })).toBeVisible();
   });
 });
 
@@ -293,6 +295,54 @@ describe("the contact form, fix round 1", () => {
 
     expect(screen.getByRole("textbox", { name: /your message/i })).toHaveValue(opportunity.messageDraft);
     expect(within(form()).getByText(`${opportunity.subject} — Chess`)).toBeVisible();
+  });
+});
+
+describe("the contact form, final review", () => {
+  it("treats a seeded draft as untouched after a referral rewrites the draft under it", async () => {
+    // The textarea was seeded before the referral arrived, so its text is no
+    // longer equal to the current draft — but the visitor still wrote none of
+    // it. A change of intent must replace it, not keep a stale draft under the
+    // new subject.
+    const user = userEvent.setup();
+    render(
+      <>
+        <a href="#contact" data-project-title="Chess">
+          Discuss this project
+        </a>
+        <ContactForm emailDeliveryConfigured={true} />
+      </>,
+    );
+    const hello = contactIntents.find((intent) => intent.id === "hello")!;
+    await user.click(screen.getByRole("radio", { name: opportunity.label }));
+    await user.click(screen.getByRole("button", { name: /add a line of my own/i }));
+    await user.click(screen.getByRole("link", { name: "Discuss this project" }));
+    await user.click(screen.getByRole("radio", { name: hello.label }));
+
+    expect(screen.queryByRole("textbox", { name: /your message/i })).toBeNull();
+    const referred = withCaseStudyReferral(hello.messageDraft, "Chess").split("\n\n");
+    for (const paragraph of referred) expect(within(form()).getByText(paragraph)).toBeVisible();
+  });
+
+  it("still keeps the visitor's own words after a referral", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <a href="#contact" data-project-title="Chess">
+          Discuss this project
+        </a>
+        <ContactForm emailDeliveryConfigured={true} />
+      </>,
+    );
+    const hello = contactIntents.find((intent) => intent.id === "hello")!;
+    await user.click(screen.getByRole("radio", { name: opportunity.label }));
+    await user.click(screen.getByRole("button", { name: /add a line of my own/i }));
+    await user.click(screen.getByRole("link", { name: "Discuss this project" }));
+    const textarea = screen.getByRole("textbox", { name: /your message/i });
+    await user.type(textarea, " Mine.");
+    await user.click(screen.getByRole("radio", { name: hello.label }));
+
+    expect(screen.getByRole("textbox", { name: /your message/i })).toHaveValue(`${opportunity.messageDraft} Mine.`);
   });
 });
 

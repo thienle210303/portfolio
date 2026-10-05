@@ -24,7 +24,7 @@ test("Contact holds one form, and nothing to send until an intent is chosen", as
   await expect(contact.locator("form")).toHaveCount(1);
   await expect(contact.getByRole("button", { name: /send it/i })).toHaveCount(0);
   await expect(contact.locator("#contact-name")).toHaveCount(0);
-  await expect(contact.getByRole("group", { name: /pick one and a finished message appears below/i })).toBeVisible();
+  await expect(contact.getByRole("group", { name: "What brings you here?", exact: true })).toBeVisible();
 });
 
 test("choosing an intent shows its whole draft as paragraphs, with no textarea", async ({ page }) => {
@@ -48,9 +48,15 @@ test("after choosing, the send button is the only blue fill in Contact", async (
   await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
   const send = contact.getByRole("button", { name: "Send it as written" });
   await expect(send).toBeVisible();
+  // Both spellings of an accent fill (the Hero test scans the same pair),
+  // anchored on whitespace so `hover:bg-accent-strong` is not counted.
   const blue = await contact.evaluate((root) =>
     Array.from(root.querySelectorAll("*"))
-      .filter((el) => /(^|\s)bg-accent(\s|$)/.test(el.getAttribute("class") ?? ""))
+      .filter((el) =>
+        [/(^|\s)bg-accent(\s|$)/, /(^|\s)bg-\[color:var\(--accent\)\](\s|$)/].some((fill) =>
+          fill.test(el.getAttribute("class") ?? ""),
+        ),
+      )
       .map((el) => el.textContent?.trim()),
   );
   expect(blue).toEqual(["Send it as written"]);
@@ -313,6 +319,18 @@ for (const theme of ["day", "night"] as const) {
     await contact.getByRole("radio", { name: contactIntents[0].label, exact: true }).check();
     await contact.getByRole("button", { name: "Send it as written" }).click();
     await expect(page.locator("#contact-name-error")).toBeVisible();
+
+    // The section inks in as it scrolls into view: until every `[data-ink]`
+    // child has finished fading, axe measures contrast against text that is
+    // still partly transparent. Wait for the finished state, not a timeout.
+    await expect(contact).toHaveAttribute("data-inked", "");
+    await expect
+      .poll(() =>
+        contact.evaluate((root) =>
+          Array.from(root.querySelectorAll("[data-ink]")).filter((el) => getComputedStyle(el).opacity !== "1").length,
+        ),
+      )
+      .toBe(0);
     await audit("chosen, invalid");
 
     await contact.getByRole("button", { name: "Add a line of my own" }).click();

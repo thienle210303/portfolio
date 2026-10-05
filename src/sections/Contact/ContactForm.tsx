@@ -29,11 +29,11 @@ import IntentChooser from "./IntentChooser";
  * a textarea seeded with the same text; from then on the textarea is what is
  * sent. Choosing another intent (arrow keys in the radio group included)
  * goes back to that intent's draft only while the textarea still holds the
- * current draft untouched; once the visitor has written anything of their
+ * text it was seeded with, untouched; once the visitor has written anything of their
  * own, their text stays and only the subject follows the new intent.
  *
  * With no intent chosen there is nothing to send: the form holds only the
- * honeypot and the two live regions, and the chooser's legend says what
+ * honeypot and the two live regions, and the section's lead says what
  * choosing does. The `<form>` itself is rendered from the first paint anyway,
  * because the companion watches it for `data-cat-secret` with an attribute
  * observer, which only sees a change on a node that already exists.
@@ -154,6 +154,9 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
   // Set by "Add a line of my own", read once by the effect below: the
   // textarea does not exist until the render that follows the click.
   const focusMessageNext = useRef(false);
+  // The text the textarea was seeded with. A referral can rewrite `draft`
+  // after the seed, so "untouched" is measured against this, not `draft`.
+  const seeded = useRef("");
 
   const selected: ContactIntent | null = contactIntents.find((intent) => intent.id === selectedIntentId) ?? null;
   const draft = selected ? withCaseStudyReferral(selected.messageDraft, referredProjectTitle) : "";
@@ -213,9 +216,9 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
 
   function chooseIntent(intent: ContactIntent) {
     setSelectedIntentId(intent.id);
-    // `draft` is still the previous intent's here. A body that differs from
-    // it holds words the visitor typed, which a radio change must not erase.
-    if (!expanded || body === draft) {
+    // A body that differs from what the textarea was seeded with holds words
+    // the visitor typed, which a radio change must not erase.
+    if (!expanded || body === seeded.current) {
       setExpanded(false);
       setBody("");
       setFieldErrors((prev) => ({ ...prev, message: undefined }));
@@ -224,6 +227,7 @@ export default function ContactForm({ emailDeliveryConfigured }: ContactFormProp
   }
 
   function expand() {
+    seeded.current = draft;
     setBody(draft);
     focusMessageNext.current = true;
     setExpanded(true);

@@ -15,6 +15,10 @@ import Contact from "@/sections/Contact/Contact";
 
 const QUESTION_FIELD = { name: "Ask a question about this portfolio" } as const;
 
+/** Both spellings of an accent fill — the pair the Hero test scans for — each
+ *  anchored on whitespace, so `hover:bg-accent-strong` is not counted. */
+const ACCENT_FILLS = [/(^|\s)bg-accent(\s|$)/, /(^|\s)bg-\[color:var\(--accent\)\](\s|$)/] as const;
+
 describe("Ask, in Contact", () => {
   it("is reachable at a stable id", () => {
     render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />);
@@ -50,14 +54,15 @@ describe("Ask, in Contact", () => {
     // One primary control per screen, and it is the send button. It only
     // renders once an intent is chosen, so choose one first; and wait for
     // the chat's own buttons to be on the page, so they are counted too.
-    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />);
+    // Every element is scanned, not only buttons.
+    const { container } = render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />);
     await userEvent.setup().click(screen.getByRole("radio", { name: /career opportunity/i }));
     await screen.findByRole("textbox", QUESTION_FIELD, { timeout: 10_000 });
 
-    const primary = screen
-      .getAllByRole("button")
-      .filter((button) => /\bbg-accent\b/.test(button.className));
+    const primary = Array.from(container.querySelectorAll<HTMLElement>("[class]")).filter((element) =>
+      ACCENT_FILLS.some((fill) => fill.test(element.getAttribute("class") ?? "")),
+    );
     expect(primary).toHaveLength(1);
-    expect(primary[0]).toHaveTextContent(/send/i);
+    expect(primary[0]).toHaveTextContent(/^Send it as written$/);
   });
 });
