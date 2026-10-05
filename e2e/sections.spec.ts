@@ -20,6 +20,10 @@ function viewportWidth(page: Page): number {
   return page.viewportSize()?.width ?? 0;
 }
 
+function viewportHeight(page: Page): number {
+  return page.viewportSize()?.height ?? 0;
+}
+
 /**
  * The element's offset from the top of the viewport once it has stopped
  * moving.
@@ -139,6 +143,54 @@ test.describe("case studies", () => {
       return panel ? panel.contains(document.activeElement) : false;
     }, panelId);
     expect(stillInsidePanel, "Tab from the collapsed trigger must not land inside its panel").toBe(false);
+  });
+});
+
+test.describe("screen recordings", () => {
+  const recorded = projects.filter((project) => project.recording);
+
+  test("a full scroll, Journey stage included, requests nothing from /media/", async ({ page }) => {
+    const media: string[] = [];
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname.startsWith("/media/")) media.push(request.url());
+    });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+
+    const height = await page.evaluate(() => document.documentElement.scrollHeight);
+    const step = Math.max(200, Math.floor(viewportHeight(page) / 2));
+    for (let y = 0; y <= height; y += step) {
+      await page.evaluate((top) => window.scrollTo(0, top), y);
+      await page.waitForTimeout(40);
+    }
+    await page.waitForLoadState("networkidle");
+
+    expect(await page.locator("#tree video").count(), "no <video> before a press").toBe(0);
+    expect(media, "nothing under /media/ may load until a visitor asks").toEqual([]);
+  });
+
+  test("opening a case study and pressing play requests one mp4 and one poster", async ({ page }) => {
+    expect(recorded.length, "no project carries a recording").toBeGreaterThan(0);
+    const project = recorded[0];
+    const media: string[] = [];
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
+    });
+
+    const article = page.locator(`#work-${project.id}`);
+    await article.getByRole("button", { name: /Read the full case study/ }).click();
+    await expect(article.locator("video")).toHaveCount(0);
+    expect(media, "opening the disclosure alone loads nothing").toEqual([]);
+
+    await article.getByRole("button", { name: "Play the screen recording" }).click();
+    const video = article.locator("video");
+    await expect(video).toHaveCount(1);
+    await expect(video).toHaveAttribute("aria-label", `${project.title} \u2014 screen recording`);
+    await expect.poll(() => media.filter((url) => url.endsWith(".mp4")).length).toBe(1);
+    await page.waitForLoadState("networkidle");
+
+    expect(media.filter((url) => url.endsWith(".mp4"))).toEqual([`/media/${project.recording}.mp4`]);
+    expect(media.filter((url) => url.endsWith(".jpg"))).toEqual([`/media/${project.recording}.jpg`]);
   });
 });
 

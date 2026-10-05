@@ -45,6 +45,7 @@ import { caseStudyAnchorId, caseStudyNumeral } from "./anchors";
 import WorkflowDiagram from "./WorkflowDiagram";
 import MetricHighlights from "./MetricHighlights";
 import MetricTable from "./MetricTable";
+import ProjectRecording from "./ProjectRecording";
 
 const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]";
 
@@ -372,6 +373,11 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
           defaultOpen={false}
           className="border border-[color:var(--rule-color)] px-4 pb-2 transition-colors duration-200 [&:has(>button:hover)]:border-[color:var(--fg)] md:px-6"
         >
+          {project.recording ? (
+            <div className="pt-4">
+              <ProjectRecording project={project} recording={project.recording} />
+            </div>
+          ) : null}
           <div className="divide-y divide-[color:var(--rule-color)]">
             <SectionBlock heading="Problem">
               <p className={PROSE_CLASS}>{project.problem}</p>

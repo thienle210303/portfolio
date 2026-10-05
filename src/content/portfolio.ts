@@ -1147,6 +1147,7 @@ export const projects = [
    */
   {
     id: "chess-minmax",
+    recording: "chess",
     title: "Chess and a min-max bot",
     tagline:
       "A chess game and a min-max bot, built from a YouTube video — no class, no client, no résumé line.",
@@ -1176,6 +1177,7 @@ export const projects = [
   },
   {
     id: "conscea",
+    recording: "conscea",
     title: "Conscea — employee certificates",
     tagline:
       "A business application for managing employee certificates, built with classmates. The website has fully developed functionality; the recording shows only its protocol, due to data privacy.",
@@ -1207,6 +1209,7 @@ export const projects = [
   },
   {
     id: "degreeworks-rebuild",
+    recording: "degreework",
     title: "A better version of DegreeWorks",
     tagline:
       "A better version of UofSC DegreeWorks, built with classmates in a software-engineering course.",
@@ -1239,6 +1242,7 @@ export const projects = [
   },
   {
     id: "toy-storefront",
+    recording: "toys",
     title: "A toy storefront",
     tagline: "An e-commerce platform for toy sales, built with a team of three.",
     careerEntryId: "usc-degree",
