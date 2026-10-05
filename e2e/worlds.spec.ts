@@ -604,10 +604,7 @@ test.describe("the live globe", () => {
     // `expectAtRest` (which counts GL draws into `draws`) the second.
     await page.goto("/#worlds");
     const stage = await waitForLiveGlobe(page);
-    test.skip(
-      (await page.locator(SURFACE).count()) === 0,
-      "no WebGL2 surface in this browser; the fallback tests cover that page",
-    );
+    await requireSurface(page);
 
     const box = await stage.boundingBox();
     if (!box) throw new Error("the stage has no box");
@@ -633,10 +630,7 @@ test.describe("the live globe", () => {
   test("a skin is worn on the GL surface with one draw, and no frames after", async ({ page }) => {
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
-    test.skip(
-      (await page.locator(SURFACE).count()) === 0,
-      "no WebGL2 surface in this browser; the fallback tests cover that page",
-    );
+    await requireSurface(page);
     const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
     const first = skins.getByRole("button").first();
     // The dial is live because the surface is, and its names stop saying
@@ -891,10 +885,7 @@ test.describe("the live globe", () => {
   }) => {
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
-    test.skip(
-      (await page.locator(SURFACE).count()) === 0,
-      "no WebGL2 surface to take away in this browser; the load-time forced-colours test covers it",
-    );
+    await requireSurface(page);
     await page.emulateMedia({ forcedColors: "active" });
     await expect(page.locator(SURFACE)).toHaveCount(0);
     // The overlay redrew with its own coastlines, in system ink.
@@ -1390,7 +1381,7 @@ test.describe("the robot walks twice", () => {
   test("opening Technology walks it once, frame by frame, and then the globe rests", async ({ page }) => {
     await page.goto("/#worlds");
     const stage = await waitForLiveGlobe(page);
-    const gl = (await page.locator(SURFACE).count()) > 0;
+    await requireSurface(page);
     const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
 
     // The first two seconds of the ~6 s walk: a frame-by-frame loop, and with
@@ -1398,7 +1389,7 @@ test.describe("the robot walks twice", () => {
     const walking = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 2_000);
     await expect(list.getByRole("button", { name: /technology/i })).toHaveAttribute("aria-current", "true");
     expect(walking.overlayDraws, "opening Technology did not start the walk").toBeGreaterThan(60);
-    if (gl) expect(Math.abs(walking.glDraws - walking.overlayDraws)).toBeLessThanOrEqual(1);
+    expect(Math.abs(walking.glDraws - walking.overlayDraws)).toBeLessThanOrEqual(1);
     // Still walking: the stage changes from one second to the next.
     const midWalk = await stage.screenshot();
     await page.waitForTimeout(1_000);
@@ -1466,7 +1457,7 @@ test.describe("the robot walks twice", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#worlds");
     const stage = await waitForLiveGlobe(page);
-    const gl = (await page.locator(SURFACE).count()) > 0;
+    await requireSurface(page);
 
     const open = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_000);
     expect(open.frames, "opening Technology asked for frames under reduced motion").toBe(0);
@@ -1489,7 +1480,7 @@ test.describe("the robot walks twice", () => {
     // One still frame per press, of each canvas, and no loop.
     expect(dark.frames).toBe(0);
     expect(dark.overlayDraws).toBe(1);
-    expect(dark.glDraws).toBe(gl ? 1 : 0);
+    expect(dark.glDraws).toBe(1);
     const out = await stage.screenshot();
     expect(out.equals(lit), "the unsupervised lap looks the same as the lit one").toBe(false);
 
@@ -1614,10 +1605,7 @@ test.describe("without WebGL2", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
-    test.skip(
-      (await page.locator(SURFACE).count()) === 0,
-      "no WebGL2 surface to lose in this browser; the stubbed test above covers that page",
-    );
+    await requireSurface(page);
     const withSurface = await settledOverlay(page);
 
     await page.evaluate(() => {
