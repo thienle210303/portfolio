@@ -381,7 +381,7 @@ test.describe("theme toggle", () => {
  * tone is not a matrix axis here: tone is set per section, and the globe is
  * always `tone="deep"`; the other tones are covered by the audits above.
  *
- * Skins need the GL surface, so those cases skip where the browser has none.
+ * Skins need the GL surface: those cases wait for it and fail, naming WebGL2, if it never appears.
  */
 test.describe("the globe's chapters and skins", () => {
   async function openGlobe(page: Page, theme: "day" | "night") {
