@@ -191,6 +191,11 @@ const SEED_DROP = 0.3;
  */
 const SAPLING_WORLD_ID = "plants";
 
+/** A canvas label's halo, in CSS pixels: wide enough to clear the glyphs of a
+ *  9.5px mono label from whatever is under it, narrow enough not to blot out
+ *  the marker beside it. */
+const HALO_PX = 3.5;
+
 const GRATICULE = graticule(30);
 // The same 72 segments the resolver uses, so the arc drawn here and the
 // distance printed in the rail describe one curve. The kilometre figure itself
@@ -211,6 +216,8 @@ interface Palette {
   readonly accent: string;
   readonly rule: string;
   readonly ground: string;
+  /** The ink a label's halo is stroked in, or null for no halo. */
+  readonly halo: string | null;
 }
 
 /** Not a working CSS fallback list (see the note on `--font-mono` in
@@ -292,6 +299,9 @@ function palette(element: Element): Palette {
       accent: "LinkText",
       rule: "GrayText",
       ground: "Canvas",
+      // No halo: the forced-colours globe stays exactly as it was drawn
+      // before there were halos.
+      halo: null,
     };
   }
   const style = getComputedStyle(element);
@@ -303,6 +313,7 @@ function palette(element: Element): Palette {
     accent: read("--accent"),
     rule: read("--rule-color"),
     ground: read("--ground"),
+    halo: read("--ground"),
   };
 }
 
@@ -445,6 +456,24 @@ export default function GlobeCanvas({
       ctx.stroke(new Path2D(d));
       ctx.restore();
     };
+    /* Every word on the canvas goes through here. A label lands on whatever
+       the planet is under it, and a skin can put that at ~1:1 against the
+       ink, so each one is first stroked in the section's own ground: the
+       standard map-label halo. The text then reads against the halo, not the
+       planet, and the skins keep their look. One path for GL and fallback. */
+    const label = (text: string, x: number, y: number, ink: string) => {
+      if (c.halo) {
+        ctx.save();
+        ctx.strokeStyle = c.halo;
+        // CSS pixels: the context is already scaled by the device ratio.
+        ctx.lineWidth = HALO_PX;
+        ctx.lineJoin = "round";
+        ctx.strokeText(text, x, y);
+        ctx.restore();
+      }
+      ctx.fillStyle = ink;
+      ctx.fillText(text, x, y);
+    };
 
     /* The plinth, hatched below, with the two cats asleep on it. */
     ctx.strokeStyle = c.rule;
@@ -471,14 +500,13 @@ export default function GlobeCanvas({
     ctx.fill();
     glyph(GLYPHS.cat, catX, catY, 1.05, animalsOpen ? c.accent : c.muted, 1.2);
     glyph(GLYPHS.cat, catX + 34, catY + 2, 0.88, animalsOpen ? c.accent : c.subtle, 1.2);
-    ctx.fillStyle = c.subtle;
     ctx.font = `600 8.5px ${mono}`;
     ctx.textAlign = "center";
     // Read from the content layer, not typed here: these are the same two names
     // the Animals world's plaques quote, and `companions` order is load-bearing
     // — the lead cat is first, and the lead cat is the larger drawing.
-    ctx.fillText((companions[0]?.name ?? "").toUpperCase(), catX, catY + 20);
-    ctx.fillText((companions[1]?.name ?? "").toUpperCase(), catX + 34, catY + 20);
+    label((companions[0]?.name ?? "").toUpperCase(), catX, catY + 20, c.subtle);
+    label((companions[1]?.name ?? "").toUpperCase(), catX + 34, catY + 20, c.subtle);
 
     /* The planet's surface, when a GL surface is live: the fill and the
        coastlines, from the same spin and tilt as every stroke below, in the
@@ -639,13 +667,13 @@ export default function GlobeCanvas({
           glyph(GLYPHS.sprout, x, foot - 9 * size, size, c.accent, open ? 1.9 : 1.3);
         }
         if (open || p.depth > 0.62) {
-          ctx.fillStyle = open ? c.accent : c.muted;
           ctx.font = `600 9.5px ${mono}`;
           ctx.textAlign = shares ? "right" : "left";
-          ctx.fillText(
+          label(
             world.name.toUpperCase(),
             shares ? x - radius - 5 : x + radius + 5,
             p.y + 3.4,
+            open ? c.accent : c.muted,
           );
         }
         if (world.id === SAPLING_WORLD_ID) saplingFoot = { x, y: foot };
