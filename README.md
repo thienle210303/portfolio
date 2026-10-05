@@ -10,7 +10,9 @@ tree on a pinned stage, told in seven acts from 2018, with the case studies
 inside it (in the branches of the roles that produced them, or after the acts
 for the coursework); and **Contact**, which
 starts from what the visitor actually came to say, and holds a chat that
-answers questions about the page quoting only what's written for the site. The résumé is its own route
+answers only from what's written for the site: by default his words as
+written, or a count made from them, each with its source and no model; in
+live mode a model writes the answer from just those passages. The résumé is its own route
 at `/resume`, reading the same content, and it is the only place the skills
 inventory renders.
 
@@ -154,7 +156,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 | File | Contains |
 |---|---|
 | `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — contact intents and the closing |
-| `src/content/worlds.ts` | The seven worlds of the globe — **addresses, not sentences**: each plaque names a record and a field in `portfolio.ts`, and the words are quoted from it verbatim |
+| `src/content/worlds.ts` | The seven worlds of the globe — **addresses, not sentences**: a quoted plaque names a record and a field in `portfolio.ts` and renders it verbatim; a computed plaque names a computation over the content |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
 Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's

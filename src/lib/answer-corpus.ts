@@ -26,9 +26,11 @@ import { resolveWorlds } from "@/lib/worlds";
  *
  * ## What counts as a document here
  *
- * Every `text` below is either a verbatim string from `src/content` or a
- * mechanical join of a handful of its fields (`"${a}: ${b} → ${c}."`, the same
- * pattern the original metric and education documents already used). Nothing
+ * Every `text` below is a verbatim string from `src/content`, a mechanical
+ * join of a handful of its fields (`"${a}: ${b} → ${c}."`, the same pattern
+ * the original metric and education documents already used), or the text of
+ * one of the globe's computed plaques (a count or list made from the content,
+ * `computedFact()` in `src/lib/worlds.ts`). Nothing
  * here is composed prose invented for search — see `tests/lib/answers.test.ts`,
  * which asserts every returned answer is a member of the exact set of strings
  * the content layer can produce.
@@ -214,9 +216,10 @@ export function buildDocuments(): Document[] {
     ),
   });
 
-  // Round 16. Every plaque on the globe is already a verbatim authored field,
-  // which makes the whole set exactly the shape this corpus wants: a quoted
-  // string with a named source. They are indexed under `worlds` rather than
+  // Round 16. Every plaque on the globe is a string with a named source —
+  // twelve quote one authored field whole, seven are computations over the
+  // content (`computedFact()` in src/lib/worlds.ts) whose source names the
+  // computation — which is exactly the shape this corpus wants. They are indexed under `worlds` rather than
   // their original section so an answer's "More on this in Worlds →" link lands
   // where the visitor can actually see the plaque.
   for (const world of resolveWorlds()) {

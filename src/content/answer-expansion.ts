@@ -25,8 +25,8 @@
  * **A term here is a search alias, never a claim.** These strings are merged
  * into a document's `label`, which is matched against but never rendered. They
  * may not enter an answer's `text`, so the feature's central promise — every
- * answer is a sentence from the site, word for word — is untouched by anything
- * in this file.
+ * answer is a string the content layer produces, never one written for search
+ * — is untouched by anything in this file.
  *
  * So "blocked", "banned" and "captcha" are legitimate aliases for prose about
  * evading detection. "Kubernetes" would not be, however much someone might

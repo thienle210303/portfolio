@@ -150,13 +150,13 @@ function field(indent: number, key: string, value: string): string[] {
  *
  * The leading comment is the same promise the panel makes in prose above the
  * field, not a new claim — and it earns its place in the artifact, because
- * every quoted string below it is a real sentence from the page rather than
- * sample data. (globals.css tints string literals with the accent for exactly
+ * every string below it is a real answer the content layer produced rather
+ * than sample data. (globals.css tints string literals with the accent for exactly
  * that reason.)
  */
 export function answerLiteral(question: string, results: readonly Answer[]): string {
   const lines: string[] = [
-    "// Quoted from this page. No model, no generation step.",
+    "// From what's written for this site. No model, no generation step.",
     "const answer = {",
     ...field(2, "question", question),
   ];

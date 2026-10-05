@@ -5,9 +5,10 @@ import { buildDocuments, type Document } from "@/lib/answer-corpus";
  *
  * The defining property, and the reason it works this way rather than as a
  * language model: **it cannot fabricate.** Every answer it returns is a
- * verbatim string from `src/content`, carried with the source that string
- * already had and, where the page renders what it is about, a link to the
- * section that does. There is no generation step, so there is nothing to
+ * string the content layer produces — an authored field as written, a
+ * mechanical join of a record's fields, or one of the globe's computed
+ * plaques — carried with its source and, where the page renders what it is
+ * about, a link to the section that does. There is no generation step, so there is nothing to
  * hallucinate with. When nothing matches well enough, it says so rather than
  * reaching.
  *

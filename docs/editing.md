@@ -10,11 +10,12 @@ open a component to change what the site says.
 | Which objects sit on which world of the globe | `src/content/worlds.ts` |
 | Which of the Journey's seven acts draws a role | `src/lib/anchors.ts` (`ENTRY_ACTS`) |
 
-`src/content/worlds.ts` holds **addresses, not sentences**. A plaque on the
-globe names a record and a field; the words a visitor reads come out of
-`src/content/portfolio.ts`, verbatim. So if a line reads badly on the globe,
-the fix is in the field it points at — that same string is on screen somewhere
-else too.
+`src/content/worlds.ts` holds **addresses, not sentences**. A quoted plaque on
+the globe names a record and a field; the words a visitor reads come out of
+`src/content/portfolio.ts`, verbatim. (A computed plaque names a computation
+instead — a count or a list made from the content.) So if a quoted line reads
+badly on the globe, the fix is in the field it points at — that same string is
+on screen somewhere else too.
 
 (Round 18 deleted `src/content/ai-experiments.ts` and `src/content/workshop.ts`
 along with the Workshop section and the AI Workflow Lab's content. If you are

@@ -45,9 +45,11 @@ import {
  * thread uses, for the life of the page load:
  *
  *  - **Off (the default, free mode):** `answer()` from `src/lib/answers.ts`
- *    runs synchronously in the browser. No network, no key. Every answer is a
- *    verbatim string from `src/content`, shown with the source it already
- *    carried — there is no generation step, so there is nothing to
+ *    runs synchronously in the browser. No network, no key. Every answer is
+ *    a string the content layer produces — an authored field as written, a
+ *    mechanical join of a record's fields, or one of the globe's computed
+ *    plaques (a count or a list made from the content) — shown with its
+ *    source. There is no generation step, so there is nothing to
  *    hallucinate with.
  *  - **On:** the visitor's question, and only the passages `answer()`
  *    retrieves for it, are POSTed to `/api/ask`, which hands them to a real
@@ -109,7 +111,7 @@ import {
  */
 
 const NOTHING_FOUND =
-  "Nothing written for this site answers that. Everything here is quoted from what's written for this site — if it isn't there, I'd rather say so than guess.";
+  "Nothing written for this site answers that. Answers here come only from what’s written for it, so I’d rather say so than guess.";
 
 /** Shown before the first question — the thread's resting state, rather
  *  than a blank gap above the input. */
@@ -762,7 +764,7 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
         <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
           {liveModeConfigured
             ? "Ask about the work, his background, or how he thinks. Retrieval runs the same way it always does; a live model composes the answer from exactly what it found, and says so."
-            : "Every answer below is quoted word for word from what Thien wrote for this site, with its source. No model, nothing generated. If he hasn’t written it down, you’re told so."}
+            : "Every answer below comes from what’s written for this site — his words as written, or a count made from them — with its source. No model, nothing generated. If it isn’t written down, you’re told so."}
         </p>
 
         <div className="mt-4">

@@ -379,3 +379,34 @@ describe("AskThisSite -- a passage whose subject is rendered nowhere has no sect
     expect(within(item as HTMLElement).getByText(sectionless[0].source)).toBeInTheDocument();
   });
 });
+
+/**
+ * The panel's promise, in its own words. Not every answer is a sentence quoted
+ * whole: the globe's seven computed plaques are counts and lists made from the
+ * content, and some documents join a record's fields into one line. So the
+ * copy says "comes from what's written", never "quoted word for word". Pinned
+ * exactly, because a false sentence here is the defect this file guards.
+ */
+describe("AskThisSite -- what it says about its answers", () => {
+  it("says, before any question, that answers come from what's written, or a count made from it", () => {
+    render(<AskThisSite liveModeConfigured={false} />);
+    expect(
+      screen.getByText(
+        "Every answer below comes from what’s written for this site — his words as written, or a count made from them — with its source. No model, nothing generated. If it isn’t written down, you’re told so.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/word for word/)).toBeNull();
+  });
+
+  it("declines a question nothing answers without claiming everything is quoted", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<AskThisSite liveModeConfigured={false} />);
+    await user.type(questionField(), "what is the capital of France");
+    await user.keyboard("{Enter}");
+    expect(
+      screen.getByText(
+        "Nothing written for this site answers that. Answers here come only from what’s written for it, so I’d rather say so than guess.",
+      ),
+    ).toBeVisible();
+  });
+});
