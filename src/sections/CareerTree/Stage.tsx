@@ -245,8 +245,9 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
   // and the pin then reshapes the page under it: seven stacked cards become a
   // column of tall captions beside a sticky frame, so the target is somewhere
   // else by the time the stage is live. Say the landing again once the layout
-  // has settled. Only for a target inside this stage; anything else on the page
-  // did not move.
+  // has settled. The same goes for a target below the stage — Contact, `#ask`
+  // — which the reshaping moved too; a target above it did not move, and is
+  // left where the browser put it.
   useEffect(() => {
     if (!live) return;
     let id = window.location.hash.slice(1);
@@ -257,7 +258,13 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
       // nothing, and the lookup below finds no target.
     }
     const target = id ? document.getElementById(id) : null;
-    if (target && rootRef.current?.contains(target) && typeof target.scrollIntoView === "function") {
+    const root = rootRef.current;
+    const moved =
+      target !== null &&
+      root !== null &&
+      (root.contains(target) ||
+        Boolean(root.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING));
+    if (target && moved && typeof target.scrollIntoView === "function") {
       target.scrollIntoView();
     }
   }, [live]);

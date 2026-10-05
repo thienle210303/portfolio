@@ -594,3 +594,49 @@ describe("legacy anchors", () => {
     }
   });
 });
+
+describe("a fragment landing, said again once the pin has reshaped the page", () => {
+  /** The stage with a target before it and one after it, the way the page has
+   *  the hero above the Journey and Contact (`#ask`, say) below it. */
+  function renderPage() {
+    return render(
+      <>
+        <div id="above-the-stage" />
+        <Stage
+          acts={ACTS}
+          drawing={<div data-testid="drawing" />}
+          list={<div data-testid="list" />}
+          credentials={<div data-credentials-strip="" />}
+        />
+        <div id="below-the-stage" />
+      </>,
+    );
+  }
+
+  function landOn(fragment: string): Element[] {
+    const scrolled: Element[] = [];
+    (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
+    window.history.replaceState(null, "", `#${fragment}`);
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    renderPage();
+    window.history.replaceState(null, "", window.location.pathname);
+    return scrolled;
+  }
+
+  it("re-lands a target inside the stage", () => {
+    const id = actAnchorId(ACT_IDS[3]);
+    expect(landOn(id).map((element) => element.id)).toContain(id);
+  });
+
+  it("re-lands a target below the stage, which the pin moved too", () => {
+    // Going live turns stacked cards into tall captions beside a sticky
+    // frame, so everything after the stage moves, not only what is in it.
+    expect(landOn("below-the-stage").map((element) => element.id)).toContain("below-the-stage");
+  });
+
+  it("leaves a target above the stage alone: nothing above it moved", () => {
+    expect(landOn("above-the-stage")).toHaveLength(0);
+  });
+});
