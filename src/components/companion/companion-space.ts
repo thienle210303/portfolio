@@ -701,8 +701,13 @@ function overlaps(a: Point, b: Point): boolean {
  *
  * Opt-in, and only where a spot is chosen once and then held: the explorers'
  * fallbacks (`planExplore`, `repickExploreSpot`) and `Companion`'s settle
- * paths (a declined explorer plan, the cached `settled()` spots). Every
- * other caller leaves it off:
+ * paths (a declined explorer plan, the cached `settled()` spots). "Held"
+ * means until an event on `Companion`'s `settleSpots` ref clears the cache —
+ * a scroll, a resize, a section or mode change, a scene ending. A pointer
+ * move clears it only while no scene is playing, and the branches that read
+ * it then (a nap, the brief idle fallback) end with that move anyway, so a
+ * hand on the mouse never re-runs this pass frame after frame. Every other
+ * caller leaves it off:
  *
  *  - The two that pass a live cat position as `want` every frame — the
  *    follower's fallback in the moods `planMood` builds (`mateSpot(...) ??

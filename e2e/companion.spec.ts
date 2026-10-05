@@ -787,6 +787,59 @@ test.describe("companion", () => {
   });
 
   /*
+   * A held scene stands on `settled()`, the spots resolved once per hold. A
+   * pointer move used to clear them, so with a hand on the mouse the pair
+   * re-probed the page — the head-band pass included — on every frame of the
+   * scene. Counted as calls to the probe's one browser primitive: a second of
+   * pointer movement may cost no more of them than a second of stillness.
+   */
+  test("a held scene does not re-probe its rest spots on every pointer move", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    let kind: string | null = null;
+    for (const scene of SCENES) {
+      await openToolkit(page);
+      await toolkit(page).getByRole("button", { name: scene.name }).click();
+      await page.waitForTimeout(1_500);
+      kind = await scenePlaying(page);
+      if (kind !== null) break;
+    }
+    expect(kind, "no scene had room to run, so there was nothing to hold").not.toBeNull();
+
+    await page.evaluate(() => {
+      const counted = window as unknown as { __probes: number };
+      counted.__probes = 0;
+      const original = document.elementsFromPoint.bind(document);
+      document.elementsFromPoint = (x: number, y: number) => {
+        counted.__probes += 1;
+        return original(x, y);
+      };
+    });
+    const probes = () => page.evaluate(() => (window as unknown as { __probes: number }).__probes);
+
+    // Still first, then the same length of time with the hand moving, away
+    // from both cats and the panel.
+    const stillFrom = await probes();
+    await page.waitForTimeout(1_000);
+    const still = (await probes()) - stillFrom;
+
+    const movingFrom = await probes();
+    for (let i = 0; i < 16; i += 1) {
+      await page.mouse.move(320 + i * 20, 300 + i * 8);
+      await page.waitForTimeout(60);
+    }
+    const moving = (await probes()) - movingFrom;
+    expect(await scenePlaying(page), "the scene ended mid-measurement, so nothing was held").toBe(kind);
+
+    // Measured: 9 still and 396 moving before the fix, 9 and 12 after.
+    expect(moving, `still: ${still}, moving: ${moving}`).toBeLessThanOrEqual(still + 16);
+  });
+
+  /*
    * Two routes abandon a requested scene without ever opening it: its walk to
    * the stage expiring (`STAGE_WALK_MAX` in Companion.tsx, 6s — a tab put in
    * the background mid-walk is the ordinary way to reach it), and the re-probe
