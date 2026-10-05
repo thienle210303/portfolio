@@ -22,7 +22,7 @@ import type { GlobeControls } from "./WorldsStage";
 import { GLYPHS } from "./glyphs";
 import { COASTLINES } from "./coastline-data";
 import { acquireRenderer, pickSurface } from "./gl/context";
-import { bakeCoastlineTexture, type CoastlineTexture } from "./gl/coastline-texture";
+import { bakeCoastlineTexture } from "./gl/coastline-texture";
 import {
   createSphere,
   globeStroke,
@@ -360,13 +360,6 @@ function sphereColors(element: Element): { key: string; colors: SphereColors | n
     key: `${ink}|${paper}`,
     colors: i && p ? { ink: i, paper: p } : null,
   };
-}
-
-/** Baked once per page: ~40 ms, and the rings never change. */
-let coverage: CoastlineTexture | null = null;
-function coastlineCoverage(): CoastlineTexture {
-  coverage ??= bakeCoastlineTexture(COASTLINES, 2048, 1024);
-  return coverage;
 }
 
 export default function GlobeCanvas({
@@ -1102,8 +1095,17 @@ export default function GlobeCanvas({
     const renderer = acquireRenderer(element);
     const gl = renderer.kind === "webgl" ? renderer.gl : null;
     const read = sphereColors(overlay);
+    // The coverage is baked (~40 ms, 8 MB) only when a surface can use it,
+    // and never held: `texImage2D` copies it to the GPU, and nothing keeps
+    // the JS buffer after `createSphere` returns. A lost context is not
+    // restored (the fallback is one-way per visit), so nothing re-bakes.
     const sphere =
-      gl && read.colors ? createSphere(gl, { coverage: coastlineCoverage(), colors: read.colors }) : null;
+      gl && read.colors && !forced.matches
+        ? createSphere(gl, {
+            coverage: bakeCoastlineTexture(COASTLINES, 2048, 1024),
+            colors: read.colors,
+          })
+        : null;
     const choice = pickSurface({ gl, program: sphere?.program ?? null, forcedColors: forced.matches });
 
     if (!choice.useGl || !sphere) {
