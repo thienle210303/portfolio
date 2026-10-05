@@ -132,20 +132,24 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // available") is permanent rather than reverting to "Loading" on a re-render.
   const [canvasFailed, setCanvasFailed] = useState(false);
   // Whether a seed is on the globe *right now*, which is the only thing that
-  // entitles this component to render the handoff link. Cleared by the reset
+  // entitles this component to show the handoff link. Cleared by the reset
   // and by a re-press of the flight, because both of them take the seed away
   // again — see `handleReset` and `handleFly`.
   const [landed, setLanded] = useState(false);
   const controlsRef = useRef<GlobeControls | null>(null);
   const [controlsReady, setControlsReady] = useState(false);
   // The crossing plays itself once per page load. `spentRef` is set by that
-  // autoplay and by any flight or reset the visitor makes, so neither a
-  // re-entry nor a visitor who got there first ever sees it play unasked.
+  // autoplay, by any landing, and by every press, drag or key that can fly or
+  // reset him, so neither a re-entry nor a visitor who got there first ever
+  // sees it play unasked.
   // `quietRef` is true only while the autoplayed flight is the one in the air:
   // its landing shows the link but writes nothing to the live region, because
   // nobody asked for it.
   const spentRef = useRef(false);
   const quietRef = useRef(false);
+  // Whether any of the stage is in the viewport, as the autoplay observer last
+  // saw it. False until it reports, which is also before there is a globe.
+  const inViewRef = useRef(false);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const current = worlds.find((world) => world.id === currentId) ?? worlds[0];
@@ -315,6 +319,7 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
         const entry = entries[entries.length - 1];
         const controls = controlsRef.current;
         if (!controls) return;
+        inViewRef.current = entry.isIntersecting;
         if (!entry.isIntersecting) controls.settle();
         else if (entry.intersectionRatio >= 0.5 && !spentRef.current) {
           spentRef.current = true;
@@ -328,6 +333,14 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     return () => observer.disconnect();
   }, [controlsReady]);
 
+  // A chapter chosen with the stage out of view (a phone, where the list sits
+  // below it) settles at once: the robot's walk or the camera's swing ends in
+  // one draw instead of running for nobody. Runs after the canvas's own
+  // effects for the same commit, so a walk this choice started is there to end.
+  useEffect(() => {
+    if (!inViewRef.current) controlsRef.current?.settle();
+  }, [currentId]);
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -338,8 +351,10 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
       case "ArrowRight":
         // Rolling east is what flies him — the same coupling a drag has, so
         // the keyboard reaches the signature moment rather than watching it.
-        // A landing it reaches is the visitor's own, so it speaks.
+        // A landing it reaches is the visitor's own, so it speaks, and the
+        // autoplay is spent: it must not wipe a flight he is part-way through.
         quietRef.current = false;
+        spentRef.current = true;
         controls.nudge(KEY_STEP, 0);
         break;
       case "ArrowUp":
@@ -384,9 +399,11 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
               : "Playground Earth. Every world is also a button in the list beside it."
           }
           onKeyDown={handleKeyDown}
-          // A drag east flies him too, and that landing is the visitor's.
+          // A drag east flies him too: that landing is the visitor's, and the
+          // autoplay is spent for the same reason as ArrowRight's.
           onPointerDown={() => {
             quietRef.current = false;
+            spentRef.current = true;
           }}
           data-crossing={landed ? "landed" : undefined}
           // pan-y, never none: `none` would swallow the page scroll on a phone.
@@ -442,21 +459,26 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
         <p className="eyebrow mt-2 text-center">
           {crossingKm.toLocaleString("en-US")} km · drag east to fly him yourself
         </p>
-        {/* Rendered only once a seed is actually on the globe. Before the
+        {/* Shown only while a seed is actually on the globe. Before the
             flight this sentence would be a claim about something that has not
             happened, and the whole argument of this section is that it says
             only things that are currently true — so it appears with the
-            landing and leaves again with the reset, rather than sitting here
-            greyed out. The one link out of this section, and it is the link
-            the drawing has just made: the career tree grows from that spot. */}
-        {landed ? (
-          <p className="mt-3 text-center text-[length:var(--step--1)] text-[color:var(--fg-muted)]">
-            A seed dropped where he came down.{" "}
-            <a href="#tree" className="ink-link">
-              The career tree grows from that spot →
-            </a>
-          </p>
-        ) : null}
+            landing and leaves again with the reset. Its line is always laid
+            out, though: the crossing now lands by itself on every visit, and a
+            line inserted then would shift everything below it (CLS). Hidden
+            with `visibility`, which also takes it out of the accessibility
+            tree and the tab order, so nothing reads or reaches it early. The
+            one link out of this section, and it is the link the drawing has
+            just made: the career tree grows from that spot. */}
+        <p
+          style={landed ? undefined : { visibility: "hidden" }}
+          className="mt-3 text-center text-[length:var(--step--1)] text-[color:var(--fg-muted)]"
+        >
+          A seed dropped where he came down.{" "}
+          <a href="#tree" className="ink-link">
+            The career tree grows from that spot →
+          </a>
+        </p>
       </div>
 
       <div>

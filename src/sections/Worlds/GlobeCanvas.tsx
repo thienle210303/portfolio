@@ -71,7 +71,8 @@ import { settleMotion } from "./settle";
  * `loop()` requests the next frame **only if something is still moving**. When
  * the inertia decays below its threshold and no flight is in progress, the
  * loop returns without scheduling, `view.running` goes false, and the page
- * costs nothing until the visitor touches it again. `e2e/worlds.spec.ts`
+ * costs nothing until something wakes it again: the visitor, or once per page
+ * load the stage's autoplay of the crossing. `e2e/worlds.spec.ts`
  * measures exactly that — but *not* by counting `requestAnimationFrame`
  * page-wide, which cannot express the claim here: the companion cats hold a
  * 60 Hz loop of their own open on this page, so a page-wide count would fail
@@ -92,9 +93,12 @@ import { settleMotion } from "./settle";
  * below states the two rules for adding one.
  *
  * The stage can also ask the loop to stop early: `settle()`, called when the
- * stage leaves the viewport, puts everything still moving at its end (a flight
- * in the air lands, a robot mid-walk ends lit) in one draw and cancels the
- * pending frame, so nothing animates for a visitor who has scrolled away.
+ * stage leaves the viewport or a chapter is chosen while it is out of view,
+ * puts what is still moving at its end (a played flight lands, a robot
+ * mid-walk ends lit, an easing camera arrives) in one draw and cancels the
+ * pending frame, so nothing animates for a visitor who has scrolled away. Two
+ * things it leaves to the visitor: a drag still held (the release wakes the
+ * loop), and a crossing dragged part-way.
  *
  * One press is exempt from the loop entirely, and only under
  * `prefers-reduced-motion: reduce`: "Take the flight" then produces the

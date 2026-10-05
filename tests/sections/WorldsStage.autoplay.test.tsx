@@ -144,10 +144,10 @@ describe("WorldsStage, the crossing plays itself once", () => {
     expect(controls.fly).toHaveBeenCalledTimes(1);
   });
 
-  it("settles a walking robot too: every exit asks, not only the flight's", async () => {
+  it("asks the globe to settle on every exit, not only one mid-flight", async () => {
     // The robot's walk can start long after the crossing has landed, so the
-    // stage asks the globe to settle on every exit and the globe decides what
-    // is moving (a robot mid-walk jumps to its lit end; at rest, nothing).
+    // stage asks on every exit and the globe decides what is moving. That a
+    // walk asked this way ends lit is `tests/lib/settle.test.ts`'s to prove.
     const { observer, controls } = await stageWithLiveGlobe();
     observer.report(1);
     act(() => globe.land());
@@ -177,6 +177,45 @@ describe("WorldsStage, the crossing plays itself once", () => {
     expect(controls.fly).toHaveBeenCalledTimes(2);
     act(() => globe.land());
     expect(screen.getByRole("status")).toHaveTextContent(/landed/i);
+  });
+
+  it("does not fly itself after the visitor has had a hand on the globe", async () => {
+    // A drag east or ArrowRight flies him part-way before half the stage is in
+    // view; the autoplay must not wipe that and fly the whole crossing.
+    const user = userEvent.setup();
+    const { observer, controls } = await stageWithLiveGlobe();
+    const stage = screen.getByRole("group", { name: /playground earth/i });
+    await user.pointer({ keys: "[MouseLeft>]", target: stage });
+    observer.report(1);
+    expect(controls.fly).not.toHaveBeenCalled();
+  });
+
+  it("does not fly itself after the visitor has flown him with the keyboard", async () => {
+    const user = userEvent.setup();
+    const { observer, controls } = await stageWithLiveGlobe();
+    screen.getByRole("group", { name: /playground earth/i }).focus();
+    await user.keyboard("{ArrowRight}");
+    expect(controls.nudge).toHaveBeenCalledTimes(1);
+    observer.report(1);
+    expect(controls.fly).not.toHaveBeenCalled();
+  });
+
+  it("settles a chapter chosen while the stage is out of view, so nothing walks for nobody", async () => {
+    // Technology starts the robot's walk. Chosen from the list with the globe
+    // off-screen (a phone, where the list sits below it), the walk must end
+    // at once rather than run for six seconds nobody sees.
+    const user = userEvent.setup();
+    const { observer, controls } = await stageWithLiveGlobe();
+    observer.report(0);
+    controls.settle.mockClear();
+    await user.click(screen.getByRole("button", { name: /technology/i }));
+    expect(controls.settle).toHaveBeenCalledTimes(1);
+
+    // In view, the walk is there to be watched: no settle.
+    observer.report(1);
+    controls.settle.mockClear();
+    await user.click(screen.getByRole("button", { name: /animals/i }));
+    expect(controls.settle).not.toHaveBeenCalled();
   });
 
   it("does not fly itself after the visitor already has", async () => {

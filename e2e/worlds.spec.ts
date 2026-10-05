@@ -524,11 +524,18 @@ test.describe("the live globe", () => {
     await expect(stage).not.toHaveAttribute("data-crossing", "landed");
 
     // The hero is at least a screen tall, so the top of the page has no globe
-    // in view. Landed straight away, in one draw, and nothing after it: the
-    // flight had well over a second left to run.
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    // in view. Landed straight away, and nothing after it: the flight had well
+    // over a second left to run. A few draws, not a fast-forward: the frames
+    // already queued before the observer reports the exit, plus the settle's
+    // one draw.
+    const atExit = await page.evaluate(() => {
+      const drawn = (window as unknown as { __overlayDraws: number }).__overlayDraws;
+      window.scrollTo({ top: 0, behavior: "instant" });
+      return drawn;
+    });
     await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 500 });
     await expectAtRest(page, 1_000, "after leaving mid-flight");
+    expect((await overlayDraws()) - atExit, "the exit fast-forwarded the flight").toBeLessThanOrEqual(5);
     const section = page.locator("#worlds");
     await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(1);
     await expect(section.getByRole("status")).not.toContainText(/landed/i);
@@ -958,11 +965,25 @@ test.describe("the landing", () => {
     await expect(stage).not.toHaveAttribute("data-crossing", "landed");
     await page.waitForTimeout(1_500);
 
+    // The link's line is reserved, so its appearing moves nothing after it:
+    // the chapters list beside or below it, and the next section. Measured in
+    // page coordinates, so the scroll position cannot fake a match.
+    const below = () =>
+      page.evaluate(() =>
+        ["#worlds-list-label", "#tree"].map((selector) => {
+          const element = document.querySelector(selector);
+          return element ? Math.round(element.getBoundingClientRect().top + window.scrollY) : null;
+        }),
+      );
+    const beforeLink = await below();
+    expect(beforeLink).not.toContain(null);
+
     await section.getByRole("button", { name: /take the flight/i }).click();
 
     const handoff = section.getByRole("link", { name: /career tree/i });
     await expect(handoff).toBeVisible({ timeout: 10_000 });
     await expect(section.getByRole("status")).toContainText(/landed/i);
+    expect(await below(), "the handoff link pushed the content after it").toEqual(beforeLink);
 
     // The seed finishes growing 667 ms after the landing and the camera's
     // last few degrees arrive inside that (~502 ms of settle from a residual
@@ -1406,9 +1427,36 @@ test.describe("the robot walks twice", () => {
     await page.waitForTimeout(200);
     await expectAtRest(page, 1_500, "with the robot's walk left behind off-screen");
 
-    // Back in view it is not walking either: it ended rather than paused.
+    // Back in view it is not walking either, and it ended rather than paused:
+    // a paused walk would still be marked as walking, so the next wake of the
+    // loop would carry on with the five seconds left. ArrowUp wakes it with a
+    // nudge that needs one frame; after that the globe must be at rest.
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
     await expectAtRest(page, 1_500, "after coming back to a settled walk");
+    await stage.focus();
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(300);
+    await expectAtRest(page, 1_000, "after waking a settled walk with a nudge");
+  });
+
+  test("choosing Technology with the globe out of view walks nothing", async ({ page }) => {
+    // On a phone the list sits below the stage, so a chapter can be chosen
+    // with the globe scrolled away. The walk it starts must end at once.
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await page.waitForTimeout(300);
+    // In-page press, so the list button is not scrolled into view (and the
+    // globe with it) by a locator click.
+    const chosen = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_500);
+    // The chapter's own redraw and the settle's: a couple of draws, not a walk.
+    expect(chosen.overlayDraws, "the walk ran with nobody watching").toBeLessThanOrEqual(3);
+    await expectAtRest(page, 1_000, "after choosing Technology off-screen");
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await stage.focus();
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(300);
+    await expectAtRest(page, 1_000, "after waking the off-screen choice with a nudge");
   });
 
   test("under reduced motion nothing animates, and the toggle switches the two still laps", async ({
