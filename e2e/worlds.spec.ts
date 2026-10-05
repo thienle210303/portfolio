@@ -545,6 +545,62 @@ test.describe("the live globe", () => {
     await expectAtRest(page, 1_500, "after coming back to a settled flight");
   });
 
+  test("a chapter chosen mid-flight is where the camera comes to rest", async ({ page }) => {
+    // The list sits beside the stage at 1024+, in view while the crossing
+    // plays itself. A chapter pressed then used to be dropped: the flight's
+    // landing overwrote the camera's target with the arrival pin.
+    const overlayDraws = await countOverlayDrawsFromLoad(page);
+    await page.goto("/");
+    const stage = page.getByRole("group", { name: /playground earth/i });
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await expect.poll(overlayDraws, { timeout: 30_000, intervals: [50] }).toBeGreaterThan(10);
+
+    // In-page, so the check that it is still in the air and the press are
+    // the same task, and the list button is not scrolled into view.
+    const inAir = await page.evaluate((selector) => {
+      const stageElement = document.querySelector('#worlds [aria-roledescription="globe"]');
+      const flying = stageElement?.getAttribute("data-crossing") !== "landed";
+      const button = [...document.querySelectorAll<HTMLButtonElement>(selector)].find((candidate) =>
+        /Sea/.test(candidate.textContent ?? ""),
+      );
+      if (!button) throw new Error("no Sea button in the chapter list");
+      button.click();
+      return flying;
+    }, CHAPTER_BUTTONS);
+    expect(inAir, "the crossing had already landed before Sea was pressed").toBe(true);
+
+    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
+    await expect(list.getByRole("button", { name: /sea/i })).toHaveAttribute("aria-current", "true");
+    // The flight lands where it is, at once, rather than being thrown away.
+    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 1_000 });
+    await expect
+      .poll(async () => (await measureGlobeFrames(page, 300)).draws, { timeout: 10_000 })
+      .toBe(0);
+
+    // Where the camera would rest had the press been dropped: on the arrival
+    // pin, which opens Living Earth when pressed (see "the arrival pin opens
+    // Living Earth"). Facing Sea, that spot is something else.
+    const canvas = page.locator(OVERLAY);
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("the canvas has no box");
+    const DEG = Math.PI / 180;
+    const { lat, lon } = origin.coordinates.to;
+    const pin = project(toVector({ lat, lon }), -lon * DEG, clampTilt(-lat * DEG * 0.55), {
+      cx: box.width / 2,
+      cy: box.height * 0.44,
+      radius: Math.min(box.width, box.height * 0.82) * 0.42,
+    });
+    expect(pin.front).toBe(true);
+    await aimAtGlobe(page, box.x + pin.x, box.y + pin.y);
+    await page.mouse.click(box.x + pin.x, box.y + pin.y);
+    await page.waitForTimeout(500);
+    await expect(
+      list.getByRole("button", { name: /living earth/i }),
+      "the camera came to rest on the arrival pin, not on Sea",
+    ).toHaveAttribute("aria-current", "false");
+    await expect(list.getByRole("button", { name: /sea/i })).toHaveAttribute("aria-current", "true");
+  });
+
   test("a drag rolls the planet and then stops", async ({ page }) => {
     await page.goto("/#worlds");
     const stage = await waitForLiveGlobe(page);

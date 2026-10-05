@@ -1408,6 +1408,18 @@ export default function GlobeCanvas({
         const world = worlds.find((candidate) => candidate.id === id);
         const point = world?.points[0];
         if (!point) return;
+        // A chapter chosen mid-flight would otherwise be dropped: `step()`
+        // ignores `target` while the flight plays, then its landing overwrites
+        // `target` with the arrival pin. So land the flight here, where it is,
+        // and let the camera ease from there to the chapter.
+        const v = view.current;
+        if (v.playing) {
+          v.playing = false;
+          v.flight = 1;
+          v.landed = true;
+          v.seed = seedOnLanding();
+          onLandedRef.current();
+        }
         lookAt(-point.lon * DEG, -point.lat * DEG * 0.55);
       },
     };

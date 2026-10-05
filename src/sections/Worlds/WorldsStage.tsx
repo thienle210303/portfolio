@@ -52,7 +52,8 @@ export interface GlobeControls {
    *  handoff link with it: the seed being gone is what makes the link untrue
    *  again. */
   readonly reset: () => void;
-  /** Turn a world to face the viewer. */
+  /** Turn a chapter to face the viewer. A flight in the air lands first
+   *  (and `onLanded` fires), so the choice is not lost under its landing. */
   readonly focusWorld: (id: string) => void;
   /** Bring whatever is moving to where it was going, in one draw, and ask
    *  for no further frame: a flight in the air lands (and `onLanded` fires),
