@@ -5,7 +5,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type ComponentType,
   type KeyboardEvent,
 } from "react";
@@ -94,8 +93,6 @@ const ROBOT_HOLD_NAMES: readonly (readonly [RobotHold, string])[] = [
   ["human-in-the-loop", "Human in the loop"],
 ];
 
-const REDUCE = "(prefers-reduced-motion: reduce)";
-
 /**
  * Arrow keys, Home and End move focus between a toolbar's buttons. Tab still
  * visits every button (no roving tabindex): these are toggles, not a radio
@@ -116,22 +113,6 @@ function moveFocusAmongButtons(event: KeyboardEvent<HTMLElement>) {
   buttons[next]?.focus();
 }
 
-function subscribeReducedMotion(onChange: () => void) {
-  if (typeof window.matchMedia !== "function") return () => {};
-  const list = window.matchMedia(REDUCE);
-  list.addEventListener("change", onChange);
-  return () => list.removeEventListener("change", onChange);
-}
-
-/** Server snapshot false: the walk is the default, the toggle the exception. */
-function useReducedMotion(): boolean {
-  return useSyncExternalStore(
-    subscribeReducedMotion,
-    () => typeof window.matchMedia === "function" && window.matchMedia(REDUCE).matches,
-    () => false,
-  );
-}
-
 export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false, crossingKm }: WorldsStageProps) {
   const [currentId, setCurrentId] = useState(worlds[0]?.id ?? "");
   const [announcement, setAnnouncement] = useState("");
@@ -143,7 +124,6 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // so the dial stays disabled for the visit.
   const [surfaceLive, setSurfaceLive] = useState(false);
   const skinsAvailable = forceSkins || surfaceLive;
-  const reduceMotion = useReducedMotion();
   // Which still lap the globe shows under reduced motion. It starts where the
   // walk ends, lit, for the same reason the walk ends there.
   const [robotHold, setRobotHold] = useState<RobotHold>("human-in-the-loop");
@@ -416,8 +396,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
           aria-roledescription="globe"
           aria-label={
             controlsReady
-              ? "Playground Earth. Drag to roll it, or use the arrow keys. Every world is also a button in the list beside it."
-              : "Playground Earth. Every world is also a button in the list beside it."
+              ? "Playground Earth. Drag to roll it, or use the arrow keys. Every chapter is also a button in the list."
+              : "Playground Earth. Every chapter is also a button in the list."
           }
           onKeyDown={handleKeyDown}
           // A drag east flies him too: that landing is the visitor's, and the
@@ -573,11 +553,16 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
           </div>
         ) : null}
 
-        {current?.id === "tech" && reduceMotion ? (
-          // Only under reduced motion: otherwise opening Technology plays the
-          // two laps, and a toggle beside an animation would be a second
-          // control for the same thing.
-          <div role="group" aria-label="The robot's two laps" className="mt-6 flex flex-wrap gap-2">
+        {current?.id === "tech" ? (
+          // Shown only under reduced motion, by CSS: otherwise opening
+          // Technology plays the two laps, and a toggle beside an animation
+          // would be a second control for the same thing. `display: none`
+          // also takes it out of the accessibility tree and the tab order.
+          <div
+            role="group"
+            aria-label="The robot's two laps"
+            className="mt-6 hidden flex-wrap gap-2 motion-reduce:flex"
+          >
             {ROBOT_HOLD_NAMES.map(([hold, name]) => (
               <button
                 key={hold}

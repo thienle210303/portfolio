@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
@@ -92,6 +92,8 @@ describe("WorldsStage, with no canvas at all", () => {
     // creates that canvas is the one that flips this to "0", once
     // `controlsReady` can actually become true.
     expect(stage).toHaveAttribute("tabindex", "-1");
+    // The list it points at is called "Chapters", so the name says chapter.
+    expect(stage).toHaveAccessibleName(/every chapter is also a button in the list/i);
   });
 
   it("keeps the two globe controls reachable and clearly disabled, not vanished", () => {
@@ -197,7 +199,7 @@ describe("WorldsStage, the skins group", () => {
       await user.click(button);
       expect(button).toHaveAttribute("aria-pressed", "false");
     }
-    expect(screen.getByRole("status")).toHaveTextContent("");
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
   it("carries the no-fact label in every skin's accessible name", () => {
@@ -256,22 +258,7 @@ describe("WorldsStage, the robot's two laps", () => {
   const TECH = WORLDS.find((world) => world.id === "tech");
   if (!TECH) throw new Error("the Technology chapter is missing from the content layer");
 
-  function prefersReducedMotion(reduce: boolean) {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn().mockImplementation((query: string) => ({
-        matches: reduce && query.includes("prefers-reduced-motion: reduce"),
-        media: query,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
-    );
-  }
   const laps = () => screen.queryByRole("group", { name: /robot/i });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
 
   it("names both laps in the Technology panel, each as a drawing that carries no fact", async () => {
     const user = userEvent.setup();
@@ -284,7 +271,8 @@ describe("WorldsStage, the robot's two laps", () => {
   });
 
   it("is a still pair of states behind a toggle under reduced motion, ending lit by default", async () => {
-    prefersReducedMotion(true);
+    // jsdom applies no stylesheet, so the toggle is in the tree here whatever
+    // the preference; which preference shows it is the class's job, below.
     const user = userEvent.setup();
     renderStage();
     await user.click(worldButton(TECH.name));
@@ -312,16 +300,17 @@ describe("WorldsStage, the robot's two laps", () => {
     }
   });
 
-  it("is not there when the walk can play, or outside Technology", async () => {
-    prefersReducedMotion(false);
+  it("is shown only under reduced motion, by CSS, and not at all outside Technology", async () => {
+    // `hidden` unless `prefers-reduced-motion: reduce`, which is what keeps it
+    // out of the way of the walk. That the browser honours this is
+    // `e2e/worlds.spec.ts`'s to prove, both ways.
     const user = userEvent.setup();
-    const { unmount } = renderStage();
-    await user.click(worldButton(TECH.name));
-    expect(laps()).toBeNull();
-    unmount();
-
-    prefersReducedMotion(true);
     renderStage();
     expect(laps()).toBeNull();
+    await user.click(worldButton(TECH.name));
+    const group = laps();
+    if (!group) throw new Error("no toggle for the robot's laps in Technology");
+    expect(group.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "motion-reduce:flex"]));
+    expect(group.className.split(/\s+/)).not.toContain("flex");
   });
 });

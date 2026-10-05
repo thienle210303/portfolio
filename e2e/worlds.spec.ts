@@ -1445,6 +1445,12 @@ test.describe("the robot walks twice", () => {
     const walking = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 2_000);
     await expect(list.getByRole("button", { name: /technology/i })).toHaveAttribute("aria-current", "true");
     expect(walking.overlayDraws, "opening Technology did not start the walk").toBeGreaterThan(60);
+    // The still-lap toggle is for reduced motion only; beside the walk it
+    // would be a second control for the same thing.
+    await expect(
+      page.locator("#worlds").getByRole("group", { name: "The robot's two laps" }),
+      "the lap toggle shows while the walk can play",
+    ).toHaveCount(0);
     expect(Math.abs(walking.glDraws - walking.overlayDraws)).toBeLessThanOrEqual(1);
     // Still walking: the stage changes from one second to the next.
     const midWalk = await stage.screenshot();
