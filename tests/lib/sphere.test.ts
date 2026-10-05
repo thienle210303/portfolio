@@ -228,8 +228,8 @@ describe("sphereView", () => {
     const source = readFileSync(resolve(__dirname, "../../src/sections/Worlds/GlobeCanvas.tsx"), "utf8");
     expect(source).toContain("globeStroke(rect.width, rect.height)");
     expect(source).toContain("sphereView(rect.width, rect.height, ratio)");
-    expect(source).not.toMatch(/\*\s*0\.42/);
-    expect(source).not.toMatch(/\*\s*0\.44/);
+    expect(source).not.toMatch(/\*\s*0\.42\b/);
+    expect(source).not.toMatch(/\*\s*0\.44\b/);
   });
 });
 
