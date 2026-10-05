@@ -2,6 +2,7 @@ import Section from "@/components/ui/Section";
 import SectionHeading from "@/components/ui/SectionHeading";
 import BusinessCard from "./BusinessCard";
 import ContactForm from "./ContactForm";
+import DirectLinks from "./DirectLinks";
 
 /**
  * Server Component. Owns layout only; every interactive piece lives in a
@@ -12,7 +13,9 @@ import ContactForm from "./ContactForm";
  *
  * Two panes at >=1024px: the form beside one business-card panel that
  * carries email, GitHub and LinkedIn plus the name, title and philosophy
- * line that make it read as an actual card rather than a link list. Round 18
+ * line that make it read as an actual card rather than a link list. Under
+ * the form, `DirectLinks` adds the one way out the card lacks, the résumé PDF.
+ * Round 18
  * removed the one-field "leave a number" form that used to sit above the full
  * one: choosing an intent now produces a whole message, which is the
  * shortcut that field was standing in for.
@@ -67,6 +70,7 @@ export default function Contact({ emailDeliveryConfigured }: ContactProps) {
           <div className="no-print max-w-[46rem]">
             <ContactForm emailDeliveryConfigured={emailDeliveryConfigured} />
           </div>
+          <DirectLinks />
         </div>
       </div>
     </Section>
