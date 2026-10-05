@@ -330,7 +330,7 @@ describe("co-located markers", () => {
     // `origin-to`, so the globe drew two markers at one x/y — the sprout hid
     // the star, "UNITED STATES" and "PLANTS" composited on one baseline, and
     // because the canvas scans its hit list backwards and stops at the first
-    // match, `usa` could not be opened from the globe at all.
+    // match, Living Earth's arrival pin could not be opened from the globe at all.
     //
     // If this fails because the set is now empty, the content layer has given
     // Plants its own anchor and the displacement in `GlobeCanvas.tsx` is dead

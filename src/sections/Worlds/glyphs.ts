@@ -17,7 +17,7 @@ export const GLYPH_VIEWBOX = "-14 -14 28 28";
 
 export const GLYPHS: Record<GlyphId, string> = {
   // cơm tấm — the plate: broken rice, a grilled chop, a fried egg. Named by
-  // the owner; the only object the Việt Nam world has, and it says so.
+  // the owner; the only object Living Earth draws, and its panel says so.
   comtam:
     "M-12 2A12 12 0 0012 2A12 12 0 00-12 2M-12 2C-12 6 -6 8 0 8S12 6 12 2" +
     "M-9 0C-8 -5 -3 -7 1 -6C0 -2 -3 0 -9 0" +

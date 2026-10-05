@@ -41,7 +41,7 @@ export function WorldPanel({ world }: { readonly world: ResolvedChapter }) {
                     see the citation's text appended to the quote's and never
                     find an exact match. */}
                 <span>{plaque.text}</span>
-                <span className="eyebrow mt-1 block normal-case">
+                <span className="eyebrow mt-1 block normal-case [overflow-wrap:anywhere]">
                   {plaque.attribution ? `${plaque.attribution} · ` : ""}
                   plaque · {plaque.source}
                   {plaque.link ? (

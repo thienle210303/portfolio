@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import { origin } from "../src/content/portfolio";
+import { clampTilt, project, toVector } from "../src/lib/globe";
 import { resolveChapters } from "../src/lib/worlds";
 
 const WORLDS = resolveChapters();
@@ -436,7 +438,7 @@ test.describe("the live globe", () => {
     const livingEarth = list.getByRole("button", { name: /Living Earth/ });
 
     // Animals lives on the plinth, so opening it moves `aria-current` off
-    // Việt Nam without moving the view — which leaves Việt Nam's marker at the
+    // Living Earth without moving the view — which leaves its Việt Nam pin at the
     // centre of the disc, where both gestures below land.
     await animals.click();
     await expect(animals).toHaveAttribute("aria-current", "true");
@@ -796,6 +798,41 @@ test.describe("the landing", () => {
   });
 });
 
+test.describe("Living Earth owns both ends of the crossing", () => {
+  test("the arrival pin opens Living Earth, not just the Việt Nam pin", async ({ page }) => {
+    // The disc-centre tap above only ever reaches `points[0]`. Facing Plants
+    // puts the arrival pin (`points[1]`) on screen, and pressing exactly where
+    // `project()` puts it must open Living Earth. Reduced motion makes the
+    // facing synchronous, so the projection below is the settled one.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
+    await list.getByRole("button", { name: /Plants/ }).click();
+    await expect(list.getByRole("button", { name: /Plants/ })).toHaveAttribute("aria-current", "true");
+
+    const canvas = page.locator('#worlds canvas[data-chunk="globe-canvas"]');
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("the canvas has no box");
+    const DEG = Math.PI / 180;
+    const { lat, lon } = origin.coordinates.to;
+    const p = project(toVector({ lat, lon }), -lon * DEG, clampTilt(-lat * DEG * 0.55), {
+      cx: box.width / 2,
+      cy: box.height * 0.44,
+      radius: Math.min(box.width, box.height * 0.82) * 0.42,
+    });
+    expect(p.front, "the arrival pin is on the far side after facing Plants").toBe(true);
+    await aimAtGlobe(page, box.x + p.x, box.y + p.y);
+    await page.mouse.click(box.x + p.x, box.y + p.y);
+    await expect(list.getByRole("button", { name: /Living Earth/ })).toHaveAttribute(
+      "aria-current",
+      "true",
+      { timeout: 5_000 },
+    );
+  });
+});
+
 test.describe("reduced motion", () => {
   test("gives the finished frame and the caption, and asks for no frames", async ({ page }) => {
     // `emulateMedia` rather than `test.use({ reducedMotion })`: as of
@@ -941,8 +978,8 @@ test.describe("reduced motion", () => {
 
   test("picking a world from the list asks for no frames either", async ({ page }) => {
     // The path all six list buttons take, and the one holding the largest
-    // swing the section can be asked for: Living Earth → Plants (Việt Nam to the arrival pin) is the
-    // crossing itself, ~156° of planet, the same distance "Take the flight"
+    // swing the section can be asked for: Living Earth (facing Việt Nam) to Plants
+    // (facing the arrival pin) is the crossing itself, ~156° of planet, the same distance "Take the flight"
     // above refuses to animate. Easing it here while the button beside it
     // snapped would have made the preference depend on which control the
     // visitor happened to reach for.

@@ -202,7 +202,7 @@ decoration`. A screen-reader user is told, in those words, that this object is
 a picture and not evidence. A `draws` string that smuggles in a claim ("the
 food he grew up on") breaks that promise, and no test can catch it for you.
 
-If a chapter has nothing authored, leave `decorations: []`. Plants and Animals
+If a chapter has nothing authored, leave `decorations: []`. Plants, Animals and Technology
 do exactly that, and carry no `disclosure`, because a panel line saying "there
 is nothing here" would itself be a sentence nobody authored.
 

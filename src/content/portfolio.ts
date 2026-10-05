@@ -105,8 +105,8 @@ export const origin = {
   from: "Kiên Giang, Việt Nam",
   // Round 18: a city, not a country. Until now no city was authored anywhere
   // on this site, which is why the globe pinned the geographic centre of the
-  // United States and said so out loud in the USA world's `where` line. Both
-  // change with this one field.
+  // United States and said so out loud in the arrival pin's `where` line (now Living
+  // Earth's). Both change with this one field.
   to: "Taylors, South Carolina",
   arrived: "December 2018",
   arrivedOn: "2018-12",

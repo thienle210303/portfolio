@@ -59,7 +59,7 @@ export const worlds = [
     where: "The midpoint of the crossing — derived from the two pins, not typed",
     plaques: [
       // Positional against `usc-scraping.built`/`.impact` — see the note on
-      // the USA world's `usc-ta` plaque above. A reorder of either array
+      // Living Earth's `usc-ta` plaque above. A reorder of either array
       // silently repoints these two.
       { glyph: "net", ref: { of: "careerEntryLine", id: "usc-scraping", field: "built", index: 1 } },
       { glyph: "buoy", ref: { of: "careerEntryLine", id: "usc-scraping", field: "impact", index: 0 } },

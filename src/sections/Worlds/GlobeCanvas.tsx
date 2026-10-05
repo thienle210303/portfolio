@@ -786,8 +786,8 @@ export default function GlobeCanvas({
    * the section's declared WCAG 2.5.7 substitute for dragging, the path a
    * visitor on a head pointer or eye-gaze actually uses, and leaving it easing
    * while the two buttons snapped would have meant that visitor had no
-   * non-animating way to move the globe at all. Việt Nam → United States is
-   * also the same ~156° swing "Take the flight" refuses to animate, so
+   * non-animating way to move the globe at all. The swing between Living Earth's
+   * two pins is also the ~156° "Take the flight" refuses to animate, so
    * refusing it there and performing it here was never coherent.
    *
    * Reduced motion draws once, synchronously, and never calls `start()`: no
