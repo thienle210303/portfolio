@@ -260,8 +260,8 @@ export function resolveChapters(list: readonly World[] = authoredChapters): read
  * overprint — the second glyph hides the first, and two left-aligned names land
  * on one baseline and composite into neither of them. Worse, and quieter: a
  * canvas hit list scanned backwards and broken on the first match makes the
- * *earlier* marker unreachable by tap altogether, so `usa` could not be opened
- * from the globe at all.
+ * *earlier* marker unreachable by tap altogether, so `living-earth` could not
+ * be opened from its arrival pin at all.
  *
  * Coordinates are compared rather than ids matched against a list, so this
  * keeps working when the content layer moves a pin or lands a third chapter on

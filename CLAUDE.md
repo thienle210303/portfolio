@@ -70,11 +70,11 @@ reference or edit the authored field — never relax the assertion to a
 substring or a normalised comparison.
 
 **No 3D library, and that was measured, not assumed.** Against the initial-JS
-budget (207 KB when the comparison was made, 199.9 KB measured now), a
+budget (207 KB when the comparison was made, 199.5 KB after round 18 Plan C), a
 minimal three.js scene is ~133 KB gz, `@react-three/fiber` + `drei` ~254 KB,
 and `globe.gl` ~509 KB. The globe uses no runtime dependency at all: a
 hand-written WebGL2 surface (`src/sections/Worlds/gl/`: `context`,
-`coastline-texture`, `shaders`, `sphere`) under a Canvas 2D overlay, an
+`coastline-texture`, `robot`, `shaders`, `sphere`) under a Canvas 2D overlay, an
 orthographic projector in `src/lib/globe.ts`, and a pre-generated simplified
 coastline. The shipped 2D globe is the fallback, and it takes over for good
 when there is no WebGL2, a program fails to compile or link, the context is

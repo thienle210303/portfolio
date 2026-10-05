@@ -1379,6 +1379,7 @@ path), against `main` at `71e3638` measured the same way (202,734 B):
 |---|---|---|---|---|---|---|---|
 | Before, `main` `71e3638` (initial JS only) | 198.0 KB | not re-measured | not re-measured | not re-measured | not re-measured | not re-measured | not re-measured |
 | After, Plan C (3 runs) | 199.9 KB | 14.0 KB | 223.8 KB | 3236–4260 ms | 422–977 ms | 0 | 3187 |
+| After the final fix wave (3 runs) | 199.5 KB | 14.0 KB | 223.8 KB | 3464–4008 ms | 257–686 ms | 0 | 3188 |
 
 Initial JS: 202,734 → 204,678 bytes (**+1,944 B**, inside Plan C's +1–2 KB
 budget). All three runs reported 0 responses with no `sizes()` and an identical
@@ -1395,3 +1396,19 @@ through `WorldsStage.tsx`'s `import()`.
 **Full e2e** against that build at `--workers=2`: 709 passed, 1 failed, 736
 skipped. The failure was `worlds.spec.ts:548` ("a drag rolls the planet and
 then stops") at 768 px, once; re-run alone it passed at all six viewports.
+
+**After the final fix wave** (round 18 Plan C, same method: one production
+build served on `:3112`, a throwaway `scripts/perf.mjs` copy pointed at
+`chromium_headless_shell-1234`): initial JS 204,258 B, which is **+1,524 B**
+over `main`'s 202,734 B and −420 B against the Plan C row above. The trims
+were `ProjectRecording` dropping the shared `Button` (and with it
+`ExternalLink`) plus its reduced-motion subscription, and `WorldsStage`
+showing the robot's lap toggle by CSS instead of a reduced-motion hook. All
+three runs reported 0 responses with no `sizes()` and the same byte count;
+the `content-length` cross-check is still a 0.4 KB floor. None of the 12
+initial scripts contains `#version 300 es`. DOM nodes went 3187 → 3188; the
+one node was not traced.
+Full e2e at `--workers=2`: 715 passed, 1 failed, 736 skipped. The failure was
+`worlds.spec.ts` "opening Technology walks it once" at 1440 px (60 overlay
+draws in 2 s against a floor of more than 60, a frame-rate threshold under
+load); re-run alone, 18 of 18 passed (`--repeat-each=3`, six viewports).
