@@ -654,6 +654,24 @@ describe("heldExploreClear", () => {
     expect(heldExploreClear(stop)).toBe(false);
   });
 
+  it("after the ground itself has settled, drops a stop whose head is on content, however it was planned", () => {
+    // A stop planned mid-way through the hero's load choreography (transforms
+    // still offsetting the prose) with no head-clear ground anywhere, so its
+    // head was on a line from the start. Once an animation ends or the body
+    // resizes, the ground it was put on is gone; it is re-planned rather than
+    // kept. A scroll does not count — see `heldExploreClear`.
+    const lead = { x: 100, y: 100 };
+    const follow = { x: 700, y: 100 };
+    document.elementsFromPoint = vi.fn(faceRowOf(lead));
+    const stop = holdExplore({ lead, follow }, false);
+    expect(stop.headLead).toBe(false);
+    expect(heldExploreClear(stop)).toBe(true);
+    expect(heldExploreClear(stop, true)).toBe(false);
+    // Clear head to foot once the content has moved off: kept either way.
+    document.elementsFromPoint = vi.fn(() => [] as Element[]);
+    expect(heldExploreClear(stop, true)).toBe(true);
+  });
+
   it("re-checks a perch by its lead's three-point probe alone, as it was picked", () => {
     const lead = { x: 100, y: 100 };
     const follow = { x: 700, y: 100 };

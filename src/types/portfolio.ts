@@ -57,8 +57,6 @@ export interface Profile {
   readonly philosophy: string;
   /** Hero headline. */
   readonly headline: string;
-  /** Hero supporting paragraph. */
-  readonly intro: string;
   /** A short personal introduction — About's paragraphs, in the hero's
    *  identity column (`HeroIdentity.tsx`), each also indexed by the chat
    *  corpus. */

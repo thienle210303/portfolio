@@ -59,9 +59,10 @@ export const profile = {
   monogram: "TL",
   title: "Software Engineer",
   // Round 18. Every sentence below traces to `origin`, a career entry, or a
-  // metric — which the previous drafts of these five fields did not. They
-  // were written *about* Thien rather than *by* him, and that is what a
-  // reader was picking up on.
+  // metric — which the previous drafts of these fields did not. They were
+  // written *about* Thien rather than *by* him, and that is what a reader was
+  // picking up on. (A fifth, `intro`, was deleted in Plan B: it restated
+  // `positioning` one line above it on the page.)
   //
   // `about` is three short paragraphs, deliberately: the owner asked for a
   // "quick less introduction", and this section's job is sixty seconds, not
@@ -74,8 +75,6 @@ export const profile = {
   // than sourced, and he asked to keep it.
   philosophy: "Unsolved is not the same as unsolvable.",
   headline: "I keep asking, and I go and look.",
-  intro:
-    "Software engineer on retail data. I like the problems where nobody has checked recently whether the thing everyone works around is still necessary.",
   about: [
     "I moved from Kiên Giang, Việt Nam to Taylors, South Carolina in December 2018, at fifteen, with my family. I could read and write English. I could not speak it.",
     "For the next two and a half years I finished high school, worked the line and the floor at my family's restaurant, and drove for Uber Eats. I started university in chemical engineering. My friends told me to try computer science instead.",

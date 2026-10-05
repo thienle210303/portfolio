@@ -3883,11 +3883,13 @@ export function Companion({ facts }: CompanionProps) {
      * slides it over a cat riding the page and can bring it over a head that
      * was clear, feet still clear — and a `findClearSpot` or `nearbySpots()`
      * fallback planned with its head already on content is not dropped for the
-     * ground it was put on.
+     * ground it was put on — after a scroll. After an animation end or a body
+     * resize with no scroll in the window, `groundSettled` drops it too: the
+     * ground it was put on has gone (see `heldExploreClear`).
      */
-    const reprobeHeld = (): boolean => {
+    const reprobeHeld = (groundSettled: boolean): boolean => {
       const heading = exploreRun.current;
-      if (heading && !heldExploreClear(heading)) {
+      if (heading && !heldExploreClear(heading, groundSettled)) {
         exploreRun.current = null;
         return true;
       }
@@ -3922,7 +3924,9 @@ export function Companion({ facts }: CompanionProps) {
           // On a drop, the settle spots go too: they were resolved under the
           // old layout, and a pair napping with no plan falls back to them.
           // A cache drop and nothing more — no hit tests, and only on a drop.
-          if (reprobeHeld()) {
+          // Only an animation ending or the body resizing reached here — no
+          // scroll — so the ground has settled (`heldExploreClear`).
+          if (reprobeHeld(true)) {
             settleSpots.current = null;
             wake();
           }
@@ -3932,7 +3936,7 @@ export function Companion({ facts }: CompanionProps) {
         // cannot be seen in is re-measured here rather than per frame.
         refreshSafeArea();
         settleSpots.current = null;
-        reprobeHeld();
+        reprobeHeld(false);
         lastTone.current = 0;
         // A scene's clearance was probed against the layout as it stood when it
         // opened, and this is the event that says that layout has moved. The

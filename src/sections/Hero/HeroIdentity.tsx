@@ -1,14 +1,15 @@
 /**
  * Hero identity column: the eyebrow (name + title), the page's single <h1>
- * (profile.headline), the intro paragraph, then About itself — the site's
- * one-line positioning (`profile.positioning`) as its lead and
- * `profile.about`'s three paragraphs — and the hero's actions.
+ * (profile.headline), then About itself — the site's one-line positioning
+ * (`profile.positioning`) as its lead, one type step above `profile.about`'s
+ * three paragraphs — and the hero's two links.
  *
  * The social links row (GitHub/LinkedIn/Email) that used to close this column
  * is gone (owner feedback, round 2): Contact already carries the same three
  * as cards, and the site footer lists them again on every page, so the hero
- * was one more repetition of a fact stated twice already. The actions below
- * already route to Contact for anyone who wants them.
+ * was one more repetition of a fact stated twice already. A "Contact me" link
+ * went the same way in round 18: the sticky header's "Let's talk" is always
+ * on screen and goes to the same place.
  *
  * Through round 17 the About paragraphs lived in a full-width band below the
  * fold (`HeroAbout`), because they were too long for this column. Round 18
@@ -21,9 +22,10 @@
  * so an <h3> here would skip a level and fail the document-wide heading-order
  * check in e2e/accessibility.spec.ts.
  *
- * The actions ask for nothing in blue: "Explore my work" is a `secondary`
- * outline, not `primary`. The page's single primary control is Contact's send
- * button (spec §4), so About offers a way in without pressing one.
+ * About asks for nothing (spec §4): one quiet link into the World (`#worlds`,
+ * the next section) and the résumé. Neither is a filled blue `primary`;
+ * tests/sections/Hero.test.tsx checks that no element in the hero carries the
+ * accent fill.
  *
  * "Open résumé" points at /resume, the résumé *view*, rather than straight at
  * the PDF. The view offers the download itself, so this keeps the visitor on
@@ -62,18 +64,11 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
         {profile.headline}
       </h1>
 
-      <p
-        data-hero-step="intro"
-        className="mt-6 max-w-[56ch] text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg-muted)]"
-      >
-        {profile.intro}
-      </p>
-
       {/* About: the positioning line as its lead, then the three paragraphs.
-          Kept as plain <p>s under the intro, with no eyebrow or heading of
-          their own — see the heading note in this file's banner. */}
-      <div data-hero-step="intro" className="mt-8 max-w-[56ch] space-y-4">
-        <p className="text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg)]">
+          Plain <p>s with no eyebrow or heading of their own — see the heading
+          note in this file's banner. */}
+      <div data-hero-step="intro" className="mt-6 max-w-[56ch] space-y-4">
+        <p className="text-[length:var(--step-1)] leading-[1.5] text-[color:var(--fg)]">
           {profile.positioning}
         </p>
         {profile.about.map((paragraph) => (
@@ -87,15 +82,12 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
       </div>
 
       <div data-hero-step="meta-actions" className="mt-8 flex flex-wrap items-center gap-4">
-        <Button href="#tree" variant="secondary">
+        <Button href="#worlds" variant="quiet">
           Explore my work
         </Button>
         <Link href="/resume" className={RESUME_LINK_CLASS}>
           Open résumé
         </Link>
-        <Button href="#contact" variant="quiet">
-          Contact me
-        </Button>
       </div>
     </div>
   );

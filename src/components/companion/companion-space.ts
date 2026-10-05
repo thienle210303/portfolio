@@ -606,14 +606,16 @@ const HEAD_INSET = 12;
  * takes their clicks. Six more hit tests, same rule as the other three
  * (occupied content, or a bubble's reserved rect).
  *
- * Only the explorers ask this, all in companion-moods.ts: `exploreClear`,
+ * `findClearSpot` below asks it first (a preference, not a requirement). The
+ * explorers ask it as a requirement, in companion-moods.ts: `exploreClear`,
  * when `planExplore` picks a half-page stop; `holdExplore`, which records at
  * plan time whether each held stop's head was clear; and `heldExploreClear`,
  * the re-check after the page moves, which reads the head band again only for
  * a head that was clear when planned. Their half-page stops are drawn
  * uniformly from anywhere on the page, where a spot that clears the feet but
- * not the head is common. Perches, the fallbacks through `findClearSpot`, and
- * every scene's stages are picked by the three-point `isClearSpot` alone.
+ * not the head is common. `findClearSpot` asks it too, as a first preference
+ * (see there). Perches and every scene's stages are picked by the three-point
+ * `isClearSpot` alone.
  */
 export function headClear(point: Point): boolean {
   for (const dy of HEAD_ROWS) {
@@ -686,14 +688,31 @@ function overlaps(a: Point, b: Point): boolean {
  * to the corner fallback below, where `home` is a fixed point rather than a
  * moving one and cannot create that feedback.
  *
- * Bounded work: at most fifteen candidates × three hit tests, and only ever at
- * the moment a cat settles.
+ * Two passes over the same candidates. The first also asks `headClear`, so a
+ * cat is not parked with its ears and face across a line of prose when clear
+ * ground for the whole drawing is nearby; the second is the old three-point
+ * rule, kept so a crowded viewport still gets the nearest spot its feet can
+ * have rather than jumping to the corner. The head pass exists because of the
+ * phone-width hero: since round 18 put the About paragraphs in the fold, a
+ * 390px first screen is prose to its bottom edge, its gutter is narrower than
+ * a cat, and the explorers' fallbacks parked both cats with their heads on the
+ * last paragraph (e2e/companion.spec.ts, "on load, in About"). The head check
+ * reads page content only — the hit test looks through the companion — so it
+ * cannot feed a moving cat's position back into its own target the way the
+ * controls check did.
+ *
+ * Bounded work: at most fifteen candidates × nine hit tests, then fifteen ×
+ * three, and only ever at the moment a cat settles.
  */
 export function findClearSpot(want: Point, home: Point, avoid?: Point): Point {
   const free = (point: Point) => (!avoid || !overlaps(point, avoid)) && isClearSpot(point);
   const wanted = clampToViewport(want);
+  const candidates = nearbyWhitespace(wanted);
+  for (const candidate of [wanted, ...candidates]) {
+    if (free(candidate) && headClear(candidate)) return candidate;
+  }
   if (free(wanted)) return wanted;
-  for (const candidate of nearbyWhitespace(wanted)) {
+  for (const candidate of candidates) {
     if (free(candidate)) return candidate;
   }
   const fallback = clampToViewport(home);

@@ -350,8 +350,9 @@ const EXPLORE_REST_MARGIN = 1;
  * its arrival tolerance it comes to rest, not only at the exact point. A stop
  * drawn from anywhere on the page must clear the whole cat, not just where it
  * stands. `planExplore` and `repickExploreSpot` pick their half-page stops with
- * it; perches, scene stages and the `findClearSpot` fallbacks are picked by the
- * three-point `isClearSpot` alone. A held stop is re-checked by
+ * it; perches and scene stages are picked by the three-point `isClearSpot`
+ * alone, and the `findClearSpot` fallbacks prefer a clear head band without
+ * requiring one (see `findClearSpot`). A held stop is re-checked by
  * `heldExploreClear`, not by this.
  */
 export function exploreClear(point: Point): boolean {
@@ -370,7 +371,7 @@ export function exploreClear(point: Point): boolean {
  * `headLead`/`headFollow` record whether each cat's head band was clear when
  * the stop was planned (`holdExplore`) — true for every half-page pick, and
  * whatever the ground said for a `findClearSpot` fallback or a declined plan's
- * `nearbySpots()`, which were picked by the three-point probe alone. Never
+ * `nearbySpots()`, which only prefer a clear head band. Never
  * read for a perch.
  */
 export interface HeldExplore {
@@ -405,11 +406,23 @@ export function holdExplore(spots: MoodSpots, perch: boolean): HeldExplore {
  *   head-clear stop when the page's `position: sticky` margin rail slides
  *   over a riding cat's head with the feet clear, and leaves a fallback whose
  *   head was already on content where it was put.
+ *
+ * `groundSettled` is for the re-checks that are not a scroll: an animation on
+ * the page ending, or the body resizing. Then the ground a fallback was put on
+ * is no longer there to be faithful to, so every non-perch head must be clear
+ * now, however it was planned. The case it exists for: at phone widths the
+ * hero's first screen is prose to its bottom edge, and the explorers plan
+ * their first stop while the hero's load choreography still has the prose
+ * offset by a few pixels — no head-clear ground at all, so the fallback stood
+ * with both heads on the last paragraph once the animation ended. Not applied
+ * after a scroll, for the reason in the first paragraph; animation ends and
+ * body resizes are finite, so a stop that is re-planned onto the same ground
+ * cannot churn.
  */
-export function heldExploreClear(held: HeldExplore): boolean {
+export function heldExploreClear(held: HeldExplore, groundSettled = false): boolean {
   if (held.perch) return isClearSpot(held.spots.lead);
   const still = (spot: Point, headWasClear: boolean) =>
-    isClearSpot(spot) && (!headWasClear || headClear(spot));
+    isClearSpot(spot) && (!(headWasClear || groundSettled) || headClear(spot));
   return still(held.spots.lead, held.headLead) && still(held.spots.follow, held.headFollow);
 }
 
@@ -448,8 +461,9 @@ export function planExplore(
 
   const view = viewport();
   const top = safeTop();
-  // The perch above and the `findClearSpot` fallbacks below are picked by
-  // the three-point probe alone; only the half-page picks clear the head band.
+  // The perch above is picked by the three-point probe alone, and the
+  // `findClearSpot` fallbacks below only prefer a clear head band; the
+  // half-page picks require one.
   const pick = (half: Half, other: Point | null) =>
     pickExploreSpot(half, other, view, top, exploreClear, rng);
   const leadSpot = pick("left", follow);
@@ -483,8 +497,8 @@ export function planExplore(
  * rule (`exploreApart`: 160px, a column each) measured against the partner's
  * spot — and, when neither half has a spot that does, the same fallback it
  * makes for a single null pick: `findClearSpot` from where the cat stands,
- * keeping off the partner. That fallback is picked by the three-point probe
- * alone, so the caller records the head band of whatever comes back
+ * keeping off the partner. That fallback only prefers a clear head band, so
+ * the caller records the head band of whatever comes back
  * (`headClear`) for `heldExploreClear`, as `holdExplore` does at plan time.
  *
  * The partner is never moved: if the fallback cannot keep the pair rule the

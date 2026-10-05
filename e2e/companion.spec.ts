@@ -1965,6 +1965,38 @@ test.describe("companion", () => {
       .toEqual([]);
   });
 
+  test("on load, in About, neither cat comes to rest on the hero's text", async ({ page }) => {
+    /*
+     * Round 18 put the About paragraphs in the fold, so the fold now runs past
+     * the first screen and the hero mood's anchor — the `data-cat-perch`
+     * Scroll row — starts below it at both of these sizes. Nothing is touched:
+     * this is what a visitor who has just arrived sees. The first standing
+     * sample is the one judged (see `expectRestClearOfContent`), feet and belly
+     * and then the head band.
+     */
+    const width = viewportWidth(page);
+    test.skip(width !== DESKTOP_WIDTH && width !== 390, "checked at 1440×900 and 390×844");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    await expectRestClearOfContent(page, "a cat came to rest on the hero's text on load");
+
+    let heads: string[] | null = null;
+    await expect
+      .poll(
+        async () => {
+          const sample = await headsOnContent(page);
+          if (heads === null && sample.standing > 0) heads = sample.hits;
+          return heads === null ? "still walking" : "stopped";
+        },
+        { timeout: 25_000, message: "the cats never stopped moving" },
+      )
+      .toBe("stopped");
+    expect(heads ?? [], "a standing cat's head was on the hero's text on load").toEqual([]);
+  });
+
   test("never rests on the globe stage, loaded or not", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     /*

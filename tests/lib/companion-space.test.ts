@@ -710,3 +710,41 @@ describe("placeBeside — overlays are never painted over a cat", () => {
     expect(at.y).toBeGreaterThanOrEqual(64 + 8);
   });
 });
+
+describe("findClearSpot prefers somewhere the whole cat is clear", () => {
+  const prose = document.createElement("p");
+
+  beforeEach(() => {
+    setReservedRects([]);
+    setControlRects([]);
+  });
+
+  it("moves off a spot whose feet are clear but whose head is on a line, when a head-clear spot is near", () => {
+    // A line of prose across the head band of a cat standing at `want`, the
+    // full width of the page; nothing else anywhere. Feet and belly sit below
+    // it, so the old three-point rule would have kept `want`.
+    const want: Point = { x: 300, y: 300 };
+    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
+      y >= want.y + 4 && y <= want.y + 18 ? [prose] : [],
+    );
+    expect(isClearSpot(want)).toBe(true);
+    expect(headClear(want)).toBe(false);
+    const got = findClearSpot(want, { x: 900, y: 700 });
+    expect(got).not.toEqual(want);
+    expect(isClearSpot(got)).toBe(true);
+    expect(headClear(got)).toBe(true);
+  });
+
+  it("still keeps the feet-clear spot when no head-clear ground exists anywhere near", () => {
+    // Every head band on the page is on prose (a line every 20px through the
+    // top half of each cat-height) but the feet clear: the old answer stands.
+    const want: Point = { x: 300, y: 300 };
+    document.elementsFromPoint = vi.fn((x: number, y: number) => {
+      void x;
+      const within = ((y - want.y) % (CAT_H + 26) + (CAT_H + 26)) % (CAT_H + 26);
+      return within < 20 ? [prose] : [];
+    });
+    expect(isClearSpot(want)).toBe(true);
+    expect(findClearSpot(want, { x: 900, y: 700 })).toEqual(want);
+  });
+});

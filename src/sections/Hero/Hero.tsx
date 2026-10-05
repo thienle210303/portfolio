@@ -22,10 +22,16 @@
  * both come from measurement, not from the breakpoint scale.
  *
  * Round 18 (Plan B) merged the About band that used to sit below the fold
- * into it: with `profile.about` cut to three short paragraphs they fit the
- * identity column, so the second full-width layout had nothing left to do.
- * The band's computed counts and its lens list went with it rather than
- * moving here — the Journey already draws the career they counted.
+ * into it, so About is one layout rather than two: there is no second band.
+ * "One fold" means that, not one screen tall — the `min-h` above is a floor,
+ * and with the About paragraphs in the identity column the fold runs past
+ * the first screen. What has to land in the first screen at desktop widths
+ * is the opening argument: the <h1>, the positioning line, the Kiên Giang
+ * paragraph and the code artifact (checked at 1440×900). Below 1024px the
+ * code artifact stacks after the paragraphs, so a phone's first screen holds
+ * the words and not the code. The band's computed counts and its
+ * lens list were dropped rather than moved here — the Journey already draws
+ * the career they counted.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { careerEntries, profile } from "@/content/portfolio";

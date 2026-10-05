@@ -96,8 +96,8 @@ const QUIET_SIZE_CLASSES: Record<ButtonSize, string> = {
 // primary control per screen. `after:inset-[3px]` sits inside the fill, not
 // on its edge, so it reads as a mark pressed into the surface rather than a
 // second border racing the element's own; invisible at rest, never past 40%
-// on hover. SiteHeader's "Let's talk" and ContactForm's send button carry the
-// identical recipe by hand, since neither renders through this component.
+// on hover. ContactForm's send button carries the identical recipe by hand,
+// since it does not render through this component.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
     "border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)] after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-[color:var(--accent-strong)] hover:bg-[color:var(--accent-strong)] hover:text-[color:var(--ground)] hover:after:opacity-40",

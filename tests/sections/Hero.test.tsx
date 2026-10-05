@@ -17,7 +17,7 @@ function renderHero() {
 }
 
 describe("About", () => {
-  it("opens on where he came from", () => {
+  it("names where he came from", () => {
     renderHero();
     expect(screen.getByText(/Kiên Giang/)).toBeInTheDocument();
   });
@@ -75,14 +75,44 @@ describe("About", () => {
     expect(screen.queryByText("Where it shows up")).toBeNull();
   });
 
-  it("asks for nothing in blue — the page's one primary control is in Contact", () => {
+  it("fills no element in the hero with the accent", () => {
     const { container } = renderHero();
-    const explore = screen.getByRole("link", { name: "Explore my work" });
-    expect(explore.className).not.toMatch(/bg-\[color:var\(--accent\)\]/);
     for (const element of container.querySelectorAll<HTMLElement>("[class]")) {
       expect(element.className).not.toMatch(/(^|\s)bg-\[color:var\(--accent\)\]/);
       expect(element.className).not.toMatch(/(^|\s)bg-accent(\s|$)/);
     }
+  });
+
+  it("offers one quiet link into the World, and the résumé — nothing else", () => {
+    renderHero();
+    const explore = screen.getByRole("link", { name: "Explore my work" });
+    expect(explore).toHaveAttribute("href", "#worlds");
+    // Button's `quiet` variant: no border box, no fill.
+    expect(explore.className).toMatch(/(^|\s)border-transparent(\s|$)/);
+    // "Contact me" duplicated the header's always-visible "Let's talk".
+    expect(screen.queryByRole("link", { name: "Contact me" })).toBeNull();
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
+      "#worlds",
+      "/resume",
+    ]);
+  });
+
+  it("sets the positioning lead one type step above the paragraphs", () => {
+    renderHero();
+    expect(screen.getByText(profile.positioning).className).toContain("var(--step-1)");
+    for (const paragraph of profile.about) {
+      expect(screen.getByText(paragraph).className).toContain("var(--step-0)");
+    }
+  });
+
+  it("does not render a second supporting line between the headline and About", () => {
+    // `profile.intro` restated the positioning line beside it; it is gone.
+    renderHero();
+    const h1 = screen.getByRole("heading", { level: 1 });
+    const next = h1.nextElementSibling;
+    expect(next).not.toBeNull();
+    expect(next).toHaveTextContent(profile.positioning);
+    expect(next?.firstElementChild).toHaveTextContent(profile.positioning);
   });
 
   it("keeps the résumé link and the cats' perch", () => {
