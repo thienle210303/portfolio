@@ -166,7 +166,8 @@ void main() {
   if (uChapter == CHAPTER_TECH) {
     vec2 grid = abs(fract(uv * vec2(48.0, 24.0)) - 0.5);
     float wire = smoothstep(0.44, 0.5, max(grid.x, grid.y));
-    color = mix(mix(color, uPaper, 0.55), uAccent, wire * 0.85);
+    // Ink on a paper-faded surface: the lattice carries no fact, so no blue.
+    color = mix(mix(color, uPaper, 0.55), uInk, wire * 0.6);
   }
 
   color = mix(mix(color, darkest, 0.65), color, lambert);

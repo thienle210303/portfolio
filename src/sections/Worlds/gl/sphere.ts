@@ -2,7 +2,7 @@ import { rotate, toGeo, type Vec3, type Viewport } from "@/lib/globe";
 import type { GeoPoint } from "@/types/portfolio";
 import type { CoastlineTexture } from "./coastline-texture";
 import { compileProgram } from "./context";
-import { FRAGMENT_SOURCE, SPHERE_UNIFORMS, VERTEX_SOURCE, type SphereUniform } from "./shaders";
+import { CHAPTER_INDEX, FRAGMENT_SOURCE, SPHERE_UNIFORMS, VERTEX_SOURCE, type SphereUniform } from "./shaders";
 
 export interface SphereState {
   readonly spin: number;      // radians
@@ -13,11 +13,11 @@ export interface SphereState {
   readonly robot: number;     // 0..1 across both passes, or -1 for absent
 }
 
-/** The at-rest state: the first chapter, no skin, the crossing drawn, no robot. */
+/** The at-rest state: Living Earth, no skin, the crossing drawn, no robot. */
 export const REST_STATE: SphereState = {
   spin: 0,
   tilt: 0,
-  chapter: 0,
+  chapter: CHAPTER_INDEX["living-earth"],
   skin: -1,
   crossing: 1,
   robot: -1,

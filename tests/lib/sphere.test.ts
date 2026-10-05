@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { unproject } from "@/lib/globe";
+import { rotate, unproject, type Vec3 } from "@/lib/globe";
 import { SKIN_IDS } from "@/lib/skins";
 import { CHAPTER_IDS } from "@/lib/worlds";
 import {
@@ -72,6 +72,19 @@ describe("the shader's colours", () => {
     expect(FRAGMENT_SOURCE).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });
 
+  it("uses the accent only for the Night and Volcanic coastline glow", () => {
+    // Blue is never decoration: one declaration and one mix, and the glow it
+    // mixes by is set only in those two skins.
+    expect(FRAGMENT_SOURCE.match(/\buAccent\b/g)).toHaveLength(2);
+    expect(FRAGMENT_SOURCE).toContain("color = mix(color, uAccent, glow);");
+    const glowSets = [...FRAGMENT_SOURCE.matchAll(/^\s*glow = /gm)];
+    expect(glowSets).toHaveLength(2);
+    for (const set of glowSets) {
+      const branch = FRAGMENT_SOURCE.slice(0, set.index).lastIndexOf("uSkin == ");
+      expect(FRAGMENT_SOURCE.slice(branch, branch + 25)).toMatch(/SKIN_(NIGHT_SIDE|VOLCANIC)/);
+    }
+  });
+
   it("the check catches a literal colour", () => {
     expect(colourLiterals("  air = mix(air, vec3(0.86, 0.35, 0.12), 0.75);")).toHaveLength(1);
     expect(colourLiterals("  fragColor = vec4(0.0, 0.0, 0.0, 0.0);")).toEqual([]);
@@ -79,6 +92,16 @@ describe("the shader's colours", () => {
 });
 
 describe("the index contract with CHAPTER_IDS and SKIN_IDS", () => {
+  it("pins the order of both arrays, so a reorder is a deliberate edit here", () => {
+    expect(CHAPTER_IDS).toEqual(["living-earth", "sea", "sky", "plants", "animals", "tech"]);
+    expect(SKIN_IDS).toEqual(["ice-age", "night-side", "volcanic", "underwater", "desert"]);
+  });
+
+  it("rests on Living Earth by id, not by position", () => {
+    expect(REST_STATE.chapter).toBe(CHAPTER_INDEX["living-earth"]);
+    expect(CHAPTER_IDS[REST_STATE.chapter]).toBe("living-earth");
+  });
+
   it("maps each id to its position in the content-derived arrays", () => {
     CHAPTER_IDS.forEach((id, i) => expect(CHAPTER_INDEX[id], id).toBe(i));
     SKIN_IDS.forEach((id, i) => expect(SKIN_INDEX[id], id).toBe(i));
@@ -163,13 +186,35 @@ describe("sphereView", () => {
 });
 
 describe("inverseRotation and the shader's screen -> (lon, lat) twin", () => {
-  it("is column-major and undoes rotate()", () => {
-    const m = inverseRotation(0.7, -0.3);
-    expect(m).toHaveLength(9);
-    // Columns are images of the view axes; each column is a unit vector.
-    for (let c = 0; c < 3; c++) {
-      expect(Math.hypot(m[c * 3], m[c * 3 + 1], m[c * 3 + 2])).toBeCloseTo(1, 12);
+  // GLSL's mat3 * vec3 with transpose = false: element (row r, column c) is m[c * 3 + r].
+  const apply = (m: readonly number[], v: Vec3): Vec3 => [
+    m[0] * v[0] + m[3] * v[1] + m[6] * v[2],
+    m[1] * v[0] + m[4] * v[1] + m[7] * v[2],
+    m[2] * v[0] + m[5] * v[1] + m[8] * v[2],
+  ];
+
+  it("undoes rotate(): M * rotate(v) = v", () => {
+    const vectors: Vec3[] = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0.48, -0.6, 0.64], [-0.36, 0.48, -0.8]];
+    const angles = [[0, 0], [0.7, -0.3], [-105 * DEG, -12 * DEG], [40 * DEG, 40 * DEG], [-170 * DEG, -40 * DEG]];
+    for (const [spin, tilt] of angles) {
+      const m = inverseRotation(spin, tilt);
+      for (const v of vectors) {
+        const back = apply(m, rotate(v, spin, tilt));
+        for (let i = 0; i < 3; i++) expect(back[i], `${spin},${tilt},${v}`).toBeCloseTo(v[i], 12);
+      }
     }
+  });
+
+  it("is laid out column-major", () => {
+    // rotate() is R = [[ct cs, -ct ss, -st], [ss, cs, 0], [st cs, -st ss, ct]],
+    // so M = R^T has M[0][1] = ss, M[1][0] = -ct ss, M[2][0] = -st, M[0][2] = st cs.
+    const spin = 30 * DEG;
+    const tilt = 40 * DEG;
+    const m = inverseRotation(spin, tilt);
+    expect(m[3]).toBeCloseTo(0.5, 12); // column 1, row 0
+    expect(m[1]).toBeCloseTo(-Math.cos(tilt) * 0.5, 12); // column 0, row 1
+    expect(m[2]).toBeCloseTo(-Math.sin(tilt), 12); // column 0, row 2
+    expect(m[6]).toBeCloseTo(Math.sin(tilt) * Math.cos(spin), 12); // column 2, row 0
     expect(inverseRotation(0, 0)).toEqual([1, 0, 0, 0, 1, 0, 0, 0, 1]);
   });
 
