@@ -1,6 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import type { Result } from "axe-core";
+import { resolveSkins } from "../src/lib/skins";
+import { resolveChapters } from "../src/lib/worlds";
 
 /**
  * Automated accessibility auditing via axe-core, on top of the hand-rolled
@@ -370,4 +372,71 @@ test.describe("theme toggle", () => {
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "day");
   });
+});
+
+/**
+ * `#worlds` across the chapter and skin matrix, in both themes: each of the six
+ * chapters with no skin, and each of the five skins worn over Living Earth,
+ * then the robot's lap toggle (which exists only under reduced motion). The
+ * tone is not a matrix axis here: tone is set per section, and the globe is
+ * always `tone="deep"`; the other tones are covered by the audits above.
+ *
+ * Skins need the GL surface, so those cases skip where the browser has none.
+ */
+test.describe("the globe's chapters and skins", () => {
+  async function openGlobe(page: Page, theme: "day" | "night") {
+    await page.addInitScript((value) => window.localStorage.setItem("theme", value), theme);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await scrollIntoViewAndSettle(page, "#worlds-heading");
+    const stage = page.locator("#worlds").getByRole("group", { name: /playground earth/i });
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 30_000 });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+  }
+
+  for (const theme of ["day", "night"] as const) {
+    for (const chapter of resolveChapters()) {
+      test(`${theme}: ${chapter.name}, no skin`, async ({ page }) => {
+        test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
+        await openGlobe(page, theme);
+        const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
+        await list.getByRole("button", { name: new RegExp(chapter.name, "i") }).click();
+        await expect(page.locator("#worlds").getByRole("heading", { level: 3, name: chapter.name })).toBeVisible();
+        await auditHasNoViolations(page, "#worlds");
+      });
+    }
+
+    for (const skin of resolveSkins()) {
+      test(`${theme}: the ${skin.name} skin on Living Earth`, async ({ page }) => {
+        test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
+        await openGlobe(page, theme);
+        test.skip(
+          (await page.locator("#worlds canvas[data-globe-surface]").count()) === 0,
+          "no WebGL2 surface, so no skin to wear",
+        );
+        const section = page.locator("#worlds");
+        await section.getByRole("list", { name: /chapters/i }).getByRole("button", { name: /living earth/i }).click();
+        const button = section
+          .getByRole("group", { name: /skins/i })
+          .getByRole("button", { name: new RegExp(`^${skin.name}\\b`) });
+        await button.click();
+        await expect(button).toHaveAttribute("aria-pressed", "true");
+        await auditHasNoViolations(page, "#worlds");
+      });
+    }
+
+    test(`${theme}: Technology with the robot's lap toggle, under reduced motion`, async ({ page }) => {
+      test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await openGlobe(page, theme);
+      const section = page.locator("#worlds");
+      await section.getByRole("list", { name: /chapters/i }).getByRole("button", { name: /technology/i }).click();
+      const laps = section.getByRole("group", { name: "The robot's two laps" });
+      await expect(laps.getByRole("button")).toHaveCount(2);
+      await laps.getByRole("button", { name: "Unsupervised" }).click();
+      await expect(laps.getByRole("button", { name: "Unsupervised" })).toHaveAttribute("aria-pressed", "true");
+      await auditHasNoViolations(page, "#worlds");
+    });
+  }
 });

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { origin } from "../src/content/portfolio";
 import { clampTilt, project, toVector } from "../src/lib/globe";
+import { resolveSkins } from "../src/lib/skins";
 import { resolveChapters } from "../src/lib/worlds";
 
 const WORLDS = resolveChapters();
@@ -1651,5 +1652,162 @@ test.describe("without WebGL2", () => {
       await context.close();
     }
     await expectAtRest(page, 1_500, "after the context was lost", SILENT_HZ);
+  });
+});
+
+/**
+ * Every element in `#worlds`, and its `::before`/`::after`, that would still
+ * animate or transition. Under `prefers-reduced-motion: reduce` globals.css
+ * sets `animation-duration: 0.01ms` and `transition: none` on everything, so
+ * the list is empty by construction; this reads the computed style of every
+ * node rather than trusting the rule, which is what makes it fail if a later
+ * rule (or a Tailwind `transition` utility without that guard) escapes it.
+ */
+async function elementsStillMoving(page: Page) {
+  return page.evaluate(() => {
+    const seconds = (list: string) =>
+      list.split(",").map((part) => {
+        const value = parseFloat(part);
+        return part.trim().endsWith("ms") ? value / 1000 : value;
+      });
+    const root = document.querySelector("#worlds");
+    if (!root) return { checked: 0, offenders: ["no #worlds"] };
+    const nodes = [root, ...root.querySelectorAll("*")];
+    const offenders: string[] = [];
+    let checked = 0;
+    for (const node of nodes) {
+      for (const pseudo of [null, "::before", "::after"]) {
+        const style = getComputedStyle(node, pseudo);
+        checked += 1;
+        const label = `<${node.tagName.toLowerCase()} class="${node.getAttribute("class") ?? ""}">${pseudo ?? ""}`;
+        // 0.01ms is 1e-5s; allow float noise.
+        if (Math.max(...seconds(style.animationDuration)) > 1.0001e-5) {
+          offenders.push(`${label} animation-duration ${style.animationDuration}`);
+        }
+        if (style.transitionProperty !== "none") {
+          offenders.push(`${label} transition-property ${style.transitionProperty}`);
+        }
+      }
+    }
+    return { checked, offenders };
+  });
+}
+
+test.describe("reduced motion across every chapter and skin", () => {
+  test("nothing in #worlds animates or transitions, and the crossing is already landed", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    await expect(stage).toHaveAttribute("data-crossing", "landed");
+    const { checked, offenders } = await elementsStillMoving(page);
+    expect(checked, "the sweep covered almost nothing").toBeGreaterThan(100);
+    expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+
+  test("every chapter, every skin and the robot toggle work, and the globe rests after each", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const section = page.locator("#worlds");
+    const list = section.getByRole("list", { name: /chapters/i });
+
+    for (const world of WORLDS) {
+      await list.getByRole("button", { name: new RegExp(world.name, "i") }).click();
+      await expect(list.getByRole("button", { name: new RegExp(world.name, "i") })).toHaveAttribute(
+        "aria-current",
+        "true",
+      );
+      await expect(section.getByRole("heading", { level: 3, name: world.name })).toBeVisible();
+      for (const plaque of world.plaques) {
+        await expect(section.getByText(plaque.text, { exact: true })).toBeVisible();
+      }
+      await expectAtRest(page, 400, `after opening ${world.name}`, SILENT_HZ);
+    }
+
+    // Skins are worn over Living Earth, the chapter the planet opens on.
+    await list.getByRole("button", { name: /living earth/i }).click();
+    const skins = section.getByRole("group", { name: /skins/i });
+    const buttons = skins.getByRole("button");
+    expect(await buttons.count()).toBe(resolveSkins().length);
+    const live = (await page.locator(SURFACE).count()) > 0;
+    for (const skin of resolveSkins()) {
+      const button = skins.getByRole("button", { name: new RegExp(`^${skin.name}\\b`) });
+      await expect(button).toBeVisible();
+      if (!live) continue;
+      await button.click();
+      await expect(button).toHaveAttribute("aria-pressed", "true");
+      await expectAtRest(page, 400, `after wearing ${skin.name}`, SILENT_HZ);
+    }
+    if (live) {
+      // Pressing the worn skin takes it off.
+      await buttons.last().click();
+      await expect(buttons.last()).toHaveAttribute("aria-pressed", "false");
+      await expectAtRest(page, 400, "after taking the skin off", SILENT_HZ);
+    }
+
+    // The robot's two laps exist only under reduced motion, on Technology.
+    await list.getByRole("button", { name: /technology/i }).click();
+    const laps = section.getByRole("group", { name: "The robot's two laps" });
+    await expect(laps.getByRole("button")).toHaveCount(2);
+    await laps.getByRole("button", { name: "Unsupervised" }).click();
+    await expect(laps.getByRole("button", { name: "Unsupervised" })).toHaveAttribute("aria-pressed", "true");
+    await expectAtRest(page, 400, "after the robot toggle", SILENT_HZ);
+  });
+});
+
+test.describe("the chapter list and the skin group by keyboard", () => {
+  test("Tab reaches both, arrows, Home and End move between buttons, and Space works", async ({
+    page,
+  }) => {
+    await page.goto("/#worlds");
+    const section = page.locator("#worlds");
+    await waitForLiveGlobe(page);
+    const chapters = section.getByRole("list", { name: /chapters/i }).getByRole("button");
+    const skins = section.getByRole("group", { name: /skins/i }).getByRole("button");
+    const count = await chapters.count();
+    expect(count).toBe(WORLDS.length);
+
+    await chapters.first().focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(chapters.nth(1)).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(chapters.last()).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(chapters.first(), "ArrowDown from the last chapter does not wrap").toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await expect(chapters.last()).toBeFocused();
+    await page.keyboard.press("Home");
+    await expect(chapters.first()).toBeFocused();
+    // Moving focus is not choosing: the arrows must not have picked a chapter.
+    await expect(chapters.first()).toHaveAttribute("aria-current", "true");
+    await page.keyboard.press("ArrowDown");
+    await expect(chapters.nth(1)).not.toHaveAttribute("aria-current", "true");
+
+    // Tab from the end of the chapters lands on the first skin.
+    await chapters.last().focus();
+    await page.keyboard.press("Tab");
+    await expect(skins.first()).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(skins.nth(1)).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(skins.last()).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(skins.first()).toBeFocused();
+
+    // Operable: Space presses it, where a surface exists to wear it on.
+    if ((await page.locator(SURFACE).count()) > 0) {
+      await page.keyboard.press("Space");
+      await expect(skins.first()).toHaveAttribute("aria-pressed", "true");
+      await page.keyboard.press("Space");
+      await expect(skins.first()).toHaveAttribute("aria-pressed", "false");
+    }
+    // And a chapter: Enter on the focused one chooses it.
+    await chapters.nth(2).focus();
+    await page.keyboard.press("Enter");
+    await expect(chapters.nth(2)).toHaveAttribute("aria-current", "true");
   });
 });

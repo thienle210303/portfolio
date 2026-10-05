@@ -95,6 +95,24 @@ const ROBOT_HOLD_NAMES: readonly (readonly [RobotHold, string])[] = [
 
 const REDUCE = "(prefers-reduced-motion: reduce)";
 
+/**
+ * Arrow keys, Home and End move focus between a toolbar's buttons. Tab still
+ * visits every button (no roving tabindex): these are toggles, not a radio
+ * group, and a skipped Tab stop would hide the pressed state from the order.
+ */
+function moveFocusAmongButtons(event: KeyboardEvent<HTMLElement>) {
+  const keys: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+  const step = keys[event.key];
+  if (step === undefined && event.key !== "Home" && event.key !== "End") return;
+  const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+  const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+  if (at < 0) return;
+  event.preventDefault();
+  const next =
+    event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (at + step + buttons.length) % buttons.length;
+  buttons[next]?.focus();
+}
+
 function subscribeReducedMotion(onChange: () => void) {
   if (typeof window.matchMedia !== "function") return () => {};
   const list = window.matchMedia(REDUCE);
@@ -485,7 +503,11 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
         <p className="eyebrow" id="worlds-list-label">
           Chapters
         </p>
-        <ul aria-labelledby="worlds-list-label" className="mt-2 grid gap-px">
+        <ul
+          aria-labelledby="worlds-list-label"
+          className="mt-2 grid gap-px"
+          onKeyDown={moveFocusAmongButtons}
+        >
           {worlds.map((world, index) => (
             <li key={world.id}>
               <button
@@ -512,7 +534,12 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
         </ul>
 
         {skins.length > 0 ? (
-          <div role="group" aria-labelledby="worlds-skins-label" className="mt-6">
+          <div
+            role="group"
+            aria-labelledby="worlds-skins-label"
+            className="mt-6"
+            onKeyDown={moveFocusAmongButtons}
+          >
             <p className="eyebrow" id="worlds-skins-label">
               Skins · these change only the look
             </p>
