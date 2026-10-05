@@ -9,4 +9,10 @@ describe("validBookingUrl", () => {
     "returns undefined for %j",
     (v) => expect(validBookingUrl(v)).toBeUndefined(),
   );
+  // "Starts with https://" is not enough on its own: a bare scheme, or one
+  // followed only by a path, has no host to send anyone to.
+  it.each(["https://", " https:// ", "https:///path", "https://?q=1", "https://#x"])(
+    "returns undefined for %j, which names no host",
+    (v) => expect(validBookingUrl(v)).toBeUndefined(),
+  );
 });
