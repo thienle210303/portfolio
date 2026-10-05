@@ -56,6 +56,8 @@ uniform int uChapter;
 uniform int uSkin;
 uniform float uCrossing;
 uniform float uRobot;
+uniform float uRobotLon;
+uniform vec2 uCityLight;
 uniform vec3 uInk;
 uniform vec3 uPaper;
 uniform vec3 uAccent;
@@ -95,6 +97,17 @@ float coastline(vec2 uv) {
 float grain(vec2 uv) {
   vec2 cell = floor(uv * vec2(1024.0, 512.0));
   return fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// Points of light on land: a sparse, fixed scatter over coarse cells, so the
+// same towns go dark and come back. Decoration, not a map of real cities.
+float cityLights(vec2 uv) {
+  vec2 cells = vec2(240.0, 120.0);
+  vec2 cell = floor(uv * cells);
+  float onLand = step(0.5, coverage((cell + 0.5) / cells));
+  float picked = step(0.84, fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453));
+  float spot = 1.0 - smoothstep(0.16, 0.3, length(fract(uv * cells) - 0.5));
+  return onLand * picked * spot;
 }
 
 void main() {
@@ -137,6 +150,7 @@ void main() {
   vec3 shore = mix(uPaper, uInk, 0.02);
   vec3 shadow = mix(uPaper, darkest, 0.14);
   float glow = 0.0;
+  float cityGlow = 0.0;
 
   if (uSkin == SKIN_ICE_AGE) {
     float ice = smoothstep(0.02, 0.3, polar);
@@ -176,6 +190,18 @@ void main() {
     float wire = smoothstep(0.44, 0.5, max(grid.x, grid.y));
     // Ink on a paper-faded surface: the lattice carries no fact, so no blue.
     color = mix(mix(color, uPaper, 0.55), uInk, wire * 0.1);
+    if (uRobot >= 0.0) {
+      // The robot's walk (robot.ts). West of it is what it has walked this
+      // lap, at the lap's new level; east, the level the lap found. Lit in
+      // the planet's own ink: pale points by night, dark ones by day.
+      float lon = atan(model.y, model.x);
+      float walked = step(lon, uRobotLon);
+      float level = mix(uCityLight.y, uCityLight.x, walked);
+      cityGlow = clamp(cityLights(uv) * level * 0.6, 0.0, 1.0);
+      // The meridian it is standing on.
+      float gap = abs(atan(sin(lon - uRobotLon), cos(lon - uRobotLon)));
+      cityGlow = max(cityGlow, (1.0 - smoothstep(0.0, 0.035, gap)) * 0.2);
+    }
   }
 
   bool skinned = uSkin >= 0;
@@ -191,17 +217,19 @@ void main() {
     color = mix(color, skinned ? darkest : shadow, rim * 0.25);
   }
 
+  // After the lighting, so a light on the unlit side still shines.
+  color = mix(color, uInk, cityGlow);
   color = mix(color, uAccent, glow);
   fragColor = vec4(color, 1.0);
 }`;
 
 /** Every uniform the fragment shader declares, in declaration order. A
  *  misspelled name is a silent no-op, so the test pins this list to the
- *  source. `uCrossing` and `uRobot` are declared for Tasks 6-7 and not yet
- *  read, so a compiler may optimise them out and report no location. */
+ *  source. `uCrossing` is declared for Task 6 and not yet read, so a
+ *  compiler may optimise it out and report no location. */
 export const SPHERE_UNIFORMS = [
   "uResolution", "uCenter", "uRadius", "uInverseRotation", "uCoastlines",
-  "uChapter", "uSkin", "uCrossing", "uRobot",
+  "uChapter", "uSkin", "uCrossing", "uRobot", "uRobotLon", "uCityLight",
   "uInk", "uPaper", "uAccent",
 ] as const;
 

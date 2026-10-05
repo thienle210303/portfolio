@@ -1184,6 +1184,150 @@ test.describe("reduced motion", () => {
 });
 
 /**
+ * Presses a button inside `#worlds` from in-page, with the frame counters
+ * already running — the same reason the reduced-motion block above presses
+ * in-page: a locator click lands after the counter, and its frames could not
+ * be told apart from ones the press caused.
+ */
+async function pressCounting(page: Page, selector: string, label: RegExp, ms: number) {
+  return page.evaluate(
+    async ({ selector, pattern, ms }) => {
+      let frames = 0;
+      let overlayDraws = 0;
+      let glDraws = 0;
+      const overlay = document.querySelector('#worlds canvas[data-chunk="globe-canvas"]');
+      const surface = document.querySelector("#worlds canvas[data-globe-surface]");
+      const raf = window.requestAnimationFrame;
+      window.requestAnimationFrame = (callback) => {
+        frames += 1;
+        return raf.call(window, callback);
+      };
+      const clearRect = CanvasRenderingContext2D.prototype.clearRect;
+      CanvasRenderingContext2D.prototype.clearRect = function patched(this: CanvasRenderingContext2D, ...args) {
+        if (this.canvas === overlay) overlayDraws += 1;
+        clearRect.apply(this, args);
+      };
+      const GL = window.WebGL2RenderingContext?.prototype;
+      const drawArrays = GL?.drawArrays;
+      if (GL && drawArrays) {
+        GL.drawArrays = function patched(this: WebGL2RenderingContext, ...args) {
+          if (surface && this.canvas === surface) glDraws += 1;
+          drawArrays.apply(this, args);
+        };
+      }
+      const match = new RegExp(pattern.source, pattern.flags);
+      const button = [...document.querySelectorAll<HTMLButtonElement>(selector)].find((candidate) =>
+        match.test(candidate.textContent ?? ""),
+      );
+      // Thrown, not skipped: a press that found nothing would count zero frames
+      // and pass as "nothing animated".
+      if (!button) throw new Error(`no button matching ${match} in ${selector}`);
+      button.click();
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      window.requestAnimationFrame = raf;
+      CanvasRenderingContext2D.prototype.clearRect = clearRect;
+      if (GL && drawArrays) GL.drawArrays = drawArrays;
+      return { frames, overlayDraws, glDraws };
+    },
+    { selector, pattern: { source: label.source, flags: label.flags }, ms },
+  );
+}
+
+const CHAPTER_BUTTONS = '#worlds ul[aria-labelledby="worlds-list-label"] button';
+const ROBOT_TOGGLE = "#worlds [role=group][aria-label=\"The robot's two laps\"] button";
+
+test.describe("the robot walks twice", () => {
+  test("opening Technology walks it once, frame by frame, and then the globe rests", async ({ page }) => {
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    const gl = (await page.locator(SURFACE).count()) > 0;
+    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
+
+    // The first two seconds of the ~6 s walk: a frame-by-frame loop, and with
+    // a surface, one GL draw per overlay draw as everywhere else.
+    const walking = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 2_000);
+    await expect(list.getByRole("button", { name: /technology/i })).toHaveAttribute("aria-current", "true");
+    expect(walking.overlayDraws, "opening Technology did not start the walk").toBeGreaterThan(60);
+    if (gl) expect(Math.abs(walking.glDraws - walking.overlayDraws)).toBeLessThanOrEqual(1);
+    // Still walking: the stage changes from one second to the next.
+    const midWalk = await stage.screenshot();
+    await page.waitForTimeout(1_000);
+    expect((await stage.screenshot()).equals(midWalk), "the walk froze mid-lap").toBe(false);
+
+    // Past six seconds it has ended, lit, and nothing is left running —
+    // overlay or GL.
+    await page.waitForTimeout(4_000);
+    await expectAtRest(page, 1_500, "after the robot's walk");
+
+    // Once per selection: pressing the open chapter again replays nothing.
+    const again = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_000);
+    expect(again.overlayDraws + again.glDraws, "re-pressing Technology replayed the walk").toBe(0);
+  });
+
+  test("under reduced motion nothing animates, and the toggle switches the two still laps", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    const gl = (await page.locator(SURFACE).count()) > 0;
+
+    const open = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_000);
+    expect(open.frames, "opening Technology asked for frames under reduced motion").toBe(0);
+    expect(open.overlayDraws, "the held lap was never drawn").toBeGreaterThan(0);
+
+    const toggle = page.locator("#worlds").getByRole("group", { name: "The robot's two laps" });
+    const unsupervised = toggle.getByRole("button", { name: "Unsupervised" });
+    const human = toggle.getByRole("button", { name: "Human in the loop" });
+    await expect(human).toHaveAttribute("aria-pressed", "true");
+    await expect(unsupervised).toHaveAttribute("aria-pressed", "false");
+    for (const button of [unsupervised, human]) {
+      const box = await button.boundingBox();
+      expect(box?.height ?? 0, "a lap button is under 44px").toBeGreaterThanOrEqual(44);
+    }
+    const lit = await stage.screenshot();
+
+    const dark = await pressCounting(page, ROBOT_TOGGLE, /^Unsupervised$/, 700);
+    await expect(unsupervised).toHaveAttribute("aria-pressed", "true");
+    await expect(human).toHaveAttribute("aria-pressed", "false");
+    // One still frame per press, of each canvas, and no loop.
+    expect(dark.frames).toBe(0);
+    expect(dark.overlayDraws).toBe(1);
+    expect(dark.glDraws).toBe(gl ? 1 : 0);
+    const out = await stage.screenshot();
+    expect(out.equals(lit), "the unsupervised lap looks the same as the lit one").toBe(false);
+
+    const back = await pressCounting(page, ROBOT_TOGGLE, /^Human in the loop$/, 700);
+    expect(back.frames).toBe(0);
+    await expect(human).toHaveAttribute("aria-pressed", "true");
+    expect((await stage.screenshot()).equals(lit), "the lit lap did not come back as it was").toBe(true);
+
+    await expectAtRest(page, 700, "after toggling the robot's laps", SILENT_HZ);
+  });
+
+  test("without WebGL2 the overlay still draws both laps differently", async ({ page }) => {
+    await withoutWebGL2(page);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    await expect(page.locator(SURFACE)).toHaveCount(0);
+    await page
+      .locator("#worlds")
+      .getByRole("list", { name: /chapters/i })
+      .getByRole("button", { name: /technology/i })
+      .click();
+    const toggle = page.locator("#worlds").getByRole("group", { name: "The robot's two laps" });
+    const lit = await globeSignature(page);
+    await toggle.getByRole("button", { name: "Unsupervised" }).click();
+    // The fallback's lights are on the overlay, so the overlay alone differs.
+    expect(await globeSignature(page), "the fallback drew no lights to put out").not.toBe(lit);
+    await toggle.getByRole("button", { name: "Human in the loop" }).click();
+    expect(await globeSignature(page)).toBe(lit);
+    await expectAtRest(page, 700, "the fallback robot, held", SILENT_HZ);
+  });
+});
+
+/**
  * How many pixels of the overlay carry any ink. Coastlines are the bulk of
  * what the overlay stops drawing once a GL surface takes them, so this is how
  * the context-loss test tells "coastlines drawn" from "coastlines left to a

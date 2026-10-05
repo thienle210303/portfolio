@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ComponentType,
+  type KeyboardEvent,
+} from "react";
 import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 import { origin } from "@/content/portfolio";
@@ -8,6 +16,7 @@ import { origin } from "@/content/portfolio";
 // content layer stays out of the initial client bundle.
 import type { ResolvedChapter } from "@/lib/worlds";
 import type { ResolvedSkin } from "@/lib/skins";
+import type { RobotHold } from "./gl/robot";
 import WorldPanel from "./WorldPanel";
 
 /**
@@ -55,6 +64,7 @@ type CanvasComponent = ComponentType<{
   readonly onReady: (controls: GlobeControls | null) => void;
   readonly skinId: string | null;
   readonly onSurfaceChange: (live: boolean) => void;
+  readonly robotHold: RobotHold;
 }>;
 
 interface WorldsStageProps {
@@ -72,6 +82,31 @@ interface WorldsStageProps {
  *  that a single press does not lose the marker you were looking at. */
 const KEY_STEP = (12 * Math.PI) / 180;
 
+/** The robot's two laps as still states, for a visitor who asked for no
+ *  motion (spec §5.5). The globe draws whichever is pressed. */
+const ROBOT_HOLD_NAMES: readonly (readonly [RobotHold, string])[] = [
+  ["unsupervised", "Unsupervised"],
+  ["human-in-the-loop", "Human in the loop"],
+];
+
+const REDUCE = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  if (typeof window.matchMedia !== "function") return () => {};
+  const list = window.matchMedia(REDUCE);
+  list.addEventListener("change", onChange);
+  return () => list.removeEventListener("change", onChange);
+}
+
+/** Server snapshot false: the walk is the default, the toggle the exception. */
+function useReducedMotion(): boolean {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => typeof window.matchMedia === "function" && window.matchMedia(REDUCE).matches,
+    () => false,
+  );
+}
+
 export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false, crossingKm }: WorldsStageProps) {
   const [currentId, setCurrentId] = useState(worlds[0]?.id ?? "");
   const [announcement, setAnnouncement] = useState("");
@@ -83,6 +118,10 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // so the dial stays disabled for the visit.
   const [surfaceLive, setSurfaceLive] = useState(false);
   const skinsAvailable = forceSkins || surfaceLive;
+  const reduceMotion = useReducedMotion();
+  // Which still lap the globe shows under reduced motion. It starts where the
+  // walk ends, lit, for the same reason the walk ends there.
+  const [robotHold, setRobotHold] = useState<RobotHold>("human-in-the-loop");
   const [Canvas, setCanvas] = useState<CanvasComponent | null>(null);
   // Set only on the `.catch()` path below, and never cleared: once the chunk
   // has failed there is no retry, so the resting label it drives ("Globe not
@@ -309,6 +348,7 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
               onReady={handleReady}
               skinId={skinsAvailable ? skinId : null}
               onSurfaceChange={handleSurfaceChange}
+              robotHold={robotHold}
             />
           ) : null}
         </div>
@@ -425,6 +465,28 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
                 </button>
               ))}
             </div>
+          </div>
+        ) : null}
+
+        {current?.id === "tech" && reduceMotion ? (
+          // Only under reduced motion: otherwise opening Technology plays the
+          // two laps, and a toggle beside an animation would be a second
+          // control for the same thing.
+          <div role="group" aria-label="The robot's two laps" className="mt-6 flex flex-wrap gap-2">
+            {ROBOT_HOLD_NAMES.map(([hold, name]) => (
+              <button
+                key={hold}
+                type="button"
+                aria-pressed={robotHold === hold}
+                onClick={() => setRobotHold(hold)}
+                className={cn(
+                  "min-h-11 border px-4 text-[length:var(--step--1)] text-[color:var(--fg)]",
+                  robotHold === hold ? "border-[color:var(--fg-subtle)] bg-surface" : "border-rule",
+                )}
+              >
+                {name}
+              </button>
+            ))}
           </div>
         ) : null}
 

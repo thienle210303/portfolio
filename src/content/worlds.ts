@@ -123,6 +123,11 @@ export const worlds = [
       { glyph: "magnifier", ref: { of: "project", id: "dd-feasibility-agent", field: "tagline" } },
       { glyph: "sat", ref: { of: "computed", id: "ai-tools" } },
     ],
-    decorations: [],
+    // The robot's two laps round the globe, one line each. They say what the
+    // drawing does, and nothing about him.
+    decorations: [
+      { glyph: "robot", draws: "a robot's first lap, unsupervised: city lights go out behind it" },
+      { glyph: "robot", draws: "a robot's second lap, with a human in the loop: city lights come back brighter" },
+    ],
   },
 ] satisfies readonly World[];

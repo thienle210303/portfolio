@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
@@ -249,5 +249,79 @@ describe("WorldsStage, the skins group", () => {
       await user.click(within(skinsGroup()).getAllByRole("button")[0]);
       expect(worldButton(WORLDS[0].name)).toHaveAttribute("aria-current", "true");
     });
+  });
+});
+
+describe("WorldsStage, the robot's two laps", () => {
+  const TECH = WORLDS.find((world) => world.id === "tech");
+  if (!TECH) throw new Error("the Technology chapter is missing from the content layer");
+
+  function prefersReducedMotion(reduce: boolean) {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: reduce && query.includes("prefers-reduced-motion: reduce"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+  }
+  const laps = () => screen.queryByRole("group", { name: /robot/i });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("names both laps in the Technology panel, each as a drawing that carries no fact", async () => {
+    const user = userEvent.setup();
+    renderStage();
+    await user.click(worldButton(TECH.name));
+    expect(TECH.decorations).toHaveLength(2);
+    for (const decoration of TECH.decorations) {
+      expect(screen.getByLabelText(decoration.label)).toBeInTheDocument();
+    }
+  });
+
+  it("is a still pair of states behind a toggle under reduced motion, ending lit by default", async () => {
+    prefersReducedMotion(true);
+    const user = userEvent.setup();
+    renderStage();
+    await user.click(worldButton(TECH.name));
+    const group = laps();
+    if (!group) throw new Error("no toggle for the robot's laps under reduced motion");
+    const unsupervised = within(group).getByRole("button", { name: "Unsupervised" });
+    const human = within(group).getByRole("button", { name: "Human in the loop" });
+    expect(within(group).getAllByRole("button")).toHaveLength(2);
+    expect(human).toHaveAttribute("aria-pressed", "true");
+    expect(unsupervised).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(unsupervised);
+    expect(unsupervised).toHaveAttribute("aria-pressed", "true");
+    expect(human).toHaveAttribute("aria-pressed", "false");
+    // Pressing the shown state again keeps it shown: one of the two is always on.
+    await user.click(unsupervised);
+    expect(unsupervised).toHaveAttribute("aria-pressed", "true");
+    await user.click(human);
+    expect(human).toHaveAttribute("aria-pressed", "true");
+    expect(unsupervised).toHaveAttribute("aria-pressed", "false");
+
+    for (const button of [unsupervised, human]) {
+      expect(button.tagName).toBe("BUTTON");
+      expect(button.className).toMatch(/min-h-11/);
+    }
+  });
+
+  it("is not there when the walk can play, or outside Technology", async () => {
+    prefersReducedMotion(false);
+    const user = userEvent.setup();
+    const { unmount } = renderStage();
+    await user.click(worldButton(TECH.name));
+    expect(laps()).toBeNull();
+    unmount();
+
+    prefersReducedMotion(true);
+    renderStage();
+    expect(laps()).toBeNull();
   });
 });

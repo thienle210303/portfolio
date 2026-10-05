@@ -402,6 +402,7 @@ export type GlyphId =
   | "sprout"
   | "cat"
   | "sat"
+  | "robot"
   | "chip"
   | "star"
   | "book"

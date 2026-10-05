@@ -51,6 +51,9 @@ export const GLYPHS: Record<GlyphId, string> = {
   sprout: "M0 9V-2M0 1C-4 1 -7 -2 -7 -6C-3 -6 0 -3 0 1M0 -2C4 -2 7 -5 7 -9C3 -9 0 -6 0 -2",
   cat: "M-9 6Q-11 -4 -8 -8L-4 -3Q0 -5 4 -3L8 -8Q11 -4 9 6Q0 12 -9 6M-4 1V1.5M4 1V1.5M-1 5H1",
   sat: "M-3 -3H3V3H-3ZM-3 0H-11M3 0H11M-11 -4V4M11 -4V4M0 3V7M-3 7H3",
+  // The robot that walks the Technology chapter's globe twice: a boxed head
+  // with an antenna, a body, two arms and two legs.
+  robot: "M-5 -9H5V-2H-5ZM0 -9V-12M-2.5 -6V-5M2.5 -6V-5M-7 0H7V8H-7ZM-7 2L-10 6M7 2L10 6M-4 8V11M4 8V11",
   chip:
     "M-7 -7H7V7H-7ZM-3 -3H3V3H-3M-4.5 -7V-11M0 -7V-11M4.5 -7V-11M-4.5 7V11M0 7V11M4.5 7V11" +
     "M-7 -4.5H-11M-7 0H-11M-7 4.5H-11M7 -4.5H11M7 0H11M7 4.5H11",

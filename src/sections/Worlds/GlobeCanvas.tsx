@@ -34,6 +34,13 @@ import {
   type SphereView,
 } from "./gl/sphere";
 import { CHAPTER_INDEX, SKIN_INDEX } from "./gl/shaders";
+import {
+  lightLevel,
+  ROBOT_HOLDS,
+  ROBOT_WALK_FRAMES,
+  robotLights,
+  type RobotHold,
+} from "./gl/robot";
 
 /**
  * The planet. No dependency, and zero animation frames once it stops moving.
@@ -129,6 +136,8 @@ interface GlobeCanvasProps {
   /** True while a GL surface is drawing the planet; false once it has gone
    *  for good (no WebGL2, a failed program, a lost context, forced colours). */
   readonly onSurfaceChange: (live: boolean) => void;
+  /** Which still lap Technology shows under reduced motion. */
+  readonly robotHold: RobotHold;
 }
 
 const DEG = Math.PI / 180;
@@ -190,6 +199,14 @@ const SEED_DROP = 0.3;
  * sapling, which is the kind of thing this section exists not to do.
  */
 const SAPLING_WORLD_ID = "plants";
+
+/** The chapter the robot walks. The satellite's hit below uses the same id. */
+const TECH_WORLD_ID = "tech";
+
+/** Without a GL surface the overlay draws the robot's lights itself, at every
+ *  Nth coastline vertex: a few hundred points, and only while Technology is
+ *  open, so the two panel lines stay true on the fallback globe too. */
+const FALLBACK_LIGHT_STRIDE = 24;
 
 /** A canvas label's halo, in CSS pixels: wide enough to clear the glyphs of a
  *  9.5px mono label from whatever is under it, narrow enough not to blot out
@@ -351,6 +368,7 @@ export default function GlobeCanvas({
   onReady,
   skinId,
   onSurfaceChange,
+  robotHold,
 }: GlobeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentIdRef = useRef(currentId);
@@ -388,6 +406,10 @@ export default function GlobeCanvas({
      *  hand that started it. */
     playing: false,
     orbit: 0,
+    /** The robot's walk across both laps, 0→1, or -1 while Technology is
+     *  closed. `walking` is true only while `step()` is advancing it. */
+    robot: -1,
+    walking: false,
     running: false,
     /** The pending `requestAnimationFrame` id, or 0. Kept in the bag rather
      *  than closed over by `start` so the unmount effect can reach it however
@@ -527,7 +549,7 @@ export default function GlobeCanvas({
           chapter: CHAPTER_INDEX[currentIdRef.current] ?? REST_STATE.chapter,
           skin: skin !== null && skin in SKIN_INDEX ? SKIN_INDEX[skin as keyof typeof SKIN_INDEX] : -1,
           crossing: v.flight,
-          robot: REST_STATE.robot,
+          robot: currentIdRef.current === TECH_WORLD_ID ? v.robot : REST_STATE.robot,
         },
         v.device,
       );
@@ -681,6 +703,38 @@ export default function GlobeCanvas({
       }
     }
 
+    /* The robot, walking the equator, and — only when no GL surface is there
+       to shade them — the lights it puts out and brings back. Ink, not
+       accent: both are drawings that carry no fact. */
+    const lights = currentIdRef.current === TECH_WORLD_ID ? robotLights(v.robot) : null;
+    if (lights) {
+      if (!held) {
+        ctx.fillStyle = c.fg;
+        for (const ring of COASTLINES) {
+          for (let i = 0; i < ring.length; i += 2 * FALLBACK_LIGHT_STRIDE) {
+            const level = lightLevel(lights, ring[i]);
+            if (level <= 0) continue;
+            const p = at({ lon: ring[i], lat: ring[i + 1] });
+            if (!p.front) continue;
+            ctx.globalAlpha = Math.min(1, level * 0.6);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 1 + 0.6 * level, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+      const p = at({ lon: lights.lonDegrees, lat: 0 });
+      if (p.front) {
+        const scale = 0.62 + 0.32 * p.depth;
+        ctx.fillStyle = c.ground;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 13 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        glyph(GLYPHS.robot, p.x, p.y, scale * 0.8, c.fg, 1.2);
+      }
+    }
+
     /* The seed, in the one beat between the bird landing and the sapling
        taking: it falls onto the Plants marker, which then grows out of where
        it came to rest. Drawn after the markers so it is never underneath one,
@@ -811,6 +865,14 @@ export default function GlobeCanvas({
           };
           onLandedRef.current();
         }
+      }
+
+      if (v.walking) {
+        // Both laps in `ROBOT_WALK_FRAMES` reference frames, then it stops at
+        // 1, lit, and so does the loop.
+        v.robot = Math.min(1, v.robot + frames / ROBOT_WALK_FRAMES);
+        if (v.robot >= 1) v.walking = false;
+        busy = true;
       }
 
       if (v.seed > 0 && v.seed < 1) {
@@ -963,6 +1025,8 @@ export default function GlobeCanvas({
       // drag/inertia branch suppressed under it, so the planet would also
       // ignore the hand that woke it.
       v.playing = false;
+      // And a walk torn down mid-lap would resume on the next wake.
+      v.walking = false;
       v.running = false;
       // Same bag, same reason: a timestamp from before the teardown is not
       // elapsed animation time for whatever the remount does next.
@@ -1090,6 +1154,30 @@ export default function GlobeCanvas({
     };
   }, [draw]);
 
+  /* The robot. Opening Technology starts its walk once — both laps, about
+     six seconds, ending lit — and leaving stops it, so coming back walks it
+     again. Under reduced motion there is no walk: the globe holds whichever
+     still lap the stage's toggle has pressed, and the effect below draws it
+     once. Declared before that effect so the state is set when it draws. */
+  useEffect(() => {
+    const v = view.current;
+    if (currentId !== TECH_WORLD_ID) {
+      v.walking = false;
+      v.robot = -1;
+      return;
+    }
+    if (reducedMotion()) {
+      v.walking = false;
+      v.robot = ROBOT_HOLDS[robotHold];
+      return;
+    }
+    if (v.robot < 0) {
+      v.robot = 0;
+      v.walking = true;
+      start();
+    }
+  }, [currentId, robotHold, start]);
+
   /* Keep the callback mirrors current, and redraw when the open world changes
      — the marker and the cats change ink, and at rest nothing else would ask.
      The refs are written here rather than during render: a render-phase ref
@@ -1103,7 +1191,9 @@ export default function GlobeCanvas({
     skinIdRef.current = skinId;
     onSurfaceChangeRef.current = onSurfaceChange;
     draw();
-  }, [currentId, draw, onLanded, onSelect, onSurfaceChange, skinId]);
+    // `robotHold` is here only so a press of the stage's toggle redraws: the
+    // robot effect above has already put the new still lap in the bag.
+  }, [currentId, draw, onLanded, onSelect, onSurfaceChange, robotHold, skinId]);
 
   /* Pointer: drag to roll, tap to open, and rolling east flies him. */
   useEffect(() => {

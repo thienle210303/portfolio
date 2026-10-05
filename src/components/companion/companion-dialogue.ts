@@ -174,7 +174,7 @@ const TOUR: Record<string, SceneBuilder> = {
   // never typed — the same discipline every other scene in this file keeps.
   // Plaques and decorations are disjoint sets (`DECORATION_LABEL` is
   // literally "no plaque · decoration"), so the second line says "plus",
-  // not "of these" — nineteen plaques plus seven decorations is twenty-six
+  // not "of these" — nineteen plaques plus nine decorations is twenty-eight
   // objects, not three of nineteen.
   worlds: (f) => [
     tabby("Mrrrow!", `${f.worlds.count} chapters! I'd nap on each.`, "globe", "stretch"),

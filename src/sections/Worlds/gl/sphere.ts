@@ -2,6 +2,7 @@ import { rotate, toGeo, type Vec3, type Viewport } from "@/lib/globe";
 import type { GeoPoint } from "@/types/portfolio";
 import type { CoastlineTexture } from "./coastline-texture";
 import { compileProgram } from "./context";
+import { robotLights } from "./robot";
 import { CHAPTER_INDEX, FRAGMENT_SOURCE, SPHERE_UNIFORMS, VERTEX_SOURCE, type SphereUniform } from "./shaders";
 
 export interface SphereState {
@@ -217,6 +218,9 @@ export function createSphere(gl: WebGL2RenderingContext | null, options: SphereO
       gl.uniform1i(at.uSkin, state.skin);
       gl.uniform1f(at.uCrossing, state.crossing);
       gl.uniform1f(at.uRobot, state.robot);
+      const lights = robotLights(state.robot);
+      gl.uniform1f(at.uRobotLon, lights ? (lights.lonDegrees * Math.PI) / 180 : 0);
+      gl.uniform2f(at.uCityLight, lights?.behind ?? 0, lights?.ahead ?? 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       gl.bindVertexArray(null);
     },

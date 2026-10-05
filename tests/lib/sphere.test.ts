@@ -12,6 +12,7 @@ import {
   VERTEX_SOURCE,
   glslName,
 } from "@/sections/Worlds/gl/shaders";
+import { robotLights } from "@/sections/Worlds/gl/robot";
 import {
   REST_STATE,
   createSphere,
@@ -52,7 +53,7 @@ describe("the sphere's uniform surface", () => {
     // the shader, the planet renders, and the feature simply does nothing.
     expect(SPHERE_UNIFORMS).toEqual([
       "uResolution", "uCenter", "uRadius", "uInverseRotation", "uCoastlines",
-      "uChapter", "uSkin", "uCrossing", "uRobot",
+      "uChapter", "uSkin", "uCrossing", "uRobot", "uRobotLon", "uCityLight",
       "uInk", "uPaper", "uAccent",
     ]);
     expect(declaredUniforms(FRAGMENT_SOURCE)).toEqual([...SPHERE_UNIFORMS]);
@@ -86,6 +87,29 @@ describe("the shader's colours", () => {
       const branch = FRAGMENT_SOURCE.slice(0, set.index).lastIndexOf("uSkin == ");
       expect(FRAGMENT_SOURCE.slice(branch, branch + 25)).toMatch(/SKIN_(NIGHT_SIDE|VOLCANIC)/);
     }
+  });
+
+  it("draws the robot and its city lights in the Technology chapter, in ink, never accent", () => {
+    // R9: the walk belongs to Technology, not to a skin. Every read of the
+    // three robot uniforms sits inside that chapter's branch.
+    const tech = FRAGMENT_SOURCE.indexOf("if (uChapter == CHAPTER_TECH) {");
+    expect(tech).toBeGreaterThan(0);
+    const branchEnd = FRAGMENT_SOURCE.indexOf("\n  }\n", tech);
+    const branch = FRAGMENT_SOURCE.slice(tech, branchEnd);
+    const body = FRAGMENT_SOURCE.slice(FRAGMENT_SOURCE.indexOf("void main()"));
+    for (const name of ["uRobot", "uRobotLon", "uCityLight"]) {
+      const reads = body.match(new RegExp(`\\b${name}\\b`, "g")) ?? [];
+      const inBranch = branch.match(new RegExp(`\\b${name}\\b`, "g")) ?? [];
+      expect(reads.length, name).toBeGreaterThan(0);
+      expect(inBranch.length, `${name} is read outside the Technology branch`).toBe(reads.length);
+    }
+    // The lights are the planet's own ink, so they read as light by night and
+    // as dark points by day; the accent stays confined (test above).
+    // Applied after the lighting, so a light on the unlit side still shines.
+    expect(branch).not.toMatch(/uAccent/);
+    expect(branch).toMatch(/cityGlow = /);
+    expect(FRAGMENT_SOURCE).toContain("color = mix(color, uInk, cityGlow);");
+    expect(FRAGMENT_SOURCE.match(/^\s*cityGlow = /gm)?.length).toBe(branch.match(/^\s*cityGlow = /gm)?.length);
   });
 
   it("the check catches a literal colour", () => {
@@ -337,6 +361,24 @@ function fakeGl(options: { linkOk?: boolean } = {}) {
 }
 
 describe("createSphere", () => {
+  it("hands the shader robotLights(), not a second copy of the walk", () => {
+    const fake = fakeGl();
+    const sphere = createSphere(fake.gl, { coverage: COVERAGE, colors: COLORS });
+    const named = (fn: string, uniform: string) =>
+      fake.named(fn).filter((c) => (c.args[0] as { name: string }).name === uniform).at(-1)?.args.slice(1);
+
+    sphere.draw({ ...REST_STATE, chapter: CHAPTER_INDEX.tech, robot: 0.7 }, sphereView(10, 10, 1));
+    const lights = robotLights(0.7)!;
+    expect(named("uniform1f", "uRobot")).toEqual([0.7]);
+    expect(named("uniform1f", "uRobotLon")?.[0]).toBeCloseTo(lights.lonDegrees * DEG, 12);
+    expect(named("uniform2f", "uCityLight")).toEqual([lights.behind, lights.ahead]);
+
+    // No robot: the lights uniform is zeroed rather than left at the last walk.
+    sphere.draw(REST_STATE, sphereView(10, 10, 1));
+    expect(named("uniform1f", "uRobot")).toEqual([-1]);
+    expect(named("uniform2f", "uCityLight")).toEqual([0, 0]);
+  });
+
   it("falls back to a no-op without a context, and says so", () => {
     const sphere = createSphere(null, { coverage: COVERAGE, colors: COLORS });
     expect(sphere.ok).toBe(false);
