@@ -232,10 +232,13 @@ const FALLBACK_LIGHT_STRIDE = 24;
  *  upper left, outside the limb and clear of the satellite's orbit ellipse. */
 const SKY_BODY = { x: -0.97, y: -1.02 } as const;
 
-/** A canvas label's halo, in CSS pixels: wide enough to clear the glyphs of a
- *  9.5px mono label from whatever is under it, narrow enough not to blot out
- *  the marker beside it. */
-const HALO_PX = 3.5;
+/** A canvas label's halo, in CSS pixels. Measured, not judged by eye: at 3.5
+ *  the open "LIVING EARTH" label fell to 1.7:1 against the pixels touching its
+ *  letters (Desert, night) and under 3:1 on Night side and Volcanic, and 4.5
+ *  still left 3.9:1 on a pale planet. 5 holds 4.5:1 under every skin in both
+ *  themes (e2e "canvas labels under every skin"). Wider would start to blot
+ *  out the marker beside a label. */
+const HALO_PX = 5;
 
 const GRATICULE = graticule(30);
 // The same 72 segments the resolver uses, so the arc drawn here and the

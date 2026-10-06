@@ -1457,3 +1457,39 @@ two glyph paths in `glyphs.ts` (initial bundle through `WorldPanel`), two
 decoration strings, and `robotSky`. LCP 2472–2708 ms, TBT 295–659 ms, CLS 0,
 DOM nodes 3190. `worlds`, `axe` and `companion` specs at `--workers=2`, six
 viewports: 366 passed, 0 failed, 480 skipped.
+
+**Plan D Task 6** (canvas labels measured over the pale skins; residual H4).
+Until now label contrast under the pale Night side and Volcanic skins was
+checked by eye. `worlds.spec.ts` "canvas labels under every skin" now measures
+it: for each of the five skins in both themes, with Living Earth open, it
+redraws the overlay three times at rest (as drawn, halos off, words off),
+takes the letters as the pixels the words changed, and reads the contrast of
+each label's ink against the one-pixel ring touching them in the composited
+bitmap. It fails below 4.5:1 at the label's 5th percentile.
+
+It found a real failure. At the shipped `HALO_PX = 3.5` every skin fails in at
+least one theme, always on the open "LIVING EARTH" label. Worst of the six
+viewports, per skin, day / night: Ice Age 4.73 / 1.78, Night side 2.62 / 4.55,
+Volcanic 2.71 / 2.92, Underwater 4.21 / 4.98, Desert 4.68 / 1.67. So the Night
+side and Volcanic glow the brief worried about do fail, and so do the pale Ice
+Age and Desert planets. `HALO_PX = 4.5` still left 3.88 on Desert at night, so
+`HALO_PX = 5` is the smallest tried value that held across repeated runs (4.75
+passed once and was not kept as too thin a margin). Halo off (`HALO_PX = 0`)
+fails the probe on every skin (1.0:1 to 3.9:1, "LIVING EARTH"). Worst of the
+six viewports at `HALO_PX = 5`, per skin:
+
+| Skin | Day | Night |
+| --- | --- | --- |
+| Ice Age | 4.74 | 4.98 |
+| Night side | 4.74 | 4.98 |
+| Volcanic | 4.74 | 4.98 |
+| Underwater | 4.74 | 4.98 |
+| Desert | 4.74 | 4.98 |
+
+Those figures are the ceiling, not a squeak: they are the two cat names' muted
+ink against `--ground` itself, which is what a fully haloed ring measures. The
+cats are hidden for the shots (DOM, they may walk across the stage). The halo
+at 5 px does not reach the neighbouring marker discs (checked at 1440, night,
+Desert). Initial JS is unchanged at **205,035 B** in all three `pnpm perf`
+runs, 0 skipped (a constant, no new code in the bundle); LCP 2628-2812 ms,
+TBT 281-708 ms, CLS 0, DOM nodes 3190.

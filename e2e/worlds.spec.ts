@@ -2295,3 +2295,280 @@ test.describe("the chapter list and the skin group by keyboard", () => {
     await expect(chapters.nth(2)).toHaveAttribute("aria-current", "true");
   });
 });
+
+/**
+ * Contrast of every canvas label against what actually touches its letters, under
+ * every skin in both themes. "What touches its letters" is the ring of pixels one
+ * step outside the glyphs in the composited bitmap (GL surface plus overlay), so it
+ * is the halo where the halo reaches and the planet where it does not.
+ *
+ * The glyphs are found by the page itself, not modelled: the overlay is redrawn
+ * three times at rest. Normally (what a visitor sees), then with the halos
+ * suppressed and every word kept, then with the halos and the words suppressed.
+ * The pixels that differ between the last two are exactly the letters, as the
+ * live canvas rasterised them. A software canvas given the same text places
+ * glyphs a fraction of a pixel away, which is enough to move the ring.
+ */
+test.describe("canvas labels under every skin", () => {
+  for (const theme of ["day", "night"] as const) {
+    test(`every canvas label keeps 4.5:1 against what touches its letters, ${theme}`, async ({
+      page,
+    }) => {
+      test.setTimeout(120_000);
+      await page.goto("/#worlds");
+      await waitForLiveGlobe(page);
+      await requireSurface(page);
+      const section = page.locator("#worlds");
+      await section
+        .getByRole("list", { name: /chapters/i })
+        .getByRole("button", { name: /living earth/i })
+        .click();
+      await page.waitForTimeout(3_000);
+      await expectAtRest(page, 600, "after opening Living Earth");
+      const skins = section.getByRole("group", { name: /skins/i });
+      const all = resolveSkins();
+      expect(all.length, "the skin dial is empty").toBeGreaterThan(0);
+
+      await page.evaluate(
+        ({ t, selector }) => {
+          document.documentElement.dataset.theme = t;
+          const w = window as unknown as { __labels: unknown[]; __mode: string };
+          w.__labels = [];
+          w.__mode = "normal";
+          const fill = CanvasRenderingContext2D.prototype.fillText;
+          const stroke = CanvasRenderingContext2D.prototype.strokeText;
+          CanvasRenderingContext2D.prototype.fillText = function (
+            this: CanvasRenderingContext2D,
+            ...args: [string, number, number, number?]
+          ) {
+            if (!this.canvas.matches(selector)) return fill.apply(this, args);
+            if (w.__mode === "normal") {
+              w.__labels.push({
+                text: args[0],
+                x: args[1],
+                y: args[2],
+                font: this.font,
+                textAlign: this.textAlign,
+                textBaseline: this.textBaseline,
+                fillStyle: String(this.fillStyle),
+                cw: this.canvas.width,
+                ch: this.canvas.height,
+              });
+            }
+            if (w.__mode === "none") return undefined;
+            return fill.apply(this, args);
+          };
+          CanvasRenderingContext2D.prototype.strokeText = function (
+            this: CanvasRenderingContext2D,
+            ...args: [string, number, number, number?]
+          ) {
+            if (this.canvas.matches(selector) && w.__mode !== "normal") return undefined;
+            return stroke.apply(this, args);
+          };
+        },
+        { t: theme, selector: OVERLAY },
+      );
+
+      /** Redraw the overlay once in `mode` (a theme flip away and back is the
+       *  at-rest redraw hook) and screenshot exactly the canvas. */
+      const shoot = async (mode: "normal" | "bare" | "none") => {
+        await page.evaluate(async (m) => {
+          await document.fonts.ready;
+          const w = window as unknown as { __labels: unknown[]; __mode: string };
+          const root = document.documentElement;
+          const current = root.dataset.theme;
+          root.dataset.theme = current === "night" ? "day" : "night";
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          w.__mode = m;
+          if (m === "normal") w.__labels = [];
+          root.dataset.theme = current;
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }, mode);
+        const box = await page.locator(OVERLAY).boundingBox();
+        if (!box) throw new Error("the overlay has no box");
+        const clip = {
+          x: Math.round(box.x),
+          y: Math.round(box.y),
+          width: Math.round(box.width),
+          height: Math.round(box.height),
+        };
+        const viewport = page.viewportSize()!;
+        expect(
+          clip.x >= 0 &&
+            clip.y >= 0 &&
+            clip.x + clip.width <= viewport.width &&
+            clip.y + clip.height <= viewport.height,
+          `the canvas ${JSON.stringify(clip)} is not wholly inside the ${viewport.width}x${viewport.height} viewport`,
+        ).toBe(true);
+        return (await page.screenshot({ clip })).toString("base64");
+      };
+
+      const failures: string[] = [];
+      for (const skin of all) {
+        const button = skins.getByRole("button", { name: new RegExp(`^${skin.name}\\b`) });
+        if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
+        await expect(button).toHaveAttribute("aria-pressed", "true");
+        // The whole canvas has to be on screen for a viewport screenshot.
+        await page
+          .locator(OVERLAY)
+          .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+        await page.waitForTimeout(300);
+        await expectAtRest(page, 400, `after wearing ${skin.name}`);
+
+        // The compositor resamples a canvas that sits on a fractional pixel,
+        // which would blur the letter edges by a fraction of the very ring
+        // being measured. Nudge the canvas onto the pixel grid for the three
+        // shots (the `translate` property, so no transform of the page's own
+        // is touched) and undo it after.
+        // The cats are DOM and may be walking across the stage; they are not
+        // the canvas's, so they are hidden for the three shots too.
+        await page.locator(OVERLAY).evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          el.style.translate = `${Math.round(r.left) - r.left}px ${Math.round(r.top) - r.top}px`;
+          document.querySelectorAll<HTMLElement>("[data-companion]").forEach((c) => {
+            c.style.visibility = "hidden";
+          });
+        });
+        const normal = await shoot("normal");
+        const bare = await shoot("bare");
+        const none = await shoot("none");
+        await page.evaluate(() => {
+          (window as unknown as { __mode: string }).__mode = "normal";
+        });
+        await page.locator(OVERLAY).evaluate((el) => {
+          el.style.translate = "";
+          document.querySelectorAll<HTMLElement>("[data-companion]").forEach((c) => {
+            c.style.visibility = "";
+          });
+        });
+
+        const result = await page.evaluate(
+          async ({ normal, bare, none, selector }) => {
+            const decode = async (b64: string) => {
+              const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+              const bitmap = await createImageBitmap(new Blob([bytes]));
+              const canvas = document.createElement("canvas");
+              canvas.width = bitmap.width;
+              canvas.height = bitmap.height;
+              const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+              ctx.drawImage(bitmap, 0, 0);
+              return ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+            };
+            const [A, B, C] = await Promise.all([decode(normal), decode(bare), decode(none)]);
+            const W = A.width;
+            const H = A.height;
+            const overlay = document.querySelector<HTMLCanvasElement>(selector)!;
+            const labels = (
+              window as unknown as {
+                __labels: {
+                  text: string;
+                  x: number;
+                  y: number;
+                  font: string;
+                  textAlign: CanvasTextAlign;
+                  textBaseline: CanvasTextBaseline;
+                  fillStyle: string;
+                  cw: number;
+                  ch: number;
+                }[];
+              }
+            ).__labels;
+
+            const channel = (v: number) => {
+              const s = v / 255;
+              return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+            };
+            const luminance = (r: number, g: number, b: number) =>
+              0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+            const ratio = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+            const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+            const parse = (css: string) => {
+              probe.clearRect(0, 0, 1, 1);
+              probe.fillStyle = "#000";
+              probe.fillStyle = css;
+              probe.fillRect(0, 0, 1, 1);
+              const d = probe.getImageData(0, 0, 1, 1).data;
+              return [d[0], d[1], d[2]] as const;
+            };
+
+            // Every pixel the words changed, whichever word it belongs to.
+            const letter = new Uint8Array(W * H);
+            for (let i = 0; i < W * H; i += 1) {
+              const j = i * 4;
+              if (B.data[j] !== C.data[j] || B.data[j + 1] !== C.data[j + 1] || B.data[j + 2] !== C.data[j + 2]) {
+                letter[i] = 1;
+              }
+            }
+
+            const seen = new Set<string>();
+            const out: { text: string; p5: number; n: number }[] = [];
+            for (const l of labels) {
+              if (l.cw !== overlay.width || l.ch !== overlay.height) continue;
+              const key = `${l.text}|${l.x}|${l.y}`;
+              if (seen.has(key)) continue;
+              seen.add(key);
+              // This word's own letters: the changed pixels inside its box.
+              probe.font = l.font;
+              probe.textAlign = l.textAlign;
+              probe.textBaseline = l.textBaseline;
+              const m = probe.measureText(l.text);
+              const x0 = Math.floor(l.x - m.actualBoundingBoxLeft) - 2;
+              const x1 = Math.ceil(l.x + m.actualBoundingBoxRight) + 2;
+              const y0 = Math.floor(l.y - m.actualBoundingBoxAscent) - 2;
+              const y1 = Math.ceil(l.y + m.actualBoundingBoxDescent) + 2;
+              const mine = new Uint8Array(W * H);
+              let count = 0;
+              for (let y = Math.max(0, y0); y <= Math.min(H - 1, y1); y += 1) {
+                for (let x = Math.max(0, x0); x <= Math.min(W - 1, x1); x += 1) {
+                  if (letter[y * W + x]) {
+                    mine[y * W + x] = 1;
+                    count += 1;
+                  }
+                }
+              }
+              if (count === 0) continue;
+              const ink = parse(l.fillStyle);
+              const inkL = luminance(ink[0], ink[1], ink[2]);
+              const values: number[] = [];
+              for (let y = Math.max(1, y0 - 2); y <= Math.min(H - 2, y1 + 2); y += 1) {
+                for (let x = Math.max(1, x0 - 2); x <= Math.min(W - 2, x1 + 2); x += 1) {
+                  // The surround is the one-pixel dilation minus the letters.
+                  if (mine[y * W + x]) continue;
+                  let touches = false;
+                  for (let dy = -1; dy <= 1 && !touches; dy += 1) {
+                    for (let dx = -1; dx <= 1; dx += 1) {
+                      if (mine[(y + dy) * W + (x + dx)]) {
+                        touches = true;
+                        break;
+                      }
+                    }
+                  }
+                  if (!touches) continue;
+                  const i = (y * W + x) * 4;
+                  values.push(ratio(inkL, luminance(A.data[i], A.data[i + 1], A.data[i + 2])));
+                }
+              }
+              values.sort((p, q) => p - q);
+              out.push({ text: l.text, p5: values[Math.floor(0.05 * (values.length - 1))], n: values.length });
+            }
+            return out;
+          },
+          { normal, bare, none, selector: OVERLAY },
+        );
+
+        expect(result.length, `${theme}/${skin.name}: no label was measured`).toBeGreaterThan(0);
+        const min = Math.min(...result.map((r) => r.p5));
+        const worst = result.find((r) => r.p5 === min)!;
+        console.log(
+          `label contrast ${theme} / ${skin.name}: min p5 ${min.toFixed(2)} ("${worst.text}"), ${result.length} labels`,
+        );
+        for (const r of result) {
+          if (r.p5 < 4.5) {
+            failures.push(`${skin.name}, ${theme}: label "${r.text}" has p5 contrast ${r.p5.toFixed(2)} (< 4.5)`);
+          }
+        }
+      }
+      expect(failures, failures.join("\n")).toEqual([]);
+    });
+  }
+});
