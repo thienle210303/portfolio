@@ -548,6 +548,31 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(controls.reset).toHaveBeenCalledTimes(1);
   });
 
+  it("a right-click whose release the context menu swallows neither stops nor freezes the loop", async () => {
+    const { controls } = await holding();
+    act(() => {
+      fireEvent.pointerDown(screen.getByText("Chapters"), { pointerId: 1, button: 2, clientX: 100, clientY: 100 });
+    });
+    expect(flightButton()).toHaveAccessibleName("Stop the replay");
+    advance(REPLAY_HOLD_MS);
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("a control-click on macOS (its right-click) is not a press either", async () => {
+    const platform = vi.spyOn(window.navigator, "platform", "get").mockReturnValue("MacIntel");
+    try {
+      const { controls } = await holding();
+      act(() => {
+        fireEvent.pointerDown(screen.getByText("Chapters"), { pointerId: 1, button: 0, ctrlKey: true, clientX: 100, clientY: 100 });
+      });
+      expect(flightButton()).toHaveAccessibleName("Stop the replay");
+      advance(REPLAY_HOLD_MS);
+      expect(controls.reset).toHaveBeenCalledTimes(1);
+    } finally {
+      platform.mockRestore();
+    }
+  });
+
   it("a replayed flight that lands while a touch on the stage is still undecided stays silent, and its hold is kept", async () => {
     const { observer, controls } = await stageWithLiveGlobe();
     vi.useFakeTimers();

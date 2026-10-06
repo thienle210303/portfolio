@@ -480,7 +480,12 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // The press's end is heard on `window`, not on the section: a mouse press
   // that wanders out (a text selection that overshoots) is released outside
   // it, and a press that never ended would hold every step forever.
+  //
+  // Only a primary press counts. A right-click (and a control-click, which is
+  // one on macOS) opens a context menu that can swallow its `pointerup`, which
+  // would leave the press set and freeze the loop under "Stop the replay".
   function pressStart(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0 || (event.ctrlKey && /Mac/.test(navigator.platform))) return;
     endPressRef.current?.();
     pressRef.current = { x: event.clientX, y: event.clientY, quiet: quietRef.current };
     const up = (end: globalThis.PointerEvent) => {
