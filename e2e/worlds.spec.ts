@@ -179,7 +179,7 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
 async function measureGlobeFrames(page: Page, ms: number) {
   return page.evaluate(async (duration) => {
     const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
-    if (!canvas) return { draws: -1, overlayDraws: -1, glDraws: -1, framesThatDrew: -1, pageHz: -1 };
+    if (!canvas) return { draws: -1, overlayDraws: -1, glDraws: -1, framesThatDrew: -1, ticks: -1, pageHz: -1 };
     // The GL surface under the overlay, when there is one. Its draws count
     // into `draws` too: a surface looping on its own would otherwise pass "at
     // rest" with the overlay perfectly still.
@@ -189,6 +189,9 @@ async function measureGlobeFrames(page: Page, ms: number) {
     let framesThatDrew = 0;
     let everything = 0;
     let drewInThisFrame = false;
+    // Distinct frame timestamps, whichever loop asked for them: callbacks of
+    // one frame share a timestamp.
+    const frameTimes = new Set<number>();
 
     const clearRect = CanvasRenderingContext2D.prototype.clearRect;
     CanvasRenderingContext2D.prototype.clearRect = function patched(
@@ -221,6 +224,7 @@ async function measureGlobeFrames(page: Page, ms: number) {
       // rAF callbacks never nest, so one shared flag is enough to say which
       // frame a draw belonged to.
       return raf.call(window, (time) => {
+        frameTimes.add(time);
         drewInThisFrame = false;
         callback(time);
         if (drewInThisFrame) framesThatDrew += 1;
@@ -237,9 +241,24 @@ async function measureGlobeFrames(page: Page, ms: number) {
       overlayDraws,
       glDraws,
       framesThatDrew,
+      ticks: frameTimes.size,
       pageHz: (everything * 1000) / duration,
     };
   }, ms);
+}
+
+/**
+ * "A per-frame loop ran", measured without a frame-rate threshold: every frame
+ * the page ticked in the window drew, bar the first and last (which may
+ * straddle it), and enough frames went by that a non-loop cannot reach it.
+ * A slow runner ticks less and still passes; a loop that skips frames fails.
+ */
+function expectEveryFrameDrew(m: { ticks: number; framesThatDrew: number }, what: string) {
+  expect(
+    m.framesThatDrew,
+    `${what}: a frame went by without the globe drawing (${m.framesThatDrew}/${m.ticks})`,
+  ).toBeGreaterThanOrEqual(m.ticks - 2);
+  expect(m.framesThatDrew, `${what}: no per-frame loop ran`).toBeGreaterThan(10);
 }
 
 /**
@@ -1392,23 +1411,37 @@ async function pressCounting(page: Page, selector: string, label: RegExp, ms: nu
       let frames = 0;
       let overlayDraws = 0;
       let glDraws = 0;
+      let framesThatDrew = 0;
+      let drewInThisFrame = false;
+      const frameTimes = new Set<number>();
       const overlay = document.querySelector('#worlds canvas[data-chunk="globe-canvas"]');
       const surface = document.querySelector("#worlds canvas[data-globe-surface]");
       const raf = window.requestAnimationFrame;
       window.requestAnimationFrame = (callback) => {
         frames += 1;
-        return raf.call(window, callback);
+        return raf.call(window, (time) => {
+          frameTimes.add(time);
+          drewInThisFrame = false;
+          callback(time);
+          if (drewInThisFrame) framesThatDrew += 1;
+        });
       };
       const clearRect = CanvasRenderingContext2D.prototype.clearRect;
       CanvasRenderingContext2D.prototype.clearRect = function patched(this: CanvasRenderingContext2D, ...args) {
-        if (this.canvas === overlay) overlayDraws += 1;
+        if (this.canvas === overlay) {
+          overlayDraws += 1;
+          drewInThisFrame = true;
+        }
         clearRect.apply(this, args);
       };
       const GL = window.WebGL2RenderingContext?.prototype;
       const drawArrays = GL?.drawArrays;
       if (GL && drawArrays) {
         GL.drawArrays = function patched(this: WebGL2RenderingContext, ...args) {
-          if (surface && this.canvas === surface) glDraws += 1;
+          if (surface && this.canvas === surface) {
+            glDraws += 1;
+            drewInThisFrame = true;
+          }
           drawArrays.apply(this, args);
         };
       }
@@ -1424,7 +1457,7 @@ async function pressCounting(page: Page, selector: string, label: RegExp, ms: nu
       window.requestAnimationFrame = raf;
       CanvasRenderingContext2D.prototype.clearRect = clearRect;
       if (GL && drawArrays) GL.drawArrays = drawArrays;
-      return { frames, overlayDraws, glDraws };
+      return { frames, overlayDraws, glDraws, framesThatDrew, ticks: frameTimes.size };
     },
     { selector, pattern: { source: label.source, flags: label.flags }, ms },
   );
@@ -1444,7 +1477,7 @@ test.describe("the robot walks twice", () => {
     // a surface, one GL draw per overlay draw as everywhere else.
     const walking = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 2_000);
     await expect(list.getByRole("button", { name: /technology/i })).toHaveAttribute("aria-current", "true");
-    expect(walking.overlayDraws, "opening Technology did not start the walk").toBeGreaterThan(60);
+    expectEveryFrameDrew(walking, "opening Technology");
     // The still-lap toggle is for reduced motion only; beside the walk it
     // would be a second control for the same thing.
     await expect(
