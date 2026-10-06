@@ -68,9 +68,11 @@ test("the whole page has one blue fill, and it is Contact's send", async ({ page
     .getByRole("radio", { name: contactIntents[0].label, exact: true })
     .check();
   // The globe's controls only take their ready style once the lazy chunk has
-  // loaded, so wait for that before scanning the page.
+  // loaded, so wait for that before scanning the page. The stage, not the
+  // section: at 320–375 the section's top leaves the stage outside the
+  // import observer's margin, and the chunk is never fetched.
   const worlds = page.locator("#worlds");
-  await worlds.scrollIntoViewIfNeeded();
+  await worlds.getByRole("group", { name: /playground earth/i }).scrollIntoViewIfNeeded();
   const flight = worlds.getByRole("button", { name: /take the flight|stop the replay/i });
   await expect(flight).toBeVisible({ timeout: 20_000 });
   // Hairlines are not fills: the nav's 1px active-underline (one per link)

@@ -1412,3 +1412,26 @@ Full e2e at `--workers=2`: 715 passed, 1 failed, 736 skipped. The failure was
 `worlds.spec.ts` "opening Technology walks it once" at 1440 px (60 overlay
 draws in 2 s against a floor of more than 60, a frame-rate threshold under
 load); re-run alone, 18 of 18 passed (`--repeat-each=3`, six viewports).
+
+### The crossing replays, measured (2026-10-05, round 18 Plan D, Task 4)
+
+The crossing now replays while the globe is watched (fly, land, hold 5 s,
+reset, fly), with a "Stop the replay" state on the flight button. One
+production build of the Task 4 working tree on `:3134`, a throwaway
+`scripts/perf.mjs` copy pointed at `chromium_headless_shell-1234`, 3 runs:
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| After Plan D Task 4 (3 runs) | 199.8 KB | 14.0 KB | 223.8 KB | 2440–3024 ms | 335–642 ms | 0 | 3189 |
+
+Initial JS 204,592 B in all three runs, 0 skipped responses: **+334 B** over
+the final-fix-wave row's 204,258 B. That delta also carries Plan D Tasks 1–3,
+which were not measured on their own. DOM nodes 3188 → 3189, not traced. The
+`content-length` cross-check is still a 0.4 KB floor (16 responses declare
+none).
+Full e2e against that build at `--workers=2`: 738 passed, 2 failed, 736
+skipped. Both failures were `contact.spec.ts` "the whole page has one blue
+fill" at 320 and 375 px: the globe chunk was never fetched, because the test
+scrolled the section's top into view and left the stage outside the import
+observer's margin. Fixed in this commit by scrolling the stage; after the fix
+`contact.spec.ts` passed 71 of 71 at all six viewports.

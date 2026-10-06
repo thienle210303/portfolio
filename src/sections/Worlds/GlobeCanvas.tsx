@@ -71,8 +71,14 @@ import { settleMotion } from "./settle";
  * `loop()` requests the next frame **only if something is still moving**. When
  * the inertia decays below its threshold and no flight is in progress, the
  * loop returns without scheduling, `view.running` goes false, and the page
- * costs nothing until something wakes it again: the visitor, or once per page
- * load the stage's autoplay of the crossing. `e2e/worlds.spec.ts`
+ * costs nothing until something wakes it again: the visitor, or the stage's
+ * replay of the crossing (`WorldsStage.tsx`). The replay runs only while the
+ * stage is in view, stops for good on any press, key or click in the
+ * section, never runs under reduced motion, and between cycles holds timers,
+ * not frames. So the replay asks for zero frames after any interaction, for
+ * good; whenever the stage is off-screen; under reduced motion; and through
+ * every hold between cycles. It asks for frames only while a cycle's flight,
+ * landing tail or return is on screen. `e2e/worlds.spec.ts`
  * measures exactly that — but *not* by counting `requestAnimationFrame`
  * page-wide, which cannot express the claim here: the companion cats hold a
  * 60 Hz loop of their own open on this page, so a page-wide count would fail
@@ -93,18 +99,19 @@ import { settleMotion } from "./settle";
  * below states the two rules for adding one.
  *
  * The stage can also ask the loop to stop early: `settle()`, called when the
- * stage leaves the viewport or a chapter is chosen while it is out of view,
- * puts what is still moving at its end (a played flight lands, a robot
+ * stage leaves the viewport, when a chapter is chosen while it is out of
+ * view, or when "Stop the replay" is pressed, puts what is still moving at its end (a played flight lands, a robot
  * mid-walk ends lit, an easing camera arrives) in one draw and cancels the
  * pending frame, so nothing animates for a visitor who has scrolled away. Two
  * things it leaves to the visitor: a drag still held (the release wakes the
  * loop), and a crossing dragged part-way.
  *
- * One press is exempt from the loop entirely, and only under
- * `prefers-reduced-motion: reduce`: "Take the flight" then produces the
+ * The crossing is exempt from the loop entirely, and only under
+ * `prefers-reduced-motion: reduce`: "Take the flight", or the stage's single
+ * landing on first sight (it never replays there), then produces the
  * finished frame — crossing drawn, sapling grown, view on the arrival pin —
  * from a single synchronous `draw()`, with no frame requested at all. That is
- * not a cheaper animation; it is the outcome, which is what was asked for.
+ * not a cheaper animation; it is the outcome.
  *
  * ## Colour
  *

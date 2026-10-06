@@ -81,6 +81,18 @@ async function stageSettled(page: Page): Promise<void> {
   await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
 }
 
+/**
+ * The crossing replays while the stage is watched, and a hold that ends
+ * mid-audit would reset the globe and hide the link under the audit. Stop it
+ * first (the button reads "Stop the replay" only while the loop runs), so the
+ * audit sees the landed state it waited for.
+ */
+async function stopTheReplay(page: Page): Promise<void> {
+  const stop = page.locator("#worlds").getByRole("button", { name: "Stop the replay" });
+  if (await stop.isVisible()) await stop.click();
+  await expect(page.locator("#worlds").getByRole("button", { name: "Take the flight" })).toBeVisible();
+}
+
 test.describe("full-page audit", () => {
   test("zero WCAG violations at a mobile viewport", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "run once, at a representative mobile width");
@@ -262,6 +274,7 @@ test.describe("interactive states", () => {
     const stage = page.locator("#worlds").getByRole("group", { name: /playground earth/i });
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
     await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 30_000 });
+    await stopTheReplay(page);
     await expect(page.locator("#worlds").getByRole("link", { name: /career tree/i })).toBeVisible();
     await auditHasNoViolations(page, "#worlds");
   });
@@ -392,6 +405,7 @@ test.describe("the globe's chapters and skins", () => {
     const stage = page.locator("#worlds").getByRole("group", { name: /playground earth/i });
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
     await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 30_000 });
+    await stopTheReplay(page);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
   }
 
