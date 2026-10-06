@@ -223,9 +223,10 @@ describe("isEntirelyNeedsInput", () => {
 
 describe("the profile's own metadata row", () => {
   it("names a location and an availability, both resolved", () => {
-    // Both were deliberately `undefined` through round 17, which made the
-    // hero render no metadata row at all. Round 18 fills them, so the row
-    // appears — and `resolved()` must give real strings, not markers.
+    // Both were deliberately `undefined` through round 17. Round 18 fills
+    // them — `resolved()` must give real strings, not markers. Only
+    // availability is rendered (the hero's rail); location is authored but
+    // unrendered.
     expect(resolved(profile.location)).toBe("Taylors, South Carolina");
     expect(resolved(profile.availability)).toBe(
       "Open to remote, and to relocation when it's worth it."

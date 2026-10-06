@@ -46,7 +46,7 @@ describe("About", () => {
     expect(within(rail).getByText(/Open to remote/)).toBeInTheDocument();
   });
 
-  it("says location and availability once — no second metadata row", () => {
+  it("says availability once, and prints no location row or metadata row", () => {
     const { rail } = renderHero();
     // The rail is the one place for availability. The old identity-column <dl>
     // labelled them "Location" / "Availability".

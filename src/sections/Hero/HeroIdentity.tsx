@@ -14,8 +14,9 @@
  * Through round 17 the About paragraphs lived in a full-width band below the
  * fold (`HeroAbout`), because they were too long for this column. Round 18
  * cut them to three short paragraphs, so they render here and the band is
- * gone. Location and availability are not in this column any more: they
- * moved to the section's margin rail (Hero.tsx), which states each once.
+ * gone. Availability is not in this column: it is in the section's margin
+ * rail (Hero.tsx). Location is said once, in the first About paragraph, and
+ * is in neither the rail nor a metadata row.
  *
  * No heading below the <h1>. Hero has nothing at <h2> (every other section's
  * <h2> comes from `SectionHeading`, which the hero deliberately does not use),
