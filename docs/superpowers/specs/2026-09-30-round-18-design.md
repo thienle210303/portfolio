@@ -210,6 +210,8 @@ The order is the argument: **who arrived, from where, and what he does now** —
 one primary action. `profile.availability` and `profile.location` appear in the rail, which is
 where facts already true in the content layer belong.
 
+**2026-10-05, owner:** location leaves the rail, because the prose beside it already says where he arrived from.
+
 **Audience** (owner: HR, engineers, founders, "anyone but a bit technology side") means one heading
 that works for a non-engineer and one artifact that rewards an engineer. That is the existing
 identity/code split, kept, with the copy fixed.
@@ -291,6 +293,8 @@ Night side (planet turns into the dark, every city a point of light) · Volcanic
 along the coastlines, rim burns orange) · Underwater (camera drops below the surface, looks up from
 inside, light shafting down) · Desert (oceans retreat, surface to sand, dust hazes the limb).
 
+**2026-10-05, owner:** skins are drawn in the theme's ink and paper only; the hue words above (orange, sand) describe intent, not a colour the shader paints.
+
 Every skin's accessible name carries `DECORATION_LABEL` — the same string the jellyfish already
 uses. This is the owner's answer to "Ice Age has no fact to quote": *"I mean the animation, not a
 quote or status — just a playful interaction and design."* A skin is honest decoration, which the
@@ -319,6 +323,8 @@ the skin dial are both real `<button>` toolbars, arrow-key navigable.
 **The crossing animation plays once per visit** (owner), does not loop, and does not start until
 the section is near the viewport — so nothing animates while a visitor is reading the bottom of the
 page.
+
+**2026-10-05, owner:** the crossing replays while the stage is in view and stops on deliberate interaction (or "Stop the replay"), instead of playing once.
 
 **`prefers-reduced-motion`:** nothing animates. Every chapter and skin jumps to its finished state,
 the arc is simply drawn, the robot's two passes become two static states behind a toggle. Still
@@ -423,6 +429,8 @@ Requirements:
   is a ~1 MB video.
 - `<video preload="none" muted loop playsinline>` with a poster frame, inside the branch's
   disclosure. Nothing fetches until a visitor opens that branch.
+
+  **2026-10-05, owner:** recordings sit outside the disclosure, above the action row (on the credentials strip for Food Route), and each carries a `recordingDescription`; they still mount only on press.
 - No `autoplay` outside an opened branch, and honour `prefers-reduced-motion` by showing the poster
   with a play control instead of looping.
 - `pnpm perf` is re-run and the row recorded in `docs/feedback-tracker.md`. Initial JS must not

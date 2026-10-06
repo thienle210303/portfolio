@@ -7,7 +7,7 @@ import { profile } from "@/content/portfolio";
  * carry. The card holds the email (with its copy button), GitHub and
  * LinkedIn; repeating them here would put the same facts twice in one
  * section, so this row is the résumé PDF plus, when a booking URL is
- * configured, a link to book twenty minutes. Without a usable booking URL
+ * configured, a link to book a call. Without a usable booking URL
  * (see `validBookingUrl`) there is no booking link and no placeholder for one.
  *
  * The PDF path is read from `profile.resumePdf` so it cannot drift from the
@@ -39,7 +39,7 @@ export default function DirectLinks({ bookingUrl }: DirectLinksProps) {
         {booking ? (
           <li>
             <ExternalLink href={booking} className={linkClass}>
-              Book twenty minutes
+              Book a call
             </ExternalLink>
           </li>
         ) : null}

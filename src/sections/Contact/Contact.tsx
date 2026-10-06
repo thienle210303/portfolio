@@ -17,7 +17,7 @@ import DirectLinks from "./DirectLinks";
  * carries email, GitHub and LinkedIn plus the name, title and philosophy
  * line that make it read as an actual card rather than a link list. Under
  * the form, `DirectLinks` adds the ways out the card lacks: the résumé PDF
- * and, when a booking URL is configured, a link to book twenty minutes.
+ * and, when a booking URL is configured, a link to book a call.
  * Round 18 removed the one-field "leave a number" form that used to sit above
  * the full one: choosing an intent now produces a whole message, which is the
  * shortcut that field was standing in for.

@@ -1520,3 +1520,34 @@ same padding costs 40 px.
 responses, CLS 0, DOM nodes 3184 (was 3189 after Task 4), LCP 2396-2456 ms,
 TBT 325-355 ms. No JS changed; the delta from Task 4's 204,636 B is not from
 this task.
+
+### Plan D close-out (2026-10-06, round 18 Plan D, Task 11)
+
+**Owner decisions in Plan D.**
+- Location leaves the hero rail, because the prose already says it (spec §4 note).
+- Skins are drawn in ink and paper only; the hue words in the spec describe intent (§5.3 note). A grep of `CLAUDE.md`, `README.md`, `docs/editing.md`, `src/content/skins.ts`, `src/lib/skins.ts` and `src/sections/Worlds/gl/shaders.ts` finds no skin hue described outside the spec.
+- The crossing replays while the stage is in view and stops on deliberate interaction or "Stop the replay" (§5.5 note).
+- Recordings sit outside the disclosure, above the action row, and on the credentials strip for Food Route; each carries a `recordingDescription` (§6.4 note). The MentorHub recording was gated on owner approval (privacy) and is not shipped.
+- The résumé PDF is now the file the owner attached (below). The booking link reads "Book a call", not "Book twenty minutes", because the event length is unverified and a label without a duration is always true.
+
+**G3, before and after.** Canvas-label contrast under the five skins was checked by eye; `worlds.spec.ts` "canvas labels under every skin" now measures it (Task 6). At `HALO_PX = 3.5` every skin failed in at least one theme (worst 1.67:1, Desert at night). At `HALO_PX = 5` the worst measured is 4.74 day / 4.98 night on every skin.
+
+**H4.** Minima are the 4.74 / 4.98 figures in Task 6's table above: the two cat names' muted ink against `--ground`, which is what a fully haloed ring measures.
+
+**G4: the résumé PDF's two $2.8M bullets.** `public/thien-le-resume.pdf` is now `Thien_Le_Software_Engineering_Resume.pdf` from the owner's Downloads (1 page, 135,831 B; was 135,813 B). `pdftotext -layout` shows the text differs from the previously shipped file in two places only: the scraper bullet now reads "cut runtime from 17 hours to 3 minutes" (it wrapped onto the next line), and the heading "PROJECT" became "PROJECTS". It contains "2.8M" and no phone number (the header carries email, LinkedIn and GitHub only). It still has two differently worded $2.8M bullets (lines 21 and 23 of the text):
+- "Automated eight-stage SKU governance process with one run, restoring SKUs that generated $2.8M cumulative GOV"
+- "Built a monthly 8-stage SKU governance pipeline, protecting $2.8M in sales and freeing capacity for new selection"
+
+These are the owner's to fix. `/resume` renders `impact` only and carries one $2.8M line (`portfolio.ts:289`), so the route does not duplicate it. The route and the PDF now differ in wording, not in fact: the scraper line reads "runtime 17 hours to 3 minutes" on the route and "cut runtime from 17 hours to 3 minutes" in the PDF, and the SKU line differs as quoted above.
+
+**G5: `BOOKING_URL`.** It is unset in `.env.example` and the booking control renders nothing until a URL is supplied (`src/lib/booking.ts`); the production HTML was checked and contains no "Book a call". The owner's URL, https://cal.com/thien-le/say-hi-meeting, returned HTTP 200 and still has to be set in Vercel (it is read at build time, so a redeploy follows).
+
+**Perf, whole branch.** One production build of the Task 11 tree on `:3141`, a throwaway copy of `scripts/perf.mjs` pointed at `chromium_headless_shell-1234`, 3 runs:
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| After Plan D (3 runs) | 200.6 KB | 14.1 KB | 223.8 KB | 2412-2452 ms | 334-389 ms | 0 | 3191 |
+
+Initial JS 205,415 B in all three runs, 0 skipped responses. That is **+1,157 B** over the pre-Plan-D 204,258 B and +2,681 B over `main`'s 202,734 B before Plan C. The `content-length` cross-check is still a 0.4 KB floor (16 responses declare none). None of the 12 initial scripts contains `#version 300 es`.
+
+**Verification.** `pnpm verify`: 5/5 (937 unit tests, 51 files). Full e2e against the production build at `--workers=2`: 788 passed, 0 failed, 736 skipped (no re-runs needed).

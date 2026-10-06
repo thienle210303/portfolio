@@ -42,14 +42,14 @@ describe("booking in the no-form row", () => {
 
   it("renders no booking link, label or 'undefined' when no URL is configured", () => {
     const { container } = render(<DirectLinks bookingUrl={undefined} />);
-    expect(screen.queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /book a call/i })).toBeNull();
     expect(container.textContent).not.toMatch(/undefined|null/);
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 
   it("renders a plain external link when an https URL is configured", () => {
     const { container } = render(<DirectLinks bookingUrl={url} />);
-    const link = screen.getByRole("link", { name: /book twenty minutes/i });
+    const link = screen.getByRole("link", { name: /book a call/i });
     expect(link).toHaveAttribute("href", url);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
@@ -61,7 +61,7 @@ describe("booking in the no-form row", () => {
     "renders nothing for the non-https value %j",
     (bad) => {
       render(<DirectLinks bookingUrl={bad} />);
-      expect(screen.queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+      expect(screen.queryByRole("link", { name: /book a call/i })).toBeNull();
       expect(screen.getAllByRole("link")).toHaveLength(1);
     },
   );
@@ -76,10 +76,10 @@ describe("booking in the no-form row", () => {
 describe("Contact with a booking URL", () => {
   it("shows the booking link once, outside the card, only when given", () => {
     const { container, rerender } = render(<Contact emailDeliveryConfigured={false} askLiveModeConfigured={false} />);
-    expect(screen.queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /book a call/i })).toBeNull();
     rerender(<Contact emailDeliveryConfigured={false} askLiveModeConfigured={false} bookingUrl="https://cal.com/a/b" />);
-    expect(screen.getAllByRole("link", { name: /twenty minutes/i })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: /book a call/i })).toHaveLength(1);
     const aside = container.querySelector("aside") as HTMLElement;
-    expect(within(aside).queryByRole("link", { name: /twenty minutes/i })).toBeNull();
+    expect(within(aside).queryByRole("link", { name: /book a call/i })).toBeNull();
   });
 });
