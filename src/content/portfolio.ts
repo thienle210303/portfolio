@@ -1215,7 +1215,7 @@ export const projects = [
   {
     id: "degreeworks-rebuild",
     recording: "degreework",
-    recordingDescription: "A University of South Carolina degree-audit desktop app: a sign-up form, a course search with a course's details, a semester-by-semester plan and a degree-progress chart.",
+    recordingDescription: "A University of South Carolina desktop app: a sign-up form, a course search with a course's details, a semester-by-semester plan and a degree-progress chart.",
     title: "A better version of DegreeWorks",
     tagline:
       "A better version of UofSC DegreeWorks, built with classmates in a software-engineering course.",
