@@ -171,6 +171,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // The pointer press in progress inside the section, if any, and whether a
   // replayed flight was quiet when it began (see `pressCancel`).
   const pressRef = useRef<{ x: number; y: number; quiet: boolean } | null>(null);
+  // Removes the window listeners that are waiting for that press to end.
+  const endPressRef = useRef<(() => void) | null>(null);
 
   const clearReplayTimer = useCallback(() => {
     window.clearTimeout(timerRef.current);
@@ -267,8 +269,12 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
 
   const handleLanded = useCallback(() => {
     setLanded(true);
-    if (quietRef.current) {
+    // A press still undecided (scroll or touch?) has cleared `quietRef` for
+    // a drag that may never happen; what was quiet when it began decides.
+    const press = pressRef.current;
+    if (quietRef.current || press?.quiet) {
       quietRef.current = false;
+      if (press) press.quiet = false;
       // A landing the stage settled on its way out of view (or below half of
       // it) holds nothing: the next entry picks the cycle up from here.
       if (loopRef.current === "looping" && !pausedRef.current) scheduleHold();
@@ -400,8 +406,10 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // disconnects on its first hit) because this one has to keep watching. Half
   // the stage in view starts the loop, or picks a paused one up: a landed
   // globe holds first, one back at Việt Nam flies at once. Less than half in
-  // view pauses the loop (pending step cleared, replay settled); a full exit
-  // also settles the visitor's own motion, so nothing animates for nobody.
+  // view pauses the loop (pending step cleared, replay settled). The
+  // visitor's own motion is settled when the observer reports the stage as
+  // not intersecting — a full exit by the spec, and already below half in
+  // Chromium with this threshold — so nothing animates for nobody.
   // Under reduced motion the first entry lands the crossing in one draw and
   // the loop never starts.
   useEffect(() => {
@@ -416,7 +424,9 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
         if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
           // Less than half in view is not watched, for the replay: a sliver
           // of globe at the edge of the screen must not cycle for nobody.
-          // The visitor's own motion is settled only on a full exit.
+          // The visitor's own motion is settled only when the observer says
+          // the stage is not intersecting: a full exit by the spec; Chromium,
+          // with this single 0.5 threshold, already says so below half.
           if (loopRef.current === "looping") {
             pausedRef.current = true;
             clearReplayTimer();
@@ -453,6 +463,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
 
   // Unmounting mid-hold leaves no timer behind to reset a globe that is gone.
   useEffect(() => clearReplayTimer, [clearReplayTimer]);
+  // Nor window listeners waiting for a press to end.
+  useEffect(() => () => endPressRef.current?.(), []);
 
   // Any deliberate touch in the section — a tap, a drag of the globe, a key,
   // a click (assistive tech activates by click), focus arriving — is a
@@ -462,28 +474,50 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // scrolling past should still see the loop (see `pressEnd`). Capture
   // phase, so a handler that stops propagation cannot hide it. The flight
   // button is exempt: as "Stop the replay" it would otherwise re-render as
-  // "Take the flight" on `pointerup` or focus, before its own `click`, and that click would fly
-  // him. It stops the loop itself.
+  // "Take the flight" on `pointerup` or focus, before its own `click`, and
+  // that click would fly him. It stops the loop itself.
+
+  // The press's end is heard on `window`, not on the section: a mouse press
+  // that wanders out (a text selection that overshoots) is released outside
+  // it, and a press that never ended would hold every step forever.
   function pressStart(event: PointerEvent<HTMLDivElement>) {
+    endPressRef.current?.();
     pressRef.current = { x: event.clientX, y: event.clientY, quiet: quietRef.current };
+    const up = (end: globalThis.PointerEvent) => {
+      stopListening();
+      pressEnd(end);
+    };
+    const cancel = () => {
+      stopListening();
+      pressCancel();
+    };
+    const stopListening = () => {
+      window.removeEventListener("pointerup", up, true);
+      window.removeEventListener("pointercancel", cancel, true);
+      endPressRef.current = null;
+    };
+    window.addEventListener("pointerup", up, true);
+    window.addEventListener("pointercancel", cancel, true);
+    endPressRef.current = stopListening;
   }
 
   // A completed press is deliberate when it barely moved (a tap) or when it
   // was on the globe (a drag rolls it, and may fly him). A press that moved
   // elsewhere — a mouse sweep across the text — is neither.
-  function pressEnd(event: PointerEvent<HTMLDivElement>) {
+  function pressEnd(event: globalThis.PointerEvent) {
     const press = pressRef.current;
     pressRef.current = null;
     if (!press) return;
     const moved = Math.abs(event.clientX - press.x) + Math.abs(event.clientY - press.y);
     const onGlobe = event.target instanceof Node && stageRef.current?.contains(event.target);
-    if (moved < TAP_SLOP_PX || onGlobe) takeOver(event);
+    if (event.target && (moved < TAP_SLOP_PX || onGlobe)) takeOver({ target: event.target });
   }
 
   // The browser sends `pointercancel`, never `pointerup`, when it takes a
   // gesture over for the page scroll. Not a touch on the globe, then: the
   // stage's own `pointerdown` cleared `quietRef` for a drag that never
   // happened, so a replayed flight still in the air gets its silence back.
+  // (One that landed during the press already took it: `handleLanded`.)
   function pressCancel() {
     const press = pressRef.current;
     pressRef.current = null;
@@ -540,8 +574,6 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     <div
       ref={rootRef}
       onPointerDownCapture={pressStart}
-      onPointerUpCapture={pressEnd}
-      onPointerCancelCapture={pressCancel}
       onKeyDownCapture={takeOver}
       onClickCapture={takeOver}
       onFocusCapture={takeOver}

@@ -377,7 +377,11 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(controls.reset).toHaveBeenCalledTimes(1);
   });
 
-  it("a visitor's own motion is settled only on a full exit, not on a dip below half", async () => {
+  it("a visitor's own motion is settled when the observer reports no intersection, not on a still-intersecting dip below half", async () => {
+    // Spec-shaped report: a third in view is still intersecting. Chromium,
+    // with this observer's single 0.5 threshold, reports that dip as not
+    // intersecting (measured) and settles there too; the stage follows
+    // whichever the browser says, and this pins the spec engines' half.
     const user = fakeTimerUser();
     const { observer, controls } = await holding();
     await user.click(screen.getByRole("button", { name: "Stop the replay" }));
@@ -529,6 +533,39 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(flightButton()).toHaveAccessibleName("Take the flight");
     advance(20_000);
     expect(controls.reset).not.toHaveBeenCalled();
+  });
+
+  it("a press released outside the section does not leave the loop waiting forever", async () => {
+    const { controls } = await holding();
+    // A mouse press in the section, a text selection that overshoots it, and
+    // the release somewhere else on the page.
+    act(() => {
+      fireEvent.pointerDown(screen.getByText("Chapters"), { pointerId: 1, clientX: 100, clientY: 100 });
+      fireEvent.pointerUp(document.body, { pointerId: 1, clientX: 100, clientY: 400 });
+    });
+    expect(flightButton()).toHaveAccessibleName("Stop the replay");
+    advance(REPLAY_HOLD_MS);
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("a replayed flight that lands while a touch on the stage is still undecided stays silent, and its hold is kept", async () => {
+    const { observer, controls } = await stageWithLiveGlobe();
+    vi.useFakeTimers();
+    observer.report(0.6);
+    const stage = stageGroup();
+    act(() => {
+      fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100 });
+    });
+    act(() => globe.land());
+    act(() => {
+      fireEvent.pointerCancel(stage, { pointerId: 1, clientX: 100, clientY: 140 });
+    });
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(flightButton()).toHaveAccessibleName("Stop the replay");
+    advance(REPLAY_HOLD_MS);
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+    advance(REPLAY_RETURN_MS);
+    expect(controls.fly).toHaveBeenCalledTimes(2);
   });
 
   it("never loops under reduced motion", async () => {

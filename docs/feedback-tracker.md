@@ -1442,3 +1442,10 @@ runs, 0 skipped. That is +44 B over the first Task 4 build and +378 B over
 career-tree line now hides a `<span>` inside its `<p>` instead of the `<p>`
 itself. The four affected specs (worlds, axe, contact, companion) passed at
 `--workers=2` across all six viewports: 419 passed, 0 failed, 499 skipped.
+
+**Fix rounds 2 and 3** (same method, same port): initial JS **204,910 B** in all
+three runs, 0 skipped. That is +274 B over fix round 1 (204,636 B) and **+652 B
+over 204,258 B**. The new code is the press handlers (tap, globe drag or
+scroll), their window listeners, and the shared `gestures.ts` constant. LCP
+2640–2820 ms, TBT 258–564 ms, CLS 0, DOM nodes 3190. `worlds.spec.ts` at
+`--workers=2`, six viewports: 240 passed, 0 failed.
