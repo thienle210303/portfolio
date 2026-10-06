@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import type { GlobeControls } from "@/sections/Worlds/WorldsStage";
@@ -466,6 +466,69 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(flightButton()).toHaveAccessibleName("Take the flight");
     advance(20_000);
     expect(controls.fly).toHaveBeenCalledTimes(1);
+  });
+
+  /** A pointer gesture in the section, as the browser reports it: a press,
+   *  then either a release at (x + dx, y) or the browser taking the gesture
+   *  over for a page scroll. The "Chapters" label is inside the section and
+   *  is neither focusable nor clickable, so nothing but the pointer events
+   *  can stop the replay here. */
+  function gesture(target: Element, end: "pointerup" | "pointercancel", dx = 0) {
+    act(() => {
+      fireEvent.pointerDown(target, { pointerId: 1, clientX: 100, clientY: 100 });
+      if (end === "pointerup") fireEvent.pointerUp(target, { pointerId: 1, clientX: 100 + dx, clientY: 100 });
+      else fireEvent.pointerCancel(target, { pointerId: 1, clientX: 100, clientY: 140 });
+    });
+  }
+
+  it("a press the browser hands to the page scroll (pointercancel) does not stop the replay", async () => {
+    const { controls } = await holding();
+    gesture(screen.getByText("Chapters"), "pointercancel");
+    expect(flightButton()).toHaveAccessibleName("Stop the replay");
+    advance(REPLAY_HOLD_MS);
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("a touch scroll that starts on the stage mid-flight leaves the replayed landing silent", async () => {
+    const { observer } = await stageWithLiveGlobe();
+    observer.report(0.6);
+    gesture(stageGroup(), "pointercancel");
+    expect(flightButton()).toHaveAccessibleName("Stop the replay");
+    act(() => globe.land());
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("a tap (press and release without moving) stops it for good", async () => {
+    const { controls } = await holding();
+    gesture(screen.getByText("Chapters"), "pointerup");
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
+    advance(20_000);
+    expect(controls.reset).not.toHaveBeenCalled();
+  });
+
+  it("a press that travels off the globe and is released elsewhere is not a tap", async () => {
+    const { controls } = await holding();
+    gesture(screen.getByText("Chapters"), "pointerup", 40);
+    expect(flightButton()).toHaveAccessibleName("Stop the replay");
+    advance(REPLAY_HOLD_MS);
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("a drag of the globe stops it for good, and no hold ends under the finger", async () => {
+    const { controls } = await holding();
+    const stage = stageGroup();
+    act(() => {
+      fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100 });
+    });
+    // Still held past the end of the hold: the camera must not reset under it.
+    advance(REPLAY_HOLD_MS * 2);
+    expect(controls.reset).not.toHaveBeenCalled();
+    act(() => {
+      fireEvent.pointerUp(stage, { pointerId: 1, clientX: 180, clientY: 100 });
+    });
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
+    advance(20_000);
+    expect(controls.reset).not.toHaveBeenCalled();
   });
 
   it("never loops under reduced motion", async () => {

@@ -708,6 +708,60 @@ test.describe("the live globe", () => {
     });
   });
 
+  test("a touch scroll that starts on the globe leaves the replay running", async ({ browser, page }) => {
+    test.setTimeout(60_000);
+    // A phone visitor scrolling on past the globe: a real touch gesture, which
+    // the browser takes over for the page scroll and ends in pointercancel.
+    const context = await browser.newContext({ viewport: page.viewportSize() ?? undefined, hasTouch: true });
+    const phone = await context.newPage();
+    try {
+      await phone.goto("/#worlds");
+      const stage = await reachLiveGlobe(phone);
+      await phone.evaluate(() => {
+        const counts = window as unknown as { __downs: number; __cancels: number };
+        counts.__downs = 0;
+        counts.__cancels = 0;
+        const stageElement = document.querySelector('#worlds [aria-roledescription="globe"]');
+        stageElement?.addEventListener("pointerdown", () => (counts.__downs += 1), true);
+        stageElement?.addEventListener("pointercancel", () => (counts.__cancels += 1), true);
+      });
+      const box = await stage.boundingBox();
+      if (!box) throw new Error("the stage has no box");
+      const before = await phone.evaluate(() => window.scrollY);
+      // Raw touch points through the browser's input pipeline. CDP's
+      // `synthesizeScrollGesture` does not scroll this headless shell (it
+      // ends in pointerup, measured), so it cannot stand in for a phone.
+      const cdp = await context.newCDPSession(phone);
+      const x = Math.round(box.x + box.width / 2);
+      const y = Math.round(box.y + box.height / 2);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      for (let step = 1; step <= 12; step += 1) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y - step * 12 }] });
+        await phone.waitForTimeout(16);
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await phone.waitForTimeout(300);
+
+      // The gesture really did start on the stage and really became a scroll.
+      const { downs, cancels, scrolled } = await phone.evaluate((start) => {
+        const counts = window as unknown as { __downs: number; __cancels: number };
+        return { downs: counts.__downs, cancels: counts.__cancels, scrolled: window.scrollY - start };
+      }, before);
+      expect(downs, "the touch never reached the stage").toBeGreaterThan(0);
+      expect(cancels, "the browser never took the gesture over for the scroll").toBeGreaterThan(0);
+      expect(scrolled, "the page did not scroll").toBeGreaterThan(0);
+
+      // Read once: the replay's own checks cannot turn the label back to
+      // "Stop the replay", so a single read is the whole claim.
+      expect(
+        await phone.locator("#worlds [data-replay]").textContent(),
+        "a touch scroll over the globe stopped the replay",
+      ).toBe("Stop the replay");
+    } finally {
+      await context.close();
+    }
+  });
+
   test("picking a chapter stops the replay for good", async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/#worlds");

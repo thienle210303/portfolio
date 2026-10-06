@@ -41,6 +41,7 @@ import {
   robotLights,
   type RobotHold,
 } from "./gl/robot";
+import { TAP_SLOP_PX } from "./gestures";
 import { settleMotion } from "./settle";
 
 /**
@@ -73,13 +74,14 @@ import { settleMotion } from "./settle";
  * loop returns without scheduling, `view.running` goes false, and the page
  * costs nothing until something wakes it again: the visitor, or the stage's
  * replay of the crossing (`WorldsStage.tsx`). The replay runs only while at
- * least half the stage is in view, stops for good on any press, key, click
- * or focus in the section, never runs under reduced motion, and between
+ * least half the stage is in view, stops for good on any tap, drag of the
+ * globe, key, click or focus in the section (a press the page scroll takes
+ * over does not count), never runs under reduced motion, and between
  * cycles holds timers, not frames. So the replay asks for zero frames after
  * any interaction, for good; whenever less than half the stage is on screen;
  * under reduced motion; and through every hold between cycles. It asks for
- * frames only while a cycle's flight, landing tail or return is on screen. `e2e/worlds.spec.ts`
- * measures exactly that — but *not* by counting `requestAnimationFrame`
+ * frames only while a cycle's flight, landing tail or return is on screen.
+ * `e2e/worlds.spec.ts` measures exactly that — but *not* by counting `requestAnimationFrame`
  * page-wide, which cannot express the claim here: the companion cats hold a
  * 60 Hz loop of their own open on this page, so a page-wide count would fail
  * against a perfect globe. Its `measureGlobeFrames` attributes frames to this
@@ -167,8 +169,6 @@ const DEG = Math.PI / 180;
  *  all. */
 const EAST_FOR_FLIGHT = 2.6;
 
-/** A press that moves less than this is a tap on a marker, not a roll. */
-const TAP_SLOP_PX = 6;
 
 /** Below this, inertia is over. Chosen so a flick settles inside the 1.5s the
  *  spec asks for at the decay rate below. */
