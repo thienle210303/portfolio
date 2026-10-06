@@ -59,10 +59,10 @@ export default function Closing() {
       {/* One action, not two (round 15): the colophon line directly below —
           same tone scope since the footer joined this chapter — already
           carries the page's single "Back to top", so a second boxed copy a
-          few hundred pixels above it was pure duplication. "Get in touch"
-          stays as the chapter's one primary control. */}
+          few hundred pixels above it was pure duplication. "Get in touch" is a
+          secondary control: the page's one blue fill is Contact's send. */}
       <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
-        <Button href="#contact" variant="primary" size="md">
+        <Button href="#contact" variant="secondary" size="md">
           Get in touch
         </Button>
       </div>

@@ -173,6 +173,13 @@ describe("WorldsStage, the crossing plays itself once", () => {
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
+  it("draws the flight button without an accent fill (Contact's send is the page's one blue control)", async () => {
+    await stageWithLiveGlobe();
+    const { className } = screen.getByRole("button", { name: /take the flight/i });
+    expect(className).not.toMatch(/(^|\s)bg-\[color:var\(--accent\)\]/);
+    expect(className).not.toMatch(/(^|\s)bg-accent(\s|$)/);
+  });
+
   it("still announces a flight the visitor asked for", async () => {
     const user = userEvent.setup();
     const { observer, controls } = await stageWithLiveGlobe();

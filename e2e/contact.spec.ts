@@ -62,6 +62,32 @@ test("after choosing, the send button is the only blue fill in Contact", async (
   expect(blue).toEqual(["Send it as written"]);
 });
 
+test("the whole page has one blue fill, and it is Contact's send", async ({ page }) => {
+  await page
+    .locator("#contact")
+    .getByRole("radio", { name: contactIntents[0].label, exact: true })
+    .check();
+  // The globe's controls only take their ready style once the lazy chunk has
+  // loaded, so wait for that before scanning the page.
+  const worlds = page.locator("#worlds");
+  await worlds.scrollIntoViewIfNeeded();
+  const flight = worlds.getByRole("button", { name: /take the flight|stop the replay/i });
+  await expect(flight).toBeVisible({ timeout: 20_000 });
+  // Hairlines are not fills: the nav's 1px active-underline (one per link)
+  // uses `bg-accent` to draw a rule, so only boxes taller than 2px count.
+  const blue = await page.evaluate(() =>
+    Array.from(document.body.querySelectorAll("*"))
+      .filter((el) => el.getBoundingClientRect().height > 2)
+      .filter((el) =>
+        [/(^|\s)bg-accent(\s|$)/, /(^|\s)bg-\[color:var\(--accent\)\](\s|$)/].some((fill) =>
+          fill.test(el.getAttribute("class") ?? ""),
+        ),
+      )
+      .map((el) => el.textContent?.trim()),
+  );
+  expect(blue).toEqual(["Send it as written"]);
+});
+
 test("adding a line opens the draft in an editable textarea", async ({ page }) => {
   const contact = page.locator("#contact");
   const intent = contactIntents[1];

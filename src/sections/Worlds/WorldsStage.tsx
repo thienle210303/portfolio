@@ -433,15 +433,11 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
             onClick={handleFly}
             className={cn(
               "min-h-11 px-5",
-              // The accent fill is reserved for a control that is actually
-              // the primary action right now (SPEC: blue is never
-              // decoration). Disabled, this matches the reset button's own
-              // resting style exactly rather than fading the accent fill —
-              // faded accent-on-fg-inverse measured under AA (3.69:1 day,
-              // 4.22:1 night at 70% opacity); this combination measures the
-              // same as the already-AA reset button beside it.
+              // No accent fill here: the page's one blue control is
+              // Contact's send (SPEC §4). Ready, this is the reset button's
+              // resting style; disabled, the same box is dimmed.
               controlsReady
-                ? "border border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)]"
+                ? "border border-rule text-[color:var(--fg)]"
                 : "pointer-events-none border border-rule text-[color:var(--fg)] opacity-70",
             )}
           >
