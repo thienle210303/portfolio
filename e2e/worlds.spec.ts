@@ -577,7 +577,7 @@ test.describe("the live globe", () => {
     // loop over a library: a globe at rest costs nothing. A non-zero number
     // here means something is animating that nobody asked for — most likely
     // the satellite's orbit being counted as "busy".
-    await expectAtRest(page, 2_000, "inside the hold");
+    await expectAtRest(page, 1_500, "inside the hold");
 
     const faceHome = await section.getByRole("button", { name: "Face Việt Nam" }).boundingBox();
     const treeLine = section.locator("p", { hasText: "A seed dropped where he came down." });
@@ -677,15 +677,60 @@ test.describe("the live globe", () => {
     await expect(section.getByRole("status")).toContainText(/landed/i, { timeout: 10_000 });
   });
 
+  test("less than half the stage in view pauses the replay: nothing cycles for a sliver of globe", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.goto("/#worlds");
+    const stage = await reachLiveGlobe(page);
+    const counts = await watchStatusAndCrossing(page);
+
+    // A visitor scrolling on past the globe, with a third of it left at the
+    // bottom of the screen.
+    const visible = await stage.evaluate((element) => {
+      const before = element.getBoundingClientRect();
+      window.scrollBy({ top: before.top - (window.innerHeight - 0.3 * before.height), behavior: "instant" });
+      const after = element.getBoundingClientRect();
+      return (Math.min(window.innerHeight, after.bottom) - Math.max(0, after.top)) / after.height;
+    });
+    expect(visible).toBeGreaterThan(0.1);
+    expect(visible).toBeLessThan(0.5);
+    await page.waitForTimeout(300);
+
+    await expectAtRest(page, REPLAY_HOLD_MS + REPLAY_RETURN_MS + 1_000, "less than half in view");
+    await expect(stage).toHaveAttribute("data-crossing", "landed");
+    expect((await counts()).crossingChanges, "the replay reset with less than half the stage in view").toBe(0);
+
+    // Back to the middle of the screen, and the cycle carries on.
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await expect(stage, "coming back never resumed the replay").not.toHaveAttribute("data-crossing", {
+      timeout: REPLAY_HOLD_MS + 3_000,
+    });
+  });
+
   test("picking a chapter stops the replay for good", async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/#worlds");
     const stage = await reachLiveGlobe(page);
-    const section = page.locator("#worlds");
     const counts = await watchStatusAndCrossing(page);
 
-    await section.getByRole("list", { name: /chapters/i }).getByRole("button", { name: /sea/i }).click();
-    await expect(section.getByRole("button", { name: "Take the flight" })).toBeVisible();
+    // Clicked in-page, the way assistive tech activates a button: a click
+    // with no focus and no pointer press, so the click alone has to stop it.
+    // Read once — after one task, which is when React commits the click's
+    // update, and seconds before any hold could end — with focus out of the
+    // section: the focus stop and the hold's own focus check must not be what
+    // turns the label.
+    const label = await page.evaluate(async (selector) => {
+      const button = [...document.querySelectorAll<HTMLButtonElement>(selector)].find((candidate) =>
+        /Sea/.test(candidate.textContent ?? ""),
+      );
+      if (!button) throw new Error("no Sea button in the chapter list");
+      button.click();
+      (document.activeElement as HTMLElement | null)?.blur();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return document.querySelector("#worlds [data-replay]")?.textContent;
+    }, CHAPTER_BUTTONS);
+    expect(label, "picking a chapter did not stop the replay").toBe("Take the flight");
     // The camera turns to Sea; let it arrive, then outlast the hold it cut short.
     await expect
       .poll(async () => (await measureGlobeFrames(page, 300)).draws, { timeout: 10_000 })

@@ -144,9 +144,9 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // for `REPLAY_HOLD_MS`, ease back to Việt Nam, wait out `REPLAY_RETURN_MS`,
   // fly again. `loopRef` is where that stands: "idle" until the stage first
   // comes into view, "looping" from then, and "stopped" for good after any
-  // press, key or click in the section (see `stopReplay`), and at once under
-  // reduced motion, where the one landing is all there is. Leaving view
-  // pauses a loop rather than stopping it: `pausedRef` says the next entry
+  // press, key, click or focus in the section (see `takeOver`), and at once
+  // under reduced motion, where the one landing is all there is. Dropping
+  // below half in view pauses a loop rather than stopping it: `pausedRef` says the next entry
   // has a cycle to pick up. Between cycles only `timerRef` is pending, never
   // a frame. `looping` mirrors "looping" for the flight button's label.
   // `quietRef` is true only while a flight nobody asked for is in the air:
@@ -184,15 +184,21 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // One pending step of the cycle. Each step re-asks, when it is due, what
   // could have changed while it waited: the motion preference (asked, not
   // subscribed to — no listener in the initial bundle), a hidden tab (wait
-  // the same again rather than reset for nobody), and keyboard focus inside
-  // the section (a visitor is there; do not move the globe under them).
+  // the same again rather than reset for nobody), and focus inside the
+  // section (a visitor is there; do not move the globe under them). Focus
+  // entering already stops the loop (`takeOver`); this catches focus that
+  // was there before. "Stop the replay" itself is exempt, so a visitor
+  // parked on it keeps a button that still says what it does.
   const arm = useCallback(
     (wait: number, advance: () => void) => {
       const tick = () => {
         timerRef.current = undefined;
+        // Every stop clears this timer; this makes a missed clear harmless.
+        if (loopRef.current !== "looping") return;
+        const focused = document.activeElement;
         if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true) stopReplay();
         else if (document.hidden) timerRef.current = window.setTimeout(tick, wait);
-        else if (rootRef.current?.contains(document.activeElement)) stopReplay();
+        else if (focused && rootRef.current?.contains(focused) && !focused.closest("[data-replay]")) stopReplay();
         else advance();
       };
       clearReplayTimer();
@@ -256,9 +262,9 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     setLanded(true);
     if (quietRef.current) {
       quietRef.current = false;
-      // A landing the stage settled on its way out of view holds nothing:
-      // the next entry picks the cycle up from here.
-      if (loopRef.current === "looping" && inViewRef.current) scheduleHold();
+      // A landing the stage settled on its way out of view (or below half of
+      // it) holds nothing: the next entry picks the cycle up from here.
+      if (loopRef.current === "looping" && !pausedRef.current) scheduleHold();
       return;
     }
     // Every clause here is now something the canvas has actually drawn. Round
@@ -386,10 +392,11 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // The replay: a second observer, kept apart from the import's (which
   // disconnects on its first hit) because this one has to keep watching. Half
   // the stage in view starts the loop, or picks a paused one up: a landed
-  // globe holds first, one back at Việt Nam flies at once. The stage leaving
-  // the viewport clears the pending step and settles whatever is still
-  // moving, so nothing animates for nobody. Under reduced motion the first
-  // entry lands the crossing in one draw and the loop never starts.
+  // globe holds first, one back at Việt Nam flies at once. Less than half in
+  // view pauses the loop (pending step cleared, replay settled); a full exit
+  // also settles the visitor's own motion, so nothing animates for nobody.
+  // Under reduced motion the first entry lands the crossing in one draw and
+  // the loop never starts.
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage || !controlsReady) return;
@@ -399,13 +406,17 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
         const controls = controlsRef.current;
         if (!controls) return;
         inViewRef.current = entry.isIntersecting;
-        if (!entry.isIntersecting) {
-          if (loopRef.current === "looping") pausedRef.current = true;
-          clearReplayTimer();
-          controls.settle();
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
+          // Less than half in view is not watched, for the replay: a sliver
+          // of globe at the edge of the screen must not cycle for nobody.
+          // The visitor's own motion is settled only on a full exit.
+          if (loopRef.current === "looping") {
+            pausedRef.current = true;
+            clearReplayTimer();
+            controls.settle();
+          } else if (!entry.isIntersecting) controls.settle();
           return;
         }
-        if (entry.intersectionRatio < 0.5) return;
         if (loopRef.current === "idle") {
           if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true) {
             loopRef.current = "stopped";
@@ -436,11 +447,13 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // Unmounting mid-hold leaves no timer behind to reset a globe that is gone.
   useEffect(() => clearReplayTimer, [clearReplayTimer]);
 
-  // Any press, key or click in the section is a visitor taking over, and the
-  // replay stops for good. Capture phase, so a handler that stops propagation
-  // cannot hide it. The flight button is exempt: as "Stop the replay" it
-  // would otherwise re-render as "Take the flight" on `pointerdown`, before
-  // its own `click`, and that click would fly him. It stops the loop itself.
+  // Any press, key, click or focus in the section is a visitor taking over,
+  // and the replay stops for good — at once, so no control changes under
+  // someone who has just reached it. Capture phase, so a handler that stops
+  // propagation cannot hide it. The flight button is exempt: as "Stop the
+  // replay" it would otherwise re-render as "Take the flight" on
+  // `pointerdown` or focus, before its own `click`, and that click would fly
+  // him. It stops the loop itself.
   function takeOver(event: { target: EventTarget }) {
     if (event.target instanceof Element && event.target.closest("[data-replay]")) return;
     if (loopRef.current !== "stopped") stopReplay();
@@ -493,6 +506,7 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
       onPointerDownCapture={takeOver}
       onKeyDownCapture={takeOver}
       onClickCapture={takeOver}
+      onFocusCapture={takeOver}
       className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-12"
     >
       <div>
@@ -591,17 +605,20 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
             out, though: the crossing now lands by itself on every visit, and a
             line inserted then would shift everything below it (CLS). Hidden
             with `visibility`, which also takes it out of the accessibility
-            tree and the tab order, so nothing reads or reaches it early. The
-            one link out of this section, and it is the link the drawing has
-            just made: the career tree grows from that spot. */}
-        <p
-          style={landed ? undefined : { visibility: "hidden" }}
-          className="mt-3 text-center text-[length:var(--step--1)] text-[color:var(--fg-muted)]"
-        >
-          A seed dropped where he came down.{" "}
-          <a href="#tree" className="ink-link">
-            The career tree grows from that spot →
-          </a>
+            tree and the tab order, so nothing reads or reaches it early.
+            Only the contents are hidden, never the <p>: `elementsFromPoint`
+            skips hidden boxes, so a hidden <p> reads to the companion cats as
+            free ground, and the replay shows it again every cycle — under
+            whichever cat stopped there. The one link out of this section, and
+            it is the link the drawing has just made: the career tree grows
+            from that spot. */}
+        <p className="mt-3 text-center text-[length:var(--step--1)] text-[color:var(--fg-muted)]">
+          <span style={landed ? undefined : { visibility: "hidden" }}>
+            A seed dropped where he came down.{" "}
+            <a href="#tree" className="ink-link">
+              The career tree grows from that spot →
+            </a>
+          </span>
         </p>
       </div>
 

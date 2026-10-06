@@ -1435,3 +1435,10 @@ fill" at 320 and 375 px: the globe chunk was never fetched, because the test
 scrolled the section's top into view and left the stage outside the import
 observer's margin. Fixed in this commit by scrolling the stage; after the fix
 `contact.spec.ts` passed 71 of 71 at all six viewports.
+
+**Fix round 1** (same method, same port): initial JS **204,636 B** in all three
+runs, 0 skipped. That is +44 B over the first Task 4 build and +378 B over
+204,258 B. LCP 2436–2472 ms, TBT 402–556 ms, CLS 0. DOM nodes 3189 → 3190: the
+career-tree line now hides a `<span>` inside its `<p>` instead of the `<p>`
+itself. The four affected specs (worlds, axe, contact, companion) passed at
+`--workers=2` across all six viewports: 419 passed, 0 failed, 499 skipped.

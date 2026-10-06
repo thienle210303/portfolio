@@ -149,7 +149,10 @@ type User = ReturnType<typeof userEvent.setup>;
 
 /** user-event under vitest's fake timers. Testing Library waits out a
  *  `setTimeout(0)` after every event and advances it only when it sees a
- *  `jest` global, so without one each press hangs until the test times out. */
+ *  `jest` global, so without one each press hangs until the test times out.
+ *  With the stub in place, a `waitFor` or `findBy*` after this call would
+ *  advance the fake clock by its polling interval on every retry, and move
+ *  the hold under the test: use neither after it. */
 function fakeTimerUser() {
   vi.stubGlobal("jest", { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) });
   return userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) });
@@ -343,12 +346,46 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(controls.fly).toHaveBeenCalledTimes(2);
   });
 
-  it("a dip below half the stage and back does not restart a flight in the air", async () => {
+  it("a dip below half the stage lands a flight in the air, and coming back holds rather than re-flying", async () => {
     const { observer, controls } = await stageWithLiveGlobe();
+    // The real globe's settle lands a flight in the air, quietly.
+    controls.settle.mockImplementation(() => globe.land());
+    vi.useFakeTimers();
     observer.report(0.6);
     observer.report(0.3);
+    expect(controls.settle).toHaveBeenCalledTimes(1);
+    expect(stageGroup()).toHaveAttribute("data-crossing", "landed");
+    advance(20_000);
+    expect(controls.reset).not.toHaveBeenCalled();
     observer.report(0.6);
     expect(controls.fly).toHaveBeenCalledTimes(1);
+    advance(REPLAY_HOLD_MS);
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("less than half the stage in view pauses a hold: no reset, no flight, while mostly scrolled away", async () => {
+    const { observer, controls } = await holding();
+    advance(REPLAY_HOLD_MS / 2);
+    observer.report(0.3);
+    expect(controls.settle).toHaveBeenCalledTimes(1);
+    advance(20_000);
+    expect(controls.reset).not.toHaveBeenCalled();
+    expect(controls.fly).toHaveBeenCalledTimes(1);
+    // Half back in view: the hold starts again.
+    observer.report(0.6);
+    advance(REPLAY_HOLD_MS);
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("a visitor's own motion is settled only on a full exit, not on a dip below half", async () => {
+    const user = fakeTimerUser();
+    const { observer, controls } = await holding();
+    await user.click(screen.getByRole("button", { name: "Stop the replay" }));
+    controls.settle.mockClear();
+    observer.report(0.3);
+    expect(controls.settle).not.toHaveBeenCalled();
+    observer.report(0);
+    expect(controls.settle).toHaveBeenCalledTimes(1);
   });
 
   it.each<[string, (user: User) => Promise<void>]>([
@@ -404,11 +441,28 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(controls.fly).toHaveBeenCalledTimes(1);
   });
 
-  it("a focused control in the section stops the cycle instead of resetting under it", async () => {
+  it("focus entering the section stops the replay at once, not when the hold ends", async () => {
     const { controls } = await holding();
-    screen.getByRole("link", { name: /career tree/i }).focus();
+    act(() => screen.getByRole("link", { name: /career tree/i }).focus());
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
     advance(REPLAY_HOLD_MS);
     expect(controls.reset).not.toHaveBeenCalled();
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
+    advance(20_000);
+    expect(controls.fly).toHaveBeenCalledTimes(1);
+  });
+
+  it("focus on Stop the replay itself keeps the loop, and the name, until it is pressed", async () => {
+    const { controls } = await holding();
+    const user = fakeTimerUser();
+    const stop = screen.getByRole("button", { name: "Stop the replay" });
+    act(() => stop.focus());
+    advance(REPLAY_HOLD_MS);
+    // The cycle carried on, and the focused button still says what it does.
+    expect(controls.reset).toHaveBeenCalledTimes(1);
+    expect(stop).toHaveAccessibleName("Stop the replay");
+    await user.keyboard("{Enter}");
+    expect(controls.settle).toHaveBeenCalledTimes(1);
     expect(flightButton()).toHaveAccessibleName("Take the flight");
     advance(20_000);
     expect(controls.fly).toHaveBeenCalledTimes(1);
