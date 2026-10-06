@@ -187,7 +187,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
   const scope = idScope ? `-${idScope}` : "";
 
   const titleId = `${project.id}-title${scope}`;
-  const taglineId = `${project.id}-tagline${scope}`;
+  const recordingDescriptionId = `${project.id}-recording${scope}`;
   const techLabelId = `${project.id}-tech-label${scope}`;
   const proofLabelId = `${project.id}-proof-label${scope}`;
   const metricsLabelId = `${project.id}-metrics-label${scope}`;
@@ -266,7 +266,6 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
         </h3>
 
         <p
-          id={taglineId}
           className="prose-measure mt-4 text-[length:var(--step-1)] leading-[1.6] text-[color:var(--fg)]"
         >
           {project.tagline}
@@ -330,14 +329,13 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
         </div>
       ) : null}
 
-      {project.recording ? (
+      {project.recording && project.recordingDescription ? (
         <div className="no-print mt-8">
-          {/* The tagline is the recording's text alternative: the
-              author's own sentence for what the project is. */}
           <ProjectRecording
-            project={project}
+            title={project.title}
             recording={project.recording}
-            describedBy={taglineId}
+            description={project.recordingDescription}
+            descriptionId={recordingDescriptionId}
           />
         </div>
       ) : null}

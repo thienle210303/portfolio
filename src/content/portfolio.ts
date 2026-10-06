@@ -1151,6 +1151,7 @@ export const projects = [
   {
     id: "chess-minmax",
     recording: "chess",
+    recordingDescription: "A desktop chess window: pieces move one turn at a time, each move is highlighted on the board, and the move list grows beside it.",
     title: "Chess and a min-max bot",
     tagline:
       "A chess game and a min-max bot, built from a YouTube video — no class, no client, no résumé line.",
@@ -1181,6 +1182,7 @@ export const projects = [
   {
     id: "conscea",
     recording: "conscea",
+    recordingDescription: "The Conscea web app's Certificate List, Dashboard and Profile pages, opened in turn from its top menu, with empty tables and blank profile fields.",
     title: "Conscea — employee certificates",
     tagline:
       "A business application for managing employee certificates, built with classmates. The website has fully developed functionality; the recording shows only its protocol, due to data privacy.",
@@ -1213,6 +1215,7 @@ export const projects = [
   {
     id: "degreeworks-rebuild",
     recording: "degreework",
+    recordingDescription: "A University of South Carolina degree-audit desktop app: a sign-up form, a course search with a course's details, a semester-by-semester plan and a degree-progress chart.",
     title: "A better version of DegreeWorks",
     tagline:
       "A better version of UofSC DegreeWorks, built with classmates in a software-engineering course.",
@@ -1246,6 +1249,7 @@ export const projects = [
   {
     id: "toy-storefront",
     recording: "toys",
+    recordingDescription: "The JVToys storefront: its home page, a contact form, product cards and a product pop-up, a cart with quantities and a total, and a sign-in page.",
     title: "A toy storefront",
     tagline: "An e-commerce platform for toy sales, built with a team of three.",
     careerEntryId: "usc-degree",

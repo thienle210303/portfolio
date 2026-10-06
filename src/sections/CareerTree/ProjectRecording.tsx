@@ -10,7 +10,6 @@
  * `play()` call is the user's own press), and no `loop` under reduced motion.
  */
 import { useEffect, useRef, useState } from "react";
-import type { Project } from "@/types/portfolio";
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
@@ -28,8 +27,8 @@ interface RecordingVideoProps {
   readonly recording: string;
   readonly title: string;
   readonly loop: boolean;
-  /** The id of the case study's own authored prose that says what the
-   *  recording is of: its text alternative (WCAG 1.2.1), invented nowhere. */
+  /** The id of the caption that says what the recording visibly shows: its
+   *  text alternative (WCAG 1.2.1). */
   readonly describedBy: string;
 }
 
@@ -63,35 +62,35 @@ export function RecordingVideo({ recording, title, loop, describedBy }: Recordin
 }
 
 interface ProjectRecordingProps {
-  readonly project: Pick<Project, "title">;
+  readonly title: string;
   readonly recording: string;
-  readonly describedBy: string;
+  readonly description: string;
+  readonly descriptionId: string;
 }
 
-export default function ProjectRecording({ project, recording, describedBy }: ProjectRecordingProps) {
+export default function ProjectRecording({ title, recording, description, descriptionId }: ProjectRecordingProps) {
   // The motion preference only matters at the press, so it is read once,
   // there, rather than subscribed to by every closed case study on the page.
   const [pressed, setPressed] = useState<null | { readonly loop: boolean }>(null);
-  if (!pressed) {
-    return (
-      <button
-        type="button"
-        // Four of these sit on the page; the title tells them apart. The
-        // visible text leads the name, so speech input still matches it.
-        aria-label={`Play the screen recording of ${project.title}`}
-        onClick={() => setPressed({ loop: !window.matchMedia(REDUCED_MOTION).matches })}
-        className={PLAY_BUTTON_CLASS}
-      >
-        Play the screen recording
-      </button>
-    );
-  }
   return (
-    <RecordingVideo
-      recording={recording}
-      title={project.title}
-      loop={pressed.loop}
-      describedBy={describedBy}
-    />
+    <>
+      {pressed ? (
+        <RecordingVideo recording={recording} title={title} loop={pressed.loop} describedBy={descriptionId} />
+      ) : (
+        <button
+          type="button"
+          // Four of these sit on the page; the title tells them apart. The
+          // visible text leads the name, so speech input still matches it.
+          aria-label={`Play the screen recording of ${title}`}
+          onClick={() => setPressed({ loop: !window.matchMedia(REDUCED_MOTION).matches })}
+          className={PLAY_BUTTON_CLASS}
+        >
+          Play the screen recording
+        </button>
+      )}
+      <p id={descriptionId} className="mt-2 text-[length:var(--step--1)] text-fg-muted">
+        {description}
+      </p>
+    </>
   );
 }

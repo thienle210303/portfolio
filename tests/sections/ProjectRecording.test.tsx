@@ -6,11 +6,18 @@ import CaseStudy from "@/sections/CareerTree/CaseStudy";
 import { Button } from "@/components/ui/Button";
 import { projects } from "@/content/portfolio";
 
-const project = { id: "chess-minmax", title: "A chess engine", recording: "chess" } as const;
+const DESCRIPTION = "A desktop chess window: pieces move one turn at a time.";
 const PLAY = "Play the screen recording of A chess engine";
 
 function renderRecording() {
-  return render(<ProjectRecording project={project} recording="chess" describedBy="chess-tagline" />);
+  return render(
+    <ProjectRecording
+      title="A chess engine"
+      recording="chess"
+      description={DESCRIPTION}
+      descriptionId="chess-recording"
+    />,
+  );
 }
 
 function stubReducedMotion(reduce: boolean) {
@@ -80,9 +87,19 @@ describe("a project recording", () => {
     expect(video.getAttribute("src")).toBe("/media/chess.mp4");
     expect(video.getAttribute("aria-label")).toBe("A chess engine — screen recording");
     expect(video.hasAttribute("loop")).toBe(true);
-    expect(video.getAttribute("aria-describedby")).toBe("chess-tagline");
+    expect(video.getAttribute("aria-describedby")).toBe("chess-recording");
     // 16:9 before the poster arrives, so the press shifts nothing below it.
     expect(video.className.split(/\s+/)).toContain("aspect-video");
+  });
+
+  it("shows the description as a visible caption before and after the press", () => {
+    stubReducedMotion(false);
+    const { container } = renderRecording();
+    const caption = screen.getByText(DESCRIPTION);
+    expect(caption.id).toBe("chess-recording");
+    fireEvent.click(screen.getByRole("button", { name: PLAY }));
+    expect(screen.getByText(DESCRIPTION)).toBeVisible();
+    expect(container.querySelector("video")).toHaveAccessibleDescription(DESCRIPTION);
   });
 
   it("drops the loop under reduced motion", () => {
@@ -123,7 +140,7 @@ describe("a project recording", () => {
     // React never emits `muted` as an attribute on the client, so the
     // post-press state is asserted on the server markup of the same element.
     const html = renderToString(
-      <RecordingVideo recording="chess" title="A chess engine" loop describedBy="chess-tagline" />,
+      <RecordingVideo recording="chess" title="A chess engine" loop describedBy="chess-recording" />,
     );
     expect(html).toContain('muted=""');
     expect(html).toContain('preload="none"');
@@ -138,11 +155,19 @@ describe("a recording inside its case study", () => {
     expect(recorded.map((candidate) => candidate.recording)).toEqual(["chess", "conscea", "degreework", "toys"]);
   });
 
+  it("every project with a recording has a non-empty description", () => {
+    for (const candidate of recorded) {
+      expect(candidate.recordingDescription?.trim(), candidate.id).toBeTruthy();
+    }
+  });
+
   it.each(recorded.map((candidate) => [candidate.id, candidate] as const))(
-    "%s: is described by the case study's own tagline, which is authored text (WCAG 1.2.1)",
+    "%s: is described by its own caption, visible before and after the press (WCAG 1.2.1)",
     (_id, recordedProject) => {
       stubReducedMotion(false);
+      const description = recordedProject.recordingDescription ?? "";
       const { container } = render(<CaseStudy project={recordedProject} index={0} />);
+      expect(screen.getByText(description)).toBeVisible();
       const button = screen.getByRole("button", {
         name: `Play the screen recording of ${recordedProject.title}`,
       });
@@ -150,13 +175,11 @@ describe("a recording inside its case study", () => {
       fireEvent.click(button);
       const video = container.querySelector("video");
       if (!video) throw new Error("no video after the press");
-      const describedBy = video.getAttribute("aria-describedby");
+      const describedBy = video.getAttribute("aria-describedby") ?? "";
       expect(describedBy).toBeTruthy();
-      const description = document.getElementById(describedBy ?? "");
-      expect(description, "aria-describedby points at nothing").not.toBeNull();
-      expect(description?.textContent?.trim()).not.toBe("");
-      expect(description?.textContent).toBe(recordedProject.tagline);
-      expect(video).toHaveAccessibleDescription(recordedProject.tagline);
+      expect(container.querySelectorAll(`[id="${describedBy}"]`)).toHaveLength(1);
+      expect(document.getElementById(describedBy)?.textContent).toBe(description);
+      expect(video).toHaveAccessibleDescription(description);
     },
   );
 });

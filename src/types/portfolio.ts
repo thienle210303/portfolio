@@ -237,6 +237,8 @@ export interface Project {
   readonly source?: ProjectLink;
   /** Media id: `public/media/<id>.mp4` and `<id>.jpg`. Loaded only on request. */
   readonly recording?: string;
+  /** One plain sentence of what the recording visibly shows: its text alternative (WCAG 1.2.1). Required when `recording` is set. */
+  readonly recordingDescription?: string;
   /** Set when the deep dive is deliberately not yet written out. */
   readonly inProgressNote?: string;
 }
