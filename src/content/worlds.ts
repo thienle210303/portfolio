@@ -128,6 +128,8 @@ export const worlds = [
     decorations: [
       { glyph: "robot", draws: "a robot's first lap, unsupervised: city lights go out behind it" },
       { glyph: "robot", draws: "a robot's second lap, with a human in the loop: city lights come back brighter" },
+      { glyph: "moon", draws: "a moon over the robot's first lap, while the lights go out" },
+      { glyph: "sun", draws: "a sun over the robot's second lap, while the lights come back" },
     ],
   },
 ] satisfies readonly World[];

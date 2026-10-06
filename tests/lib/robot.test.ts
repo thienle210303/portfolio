@@ -6,6 +6,7 @@ import {
   lightLevel,
   robotLights,
   robotPass,
+  robotSky,
 } from "@/sections/Worlds/gl/robot";
 
 describe("the robot's two passes", () => {
@@ -87,5 +88,20 @@ describe("the walk's length and its two held states", () => {
     for (let lon = -179; lon <= 179; lon += 1) {
       expect(lightLevel(lights, lon)).toBeGreaterThan(robotPass(0).cityLight);
     }
+  });
+});
+
+describe("the body over each lap", () => {
+  it("is nothing below zero, a Moon over the dark lap and a Sun over the lit one", () => {
+    expect(robotSky(-1)).toBeNull();
+    expect(robotSky(0)).toBe("moon");
+    expect(robotSky(0.49)).toBe("moon");
+    expect(robotSky(0.5)).toBe("sun");
+    expect(robotSky(1)).toBe("sun");
+  });
+
+  it("agrees with the two still holds", () => {
+    expect(robotSky(ROBOT_HOLDS.unsupervised)).toBe("moon");
+    expect(robotSky(ROBOT_HOLDS["human-in-the-loop"])).toBe("sun");
   });
 });

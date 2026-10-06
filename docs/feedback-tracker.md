@@ -1449,3 +1449,11 @@ over 204,258 B**. The new code is the press handlers (tap, globe drag or
 scroll), their window listeners, and the shared `gestures.ts` constant. LCP
 2640–2820 ms, TBT 258–564 ms, CLS 0, DOM nodes 3190. `worlds.spec.ts` at
 `--workers=2`, six viewports: 240 passed, 0 failed.
+
+**Plan D Task 5** (Moon and Sun over the robot's laps; same method, same port,
+`pnpm perf` three runs): initial JS **205,035 B** in all three, 0 skipped. That
+is +125 B over fix rounds 2 and 3 (204,910 B) and **+777 B over 204,258 B**:
+two glyph paths in `glyphs.ts` (initial bundle through `WorldPanel`), two
+decoration strings, and `robotSky`. LCP 2472–2708 ms, TBT 295–659 ms, CLS 0,
+DOM nodes 3190. `worlds`, `axe` and `companion` specs at `--workers=2`, six
+viewports: 366 passed, 0 failed, 480 skipped.

@@ -405,6 +405,8 @@ export type GlyphId =
   | "cat"
   | "sat"
   | "robot"
+  | "sun"
+  | "moon"
   | "chip"
   | "star"
   | "book"

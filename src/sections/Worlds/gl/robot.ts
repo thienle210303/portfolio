@@ -66,6 +66,13 @@ export function lightLevel(lights: RobotLights, lonDegrees: number): number {
  *  seconds on any display. */
 export const ROBOT_WALK_FRAMES = 360;
 
+/** The body drawn over each lap: a Moon while the lights go out, a Sun while
+ *  they come back. Null below zero, like `robotLights`. */
+export function robotSky(progress: number): "moon" | "sun" | null {
+  if (progress < 0) return null;
+  return robotPass(progress).pass === 1 ? "moon" : "sun";
+}
+
 /**
  * Under reduced motion the two passes are two still frames behind a toggle.
  * "Unsupervised" is the instant the dark lap finishes, every light out;

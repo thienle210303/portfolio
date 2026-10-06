@@ -1867,7 +1867,75 @@ test.describe("the robot walks twice", () => {
     expect(await globeSignature(page)).toBe(lit);
     await expectAtRest(page, 700, "the fallback robot, held", SILENT_HZ);
   });
+
+
+  test("a Moon over the dark lap and a Sun over the lit one, on the GL path", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    await requireSurface(page);
+    await expectMoonThenSun(page);
+  });
+
+  test("a Moon over the dark lap and a Sun over the lit one, on the 2D fallback", async ({ page }) => {
+    await withoutWebGL2(page);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    await expect(page.locator(SURFACE)).toHaveCount(0);
+    await expectMoonThenSun(page);
+  });
 });
+
+/**
+ * The ink in the patch of sky where the Moon or Sun hangs: upper left, outside
+ * the limb. Nothing else is drawn there, so a count of zero means no body.
+ * The box is taken from the canvas the way the globe lays itself out (centre at
+ * 44% of the height, radius 0.42 of the smaller of the width and 0.82 of the
+ * height), in device pixels.
+ */
+async function skyBodyInk(page: Page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return { count: -1, hash: "no canvas" };
+    const rect = canvas.getBoundingClientRect();
+    const k = canvas.width / rect.width;
+    const cx = (rect.width / 2) * k;
+    const cy = rect.height * 0.44 * k;
+    const r = Math.min(rect.width, rect.height * 0.82) * 0.42 * k;
+    const x0 = Math.round(cx - 1.15 * r);
+    const x1 = Math.round(cx - 0.8 * r);
+    const y0 = Math.round(cy - 1.2 * r);
+    const y1 = Math.round(cy - 0.85 * r);
+    const { data } = ctx.getImageData(x0, y0, x1 - x0, y1 - y0);
+    let count = 0;
+    let hash = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] === 0) continue;
+      count += 1;
+      hash = (hash * 31 + data[i] + data[i + 1] * 3 + data[i + 2] * 7 + data[i + 3] + i) | 0;
+    }
+    return { count, hash: String(hash) };
+  });
+}
+
+async function expectMoonThenSun(page: Page) {
+  const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
+  await list.getByRole("button", { name: /living earth/i }).click();
+  await page.waitForTimeout(300);
+  expect((await skyBodyInk(page)).count, "a body hangs in the sky with Living Earth open").toBe(0);
+  await list.getByRole("button", { name: /technology/i }).click();
+  const toggle = page.locator("#worlds").getByRole("group", { name: "The robot's two laps" });
+  await page.waitForTimeout(300);
+  const sun = await skyBodyInk(page);
+  expect(sun.count, "no Sun over the lit lap").toBeGreaterThan(0);
+  await toggle.getByRole("button", { name: "Unsupervised" }).click();
+  await page.waitForTimeout(300);
+  const moon = await skyBodyInk(page);
+  expect(moon.count, "no Moon over the dark lap").toBeGreaterThan(0);
+  expect(moon.hash, "the Moon and the Sun are the same drawing").not.toBe(sun.hash);
+}
 
 /**
  * How many pixels of the overlay carry any ink. Coastlines are the bulk of

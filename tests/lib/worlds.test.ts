@@ -115,7 +115,7 @@ describe("resolution keeps everything it should", () => {
       ["sky", 2, 1],
       ["plants", 2, 0],
       ["animals", 3, 0],
-      ["tech", 3, 2],
+      ["tech", 3, 4],
     ]);
   });
 

@@ -44,8 +44,9 @@ export function pickSurface(input: {
 }): SurfaceChoice {
   if (!input.gl) return { useGl: false, reason: "no-context" };
   if (!input.program) return { useGl: false, reason: "no-program" };
-  // Forced colours must not paint the accent; the overlay honours the system
-  // palette and the shader cannot.
+  // Only the overlay honours the system palette, so forced colours keep it and
+  // drop the surface. GlobeCanvas never builds a sphere under forced colours,
+  // so this branch is reached only by a caller that does.
   if (input.forcedColors) return { useGl: false, reason: "forced-colors" };
   return { useGl: true, reason: "ok" };
 }

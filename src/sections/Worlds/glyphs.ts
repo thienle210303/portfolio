@@ -54,6 +54,13 @@ export const GLYPHS: Record<GlyphId, string> = {
   // The robot that walks the Technology chapter's globe twice: a boxed head
   // with an antenna, a body, two arms and two legs.
   robot: "M-5 -9H5V-2H-5ZM0 -9V-12M-2.5 -6V-5M2.5 -6V-5M-7 0H7V8H-7ZM-7 2L-10 6M7 2L10 6M-4 8V11M4 8V11",
+  // The Moon over the robot's dark lap and the Sun over its lit one. Both are
+  // decorations. The moon's inner arc has radius 12, not under 10: a radius
+  // below half the chord makes SVG rescale it and overflow the box (see jelly).
+  sun:
+    "M-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M0 -11V-7M0 7V11M-11 0H-7M7 0H11" +
+    "M-7.8 -7.8L-5 -5M5 5L7.8 7.8M-7.8 7.8L-5 5M5 -5L7.8 -7.8",
+  moon: "M3 -10A10 10 0 0 0 3 10A12 12 0 0 1 3 -10",
   chip:
     "M-7 -7H7V7H-7ZM-3 -3H3V3H-3M-4.5 -7V-11M0 -7V-11M4.5 -7V-11M-4.5 7V11M0 7V11M4.5 7V11" +
     "M-7 -4.5H-11M-7 0H-11M-7 4.5H-11M7 -4.5H11M7 0H11M7 4.5H11",

@@ -150,11 +150,11 @@ using the same spelling you use elsewhere.
 
 `tests/lib/knowledge-tree.test.ts` fails if anyone reintroduces guessing.
 
-## Add a plaque to a world
+## Add a plaque to a chapter
 
 A plaque is a typed reference to **one field of one authored record**, rendered
 verbatim. Pick the record and the field first, then add a `{ glyph, ref }`
-entry to that world's `plaques` in `src/content/worlds.ts`:
+entry to that chapter's `plaques` in `src/content/worlds.ts`:
 
 ```ts
 { glyph: "cap", ref: { of: "careerEntry", id: "graduation", field: "role" } },
@@ -190,7 +190,7 @@ A decoration is the other half of the rule: a drawing that **carries no fact**.
 Add the glyph path to `src/sections/Worlds/glyphs.ts` — open strokes, no
 fills, drawn in a 24-unit box centred on the origin inside `GLYPH_VIEWBOX`,
 the same vocabulary as the companion cats — add its name to `GlyphId` in
-`src/types/portfolio.ts`, then add the entry to that world's `decorations`:
+`src/types/portfolio.ts`, then add the entry to that chapter's `decorations`:
 
 ```ts
 { glyph: "comtam", draws: "a plate of cơm tấm" },
@@ -206,11 +206,11 @@ If a chapter has nothing authored, leave `decorations: []`. Plants and Animals
 do exactly that, and carry no `disclosure`, because a panel line saying "there
 is nothing here" would itself be a sentence nobody authored.
 
-A `disclosure` is for the other case: a world that *does* draw something and
+A `disclosure` is for the other case: a chapter that *does* draw something and
 wants to bound the claim. Living Earth is the only chapter that has one — five
 decorations, and the line "Five objects, and he named every one. Nothing here
-was invented to fill the space." The two are independent: an empty world
-needs no disclosure, and a disclosure does not imply an empty world.
+was invented to fill the space." The two are independent: an empty chapter
+needs no disclosure, and a disclosure does not imply an empty chapter.
 
 ## Contact delivery
 

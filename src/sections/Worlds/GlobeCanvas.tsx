@@ -39,6 +39,7 @@ import {
   ROBOT_HOLDS,
   ROBOT_WALK_FRAMES,
   robotLights,
+  robotSky,
   type RobotHold,
 } from "./gl/robot";
 import { TAP_SLOP_PX } from "./gestures";
@@ -51,7 +52,7 @@ import { settleMotion } from "./settle";
  *
  * The 2D canvas (`data-chunk="globe-canvas"`) carries every handler and every
  * stroke with a position: limb, graticule, crossing, bird, markers, satellite,
- * plinth, cats. Under it, when WebGL2 works, a GL surface
+ * robot, sun and moon, plinth, cats. Under it, when WebGL2 works, a GL surface
  * (`data-globe-surface`) shades the planet itself: its fill and its
  * coastlines. The surface draws only from inside `draw()`, so it has no loop
  * of its own and rests exactly when the overlay rests. Without a surface the
@@ -226,6 +227,10 @@ const TECH_WORLD_ID = "tech";
  *  Nth coastline vertex: a few hundred points, and only while Technology is
  *  open, so the two panel lines stay true on the fallback globe too. */
 const FALLBACK_LIGHT_STRIDE = 24;
+
+/** Where the Moon or Sun hangs, in sphere radii from the globe's centre:
+ *  upper left, outside the limb and clear of the satellite's orbit ellipse. */
+const SKY_BODY = { x: -0.97, y: -1.02 } as const;
 
 /** A canvas label's halo, in CSS pixels: wide enough to clear the glyphs of a
  *  9.5px mono label from whatever is under it, narrow enough not to blot out
@@ -743,6 +748,16 @@ export default function GlobeCanvas({
         ctx.fill();
         glyph(GLYPHS.robot, p.x, p.y, scale * 0.8, c.fg, 1.2);
       }
+      const body = robotSky(v.robot);
+      if (body) {
+        const bx = geo.cx + SKY_BODY.x * geo.radius;
+        const by = geo.cy + SKY_BODY.y * geo.radius;
+        ctx.fillStyle = c.ground;
+        ctx.beginPath();
+        ctx.arc(bx, by, 19, 0, Math.PI * 2);
+        ctx.fill();
+        glyph(GLYPHS[body], bx, by, 1.3, c.fg, 1.4);
+      }
     }
 
     /* The seed, in the one beat between the bird landing and the sapling
@@ -772,9 +787,9 @@ export default function GlobeCanvas({
     ctx.beginPath();
     ctx.arc(ox, oy, 13, 0, Math.PI * 2);
     ctx.fill();
-    const techOpen = currentIdRef.current === "tech";
+    const techOpen = currentIdRef.current === TECH_WORLD_ID;
     glyph(GLYPHS.sat, ox, oy, 0.62, techOpen ? c.accent : c.fg, techOpen ? 1.4 : 1.1);
-    v.hits.push({ id: "tech", x: ox, y: oy, r: 16 });
+    v.hits.push({ id: TECH_WORLD_ID, x: ox, y: oy, r: 16 });
 
     /* Animals: the plinth is its marker. */
     v.hits.push({ id: "animals", x: catX + 16, y: geo.plinth - 9, r: 34 });

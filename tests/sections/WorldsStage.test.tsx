@@ -260,11 +260,11 @@ describe("WorldsStage, the robot's two laps", () => {
 
   const laps = () => screen.queryByRole("group", { name: /robot/i });
 
-  it("names both laps in the Technology panel, each as a drawing that carries no fact", async () => {
+  it("names both laps and their Moon and Sun in the Technology panel, each as a drawing that carries no fact", async () => {
     const user = userEvent.setup();
     renderStage();
     await user.click(worldButton(TECH.name));
-    expect(TECH.decorations).toHaveLength(2);
+    expect(TECH.decorations).toHaveLength(4);
     for (const decoration of TECH.decorations) {
       expect(screen.getByLabelText(decoration.label)).toBeInTheDocument();
     }
