@@ -1494,3 +1494,29 @@ at 5 px does not reach the neighbouring marker discs (checked at 1440, night,
 Desert). Initial JS is unchanged at **205,035 B** in all three `pnpm perf`
 runs, 0 skipped (a constant, no new code in the bundle); LCP 2628-2812 ms,
 TBT 281-708 ms, CLS 0, DOM nodes 3190.
+
+### The hero says each thing once, and is shorter (2026-10-06, round 18 Plan D, Task 7)
+
+The rail drops "Now" and "Based" (the positioning line and the first About
+paragraph already say both) and the hero's padding and gaps tighten. One
+production build on `:3137`, reduced motion, `document.fonts.ready`. Height of
+`#about`:
+
+| Hero height | 1440×900 | 390×844 |
+|---|---|---|
+| Before (`80d0a13`) | 1138 px | 1836 px |
+| After | 1074 px | 1671 px |
+| Brief's target | 1034 px | 1649 px |
+
+The 22 px / 40 px shortfall against the target is the top padding, kept at 1x.
+At 390 px, 0.6x top padding moved the seam between the last About paragraph and
+the code artifact up 22 px, so the cats' load-time resting spot there left a cat
+with its head on the paragraph (`companion.spec.ts` "neither cat comes to rest on
+the hero's text", failed 3 of 3 alone at `gap-y-10` and at `gap-y-12`; the
+`80d0a13` build passed 4 of 4). Restoring the top padding passes it. At 1440 the
+same padding costs 40 px.
+
+`pnpm perf` x3 against that build: initial JS **205,035 B**, 0 skipped
+responses, CLS 0, DOM nodes 3184 (was 3189 after Task 4), LCP 2396-2456 ms,
+TBT 325-355 ms. No JS changed; the delta from Task 4's 204,636 B is not from
+this task.

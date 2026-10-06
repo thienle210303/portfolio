@@ -79,8 +79,8 @@ Add an entry to `careerEntries`. One entry feeds all of:
 - the **résumé** at `/resume` — its Experience list shows `type: "work"`
   entries only
 - "Ask this site"
-- the hero's "Now" rail note, which reads the most recent `type: "work"` entry
-  — so changing jobs is one edit, not a hunt
+- the hero's positioning line, which names the employer in prose — changing
+  jobs also means editing `profile.positioning`
 
 Then two things the entry cannot decide for itself:
 

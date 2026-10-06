@@ -32,18 +32,26 @@ describe("About", () => {
     }
   });
 
-  it("carries the location and availability in the rail", () => {
+  it("carries only facts the prose beside it does not say", () => {
     const { rail } = renderHero();
-    expect(within(rail).getByText(/Taylors, South Carolina/)).toBeInTheDocument();
+    const terms = [...rail.querySelectorAll("dt")].map((dt) => dt.textContent);
+    expect(terms).toEqual(["Open to", "Focus", "Holds", "Reach me"]);
+    const prose = [profile.positioning, ...profile.about];
+    for (const dd of rail.querySelectorAll("dd")) {
+      const text = dd.textContent ?? "";
+      expect(text).not.toBe("");
+      for (const paragraph of prose) expect(paragraph).not.toContain(text);
+    }
+    expect(within(rail).queryByText(/DoorDash|Taylors/)).toBeNull();
     expect(within(rail).getByText(/Open to remote/)).toBeInTheDocument();
   });
 
   it("says location and availability once — no second metadata row", () => {
-    renderHero();
-    // The rail is the one place for these. The old identity-column <dl>
+    const { rail } = renderHero();
+    // The rail is the one place for availability. The old identity-column <dl>
     // labelled them "Location" / "Availability".
     expect(screen.getAllByText(profile.availability as string)).toHaveLength(1);
-    expect(screen.getAllByText(profile.location as string)).toHaveLength(1);
+    expect(within(rail).queryByText(profile.location as string)).toBeNull();
     expect(screen.queryByText("Location")).toBeNull();
     expect(screen.queryByText("Availability")).toBeNull();
   });

@@ -4,13 +4,19 @@
  * HeroCodeArtifact's only interactive piece is the shared Tabs primitive,
  * which supplies its own "use client" boundary, so nothing here needs one.
  *
- * `Section` has a fixed prop surface with no `className` passthrough on the
- * `<section>` it renders, so the height floor and vertical centring live on a
- * wrapper inside its children slot instead. That wrapper subtracts the sticky
- * header and Section's own block padding from `100svh` rather than ignoring
- * them, so the floor is one screen rather than a screen plus chrome; it is a
- * floor, not a cap, so a fold whose content is taller simply grows. It is
- * `svh`, not `vh`, per SPEC §3.
+ * The height floor and vertical centring live on a wrapper inside Section's
+ * children slot; Section's bottom padding is overridden through its
+ * `className` (as Closing.tsx does) to 0.6x, and the floor subtracts the
+ * sticky header and that padding (1x top, 0.6x bottom) from `100svh` rather
+ * than ignoring them. It is a floor, not a cap, so a fold whose content is
+ * taller simply grows. It is `svh`, not `vh`, per SPEC §3.
+ *
+ * The top padding stays at 1x on purpose. At 390px the first screen ends in
+ * the seam between the last About paragraph and the code artifact, and the
+ * cats come to rest there on load; trimming the top padding moved the seam up
+ * 22px so that it no longer held a cat, and one stopped with its head on the
+ * paragraph (e2e/companion.spec.ts, "neither cat comes to rest on the hero's
+ * text").
  *
  * Layout, widest to narrowest — all reflow, nothing is ever hidden:
  *
@@ -35,36 +41,24 @@
  * rather than moved here — the Journey already draws the career they counted.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
-import { careerEntries, profile } from "@/content/portfolio";
+import { profile } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 import HeroIdentity from "./HeroIdentity";
 import HeroCodeArtifact from "./HeroCodeArtifact";
 
 const HEADING_ID = "hero-heading";
 
-// The current role is read from careerEntries — the same list the Journey and
-// the résumé read — rather than restated here, so the hero cannot be the one
-// place on the site still naming a former employer.
-const currentRole = [...careerEntries]
-  .filter((entry) => entry.type === "work")
-  .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
-
-// `location` and `availability` are `Maybe<string>`: `resolved()` collapses an
-// unset field or a `[NEEDS INPUT: ...]` marker to `undefined`, so either one
-// going back to unset drops its row here rather than printing a marker. Nothing
-// else on the site renders either field — the identity column's old
-// "Location" / "Availability" row is gone, so each is said once.
-const location = resolved(profile.location);
+// `availability` is `Maybe<string>`: `resolved()` collapses an unset field or a
+// `[NEEDS INPUT: ...]` marker to `undefined`, so it going back to unset drops
+// its row here rather than printing a marker. The rail holds only facts the
+// identity column does not say: the current role and location are already in
+// the positioning line and the first About paragraph.
 const availability = resolved(profile.availability);
 
 // `focus` sits in the rail because the chat cites #about for it
 // (answer-corpus.ts), so About has to print it, and the identity column is
 // kept to the headline, the positioning line and the three About paragraphs.
 const RAIL: readonly RailNote[] = [
-  ...(currentRole
-    ? [{ term: "Now", detail: `${currentRole.role}, ${currentRole.organization}` }]
-    : []),
-  ...(location ? [{ term: "Based", detail: location }] : []),
   ...(availability ? [{ term: "Open to", detail: availability }] : []),
   { term: "Focus", detail: profile.focus },
   { term: "Holds", detail: profile.philosophy },
@@ -78,7 +72,7 @@ export default function Hero() {
       labelledBy={HEADING_ID}
       tone="base"
       rail={RAIL}
-      className="blueprint-grid"
+      className="blueprint-grid pb-[calc(var(--section-y)*0.6)]"
       // The hero runs its own `data-motion` load choreography (P2) instead
       // of the generic scroll-triggered ink settle every other section gets
       // — see Section.tsx's own comment on this prop.
@@ -86,12 +80,12 @@ export default function Hero() {
     >
       {/*
         The floor subtracts the sticky header and this section's own block
-        padding, which the old flat `100svh` did not. Those three stack, so the
-        hero was reserving a full viewport *plus* ~380px of chrome and padding
-        and then centring inside it — which is where the empty band under
-        "Scroll" came from.
+        padding (1 x --section-y above, 0.6 x below, the latter set on <Section>
+        above), which a flat `100svh` would not: those stack, and the hero
+        would reserve a full viewport plus the chrome and padding, then centre
+        inside it.
       */}
-      <div className="flex min-h-[calc(100svh-var(--header-h)-var(--section-y)*2)] flex-col justify-center">
+      <div className="flex min-h-[calc(100svh-var(--header-h)-var(--section-y)*1.6)] flex-col justify-center">
         {/*
           Two deliberate numbers here, both driven by measurement rather than
           by the breakpoint scale.
@@ -109,7 +103,7 @@ export default function Hero() {
           needs ~494px of inner width. The identity column can give that up —
           prose reflows, a code line does not.
         */}
-        <div className="flex flex-col gap-y-14 min-[1360px]:grid min-[1360px]:grid-cols-[minmax(0,5.25fr)_1px_minmax(0,6.75fr)] min-[1360px]:items-stretch min-[1360px]:gap-x-10 min-[1360px]:gap-y-0">
+        <div className="flex flex-col gap-y-10 min-[1360px]:grid min-[1360px]:grid-cols-[minmax(0,5.25fr)_1px_minmax(0,6.75fr)] min-[1360px]:items-stretch min-[1360px]:gap-x-10 min-[1360px]:gap-y-0">
           <div className="min-w-0">
             <HeroIdentity headingId={HEADING_ID} />
           </div>
@@ -141,7 +135,7 @@ export default function Hero() {
         <div
           data-cat-perch=""
           data-hero-step="scroll"
-          className="mt-14 flex items-center gap-3"
+          className="mt-8 flex items-center gap-3"
         >
           <span aria-hidden="true" className="h-px w-10 bg-[color:var(--rule-color)]" />
           <span className="eyebrow">Scroll</span>

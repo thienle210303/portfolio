@@ -77,8 +77,7 @@ function countOf(type: (typeof careerEntries)[number]["type"]): number {
 }
 
 export function buildCompanionFacts(): CompanionFacts {
-  // Same lookup Hero.tsx uses for the "Now" rail note: the most recent `work`
-  // entry by sortKey.
+  // The most recent `work` entry by sortKey.
   const currentRole = [...careerEntries]
     .filter((entry) => entry.type === "work")
     .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];

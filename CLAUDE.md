@@ -115,8 +115,8 @@ second rendering of the timeline and the case studies.
 
 Everything factual lives in `src/content/portfolio.ts` (the globe's addresses
 into it live in `src/content/worlds.ts`); components read from it and never
-restate a fact. One career entry feeds the Journey, the résumé, the globe's
-plaques and the hero's "Now" rail note at once. Practical recipes — adding a
+restate a fact. One career entry feeds the Journey, the résumé and the globe's
+plaques at once. Practical recipes — adding a
 metric, adding a role, attaching a case study — are in
 [docs/editing.md](docs/editing.md).
 
