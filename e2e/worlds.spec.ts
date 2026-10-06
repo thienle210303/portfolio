@@ -1896,9 +1896,10 @@ test.describe("the robot walks twice", () => {
  */
 async function skyBodyInk(page: Page) {
   return page.evaluate(() => {
+    const none = { count: -1, ink: 0, rightInk: 0, centroidX: 0, hash: "no canvas" };
     const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return { count: -1, hash: "no canvas" };
+    if (!canvas || !ctx) return none;
     const rect = canvas.getBoundingClientRect();
     const k = canvas.width / rect.width;
     const cx = (rect.width / 2) * k;
@@ -1908,15 +1909,32 @@ async function skyBodyInk(page: Page) {
     const x1 = Math.round(cx - 0.8 * r);
     const y0 = Math.round(cy - 1.2 * r);
     const y1 = Math.round(cy - 0.85 * r);
-    const { data } = ctx.getImageData(x0, y0, x1 - x0, y1 - y0);
+    const w = x1 - x0;
+    const { data } = ctx.getImageData(x0, y0, w, y1 - y0);
+    // The body's centre, and the knockout's ground colour read 17 CSS px to
+    // its right: inside the 19 px disc, outside any glyph (at most ~14 px).
+    const bx = cx - 0.97 * r - x0;
+    const by = cy - 1.02 * r - y0;
+    const g = (Math.round(by) * w + Math.round(bx + 17 * k)) * 4;
+    const ground = [data[g], data[g + 1], data[g + 2]];
     let count = 0;
+    let ink = 0;
+    let rightInk = 0;
+    let sumX = 0;
     let hash = 0;
     for (let i = 0; i < data.length; i += 4) {
       if (data[i + 3] === 0) continue;
       count += 1;
       hash = (hash * 31 + data[i] + data[i + 1] * 3 + data[i + 2] * 7 + data[i + 3] + i) | 0;
+      const away =
+        Math.abs(data[i] - ground[0]) + Math.abs(data[i + 1] - ground[1]) + Math.abs(data[i + 2] - ground[2]);
+      if (away < 120) continue;
+      const dx = ((i / 4) % w) - bx;
+      ink += 1;
+      sumX += dx;
+      if (dx > 6 * k) rightInk += 1;
     }
-    return { count, hash: String(hash) };
+    return { count, ink, rightInk, centroidX: ink ? sumX / ink / k : 0, hash: String(hash) };
   });
 }
 
@@ -1928,12 +1946,20 @@ async function expectMoonThenSun(page: Page) {
   await list.getByRole("button", { name: /technology/i }).click();
   const toggle = page.locator("#worlds").getByRole("group", { name: "The robot's two laps" });
   await page.waitForTimeout(300);
+  // Ink is what differs from the knockout's ground, so the disc alone is not
+  // a body. The Sun is round with rays, so it reaches more than 6 CSS px to
+  // the right of its centre and is centred on it; the Moon is a crescent
+  // opening to the right, so it is left of centre and stays off that side.
   const sun = await skyBodyInk(page);
-  expect(sun.count, "no Sun over the lit lap").toBeGreaterThan(0);
+  expect(sun.ink, "no Sun glyph over the lit lap").toBeGreaterThan(0);
+  expect(sun.rightInk, "the lit lap's body has no rays to the right: not a Sun").toBeGreaterThan(0);
+  expect(Math.abs(sun.centroidX), "the lit lap's body is not centred: not a Sun").toBeLessThan(1.5);
   await toggle.getByRole("button", { name: "Unsupervised" }).click();
   await page.waitForTimeout(300);
   const moon = await skyBodyInk(page);
-  expect(moon.count, "no Moon over the dark lap").toBeGreaterThan(0);
+  expect(moon.ink, "no Moon glyph over the dark lap").toBeGreaterThan(0);
+  expect(moon.rightInk, "the dark lap's body reaches right of centre: not a Moon").toBe(0);
+  expect(moon.centroidX, "the dark lap's body is not left of centre: not a Moon").toBeLessThan(-1);
   expect(moon.hash, "the Moon and the Sun are the same drawing").not.toBe(sun.hash);
 }
 
