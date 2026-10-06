@@ -230,4 +230,14 @@ describe("WorldsStage, the crossing plays itself once", () => {
     observer.report(1);
     expect(controls.fly).toHaveBeenCalledTimes(1);
   });
+
+  it("announces the chapter, not the landing, when a chapter is picked mid-flight", async () => {
+    const user = userEvent.setup();
+    const { controls } = await stageWithLiveGlobe();
+    controls.focusWorld.mockImplementation(() => globe.land());
+    await user.click(screen.getByRole("button", { name: /take the flight/i }));
+    await user.click(screen.getByRole("button", { name: /^02\s*Sea/i }));
+    expect(screen.getByRole("status")).toHaveTextContent(/^Sea\. /);
+    expect(screen.getByRole("status")).not.toHaveTextContent(/landed/i);
+  });
 });

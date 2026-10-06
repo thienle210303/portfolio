@@ -160,11 +160,13 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
       const world = worlds.find((candidate) => candidate.id === id);
       if (!world) return;
       setCurrentId(id);
+      // Before the announcement: this can land a flight, and the landing's
+      // sentence must not get the last word over the chapter just chosen.
+      controlsRef.current?.focusWorld(id);
       setAnnouncement(
         `${world.name}. ${world.plaques.length} ${world.plaques.length === 1 ? "plaque" : "plaques"}, ` +
           `${world.decorations.length} ${world.decorations.length === 1 ? "decoration" : "decorations"}.`,
       );
-      controlsRef.current?.focusWorld(id);
     },
     [worlds],
   );
