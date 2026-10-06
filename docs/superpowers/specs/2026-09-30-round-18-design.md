@@ -210,7 +210,7 @@ The order is the argument: **who arrived, from where, and what he does now** —
 one primary action. `profile.availability` and `profile.location` appear in the rail, which is
 where facts already true in the content layer belong.
 
-**2026-10-05, owner:** location leaves the rail, because the prose beside it already says where he arrived from.
+**2026-10-05, owner:** location leaves the rail, because the first About paragraph already says where he moved from and to (Kiên Giang, Việt Nam; Taylors, South Carolina).
 
 **Audience** (owner: HR, engineers, founders, "anyone but a bit technology side") means one heading
 that works for a non-engineer and one artifact that rewards an engineer. That is the existing

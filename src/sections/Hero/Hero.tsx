@@ -36,9 +36,9 @@
  * line, the Kiên Giang paragraph and the code artifact (checked at 1360×900
  * and 1440×900). Below 1360px the code artifact stacks after the paragraphs,
  * so the first screen holds the <h1>, the positioning line and the Kiên Giang
- * paragraph, and the code starts below it (at 1280×800 its top is at 912px; at
- * 1024×768, 886px). The band's computed counts and its lens list were dropped
- * rather than moved here — the Journey already draws the career they counted.
+ * paragraph, and the code starts below it (measured on a production build: at
+ * 1280×800 its top is at 896px; at 1024×768, 870px). The band's computed
+ * counts and its lens list were dropped rather than moved here — the Journey already draws the career they counted.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { profile } from "@/content/portfolio";
