@@ -1529,6 +1529,17 @@ this task.
 - The crossing replays while the stage is in view and stops on deliberate interaction or "Stop the replay" (§5.5 note).
 - Recordings sit outside the disclosure, above the action row, and on the credentials strip for Food Route; each carries a `recordingDescription` (§6.4 note). The MentorHub recording was gated on owner approval (privacy) and is not shipped.
 - The résumé PDF is now the file the owner attached (below). The booking link reads "Book a call", not "Book twenty minutes", because the event length is unverified and a label without a duration is always true.
+- The robot's full circle runs under a Moon over the dark lap and a Sun over the lit one (Technology; both are decorations, no plaque).
+- One blue control per page: Contact's send is the only blue fill. "Get in touch" and the flight button are demoted to the plain recipe (`e2e/contact.spec.ts` "the whole page has one blue fill").
+- The hero is shorter, and "Now" is dropped from the rail along with location; the positioning line and the Kiên Giang paragraph carry what they said.
+- **Food Route ships trimmed, and the trim is a privacy fix.** The source GIF's first three frames (0 to 0.2 s) show a sign-in form with an email address. `public/media/foodroute.mp4` is cut with `-ss 0.3`. The exact command, which reproduces the shipped file byte for byte (289,730 B, 604x568, 22.7 s) from `D:/Project/Portfolio-v2/src/assets/experience/foodroute.gif` with ffmpeg 7.1:
+
+  ```
+  ffmpeg -ss 0.3 -i foodroute.gif -c:v libx264 -crf 30 -preset slow -pix_fmt yuv420p -an -movflags +faststart foodroute.mp4
+  ffmpeg -i foodroute.mp4 -vframes 1 -q:v 4 foodroute.jpg
+  ```
+
+  A re-encode without `-ss 0.3` puts the email frame back. The poster is frame 0 of the trimmed mp4.
 
 **G3, before and after.** Canvas-label contrast under the five skins was checked by eye; `worlds.spec.ts` "canvas labels under every skin" now measures it (Task 6). At `HALO_PX = 3.5` every skin failed in at least one theme (worst 1.67:1, Desert at night). At `HALO_PX = 5` the worst measured is 4.74 day / 4.98 night on every skin.
 
@@ -1551,3 +1562,21 @@ These are the owner's to fix. `/resume` renders `impact` only and carries one $2
 Initial JS 205,415 B in all three runs, 0 skipped responses. That is **+1,157 B** over the pre-Plan-D 204,258 B and +2,681 B over `main`'s 202,734 B before Plan C. The `content-length` cross-check is still a 0.4 KB floor (16 responses declare none). None of the 12 initial scripts contains `#version 300 es`.
 
 **Verification.** `pnpm verify`: 5/5 (937 unit tests, 51 files). Full e2e against the production build at `--workers=2`: 788 passed, 0 failed, 736 skipped (no re-runs needed).
+
+### Plan D final fix wave (2026-10-06)
+
+**Browser pass, both themes (the check Task 11 skipped).** Production build served on `:3142`, the headless shell at 1440×900, `localStorage.theme` set to `day` then `night` (the `<html data-theme>` read back as set). Screenshots `fw-{day,night}-*.png` in the SDD folder: hero, full page, Worlds mid-replay (button reads "Stop the replay"), Worlds after the press (reads "Take the flight"), Technology under reduced motion with the Moon (Unsupervised) and the Sun (Human in the loop), a case study before and after its recording is pressed (one `<video>` mounted, caption kept), Food Route's credentials line before and after, and Contact. No page errors, no console errors, no horizontal overflow in either theme.
+
+What was seen:
+- Both themes: the Moon is a thin crescent upper left of the globe and the Sun a round disc with rays in the same spot; both read as drawn objects, not text. The halo plate keeps the labels legible on the globe in both themes.
+- The play buttons are plain outlined buttons with the caption under them, in both themes. Food Route's 604×568 frame letterboxes inside the 16:9 box (black bars either side), and no sign-in frame or email is visible after the press.
+- Contact shows no blue fill before a reason is picked.
+- Cats walk over text in several frames (hero rail label "OPEN TO", the Worlds heading, a credentials line). They roam by design, so a screenshot catches them anywhere; not treated as a defect.
+- Night, Worlds mid-replay: the satellite glyph sits on the right end of the "LIVING EARTH" label ("EARTH" overprinted). In the day capture the satellite was elsewhere on its orbit. The satellite moves, so this is a passing overlap, but the label is briefly unreadable; unverified whether it recurs every orbit.
+- Journey, pinned stage: element and viewport captures taken while an act change was mid-crossfade show two acts' text overlapping (the day-theme case-study capture shows the tree trunk behind "Discuss this project"; a viewport capture shows "Chess and a min-max bot" over the previous act's date line). That is a mid-transition frame; the settled frames are clean. Not investigated further.
+- Night, Contact: the copy button's icon on the card is faint against the card. It is the existing control, unchanged in Plan D; not measured.
+- Element screenshots of tall sections show the sticky nav stitched into the middle of the image; that is the capture method, not the page.
+
+**Hero measurement.** The code artifact's top on the production build, three runs each: 896 px at 1280×800 and 870 px at 1024×768 (the old comment said 912 and 886; the `gap-y-14` to `gap-y-10` change moved it 16 px). `Hero.tsx` now says so.
+
+**Right-click freeze.** `pressStart` now ignores a `pointerdown` with `button !== 0`, and a control-click on macOS, so a context menu that swallows the `pointerup` no longer leaves the press set (the loop stayed frozen under "Stop the replay"). Two unit tests failed against the old code and pass now.

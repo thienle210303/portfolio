@@ -498,6 +498,9 @@ export const careerEntries = [
       label: "github.com/mellieho9/MSCodeToGive2023Project",
       href: "https://github.com/mellieho9/MSCodeToGive2023Project",
     },
+    // public/media/foodroute.mp4 is trimmed with `-ss 0.3`: the GIF's first
+    // three frames show a sign-in form with an email address. Re-encode with
+    // the same offset (docs/feedback-tracker.md, Plan D close-out), never without.
     recording: "foodroute",
     recordingDescription:
       "A food bank's ordering site: items with stock and expiry dates, an order being placed, and a delivery-status table with a map of marked sites joined by lines.",
