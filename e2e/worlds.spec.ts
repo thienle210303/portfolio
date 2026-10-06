@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { origin } from "../src/content/portfolio";
+import { companions, origin } from "../src/content/portfolio";
 import { clampTilt, project, toVector } from "../src/lib/globe";
 import { resolveSkins } from "../src/lib/skins";
 import { resolveChapters } from "../src/lib/worlds";
@@ -2297,8 +2297,9 @@ test.describe("the chapter list and the skin group by keyboard", () => {
 });
 
 /**
- * Contrast of every canvas label against what actually touches its letters, under
- * every skin in both themes. "What touches its letters" is the ring of pixels one
+ * Contrast of the labels drawn in the Living Earth pose (the open chapter's name
+ * and the two cat names) against what actually touches their letters, under every
+ * skin in both themes. Other chapters' labels are not probed. "What touches its letters" is the ring of pixels one
  * step outside the glyphs in the composited bitmap (GL surface plus overlay), so it
  * is the halo where the halo reaches and the planet where it does not.
  *
@@ -2310,8 +2311,9 @@ test.describe("the chapter list and the skin group by keyboard", () => {
  * glyphs a fraction of a pixel away, which is enough to move the ring.
  */
 test.describe("canvas labels under every skin", () => {
+  const EXPECTED = ["LIVING EARTH", ...companions.slice(0, 2).map((c) => c.name.toUpperCase())];
   for (const theme of ["day", "night"] as const) {
-    test(`every canvas label keeps 4.5:1 against what touches its letters, ${theme}`, async ({
+    test(`the open chapter label and the cat names keep 4.5:1 against what touches their letters, Living Earth pose, every skin, ${theme}`, async ({
       page,
     }) => {
       test.setTimeout(120_000);
@@ -2526,7 +2528,11 @@ test.describe("canvas labels under every skin", () => {
                   }
                 }
               }
-              if (count === 0) continue;
+              // A word with no letter pixels is not skipped: it measures as 0 and fails.
+              if (count === 0) {
+                out.push({ text: l.text, p5: 0, n: 0 });
+                continue;
+              }
               const ink = parse(l.fillStyle);
               const inkL = luminance(ink[0], ink[1], ink[2]);
               const values: number[] = [];
@@ -2556,7 +2562,12 @@ test.describe("canvas labels under every skin", () => {
           { normal, bare, none, selector: OVERLAY },
         );
 
-        expect(result.length, `${theme}/${skin.name}: no label was measured`).toBeGreaterThan(0);
+        for (const text of EXPECTED) {
+          expect(
+            result.map((r) => r.text),
+            `${theme}/${skin.name}: "${text}" was not measured`,
+          ).toContain(text);
+        }
         const min = Math.min(...result.map((r) => r.p5));
         const worst = result.find((r) => r.p5 === min)!;
         console.log(

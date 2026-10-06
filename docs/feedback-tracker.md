@@ -1461,7 +1461,8 @@ viewports: 366 passed, 0 failed, 480 skipped.
 **Plan D Task 6** (canvas labels measured over the pale skins; residual H4).
 Until now label contrast under the pale Night side and Volcanic skins was
 checked by eye. `worlds.spec.ts` "canvas labels under every skin" now measures
-it: for each of the five skins in both themes, with Living Earth open, it
+it, for the labels of the Living Earth pose only (the open chapter's name and
+the two cat names; other chapters' labels are not probed): for each of the five skins in both themes, with Living Earth open, it
 redraws the overlay three times at rest (as drawn, halos off, words off),
 takes the letters as the pixels the words changed, and reads the contrast of
 each label's ink against the one-pixel ring touching them in the composited
