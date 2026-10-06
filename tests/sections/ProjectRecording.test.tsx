@@ -1,10 +1,13 @@
+import { existsSync, statSync } from "node:fs";
+import path from "node:path";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import ProjectRecording, { RecordingVideo } from "@/sections/CareerTree/ProjectRecording";
 import CaseStudy from "@/sections/CareerTree/CaseStudy";
 import { Button } from "@/components/ui/Button";
-import { projects } from "@/content/portfolio";
+import CredentialsStrip from "@/sections/CareerTree/CredentialsStrip";
+import { careerEntries, projects } from "@/content/portfolio";
 
 const DESCRIPTION = "A desktop chess window: pieces move one turn at a time.";
 const PLAY = "Play the screen recording of A chess engine";
@@ -52,7 +55,7 @@ describe("a project recording", () => {
   });
 
   it("names the project in the button, with the visible label leading the name", () => {
-    // Four of these sit on the page. WCAG 2.5.3: the accessible name contains
+    // Several of these sit on the page. WCAG 2.5.3: the accessible name contains
     // the visible text, so speech input still matches what is on screen.
     renderRecording();
     const button = screen.getByRole("button", { name: PLAY });
@@ -182,4 +185,52 @@ describe("a recording inside its case study", () => {
       expect(video).toHaveAccessibleDescription(description);
     },
   );
+});
+
+describe("a recording on a credentials line", () => {
+  const recordedEntries = careerEntries.filter((entry) => "recording" in entry && entry.recording);
+
+  it("covers every career entry that ships a recording", () => {
+    // MentorHub is held back until the owner approves its frames (they show a
+    // breach dialog, a 401, an email and teammates' names); adding it is a
+    // content-only change plus its two files.
+    expect(recordedEntries.map((entry) => ("recording" in entry ? entry.recording : null))).toEqual(["foodroute"]);
+  });
+
+  it("puts a press-to-mount button and its caption under each such line", () => {
+    stubReducedMotion(false);
+    const { container } = render(<CredentialsStrip />);
+    expect(container.querySelector("video")).toBeNull();
+    expect(container.innerHTML).not.toContain("/media/");
+    for (const entry of recordedEntries) {
+      const description = "recordingDescription" in entry ? (entry.recordingDescription ?? "") : "";
+      const button = screen.getByRole("button", { name: `Play the screen recording of ${entry.role}` });
+      expect(button.closest("li")?.textContent).toContain(entry.role);
+      expect(screen.getByText(description).id).toBe(`${entry.id}-recording`);
+      fireEvent.click(button);
+      expect(container.querySelector("video")).toHaveAccessibleDescription(description);
+    }
+  });
+});
+
+describe("every recording on the site", () => {
+  const ids = [
+    ...projects.map((candidate) => ({ id: candidate.id, recording: candidate.recording, text: candidate.recordingDescription })),
+    ...careerEntries.map((entry) => ({
+      id: entry.id,
+      recording: "recording" in entry ? entry.recording : undefined,
+      text: "recordingDescription" in entry ? entry.recordingDescription : undefined,
+    })),
+  ].filter((item) => item.recording);
+
+  it("exists, is at most 1.5 MB, and is described", () => {
+    expect(ids.length).toBeGreaterThanOrEqual(5);
+    for (const { id, recording, text } of ids) {
+      const mp4 = path.join(process.cwd(), "public", "media", `${recording}.mp4`);
+      expect(existsSync(mp4), `${id}: ${recording}.mp4`).toBe(true);
+      expect(statSync(mp4).size, `${id}: size`).toBeLessThanOrEqual(1_500_000);
+      expect(existsSync(path.join(process.cwd(), "public", "media", `${recording}.jpg`)), `${id}: poster`).toBe(true);
+      expect(text?.trim(), `${id}: description`).toBeTruthy();
+    }
+  });
 });

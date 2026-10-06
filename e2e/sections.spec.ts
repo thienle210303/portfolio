@@ -194,6 +194,40 @@ test.describe("screen recordings", () => {
     expect(media.filter((url) => url.endsWith(".mp4"))).toEqual([`/media/${project.recording}.mp4`]);
     expect(media.filter((url) => url.endsWith(".jpg"))).toEqual([`/media/${project.recording}.jpg`]);
   });
+  // Food Route has no case study: its button sits under its line of the
+  // credentials strip. Any recording added later is picked up from content.
+  const recordedEntries = careerEntries.filter((entry) => entry.recording);
+
+  test("the entries' recordings are found in content", () => {
+    expect(recordedEntries.map((entry) => entry.recording)).toContain("foodroute");
+  });
+
+  for (const entry of recordedEntries) {
+    test(`pressing play on ${entry.role} requests one mp4 and one poster`, async ({ page }) => {
+      const media: string[] = [];
+      page.on("request", (request) => {
+        if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
+      });
+
+      const button = page.getByRole("button", { name: `Play the screen recording of ${entry.role}` });
+      // Not `li:has(button)`: the press replaces the button with the video.
+      const line = page.locator("[data-credentials-strip] li", { hasText: entry.role });
+      await button.scrollIntoViewIfNeeded();
+      await expect(line.locator("video")).toHaveCount(0);
+      expect(media, "nothing loads before the press").toEqual([]);
+
+      await button.click();
+      const video = line.locator("video");
+      await expect(video).toHaveCount(1);
+      await expect(video).toHaveAttribute("aria-label", `${entry.role} — screen recording`);
+      await expect(video).toHaveAccessibleDescription(entry.recordingDescription ?? "");
+      await expect.poll(() => media.filter((url) => url.endsWith(".mp4")).length).toBe(1);
+      await page.waitForLoadState("networkidle");
+
+      expect(media.filter((url) => url.endsWith(".mp4"))).toEqual([`/media/${entry.recording}.mp4`]);
+      expect(media.filter((url) => url.endsWith(".jpg"))).toEqual([`/media/${entry.recording}.jpg`]);
+    });
+  }
 });
 
 /**

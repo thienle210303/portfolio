@@ -3,6 +3,7 @@ import { careerEntries } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { isDemotedEntry } from "@/lib/knowledge-tree";
 import type { CareerEntry } from "@/types/portfolio";
+import ProjectRecording from "./ProjectRecording";
 
 // Widened once: `careerEntries` keeps each entry as a literal, so `.link` is
 // not on every member of the union it infers.
@@ -24,6 +25,10 @@ const ENTRIES: readonly CareerEntry[] = careerEntries;
  * a line that already wraps — `wrap-anywhere` was there for the role before
  * this — is the whole cost. That is the whole of what the strip adds to a
  * line: it is not a re-expansion of the branch the entry used to be.
+ *
+ * An entry that carries a `recording` gets one press-to-play button and its
+ * caption under its line (`ProjectRecording`, nothing fetched until the
+ * press). The entry has no case study, so this is the one place it renders.
  */
 export default function CredentialsStrip({ className }: { readonly className?: string }) {
   const entries = ENTRIES
@@ -57,6 +62,16 @@ export default function CredentialsStrip({ className }: { readonly className?: s
                 {" · "}
                 <span className="font-mono">{entry.link.label}</span>
               </>
+            ) : null}
+            {entry.recording && entry.recordingDescription ? (
+              <div className="no-print mt-2">
+                <ProjectRecording
+                  title={entry.role}
+                  recording={entry.recording}
+                  description={entry.recordingDescription}
+                  descriptionId={`${entry.id}-recording`}
+                />
+              </div>
             ) : null}
           </li>
         ))}

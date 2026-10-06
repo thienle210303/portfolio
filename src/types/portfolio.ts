@@ -272,6 +272,10 @@ export interface CareerEntry {
   readonly learned: Maybe<string>;
   readonly technologies: readonly string[];
   readonly link?: ProjectLink;
+  /** Same contract as `Project.recording`: `public/media/<id>.mp4` and `.jpg`, loaded only on request. */
+  readonly recording?: string;
+  /** Same contract as `Project.recordingDescription`: required when `recording` is set. */
+  readonly recordingDescription?: string;
 }
 
 /* -------------------------------------------------------------------------- */

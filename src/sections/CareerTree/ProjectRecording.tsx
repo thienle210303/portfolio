@@ -54,8 +54,10 @@ export function RecordingVideo({ recording, title, loop, describedBy }: Recordin
       loop={loop}
       aria-label={`${title} — screen recording`}
       aria-describedby={describedBy}
-      // Every recording is 1280×720: holding 16:9 before the poster arrives
-      // keeps the press from shifting what is below it.
+      // The frame is 16:9 whatever the file is: holding it before the poster
+      // arrives keeps the press from shifting what is below it, and a
+      // recording that is not 16:9 (Food Route is 604×568) letterboxes inside
+      // it instead of resizing it.
       className="aspect-video w-full border border-[color:var(--rule-color)] bg-[color:var(--surface)]"
     />
   );
@@ -79,7 +81,7 @@ export default function ProjectRecording({ title, recording, description, descri
       ) : (
         <button
           type="button"
-          // Four of these sit on the page; the title tells them apart. The
+          // Several of these sit on the page; the title tells them apart. The
           // visible text leads the name, so speech input still matches it.
           aria-label={`Play the screen recording of ${title}`}
           onClick={() => setPressed({ loop: !window.matchMedia(REDUCED_MOTION).matches })}
