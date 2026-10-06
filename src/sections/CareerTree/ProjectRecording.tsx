@@ -3,11 +3,11 @@
 /**
  * A screen recording that costs nothing until it is asked for.
  *
- * CaseStudy's Disclosure keeps its children mounted while closed, so a
- * `<video poster>` here would fetch every poster on every visit. Before the
- * press there is therefore no `<video>` and no `<img>` at all, only a button.
- * After it: `preload="none"`, muted, never `autoplay` (the one `play()` call
- * is the user's own press), and no `loop` under reduced motion.
+ * The page promises zero requests until a visitor asks (spec §6.4), and a
+ * `<video poster>` fetches its poster on mount. Before the press there is
+ * therefore no `<video>` and no `<img>` at all, only a button, however visible
+ * the button is. After it: `preload="none"`, muted, never `autoplay` (the one
+ * `play()` call is the user's own press), and no `loop` under reduced motion.
  */
 import { useEffect, useRef, useState } from "react";
 import type { Project } from "@/types/portfolio";

@@ -330,6 +330,18 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
         </div>
       ) : null}
 
+      {project.recording ? (
+        <div className="no-print mt-8">
+          {/* The tagline is the recording's text alternative: the
+              author's own sentence for what the project is. */}
+          <ProjectRecording
+            project={project}
+            recording={project.recording}
+            describedBy={taglineId}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-1">
         {project.demo ? (
           <ExternalLink href={project.demo.href} className={TEXT_LINK_CLASS}>
@@ -377,17 +389,6 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
           defaultOpen={false}
           className="border border-[color:var(--rule-color)] px-4 pb-2 transition-colors duration-200 [&:has(>button:hover)]:border-[color:var(--fg)] md:px-6"
         >
-          {project.recording ? (
-            <div className="pt-4">
-              {/* The tagline is the recording's text alternative: the
-                  author's own sentence for what the project is. */}
-              <ProjectRecording
-                project={project}
-                recording={project.recording}
-                describedBy={taglineId}
-              />
-            </div>
-          ) : null}
           <div className="divide-y divide-[color:var(--rule-color)]">
             <SectionBlock heading="Problem">
               <p className={PROSE_CLASS}>{project.problem}</p>

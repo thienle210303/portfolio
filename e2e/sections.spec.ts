@@ -169,7 +169,7 @@ test.describe("screen recordings", () => {
     expect(media, "nothing under /media/ may load until a visitor asks").toEqual([]);
   });
 
-  test("opening a case study and pressing play requests one mp4 and one poster", async ({ page }) => {
+  test("pressing play on a closed case study requests one mp4 and one poster", async ({ page }) => {
     expect(recorded.length, "no project carries a recording").toBeGreaterThan(0);
     const project = recorded[0];
     const media: string[] = [];
@@ -178,13 +178,15 @@ test.describe("screen recordings", () => {
     });
 
     const article = page.locator(`#work-${project.id}`);
-    await article.getByRole("button", { name: /Read the full case study/ }).click();
+    const trigger = article.getByRole("button", { name: /Read the full case study/ });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(article.locator("video")).toHaveCount(0);
-    expect(media, "opening the disclosure alone loads nothing").toEqual([]);
+    expect(media, "nothing loads before the press").toEqual([]);
 
     await article.getByRole("button", { name: "Play the screen recording" }).click();
     const video = article.locator("video");
     await expect(video).toHaveCount(1);
+    await expect(trigger, "the press does not open the disclosure").toHaveAttribute("aria-expanded", "false");
     await expect(video).toHaveAttribute("aria-label", `${project.title} \u2014 screen recording`);
     await expect.poll(() => media.filter((url) => url.endsWith(".mp4")).length).toBe(1);
     await page.waitForLoadState("networkidle");

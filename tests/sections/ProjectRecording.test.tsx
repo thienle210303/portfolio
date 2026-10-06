@@ -100,6 +100,25 @@ describe("a project recording", () => {
     expect(container.querySelector("video")!.hasAttribute("loop")).toBe(false);
   });
 
+  it("a rejected play() leaves the video focused with its controls", async () => {
+    stubReducedMotion(false);
+    // The rejection is observed through its own `catch`: an unhandled-rejection
+    // listener never fires under vitest's jsdom environment.
+    const rejection = Promise.reject(new Error("NotAllowedError"));
+    const caught = vi.spyOn(rejection, "catch");
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockReturnValue(rejection);
+    // jsdom does not treat a bare <video controls> as focusable, as browsers
+    // do, so focus is observed at the call rather than via activeElement.
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    const { container } = renderRecording();
+    fireEvent.click(screen.getByRole("button", { name: PLAY }));
+    await Promise.resolve();
+    const video = container.querySelector("video") as HTMLVideoElement;
+    expect(caught, "a rejected play() must be caught").toHaveBeenCalled();
+    expect(focus.mock.contexts).toContain(video);
+    expect(video.hasAttribute("controls")).toBe(true);
+  });
+
   it("server-renders the muted attribute the client DOM sets as a property", () => {
     // React never emits `muted` as an attribute on the client, so the
     // post-press state is asserted on the server markup of the same element.
@@ -126,8 +145,8 @@ describe("a recording inside its case study", () => {
       const { container } = render(<CaseStudy project={recordedProject} index={0} />);
       const button = screen.getByRole("button", {
         name: `Play the screen recording of ${recordedProject.title}`,
-        hidden: true,
       });
+      expect(button.closest('[role="region"]'), "the button sits outside the closed disclosure").toBeNull();
       fireEvent.click(button);
       const video = container.querySelector("video");
       if (!video) throw new Error("no video after the press");
