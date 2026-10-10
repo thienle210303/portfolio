@@ -267,6 +267,7 @@ export const careerEntries = [
     sortKey: "2025-10",
     role: "Software Engineer",
     organization: "DoorDash, Inc.",
+    headline: "Reverse engineering scraper: 17 hours to 3 minutes.",
     // Omitted on purpose: no other career entry carries one, so a single
     // location here reads as an inconsistency rather than information.
     locationOrMode: undefined,
@@ -317,6 +318,7 @@ export const careerEntries = [
     endSortKey: "2025-05",
     role: "Software Engineer",
     organization: "Wordification by ScholarsTech LLC",
+    headline: "Built a speech QA pipeline with 99.9% validated audio accuracy.",
     locationOrMode: undefined,
     context:
       "The Wordification™ Project — a web-based system for language-based (rather than memory-based) English spelling instruction.",
@@ -349,6 +351,7 @@ export const careerEntries = [
     endSortKey: "2024-08",
     role: "Software Engineer Co-op",
     organization: "Schaeffler Group",
+    headline: "Moved paper setup sheets to low-code; my Java lifted throughput 96%.",
     locationOrMode: undefined,
     context:
       "Shop-floor manufacturing operations still running on paper process setup sheets.",
@@ -382,6 +385,7 @@ export const careerEntries = [
     endSortKey: "2025-05",
     role: "Web Scraping Engineer",
     organization: "University of South Carolina",
+    headline: "Collected 3M+ Amazon and Kroger records at 99.9% success, unattended for months.",
     locationOrMode: undefined,
     context:
       "Research data collection that had to keep running unattended for months at a time.",
@@ -410,6 +414,7 @@ export const careerEntries = [
     endSortKey: "2025-05",
     role: "Undergraduate Teaching Assistant",
     organization: "University of South Carolina",
+    headline: "Led Algorithm Design labs for 30+ students; helped 200+ in open lab.",
     locationOrMode: undefined,
     context:
       "Two course tracks: Algorithm Design I & II, and Introduction to Computer Concepts & General Programming.",
@@ -612,6 +617,7 @@ export const careerEntries = [
     endSortKey: "2021-06",
     role: "High school",
     organization: "Eastside High School, Taylors, South Carolina",
+    headline: "Started American high school three weeks after I landed.",
     locationOrMode: undefined,
     context:
       "Three years of American high school, started three weeks after landing, in a language he could read and write but not speak.",
@@ -637,6 +643,7 @@ export const careerEntries = [
     endSortKey: "2022-07",
     role: "Chef and server",
     organization: "Fu of Kyoto",
+    headline: "Our family restaurant, both sides: cooking on the line, waiting tables.",
     locationOrMode: undefined,
     context:
       "The family restaurant. Both sides of it — cooking on the line, and waiting tables in the language he was still learning.",
@@ -660,6 +667,7 @@ export const careerEntries = [
     sortKey: "2019-06",
     role: "Whatever he felt like learning",
     organization: "No institution",
+    headline: "Drove for Uber Eats and taught myself whatever I was curious about.",
     locationOrMode: undefined,
     // The owner's own description of this period was "just being bored and
     // live day by day". That line is better than anything this file could
@@ -686,6 +694,7 @@ export const careerEntries = [
     endSortKey: "2022-05",
     role: "Chemical engineering",
     organization: "University of South Carolina",
+    headline: "Chemical engineering: my first major, not the one I graduated in.",
     locationOrMode: undefined,
     context: "The first major. Not the one he graduated in.",
     responsibilities: [],
@@ -702,6 +711,7 @@ export const careerEntries = [
     sortKey: "2022-01",
     role: "Switched to computer science",
     organization: "University of South Carolina",
+    headline: "My friends said try it. I did, and it stuck.",
     locationOrMode: undefined,
     context:
       "His friends told him to try it. He tried it, and it stuck — which is a more honest account of how most people find their field than any origin story about childhood computers.",
@@ -719,6 +729,7 @@ export const careerEntries = [
     endSortKey: "2025-05",
     role: "Honors Teaching Assistant",
     organization: "University of South Carolina",
+    headline: "Graded and supported a 24+ student honors section of non-majors.",
     locationOrMode: undefined,
     context:
       "The honors section of Introduction to Computer Concepts & General Applications Programming — students who are not computer science majors.",

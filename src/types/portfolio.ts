@@ -264,6 +264,11 @@ export interface CareerEntry {
   readonly endSortKey?: string;
   readonly role: string;
   readonly organization: string;
+  /** One line under the Journey branch label, at most 12 words (`docs/voice.md`
+   *  rule 4). Required on every drawn entry, never indexed by the chat, and it
+   *  holds a figure only if the same entry's `impact`, `context` or `built`
+   *  holds it. */
+  readonly headline?: string;
   readonly locationOrMode: Maybe<string>;
   readonly context: string;
   readonly responsibilities: readonly string[];
