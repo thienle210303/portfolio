@@ -99,8 +99,18 @@ branch, in date order — `sortKey` decides where on the trunk):
 
 ```ts
 technologies: ["Python", "Playwright"],  // technology leaves on its branch
-impact: ["One sentence of what changed."],  // impact leaves on its branch
+impact: ["One sentence of what changed."],  // shown verbatim in its branch's panel
+headline: "Result in 12 words or fewer.",  // shown with the branch at rest
 ```
+
+### Write a headline
+
+Every drawn branch needs a `headline` on its career entry: the one line shown
+with it at rest. Keep it to 12 words or fewer, phrased as a result, with every
+figure taken from the same entry's own `impact`, `context` or `built`. It is
+never indexed for the chat. `tests/lib/voice.test.ts` fails on a missing or
+over-long headline, a figure the entry doesn't contain, or an indexed headline.
+Rules and examples: [docs/voice.md](voice.md).
 
 To attach a case study to a role, set the project's `careerEntryId` to that
 entry's `id`. The case study then renders inside that role's branch on the
@@ -132,8 +142,9 @@ the page. `Ctrl/Cmd+P` on `/resume` produces a clean copy to replace it with.
 
 The tree draws **only relationships you have written down**. Each branch *is*
 one career entry (chronological up the trunk, each exactly once), and its
-leaves are that entry's own `technologies` and `impact` lines — because you
-listed them there, never because anything matched.
+leaves are that entry's own `technologies` — because you listed them there,
+never because anything matched. Its `impact` lines are not leaves: they show
+verbatim in the branch's panel.
 
 Nine entries — the degree and eight milestones —
 are not drawn as branches. They are `DEMOTED_ENTRY_IDS` in

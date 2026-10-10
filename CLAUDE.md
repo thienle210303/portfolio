@@ -113,6 +113,9 @@ There is no résumé section on the page — it is a route, `/resume`, that read
 the same content. Do not reintroduce it as a section: it was almost entirely a
 second rendering of the timeline and the case studies.
 
+Copy rules (first person, surface vs depth, headlines) live in
+[docs/voice.md](docs/voice.md).
+
 Everything factual lives in `src/content/portfolio.ts` (the globe's addresses
 into it live in `src/content/worlds.ts`); components read from it and never
 restate a fact. One career entry feeds the Journey, the résumé and the globe's
@@ -143,7 +146,9 @@ composes the globe's Technology plaque through `computedFact("ai-tools")`.
 
 The tree draws only authored relationships. Each branch is one career entry
 (chronological, each exactly once) and its leaves are that entry's own
-`technologies` and `impact` fields, verbatim. Do not make it infer edges by
+`technologies`, verbatim. Its `impact` lines render verbatim in that entry's
+panel (and in the mobile list's disclosure), not as leaves; its `headline` is
+shown with the branch at rest. Do not make it infer edges by
 matching skill names against technology strings: the two vocabularies only
 overlap 17 of 38 ways, so loose matching invents links and strict matching
 claims real skills were never used. `tests/lib/knowledge-tree.test.ts`
