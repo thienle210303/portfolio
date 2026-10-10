@@ -270,7 +270,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
     query: "where did he go to school",
     expect: [
       "B.S. Computer Science",
-      "The degree he finished, in computer science",
+      "The degree I finished, in computer science",
       "Graduated with a 3.8 GPA",
       "The cybersecurity minor changed how I read systems",
     ],

@@ -48,7 +48,7 @@ const TITLES: Readonly<Record<ActId, { year: string; title: string }>> = {
   },
   "high-school": { year: "2018 — 2021", title: "Eastside High, and the family restaurant" },
   "wrong-major": { year: "August 2021", title: "The wrong major" },
-  "the-switch": { year: "2022", title: "Friends talk him into it" },
+  "the-switch": { year: "2022", title: "Friends talk me into it" },
   research: { year: "2022 — 2025", title: "Three million records, and two classrooms" },
   "two-jobs": { year: "2024 — May 2025", title: "Two jobs, one summer, still in school" },
   "retail-data": { year: "October 2025 — now", title: "Retail data" },

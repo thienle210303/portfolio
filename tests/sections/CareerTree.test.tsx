@@ -331,6 +331,15 @@ describe("the subjects #tree is cited for", () => {
     return (section.textContent ?? "").replace(/\s+/g, " ");
   }
 
+  it("renders nothing on the Journey in the third person", () => {
+    render(<CareerTree />);
+    expect(journeyText().length).toBeGreaterThan(1000);
+    expect(journeyText().match(/\b(he|his|him|himself)\b/gi) ?? []).toEqual([]);
+    // Only the active act's title is in the DOM at rest, so check them all.
+    const titles = Object.values(ACTS).map((act) => act.title);
+    expect(titles.filter((t) => /\b(he|his|him|himself)\b/i.test(t))).toEqual([]);
+  });
+
   /** Every string the corpus's `#tree` documents name a subject by, and which
    *  of them `#tree` is expected to render. Built from the same sources
    *  `buildDocuments` reads, so it cannot drift from the corpus. */

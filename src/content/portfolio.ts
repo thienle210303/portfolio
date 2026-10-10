@@ -441,7 +441,7 @@ export const careerEntries = [
     organization: "University of South Carolina",
     locationOrMode: undefined,
     context:
-      "The degree he finished, in computer science with a cybersecurity minor — after starting in chemical engineering. GPA 3.8.",
+      "The degree I finished, in computer science with a cybersecurity minor — after starting in chemical engineering. GPA 3.8.",
     responsibilities: [],
     built: [],
     impact: ["Graduated with a 3.8 GPA.", "Dean's List, 2021–2025."],
@@ -620,7 +620,7 @@ export const careerEntries = [
     headline: "Started American high school three weeks after I landed.",
     locationOrMode: undefined,
     context:
-      "Three years of American high school, started three weeks after landing, in a language he could read and write but not speak.",
+      "Three years of American high school, started three weeks after landing, in a language I could read and write but not speak.",
     responsibilities: [],
     built: [],
     impact: [],
@@ -646,7 +646,7 @@ export const careerEntries = [
     headline: "Our family restaurant, both sides: cooking on the line, waiting tables.",
     locationOrMode: undefined,
     context:
-      "The family restaurant. Both sides of it — cooking on the line, and waiting tables in the language he was still learning.",
+      "The family restaurant. Both sides of it — cooking on the line, and waiting tables in the language I was still learning.",
     responsibilities: [
       "Cook on the line during service.",
       "Serve tables, take orders, and handle the front of house.",
@@ -665,7 +665,7 @@ export const careerEntries = [
     // still running, which is the true reading here.
     dateRange: "2019 — Present",
     sortKey: "2019-06",
-    role: "Whatever he felt like learning",
+    role: "Whatever I felt like learning",
     organization: "No institution",
     headline: "Drove for Uber Eats and taught myself whatever I was curious about.",
     locationOrMode: undefined,
@@ -678,7 +678,7 @@ export const careerEntries = [
     // plants, aquarium — still true, "not that useful" to show); what he is
     // curious about now, LLMs and machine learning, lives in `profile.about`.
     context:
-      "Drove for Uber Eats, and taught himself whatever he was curious about.",
+      "Drove for Uber Eats, and taught myself whatever I was curious about.",
     responsibilities: [],
     built: [],
     impact: [],
@@ -696,7 +696,7 @@ export const careerEntries = [
     organization: "University of South Carolina",
     headline: "Chemical engineering: my first major, not the one I graduated in.",
     locationOrMode: undefined,
-    context: "The first major. Not the one he graduated in.",
+    context: "The first major. Not the one I graduated in.",
     responsibilities: [],
     built: [],
     impact: [],
@@ -1182,7 +1182,7 @@ export const projects = [
     status: "shipped",
     featured: false,
     problem: "No class, no client and no résumé line is behind it.",
-    whyItMattered: "It is the one thing here that nobody asked him to build.",
+    whyItMattered: "It is the one thing here that nobody asked me to build.",
     assumption: undefined,
     constraints: ["Followed an existing video."],
     responsibility: "Developer.",

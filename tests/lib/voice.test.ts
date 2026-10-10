@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { careerEntries } from "@/content/portfolio";
+import { careerEntries, projects } from "@/content/portfolio";
 import { buildDrawnTree, DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
 import { buildDocuments } from "@/lib/answer-corpus";
 import type { CareerEntry } from "@/types/portfolio";
@@ -45,5 +45,44 @@ describe("Journey headlines", () => {
     for (const h of headlines) {
       expect(texts.some((t) => t.includes(h)), h).toBe(false);
     }
+  });
+});
+
+export const THIRD_PERSON = /\b(he|his|him|himself)\b/i;
+
+// The owner is rewriting these three himself. This list must be empty before
+// merge. Out of scope by design: worlds.ts:34, 56 and answer-corpus.ts:428
+// (Worlds/Contact specs, spec §5).
+export const PENDING_OWNER_REWRITE: ReadonlySet<string> = new Set([
+  "careerEntries.self-taught-gap.learned",
+  "careerEntries.cs-switch.context",
+  "careerEntries.usc-cheme.learned",
+]);
+
+function walk(value: unknown, path: string, out: [string, string][]): void {
+  if (typeof value === "string") out.push([path, value]);
+  else if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}[${i}]`, out));
+  else if (value && typeof value === "object")
+    for (const [k, v] of Object.entries(value)) walk(v, `${path}.${k}`, out);
+}
+
+describe("first person", () => {
+  it("no career entry or case study speaks of me in the third person", () => {
+    const strings: [string, string][] = [];
+    for (const e of careerEntries) walk(e, `careerEntries.${e.id}`, strings);
+    for (const p of projects) walk(p, `projects.${p.id}`, strings);
+    expect(strings.length).toBeGreaterThan(100);
+    const offenders = strings
+      .filter(([path, text]) => THIRD_PERSON.test(text) && !PENDING_OWNER_REWRITE.has(path))
+      .map(([path, text]) => `${path}: ${text}`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("the pending-owner allowlist holds exactly the three agreed paths", () => {
+    expect([...PENDING_OWNER_REWRITE].sort()).toEqual([
+      "careerEntries.cs-switch.context",
+      "careerEntries.self-taught-gap.learned",
+      "careerEntries.usc-cheme.learned",
+    ]);
   });
 });
