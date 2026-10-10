@@ -56,6 +56,14 @@ test.describe("no-JS parity", () => {
     await expect(heading).toHaveCSS("opacity", "1");
   });
 
+  test("every drawn branch's headline is visible with its panel closed", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the drawing shows from lg up; run once");
+    await page.goto("/");
+    const headlines = page.locator("#tree [data-origin-host] [data-tree-headline]");
+    await expect(headlines).toHaveCount(11);
+    for (const headline of await headlines.all()) await expect(headline).toBeVisible();
+  });
+
   test("the hero has no data-motion attribute and renders at rest", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "not viewport-dependent; run once");
     await page.goto("/");

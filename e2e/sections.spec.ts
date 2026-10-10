@@ -398,6 +398,23 @@ test.describe("career tree", () => {
     }
   });
 
+  test("the drawing's panels carry every drawn impact line, and opening one shows it", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the drawing only shows from lg up");
+    await showTheFinishedTree(page);
+    // 16 is the drawn tree's impact total (Task 4 confirmed it: 21 across all
+    // entries, 5 on the demoted ones).
+    const lines = page.locator('#tree [data-origin-host] ul[aria-labelledby$="-changed"] > li');
+    await expect(lines).toHaveCount(16);
+
+    const trigger = branchTrigger(page, PANEL_ENTRY);
+    await trigger.scrollIntoViewIfNeeded();
+    await trigger.click();
+    const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
+    await expect(panel.getByText("What it changed", { exact: true })).toBeVisible();
+  });
+
   /*
    * The same property the old timeline-link test held a branch panel to,
    * with the panel's new contents as its subject: what is inside a collapsed

@@ -754,14 +754,16 @@ function Bough({
 
 /**
  * The card at a bough's own end: one career entry, named. Collapsed it
- * carries the role, the organisation and the year; opened it adds the kind
- * and date range, which drawn branches ran at the same time, and every case
- * study built in that role, in full (round 18 — they were a section of their
- * own). What it deliberately does *not* repeat is the entry's
- * technologies — those are drawn as this bough's own leaves, always visible
- * on the twig below, so the panel never restates a fact already on the page
- * beside it. Its impact lines (`branch.impact`) are not drawn on the stage at
- * all yet.
+ * carries the role, the organisation and the year, with the entry's headline
+ * beneath it (the `Disclosure` `preview`: outside the trigger, so it is
+ * visible at rest, with JavaScript off and in print, and never joins the
+ * trigger's name); opened it adds "What it changed" (the entry's impact lines,
+ * verbatim), the kind and date range, which drawn branches ran at the same
+ * time, and every case study built in that role, in full (round 18 — they
+ * were a section of their own). What it deliberately does *not* repeat is the
+ * entry's technologies — those are drawn as this bough's own leaves, always
+ * visible on the twig below, so the panel never restates a fact already on
+ * the page beside it. Impact lines are shown here and nowhere on the twig.
  *
  * `data-tree-panel` is the origin story's hook, and a live contract. The
  * player lives on the stage's own drawing (`CareerTree.tsx` renders
@@ -801,6 +803,16 @@ function BranchPanel({
         className="[&>button:hover]:bg-surface"
         expandLabel={`Show detail — ${accessibleSuffix}`}
         collapseLabel={`Hide detail — ${accessibleSuffix}`}
+        preview={
+          branch.headline ? (
+            <p
+              data-tree-headline=""
+              className="pb-2 text-[length:var(--step--1)] leading-snug text-fg-muted"
+            >
+              {branch.headline}
+            </p>
+          ) : undefined
+        }
         summary={
           <span className="flex items-baseline justify-between gap-2 text-left">
             <span className="wrap-anywhere text-[length:var(--step-0)] leading-snug text-fg">
@@ -816,6 +828,26 @@ function BranchPanel({
         }
       >
         <div className="space-y-3 border-t border-rule pb-4 pt-3">
+          {/* The entry's own impact lines, verbatim and in authored order.
+              Behind the click, not on the twig: they are claims, not
+              technologies, and a branch that authored none says nothing. */}
+          {branch.impact.length > 0 ? (
+            <>
+              <p className="eyebrow" id={`tree-branch-${branch.id}-changed`}>
+                What it changed
+              </p>
+              <ul
+                role="list"
+                aria-labelledby={`tree-branch-${branch.id}-changed`}
+                className="space-y-1.5 text-[length:var(--step--1)] leading-relaxed text-fg"
+              >
+                {branch.impact.map((line, index) => (
+                  <li key={index}>{line}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+
           <p className="eyebrow">
             {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
           </p>

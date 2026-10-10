@@ -378,3 +378,68 @@ describe("the subjects #tree is cited for", () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * What the drawing says about each branch: the headline at rest, outside the
+ * trigger, and the impact lines behind the click. Scoped to the desktop
+ * drawing (`[data-origin-host]`), because the mobile list renders the same
+ * content in its own markup.
+ */
+describe("the drawing's branch cards", () => {
+  function drawing(): HTMLElement {
+    render(<CareerTree />);
+    const host = document.querySelector("[data-origin-host]");
+    if (!(host instanceof HTMLElement)) throw new Error("no [data-origin-host] around the drawing");
+    return host;
+  }
+  const drawnEntries = () =>
+    careerEntries.filter((entry) => !(DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id));
+
+  it("shows each drawn branch's headline at rest, outside its trigger", () => {
+    const host = drawing();
+    let seen = 0;
+    for (const entry of drawnEntries()) {
+      if (!entry.headline) continue;
+      const branch = host.querySelector(`[data-tree-branch="${entry.id}"]`);
+      const headline = branch?.querySelector("[data-tree-headline]");
+      expect(headline?.textContent, entry.id).toBe(entry.headline);
+      const trigger = host.querySelector(`#tree-branch-${entry.id}-trigger`);
+      expect(trigger?.contains(headline ?? null), entry.id).toBe(false);
+      expect(trigger?.textContent, entry.id).not.toContain(entry.headline);
+      seen += 1;
+    }
+    expect(seen, "every drawn branch authors a headline").toBe(11);
+  });
+
+  it("puts every impact line, verbatim and in order, in its own branch's panel", () => {
+    const host = drawing();
+    let total = 0;
+    for (const entry of drawnEntries()) {
+      const panel = host.querySelector(`#tree-branch-${entry.id}-panel`);
+      const lines = [...(panel?.querySelectorAll('ul[aria-labelledby$="-changed"] > li') ?? [])].map((li) => li.textContent);
+      expect(lines, entry.id).toEqual([...entry.impact]);
+      total += lines.length;
+    }
+    expect(total).toBe(16);
+  });
+
+  it("draws no impact line as a leaf", () => {
+    const host = drawing();
+    const impact = new Set(drawnEntries().flatMap((entry) => entry.impact));
+    const leaves = [...host.querySelectorAll('[data-origin-tier="leaf"]')].map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(leaves.length).toBeGreaterThan(0);
+    for (const text of leaves) expect(impact.has(text ?? ""), text).toBe(false);
+  });
+
+  it("says nothing about change on a branch that authored none", () => {
+    const host = drawing();
+    const bare = drawnEntries().filter((entry) => entry.impact.length === 0);
+    expect(bare).toHaveLength(5);
+    for (const entry of bare) {
+      const panel = host.querySelector(`#tree-branch-${entry.id}-panel`);
+      expect(panel?.textContent, entry.id).not.toContain("What it changed");
+    }
+  });
+});

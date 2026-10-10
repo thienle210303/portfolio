@@ -173,3 +173,12 @@ test.describe("the résumé route", () => {
     await expect(page.getByRole("link", { name: /Download PDF/ })).toBeHidden();
   });
 });
+
+// The headline is a Disclosure `preview`, outside the collapsed region, so
+// print shows it whether or not the panel is forced open.
+test("every drawn branch's headline prints", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 1024, "the drawing only shows from lg up");
+  const headlines = page.locator("#tree [data-origin-host] [data-tree-headline]");
+  await expect(headlines).toHaveCount(11);
+  for (const headline of await headlines.all()) await expect(headline).toBeVisible();
+});

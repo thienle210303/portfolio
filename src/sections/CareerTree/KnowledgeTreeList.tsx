@@ -15,8 +15,9 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * width, it is selectable and searchable, and a screen reader gets real
  * nesting rather than a picture. The drawn presentation in DrawnTree.tsx has
  * the same branches and technology leaves with the same authored edges, laid
- * out as an actual drawing once there is width to draw in. This list also
- * shows each branch's impact lines (`branch.impact`); the drawing does not.
+ * out as an actual drawing once there is width to draw in. Both show each
+ * branch's impact lines (`branch.impact`): this list inline, the drawing
+ * behind the branch's click.
  * `CareerTree.tsx` hands both to the stage and hides one at each width
  * (`hidden lg:block` on the drawing, `lg:hidden` on this list), so only one
  * is ever exposed at a time: `display: none` takes the other out of the
