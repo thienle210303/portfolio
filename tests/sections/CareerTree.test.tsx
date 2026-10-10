@@ -492,6 +492,8 @@ describe("the mobile list's rows", () => {
 
   it("keeps impact, dates, siblings and case studies inside the disclosure", () => {
     let impactTotal = 0;
+    let siblingLines = 0;
+    let studies = 0;
     for (const row of rows()) {
       const entry = entries.find((candidate) => candidate.id === row.dataset.treeBranch)!;
       const panel = row.querySelector(`#tree-list-branch-${entry.id}-panel`);
@@ -503,16 +505,30 @@ describe("the mobile list's rows", () => {
       ).toEqual([...entry.impact]);
       for (const li of lines) expect(panel.contains(li), entry.id).toBe(true);
       impactTotal += lines.length;
-      expect(panel.textContent, entry.id).toContain(entry.dateRange);
+      // The kind · dates eyebrow, not the bare range: a one-year range ("2022")
+      // is also the year in the trigger.
+      const dates = [...panel.querySelectorAll("p.eyebrow")].find((el) =>
+        el.textContent?.endsWith(` · ${entry.dateRange}`),
+      );
+      expect(dates, entry.id).toBeDefined();
+      const trigger = row.querySelector("button[aria-expanded]");
+      const preview = row.querySelector("[data-tree-headline]")?.parentElement;
+      expect(trigger?.textContent, entry.id).not.toContain(dates?.textContent ?? "");
+      expect(preview?.textContent ?? "", entry.id).not.toContain(dates?.textContent ?? "");
       for (const el of row.querySelectorAll("p")) {
-        if (el.textContent?.startsWith("Ran alongside"))
+        if (el.textContent?.startsWith("Ran alongside")) {
           expect(panel.contains(el), entry.id).toBe(true);
+          siblingLines += 1;
+        }
       }
-      for (const study of row.querySelectorAll("[id^='case-study'], article")) {
+      for (const study of row.querySelectorAll("article")) {
         expect(panel.contains(study), entry.id).toBe(true);
+        studies += 1;
       }
     }
     expect(impactTotal).toBe(16);
+    expect(siblingLines, "rows with a Ran alongside line").toBe(10);
+    expect(studies, "case studies rendered in the list").toBe(4);
   });
 
   it("renders no empty chips list", () => {
