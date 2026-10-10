@@ -48,7 +48,7 @@ A one-page guide every later section follows:
 
 | entry | headline |
 |---|---|
-| doordash | Rebuilt a catalog scraper on a direct API: 17 hours to 3 minutes. |
+| doordash | Reverse engineering scraper: 17 hours to 3 minutes. (owner's own words, 2026-10-10; "reverse engineering" is his description of the work) |
 | wordification | Built a speech QA pipeline with 99.9% validated audio accuracy. |
 | schaeffler | Moved paper setup sheets to low-code; my Java lifted throughput 96%. |
 | usc-scraping | Collected 3M+ Amazon and Kroger records at 99.9% success, unattended for months. |

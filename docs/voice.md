@@ -14,7 +14,7 @@ Rules every section's copy follows. Source: the Round 19 design,
    about the person.
 5. **Taste:** one idea per line; numbers beat adjectives; playful only where it
    costs nothing.
-6. **Before / after**, from the real page:
+6. **Before / after**, each "before" quoted from the content layer as it stood at Round 19:
 
    - **Third person to first person** (`careerEntries.eastside-high.context`)
      - Before: Three years of American high school, started three weeks after landing, in a language he could read and write but not speak.
