@@ -50,26 +50,6 @@ describe("Journey headlines", () => {
 
 export const THIRD_PERSON = /\b(he|his|him|himself)\b/i;
 
-// The owner is rewriting these three himself. Each path is pinned to its current
-// exact text, so a typo, a stale entry or the owner's rewrite fails the pin test.
-// The owner's text commit deletes these pins; the controller holds the merge
-// until this map is empty. Out of scope by design: worlds.ts:34, 56 and
-// answer-corpus.ts:264, 428 (Worlds/Contact specs, spec section 5).
-export const PENDING_OWNER_REWRITE: ReadonlyMap<string, string> = new Map([
-  [
-    "careerEntries.self-taught-gap.learned",
-    "This is the only stretch of the record where nothing was assigned — which makes it the only evidence of what he does when nobody is asking.",
-  ],
-  [
-    "careerEntries.cs-switch.context",
-    "His friends told him to try it. He tried it, and it stuck — which is a more honest account of how most people find their field than any origin story about childhood computers.",
-  ],
-  [
-    "careerEntries.usc-cheme.learned",
-    "Kept on the record on purpose. A portfolio that admits its author started somewhere else is worth more than one that pretends the line was straight.",
-  ],
-]);
-
 function walk(value: unknown, path: string, out: [string, string][]): void {
   if (typeof value === "string") out.push([path, value]);
   else if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}[${i}]`, out));
@@ -84,16 +64,9 @@ describe("first person", () => {
     for (const p of projects) walk(p, `projects.${p.id}`, strings);
     expect(strings.length).toBeGreaterThan(100);
     const offenders = strings
-      .filter(([path, text]) => THIRD_PERSON.test(text) && !PENDING_OWNER_REWRITE.has(path))
+      .filter(([, text]) => THIRD_PERSON.test(text))
       .map(([path, text]) => `${path}: ${text}`);
     expect(offenders).toEqual([]);
   });
 
-  it("every pending path exists and still holds its pinned text", () => {
-    const strings = new Map<string, string>();
-    const out: [string, string][] = [];
-    for (const e of careerEntries) walk(e, `careerEntries.${e.id}`, out);
-    for (const [path, text] of out) strings.set(path, text);
-    for (const [path, text] of PENDING_OWNER_REWRITE) expect(strings.get(path), path).toBe(text);
-  });
 });

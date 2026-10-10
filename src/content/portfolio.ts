@@ -604,10 +604,11 @@ export const careerEntries = [
   /* ---------------------------------------------------------------------- */
   /*
    * The facts in these six entries are his. The `learned` field of every
-   * entry below, `usc-honors-ta.responsibilities` ("give written feedback"),
-   * and `cs-switch.context`'s remark about origin stories were drafted for
-   * him rather than by him, and he APPROVED them as written on 2026-10-02.
-   * They are his voice now; edit them as his words, not as placeholders.
+   * entry below and `usc-honors-ta.responsibilities` ("give written
+   * feedback") were drafted for him and APPROVED as written on 2026-10-02;
+   * `self-taught-gap.learned`, `usc-cheme.learned` and `cs-switch.context`
+   * are his own words from 2026-10-10. Edit them as his words, not as
+   * placeholders.
    */
   {
     id: "eastside-high",
@@ -683,7 +684,7 @@ export const careerEntries = [
     built: [],
     impact: [],
     learned:
-      "This is the only stretch of the record where nothing was assigned — which makes it the only evidence of what he does when nobody is asking.",
+      "Just curiosity, and a kid who wanted to explore something.",
     technologies: [],
   },
   {
@@ -701,7 +702,7 @@ export const careerEntries = [
     built: [],
     impact: [],
     learned:
-      "Kept on the record on purpose. A portfolio that admits its author started somewhere else is worth more than one that pretends the line was straight.",
+      "No chemical equation seemed more interesting than a linear equation.",
     technologies: [],
   },
   {
@@ -714,7 +715,7 @@ export const careerEntries = [
     headline: "My friends said try it. I did, and it stuck.",
     locationOrMode: undefined,
     context:
-      "His friends told him to try it. He tried it, and it stuck — which is a more honest account of how most people find their field than any origin story about childhood computers.",
+      "An unsure decision that turned out to be the best decision.",
     responsibilities: [],
     built: [],
     impact: [],
