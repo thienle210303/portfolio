@@ -43,7 +43,7 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  *            is data, not decoration
  *   twig     the run of leaves under one entry, drawn per leaf so it meanders
  *   leaf     one fact that entry authored about itself — a technology it
- *            lists, or an impact line it claims (`TreeLeaf` in
+ *            lists (`TreeLeaf` in
  *            `src/lib/knowledge-tree.ts`) — a bend, a stem, a line-drawn
  *            blade, and the fact set beside it
  *
@@ -85,13 +85,12 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * leaf tilt here varies — but from `hash01()` over the entry and leaf keys,
  * never from `Math.random()`. Same id, same number, on the server and in the
  * browser, so the drawing is complete in the server-rendered HTML and
- * hydrates without a mismatch. Edit an entry's technologies or impact lines
- * and its own leaves move; it is the content that makes this tree's shape,
+ * hydrates without a mismatch. Edit an entry's technologies and its own
+ * leaves move; it is the content that makes this tree's shape,
  * not a seed anyone chose.
  *
- * The lopsidedness is the content's too: a role with nine technologies and
- * three impact lines carries three times the foliage of a milestone with one
- * line to its name, and the drawing is heaviest wherever the career itself
+ * The lopsidedness is the content's too: a role with thirteen technologies
+ * carries several times the foliage of an entry with a few, and the drawing is heaviest wherever the career itself
  * was busiest. That is what the career looks like, and a tree is the one
  * diagram that can say so without apologising for it.
  *
@@ -108,7 +107,7 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * 11 a leaf *was* a career entry, so it needed the collapse — an entry's
  * dates, technologies and case studies are a lot to show at every one of the
  * (up to five) places it hung off the drawing. Now a leaf is a single
- * authored fact — one technology, one impact line — with nothing further
+ * authored fact — one technology — with nothing further
  * underneath it to disclose, so it is drawn plainly: no button, no panel, no
  * tab stop, just a line-drawn blade and the fact beside it. What still needs
  * disclosing — the kind and dates, the drawn branches that ran alongside it,
@@ -595,7 +594,7 @@ function cubicAt(c: Curve, t: number): Point {
 
 /**
  * How many leaflets a bough carries: one per four leaves that career entry
- * lists (technologies and impact lines together), floored at two so even the
+ * lists (its technologies), floored at two so even the
  * quietest entry is in leaf.
  *
  * This is the whole point of the foliage, so it is worth being exact about
@@ -606,9 +605,9 @@ function cubicAt(c: Curve, t: number): Point {
  *
  * A quarter-scale is a *scale*, not a cap. Capping would have been the easy
  * way to keep the busiest entry tidy, and it would have made the drawing lie
- * at exactly the point it has the most to say — the role with nine
- * technologies and three impact lines must look denser than the milestone
- * with one line to its name, or the shape is decoration again. The leaflets
+ * at exactly the point it has the most to say — the role with thirteen
+ * technologies must look denser than an entry with a few, or the shape is
+ * decoration again. The leaflets
  * share a fixed run of the limb, so more of them pack tighter rather than
  * growing past the end of the bough.
  */
@@ -759,9 +758,10 @@ function Bough({
  * and date range, which drawn branches ran at the same time, and every case
  * study built in that role, in full (round 18 — they were a section of their
  * own). What it deliberately does *not* repeat is the entry's
- * technologies or impact lines — those are drawn as this bough's own leaves,
- * always visible on the twig below, so the panel never restates a fact
- * already on the page beside it.
+ * technologies — those are drawn as this bough's own leaves, always visible
+ * on the twig below, so the panel never restates a fact already on the page
+ * beside it. Its impact lines (`branch.impact`) are not drawn on the stage at
+ * all yet.
  *
  * `data-tree-panel` is the origin story's hook, and a live contract. The
  * player lives on the stage's own drawing (`CareerTree.tsx` renders
@@ -891,8 +891,8 @@ interface LeafMarkProps {
 }
 
 /**
- * One fact a career entry authored about itself — a technology, or an impact
- * line — hanging off its bough's own twig. Un-boxed and non-interactive: a
+ * One fact a career entry authored about itself — a technology — hanging off
+ * its bough's own twig. Un-boxed and non-interactive: a
  * leaf here has nothing further underneath it to disclose (round 11's leaf
  * *was* a whole career entry and needed the `Disclosure`; round 12's does
  * not — see the file banner's "Why the branch panel alone is interactive").

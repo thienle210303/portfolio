@@ -27,8 +27,7 @@
  * none of the thirteen non-work entries appears on it — see the note on
  * `DEMOTED_ENTRY_IDS` in `src/lib/knowledge-tree.ts`.) "Heaviest" is
  * deliberate rather than tactful: one
- * entry authored several times the technologies and impact lines of the
- * next-busiest, the drawing is visibly lopsided because of it, and a rail that
+ * entry authored several times the technologies of the next-busiest, the drawing is visibly lopsided because of it, and a rail that
  * quietly omitted that would be hiding the one thing the shape is saying.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
@@ -55,8 +54,8 @@ const HEADING_ID = "tree-heading";
  *  credentials line. The globe's "tree-shape" plaque counts the same call. */
 const DRAWN = buildDrawnTree();
 
-/** Every leaf on the drawing: every technology and every impact line any drawn
- *  branch lists, summed — one row per authored fact. */
+/** Every leaf on the drawing: every technology any drawn branch lists, summed
+ *  — one row per authored fact. Impact lines are not leaves. */
 const LEAF_TOTAL = totalLeaves(DRAWN);
 
 /** Distinct technologies among the drawn leaves. Not `totalTechnologies()`:
@@ -64,8 +63,8 @@ const LEAF_TOTAL = totalLeaves(DRAWN);
  *  no longer drawn anywhere on this stage. */
 const TECHNOLOGY_TOTAL = treeTechnologies(DRAWN);
 
-/** The drawn branch with the most to show — the entry whose own technologies
- *  and impact lines, combined, outnumber every other drawn entry's. Ties go to
+/** The drawn branch with the most leaves — the entry whose own technologies
+ *  outnumber every other drawn entry's. Ties go to
  *  the first one written, which is the oldest (`DRAWN` is chronological,
  *  oldest first). */
 const HEAVIEST = DRAWN.reduce<(typeof DRAWN)[number] | undefined>(

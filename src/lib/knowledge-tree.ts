@@ -9,12 +9,11 @@ import type { CareerEntry } from "@/types/portfolio";
  * branch        one career entry — a role, a degree, a milestone — placed up
  *               the trunk in chronological order, oldest lowest, each entry
  *               exactly once
- * leaf          what that entry authored about itself: a technology it lists,
- *               or an impact line it claims
+ * leaf          a technology that entry lists
  *
- * Every edge is authored, never inferred. `technologies` and `impact` are
- * fields a human wrote on that entry in `src/content/portfolio.ts`; a leaf
- * appearing here means someone deliberately said so. That constraint is why
+ * Every edge is authored, never inferred. `technologies` is a field a human
+ * wrote on that entry in `src/content/portfolio.ts`; a leaf appearing here
+ * means someone deliberately said so. That constraint is why
  * this file does not join `skillCategories.skills` against `technologies` —
  * that join was measured before this was written: of 38 skills, only 17
  * match a technology string exactly. The rest are near-misses across two
@@ -23,6 +22,10 @@ import type { CareerEntry } from "@/types/portfolio";
  * would invent edges nobody authored; an exact one would render "React —
  * used nowhere", which is false. Both are worse than not drawing the edge,
  * on a site whose entire claim is that it does not make things up.
+ *
+ * Through round 18 an entry's `impact` lines were leaves too. Round 19 took
+ * them off: they are sentences, not names, and they ride on the branch itself
+ * (`TreeBranch.impact`) beside its `headline`, for the branch's panel to show.
  *
  * ## Round 12 — the tree inverts
  *
@@ -44,8 +47,8 @@ import type { CareerEntry } from "@/types/portfolio";
  * root labels (`RootLabels.tsx`, never mounted by the pinned stage), so
  * nothing draws a skill category on the tree at all.
  *
- * Adding a role, or listing a new technology or impact line in
- * `src/content/portfolio.ts`, changes this tree with no code change here.
+ * Adding a role, or listing a new technology in `src/content/portfolio.ts`,
+ * changes this tree with no code change here.
  */
 
 /*
@@ -58,20 +61,17 @@ import type { CareerEntry } from "@/types/portfolio";
  */
 const ENTRIES: readonly CareerEntry[] = careerEntries;
 
-/** A technology leaf carries how many *other* branches also list it, so a
- *  reader can see a skill running through more than one place. An impact
- *  leaf carries `undefined` there — it is that entry's own prose, not a
- *  fact to count matches of against every other entry. */
-export type TreeLeafKind = "technology" | "impact";
+/** Technologies are the only leaves. The kind stays on the type so a leaf
+ *  still says what it is wherever it is rendered. */
+export type TreeLeafKind = "technology";
 
 export interface TreeLeaf {
   readonly kind: TreeLeafKind;
-  /** A technology name, or one impact sentence — verbatim from the entry
-   *  that authored it. */
+  /** A technology name, verbatim from the entry that lists it. */
   readonly text: string;
-  /** Technology leaves only: how many other branches also list this same
-   *  technology. `undefined` for impact leaves. */
-  readonly alsoUsedIn: number | undefined;
+  /** How many *other* branches also list this same technology, so a reader
+   *  can see a skill running through more than one place. */
+  readonly alsoUsedIn: number;
 }
 
 /** A case study attached to a branch, carrying enough to link straight at its
@@ -95,9 +95,15 @@ export interface TreeBranch {
    *  by construction, so this is exact where scraping "October 2025 —
    *  Present" would not be. */
   readonly startYear: number;
-  /** This entry's own `technologies` and `impact`, both authored, in that
-   *  order — never merged with or inferred from anything else. */
+  /** The entry's own `headline`, verbatim; undefined where it has none. */
+  readonly headline: string | undefined;
+  /** This entry's own `technologies`, authored — never merged with or
+   *  inferred from anything else. */
   readonly leaves: readonly TreeLeaf[];
+  /** The entry's own `impact` lines, verbatim and in authored order. Not
+   *  leaves, and not de-duplicated: they are the entry's sentences, shown
+   *  behind the branch's click. */
+  readonly impact: readonly string[];
   /** Case studies built in this role. */
   readonly caseStudies: readonly TreeCaseStudy[];
   /** The ids of every other branch that was running at the same time. The
@@ -137,17 +143,6 @@ export function buildCareerTree(): readonly TreeBranch[] {
     // Oldest first — "up the trunk, oldest lowest".
     .toSorted((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0))
     .map((entry): TreeBranch => {
-      const technologyLeaves: TreeLeaf[] = [...new Set(entry.technologies)].map((name) => ({
-        kind: "technology",
-        text: name,
-        alsoUsedIn: Math.max(0, (frequency.get(name) ?? 1) - 1),
-      }));
-      const impactLeaves: TreeLeaf[] = [...new Set(entry.impact)].map((text) => ({
-        kind: "impact",
-        text,
-        alsoUsedIn: undefined,
-      }));
-
       return {
         id: entry.id,
         label: entry.role,
@@ -155,7 +150,13 @@ export function buildCareerTree(): readonly TreeBranch[] {
         dateRange: entry.dateRange,
         kind: entry.type,
         startYear: Number(entry.sortKey.slice(0, 4)),
-        leaves: [...technologyLeaves, ...impactLeaves],
+        headline: entry.headline,
+        leaves: [...new Set(entry.technologies)].map((name) => ({
+          kind: "technology",
+          text: name,
+          alsoUsedIn: Math.max(0, (frequency.get(name) ?? 1) - 1),
+        })),
+        impact: entry.impact,
         caseStudies: caseStudiesFor(entry.id),
         concurrentWith: concurrentWith(entry.id),
       };
@@ -273,16 +274,13 @@ export function buildDrawnTree(): readonly TreeBranch[] {
 /** Distinct technology leaves across a set of branches — the drawn tree's own
  *  count, where `totalTechnologies()` counts every entry. */
 export function treeTechnologies(branches: readonly TreeBranch[]): number {
-  return new Set(
-    branches.flatMap((branch) =>
-      branch.leaves.filter((leaf) => leaf.kind === "technology").map((leaf) => leaf.text),
-    ),
-  ).size;
+  return new Set(branches.flatMap((branch) => branch.leaves.map((leaf) => leaf.text))).size;
 }
 
 /**
- * Every leaf across a set of branches: every technology and every impact
- * line any of them lists, summed. Takes the built tree rather than building
+ * Every leaf across a set of branches: every technology each of them lists,
+ * summed — so a technology two branches list counts twice, once per leaf.
+ * Impact lines are not leaves and are not counted. Takes the built tree rather than building
  * its own — `CareerTree.tsx`'s rail and `src/lib/worlds.ts`'s Plants-world
  * plaque each already have one in hand, and this was previously written out
  * as the same `reduce` in both places.

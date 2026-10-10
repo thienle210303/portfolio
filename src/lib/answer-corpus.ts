@@ -57,7 +57,7 @@ export interface Document {
    * the work entries; and the nine demoted entries' `context` and `impact` lines
    * are named by nothing — the credentials strip is their role, organisation and
    * repository link, one line each. A reader who follows "More on this in Journey →" from one of those lands
-   * on the entry's branch, its technologies, its impact leaves and its case
+   * on the entry's branch, its technologies, its impact lines behind the branch's click and its case
    * study — which is where to read about it, and is not nothing, but is not the
    * sentence.
    *

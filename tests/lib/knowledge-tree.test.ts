@@ -19,11 +19,16 @@ const ENTRIES: readonly CareerEntry[] = careerEntries;
  *
  * Round 12 inverts the model `buildCareerTree` draws from — see the file
  * banner in `src/lib/knowledge-tree.ts` — so this file is rewritten to it: a
- * branch is now one career entry (in chronological order, oldest first), and
- * a leaf is one authored technology or impact line off that entry. The
+ * branch is now one career entry (in chronological order, oldest first). The
  * anti-inference assertions carry over unchanged in *kind*, just retargeted:
  * a leaf must still exist only where its own entry authored it, and nothing
  * here may still join skill names against technology strings.
+ *
+ * Round 19 narrows a leaf to one authored technology. An entry's `impact`
+ * lines are sentences, not leaves: they ride on the branch as `impact`,
+ * verbatim and in order, for the branch's panel to show behind its click. So
+ * the round-12 test that impact leaves carry no `alsoUsedIn` is gone — there
+ * are no impact leaves left for it to check.
  */
 describe("buildCareerTree", () => {
   const tree = buildCareerTree();
@@ -54,34 +59,40 @@ describe("buildCareerTree", () => {
     }
   });
 
-  it("draws only the impact leaves the branch's own entry lists", () => {
+  it("carries the entry's impact lines verbatim and in order, not as leaves", () => {
     for (const branch of tree) {
       const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
-      for (const leaf of branch.leaves.filter((l) => l.kind === "impact")) {
+      expect(entry).toBeDefined();
+      expect(branch.impact).toEqual(entry?.impact);
+      for (const leaf of branch.leaves) {
+        // No impact line is also a technology string, so this cannot pass by
+        // coincidence; if one ever is, this assertion needs to say so.
         expect(
           entry?.impact.includes(leaf.text),
-          `"${leaf.text}" is drawn as an impact leaf under ${branch.id} but that entry does not list it`,
-        ).toBe(true);
+          `"${leaf.text}" is an impact line of ${branch.id} drawn as a leaf`,
+        ).toBe(false);
       }
     }
   });
 
-  it("draws every technology and every impact line the entry actually authored", () => {
-    // The other half of the two tests above: not just "nothing extra", but
-    // "nothing missing" — a leaf must exist for every authored fact, or the
-    // tree would be quietly dropping content it has no reason to drop.
+  it("draws every technology the entry authored, and nothing else as a leaf", () => {
+    // Not just "nothing extra" but "nothing missing": a leaf exists for every
+    // technology the entry lists, and no leaf exists for anything else.
     for (const branch of tree) {
       const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
       expect(entry).toBeDefined();
-      const drawnTech = new Set(
-        branch.leaves.filter((l) => l.kind === "technology").map((l) => l.text),
-      );
-      const drawnImpact = new Set(
-        branch.leaves.filter((l) => l.kind === "impact").map((l) => l.text),
-      );
-      expect(drawnTech).toEqual(new Set(entry?.technologies));
-      expect(drawnImpact).toEqual(new Set(entry?.impact));
+      expect(new Set(branch.leaves.map((l) => l.text))).toEqual(new Set(entry?.technologies));
+      expect(branch.leaves.every((l) => l.kind === "technology")).toBe(true);
     }
+  });
+
+  it("carries the entry's own headline", () => {
+    for (const branch of tree) {
+      const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
+      expect(branch.headline).toBe(entry?.headline);
+    }
+    // Guard: the check above passes vacuously if every headline is undefined.
+    expect(tree.filter((branch) => branch.headline !== undefined).length).toBeGreaterThanOrEqual(11);
   });
 
   it("never joins a skill name to a technology string — a technology used nowhere draws no leaf", () => {
@@ -97,14 +108,6 @@ describe("buildCareerTree", () => {
     for (const name of drawnTechnologies) {
       const homes = ENTRIES.filter((entry) => entry.technologies.includes(name)).length;
       expect(homes, `"${name}" is drawn but no entry lists it`).toBeGreaterThan(0);
-    }
-  });
-
-  it("impact leaves carry no alsoUsedIn — they are one entry's own prose, not a fact to count matches of", () => {
-    for (const branch of tree) {
-      for (const leaf of branch.leaves.filter((l) => l.kind === "impact")) {
-        expect(leaf.alsoUsedIn).toBeUndefined();
-      }
     }
   });
 

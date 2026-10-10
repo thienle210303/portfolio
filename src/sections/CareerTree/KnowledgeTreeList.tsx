@@ -53,8 +53,6 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
       <ListTrunk />
       <ul role="list" className="flex flex-col gap-3 pl-5">
         {tree.map((branch, branchIndex) => {
-          const technologyLeaves = branch.leaves.filter((leaf) => leaf.kind === "technology");
-          const impactLeaves = branch.leaves.filter((leaf) => leaf.kind === "impact");
           // A ring ticks the trunk wherever the year changes — including the
           // very first row, which starts the whole list's oldest ring.
           const showRing = branchIndex === 0 || branch.startYear !== tree[branchIndex - 1].startYear;
@@ -101,13 +99,13 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                     </p>
                   ) : null}
 
-                  {technologyLeaves.length > 0 ? (
+                  {branch.leaves.length > 0 ? (
                     <ul
                       role="list"
                       aria-label={`Technologies used — ${branch.label}`}
                       className="token-run"
                     >
-                      {technologyLeaves.map((leaf) => (
+                      {branch.leaves.map((leaf) => (
                         <li key={leaf.text}>
                           <span className="wrap-anywhere">{leaf.text}</span>
                           {/* Recurrence is the whole point of a tree view: it
@@ -127,18 +125,18 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                     </ul>
                   ) : null}
 
-                  {impactLeaves.length > 0 ? (
+                  {branch.impact.length > 0 ? (
                     <ul
                       role="list"
                       aria-label={`Impact — ${branch.label}`}
                       className="space-y-1"
                     >
-                      {impactLeaves.map((leaf) => (
+                      {branch.impact.map((line, index) => (
                         <li
-                          key={leaf.text}
+                          key={index}
                           className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]"
                         >
-                          {leaf.text}
+                          {line}
                         </li>
                       ))}
                     </ul>
