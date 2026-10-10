@@ -1527,7 +1527,7 @@ this task.
 - Location leaves the hero rail, because the prose already says it (spec §4 note).
 - Skins are drawn in ink and paper only; the hue words in the spec describe intent (§5.3 note). A grep of `CLAUDE.md`, `README.md`, `docs/editing.md`, `src/content/skins.ts`, `src/lib/skins.ts` and `src/sections/Worlds/gl/shaders.ts` finds no skin hue described outside the spec.
 - The crossing replays while the stage is in view and stops on deliberate interaction or "Stop the replay" (§5.5 note).
-- Recordings sit outside the disclosure, above the action row, and on the credentials strip for Food Route; each carries a `recordingDescription` (§6.4 note). The MentorHub recording was gated on owner approval (privacy); it shipped on 2026-10-09 (see the consent note below).
+- Recordings sit outside the disclosure, above the action row, and on the credentials strip for Food Route and MentorHub; each carries a `recordingDescription` (§6.4 note). The MentorHub recording was gated on owner approval (privacy); it shipped on 2026-10-09 (see the consent note below).
 - The résumé PDF is now the file the owner attached (below). The booking link reads "Book a call", not "Book twenty minutes", because the event length is unverified and a label without a duration is always true.
 - The robot's full circle runs under a Moon over the dark lap and a Sun over the lit one (Technology; both are decorations, no plaque).
 - One blue control per page: Contact's send is the only blue fill. "Get in touch" and the flight button are demoted to the plain recipe (`e2e/contact.spec.ts` "the whole page has one blue fill").

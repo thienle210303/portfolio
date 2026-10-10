@@ -194,7 +194,7 @@ test.describe("screen recordings", () => {
     expect(media.filter((url) => url.endsWith(".mp4"))).toEqual([`/media/${project.recording}.mp4`]);
     expect(media.filter((url) => url.endsWith(".jpg"))).toEqual([`/media/${project.recording}.jpg`]);
   });
-  // Food Route has no case study: its button sits under its line of the
+  // Food Route and MentorHub have no case study: each button sits under its line of the
   // credentials strip. Any recording added later is picked up from content.
   const recordedEntries = careerEntries.filter((entry) => entry.recording);
 
