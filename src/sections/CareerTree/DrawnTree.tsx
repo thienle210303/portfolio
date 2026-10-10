@@ -111,14 +111,14 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * authored fact — one technology — with nothing further
  * underneath it to disclose, so it is drawn plainly: no button, no panel, no
  * tab stop, just a line-drawn blade and the fact beside it. What still needs
- * disclosing — the kind and dates, the drawn branches that ran alongside it,
- * and (since round 18) its case studies in full — lives on the one thing per
+ * disclosing — the impact lines, the kind and dates, the drawn branches that
+ * ran alongside it, and (since round 18) its case studies in full — lives on the one thing per
  * branch that still has it: the branch panel itself, at the bough's own end,
  * using the same `Disclosure` component the case studies use. That buys correct
  * `aria-expanded`/`aria-controls` wiring, the collapsed subtree genuinely
  * leaving the tab order, print expansion and the reduced-motion path, without
- * a second implementation of any of it — and, with fourteen branches instead
- * of up to twenty-five leaf-entries, it keeps exactly the discipline the
+ * a second implementation of any of it — and, with one tab stop per drawn
+ * branch instead of one per leaf-entry (up to twenty-five), it keeps exactly the discipline the
  * round-6 drawing already held: a page a visitor has not touched yet does not
  * hand them a tab stop for every fact on it.
  *
