@@ -252,4 +252,30 @@ describe("Disclosure", () => {
       expect(screen.getByRole("link", { name: /Read the full case study/i })).toHaveFocus();
     });
   });
+
+  it("renders preview outside the trigger, visible while collapsed", () => {
+    render(
+      <Disclosure id="d-prev" summary="More detail" preview={<p>Seen at rest</p>}>
+        <p>Body copy</p>
+      </Disclosure>,
+    );
+    const trigger = screen.getByRole("button");
+    const previewEl = screen.getByText("Seen at rest");
+    const region = screen.getByRole("region", { hidden: true });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(previewEl).toBeVisible();
+    expect(trigger.contains(previewEl)).toBe(false);
+    expect(trigger).not.toHaveAccessibleName(/Seen at rest/);
+    expect(previewEl.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(trigger.compareDocumentPosition(previewEl) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("renders nothing extra without a preview", () => {
+    const { container } = render(
+      <Disclosure id="d-none" summary="More detail">
+        <p>Body copy</p>
+      </Disclosure>,
+    );
+    expect(container.firstElementChild?.children).toHaveLength(2);
+  });
 });

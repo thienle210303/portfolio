@@ -14,6 +14,8 @@ interface DisclosureProps {
   readonly expandLabel?: string;
   /** Hidden text appended to the trigger's accessible name while expanded. */
   readonly collapseLabel?: string;
+  /** Always visible, outside the trigger, so it never joins the button's accessible name. */
+  readonly preview?: ReactNode;
   readonly className?: string;
 }
 
@@ -50,6 +52,10 @@ interface DisclosureProps {
  * height collapse and the visibility flip become instantaneous together
  * instead of leaving a lingering reachable-but-invisible window.
  *
+ * `preview` sits between the button and the region, outside both: it shows
+ * collapsed or open, with JS off and in print, and the button's name never
+ * includes it.
+ *
  * The region carries `data-print-expand` so the print stylesheet can force
  * it fully open — including restoring `visibility: visible` on this inner
  * wrapper — regardless of on-screen state (globals.css `@media print`).
@@ -61,6 +67,7 @@ export function Disclosure({
   defaultOpen = false,
   expandLabel = "Read more",
   collapseLabel = "Show less",
+  preview,
   className,
 }: DisclosureProps) {
   const [open, setOpen] = useState(defaultOpen);
@@ -96,6 +103,7 @@ export function Disclosure({
         {" "}
         <VisuallyHidden>{open ? collapseLabel : expandLabel}</VisuallyHidden>
       </button>
+      {preview}
       <div
         id={panelId}
         role="region"
