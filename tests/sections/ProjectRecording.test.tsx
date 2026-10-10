@@ -191,10 +191,10 @@ describe("a recording on a credentials line", () => {
   const recordedEntries = careerEntries.filter((entry) => "recording" in entry && entry.recording);
 
   it("covers every career entry that ships a recording", () => {
-    // MentorHub is held back until the owner approves its frames (they show a
-    // breach dialog, a 401, an email and teammates' names); adding it is a
-    // content-only change plus its two files.
-    expect(recordedEntries.map((entry) => ("recording" in entry ? entry.recording : null))).toEqual(["foodroute"]);
+    expect(recordedEntries.map((entry) => ("recording" in entry ? entry.recording : null)).sort()).toEqual([
+      "foodroute",
+      "mentorhub",
+    ]);
   });
 
   it("puts a press-to-mount button and its caption under each such line", () => {

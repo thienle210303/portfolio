@@ -1527,7 +1527,7 @@ this task.
 - Location leaves the hero rail, because the prose already says it (spec §4 note).
 - Skins are drawn in ink and paper only; the hue words in the spec describe intent (§5.3 note). A grep of `CLAUDE.md`, `README.md`, `docs/editing.md`, `src/content/skins.ts`, `src/lib/skins.ts` and `src/sections/Worlds/gl/shaders.ts` finds no skin hue described outside the spec.
 - The crossing replays while the stage is in view and stops on deliberate interaction or "Stop the replay" (§5.5 note).
-- Recordings sit outside the disclosure, above the action row, and on the credentials strip for Food Route; each carries a `recordingDescription` (§6.4 note). The MentorHub recording was gated on owner approval (privacy) and is not shipped.
+- Recordings sit outside the disclosure, above the action row, and on the credentials strip for Food Route; each carries a `recordingDescription` (§6.4 note). The MentorHub recording was gated on owner approval (privacy); it shipped on 2026-10-09 (see the consent note below).
 - The résumé PDF is now the file the owner attached (below). The booking link reads "Book a call", not "Book twenty minutes", because the event length is unverified and a label without a duration is always true.
 - The robot's full circle runs under a Moon over the dark lap and a Sun over the lit one (Technology; both are decorations, no plaque).
 - One blue control per page: Contact's send is the only blue fill. "Get in touch" and the flight button are demoted to the plain recipe (`e2e/contact.spec.ts` "the whole page has one blue fill").
@@ -1540,6 +1540,13 @@ this task.
   ```
 
   A re-encode without `-ss 0.3` puts the email frame back. The poster is frame 0 of the trimmed mp4.
+
+- **MentorHub ships whole and unedited, by owner consent (2026-10-09).** The owner reviewed the clip and approved every item: the teammates on About Us and Aarsh Patel on the Mentors list agreed to be shown, `thien@gmail.com` in the login is fake, and the browser's "password found in a data breach" popup and the dashboard details may be shown as is. No trim, blur or crop. `public/media/mentorhub.mp4` is 385,641 B, 1280x720, 15.37 s, from `D:/Project/Portfolio-v2/src/assets/experience/mentorhub.mp4` (1920x1080, pillarboxed) with ffmpeg 7.1; crf 30 was under the 1.5 MB ceiling, so nothing was raised or cut. The poster is a 0.2 s frame (the Welcome page) of the shipped mp4:
+
+  ```
+  ffmpeg -i mentorhub.mp4 -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 30 -preset slow -an -movflags +faststart -vf "scale='min(1280,iw)':-2" public/media/mentorhub.mp4
+  ffmpeg -ss 0.2 -i public/media/mentorhub.mp4 -vframes 1 -vf "scale='min(1280,iw)':-2" -q:v 5 public/media/mentorhub.jpg
+  ```
 
 **G3, before and after.** Canvas-label contrast under the five skins was checked by eye; `worlds.spec.ts` "canvas labels under every skin" now measures it (Task 6). At `HALO_PX = 3.5` every skin failed in at least one theme (worst 1.67:1, Desert at night). At `HALO_PX = 5` the worst measured is 4.74 day / 4.98 night on every skin.
 
@@ -1580,3 +1587,11 @@ What was seen:
 **Hero measurement.** The code artifact's top on the production build, three runs each: 896 px at 1280×800 and 870 px at 1024×768 (the old comment said 912 and 886; the `gap-y-14` to `gap-y-10` change moved it 16 px). `Hero.tsx` now says so.
 
 **Right-click freeze.** `pressStart` now ignores a `pointerdown` with `button !== 0`, and a control-click on macOS, so a context menu that swallows the `pointerup` no longer leaves the press set (the loop stayed frozen under "Stop the replay"). Two unit tests failed against the old code and pass now.
+
+### MentorHub recording (2026-10-09)
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| After MentorHub recording (3 runs) | 200.7 KB | 14.1 KB | 223.8 KB | 3164-5084 ms | 740-885 ms | 0 | 3194 |
+
+Production build on `:3151`, a throwaway copy of `scripts/perf.mjs` pointed at `chromium_headless_shell-1234`. Initial JS 205,534 B in all three runs (+119 B over main's 205,415 B: the one description string), 0 skipped responses. LCP and TBT are well above Plan D's 2412-2452 ms / 334-389 ms; the JS, CSS, fonts and DOM nodes that the change could affect are flat, and the mp4 and jpg load only on the press (e2e), so the timing gap is read as machine load (unverified). `pnpm verify` 5/5 (939 unit tests); `sections`, `axe` and `responsive` e2e: 151 passed, 0 failed.

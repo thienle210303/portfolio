@@ -478,6 +478,12 @@ export const careerEntries = [
       label: "github.com/aarshrpatel/MentorHub",
       href: "https://github.com/aarshrpatel/MentorHub",
     },
+    // public/media/mentorhub.mp4 is the full, unedited screen recording. It
+    // shows a login, a breach popup and teammates' names, all approved by the
+    // owner on 2026-10-09 (docs/feedback-tracker.md); do not trim or blur it.
+    recording: "mentorhub",
+    recordingDescription:
+      "A mentorship app's welcome page and About Us page, then a login, a dashboard with a profile card, a Discovery page of eight subject buttons, and a Mentors list with a search box.",
   },
   {
     id: "code-to-give",

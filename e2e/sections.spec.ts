@@ -199,7 +199,7 @@ test.describe("screen recordings", () => {
   const recordedEntries = careerEntries.filter((entry) => entry.recording);
 
   test("the entries' recordings are found in content", () => {
-    expect(recordedEntries.map((entry) => entry.recording)).toContain("foodroute");
+    expect(recordedEntries.map((entry) => entry.recording)).toEqual(expect.arrayContaining(["foodroute", "mentorhub"]));
   });
 
   for (const entry of recordedEntries) {
