@@ -1595,3 +1595,32 @@ What was seen:
 | After MentorHub recording (3 runs) | 200.7 KB | 14.1 KB | 223.8 KB | 3164-5084 ms | 740-885 ms | 0 | 3194 |
 
 Production build on `:3151`, a throwaway copy of `scripts/perf.mjs` pointed at `chromium_headless_shell-1234`. Initial JS 205,534 B in all three runs (+119 B over main's 205,415 B: the one description string), 0 skipped responses. LCP and TBT are well above Plan D's 2412-2452 ms / 334-389 ms; the JS, CSS, fonts and DOM nodes that the change could affect are flat, and the mp4 and jpg load only on the press (e2e), so the timing gap is read as machine load (unverified). `pnpm verify` 5/5 (939 unit tests); `sections`, `axe` and `responsive` e2e: 151 passed, 0 failed.
+
+## Round 19 (2026-10-10) — voice rules and a first-person Journey
+
+**Strings.** Every changed visible string is in the plan's table: [`docs/superpowers/plans/2026-10-10-round-19-voice-and-journey.md`](superpowers/plans/2026-10-10-round-19-voice-and-journey.md), "The first-person pass: every changed string". The headlines are traced in [`docs/superpowers/specs/2026-10-10-journey-headline-sources.md`](superpowers/specs/2026-10-10-journey-headline-sources.md).
+
+**Owner checks.**
+1. DoorDash headline: the owner's own words, "Reverse engineering scraper: 17 hours to 3 minutes", owner-authored; the fact trace checks the numbers 17 and 3 only.
+2. `self-taught-gap.learned`, 3. `cs-switch.context`, 4. `usc-cheme.learned`: the owner will rewrite all three himself. Until his text lands they stay as they are, listed in `PENDING_OWNER_REWRITE` (`tests/lib/voice.test.ts`). **Merge is gated on that allowlist emptying.**
+
+**Retrieval, before and after Task 2** (identical): 30 cases, recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.805. Below rank 3, unchanged: "messy or duplicated data" rank 8, "how many retailers has he integrated" rank 5. Floors untouched.
+
+**Leaves (Task 4, confirmed).** Technologies are the only leaves: 53 → 37 authored leaves, 30 distinct technologies. Per branch: usc-scraping 8→5, usc-ta 8→6, usc-honors-ta 4→3, schaeffler 6→4, wordification 9→6, doordash 18→13; the other five drawn entries 0. Rail "Heaviest" reads "Software Engineer · 13 of 37". The Plants plaque reads "11 branches · 37 authored leaves · 30 distinct technologies" in the production HTML.
+
+**Perf.**
+
+| When | JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| After round 19 (3 runs) | 200.9 KB | 14.1 KB | 223.8 KB | 2476-3540 ms | 337-984 ms | 0 | 3156 |
+
+Production build on `:3169`, a throwaway copy of `scripts/perf.mjs` pointed at `chromium_headless_shell-1234`. Initial JS 205,712 B in all three runs, 0 skipped responses: **+178 B** over main's 205,534 B (read as the `preview` prop and the headline markup; not broken down per chunk). None of the initial scripts contains `#version 300 es`. DOM nodes fall 3194 → 3156 (impact lines left the twigs). LCP and TBT spread widely across the three runs on a loaded machine; read as load (unverified).
+
+**Verification.** `pnpm verify`: 5/5 (955 unit tests, 52 files; contrast 31 pairings, lowest 4.66:1). Full e2e against the production build at `--workers=2`: 799 passed, 0 failed, 749 skipped (no re-runs needed). `legacy-anchors.spec.ts` passed in the full run and again alone (19 passed, 5 skipped).
+
+**Browser pass.** Production build, headless shell, reduced motion, 1440×900 and 390×844, day and night, the DoorDash branch at rest and opened (`r19-{1440,390}-{day,night}-{rest,open}.png` in the SDD folder). No page errors in any run; `data-theme` read back as set.
+- 1440, at rest: the panel shows "Software Engineer · DoorDash, Inc. 2025" with the headline under it; the thirteen technology leaves hang on the twig below. Schaeffler and Wordification panels below show their headlines too. Same in both themes.
+- 1440, opened: "WHAT IT CHANGED" and the five impact lines, then "ROLE · OCTOBER 2025 — PRESENT", "Ran alongside Whatever I felt like learning (No institution)" and the case studies. The panel grows downward and pushes the twig's leaves below it (measured: the leaf column moves from just under the panel to under its new bottom), so the leaves are not visible beside the open panel. Nothing overlaps.
+- 390, at rest: title, year, headline and the chips in the list row. Chips on a wrapped row start with their separator rule ("| Playwright", "| Databricks", "| gRPC"), so wrapped rows read indented against the first.
+- 390, opened: the chips stay above "WHAT IT CHANGED" and its five lines.
+- The cats sit bottom right in every 1440 frame and over the last impact line at 390; they roam by design.
