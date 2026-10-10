@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import { ACTS } from "@/sections/CareerTree/acts";
-import { DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
+import { buildDrawnTree, DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
+import KnowledgeTreeList from "@/sections/CareerTree/KnowledgeTreeList";
 import { ACT_IDS, actAnchorId, actForEntry } from "@/lib/anchors";
 import { caseStudyAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries, projects } from "@/content/portfolio";
@@ -441,5 +442,83 @@ describe("the drawing's branch cards", () => {
       const panel = host.querySelector(`#tree-branch-${entry.id}-panel`);
       expect(panel?.textContent, entry.id).not.toContain("What it changed");
     }
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* The mobile list                                                            */
+/* -------------------------------------------------------------------------- */
+
+describe("the mobile list's rows", () => {
+  const entries = careerEntries.filter(
+    (entry) => !(DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id),
+  );
+  function rows(): HTMLElement[] {
+    const { container } = render(<KnowledgeTreeList tree={buildDrawnTree()} />);
+    return [...container.querySelectorAll<HTMLElement>("[data-tree-branch]")];
+  }
+  const trigger = (row: HTMLElement) => row.querySelector("button[aria-expanded]");
+
+  it("shows title, headline and chips without opening", () => {
+    const list = rows();
+    expect(list).toHaveLength(11);
+    for (const row of list) {
+      const entry = entries.find((candidate) => candidate.id === row.dataset.treeBranch);
+      if (!entry) throw new Error(`no entry for ${row.dataset.treeBranch}`);
+      const btn = trigger(row);
+      expect(btn?.textContent, entry.id).toContain(entry.role);
+      const headline = row.querySelector("[data-tree-headline]");
+      expect(headline?.textContent, entry.id).toBe(entry.headline);
+      expect(btn?.contains(headline ?? null), entry.id).toBe(false);
+      const chips = row.querySelector('[aria-label^="Technologies used"]');
+      if (entry.technologies.length === 0) {
+        expect(chips, entry.id).toBeNull();
+        continue;
+      }
+      expect(chips, entry.id).not.toBeNull();
+      expect(
+        [...(chips?.querySelectorAll(":scope > li > span:first-child") ?? [])].map(
+          (li) => li.textContent,
+        ),
+        entry.id,
+      ).toEqual([...entry.technologies]);
+      expect(btn?.contains(chips ?? null), entry.id).toBe(false);
+      expect(
+        row.querySelector(`#tree-list-branch-${entry.id}-panel`)?.contains(chips ?? null),
+        entry.id,
+      ).toBe(false);
+    }
+  });
+
+  it("keeps impact, dates, siblings and case studies inside the disclosure", () => {
+    let impactTotal = 0;
+    for (const row of rows()) {
+      const entry = entries.find((candidate) => candidate.id === row.dataset.treeBranch)!;
+      const panel = row.querySelector(`#tree-list-branch-${entry.id}-panel`);
+      if (!panel) throw new Error(`no panel for ${entry.id}`);
+      const lines = [...row.querySelectorAll('ul[aria-labelledby$="-changed"] > li')];
+      expect(
+        lines.map((li) => li.textContent),
+        entry.id,
+      ).toEqual([...entry.impact]);
+      for (const li of lines) expect(panel.contains(li), entry.id).toBe(true);
+      impactTotal += lines.length;
+      expect(panel.textContent, entry.id).toContain(entry.dateRange);
+      for (const el of row.querySelectorAll("p")) {
+        if (el.textContent?.startsWith("Ran alongside"))
+          expect(panel.contains(el), entry.id).toBe(true);
+      }
+      for (const study of row.querySelectorAll("[id^='case-study'], article")) {
+        expect(panel.contains(study), entry.id).toBe(true);
+      }
+    }
+    expect(impactTotal).toBe(16);
+  });
+
+  it("renders no empty chips list", () => {
+    const bare = buildDrawnTree().map((branch) => ({ ...branch, leaves: [] }));
+    const { container } = render(<KnowledgeTreeList tree={bare} />);
+    expect(container.querySelectorAll("[data-tree-branch]")).toHaveLength(11);
+    expect(container.querySelector('[aria-label^="Technologies used"]')).toBeNull();
   });
 });

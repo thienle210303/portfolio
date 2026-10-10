@@ -16,8 +16,11 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * nesting rather than a picture. The drawn presentation in DrawnTree.tsx has
  * the same branches and technology leaves with the same authored edges, laid
  * out as an actual drawing once there is width to draw in. Both show each
- * branch's impact lines (`branch.impact`): this list inline, the drawing
- * behind the branch's click.
+ * branch's impact lines (`branch.impact`): this list behind the row's
+ * disclosure, as the drawing does behind the branch's click. Each row also
+ * shows its headline and technology chips at rest (the `Disclosure`
+ * `preview`, outside the trigger); the drawing shows the headline the same
+ * way and draws the technologies as leaves.
  * `CareerTree.tsx` hands both to the stage and hides one at each width
  * (`hidden lg:block` on the drawing, `lg:hidden` on this list), so only one
  * is ever exposed at a time: `display: none` takes the other out of the
@@ -33,8 +36,9 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * inside someone else's.
  *
  * Collapsed by default apart from the first (the *oldest* entry now, not an
- * arbitrary first lens), so the section opens as one scannable headline
- * rather than a wall — the same summary-first shape the case studies use.
+ * arbitrary first lens), so the section opens as one scannable list of titles,
+ * headlines and technology chips rather than a wall — the same summary-first
+ * shape the case studies use.
  *
  * Round 13 gives this list its own ink: a drawn trunk down the left margin
  * (`ListTrunk`), a curved bough per row (`EntryInk`), and a small "still
@@ -76,6 +80,43 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                 expandLabel={`Show what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
                 collapseLabel={`Hide what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
                 className="px-4 sm:px-5"
+                preview={
+                  <div className="space-y-2 pb-3">
+                    {branch.headline ? (
+                      <p
+                        data-tree-headline=""
+                        className="text-[length:var(--step--1)] leading-snug text-[color:var(--fg-muted)]"
+                      >
+                        {branch.headline}
+                      </p>
+                    ) : null}
+                    {branch.leaves.length > 0 ? (
+                      <ul
+                        role="list"
+                        aria-label={`Technologies used — ${branch.label}`}
+                        className="token-run"
+                      >
+                        {branch.leaves.map((leaf) => (
+                          <li key={leaf.text}>
+                            <span className="wrap-anywhere">{leaf.text}</span>
+                            {/* Recurrence is the whole point of a tree view: it
+                                is what shows a technology running through more
+                                than one branch instead of sitting in one. */}
+                            {leaf.alsoUsedIn ? (
+                              <span className="text-accent">
+                                +{leaf.alsoUsedIn}
+                                <span className="sr-only">
+                                  {" "}
+                                  other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
+                                </span>
+                              </span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                }
                 summary={
                   <span className="flex flex-1 flex-col gap-1 py-3 text-left">
                     <span className="flex items-baseline justify-between gap-2">
@@ -89,60 +130,40 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                         {branch.startYear}
                       </span>
                     </span>
-                    <span className="eyebrow mt-1">
-                      {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
-                    </span>
                   </span>
                 }
               >
                 <div className="mb-5 space-y-3 border-t border-rule pb-4 pt-3">
+                  {branch.impact.length > 0 ? (
+                    <>
+                      <p className="eyebrow" id={`tree-list-branch-${branch.id}-changed`}>
+                        What it changed
+                      </p>
+                      <ul
+                        role="list"
+                        aria-labelledby={`tree-list-branch-${branch.id}-changed`}
+                        className="space-y-1"
+                      >
+                        {branch.impact.map((line, index) => (
+                          <li
+                            key={index}
+                            className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]"
+                          >
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+
+                  <p className="eyebrow">
+                    {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
+                  </p>
+
                   {siblings.length > 0 ? (
                     <p className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]">
                       Ran alongside {siblingsLabel(siblings)}
                     </p>
-                  ) : null}
-
-                  {branch.leaves.length > 0 ? (
-                    <ul
-                      role="list"
-                      aria-label={`Technologies used — ${branch.label}`}
-                      className="token-run"
-                    >
-                      {branch.leaves.map((leaf) => (
-                        <li key={leaf.text}>
-                          <span className="wrap-anywhere">{leaf.text}</span>
-                          {/* Recurrence is the whole point of a tree view: it
-                              is what shows a technology running through more
-                              than one branch instead of sitting in one. */}
-                          {leaf.alsoUsedIn ? (
-                            <span className="text-accent">
-                              +{leaf.alsoUsedIn}
-                              <span className="sr-only">
-                                {" "}
-                                other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
-                              </span>
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  {branch.impact.length > 0 ? (
-                    <ul
-                      role="list"
-                      aria-label={`Impact — ${branch.label}`}
-                      className="space-y-1"
-                    >
-                      {branch.impact.map((line, index) => (
-                        <li
-                          key={index}
-                          className="text-[length:var(--step--1)] leading-relaxed text-[color:var(--fg-muted)]"
-                        >
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
                   ) : null}
 
                   {/* The case studies built in this role, in full — the same
