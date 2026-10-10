@@ -26,9 +26,9 @@
  * `/resume` renders: that page's Experience list is `type === "work"` only, so
  * none of the thirteen non-work entries appears on it — see the note on
  * `DEMOTED_ENTRY_IDS` in `src/lib/knowledge-tree.ts`.) "Heaviest" is
- * deliberate rather than tactful: one
- * entry authored several times the technologies of the next-busiest, the drawing is visibly lopsided because of it, and a rail that
- * quietly omitted that would be hiding the one thing the shape is saying.
+ * deliberate rather than tactful: one entry authored the most technologies,
+ * the drawing is visibly lopsided because of it, and a rail that quietly
+ * omitted that would be hiding the one thing the shape is saying.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";

@@ -13,12 +13,14 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * It is not a fallback in the "degraded" sense. A `<ul>` with rules drawn on
  * it is a tree to the eye and a list to everything else: it reflows to any
  * width, it is selectable and searchable, and a screen reader gets real
- * nesting rather than a picture. The drawn presentation in DrawnTree.tsx is
- * the same data with the same authored edges, laid out as an actual drawing
- * once there is width to draw in. `CareerTree.tsx` hands both to the stage
- * and hides one at each width (`hidden lg:block` on the drawing, `lg:hidden`
- * on this list), so only one is ever exposed at a time: `display: none` takes
- * the other out of the accessibility tree and the tab order together.
+ * nesting rather than a picture. The drawn presentation in DrawnTree.tsx has
+ * the same branches and technology leaves with the same authored edges, laid
+ * out as an actual drawing once there is width to draw in. This list also
+ * shows each branch's impact lines (`branch.impact`); the drawing does not.
+ * `CareerTree.tsx` hands both to the stage and hides one at each width
+ * (`hidden lg:block` on the drawing, `lg:hidden` on this list), so only one
+ * is ever exposed at a time: `display: none` takes the other out of the
+ * accessibility tree and the tab order together.
  *
  * Round 12 flattens this list to match the drawing's own inversion: through
  * round 11 the outer `<ul>` was five resume lenses, each a `Disclosure`

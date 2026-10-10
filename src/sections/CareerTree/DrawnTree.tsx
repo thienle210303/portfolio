@@ -86,16 +86,17 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * never from `Math.random()`. Same id, same number, on the server and in the
  * browser, so the drawing is complete in the server-rendered HTML and
  * hydrates without a mismatch. Edit an entry's technologies and its own
- * leaves move; it is the content that makes this tree's shape,
- * not a seed anyone chose.
+ * leaves move; it is the content that makes this tree's shape, not a seed
+ * anyone chose.
  *
- * The lopsidedness is the content's too: a role with thirteen technologies
- * carries several times the foliage of an entry with a few, and the drawing is heaviest wherever the career itself
- * was busiest. That is what the career looks like, and a tree is the one
- * diagram that can say so without apologising for it.
+ * The lopsidedness is the content's too: the role with the most technologies
+ * carries the most leaves and the most foliage, and the drawing is heaviest
+ * wherever the career itself was busiest. That is what the career looks
+ * like, and a tree is the one diagram that can say so without apologising for
+ * it.
  *
  * The foliage says the same thing a second way. A branch's own leaf *rows*
- * are exactly what that entry authored; the leaflets riding the limb itself
+ * are the entry's own technologies; the leaflets riding the limb itself
  * are a count of the same thing — `foliageCount()` below, off
  * `branch.leaves.length`. So the crown is thick where the entry had a lot to
  * show and sparse where it did not, and both readings come out of the
@@ -594,22 +595,21 @@ function cubicAt(c: Curve, t: number): Point {
 
 /**
  * How many leaflets a bough carries: one per four leaves that career entry
- * lists (its technologies), floored at two so even the
- * quietest entry is in leaf.
+ * lists (its technologies), floored at two so even the quietest entry is in
+ * leaf.
  *
  * This is the whole point of the foliage, so it is worth being exact about
  * what it does and does not claim. The count is `branch.leaves.length` —
- * exactly what that one entry authored about itself, the same number of rows
+ * the entry's own technologies, the same number of rows
  * drawn down its own twig. Nothing is invented and nothing is inferred: it is
  * one authored list, counted.
  *
  * A quarter-scale is a *scale*, not a cap. Capping would have been the easy
  * way to keep the busiest entry tidy, and it would have made the drawing lie
- * at exactly the point it has the most to say — the role with thirteen
+ * at exactly the point it has the most to say — the role with the most
  * technologies must look denser than an entry with a few, or the shape is
- * decoration again. The leaflets
- * share a fixed run of the limb, so more of them pack tighter rather than
- * growing past the end of the bough.
+ * decoration again. The leaflets share a fixed run of the limb, so more of
+ * them pack tighter rather than growing past the end of the bough.
  */
 function foliageCount(leafCount: number): number {
   return Math.max(2, Math.round(leafCount / 4));

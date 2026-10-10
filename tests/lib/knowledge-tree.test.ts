@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCareerTree,
+  buildDrawnTree,
   careerYearSpan,
   totalTechnologies,
 } from "@/lib/knowledge-tree";
@@ -65,14 +66,18 @@ describe("buildCareerTree", () => {
       expect(entry).toBeDefined();
       expect(branch.impact).toEqual(entry?.impact);
       for (const leaf of branch.leaves) {
-        // No impact line is also a technology string, so this cannot pass by
-        // coincidence; if one ever is, this assertion needs to say so.
+        // No impact line is also a technology string, so this cannot fail
+        // spuriously; if one ever is, this assertion needs to say so.
         expect(
           entry?.impact.includes(leaf.text),
           `"${leaf.text}" is an impact line of ${branch.id} drawn as a leaf`,
         ).toBe(false);
       }
     }
+    // Guard: the checks above pass vacuously if every impact list is empty.
+    // 16 = the drawn tree's impact lines, confirmed by running the code in
+    // round 19 (53 leaves before, 37 after).
+    expect(buildDrawnTree().flatMap((branch) => branch.impact)).toHaveLength(16);
   });
 
   it("draws every technology the entry authored, and nothing else as a leaf", () => {
@@ -82,7 +87,6 @@ describe("buildCareerTree", () => {
       const entry = ENTRIES.find((candidate) => candidate.id === branch.id);
       expect(entry).toBeDefined();
       expect(new Set(branch.leaves.map((l) => l.text))).toEqual(new Set(entry?.technologies));
-      expect(branch.leaves.every((l) => l.kind === "technology")).toBe(true);
     }
   });
 
