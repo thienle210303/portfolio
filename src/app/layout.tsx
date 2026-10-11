@@ -6,7 +6,7 @@ import { buildCompanionFacts } from "@/lib/companion-facts";
 import SkipLink from "@/components/layout/SkipLink";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import Companion from "@/components/companion/Companion";
+import CompanionLoader from "@/components/companion/CompanionLoader";
 import InkReveal from "@/components/ui/InkReveal";
 import SiteAnalytics from "@/components/layout/SiteAnalytics";
 import "./globals.css";
@@ -229,7 +229,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* D1: facts computed once, on the server, from src/content/* — see
             src/lib/companion-facts.ts. The content arrays never reach the
             client chunk the cats ship in; only this small object does. */}
-        <Companion facts={buildCompanionFacts()} />
+        <CompanionLoader facts={buildCompanionFacts()} />
         {/* The one reveal observer for the whole page — see that file's own
             doc comment for why its two jobs (section settles + the header
             hairline sentinel above) live in a single mount rather than two. */}

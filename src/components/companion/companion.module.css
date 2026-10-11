@@ -1,13 +1,13 @@
 /*
- * The one thing the companion cannot say in utility classes.
+ * The two things the companion cannot say in utility classes.
  *
  * Tailwind v4 has no `animate-*` for a keyframe it has never been shown, and
  * this project's keyframes would have to live in the `@theme` block in
- * `globals.css` — which is the design system's own file. A snore is not a
- * design token, and it should not be able to collide with one.
+ * `globals.css` — which is the design system's own file. A snore or a tail
+ * sway is not a design token, and it should not be able to collide with one.
  *
- * So it is a CSS module: locally scoped class names *and* a locally scoped
- * `@keyframes`, sitting next to the component that draws it. That is exactly
+ * So it is a CSS module: locally scoped class names *and* locally scoped
+ * `@keyframes`, sitting next to the components that draw them. That is exactly
  * the case Next's own CSS guidance points modules at, and it is the only file
  * in the companion that is not TypeScript.
  *
@@ -62,5 +62,47 @@
 @media (prefers-reduced-motion: reduce) {
   .snore {
     display: none;
+  }
+}
+
+/*
+ * A seated cat's tail while the loop ticks slowly (`swaying` in
+ * CompanionCat.tsx). Drawn, the sway moves each control point of `sitTail` by
+ * `lash` times a fixed vector; this is the closest affine fit to that
+ * about the tail's root (11.5, 33.5): a shear of -0.09 and a vertical stretch
+ * of 0.066 per unit of `lash`, within 0.55 units of the drawn curve anywhere
+ * along it. Sine-eased quarters, so 0% is `phase` 0 and 25% is
+ * `lash` 1, as in the drawing. The period and the starting offset come from
+ * the cat, in `--sway-period` and `--sway-delay`.
+ */
+@keyframes companion-tail-sway {
+  0%,
+  50%,
+  100% {
+    transform: matrix(1, 0, 0, 1, 0, 0);
+    animation-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+  }
+  25% {
+    transform: matrix(1, 0, -0.09, 1.066, 0, 0);
+    animation-timing-function: cubic-bezier(0.47, 0, 0.745, 0.715);
+  }
+  75% {
+    transform: matrix(1, 0, 0.09, 0.934, 0, 0);
+    animation-timing-function: cubic-bezier(0.47, 0, 0.745, 0.715);
+  }
+}
+
+.tailSway {
+  transform-box: view-box;
+  transform-origin: 11.5px 33.5px;
+}
+
+/* Only where motion is welcome. The loop never runs under reduced motion, so
+ * nothing sets `swaying` there anyway; this keeps the stylesheet from being the
+ * one place that could add motion if it ever did. */
+@media (prefers-reduced-motion: no-preference) {
+  .tailSway {
+    animation: companion-tail-sway var(--sway-period) infinite;
+    animation-delay: var(--sway-delay);
   }
 }

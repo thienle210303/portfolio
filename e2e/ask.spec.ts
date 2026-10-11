@@ -41,6 +41,12 @@ function askBlock(page: Page) {
  * so the wait is for the question field, not for the scroll to settle.
  */
 async function openChat(page: Page) {
+  // The globe chunk prefetches after `load`, and when its GL surface goes live
+  // the skin buttons drop their "needs WebGL" line: #worlds shrinks by 52 px
+  // above #ask and scroll anchoring moves `scrollY` by the same amount. Under
+  // load that lands mid-measurement. A failed coverage PNG keeps the 2D globe
+  // for the visit, so #worlds' height never changes during a chat test.
+  await page.route("**/globe/coastline.png", (route) => route.abort());
   await page.goto("/");
   await askBlock(page).scrollIntoViewIfNeeded();
   await expect(questionField(page)).toBeVisible({ timeout: 15_000 });

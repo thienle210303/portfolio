@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+import styles from "./companion.module.css";
 
 /**
  * The companions' bodies: one cat per instance, drawn as a single-weight line
@@ -88,6 +90,13 @@ export const CAT_H = 42;
 export const CAT_HOP_RISE = 6;
 
 /**
+ * How far a still cat's `phase` moves per 60Hz frame — the tail's idle sway.
+ * The loop advances `phase` by these; `swaying` turns them into the period of
+ * the CSS sway that stands in for the loop while it ticks slowly.
+ */
+export const SIT_SWAY_RATE = { grey: 0.006, tabby: 0.0045 } as const;
+
+/**
  * The grey coat. High enough to read as a solid-coated animal beside the
  * tabby's bare outline, low enough that the contour and the markings still
  * carry the drawing rather than being swallowed by it.
@@ -141,6 +150,12 @@ interface CompanionCatProps {
    * span's `scaleX` instead of replacing either.
    */
   readonly hopping?: boolean;
+  /**
+   * The loop is on its slow idle tick, so the plain sit's tail sways in CSS
+   * (`.tailSway`) from `phase` rather than being redrawn from it. Ignored by
+   * every other pose.
+   */
+  readonly swaying?: boolean;
 }
 
 /** Exported for `MiniThien`, the one other drawing on this layer that follows
@@ -196,15 +211,16 @@ export type Part =
    *  outline does not already enclose. */
   | { readonly kind: "area"; readonly d: string; readonly bare?: boolean }
   /** An open stroke: a tail, a leg, a foreleg reaching out. The mask lays a
-   *  wider ground stroke under it and never fills it. */
-  | { readonly kind: "line"; readonly d: string }
+   *  wider ground stroke under it and never fills it. `sway` marks the tail
+   *  for the CSS idle sway, in both passes. */
+  | { readonly kind: "line"; readonly d: string; readonly sway?: boolean }
   /** A boot or a paw pad. Filled by the mask — the tabby's socks have to hide
    *  text like the rest of her — and stroked by the ink. */
   | { readonly kind: "pad"; readonly cx: number; readonly cy: number; readonly r?: number }
   /** A coat marking, or a line on the face. Ink only: it lies *on* a body the
    *  mask has already covered, and a ground stroke under a stripe would erase
    *  the coat the stripe is drawn on. */
-  | { readonly kind: "mark"; readonly d: string };
+  | { readonly kind: "mark"; readonly d: string; readonly sway?: boolean };
 
 /** Head, both ears and the brow, shared by the upright contours so the cats
  *  cannot drift into looking like different animals between poses. `flick` tips
@@ -351,6 +367,10 @@ function sitTail(lash: number, drop = 0): string {
 /* The two passes                                                              */
 /* -------------------------------------------------------------------------- */
 
+function swayClass(part: Part): string | undefined {
+  return (part.kind === "line" || part.kind === "mark") && part.sway ? styles.tailSway : undefined;
+}
+
 /** The knockout: every part of the animal in the page's ground, laid down
  *  before a single line of it is drawn. Exported alongside `LineWork` so
  *  `MiniThien` — the one other drawing on this layer, and the one drawn in
@@ -362,7 +382,9 @@ export function Silhouette({ parts }: { readonly parts: readonly Part[] }) {
     <g>
       {parts.map((part, index) => {
         if (part.kind === "area") return <path key={index} {...MASK_AREA} d={part.d} />;
-        if (part.kind === "line") return <path key={index} {...MASK_LINE} d={part.d} />;
+        if (part.kind === "line") {
+          return <path key={index} {...MASK_LINE} d={part.d} className={swayClass(part)} />;
+        }
         if (part.kind === "pad") {
           return (
             <ellipse
@@ -408,7 +430,7 @@ export function LineWork({
             />
           );
         }
-        return <path key={index} {...STROKE} d={part.d} />;
+        return <path key={index} {...STROKE} d={part.d} className={swayClass(part)} />;
       })}
     </g>
   );
@@ -424,9 +446,18 @@ export function LineWork({
  * stripe that follows the spine while the cat is sitting is in mid-air once it
  * lies down.
  */
-function Cat({ pose, phase, blinking, variant, flick = 0 }: Omit<CompanionCatProps, "scale">) {
+function Cat({
+  pose,
+  phase,
+  blinking,
+  variant,
+  flick = 0,
+  swaying = false,
+}: Omit<CompanionCatProps, "scale">) {
   const tabby = variant === "tabby";
-  const sway = Math.sin(phase * Math.PI * 2);
+  /** Only the plain sit hands its sway to CSS; see `swaying`. */
+  const cssSway = swaying && pose === "sit" && variant !== "police";
+  const sway = cssSway ? 0 : Math.sin(phase * Math.PI * 2);
   /** The tail carries the twitch as well as the ear: a flicking cat lashes
    *  wider, and the same number drives both so the two read as one impulse.
    *  The boost is modest because the tail's control points already sit close to
@@ -611,7 +642,7 @@ function Cat({ pose, phase, blinking, variant, flick = 0 }: Omit<CompanionCatPro
     parts.push({ kind: "area", d: sitBody(flick) });
     // The tail is the cat's whole emotional range while it is sitting still, so
     // it carries all of the idle movement and the body carries none.
-    parts.push({ kind: "line", d: sitTail(lash) });
+    parts.push({ kind: "line", d: sitTail(lash), sway: cssSway });
 
     // Seated, only the front legs show — so the tabby gets two boots, sat on the
     // body's own bottom edge rather than hanging below it.
@@ -646,18 +677,30 @@ function Cat({ pose, phase, blinking, variant, flick = 0 }: Omit<CompanionCatPro
         "M 15.5 23.5 L 13.8 27",
         "M 19 20.6 L 17 24.4",
         "M 23.5 19 L 22 23",
+      ]) {
+        parts.push({ kind: "mark", d });
+      }
+      // The tail rings sway with the tail, so they ride its CSS sway too.
+      for (const d of [
         `M ${4.4 + lash * 0.5} ${30.5} l 2.4 0.9`,
         `M ${2.2 + lash * 0.8} ${26} l 2.5 0.6`,
       ]) {
-        parts.push({ kind: "mark", d });
+        parts.push({ kind: "mark", d, sway: cssSway });
       }
     }
     cap();
     face = faceAt(grooming || blinking);
   }
 
+  // Started `phase` of a cycle in, so the hand-over from the drawn sway does not
+  // jump the tail back to the start of one.
+  const period = cssSway ? 1000 / 60 / SIT_SWAY_RATE[tabby ? "tabby" : "grey"] : 0;
+  const swayTiming = cssSway
+    ? ({ "--sway-period": `${period}ms`, "--sway-delay": `${-phase * period}ms` } as CSSProperties)
+    : undefined;
+
   return (
-    <g>
+    <g style={swayTiming}>
       <Silhouette parts={parts} />
       <LineWork parts={parts} coat={coat} />
       {face}
@@ -673,6 +716,7 @@ export function CompanionCat({
   flick = 0,
   scale = 1,
   hopping = false,
+  swaying = false,
 }: CompanionCatProps) {
   return (
     <svg
@@ -691,7 +735,14 @@ export function CompanionCat({
       aria-hidden="true"
       focusable="false"
     >
-      <Cat variant={variant} pose={pose} phase={phase} blinking={blinking} flick={flick} />
+      <Cat
+        variant={variant}
+        pose={pose}
+        phase={phase}
+        blinking={blinking}
+        flick={flick}
+        swaying={swaying}
+      />
     </svg>
   );
 }

@@ -6,15 +6,13 @@ import type { GlobeControls } from "@/sections/Worlds/WorldsStage";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
 import { crossingKm, resolveChapters } from "@/lib/worlds";
 import { resolveSkins } from "@/lib/skins";
-import { REPLAY_HOLD_MS, REPLAY_RETURN_MS } from "@/sections/Worlds/replay";
 
 /*
- * The crossing replays itself while the stage is watched: fly, land, hold,
- * reset, fly again. What is tested here is the stage's half of that: which
- * observer asks, when it asks the globe to fly, reset or settle, and what
- * stops it. The globe's own half (the flight, `settle()` drawing the landed
- * frame, zero frames through a hold) needs a real canvas and is in
- * `e2e/worlds.spec.ts`.
+ * The crossing plays itself once, the first time half the stage is in view:
+ * fly, land, rest. What is tested here is the stage's half of that: which
+ * observer asks, when it asks the globe to fly or settle, and what ends it.
+ * The globe's own half (the flight, `settle()` drawing the landed frame, zero
+ * frames at rest) needs a real canvas and is in `e2e/worlds.spec.ts`.
  */
 
 const globe = vi.hoisted(() => ({
@@ -135,13 +133,12 @@ const advance = (ms: number) => act(() => vi.advanceTimersByTime(ms));
 const flightButton = () => screen.getByRole("button", { name: /take the flight|stop the replay/i });
 const stageGroup = () => screen.getByRole("group", { name: /playground earth/i });
 
-/** In view, the first crossing landed: the start of the first hold. Fake
- *  timers from here on, after the dynamic import has resolved on real ones. */
-async function holding(options?: { skinsAvailable?: boolean }) {
+/** In view, the autoplay's flight in the air and not yet landed. */
+async function inFlight(options?: { skinsAvailable?: boolean }) {
   const live = await stageWithLiveGlobe(options);
+  // Fake timers from here on, after the dynamic import has resolved on real ones.
   vi.useFakeTimers();
   live.observer.report(0.6);
-  act(() => globe.land());
   return live;
 }
 
@@ -152,13 +149,13 @@ type User = ReturnType<typeof userEvent.setup>;
  *  `jest` global, so without one each press hangs until the test times out.
  *  With the stub in place, a `waitFor` or `findBy*` after this call would
  *  advance the fake clock by its polling interval on every retry, and move
- *  the hold under the test: use neither after it. */
+ *  the clock under the test: use neither after it. */
 function fakeTimerUser() {
   vi.stubGlobal("jest", { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) });
   return userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) });
 }
 
-describe("WorldsStage, the crossing plays itself", () => {
+describe("WorldsStage, the crossing plays itself once", () => {
   beforeEach(() => {
     FakeObserver.all = [];
     globe.controls = null;
@@ -285,96 +282,62 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(screen.getByRole("status")).not.toHaveTextContent(/landed/i);
   });
 
-  it("replays while in view: land, hold, reset, fly again, all silent", async () => {
-    const { controls } = await holding();
+  it("plays once: flies, lands silently, then stays put however long it is watched", async () => {
+    const { observer, controls } = await inFlight();
     const stage = stageGroup();
     expect(controls.fly).toHaveBeenCalledTimes(1);
-    expect(stage).toHaveAttribute("data-crossing", "landed");
     expect(flightButton()).toHaveAccessibleName("Stop the replay");
     expect(flightButton()).toHaveAttribute("data-replay", "");
     expect(flightButton()).not.toBeDisabled();
 
-    advance(REPLAY_HOLD_MS - 1);
-    expect(controls.reset).not.toHaveBeenCalled();
-    advance(1);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
-    expect(stage).not.toHaveAttribute("data-crossing");
-
-    advance(REPLAY_RETURN_MS - 1);
-    expect(controls.fly).toHaveBeenCalledTimes(1);
-    advance(1);
-    expect(controls.fly).toHaveBeenCalledTimes(2);
-
     act(() => globe.land());
     expect(stage).toHaveAttribute("data-crossing", "landed");
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
-    expect(flightButton()).toHaveAccessibleName("Stop the replay");
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
 
-    // And the cycle after that.
-    advance(REPLAY_HOLD_MS + REPLAY_RETURN_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(2);
-    expect(controls.fly).toHaveBeenCalledTimes(3);
-  });
-
-  it("leaving view clears the pending cycle at once", async () => {
-    const { observer, controls } = await holding();
-    advance(REPLAY_HOLD_MS / 2);
-    observer.report(0);
-    expect(controls.settle).toHaveBeenCalledTimes(1);
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
-    expect(controls.fly).toHaveBeenCalledTimes(1);
-  });
-
-  it("coming back resumes: a landed globe holds first, one at Việt Nam flies at once", async () => {
-    const { observer, controls } = await holding();
-    advance(REPLAY_HOLD_MS / 2);
+    // No timer is left to reset the camera or fly again, and coming back
+    // into view does not start it over.
+    advance(60_000);
     observer.report(0);
     observer.report(1);
-    expect(controls.fly).toHaveBeenCalledTimes(1);
-    advance(REPLAY_HOLD_MS - 1);
+    advance(60_000);
     expect(controls.reset).not.toHaveBeenCalled();
-    advance(1);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
-
-    // Now on the way back to Việt Nam.
-    advance(REPLAY_RETURN_MS / 2);
-    observer.report(0);
-    advance(20_000);
     expect(controls.fly).toHaveBeenCalledTimes(1);
-    observer.report(1);
+    expect(stage).toHaveAttribute("data-crossing", "landed");
+  });
+
+  it("the flight button replays it on request, once, and announces the landing", async () => {
+    const { controls } = await inFlight();
+    act(() => globe.land());
+    const user = fakeTimerUser();
+    await user.click(screen.getByRole("button", { name: "Take the flight" }));
+    expect(controls.fly).toHaveBeenCalledTimes(2);
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
+    act(() => globe.land());
+    expect(screen.getByRole("status")).toHaveTextContent(/landed/i);
+    advance(60_000);
+    expect(controls.reset).not.toHaveBeenCalled();
     expect(controls.fly).toHaveBeenCalledTimes(2);
   });
 
-  it("a dip below half the stage lands a flight in the air, and coming back holds rather than re-flying", async () => {
+  it("leaving view mid-flight lands it, and coming back does not fly again", async () => {
     const { observer, controls } = await stageWithLiveGlobe();
     // The real globe's settle lands a flight in the air, quietly.
     controls.settle.mockImplementation(() => globe.land());
-    vi.useFakeTimers();
     observer.report(0.6);
-    observer.report(0.3);
+    observer.report(0);
     expect(controls.settle).toHaveBeenCalledTimes(1);
     expect(stageGroup()).toHaveAttribute("data-crossing", "landed");
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
     observer.report(0.6);
     expect(controls.fly).toHaveBeenCalledTimes(1);
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
   });
 
-  it("less than half the stage in view pauses a hold: no reset, no flight, while mostly scrolled away", async () => {
-    const { observer, controls } = await holding();
-    advance(REPLAY_HOLD_MS / 2);
+  it("a dip below half that is still intersecting leaves the flight alone", async () => {
+    const { observer, controls } = await inFlight();
     observer.report(0.3);
-    expect(controls.settle).toHaveBeenCalledTimes(1);
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
-    expect(controls.fly).toHaveBeenCalledTimes(1);
-    // Half back in view: the hold starts again.
-    observer.report(0.6);
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
+    expect(controls.settle).not.toHaveBeenCalled();
+    expect(flightButton()).toHaveAccessibleName("Stop the replay");
   });
 
   it("a visitor's own motion is settled when the observer reports no intersection, not on a still-intersecting dip below half", async () => {
@@ -383,7 +346,7 @@ describe("WorldsStage, the crossing plays itself", () => {
     // intersecting (measured) and settles there too; the stage follows
     // whichever the browser says, and this pins the spec engines' half.
     const user = fakeTimerUser();
-    const { observer, controls } = await holding();
+    const { observer, controls } = await inFlight();
     await user.click(screen.getByRole("button", { name: "Stop the replay" }));
     controls.settle.mockClear();
     observer.report(0.3);
@@ -414,12 +377,12 @@ describe("WorldsStage, the crossing plays itself", () => {
       },
     ],
   ])("%s stops it for good", async (_, interact) => {
-    const { controls } = await holding({ skinsAvailable: true });
+    const { controls } = await inFlight({ skinsAvailable: true });
     const user = fakeTimerUser();
     await interact(user);
     expect(flightButton()).toHaveAccessibleName("Take the flight");
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
+    act(() => globe.land());
+    advance(60_000);
     expect(controls.fly).toHaveBeenCalledTimes(1);
     expect(flightButton()).toHaveAccessibleName("Take the flight");
   });
@@ -434,42 +397,35 @@ describe("WorldsStage, the crossing plays itself", () => {
       },
     ],
   ])("Stop the replay settles and never flies, by %s", async (_, press) => {
-    const { controls } = await holding();
+    const { controls } = await inFlight();
     const user = fakeTimerUser();
     await press(user);
     expect(controls.settle).toHaveBeenCalledTimes(1);
     expect(controls.fly).toHaveBeenCalledTimes(1);
     expect(flightButton()).toHaveAccessibleName("Take the flight");
-    advance(20_000);
+    advance(60_000);
     expect(controls.reset).not.toHaveBeenCalled();
     expect(controls.fly).toHaveBeenCalledTimes(1);
   });
 
-  it("focus entering the section stops the replay at once, not when the hold ends", async () => {
-    const { controls } = await holding();
-    act(() => screen.getByRole("link", { name: /career tree/i }).focus());
+  it("focus entering the section stops the autoplay at once", async () => {
+    const { controls } = await inFlight();
+    act(() => screen.getByRole("button", { name: /^02\s*Sea/i }).focus());
     expect(flightButton()).toHaveAccessibleName("Take the flight");
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).not.toHaveBeenCalled();
-    expect(flightButton()).toHaveAccessibleName("Take the flight");
-    advance(20_000);
+    act(() => globe.land());
+    advance(60_000);
     expect(controls.fly).toHaveBeenCalledTimes(1);
   });
 
-  it("focus on Stop the replay itself keeps the loop, and the name, until it is pressed", async () => {
-    const { controls } = await holding();
+  it("focus on Stop the replay itself keeps the name until it is pressed", async () => {
+    const { controls } = await inFlight();
     const user = fakeTimerUser();
     const stop = screen.getByRole("button", { name: "Stop the replay" });
     act(() => stop.focus());
-    advance(REPLAY_HOLD_MS);
-    // The cycle carried on, and the focused button still says what it does.
-    expect(controls.reset).toHaveBeenCalledTimes(1);
     expect(stop).toHaveAccessibleName("Stop the replay");
     await user.keyboard("{Enter}");
     expect(controls.settle).toHaveBeenCalledTimes(1);
     expect(flightButton()).toHaveAccessibleName("Take the flight");
-    advance(20_000);
-    expect(controls.fly).toHaveBeenCalledTimes(1);
   });
 
   /** A pointer gesture in the section, as the browser reports it: a press,
@@ -485,17 +441,14 @@ describe("WorldsStage, the crossing plays itself", () => {
     });
   }
 
-  it("a press the browser hands to the page scroll (pointercancel) does not stop the replay", async () => {
-    const { controls } = await holding();
+  it("a press the browser hands to the page scroll (pointercancel) does not stop the autoplay", async () => {
+    await inFlight();
     gesture(screen.getByText("Chapters"), "pointercancel");
     expect(flightButton()).toHaveAccessibleName("Stop the replay");
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
   });
 
-  it("a touch scroll that starts on the stage mid-flight leaves the replayed landing silent", async () => {
-    const { observer } = await stageWithLiveGlobe();
-    observer.report(0.6);
+  it("a touch scroll that starts on the stage mid-flight leaves the autoplayed landing silent", async () => {
+    await inFlight();
     gesture(stageGroup(), "pointercancel");
     expect(flightButton()).toHaveAccessibleName("Stop the replay");
     act(() => globe.land());
@@ -503,40 +456,34 @@ describe("WorldsStage, the crossing plays itself", () => {
   });
 
   it("a tap (press and release without moving) stops it for good", async () => {
-    const { controls } = await holding();
+    const { controls } = await inFlight();
     gesture(screen.getByText("Chapters"), "pointerup");
     expect(flightButton()).toHaveAccessibleName("Take the flight");
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
+    act(() => globe.land());
+    advance(60_000);
+    expect(controls.fly).toHaveBeenCalledTimes(1);
   });
 
   it("a press that travels off the globe and is released elsewhere is not a tap", async () => {
-    const { controls } = await holding();
+    await inFlight();
     gesture(screen.getByText("Chapters"), "pointerup", 40);
     expect(flightButton()).toHaveAccessibleName("Stop the replay");
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
   });
 
-  it("a drag of the globe stops it for good, and no hold ends under the finger", async () => {
-    const { controls } = await holding();
+  it("a drag of the globe stops it for good", async () => {
+    await inFlight();
     const stage = stageGroup();
     act(() => {
       fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100 });
     });
-    // Still held past the end of the hold: the camera must not reset under it.
-    advance(REPLAY_HOLD_MS * 2);
-    expect(controls.reset).not.toHaveBeenCalled();
     act(() => {
       fireEvent.pointerUp(stage, { pointerId: 1, clientX: 180, clientY: 100 });
     });
     expect(flightButton()).toHaveAccessibleName("Take the flight");
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
   });
 
-  it("a press released outside the section does not leave the loop waiting forever", async () => {
-    const { controls } = await holding();
+  it("a press released outside the section does not leave a press set", async () => {
+    await inFlight();
     // A mouse press in the section, a text selection that overshoots it, and
     // the release somewhere else on the page.
     act(() => {
@@ -544,39 +491,37 @@ describe("WorldsStage, the crossing plays itself", () => {
       fireEvent.pointerUp(document.body, { pointerId: 1, clientX: 100, clientY: 400 });
     });
     expect(flightButton()).toHaveAccessibleName("Stop the replay");
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
+    // The landing is a quiet one: no press is left to make it a visitor's.
+    act(() => globe.land());
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
   });
 
-  it("a right-click whose release the context menu swallows neither stops nor freezes the loop", async () => {
-    const { controls } = await holding();
+  it("a right-click whose release the context menu swallows neither stops the autoplay nor leaves a press set", async () => {
+    await inFlight();
     act(() => {
       fireEvent.pointerDown(screen.getByText("Chapters"), { pointerId: 1, button: 2, clientX: 100, clientY: 100 });
     });
     expect(flightButton()).toHaveAccessibleName("Stop the replay");
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
+    act(() => globe.land());
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
   });
 
   it("a control-click on macOS (its right-click) is not a press either", async () => {
     const platform = vi.spyOn(window.navigator, "platform", "get").mockReturnValue("MacIntel");
     try {
-      const { controls } = await holding();
+      await inFlight();
       act(() => {
         fireEvent.pointerDown(screen.getByText("Chapters"), { pointerId: 1, button: 0, ctrlKey: true, clientX: 100, clientY: 100 });
       });
       expect(flightButton()).toHaveAccessibleName("Stop the replay");
-      advance(REPLAY_HOLD_MS);
-      expect(controls.reset).toHaveBeenCalledTimes(1);
     } finally {
       platform.mockRestore();
     }
   });
 
-  it("a replayed flight that lands while a touch on the stage is still undecided stays silent, and its hold is kept", async () => {
-    const { observer, controls } = await stageWithLiveGlobe();
-    vi.useFakeTimers();
-    observer.report(0.6);
+  it("an autoplayed flight that lands while a touch on the stage is still undecided stays silent and ends the autoplay", async () => {
+    const { controls } = await inFlight();
     const stage = stageGroup();
     act(() => {
       fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100 });
@@ -586,14 +531,12 @@ describe("WorldsStage, the crossing plays itself", () => {
       fireEvent.pointerCancel(stage, { pointerId: 1, clientX: 100, clientY: 140 });
     });
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
-    expect(flightButton()).toHaveAccessibleName("Stop the replay");
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
-    advance(REPLAY_RETURN_MS);
-    expect(controls.fly).toHaveBeenCalledTimes(2);
+    expect(flightButton()).toHaveAccessibleName("Take the flight");
+    advance(60_000);
+    expect(controls.fly).toHaveBeenCalledTimes(1);
   });
 
-  it("never loops under reduced motion", async () => {
+  it("never plays out under reduced motion: one landing, no Stop control", async () => {
     motion.reduce = true;
     const { observer, controls } = await stageWithLiveGlobe();
     vi.useFakeTimers();
@@ -601,32 +544,13 @@ describe("WorldsStage, the crossing plays itself", () => {
     expect(controls.fly).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Stop the replay" })).toBeNull();
     act(() => globe.land());
-    expect(screen.queryByRole("button", { name: "Stop the replay" })).toBeNull();
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
+    advance(60_000);
     expect(controls.fly).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Stop the replay" })).toBeNull();
   });
 
-  it("a hidden tab re-arms the hold instead of advancing", async () => {
-    const { controls } = await holding();
-    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).not.toHaveBeenCalled();
-    hidden.mockReturnValue(false);
-    advance(REPLAY_HOLD_MS);
-    expect(controls.reset).toHaveBeenCalledTimes(1);
-  });
-
-  it("unmount clears the pending timer", async () => {
-    const { controls, unmount } = await holding();
-    unmount();
-    advance(20_000);
-    expect(controls.reset).not.toHaveBeenCalled();
-  });
-
   it("still announces a flight the visitor asked for, after stopping the replay", async () => {
-    const { controls } = await holding();
+    const { controls } = await inFlight();
     const user = fakeTimerUser();
     await user.click(screen.getByRole("button", { name: "Stop the replay" }));
     await user.click(screen.getByRole("button", { name: "Take the flight" }));

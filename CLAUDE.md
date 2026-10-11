@@ -73,12 +73,14 @@ substring or a normalised comparison.
 budget (207 KB when the comparison was made, 199.5 KB after round 18 Plan C), a
 minimal three.js scene is ~133 KB gz, `@react-three/fiber` + `drei` ~254 KB,
 and `globe.gl` ~509 KB. The globe uses no runtime dependency at all: a
-hand-written WebGL2 surface (`src/sections/Worlds/gl/`: `context`,
-`coastline-texture`, `robot`, `shaders`, `sphere`) under a Canvas 2D overlay, an
-orthographic projector in `src/lib/globe.ts`, and a pre-generated simplified
-coastline. The shipped 2D globe is the fallback, and it takes over for good
-when there is no WebGL2, a program fails to compile or link, the context is
-lost, or `forced-colors` is active. Do not add a library.
+hand-written WebGL2 surface (`src/sections/Worlds/gl/`: `context`, `robot`,
+`shaders`, `sphere`) under a Canvas 2D overlay, an orthographic projector in
+`src/lib/globe.ts`, and a pre-generated simplified coastline. The surface's
+coverage texture is a PNG baked ahead of time by `gl/coastline-texture`
+(`scripts/bake-coastline.ts`); nothing at runtime imports the baker. The shipped
+2D globe is the fallback, and it takes over for good when there is no WebGL2, a
+program fails to compile or link, the context is lost, `forced-colors` is
+active, or the coverage PNG fails to load or decode. Do not add a library.
 
 **Chapters carry facts; skins carry none.** The globe has six chapters
 (`living-earth`, `sea`, `sky`, `plants`, `animals`, `tech`, in
@@ -87,10 +89,14 @@ lost, or `forced-colors` is active. Do not add a library.
 its own accessible name, and it may never carry a plaque.
 
 `src/sections/Worlds/coastline-data.ts` is fenced: `GlobeCanvas.tsx` is the
-only file allowed to import it, and `tests/lib/coastline-data.test.ts` fails if
-anything else does. `GlobeCanvas` itself reaches the page only through the
-`import()` in `WorldsStage.tsx` — a static import of it from anything
-server-rendered pulls the engine *and* the coastlines into the initial bundle.
+only file under `src/` allowed to import it, and
+`tests/lib/coastline-data.test.ts` fails if anything else there does. The GL
+surface does not rasterise it at runtime: it decodes
+`public/globe/coastline.png`, which `pnpm bake:coastline` bakes from it, and
+`tests/lib/coastline-png.test.ts` fails until the committed PNG matches a fresh
+bake. `GlobeCanvas` itself reaches the page only through the `import()` in
+`WorldsStage.tsx` — a static import of it from anything server-rendered pulls
+the engine *and* the coastlines into the initial bundle.
 
 ## Changing what the site says
 
@@ -197,8 +203,10 @@ and horizontal overflow at 320–1440px.
 For any change that touches the globe's chunk — `src/lib/globe.ts`,
 `src/sections/Worlds/*`, or anything that might import them — also re-run
 `pnpm perf` against a production build and record the row in
-[docs/feedback-tracker.md](docs/feedback-tracker.md). Read initial JS first: a
-move of more than a kilobyte or two means the engine or the coastline data has
-leaked out of the lazy chunk. `pnpm perf` prints a skipped-response count and a
+[docs/feedback-tracker.md](docs/feedback-tracker.md). Read the `JS` column
+first (the 8 s total, not `JS at load`): a move of more than a kilobyte or two
+means the engine or the coastline data has leaked out of the lazy chunk. It
+stays comparable only because at perf's 412×823 viewport the globe stage sits
+more than a screen below the top, so its post-`load` prefetch never fires. `pnpm perf` prints a skipped-response count and a
 `content-length` cross-check beside its own total; a run reporting any skipped
 responses is under-reported and must not be recorded.

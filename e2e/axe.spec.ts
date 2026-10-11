@@ -82,10 +82,10 @@ async function stageSettled(page: Page): Promise<void> {
 }
 
 /**
- * The crossing replays while the stage is watched, and a hold that ends
- * mid-audit would reset the globe and hide the link under the audit. Stop it
- * first (the button reads "Stop the replay" only while the loop runs), so the
- * audit sees the landed state it waited for.
+ * The crossing plays once on first view; an audit that starts mid-flight
+ * would see the globe before its landing. Settle it first (the button reads
+ * "Stop the replay" only while the flight is in the air), so the audit sees
+ * the landed state it waited for.
  */
 async function stopTheReplay(page: Page): Promise<void> {
   const stop = page.locator("#worlds").getByRole("button", { name: "Stop the replay" });

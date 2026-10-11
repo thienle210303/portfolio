@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   boundsFor,
@@ -10,15 +10,23 @@ import {
   exploreApart,
   findClearSpot,
   headClear,
+  invalidateGround,
+  invalidateViewport,
   isClearSpot,
   keepClearOfControl,
   pickExploreSpot,
   placeBeside,
+  pointInRects,
   randomFacing,
+  refreshGround,
+  refreshSafeArea,
   searchClearOfToggle,
   setControlRects,
   setReservedRects,
+  shiftGround,
+  syncGround,
   TOGGLE_CLEARANCE,
+  viewport,
   boxAt,
   type Point,
   type RectLike,
@@ -27,16 +35,17 @@ import {
 /**
  * The collision fix (WP-A, round 10): a cat parking on top of the duet's own
  * speech bubble or mini-Thien's caption was possible because neither is
- * visible to the ordinary content probe — `elementBehind` deliberately looks
+ * visible to the ordinary content probe — it deliberately looks
  * straight through everything inside `[data-companion]`, or two cats
  * standing near each other would each read the other as occupied ground.
  * `setReservedRects` is the second, narrower gate `isClearSpot` now also
  * consults, and this is what proves it actually gates the same three points
  * (belly, both feet) the ordinary DOM scan does.
  *
- * `document.elementsFromPoint` is stubbed to return nothing behind every
- * probe, which isolates the reserved-rect gate from the DOM occupancy scan
- * this file is not testing (jsdom does not implement the real thing anyway).
+ * The page starts every test empty (see the file-level `beforeEach`), which
+ * isolates the reserved-rect gate from the DOM occupancy scan. Tests that need
+ * content put `<p>`s with stubbed boxes on the page through `ground()` —
+ * jsdom has no layout, so every real box is zero-area and ignored.
  */
 function rect(left: number, top: number, width: number, height: number): DOMRect {
   return {
@@ -51,6 +60,22 @@ function rect(left: number, top: number, width: number, height: number): DOMRect
     toJSON: () => ({}),
   } as DOMRect;
 }
+
+/** Start a new ground epoch with a `<p>` at each of these boxes. */
+function ground(...boxes: DOMRect[]): void {
+  document.body.innerHTML = "";
+  for (const box of boxes) {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => box;
+    document.body.append(prose);
+  }
+  invalidateGround();
+}
+
+beforeEach(() => {
+  ground();
+  invalidateViewport();
+});
 
 const LEAD_PAD_X = 4;
 const LEAD_PAD_Y = 3;
@@ -67,7 +92,6 @@ function leadControlRect(pos: Point): RectLike {
 
 describe("setReservedRects", () => {
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
   });
 
@@ -108,7 +132,7 @@ describe("setReservedRects", () => {
  * The target-size regression (round 10, post-integration): axe caught the
  * toolkit toggle — the lead cat's own button — with only a sliver of its
  * target left clickable, because the follower had been placed on top of it.
- * `elementBehind` deliberately looks straight through the companion's own
+ * The ground probe deliberately looks straight through the companion's own
  * subtree (see the file banner above `setReservedRects`), which is exactly
  * why `isClearSpot` alone never saw the conflict: the toggle is *inside*
  * `[data-companion]`, invisible to the DOM occupancy scan by the same rule
@@ -141,15 +165,9 @@ describe("headClear", () => {
   );
 
   /** Prose under exactly the one point (x, y), and nowhere else. */
-  const proseAt = (px: number, py: number) => {
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((x: number, y: number) =>
-      Math.abs(x - px) < 0.5 && Math.abs(y - py) < 0.5 ? [prose] : [],
-    );
-  };
+  const proseAt = (px: number, py: number) => ground(rect(px - 0.4, py - 0.4, 0.8, 0.8));
 
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
   });
 
@@ -166,23 +184,22 @@ describe("headClear", () => {
 
   it("is the band isClearSpot never reads: a head on prose passes the three-point probe", () => {
     // A line of prose across the face row, and nothing lower down.
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
-      y >= at.y + 12 && y <= at.y + 20 ? [prose] : [],
-    );
+    ground(rect(0, at.y + 12, 1024, 8));
     expect(isClearSpot(at)).toBe(true);
     expect(headClear(at)).toBe(false);
   });
 
   it("is not about the feet or the belly: content below the band leaves it clear", () => {
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= at.y + 22 ? [prose] : []));
+    ground(rect(0, at.y + 22, 1024, 1000));
     expect(headClear(at)).toBe(true);
     expect(isClearSpot(at)).toBe(false);
   });
 
   it("reads a whitespace container as clear, like the other probe does", () => {
-    document.elementsFromPoint = vi.fn(() => [document.createElement("div")]);
+    const container = document.createElement("div");
+    container.getBoundingClientRect = () => rect(0, 0, 1024, 768);
+    document.body.append(container);
+    invalidateGround();
     expect(headClear(at)).toBe(true);
   });
 
@@ -195,7 +212,6 @@ describe("headClear", () => {
 
 describe("setControlRects / clearsControls — the toolkit-toggle fix", () => {
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
     setControlRects([]);
   });
@@ -281,7 +297,6 @@ describe("setControlRects / clearsControls — the toolkit-toggle fix", () => {
  */
 describe("setControlRects computed straight from state, no DOM object and no staleness", () => {
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
     setControlRects([]);
   });
@@ -363,6 +378,7 @@ describe("keepClearOfControl — the target-size invariant", () => {
     // still-conflicting horizontal one.
     const originalWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 150 });
+    invalidateViewport();
     try {
       const leadPos: Point = { x: 40, y: 400 };
       const leadRect = leadControlRect(leadPos);
@@ -379,6 +395,7 @@ describe("keepClearOfControl — the target-size invariant", () => {
       expect(result.y).not.toBe(onTop.y);
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+      invalidateViewport();
     }
   });
 });
@@ -712,8 +729,6 @@ describe("placeBeside — overlays are never painted over a cat", () => {
 });
 
 describe("findClearSpot's preferHead option", () => {
-  const prose = document.createElement("p");
-
   beforeEach(() => {
     setReservedRects([]);
     setControlRects([]);
@@ -724,9 +739,7 @@ describe("findClearSpot's preferHead option", () => {
     // full width of the page; nothing else anywhere. Feet and belly sit below
     // it, so the old three-point rule would have kept `want`.
     const want: Point = { x: 300, y: 300 };
-    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
-      y >= want.y + 4 && y <= want.y + 18 ? [prose] : [],
-    );
+    ground(rect(0, want.y + 4, 1024, 14));
     expect(isClearSpot(want)).toBe(true);
     expect(headClear(want)).toBe(false);
     const got = findClearSpot(want, { x: 900, y: 700 }, undefined, { preferHead: true });
@@ -739,21 +752,207 @@ describe("findClearSpot's preferHead option", () => {
     // Every head band on the page is on prose (a line every 20px through the
     // top half of each cat-height) but the feet clear: the old answer stands.
     const want: Point = { x: 300, y: 300 };
-    document.elementsFromPoint = vi.fn((x: number, y: number) => {
-      void x;
-      const within = ((y - want.y) % (CAT_H + 26) + (CAT_H + 26)) % (CAT_H + 26);
-      return within < 20 ? [prose] : [];
-    });
+    const period = CAT_H + 26;
+    const lines: DOMRect[] = [];
+    for (let top = want.y - period * 20; top < 1000; top += period) lines.push(rect(0, top, 1024, 19.9));
+    ground(...lines);
     expect(isClearSpot(want)).toBe(true);
     expect(findClearSpot(want, { x: 900, y: 700 }, undefined, { preferHead: true })).toEqual(want);
   });
 
   it("leaves the preference off unless asked — the per-frame callers' default", () => {
     const want: Point = { x: 300, y: 300 };
-    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
-      y >= want.y + 4 && y <= want.y + 18 ? [prose] : [],
-    );
+    ground(rect(0, want.y + 4, 1024, 14));
     expect(headClear(want)).toBe(false);
     expect(findClearSpot(want, { x: 900, y: 700 })).toEqual(want);
   });
+});
+
+describe("pointInRects", () => {
+  const rects = [rect(10, 10, 20, 20)];
+
+  it("is true inside a rect", () => {
+    expect(pointInRects(15, 15, rects)).toBe(true);
+  });
+
+  it("is true on the edge — edges are inclusive", () => {
+    expect(pointInRects(10, 30, rects)).toBe(true);
+    expect(pointInRects(30, 10, rects)).toBe(true);
+  });
+
+  it("is false outside every rect", () => {
+    expect(pointInRects(31, 15, rects)).toBe(false);
+  });
+
+  it("is false for an empty list", () => {
+    expect(pointInRects(15, 15, [])).toBe(false);
+  });
+});
+
+describe("the ground probe reads rects cached per layout epoch", () => {
+  const at: Point = { x: 100, y: 100 };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    invalidateGround();
+    setReservedRects([]);
+    vi.restoreAllMocks();
+  });
+
+  it("queries the DOM once per epoch", () => {
+    const query = vi.spyOn(document, "querySelectorAll");
+    for (let i = 0; i < 50; i += 1) isClearSpot(at);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("invalidates on resize-observer epoch", () => {
+    expect(isClearSpot(at)).toBe(true);
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 0, 400, 400);
+    document.body.append(prose);
+    // Same epoch: the cached list predates the paragraph.
+    expect(isClearSpot(at)).toBe(true);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(false);
+  });
+
+  it("shiftGround translates cached rects", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    const query = vi.spyOn(document, "querySelectorAll");
+    expect(isClearSpot(at)).toBe(true);
+    // The page scrolled 100px down, so the paragraph is now 100px higher.
+    shiftGround(0, 100);
+    expect(isClearSpot(at)).toBe(false);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("shiftGround does nothing when there is no cache", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    shiftGround(0, 100);
+    // Built fresh after the shift, from the layout as it now stands.
+    expect(isClearSpot(at)).toBe(true);
+  });
+
+  it("caches a box just below the window, so a shift can scroll it into view", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, window.innerHeight + 100, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+    shiftGround(0, window.innerHeight);
+    expect(isClearSpot(at)).toBe(false);
+  });
+
+  it("syncGround: a rebuild at the live offset is not shifted again", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 100 });
+    try {
+      invalidateGround();
+      expect(isClearSpot(at)).toBe(true); // built at offset 100
+      syncGround(0, 100);
+      expect(isClearSpot(at)).toBe(true); // no shift: already measured there
+    } finally {
+      Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    }
+  });
+
+  it("syncGround at the recorded offset leaves the cache untouched", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+    // The cache array is private, so "same reference" is observed as "not re-mapped".
+    const map = vi.spyOn(Array.prototype, "map");
+    syncGround(0, 0);
+    expect(map).not.toHaveBeenCalled();
+    map.mockRestore();
+  });
+
+  it("syncGround: several syncs net to the total movement", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+    syncGround(0, 30);
+    syncGround(0, 30);
+    syncGround(0, 100);
+    expect(isClearSpot(at)).toBe(false); // moved 100 up, once
+    syncGround(0, 0);
+    expect(isClearSpot(at)).toBe(true); // and back
+  });
+
+  it("scroll does not rebuild", () => {
+    const query = vi.spyOn(document, "querySelectorAll");
+    isClearSpot(at);
+    for (let i = 0; i < 20; i += 1) {
+      shiftGround(0, 40);
+      isClearSpot(at);
+    }
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("trailing recheck rebuilds", () => {
+    const query = vi.spyOn(document, "querySelectorAll");
+    isClearSpot(at);
+    shiftGround(0, 40);
+    // What `scheduleRecheck`'s timer does once the scroll has stopped.
+    refreshGround();
+    expect(query).toHaveBeenCalledTimes(2);
+    isClearSpot(at);
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores companion's own nodes", () => {
+    const root = document.createElement("div");
+    root.setAttribute("data-companion", "");
+    const button = document.createElement("button");
+    button.getBoundingClientRect = () => rect(0, 0, 400, 400);
+    root.append(button);
+    document.body.append(root);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+  });
+
+  it("looks through what a hit test looks through: pointer-events none, or hidden", () => {
+    for (const style of ["pointer-events: none", "visibility: hidden"]) {
+      document.body.innerHTML = "";
+      const ink = document.createElement("svg");
+      ink.setAttribute("style", style);
+      ink.getBoundingClientRect = () => rect(0, 0, 400, 400);
+      document.body.append(ink);
+      invalidateGround();
+      expect(isClearSpot(at), style).toBe(true);
+      ink.removeAttribute("style");
+      invalidateGround();
+      expect(isClearSpot(at), `${style} removed`).toBe(false);
+    }
+  });
+});
+
+describe("viewport cache", () => {
+  it("returns the same object until invalidated or the safe area is refreshed", () => {
+    vi.stubGlobal("window", { innerWidth: 1000, innerHeight: 700 });
+    const root = { clientWidth: 1000, clientHeight: 700 };
+    vi.stubGlobal("document", { documentElement: root, querySelector: () => null });
+    invalidateViewport();
+    const a = viewport();
+    root.clientWidth = 800;
+    expect(viewport()).toBe(a);
+    invalidateViewport();
+    expect(viewport()).toEqual({ width: 800, height: 700 });
+    root.clientWidth = 600;
+    refreshSafeArea();
+    expect(viewport().width).toBe(600);
+  });
+  afterEach(() => vi.unstubAllGlobals());
 });

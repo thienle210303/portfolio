@@ -3,7 +3,7 @@
  * coverage buffer. Pure JS on purpose: no canvas, so it runs in vitest's jsdom.
  *
  * Takes the rings as an argument rather than importing them, so the
- * coastline-data fence (GlobeCanvas is its only importer) stays intact.
+ * coastline-data fence (GlobeCanvas is its only importer under src/) stays intact.
  *
  * Output is RGBA with land = (255,255,255,255) and ocean = all zero; the
  * shader reads alpha and picks the colours.

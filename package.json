@@ -13,6 +13,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "contrast": "node scripts/contrast.mjs",
     "perf": "node scripts/perf.mjs",
+    "lag": "node scripts/lag.mjs",
+    "bake:coastline": "node scripts/bake-coastline.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

@@ -3,7 +3,6 @@ import { companions, origin } from "../src/content/portfolio";
 import { clampTilt, project, toVector } from "../src/lib/globe";
 import { resolveSkins } from "../src/lib/skins";
 import { resolveChapters } from "../src/lib/worlds";
-import { REPLAY_HOLD_MS, REPLAY_RETURN_MS } from "../src/sections/Worlds/replay";
 
 const WORLDS = resolveChapters();
 
@@ -338,8 +337,8 @@ async function globeSignature(page: Page) {
  */
 async function waitForLiveGlobe(page: Page) {
   const stage = await reachLiveGlobe(page);
-  // Every test here starts from "landed, at rest, not looping"; the ones about
-  // the replay itself call `reachLiveGlobe` instead.
+  // Every test here starts from "landed, at rest, autoplay over"; the ones
+  // about the autoplay itself call `reachLiveGlobe` or `reachFlightInTheAir`.
   await stopTheReplay(page);
   await expect(stage, "the replay was stopped somewhere other than on a landing").toHaveAttribute(
     "data-crossing",
@@ -348,8 +347,7 @@ async function waitForLiveGlobe(page: Page) {
   return stage;
 }
 
-/** `waitForLiveGlobe` without the stop: the first replayed landing, at rest,
- *  at the start of its hold. */
+/** `waitForLiveGlobe` without the stop: the autoplay's landing, at rest. */
 async function reachLiveGlobe(page: Page) {
   const stage = page.getByRole("group", { name: /playground earth/i });
   await expect(stage).toBeVisible();
@@ -364,6 +362,26 @@ async function reachLiveGlobe(page: Page) {
   await page.waitForTimeout(300);
   // The stage is now in view, so the crossing plays itself (R8).
   await waitForAutoplayedLanding(page);
+  return stage;
+}
+
+/** Longer than the 6.5 s cycle the crossing used to loop on (a 5 s hold and a
+ *  1.5 s return): a window in which a restart, if there still were one, would
+ *  have shown. */
+const NO_RESTART_WINDOW_MS = 8_000;
+
+/** The stage in view and the autoplay's flight in the air: "Stop the replay"
+ *  is showing, which it does from the first frame until the landing. */
+async function reachFlightInTheAir(page: Page) {
+  const stage = page.getByRole("group", { name: /playground earth/i });
+  await expect(stage).toBeVisible();
+  await expect(
+    page.locator("#worlds").getByRole("button", { name: /take the flight|stop the replay/i }),
+  ).toBeVisible({ timeout: 30_000 });
+  await stage.evaluate((element) =>
+    element.scrollIntoView({ block: "center", behavior: "instant" }),
+  );
+  await expect(page.locator("#worlds").getByRole("button", { name: "Stop the replay" })).toBeVisible();
   return stage;
 }
 
@@ -559,7 +577,7 @@ async function drewInSystemInk(page: Page) {
 }
 
 test.describe("the live globe", () => {
-  test("replays the crossing while the stage is in view, silently, and draws nothing while it holds", async ({
+  test("plays the crossing once on first view, silently, and then draws nothing and never restarts", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -572,36 +590,28 @@ test.describe("the live globe", () => {
     // flight, so nothing was said into the live region about it.
     await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
     await expect(section.getByRole("status")).not.toContainText(/landed|Back at/);
-
-    // The hold is timers, not frames. The whole argument for a hand-written
-    // loop over a library: a globe at rest costs nothing. A non-zero number
-    // here means something is animating that nobody asked for — most likely
-    // the satellite's orbit being counted as "busy".
-    await expectAtRest(page, 1_500, "inside the hold");
+    // The autoplay is over: the button offers the flight, not a stop.
+    await expect(section.getByRole("button", { name: "Take the flight" })).toBeVisible();
+    await expect(section.getByRole("button", { name: "Stop the replay" })).toHaveCount(0);
 
     const faceHome = await section.getByRole("button", { name: "Face Việt Nam" }).boundingBox();
     const treeLine = section.locator("p", { hasText: "A seed dropped where he came down." });
     const treeLineBox = await treeLine.boundingBox();
 
-    // The hold ends: back to Việt Nam, the seed and its link gone with it.
-    await expect(stage, "the hold never ended in a reset").not.toHaveAttribute("data-crossing", {
-      timeout: REPLAY_HOLD_MS + 3_000,
-    });
-    // Then the return, then the crossing again — played frame by frame, not
-    // jumped to its end.
-    await page.waitForTimeout(REPLAY_RETURN_MS + 200);
-    expectEveryFrameDrew(await measureGlobeFrames(page, 1_000), "the replayed crossing");
-    await expect(stage, "the replayed crossing never landed").toHaveAttribute("data-crossing", "landed", {
-      timeout: 5_000,
-    });
-
-    const { statusWrites } = await counts();
-    expect(statusWrites, "a replayed cycle wrote to the live region").toBe(0);
+    // A globe at rest costs nothing, for as long as it takes the old loop to
+    // have reset and flown again. A non-zero number here means something is
+    // animating that nobody asked for — most likely the satellite's orbit
+    // being counted as "busy" — and a crossing change means it restarted.
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "after the one crossing");
+    await expect(stage).toHaveAttribute("data-crossing", "landed");
+    const { statusWrites, crossingChanges } = await counts();
+    expect(crossingChanges, "the crossing restarted without a click").toBe(0);
+    expect(statusWrites, "the crossing wrote to the live region").toBe(0);
     expect(await section.getByRole("button", { name: "Face Việt Nam" }).boundingBox()).toEqual(faceHome);
     expect(await treeLine.boundingBox()).toEqual(treeLineBox);
   });
 
-  test("leaving mid-flight lands it at once, nothing draws off-screen through a whole cycle, and coming back resumes after a hold", async ({
+  test("leaving mid-flight lands it at once, nothing draws off-screen, and coming back does not fly it again", async ({
     page,
   }) => {
     test.setTimeout(90_000);
@@ -624,38 +634,28 @@ test.describe("the live globe", () => {
       return drawn;
     });
     await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 500 });
-    // Longer than a whole cycle: an off-screen hold that kept its timer would
-    // reset and fly inside this window.
-    await expectAtRest(page, REPLAY_HOLD_MS + REPLAY_RETURN_MS + 1_000, "off-screen");
+    // Longer than the old whole cycle: anything left running would reset and
+    // fly inside this window.
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "off-screen");
     expect((await overlayDraws()) - atExit, "the exit fast-forwarded the flight").toBeLessThanOrEqual(5);
     await expect(stage).toHaveAttribute("data-crossing", "landed");
     const section = page.locator("#worlds");
     await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(1);
     await expect(section.getByRole("status")).not.toContainText(/landed/i);
 
-    // Back: a landed globe holds first.
+    // Back: the autoplay is spent, so it neither flies nor draws.
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expectAtRest(page, 2_000, "back, holding");
-
-    // Leaving in the middle of that hold clears its timer: a hold that kept
-    // it would reset the camera off-screen inside this window.
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    await expectAtRest(page, REPLAY_HOLD_MS + REPLAY_RETURN_MS + 1_000, "off-screen, left during a hold");
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "back in view after the autoplay");
     await expect(stage).toHaveAttribute("data-crossing", "landed");
-
-    // Back again, and the cycle carries on.
-    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expect(stage, "coming back never resumed the replay").not.toHaveAttribute("data-crossing", {
-      timeout: REPLAY_HOLD_MS + 3_000,
-    });
   });
 
-  test("Stop the replay stops it for good, and the flight is the visitor's again", async ({ page }) => {
+  test("Stop the replay ends the flight where it was going, and the flight is the visitor's again", async ({
+    page,
+  }) => {
     test.setTimeout(60_000);
     await page.goto("/#worlds");
-    const stage = await reachLiveGlobe(page);
+    const stage = await reachFlightInTheAir(page);
     const section = page.locator("#worlds");
-    const counts = await watchStatusAndCrossing(page);
 
     const stop = section.getByRole("button", { name: "Stop the replay" });
     const before = await stop.boundingBox();
@@ -664,12 +664,10 @@ test.describe("the live globe", () => {
     await expect(flight).toBeVisible();
     // One element, and the shorter label moves nothing.
     expect(await flight.boundingBox(), "the label swap moved the button").toEqual(before);
-    // Focus leaves the section, as it does when the visitor clicks elsewhere,
-    // so the focus check at a hold's end is not what keeps it stopped.
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-
-    await expectAtRest(page, REPLAY_HOLD_MS + REPLAY_RETURN_MS + 1_000, "after Stop");
     await expect(stage).toHaveAttribute("data-crossing", "landed");
+    const counts = await watchStatusAndCrossing(page);
+
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "after Stop");
     expect((await counts()).crossingChanges, "the crossing left its landing after Stop").toBe(0);
     await expect(flight).toBeVisible();
 
@@ -677,7 +675,7 @@ test.describe("the live globe", () => {
     await expect(section.getByRole("status")).toContainText(/landed/i, { timeout: 10_000 });
   });
 
-  test("less than half the stage in view pauses the replay: nothing cycles for a sliver of globe", async ({
+  test("less than half the stage in view: nothing restarts for a sliver of globe", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -697,18 +695,17 @@ test.describe("the live globe", () => {
     expect(visible).toBeLessThan(0.5);
     await page.waitForTimeout(300);
 
-    await expectAtRest(page, REPLAY_HOLD_MS + REPLAY_RETURN_MS + 1_000, "less than half in view");
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "less than half in view");
     await expect(stage).toHaveAttribute("data-crossing", "landed");
-    expect((await counts()).crossingChanges, "the replay reset with less than half the stage in view").toBe(0);
+    expect((await counts()).crossingChanges, "the crossing reset with less than half the stage in view").toBe(0);
 
-    // Back to the middle of the screen, and the cycle carries on.
+    // Back to the middle of the screen: still landed, still at rest.
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expect(stage, "coming back never resumed the replay").not.toHaveAttribute("data-crossing", {
-      timeout: REPLAY_HOLD_MS + 3_000,
-    });
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "back in the middle of the screen");
+    expect((await counts()).crossingChanges, "coming back restarted the crossing").toBe(0);
   });
 
-  test("a touch scroll that starts on the globe leaves the replay running", async ({ browser, page }) => {
+  test("a touch scroll that starts on the globe leaves the autoplay running", async ({ browser, page }) => {
     test.setTimeout(60_000);
     // A phone visitor scrolling on past the globe: a real touch gesture, which
     // the browser takes over for the page scroll and ends in pointercancel.
@@ -716,7 +713,7 @@ test.describe("the live globe", () => {
     const phone = await context.newPage();
     try {
       await phone.goto("/#worlds");
-      const stage = await reachLiveGlobe(phone);
+      const stage = await reachFlightInTheAir(phone);
       await phone.evaluate(() => {
         const counts = window as unknown as { __downs: number; __cancels: number };
         counts.__downs = 0;
@@ -740,7 +737,7 @@ test.describe("the live globe", () => {
         await phone.waitForTimeout(16);
       }
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-      await phone.waitForTimeout(300);
+      await phone.waitForTimeout(100);
 
       // The gesture really did start on the stage and really became a scroll.
       const { downs, cancels, scrolled } = await phone.evaluate((start) => {
@@ -751,8 +748,9 @@ test.describe("the live globe", () => {
       expect(cancels, "the browser never took the gesture over for the scroll").toBeGreaterThan(0);
       expect(scrolled, "the page did not scroll").toBeGreaterThan(0);
 
-      // Read once: the replay's own checks cannot turn the label back to
-      // "Stop the replay", so a single read is the whole claim.
+      // Read once, with the flight still in the air: the label only turns
+      // back to "Take the flight" at the landing or a takeover, so a single
+      // read is the whole claim.
       expect(
         await phone.locator("#worlds [data-replay]").textContent(),
         "a touch scroll over the globe stopped the replay",
@@ -762,36 +760,36 @@ test.describe("the live globe", () => {
     }
   });
 
-  test("picking a chapter stops the replay for good", async ({ page }) => {
+  test("picking a chapter stops the autoplay for good", async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/#worlds");
-    const stage = await reachLiveGlobe(page);
-    const counts = await watchStatusAndCrossing(page);
+    const stage = await reachFlightInTheAir(page);
 
     // Clicked in-page, the way assistive tech activates a button: a click
     // with no focus and no pointer press, so the click alone has to stop it.
     // Read once — after one task, which is when React commits the click's
-    // update, and seconds before any hold could end — with focus out of the
-    // section: the focus stop and the hold's own focus check must not be what
-    // turns the label.
+    // update, with the flight still in the air — with focus out of the
+    // section: the focus stop must not be what turns the label.
     const label = await page.evaluate(async (selector) => {
       const button = [...document.querySelectorAll<HTMLButtonElement>(selector)].find((candidate) =>
         /Sea/.test(candidate.textContent ?? ""),
       );
       if (!button) throw new Error("no Sea button in the chapter list");
+      // Same task as the click: a flight that landed first would pass vacuously.
+      const before = document.querySelector("#worlds [data-replay]")?.textContent;
       button.click();
       (document.activeElement as HTMLElement | null)?.blur();
       await new Promise((resolve) => setTimeout(resolve, 0));
-      return document.querySelector("#worlds [data-replay]")?.textContent;
+      return { before, after: document.querySelector("#worlds [data-replay]")?.textContent };
     }, CHAPTER_BUTTONS);
-    expect(label, "picking a chapter did not stop the replay").toBe("Take the flight");
-    // The camera turns to Sea; let it arrive, then outlast the hold it cut short.
+    expect(label.before, "the flight was already over before the click").toBe("Stop the replay");
+    expect(label.after, "picking a chapter did not stop the replay").toBe("Take the flight");
+    // The camera turns to Sea; let it arrive, then outlast the old cycle.
     await expect
       .poll(async () => (await measureGlobeFrames(page, 300)).draws, { timeout: 10_000 })
       .toBe(0);
-    await expectAtRest(page, REPLAY_HOLD_MS + REPLAY_RETURN_MS + 1_000, "after picking a chapter");
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "after picking a chapter");
     await expect(stage).toHaveAttribute("data-crossing", "landed");
-    expect((await counts()).crossingChanges, "the replay reset after a chapter was picked").toBe(0);
   });
 
   test("a chapter picked during the visitor's own flight is announced, not the landing it causes", async ({
@@ -2161,8 +2159,8 @@ test.describe("reduced motion across every chapter and skin", () => {
     expect(checked, "the sweep covered almost nothing").toBeGreaterThan(100);
     expect(offenders, offenders.join("\n")).toEqual([]);
 
-    // And it never replays: no hold ends in a reset, and there is nothing to stop.
-    await expectAtRest(page, REPLAY_HOLD_MS + REPLAY_RETURN_MS + 1_000, "under reduced motion", SILENT_HZ);
+    // And it never plays out: nothing resets, and there is nothing to stop.
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "under reduced motion", SILENT_HZ);
     await expect(stage).toHaveAttribute("data-crossing", "landed");
     await expect(page.locator("#worlds").getByRole("button", { name: "Stop the replay" })).toHaveCount(0);
   });
@@ -2320,6 +2318,9 @@ test.describe("canvas labels under every skin", () => {
       await page.goto("/#worlds");
       await waitForLiveGlobe(page);
       await requireSurface(page);
+      // The cats are hidden for the shots below; a lazy mount after the hide
+      // would put them back in frame.
+      await expect(page.locator("[data-companion]")).toBeAttached();
       const section = page.locator("#worlds");
       await section
         .getByRole("list", { name: /chapters/i })

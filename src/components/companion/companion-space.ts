@@ -5,19 +5,20 @@ import { CAT_H, CAT_W } from "./CompanionCat";
 /**
  * Where a cat is allowed to be, and what colour it has to be to be seen there.
  *
- * Both questions are answered by hit-testing the page rather than by modelling
- * it. The alternative — keeping a list of the rectangles the cats must dodge —
- * means a second, always-stale copy of the layout, and it would have to be
- * rebuilt on every resize, scroll, disclosure toggle and font swap. One
- * `elementsFromPoint` call asks the browser the same question against the
- * layout it has already computed.
+ * The tone is answered by hit-testing the page (`elementBehind`). Placement
+ * used to be too, one `elementsFromPoint` per probe point, and that cost up to
+ * two thousand calls in one frame. It now reads the boxes of the elements the
+ * cats must dodge, gathered once per layout epoch (`groundRects`). A scroll
+ * shifts the cached boxes by its delta (`shiftGround`); they are rebuilt by the
+ * recheck timer that follows a scroll, and dropped on every resize, body resize
+ * and animation end, and before each placement decision. A transition moves
+ * ground without dropping it, so the cache can lag one until the next decision.
  *
- * The cost of that is real, so it is spent sparingly: nothing here runs per
- * frame. Placement is probed only at the moment a cat decides where to settle,
- * and the tone sample is throttled by its caller to a few times a second. While
- * a cat is actively trailing the pointer it is allowed to cross anything —
- * brief overlap is what makes it a companion rather than a cursor. It is
- * *resting* on top of a paragraph that reads as broken.
+ * Placement is decided when a cat chooses where to settle; the frames between
+ * re-probe from the cache. The tone sample is throttled by its caller to a few
+ * times a second. While a cat is actively trailing the pointer it is allowed
+ * to cross anything — brief overlap is what makes it a companion rather than
+ * a cursor. It is *resting* on top of a paragraph that reads as broken.
  */
 
 export interface Point {
@@ -51,11 +52,11 @@ const SELF = "[data-companion]";
 /**
  * What a cat must not park on.
  *
- * Deliberately a tag list rather than "any element with text". `elementFromPoint`
- * returns the innermost box containing the point, so a layout container really
- * is whitespace even though its subtree is full of prose, while a `<p>` is
- * content anywhere inside its box — including the ragged end of its last line,
- * which is close enough to the text to be worth avoiding anyway.
+ * Deliberately a tag list rather than "any element with text": a layout
+ * container really is whitespace even though its subtree is full of prose,
+ * while a `<p>` is content anywhere inside its box — including the ragged end
+ * of its last line, which is close enough to the text to be worth avoiding
+ * anyway.
  *
  * `[tabindex]` is narrowed to exclude `-1`: `<main>` carries `tabindex="-1"` as
  * a focus landing point for the skip link, and an unnarrowed selector would
@@ -145,6 +146,9 @@ let overlayTop = 0;
  * resize) rather than per frame.
  */
 export function refreshSafeArea(): void {
+  // Re-measured with the chrome: this is where the cached viewport and bounds
+  // are dropped (a body resize drops them too, for a scrollbar appearing).
+  invalidateViewport();
   let top = 0;
   const header = document.querySelector("header");
   if (header) {
@@ -173,11 +177,28 @@ export function safeTop(): number {
  * of step with the furniture it is supposed to line up with.
  */
 export function viewport(): { width: number; height: number } {
-  const root = document.documentElement;
-  return {
-    width: root.clientWidth || window.innerWidth,
-    height: root.clientHeight || window.innerHeight,
-  };
+  if (!viewportCache) {
+    const root = document.documentElement;
+    viewportCache = {
+      width: root.clientWidth || window.innerWidth,
+      height: root.clientHeight || window.innerHeight,
+    };
+  }
+  return viewportCache;
+}
+
+/**
+ * Reading `clientWidth`/`clientHeight` forces layout, and `viewport()` is asked
+ * for several times a step, so it is read once and kept until something that
+ * can change it says so: `refreshSafeArea` (resize, the recheck timer's page
+ * move, loop start, first placement) and a body resize. Callers get the same object, so none may mutate it.
+ */
+let viewportCache: { width: number; height: number } | null = null;
+let boundsCache: ReturnType<typeof boundsFor> | null = null;
+
+export function invalidateViewport(): void {
+  viewportCache = null;
+  boundsCache = null;
 }
 
 /**
@@ -197,7 +218,7 @@ export function boundsFor(view: { width: number; height: number }, top: number) 
 
 /** Every position a cat may hold right now. */
 function bounds() {
-  return boundsFor(viewport(), overlayTop);
+  return (boundsCache ??= boundsFor(viewport(), overlayTop));
 }
 
 export function clampToViewport(point: Point): Point {
@@ -237,16 +258,113 @@ export function elementBehind(x: number, y: number): Element | null {
   return null;
 }
 
+/** Pure; edges are inclusive. */
+export function pointInRects(x: number, y: number, rects: readonly RectLike[]): boolean {
+  for (const rect of rects) {
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return true;
+  }
+  return false;
+}
+
+/**
+ * The boxes of every `OCCUPIED` element on screen, gathered once per layout
+ * epoch rather than hit-tested per point: one explore pick could cost two
+ * thousand `elementsFromPoint` calls in a frame. `invalidateGround` starts a
+ * new epoch; `Companion.tsx` calls it on every resize, body resize and
+ * animation end, and before every placement decision it holds for seconds — an
+ * explore plan or re-pick, a scene's stage, the re-probe on arrival,
+ * mini-Thien's spot — since content can appear without any of those events.
+ * A scroll does not start one: it moves every box by the same delta, so
+ * `syncGround` moves the cache with it, and `scheduleRecheck`'s timer
+ * rebuilds it (`refreshGround`) at most every 250ms while a scroll lasts and
+ * once after it stops. That rebuild is what corrects sticky and fixed content,
+ * which a shift moves although the page did not. The per-frame probes in
+ * between, and the settle spots a moving pointer clears every event, read the
+ * cache; otherwise the rebuild is lazy, on the first probe after a drop.
+ *
+ * Deliberately conservative where a box is not what a hit test sees: an
+ * occupied element that is covered by something else, or clipped by an
+ * ancestor, still counts. A false "occupied" only sends a cat to another spot.
+ * One case goes the other way: a non-`OCCUPIED` child overflowing its
+ * `OCCUPIED` ancestor's box reads clear here, where a hit test said occupied.
+ * What a hit test looks straight through is still skipped — the companion's
+ * own subtree (`SELF`), and anything `pointer-events: none` or hidden, such as
+ * the Journey's not-yet-drawn branches and its ink overlays — or a cat could
+ * never rest anywhere on the stage. Boxes beside the window, or more than one
+ * window height above or below it, are dropped too: no probe point is ever off
+ * screen, and the band above and below is what a shifted cache scrolls into
+ * view before the next rebuild.
+ */
+let ground: readonly RectLike[] | null = null;
+/** The scroll offset `ground` was measured at, or last synced to. */
+let groundAt = { x: 0, y: 0 };
+
+export function invalidateGround(): void {
+  ground = null;
+}
+
+/** Whether a probe would read the cache rather than rebuild it. */
+export function groundCached(): boolean {
+  return ground !== null;
+}
+
+/** A new epoch, built now rather than on the next probe. */
+export function refreshGround(): void {
+  ground = null;
+  groundRects();
+}
+
+/** The page scrolled by (`dx`, `dy`): every cached box moves the other way. */
+export function shiftGround(dx: number, dy: number): void {
+  // `step` syncs every frame; a zero shift must not re-map the whole cache.
+  if (!ground || (dx === 0 && dy === 0)) return;
+  groundAt = { x: groundAt.x + dx, y: groundAt.y + dy };
+  ground = ground.map((box) => ({
+    left: box.left - dx,
+    top: box.top - dy,
+    right: box.right - dx,
+    bottom: box.bottom - dy,
+  }));
+}
+
+/**
+ * Move the cache to the page's live offset. Absolute rather than a delta the
+ * caller tracks, so a rebuild between a scroll and this call (it is measured
+ * at the live offset) cannot be shifted a second time, nor a move be dropped.
+ */
+export function syncGround(scrollX: number, scrollY: number): void {
+  if (!ground) return;
+  shiftGround(scrollX - groundAt.x, scrollY - groundAt.y);
+}
+
+function groundRects(): readonly RectLike[] {
+  if (ground) return ground;
+  groundAt = { x: window.scrollX, y: window.scrollY };
+  const view = viewport();
+  const rects: RectLike[] = [];
+  for (const element of document.querySelectorAll(OCCUPIED)) {
+    if (element.closest(SELF)) continue;
+    const box = element.getBoundingClientRect();
+    if (box.width <= 0 || box.height <= 0) continue;
+    if (box.right < 0 || box.left > view.width) continue;
+    if (box.bottom < -view.height || box.top > view.height * 2) continue;
+    const style = getComputedStyle(element);
+    if (style.pointerEvents === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
+    rects.push(box);
+  }
+  ground = rects;
+  return rects;
+}
+
 function occupied(x: number, y: number): boolean {
-  const element = elementBehind(x, y);
-  return element !== null && element.closest(OCCUPIED) !== null;
+  return pointInRects(x, y, groundRects());
 }
 
 /**
  * Rects the placement probe must also treat as occupied — the duet's own
  * speech bubbles and mini-Thien's caption.
  *
- * They cannot be found the way ordinary content is: `elementBehind` walks
+ * They cannot be found the way ordinary content is: the ground probe walks
  * straight through anything inside `[data-companion]` (see `SELF` above), on
  * purpose — without that, the two cats would each read the other as
  * "occupied" and never be able to stand near one another. That same rule
@@ -344,7 +462,7 @@ export function clearsControls(point: Point): boolean {
  * guarantees the follower is never *placed* onto the toggle, but it cannot
  * guarantee the pair never end up too close, because nothing stops the
  * *lead* from independently walking towards wherever the follower already
- * stands: `elementBehind` deliberately looks straight through the
+ * stands: the ground probe deliberately looks straight through the
  * companion's own subtree, so the two cats have always looked through each
  * other by design, and a mood or tour stop choosing the lead's next spot
  * has no idea the follower is there. Axe caught exactly this: a huddle
@@ -603,7 +721,7 @@ const HEAD_INSET = 12;
  * points (belly at 60% height, both feet) all sit in the bottom half of a
  * 42px cat, so a spot can pass with the ears and face across a line of prose
  * or a link — and the cats are buttons, so a head there hides the words and
- * takes their clicks. Six more hit tests, same rule as the other three
+ * takes their clicks. Six more rect checks, same rule as the other three
  * (occupied content, or a bubble's reserved rect).
  *
  * The explorers ask it as a requirement, in companion-moods.ts: `exploreClear`,
@@ -716,14 +834,14 @@ function overlaps(a: Point, b: Point): boolean {
  *    tour's and the watch's defensive `nearbySpots()` fallbacks. A `want`
  *    rejected for its head would hand the cat a target that moves with her,
  *    the feedback loop the controls note above describes, and the extra pass
- *    would add up to fifteen × nine hit tests to every frame.
+ *    would add up to fifteen × nine rect checks to every frame.
  *  - `tourStopSpots`'s `restSpots` fallback, which is recomputed every frame
  *    too, but from a fixed anchor by the section's top edge rather than a cat's
  *    position: off for the per-frame cost, not for feedback.
  *  - Mini-Thien's spot, probed once per change of speaker: he is not a cat,
  *    and the head band is the cat drawing's geometry, not his.
  *
- * Bounded work: fifteen candidates × three hit tests, plus fifteen × nine
+ * Bounded work: fifteen candidates × three rect checks, plus fifteen × nine
  * with `preferHead`.
  */
 export function findClearSpot(
@@ -786,7 +904,7 @@ const SWEEP_COLUMNS = 5;
  * A coarse sweep of every place on this page a cat could stand, nearest to
  * `near` first.
  *
- * Deliberately does no hit testing of its own: the caller has a more expensive
+ * Deliberately does no clear-spot probing of its own: the caller has a more expensive
  * question to ask at each candidate than "is it clear" — whether a whole scene
  * fits there — and wants to stop at the first that answers yes rather than pay
  * for the whole grid every time.
@@ -825,7 +943,7 @@ export function standingSpots(near: Point): Point[] {
 /* -------------------------------------------------------------------------- */
 
 /** How many uniformly random points one half is sampled for before the picker
- *  tries the other half. Each probe is up to nine hit tests (`isClearSpot`'s
+ *  tries the other half. Each probe is up to nine rect checks (`isClearSpot`'s
  *  three, then `headClear`'s six), and a page that is
  *  mostly prose fails most draws, which is why this is a handful and the
  *  other half is the fallback rather than a bigger number. */

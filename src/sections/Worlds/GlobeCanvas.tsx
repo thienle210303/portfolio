@@ -22,15 +22,12 @@ import type { GlobeControls } from "./WorldsStage";
 import { GLYPHS } from "./glyphs";
 import { COASTLINES } from "./coastline-data";
 import { acquireRenderer, pickSurface } from "./gl/context";
-import { bakeCoastlineTexture } from "./gl/coastline-texture";
 import {
   createSphere,
   globeStroke,
-  parseCssColor,
   REST_STATE,
   sphereView,
   type Sphere,
-  type SphereColors,
   type SphereView,
 } from "./gl/sphere";
 import { CHAPTER_INDEX, SKIN_INDEX } from "./gl/shaders";
@@ -44,6 +41,7 @@ import {
 } from "./gl/robot";
 import { TAP_SLOP_PX } from "./gestures";
 import { settleMotion } from "./settle";
+import { palette, sphereColors } from "./palette";
 
 /**
  * The planet. No dependency, and zero animation frames once it stops moving.
@@ -74,14 +72,16 @@ import { settleMotion } from "./settle";
  * the inertia decays below its threshold and no flight is in progress, the
  * loop returns without scheduling, `view.running` goes false, and the page
  * costs nothing until something wakes it again: the visitor, or the stage's
- * replay of the crossing (`WorldsStage.tsx`). The replay runs only while at
- * least half the stage is in view, stops for good on any tap, drag of the
- * globe, key, click or focus in the section (a press the page scroll takes
- * over does not count), never runs under reduced motion, and between
- * cycles holds timers, not frames. So the replay asks for zero frames after
- * any interaction, for good; whenever less than half the stage is on screen;
- * under reduced motion; and through every hold between cycles. It asks for
- * frames only while a cycle's flight, landing tail or return is on screen.
+ * autoplay of the crossing (`WorldsStage.tsx`). The autoplay flies once, the
+ * first time at least half the stage is in view, and ends at its landing; it
+ * stops at once on any tap, drag of the globe, key, click or focus in the
+ * section (a press the page scroll takes over does not count), and never runs
+ * under reduced motion. After it the globe holds no timers and asks for no
+ * frames until the visitor wakes it, with the flight button's replay among
+ * the ways. So the autoplay asks for zero frames after any interaction, for
+ * good; and the globe asks for none at rest after the landing, whenever the
+ * stage is off screen, and under reduced motion. The autoplay asks for frames
+ * only while a flight or its landing tail is on screen.
  * `e2e/worlds.spec.ts` measures exactly that — but *not* by counting `requestAnimationFrame`
  * page-wide, which cannot express the claim here: the companion cats hold a
  * 60 Hz loop of their own open on this page, so a page-wide count would fail
@@ -102,9 +102,8 @@ import { settleMotion } from "./settle";
  * below states the two rules for adding one.
  *
  * The stage can also ask the loop to stop early: `settle()`, called when the
- * stage leaves the viewport (or drops below half of it while the replay
- * runs), when a chapter is chosen while it is out of view, or when "Stop the
- * replay" is pressed, puts what is still moving at its end (a played flight
+ * stage leaves the viewport, when a chapter is chosen while it is out of view,
+ * or when "Stop the replay" is pressed, puts what is still moving at its end (a played flight
  * lands, a robot mid-walk ends lit, an easing camera arrives) in one draw
  * and cancels the pending frame, so nothing animates for a visitor who has
  * scrolled away. Two
@@ -163,6 +162,11 @@ interface GlobeCanvasProps {
 }
 
 const DEG = Math.PI / 180;
+
+/** The GL surface's coverage texture, baked by `pnpm bake:coastline`, so first
+ *  entry costs an off-thread decode and an upload rather than rasterising 8 MB
+ *  here. */
+export const COASTLINE_PNG = "/globe/coastline.png";
 
 /** Radians of eastward roll that completes the crossing. Tuned in the mockup:
  *  a comfortable phone-width swipe gets you most of the way, so the moment is
@@ -253,17 +257,6 @@ interface Hit {
   readonly r: number;
 }
 
-interface Palette {
-  readonly fg: string;
-  readonly muted: string;
-  readonly subtle: string;
-  readonly accent: string;
-  readonly rule: string;
-  readonly ground: string;
-  /** The ink a label's halo is stroked in, or null for no halo. */
-  readonly halo: string | null;
-}
-
 /** Not a working CSS fallback list (see the note on `--font-mono` in
  *  `globals.css`) but a real one here: this string is handed to `ctx.font`
  *  directly, where comma-separated families do fall through. */
@@ -312,71 +305,6 @@ function reducedMotion(): boolean {
  */
 function seedOnLanding(): number {
   return reducedMotion() ? 1 : 0.001;
-}
-
-/**
- * The section's own ink, read off the canvas at draw time.
- *
- * The forced-colors branch is not a nicety. In Windows High Contrast the
- * browser overrides CSS colours, but **a canvas bitmap is not touched** — the
- * custom properties still hold their authored values (measured under
- * `forced-colors: active`: `--accent` is still `#1e4e8c`), so a globe that
- * trusted them would draw a mid-blue graticule on a forced black page and the
- * one hue carrying meaning would stop being distinguishable. System colour
- * keywords are the only values the forced palette actually maps, so in that
- * mode the globe is drawn in `CanvasText` on `Canvas`, with `LinkText` for
- * everything blue was doing — that is the slot the forced palette reserves for
- * annotation, which is the whole of what blue means here.
- *
- * Do not assume those keywords resolve to greys. Measured in this Chromium's
- * emulated palette: `Canvas` #ffffff, `CanvasText` #000000, `GrayText`
- * #600000 — a dark red — and `LinkText` #00009f. A real user's theme can map
- * them to anything at all, and that is the point: the theme guarantees they
- * are distinguishable from each other, and nothing else does.
- */
-function palette(element: Element): Palette {
-  if (window.matchMedia("(forced-colors: active)").matches) {
-    return {
-      fg: "CanvasText",
-      muted: "CanvasText",
-      subtle: "GrayText",
-      accent: "LinkText",
-      rule: "GrayText",
-      ground: "Canvas",
-      // No halo: the forced-colours globe stays exactly as it was drawn
-      // before there were halos.
-      halo: null,
-    };
-  }
-  const style = getComputedStyle(element);
-  const read = (name: string) => style.getPropertyValue(name).trim();
-  return {
-    fg: read("--fg"),
-    muted: read("--fg-muted"),
-    subtle: read("--fg-subtle"),
-    accent: read("--accent"),
-    rule: read("--rule-color"),
-    ground: read("--ground"),
-    halo: read("--ground"),
-  };
-}
-
-/**
- * The GL surface's two inputs, read off the element the same way `palette()`
- * reads the overlay's, so the planet follows the tone it sits in as well as
- * the theme. `key` is the raw strings, for "did anything change since the
- * last upload". `colors` is null when either does not parse.
- */
-function sphereColors(element: Element): { key: string; colors: SphereColors | null } {
-  const style = getComputedStyle(element);
-  const ink = style.getPropertyValue("--fg").trim();
-  const paper = style.getPropertyValue("--ground").trim();
-  const i = parseCssColor(ink);
-  const p = parseCssColor(paper);
-  return {
-    key: `${ink}|${paper}`,
-    colors: i && p ? { ink: i, paper: p } : null,
-  };
 }
 
 export default function GlobeCanvas({
@@ -1122,57 +1050,77 @@ export default function GlobeCanvas({
     const renderer = acquireRenderer(element);
     const gl = renderer.kind === "webgl" ? renderer.gl : null;
     const read = sphereColors(overlay);
-    // The coverage is baked (~40 ms, 8 MB) only when a surface can use it,
-    // and never held: `texImage2D` copies it to the GPU, and nothing keeps
-    // the JS buffer after `createSphere` returns. A lost context is not
-    // restored (the fallback is one-way per visit), so nothing re-bakes.
-    const sphere =
-      gl && read.colors && !forced.matches
-        ? createSphere(gl, {
-            coverage: bakeCoastlineTexture(COASTLINES, 2048, 1024),
-            colors: read.colors,
-          })
-        : null;
-    const choice = pickSurface({ gl, program: sphere?.program ?? null, forcedColors: forced.matches });
-
-    if (!choice.useGl || !sphere) {
-      sphere?.dispose();
-      // The overlay has drawn its coastlines from the start, because
-      // `sphereRef` was never set; all that is left is to take the empty
-      // surface away and tell the stage the skins cannot be worn.
-      setSurface(false);
-      onSurfaceChangeRef.current(false);
-      return;
-    }
+    const colors = read.colors;
 
     let live = true;
-    const stop = () => {
-      live = false;
-      sphereRef.current = null;
-      sphere.dispose();
-      onSurfaceChangeRef.current(false);
-    };
+    let sphere: Sphere | null = null;
+    // The overlay draws its coastlines for as long as `sphereRef` is unset —
+    // from the start, and while the PNG loads — so falling back is only
+    // ever taking the empty surface away and telling the stage the skins
+    // cannot be worn. `live` makes it once per visit: nothing re-acquires.
     const fallBack = () => {
       if (!live) return;
-      stop();
+      live = false;
+      sphereRef.current = null;
+      sphere?.dispose();
       setSurface(false);
+      onSurfaceChangeRef.current(false);
       // At rest nothing else would redraw, and the coastlines have to come
       // back onto the overlay in the same moment the surface leaves.
       drawRef.current();
     };
-    sphereRef.current = { sphere, key: read.key };
-    onSurfaceChangeRef.current(true);
-    drawRef.current();
+
+    if (!gl || !colors || forced.matches) {
+      fallBack();
+      return;
+    }
 
     const forcedChange = () => {
       if (forced.matches) fallBack();
     };
+    // Listening from mount, not from the decode, so a context lost or forced
+    // colours switched on while the PNG loads still end the surface.
     element.addEventListener("webglcontextlost", fallBack);
     forced.addEventListener("change", forcedChange);
+
+    // `createImageBitmap` decodes off the main thread, and with these options
+    // the bytes arrive as baked, so the upload has nothing left to re-decode.
+    // `texImage2D` copies the bitmap to the GPU, so it is closed straight after.
+    fetch(COASTLINE_PNG)
+      .then((response) => {
+        if (!response.ok) throw new Error(`${COASTLINE_PNG}: ${response.status}`);
+        return response.blob();
+      })
+      .then((blob) => createImageBitmap(blob, { premultiplyAlpha: "none", colorSpaceConversion: "none" }))
+      .then(
+        (bitmap) => {
+          if (live) {
+            sphere = createSphere(gl, { coverage: bitmap, colors });
+            const choice = pickSurface({ gl, program: sphere.program, forcedColors: forced.matches });
+            if (choice.useGl) {
+              sphereRef.current = { sphere, key: read.key };
+              onSurfaceChangeRef.current(true);
+              drawRef.current();
+            } else {
+              fallBack();
+            }
+          }
+          bitmap.close();
+        },
+        // A PNG that will not load or decode is a fallback like any other.
+        fallBack,
+      );
+
     return () => {
       element.removeEventListener("webglcontextlost", fallBack);
       forced.removeEventListener("change", forcedChange);
-      if (live) stop();
+      // Unmounting is not a fallback: no state to set, nothing to redraw, but
+      // the stage still hears that the surface is gone if it was ever live.
+      if (!live) return;
+      live = false;
+      if (sphereRef.current) onSurfaceChangeRef.current(false);
+      sphereRef.current = null;
+      sphere?.dispose();
     };
   }, []);
 

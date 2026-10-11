@@ -11,6 +11,13 @@
  * Throttling matches the Lighthouse mobile preset's shape: 4x CPU slowdown
  * and roughly 1.6 Mbps down with 150 ms latency. Numbers are comparable
  * between runs on the same machine; they are not Lighthouse scores.
+ *
+ * Two JS figures, which answer different questions:
+ *   - JS: every script response from navigation start through the 8 s wait
+ *     after `load`, including chunks fetched on idle. This is the globe-chunk leak detector.
+ *   - JS at load: only script responses that began before the window `load`
+ *     event, i.e. what blocks the page becoming interactive. Same counting
+ *     and skipped-response rules as JS.
  */
 import { createRequire } from "node:module";
 
@@ -74,12 +81,18 @@ const bytes = { script: 0, stylesheet: 0, font: 0, other: 0 };
  */
 const headerBytes = { script: 0, stylesheet: 0, font: 0, other: 0 };
 let skipped = 0;
+let loaded = false;
+let loadScriptBytes = 0;
+page.on("load", () => {
+  loaded = true;
+});
 let noContentLength = 0;
 
 page.on("response", async (response) => {
   const type = response.request().resourceType();
   const bucket = type in bytes ? type : "other";
 
+  const beforeLoad = !loaded;
   const declared = Number(response.headers()["content-length"]);
   if (Number.isFinite(declared)) headerBytes[bucket] += declared;
   else noContentLength += 1;
@@ -87,6 +100,7 @@ page.on("response", async (response) => {
   try {
     const sizes = await response.request().sizes();
     bytes[bucket] += sizes.responseBodySize || 0;
+    if (beforeLoad && bucket === "script") loadScriptBytes += sizes.responseBodySize || 0;
   } catch {
     // A response that never finished has no sizes. Skipping it under-reports
     // rather than crashing the run, which is the right trade for a metric —
@@ -116,6 +130,7 @@ const metrics = await page.evaluate(() => {
 const kb = (n) => (n / 1024).toFixed(1);
 const row = [
   kb(bytes.script) + " KB",
+  kb(loadScriptBytes) + " KB",
   kb(bytes.stylesheet) + " KB",
   kb(bytes.font) + " KB",
   metrics.lcp + " ms",
@@ -124,8 +139,8 @@ const row = [
   String(metrics.domNodes),
 ].join(" | ");
 
-console.log("| JS | CSS | Fonts | LCP | TBT | CLS | DOM nodes |");
-console.log("|---|---|---|---|---|---|---|");
+console.log("| JS | JS at load | CSS | Fonts | LCP | TBT | CLS | DOM nodes |");
+console.log("|---|---|---|---|---|---|---|---|");
 console.log("| " + row + " |");
 console.log("");
 console.log(
@@ -139,6 +154,6 @@ console.log(
     `fonts ${kb(headerBytes.font)} KB (${noContentLength} response(s) declared none, so this is a floor).`,
 );
 console.log("LCP element: " + metrics.lcpEl);
-console.log(JSON.stringify({ bytes, headerBytes, skipped, noContentLength, ...metrics }, null, 2));
+console.log(JSON.stringify({ bytes, loadScriptBytes, headerBytes, skipped, noContentLength, ...metrics }, null, 2));
 
 await browser.close();

@@ -1958,6 +1958,15 @@
 /* with it. Nothing here hides an act or a branch with `display` or            */
 /* `visibility`; the only thing that fades is `opacity`.                       */
 /* -------------------------------------------------------------------------- */
+/* Read only by the camera it is written on. Inheriting, it restyled every
+   element under the camera on each act change; registered, nothing below the
+   camera sees it change. */
+@property --camera {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 @layer components {
   /* Static: controls that only mean something while pinned are not shown. */
   [data-stage-bar],
@@ -2022,7 +2031,8 @@
     }
 
     /* The frame clips; the camera inside it is what moves. `--camera` and
-       `--front` are written by Stage.tsx and mean nothing to anything else. */
+       `--front` are written by Stage.tsx, each on the one element that reads
+       it (the camera, the unborn mask), and mean nothing to anything else. */
     [data-stage][data-stage-live]:not([data-released]) [data-stage-window] {
       position: relative;
       flex: 1 1 0;

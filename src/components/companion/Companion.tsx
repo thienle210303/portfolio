@@ -6,7 +6,7 @@ import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { cn } from "@/lib/cn";
 import type { CompanionFacts } from "@/lib/companion-facts";
-import CompanionCat, { CAT_H, CAT_HOP_RISE, CAT_W, type CatPose } from "./CompanionCat";
+import CompanionCat, { CAT_H, CAT_HOP_RISE, CAT_W, SIT_SWAY_RATE, type CatPose } from "./CompanionCat";
 import { CatGlyph } from "./CatIcon";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, { BOX_SLOT, PAPER_SLOT } from "./RestingBox";
@@ -57,10 +57,12 @@ import {
   frameStep,
   initRide,
   ramp,
+  REFERENCE_FRAME_MS,
   rideStep,
   trailBehind,
   type RideTracker,
 } from "./companion-motion";
+import { IDLE_TICK_MS, nextCadence } from "./companion-cadence";
 import {
   TOUR_STOPS,
   isLastStop,
@@ -79,13 +81,18 @@ import {
   clamp,
   clampToViewport,
   findClearSpot,
+  groundCached,
   headClear,
+  invalidateGround,
   isClearSpot,
   keepClearOfControl,
   keepInView,
   placeBeside,
   randomFacing,
+  refreshGround,
+  syncGround,
   refreshSafeArea,
+  invalidateViewport,
   safeTop,
   searchClearOfToggle,
   setControlRects,
@@ -424,6 +431,8 @@ interface Visual {
   readonly flick: number;
   /** The `hop` act, live this frame — see `actPose`. */
   readonly hopping: boolean;
+  /** The plain sit's tail is swaying in CSS — see `swaying` on CompanionCat. */
+  readonly swaying?: boolean;
 }
 
 /** What the JSX draws for one beat of the duet — see `beatView`. */
@@ -567,11 +576,10 @@ interface Stage {
  * genuinely nowhere.
  *
  * Bounded, and paid once per click rather than per frame: the sweep is a few
- * dozen spots, each one three hit tests, and only the ones that come back clear
- * cost a scene probe on top. Measured on a 1440×900 production build, that is
- * 5–20ms when it finds a stage and 26ms in the worst case there is not one
- * anywhere — a frame or two, once, on a deliberate action, which is the right
- * place to spend it and the only place this is ever called from.
+ * dozen spots, each one three rect checks against the cached ground, and only
+ * the ones that come back clear cost a scene probe on top — once, on a
+ * deliberate action, which is the right place to spend it and the only place
+ * this is ever called from.
  */
 function stageFor(kind: SceneKind, here: Spots, facing: 1 | -1, now: number): Stage | null {
   // No section goes in, and none is wanted: the only scenes that reach here are
@@ -1108,9 +1116,12 @@ function sameVisual(a: Visual, b: Visual): boolean {
     a.facing === b.facing &&
     a.blinking === b.blinking &&
     a.hopping === b.hopping &&
+    Boolean(a.swaying) === Boolean(b.swaying) &&
     // Quantised: the drawing cannot show more than this, so committing more
-    // than this is pure re-render cost.
-    Math.round(a.phase * 24) === Math.round(b.phase * 24) &&
+    // than this is pure re-render cost. Not compared at all while CSS sways
+    // the tail: the drawing does not read `phase` then, and a new one would
+    // move the animation's start and jump the tail.
+    ((a.swaying && b.swaying) || Math.round(a.phase * 24) === Math.round(b.phase * 24)) &&
     Math.round(a.flick * 5) === Math.round(b.flick * 5)
   );
 }
@@ -2107,6 +2118,8 @@ export function Companion({ facts }: CompanionProps) {
      * minutes at a time, and the gap either side of a nap is not time the pair
      * spent walking. A stale sentinel would hand the first frame after every
      * wake the whole clamp (see `MAX_FRAME_STEP`) and start them with a jump.
+     * Cleared before every idle tick too (see `nextCadence`), for the same
+     * reason at a quarter-second scale.
      */
     let lastFrameAt = 0;
     /** Whether both cats were asleep on the previous frame — which, the loop
@@ -2114,16 +2127,31 @@ export function Companion({ facts }: CompanionProps) {
      *  the end of the stretch that waking arms. See `stretching` in `step`. */
     let sleptLastFrame = false;
     let stretchUntil = 0;
+    /** The pending idle tick, if the last frame asked for one. `running` stays
+     *  true while it waits. */
+    let idleTimer = 0;
+    /** When `step` last ran, idle ticks included; 0 after `stop`. Only the
+     *  tail's sway reads it — see `swayFrames` in `step`. */
+    let lastStepAt = 0;
 
     const stop = () => {
       running = false;
       if (frameId) cancelAnimationFrame(frameId);
       frameId = 0;
+      clearTimeout(idleTimer);
+      idleTimer = 0;
       lastFrameAt = 0;
+      lastStepAt = 0;
     };
 
+    /** Also the way out of an idle wait: input should not sit out the rest of
+     *  a quarter-second tick before the cats react to it. */
     const start = () => {
-      if (running || document.hidden) return;
+      if (document.hidden) return;
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = 0;
+      } else if (running) return;
       running = true;
       lastFrameAt = 0;
       frameId = requestAnimationFrame(step);
@@ -2182,7 +2210,7 @@ export function Companion({ facts }: CompanionProps) {
 
     /**
      * Clear ground near where the pair are standing, resolved once per hold
-     * rather than per frame — probing the page costs hit tests. Two branches
+     * rather than per frame — probing the page is not free. Two branches
      * want it: holding station while a scene is out (a scene owns their
      * positions: it probed its own geometry against wherever they stood when it
      * opened, and a spot halfway across the page would walk the lead away from
@@ -2309,6 +2337,7 @@ export function Companion({ facts }: CompanionProps) {
         return run.spots;
       }
 
+      invalidateGround();
       const chosen = planExplore(sectionRef.current, grey.pos, tabby.pos, homeSpot(), exploreFresh.current);
       const spots = clearFollowOfToggle(chosen ?? nearbySpots(true));
       const perch = chosen?.perch ?? false;
@@ -2352,6 +2381,7 @@ export function Companion({ facts }: CompanionProps) {
      * `clearFollowOfToggle`, as every spot handed to her does.
      */
     function repickExplorer(run: ExploreRun, cat: "lead" | "follow", now: number) {
+      invalidateGround();
       if (cat === "lead") {
         const lead = repickExploreSpot("lead", grey.pos, run.spots.follow, homeSpot());
         run.spots = { lead, follow: run.spots.follow };
@@ -2406,6 +2436,10 @@ export function Companion({ facts }: CompanionProps) {
     function step() {
       frameId = 0;
       if (!running) return;
+      // `readScroll` runs after `step` in a frame, so mid-scroll the ground
+      // would be one scroll step stale for every check below. `syncGround` is
+      // absolute (live minus recorded offset), so doing it in both is safe.
+      syncGround(window.scrollX, window.scrollY);
 
       const now = performance.now();
       /**
@@ -2425,7 +2459,13 @@ export function Companion({ facts }: CompanionProps) {
       // mid-stride. A twentieth of a reference frame is below any display that
       // exists; it would take 1200Hz to reach it.
       const frames = lastFrameAt === 0 ? 1 : Math.max(frameStep(now - lastFrameAt), 0.05);
+      /** `frames`, except across an idle tick, where it is the real time
+       *  since the last one: a still cat's tail keeps time with the CSS sway
+       *  that drew it meanwhile, so handing back to the drawing does not jump. */
+      const swayFrames =
+        lastFrameAt === 0 && lastStepAt !== 0 ? (now - lastStepAt) / REFERENCE_FRAME_MS : frames;
       lastFrameAt = now;
+      lastStepAt = now;
       /** How long the pointer has held still — what "settle" is measured on. */
       const idleFor = now - lastMoveRef.current;
       /** How long *nobody* has done anything: no pointer, no scroll, no key,
@@ -2839,6 +2879,7 @@ export function Companion({ facts }: CompanionProps) {
           tabby.pos.x = arriving.spots.follow.x;
           tabby.pos.y = arriving.spots.follow.y;
           queued.current = null;
+          invalidateGround();
           const opened = openPlay(
             arriving.kind,
             arriving.spots.lead,
@@ -2897,7 +2938,7 @@ export function Companion({ facts }: CompanionProps) {
        * a visitor who reads by scrolling, one who tabs through from the
        * keyboard, and a laptop left open on the page all answer no forever, and
        * for all three the pair never dozed, never reached `pose === "sleep"`,
-       * and so `keepGoing` below never went false. Measured: 60 frames a second
+       * and so the loop below never stopped. Measured: 60 frames a second
        * for as long as the tab was open, on a page nobody was touching. Never a
        * phone — `roams` needs `(pointer: fine)` — which means it was always a
        * laptop, on battery, being asked for a frame every 16ms to redraw two
@@ -2943,6 +2984,7 @@ export function Companion({ facts }: CompanionProps) {
          * of them fits, not again for `PLAY_RETRY`.
          */
         let opened: Play | null = null;
+        invalidateGround();
         for (const kind of sceneOrder({ night: nightRef.current, section: sectionRef.current })) {
           // Not while the visitor is holding the lead cat on the keyboard: he
           // is a 44px control with a focus ring, and a ring is drawn around the
@@ -3079,7 +3121,7 @@ export function Companion({ facts }: CompanionProps) {
        * them does not stop to act. A cat mid-walk shows its walk; the act
        * starts when it next stands, if the beat is still live by then.
        *
-       * Acts never touch `keepGoing`: an act is read off its beat each frame
+       * Acts never touch the cadence: an act is read off its beat each frame
        * and asks nothing of the loop, so the loop never runs a frame longer
        * for an act than it would for the beat alone.
        */
@@ -3331,9 +3373,14 @@ export function Companion({ facts }: CompanionProps) {
          * `resolveFollowClear`'s contract (a changed value is always
          * content-clear) means this can assign unconditionally.
          */
-        const followClear = resolveFollowClear(tabby.pos, grey.pos);
-        tabby.pos.x = followClear.x;
-        tabby.pos.y = followClear.y;
+        // Only against ground already cached: a rebuild costs tens of ms, and
+        // this runs every frame of a ride. A ride is scroll events, each of
+        // which arms `scheduleRecheck`, whose timer rebuilds it within 250ms.
+        if (groundCached()) {
+          const followClear = resolveFollowClear(tabby.pos, grey.pos);
+          tabby.pos.x = followClear.x;
+          tabby.pos.y = followClear.y;
+        }
       }
 
       const leadDx = leadWant.x - grey.pos.x;
@@ -3401,7 +3448,7 @@ export function Companion({ facts }: CompanionProps) {
       // rule — which is the same phase run at about the speed walking gives it,
       // so one number still drives the tail, the ear and the batting paw.
       else if (grey.pose !== "sleep")
-        grey.phase = (grey.phase + (beat?.stir ? 0.02 : 0.006) * frames) % 1;
+        grey.phase = (grey.phase + (beat?.stir ? 0.02 : SIT_SWAY_RATE.grey) * swayFrames) % 1;
 
       /* -------------------------------------------------------- follower -- */
 
@@ -3520,7 +3567,7 @@ export function Companion({ facts }: CompanionProps) {
         tabby.facing = chase.x > tabby.pos.x + CAT_W / 2 ? 1 : -1;
       }
       if (followRate > 0.3) tabby.phase = (tabby.phase + followStep * 0.0115) % 1;
-      else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + 0.0045 * frames) % 1;
+      else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + SIT_SWAY_RATE.tabby * swayFrames) % 1;
 
       /* ---------------------------------------------------------- police -- */
 
@@ -3579,7 +3626,7 @@ export function Companion({ facts }: CompanionProps) {
        * and unmounted exactly on `duetBeat` (see the render below), same as
        * the bubbles. "Walks in" is the whole of what this does: a target
        * beside whichever cat is speaking, probed once per speaker change
-       * rather than every frame (`findClearSpot` is a handful of hit tests,
+       * rather than every frame (`findClearSpot` is dozens of rect checks,
        * not something to spend sixty times a second on a decoration), and
        * `advance` closes the gap on the same per-frame clock as everything
        * else here. "Leaves" needs no code of its own — the wrapper simply
@@ -3600,6 +3647,7 @@ export function Companion({ facts }: CompanionProps) {
           }
           const speakerPos = speaking.speaker === "grey" ? grey.pos : tabby.pos;
           const otherPos = speaking.speaker === "grey" ? tabby.pos : grey.pos;
+          invalidateGround();
           thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos);
           thienSpeaker.current = speaking.speaker;
         }
@@ -3720,7 +3768,7 @@ export function Companion({ facts }: CompanionProps) {
       // space so the placement probe (`isClearSpot`, `findClearSpot`,
       // `standingSpots`) never approves a spot underneath one — see
       // `setReservedRects` in companion-space.ts for why this cannot simply
-      // be "another thing `elementBehind` sees". Read every frame a scene is
+      // be "another thing the ground probe sees". Read every frame a scene is
       // actually showing, the same cadence `paintBubble` already reads
       // `offsetWidth`/`offsetHeight` at; cleared the one frame nothing is.
       if (duetRef.current) {
@@ -3782,27 +3830,62 @@ export function Companion({ facts }: CompanionProps) {
 
       const asleep = grey.pose === "sleep" && tabby.pose === "sleep";
       sleptLastFrame = asleep;
-      const busy = leadRate > 0.05 || followRate > 0.05 || run !== null;
-      // Both asleep and neither moving: the loop stops, and the page with it.
-      // Any input restarts it — see `wake`, which every listener calls.
-      const keepGoing = busy || !asleep;
+      // Any movement at all, not "real" walking: a follower braking into her
+      // spot, or ramping up out of it, covers less than a twentieth of a pixel
+      // a frame for a few frames, and on idle ticks that crawl would take
+      // fifteen times as long.
+      const busy = leadRate > 0 || followRate > 0 || run !== null;
+
+      const leadBlink = tickBlink(grey, now);
+      const leadFlick = tickFlick(grey, now, grey.pose !== "sleep");
+      const followBlink = tickBlink(tabby, now);
+      const followFlick = tickFlick(tabby, now, tabby.pose !== "sleep");
+      // Read after the ticks above, so a blink or flick that fell due on this
+      // frame already counts. Both asleep and nothing moving: the loop stops,
+      // and the page with it. Awake but still: an idle tick. Any input
+      // restarts a full frame either way — see `wake`, which every listener
+      // calls.
+      const cadence = nextCadence({
+        busy,
+        asleep,
+        animating:
+          now < grey.blinkUntil ||
+          now < tabby.blinkUntil ||
+          now < grey.flickUntil ||
+          now < tabby.flickUntil ||
+          // Every pose but the plain sit and sleep draws off `phase` or
+          // changes on its own clock: a flourish (the bat's paw pats with the
+          // tail), a stretch, a scene's pose. Only the plain sit's sway has a
+          // CSS stand-in.
+          (grey.pose !== "sit" && grey.pose !== "sleep") ||
+          (tabby.pose !== "sit" && tabby.pose !== "sleep") ||
+          beat !== null ||
+          duetRef.current !== null ||
+          tourRef.current !== null ||
+          // The page is carrying them, and when it stops they decide where to
+          // go — on the next frame, not the next tick.
+          ride.riding,
+      });
+      const swaying = cadence === "idle";
 
       const next: Frame = {
         lead: {
           pose: grey.pose,
           phase: grey.phase,
           facing: grey.facing,
-          blinking: tickBlink(grey, now),
-          flick: tickFlick(grey, now, grey.pose !== "sleep"),
+          blinking: leadBlink,
+          flick: leadFlick,
           hopping: leadHopping,
+          swaying,
         },
         follow: {
           pose: tabby.pose,
           phase: tabby.phase,
           facing: tabby.facing,
-          blinking: tickBlink(tabby, now),
-          flick: tickFlick(tabby, now, tabby.pose !== "sleep"),
+          blinking: followBlink,
+          flick: followFlick,
           hopping: followHopping,
+          swaying,
         },
         police: policeVisual,
       };
@@ -3813,14 +3896,20 @@ export function Companion({ facts }: CompanionProps) {
         (next.police !== null &&
           committed.current.police !== null &&
           !sameVisual(next.police, committed.current.police));
-      if (changed && (!keepGoing || now - lastCommit.current >= RENDER_INTERVAL)) {
+      if (changed && (cadence !== "frame" || now - lastCommit.current >= RENDER_INTERVAL)) {
         committed.current = next;
         lastCommit.current = now;
         setFrame(next);
       }
 
-      if (keepGoing) frameId = requestAnimationFrame(step);
-      else running = false;
+      if (cadence === "frame") frameId = requestAnimationFrame(step);
+      else if (cadence === "idle") {
+        idleTimer = window.setTimeout(() => {
+          idleTimer = 0;
+          lastFrameAt = 0;
+          frameId = requestAnimationFrame(step);
+        }, IDLE_TICK_MS);
+      } else running = false;
     }
 
     const onVisibility = () => {
@@ -3846,9 +3935,10 @@ export function Companion({ facts }: CompanionProps) {
      *  2. Get a frame running. Two sleeping cats have no frames, and every
      *     clamp, every target and every decision below lives inside one. This
      *     is what wakes them from a nap.
-     *  3. Re-probe. The hit tests behind the resting spots and the tone sample
-     *     cost real work, and a scroll fires far more often than a cat needs to
-     *     reconsider where it is sitting — so that half stays throttled hard.
+     *  3. Re-probe. Rebuilding the ground behind the resting spots, and the
+     *     tone sample's hit test, cost real work, and a scroll fires far more
+     *     often than a cat needs to reconsider where it is sitting — so that
+     *     half stays throttled hard.
      *
      * A resize is the exception that has to jump the throttle: it changes the
      * box `keepInView` clamps against, and until the new box is measured a
@@ -3861,6 +3951,8 @@ export function Companion({ facts }: CompanionProps) {
     /** Whether a scroll or resize is waiting on `recheck`, as opposed to only
      *  a body resize — see `scheduleRecheck`. */
     let recheckPageMoved = false;
+    /** The pending `readScroll` frame, or 0. */
+    let scrollFrame = 0;
 
     /**
      * Re-probe the explorers' held stop, and drop it if its ground has stopped
@@ -3915,7 +4007,7 @@ export function Companion({ facts }: CompanionProps) {
     /**
      * The throttled half of `onPageMoved`, and the whole of what a body resize
      * gets. One timer for both, so a body resize and a scroll landing inside
-     * the same 250ms cost one round of hit tests, not two: whichever arrives
+     * the same 250ms cost one re-probe, not two: whichever arrives
      * first starts it, and anything inside the window rides along — exactly
      * as a second scroll always has. If any of those was a scroll or resize,
      * the timer does everything it always did for one; if all of them were
@@ -3933,13 +4025,18 @@ export function Companion({ facts }: CompanionProps) {
       if (pageMoved) recheckPageMoved = true;
       if (recheck) return;
       recheck = window.setTimeout(() => {
+        // The layout may have moved on inside the 250ms window, and a scroll
+        // only shifted the cached boxes (see `readScroll`), which moves
+        // sticky and fixed content that stayed put. Rebuilt here rather than
+        // left lazy, so the ride's per-frame follower probe never pays for it.
+        refreshGround();
         recheck = 0;
         const full = recheckPageMoved;
         recheckPageMoved = false;
         if (!full) {
           // On a drop, the settle spots go too: they were resolved under the
           // old layout, and a pair napping with no plan falls back to them.
-          // A cache drop and nothing more — no hit tests, and only on a drop.
+          // A cache drop and nothing more — no re-probe, and only on a drop.
           // Only an animation ending or the body resizing reached here — no
           // scroll — so the ground has settled (`heldExploreClear`).
           if (reprobeHeld(true)) {
@@ -3965,6 +4062,7 @@ export function Companion({ facts }: CompanionProps) {
     const onPageMoved = (resized: boolean) => {
       lastSignRef.current = performance.now();
       if (resized) {
+        invalidateGround();
         refreshSafeArea();
         settleSpots.current = null;
         exploreRun.current = null;
@@ -4000,6 +4098,9 @@ export function Companion({ facts }: CompanionProps) {
         bodySeen = true;
         return;
       }
+      invalidateGround();
+      // A scrollbar appearing changes `clientWidth` with no window resize.
+      invalidateViewport();
       scheduleRecheck(false);
     });
 
@@ -4010,11 +4111,12 @@ export function Companion({ facts }: CompanionProps) {
      * hears every animation on the page. The companion's own are skipped — a
      * cat's animation ending moves no ground, and its drawing is not content.
      * An animation that never ends (an infinite one) never asks, and a burst
-     * of them ending together costs one round of hit tests: `scheduleRecheck`
+     * of them ending together costs one re-probe: `scheduleRecheck`
      * coalesces what lands inside its window.
      */
     const animationEnded = (event: AnimationEvent) => {
       if (event.target instanceof Element && event.target.closest("[data-companion]")) return;
+      invalidateGround();
       scheduleRecheck(false);
     };
 
@@ -4029,21 +4131,37 @@ export function Companion({ facts }: CompanionProps) {
      */
     const onScrollEvent = () => {
       lastScrollAt.current = performance.now();
-      const now = lastScrollAt.current;
+      // Reading scrollY here would force every pending style recalc once per
+      // event; it is read once per frame instead.
+      scrollFrame ||= requestAnimationFrame(readScroll);
+      onPageMoved(false);
+    };
+    const readScroll = () => {
+      scrollFrame = 0;
+      const now = performance.now();
+      const x = window.scrollX;
       const y = window.scrollY;
+      // The document moved as one, so the cached ground moves with it rather
+      // than being rebuilt per event; the recheck timer rebuilds it. The cache
+      // knows the offset it is at, so a rebuild before this frame is harmless.
+      syncGround(x, y);
       const win = rushWindow.current;
       if (!win || now - win.at > RUSH_HOLD_MS + 120) {
         rushWindow.current = { y, at: now };
       } else if (detectRush(Math.abs(y - win.y), now - win.at)) {
         rushRef.current = { dir: y > win.y ? 1 : -1, until: now + RUSH_HOLD_MS + 500 };
       }
-      onPageMoved(false);
     };
     const onScroll = onScrollEvent;
     const onResize = () => onPageMoved(true);
 
     restart.current = start;
     refreshSafeArea();
+    // The ground cache outlives this effect, and while the loop was off nothing
+    // invalidated it — no listeners, and the body observer skips its first
+    // report — so boxes measured at an old scroll offset would plan the first
+    // stops.
+    invalidateGround();
     // The presence clock starts when the pair do. Both refs begin at zero, so
     // without this `aloneFor` is really "how long since navigation started" —
     // and a page that took its time getting here, or one restored into a
@@ -4097,6 +4215,7 @@ export function Companion({ facts }: CompanionProps) {
         document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
       }
       window.clearTimeout(recheck);
+      cancelAnimationFrame(scrollFrame);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", onScroll);
@@ -4458,6 +4577,7 @@ export function Companion({ facts }: CompanionProps) {
       const now = performance.now();
       endPlay(now);
       const here: Spots = { lead: { ...lead.current.pos }, follow: { ...follow.current.pos } };
+      invalidateGround();
       const stage = stageFor(kind, here, lead.current.facing, now);
       if (!stage) {
         // Nowhere on the page for this one. Back the idle schedule off exactly

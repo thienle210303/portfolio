@@ -787,127 +787,15 @@ test.describe("companion", () => {
   });
 
   /*
-   * A held scene stands on `settled()`, the spots resolved once per hold. A
-   * pointer move used to clear them, so with a hand on the mouse the pair
-   * re-probed the page — the head-band pass included — on every frame of the
-   * scene. Counted as calls to the probe's one browser primitive: a second of
-   * pointer movement may cost no more of them than a second of stillness.
+   * Two tests used to stand here — "a held scene does not re-probe its rest
+   * spots on every pointer move" and "an asked-for scene walking to its stage
+   * does not re-probe on every pointer move" — counting
+   * `document.elementsFromPoint` calls. Round 20 moved placement to ground
+   * rects cached per layout epoch (`groundRects` in companion-space.ts), so a
+   * per-frame re-probe now costs a cached rect scan, not a browser primitive
+   * an e2e can count. The cost is pinned by the unit test "queries the DOM
+   * once per epoch" in tests/lib/companion-space.test.ts.
    */
-  test("a held scene does not re-probe its rest spots on every pointer move", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    await companionAwake(page);
-
-    let kind: string | null = null;
-    for (const scene of SCENES) {
-      await openToolkit(page);
-      await toolkit(page).getByRole("button", { name: scene.name }).click();
-      await page.waitForTimeout(1_500);
-      kind = await scenePlaying(page);
-      if (kind !== null) break;
-    }
-    expect(kind, "no scene had room to run, so there was nothing to hold").not.toBeNull();
-
-    await page.evaluate(() => {
-      const counted = window as unknown as { __probes: number };
-      counted.__probes = 0;
-      const original = document.elementsFromPoint.bind(document);
-      document.elementsFromPoint = (x: number, y: number) => {
-        counted.__probes += 1;
-        return original(x, y);
-      };
-    });
-    const probes = () => page.evaluate(() => (window as unknown as { __probes: number }).__probes);
-
-    // Still first, then the same length of time with the hand moving, away
-    // from both cats and the panel.
-    const stillFrom = await probes();
-    await page.waitForTimeout(1_000);
-    const still = (await probes()) - stillFrom;
-
-    const movingFrom = await probes();
-    for (let i = 0; i < 16; i += 1) {
-      await page.mouse.move(320 + i * 20, 300 + i * 8);
-      await page.waitForTimeout(60);
-    }
-    const moving = (await probes()) - movingFrom;
-    expect(await scenePlaying(page), "the scene ended mid-measurement, so nothing was held").toBe(kind);
-
-    // Measured: 9 still and 396 moving before the fix, 9 and 12 after.
-    expect(moving, `still: ${still}, moving: ${moving}`).toBeLessThanOrEqual(still + 16);
-  });
-
-  /*
-   * The same rule for a scene the visitor asked for that is still walking to
-   * its stage. Too short to measure a still second beside it, so it is held
-   * to the frame count. Measured over ~33 frames of walking with the hand
-   * moving: 2-4 calls; with `settled()` called in the walk (a mutant), 201-226.
-   */
-  test("an asked-for scene walking to its stage does not re-probe on every pointer move", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-
-    await page.addInitScript(() => {
-      const counted = window as unknown as { __probes: number; __frames: number };
-      counted.__probes = 0;
-      counted.__frames = 0;
-      const original = document.elementsFromPoint.bind(document);
-      document.elementsFromPoint = (x: number, y: number) => {
-        counted.__probes += 1;
-        return original(x, y);
-      };
-      const tick = () => {
-        counted.__frames += 1;
-        requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    });
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    await companionAwake(page);
-    // Inside the Journey's stage the panel's corner sits on content, so an
-    // accepted request has to walk (see `queueARequest`).
-    await page.evaluate(() => {
-      const stage = document.querySelector("#tree");
-      if (!stage) throw new Error("no #tree on the page");
-      window.scrollTo({ top: window.scrollY + stage.getBoundingClientRect().top + 300, behavior: "instant" as ScrollBehavior });
-    });
-    await page.waitForTimeout(1_000);
-
-    const read = () =>
-      page.evaluate(() => {
-        const counted = window as unknown as { __probes: number; __frames: number };
-        return { probes: counted.__probes, frames: counted.__frames };
-      });
-    const refused = () =>
-      page.evaluate(() =>
-        /no room/i.test(document.querySelector("#companion-actions [role='status']")?.textContent ?? ""),
-      );
-
-    let measured: { probes: number; frames: number } | null = null;
-    for (const scene of SCENES) {
-      await openToolkit(page);
-      await page.waitForTimeout(2_500);
-      await toolkit(page).getByRole("button", { name: scene.name }).focus();
-      await page.keyboard.press("Enter");
-      if ((await scenePlaying(page)) !== null || (await refused())) continue;
-
-      const from = await read();
-      for (let i = 0; i < 8; i += 1) {
-        await page.mouse.move(320 + i * 20, 300 + i * 8);
-        await page.waitForTimeout(50);
-      }
-      const to = await read();
-      // Still walking at the end: no scene has opened under them yet.
-      if ((await scenePlaying(page)) !== null) continue;
-      measured = { probes: to.probes - from.probes, frames: to.frames - from.frames };
-      break;
-    }
-    expect(measured, "no request had to walk to its stage, so there was nothing to measure").not.toBeNull();
-    const { probes, frames } = measured!;
-    expect(probes, `${probes} probes over ${frames} frames of walking`).toBeLessThanOrEqual(frames);
-  });
 
   /*
    * Two routes abandon a requested scene without ever opening it: its walk to
@@ -1922,8 +1810,10 @@ test.describe("companion", () => {
     // Survives a reload — this is a preference, not a session quirk.
     await page.reload();
     await page.waitForLoadState("networkidle");
-    await expect(catButton(page)).toHaveCount(0);
+    // The bed first: it proves the lazily mounted cats are there, so the
+    // absence after it is not just a page that has not mounted them yet.
     await expect(restingBox(page)).toBeVisible();
+    await expect(catButton(page)).toHaveCount(0);
 
     // Sleeping cats snore, and it is decoration all the way down: hidden from
     // assistive technology, and never a target. Asserted after the reload
@@ -2149,7 +2039,9 @@ test.describe("companion", () => {
     });
 
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    // Not "networkidle": the globe chunk is requested a screen early after load
+    // and is withheld here, so the network never goes idle.
+    await page.waitForLoadState("load");
     await companionAwake(page);
 
     const stage = page.getByRole("group", { name: /playground earth/i });
@@ -3289,6 +3181,8 @@ test.describe("companion", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "print CSS is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    // Hidden must mean "printed away", not "not mounted yet".
+    await expect(catButton(page)).toBeVisible();
     await page.emulateMedia({ media: "print" });
     await expect(catButton(page)).toBeHidden();
   });
@@ -3552,6 +3446,8 @@ test.describe("companion", () => {
     await page.setViewportSize({ width: MOBILE_WIDTH, height: 812 });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    // The cats mount lazily on idle; the absences below mean nothing before.
+    await expect(page.locator("[data-companion]")).toBeAttached();
     // Touch viewports have no roaming loop and therefore no duet bubble, no
     // narrator and no caption at all — the pair are parked in the corner
     // button. This asserts the honest absence rather than a false positive,
