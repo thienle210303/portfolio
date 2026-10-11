@@ -25,11 +25,9 @@ import { acquireRenderer, pickSurface } from "./gl/context";
 import {
   createSphere,
   globeStroke,
-  parseCssColor,
   REST_STATE,
   sphereView,
   type Sphere,
-  type SphereColors,
   type SphereView,
 } from "./gl/sphere";
 import { CHAPTER_INDEX, SKIN_INDEX } from "./gl/shaders";
@@ -43,6 +41,7 @@ import {
 } from "./gl/robot";
 import { TAP_SLOP_PX } from "./gestures";
 import { settleMotion } from "./settle";
+import { palette, sphereColors } from "./palette";
 
 /**
  * The planet. No dependency, and zero animation frames once it stops moving.
@@ -257,17 +256,6 @@ interface Hit {
   readonly r: number;
 }
 
-interface Palette {
-  readonly fg: string;
-  readonly muted: string;
-  readonly subtle: string;
-  readonly accent: string;
-  readonly rule: string;
-  readonly ground: string;
-  /** The ink a label's halo is stroked in, or null for no halo. */
-  readonly halo: string | null;
-}
-
 /** Not a working CSS fallback list (see the note on `--font-mono` in
  *  `globals.css`) but a real one here: this string is handed to `ctx.font`
  *  directly, where comma-separated families do fall through. */
@@ -316,71 +304,6 @@ function reducedMotion(): boolean {
  */
 function seedOnLanding(): number {
   return reducedMotion() ? 1 : 0.001;
-}
-
-/**
- * The section's own ink, read off the canvas at draw time.
- *
- * The forced-colors branch is not a nicety. In Windows High Contrast the
- * browser overrides CSS colours, but **a canvas bitmap is not touched** — the
- * custom properties still hold their authored values (measured under
- * `forced-colors: active`: `--accent` is still `#1e4e8c`), so a globe that
- * trusted them would draw a mid-blue graticule on a forced black page and the
- * one hue carrying meaning would stop being distinguishable. System colour
- * keywords are the only values the forced palette actually maps, so in that
- * mode the globe is drawn in `CanvasText` on `Canvas`, with `LinkText` for
- * everything blue was doing — that is the slot the forced palette reserves for
- * annotation, which is the whole of what blue means here.
- *
- * Do not assume those keywords resolve to greys. Measured in this Chromium's
- * emulated palette: `Canvas` #ffffff, `CanvasText` #000000, `GrayText`
- * #600000 — a dark red — and `LinkText` #00009f. A real user's theme can map
- * them to anything at all, and that is the point: the theme guarantees they
- * are distinguishable from each other, and nothing else does.
- */
-function palette(element: Element): Palette {
-  if (window.matchMedia("(forced-colors: active)").matches) {
-    return {
-      fg: "CanvasText",
-      muted: "CanvasText",
-      subtle: "GrayText",
-      accent: "LinkText",
-      rule: "GrayText",
-      ground: "Canvas",
-      // No halo: the forced-colours globe stays exactly as it was drawn
-      // before there were halos.
-      halo: null,
-    };
-  }
-  const style = getComputedStyle(element);
-  const read = (name: string) => style.getPropertyValue(name).trim();
-  return {
-    fg: read("--fg"),
-    muted: read("--fg-muted"),
-    subtle: read("--fg-subtle"),
-    accent: read("--accent"),
-    rule: read("--rule-color"),
-    ground: read("--ground"),
-    halo: read("--ground"),
-  };
-}
-
-/**
- * The GL surface's two inputs, read off the element the same way `palette()`
- * reads the overlay's, so the planet follows the tone it sits in as well as
- * the theme. `key` is the raw strings, for "did anything change since the
- * last upload". `colors` is null when either does not parse.
- */
-function sphereColors(element: Element): { key: string; colors: SphereColors | null } {
-  const style = getComputedStyle(element);
-  const ink = style.getPropertyValue("--fg").trim();
-  const paper = style.getPropertyValue("--ground").trim();
-  const i = parseCssColor(ink);
-  const p = parseCssColor(paper);
-  return {
-    key: `${ink}|${paper}`,
-    colors: i && p ? { ink: i, paper: p } : null,
-  };
 }
 
 export default function GlobeCanvas({

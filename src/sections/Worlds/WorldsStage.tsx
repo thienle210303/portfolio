@@ -364,7 +364,9 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     setAnnouncement(`Back at ${origin.from}, with the flight and the seed cleared.`);
   }, [controlsReady, stopReplay]);
 
-  // The canvas chunk, fetched once the stage is near the viewport. An
+  // The canvas chunk, fetched once the stage is within a viewport of the screen
+  // (`rootMargin: 100%` vertically, so the chunk and the coastline PNG are in
+  // flight before the visitor arrives). An
   // IntersectionObserver rather than a mount-time import: the section is below
   // the fold by design (the spec's central engineering decision), and fetching
   // 53 KB of coastline during the load of a page whose LCP is already 3.9s
@@ -393,7 +395,7 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
             if (!cancelled) setCanvasFailed(true);
           });
       },
-      { rootMargin: "200px" },
+      { rootMargin: "100% 0px" },
     );
     observer.observe(stage);
     return () => {
