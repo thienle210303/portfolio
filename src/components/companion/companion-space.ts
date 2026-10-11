@@ -249,8 +249,12 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * epoch rather than hit-tested per point: one explore pick could cost two
  * thousand `elementsFromPoint` calls in a frame. `invalidateGround` starts a
  * new epoch; `Companion.tsx` calls it from `scheduleRecheck`, which every
- * scroll, resize, body resize and animation end goes through. The rebuild is
- * lazy, so a scroll costs at most one rebuild per frame that actually probes.
+ * scroll, resize, body resize and animation end goes through, and before every
+ * placement decision it holds for seconds — an explore plan or re-pick, a
+ * scene's stage, the re-probe on arrival, mini-Thien's spot — since content
+ * can appear without any of those events. The per-frame probes in between, and
+ * the settle spots a moving pointer clears every event, read the cache. The rebuild is lazy, so a
+ * scroll costs at most one rebuild per frame that actually probes.
  *
  * Deliberately conservative where a box is not what a hit test sees: an
  * occupied element that is covered by something else, or clipped by an

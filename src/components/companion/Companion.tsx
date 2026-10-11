@@ -2333,6 +2333,7 @@ export function Companion({ facts }: CompanionProps) {
         return run.spots;
       }
 
+      invalidateGround();
       const chosen = planExplore(sectionRef.current, grey.pos, tabby.pos, homeSpot(), exploreFresh.current);
       const spots = clearFollowOfToggle(chosen ?? nearbySpots(true));
       const perch = chosen?.perch ?? false;
@@ -2376,6 +2377,7 @@ export function Companion({ facts }: CompanionProps) {
      * `clearFollowOfToggle`, as every spot handed to her does.
      */
     function repickExplorer(run: ExploreRun, cat: "lead" | "follow", now: number) {
+      invalidateGround();
       if (cat === "lead") {
         const lead = repickExploreSpot("lead", grey.pos, run.spots.follow, homeSpot());
         run.spots = { lead, follow: run.spots.follow };
@@ -2869,6 +2871,7 @@ export function Companion({ facts }: CompanionProps) {
           tabby.pos.x = arriving.spots.follow.x;
           tabby.pos.y = arriving.spots.follow.y;
           queued.current = null;
+          invalidateGround();
           const opened = openPlay(
             arriving.kind,
             arriving.spots.lead,
@@ -2973,6 +2976,7 @@ export function Companion({ facts }: CompanionProps) {
          * of them fits, not again for `PLAY_RETRY`.
          */
         let opened: Play | null = null;
+        invalidateGround();
         for (const kind of sceneOrder({ night: nightRef.current, section: sectionRef.current })) {
           // Not while the visitor is holding the lead cat on the keyboard: he
           // is a 44px control with a focus ring, and a ring is drawn around the
@@ -3630,6 +3634,7 @@ export function Companion({ facts }: CompanionProps) {
           }
           const speakerPos = speaking.speaker === "grey" ? grey.pos : tabby.pos;
           const otherPos = speaking.speaker === "grey" ? tabby.pos : grey.pos;
+          invalidateGround();
           thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos);
           thienSpeaker.current = speaking.speaker;
         }
@@ -4540,6 +4545,7 @@ export function Companion({ facts }: CompanionProps) {
       const now = performance.now();
       endPlay(now);
       const here: Spots = { lead: { ...lead.current.pos }, follow: { ...follow.current.pos } };
+      invalidateGround();
       const stage = stageFor(kind, here, lead.current.facing, now);
       if (!stage) {
         // Nowhere on the page for this one. Back the idle schedule off exactly
