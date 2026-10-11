@@ -8,10 +8,11 @@ import { CAT_H, CAT_W } from "./CompanionCat";
  * The tone is answered by hit-testing the page (`elementBehind`). Placement
  * used to be too, one `elementsFromPoint` per probe point, and that cost up to
  * two thousand calls in one frame. It now reads the boxes of the elements the
- * cats must dodge, gathered once per layout epoch (`groundRects`) and dropped
- * on every scroll, resize, body resize and animation end, and before each
- * placement decision. A transition moves ground without dropping it, so the
- * cache can lag one until the next decision.
+ * cats must dodge, gathered once per layout epoch (`groundRects`). A scroll
+ * shifts the cached boxes by its delta (`shiftGround`); they are rebuilt by the
+ * recheck timer that follows a scroll, and dropped on every resize, body resize
+ * and animation end, and before each placement decision. A transition moves
+ * ground without dropping it, so the cache can lag one until the next decision.
  *
  * Placement is decided when a cat chooses where to settle; the frames between
  * re-probe from the cache. The tone sample is throttled by its caller to a few
@@ -249,13 +250,17 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * The boxes of every `OCCUPIED` element on screen, gathered once per layout
  * epoch rather than hit-tested per point: one explore pick could cost two
  * thousand `elementsFromPoint` calls in a frame. `invalidateGround` starts a
- * new epoch; `Companion.tsx` calls it from `scheduleRecheck`, which every
- * scroll, resize, body resize and animation end goes through, and before every
- * placement decision it holds for seconds — an explore plan or re-pick, a
- * scene's stage, the re-probe on arrival, mini-Thien's spot — since content
- * can appear without any of those events. The per-frame probes in between, and
- * the settle spots a moving pointer clears every event, read the cache. The rebuild is lazy, so a
- * scroll costs at most one rebuild per frame that actually probes.
+ * new epoch; `Companion.tsx` calls it on every resize, body resize and
+ * animation end, and before every placement decision it holds for seconds — an
+ * explore plan or re-pick, a scene's stage, the re-probe on arrival,
+ * mini-Thien's spot — since content can appear without any of those events.
+ * A scroll does not start one: it moves every box by the same delta, so
+ * `shiftGround` moves the cache with it, and `scheduleRecheck`'s timer
+ * rebuilds it (`refreshGround`) at most every 250ms while a scroll lasts and
+ * once after it stops. That rebuild is what corrects sticky and fixed content,
+ * which a shift moves although the page did not. The per-frame probes in
+ * between, and the settle spots a moving pointer clears every event, read the
+ * cache; otherwise the rebuild is lazy, on the first probe after a drop.
  *
  * Deliberately conservative where a box is not what a hit test sees: an
  * occupied element that is covered by something else, or clipped by an
@@ -265,13 +270,37 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * What a hit test looks straight through is still skipped — the companion's
  * own subtree (`SELF`), and anything `pointer-events: none` or hidden, such as
  * the Journey's not-yet-drawn branches and its ink overlays — or a cat could
- * never rest anywhere on the stage. Off-screen boxes are dropped too: no probe
- * point is ever off screen.
+ * never rest anywhere on the stage. Boxes beside the window, or more than one
+ * window height above or below it, are dropped too: no probe point is ever off
+ * screen, and the band above and below is what a shifted cache scrolls into
+ * view before the next rebuild.
  */
 let ground: readonly RectLike[] | null = null;
 
 export function invalidateGround(): void {
   ground = null;
+}
+
+/** Whether a probe would read the cache rather than rebuild it. */
+export function groundCached(): boolean {
+  return ground !== null;
+}
+
+/** A new epoch, built now rather than on the next probe. */
+export function refreshGround(): void {
+  ground = null;
+  groundRects();
+}
+
+/** The page scrolled by (`dx`, `dy`): every cached box moves the other way. */
+export function shiftGround(dx: number, dy: number): void {
+  if (!ground) return;
+  ground = ground.map((box) => ({
+    left: box.left - dx,
+    top: box.top - dy,
+    right: box.right - dx,
+    bottom: box.bottom - dy,
+  }));
 }
 
 function groundRects(): readonly RectLike[] {
@@ -282,7 +311,8 @@ function groundRects(): readonly RectLike[] {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
     if (box.width <= 0 || box.height <= 0) continue;
-    if (box.right < 0 || box.bottom < 0 || box.left > view.width || box.top > view.height) continue;
+    if (box.right < 0 || box.left > view.width) continue;
+    if (box.bottom < -view.height || box.top > view.height * 2) continue;
     const style = getComputedStyle(element);
     if (style.pointerEvents === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
     rects.push(box);

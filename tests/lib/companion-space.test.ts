@@ -17,9 +17,11 @@ import {
   placeBeside,
   pointInRects,
   randomFacing,
+  refreshGround,
   searchClearOfToggle,
   setControlRects,
   setReservedRects,
+  shiftGround,
   TOGGLE_CLEARANCE,
   boxAt,
   type Point,
@@ -803,6 +805,60 @@ describe("the ground probe reads rects cached per layout epoch", () => {
     expect(isClearSpot(at)).toBe(true);
     invalidateGround();
     expect(isClearSpot(at)).toBe(false);
+  });
+
+  it("shiftGround translates cached rects", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    const query = vi.spyOn(document, "querySelectorAll");
+    expect(isClearSpot(at)).toBe(true);
+    // The page scrolled 100px down, so the paragraph is now 100px higher.
+    shiftGround(0, 100);
+    expect(isClearSpot(at)).toBe(false);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("shiftGround does nothing when there is no cache", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    shiftGround(0, 100);
+    // Built fresh after the shift, from the layout as it now stands.
+    expect(isClearSpot(at)).toBe(true);
+  });
+
+  it("caches a box just below the window, so a shift can scroll it into view", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, window.innerHeight + 100, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+    shiftGround(0, window.innerHeight);
+    expect(isClearSpot(at)).toBe(false);
+  });
+
+  it("scroll does not rebuild", () => {
+    const query = vi.spyOn(document, "querySelectorAll");
+    isClearSpot(at);
+    for (let i = 0; i < 20; i += 1) {
+      shiftGround(0, 40);
+      isClearSpot(at);
+    }
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("trailing recheck rebuilds", () => {
+    const query = vi.spyOn(document, "querySelectorAll");
+    isClearSpot(at);
+    shiftGround(0, 40);
+    // What `scheduleRecheck`'s timer does once the scroll has stopped.
+    refreshGround();
+    expect(query).toHaveBeenCalledTimes(2);
+    isClearSpot(at);
+    expect(query).toHaveBeenCalledTimes(2);
   });
 
   it("ignores companion's own nodes", () => {

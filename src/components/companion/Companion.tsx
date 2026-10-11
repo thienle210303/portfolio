@@ -81,6 +81,7 @@ import {
   clamp,
   clampToViewport,
   findClearSpot,
+  groundCached,
   headClear,
   invalidateGround,
   isClearSpot,
@@ -88,6 +89,8 @@ import {
   keepInView,
   placeBeside,
   randomFacing,
+  refreshGround,
+  shiftGround,
   refreshSafeArea,
   safeTop,
   searchClearOfToggle,
@@ -3365,9 +3368,14 @@ export function Companion({ facts }: CompanionProps) {
          * `resolveFollowClear`'s contract (a changed value is always
          * content-clear) means this can assign unconditionally.
          */
-        const followClear = resolveFollowClear(tabby.pos, grey.pos);
-        tabby.pos.x = followClear.x;
-        tabby.pos.y = followClear.y;
+        // Only against ground already cached: a rebuild costs tens of ms, and
+        // this runs every frame of a ride. A ride is scroll events, each of
+        // which arms `scheduleRecheck`, whose timer rebuilds it within 250ms.
+        if (groundCached()) {
+          const followClear = resolveFollowClear(tabby.pos, grey.pos);
+          tabby.pos.x = followClear.x;
+          tabby.pos.y = followClear.y;
+        }
       }
 
       const leadDx = leadWant.x - grey.pos.x;
@@ -3938,6 +3946,9 @@ export function Companion({ facts }: CompanionProps) {
     /** Whether a scroll or resize is waiting on `recheck`, as opposed to only
      *  a body resize — see `scheduleRecheck`. */
     let recheckPageMoved = false;
+    /** Where the page stood at the last scroll event: the offset the cached
+     *  ground is at, give or take a rebuild between a scroll and its event. */
+    let groundScroll = { x: window.scrollX, y: window.scrollY };
 
     /**
      * Re-probe the explorers' held stop, and drop it if its ground has stopped
@@ -4007,14 +4018,14 @@ export function Companion({ facts }: CompanionProps) {
      * napping cats up, or keep a page at rest asking for frames.
      */
     const scheduleRecheck = (pageMoved: boolean) => {
-      // Every caller (scroll, resize, body resize, animation end) has moved the
-      // ground, so the probe's cached boxes go now, not after the 250ms.
-      invalidateGround();
       if (pageMoved) recheckPageMoved = true;
       if (recheck) return;
       recheck = window.setTimeout(() => {
-        // Again: the layout may have moved on inside the 250ms window.
-        invalidateGround();
+        // The layout may have moved on inside the 250ms window, and a scroll
+        // only shifted the cached boxes (see `onScrollEvent`), which moves
+        // sticky and fixed content that stayed put. Rebuilt here rather than
+        // left lazy, so the ride's per-frame follower probe never pays for it.
+        refreshGround();
         recheck = 0;
         const full = recheckPageMoved;
         recheckPageMoved = false;
@@ -4047,6 +4058,7 @@ export function Companion({ facts }: CompanionProps) {
     const onPageMoved = (resized: boolean) => {
       lastSignRef.current = performance.now();
       if (resized) {
+        invalidateGround();
         refreshSafeArea();
         settleSpots.current = null;
         exploreRun.current = null;
@@ -4082,6 +4094,7 @@ export function Companion({ facts }: CompanionProps) {
         bodySeen = true;
         return;
       }
+      invalidateGround();
       scheduleRecheck(false);
     });
 
@@ -4097,6 +4110,7 @@ export function Companion({ facts }: CompanionProps) {
      */
     const animationEnded = (event: AnimationEvent) => {
       if (event.target instanceof Element && event.target.closest("[data-companion]")) return;
+      invalidateGround();
       scheduleRecheck(false);
     };
 
@@ -4112,7 +4126,12 @@ export function Companion({ facts }: CompanionProps) {
     const onScrollEvent = () => {
       lastScrollAt.current = performance.now();
       const now = lastScrollAt.current;
+      const x = window.scrollX;
       const y = window.scrollY;
+      // The document moved as one, so the cached ground moves with it rather
+      // than being rebuilt per event; the recheck timer rebuilds it.
+      shiftGround(x - groundScroll.x, y - groundScroll.y);
+      groundScroll = { x, y };
       const win = rushWindow.current;
       if (!win || now - win.at > RUSH_HOLD_MS + 120) {
         rushWindow.current = { y, at: now };
