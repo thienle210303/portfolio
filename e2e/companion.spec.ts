@@ -1810,8 +1810,10 @@ test.describe("companion", () => {
     // Survives a reload — this is a preference, not a session quirk.
     await page.reload();
     await page.waitForLoadState("networkidle");
-    await expect(catButton(page)).toHaveCount(0);
+    // The bed first: it proves the lazily mounted cats are there, so the
+    // absence after it is not just a page that has not mounted them yet.
     await expect(restingBox(page)).toBeVisible();
+    await expect(catButton(page)).toHaveCount(0);
 
     // Sleeping cats snore, and it is decoration all the way down: hidden from
     // assistive technology, and never a target. Asserted after the reload
@@ -3179,6 +3181,8 @@ test.describe("companion", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "print CSS is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    // Hidden must mean "printed away", not "not mounted yet".
+    await expect(catButton(page)).toBeVisible();
     await page.emulateMedia({ media: "print" });
     await expect(catButton(page)).toBeHidden();
   });
@@ -3442,6 +3446,8 @@ test.describe("companion", () => {
     await page.setViewportSize({ width: MOBILE_WIDTH, height: 812 });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
+    // The cats mount lazily on idle; the absences below mean nothing before.
+    await expect(page.locator("[data-companion]")).toBeAttached();
     // Touch viewports have no roaming loop and therefore no duet bubble, no
     // narrator and no caption at all — the pair are parked in the corner
     // button. This asserts the honest absence rather than a false positive,

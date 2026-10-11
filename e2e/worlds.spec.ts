@@ -2320,6 +2320,9 @@ test.describe("canvas labels under every skin", () => {
       await page.goto("/#worlds");
       await waitForLiveGlobe(page);
       await requireSurface(page);
+      // The cats are hidden for the shots below; a lazy mount after the hide
+      // would put them back in frame.
+      await expect(page.locator("[data-companion]")).toBeAttached();
       const section = page.locator("#worlds");
       await section
         .getByRole("list", { name: /chapters/i })
