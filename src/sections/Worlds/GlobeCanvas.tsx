@@ -22,7 +22,6 @@ import type { GlobeControls } from "./WorldsStage";
 import { GLYPHS } from "./glyphs";
 import { COASTLINES } from "./coastline-data";
 import { acquireRenderer, pickSurface } from "./gl/context";
-import { bakeCoastlineTexture } from "./gl/coastline-texture";
 import {
   createSphere,
   globeStroke,
@@ -163,6 +162,10 @@ interface GlobeCanvasProps {
 }
 
 const DEG = Math.PI / 180;
+
+/** The GL surface's coverage texture, baked by `pnpm bake:coastline`, so first
+ *  entry costs an image decode and an upload rather than rasterising 8 MB here. */
+export const COASTLINE_PNG = "/globe/coastline.png";
 
 /** Radians of eastward roll that completes the crossing. Tuned in the mockup:
  *  a comfortable phone-width swipe gets you most of the way, so the moment is
@@ -1122,57 +1125,66 @@ export default function GlobeCanvas({
     const renderer = acquireRenderer(element);
     const gl = renderer.kind === "webgl" ? renderer.gl : null;
     const read = sphereColors(overlay);
-    // The coverage is baked (~40 ms, 8 MB) only when a surface can use it,
-    // and never held: `texImage2D` copies it to the GPU, and nothing keeps
-    // the JS buffer after `createSphere` returns. A lost context is not
-    // restored (the fallback is one-way per visit), so nothing re-bakes.
-    const sphere =
-      gl && read.colors && !forced.matches
-        ? createSphere(gl, {
-            coverage: bakeCoastlineTexture(COASTLINES, 2048, 1024),
-            colors: read.colors,
-          })
-        : null;
-    const choice = pickSurface({ gl, program: sphere?.program ?? null, forcedColors: forced.matches });
-
-    if (!choice.useGl || !sphere) {
-      sphere?.dispose();
-      // The overlay has drawn its coastlines from the start, because
-      // `sphereRef` was never set; all that is left is to take the empty
-      // surface away and tell the stage the skins cannot be worn.
-      setSurface(false);
-      onSurfaceChangeRef.current(false);
-      return;
-    }
+    const colors = read.colors;
 
     let live = true;
-    const stop = () => {
-      live = false;
-      sphereRef.current = null;
-      sphere.dispose();
-      onSurfaceChangeRef.current(false);
-    };
+    let sphere: Sphere | null = null;
+    // The overlay draws its coastlines for as long as `sphereRef` is unset —
+    // from the start, and while the PNG decodes — so falling back is only
+    // ever taking the empty surface away and telling the stage the skins
+    // cannot be worn. `live` makes it once per visit: nothing re-acquires.
     const fallBack = () => {
       if (!live) return;
-      stop();
+      live = false;
+      sphereRef.current = null;
+      sphere?.dispose();
       setSurface(false);
+      onSurfaceChangeRef.current(false);
       // At rest nothing else would redraw, and the coastlines have to come
       // back onto the overlay in the same moment the surface leaves.
       drawRef.current();
     };
-    sphereRef.current = { sphere, key: read.key };
-    onSurfaceChangeRef.current(true);
-    drawRef.current();
+
+    if (!gl || !colors || forced.matches) {
+      fallBack();
+      return;
+    }
 
     const forcedChange = () => {
       if (forced.matches) fallBack();
     };
+    // Listening from mount, not from the decode, so a context lost or forced
+    // colours switched on while the PNG decodes still end the surface.
     element.addEventListener("webglcontextlost", fallBack);
     forced.addEventListener("change", forcedChange);
+
+    // `texImage2D` copies the image to the GPU; nothing keeps it afterwards.
+    const image = new Image();
+    image.src = COASTLINE_PNG;
+    image.decode().then(
+      () => {
+        if (!live) return;
+        sphere = createSphere(gl, { coverage: image, colors });
+        const choice = pickSurface({ gl, program: sphere.program, forcedColors: forced.matches });
+        if (!choice.useGl) return fallBack();
+        sphereRef.current = { sphere, key: read.key };
+        onSurfaceChangeRef.current(true);
+        drawRef.current();
+      },
+      // A PNG that will not load or decode is a fallback like any other.
+      fallBack,
+    );
+
     return () => {
       element.removeEventListener("webglcontextlost", fallBack);
       forced.removeEventListener("change", forcedChange);
-      if (live) stop();
+      // Unmounting is not a fallback: no state to set, nothing to redraw, but
+      // the stage still hears that the surface is gone if it was ever live.
+      if (!live) return;
+      live = false;
+      if (sphereRef.current) onSurfaceChangeRef.current(false);
+      sphereRef.current = null;
+      sphere?.dispose();
     };
   }, []);
 

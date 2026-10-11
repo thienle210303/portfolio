@@ -29,7 +29,8 @@ export interface SphereColors {
 }
 
 export interface SphereOptions {
-  readonly coverage: CoastlineTexture;
+  /** A baked buffer, or the decoded `public/globe/coastline.png`. */
+  readonly coverage: CoastlineTexture | TexImageSource;
   readonly colors: SphereColors;
 }
 
@@ -166,11 +167,18 @@ export function createSphere(gl: WebGL2RenderingContext | null, options: SphereO
   const texture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-  gl.texImage2D(
-    gl.TEXTURE_2D, 0, gl.RGBA8, coverage.width, coverage.height, 0,
-    gl.RGBA, gl.UNSIGNED_BYTE, coverage.data,
-  );
+  if ("data" in coverage) {
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage2D(
+      gl.TEXTURE_2D, 0, gl.RGBA8, coverage.width, coverage.height, 0,
+      gl.RGBA, gl.UNSIGNED_BYTE, coverage.data,
+    );
+  } else {
+    // The PNG is coverage data, not a picture: its bytes must arrive as baked.
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, coverage);
+  }
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);

@@ -336,6 +336,7 @@ function fakeGl(options: { linkOk?: boolean } = {}) {
     RGBA8: 10, RGBA: 11, UNSIGNED_BYTE: 12, TEXTURE_WRAP_S: 13, TEXTURE_WRAP_T: 14,
     TEXTURE_MIN_FILTER: 15, TEXTURE_MAG_FILTER: 16, LINEAR: 17, REPEAT: 18,
     CLAMP_TO_EDGE: 19, TRIANGLE_STRIP: 20, UNPACK_ALIGNMENT: 21,
+    UNPACK_PREMULTIPLY_ALPHA_WEBGL: 22, UNPACK_COLORSPACE_CONVERSION_WEBGL: 23, NONE: 24,
   };
   const returns: Record<string, (...args: unknown[]) => unknown> = {
     createShader: () => ({}),
@@ -362,6 +363,20 @@ function fakeGl(options: { linkOk?: boolean } = {}) {
 }
 
 describe("createSphere", () => {
+  it("uploads an image source without premultiply", () => {
+    // The PNG is coverage data, not a picture: the browser must hand its
+    // bytes over untouched, with no premultiply and no colour conversion.
+    const fake = fakeGl();
+    const image = { width: 4, height: 2 } as unknown as HTMLImageElement;
+    createSphere(fake.gl, { coverage: image, colors: COLORS });
+    const order = fake.calls.map((c) => c.name);
+    const upload = order.indexOf("texImage2D");
+    expect(fake.named("texImage2D").map((c) => c.args)).toEqual([[8, 0, 10, 11, 12, image]]);
+    const stores = fake.calls.slice(0, upload).filter((c) => c.name === "pixelStorei").map((c) => c.args);
+    expect(stores).toContainEqual([22, false]);
+    expect(stores).toContainEqual([23, 24]);
+  });
+
   it("hands the shader robotLights(), not a second copy of the walk", () => {
     const fake = fakeGl();
     const sphere = createSphere(fake.gl, { coverage: COVERAGE, colors: COLORS });
