@@ -13,8 +13,8 @@
  * between runs on the same machine; they are not Lighthouse scores.
  *
  * Two JS figures, which answer different questions:
- *   - JS: every script byte received in the 8 s after `load`, including
- *     chunks fetched on idle. This is the globe-chunk leak detector.
+ *   - JS: every script response from navigation start through the 8 s wait
+ *     after `load`, including chunks fetched on idle. This is the globe-chunk leak detector.
  *   - JS at load: only script responses that began before the window `load`
  *     event, i.e. what blocks the page becoming interactive. Same counting
  *     and skipped-response rules as JS.
