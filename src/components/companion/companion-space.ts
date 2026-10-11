@@ -146,8 +146,8 @@ let overlayTop = 0;
  * resize) rather than per frame.
  */
 export function refreshSafeArea(): void {
-  // Every caller is a resize, a recheck or a loop start: the moments the
-  // cached viewport and bounds can have gone stale (and `overlayTop` changes).
+  // Re-measured with the chrome: this is where the cached viewport and bounds
+  // are dropped (a body resize drops them too, for a scrollbar appearing).
   invalidateViewport();
   let top = 0;
   const header = document.querySelector("header");
@@ -190,8 +190,8 @@ export function viewport(): { width: number; height: number } {
 /**
  * Reading `clientWidth`/`clientHeight` forces layout, and `viewport()` is asked
  * for several times a step, so it is read once and kept until something that
- * can change it says so: `refreshSafeArea` (resize, the recheck timer, loop
- * start). Callers get the same object, so none may mutate it.
+ * can change it says so: `refreshSafeArea` (resize, the recheck timer's page
+ * move, loop start, first placement) and a body resize. Callers get the same object, so none may mutate it.
  */
 let viewportCache: { width: number; height: number } | null = null;
 let boundsCache: ReturnType<typeof boundsFor> | null = null;
@@ -275,7 +275,7 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * explore plan or re-pick, a scene's stage, the re-probe on arrival,
  * mini-Thien's spot — since content can appear without any of those events.
  * A scroll does not start one: it moves every box by the same delta, so
- * `shiftGround` moves the cache with it, and `scheduleRecheck`'s timer
+ * `syncGround` moves the cache with it, and `scheduleRecheck`'s timer
  * rebuilds it (`refreshGround`) at most every 250ms while a scroll lasts and
  * once after it stops. That rebuild is what corrects sticky and fixed content,
  * which a shift moves although the page did not. The per-frame probes in
@@ -296,6 +296,8 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * view before the next rebuild.
  */
 let ground: readonly RectLike[] | null = null;
+/** The scroll offset `ground` was measured at, or last synced to. */
+let groundAt = { x: 0, y: 0 };
 
 export function invalidateGround(): void {
   ground = null;
@@ -315,6 +317,7 @@ export function refreshGround(): void {
 /** The page scrolled by (`dx`, `dy`): every cached box moves the other way. */
 export function shiftGround(dx: number, dy: number): void {
   if (!ground) return;
+  groundAt = { x: groundAt.x + dx, y: groundAt.y + dy };
   ground = ground.map((box) => ({
     left: box.left - dx,
     top: box.top - dy,
@@ -323,8 +326,19 @@ export function shiftGround(dx: number, dy: number): void {
   }));
 }
 
+/**
+ * Move the cache to the page's live offset. Absolute rather than a delta the
+ * caller tracks, so a rebuild between a scroll and this call (it is measured
+ * at the live offset) cannot be shifted a second time, nor a move be dropped.
+ */
+export function syncGround(scrollX: number, scrollY: number): void {
+  if (!ground) return;
+  shiftGround(scrollX - groundAt.x, scrollY - groundAt.y);
+}
+
 function groundRects(): readonly RectLike[] {
   if (ground) return ground;
+  groundAt = { x: window.scrollX, y: window.scrollY };
   const view = viewport();
   const rects: RectLike[] = [];
   for (const element of document.querySelectorAll(OCCUPIED)) {

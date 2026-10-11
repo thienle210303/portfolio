@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   boundsFor,
@@ -24,6 +24,7 @@ import {
   setControlRects,
   setReservedRects,
   shiftGround,
+  syncGround,
   TOGGLE_CLEARANCE,
   viewport,
   boxAt,
@@ -848,6 +849,35 @@ describe("the ground probe reads rects cached per layout epoch", () => {
     expect(isClearSpot(at)).toBe(false);
   });
 
+  it("syncGround: a rebuild at the live offset is not shifted again", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 100 });
+    try {
+      invalidateGround();
+      expect(isClearSpot(at)).toBe(true); // built at offset 100
+      syncGround(0, 100);
+      expect(isClearSpot(at)).toBe(true); // no shift: already measured there
+    } finally {
+      Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    }
+  });
+
+  it("syncGround: several syncs net to the total movement", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+    syncGround(0, 30);
+    syncGround(0, 30);
+    syncGround(0, 100);
+    expect(isClearSpot(at)).toBe(false); // moved 100 up, once
+    syncGround(0, 0);
+    expect(isClearSpot(at)).toBe(true); // and back
+  });
+
   it("scroll does not rebuild", () => {
     const query = vi.spyOn(document, "querySelectorAll");
     isClearSpot(at);
@@ -910,6 +940,6 @@ describe("viewport cache", () => {
     root.clientWidth = 600;
     refreshSafeArea();
     expect(viewport().width).toBe(600);
-    vi.unstubAllGlobals();
   });
+  afterEach(() => vi.unstubAllGlobals());
 });
