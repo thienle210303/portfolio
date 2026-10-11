@@ -20,6 +20,10 @@ describe("nextCadence", () => {
     expect(nextCadence({ busy: false, asleep: false, animating: true })).toBe("frame");
   });
 
+  it("flourish (groom, bat, stretch) active → frame", () => {
+    expect(nextCadence({ busy: false, asleep: false, animating: true })).toBe("frame");
+  });
+
   it("seated, awake, still → idle", () => {
     expect(nextCadence({ busy: false, asleep: false, animating: false })).toBe("idle");
   });

@@ -6,7 +6,7 @@ import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { cn } from "@/lib/cn";
 import type { CompanionFacts } from "@/lib/companion-facts";
-import CompanionCat, { CAT_H, CAT_HOP_RISE, CAT_W, type CatPose } from "./CompanionCat";
+import CompanionCat, { CAT_H, CAT_HOP_RISE, CAT_W, SIT_SWAY_RATE, type CatPose } from "./CompanionCat";
 import { CatGlyph } from "./CatIcon";
 import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, { BOX_SLOT, PAPER_SLOT } from "./RestingBox";
@@ -57,6 +57,7 @@ import {
   frameStep,
   initRide,
   ramp,
+  REFERENCE_FRAME_MS,
   rideStep,
   trailBehind,
   type RideTracker,
@@ -426,6 +427,8 @@ interface Visual {
   readonly flick: number;
   /** The `hop` act, live this frame — see `actPose`. */
   readonly hopping: boolean;
+  /** The plain sit's tail is swaying in CSS — see `swaying` on CompanionCat. */
+  readonly swaying?: boolean;
 }
 
 /** What the JSX draws for one beat of the duet — see `beatView`. */
@@ -1109,9 +1112,12 @@ function sameVisual(a: Visual, b: Visual): boolean {
     a.facing === b.facing &&
     a.blinking === b.blinking &&
     a.hopping === b.hopping &&
+    Boolean(a.swaying) === Boolean(b.swaying) &&
     // Quantised: the drawing cannot show more than this, so committing more
-    // than this is pure re-render cost.
-    Math.round(a.phase * 24) === Math.round(b.phase * 24) &&
+    // than this is pure re-render cost. Not compared at all while CSS sways
+    // the tail: the drawing does not read `phase` then, and a new one would
+    // move the animation's start and jump the tail.
+    ((a.swaying && b.swaying) || Math.round(a.phase * 24) === Math.round(b.phase * 24)) &&
     Math.round(a.flick * 5) === Math.round(b.flick * 5)
   );
 }
@@ -2120,6 +2126,9 @@ export function Companion({ facts }: CompanionProps) {
     /** The pending idle tick, if the last frame asked for one. `running` stays
      *  true while it waits. */
     let idleTimer = 0;
+    /** When `step` last ran, idle ticks included; 0 after `stop`. Only the
+     *  tail's sway reads it — see `swayFrames` in `step`. */
+    let lastStepAt = 0;
 
     const stop = () => {
       running = false;
@@ -2128,6 +2137,7 @@ export function Companion({ facts }: CompanionProps) {
       clearTimeout(idleTimer);
       idleTimer = 0;
       lastFrameAt = 0;
+      lastStepAt = 0;
     };
 
     /** Also the way out of an idle wait: input should not sit out the rest of
@@ -2439,7 +2449,13 @@ export function Companion({ facts }: CompanionProps) {
       // mid-stride. A twentieth of a reference frame is below any display that
       // exists; it would take 1200Hz to reach it.
       const frames = lastFrameAt === 0 ? 1 : Math.max(frameStep(now - lastFrameAt), 0.05);
+      /** `frames`, except across an idle tick, where it is the real time
+       *  since the last one: a still cat's tail keeps time with the CSS sway
+       *  that drew it meanwhile, so handing back to the drawing does not jump. */
+      const swayFrames =
+        lastFrameAt === 0 && lastStepAt !== 0 ? (now - lastStepAt) / REFERENCE_FRAME_MS : frames;
       lastFrameAt = now;
+      lastStepAt = now;
       /** How long the pointer has held still — what "settle" is measured on. */
       const idleFor = now - lastMoveRef.current;
       /** How long *nobody* has done anything: no pointer, no scroll, no key,
@@ -3415,7 +3431,7 @@ export function Companion({ facts }: CompanionProps) {
       // rule — which is the same phase run at about the speed walking gives it,
       // so one number still drives the tail, the ear and the batting paw.
       else if (grey.pose !== "sleep")
-        grey.phase = (grey.phase + (beat?.stir ? 0.02 : 0.006) * frames) % 1;
+        grey.phase = (grey.phase + (beat?.stir ? 0.02 : SIT_SWAY_RATE.grey) * swayFrames) % 1;
 
       /* -------------------------------------------------------- follower -- */
 
@@ -3534,7 +3550,7 @@ export function Companion({ facts }: CompanionProps) {
         tabby.facing = chase.x > tabby.pos.x + CAT_W / 2 ? 1 : -1;
       }
       if (followRate > 0.3) tabby.phase = (tabby.phase + followStep * 0.0115) % 1;
-      else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + 0.0045 * frames) % 1;
+      else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + SIT_SWAY_RATE.tabby * swayFrames) % 1;
 
       /* ---------------------------------------------------------- police -- */
 
@@ -3802,25 +3818,10 @@ export function Companion({ facts }: CompanionProps) {
       // fifteen times as long.
       const busy = leadRate > 0 || followRate > 0 || run !== null;
 
-      const next: Frame = {
-        lead: {
-          pose: grey.pose,
-          phase: grey.phase,
-          facing: grey.facing,
-          blinking: tickBlink(grey, now),
-          flick: tickFlick(grey, now, grey.pose !== "sleep"),
-          hopping: leadHopping,
-        },
-        follow: {
-          pose: tabby.pose,
-          phase: tabby.phase,
-          facing: tabby.facing,
-          blinking: tickBlink(tabby, now),
-          flick: tickFlick(tabby, now, tabby.pose !== "sleep"),
-          hopping: followHopping,
-        },
-        police: policeVisual,
-      };
+      const leadBlink = tickBlink(grey, now);
+      const leadFlick = tickFlick(grey, now, grey.pose !== "sleep");
+      const followBlink = tickBlink(tabby, now);
+      const followFlick = tickFlick(tabby, now, tabby.pose !== "sleep");
       // Read after the ticks above, so a blink or flick that fell due on this
       // frame already counts. Both asleep and nothing moving: the loop stops,
       // and the page with it. Awake but still: an idle tick. Any input
@@ -3834,6 +3835,12 @@ export function Companion({ facts }: CompanionProps) {
           now < tabby.blinkUntil ||
           now < grey.flickUntil ||
           now < tabby.flickUntil ||
+          // Every pose but the plain sit and sleep draws off `phase` or
+          // changes on its own clock: a flourish (the bat's paw pats with the
+          // tail), a stretch, a scene's pose. Only the plain sit's sway has a
+          // CSS stand-in.
+          (grey.pose !== "sit" && grey.pose !== "sleep") ||
+          (tabby.pose !== "sit" && tabby.pose !== "sleep") ||
           beat !== null ||
           duetRef.current !== null ||
           tourRef.current !== null ||
@@ -3841,6 +3848,29 @@ export function Companion({ facts }: CompanionProps) {
           // go — on the next frame, not the next tick.
           ride.riding,
       });
+      const swaying = cadence === "idle";
+
+      const next: Frame = {
+        lead: {
+          pose: grey.pose,
+          phase: grey.phase,
+          facing: grey.facing,
+          blinking: leadBlink,
+          flick: leadFlick,
+          hopping: leadHopping,
+          swaying,
+        },
+        follow: {
+          pose: tabby.pose,
+          phase: tabby.phase,
+          facing: tabby.facing,
+          blinking: followBlink,
+          flick: followFlick,
+          hopping: followHopping,
+          swaying,
+        },
+        police: policeVisual,
+      };
       const changed =
         !sameVisual(next.lead, committed.current.lead) ||
         !sameVisual(next.follow, committed.current.follow) ||
