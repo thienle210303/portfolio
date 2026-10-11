@@ -144,6 +144,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
   const pinRef = useRef<HTMLDivElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<HTMLDivElement>(null);
+  const unbornRef = useRef<HTMLDivElement>(null);
   const actRefs = useRef<(HTMLElement | null)[]>([]);
   const pendingScroll = useRef<PendingScroll | null>(null);
 
@@ -199,14 +200,18 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
   // what makes the trunk lengthen instead of standing finished from act one.
   //
   // This writes two CSS custom properties and nothing else; whether either is
-  // used is the stylesheet's business (it is not, under reduced motion).
+  // used is the stylesheet's business (it is not, under reduced motion). Each
+  // goes on the one element that reads it, and `--camera` is registered as
+  // non-inheriting in globals.css: an inherited variable written on the
+  // camera restyled ~1,850 elements under it on every act change.
   useEffect(() => {
     if (released) return;
     const measure = () => {
       const camera = cameraRef.current;
       const frame = windowRef.current;
       const pin = pinRef.current;
-      if (!camera || !frame || !pin) return;
+      const unborn = unbornRef.current;
+      if (!camera || !frame || !pin || !unborn) return;
       // Nothing below 1280px, under reduced motion or in print reads either
       // variable, and the drawing this measures is `display: none` there.
       // Measuring anyway costs a forced synchronous layout over a 4,300-node
@@ -231,7 +236,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
       else if (Number.isFinite(front)) frontY = Math.max(0, front - FRONT_MARGIN);
       else frontY = Math.max(0, height - BARE_GROUND);
       const offset = Math.min(frontY, Math.max(0, height - frame.clientHeight));
-      camera.style.setProperty("--front", `${Math.round(frontY)}px`);
+      unborn.style.setProperty("--front", `${Math.round(frontY)}px`);
       camera.style.setProperty("--camera", `${-Math.round(offset)}px`);
     };
     measure();
@@ -410,7 +415,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
                 the branches under it are still in the document and still
                 reachable, this only paints ground over the part of the
                 drawing that has not happened yet. */}
-            <div data-stage-unborn="" aria-hidden="true" />
+            <div ref={unbornRef} data-stage-unborn="" aria-hidden="true" />
             {drawing}
             {list}
           </div>

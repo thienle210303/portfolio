@@ -614,6 +614,59 @@ test.describe("career tree", () => {
   });
 
   /*
+   * `--camera` moves the camera and `--front` sizes the unborn mask. Where
+   * Stage.tsx writes them is a performance choice (an inherited write on
+   * the camera restyled ~1,850 elements under it); what each act must show is the same:
+   * every element that reads one of them has taken its value, the mask shrinks
+   * as the tree grows, and the last act is the whole tree, unmasked.
+   */
+  test("every act moves the camera and the unborn mask to the stage's measured values", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) < 1280, "the camera only moves while the stage is pinned");
+    const stage = page.locator("#tree [data-stage]");
+    await stage.scrollIntoViewIfNeeded();
+    await expect.poll(() => stageIsPinned(page)).toBe(true);
+    await expect(stage).toHaveAttribute("data-stage-settled", "");
+    const scrubber = page.locator("#tree").getByRole("slider", { name: /year/i });
+    const lastAct = Number(await scrubber.getAttribute("max"));
+    await scrubber.focus();
+    await page.keyboard.press("Home");
+
+    const effect = () =>
+      page.evaluate(() => {
+        const camera = document.querySelector<HTMLElement>("#tree [data-stage-camera]")!;
+        const unborn = document.querySelector<HTMLElement>("#tree [data-stage-unborn]")!;
+        const cameraStyle = getComputedStyle(camera);
+        const unbornStyle = getComputedStyle(unborn);
+        return {
+          cameraY: new DOMMatrixReadOnly(cameraStyle.transform).m42,
+          camera: parseFloat(cameraStyle.getPropertyValue("--camera")),
+          height: parseFloat(unbornStyle.height),
+          front: parseFloat(unbornStyle.getPropertyValue("--front")),
+        };
+      });
+
+    let previousFront = Number.POSITIVE_INFINITY;
+    for (let act = 0; act <= lastAct; act += 1) {
+      if (act > 0) await page.keyboard.press("ArrowRight");
+      await expect(stage).toHaveAttribute("data-through", String(act));
+      // Waits out the transitions; a value that never lands fails here.
+      await expect
+        .poll(async () => {
+          const now = await effect();
+          return now.cameraY === now.camera && now.height === now.front;
+        })
+        .toBe(true);
+      const { camera, front } = await effect();
+      expect(front, `act ${act}`).toBeLessThanOrEqual(previousFront);
+      expect(camera, `act ${act}`).toBeLessThanOrEqual(0);
+      previousFront = front;
+      if (act === lastAct) expect({ camera, front }).toEqual({ camera: 0, front: 0 });
+    }
+  });
+
+  /*
    * The always-on change from the origin-story plan's Task 2 that survives:
    * the drawing never claims to be finished — an unfinished shoot,
    * annotated. (Its other half, the root plinth drawn as ground rather than
