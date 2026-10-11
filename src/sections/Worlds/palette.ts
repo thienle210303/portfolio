@@ -11,14 +11,27 @@ export interface Palette {
   readonly halo: string | null;
 }
 
+// Held, not re-queried per call. Created on first use because jsdom (and the
+// server) have no matchMedia at import time.
+let lists: { forced: MediaQueryList; dark: MediaQueryList } | undefined;
+function mqls() {
+  return (lists ??= {
+    forced: window.matchMedia("(forced-colors: active)"),
+    dark: window.matchMedia("(prefers-color-scheme: dark)"),
+  });
+}
+
 /**
  * Everything the reads below depend on besides the element: the visitor's
  * theme (`data-theme` on <html>) and forced-colors. Tone is fixed per element
- * (it is set by the <Section> the canvas sits in), so it needs no key.
+ * (it is set by the <Section> the canvas sits in), so it needs no key. When
+ * the inline script never stamped `data-theme`, the CSS follows the OS, so the
+ * OS scheme is part of the key then.
  */
 export function themeKey(): string {
-  const forced = window.matchMedia("(forced-colors: active)").matches;
-  return `${document.documentElement.dataset.theme ?? ""}|${forced ? 1 : 0}`;
+  const theme = document.documentElement.dataset.theme ?? "";
+  const scheme = theme === "" && mqls().dark.matches ? "dark" : "";
+  return `${theme}${scheme}|${mqls().forced.matches ? 1 : 0}`;
 }
 
 const paletteCache = new WeakMap<Element, { key: string; value: Palette }>();
@@ -66,7 +79,7 @@ export function palette(element: Element): Palette {
 }
 
 function readPalette(element: Element): Palette {
-  if (window.matchMedia("(forced-colors: active)").matches) {
+  if (mqls().forced.matches) {
     return {
       fg: "CanvasText",
       muted: "CanvasText",
@@ -98,11 +111,17 @@ function readPalette(element: Element): Palette {
  * the theme. `key` is the raw strings, for "did anything change since the
  * last upload". `colors` is null when either does not parse.
  */
-export function sphereColors(element: Element): { key: string; colors: SphereColors | null } {
+export function sphereColors(element: Element): {
+  key: string;
+  colors: SphereColors | null;
+} {
   return memo(sphereCache, element, () => readSphereColors(element));
 }
 
-function readSphereColors(element: Element): { key: string; colors: SphereColors | null } {
+function readSphereColors(element: Element): {
+  key: string;
+  colors: SphereColors | null;
+} {
   const style = getComputedStyle(element);
   const ink = style.getPropertyValue("--fg").trim();
   const paper = style.getPropertyValue("--ground").trim();
@@ -113,4 +132,3 @@ function readSphereColors(element: Element): { key: string; colors: SphereColors
     colors: i && p ? { ink: i, paper: p } : null,
   };
 }
-

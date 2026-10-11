@@ -104,19 +104,35 @@ const ROBOT_HOLD_NAMES: readonly (readonly [RobotHold, string])[] = [
 function moveFocusAmongButtons(event: KeyboardEvent<HTMLElement>) {
   // Alt+Left/Right is Back/Forward, Ctrl/Cmd+Home/End scroll the page.
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-  const keys: Record<string, number> = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+  const keys: Record<string, number> = {
+    ArrowDown: 1,
+    ArrowRight: 1,
+    ArrowUp: -1,
+    ArrowLeft: -1,
+  };
   const step = keys[event.key];
   if (step === undefined && event.key !== "Home" && event.key !== "End") return;
-  const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+  const buttons = [
+    ...event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+  ];
   const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
   if (at < 0) return;
   event.preventDefault();
   const next =
-    event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (at + step + buttons.length) % buttons.length;
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? buttons.length - 1
+        : (at + step + buttons.length) % buttons.length;
   buttons[next]?.focus();
 }
 
-export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false, crossingKm }: WorldsStageProps) {
+export function WorldsStage({
+  worlds,
+  skins,
+  skinsAvailable: forceSkins = false,
+  crossingKm,
+}: WorldsStageProps) {
   const [currentId, setCurrentId] = useState(worlds[0]?.id ?? "");
   const [announcement, setAnnouncement] = useState("");
   // At most one skin is worn; pressing the worn one again takes it off.
@@ -170,7 +186,9 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   const rootRef = useRef<HTMLDivElement>(null);
   // The pointer press in progress inside the section, if any, and whether a
   // replayed flight was quiet when it began (see `pressCancel`).
-  const pressRef = useRef<{ x: number; y: number; quiet: boolean } | null>(null);
+  const pressRef = useRef<{ x: number; y: number; quiet: boolean } | null>(
+    null,
+  );
   // Removes the window listeners that are waiting for that press to end.
   const endPressRef = useRef<(() => void) | null>(null);
 
@@ -203,11 +221,21 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
         // Every stop clears this timer; this makes a missed clear harmless.
         if (loopRef.current !== "looping") return;
         const focused = document.activeElement;
-        if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true) stopReplay();
+        if (
+          window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ===
+          true
+        )
+          stopReplay();
         // A finger or button still down in the section: not yet a tap, a drag
         // or a scroll. Wait rather than reset the globe under it.
-        else if (document.hidden || pressRef.current) timerRef.current = window.setTimeout(tick, wait);
-        else if (focused && rootRef.current?.contains(focused) && !focused.closest("[data-replay]")) stopReplay();
+        else if (document.hidden || pressRef.current)
+          timerRef.current = window.setTimeout(tick, wait);
+        else if (
+          focused &&
+          rootRef.current?.contains(focused) &&
+          !focused.closest("[data-replay]")
+        )
+          stopReplay();
         else advance();
       };
       clearReplayTimer();
@@ -361,46 +389,56 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     // that a visitor can see is not there.
     controlsRef.current?.reset();
     setLanded(false);
-    setAnnouncement(`Back at ${origin.from}, with the flight and the seed cleared.`);
+    setAnnouncement(
+      `Back at ${origin.from}, with the flight and the seed cleared.`,
+    );
   }, [controlsReady, stopReplay]);
 
   // The canvas chunk, fetched once the stage is within a viewport of the screen
   // (`rootMargin: 100%` vertically, so the chunk and the coastline PNG are in
-  // flight before the visitor arrives). An
-  // IntersectionObserver rather than a mount-time import: the section is below
-  // the fold by design (the spec's central engineering decision), and fetching
-  // 53 KB of coastline during the load of a page whose LCP is already 3.9s
-  // would spend the whole budget this redesign was built to protect.
+  // flight before the visitor arrives) and never before the window's `load`
+  // event: the stage sits about a screen below the top, so observing from
+  // mount would fetch 53 KB of coastline during the load of a page whose LCP
+  // is already 3.9s. An IntersectionObserver rather than a mount-time import:
+  // the section is below the fold by design (the spec's central engineering
+  // decision).
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage || Canvas) return;
     if (typeof IntersectionObserver === "undefined") return;
 
     let cancelled = false;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        observer.disconnect();
-        import("./GlobeCanvas")
-          .then((module) => {
-            if (!cancelled) setCanvas(() => module.default);
-          })
-          .catch(() => {
-            // The chunk failed (offline, a flaky deploy). Silent — no
-            // console, no alert, the list and the panel are already the
-            // whole feature — but not a lie: without this, "Loading the
-            // globe…" is the permanent label for exactly the one visitor who
-            // hit a real failure, promising progress that has already
-            // stopped. `canvasFailed` retires that label for good.
-            if (!cancelled) setCanvasFailed(true);
-          });
-      },
-      { rootMargin: "100% 0px" },
-    );
-    observer.observe(stage);
+    let observer: IntersectionObserver | undefined;
+    const watch = () => {
+      if (cancelled) return;
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          observer?.disconnect();
+          import("./GlobeCanvas")
+            .then((module) => {
+              if (!cancelled) setCanvas(() => module.default);
+            })
+            .catch(() => {
+              // The chunk failed (offline, a flaky deploy). Silent — no
+              // console, no alert, the list and the panel are already the
+              // whole feature — but not a lie: without this, "Loading the
+              // globe…" is the permanent label for exactly the one visitor who
+              // hit a real failure, promising progress that has already
+              // stopped. `canvasFailed` retires that label for good.
+              if (!cancelled) setCanvasFailed(true);
+            });
+        },
+        { rootMargin: "100% 0px" },
+      );
+      observer.observe(stage);
+    };
+    if (document.readyState === "complete") watch();
+    else window.addEventListener("load", watch, { once: true });
     return () => {
       cancelled = true;
-      observer.disconnect();
+      window.removeEventListener("load", watch);
+      observer?.disconnect();
     };
   }, [Canvas]);
 
@@ -437,7 +475,10 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
           return;
         }
         if (loopRef.current === "idle") {
-          if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true) {
+          if (
+            window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ===
+            true
+          ) {
             loopRef.current = "stopped";
           } else {
             loopRef.current = "looping";
@@ -487,9 +528,14 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   // one on macOS) opens a context menu that can swallow its `pointerup`, which
   // would leave the press set and freeze the loop under "Stop the replay".
   function pressStart(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || (event.ctrlKey && /Mac/.test(navigator.platform))) return;
+    if (event.button !== 0 || (event.ctrlKey && /Mac/.test(navigator.platform)))
+      return;
     endPressRef.current?.();
-    pressRef.current = { x: event.clientX, y: event.clientY, quiet: quietRef.current };
+    pressRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      quiet: quietRef.current,
+    };
     const up = (end: globalThis.PointerEvent) => {
       stopListening();
       pressEnd(end);
@@ -515,9 +561,12 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
     const press = pressRef.current;
     pressRef.current = null;
     if (!press) return;
-    const moved = Math.abs(event.clientX - press.x) + Math.abs(event.clientY - press.y);
-    const onGlobe = event.target instanceof Node && stageRef.current?.contains(event.target);
-    if (event.target && (moved < TAP_SLOP_PX || onGlobe)) takeOver({ target: event.target });
+    const moved =
+      Math.abs(event.clientX - press.x) + Math.abs(event.clientY - press.y);
+    const onGlobe =
+      event.target instanceof Node && stageRef.current?.contains(event.target);
+    if (event.target && (moved < TAP_SLOP_PX || onGlobe))
+      takeOver({ target: event.target });
   }
 
   // The browser sends `pointercancel`, never `pointerup`, when it takes a
@@ -532,7 +581,11 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
   }
 
   function takeOver(event: { target: EventTarget }) {
-    if (event.target instanceof Element && event.target.closest("[data-replay]")) return;
+    if (
+      event.target instanceof Element &&
+      event.target.closest("[data-replay]")
+    )
+      return;
     if (loopRef.current !== "stopped") stopReplay();
   }
 
@@ -673,7 +726,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
           </button>
         </div>
         <p className="eyebrow mt-2 text-center">
-          {crossingKm.toLocaleString("en-US")} km · drag east to fly him yourself
+          {crossingKm.toLocaleString("en-US")} km · drag east to fly him
+          yourself
         </p>
         {/* Shown only while a seed is actually on the globe. Before the
             flight this sentence would be a claim about something that has not
@@ -722,12 +776,15 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
                     : "hover:border-rule",
                 )}
               >
-                <span className="eyebrow">{String(index + 1).padStart(2, "0")}</span>
+                <span className="eyebrow">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
                 <span className="font-display text-[length:var(--step-0)] text-[color:var(--fg)]">
                   {world.name}
                 </span>
                 <span className="eyebrow tabular-nums">
-                  {world.plaques.length} {world.plaques.length === 1 ? "plaque" : "plaques"}
+                  {world.plaques.length}{" "}
+                  {world.plaques.length === 1 ? "plaque" : "plaques"}
                 </span>
               </button>
             </li>
@@ -759,12 +816,16 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
                   onClick={() => toggleSkin(skin.id)}
                   className={cn(
                     "min-h-11 border px-4 text-left text-[length:var(--step--1)] text-[color:var(--fg)]",
-                    skinId === skin.id ? "border-[color:var(--fg-subtle)] bg-surface" : "border-rule",
+                    skinId === skin.id
+                      ? "border-[color:var(--fg-subtle)] bg-surface"
+                      : "border-rule",
                     !skinsAvailable && "pointer-events-none opacity-70",
                   )}
                 >
                   {skin.name}
-                  {skinsAvailable ? null : <span className="eyebrow block">needs WebGL</span>}
+                  {skinsAvailable ? null : (
+                    <span className="eyebrow block">needs WebGL</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -789,7 +850,9 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
                 onClick={() => setRobotHold(hold)}
                 className={cn(
                   "min-h-11 border px-4 text-[length:var(--step--1)] text-[color:var(--fg)]",
-                  robotHold === hold ? "border-[color:var(--fg-subtle)] bg-surface" : "border-rule",
+                  robotHold === hold
+                    ? "border-[color:var(--fg-subtle)] bg-surface"
+                    : "border-rule",
                 )}
               >
                 {name}
