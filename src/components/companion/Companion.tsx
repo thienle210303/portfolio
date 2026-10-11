@@ -2436,6 +2436,10 @@ export function Companion({ facts }: CompanionProps) {
     function step() {
       frameId = 0;
       if (!running) return;
+      // `readScroll` runs after `step` in a frame, so mid-scroll the ground
+      // would be one scroll step stale for every check below. `syncGround` is
+      // absolute (live minus recorded offset), so doing it in both is safe.
+      syncGround(window.scrollX, window.scrollY);
 
       const now = performance.now();
       /**
