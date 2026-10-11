@@ -682,8 +682,8 @@ export function WorldsStage({ worlds, skins, skinsAvailable: forceSkins = false,
             line inserted then would shift everything below it (CLS). Hidden
             with `visibility`, which also takes it out of the accessibility
             tree and the tab order, so nothing reads or reaches it early.
-            Only the contents are hidden, never the <p>: `elementsFromPoint`
-            skips hidden boxes, so a hidden <p> reads to the companion cats as
+            Only the contents are hidden, never the <p>: the cats' ground
+            probe skips hidden boxes, so a hidden <p> reads to the companion cats as
             free ground, and the replay shows it again every cycle — under
             whichever cat stopped there. The one link out of this section, and
             it is the link the drawing has just made: the career tree grows

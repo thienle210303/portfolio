@@ -568,11 +568,10 @@ interface Stage {
  * genuinely nowhere.
  *
  * Bounded, and paid once per click rather than per frame: the sweep is a few
- * dozen spots, each one three hit tests, and only the ones that come back clear
- * cost a scene probe on top. Measured on a 1440×900 production build, that is
- * 5–20ms when it finds a stage and 26ms in the worst case there is not one
- * anywhere — a frame or two, once, on a deliberate action, which is the right
- * place to spend it and the only place this is ever called from.
+ * dozen spots, each one three rect checks against the cached ground, and only
+ * the ones that come back clear cost a scene probe on top — once, on a
+ * deliberate action, which is the right place to spend it and the only place
+ * this is ever called from.
  */
 function stageFor(kind: SceneKind, here: Spots, facing: 1 | -1, now: number): Stage | null {
   // No section goes in, and none is wanted: the only scenes that reach here are
@@ -2183,7 +2182,7 @@ export function Companion({ facts }: CompanionProps) {
 
     /**
      * Clear ground near where the pair are standing, resolved once per hold
-     * rather than per frame — probing the page costs hit tests. Two branches
+     * rather than per frame — probing the page is not free. Two branches
      * want it: holding station while a scene is out (a scene owns their
      * positions: it probed its own geometry against wherever they stood when it
      * opened, and a spot halfway across the page would walk the lead away from
@@ -3580,7 +3579,7 @@ export function Companion({ facts }: CompanionProps) {
        * and unmounted exactly on `duetBeat` (see the render below), same as
        * the bubbles. "Walks in" is the whole of what this does: a target
        * beside whichever cat is speaking, probed once per speaker change
-       * rather than every frame (`findClearSpot` is a handful of hit tests,
+       * rather than every frame (`findClearSpot` is dozens of rect checks,
        * not something to spend sixty times a second on a decoration), and
        * `advance` closes the gap on the same per-frame clock as everything
        * else here. "Leaves" needs no code of its own — the wrapper simply
@@ -3721,7 +3720,7 @@ export function Companion({ facts }: CompanionProps) {
       // space so the placement probe (`isClearSpot`, `findClearSpot`,
       // `standingSpots`) never approves a spot underneath one — see
       // `setReservedRects` in companion-space.ts for why this cannot simply
-      // be "another thing `elementBehind` sees". Read every frame a scene is
+      // be "another thing the ground probe sees". Read every frame a scene is
       // actually showing, the same cadence `paintBubble` already reads
       // `offsetWidth`/`offsetHeight` at; cleared the one frame nothing is.
       if (duetRef.current) {
@@ -3847,9 +3846,10 @@ export function Companion({ facts }: CompanionProps) {
      *  2. Get a frame running. Two sleeping cats have no frames, and every
      *     clamp, every target and every decision below lives inside one. This
      *     is what wakes them from a nap.
-     *  3. Re-probe. The hit tests behind the resting spots and the tone sample
-     *     cost real work, and a scroll fires far more often than a cat needs to
-     *     reconsider where it is sitting — so that half stays throttled hard.
+     *  3. Re-probe. Rebuilding the ground behind the resting spots, and the
+     *     tone sample's hit test, cost real work, and a scroll fires far more
+     *     often than a cat needs to reconsider where it is sitting — so that
+     *     half stays throttled hard.
      *
      * A resize is the exception that has to jump the throttle: it changes the
      * box `keepInView` clamps against, and until the new box is measured a
@@ -3916,7 +3916,7 @@ export function Companion({ facts }: CompanionProps) {
     /**
      * The throttled half of `onPageMoved`, and the whole of what a body resize
      * gets. One timer for both, so a body resize and a scroll landing inside
-     * the same 250ms cost one round of hit tests, not two: whichever arrives
+     * the same 250ms cost one re-probe, not two: whichever arrives
      * first starts it, and anything inside the window rides along — exactly
      * as a second scroll always has. If any of those was a scroll or resize,
      * the timer does everything it always did for one; if all of them were
@@ -3945,7 +3945,7 @@ export function Companion({ facts }: CompanionProps) {
         if (!full) {
           // On a drop, the settle spots go too: they were resolved under the
           // old layout, and a pair napping with no plan falls back to them.
-          // A cache drop and nothing more — no hit tests, and only on a drop.
+          // A cache drop and nothing more — no re-probe, and only on a drop.
           // Only an animation ending or the body resizing reached here — no
           // scroll — so the ground has settled (`heldExploreClear`).
           if (reprobeHeld(true)) {
@@ -4016,7 +4016,7 @@ export function Companion({ facts }: CompanionProps) {
      * hears every animation on the page. The companion's own are skipped — a
      * cat's animation ending moves no ground, and its drawing is not content.
      * An animation that never ends (an infinite one) never asks, and a burst
-     * of them ending together costs one round of hit tests: `scheduleRecheck`
+     * of them ending together costs one re-probe: `scheduleRecheck`
      * coalesces what lands inside its window.
      */
     const animationEnded = (event: AnimationEvent) => {
@@ -4050,6 +4050,11 @@ export function Companion({ facts }: CompanionProps) {
 
     restart.current = start;
     refreshSafeArea();
+    // The ground cache outlives this effect, and while the loop was off nothing
+    // invalidated it — no listeners, and the body observer skips its first
+    // report — so boxes measured at an old scroll offset would plan the first
+    // stops.
+    invalidateGround();
     // The presence clock starts when the pair do. Both refs begin at zero, so
     // without this `aloneFor` is really "how long since navigation started" —
     // and a page that took its time getting here, or one restored into a

@@ -56,7 +56,8 @@ beforeEach(() => ground());
  * Everything here is arithmetic on a rectangle, which is exactly why it is
  * worth testing without a browser: the parts that need one — is this panel
  * painted, is that hairline on screen, is the ground under this spot clear —
- * are hit tests the e2e suite already covers, and they are cheap to get right.
+ * need real layout, which the e2e suite already covers, and they are cheap to
+ * get right.
  * The arithmetic is not. Each rule below is one a visitor would notice being
  * broken: a cat drawn whole in front of a panel it is supposed to be behind, a
  * pounce that lands on the words, an explorer that shuffles on the spot.
