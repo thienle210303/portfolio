@@ -250,3 +250,82 @@ export function nextCadence(s: {
   Record the numbers verbatim. If any criterion is missed, record it as missed and put it in the report for Thien. Do not relax it.
 - [ ] **Step 3:** Run `pnpm verify` and the full `pnpm test:e2e` (throwaway config, 31xx, `--workers=2`). Expected: PASS.
 - [ ] **Step 4:** Update CLAUDE.md, commit, merge into `main` with `--no-ff`, and ask Thien before pushing.
+
+---
+
+## Continuation (2026-10-11): Thien chose "keep working" before merge
+
+Source: `.superpowers/sdd/2026-10-10-round-20-phase-1-speed/profile-report.md` (attributed trace at HEAD 12bf443). The ranked costs drive Tasks 7–10. Global Constraints above still bind, with one exception recorded in Task 9.
+
+### Task 7: The ground cache survives a scroll
+
+The profile found 405 `groundRects` rebuilds × ~51 ms at 4x, which is 62 % of scroll main-thread time. Every scroll event invalidates the cache, and `resolveFollowClear` rebuilds it per frame.
+
+**Files:** `src/components/companion/companion-space.ts`, `src/components/companion/Companion.tsx` (scroll listener, `resolveFollowClear` call site), `tests/lib/companion-space.test.ts`
+
+**Interfaces:**
+- Produces `export function shiftGround(dx: number, dy: number): void`. It translates every cached rect by (−dx, −dy) and does nothing when there is no cache.
+- The scroll listener calls `shiftGround` with the scroll delta instead of `invalidateGround()`.
+- A full rebuild still happens in the existing trailing `scheduleRecheck` (250 ms after scroll stops) and at each placement decision. Sticky or fixed content is corrected by that trailing rebuild.
+- While the page is carrying the cats (`ride.riding`), `resolveFollowClear` does not force a rebuild.
+
+- [ ] **Tests:**
+  - `shiftGround translates cached rects`: build, shift by (0, 100), a point 100 px higher is now occupied, and `querySelectorAll` is still called once.
+  - `scroll does not rebuild`: 20 shifts make 0 extra `querySelectorAll` calls.
+  - `trailing recheck rebuilds`.
+- [ ] Red → implement → green. Companion unit tests and the companion e2e (port 3109) pass.
+- [ ] Run `pnpm lag` twice. Record scroll4x fps and the worst frame, and say what the machine's CPU load was.
+- [ ] **Commit:** `Shift the cats' cached ground on scroll instead of rebuilding it`.
+
+### Task 8: Journey camera writes stop restyling the stage
+
+The profile measured `--front`/`--camera` written on the camera element restyling ~1,850 descendants per act change, at 85–255 ms at 4x. Those were the three worst frames.
+
+**Files:** the stylesheet that declares or uses `--camera`/`--front` (`src/app/globals.css` and/or the Journey stage), `src/sections/CareerTree/Stage.tsx` or `DrawnTree.tsx` (wherever the write is).
+
+**Interfaces:**
+- Register `--camera` with `@property --camera { syntax: "*"; inherits: false; initial-value: … }`, using the syntax and initial value that match its current use.
+- Write `--front` on the element(s) that read it (`[data-stage-unborn]` per the profile), not on the camera ancestor.
+- Rendering must be identical.
+
+- [ ] **Test:** an e2e in the existing Journey/stage spec (or `e2e/sections.spec.ts`) asserts the computed `--front`/`--camera` effect on the element that uses it, after each act change. It must hold before and after.
+- [ ] Run a CDP check: one act change restyles fewer than 100 elements (`Recalculate Style` `elementCount`). Report the number before and after.
+- [ ] Screenshots of acts 1–4 match the pre-change build pixel for pixel, in day and night.
+- [ ] **Commit:** `Keep the Journey camera's variables from restyling the whole stage`.
+
+### Task 9: The crossing plays once
+
+The profile measured #worlds at 47.9 % busy at rest, against 8.3 % with the replay stopped.
+
+**Exception to "No visual change":** spec §4 (approved) already says the flight plays once on first view and then waits for "Replay the flight". This task pulls that one behaviour forward from Phase 4. The look of each frame does not change.
+
+**Files:** `src/sections/Worlds/WorldsStage.tsx`, `src/sections/Worlds/replay.ts` and its tests, `e2e/worlds.spec.ts`
+
+**Interfaces:**
+- The crossing replays once when the section first becomes visible, then stops.
+- The existing replay button replays it on demand.
+- The "Stop the replay" control remains while the crossing plays.
+- Reduced motion is unchanged.
+
+- [ ] **Tests:** `replay.ts` unit tests and the e2e assert that the crossing does not restart after it finishes, without a click. Update the tests that asserted the loop; never weaken unrelated assertions.
+- [ ] Run `pnpm lag`: #worlds rest busyPct should fall. Record it.
+- [ ] Update CLAUDE.md's replay sentence if it mentions the loop.
+- [ ] **Commit:** `Play the crossing once instead of looping it`.
+
+### Task 10: The cats read scroll and viewport lazily
+
+The profile measured ~1.5 ms per scroll event from the cats reading `scrollY`, which also forces each pending recalc. `viewport()` / `bounds()` are read per step.
+
+**Files:** `src/components/companion/Companion.tsx` (scroll listener), `src/components/companion/companion-space.ts` (`viewport`, `bounds`)
+
+**Interfaces:**
+- The scroll listener only records that a scroll happened. `scrollY` is read once in the next rAF or step.
+- `viewport()` is cached and invalidated on `resize` (and the existing safe-area refresh).
+
+- [ ] **Tests:** a unit test for the viewport cache: same object until `invalidateViewport()` / resize. The companion e2e passes.
+- [ ] **Commit:** `Read scroll and viewport once per frame, not per event`.
+
+### Task 11: Re-measure and record
+
+- [ ] Same as Task 6 Steps 1–3: lag ×2, perf, verify, full e2e. Update the R20-P1 tracker rows and `reports/r20-p1-ledger.md`. Record the machine's CPU load. Missed targets are recorded, never relaxed.
+- [ ] **Commit:** `Record round 20 phase 1 after the second pass`.
