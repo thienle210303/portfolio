@@ -61,6 +61,7 @@ import {
   trailBehind,
   type RideTracker,
 } from "./companion-motion";
+import { IDLE_TICK_MS, nextCadence } from "./companion-cadence";
 import {
   TOUR_STOPS,
   isLastStop,
@@ -2107,6 +2108,8 @@ export function Companion({ facts }: CompanionProps) {
      * minutes at a time, and the gap either side of a nap is not time the pair
      * spent walking. A stale sentinel would hand the first frame after every
      * wake the whole clamp (see `MAX_FRAME_STEP`) and start them with a jump.
+     * Cleared before every idle tick too (see `nextCadence`), for the same
+     * reason at a quarter-second scale.
      */
     let lastFrameAt = 0;
     /** Whether both cats were asleep on the previous frame — which, the loop
@@ -2114,16 +2117,27 @@ export function Companion({ facts }: CompanionProps) {
      *  the end of the stretch that waking arms. See `stretching` in `step`. */
     let sleptLastFrame = false;
     let stretchUntil = 0;
+    /** The pending idle tick, if the last frame asked for one. `running` stays
+     *  true while it waits. */
+    let idleTimer = 0;
 
     const stop = () => {
       running = false;
       if (frameId) cancelAnimationFrame(frameId);
       frameId = 0;
+      clearTimeout(idleTimer);
+      idleTimer = 0;
       lastFrameAt = 0;
     };
 
+    /** Also the way out of an idle wait: input should not sit out the rest of
+     *  a quarter-second tick before the cats react to it. */
     const start = () => {
-      if (running || document.hidden) return;
+      if (document.hidden) return;
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = 0;
+      } else if (running) return;
       running = true;
       lastFrameAt = 0;
       frameId = requestAnimationFrame(step);
@@ -2897,7 +2911,7 @@ export function Companion({ facts }: CompanionProps) {
        * a visitor who reads by scrolling, one who tabs through from the
        * keyboard, and a laptop left open on the page all answer no forever, and
        * for all three the pair never dozed, never reached `pose === "sleep"`,
-       * and so `keepGoing` below never went false. Measured: 60 frames a second
+       * and so the loop below never stopped. Measured: 60 frames a second
        * for as long as the tab was open, on a page nobody was touching. Never a
        * phone — `roams` needs `(pointer: fine)` — which means it was always a
        * laptop, on battery, being asked for a frame every 16ms to redraw two
@@ -3079,7 +3093,7 @@ export function Companion({ facts }: CompanionProps) {
        * them does not stop to act. A cat mid-walk shows its walk; the act
        * starts when it next stands, if the beat is still live by then.
        *
-       * Acts never touch `keepGoing`: an act is read off its beat each frame
+       * Acts never touch the cadence: an act is read off its beat each frame
        * and asks nothing of the loop, so the loop never runs a frame longer
        * for an act than it would for the beat alone.
        */
@@ -3782,10 +3796,11 @@ export function Companion({ facts }: CompanionProps) {
 
       const asleep = grey.pose === "sleep" && tabby.pose === "sleep";
       sleptLastFrame = asleep;
-      const busy = leadRate > 0.05 || followRate > 0.05 || run !== null;
-      // Both asleep and neither moving: the loop stops, and the page with it.
-      // Any input restarts it — see `wake`, which every listener calls.
-      const keepGoing = busy || !asleep;
+      // Any movement at all, not "real" walking: a follower braking into her
+      // spot, or ramping up out of it, covers less than a twentieth of a pixel
+      // a frame for a few frames, and on idle ticks that crawl would take
+      // fifteen times as long.
+      const busy = leadRate > 0 || followRate > 0 || run !== null;
 
       const next: Frame = {
         lead: {
@@ -3806,6 +3821,26 @@ export function Companion({ facts }: CompanionProps) {
         },
         police: policeVisual,
       };
+      // Read after the ticks above, so a blink or flick that fell due on this
+      // frame already counts. Both asleep and nothing moving: the loop stops,
+      // and the page with it. Awake but still: an idle tick. Any input
+      // restarts a full frame either way — see `wake`, which every listener
+      // calls.
+      const cadence = nextCadence({
+        busy,
+        asleep,
+        animating:
+          now < grey.blinkUntil ||
+          now < tabby.blinkUntil ||
+          now < grey.flickUntil ||
+          now < tabby.flickUntil ||
+          beat !== null ||
+          duetRef.current !== null ||
+          tourRef.current !== null ||
+          // The page is carrying them, and when it stops they decide where to
+          // go — on the next frame, not the next tick.
+          ride.riding,
+      });
       const changed =
         !sameVisual(next.lead, committed.current.lead) ||
         !sameVisual(next.follow, committed.current.follow) ||
@@ -3813,14 +3848,20 @@ export function Companion({ facts }: CompanionProps) {
         (next.police !== null &&
           committed.current.police !== null &&
           !sameVisual(next.police, committed.current.police));
-      if (changed && (!keepGoing || now - lastCommit.current >= RENDER_INTERVAL)) {
+      if (changed && (cadence !== "frame" || now - lastCommit.current >= RENDER_INTERVAL)) {
         committed.current = next;
         lastCommit.current = now;
         setFrame(next);
       }
 
-      if (keepGoing) frameId = requestAnimationFrame(step);
-      else running = false;
+      if (cadence === "frame") frameId = requestAnimationFrame(step);
+      else if (cadence === "idle") {
+        idleTimer = window.setTimeout(() => {
+          idleTimer = 0;
+          lastFrameAt = 0;
+          frameId = requestAnimationFrame(step);
+        }, IDLE_TICK_MS);
+      } else running = false;
     }
 
     const onVisibility = () => {
