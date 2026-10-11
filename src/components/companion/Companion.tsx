@@ -80,6 +80,7 @@ import {
   clampToViewport,
   findClearSpot,
   headClear,
+  invalidateGround,
   isClearSpot,
   keepClearOfControl,
   keepInView,
@@ -3930,9 +3931,14 @@ export function Companion({ facts }: CompanionProps) {
      * napping cats up, or keep a page at rest asking for frames.
      */
     const scheduleRecheck = (pageMoved: boolean) => {
+      // Every caller (scroll, resize, body resize, animation end) has moved the
+      // ground, so the probe's cached boxes go now, not after the 250ms.
+      invalidateGround();
       if (pageMoved) recheckPageMoved = true;
       if (recheck) return;
       recheck = window.setTimeout(() => {
+        // Again: the layout may have moved on inside the 250ms window.
+        invalidateGround();
         recheck = 0;
         const full = recheckPageMoved;
         recheckPageMoved = false;

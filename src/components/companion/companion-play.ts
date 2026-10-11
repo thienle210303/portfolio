@@ -57,8 +57,8 @@ import { type SceneName } from "./scene-names";
 const PLAY_GAP = 90_000;
 const PLAY_SPREAD = 180_000;
 /** Nowhere safe to play right now. Backing off matters: probing costs three
- *  hit tests per candidate, and re-running that every frame over a page with no
- *  whitespace would be a per-frame reflow to decide not to do anything. */
+ *  rect checks per candidate, and re-running that every frame over a page with
+ *  no whitespace would be per-frame work to decide not to do anything. */
 export const PLAY_RETRY = 25_000;
 
 /** How far the yarn ball rolls, and how far past the roll the follower is

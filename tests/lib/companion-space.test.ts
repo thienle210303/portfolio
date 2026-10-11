@@ -10,10 +10,12 @@ import {
   exploreApart,
   findClearSpot,
   headClear,
+  invalidateGround,
   isClearSpot,
   keepClearOfControl,
   pickExploreSpot,
   placeBeside,
+  pointInRects,
   randomFacing,
   searchClearOfToggle,
   setControlRects,
@@ -27,16 +29,17 @@ import {
 /**
  * The collision fix (WP-A, round 10): a cat parking on top of the duet's own
  * speech bubble or mini-Thien's caption was possible because neither is
- * visible to the ordinary content probe — `elementBehind` deliberately looks
+ * visible to the ordinary content probe — it deliberately looks
  * straight through everything inside `[data-companion]`, or two cats
  * standing near each other would each read the other as occupied ground.
  * `setReservedRects` is the second, narrower gate `isClearSpot` now also
  * consults, and this is what proves it actually gates the same three points
  * (belly, both feet) the ordinary DOM scan does.
  *
- * `document.elementsFromPoint` is stubbed to return nothing behind every
- * probe, which isolates the reserved-rect gate from the DOM occupancy scan
- * this file is not testing (jsdom does not implement the real thing anyway).
+ * The page starts every test empty (see the file-level `beforeEach`), which
+ * isolates the reserved-rect gate from the DOM occupancy scan. Tests that need
+ * content put `<p>`s with stubbed boxes on the page through `ground()` —
+ * jsdom has no layout, so every real box is zero-area and ignored.
  */
 function rect(left: number, top: number, width: number, height: number): DOMRect {
   return {
@@ -51,6 +54,19 @@ function rect(left: number, top: number, width: number, height: number): DOMRect
     toJSON: () => ({}),
   } as DOMRect;
 }
+
+/** Start a new ground epoch with a `<p>` at each of these boxes. */
+function ground(...boxes: DOMRect[]): void {
+  document.body.innerHTML = "";
+  for (const box of boxes) {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => box;
+    document.body.append(prose);
+  }
+  invalidateGround();
+}
+
+beforeEach(() => ground());
 
 const LEAD_PAD_X = 4;
 const LEAD_PAD_Y = 3;
@@ -67,7 +83,6 @@ function leadControlRect(pos: Point): RectLike {
 
 describe("setReservedRects", () => {
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
   });
 
@@ -108,7 +123,7 @@ describe("setReservedRects", () => {
  * The target-size regression (round 10, post-integration): axe caught the
  * toolkit toggle — the lead cat's own button — with only a sliver of its
  * target left clickable, because the follower had been placed on top of it.
- * `elementBehind` deliberately looks straight through the companion's own
+ * The ground probe deliberately looks straight through the companion's own
  * subtree (see the file banner above `setReservedRects`), which is exactly
  * why `isClearSpot` alone never saw the conflict: the toggle is *inside*
  * `[data-companion]`, invisible to the DOM occupancy scan by the same rule
@@ -141,15 +156,9 @@ describe("headClear", () => {
   );
 
   /** Prose under exactly the one point (x, y), and nowhere else. */
-  const proseAt = (px: number, py: number) => {
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((x: number, y: number) =>
-      Math.abs(x - px) < 0.5 && Math.abs(y - py) < 0.5 ? [prose] : [],
-    );
-  };
+  const proseAt = (px: number, py: number) => ground(rect(px - 0.4, py - 0.4, 0.8, 0.8));
 
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
   });
 
@@ -166,23 +175,22 @@ describe("headClear", () => {
 
   it("is the band isClearSpot never reads: a head on prose passes the three-point probe", () => {
     // A line of prose across the face row, and nothing lower down.
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
-      y >= at.y + 12 && y <= at.y + 20 ? [prose] : [],
-    );
+    ground(rect(0, at.y + 12, 1024, 8));
     expect(isClearSpot(at)).toBe(true);
     expect(headClear(at)).toBe(false);
   });
 
   it("is not about the feet or the belly: content below the band leaves it clear", () => {
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= at.y + 22 ? [prose] : []));
+    ground(rect(0, at.y + 22, 1024, 1000));
     expect(headClear(at)).toBe(true);
     expect(isClearSpot(at)).toBe(false);
   });
 
   it("reads a whitespace container as clear, like the other probe does", () => {
-    document.elementsFromPoint = vi.fn(() => [document.createElement("div")]);
+    const container = document.createElement("div");
+    container.getBoundingClientRect = () => rect(0, 0, 1024, 768);
+    document.body.append(container);
+    invalidateGround();
     expect(headClear(at)).toBe(true);
   });
 
@@ -195,7 +203,6 @@ describe("headClear", () => {
 
 describe("setControlRects / clearsControls — the toolkit-toggle fix", () => {
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
     setControlRects([]);
   });
@@ -281,7 +288,6 @@ describe("setControlRects / clearsControls — the toolkit-toggle fix", () => {
  */
 describe("setControlRects computed straight from state, no DOM object and no staleness", () => {
   beforeEach(() => {
-    document.elementsFromPoint = vi.fn(() => []);
     setReservedRects([]);
     setControlRects([]);
   });
@@ -712,8 +718,6 @@ describe("placeBeside — overlays are never painted over a cat", () => {
 });
 
 describe("findClearSpot's preferHead option", () => {
-  const prose = document.createElement("p");
-
   beforeEach(() => {
     setReservedRects([]);
     setControlRects([]);
@@ -724,9 +728,7 @@ describe("findClearSpot's preferHead option", () => {
     // full width of the page; nothing else anywhere. Feet and belly sit below
     // it, so the old three-point rule would have kept `want`.
     const want: Point = { x: 300, y: 300 };
-    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
-      y >= want.y + 4 && y <= want.y + 18 ? [prose] : [],
-    );
+    ground(rect(0, want.y + 4, 1024, 14));
     expect(isClearSpot(want)).toBe(true);
     expect(headClear(want)).toBe(false);
     const got = findClearSpot(want, { x: 900, y: 700 }, undefined, { preferHead: true });
@@ -739,21 +741,93 @@ describe("findClearSpot's preferHead option", () => {
     // Every head band on the page is on prose (a line every 20px through the
     // top half of each cat-height) but the feet clear: the old answer stands.
     const want: Point = { x: 300, y: 300 };
-    document.elementsFromPoint = vi.fn((x: number, y: number) => {
-      void x;
-      const within = ((y - want.y) % (CAT_H + 26) + (CAT_H + 26)) % (CAT_H + 26);
-      return within < 20 ? [prose] : [];
-    });
+    const period = CAT_H + 26;
+    const lines: DOMRect[] = [];
+    for (let top = want.y - period * 20; top < 1000; top += period) lines.push(rect(0, top, 1024, 19.9));
+    ground(...lines);
     expect(isClearSpot(want)).toBe(true);
     expect(findClearSpot(want, { x: 900, y: 700 }, undefined, { preferHead: true })).toEqual(want);
   });
 
   it("leaves the preference off unless asked — the per-frame callers' default", () => {
     const want: Point = { x: 300, y: 300 };
-    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
-      y >= want.y + 4 && y <= want.y + 18 ? [prose] : [],
-    );
+    ground(rect(0, want.y + 4, 1024, 14));
     expect(headClear(want)).toBe(false);
     expect(findClearSpot(want, { x: 900, y: 700 })).toEqual(want);
+  });
+});
+
+describe("pointInRects", () => {
+  const rects = [rect(10, 10, 20, 20)];
+
+  it("is true inside a rect", () => {
+    expect(pointInRects(15, 15, rects)).toBe(true);
+  });
+
+  it("is true on the edge — edges are inclusive", () => {
+    expect(pointInRects(10, 30, rects)).toBe(true);
+    expect(pointInRects(30, 10, rects)).toBe(true);
+  });
+
+  it("is false outside every rect", () => {
+    expect(pointInRects(31, 15, rects)).toBe(false);
+  });
+
+  it("is false for an empty list", () => {
+    expect(pointInRects(15, 15, [])).toBe(false);
+  });
+});
+
+describe("the ground probe reads rects cached per layout epoch", () => {
+  const at: Point = { x: 100, y: 100 };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    invalidateGround();
+    setReservedRects([]);
+    vi.restoreAllMocks();
+  });
+
+  it("queries the DOM once per epoch", () => {
+    const query = vi.spyOn(document, "querySelectorAll");
+    for (let i = 0; i < 50; i += 1) isClearSpot(at);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it("invalidates on resize-observer epoch", () => {
+    expect(isClearSpot(at)).toBe(true);
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 0, 400, 400);
+    document.body.append(prose);
+    // Same epoch: the cached list predates the paragraph.
+    expect(isClearSpot(at)).toBe(true);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(false);
+  });
+
+  it("ignores companion's own nodes", () => {
+    const root = document.createElement("div");
+    root.setAttribute("data-companion", "");
+    const button = document.createElement("button");
+    button.getBoundingClientRect = () => rect(0, 0, 400, 400);
+    root.append(button);
+    document.body.append(root);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+  });
+
+  it("looks through what a hit test looks through: pointer-events none, or hidden", () => {
+    for (const style of ["pointer-events: none", "visibility: hidden"]) {
+      document.body.innerHTML = "";
+      const ink = document.createElement("svg");
+      ink.setAttribute("style", style);
+      ink.getBoundingClientRect = () => rect(0, 0, 400, 400);
+      document.body.append(ink);
+      invalidateGround();
+      expect(isClearSpot(at), style).toBe(true);
+      ink.removeAttribute("style");
+      invalidateGround();
+      expect(isClearSpot(at), `${style} removed`).toBe(false);
+    }
   });
 });

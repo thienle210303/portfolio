@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   advancePlay,
@@ -26,6 +26,28 @@ import {
 import * as companionSpace from "@/components/companion/companion-space";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
 import { companions } from "@/content/portfolio";
+
+type GroundBox = readonly [left: number, top: number, right: number, bottom: number];
+const FAR = 1e4;
+
+/** jsdom has no layout: stand a `<p>` at each box and start a new ground
+ *  epoch, replacing whatever ground the last call stood up. */
+function ground(...boxes: GroundBox[]): void {
+  for (const old of document.querySelectorAll("[data-test-ground]")) old.remove();
+  for (const [left, top, right, bottom] of boxes) {
+    const prose = document.createElement("p");
+    prose.setAttribute("data-test-ground", "");
+    prose.getBoundingClientRect = () =>
+      ({ left, top, right, bottom, width: right - left, height: bottom - top, x: left, y: top }) as DOMRect;
+    document.body.append(prose);
+  }
+  companionSpace.invalidateGround();
+}
+
+/** Prose 14px tall every 60px down the page, across its whole width. */
+const LINES: GroundBox[] = Array.from({ length: 40 }, (_, k) => [-FAR, (k - 2) * 60, FAR, (k - 2) * 60 + 13.99]);
+
+beforeEach(() => ground());
 
 /**
  * The geometry behind the three scenes that are about the page, and behind
@@ -231,7 +253,6 @@ describe("the stalk, beat by beat", () => {
  */
 describe("planExplore", () => {
   const HOME = { x: 900, y: 700 };
-  const OPEN = () => [] as Element[];
   /** The pair rule, restated here rather than imported, so a planner that
    *  breaks it cannot also break the yardstick: 160px centre to centre, and
    *  never one 60px column (by left edge) for both. */
@@ -242,11 +263,10 @@ describe("planExplore", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = "";
-    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
   });
 
   it("sends the lead to the left half and the follower to the right, 160px apart", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     const view = companionSpace.viewport();
     let planned = 0;
     for (let i = 0; i < 100; i += 1) {
@@ -264,7 +284,7 @@ describe("planExplore", () => {
   });
 
   it("is deterministic for a given rng", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     const draw = () => {
       let n = 0;
       return () => ((n += 0.137) % 1);
@@ -274,7 +294,7 @@ describe("planExplore", () => {
   });
 
   it("takes the section's perch on the first stop, and explores on the ones after it", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     // The hero mood hangs off `[data-cat-perch]`; give it a box with room on the
     // right and nothing in it. jsdom has no layout, so the rect is stubbed.
     const perch = document.createElement("div");
@@ -301,12 +321,12 @@ describe("planExplore", () => {
   });
 
   it("explores when the first stop's section has no mood", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     expect(planExplore("nowhere", { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, true)).not.toBeNull();
   });
 
   it("places the follower with findClearSpot when neither half has a clear spot for her", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     // The lead's first draw clears; every draw after it is occupied, so the
     // follower's two halves both come up empty and `findClearSpot` (which has its
     // own, untouched probe) answers for her: the nearest clear ground to where
@@ -328,8 +348,7 @@ describe("planExplore", () => {
     // nearer gutter, x = 8 — the same 60px column as the lead's first pick
     // (x ≈ 56, with a constant 0.1 draw). The pair have to be re-checked
     // against where she actually ends up, not where she was standing.
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((x: number) => (x >= 290 && x <= 360 ? [prose] : []));
+    ground([290, -FAR, 360, FAR]);
     const probe = vi.spyOn(companionSpace, "isClearSpot");
     // One accepted draw is probed five times: at the spot and at each corner of
     // the rest margin (`exploreClear`).
@@ -345,7 +364,7 @@ describe("planExplore", () => {
   });
 
   it("places the lead with findClearSpot when neither half has a clear spot for him", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     // Twice EXPLORE_TRIES draws fail (both halves, for the lead), then every
     // draw after that clears.
     const probe = vi.spyOn(companionSpace, "isClearSpot");
@@ -368,31 +387,27 @@ describe("planExplore", () => {
 
   it("asks a new half-page stop for feet, belly and head band (exploreClear)", () => {
     const at = { x: 100, y: 100 };
-    const prose = document.createElement("p");
     // Nothing anywhere: clear.
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     expect(exploreClear(at)).toBe(true);
     // A line across the face row only — what the sticky margin rail does when
     // a scroll slides it over a cat riding the page: the feet stay clear.
-    document.elementsFromPoint = vi.fn((_x: number, y: number) =>
-      y >= at.y + 12 && y <= at.y + 20 ? [prose] : [],
-    );
+    ground([-FAR, at.y + 12, FAR, at.y + 20]);
     expect(companionSpace.isClearSpot(at)).toBe(true);
     expect(exploreClear(at)).toBe(false);
     // Content under the feet only: the three-point half refuses it.
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= at.y + 30 ? [prose] : []));
+    ground([-FAR, at.y + 30, FAR, FAR]);
     expect(companionSpace.headClear(at)).toBe(true);
     expect(exploreClear(at)).toBe(false);
   });
 
   it("refuses a stop whose head or feet clear content by less than the arrival tolerance", () => {
-    // A button ending at y = 100.4 (a fractional edge, as laid-out boxes have).
+    // Content ending at y = 100.4 (a fractional edge, as laid-out boxes have).
     // A cat's head row is `y + 6`, so a spot at y = 94.5 has its row at 100.5:
     // clear by 0.1px. `advance` lets a cat rest up to 0.6px off its spot, so
     // such a stop can end with the ears across the edge — exploreClear must
     // refuse it while the exact-point head probe alone accepts it.
-    const button = document.createElement("button");
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y < 100.4 ? [button] : []));
+    ground([-FAR, -FAR, FAR, 100.4]);
     const hair = { x: 100, y: 94.5 };
     expect(companionSpace.headClear(hair)).toBe(true);
     expect(exploreClear(hair)).toBe(false);
@@ -400,7 +415,7 @@ describe("planExplore", () => {
     expect(exploreClear({ x: 100, y: 96.5 })).toBe(true);
     // The same for the feet: content starting at y = 200 under a cat whose feet
     // row (`y + 36`) is 0.1px short of it.
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= 200 ? [button] : []));
+    ground([-FAR, 200, FAR, FAR]);
     const feet = { x: 100, y: 200 - 36 - 0.1 };
     expect(companionSpace.isClearSpot(feet)).toBe(true);
     expect(exploreClear(feet)).toBe(false);
@@ -411,8 +426,7 @@ describe("planExplore", () => {
     // Lines of prose 14px tall every 60px down the page, across its whole
     // width: plenty of ground clears the feet and belly with the ears or face
     // on a line above them.
-    const prose = document.createElement("p");
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y % 60 < 14 ? [prose] : []));
+    ground(...LINES);
     // mulberry32, not a bare LCG: consecutive draws of a power-of-two LCG fall
     // on a lattice. About a quarter of this page clears the lines, so a cat
     // that draws 2 x EXPLORE_TRIES times and finds none (about one plan in a
@@ -454,7 +468,7 @@ describe("planExplore", () => {
 
   it("declines outright when no ground anywhere is clear", () => {
     // Every probe reads as occupied content.
-    document.elementsFromPoint = vi.fn(() => [document.createElement("p")]);
+    ground([-FAR, -FAR, FAR, FAR]);
     expect(planExplore(null, { x: 500, y: 400 }, { x: 300, y: 400 }, HOME, false)).toBeNull();
   });
 });
@@ -465,7 +479,6 @@ describe("planMood — a per-frame caller of findClearSpot", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = "";
-    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
   });
 
   it("does not get findClearSpot's head preference: a follower standing feet-clear keeps her spot", () => {
@@ -480,19 +493,14 @@ describe("planMood — a per-frame caller of findClearSpot", () => {
     document.body.append(perch);
     const lead = { x: 500, y: 400 };
     const follow = { x: 700, y: 500 };
-    const prose = document.createElement("p");
-    const inside = (x: number, y: number, l: number, t: number, r: number, b: number) =>
-      x >= l && x < r && y >= t && y < b;
-    document.elementsFromPoint = vi.fn((x: number, y: number) =>
+    ground(
       // The three places `mateSpot` tries beside the perch spot (414, 316) —
       // below, above and behind — are content, so the fallback is reached …
-      inside(x, y, 415, 385, 466, 405) ||
-      inside(x, y, 415, 290, 466, 306) ||
-      inside(x, y, 355, 340, 400, 354) ||
+      [415, 385, 465.99, 404.99],
+      [415, 290, 465.99, 305.99],
+      [355, 340, 399.99, 353.99],
       // … and a line of prose runs across the follower's face, nowhere else.
-      inside(x, y, 700, 504, 760, 518)
-        ? [prose]
-        : [],
+      [700, 504, 759.99, 517.99],
     );
     expect(companionSpace.isClearSpot(follow)).toBe(true);
     expect(companionSpace.headClear(follow)).toBe(false);
@@ -515,7 +523,6 @@ describe("planMood — a per-frame caller of findClearSpot", () => {
  */
 describe("repickExploreSpot", () => {
   const HOME = { x: 900, y: 700 };
-  const OPEN = () => [] as Element[];
   const seeded = () => {
     let state = 4242;
     return () => {
@@ -531,11 +538,10 @@ describe("repickExploreSpot", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = "";
-    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
   });
 
   it("sends a lead to the left half and a follower to the right, clear to the head band", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     const half = companionSpace.viewport().width / 2;
     const rng = seeded();
     // Partners that are *not* in the cat's own half-opposite place, so a picker
@@ -552,7 +558,7 @@ describe("repickExploreSpot", () => {
   });
 
   it("keeps 160px and a column from the partner's spot, even a partner on its cat's own side", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     const rng = seeded();
     // The lead's partner stands in the *left* half, in the middle of where the
     // lead would otherwise pick: the rule against it is what rules spots out.
@@ -568,13 +574,13 @@ describe("repickExploreSpot", () => {
   });
 
   it("is deterministic for a given rng", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     const args = ["lead", { x: 500, y: 400 }, { x: 1100, y: 300 }, HOME] as const;
     expect(repickExploreSpot(...args, seeded())).toEqual(repickExploreSpot(...args, seeded()));
   });
 
   it("falls back to the nearest clear ground to where the cat stands when neither half has a spot", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     // Both halves (2 x EXPLORE_TRIES draws) fail the probe; `findClearSpot` then
     // sees clear ground.
     const probe = vi.spyOn(companionSpace, "isClearSpot");
@@ -587,7 +593,7 @@ describe("repickExploreSpot", () => {
   });
 
   it("keeps its fallback off the partner it must not stand on", () => {
-    document.elementsFromPoint = vi.fn(OPEN);
+    ground();
     const probe = vi.spyOn(companionSpace, "isClearSpot");
     for (let i = 0; i < companionSpace.EXPLORE_TRIES * 2; i += 1) probe.mockReturnValueOnce(false);
     probe.mockReturnValue(true);
@@ -608,26 +614,25 @@ describe("repickExploreSpot", () => {
  * arriving.
  */
 describe("heldExploreClear", () => {
-  const prose = document.createElement("p");
-
   afterEach(() => {
     vi.restoreAllMocks();
-    document.elementsFromPoint = undefined as unknown as typeof document.elementsFromPoint;
   });
 
   /** Content across the face row (y+12..y+20) of a cat standing at `at`,
    *  within `width` px of its left edge — and nothing anywhere else. */
-  const faceRowOf =
-    (at: { x: number; y: number }, width = CAT_W) =>
-    (x: number, y: number) =>
-      x >= at.x && x <= at.x + width && y >= at.y + 12 && y <= at.y + 20 ? [prose] : [];
+  const faceRowOf = (at: { x: number; y: number }, width = CAT_W): GroundBox => [
+    at.x,
+    at.y + 12,
+    at.x + width,
+    at.y + 20,
+  ];
 
   it("keeps a stop on the unchanged ground it was planned on, head band or not", () => {
     // Prose lines 14px tall every 60px, the page the head-band planner test
     // uses. Stops picked by the three-point probe alone — what the
     // `findClearSpot` fallbacks and `nearbySpots()` hand the explorers — often
     // stand here with the head on a line.
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y % 60 < 14 ? [prose] : []));
+    ground(...LINES);
     let state = 777;
     const rng = () => {
       state = (Math.imul(state, 1103515245) + 12345) >>> 0;
@@ -655,13 +660,13 @@ describe("heldExploreClear", () => {
   it("still drops a head-clear stop when the sticky rail slides over its head", () => {
     const lead = { x: 100, y: 100 };
     const follow = { x: 700, y: 100 };
-    document.elementsFromPoint = vi.fn(() => [] as Element[]);
+    ground();
     const stop = holdExplore({ lead, follow }, false);
     expect(stop.headLead).toBe(true);
     expect(stop.headFollow).toBe(true);
     expect(heldExploreClear(stop)).toBe(true);
     // The rail arrives over his face; his feet stay clear.
-    document.elementsFromPoint = vi.fn(faceRowOf(lead));
+    ground(faceRowOf(lead));
     expect(companionSpace.isClearSpot(lead)).toBe(true);
     expect(heldExploreClear(stop)).toBe(false);
   });
@@ -670,33 +675,28 @@ describe("heldExploreClear", () => {
     const lead = { x: 100, y: 100 };
     const follow = { x: 700, y: 100 };
     // Planned with her head already on a line and his clear.
-    document.elementsFromPoint = vi.fn(faceRowOf(follow));
+    ground(faceRowOf(follow));
     const stop = holdExplore({ lead, follow }, false);
     expect(stop.headLead).toBe(true);
     expect(stop.headFollow).toBe(false);
     // Her head on the line is how she was planned: kept.
     expect(heldExploreClear(stop)).toBe(true);
     // Something arriving over his head, which was clear: dropped.
-    document.elementsFromPoint = vi.fn((x: number, y: number) => [
-      ...faceRowOf(follow)(x, y),
-      ...faceRowOf(lead)(x, y),
-    ]);
+    ground(faceRowOf(follow), faceRowOf(lead));
     expect(heldExploreClear(stop)).toBe(false);
   });
 
   it("drops a stop whose feet lose their ground, whatever its head was planned on", () => {
     const lead = { x: 100, y: 100 };
     const follow = { x: 700, y: 100 };
-    document.elementsFromPoint = vi.fn(faceRowOf(lead));
+    ground(faceRowOf(lead));
     const stop = holdExplore({ lead, follow }, false);
     expect(stop.headLead).toBe(false);
     expect(heldExploreClear(stop)).toBe(true);
     // By the re-check, content is under his feet too — his alone: her spot
     // stays clear head to foot, and his head is still on the line it was
     // planned on, so only his feet can be what drops the stop.
-    document.elementsFromPoint = vi.fn((x: number, y: number) =>
-      x >= lead.x && x <= lead.x + CAT_W && y >= lead.y + 12 ? [prose] : [],
-    );
+    ground([lead.x, lead.y + 12, lead.x + CAT_W, FAR]);
     expect(companionSpace.isClearSpot(follow)).toBe(true);
     expect(companionSpace.headClear(follow)).toBe(true);
     expect(heldExploreClear(stop)).toBe(false);
@@ -710,27 +710,25 @@ describe("heldExploreClear", () => {
     // kept. A scroll does not count — see `heldExploreClear`.
     const lead = { x: 100, y: 100 };
     const follow = { x: 700, y: 100 };
-    document.elementsFromPoint = vi.fn(faceRowOf(lead));
+    ground(faceRowOf(lead));
     const stop = holdExplore({ lead, follow }, false);
     expect(stop.headLead).toBe(false);
     expect(heldExploreClear(stop)).toBe(true);
     expect(heldExploreClear(stop, true)).toBe(false);
     // Clear head to foot once the content has moved off: kept either way.
-    document.elementsFromPoint = vi.fn(() => [] as Element[]);
+    ground();
     expect(heldExploreClear(stop, true)).toBe(true);
   });
 
   it("re-checks a perch by its lead's three-point probe alone, as it was picked", () => {
     const lead = { x: 100, y: 100 };
     const follow = { x: 700, y: 100 };
-    document.elementsFromPoint = vi.fn(() => [] as Element[]);
+    ground();
     const stop = holdExplore({ lead, follow }, true);
     // Her spot is never walked to on a perch, and his head band was never read.
-    document.elementsFromPoint = vi.fn((x: number, y: number) =>
-      x >= follow.x - 10 || (y >= lead.y + 12 && y <= lead.y + 20) ? [prose] : [],
-    );
+    ground([follow.x - 10, -FAR, FAR, FAR], [-FAR, lead.y + 12, FAR, lead.y + 20]);
     expect(heldExploreClear(stop)).toBe(true);
-    document.elementsFromPoint = vi.fn((_x: number, y: number) => (y >= lead.y + 30 ? [prose] : []));
+    ground([-FAR, lead.y + 30, FAR, FAR]);
     expect(heldExploreClear(stop)).toBe(false);
   });
 });

@@ -5,16 +5,15 @@ import { CAT_H, CAT_W } from "./CompanionCat";
 /**
  * Where a cat is allowed to be, and what colour it has to be to be seen there.
  *
- * Both questions are answered by hit-testing the page rather than by modelling
- * it. The alternative — keeping a list of the rectangles the cats must dodge —
- * means a second, always-stale copy of the layout, and it would have to be
- * rebuilt on every resize, scroll, disclosure toggle and font swap. One
- * `elementsFromPoint` call asks the browser the same question against the
- * layout it has already computed.
+ * The tone is answered by hit-testing the page (`elementBehind`). Placement
+ * used to be too, one `elementsFromPoint` per probe point, and that cost up to
+ * two thousand calls in one frame. It now reads the boxes of the elements the
+ * cats must dodge, gathered once per layout epoch (`groundRects`) and dropped
+ * on every scroll, resize, body resize and animation end — the events that
+ * move the ground.
  *
- * The cost of that is real, so it is spent sparingly: nothing here runs per
- * frame. Placement is probed only at the moment a cat decides where to settle,
- * and the tone sample is throttled by its caller to a few times a second. While
+ * Placement is probed only at the moment a cat decides where to settle, and
+ * the tone sample is throttled by its caller to a few times a second. While
  * a cat is actively trailing the pointer it is allowed to cross anything —
  * brief overlap is what makes it a companion rather than a cursor. It is
  * *resting* on top of a paragraph that reads as broken.
@@ -51,11 +50,11 @@ const SELF = "[data-companion]";
 /**
  * What a cat must not park on.
  *
- * Deliberately a tag list rather than "any element with text". `elementFromPoint`
- * returns the innermost box containing the point, so a layout container really
- * is whitespace even though its subtree is full of prose, while a `<p>` is
- * content anywhere inside its box — including the ragged end of its last line,
- * which is close enough to the text to be worth avoiding anyway.
+ * Deliberately a tag list rather than "any element with text": a layout
+ * container really is whitespace even though its subtree is full of prose,
+ * while a `<p>` is content anywhere inside its box — including the ragged end
+ * of its last line, which is close enough to the text to be worth avoiding
+ * anyway.
  *
  * `[tabindex]` is narrowed to exclude `-1`: `<main>` carries `tabindex="-1"` as
  * a focus landing point for the skip link, and an unnarrowed selector would
@@ -237,16 +236,63 @@ export function elementBehind(x: number, y: number): Element | null {
   return null;
 }
 
+/** Pure; edges are inclusive. */
+export function pointInRects(x: number, y: number, rects: readonly RectLike[]): boolean {
+  for (const rect of rects) {
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return true;
+  }
+  return false;
+}
+
+/**
+ * The boxes of every `OCCUPIED` element on screen, gathered once per layout
+ * epoch rather than hit-tested per point: one explore pick could cost two
+ * thousand `elementsFromPoint` calls in a frame. `invalidateGround` starts a
+ * new epoch; `Companion.tsx` calls it from `scheduleRecheck`, which every
+ * scroll, resize, body resize and animation end goes through. The rebuild is
+ * lazy, so a scroll costs at most one rebuild per frame that actually probes.
+ *
+ * Deliberately conservative where a box is not what a hit test sees: an
+ * occupied element that is covered by something else, or clipped by an
+ * ancestor, still counts. A false "occupied" only sends a cat to another spot.
+ * What a hit test looks straight through is still skipped — the companion's
+ * own subtree (`SELF`), and anything `pointer-events: none` or hidden, such as
+ * the Journey's not-yet-drawn branches and its ink overlays — or a cat could
+ * never rest anywhere on the stage. Off-screen boxes are dropped too: no probe
+ * point is ever off screen.
+ */
+let ground: readonly RectLike[] | null = null;
+
+export function invalidateGround(): void {
+  ground = null;
+}
+
+function groundRects(): readonly RectLike[] {
+  if (ground) return ground;
+  const view = viewport();
+  const rects: RectLike[] = [];
+  for (const element of document.querySelectorAll(OCCUPIED)) {
+    if (element.closest(SELF)) continue;
+    const box = element.getBoundingClientRect();
+    if (box.width <= 0 || box.height <= 0) continue;
+    if (box.right < 0 || box.bottom < 0 || box.left > view.width || box.top > view.height) continue;
+    const style = getComputedStyle(element);
+    if (style.pointerEvents === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
+    rects.push(box);
+  }
+  ground = rects;
+  return rects;
+}
+
 function occupied(x: number, y: number): boolean {
-  const element = elementBehind(x, y);
-  return element !== null && element.closest(OCCUPIED) !== null;
+  return pointInRects(x, y, groundRects());
 }
 
 /**
  * Rects the placement probe must also treat as occupied — the duet's own
  * speech bubbles and mini-Thien's caption.
  *
- * They cannot be found the way ordinary content is: `elementBehind` walks
+ * They cannot be found the way ordinary content is: the ground probe walks
  * straight through anything inside `[data-companion]` (see `SELF` above), on
  * purpose — without that, the two cats would each read the other as
  * "occupied" and never be able to stand near one another. That same rule
@@ -344,7 +390,7 @@ export function clearsControls(point: Point): boolean {
  * guarantees the follower is never *placed* onto the toggle, but it cannot
  * guarantee the pair never end up too close, because nothing stops the
  * *lead* from independently walking towards wherever the follower already
- * stands: `elementBehind` deliberately looks straight through the
+ * stands: the ground probe deliberately looks straight through the
  * companion's own subtree, so the two cats have always looked through each
  * other by design, and a mood or tour stop choosing the lead's next spot
  * has no idea the follower is there. Axe caught exactly this: a huddle
@@ -603,7 +649,7 @@ const HEAD_INSET = 12;
  * points (belly at 60% height, both feet) all sit in the bottom half of a
  * 42px cat, so a spot can pass with the ears and face across a line of prose
  * or a link — and the cats are buttons, so a head there hides the words and
- * takes their clicks. Six more hit tests, same rule as the other three
+ * takes their clicks. Six more rect checks, same rule as the other three
  * (occupied content, or a bubble's reserved rect).
  *
  * The explorers ask it as a requirement, in companion-moods.ts: `exploreClear`,
@@ -716,14 +762,14 @@ function overlaps(a: Point, b: Point): boolean {
  *    tour's and the watch's defensive `nearbySpots()` fallbacks. A `want`
  *    rejected for its head would hand the cat a target that moves with her,
  *    the feedback loop the controls note above describes, and the extra pass
- *    would add up to fifteen × nine hit tests to every frame.
+ *    would add up to fifteen × nine rect checks to every frame.
  *  - `tourStopSpots`'s `restSpots` fallback, which is recomputed every frame
  *    too, but from a fixed anchor by the section's top edge rather than a cat's
  *    position: off for the per-frame cost, not for feedback.
  *  - Mini-Thien's spot, probed once per change of speaker: he is not a cat,
  *    and the head band is the cat drawing's geometry, not his.
  *
- * Bounded work: fifteen candidates × three hit tests, plus fifteen × nine
+ * Bounded work: fifteen candidates × three rect checks, plus fifteen × nine
  * with `preferHead`.
  */
 export function findClearSpot(
@@ -786,7 +832,7 @@ const SWEEP_COLUMNS = 5;
  * A coarse sweep of every place on this page a cat could stand, nearest to
  * `near` first.
  *
- * Deliberately does no hit testing of its own: the caller has a more expensive
+ * Deliberately does no clear-spot probing of its own: the caller has a more expensive
  * question to ask at each candidate than "is it clear" — whether a whole scene
  * fits there — and wants to stop at the first that answers yes rather than pay
  * for the whole grid every time.
@@ -825,7 +871,7 @@ export function standingSpots(near: Point): Point[] {
 /* -------------------------------------------------------------------------- */
 
 /** How many uniformly random points one half is sampled for before the picker
- *  tries the other half. Each probe is up to nine hit tests (`isClearSpot`'s
+ *  tries the other half. Each probe is up to nine rect checks (`isClearSpot`'s
  *  three, then `headClear`'s six), and a page that is
  *  mostly prose fails most draws, which is why this is a handful and the
  *  other half is the fallback rather than a bigger number. */
