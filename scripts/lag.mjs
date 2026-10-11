@@ -10,7 +10,8 @@
  *
  * Prints one JSON object. Headless Chromium has no real GPU, so this sees
  * main-thread JS and layout cost only. Numbers are comparable between runs on
- * the same machine. `rest` is unthrottled; `scroll4x` and the Worlds entry run
+ * the same machine. `rafPerSec` counts requestAnimationFrame calls scheduled,
+ * not frames painted, so it can exceed the display rate. `rest` is unthrottled; `scroll4x` and the Worlds entry run
  * at 4x CPU slowdown.
  */
 import { createRequire } from "node:module";
