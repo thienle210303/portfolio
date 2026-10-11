@@ -18,7 +18,6 @@ import type { ResolvedChapter } from "@/lib/worlds";
 import type { ResolvedSkin } from "@/lib/skins";
 import type { RobotHold } from "./gl/robot";
 import { TAP_SLOP_PX } from "./gestures";
-import { REPLAY_HOLD_MS, REPLAY_RETURN_MS } from "./replay";
 import WorldPanel from "./WorldPanel";
 
 /**
@@ -158,104 +157,37 @@ export function WorldsStage({
   const [landed, setLanded] = useState(false);
   const controlsRef = useRef<GlobeControls | null>(null);
   const [controlsReady, setControlsReady] = useState(false);
-  // The crossing replays itself while the stage is watched: fly, land, hold
-  // for `REPLAY_HOLD_MS`, ease back to Việt Nam, wait out `REPLAY_RETURN_MS`,
-  // fly again. `loopRef` is where that stands: "idle" until the stage first
-  // comes into view, "looping" from then, and "stopped" for good after any
-  // tap, drag, key, click or focus in the section (see `takeOver`), and at
-  // once under reduced motion, where the one landing is all there is.
-  // Dropping below half in view pauses a loop rather than stopping it:
-  // `pausedRef` says the next entry has a cycle to pick up. Between cycles
-  // only `timerRef` is pending, never a frame. `looping` mirrors "looping" for the flight button's label.
+  // The crossing plays once, the first time half the stage is in view: fly,
+  // land, rest. `loopRef` is where that stands: "idle" until the stage first
+  // comes into view, "playing" while that one flight is in the air, and
+  // "stopped" from its landing on (or at once after any tap, drag, key, click
+  // or focus in the section — see `takeOver` — and under reduced motion, where
+  // the one landing is all there is). Nothing restarts it; the flight button
+  // does, on request. `playing` mirrors "playing" for the button's label.
   // `quietRef` is true only while a flight nobody asked for is in the air:
   // its landing shows the link but writes nothing to the live region.
-  const loopRef = useRef<"idle" | "looping" | "stopped">("idle");
-  const [looping, setLooping] = useState(false);
-  const pausedRef = useRef(false);
-  const timerRef = useRef<number | undefined>(undefined);
+  const loopRef = useRef<"idle" | "playing" | "stopped">("idle");
+  const [playing, setPlaying] = useState(false);
   const quietRef = useRef(false);
-  // `landed`, for the observer's closure, which outlives the render it saw.
-  const landedRef = useRef(false);
-  useEffect(() => {
-    landedRef.current = landed;
-  }, [landed]);
   // Whether any of the stage is in the viewport, as the autoplay observer last
   // saw it. False until it reports, which is also before there is a globe.
   const inViewRef = useRef(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   // The pointer press in progress inside the section, if any, and whether a
-  // replayed flight was quiet when it began (see `pressCancel`).
+  // autoplayed flight was quiet when it began (see `pressCancel`).
   const pressRef = useRef<{ x: number; y: number; quiet: boolean } | null>(
     null,
   );
   // Removes the window listeners that are waiting for that press to end.
   const endPressRef = useRef<(() => void) | null>(null);
 
-  const clearReplayTimer = useCallback(() => {
-    window.clearTimeout(timerRef.current);
-    timerRef.current = undefined;
-  }, []);
-
-  // For good: nothing restarts the loop. Called from "idle" too, so a
-  // visitor who gets to the globe first is never flown over by the autoplay.
+  // For good: nothing restarts the autoplay. Called from "idle" too, so a
+  // visitor who gets to the globe first is never flown over by it.
   const stopReplay = useCallback(() => {
     loopRef.current = "stopped";
-    pausedRef.current = false;
-    clearReplayTimer();
-    setLooping(false);
-  }, [clearReplayTimer]);
-
-  // One pending step of the cycle. Each step re-asks, when it is due, what
-  // could have changed while it waited: the motion preference (asked, not
-  // subscribed to — no listener in the initial bundle), a hidden tab (wait
-  // the same again rather than reset for nobody), and focus inside the
-  // section (a visitor is there; do not move the globe under them). Focus
-  // entering already stops the loop (`takeOver`); this catches focus that
-  // was there before. "Stop the replay" itself is exempt, so a visitor
-  // parked on it keeps a button that still says what it does.
-  const arm = useCallback(
-    (wait: number, advance: () => void) => {
-      const tick = () => {
-        timerRef.current = undefined;
-        // Every stop clears this timer; this makes a missed clear harmless.
-        if (loopRef.current !== "looping") return;
-        const focused = document.activeElement;
-        if (
-          window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ===
-          true
-        )
-          stopReplay();
-        // A finger or button still down in the section: not yet a tap, a drag
-        // or a scroll. Wait rather than reset the globe under it.
-        else if (document.hidden || pressRef.current)
-          timerRef.current = window.setTimeout(tick, wait);
-        else if (
-          focused &&
-          rootRef.current?.contains(focused) &&
-          !focused.closest("[data-replay]")
-        )
-          stopReplay();
-        else advance();
-      };
-      clearReplayTimer();
-      timerRef.current = window.setTimeout(tick, wait);
-    },
-    [clearReplayTimer, stopReplay],
-  );
-
-  // The hold, then the return. The reset is the camera's own and says
-  // nothing: `handleReset` would announce it, and nobody asked.
-  const scheduleHold = useCallback(() => {
-    arm(REPLAY_HOLD_MS, () => {
-      controlsRef.current?.reset();
-      setLanded(false);
-      arm(REPLAY_RETURN_MS, () => {
-        quietRef.current = true;
-        controlsRef.current?.fly();
-      });
-    });
-  }, [arm]);
+    setPlaying(false);
+  }, []);
 
   const current = worlds.find((world) => world.id === currentId) ?? worlds[0];
 
@@ -303,9 +235,8 @@ export function WorldsStage({
     if (quietRef.current || press?.quiet) {
       quietRef.current = false;
       if (press) press.quiet = false;
-      // A landing the stage settled on its way out of view (or below half of
-      // it) holds nothing: the next entry picks the cycle up from here.
-      if (loopRef.current === "looping" && !pausedRef.current) scheduleHold();
+      // The one autoplay has landed; the flight button replays it from here.
+      if (loopRef.current === "playing") stopReplay();
       return;
     }
     // Every clause here is now something the canvas has actually drawn. Round
@@ -329,7 +260,7 @@ export function WorldsStage({
       `The flight landed. ${origin.to}. A seed dropped where he came down, ` +
         "and a link to the career tree it grows into is now below the globe.",
     );
-  }, [scheduleHold]);
+  }, [stopReplay]);
 
   const handleFly = useCallback(() => {
     // Nothing behind the button yet — or nothing ever, if the chunk failed —
@@ -442,16 +373,14 @@ export function WorldsStage({
     };
   }, [Canvas]);
 
-  // The replay: a second observer, kept apart from the import's (which
-  // disconnects on its first hit) because this one has to keep watching. Half
-  // the stage in view starts the loop, or picks a paused one up: a landed
-  // globe holds first, one back at Việt Nam flies at once. Less than half in
-  // view pauses the loop (pending step cleared, replay settled). The
-  // visitor's own motion is settled when the observer reports the stage as
-  // not intersecting — a full exit by the spec, and already below half in
-  // Chromium with this threshold — so nothing animates for nobody.
-  // Under reduced motion the first entry lands the crossing in one draw and
-  // the loop never starts.
+  // The autoplay: a second observer, kept apart from the import's (which
+  // disconnects on its first hit) because the settle below has to keep
+  // watching. Half the stage in view for the first time flies the crossing
+  // once; its landing ends the autoplay (`handleLanded`). A stage that leaves
+  // view settles whatever is moving, so nothing animates for nobody (the
+  // observer reports not intersecting for a full exit by the spec, and
+  // already below half in Chromium with this threshold). Under reduced motion
+  // the first entry lands the crossing in one draw and nothing plays.
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage || !controlsReady) return;
@@ -461,51 +390,30 @@ export function WorldsStage({
         const controls = controlsRef.current;
         if (!controls) return;
         inViewRef.current = entry.isIntersecting;
-        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) {
-          // Less than half in view is not watched, for the replay: a sliver
-          // of globe at the edge of the screen must not cycle for nobody.
-          // The visitor's own motion is settled only when the observer says
-          // the stage is not intersecting: a full exit by the spec; Chromium,
-          // with this single 0.5 threshold, already says so below half.
-          if (loopRef.current === "looping") {
-            pausedRef.current = true;
-            clearReplayTimer();
-            controls.settle();
-          } else if (!entry.isIntersecting) controls.settle();
+        if (!entry.isIntersecting) {
+          controls.settle();
           return;
         }
-        if (loopRef.current === "idle") {
+        if (entry.intersectionRatio >= 0.5 && loopRef.current === "idle") {
           if (
             window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ===
             true
           ) {
             loopRef.current = "stopped";
           } else {
-            loopRef.current = "looping";
-            setLooping(true);
+            loopRef.current = "playing";
+            setPlaying(true);
           }
           quietRef.current = true;
           controls.fly();
-        } else if (loopRef.current === "looping" && pausedRef.current) {
-          pausedRef.current = false;
-          if (landedRef.current) scheduleHold();
-          else {
-            quietRef.current = true;
-            controls.fly();
-          }
         }
       },
       { threshold: 0.5 },
     );
     observer.observe(stage);
-    return () => {
-      observer.disconnect();
-      clearReplayTimer();
-    };
-  }, [controlsReady, clearReplayTimer, scheduleHold]);
+    return () => observer.disconnect();
+  }, [controlsReady]);
 
-  // Unmounting mid-hold leaves no timer behind to reset a globe that is gone.
-  useEffect(() => clearReplayTimer, [clearReplayTimer]);
   // Nor window listeners waiting for a press to end.
   useEffect(() => () => endPressRef.current?.(), []);
 
@@ -514,19 +422,19 @@ export function WorldsStage({
   // visitor taking over, and the replay stops for good — at once, so no
   // control changes under someone who has just reached it. A press alone is
   // not: on a phone most presses become a page scroll, and a visitor
-  // scrolling past should still see the loop (see `pressEnd`). Capture
+  // scrolling past should still see the flight (see `pressEnd`). Capture
   // phase, so a handler that stops propagation cannot hide it. The flight
   // button is exempt: as "Stop the replay" it would otherwise re-render as
   // "Take the flight" on `pointerup` or focus, before its own `click`, and
-  // that click would fly him. It stops the loop itself.
+  // that click would fly him. It stops the autoplay itself.
 
   // The press's end is heard on `window`, not on the section: a mouse press
   // that wanders out (a text selection that overshoots) is released outside
-  // it, and a press that never ended would hold every step forever.
+  // it, and a press that never ended would hold the press set forever.
   //
   // Only a primary press counts. A right-click (and a control-click, which is
   // one on macOS) opens a context menu that can swallow its `pointerup`, which
-  // would leave the press set and freeze the loop under "Stop the replay".
+  // would leave the press set and leave "Stop the replay" showing.
   function pressStart(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || (event.ctrlKey && /Mac/.test(navigator.platform)))
       return;
@@ -572,12 +480,12 @@ export function WorldsStage({
   // The browser sends `pointercancel`, never `pointerup`, when it takes a
   // gesture over for the page scroll. Not a touch on the globe, then: the
   // stage's own `pointerdown` cleared `quietRef` for a drag that never
-  // happened, so a replayed flight still in the air gets its silence back.
+  // happened, so an autoplayed flight still in the air gets its silence back.
   // (One that landed during the press already took it: `handleLanded`.)
   function pressCancel() {
     const press = pressRef.current;
     pressRef.current = null;
-    if (press && loopRef.current === "looping") quietRef.current = press.quiet;
+    if (press && loopRef.current === "playing") quietRef.current = press.quiet;
   }
 
   function takeOver(event: { target: EventTarget }) {
@@ -608,7 +516,7 @@ export function WorldsStage({
         // Rolling east is what flies him — the same coupling a drag has, so
         // the keyboard reaches the signature moment rather than watching it.
         // A landing it reaches is the visitor's own, so it speaks. The key
-        // has already stopped the replay (`takeOver`), so no replayed flight
+        // has already stopped the replay (`takeOver`), so no autoplayed flight
         // wipes one he is part-way through.
         quietRef.current = false;
         controls.nudge(KEY_STEP, 0);
@@ -691,7 +599,7 @@ export function WorldsStage({
             type="button"
             data-replay=""
             aria-disabled={!controlsReady}
-            onClick={looping ? handleStopReplay : handleFly}
+            onClick={playing ? handleStopReplay : handleFly}
             className={cn(
               // Measured, border box at 16px: "Stop the replay" 150.8px,
               // "Take the flight" 143.3px. 156px holds the longer one with a
@@ -706,7 +614,7 @@ export function WorldsStage({
             )}
           >
             {controlsReady
-              ? looping
+              ? playing
                 ? "Stop the replay"
                 : "Take the flight"
               : canvasFailed
@@ -740,7 +648,7 @@ export function WorldsStage({
             tree and the tab order, so nothing reads or reaches it early.
             Only the contents are hidden, never the <p>: the cats' ground
             probe skips hidden boxes, so a hidden <p> reads to the companion cats as
-            free ground, and the replay shows it again every cycle — under
+            free ground, and a replay shows it again — under
             whichever cat stopped there. The one link out of this section, and
             it is the link the drawing has just made: the career tree grows
             from that spot. */}

@@ -72,14 +72,16 @@ import { palette, sphereColors } from "./palette";
  * the inertia decays below its threshold and no flight is in progress, the
  * loop returns without scheduling, `view.running` goes false, and the page
  * costs nothing until something wakes it again: the visitor, or the stage's
- * replay of the crossing (`WorldsStage.tsx`). The replay runs only while at
- * least half the stage is in view, stops for good on any tap, drag of the
- * globe, key, click or focus in the section (a press the page scroll takes
- * over does not count), never runs under reduced motion, and between
- * cycles holds timers, not frames. So the replay asks for zero frames after
- * any interaction, for good; whenever less than half the stage is on screen;
- * under reduced motion; and through every hold between cycles. It asks for
- * frames only while a cycle's flight, landing tail or return is on screen.
+ * autoplay of the crossing (`WorldsStage.tsx`). The autoplay flies once, the
+ * first time at least half the stage is in view, and ends at its landing; it
+ * stops at once on any tap, drag of the globe, key, click or focus in the
+ * section (a press the page scroll takes over does not count), and never runs
+ * under reduced motion. After it the globe holds no timers and asks for no
+ * frames until the visitor wakes it, with the flight button's replay among
+ * the ways. So the globe asks for zero frames after any interaction, for
+ * good; at rest after the landing; whenever the stage is off screen; and
+ * under reduced motion. It asks for frames only while a flight, its landing
+ * tail or a return is on screen.
  * `e2e/worlds.spec.ts` measures exactly that — but *not* by counting `requestAnimationFrame`
  * page-wide, which cannot express the claim here: the companion cats hold a
  * 60 Hz loop of their own open on this page, so a page-wide count would fail
@@ -100,9 +102,8 @@ import { palette, sphereColors } from "./palette";
  * below states the two rules for adding one.
  *
  * The stage can also ask the loop to stop early: `settle()`, called when the
- * stage leaves the viewport (or drops below half of it while the replay
- * runs), when a chapter is chosen while it is out of view, or when "Stop the
- * replay" is pressed, puts what is still moving at its end (a played flight
+ * stage leaves the viewport, when a chapter is chosen while it is out of view,
+ * or when "Stop the replay" is pressed, puts what is still moving at its end (a played flight
  * lands, a robot mid-walk ends lit, an easing camera arrives) in one draw
  * and cancels the pending frame, so nothing animates for a visitor who has
  * scrolled away. Two
