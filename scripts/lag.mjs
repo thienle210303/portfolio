@@ -12,7 +12,9 @@
  * main-thread JS and layout cost only. Numbers are comparable between runs on
  * the same machine. `rafPerSec` counts requestAnimationFrame calls scheduled,
  * not frames painted, so it can exceed the display rate. `rest` is unthrottled; `scroll4x` and the Worlds entry run
- * at 4x CPU slowdown.
+ * at 4x CPU slowdown. Each `rest` sample starts 10 s after the jump to its
+ * section: the jump is a scroll, a scroll tells the cats somebody is here, and
+ * for some seconds after it they walk and talk, which is motion, not rest.
  */
 import { createRequire } from "node:module";
 
@@ -98,7 +100,7 @@ const result = {};
   result.rest = {};
   for (const id of SECTIONS) {
     await page.evaluate((i) => document.getElementById(i).scrollIntoView({ behavior: "instant" }), id);
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(10_000);
     const before = await page.evaluate(() => ({ raf: window.__lag.raf, hits: window.__lag.hits }));
     const t0 = await taskDuration();
     const w0 = Date.now();

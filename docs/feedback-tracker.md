@@ -1627,7 +1627,7 @@ Production build on `:3169`, a throwaway copy of `scripts/perf.mjs` pointed at `
 
 ## Round 20 phase 1 (2026-10-10) — speed
 
-**Lag probe.** `pnpm lag` ([`scripts/lag.mjs`](../scripts/lag.mjs)) against a production build on `:3100`: desktop 1440×900, scroll top to bottom at 4x CPU, then unthrottled rest per section (1 s settle, 5 s sample), then the first entry to `#worlds` at 4x CPU.
+**Lag probe.** `pnpm lag` ([`scripts/lag.mjs`](../scripts/lag.mjs)) against a production build on `:3100`: desktop 1440×900, scroll top to bottom at 4x CPU, then unthrottled rest per section (5 s sample), then the first entry to `#worlds` at 4x CPU. The settle before each rest sample was 1 s for the baseline rows and is 10 s from Task 2 on: 1–6 s after the jump to a section the cats are still walking and talking in reaction to that scroll, so the baseline's rest columns include that motion and are not comparable to later rows.
 
 | When | scroll4x fps / drops / worst frame / long tasks | rest busy % (about / worlds / tree / contact) | rAF calls per s (about / worlds / tree / contact) | hit tests per 5 s (about / worlds / tree / contact) | Worlds entry worst task |
 |---|---|---|---|---|---|
