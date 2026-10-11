@@ -89,11 +89,12 @@ its own accessible name, and it may never carry a plaque.
 `src/sections/Worlds/coastline-data.ts` is fenced: `GlobeCanvas.tsx` is the
 only file under `src/` allowed to import it, and
 `tests/lib/coastline-data.test.ts` fails if anything else there does. The GL
-surface does not rasterise it at runtime: it decodes `public/globe/coastline.png`,
-which `pnpm bake:coastline` bakes from it, and `tests/lib/coastline-png.test.ts`
-fails until the committed PNG matches a fresh bake. `GlobeCanvas` itself reaches the page only through the
-`import()` in `WorldsStage.tsx` — a static import of it from anything
-server-rendered pulls the engine *and* the coastlines into the initial bundle.
+surface does not rasterise it at runtime: it decodes
+`public/globe/coastline.png`, which `pnpm bake:coastline` bakes from it, and
+`tests/lib/coastline-png.test.ts` fails until the committed PNG matches a fresh
+bake. `GlobeCanvas` itself reaches the page only through the `import()` in
+`WorldsStage.tsx` — a static import of it from anything server-rendered pulls
+the engine *and* the coastlines into the initial bundle.
 
 ## Changing what the site says
 

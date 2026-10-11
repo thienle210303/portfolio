@@ -2037,7 +2037,9 @@ test.describe("companion", () => {
     });
 
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    // Not "networkidle": the globe chunk is requested a screen early after load
+    // and is withheld here, so the network never goes idle.
+    await page.waitForLoadState("load");
     await companionAwake(page);
 
     const stage = page.getByRole("group", { name: /playground earth/i });
