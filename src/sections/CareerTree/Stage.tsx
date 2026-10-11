@@ -203,7 +203,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
   // used is the stylesheet's business (it is not, under reduced motion). Each
   // goes on the one element that reads it, and `--camera` is registered as
   // non-inheriting in globals.css: an inherited variable written on the
-  // camera restyled ~1,850 elements under it on every act change.
+  // camera restyled every element under it on every act change.
   useEffect(() => {
     if (released) return;
     const measure = () => {

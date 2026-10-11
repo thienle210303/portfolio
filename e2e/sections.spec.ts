@@ -616,9 +616,13 @@ test.describe("career tree", () => {
   /*
    * `--camera` moves the camera and `--front` sizes the unborn mask. Where
    * Stage.tsx writes them is a performance choice (an inherited write on
-   * the camera restyled ~1,850 elements under it); what each act must show is the same:
-   * every element that reads one of them has taken its value, the mask shrinks
-   * as the tree grows, and the last act is the whole tree, unmasked.
+   * the camera restyled every element under it); what each act must show is
+   * the same: every element that reads one of them has taken its value, the
+   * mask shrinks as the tree grows, and the last act is the whole tree,
+   * unmasked. A `--camera` write that never reaches the camera reads back as
+   * its registered initial 0px, which the equalities accept, so the first and
+   * a middle act must also be genuinely moved and masked — the drawing is far
+   * taller than the frame there.
    */
   test("every act moves the camera and the unborn mask to the stage's measured values", async ({
     page,
@@ -658,7 +662,13 @@ test.describe("career tree", () => {
           return now.cameraY === now.camera && now.height === now.front;
         })
         .toBe(true);
-      const { camera, front } = await effect();
+      const { camera, front, cameraY, height } = await effect();
+      if (act === 0 || act === Math.floor(lastAct / 2)) {
+        expect(camera, `act ${act}: --camera on the camera`).toBeLessThan(0);
+        expect(cameraY, `act ${act}: the camera's transform`).toBeLessThan(0);
+        expect(front, `act ${act}: --front on the mask`).toBeGreaterThan(0);
+        expect(height, `act ${act}: the mask's height`).toBeGreaterThan(0);
+      }
       expect(front, `act ${act}`).toBeLessThanOrEqual(previousFront);
       expect(camera, `act ${act}`).toBeLessThanOrEqual(0);
       previousFront = front;
