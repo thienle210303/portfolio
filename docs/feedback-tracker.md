@@ -1624,3 +1624,14 @@ Production build on `:3169`, a throwaway copy of `scripts/perf.mjs` pointed at `
 - 390, at rest: title, year, headline and the chips in the list row. Chips on a wrapped row start with their separator rule ("| Playwright", "| Databricks", "| gRPC"), so wrapped rows read indented against the first.
 - 390, opened: the chips stay above "WHAT IT CHANGED" and its five lines.
 - The cats sit bottom right in every 1440 frame and over the last impact line at 390; they roam by design.
+
+## Round 20 phase 1 (2026-10-10) — speed
+
+**Lag probe.** `pnpm lag` ([`scripts/lag.mjs`](../scripts/lag.mjs)) against a production build on `:3100`: desktop 1440×900, scroll top to bottom at 4x CPU, then unthrottled rest per section (1 s settle, 5 s sample), then the first entry to `#worlds` at 4x CPU.
+
+| When | scroll4x fps / drops / worst frame / long tasks | rest busy % (about / worlds / tree / contact) | rAF per s (about / worlds / tree / contact) | hit tests per 5 s (about / worlds / tree / contact) | Worlds entry worst task |
+|---|---|---|---|---|---|
+| R20-P1 baseline (run 1) | 8.0 / 281 / 883 ms / 187 | 6.9 / 49.7 / 8.6 / 16.3 | 60.4 / 72.0 / 60.2 / 60.3 | 30 / 83 / 30 / 1172 | 781 ms |
+| R20-P1 baseline (run 2) | 8.7 / 266 / 950 ms / 165 | 7.6 / 48.8 / 9.0 / 15.6 | 60.7 / 71.5 / 60.9 / 60.2 | 30 / 78 / 30 / 1170 | 510 ms |
+
+Shape matches `reports/lag-investigation.md` (rAF about 60/s at rest everywhere, about 1170 hit tests in 5 s at contact, a long first entry to Worlds). Absolute scroll fps is far below that report's 24.7: the machine was at 100% CPU during both runs, which 4x throttling compounds (unverified as the cause). Compare later rows to these on the same machine, not to the report.
