@@ -78,10 +78,10 @@ import { palette, sphereColors } from "./palette";
  * section (a press the page scroll takes over does not count), and never runs
  * under reduced motion. After it the globe holds no timers and asks for no
  * frames until the visitor wakes it, with the flight button's replay among
- * the ways. So the globe asks for zero frames after any interaction, for
- * good; at rest after the landing; whenever the stage is off screen; and
- * under reduced motion. It asks for frames only while a flight, its landing
- * tail or a return is on screen.
+ * the ways. So the autoplay asks for zero frames after any interaction, for
+ * good; and the globe asks for none at rest after the landing, whenever the
+ * stage is off screen, and under reduced motion. It asks for frames only
+ * while a flight or its landing tail is on screen.
  * `e2e/worlds.spec.ts` measures exactly that — but *not* by counting `requestAnimationFrame`
  * page-wide, which cannot express the claim here: the companion cats hold a
  * 60 Hz loop of their own open on this page, so a page-wide count would fail
