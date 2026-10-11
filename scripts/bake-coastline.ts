@@ -1,7 +1,7 @@
 /**
  * Bakes the globe's coastline coverage texture into `public/globe/coastline.png`,
- * so the browser decodes it off the main thread instead of GlobeCanvas
- * rasterising 8 MB on first entry. Run `pnpm bake:coastline` after changing
+ * which GlobeCanvas decodes with `createImageBitmap` (off the main thread)
+ * instead of rasterising 8 MB on first entry. Run `pnpm bake:coastline` after changing
  * `coastline-data.ts` or `coastline-texture.ts`; `tests/lib/coastline-png.test.ts`
  * fails until the committed PNG matches.
  *

@@ -164,7 +164,8 @@ interface GlobeCanvasProps {
 const DEG = Math.PI / 180;
 
 /** The GL surface's coverage texture, baked by `pnpm bake:coastline`, so first
- *  entry costs an image decode and an upload rather than rasterising 8 MB here. */
+ *  entry costs an off-thread decode and an upload rather than rasterising 8 MB
+ *  here. */
 export const COASTLINE_PNG = "/globe/coastline.png";
 
 /** Radians of eastward roll that completes the crossing. Tuned in the mockup:
@@ -1130,7 +1131,7 @@ export default function GlobeCanvas({
     let live = true;
     let sphere: Sphere | null = null;
     // The overlay draws its coastlines for as long as `sphereRef` is unset —
-    // from the start, and while the PNG decodes — so falling back is only
+    // from the start, and while the PNG loads — so falling back is only
     // ever taking the empty surface away and telling the stage the skins
     // cannot be worn. `live` makes it once per visit: nothing re-acquires.
     const fallBack = () => {
@@ -1154,26 +1155,37 @@ export default function GlobeCanvas({
       if (forced.matches) fallBack();
     };
     // Listening from mount, not from the decode, so a context lost or forced
-    // colours switched on while the PNG decodes still end the surface.
+    // colours switched on while the PNG loads still end the surface.
     element.addEventListener("webglcontextlost", fallBack);
     forced.addEventListener("change", forcedChange);
 
-    // `texImage2D` copies the image to the GPU; nothing keeps it afterwards.
-    const image = new Image();
-    image.src = COASTLINE_PNG;
-    image.decode().then(
-      () => {
-        if (!live) return;
-        sphere = createSphere(gl, { coverage: image, colors });
-        const choice = pickSurface({ gl, program: sphere.program, forcedColors: forced.matches });
-        if (!choice.useGl) return fallBack();
-        sphereRef.current = { sphere, key: read.key };
-        onSurfaceChangeRef.current(true);
-        drawRef.current();
-      },
-      // A PNG that will not load or decode is a fallback like any other.
-      fallBack,
-    );
+    // `createImageBitmap` decodes off the main thread, and with these options
+    // the bytes arrive as baked, so the upload has nothing left to re-decode.
+    // `texImage2D` copies the bitmap to the GPU, so it is closed straight after.
+    fetch(COASTLINE_PNG)
+      .then((response) => {
+        if (!response.ok) throw new Error(`${COASTLINE_PNG}: ${response.status}`);
+        return response.blob();
+      })
+      .then((blob) => createImageBitmap(blob, { premultiplyAlpha: "none", colorSpaceConversion: "none" }))
+      .then(
+        (bitmap) => {
+          if (live) {
+            sphere = createSphere(gl, { coverage: bitmap, colors });
+            const choice = pickSurface({ gl, program: sphere.program, forcedColors: forced.matches });
+            if (choice.useGl) {
+              sphereRef.current = { sphere, key: read.key };
+              onSurfaceChangeRef.current(true);
+              drawRef.current();
+            } else {
+              fallBack();
+            }
+          }
+          bitmap.close();
+        },
+        // A PNG that will not load or decode is a fallback like any other.
+        fallBack,
+      );
 
     return () => {
       element.removeEventListener("webglcontextlost", fallBack);
