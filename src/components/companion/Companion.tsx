@@ -3946,9 +3946,12 @@ export function Companion({ facts }: CompanionProps) {
     /** Whether a scroll or resize is waiting on `recheck`, as opposed to only
      *  a body resize — see `scheduleRecheck`. */
     let recheckPageMoved = false;
-    /** Where the page stood at the last scroll event: the offset the cached
-     *  ground is at, give or take a rebuild between a scroll and its event. */
+    /** Where the page stood when `readScroll` last ran: the offset the cached
+     *  ground is at. A rebuild measures the live page, so the timer flushes a
+     *  pending read first (see `scheduleRecheck`). */
     let groundScroll = { x: window.scrollX, y: window.scrollY };
+    /** The pending `readScroll` frame, or 0. */
+    let scrollFrame = 0;
 
     /**
      * Re-probe the explorers' held stop, and drop it if its ground has stopped
@@ -4025,6 +4028,12 @@ export function Companion({ facts }: CompanionProps) {
         // only shifted the cached boxes (see `onScrollEvent`), which moves
         // sticky and fixed content that stayed put. Rebuilt here rather than
         // left lazy, so the ride's per-frame follower probe never pays for it.
+        // A scroll read still waiting on its frame goes first: the rebuild is
+        // measured at the live offset, and a late shift would move it twice.
+        if (scrollFrame) {
+          cancelAnimationFrame(scrollFrame);
+          readScroll();
+        }
         refreshGround();
         recheck = 0;
         const full = recheckPageMoved;
@@ -4125,7 +4134,15 @@ export function Companion({ facts }: CompanionProps) {
      */
     const onScrollEvent = () => {
       lastScrollAt.current = performance.now();
-      const now = lastScrollAt.current;
+      // Reading scrollY here would force every pending style recalc once per
+      // event; it is read once per frame instead. `groundScroll` is the last
+      // value read, so the delta covers every event since — none is dropped.
+      scrollFrame ||= requestAnimationFrame(readScroll);
+      onPageMoved(false);
+    };
+    const readScroll = () => {
+      scrollFrame = 0;
+      const now = performance.now();
       const x = window.scrollX;
       const y = window.scrollY;
       // The document moved as one, so the cached ground moves with it rather
@@ -4138,7 +4155,6 @@ export function Companion({ facts }: CompanionProps) {
       } else if (detectRush(Math.abs(y - win.y), now - win.at)) {
         rushRef.current = { dir: y > win.y ? 1 : -1, until: now + RUSH_HOLD_MS + 500 };
       }
-      onPageMoved(false);
     };
     const onScroll = onScrollEvent;
     const onResize = () => onPageMoved(true);
@@ -4203,6 +4219,7 @@ export function Companion({ facts }: CompanionProps) {
         document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
       }
       window.clearTimeout(recheck);
+      cancelAnimationFrame(scrollFrame);
       restart.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("scroll", onScroll);

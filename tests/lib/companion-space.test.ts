@@ -11,6 +11,7 @@ import {
   findClearSpot,
   headClear,
   invalidateGround,
+  invalidateViewport,
   isClearSpot,
   keepClearOfControl,
   pickExploreSpot,
@@ -18,11 +19,13 @@ import {
   pointInRects,
   randomFacing,
   refreshGround,
+  refreshSafeArea,
   searchClearOfToggle,
   setControlRects,
   setReservedRects,
   shiftGround,
   TOGGLE_CLEARANCE,
+  viewport,
   boxAt,
   type Point,
   type RectLike,
@@ -68,7 +71,10 @@ function ground(...boxes: DOMRect[]): void {
   invalidateGround();
 }
 
-beforeEach(() => ground());
+beforeEach(() => {
+  ground();
+  invalidateViewport();
+});
 
 const LEAD_PAD_X = 4;
 const LEAD_PAD_Y = 3;
@@ -371,6 +377,7 @@ describe("keepClearOfControl — the target-size invariant", () => {
     // still-conflicting horizontal one.
     const originalWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 150 });
+    invalidateViewport();
     try {
       const leadPos: Point = { x: 40, y: 400 };
       const leadRect = leadControlRect(leadPos);
@@ -387,6 +394,7 @@ describe("keepClearOfControl — the target-size invariant", () => {
       expect(result.y).not.toBe(onTop.y);
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+      invalidateViewport();
     }
   });
 });
@@ -885,5 +893,23 @@ describe("the ground probe reads rects cached per layout epoch", () => {
       invalidateGround();
       expect(isClearSpot(at), `${style} removed`).toBe(false);
     }
+  });
+});
+
+describe("viewport cache", () => {
+  it("returns the same object until invalidated or the safe area is refreshed", () => {
+    vi.stubGlobal("window", { innerWidth: 1000, innerHeight: 700 });
+    const root = { clientWidth: 1000, clientHeight: 700 };
+    vi.stubGlobal("document", { documentElement: root, querySelector: () => null });
+    invalidateViewport();
+    const a = viewport();
+    root.clientWidth = 800;
+    expect(viewport()).toBe(a);
+    invalidateViewport();
+    expect(viewport()).toEqual({ width: 800, height: 700 });
+    root.clientWidth = 600;
+    refreshSafeArea();
+    expect(viewport().width).toBe(600);
+    vi.unstubAllGlobals();
   });
 });

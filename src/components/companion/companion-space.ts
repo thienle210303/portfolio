@@ -146,6 +146,9 @@ let overlayTop = 0;
  * resize) rather than per frame.
  */
 export function refreshSafeArea(): void {
+  // Every caller is a resize, a recheck or a loop start: the moments the
+  // cached viewport and bounds can have gone stale (and `overlayTop` changes).
+  invalidateViewport();
   let top = 0;
   const header = document.querySelector("header");
   if (header) {
@@ -174,11 +177,28 @@ export function safeTop(): number {
  * of step with the furniture it is supposed to line up with.
  */
 export function viewport(): { width: number; height: number } {
-  const root = document.documentElement;
-  return {
-    width: root.clientWidth || window.innerWidth,
-    height: root.clientHeight || window.innerHeight,
-  };
+  if (!viewportCache) {
+    const root = document.documentElement;
+    viewportCache = {
+      width: root.clientWidth || window.innerWidth,
+      height: root.clientHeight || window.innerHeight,
+    };
+  }
+  return viewportCache;
+}
+
+/**
+ * Reading `clientWidth`/`clientHeight` forces layout, and `viewport()` is asked
+ * for several times a step, so it is read once and kept until something that
+ * can change it says so: `refreshSafeArea` (resize, the recheck timer, loop
+ * start). Callers get the same object, so none may mutate it.
+ */
+let viewportCache: { width: number; height: number } | null = null;
+let boundsCache: ReturnType<typeof boundsFor> | null = null;
+
+export function invalidateViewport(): void {
+  viewportCache = null;
+  boundsCache = null;
 }
 
 /**
@@ -198,7 +218,7 @@ export function boundsFor(view: { width: number; height: number }, top: number) 
 
 /** Every position a cat may hold right now. */
 function bounds() {
-  return boundsFor(viewport(), overlayTop);
+  return (boundsCache ??= boundsFor(viewport(), overlayTop));
 }
 
 export function clampToViewport(point: Point): Point {
