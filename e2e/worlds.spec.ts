@@ -775,12 +775,15 @@ test.describe("the live globe", () => {
         /Sea/.test(candidate.textContent ?? ""),
       );
       if (!button) throw new Error("no Sea button in the chapter list");
+      // Same task as the click: a flight that landed first would pass vacuously.
+      const before = document.querySelector("#worlds [data-replay]")?.textContent;
       button.click();
       (document.activeElement as HTMLElement | null)?.blur();
       await new Promise((resolve) => setTimeout(resolve, 0));
-      return document.querySelector("#worlds [data-replay]")?.textContent;
+      return { before, after: document.querySelector("#worlds [data-replay]")?.textContent };
     }, CHAPTER_BUTTONS);
-    expect(label, "picking a chapter did not stop the replay").toBe("Take the flight");
+    expect(label.before, "the flight was already over before the click").toBe("Stop the replay");
+    expect(label.after, "picking a chapter did not stop the replay").toBe("Take the flight");
     // The camera turns to Sea; let it arrive, then outlast the old cycle.
     await expect
       .poll(async () => (await measureGlobeFrames(page, 300)).draws, { timeout: 10_000 })
