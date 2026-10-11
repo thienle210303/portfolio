@@ -9,14 +9,15 @@ import { CAT_H, CAT_W } from "./CompanionCat";
  * used to be too, one `elementsFromPoint` per probe point, and that cost up to
  * two thousand calls in one frame. It now reads the boxes of the elements the
  * cats must dodge, gathered once per layout epoch (`groundRects`) and dropped
- * on every scroll, resize, body resize and animation end — the events that
- * move the ground.
+ * on every scroll, resize, body resize and animation end, and before each
+ * placement decision. A transition moves ground without dropping it, so the
+ * cache can lag one until the next decision.
  *
- * Placement is probed only at the moment a cat decides where to settle, and
- * the tone sample is throttled by its caller to a few times a second. While
- * a cat is actively trailing the pointer it is allowed to cross anything —
- * brief overlap is what makes it a companion rather than a cursor. It is
- * *resting* on top of a paragraph that reads as broken.
+ * Placement is decided when a cat chooses where to settle; the frames between
+ * re-probe from the cache. The tone sample is throttled by its caller to a few
+ * times a second. While a cat is actively trailing the pointer it is allowed
+ * to cross anything — brief overlap is what makes it a companion rather than
+ * a cursor. It is *resting* on top of a paragraph that reads as broken.
  */
 
 export interface Point {
@@ -259,6 +260,8 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * Deliberately conservative where a box is not what a hit test sees: an
  * occupied element that is covered by something else, or clipped by an
  * ancestor, still counts. A false "occupied" only sends a cat to another spot.
+ * One case goes the other way: a non-`OCCUPIED` child overflowing its
+ * `OCCUPIED` ancestor's box reads clear here, where a hit test said occupied.
  * What a hit test looks straight through is still skipped — the companion's
  * own subtree (`SELF`), and anything `pointer-events: none` or hidden, such as
  * the Journey's not-yet-drawn branches and its ink overlays — or a cat could

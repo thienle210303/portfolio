@@ -16,8 +16,9 @@ export function nextCadence(s: {
   busy: boolean;
   /** Both cats asleep. */
   asleep: boolean;
-  /** A blink or flick in progress on either cat, or a scene, duet, beat or
-   *  tour active. */
+  /** A blink or flick in progress on either cat, either cat in any pose but
+   *  sit or sleep, a scene, duet, beat or tour active, or the page carrying
+   *  them (`ride.riding`). */
   animating: boolean;
 }): Cadence {
   if (s.animating || s.busy) return "frame";
