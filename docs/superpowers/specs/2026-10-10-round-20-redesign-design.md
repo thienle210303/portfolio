@@ -128,6 +128,8 @@ Every section, the nav, cards, buttons and the chat:
   (`src/content/skins.ts`, `src/lib/skins.ts`), the 19 plaques, `WorldPanel`,
   and the plaque/chapter/skin parts of `src/lib/worlds.ts` and its tests.
   `aiTools` stays in `portfolio.ts` (the terminal uses it).
+- Anything the chat corpus indexes from the retired content is dropped or
+  repointed; the retrieval eval floors (0.9/0.95/0.7/0.8) must still pass.
 - CLAUDE.md's globe section is rewritten. The fenced coastline-data rule, the
   no-3D-library rule, the WebGL2 → 2D fallback and the lazy chunk all stay.
   The plaque and skin rules go.
