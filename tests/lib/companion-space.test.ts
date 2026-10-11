@@ -864,6 +864,19 @@ describe("the ground probe reads rects cached per layout epoch", () => {
     }
   });
 
+  it("syncGround at the recorded offset leaves the cache untouched", () => {
+    const prose = document.createElement("p");
+    prose.getBoundingClientRect = () => rect(0, 200, 400, 200);
+    document.body.append(prose);
+    invalidateGround();
+    expect(isClearSpot(at)).toBe(true);
+    // The cache array is private, so "same reference" is observed as "not re-mapped".
+    const map = vi.spyOn(Array.prototype, "map");
+    syncGround(0, 0);
+    expect(map).not.toHaveBeenCalled();
+    map.mockRestore();
+  });
+
   it("syncGround: several syncs net to the total movement", () => {
     const prose = document.createElement("p");
     prose.getBoundingClientRect = () => rect(0, 200, 400, 200);

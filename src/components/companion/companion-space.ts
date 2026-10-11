@@ -316,7 +316,8 @@ export function refreshGround(): void {
 
 /** The page scrolled by (`dx`, `dy`): every cached box moves the other way. */
 export function shiftGround(dx: number, dy: number): void {
-  if (!ground) return;
+  // `step` syncs every frame; a zero shift must not re-map the whole cache.
+  if (!ground || (dx === 0 && dy === 0)) return;
   groundAt = { x: groundAt.x + dx, y: groundAt.y + dy };
   ground = ground.map((box) => ({
     left: box.left - dx,
