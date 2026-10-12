@@ -57,7 +57,12 @@ export function CodeBlock({ code, filename, summary, className, compact = false 
     // produced zero usable hiding places out of 695 and 735 scroll positions.
     // A contract that is declared and never once satisfied is worse than no
     // contract: it reads as coverage.
-    <figure className={cn("min-w-0 max-w-full border border-rule bg-surface", className)}>
+    //
+    // `relative` contains the `sr-only` summary below, which is absolutely
+    // positioned: without it the summary escapes a collapsed Disclosure's
+    // `overflow-hidden` and stretches the document past the footer (the chat's
+    // "Show the ranking code" added ~320px of empty page under it).
+    <figure className={cn("relative min-w-0 max-w-full border border-rule bg-surface", className)}>
       <figcaption
         className={cn(
           "flex items-center justify-between gap-4 border-b border-rule",

@@ -175,6 +175,18 @@ for (const size of SIZES) {
       expect((await footer.boundingBox())!.height).toBeLessThan(80);
     });
 
+    test("the page ends at the footer", async ({ page }) => {
+      await page.waitForLoadState("networkidle");
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(1500);
+      const gap = await page.evaluate(
+        () =>
+          document.documentElement.scrollHeight -
+          (document.querySelector("footer")!.getBoundingClientRect().bottom + window.scrollY),
+      );
+      expect(gap).toBeLessThanOrEqual(1);
+    });
+
     test("no closing band", async ({ page }) => {
       await page.goto("/");
       await expect(page.locator("#closing")).toHaveCount(0);
