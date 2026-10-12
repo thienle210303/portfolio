@@ -517,10 +517,9 @@ function mover(phase: number): Mover {
  * under reduced motion the parked pair sit in the same corner, pinned there by
  * CSS rather than placed from this.)
  *
- * Bottom-right, not bottom-left: the hero's calls to action, the "Scroll"
- * marker and the back-to-top control all live on the left, and both the
- * toolkit panel and the resting box open from this corner too, so cats and
- * furniture stay together.
+ * Bottom-right, not bottom-left: the hero's calls to action and the "Scroll"
+ * marker live on the left, and both the toolkit panel and the resting box open
+ * from this corner too, so cats and furniture stay together.
  */
 function homeSpot(): Point {
   // Through the shared clamp, not a bare Math.max: that is the one function
