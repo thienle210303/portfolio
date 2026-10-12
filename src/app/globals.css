@@ -72,7 +72,7 @@
   --tracking-display: -0.02em; /* h2/h3 */
   --tracking-display-sm: -0.01em; /* step-2 headings, small figures */
   --tracking-caps: 0.08em; /* uppercase mono labels, tabs */
-  --tracking-caps-lg: 0.12em; /* rail dt, "Back to top" */
+  --tracking-caps-lg: 0.12em; /* rail dt */
 }
 
 /*
@@ -238,8 +238,8 @@
   /*
    * Night is NOT a mirror of day, and the asymmetry is the considered part.
    *
-   * In day, `tone="contrast"` is a true inversion: a paper site closing on two
-   * ink chapters. Mirroring that would make night's contrast sections full
+   * In day, `tone="contrast"` is a true inversion: a paper site ending on an
+   * ink footer. Mirroring that would make night's contrast sections full
    * paper — a bright, full-width flash for someone who explicitly asked for a
    * dark page. So in night, `contrast` deepens instead of inverting: the loud
    * ground is a raised, bluer panel a clear step off the base, which still
@@ -1194,30 +1194,6 @@
   /* mark built from a border survives onto paper for free.                  */
   /* ---------------------------------------------------------------------- */
 
-  /* Closing's colophon: the page's one contrast chapter gets a terminal
-     ornament rather than ending flush on the last button row. The fleuron
-     fills with `--ground`, not `--surface` — Closing has no raised panels,
-     just the inverted ground `tone-contrast` repoints everything onto, so a
-     `--surface` fill would have read as a small filled tile floating on top
-     of the hairline instead of a mark cut into it. */
-  .colophon {
-    position: relative;
-    height: var(--rule);
-    width: 3rem;
-    background-color: var(--rule-color);
-  }
-  .colophon::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    height: 7px;
-    width: 7px;
-    transform: translate(-50%, -50%) rotate(45deg);
-    border: var(--rule) solid var(--rule-color);
-    background-color: var(--ground);
-  }
-
   /* CaseStudy's chapter tick: a short registration mark crossing the
      article's own top rule, centred on the line rather than sitting above
      or below it (`top: 0; translateY(-50%)`, since the rule is drawn at the
@@ -1830,7 +1806,7 @@
 /* Ask, in Contact — the room the chat takes, held before it arrives          */
 /* -------------------------------------------------------------------------- */
 /* `AskLoader` imports the chat as `#ask` nears the viewport. Unreserved, the  */
-/* swap from an empty placeholder to the chat pushed `#closing` down by       */
+/* swap from an empty placeholder to the chat pushed the footer down by       */
 /* ~570-960px under a reader already looking at it (End key, a jump to the    */
 /* bottom). So one height per breakpoint, `--ask-room`, is the min-height of  */
 /* BOTH the loader's pre-chat states (`data-ask-slot`) and the chat's own     */
@@ -1841,7 +1817,7 @@
 /* modes, natural height with this rule switched off). Last measured with    */
 /* round 18's copy: live mode was never taller than static at any width (up  */
 /* to 28px shorter), so one set of values serves both and is not keyed on the */
-/* mode. e2e/ask.spec.ts fails at five widths if `#closing` moves by more     */
+/* mode. e2e/ask.spec.ts fails at five widths if the footer moves by more     */
 /* than 2px across the load, and fails between 400 and 639px if the room is   */
 /* short of the chat or more than 200px taller than it.                       */
 /*                                                                            */
@@ -2143,8 +2119,8 @@
   }
 
   /* Cross-agent contract: any element that should never print — the site
-     header, mobile menu, the contact form, the closing section, or
-     anything else — should carry className="no-print". That is the only
+     header, mobile menu, the contact form, or anything
+     else — should carry className="no-print". That is the only
      reliable mechanism and the one every agent should reach for.
      `body > header` / `body > footer` are an additional, narrowly-scoped
      safety net for just the two page-level landmarks (SPEC §2 guarantees

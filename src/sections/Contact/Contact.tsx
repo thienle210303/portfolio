@@ -55,8 +55,8 @@ import DirectLinks from "./DirectLinks";
  *
  * Tone is `deep`, not `contrast`. A full inversion right where visitors do
  * their most form-focused reading read as disconnected from the rest of the
- * page rather than as a deliberate chapter break — that device stays
- * reserved for `Closing`, the page's one true contrast section.
+ * page rather than as a deliberate chapter break — that device is
+ * left to the footer strip.
  */
 
 interface ContactProps {

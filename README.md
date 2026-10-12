@@ -59,7 +59,7 @@ no hydration guessing. `globals.css` additionally carries a
 `prefers-color-scheme` fallback for the case where that script never runs.
 
 Night is not a mirror of day. In day, `tone="contrast"` is a true inversion — a
-paper site closing on two ink chapters. Mirroring that would make night's
+paper site ending on an ink footer. Mirroring that would make night's
 contrast sections full paper, a bright full-width flash for someone who asked
 for a dark page, so in night `contrast` *deepens* to a raised panel instead.
 
@@ -155,7 +155,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — contact intents and the closing |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, hero code tabs, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference whose tool names the globe's Technology plaque is composed from — contact intents and the footer line |
 | `src/content/worlds.ts` | The six chapters of the globe — **addresses, not sentences**: a quoted plaque names a record and a field in `portfolio.ts` and renders it verbatim; a computed plaque names a computation over the content |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 

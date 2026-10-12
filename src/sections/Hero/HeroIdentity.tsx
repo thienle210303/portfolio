@@ -6,8 +6,7 @@
  *
  * The social links row (GitHub/LinkedIn/Email) that used to close this column
  * is gone (owner feedback, round 2): Contact already carries the same three
- * as cards, and the site footer lists them again on every page, so the hero
- * was one more repetition of a fact stated twice already. A "Contact me" link
+ * as cards, so the hero was one more repetition of a fact stated already. A "Contact me" link
  * went the same way in round 18: the sticky header's "Let's talk" is always
  * on screen and goes to the same place.
  *

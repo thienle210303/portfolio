@@ -34,8 +34,8 @@ test("no contact form is visible in print", async ({ page }) => {
   }
 });
 
-test("the closing section is not visible in print", async ({ page }) => {
-  await expect(page.locator("#closing")).toBeHidden();
+test("the footer is not visible in print", async ({ page }) => {
+  await expect(page.locator("body > footer")).toBeHidden();
 });
 
 /*

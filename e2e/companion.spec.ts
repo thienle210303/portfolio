@@ -878,7 +878,7 @@ test.describe("companion", () => {
 
   test("stays visible over the section it is crossing", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-    // Two themes, each walking the pair to the closing section and waiting
+    // Two themes, each walking the pair to the Contact section and waiting
     // for a settled reading there: two polls of up to 30s.
     test.setTimeout(90_000);
 
@@ -890,7 +890,7 @@ test.describe("companion", () => {
      * FB-9.2. `syncTone` repoints each drawing's aliases to the section it is
      * over, but a drawing that never names a colour of its own inherits one
      * already resolved on the layer root — outside every tone scope — and over
-     * the closing section in day theme the root's ink *is* that section's
+     * a contrast-toned section in day theme the root's ink *is* that section's
      * ground. The follower, the toy and the bed were being drawn in the colour
      * they were standing on, which is how a visitor loses a cat.
      *
@@ -964,9 +964,11 @@ test.describe("companion", () => {
       }
 
       /*
-       * The closing section is the one that proves it: the page's only
-       * `contrast` tone, which in day theme is a dark band under a light page.
-       * The cats are brought there the way a visitor brings them — by the lead
+       * Contact (tone `deep`, the half-step ground) is where this runs now:
+       * round 20 removed the closing section, which was the page's only
+       * `contrast` section, so the full-inversion arm of this proof has no
+       * section left to stand on (the footer strip is not a <section>). The
+       * cats are brought there the way a visitor brings them — by the lead
        * chasing a cursor — not by being left alone, which sends them off
        * exploring wherever their next stop happens to be. A cursor that only
        * circles the section's middle does not do it: the lead chases a moving
@@ -978,17 +980,21 @@ test.describe("companion", () => {
        * stay inside his reach, so the pair stay there.
        */
       const middle = await page.evaluate(() => {
-        const closing = document.querySelector("#closing");
-        if (!closing) throw new Error("the page has no closing section");
-        const box = closing.getBoundingClientRect();
+        const contact = document.querySelector("#contact");
+        if (!contact) throw new Error("the page has no contact section");
+        const box = contact.getBoundingClientRect();
+        // Contact is taller than the viewport: centre it when it fits,
+        // otherwise align its top and aim at the middle of what is on screen.
+        const fits = box.height <= window.innerHeight;
         window.scrollTo({
-          top: window.scrollY + box.top - (window.innerHeight - box.height) / 2,
+          top: window.scrollY + box.top - (fits ? (window.innerHeight - box.height) / 2 : 0),
           behavior: "instant" as ScrollBehavior,
         });
-        const settled = closing.getBoundingClientRect();
+        const settled = contact.getBoundingClientRect();
+        const visibleHeight = Math.min(settled.height, window.innerHeight - settled.top);
         return {
           x: Math.round(settled.left + settled.width / 2),
-          y: Math.round(settled.top + settled.height / 2),
+          y: Math.round(settled.top + visibleHeight / 2),
         };
       });
 
@@ -1018,7 +1024,7 @@ test.describe("companion", () => {
             if (
               seen.drawings === null &&
               drawings.length > 0 &&
-              drawings.every((cat) => cat.steady && cat.section === "closing")
+              drawings.every((cat) => cat.steady && cat.section === "contact")
             ) {
               seen.drawings = drawings;
             }
@@ -1026,7 +1032,7 @@ test.describe("companion", () => {
           },
           {
             timeout: 30_000,
-            message: `the cats never followed the cursor onto the closing section in ${theme}`,
+            message: `the cats never followed the cursor onto the contact section in ${theme}`,
           },
         )
         .toBe(true);

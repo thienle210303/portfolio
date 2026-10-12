@@ -153,5 +153,16 @@ for (const size of SIZES) {
       const headingTop = await heading.evaluate((el) => el.getBoundingClientRect().top);
       expect(headingTop).toBeGreaterThanOrEqual(headerBottom - TOL);
     });
+
+    test("footer is one line under 80px", async ({ page }) => {
+      await page.goto("/");
+      const box = await page.locator("footer").boundingBox();
+      expect(box!.height).toBeLessThan(80);
+    });
+
+    test("no closing band", async ({ page }) => {
+      await page.goto("/");
+      await expect(page.locator("#closing")).toHaveCount(0);
+    });
   });
 }

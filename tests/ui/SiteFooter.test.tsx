@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import SiteFooter from "@/components/layout/SiteFooter";
-import { profile, socialLinks } from "@/content/portfolio";
+import { footerLine, profile, socialLinks } from "@/content/portfolio";
 
 /**
  * The analytics disclosure line, which is the only sentence on the page that
@@ -53,24 +53,25 @@ describe("SiteFooter", () => {
     expect(dividersOn - dividersOff).toBe(1);
   });
 
-  // The rest of the colophon is not gated on anything, and a regression in the
-  // gate must not be able to take it with it.
   it.each(["production", "preview", undefined])(
-    "keeps the colophon's own links in every environment (VERCEL_ENV %o)",
+    "renders the one-line footer (VERCEL_ENV %o)",
     (value) => {
       vi.stubEnv("VERCEL_ENV", value);
-      render(<SiteFooter />);
-      expect(screen.getByRole("link", { name: "Back to top" })).toHaveAttribute("href", "#main");
-      expect(screen.getByText(`© 2026 ${profile.name}`)).toBeInTheDocument();
-      // By href, not by accessible name: the email link renders its handle
-      // and the others render their label, and one link's label is a prefix
-      // of another's handle.
-      for (const link of socialLinks) {
-        expect(
-          screen.getAllByRole("link").some((node) => node.getAttribute("href") === link.href),
-          `${link.platform} link missing from the colophon`,
-        ).toBe(true);
-      }
+      const { container } = render(<SiteFooter />);
+      const text = container.querySelector("footer")?.textContent ?? "";
+      const line = `© 2026 ${profile.name} · ${footerLine}`;
+      expect(footerLine).toBe("Two cats reviewed this code. Both approved.");
+      if (value === "production") expect(text).toBe(`${line} · ${DISCLOSURE}`);
+      else expect(text).toBe(line);
     },
   );
+
+  it("has no email or social links", () => {
+    const { container } = render(<SiteFooter />);
+    expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
+    for (const link of socialLinks) {
+      expect(container.querySelector(`a[href="${link.href}"]`)).toBeNull();
+    }
+    expect(container.querySelectorAll("a")).toHaveLength(0);
+  });
 });

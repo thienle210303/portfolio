@@ -4867,7 +4867,7 @@ export function Companion({ facts }: CompanionProps) {
         whatever section it is flying over, but `color` is inherited as a value
         that was already resolved on the layer root — outside every tone scope
         — so a drawing that never names a colour of its own keeps the root's
-        ink no matter what class lands on it. Over the Closing section in day
+        ink no matter what class lands on it. Over a contrast-toned scope in day
         theme that ink is the section's own ground, and the follower, the toy
         and the bed were invisible. Naming the alias on the same element the
         tone class lands on is what makes the repointing reach `currentColor`.

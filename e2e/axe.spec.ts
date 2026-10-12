@@ -46,7 +46,7 @@ async function auditHasNoViolations(page: Page, include?: string): Promise<void>
 
 /**
  * Scroll-before-audit (Workstream 3 — the ink-reveal pass's own test-impact
- * note). `#closing` sits well below the fold, and every section's
+ * note). The footer sits well below the fold, and every section's
  * eyebrow/h2/lead/rail now settle via `InkReveal` (`Section`/`SectionHeading`,
  * globals.css) — pre-reveal, that text sits at `opacity: 0` until the section
  * scrolls into view. Auditing it unscrolled would ask axe to run its colour-
@@ -232,7 +232,7 @@ test.describe("interactive states", () => {
     // The chat lives in Contact's `#ask` (round 18, see AskLoader.tsx) and
     // is a dynamically-imported chunk that loads only as the block nears the
     // viewport. Audits taken from the top run before it exists, and the ones
-    // that scroll past Contact to `#closing` may catch it loaded or mid-load,
+    // that scroll past Contact to the footer may catch it loaded or mid-load,
     // with no turn asked. It is the page's most interactive component, so it
     // earns its own audit, loaded for certain and with a turn on screen.
     await scrollIntoViewAndSettle(page, "#ask");
@@ -295,12 +295,12 @@ test.describe("off-base section tones", () => {
     await auditHasNoViolations(page, "#worlds");
   });
 
-  test("closing section (#closing, tone contrast) has zero WCAG violations", async ({ page }) => {
+  test("footer (tone contrast) has zero WCAG violations", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#closing");
-    await auditHasNoViolations(page, "#closing");
+    await scrollIntoViewAndSettle(page, "footer");
+    await auditHasNoViolations(page, "footer");
   });
 });
 
@@ -340,8 +340,8 @@ test.describe("night theme", () => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#closing");
-    await auditHasNoViolations(page, "#closing");
+    await scrollIntoViewAndSettle(page, "footer");
+    await auditHasNoViolations(page, "footer");
     // The globe is `tone="deep"`: its stage and list. The full-page audits
     // above see it too, but scoped is what reports a contrast pair against
     // `--color-paper-deep` as belonging to the section that owns it.
