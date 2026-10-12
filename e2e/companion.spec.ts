@@ -898,10 +898,9 @@ test.describe("companion", () => {
     });
     await page.goto("/");
     await page.waitForTimeout(6500);
+    type Box = { l: number; t: number; r: number; b: number; pe: string };
     const samples = await page.evaluate(
-      () =>
-        (window as unknown as { __pairSamples: { l: number; t: number; r: number; b: number; pe: string }[][] })
-          .__pairSamples,
+      () => (window as unknown as { __pairSamples: Box[][] }).__pairSamples,
     );
     expect(samples.length).toBeGreaterThan(60);
     const bad = samples.filter(([a, b]) => {
@@ -1006,9 +1005,9 @@ test.describe("companion", () => {
        * <section>. The full-inversion arm is pinned by the `syncTone` unit
        * test in tests/lib/companion-space.test.ts (the footer strip is too
        * thin to walk the cats into). The cats are brought there the way a
-       * visitor brings them — by the lead chasing a cursor — not by being left alone, which sends them off
-       * exploring wherever their next stop happens to be. A cursor that only
-       * circles the section's middle does not do it: the lead chases a moving
+       * visitor brings them — by the lead chasing a cursor — not by being left
+       * alone, which sends them off exploring wherever their next stop happens
+       * to be. A cursor that only circles the section's middle does not do it: the lead chases a moving
        * pointer only within `CHASE_RADIUS` (200px) of him. So the cursor is
        * led: each step reads where he is and puts the pointer 135px from him
        * toward the middle — inside his reach, outside the `LEAD_SPACE` (96px)

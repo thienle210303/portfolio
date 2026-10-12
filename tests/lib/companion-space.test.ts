@@ -26,6 +26,7 @@ import {
   shiftGround,
   syncGround,
   syncTone,
+  followerMuted,
   TOGGLE_CLEARANCE,
   viewport,
   boxAt,
@@ -994,5 +995,22 @@ describe("syncTone", () => {
     syncTone(node, { x: 1, y: 1 });
     expect(node.classList.contains("tone-deep")).toBe(false);
     expect(node.classList.contains("tone-contrast")).toBe(false);
+  });
+});
+
+describe("followerMuted", () => {
+  const lead = { left: 100, right: 158, top: 100, bottom: 148 };
+  const at = (left: number, top: number) => ({ left, right: left + 50, top, bottom: top + 42 });
+
+  it("mutes only on a true overlap", () => {
+    expect(followerMuted(lead, at(140, 110))).toBe(true);
+    expect(followerMuted(lead, at(60, 120))).toBe(true);
+  });
+
+  it("leaves touching and separated boxes pressable, the 22px chase gap included", () => {
+    expect(followerMuted(lead, at(158, 100))).toBe(false); // touching
+    expect(followerMuted(lead, at(180, 100))).toBe(false); // 22px apart
+    expect(followerMuted(lead, at(120, 148))).toBe(false); // touching below
+    expect(followerMuted(lead, at(0, 0))).toBe(false);
   });
 });
