@@ -248,7 +248,7 @@ export default function SiteNav() {
         <div
           id={MOBILE_PANEL_ID}
           ref={panelRef}
-          className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-ground lg:hidden"
+          className="fixed inset-x-0 top-[var(--header-h)] bottom-0 z-40 overflow-y-auto bg-ground lg:hidden"
         >
           <nav
             aria-label="Mobile"

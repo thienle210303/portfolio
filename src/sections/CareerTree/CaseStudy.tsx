@@ -223,7 +223,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
       // negative tabindex keeps the article itself out of the tab order.
       tabIndex={-1}
       aria-labelledby={titleId}
-      // Landing offset for that jump: 4rem of sticky header plus, below
+      // Landing offset for that jump: the 3.5rem sticky header plus, below
       // 1024px, room the Selected Work index row used to need (see the
       // component note above) and a little air. Written as
       // scale steps rather than calc() for the same reason `Section` writes
@@ -247,7 +247,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
           <p
             aria-hidden="true"
-            className="font-mono text-[length:var(--step-4)] leading-[0.85] tracking-(--tracking-display-lg) text-[color:var(--fg-subtle)]"
+            className="font-mono text-[length:var(--step-3)] leading-[0.85] tracking-(--tracking-display-lg) text-[color:var(--fg-subtle)]"
           >
             {caseStudyNumeral(index)}
           </p>
@@ -260,7 +260,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
 
         <h3
           id={titleId}
-          className="mt-4 text-balance font-display text-[length:var(--step-3)] font-normal leading-[1.05] tracking-(--tracking-display) text-[color:var(--fg)]"
+          className="mt-4 text-balance font-display text-[length:var(--step-2)] font-normal leading-[1.05] tracking-(--tracking-display) text-[color:var(--fg)]"
         >
           {project.title}
         </h3>

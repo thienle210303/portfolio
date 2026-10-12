@@ -12,7 +12,7 @@ import SiteAnalytics from "@/components/layout/SiteAnalytics";
 import "./globals.css";
 
 // Fraunces is variable on `opsz` and `wght`, which is the reason a variable
-// display face is here at all: the same family sets a 4rem headline and a
+// display face is here at all: the same family sets a 3rem headline and a
 // 400-word case study without a second display face. Do not pin `weight` —
 // that would collapse the variation axes the type scale relies on.
 //
@@ -21,7 +21,7 @@ import "./globals.css";
 // this, `font-optical-sizing: auto` has nothing to steer, because the one
 // variable file next/font fetches never carries an `opsz` axis in the first
 // place: silent substitution rather than a visible bug. With it, the same file
-// genuinely reshapes letterforms between the hero's ~4rem headline and a ~13px
+// genuinely reshapes letterforms between the hero's ~3rem headline and a ~13px
 // note — heavier stroke contrast and a taller x-height at small sizes, closer
 // to the display cut at large ones.
 //

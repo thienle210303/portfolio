@@ -617,7 +617,7 @@
    * Headings already compose `font-display` with a step from the type scale at
    * the point of use, which is the established pattern across every section,
    * and Fraunces is variable on `opsz` — with `font-optical-sizing: auto`
-   * being the browser default, a 4rem headline and a 1rem note already get the
+   * being the browser default, a 3rem headline and a 1rem note already get the
    * right optical size without anything being declared. A wrapper class would
    * only have restated the size in a second place.
    */

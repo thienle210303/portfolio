@@ -8,8 +8,8 @@ const DESKTOP_MIN_WIDTH = 1024;
 
 /**
  * Where a per-entry fragment comes to rest: `scroll-mt-20` (80px) on the
- * landing span `Stage.tsx` renders for it, which is the 4rem sticky header
- * plus a rem of air.
+ * landing span `Stage.tsx` renders for it, which is the 3.5rem (56px) sticky
+ * header plus 24px of air.
  */
 const ENTRY_RESTING_TOP = 80;
 /** A pixel or two of sub-pixel rounding, and nothing like enough to hide a

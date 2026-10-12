@@ -9,10 +9,10 @@
  *
  * The top padding stays at 1x on purpose. Before round 20's rescale, at
  * 390px the first screen ended in the seam between the last About paragraph
- * and the code artifact, and the cats came to rest there on load; trimming the top padding moved the seam up
- * 22px so that it no longer held a cat, and one stopped with its head on the
- * paragraph (e2e/companion.spec.ts, "neither cat comes to rest on the hero's
- * text").
+ * and the code artifact, and the cats came to rest there on load; trimming
+ * the top padding moved the seam up 22px so that it no longer held a cat, and
+ * one stopped with its head on the paragraph (e2e/companion.spec.ts, "neither
+ * cat comes to rest on the hero's text").
  *
  * Layout, widest to narrowest — all reflow, nothing is ever hidden:
  *
@@ -20,8 +20,9 @@
  *   >=1024px  margin rail | identity above code artifact
  *    <1024px  identity, code artifact, then the rail as endnotes
  *
- * The two magic numbers in the split are explained at the point of use below;
- * both come from measurement, not from the breakpoint scale.
+ * The split's breakpoint and column ratio are explained at the point of use
+ * below. The 1360px breakpoint is a holdover from before round 20's 1120px
+ * content cap; Phase 3 should revisit it.
  *
  * Round 18 (Plan B) merged the About band that used to sit below the fold
  * into it, so About is one layout rather than two: there is no second band.
@@ -68,16 +69,13 @@ export default function Hero() {
     >
       <div className="flex flex-col">
         {/*
-          Two deliberate numbers here, both driven by measurement rather than
-          by the breakpoint scale.
-
-          1360px, not `lg` or `xl`: the margin rail already spends a column, so
-          a three-column hero needs roughly 1360px before the two content
-          columns are worth having. At 1024 the old `lg` split left the
-          identity too narrow to set the headline and squeezed the code panel
-          to ~200px, clipping every line; at 1280 it was still five lines and
-          ~380px. Below 1360 the rail keeps its margin and identity/code stack
-          in the remaining column, which is what already reads well at 1024.
+          1360px is a holdover. It was measured before round 20, when the
+          content grew with the viewport: the margin rail spends a column, and
+          the two content columns only got wide enough to be worth having at
+          about 1360px. Since the 1120px content cap, the columns are the same
+          ~416px at every width >=1360, so the breakpoint no longer buys
+          width. Phase 3 should revisit it. Below 1360 the identity and the
+          code stack in the remaining column.
 
           An even split. 5.25/6.75 once favoured the code so its ~48-character
           lines would not wrap, but the artifact wraps (`pre-wrap`) and round

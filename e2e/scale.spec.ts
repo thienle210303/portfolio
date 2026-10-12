@@ -89,6 +89,17 @@ for (const size of SIZES) {
       expect(h).toBeLessThan(900 - 56);
     });
 
+    test("mobile menu panel starts at the header's bottom", async ({ page }) => {
+      test.skip(page.viewportSize()!.width >= 1024, "mobile menu only");
+      await page.waitForLoadState("networkidle");
+      await page.getByRole("button", { name: /Open menu/ }).click();
+      const panel = page.locator("#" + (await page.getByRole("button", { name: /Close menu/ }).getAttribute("aria-controls")));
+      await expect(panel).toBeVisible();
+      const panelTop = await panel.evaluate((el) => el.getBoundingClientRect().top);
+      const headerBottom = await page.locator("header").first().evaluate((el) => el.getBoundingClientRect().bottom);
+      expect(Math.abs(panelTop - headerBottom)).toBeLessThanOrEqual(TOL);
+    });
+
     test("nav anchor lands below the header", async ({ page }) => {
       await page.waitForLoadState("networkidle");
       if (page.viewportSize()!.width >= 1024) {

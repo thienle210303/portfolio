@@ -65,7 +65,7 @@ const COLUMNS: Record<number, string> = {
  * stays a glanceable fact either way.
  */
 function figureSize(value: string): string {
-  if (value.length <= 10) return "text-[length:var(--step-3)] tracking-[-0.03em]";
+  if (value.length <= 10) return "text-[length:var(--step-2)] tracking-[-0.03em]";
   if (value.length <= 20) return "text-[length:var(--step-2)] tracking-[-0.02em]";
   return "text-[length:var(--step-1)] tracking-[-0.01em]";
 }
