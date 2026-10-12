@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import SiteFooter from "@/components/layout/SiteFooter";
-import { footerLine, profile, socialLinks } from "@/content/portfolio";
+import { analyticsDisclosure, footerLine, profile, socialLinks } from "@/content/portfolio";
 
 /**
  * The analytics disclosure line, which is the only sentence on the page that
@@ -13,13 +13,15 @@ import { footerLine, profile, socialLinks } from "@/content/portfolio";
  * Both arms are pinned here rather than in `e2e/accessibility.spec.ts`,
  * because Playwright only ever runs against `pnpm dev`, where `VERCEL_ENV` is
  * unset: the e2e suite can see the absent arm and nothing else. The present
- * arm has no environment in which the browser suite could observe it.
+ * arm has no environment in which the browser suite could observe it
+ * (`e2e/scale.spec.ts` appends the sentence by hand to measure its wrap).
  *
- * The two DOM nodes this gate now costs a gate-off build — the paragraph and
- * the `·` divider before it — are the difference between 3651 and 3649 nodes
- * in `docs/feedback-tracker.md`'s round 17 stage 4 row.
+ * The two DOM nodes this gate costs a gate-off build — the disclosure (a `<p>`
+ * in round 17, a `<span>` now) and the `·` divider before it — were the
+ * difference between 3651 and 3649 nodes in `docs/feedback-tracker.md`'s
+ * round 17 stage 4 row.
  */
-const DISCLOSURE = "Anonymous page counts, no cookies (Vercel)";
+const DISCLOSURE = analyticsDisclosure;
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -53,6 +55,15 @@ describe("SiteFooter", () => {
     expect(dividersOn - dividersOff).toBe(1);
   });
 
+  it("hides every `·` divider from screen readers", () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    const { container } = render(<SiteFooter />);
+    const hidden = [...container.querySelectorAll('[aria-hidden="true"]')];
+    expect(hidden.map((el) => el.textContent)).toEqual(["·", "·"]);
+    const text = container.querySelector("footer")?.textContent ?? "";
+    expect(text.split("·")).toHaveLength(3);
+  });
+
   it.each(["production", "preview", undefined])(
     "renders the one-line footer (VERCEL_ENV %o)",
     (value) => {
@@ -61,6 +72,7 @@ describe("SiteFooter", () => {
       const text = container.querySelector("footer")?.textContent ?? "";
       const line = `© 2026 ${profile.name} · ${footerLine}`;
       expect(footerLine).toBe("Two cats reviewed this code. Both approved.");
+      expect(DISCLOSURE).toBe("Anonymous page counts, no cookies (Vercel)");
       if (value === "production") expect(text).toBe(`${line} · ${DISCLOSURE}`);
       else expect(text).toBe(line);
     },

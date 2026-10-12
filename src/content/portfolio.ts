@@ -1525,3 +1525,10 @@ export const contactIntents = [
 
 /** The footer's one quip, owner-chosen (round 20). */
 export const footerLine = "Two cats reviewed this code. Both approved." as const;
+
+/**
+ * The footer's analytics disclosure, rendered only where `analyticsEnabled()`
+ * is true. Plain text, never a link: an outbound link would be the only one
+ * in the footer that is not Thien's own.
+ */
+export const analyticsDisclosure = "Anonymous page counts, no cookies (Vercel)" as const;

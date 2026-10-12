@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { analyticsDisclosure } from "../src/content/portfolio";
 
 /** Converts a computed-style time value ("0.2s", "0.01ms", "200ms") to
  * milliseconds so reduced-motion durations can be compared numerically
@@ -194,6 +195,6 @@ test("the footer makes no analytics claim outside a production deployment", asyn
   await page.goto("/");
   await expect(page.getByRole("contentinfo")).toBeVisible();
   await expect(
-    page.getByRole("contentinfo").getByText("Anonymous page counts, no cookies (Vercel)"),
+    page.getByRole("contentinfo").getByText(analyticsDisclosure),
   ).toHaveCount(0);
 });

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { analyticsDisclosure } from "../src/content/portfolio";
 
 // Round 20 spec §2: the site-wide type and spacing targets, measured at the two
 // widths the spec names. Every bound carries a ±0.5px tolerance for subpixel
@@ -162,10 +163,16 @@ for (const size of SIZES) {
       expect(headingTop).toBeGreaterThanOrEqual(headerBottom - TOL);
     });
 
-    test("footer is one line under 80px", async ({ page }) => {
-      await page.goto("/");
-      const box = await page.locator("footer").boundingBox();
-      expect(box!.height).toBeLessThan(80);
+    // Both arms: e2e builds run with analytics off, so the production line is
+    // measured by appending the disclosure the way SiteFooter renders it.
+    test("footer is under 80px, with and without the analytics disclosure", async ({ page }) => {
+      const footer = page.locator("footer");
+      expect((await footer.boundingBox())!.height).toBeLessThan(80);
+      await footer.locator("p").evaluate((p, text) => {
+        if (!p.textContent!.includes(text)) p.append(" · " + text);
+      }, analyticsDisclosure);
+      await expect(footer).toContainText(analyticsDisclosure);
+      expect((await footer.boundingBox())!.height).toBeLessThan(80);
     });
 
     test("no closing band", async ({ page }) => {
