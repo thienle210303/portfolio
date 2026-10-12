@@ -276,9 +276,7 @@ export default function BusinessCard({ className }: BusinessCardProps) {
 
             No italic since round 17. The curly quotes already say this is
             quoted and the muted tone already says it is an aside, so the
-            slope was a third signal for one job — which made this the
-            cheapest of the four display italics to give up when that font
-            file turned out to be 151.7 KB. */}
+            slope was a third signal for one job. */}
         <p className="hanging-quote mt-2 font-display text-[length:var(--step--1)] leading-snug text-fg-muted">
           &ldquo;{profile.philosophy}&rdquo;
         </p>

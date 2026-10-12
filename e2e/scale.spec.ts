@@ -23,8 +23,6 @@ async function px(page: Page, selector: string, prop: string): Promise<number> {
 
 // Not inside the per-width loop: the face is the same at every width.
 test("headings use IBM Plex Sans", async ({ page }) => {
-  const urls: string[] = [];
-  page.on("response", (r) => urls.push(r.url()));
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   const first = (sel: string) =>
@@ -36,7 +34,14 @@ test("headings use IBM Plex Sans", async ({ page }) => {
   expect(sans).toContain("IBM Plex Sans");
   expect(await first("#about h1")).toBe(sans);
   expect(await first("#worlds h2")).toBe(sans);
-  expect(urls.filter((u) => /fraunces/i.test(u))).toEqual([]);
+  // next/font hashes file names, so a URL check would be vacuous; its
+  // @font-face family names (`__Fraunces_*`) are the stable signal.
+  const families = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return [...document.fonts].map((f) => f.family);
+  });
+  expect(families.length).toBeGreaterThan(0);
+  expect(families.filter((f) => /fraunces/i.test(f))).toEqual([]);
 });
 
 for (const size of SIZES) {

@@ -65,7 +65,7 @@
   --dur-settle: 500ms; /* an element rising into place on reveal */
   --dur-draw: 600ms; /* a hairline drawing itself in */
 
-  /* Tracking. Names for the values already in use across the display faces,
+  /* Tracking. Names for the values already in use across display headings,
      so the same heading rhythm is not re-typed as an arbitrary value in six
      components. `.eyebrow` keeps its own 0.1em — see the note on that class. */
   --tracking-display-lg: -0.03em; /* h1, case-study numerals */
