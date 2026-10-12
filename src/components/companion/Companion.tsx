@@ -60,6 +60,7 @@ import {
   REFERENCE_FRAME_MS,
   rideStep,
   trailBehind,
+  detourAround,
   type RideTracker,
 } from "./companion-motion";
 import { IDLE_TICK_MS, nextCadence } from "./companion-cadence";
@@ -218,6 +219,9 @@ const FOLLOW_SLACK = 58;
  * tighter `TOGGLE_CLEARANCE` (28px) with a couple of pixels to spare.
  */
 const FOLLOW_LONG_WALK_GAP = 34;
+
+/** How long after the cats appear the follower is routed round the lead. */
+const INTRO_MS = 2500;
 
 /**
  * How long before the cats stop trailing the pointer, then before they stop
@@ -1517,6 +1521,7 @@ export function Companion({ facts }: CompanionProps) {
   const lastTone = useRef(0);
   /** Where the cats should re-enter from, captured before the box unmounts. */
   const spawn = useRef<Spots | null>(null);
+  const placedAt = useRef(0);
   const pendingEscort = useRef(false);
   const focusWish = useRef<"cat" | "box" | null>(null);
   const restart = useRef<(() => void) | null>(null);
@@ -1740,12 +1745,18 @@ export function Companion({ facts }: CompanionProps) {
     const home = homeSpot();
     const from = spawn.current;
     spawn.current = null;
-    const start = from ?? { lead: home, follow: followHome(home) };
+    // Above the lead, not beside him: his first walk usually heads inland
+    // (left) and would walk onto a follower spawned on that side.
+    const start = from ?? {
+      lead: home,
+      follow: clampToViewport({ x: home.x, y: home.y - CAT_H - FOLLOW_GAP }),
+    };
     lead.current.pos.x = start.lead.x;
     lead.current.pos.y = start.lead.y;
     follow.current.pos.x = start.follow.x;
     follow.current.pos.y = start.follow.y;
     placed.current = true;
+    placedAt.current = performance.now();
     paint(leadNode.current, lead.current.pos);
     paint(followNode.current, follow.current.pos);
   }, []);
@@ -3517,6 +3528,13 @@ export function Companion({ facts }: CompanionProps) {
       if (ride.riding && !run && !rushing) followWant = tabby.pos;
 
       tabby.speed = ramp(tabby.speed, followWish, frames);
+      // Only for the opening walk, where she is spawned on his inland side and
+      // his first leg heads that way. Later moves (the tour, scenes) seat her
+      // wherever they mean to, so routing her round him there would only slow
+      // the pair down.
+      if (now - placedAt.current < INTRO_MS) {
+        followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP);
+      }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
       const followStep = advance(tabby.pos, followWant, tabby.speed, frames);
