@@ -84,8 +84,8 @@ Every section, the nav, cards, buttons and the chat:
   JetBrains Mono is not added). Fraunces is removed.
 - **Footer** is one line, under 80 px:
   `© 2026 Thien Le · Two cats reviewed this code. Both approved.`
-  The line is authored in `portfolio.ts`. The analytics disclosure stays as a
-  link on the same line when analytics is on.
+  The line is authored in `portfolio.ts`. The analytics disclosure stays as
+  plain text on the same line when analytics is on (it was never a link).
 - **Assumed:** the `#closing` band (`Closing.tsx`, `closing` content) is
   removed; it is half of the "footer is half the screen" problem and repeats
   the Contact button.
