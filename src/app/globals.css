@@ -2119,9 +2119,9 @@
   }
 
   /* Cross-agent contract: any element that should never print — the site
-     header, mobile menu, the contact form, or anything
-     else — should carry className="no-print". That is the only
-     reliable mechanism and the one every agent should reach for.
+     header, mobile menu, the contact form, or anything else — should carry
+     className="no-print". That is the only reliable mechanism and the one
+     every agent should reach for.
      `body > header` / `body > footer` are an additional, narrowly-scoped
      safety net for just the two page-level landmarks (SPEC §2 guarantees
      exactly one of each, direct children of <body> in the App Router

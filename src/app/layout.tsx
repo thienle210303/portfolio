@@ -169,9 +169,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         {/* tabIndex={-1} is load-bearing, not decoration. Fragment
             navigation only scrolls; it cannot move focus to a
-            non-interactive element. Without this the skip link scrolls the page while leaving keyboard
-            focus stranded where it was, which defeats the point of a skip
-            link entirely. Verified by e2e/navigation.spec.ts. */}
+            non-interactive element. Without this the skip link scrolls the
+            page while leaving keyboard focus stranded where it was, which
+            defeats the point of a skip link entirely. Verified by
+            e2e/navigation.spec.ts. */}
         <main id="main" tabIndex={-1}>
           {children}
         </main>

@@ -87,6 +87,7 @@ import {
   invalidateGround,
   isClearSpot,
   keepClearOfControl,
+  boundsFor,
   keepInView,
   placeBeside,
   randomFacing,
@@ -3541,7 +3542,10 @@ export function Companion({ facts }: CompanionProps) {
       // is detoured, so a cat that is meant to be still stays still.
       if (routing.current && followWant !== tabby.pos) {
         if (distance(tabby.pos, followWant) < 4) routing.current = false;
-        else followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP);
+        else {
+          const minY = boundsFor(viewport(), safeTop()).minY;
+          followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP, minY);
+        }
       }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;

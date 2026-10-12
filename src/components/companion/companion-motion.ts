@@ -367,8 +367,11 @@ export function trailBehind(lead: Point, facing: 1 | -1, width: number, gap: num
  * Where the follower should head this frame so her straight line to `want`
  * never passes through the lead: `want` itself when it clears his box (grown
  * by `pad`), otherwise a waypoint that leaves his row first. Above him she
- * slides sideways, rising to clear height if she is not already there; level with or below him she goes up
- * and over — either way she is on the far side before she closes the gap.
+ * slides sideways, rising to clear height if she is not already there; level
+ * with or below him she goes up and over — either way she is on the far side
+ * before she closes the gap. The waypoint never rises above `minY`, the top of
+ * the cats' safe band: with him just under the header, "over" would be a spot
+ * she can never reach, and she would hover at the band's edge until he moved.
  *
  * Exists for one case: the pair spawn with her on his inland side, his first
  * walk heads that way, and her trailing spot (behind him) is across his own
@@ -383,6 +386,7 @@ export function detourAround(
   w: number,
   h: number,
   pad: number,
+  minY: number,
 ): Point {
   const hits = (p: Point) => Math.abs(p.x - lead.x) < w + pad && Math.abs(p.y - lead.y) < h + pad;
   let blocked = hits(from);
@@ -391,7 +395,8 @@ export function detourAround(
     blocked = hits({ x: from.x + (want.x - from.x) * t, y: from.y + (want.y - from.y) * t });
   }
   if (!blocked) return want;
+  const over = Math.max(minY, lead.y - h - pad);
   return from.y < lead.y
-    ? { x: want.x, y: Math.min(from.y, lead.y - h - pad) }
-    : { x: from.x, y: lead.y - h - pad };
+    ? { x: want.x, y: Math.max(minY, Math.min(from.y, over)) }
+    : { x: from.x, y: over };
 }
