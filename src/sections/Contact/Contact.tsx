@@ -98,7 +98,7 @@ export default function Contact({
               `scroll-mt-20` clears the sticky header, the offset `Section`
               uses for its own anchors. */}
           <div id="ask" className="no-print mt-12 max-w-[46rem] scroll-mt-20">
-            <h3 className="font-display text-[length:var(--step-1)] font-normal leading-snug tracking-(--tracking-display-sm) text-fg">
+            <h3 className="font-display text-[length:var(--step-1)] font-semibold leading-snug tracking-(--tracking-display-sm) text-fg">
               Ask about my work
             </h3>
             <div className="mt-4">

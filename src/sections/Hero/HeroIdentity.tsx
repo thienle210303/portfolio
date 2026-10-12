@@ -59,7 +59,7 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
       <h1
         id={headingId}
         data-hero-step="h1"
-        className="mt-6 max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-normal leading-[1.02] tracking-(--tracking-display-lg) text-[color:var(--fg)]"
+        className="mt-6 max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-semibold leading-[1.1] tracking-(--tracking-display-lg) text-[color:var(--fg)]"
       >
         {profile.headline}
       </h1>

@@ -57,7 +57,7 @@ const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-[color:var(-
  * mid-range voice it was missing between the section headline and body copy.
  */
 const H4_CLASS =
-  "font-display text-[length:var(--step-1)] leading-snug text-[color:var(--fg)]";
+  "font-display text-[length:var(--step-1)] font-semibold leading-snug text-[color:var(--fg)]";
 
 /** The site's recurring mono/uppercase micro-label treatment — same class
  * `<Section>`'s own eyebrow uses, reused here for sub-labels within a case
@@ -260,7 +260,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
 
         <h3
           id={titleId}
-          className="mt-4 text-balance font-display text-[length:var(--step-2)] font-normal leading-[1.05] tracking-(--tracking-display) text-[color:var(--fg)]"
+          className="mt-4 text-balance font-display text-[length:var(--step-2)] font-semibold leading-[1.2] tracking-(--tracking-display) text-[color:var(--fg)]"
         >
           {project.title}
         </h3>

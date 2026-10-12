@@ -465,7 +465,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
                 disabled control. */}
             <h3
               data-act-title=""
-              className="font-display text-[length:var(--step-1)] font-normal leading-snug tracking-(--tracking-display-sm) text-fg"
+              className="font-display text-[length:var(--step-1)] font-semibold leading-snug tracking-(--tracking-display-sm) text-fg"
             >
               {act.title}
             </h3>

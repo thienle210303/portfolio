@@ -68,9 +68,9 @@
   /* Tracking. Names for the values already in use across display headings,
      so the same heading rhythm is not re-typed as an arbitrary value in six
      components. `.eyebrow` keeps its own 0.1em — see the note on that class. */
-  --tracking-display-lg: -0.03em; /* h1, case-study numerals */
-  --tracking-display: -0.02em; /* h2/h3 */
-  --tracking-display-sm: -0.01em; /* step-2 headings, small figures */
+  --tracking-display-lg: -0.02em; /* h1, case-study numerals */
+  --tracking-display: -0.01em; /* h2/h3 */
+  --tracking-display-sm: -0.01em; /* step-1 headings, small figures */
   --tracking-caps: 0.08em; /* uppercase mono labels, tabs */
   --tracking-caps-lg: 0.12em; /* rail dt */
 }

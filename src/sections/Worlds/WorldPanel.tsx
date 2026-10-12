@@ -16,7 +16,7 @@ import { DECORATION_LABEL, type ResolvedChapter } from "@/lib/worlds";
 export function WorldPanel({ world }: { readonly world: ResolvedChapter }) {
   return (
     <div className="mt-4 border border-rule bg-surface p-5">
-      <h3 className="font-display text-[length:var(--step-2)] leading-tight text-[color:var(--fg)]">
+      <h3 className="font-display text-[length:var(--step-2)] font-semibold leading-[1.2] text-[color:var(--fg)]">
         {world.name}
       </h3>
       <p className="eyebrow mt-1">{world.where}</p>

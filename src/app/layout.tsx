@@ -12,7 +12,8 @@ import SiteAnalytics from "@/components/layout/SiteAnalytics";
 import "./globals.css";
 
 // The whole site is set in IBM Plex Sans and IBM Plex Mono; `--font-display`
-// (globals.css) is an alias for Plex Sans, so headings are Plex Sans at 600.
+// (globals.css) is an alias for Plex Sans, and display headings set it at 600
+// (`font-semibold`).
 //
 // Both ship as static faces, so the weights actually used have to be listed.
 // Keep these lists minimal — every entry is a file the visitor downloads.
