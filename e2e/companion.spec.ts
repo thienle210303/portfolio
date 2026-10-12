@@ -876,6 +876,43 @@ test.describe("companion", () => {
   /** One drawing, and how it reads against the section it is currently over. */
   type Drawing = { section: string | null; steady: boolean; ratio: number | null };
 
+  test("the pair never offer two overlapping targets while they settle in", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Sampled from before the first paint: the opening walk is what this is
+    // about, and it is over within a couple of seconds.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __pairSamples: unknown[] };
+      w.__pairSamples = [];
+      const start = performance.now();
+      const frame = () => {
+        const rects = Array.from(document.querySelectorAll("[data-companion] button")).map(
+          (el) => {
+            const r = el.getBoundingClientRect();
+            return { l: r.left, t: r.top, r: r.right, b: r.bottom, pe: getComputedStyle(el).pointerEvents };
+          },
+        );
+        if (rects.length >= 2) w.__pairSamples.push(rects.slice(-2));
+        if (performance.now() - start < 6000) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+    await page.goto("/");
+    await page.waitForTimeout(6500);
+    const samples = await page.evaluate(
+      () =>
+        (window as unknown as { __pairSamples: { l: number; t: number; r: number; b: number; pe: string }[][] })
+          .__pairSamples,
+    );
+    expect(samples.length).toBeGreaterThan(60);
+    const bad = samples.filter(([a, b]) => {
+      const gap = Math.max(a.l - b.r, b.l - a.r, a.t - b.b, b.t - a.b);
+      // The follower is the cat button that is not the toolkit toggle.
+      const follower = a.r - a.l < b.r - b.l ? a : b;
+      return gap < 0 && follower.pe !== "none";
+    });
+    expect(bad).toEqual([]);
+  });
+
   test("stays visible over the section it is crossing", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     // Two themes, each walking the pair to the Contact section and waiting
@@ -968,8 +1005,8 @@ test.describe("companion", () => {
        * round 20 removed the closing section, the page's only `contrast`
        * <section>. The full-inversion arm is pinned by the `syncTone` unit
        * test in tests/lib/companion-space.test.ts (the footer strip is too
-       * thin to walk the cats into). The cats are brought there the way a visitor brings them — by the lead
-       * chasing a cursor — not by being left alone, which sends them off
+       * thin to walk the cats into). The cats are brought there the way a
+       * visitor brings them — by the lead chasing a cursor — not by being left alone, which sends them off
        * exploring wherever their next stop happens to be. A cursor that only
        * circles the section's middle does not do it: the lead chases a moving
        * pointer only within `CHASE_RADIUS` (200px) of him. So the cursor is

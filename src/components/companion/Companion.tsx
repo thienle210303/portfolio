@@ -220,8 +220,8 @@ const FOLLOW_SLACK = 58;
  */
 const FOLLOW_LONG_WALK_GAP = 34;
 
-/** How long after the cats appear the follower is routed round the lead. */
-const INTRO_MS = 2500;
+/** WCAG 2.5.8: two targets closer than this must not both be pressable. */
+const TARGET_SPACING = 24;
 
 /**
  * How long before the cats stop trailing the pointer, then before they stop
@@ -1521,7 +1521,13 @@ export function Companion({ facts }: CompanionProps) {
   const lastTone = useRef(0);
   /** Where the cats should re-enter from, captured before the box unmounts. */
   const spawn = useRef<Spots | null>(null);
-  const placedAt = useRef(0);
+  /** True from each placement (the opening, and re-entry from the resting box)
+   *  until the follower first reaches her trailing seat: while set she is
+   *  routed round the lead rather than through him. */
+  const routing = useRef(true);
+  /** Whether her button is currently non-pressable for sitting too close to
+   *  the lead's; written to the DOM only when it changes. */
+  const followMuted = useRef(false);
   const pendingEscort = useRef(false);
   const focusWish = useRef<"cat" | "box" | null>(null);
   const restart = useRef<(() => void) | null>(null);
@@ -1756,7 +1762,7 @@ export function Companion({ facts }: CompanionProps) {
     follow.current.pos.x = start.follow.x;
     follow.current.pos.y = start.follow.y;
     placed.current = true;
-    placedAt.current = performance.now();
+    routing.current = true;
     paint(leadNode.current, lead.current.pos);
     paint(followNode.current, follow.current.pos);
   }, []);
@@ -1796,6 +1802,7 @@ export function Companion({ facts }: CompanionProps) {
   const attachFollow = useCallback(
     (node: HTMLElement | null) => {
       followNode.current = node;
+      followMuted.current = false;
       if (!node) return;
       place();
       paint(node, follow.current.pos);
@@ -3528,12 +3535,16 @@ export function Companion({ facts }: CompanionProps) {
       if (ride.riding && !run && !rushing) followWant = tabby.pos;
 
       tabby.speed = ramp(tabby.speed, followWish, frames);
-      // Only for the opening walk, where she is spawned on his inland side and
-      // his first leg heads that way. Later moves (the tour, scenes) seat her
-      // wherever they mean to, so routing her round him there would only slow
-      // the pair down.
-      if (now - placedAt.current < INTRO_MS) {
-        followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP);
+      // Routed round the lead from each placement until her first arrival at
+      // her seat, however long that takes: she is spawned above him and his
+      // first leg can head toward her trailing spot, which is across his box.
+      // Not while the ride freeze holds her (`followWant` is her own position
+      // then, and a detour would move a cat that is meant to be still).
+      if (routing.current) {
+        if (distance(tabby.pos, followWant) < 4) routing.current = false;
+        else if (!(ride.riding && !run && !rushing)) {
+          followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP);
+        }
       }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
@@ -3728,6 +3739,24 @@ export function Companion({ facts }: CompanionProps) {
 
       paint(leadNode.current, grey.pos);
       paint(followNode.current, tabby.pos);
+      // One box test, computed from the positions just painted: while the two
+      // buttons are within the target-spacing of each other only the lead's can
+      // be pressed. Pointer only — she stays in the tab order, so keyboard
+      // reachability is untouched.
+      {
+        const l = leadControlRect(grey.pos);
+        const near =
+          Math.max(
+            l.left - (tabby.pos.x + CAT_W),
+            tabby.pos.x - l.right,
+            l.top - (tabby.pos.y + CAT_H),
+            tabby.pos.y - l.bottom,
+          ) < TARGET_SPACING;
+        if (near !== followMuted.current) {
+          followMuted.current = near;
+          if (followNode.current) followNode.current.style.pointerEvents = near ? "none" : "";
+        }
+      }
       if (run) paint(policeNode.current, run.police.pos);
       if (duetRef.current) {
         paint(thienNode.current, thien.current.pos);
