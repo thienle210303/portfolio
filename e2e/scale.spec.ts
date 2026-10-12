@@ -35,7 +35,7 @@ test("headings use IBM Plex Sans", async ({ page }) => {
   expect(await first("#about h1")).toBe(sans);
   expect(await first("#worlds h2")).toBe(sans);
   // next/font hashes file names, so a URL check would be vacuous; its
-  // @font-face family names (`__Fraunces_*`) are the stable signal.
+  // @font-face family names ("Fraunces", "Fraunces Fallback") are the stable signal.
   const families = await page.evaluate(async () => {
     await document.fonts.ready;
     return [...document.fonts].map((f) => f.family);
