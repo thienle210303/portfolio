@@ -67,59 +67,58 @@ export default function Hero() {
       // — see Section.tsx's own comment on this prop.
       reveal={false}
     >
-      <div className="flex flex-col">
+      {/*
+        1360px is a holdover. It was measured before round 20, when the
+        content grew with the viewport: the margin rail spends a column, and
+        the two content columns only got wide enough to be worth having at
+        about 1360px. Since the 1120px content cap, the columns are the same
+        ~416px at every width >=1360, so the breakpoint no longer buys
+        width. Phase 3 should revisit it. Below 1360 the identity and the
+        code stack in the remaining column.
+
+        An even split. 5.25/6.75 once favoured the code so its ~48-character
+        lines would not wrap, but the artifact wraps (`pre-wrap`) and round
+        20's 1120px content cap leaves ~830px for both columns at every
+        width >=1360: at 5.25/6.75 the identity column was 364px and the
+        hero ran 864px tall at 1440×900; even, it is ~416px and ~813px (~821px
+        once the headings went to Plex Sans 600).
+      */}
+      <div className="flex flex-col gap-y-10 min-[1360px]:grid min-[1360px]:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] min-[1360px]:items-stretch min-[1360px]:gap-x-10 min-[1360px]:gap-y-0">
+        <div className="min-w-0">
+          <HeroIdentity headingId={HEADING_ID} />
+        </div>
+
         {/*
-          1360px is a holdover. It was measured before round 20, when the
-          content grew with the viewport: the margin rail spends a column, and
-          the two content columns only got wide enough to be worth having at
-          about 1360px. Since the 1120px content cap, the columns are the same
-          ~416px at every width >=1360, so the breakpoint no longer buys
-          width. Phase 3 should revisit it. Below 1360 the identity and the
-          code stack in the remaining column.
-
-          An even split. 5.25/6.75 once favoured the code so its ~48-character
-          lines would not wrap, but the artifact wraps (`pre-wrap`) and round
-          20's 1120px content cap leaves ~830px for both columns at every
-          width >=1360: at 5.25/6.75 the identity column was 364px and the
-          hero ran 864px tall at 1440×900; even, it is ~416px and ~813px.
+          The divider draws itself in as the P2 sequence's "hairline"
+          step, then — once at rest — reads as a measuring bar rather than
+          a plain rule: `.relative` wraps a full-height 1px fill (the
+          original line, now `data-hero-step="hairline"` so the keyframe in
+          globals.css can grow it top-down) plus two short perpendicular
+          end-ticks (Workstream 3, P5), `position: absolute` so they add
+          no width to the 1px grid track and cost the two flanking columns
+          nothing.
         */}
-        <div className="flex flex-col gap-y-10 min-[1360px]:grid min-[1360px]:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] min-[1360px]:items-stretch min-[1360px]:gap-x-10 min-[1360px]:gap-y-0">
-          <div className="min-w-0">
-            <HeroIdentity headingId={HEADING_ID} />
-          </div>
-
-          {/*
-            The divider draws itself in as the P2 sequence's "hairline"
-            step, then — once at rest — reads as a measuring bar rather than
-            a plain rule: `.relative` wraps a full-height 1px fill (the
-            original line, now `data-hero-step="hairline"` so the keyframe in
-            globals.css can grow it top-down) plus two short perpendicular
-            end-ticks (Workstream 3, P5), `position: absolute` so they add
-            no width to the 1px grid track and cost the two flanking columns
-            nothing.
-          */}
-          <div aria-hidden="true" className="relative hidden min-[1360px]:block">
-            <div
-              data-hero-step="hairline"
-              className="h-full w-full bg-[color:var(--rule-color)]"
-            />
-            <span className="absolute left-1/2 top-0 h-px w-[5px] -translate-x-1/2 bg-[color:var(--rule-color)]" />
-            <span className="absolute bottom-0 left-1/2 h-px w-[5px] -translate-x-1/2 bg-[color:var(--rule-color)]" />
-          </div>
-
-          <div className="min-w-0">
-            <HeroCodeArtifact />
-          </div>
+        <div aria-hidden="true" className="relative hidden min-[1360px]:block">
+          <div
+            data-hero-step="hairline"
+            className="h-full w-full bg-[color:var(--rule-color)]"
+          />
+          <span className="absolute left-1/2 top-0 h-px w-[5px] -translate-x-1/2 bg-[color:var(--rule-color)]" />
+          <span className="absolute bottom-0 left-1/2 h-px w-[5px] -translate-x-1/2 bg-[color:var(--rule-color)]" />
         </div>
 
-        <div
-          data-cat-perch=""
-          data-hero-step="scroll"
-          className="mt-8 flex items-center gap-3"
-        >
-          <span aria-hidden="true" className="h-px w-10 bg-[color:var(--rule-color)]" />
-          <span className="eyebrow">Scroll</span>
+        <div className="min-w-0">
+          <HeroCodeArtifact />
         </div>
+      </div>
+
+      <div
+        data-cat-perch=""
+        data-hero-step="scroll"
+        className="mt-8 flex items-center gap-3"
+      >
+        <span aria-hidden="true" className="h-px w-10 bg-[color:var(--rule-color)]" />
+        <span className="eyebrow">Scroll</span>
       </div>
     </Section>
   );

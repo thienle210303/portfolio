@@ -106,10 +106,18 @@ for (const size of SIZES) {
       else within(gap, 40, 56);
     });
 
+    // A floor, not a height: the hero may grow tall from its own content, but
+    // neither #about nor any box between it and the h1 may set a min-height
+    // that reaches a screen (viewport minus the header).
     test("hero has no full-screen floor", async ({ page }) => {
-      test.skip(page.viewportSize()!.width < 1440, "measured at 1440×900");
-      const h = await page.locator("#about").evaluate((el) => el.getBoundingClientRect().height);
-      expect(h).toBeLessThan(900 - 56);
+      const floor = page.viewportSize()!.height - 56;
+      const mins = await page
+        .locator("#about, #about :has(h1)")
+        .evaluateAll((els) => els.map((el) => getComputedStyle(el).minHeight));
+      expect(mins.length).toBeGreaterThan(1);
+      for (const m of mins) {
+        expect(m === "auto" ? 0 : parseFloat(m)).toBeLessThan(floor);
+      }
     });
 
     test("mobile menu panel starts at the header's bottom", async ({ page }) => {
