@@ -73,10 +73,10 @@ import {
 
 /** The offset from the top of the viewport an anchor must come to rest at:
  *  `5rem`, which is `scroll-mt-20` and the `scroll-margin-top` globals.css gives
- *  `[data-stage] [data-act]`. The sticky header is 4rem, so this clears it. */
+ *  `[data-stage] [data-act]`. The sticky header is 3.5rem (56px), so this clears it. */
 const RESTING_TOP = 80;
 /** Sub-pixel rounding, and nothing like enough to hide a landing that stopped
- *  somewhere else — the header alone is 64px. */
+ *  somewhere else — the header alone is 56px. */
 const RESTING_TOLERANCE = 2;
 
 /** Every fragment this spec is responsible for. */

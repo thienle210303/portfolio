@@ -12,6 +12,7 @@ import {
   RIDE_SETTLE_MS,
   rideStep,
   trailBehind,
+  detourAround,
 } from "@/components/companion/companion-motion";
 
 /**
@@ -397,5 +398,37 @@ describe("trailBehind", () => {
     // "simplifies" the two gaps back down to one without reading why they
     // are not the same number.
     expect(dxOut).toBeLessThan(24);
+  });
+});
+
+describe("detourAround", () => {
+  const lead = { x: 1000, y: 800 };
+  const go = (from: { x: number; y: number }, want: { x: number; y: number }) =>
+    detourAround(from, want, lead, 50, 42, 26, 0);
+
+  it("heads straight for a target that does not cross him", () => {
+    const want = { x: 1092, y: 803 };
+    expect(go({ x: 1200, y: 803 }, want)).toBe(want);
+    expect(go({ x: 700, y: 803 }, { x: 800, y: 803 })).toEqual({ x: 800, y: 803 });
+  });
+
+  it("goes up and over when level with him on the far side from the target", () => {
+    const wp = go({ x: 940, y: 800 }, { x: 1092, y: 803 });
+    expect(wp).toEqual({ x: 940, y: 800 - 42 - 26 });
+  });
+
+  it("slides sideways, clear of his row, when already above him, then descends once clear", () => {
+    expect(go({ x: 1010, y: 780 }, { x: 1092, y: 803 })).toEqual({ x: 1092, y: 800 - 42 - 26 });
+    const want = { x: 1092, y: 803 };
+    expect(go({ x: 1092, y: 780 }, want)).toBe(want);
+  });
+
+  it("never sends her above the safe band when he is just under the header", () => {
+    const high = { x: 1000, y: 70 };
+    const minY = 64;
+    const over = detourAround({ x: 940, y: 70 }, { x: 1092, y: 73 }, high, 50, 42, 26, minY);
+    expect(over).toEqual({ x: 940, y: minY });
+    const side = detourAround({ x: 1010, y: 66 }, { x: 1092, y: 73 }, high, 50, 42, 26, minY);
+    expect(side).toEqual({ x: 1092, y: minY });
   });
 });

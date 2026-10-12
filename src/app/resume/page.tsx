@@ -80,7 +80,7 @@ export default function ResumePage() {
         </div>
 
         <header>
-          <h1 className="font-display text-[length:var(--step-4)] leading-[1.05] tracking-[-0.02em] text-fg">
+          <h1 className="font-display text-[length:var(--step-4)] font-semibold leading-[1.1] tracking-(--tracking-display-lg) text-fg">
             {profile.name}
           </h1>
           <p className="mt-2 text-[length:var(--step-1)] text-fg-muted">{profile.title}</p>
@@ -100,7 +100,7 @@ export default function ResumePage() {
             {WORK.map((entry) => (
               <article key={entry.id} className="print-avoid-break">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <h3 className="font-display text-[length:var(--step-1)] text-fg">
+                  <h3 className="font-display text-[length:var(--step-1)] font-semibold text-fg">
                     {entry.role} · {entry.organization}
                   </h3>
                   <span className="eyebrow">{entry.dateRange}</span>
@@ -142,7 +142,7 @@ export default function ResumePage() {
           <div className="mt-5 flex flex-col gap-6">
             {projects.map((project) => (
               <article key={project.id} className="print-avoid-break">
-                <h3 className="font-display text-[length:var(--step-1)] text-fg">{project.title}</h3>
+                <h3 className="font-display text-[length:var(--step-1)] font-semibold text-fg">{project.title}</h3>
                 <p className="mt-1.5 text-[length:var(--step-0)] leading-relaxed text-fg-muted">
                   {project.tagline}
                 </p>
@@ -180,7 +180,7 @@ export default function ResumePage() {
             {education.map((school) => (
               <div key={school.id} className="print-avoid-break">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <h3 className="font-display text-[length:var(--step-1)] text-fg">
+                  <h3 className="font-display text-[length:var(--step-1)] font-semibold text-fg">
                     {school.credential}
                   </h3>
                   <span className="eyebrow">{school.dateRange}</span>

@@ -45,6 +45,23 @@ export interface RectLike {
   readonly bottom: number;
 }
 
+/**
+ * Whether the follower's button must stop taking pointer events: only on a
+ * true overlap with the lead's (gap < 0). Both targets are at least 24x24, so
+ * WCAG 2.5.8 and axe fail on overlap alone; touching or separated boxes, the
+ * ordinary ~22px chase gap included, stay pressable.
+ */
+export function followerMuted(lead: RectLike, follow: RectLike): boolean {
+  return (
+    Math.max(
+      lead.left - follow.right,
+      follow.left - lead.right,
+      lead.top - follow.bottom,
+      follow.top - lead.bottom,
+    ) < 0
+  );
+}
+
 /** The companion's own root, marked so the probes can look straight through
  *  it. Without this a cat reads its own button as content and flees itself. */
 const SELF = "[data-companion]";

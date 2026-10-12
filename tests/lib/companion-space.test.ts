@@ -25,6 +25,8 @@ import {
   setReservedRects,
   shiftGround,
   syncGround,
+  syncTone,
+  followerMuted,
   TOGGLE_CLEARANCE,
   viewport,
   boxAt,
@@ -955,4 +957,60 @@ describe("viewport cache", () => {
     expect(viewport().width).toBe(600);
   });
   afterEach(() => vi.unstubAllGlobals());
+});
+
+describe("syncTone", () => {
+  // jsdom has no layout, so the element under the point is stubbed. This is
+  // what pins the full-inversion (FB-9.2) arm now that no <section> is
+  // `contrast`: the footer strip is the last contrast surface.
+  const over = (el: Element) => {
+    document.elementsFromPoint = () => [el];
+  };
+  const cat = () => document.createElement("div");
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+    // @ts-expect-error jsdom does not define it; remove the stub
+    delete document.elementsFromPoint;
+  });
+
+  it("applies tone-contrast over the footer strip", () => {
+    document.body.innerHTML = '<footer class="tone-contrast"><p id="x">hi</p></footer>';
+    over(document.getElementById("x")!);
+    const node = cat();
+    syncTone(node, { x: 1, y: 1 });
+    expect(node.classList.contains("tone-contrast")).toBe(true);
+    expect(node.classList.contains("tone-deep")).toBe(false);
+  });
+
+  it("applies tone-deep over a deep section and neither over a base one", () => {
+    document.body.innerHTML =
+      '<section class="tone-deep"><p id="d">d</p></section><section class="tone-base"><p id="b">b</p></section>';
+    const node = cat();
+    over(document.getElementById("d")!);
+    syncTone(node, { x: 1, y: 1 });
+    expect(node.classList.contains("tone-deep")).toBe(true);
+    expect(node.classList.contains("tone-contrast")).toBe(false);
+    over(document.getElementById("b")!);
+    syncTone(node, { x: 1, y: 1 });
+    expect(node.classList.contains("tone-deep")).toBe(false);
+    expect(node.classList.contains("tone-contrast")).toBe(false);
+  });
+});
+
+describe("followerMuted", () => {
+  const lead = { left: 100, right: 158, top: 100, bottom: 148 };
+  const at = (left: number, top: number) => ({ left, right: left + 50, top, bottom: top + 42 });
+
+  it("mutes only on a true overlap", () => {
+    expect(followerMuted(lead, at(140, 110))).toBe(true);
+    expect(followerMuted(lead, at(60, 120))).toBe(true);
+  });
+
+  it("leaves touching and separated boxes pressable, the 22px chase gap included", () => {
+    expect(followerMuted(lead, at(158, 100))).toBe(false); // touching
+    expect(followerMuted(lead, at(180, 100))).toBe(false); // 22px apart
+    expect(followerMuted(lead, at(120, 148))).toBe(false); // touching below
+    expect(followerMuted(lead, at(0, 0))).toBe(false);
+  });
 });

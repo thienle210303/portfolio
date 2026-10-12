@@ -16,9 +16,10 @@ Lowest pairing in the current palette: **4.66:1**
 ## How to read the scope column
 
 - **quiet** — `tone="base"` and `tone="deep"` sections, i.e. most of the page.
-- **loud** — `tone="contrast"` sections (Contact and Closing). In day this
-  inverts to an ink ground; in night it deepens to a raised panel rather than
-  flashing white. See the theme block in `globals.css` for why.
+- **loud** — `tone="contrast"` surfaces (the footer strip, the last contrast
+  surface). In day this inverts to an ink ground; in night it deepens to a
+  raised panel rather than flashing white. See the theme block in
+  `globals.css` for why.
 
 | Theme | Scope | Background | Foreground | Used for | Ratio | Level |
 |---|---|---|---|---|---|---|

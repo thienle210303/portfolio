@@ -550,20 +550,20 @@ test.describe("ask, in contact", () => {
     await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
     await expect(questionField(page)).toHaveCount(0);
 
-    const closingOffset = () =>
+    const footerOffset = () =>
       page.evaluate(() => {
-        const closing = document.querySelector("#closing");
-        if (!closing) throw new Error("the page has no closing section");
-        return closing.getBoundingClientRect().top + window.scrollY;
+        const footer = document.querySelector("footer");
+        if (!footer) throw new Error("the page has no footer");
+        return footer.getBoundingClientRect().top + window.scrollY;
       });
-    const before = await closingOffset();
+    const before = await footerOffset();
 
     await askBlock(page).scrollIntoViewIfNeeded();
     await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(300);
-    const after = await closingOffset();
+    const after = await footerOffset();
 
-    expect(Math.abs(after - before), `#closing moved ${after - before}px when the chat landed`).toBeLessThanOrEqual(2);
+    expect(Math.abs(after - before), `the footer moved ${after - before}px when the chat landed`).toBeLessThanOrEqual(2);
   });
 
   // The other half of that room: not so tall that the landed chat sits over a
@@ -584,7 +584,7 @@ test.describe("ask, in contact", () => {
         chat.style.minHeight = "";
         return { natural: height, reserved: parseFloat(getComputedStyle(chat).minHeight) };
       });
-      // Never short (the #closing test above needs that), and never more
+      // Never short (the footer test above needs that), and never more
       // than 200px of blank under the chat (330px before the 400px step).
       if (reserved < natural - 1 || reserved - natural > 200) {
         gaps.push(`${width}px: room ${reserved}px for a ${Math.round(natural)}px chat`);

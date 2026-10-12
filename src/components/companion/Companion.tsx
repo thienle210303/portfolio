@@ -60,6 +60,7 @@ import {
   REFERENCE_FRAME_MS,
   rideStep,
   trailBehind,
+  detourAround,
   type RideTracker,
 } from "./companion-motion";
 import { IDLE_TICK_MS, nextCadence } from "./companion-cadence";
@@ -86,6 +87,7 @@ import {
   invalidateGround,
   isClearSpot,
   keepClearOfControl,
+  boundsFor,
   keepInView,
   placeBeside,
   randomFacing,
@@ -102,6 +104,7 @@ import {
   viewport,
   type Point,
   type RectLike,
+  followerMuted,
 } from "./companion-space";
 import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
 
@@ -515,10 +518,9 @@ function mover(phase: number): Mover {
  * under reduced motion the parked pair sit in the same corner, pinned there by
  * CSS rather than placed from this.)
  *
- * Bottom-right, not bottom-left: the hero's calls to action, the "Scroll"
- * marker and the back-to-top control all live on the left, and both the
- * toolkit panel and the resting box open from this corner too, so cats and
- * furniture stay together.
+ * Bottom-right, not bottom-left: the hero's calls to action and the "Scroll"
+ * marker live on the left, and both the toolkit panel and the resting box open
+ * from this corner too, so cats and furniture stay together.
  */
 function homeSpot(): Point {
   // Through the shared clamp, not a bare Math.max: that is the one function
@@ -1517,6 +1519,13 @@ export function Companion({ facts }: CompanionProps) {
   const lastTone = useRef(0);
   /** Where the cats should re-enter from, captured before the box unmounts. */
   const spawn = useRef<Spots | null>(null);
+  /** True from each placement (the opening, and re-entry from the resting box)
+   *  until the follower first reaches her trailing seat: while set she is
+   *  routed round the lead rather than through him. */
+  const routing = useRef(true);
+  /** Whether her button is currently non-pressable for overlapping the lead's;
+   *  written to the DOM only when it changes. */
+  const followMuted = useRef(false);
   const pendingEscort = useRef(false);
   const focusWish = useRef<"cat" | "box" | null>(null);
   const restart = useRef<(() => void) | null>(null);
@@ -1740,12 +1749,18 @@ export function Companion({ facts }: CompanionProps) {
     const home = homeSpot();
     const from = spawn.current;
     spawn.current = null;
-    const start = from ?? { lead: home, follow: followHome(home) };
+    // Above the lead, not beside him: his first walk usually heads inland
+    // (left) and would walk onto a follower spawned on that side.
+    const start = from ?? {
+      lead: home,
+      follow: clampToViewport({ x: home.x, y: home.y - CAT_H - FOLLOW_GAP }),
+    };
     lead.current.pos.x = start.lead.x;
     lead.current.pos.y = start.lead.y;
     follow.current.pos.x = start.follow.x;
     follow.current.pos.y = start.follow.y;
     placed.current = true;
+    routing.current = true;
     paint(leadNode.current, lead.current.pos);
     paint(followNode.current, follow.current.pos);
   }, []);
@@ -1785,6 +1800,7 @@ export function Companion({ facts }: CompanionProps) {
   const attachFollow = useCallback(
     (node: HTMLElement | null) => {
       followNode.current = node;
+      followMuted.current = false;
       if (!node) return;
       place();
       paint(node, follow.current.pos);
@@ -3517,6 +3533,20 @@ export function Companion({ facts }: CompanionProps) {
       if (ride.riding && !run && !rushing) followWant = tabby.pos;
 
       tabby.speed = ramp(tabby.speed, followWish, frames);
+      // Routed round the lead from each placement until she first arrives at a
+      // real seat, however long that takes: she is spawned above him and his
+      // first leg can head toward her trailing spot, which is across his box.
+      // A hold (the ride freeze, the chase's `watch` mood, the just-woken
+      // stretch) sets `followWant` to her own position, which is "arrived"
+      // only trivially; it is tested first and neither ends the routing nor
+      // is detoured, so a cat that is meant to be still stays still.
+      if (routing.current && followWant !== tabby.pos) {
+        if (distance(tabby.pos, followWant) < 4) routing.current = false;
+        else {
+          const minY = boundsFor(viewport(), safeTop()).minY;
+          followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP, minY);
+        }
+      }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
       const followStep = advance(tabby.pos, followWant, tabby.speed, frames);
@@ -3710,6 +3740,20 @@ export function Companion({ facts }: CompanionProps) {
 
       paint(leadNode.current, grey.pos);
       paint(followNode.current, tabby.pos);
+      // One box test, computed from the positions just painted: while the two
+      // buttons truly overlap only the lead's can be pressed. Overlap only, not
+      // a spacing band: both targets are at least 24x24, so 2.5.8 and axe fail
+      // on overlap alone, and a band muted her through the whole ordinary
+      // chase (a ~22px gap) and let clicks fall through to the page. Pointer
+      // only — she stays in the tab order, so keyboard reachability is
+      // untouched.
+      {
+        const near = followerMuted(leadControlRect(grey.pos), boxAt(tabby.pos, CAT_W, CAT_H));
+        if (near !== followMuted.current) {
+          followMuted.current = near;
+          if (followNode.current) followNode.current.style.pointerEvents = near ? "none" : "";
+        }
+      }
       if (run) paint(policeNode.current, run.police.pos);
       if (duetRef.current) {
         paint(thienNode.current, thien.current.pos);
@@ -4867,7 +4911,7 @@ export function Companion({ facts }: CompanionProps) {
         whatever section it is flying over, but `color` is inherited as a value
         that was already resolved on the layer root — outside every tone scope
         — so a drawing that never names a colour of its own keeps the root's
-        ink no matter what class lands on it. Over the Closing section in day
+        ink no matter what class lands on it. Over a contrast-toned scope in day
         theme that ink is the section's own ground, and the follower, the toy
         and the bed were invisible. Naming the alias on the same element the
         tone class lands on is what makes the repointing reach `currentColor`.

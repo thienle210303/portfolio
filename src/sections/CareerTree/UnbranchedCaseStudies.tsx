@@ -30,7 +30,7 @@ export default function UnbranchedCaseStudies() {
     <section data-unbranched-case-studies="" aria-labelledby={HEADING_ID} className="mt-16">
       <h3
         id={HEADING_ID}
-        className="font-display text-[length:var(--step-2)] font-normal leading-snug tracking-(--tracking-display) text-fg"
+        className="font-display text-[length:var(--step-2)] font-semibold leading-[1.2] tracking-(--tracking-display) text-fg"
       >
         Coursework and capstone
       </h3>

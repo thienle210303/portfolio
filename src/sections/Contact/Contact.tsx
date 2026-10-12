@@ -55,8 +55,8 @@ import DirectLinks from "./DirectLinks";
  *
  * Tone is `deep`, not `contrast`. A full inversion right where visitors do
  * their most form-focused reading read as disconnected from the rest of the
- * page rather than as a deliberate chapter break — that device stays
- * reserved for `Closing`, the page's one true contrast section.
+ * page rather than as a deliberate chapter break — that device is
+ * left to the footer strip.
  */
 
 interface ContactProps {
@@ -98,7 +98,7 @@ export default function Contact({
               `scroll-mt-20` clears the sticky header, the offset `Section`
               uses for its own anchors. */}
           <div id="ask" className="no-print mt-12 max-w-[46rem] scroll-mt-20">
-            <h3 className="font-display text-[length:var(--step-1)] font-normal leading-snug tracking-(--tracking-display-sm) text-fg">
+            <h3 className="font-display text-[length:var(--step-1)] font-semibold leading-snug tracking-(--tracking-display-sm) text-fg">
               Ask about my work
             </h3>
             <div className="mt-4">

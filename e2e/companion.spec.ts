@@ -491,8 +491,11 @@ async function pauseClockSoon(page: Page): Promise<void> {
  * Install the page clock, load, and leave a requested scene walking to its
  * stage with the clock paused — one that fits somewhere, but not where the cats
  * already stand. The panel calls them to its corner, which is where the request
- * measures "here" from, so each try lets them get there first; inside the
- * Journey's stage that corner sits on content, so they always have to walk.
+ * measures "here" from, so each try lets them get there first, then lays an
+ * invisible block of content over that corner so the scene has to go elsewhere.
+ * The Journey's stage used to put content there by itself; round 20's 1120px
+ * content cap left the corner on empty margin at 1440px, so the fixture no
+ * longer leans on the layout. The block comes off once a walk is under way.
  */
 async function queueARequest(page: Page): Promise<void> {
   await page.clock.install();
@@ -514,12 +517,32 @@ async function queueARequest(page: Page): Promise<void> {
   for (const scene of SCENES) {
     await openToolkit(page);
     await page.waitForTimeout(2_500);
+    const lead = await catButton(page).boundingBox();
+    if (!lead) throw new Error("the lead cat has no box");
+    await page.evaluate((box) => {
+      document.getElementById("corner-cover")?.remove();
+      const cover = document.createElement("p");
+      cover.id = "corner-cover";
+      cover.textContent = "cover";
+      const pad = 320;
+      Object.assign(cover.style, {
+        position: "fixed",
+        margin: "0",
+        opacity: "0",
+        left: `${Math.max(0, box.x - pad)}px`,
+        top: `${Math.max(0, box.y - pad)}px`,
+        width: `${box.width + pad * 2}px`,
+        height: `${box.height + pad * 2}px`,
+      });
+      document.body.append(cover);
+    }, lead);
     await pauseClockSoon(page);
     await toolkit(page).getByRole("button", { name: scene.name }).focus();
     await page.keyboard.press("Enter");
     // Accepted (the panel closes) with nothing open yet: walking.
     if ((await scenePlaying(page)) === null && !(await refused())) {
       await expect(catButton(page)).toHaveAttribute("aria-expanded", "false");
+      await page.evaluate(() => document.getElementById("corner-cover")?.remove());
       return;
     }
     await page.clock.resume();
@@ -853,9 +876,45 @@ test.describe("companion", () => {
   /** One drawing, and how it reads against the section it is currently over. */
   type Drawing = { section: string | null; steady: boolean; ratio: number | null };
 
+  test("the pair never offer two overlapping targets while they settle in", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    // Sampled from before the first paint: the opening walk is what this is
+    // about, and it is over within a couple of seconds.
+    await page.addInitScript(() => {
+      const w = window as unknown as { __pairSamples: unknown[] };
+      w.__pairSamples = [];
+      const start = performance.now();
+      const frame = () => {
+        const rects = Array.from(document.querySelectorAll("[data-companion] button")).map(
+          (el) => {
+            const r = el.getBoundingClientRect();
+            return { l: r.left, t: r.top, r: r.right, b: r.bottom, pe: getComputedStyle(el).pointerEvents };
+          },
+        );
+        if (rects.length >= 2) w.__pairSamples.push(rects.slice(-2));
+        if (performance.now() - start < 6000) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+    await page.goto("/");
+    await page.waitForTimeout(6500);
+    type Box = { l: number; t: number; r: number; b: number; pe: string };
+    const samples = await page.evaluate(
+      () => (window as unknown as { __pairSamples: Box[][] }).__pairSamples,
+    );
+    expect(samples.length).toBeGreaterThan(60);
+    const bad = samples.filter(([a, b]) => {
+      const gap = Math.max(a.l - b.r, b.l - a.r, a.t - b.b, b.t - a.b);
+      // The follower is the cat button that is not the toolkit toggle.
+      const follower = a.r - a.l < b.r - b.l ? a : b;
+      return gap < 0 && follower.pe !== "none";
+    });
+    expect(bad).toEqual([]);
+  });
+
   test("stays visible over the section it is crossing", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-    // Two themes, each walking the pair to the closing section and waiting
+    // Two themes, each walking the pair to the Contact section and waiting
     // for a settled reading there: two polls of up to 30s.
     test.setTimeout(90_000);
 
@@ -867,7 +926,7 @@ test.describe("companion", () => {
      * FB-9.2. `syncTone` repoints each drawing's aliases to the section it is
      * over, but a drawing that never names a colour of its own inherits one
      * already resolved on the layer root — outside every tone scope — and over
-     * the closing section in day theme the root's ink *is* that section's
+     * a contrast-toned section in day theme the root's ink *is* that section's
      * ground. The follower, the toy and the bed were being drawn in the colour
      * they were standing on, which is how a visitor loses a cat.
      *
@@ -941,31 +1000,38 @@ test.describe("companion", () => {
       }
 
       /*
-       * The closing section is the one that proves it: the page's only
-       * `contrast` tone, which in day theme is a dark band under a light page.
-       * The cats are brought there the way a visitor brings them — by the lead
-       * chasing a cursor — not by being left alone, which sends them off
-       * exploring wherever their next stop happens to be. A cursor that only
-       * circles the section's middle does not do it: the lead chases a moving
-       * pointer only within `CHASE_RADIUS` (200px) of him. So the cursor is
-       * led: each step reads where he is and puts the pointer 135px from him
-       * toward the middle — inside his reach, outside the `LEAD_SPACE` (96px)
-       * he keeps from it, so he walks after it and she trails him. Once he is
-       * within 100px of the middle, the cursor circles it, small enough to
-       * stay inside his reach, so the pair stay there.
+       * Contact (tone `deep`, the half-step ground) is where this runs now:
+       * round 20 removed the closing section, the page's only `contrast`
+       * <section>. The full-inversion arm is pinned by the `syncTone` unit
+       * test in tests/lib/companion-space.test.ts (the footer strip is too
+       * thin to walk the cats into). The cats are brought there the way a
+       * visitor brings them — by the lead chasing a cursor — not by being left
+       * alone, which sends them off exploring wherever their next stop happens
+       * to be. A cursor that only circles the section's middle does not do
+       * it: the lead chases a moving pointer only within `CHASE_RADIUS`
+       * (200px) of him. So the cursor is led: each step reads where he is and
+       * puts the pointer 135px from him toward the middle — inside his reach,
+       * outside the `LEAD_SPACE` (96px) he keeps from it, so he walks after it
+       * and she trails him. Once he is within 100px of the middle, the cursor
+       * circles it, small enough to stay inside his reach, so the pair stay
+       * there.
        */
       const middle = await page.evaluate(() => {
-        const closing = document.querySelector("#closing");
-        if (!closing) throw new Error("the page has no closing section");
-        const box = closing.getBoundingClientRect();
+        const contact = document.querySelector("#contact");
+        if (!contact) throw new Error("the page has no contact section");
+        const box = contact.getBoundingClientRect();
+        // Contact is taller than the viewport: centre it when it fits,
+        // otherwise align its top and aim at the middle of what is on screen.
+        const fits = box.height <= window.innerHeight;
         window.scrollTo({
-          top: window.scrollY + box.top - (window.innerHeight - box.height) / 2,
+          top: window.scrollY + box.top - (fits ? (window.innerHeight - box.height) / 2 : 0),
           behavior: "instant" as ScrollBehavior,
         });
-        const settled = closing.getBoundingClientRect();
+        const settled = contact.getBoundingClientRect();
+        const visibleHeight = Math.min(settled.height, window.innerHeight - settled.top);
         return {
           x: Math.round(settled.left + settled.width / 2),
-          y: Math.round(settled.top + settled.height / 2),
+          y: Math.round(settled.top + visibleHeight / 2),
         };
       });
 
@@ -995,7 +1061,7 @@ test.describe("companion", () => {
             if (
               seen.drawings === null &&
               drawings.length > 0 &&
-              drawings.every((cat) => cat.steady && cat.section === "closing")
+              drawings.every((cat) => cat.steady && cat.section === "contact")
             ) {
               seen.drawings = drawings;
             }
@@ -1003,7 +1069,7 @@ test.describe("companion", () => {
           },
           {
             timeout: 30_000,
-            message: `the cats never followed the cursor onto the closing section in ${theme}`,
+            message: `the cats never followed the cursor onto the contact section in ${theme}`,
           },
         )
         .toBe(true);

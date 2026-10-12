@@ -6,10 +6,9 @@
  *
  * The social links row (GitHub/LinkedIn/Email) that used to close this column
  * is gone (owner feedback, round 2): Contact already carries the same three
- * as cards, and the site footer lists them again on every page, so the hero
- * was one more repetition of a fact stated twice already. A "Contact me" link
- * went the same way in round 18: the sticky header's "Let's talk" is always
- * on screen and goes to the same place.
+ * as cards, so the hero was one more repetition of a fact stated already. A
+ * "Contact me" link went the same way in round 18: the sticky header's "Let's
+ * talk" is always on screen and goes to the same place.
  *
  * Through round 17 the About paragraphs lived in a full-width band below the
  * fold (`HeroAbout`), because they were too long for this column. Round 18
@@ -60,7 +59,7 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
       <h1
         id={headingId}
         data-hero-step="h1"
-        className="mt-6 max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-normal leading-[1.02] tracking-(--tracking-display-lg) text-[color:var(--fg)]"
+        className="mt-6 max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-semibold leading-[1.1] tracking-(--tracking-display-lg) text-[color:var(--fg)]"
       >
         {profile.headline}
       </h1>

@@ -65,14 +65,14 @@
   --dur-settle: 500ms; /* an element rising into place on reveal */
   --dur-draw: 600ms; /* a hairline drawing itself in */
 
-  /* Tracking. Names for the values already in use across the display faces,
+  /* Tracking. Names for the values already in use across display headings,
      so the same heading rhythm is not re-typed as an arbitrary value in six
      components. `.eyebrow` keeps its own 0.1em — see the note on that class. */
-  --tracking-display-lg: -0.03em; /* h1, case-study numerals */
-  --tracking-display: -0.02em; /* h2/h3 */
-  --tracking-display-sm: -0.01em; /* step-2 headings, small figures */
+  --tracking-display-lg: -0.02em; /* h1, case-study numerals */
+  --tracking-display: -0.01em; /* h2/h3 */
+  --tracking-display-sm: -0.01em; /* step-1 headings, small figures */
   --tracking-caps: 0.08em; /* uppercase mono labels, tabs */
-  --tracking-caps-lg: 0.12em; /* rail dt, "Back to top" */
+  --tracking-caps-lg: 0.12em; /* rail dt */
 }
 
 /*
@@ -98,37 +98,28 @@
 }
 
 /*
- * Font-family variables. layout.tsx (owned by another agent) populates the
- * *values* of --font-display / --font-sans / --font-mono via next/font's
- * `variable` option. This block only registers those same names as Tailwind
- * theme keys so `font-display` / `font-sans` / `font-mono` utilities exist.
+ * Font-family variables. layout.tsx populates the values of --font-sans and
+ * --font-mono via next/font's `variable` option; this block registers those
+ * names as Tailwind theme keys so `font-sans` / `font-mono` utilities exist.
+ * `--font-display` is not a third face: it is Plex Sans under the name the
+ * heading classes already use, so display text is Plex Sans at the weight the
+ * component sets.
  *
- * The right-hand side is self-referential — `--font-display: var(--font-display), ...`
- * — and that is intentional, not a typo. It is safe ONLY because next/font's
- * own declaration (wherever layout.tsx applies `.variable`) is unlayered
- * CSS, while everything @theme emits — including this block — lives inside
- * Tailwind's `theme` cascade layer. Per the CSS Cascade Layers spec,
- * unlayered author styles always outrank layered ones regardless of source
- * order, so next/font's real value wins the cascade every time and this
- * declaration's own self-reference is never the one actually evaluated.
- * `inline` matters here too: it makes the generated utilities reference the
- * variable directly rather than through a second layer of indirection.
- *
- * IMPORTANT, read before "fixing" this: the ", ui-serif, Georgia, ..." text
- * after each var() is NOT a working fallback and must not be read as one —
- * it is plain comma-separated text sitting outside the var()'s own argument
- * list, not var()'s `(name, fallback)` form. If next/font's variable were
- * ever genuinely missing, the self-reference becomes a real cycle: CSS
- * invalidates the WHOLE declaration at computed-value time and does not
- * fall through to the next comma-separated font — there is no browser path
- * that ever reaches "ui-serif". That chain is kept only to document what a
- * real fallback stack would look like; it is inert in every failure mode
- * today. The only thing keeping fonts working is the identical name on both
- * sides plus the cascade-layer priority above — do not rename this variable
- * away from what layout.tsx passes to next/font's `variable` option.
+ * The self-reference in --font-sans / --font-mono (`var(--font-sans), ...`) is
+ * intentional. It is safe ONLY because next/font's own declaration (wherever
+ * layout.tsx applies `.variable`) is unlayered CSS, while everything @theme
+ * emits lives inside Tailwind's `theme` cascade layer, and unlayered author
+ * styles always outrank layered ones regardless of source order. So next/font's
+ * real value wins every time and the self-reference is never the one evaluated.
+ * The text after each var() is NOT a working fallback for that variable: if
+ * next/font's variable were ever missing, the self-reference becomes a cycle
+ * and CSS invalidates the whole declaration instead of falling through. Do not
+ * rename --font-sans / --font-mono away from what layout.tsx passes to
+ * next/font's `variable` option. `--font-display` has no such constraint: it
+ * references --font-sans, so its fallbacks are real.
  */
 @theme inline {
-  --font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+  --font-display: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
@@ -148,34 +139,31 @@
      */
     --step--2: clamp(0.75rem, 0.735rem + 0.08vw, 0.8125rem);
     --step--1: clamp(0.8125rem, 0.79rem + 0.11vw, 0.875rem);
-    --step-0: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
-    --step-1: clamp(1.2rem, 1.13rem + 0.35vw, 1.4rem);
-    --step-2: clamp(1.5rem, 1.36rem + 0.68vw, 2rem);
-    --step-3: clamp(1.9rem, 1.62rem + 1.4vw, 2.9rem);
-    --step-4: clamp(2.4rem, 1.86rem + 2.7vw, 4.2rem);
+    /* Round 20 (spec §2) rescaled 0–5 down: body 15–16px at --step-0,
+       section titles 24–28px at --step-3, the hero <h1> 40–48px at --step-5. */
+    --step-0: clamp(0.9375rem, 0.92rem + 0.08vw, 1rem);
+    --step-1: clamp(1.0625rem, 1.02rem + 0.2vw, 1.1875rem);
+    --step-2: clamp(1.25rem, 1.18rem + 0.3vw, 1.5rem);
+    --step-3: clamp(1.5rem, 1.42rem + 0.35vw, 1.75rem);
+    --step-4: clamp(1.75rem, 1.6rem + 0.6vw, 2.25rem);
     /*
      * Used by exactly one element: the hero <h1>. Its ceiling came down from
-     * 6.5rem because that element no longer spans the page — the margin rail
-     * takes a column, leaving the identity around 470px wide, and a 104px face
-     * in a 470px column broke the headline across five ragged lines. At
-     * 4.25rem the same headline sets in two or three, and the `max-w-[18ch]`
-     * on the element finally does something instead of never binding.
+     * 6.5rem to 4.25rem when the margin rail took a column, then to 3rem in
+     * round 20 when the owner found the whole page too big.
      */
-    --step-5: clamp(2.75rem, 1.9rem + 3.4vw, 4.25rem);
+    --step-5: clamp(2.5rem, 2.25rem + 1.1vw, 3rem);
 
     --gutter: clamp(1.25rem, 5vw, 5rem);
     /*
      * Section block padding. Two adjacent sections each contribute this, so
-     * the real gap between one section's last line and the next section's
-     * eyebrow is double what it looks like here — which is why the ceiling is
-     * 6.5rem and not the 10rem it started at. At 10rem, 1440px viewports were
-     * showing ~316px of empty ground between sections, and the margin rail,
-     * being taller than nothing, ended up hanging beside that emptiness.
+     * the real gap between sections is double: 48–64px. The ceiling came down
+     * from 10rem to 6.5rem when 1440px showed ~316px of empty ground between
+     * sections, then to 2rem in round 20 (spec §2).
      */
-    --section-y: clamp(3.5rem, 7vw, 6.5rem);
-    /* Height of the sticky header. Referenced by anything that has to reason
-       about the space actually left on screen, so the two cannot drift. */
-    --header-h: 4rem;
+    --section-y: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+    /* Height of the sticky header (56px). Referenced by anything that has to
+       reason about the space actually left on screen, so the two cannot drift. */
+    --header-h: 3.5rem;
     --rule: 1px;
   }
 
@@ -250,8 +238,8 @@
   /*
    * Night is NOT a mirror of day, and the asymmetry is the considered part.
    *
-   * In day, `tone="contrast"` is a true inversion: a paper site closing on two
-   * ink chapters. Mirroring that would make night's contrast sections full
+   * In day, `tone="contrast"` is a true inversion: a paper site ending on an
+   * ink footer. Mirroring that would make night's contrast sections full
    * paper — a bright, full-width flash for someone who explicitly asked for a
    * dark page. So in night, `contrast` deepens instead of inverting: the loud
    * ground is a raised, bluer panel a clear step off the base, which still
@@ -532,7 +520,8 @@
 
   .shell {
     width: 100%;
-    max-width: 1440px;
+    /* 1120px of content at most (spec §2), plus the gutters either side. */
+    max-width: calc(1120px + 2 * var(--gutter));
     margin-inline: auto;
     padding-inline: max(var(--gutter), env(safe-area-inset-left));
     padding-inline-end: max(var(--gutter), env(safe-area-inset-right));
@@ -611,45 +600,6 @@
 
   .prose-measure {
     max-width: 68ch;
-  }
-
-  /*
-   * There is deliberately no `.reading` / `.display-type` pair here.
-   *
-   * Headings already compose `font-display` with a step from the type scale at
-   * the point of use, which is the established pattern across every section,
-   * and Fraunces is variable on `opsz` — with `font-optical-sizing: auto`
-   * being the browser default, a 4rem headline and a 1rem note already get the
-   * right optical size without anything being declared. A wrapper class would
-   * only have restated the size in a second place.
-   */
-
-  /*
-   * Fraunces' two personality axes, held off everywhere the display face is
-   * used. This is the other half of the `axes: ["opsz", "SOFT", "WONK"]`
-   * request in layout.tsx and neither half works alone: next/font has to ship
-   * a file carrying the axes before CSS can pin them, and without the pin the
-   * file's own defaults render the whimsical cut of the face.
-   *
-   * `SOFT 0` keeps the terminals cut rather than rounded; `WONK 0` keeps the
-   * conventional double-storey g and the upright leg forms instead of the
-   * splayed ones the family is named for. What is left is the sharpest corner
-   * of Fraunces — high stroke contrast without the character, which is the
-   * whole reason it was chosen over Newsreader.
-   *
-   * `opsz` is deliberately absent: `font-optical-sizing: auto` is steering it
-   * per element, and naming it here would freeze every heading at one optical
-   * size and undo the argument for a variable face in the first place.
-   *
-   * One rule on the utility class rather than a per-element declaration: every
-   * consumer of the display face on this site reaches it through
-   * `.font-display`, so this is the one place it can be said once. No layer
-   * conflict — nothing else sets `font-variation-settings`.
-   */
-  .font-display {
-    font-variation-settings:
-      "SOFT" 0,
-      "WONK" 0;
   }
 
   /*
@@ -1243,30 +1193,6 @@
   /* `box-shadow` — the print stylesheet zeroes shadows globally, and a       */
   /* mark built from a border survives onto paper for free.                  */
   /* ---------------------------------------------------------------------- */
-
-  /* Closing's colophon: the page's one contrast chapter gets a terminal
-     ornament rather than ending flush on the last button row. The fleuron
-     fills with `--ground`, not `--surface` — Closing has no raised panels,
-     just the inverted ground `tone-contrast` repoints everything onto, so a
-     `--surface` fill would have read as a small filled tile floating on top
-     of the hairline instead of a mark cut into it. */
-  .colophon {
-    position: relative;
-    height: var(--rule);
-    width: 3rem;
-    background-color: var(--rule-color);
-  }
-  .colophon::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    height: 7px;
-    width: 7px;
-    transform: translate(-50%, -50%) rotate(45deg);
-    border: var(--rule) solid var(--rule-color);
-    background-color: var(--ground);
-  }
 
   /* CaseStudy's chapter tick: a short registration mark crossing the
      article's own top rule, centred on the line rather than sitting above
@@ -1880,7 +1806,7 @@
 /* Ask, in Contact — the room the chat takes, held before it arrives          */
 /* -------------------------------------------------------------------------- */
 /* `AskLoader` imports the chat as `#ask` nears the viewport. Unreserved, the  */
-/* swap from an empty placeholder to the chat pushed `#closing` down by       */
+/* swap from an empty placeholder to the chat pushed the footer down by       */
 /* ~570-960px under a reader already looking at it (End key, a jump to the    */
 /* bottom). So one height per breakpoint, `--ask-room`, is the min-height of  */
 /* BOTH the loader's pre-chat states (`data-ask-slot`) and the chat's own     */
@@ -1891,7 +1817,7 @@
 /* modes, natural height with this rule switched off). Last measured with    */
 /* round 18's copy: live mode was never taller than static at any width (up  */
 /* to 28px shorter), so one set of values serves both and is not keyed on the */
-/* mode. e2e/ask.spec.ts fails at five widths if `#closing` moves by more     */
+/* mode. e2e/ask.spec.ts fails at five widths if the footer moves by more     */
 /* than 2px across the load, and fails between 400 and 639px if the room is   */
 /* short of the chat or more than 200px taller than it.                       */
 /*                                                                            */
@@ -2193,9 +2119,9 @@
   }
 
   /* Cross-agent contract: any element that should never print — the site
-     header, mobile menu, the contact form, the closing section, or
-     anything else — should carry className="no-print". That is the only
-     reliable mechanism and the one every agent should reach for.
+     header, mobile menu, the contact form, or anything else — should carry
+     className="no-print". That is the only reliable mechanism and the one
+     every agent should reach for.
      `body > header` / `body > footer` are an additional, narrowly-scoped
      safety net for just the two page-level landmarks (SPEC §2 guarantees
      exactly one of each, direct children of <body> in the App Router

@@ -2,7 +2,6 @@ import Hero from "@/sections/Hero/Hero";
 import Worlds from "@/sections/Worlds/Worlds";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import Contact from "@/sections/Contact/Contact";
-import Closing from "@/sections/Footer/Closing";
 import { askLiveModeConfigured } from "@/lib/ask-live-config";
 import { validBookingUrl } from "@/lib/booking";
 
@@ -59,7 +58,6 @@ export default function Home() {
         askLiveModeConfigured={liveModeConfigured}
         bookingUrl={bookingUrl}
       />
-      <Closing />
     </>
   );
 }
