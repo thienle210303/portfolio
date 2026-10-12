@@ -99,6 +99,7 @@ Every section, the nav, cards, buttons and the chat:
 - The code card becomes a dark terminal window with three tabs, each a
   command and its output:
   - `whoami`: role, employer, based in, from, focus, cats
+  - `whoami` also carries the owner's motto, verbatim: `Practice makes AI.` (authored in `portfolio.ts`; owner request 2026-10-11)
   - `now`: what I'm working on now
   - `exploring`: the `aiTools` list
 - Every value is read from `portfolio.ts`. Nothing is labelled as real source
