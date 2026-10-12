@@ -491,8 +491,11 @@ async function pauseClockSoon(page: Page): Promise<void> {
  * Install the page clock, load, and leave a requested scene walking to its
  * stage with the clock paused — one that fits somewhere, but not where the cats
  * already stand. The panel calls them to its corner, which is where the request
- * measures "here" from, so each try lets them get there first; inside the
- * Journey's stage that corner sits on content, so they always have to walk.
+ * measures "here" from, so each try lets them get there first, then lays an
+ * invisible block of content over that corner so the scene has to go elsewhere.
+ * The Journey's stage used to put content there by itself; round 20's 1120px
+ * content cap left the corner on empty margin at 1440px, so the fixture no
+ * longer leans on the layout. The block comes off once a walk is under way.
  */
 async function queueARequest(page: Page): Promise<void> {
   await page.clock.install();
@@ -514,12 +517,32 @@ async function queueARequest(page: Page): Promise<void> {
   for (const scene of SCENES) {
     await openToolkit(page);
     await page.waitForTimeout(2_500);
+    const lead = await catButton(page).boundingBox();
+    if (!lead) throw new Error("the lead cat has no box");
+    await page.evaluate((box) => {
+      document.getElementById("corner-cover")?.remove();
+      const cover = document.createElement("p");
+      cover.id = "corner-cover";
+      cover.textContent = "cover";
+      const pad = 320;
+      Object.assign(cover.style, {
+        position: "fixed",
+        margin: "0",
+        opacity: "0",
+        left: `${Math.max(0, box.x - pad)}px`,
+        top: `${Math.max(0, box.y - pad)}px`,
+        width: `${box.width + pad * 2}px`,
+        height: `${box.height + pad * 2}px`,
+      });
+      document.body.append(cover);
+    }, lead);
     await pauseClockSoon(page);
     await toolkit(page).getByRole("button", { name: scene.name }).focus();
     await page.keyboard.press("Enter");
     // Accepted (the panel closes) with nothing open yet: walking.
     if ((await scenePlaying(page)) === null && !(await refused())) {
       await expect(catButton(page)).toHaveAttribute("aria-expanded", "false");
+      await page.evaluate(() => document.getElementById("corner-cover")?.remove());
       return;
     }
     await page.clock.resume();

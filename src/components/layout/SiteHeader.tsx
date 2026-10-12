@@ -18,7 +18,7 @@ export default function SiteHeader() {
   return (
     <header
       data-site-header
-      className="no-print sticky top-0 z-50 h-16 border-b border-rule bg-ground text-fg"
+      className="no-print sticky top-0 z-50 h-[var(--header-h)] border-b border-rule bg-ground text-fg"
     >
       <div
         className="shell flex h-full items-center justify-between gap-4"

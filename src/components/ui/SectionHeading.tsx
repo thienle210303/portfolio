@@ -20,7 +20,7 @@ interface SectionHeadingProps {
 /**
  * The <h2> pattern used by every section except the hero (the hero owns
  * the page's single <h1> directly and must not use this component).
- * Display serif at --step-4, with an optional lead paragraph in the muted
+ * Display serif at --step-3 (24–28px, round 20 spec §2), with an optional lead paragraph in the muted
  * tone at --step-1.
  *
  * `text-balance` on the h2 (Workstream 3, P4) rather than the newer
@@ -34,7 +34,7 @@ export function SectionHeading({ id, children, lead, reveal = true }: SectionHea
     <>
       <h2
         id={id}
-        className="max-w-[74ch] text-balance font-display text-[length:var(--step-4)] leading-[1.05] tracking-(--tracking-display) text-[color:var(--fg)]"
+        className="max-w-[74ch] text-balance font-display text-[length:var(--step-3)] leading-[1.05] tracking-(--tracking-display) text-[color:var(--fg)]"
         {...(reveal ? { "data-ink": "" } : {})}
         style={reveal ? ({ "--ink-delay": "60ms" } as CSSProperties) : undefined}
       >

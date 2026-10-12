@@ -1,19 +1,15 @@
 /**
- * Hero — id="about", the page's single <h1>, and the only section anywhere on
- * the site allowed a viewport-height unit (SECTIONS.md §1). Server Component:
+ * Hero — id="about", the page's single <h1>. Server Component:
  * HeroCodeArtifact's only interactive piece is the shared Tabs primitive,
  * which supplies its own "use client" boundary, so nothing here needs one.
  *
- * The height floor and vertical centring live on a wrapper inside Section's
- * children slot; Section's bottom padding is overridden through its
- * `className` (as Closing.tsx does) to 0.6x, and the floor subtracts the
- * sticky header and that padding (1x top, 0.6x bottom) from `100svh` rather
- * than ignoring them. It is a floor, not a cap, so a fold whose content is
- * taller simply grows. It is `svh`, not `vh`, per SPEC §3.
+ * Section's bottom padding is overridden through its `className` (as
+ * Closing.tsx does) to 0.6x. There is no height floor: round 20 (spec §2)
+ * dropped the `100svh` one, so the hero is exactly as tall as its content.
  *
- * The top padding stays at 1x on purpose. At 390px the first screen ends in
- * the seam between the last About paragraph and the code artifact, and the
- * cats come to rest there on load; trimming the top padding moved the seam up
+ * The top padding stays at 1x on purpose. Before round 20's rescale, at
+ * 390px the first screen ended in the seam between the last About paragraph
+ * and the code artifact, and the cats came to rest there on load; trimming the top padding moved the seam up
  * 22px so that it no longer held a cat, and one stopped with its head on the
  * paragraph (e2e/companion.spec.ts, "neither cat comes to rest on the hero's
  * text").
@@ -29,15 +25,7 @@
  *
  * Round 18 (Plan B) merged the About band that used to sit below the fold
  * into it, so About is one layout rather than two: there is no second band.
- * "One fold" means that, not one screen tall — the `min-h` above is a floor,
- * and with the About paragraphs in the identity column the fold runs past
- * the first screen. At >=1360px, where identity and code sit side by side,
- * the opening argument lands in the first screen: the <h1>, the positioning
- * line, the Kiên Giang paragraph and the code artifact (checked at 1360×900
- * and 1440×900). Below 1360px the code artifact stacks after the paragraphs,
- * so the first screen holds the <h1>, the positioning line and the Kiên Giang
- * paragraph, and the code starts below it (measured on a production build: at
- * 1280×800 its top is at 896px; at 1024×768, 870px). The band's computed
+ * "One fold" means one layout, not one screen tall. The band's computed
  * counts and its lens list were dropped rather than moved here — the Journey already draws the career they counted.
  */
 import { Section, type RailNote } from "@/components/ui/Section";
@@ -78,14 +66,7 @@ export default function Hero() {
       // — see Section.tsx's own comment on this prop.
       reveal={false}
     >
-      {/*
-        The floor subtracts the sticky header and this section's own block
-        padding (1 x --section-y above, 0.6 x below, the latter set on <Section>
-        above), which a flat `100svh` would not: those stack, and the hero
-        would reserve a full viewport plus the chrome and padding, then centre
-        inside it.
-      */}
-      <div className="flex min-h-[calc(100svh-var(--header-h)-var(--section-y)*1.6)] flex-col justify-center">
+      <div className="flex flex-col">
         {/*
           Two deliberate numbers here, both driven by measurement rather than
           by the breakpoint scale.
@@ -98,12 +79,13 @@ export default function Hero() {
           ~380px. Below 1360 the rail keeps its margin and identity/code stack
           in the remaining column, which is what already reads well at 1024.
 
-          5.25/6.75 favouring the code, not the old 7/5 favouring the identity:
-          the longest line in the artifact is ~48 monospace characters and
-          needs ~494px of inner width. The identity column can give that up —
-          prose reflows, a code line does not.
+          An even split. 5.25/6.75 once favoured the code so its ~48-character
+          lines would not wrap, but the artifact wraps (`pre-wrap`) and round
+          20's 1120px content cap leaves ~830px for both columns at every
+          width >=1360: at 5.25/6.75 the identity column was 364px and the
+          hero ran 864px tall at 1440×900; even, it is ~416px and ~813px.
         */}
-        <div className="flex flex-col gap-y-10 min-[1360px]:grid min-[1360px]:grid-cols-[minmax(0,5.25fr)_1px_minmax(0,6.75fr)] min-[1360px]:items-stretch min-[1360px]:gap-x-10 min-[1360px]:gap-y-0">
+        <div className="flex flex-col gap-y-10 min-[1360px]:grid min-[1360px]:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] min-[1360px]:items-stretch min-[1360px]:gap-x-10 min-[1360px]:gap-y-0">
           <div className="min-w-0">
             <HeroIdentity headingId={HEADING_ID} />
           </div>

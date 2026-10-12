@@ -148,34 +148,31 @@
      */
     --step--2: clamp(0.75rem, 0.735rem + 0.08vw, 0.8125rem);
     --step--1: clamp(0.8125rem, 0.79rem + 0.11vw, 0.875rem);
-    --step-0: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
-    --step-1: clamp(1.2rem, 1.13rem + 0.35vw, 1.4rem);
-    --step-2: clamp(1.5rem, 1.36rem + 0.68vw, 2rem);
-    --step-3: clamp(1.9rem, 1.62rem + 1.4vw, 2.9rem);
-    --step-4: clamp(2.4rem, 1.86rem + 2.7vw, 4.2rem);
+    /* Round 20 (spec §2) rescaled 0–5 down: body 15–16px at --step-0,
+       section titles 24–28px at --step-3, the hero <h1> 40–48px at --step-5. */
+    --step-0: clamp(0.9375rem, 0.92rem + 0.08vw, 1rem);
+    --step-1: clamp(1.0625rem, 1.02rem + 0.2vw, 1.1875rem);
+    --step-2: clamp(1.25rem, 1.18rem + 0.3vw, 1.5rem);
+    --step-3: clamp(1.5rem, 1.42rem + 0.35vw, 1.75rem);
+    --step-4: clamp(1.75rem, 1.6rem + 0.6vw, 2.25rem);
     /*
      * Used by exactly one element: the hero <h1>. Its ceiling came down from
-     * 6.5rem because that element no longer spans the page — the margin rail
-     * takes a column, leaving the identity around 470px wide, and a 104px face
-     * in a 470px column broke the headline across five ragged lines. At
-     * 4.25rem the same headline sets in two or three, and the `max-w-[18ch]`
-     * on the element finally does something instead of never binding.
+     * 6.5rem to 4.25rem when the margin rail took a column, then to 3rem in
+     * round 20 when the owner found the whole page too big.
      */
-    --step-5: clamp(2.75rem, 1.9rem + 3.4vw, 4.25rem);
+    --step-5: clamp(2.5rem, 2.25rem + 1.1vw, 3rem);
 
     --gutter: clamp(1.25rem, 5vw, 5rem);
     /*
      * Section block padding. Two adjacent sections each contribute this, so
-     * the real gap between one section's last line and the next section's
-     * eyebrow is double what it looks like here — which is why the ceiling is
-     * 6.5rem and not the 10rem it started at. At 10rem, 1440px viewports were
-     * showing ~316px of empty ground between sections, and the margin rail,
-     * being taller than nothing, ended up hanging beside that emptiness.
+     * the real gap between sections is double: 48–64px. The ceiling came down
+     * from 10rem to 6.5rem when 1440px showed ~316px of empty ground between
+     * sections, then to 2rem in round 20 (spec §2).
      */
-    --section-y: clamp(3.5rem, 7vw, 6.5rem);
-    /* Height of the sticky header. Referenced by anything that has to reason
-       about the space actually left on screen, so the two cannot drift. */
-    --header-h: 4rem;
+    --section-y: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+    /* Height of the sticky header (56px). Referenced by anything that has to
+       reason about the space actually left on screen, so the two cannot drift. */
+    --header-h: 3.5rem;
     --rule: 1px;
   }
 
@@ -532,7 +529,8 @@
 
   .shell {
     width: 100%;
-    max-width: 1440px;
+    /* 1120px of content at most (spec §2), plus the gutters either side. */
+    max-width: calc(1120px + 2 * var(--gutter));
     margin-inline: auto;
     padding-inline: max(var(--gutter), env(safe-area-inset-left));
     padding-inline-end: max(var(--gutter), env(safe-area-inset-right));
