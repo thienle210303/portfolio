@@ -221,7 +221,6 @@ const FOLLOW_SLACK = 58;
  */
 const FOLLOW_LONG_WALK_GAP = 34;
 
-
 /**
  * How long before the cats stop trailing the pointer, then before they stop
  * exploring and nap, in ms.
@@ -1524,7 +1523,8 @@ export function Companion({ facts }: CompanionProps) {
    *  until the follower first reaches her trailing seat: while set she is
    *  routed round the lead rather than through him. */
   const routing = useRef(true);
-  /** Whether her button is currently non-pressable for overlapping the lead's; written to the DOM only when it changes. */
+  /** Whether her button is currently non-pressable for overlapping the lead's;
+   *  written to the DOM only when it changes. */
   const followMuted = useRef(false);
   const pendingEscort = useRef(false);
   const focusWish = useRef<"cat" | "box" | null>(null);
@@ -3536,10 +3536,10 @@ export function Companion({ facts }: CompanionProps) {
       // Routed round the lead from each placement until she first arrives at a
       // real seat, however long that takes: she is spawned above him and his
       // first leg can head toward her trailing spot, which is across his box.
-      // A hold (the ride freeze, the chase's `watch` mood, a scene's stand-
-      // still) sets `followWant` to her own position, which is "arrived" only
-      // trivially; it is tested first and neither ends the routing nor is
-      // detoured, so a cat that is meant to be still stays still.
+      // A hold (the ride freeze, the chase's `watch` mood, the just-woken
+      // stretch) sets `followWant` to her own position, which is "arrived"
+      // only trivially; it is tested first and neither ends the routing nor
+      // is detoured, so a cat that is meant to be still stays still.
       if (routing.current && followWant !== tabby.pos) {
         if (distance(tabby.pos, followWant) < 4) routing.current = false;
         else followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP);
@@ -3741,8 +3741,9 @@ export function Companion({ facts }: CompanionProps) {
       // buttons truly overlap only the lead's can be pressed. Overlap only, not
       // a spacing band: both targets are at least 24x24, so 2.5.8 and axe fail
       // on overlap alone, and a band muted her through the whole ordinary
-      // chase (a ~22px gap) and let clicks fall through to the page. Pointer only — she stays in the tab order, so keyboard
-      // reachability is untouched.
+      // chase (a ~22px gap) and let clicks fall through to the page. Pointer
+      // only — she stays in the tab order, so keyboard reachability is
+      // untouched.
       {
         const near = followerMuted(leadControlRect(grey.pos), boxAt(tabby.pos, CAT_W, CAT_H));
         if (near !== followMuted.current) {

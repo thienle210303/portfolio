@@ -1007,13 +1007,14 @@ test.describe("companion", () => {
        * thin to walk the cats into). The cats are brought there the way a
        * visitor brings them — by the lead chasing a cursor — not by being left
        * alone, which sends them off exploring wherever their next stop happens
-       * to be. A cursor that only circles the section's middle does not do it: the lead chases a moving
-       * pointer only within `CHASE_RADIUS` (200px) of him. So the cursor is
-       * led: each step reads where he is and puts the pointer 135px from him
-       * toward the middle — inside his reach, outside the `LEAD_SPACE` (96px)
-       * he keeps from it, so he walks after it and she trails him. Once he is
-       * within 100px of the middle, the cursor circles it, small enough to
-       * stay inside his reach, so the pair stay there.
+       * to be. A cursor that only circles the section's middle does not do
+       * it: the lead chases a moving pointer only within `CHASE_RADIUS`
+       * (200px) of him. So the cursor is led: each step reads where he is and
+       * puts the pointer 135px from him toward the middle — inside his reach,
+       * outside the `LEAD_SPACE` (96px) he keeps from it, so he walks after it
+       * and she trails him. Once he is within 100px of the middle, the cursor
+       * circles it, small enough to stay inside his reach, so the pair stay
+       * there.
        */
       const middle = await page.evaluate(() => {
         const contact = document.querySelector("#contact");
