@@ -6,9 +6,9 @@
  *
  * The social links row (GitHub/LinkedIn/Email) that used to close this column
  * is gone (owner feedback, round 2): Contact already carries the same three
- * as cards, so the hero was one more repetition of a fact stated already. A "Contact me" link
- * went the same way in round 18: the sticky header's "Let's talk" is always
- * on screen and goes to the same place.
+ * as cards, so the hero was one more repetition of a fact stated already. A
+ * "Contact me" link went the same way in round 18: the sticky header's "Let's
+ * talk" is always on screen and goes to the same place.
  *
  * Through round 17 the About paragraphs lived in a full-width band below the
  * fold (`HeroAbout`), because they were too long for this column. Round 18

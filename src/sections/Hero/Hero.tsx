@@ -3,8 +3,9 @@
  * HeroCodeArtifact's only interactive piece is the shared Tabs primitive,
  * which supplies its own "use client" boundary, so nothing here needs one.
  *
- * Section's bottom padding is overridden through its `className` to 0.6x. There is no height floor: round 20 (spec §2)
- * dropped the `100svh` one, so the hero is exactly as tall as its content.
+ * Section's bottom padding is overridden through its `className` to 0.6x.
+ * There is no height floor: round 20 (spec §2) dropped the `100svh` one, so
+ * the hero is exactly as tall as its content.
  *
  * The top padding stays at 1x on purpose. Before round 20's rescale, at
  * 390px the first screen ended in the seam between the last About paragraph

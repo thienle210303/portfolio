@@ -965,10 +965,10 @@ test.describe("companion", () => {
 
       /*
        * Contact (tone `deep`, the half-step ground) is where this runs now:
-       * round 20 removed the closing section, which was the page's only
-       * `contrast` section, so the full-inversion arm of this proof has no
-       * section left to stand on (the footer strip is not a <section>). The
-       * cats are brought there the way a visitor brings them — by the lead
+       * round 20 removed the closing section, the page's only `contrast`
+       * <section>. The full-inversion arm is pinned by the `syncTone` unit
+       * test in tests/lib/companion-space.test.ts (the footer strip is too
+       * thin to walk the cats into). The cats are brought there the way a visitor brings them — by the lead
        * chasing a cursor — not by being left alone, which sends them off
        * exploring wherever their next stop happens to be. A cursor that only
        * circles the section's middle does not do it: the lead chases a moving

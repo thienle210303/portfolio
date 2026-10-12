@@ -16,8 +16,9 @@ const COPYRIGHT_YEAR = 2026;
  * analytics disclosure. It wraps to a second line on a narrow viewport and
  * no further. Email and social links live in Contact, not here.
  *
- * `tone-contrast` is kept from the footer's days under the closing band, so
- * the strip's colours are unchanged; aliases only.
+ * `tone-contrast` stays because the strip is now the page's last contrast
+ * surface: the companion's `syncTone` repoints the cats' ink there, and the
+ * tone's contrast pairings (scripts/contrast.mjs) stay exercised. Aliases only.
  */
 export default function SiteFooter() {
   return (
