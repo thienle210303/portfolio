@@ -21,6 +21,24 @@ async function px(page: Page, selector: string, prop: string): Promise<number> {
     .evaluate((el, p) => parseFloat(getComputedStyle(el).getPropertyValue(p)), prop);
 }
 
+// Not inside the per-width loop: the face is the same at every width.
+test("headings use IBM Plex Sans", async ({ page }) => {
+  const urls: string[] = [];
+  page.on("response", (r) => urls.push(r.url()));
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  const first = (sel: string) =>
+    page
+      .locator(sel)
+      .first()
+      .evaluate((el) => getComputedStyle(el).fontFamily.split(",")[0].trim());
+  const sans = await first("body");
+  expect(sans).toContain("IBM Plex Sans");
+  expect(await first("#about h1")).toBe(sans);
+  expect(await first("#worlds h2")).toBe(sans);
+  expect(urls.filter((u) => /fraunces/i.test(u))).toEqual([]);
+});
+
 for (const size of SIZES) {
   test.describe(`at ${size.width}px`, () => {
     test.use({ viewport: size });

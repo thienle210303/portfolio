@@ -52,7 +52,7 @@ const PROSE_CLASS = "text-[length:var(--step-0)] leading-[1.6] text-[color:var(-
 /*
  * The six-part arc — Problem, Constraint, Decision, Build, Proof, Lesson —
  * repeated once per case study, so thirty of these render on the page. Set in
- * bold uppercase mono at step-1 they were thirty shouts; in the display serif
+ * bold uppercase mono at step-1 they were thirty shouts; in the display face
  * they read as what they are, headings, and they give the type system a
  * mid-range voice it was missing between the section headline and body copy.
  */
@@ -200,7 +200,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
   // "read/collapse" verb pair SECTIONS.md asks for, appended to the
   // accessible name only, matching Disclosure's own documented contract.
   //
-  // The visible label is set in the display serif at the same step as the
+  // The visible label is set in the display face at the same step as the
   // deep dive's own headings, so the trigger reads as the entrance to a
   // chapter rather than as one more line of body copy. The wording is a
   // contract: four e2e specs find this trigger by an accessible name

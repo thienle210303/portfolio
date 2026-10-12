@@ -20,7 +20,7 @@ interface SectionHeadingProps {
 /**
  * The <h2> pattern used by every section except the hero (the hero owns
  * the page's single <h1> directly and must not use this component).
- * Display serif at --step-3 (24–28px, round 20 spec §2), with an optional lead paragraph in the muted
+ * Display type (Plex Sans 600) at --step-3 (24–28px, round 20 spec §2), with an optional lead paragraph in the muted
  * tone at --step-1.
  *
  * `text-balance` on the h2 (Workstream 3, P4) rather than the newer

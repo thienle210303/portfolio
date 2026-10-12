@@ -98,37 +98,28 @@
 }
 
 /*
- * Font-family variables. layout.tsx (owned by another agent) populates the
- * *values* of --font-display / --font-sans / --font-mono via next/font's
- * `variable` option. This block only registers those same names as Tailwind
- * theme keys so `font-display` / `font-sans` / `font-mono` utilities exist.
+ * Font-family variables. layout.tsx populates the values of --font-sans and
+ * --font-mono via next/font's `variable` option; this block registers those
+ * names as Tailwind theme keys so `font-sans` / `font-mono` utilities exist.
+ * `--font-display` is not a third face: it is Plex Sans under the name the
+ * heading classes already use, so display text is Plex Sans at the weight the
+ * component sets.
  *
- * The right-hand side is self-referential — `--font-display: var(--font-display), ...`
- * — and that is intentional, not a typo. It is safe ONLY because next/font's
- * own declaration (wherever layout.tsx applies `.variable`) is unlayered
- * CSS, while everything @theme emits — including this block — lives inside
- * Tailwind's `theme` cascade layer. Per the CSS Cascade Layers spec,
- * unlayered author styles always outrank layered ones regardless of source
- * order, so next/font's real value wins the cascade every time and this
- * declaration's own self-reference is never the one actually evaluated.
- * `inline` matters here too: it makes the generated utilities reference the
- * variable directly rather than through a second layer of indirection.
- *
- * IMPORTANT, read before "fixing" this: the ", ui-serif, Georgia, ..." text
- * after each var() is NOT a working fallback and must not be read as one —
- * it is plain comma-separated text sitting outside the var()'s own argument
- * list, not var()'s `(name, fallback)` form. If next/font's variable were
- * ever genuinely missing, the self-reference becomes a real cycle: CSS
- * invalidates the WHOLE declaration at computed-value time and does not
- * fall through to the next comma-separated font — there is no browser path
- * that ever reaches "ui-serif". That chain is kept only to document what a
- * real fallback stack would look like; it is inert in every failure mode
- * today. The only thing keeping fonts working is the identical name on both
- * sides plus the cascade-layer priority above — do not rename this variable
- * away from what layout.tsx passes to next/font's `variable` option.
+ * The self-reference in --font-sans / --font-mono (`var(--font-sans), ...`) is
+ * intentional. It is safe ONLY because next/font's own declaration (wherever
+ * layout.tsx applies `.variable`) is unlayered CSS, while everything @theme
+ * emits lives inside Tailwind's `theme` cascade layer, and unlayered author
+ * styles always outrank layered ones regardless of source order. So next/font's
+ * real value wins every time and the self-reference is never the one evaluated.
+ * The text after each var() is NOT a working fallback for that variable: if
+ * next/font's variable were ever missing, the self-reference becomes a cycle
+ * and CSS invalidates the whole declaration instead of falling through. Do not
+ * rename --font-sans / --font-mono away from what layout.tsx passes to
+ * next/font's `variable` option. `--font-display` has no such constraint: it
+ * references --font-sans, so its fallbacks are real.
  */
 @theme inline {
-  --font-display: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+  --font-display: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
@@ -609,45 +600,6 @@
 
   .prose-measure {
     max-width: 68ch;
-  }
-
-  /*
-   * There is deliberately no `.reading` / `.display-type` pair here.
-   *
-   * Headings already compose `font-display` with a step from the type scale at
-   * the point of use, which is the established pattern across every section,
-   * and Fraunces is variable on `opsz` — with `font-optical-sizing: auto`
-   * being the browser default, a 3rem headline and a 1rem note already get the
-   * right optical size without anything being declared. A wrapper class would
-   * only have restated the size in a second place.
-   */
-
-  /*
-   * Fraunces' two personality axes, held off everywhere the display face is
-   * used. This is the other half of the `axes: ["opsz", "SOFT", "WONK"]`
-   * request in layout.tsx and neither half works alone: next/font has to ship
-   * a file carrying the axes before CSS can pin them, and without the pin the
-   * file's own defaults render the whimsical cut of the face.
-   *
-   * `SOFT 0` keeps the terminals cut rather than rounded; `WONK 0` keeps the
-   * conventional double-storey g and the upright leg forms instead of the
-   * splayed ones the family is named for. What is left is the sharpest corner
-   * of Fraunces — high stroke contrast without the character, which is the
-   * whole reason it was chosen over Newsreader.
-   *
-   * `opsz` is deliberately absent: `font-optical-sizing: auto` is steering it
-   * per element, and naming it here would freeze every heading at one optical
-   * size and undo the argument for a variable face in the first place.
-   *
-   * One rule on the utility class rather than a per-element declaration: every
-   * consumer of the display face on this site reaches it through
-   * `.font-display`, so this is the one place it can be said once. No layer
-   * conflict — nothing else sets `font-variation-settings`.
-   */
-  .font-display {
-    font-variation-settings:
-      "SOFT" 0,
-      "WONK" 0;
   }
 
   /*

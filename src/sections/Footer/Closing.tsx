@@ -84,7 +84,7 @@ export default function Closing() {
           a pivot-less signoff is a genuinely quieter line than it used to
           be. If the slope is ever wanted back here, the honest options are
           paying for the file or accepting a synthesised oblique; a
-          faux-sheared high-contrast serif at --step-2 is why the second was
+          faux-sheared oblique at --step-2 is why the second was
           not taken. */}
       <p className="mt-10 font-display text-[length:var(--step-2)] leading-snug text-fg">
         {signoff.lead}
