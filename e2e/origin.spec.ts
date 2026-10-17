@@ -172,6 +172,40 @@ test.describe("the button", () => {
     await expect(page.locator("[data-origin-running]")).toHaveCount(0);
   });
 
+  test("clicking the stage to advance keeps the box following the growth", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    const scrollTop = () => box.evaluate((el) => el.scrollTop);
+    await watchOriginButton(page).click();
+    const status = page.locator("[data-origin-stage]").getByRole("status");
+    await expect(status).not.toHaveText("", { timeout: PLAYER_MOUNT_TIMEOUT });
+    const flight = await status.textContent();
+
+    // A point inside the box's own window, so the click lands on the stage
+    // rather than on something the box has scrolled out of view.
+    const rect = await box.boundingBox();
+    if (!rect) throw new Error("the tree box has no box");
+    await page.mouse.click(rect.x + 40, rect.y + rect.height - 40);
+    await expect(status).not.toHaveText(flight ?? "");
+
+    const afterClick = await scrollTop();
+    await expect.poll(scrollTop, { timeout: 15_000 }).toBeLessThan(afterClick - 100);
+    // And what it follows is the newest growth, inside the box's window.
+    await expect
+      .poll(() =>
+        box.evaluate((el) => {
+          const released = el.querySelectorAll(
+            "[data-origin-year]:not([data-origin-pending]):not([data-origin-tier='trunk'])",
+          );
+          let front = Infinity;
+          for (const group of released) front = Math.min(front, group.getBoundingClientRect().top);
+          const view = el.getBoundingClientRect();
+          return front >= view.top - 1 && front <= view.bottom;
+        }),
+      )
+      .toBe(true);
+  });
+
   test("plays once on sight, without taking focus", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
     const box = page.locator("[data-tree-box]");

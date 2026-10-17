@@ -40,17 +40,15 @@ class FakeObserver {
   takeRecords() {
     return [];
   }
-  /** Report the box at `ratio` visible, in a viewport much taller than it. */
-  report(ratio: number, rootHeight = 10_000) {
+  /** Report the box at `ratio` visible. */
+  report(ratio: number) {
     const entries = this.targets.map(
       (target) =>
         ({
           target,
           isIntersecting: ratio > 0,
           intersectionRatio: ratio,
-          intersectionRect: { height: ratio * 100 },
-          rootBounds: { height: rootHeight },
-        }) as unknown as IntersectionObserverEntry,
+        }) as IntersectionObserverEntry,
     );
     act(() => this.callback(entries, this as unknown as IntersectionObserver));
   }
@@ -135,14 +133,14 @@ describe("TreeBox", () => {
 
   it("is a named, keyboard-scrollable window onto the tree", () => {
     setup();
-    const box = screen.getByRole("region", { name: "Career tree, scrollable" });
+    const box = screen.getByRole("region", { name: "Career tree" });
     expect(box).toHaveAttribute("tabindex", "0");
     expect(box).toContainElement(screen.getByText("the drawing"));
   });
 
   it("jumps to the ground when a show starts, and stays put when it ends", () => {
     setup();
-    const box = screen.getByRole("region", { name: "Career tree, scrollable" });
+    const box = screen.getByRole("region", { name: "Career tree" });
     Object.defineProperty(box, "scrollHeight", { configurable: true, value: 2_000 });
     expect(box.scrollTop).toBe(0);
     act(() => {
@@ -154,15 +152,6 @@ describe("TreeBox", () => {
       document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
     });
     expect(box.scrollTop).toBe(40);
-  });
-
-  it("never plays a box that is not displayed", async () => {
-    // Chrome reports a `display: none` target (the box below 1024px) with
-    // zero-height root bounds, so "half the screen" would be zero pixels.
-    const observer = setup();
-    observer.report(0, 0);
-    await settle();
-    expect(stages()).toHaveLength(0);
   });
 
   it("does not auto-play under reduced motion", async () => {

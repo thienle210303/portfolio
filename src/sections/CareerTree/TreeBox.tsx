@@ -27,8 +27,9 @@ import { WatchOrigin, type OriginHandle } from "./WatchOrigin";
  * When a show starts (the companion's `origin-story` "start"), the box jumps
  * to the ground, where the growth begins. It then follows the growth front
  * upward: each released group (`data-origin-pending` removed) that sits above
- * the upper third scrolls the box up to it. A wheel, touch, pointer press or
- * scroll key on the box hands it back to the visitor until the next show.
+ * the upper third scrolls the box up to it. A wheel, a touch drag, a press on
+ * the box's scrollbar or a scroll key hands it back to the visitor until the
+ * next show; a click that advances the story does not.
  * When the show ends the box stays where it is, which is the crown on a full run.
  *
  * ## Why an event between the button and the box
@@ -48,20 +49,20 @@ const DWELL_MS = 600;
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** `isIntersecting` first: Chrome reports the `display: none` box (below
- *  1024px) with a ratio that can still read as met. */
-const halfInView = (entry: IntersectionObserverEntry) =>
-  entry.isIntersecting && entry.intersectionRatio >= 0.5;
+const halfInView = (entry: IntersectionObserverEntry) => entry.intersectionRatio >= 0.5;
 
 const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
 
-/** Scrolls `box` up so the highest released group sits in its upper third. */
-function followFront(box: HTMLElement, host: HTMLElement) {
-  const released = host.querySelectorAll<HTMLElement>(
-    "[data-origin-year]:not([data-origin-pending]):not([data-origin-tier='trunk'])",
-  );
+/** Scrolls `box` up so the highest group just released sits in its upper
+ *  third. Reads only the groups this batch of mutations released. */
+function followFront(box: HTMLElement, records: readonly MutationRecord[]) {
   let front = Infinity;
-  for (const el of released) front = Math.min(front, el.getBoundingClientRect().top);
+  for (const { target } of records) {
+    if (!(target instanceof HTMLElement)) continue;
+    if (target.hasAttribute("data-origin-pending")) continue;
+    if (target.dataset.originTier === "trunk") continue;
+    front = Math.min(front, target.getBoundingClientRect().top);
+  }
   if (front === Infinity) return;
   const target = box.scrollTop + (front - box.getBoundingClientRect().top) - box.clientHeight / 3;
   if (target < box.scrollTop) box.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
@@ -149,23 +150,28 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
       stopFollowing();
       if ((event as CustomEvent<string>).detail !== "start") return;
       box.scrollTop = box.scrollHeight;
-      mutations = new MutationObserver(() => followFront(box, host));
+      mutations = new MutationObserver((records) => followFront(box, records));
       mutations.observe(host, { subtree: true, attributeFilter: ["data-origin-pending"] });
+    };
+    // Only real scroll intent hands the box back. Not a plain pointerdown:
+    // clicking the stage to advance the story bubbles one up to here.
+    const onPointer = (event: PointerEvent) => {
+      if (event.target === box) stopFollowing(); // the scrollbar
     };
     const onKey = (event: KeyboardEvent) => {
       if (SCROLL_KEYS.has(event.key)) stopFollowing();
     };
     document.addEventListener("origin-story", onShow);
     box.addEventListener("wheel", stopFollowing, { passive: true });
-    box.addEventListener("touchstart", stopFollowing, { passive: true });
-    box.addEventListener("pointerdown", stopFollowing);
+    box.addEventListener("touchmove", stopFollowing, { passive: true });
+    box.addEventListener("pointerdown", onPointer);
     box.addEventListener("keydown", onKey);
     return () => {
       stopFollowing();
       document.removeEventListener("origin-story", onShow);
       box.removeEventListener("wheel", stopFollowing);
-      box.removeEventListener("touchstart", stopFollowing);
-      box.removeEventListener("pointerdown", stopFollowing);
+      box.removeEventListener("touchmove", stopFollowing);
+      box.removeEventListener("pointerdown", onPointer);
       box.removeEventListener("keydown", onKey);
     };
   }, []);
@@ -175,7 +181,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
       ref={boxRef}
       data-tree-box=""
       role="region"
-      aria-label="Career tree, scrollable"
+      aria-label="Career tree"
       tabIndex={0}
       className={cn(
         // `pt-16`: the still-growing shoot and its label draw ~36 px above

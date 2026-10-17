@@ -58,20 +58,17 @@ import {
  * coordinating with, was the actual cause of the instability reported
  * ("watch how it grew is very unstable... when I scroll up and down"):
  * a fixed weather layer and a programmatic scroll fighting a visitor's own
- * scroll is exactly what "shearing" looks like. Both are gone. There is no
- * camera to pan and nothing pinned to the viewport for a visitor's scroll
- * to shear against — scrolling now simply moves the whole picture, sky and
- * tree together, as one object, the same as scrolling past any other
- * illustration on the page would.
+ * scroll is exactly what "shearing" looks like. Both are gone from this file:
+ * nothing here scrolls or is pinned to the viewport, so the sky and the tree
+ * always move together, as one object.
  *
- * The corollary: there is no more "the visitor scrolled away" event either.
- * Every group grows wherever it already sits on the page — no pan walks the
- * viewport to meet it (and since round 18 there is no root system below the
- * ground line for one to grow in) — and a
- * visitor who scrolls off mid-story simply finds the story still playing,
- * in the drawing, exactly where they left it, when they scroll back. Only
- * Escape, Skip, click-to-advance, and the final beat's own timeout end the
- * show now.
+ * The one thing that scrolls during a show is the tree box around the
+ * drawing (`TreeBox.tsx`): it is its own scrolling window, and it follows
+ * the growth up from the ground inside that window until the visitor
+ * scrolls it themselves. The page is never scrolled for them, and there is
+ * no "the visitor scrolled away" event: a visitor who scrolls off mid-story
+ * finds it still playing when they come back. Only Escape, Skip, a click on
+ * the last beat and that beat's own timeout end the show.
  *
  * ## The conductor, and the one rule it can never break
  *
@@ -724,9 +721,6 @@ export interface OriginStoryProps {
 export default function OriginStory({ onClose, takeFocus = true }: OriginStoryProps) {
   const seasons = useMemo(() => seasonsFor(), []);
   const beats = useMemo(() => buildBeats(seasons), [seasons]);
-  // Read once, at open — never rendered on the server, so `window` is always
-  // there. The animated beats never start ticking under `reduce`, so there
-  // is nothing mid-show for a later preference change to interrupt.
   const [index, setIndex] = useState(0);
   const [announced, setAnnounced] = useState("");
   // Flips true the moment the companion answers `origin-story-ack` with
@@ -1149,50 +1143,47 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
       // growing tree is visible still advances the story.
       className="absolute inset-0 z-20 cursor-pointer"
     >
-      <>
-          {/* The sky slice: a small, top-pinned box (the same 300×200 area
-              the old silhouette stage used), `absolute` inside the stage
-              above — which is itself `absolute` inside the tree figure's own
-              relative box, never `fixed` to the viewport, so it scrolls with
-              the rest of the drawing as one object. Holds a season's weather,
-              and — for every beat except flight/seed (round 15; see the file
-              banner) — the floating annotation too. `data-origin-sky` is a
-              query hook only, for `origin.spec.ts` to prove this box's own
-              bounding box never strays outside the stage's — i.e. that
-              scrolling moves the two together rather than shearing one away
-              from the other. */}
-          <div
-            ref={skySliceRef}
-            data-origin-sky
-            className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2]"
-          >
-            {beat.season ? <WeatherLayer season={beat.season} /> : null}
-            {!catsNarrating && !isGroundBeat ? <FloatingAnnotation text={announced} /> : null}
-          </div>
-          {/* The ground slice: round 15's fix for "the seed drops into empty
-              air" — a small box mirroring `skySlice` but `bottom-0` instead
-              of `top-0`, pinned to the drawing's own bottom edge (the same
-              edge `TrunkFoot`'s `bottom-0` sits on — the ground line since
-              round 18 stopped rendering the root plinth; see the file
-              banner). Holds the sky layer's own drawing — the bird's
-              flight, the seed's landing — and the floating annotation, for
-              exactly those two beats; every other beat renders neither here,
-              leaving this box empty. `data-origin-ground` is a query hook
-              only, the same "stays inside the stage while scrolling" contract
-              `data-origin-sky` already proves, in `origin.spec.ts`. */}
-          <div
-            ref={groundSliceRef}
-            data-origin-ground
-            className="pointer-events-none absolute inset-x-0 bottom-0 aspect-[15/8]"
-          >
-            {isGroundBeat ? <SkyLayer beat={beat} viewBox={GROUND_VIEW_BOX} /> : null}
-            {!catsNarrating && isGroundBeat ? <FloatingAnnotation text={announced} /> : null}
-          </div>
-          <p role="status" className="sr-only">
-            {announced}
-          </p>
-      </>
-
+      {/* The sky slice: a small, top-pinned box (the same 300×200 area
+          the old silhouette stage used), `absolute` inside the stage
+          above — which is itself `absolute` inside the tree figure's own
+          relative box, never `fixed` to the viewport, so it scrolls with
+          the rest of the drawing as one object. Holds a season's weather,
+          and — for every beat except flight/seed (round 15; see the file
+          banner) — the floating annotation too. `data-origin-sky` is a
+          query hook only, for `origin.spec.ts` to prove this box's own
+          bounding box never strays outside the stage's — i.e. that
+          scrolling moves the two together rather than shearing one away
+          from the other. */}
+      <div
+        ref={skySliceRef}
+        data-origin-sky
+        className="pointer-events-none absolute inset-x-0 top-0 aspect-[3/2]"
+      >
+        {beat.season ? <WeatherLayer season={beat.season} /> : null}
+        {!catsNarrating && !isGroundBeat ? <FloatingAnnotation text={announced} /> : null}
+      </div>
+      {/* The ground slice: round 15's fix for "the seed drops into empty
+          air" — a small box mirroring `skySlice` but `bottom-0` instead
+          of `top-0`, pinned to the drawing's own bottom edge (the same
+          edge `TrunkFoot`'s `bottom-0` sits on — the ground line since
+          round 18 stopped rendering the root plinth; see the file
+          banner). Holds the sky layer's own drawing — the bird's
+          flight, the seed's landing — and the floating annotation, for
+          exactly those two beats; every other beat renders neither here,
+          leaving this box empty. `data-origin-ground` is a query hook
+          only, the same "stays inside the stage while scrolling" contract
+          `data-origin-sky` already proves, in `origin.spec.ts`. */}
+      <div
+        ref={groundSliceRef}
+        data-origin-ground
+        className="pointer-events-none absolute inset-x-0 bottom-0 aspect-[15/8]"
+      >
+        {isGroundBeat ? <SkyLayer beat={beat} viewBox={GROUND_VIEW_BOX} /> : null}
+        {!catsNarrating && isGroundBeat ? <FloatingAnnotation text={announced} /> : null}
+      </div>
+      <p role="status" className="sr-only">
+        {announced}
+      </p>
       <button type="button" ref={skipRef} onClick={handleSkip} className={SKIP_BUTTON_CLASS}>
         Skip
       </button>

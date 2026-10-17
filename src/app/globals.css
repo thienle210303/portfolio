@@ -1233,10 +1233,11 @@
   /* twig), so both the "self" and "descendant" shapes below are needed.     */
   /*                                                                        */
   /* No `[data-ink-ready]` guard here: nothing plays this without JS        */
-  /* (`TreeBox.tsx` starts it on sight or on "See how it grows"), so         */
-  /* there is no no-JS/print/reduced-motion path where `data-origin-running`  */
-  /* could appear unbidden — `TreeBox.tsx` never starts the player under      */
-  /* reduced motion, same as the block below this one. The media guard here is still the belt-and-braces backstop.         */
+  /* (`TreeBox.tsx` starts it on sight or on "See how it grows"), so there  */
+  /* is no no-JS/print/reduced-motion path where `data-origin-running`      */
+  /* could appear unbidden — `TreeBox.tsx` never starts the player under    */
+  /* reduced motion, same as the block below this one. The media guard here */
+  /* is still the belt-and-braces backstop.                                 */
   /* ---------------------------------------------------------------------- */
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-origin-running] [data-origin-pending].tree-draw,
@@ -1428,10 +1429,10 @@
   /*                                                                        */
   /* `OriginStory.tsx` only ever mounts after `TreeBox.tsx` has checked     */
   /* `prefers-reduced-motion` and found "no-preference" — under reduced     */
-  /* motion the player never mounts, so none of these classes appear. The  */
-  /* media guard below is redundant defence on top of that JS check, the same belt-and-braces    */
-  /* relationship the tree's own `.tree-draw`/`.tree-grow` rules above have  */
-  /* to `InkReveal`.                                                        */
+  /* motion the player never mounts, so none of these classes appear. The   */
+  /* media guard below is redundant defence on top of that JS check, the    */
+  /* same belt-and-braces relationship the tree's own                       */
+  /* `.tree-draw`/`.tree-grow` rules above have to `InkReveal`.             */
   /*                                                                        */
   /* v2 deleted the covering silhouette entirely — the story now grows the  */
   /* real tree via `[data-origin-running]`/`[data-origin-pending]` (the      */
@@ -1531,12 +1532,12 @@
   /* viewport). The owner's own brief for this pass: "make raining, sunny,   */
   /* windy more showing".                                                    */
   /*                                                                        */
-  /* Same belt-and-braces as every other block in this file: `WeatherLayer`  */
-  /* only ever mounts after `TreeBox.tsx` has already checked                */
-  /* `prefers-reduced-motion` and found "no-preference" — the player never   */
-  /* mounts under reduced motion — so the media guard                         */
-  /* below is defence on top of that JS check, not the only thing standing   */
-  /* between a reduced-motion visitor and this animation.                    */
+  /* Same belt-and-braces as every other block in this file: `WeatherLayer` */
+  /* only ever mounts after `TreeBox.tsx` has already checked               */
+  /* `prefers-reduced-motion` and found "no-preference" — the player never  */
+  /* mounts under reduced motion — so the media guard below is defence on   */
+  /* top of that JS check, not the only thing standing between a            */
+  /* reduced-motion visitor and this animation.                             */
   /*                                                                        */
   /* Every colour here is `currentColor` against the `text-fg-subtle`        */
   /* context `WeatherLayer` sets on its own wrapper, or the stronger `--fg`   */
