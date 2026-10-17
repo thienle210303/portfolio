@@ -1232,8 +1232,8 @@
   /* ancestor of the ink classes (a branch `<li>` wrapping its bough and     */
   /* twig), so both the "self" and "descendant" shapes below are needed.     */
   /*                                                                        */
-  /* No `[data-ink-ready]` guard here: nothing plays this without a visitor  */
-  /* pressing "Watch how it grew" first, so                                  */
+  /* No `[data-ink-ready]` guard here: nothing plays this without JS        */
+  /* (`TreeBox.tsx` starts it on sight or on "See how it grows"), so         */
   /* there is no no-JS/print/reduced-motion path where `data-origin-running`  */
   /* could appear unbidden — `OriginStory.tsx` only ever stamps it after       */
   /* checking `prefers-reduced-motion` itself, same as the block below this   */

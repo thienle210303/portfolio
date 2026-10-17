@@ -3,8 +3,8 @@
  *
  * Round 18 made this a pinned stage that scrolled seven acts past a sticky
  * drawing; round 20 retired it. The section is now three blocks in reading
- * order: the highlight cards (`JourneyHighlights`), the drawing (`DrawnTree`,
- * >=1024px only), and the timeline (`KnowledgeTreeList`, every width, one row
+ * order: the highlight cards (`JourneyHighlights`), the drawing growing in its
+ * box (`TreeBox` around `DrawnTree`, >=1024px only), and the timeline (`KnowledgeTreeList`, every width, one row
  * open at a time), then the credentials line and the case studies whose entry
  * is not a branch.
  *
@@ -43,7 +43,7 @@ import DrawnTree from "./DrawnTree";
 import JourneyHighlights from "./JourneyHighlights";
 import KnowledgeTreeList from "./KnowledgeTreeList";
 import UnbranchedCaseStudies from "./UnbranchedCaseStudies";
-import { WatchOrigin } from "./WatchOrigin";
+import TreeBox, { SeeHowItGrows } from "./TreeBox";
 
 const HEADING_ID = "tree-heading";
 
@@ -131,25 +131,17 @@ export default function CareerTree() {
       <SectionHeading id={HEADING_ID} lead="Started in a kitchen. Still growing.">
         What it adds up to
       </SectionHeading>
+      <SeeHowItGrows className="mt-4 -ml-2" />
 
       <JourneyHighlights className="mt-8" />
 
-      {/* `[data-origin-host]` is the drawing's own relative box, and it is
-          deliberately one element doing two jobs that must never come apart:
-          it is what `OriginStory.tsx` overlays (`absolute inset-0`) and what
-          that player walks up to with `closest()` to find the growable
-          groups it conducts. `WatchOrigin` is its sibling inside it — the
-          always-loaded half of the origin story, which `import()`s the
-          ~1,400-line player only on press, so the show costs the initial
-          page nothing until somebody asks for it.
-
-          `hidden lg:block` is on the wrapper rather than on the drawing, so
-          below 1024px — where the timeline alone tells the story — the button
-          is not in the document's layout either. */}
-      <div data-origin-host="" className="relative mt-12 hidden lg:block">
+      {/* The drawing grows in its own box (`TreeBox.tsx`): once on sight, and
+          again on "See how it grows" above. `hidden lg:block` is on the box, so
+          below 1024px — where the timeline alone tells the story — neither it
+          nor the button is in the layout. */}
+      <TreeBox className="mt-12">
         <DrawnTree tree={DRAWN} />
-        <WatchOrigin />
-      </div>
+      </TreeBox>
 
       <KnowledgeTreeList tree={DRAWN} className="mt-12" />
 

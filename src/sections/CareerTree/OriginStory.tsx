@@ -22,7 +22,7 @@ import {
  * rendered on the server, never part of the initial page. That last fact is
  * what lets this file import `origin-story.ts` (and, through it, the career
  * content) without touching the site's initial-load budget: nothing here
- * exists until a visitor presses the button, and everything it needs to
+ * exists until the tree box first plays (on sight or on a press), and everything it needs to
  * draw the story travels down in this one chunk.
  *
  * v2 rewrite: there is no stand-in silhouette any more. The story grows the
@@ -49,7 +49,7 @@ import {
  * caption's visible stand-in, the year numeral — is `position: absolute`
  * inside the stage `<div>` below, which is itself `position: absolute`
  * inside the drawing's own relative box — `[data-origin-host]`, the wrapper
- * `CareerTree.tsx` puts around `<DrawnTree>`. Nothing in this file is ever
+ * `TreeBox.tsx` puts around `<DrawnTree>`. Nothing in this file is ever
  * `position: fixed` to
  * the viewport. That used to be untrue: an earlier pass pinned the weather
  * to the viewport and, for root-year beats, panned the whole page with
@@ -77,7 +77,7 @@ import {
  * ## The conductor, and the one rule it can never break
  *
  * On start, the stage walks up to the real `[data-origin-host]` (via
- * `closest` — the wrapper `CareerTree.tsx` puts around `<DrawnTree>`, which is
+ * `closest` — the wrapper `TreeBox.tsx` puts around `<DrawnTree>`, which is
  * also the box this player's own overlay is `absolute inset-0` inside of, so
  * the element it conducts and the element it draws over cannot drift apart),
  * stamps `data-origin-running` on it, finds
@@ -109,12 +109,11 @@ import {
  * underneath it that needs covering. The stage `<div>` itself is what
  * catches clicks-to-advance, and it is sized to the *whole* drawing wrapper
  * (`inset-0`, matching `[data-origin-host]`, the relative box
- * `CareerTree.tsx` puts around `<DrawnTree>`), not just either sky/ground
+ * `TreeBox.tsx` puts around `<DrawnTree>`), not just either sky/ground
  * slice — a click anywhere the
  * real, growing tree is still visible still advances the story. That
  * wrapper exists only while this component is mounted, so the instant the
- * story ends and `WatchOrigin.tsx` swaps this player back out for its
- * button, the tree underneath is exactly as interactive as it always was.
+ * story ends and `WatchOrigin.tsx` unmounts this player, the tree underneath is exactly as interactive as it always was.
  *
  * Two small boxes share that wrapper, not one. Through round 14 every beat
  * — flight, seed, every season, still — drew inside one top-pinned
@@ -866,18 +865,24 @@ const SKIP_BUTTON_CLASS =
 export interface OriginStoryProps {
   /**
    * `restoreFocus` is true when focus was still somewhere inside the stage
-   * the instant it ended — the ordinary case for Escape and Skip, since the
-   * layout effect below puts focus on the Skip button on mount and nothing
+   * the instant it ended — the ordinary case for Escape and Skip after a press, since
+   * the layout effect below puts focus on the Skip button on mount and nothing
    * here ever moves it away on its own. It can still be false if something
    * outside this component moved focus elsewhere before the show ended (a
    * visitor tabbing away, or clicking something else on the page). The
    * caller (`WatchOrigin.tsx`) uses it to decide whether pulling focus back
-   * to the "Watch how it grew" button is a courtesy or a hijack.
+   * to the "See how it grows" button is a courtesy or a hijack.
    */
   readonly onClose: (restoreFocus: boolean) => void;
+  /**
+   * Whether the Skip button takes focus on mount. True for a press; false for
+   * the auto-play (`TreeBox.tsx`), which the visitor did not ask for and so
+   * must not move their focus — or, through it, their scroll position.
+   */
+  readonly takeFocus?: boolean;
 }
 
-export default function OriginStory({ onClose }: OriginStoryProps) {
+export default function OriginStory({ onClose, takeFocus = true }: OriginStoryProps) {
   const seasons = useMemo(() => seasonsFor(), []);
   const beats = useMemo(() => buildBeats(seasons), [seasons]);
   // Read once, at open — never rendered on the server, so `window` is always
@@ -1111,8 +1116,8 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
   // check reads focus that never moved to Skip. A full-suite Playwright run
   // hit exactly that window once; a fast human on a slow machine could too.
   useLayoutEffect(() => {
-    skipRef.current?.focus();
-  }, []);
+    if (takeFocus) skipRef.current?.focus();
+  }, [takeFocus]);
 
   useLayoutEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1307,7 +1312,7 @@ export default function OriginStory({ onClose }: OriginStoryProps) {
       data-origin-stage
       onClick={reduced ? undefined : advance}
       // Non-reduced: `inset-0` matches the *whole* drawing wrapper
-      // `CareerTree.tsx` puts around `<DrawnTree>` — the click-to-advance
+      // `TreeBox.tsx` puts around `<DrawnTree>` — the click-to-advance
       // target the whole real tree draws inside, not just the sky slice — so
       // a click anywhere the growing tree is visible still advances the
       // story. Reduced motion keeps the old top-pinned, unclamped box: the

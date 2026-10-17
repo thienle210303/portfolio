@@ -212,32 +212,34 @@ describe("what the Journey draws", () => {
 });
 
 /**
- * The origin-story player, re-homed by round 18's second plan (Decision A).
+ * The origin-story player, now grown in the tree box (`TreeBox.tsx`).
  *
- * `WatchOrigin` is the always-loaded half — a small button that `import()`s the
- * ~1,400-line player on press. These tests are about where it is mounted and
- * what it is mounted *inside*, because that is the part a refactor breaks
- * silently: the player positions itself `absolute inset-0` against
- * `[data-origin-host]` and walks up to the same element with `closest()` to
- * find the growable groups it conducts, so the button, the overlay and the
- * drawing all have to share one box.
+ * `WatchOrigin` is the always-loaded half — a mount point that `import()`s the
+ * ~1,400-line player when the box first plays or "See how it grows" is
+ * pressed. These tests are about where it is mounted and what it is mounted
+ * *inside*, because that is the part a refactor breaks silently: the player
+ * positions itself `absolute inset-0` against `[data-origin-host]` and walks
+ * up to the same element with `closest()` to find the growable groups it
+ * conducts, so the overlay and the drawing have to share one box.
  */
 describe("the way back into the origin story", () => {
-  it("offers \"Watch how it grew\" inside the section", () => {
+  it("offers \"See how it grows\" in the section header, before the box", () => {
     render(<CareerTree />);
     const section = document.getElementById("tree");
     if (!(section instanceof HTMLElement)) throw new Error("no #tree section");
-    // The same locator `e2e/axe.spec.ts` and `e2e/companion.spec.ts` use.
-    expect(within(section).getByRole("button", { name: "Watch how it grew" })).toBeInTheDocument();
+    const button = within(section).getByRole("button", { name: "See how it grows" });
+    const box = section.querySelector("[data-tree-box]");
+    if (!(box instanceof HTMLElement)) throw new Error("no [data-tree-box]");
+    expect(box).not.toContainElement(button);
+    expect(button.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("mounts the button inside the one box the player overlays and conducts", () => {
+  it("puts the one box the player overlays and conducts around the drawing", () => {
     render(<CareerTree />);
-    const host = document.querySelector("[data-origin-host]");
+    const host = document.querySelector("[data-tree-box] > [data-origin-host]");
     if (!(host instanceof HTMLElement)) {
       throw new Error("no [data-origin-host] around the drawing");
     }
-    expect(host).toContainElement(within(host).getByRole("button", { name: "Watch how it grew" }));
     // The host is the drawing's own box, not the section's: the player's ground
     // slice is pinned to its bottom edge, which has to be the tree's own ground
     // line (`e2e/origin.spec.ts`, "ground anchoring").
@@ -252,12 +254,11 @@ describe("the way back into the origin story", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("keeps the player itself out of the render: one button, no stage", () => {
+  it("keeps the player itself out of the render", () => {
     render(<CareerTree />);
-    // The chunk is fetched on press. Nothing of the player may be in the
-    // document before that, or it is not a lazy boundary any more.
+    // The chunk is fetched on the first play. Nothing of the player may be in
+    // the document before that, or it is not a lazy boundary any more.
     expect(document.querySelectorAll("[data-origin-stage]")).toHaveLength(0);
-    expect(document.querySelectorAll("[data-origin-watch]")).toHaveLength(1);
   });
 
   it("does not bring the roots back with it", () => {

@@ -34,10 +34,9 @@ import { TAP_SLOP_PX } from "./gestures";
  * it should be in the initial bundle. `GlobeCanvas` hands back a `GlobeControls`
  * object on mount, which is how this component's keyboard handler, its stop
  * buttons and its flight control drive a globe they do not own. Before that object exists the flight
- * control is `aria-disabled` rather than absent — the same pattern
- * `WatchOrigin.tsx` uses for the origin-story player, and for the same reason:
- * a control that vanishes and reappears is worse than one that says "not yet".
- * `aria-disabled` announces; it does not enforce — so, as there, its handler
+ * control is `aria-disabled` rather than absent: a control that vanishes and
+ * reappears is worse than one that says "not yet".
+ * `aria-disabled` announces; it does not enforce — so its handler
  * opens by refusing the press itself. The stop buttons need no such state:
  * they work with or without a globe to turn.
  */
@@ -170,8 +169,7 @@ export function WorldsStage({ stops, children }: WorldsStageProps) {
     // by keyboard, which `tests/sections/WorldsStage.test.tsx` pins), so
     // Enter or Space on it still fires `click` in a real
     // browser. Without this guard a keyboard visitor could write a sentence
-    // about a flight into the live region before any globe existed. The same
-    // opening line `WatchOrigin.tsx` uses, for the same reason.
+    // about a flight into the live region before any globe existed.
     if (!controlsReady) return;
     // The capture handlers on the root exempt this button (see there), so it
     // stops the replay itself: the flight is the visitor's from here.

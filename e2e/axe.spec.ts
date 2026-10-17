@@ -172,7 +172,7 @@ test.describe("interactive states", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await scrollIntoViewAndSettle(page, "#tree-heading");
-    const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
+    const button = page.locator("#tree").getByRole("button", { name: "See how it grows" });
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
     // The stage mounting is also the instant `OriginStory.tsx`'s conductor
