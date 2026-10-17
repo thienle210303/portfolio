@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
-import { buildStops, crossingKm } from "@/lib/origin-stops";
+import { buildStops } from "@/lib/origin-stops";
 
 const STOPS = buildStops();
 
 function renderStage() {
-  return render(<WorldsStage stops={STOPS} crossingKm={crossingKm()} />);
+  return render(<WorldsStage stops={STOPS} />);
 }
 
 const stopButtons = () => within(screen.getByRole("list")).getAllByRole("button");
@@ -40,7 +40,7 @@ describe("WorldsStage, with no canvas at all", () => {
 
   it("renders the heading it is given above the stops", () => {
     render(
-      <WorldsStage stops={STOPS} crossingKm={crossingKm()}>
+      <WorldsStage stops={STOPS}>
         <h2>One crossing, three stops.</h2>
       </WorldsStage>,
     );
@@ -55,7 +55,7 @@ describe("WorldsStage, with no canvas at all", () => {
     // Not "0": there is nothing to drag and the arrow keys are inert until a
     // canvas supplies real GlobeControls.
     expect(stage).toHaveAttribute("tabindex", "-1");
-    expect(stage).toHaveAccessibleName(/every stop is also a button beside it/i);
+    expect(stage).toHaveAccessibleName(/every stop is also a button in the list/i);
   });
 
   it("keeps the flight control reachable and clearly disabled, and pressing it claims nothing", async () => {

@@ -147,22 +147,6 @@ export function arcKm(radians: number): number {
   return radians * EARTH_RADIUS_KM;
 }
 
-/** The Sea world's home: halfway along the crossing, derived rather than
- *  typed, so it cannot drift from the two pins. */
-export function arcMidpoint(arc: GreatCircle): GeoPoint {
-  return toGeo(arc.points[Math.floor(arc.points.length / 2)]);
-}
-
-/** The Sky world's home: the highest latitude the crossing reaches. */
-export function arcApex(arc: GreatCircle): GeoPoint {
-  let best = toGeo(arc.points[0]);
-  for (const point of arc.points) {
-    const geo = toGeo(point);
-    if (geo.lat > best.lat) best = geo;
-  }
-  return best;
-}
-
 /**
  * Parallels and meridians as polylines, ready to project. One step value
  * drives both, because a graticule whose parallels and meridians disagree

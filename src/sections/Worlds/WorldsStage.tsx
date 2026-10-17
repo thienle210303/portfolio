@@ -70,7 +70,6 @@ type CanvasComponent = ComponentType<{
 interface WorldsStageProps {
   /** The globe's pins, and the list beside it. */
   readonly stops: readonly OriginStop[];
-  readonly crossingKm: number;
   /** The section's heading, which sits at the top of the stop column at
    *  1024px and up, and above the globe below that. */
   readonly children?: ReactNode;
@@ -81,7 +80,7 @@ interface WorldsStageProps {
  *  that a single press does not lose the marker you were looking at. */
 const KEY_STEP = (12 * Math.PI) / 180;
 
-export function WorldsStage({ stops, crossingKm, children }: WorldsStageProps) {
+export function WorldsStage({ stops, children }: WorldsStageProps) {
   // None until the visitor picks one: the flight is the story's first beat,
   // and no pin is labelled until someone asks for it.
   const [activeStopId, setActiveStopId] = useState<OriginStop["id"] | null>(null);
@@ -484,8 +483,8 @@ export function WorldsStage({ stops, crossingKm, children }: WorldsStageProps) {
           aria-roledescription="globe"
           aria-label={
             controlsReady
-              ? "Playground Earth. Drag to roll it, or use the arrow keys. Every stop is also a button beside it."
-              : "Playground Earth. Every stop is also a button beside it."
+              ? "Playground Earth. Drag to roll it, or use the arrow keys. Every stop is also a button in the list."
+              : "Playground Earth. Every stop is also a button in the list."
           }
           onKeyDown={handleKeyDown}
           // A drag east flies him too: that landing is the visitor's, so it
@@ -508,10 +507,7 @@ export function WorldsStage({ stops, crossingKm, children }: WorldsStageProps) {
             />
           ) : null}
         </div>
-        <p className="eyebrow mt-2 text-center">
-          {crossingKm.toLocaleString("en-US")} km · drag east to fly him
-          yourself
-        </p>
+        <p className="eyebrow mt-2 text-center">Drag east to fly him yourself</p>
       </div>
 
       <div className="lg:col-start-2 lg:row-start-2">

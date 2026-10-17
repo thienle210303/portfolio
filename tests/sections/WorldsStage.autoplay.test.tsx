@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import type { GlobeControls } from "@/sections/Worlds/WorldsStage";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
-import { buildStops, crossingKm } from "@/lib/origin-stops";
+import { buildStops } from "@/lib/origin-stops";
 
 /*
  * The crossing plays itself once, the first time half the stage is in view:
@@ -88,7 +88,7 @@ const autoplayObserver = () => FakeObserver.all.filter((o) => o.options.threshol
 const STOPS = buildStops();
 
 async function stageWithLiveGlobe() {
-  const view = render(<WorldsStage stops={STOPS} crossingKm={crossingKm()} />);
+  const view = render(<WorldsStage stops={STOPS} />);
   importObserver()?.report(1);
   // Testing Library's own 1 s default, not vitest's 20 s, governs these two
   // waits; the first pays for the dynamic import, which under full-suite load

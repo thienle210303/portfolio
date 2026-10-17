@@ -33,10 +33,11 @@ export interface CompanionFacts {
     readonly organization: string;
   };
   /**
-   * The globe's own counts — computed by `buildStops()` and `crossingKm()`
+   * The globe's own numbers — computed by `buildStops()` and `crossingKm()`
    * rather than typed here, the same discipline every other fact in this file
-   * follows: a dialogue line that quotes a number quotes the one the section
-   * itself computes, never a second, independently-typed guess at it.
+   * follows. `crossing` is the string the section's rail prints; `stops` is
+   * `buildStops().length`, the list the section renders (its heading says
+   * "three" in words), never a second, independently-typed guess at it.
    */
   readonly worlds: {
     readonly stops: number;

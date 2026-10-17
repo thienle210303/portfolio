@@ -1,4 +1,4 @@
-import { careerEntries, projects } from "@/content/portfolio";
+import { careerEntries } from "@/content/portfolio";
 
 /**
  * The Journey's seven acts, and the one place that knows which career entry
@@ -46,17 +46,16 @@ export type ActId = (typeof ACT_IDS)[number];
  *
  * `usc-degree` is the one entry placed by what hangs off it rather than by
  * where it sits in the story. Four projects (`chess-minmax`, `conscea`,
- * `degreeworks-rebuild`, `toy-storefront`) resolve their act through it, and
- * they were built between July 2023 and April 2024 — `research` (2022–2025)
+ * `degreeworks-rebuild`, `toy-storefront`) hang off it, and they were built
+ * between July 2023 and April 2024 — `research` (2022–2025)
  * is temporally right for all four, where `two-jobs` (2024 — May 2025) would
  * place three of them a year late. The degree is demoted and never drawn as a
  * branch, and its projects do not surface in this act: `UnbranchedCaseStudies`
  * picks them by `isDemotedEntry` and renders them after all seven acts, full
- * width. What this placement decides is the act `actForProject` reports for
- * them. Since round 20 retired the globe's project plaques nothing on the
- * page consumes it; it is kept right so the next caller does not link a
- * project into the wrong period. The credentials strip is driven by
- * the act's `showsCredentials`, not by this entry.
+ * width, so nothing on the page reads this placement today; it is kept right
+ * for whatever next asks which period those projects belong to. The
+ * credentials strip is driven by the act's `showsCredentials`, not by this
+ * entry.
  */
 const ENTRY_ACTS: Readonly<Record<string, ActId>> = {
   "eastside-high": "high-school",
@@ -90,10 +89,4 @@ export function actAnchorId(id: ActId): string {
 export function actForEntry(entryId: string): ActId | undefined {
   if (!careerEntries.some((entry) => entry.id === entryId)) return undefined;
   return ENTRY_ACTS[entryId];
-}
-
-export function actForProject(projectId: string): ActId | undefined {
-  const project = projects.find((candidate) => candidate.id === projectId);
-  if (!project) return undefined;
-  return actForEntry(project.careerEntryId);
 }

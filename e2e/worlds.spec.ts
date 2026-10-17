@@ -64,14 +64,18 @@ test.describe("the stops are the feature; the canvas is decoration", () => {
     await expect(section.getByRole("button", { name: "Globe not available" })).toBeVisible();
   });
 
-  test("the rail prints the two computed numbers and nothing else", async ({ page }) => {
+  test("the crossing's distance is printed once, in the rail, and the rail holds nothing else", async ({
+    page,
+  }) => {
     await page.goto("/#worlds");
     const rail = page.locator("#worlds dl");
-    await expect(rail.locator("dt")).toHaveText(["Crossing", "Stops"]);
-    await expect(rail.locator("div", { hasText: "Crossing" }).locator("dd")).toHaveText(
-      `${crossingKm().toLocaleString("en-US")} km · computed from the two pins`,
-    );
-    await expect(rail.locator("div", { hasText: "Stops" }).locator("dd")).toHaveText(String(STOPS.length));
+    const km = `${crossingKm().toLocaleString("en-US")} km`;
+    await expect(rail.locator("dt")).toHaveText(["Crossing"]);
+    await expect(rail.locator("dd")).toHaveText(`${km} · computed from the two pins`);
+    // The rail never restates the prose beside it, and the prose does not
+    // restate the rail: the distance appears in #worlds exactly once.
+    const text = (await page.locator("#worlds").textContent()) ?? "";
+    expect(text.split(km).length - 1, "the crossing's distance is printed more than once").toBe(1);
   });
 
   test("no horizontal overflow at 320px", async ({ page }) => {
@@ -654,6 +658,9 @@ test.describe("one crossing, three stops", () => {
     const box = await pageBox(replay);
 
     await replay.click();
+    // Below 1024px the press may scroll the globe into view; focus stays on
+    // the button the visitor pressed.
+    await expect(replay).toBeFocused();
     // The visitor's own flight is not an autoplay, so nothing offers to stop it.
     await expect(section.getByRole("button", { name: "Stop the replay" })).toHaveCount(0);
     await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 10_000 });

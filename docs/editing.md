@@ -6,7 +6,7 @@ open a component to change what the site says.
 | What you want to change | File |
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
-| The globe's three stops: `origin` (the crossing and its two pins), `originStops` (the first and third stops' captions, and the third's pin), and `eastside-high`'s `headline` (the second stop's caption) | `src/content/portfolio.ts` |
+| The globe's three stops: `origin` (the crossing and its two pins), `originStops` (the first and third stops' captions, and the third's pin), `eastside-high`'s `headline` (the second stop's caption), and `usc-degree`'s `organization` and `dateRange` (the third stop's place and date) | `src/content/portfolio.ts` |
 | Which of the Journey's seven acts draws a role | `src/lib/anchors.ts` (`ENTRY_ACTS`) |
 
 The globe's stop list is built by `buildStops()` in `src/lib/origin-stops.ts`,

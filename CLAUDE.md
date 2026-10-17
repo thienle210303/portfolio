@@ -54,11 +54,13 @@ Rules that keep that working:
 `#worlds` is the origin story: one crossing, three stops. The globe flies the
 crossing once on first view ("Replay the flight" replays it), and pressing a
 stop in the list beside it turns the globe to that stop's pin. Every word in
-that list — each stop's place, date and caption — and every number in the
-rail comes from the content layer through `buildStops()` and `crossingKm()` in
-`src/lib/origin-stops.ts`: `origin` (the crossing's two pins, its places and
-dates), `originStops` (the first and third captions and the university's pin)
-and `eastside-high`'s `headline` (the second caption). To change what a stop
+that list — each stop's place, date and caption — and the crossing's distance
+in the rail come from the content layer through `buildStops()` and
+`crossingKm()` in `src/lib/origin-stops.ts`: `origin` (the crossing's two pins,
+its places and dates), `eastside-high`'s `headline` (the second caption),
+`usc-degree`'s `organization` and `dateRange` (the third stop's place and
+date), and `originStops` (the first and third captions and the university's
+pin). The distance is printed once, in the rail. To change what a stop
 says, edit the field; nothing in `src/sections/Worlds/` types a fact.
 
 **No 3D library, and that was measured, not assumed.** Against the initial-JS

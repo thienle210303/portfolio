@@ -12,7 +12,7 @@ inside it (in the branches of the roles that produced them, or after the acts
 for the coursework); and **Contact**, which
 starts from what the visitor actually came to say, and holds a chat that
 answers only from what's written for the site: by default his words as
-written, or a count made from them, each with its source and no model; in
+written, or a few of them joined into one line, each with its source and no model; in
 live mode a model writes the answer from just those passages. The résumé is its own route
 at `/resume`, reading the same content, and it is the only place the skills
 inventory renders.

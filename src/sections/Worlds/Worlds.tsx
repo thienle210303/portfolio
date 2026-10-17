@@ -16,8 +16,9 @@ import WorldsStage from "./WorldsStage";
  * chunk that is not fetched until the stage is near the viewport, and the
  * section is complete before it arrives.
  *
- * The rail carries the two numbers the section computes rather than states:
- * the crossing's length, from the two pins, and how many stops there are.
+ * The rail carries the one number the section computes rather than states:
+ * the crossing's length, from the two pins. It is printed there and nowhere
+ * else in the section. (How many stops there are is the heading's to say.)
  */
 
 const HEADING_ID = "worlds-heading";
@@ -27,13 +28,12 @@ const KM = crossingKm();
 
 const RAIL: readonly RailNote[] = [
   { term: "Crossing", detail: `${KM.toLocaleString("en-US")} km · computed from the two pins` },
-  { term: "Stops", detail: String(STOPS.length) },
 ];
 
 export default function Worlds() {
   return (
     <Section id="worlds" labelledBy={HEADING_ID} eyebrow="Worlds" tone="deep" rail={RAIL}>
-      <WorldsStage stops={STOPS} crossingKm={KM}>
+      <WorldsStage stops={STOPS}>
         <SectionHeading id={HEADING_ID}>One crossing, three stops.</SectionHeading>
       </WorldsStage>
     </Section>

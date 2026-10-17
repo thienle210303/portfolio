@@ -219,7 +219,7 @@ const HALO_PX = 5;
 const GRATICULE = graticule(30);
 // 72 segments, as `crossingKm()` in `src/lib/origin-stops.ts` uses (its
 // length does not depend on them), so the arc drawn here and the distance
-// printed beside it describe one curve. The figure is not recomputed here.
+// printed in the section's rail describe one curve. The figure is not recomputed here.
 const CROSSING: GreatCircle = greatCircle(origin.coordinates.from, origin.coordinates.to, 72);
 
 /** Not a working CSS fallback list (see the note on `--font-mono` in
@@ -477,9 +477,10 @@ export default function GlobeCanvas({
        an accent ring, larger, and the only one labelled, so it is never told
        apart by hue alone. The active pin is drawn last, over a ground
        knockout: Taylors and the University of South Carolina are ~140 km
-       apart, which is 4–6 px at these sizes, so the two Carolina pins are one
-       mark at a time rather than two that collide — the knockout covers the
-       other, and the list beside the globe says which stop it is. Far-side
+       apart, which is 4–6 px at these sizes. With one of them active, its
+       knockout covers the other, so the Carolinas show one mark and the list
+       says which stop it is; with neither active (after a landing, before any
+       stop is pressed) the two small dots touch. Far-side
        pins are not drawn at all rather than faded: a pin you can half-see is
        a pin you try to press. */
     const pin = (stop: OriginStop, active: boolean) => {
