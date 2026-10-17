@@ -986,14 +986,6 @@
       transform: translateY(0);
     }
   }
-  @keyframes ink-fade {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
   @keyframes ink-fade-rise {
     from {
       opacity: 0;
@@ -1014,9 +1006,7 @@
 
     /* Timeline, ~850ms end to end. Two parallel tracks — the identity
        column (eyebrow -> h1 -> intro -> actions) and the terminal card —
-       then the scroll cue closes the sequence out. The `rail` step is
-       Section's hook for a `reveal={false}` section with a rail; since
-       round 20 the hero has none. */
+       then the scroll cue closes the sequence out. */
     html[data-motion] [data-hero-step="eyebrow"] {
       animation-name: ink-fade-rise;
       animation-delay: 0ms;
@@ -1036,10 +1026,6 @@
     html[data-motion] [data-hero-step="code"] {
       animation-name: ink-rise; /* LCP guard — see the block comment above */
       animation-delay: 120ms;
-    }
-    html[data-motion] [data-hero-step="rail"] {
-      animation-name: ink-fade;
-      animation-delay: 320ms;
     }
     html[data-motion] [data-hero-step="scroll"] {
       animation-name: ink-fade-rise;

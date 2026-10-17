@@ -3271,13 +3271,6 @@ export function Companion({ facts }: CompanionProps) {
         // `EXPLORE_IDLE_MS`.
         leadWant = walking.spots.lead;
         followWant = walking.spots.follow;
-        // Her stage seat is a real seat, and it sits one cat-width plus
-        // FOLLOW_GAP from his: exactly the edge of the box `detourAround`
-        // routes her round. With the opening's routing still on (a request in
-        // the first seconds of a visit), a lead stopping a fraction of a pixel
-        // short of his spot left her parked on the detour point above him
-        // until the walk expired, and the scene never opened.
-        routing.current = false;
       } else if (exploring) {
         // Off about their own business. `exploreTo` owns both halves of that —
         // where, and for how long — and every place it can name went through the
@@ -3547,7 +3540,13 @@ export function Companion({ facts }: CompanionProps) {
       // stretch) sets `followWant` to her own position, which is "arrived"
       // only trivially; it is tested first and neither ends the routing nor
       // is detoured, so a cat that is meant to be still stays still.
-      if (routing.current && followWant !== tabby.pos) {
+      // Not on a walk to a requested scene's stage: that walk may cross
+      // anything, and her stage seat sits one cat-width plus FOLLOW_GAP from
+      // his, on the edge of the box the detour routes round. With the
+      // opening's routing still on (a request in the first seconds of a
+      // visit) she was parked above him until the walk expired. Skipped, not
+      // cleared, so an abandoned walk leaves the placement's routing as it was.
+      if (routing.current && !walking && followWant !== tabby.pos) {
         if (distance(tabby.pos, followWant) < 4) routing.current = false;
         else {
           const minY = boundsFor(viewport(), safeTop()).minY;

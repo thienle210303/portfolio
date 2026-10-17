@@ -423,6 +423,17 @@ describe("detourAround", () => {
     expect(go({ x: 1092, y: 780 }, want)).toBe(want);
   });
 
+  it("hands back a target inside his padded box rather than a waypoint", () => {
+    // No waypoint reaches it; routing to one parked her above him for good.
+    const inside = { x: 1000 - 75.5, y: 800 };
+    expect(go({ x: 924.5, y: 732 }, inside)).toBe(inside);
+    // On the edge she can reach it straight down without entering the box.
+    const edge = { x: 1000 - 76, y: 800 };
+    expect(go({ x: 924, y: 732 }, edge)).toBe(edge);
+    // Her trailing spot is on the edge too, and across his box is still routed.
+    expect(go({ x: 1080, y: 800 }, { x: 924, y: 803 })).toEqual({ x: 1080, y: 800 - 42 - 26 });
+  });
+
   it("never sends her above the safe band when he is just under the header", () => {
     const high = { x: 1000, y: 70 };
     const minY = 64;

@@ -116,11 +116,9 @@ export function Section({
             <div className="min-w-0 lg:order-2">{children}</div>
             <dl
               className="rail no-print lg:order-1"
-              // With `reveal={false}` the rail fades in on the caller's own
-              // `data-motion` schedule (P2) rather than the generic
-              // scroll-triggered one. The hero, the only `reveal={false}`
-              // caller, has had no rail since round 20.
-              {...(reveal ? { "data-ink": "" } : { "data-hero-step": "rail" })}
+              // With `reveal={false}` the rail is not animated: the hero, the
+              // only such caller, has had no rail since round 20.
+              {...(reveal ? { "data-ink": "" } : {})}
               style={reveal ? ({ "--ink-delay": "240ms" } as CSSProperties) : undefined}
             >
               {rail.map((note) => (

@@ -378,6 +378,12 @@ export function trailBehind(lead: Point, facing: 1 | -1, width: number, gap: num
  * box. A settled pair never needs it; an audit sampling mid-walk measured her
  * walking through him. The line is sampled, not intersected: coarse on
  * purpose, a path clipping the margin by a pixel is still `pad` - 1 clear.
+ *
+ * A `want` inside his padded box is handed back as is: no waypoint reaches it
+ * without entering the box, and routing to one parked her on the waypoint for
+ * good — a seat `w + pad` beside him, with him a fraction of a pixel short of
+ * his own, was that case. One exactly on the edge is not inside (`hits` is
+ * strict), and her trailing spot is exactly there, so it is still routed.
  */
 export function detourAround(
   from: Point,
@@ -389,6 +395,7 @@ export function detourAround(
   minY: number,
 ): Point {
   const hits = (p: Point) => Math.abs(p.x - lead.x) < w + pad && Math.abs(p.y - lead.y) < h + pad;
+  if (hits(want)) return want;
   let blocked = hits(from);
   for (let i = 1; i <= 12 && !blocked; i += 1) {
     const t = i / 12;

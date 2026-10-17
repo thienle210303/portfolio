@@ -131,8 +131,8 @@ export function buildDocuments(): Document[] {
     });
   }
 
-  // The site's one-line positioning, rendered as the lead of About in the
-  // hero's identity column (HeroIdentity). It was the last sentence of `about`
+  // The site's one-line positioning, rendered as the hero's one paragraph, under
+  // the headline in its identity column (HeroIdentity). It was the last sentence of `about`
   // before round 18 and so was indexed with it; it is rendered there again,
   // which is what makes the "More on this in About" link on an answer truthful.
   // `profile.focus`, next, is printed in #about for the same reason, as the
