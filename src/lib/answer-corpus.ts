@@ -231,7 +231,7 @@ export function buildDocuments(): Document[] {
       source: `${stop.place}, ${stop.when}`,
       sectionId: "worlds",
       sectionLabel: "Worlds",
-      label: label("worlds", undefined, stop.place, stop.when),
+      label: label("worlds", `stop-${stop.id}`, stop.place, stop.when),
     });
   }
 

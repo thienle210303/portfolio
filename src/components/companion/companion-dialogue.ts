@@ -174,7 +174,7 @@ const TOUR: Record<string, SceneBuilder> = {
   // discipline every other scene in this file keeps.
   worlds: (f) => [
     tabby("Mrrrow!", `${f.worlds.stops} stops! I'd nap at each.`, "globe", "stretch"),
-    grey("Mrp. Meow.", `${f.worlds.crossingKm} km in one flight.`, "sparkle"),
+    grey("Mrp. Meow.", `${f.worlds.crossing} in one flight.`, "sparkle"),
   ],
   // Round 10: the tree absorbed Journey, and this one stop now narrates both
   // faces — the branch/leaf/technology counts first, then the entries' own

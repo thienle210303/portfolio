@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { careerEntryById, origin, originStops } from "@/content/portfolio";
 import { buildStops, crossingKm } from "@/lib/origin-stops";
 import { buildDocuments } from "@/lib/answer-corpus";
+import { answer } from "@/lib/answers";
 
 const stops = buildStops();
 const byId = Object.fromEntries(stops.map((stop) => [stop.id, stop]));
@@ -67,5 +68,22 @@ describe("the chat corpus", () => {
         stop.id,
       ).toBe(stop.id !== "taylors");
     }
+  });
+});
+
+describe("stop vocabulary", () => {
+  const captions = new Set(stops.map((stop) => stop.caption));
+
+  // The globe's old vocabulary (cat, moon, Việt Nam…) was earned by plaques
+  // that are gone; left on the stops, it retrieved a caption for every cat
+  // question and the USC caption for "vietnam".
+  it.each(["what are his cats called", "does he have cats"])("%s returns no stop caption", (query) => {
+    for (const result of answer(query, 10)) {
+      expect(captions.has(result.text), result.text).toBe(false);
+    }
+  });
+
+  it("vietnam does not return the USC caption", () => {
+    expect(answer("vietnam", 10).map((result) => result.text)).not.toContain(byId.usc.caption);
   });
 });

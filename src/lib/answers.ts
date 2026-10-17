@@ -5,9 +5,8 @@ import { buildDocuments, type Document } from "@/lib/answer-corpus";
  *
  * The defining property, and the reason it works this way rather than as a
  * language model: **it cannot fabricate.** Every answer it returns is a
- * string the content layer produces — an authored field as written, a
- * mechanical join of a record's fields, or one of the globe's computed
- * plaques — carried with its source and, where the page renders what it is
+ * string the content layer produces — an authored field as written, or a
+ * mechanical join of a record's fields — carried with its source and, where the page renders what it is
  * about, a link to the section that does. There is no generation step, so there is nothing to
  * hallucinate with. When nothing matches well enough, it says so rather than
  * reaching.
@@ -50,7 +49,7 @@ export interface Answer {
   readonly source: string;
   /**
    * Section anchor, so the reader can go to where this passage's **subject** is
-   * rendered — the role, the project, the plaque, the About prose. Not a promise
+   * rendered — the role, the project, the globe's stop, the About prose. Not a promise
    * that the quoted sentence is printed in that section: for 38 of the 54 career
    * and education documents it is not, which is why `AskThisSite` labels the link
    * "More on this in …" rather than "Read it in …". The full contract, with the

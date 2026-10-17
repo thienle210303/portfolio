@@ -53,7 +53,13 @@ export function buildStops(): readonly OriginStop[] {
   ];
 }
 
+/** Any count gives the same length: only `radians` is read, and it does not
+ *  depend on the segments. */
+const CROSSING_SEGMENTS = 72;
+
 /** Length of the flight, Kiên Giang to Taylors, in whole kilometres. */
 export function crossingKm(): number {
-  return Math.round(arcKm(greatCircle(origin.coordinates.from, origin.coordinates.to, 72).radians));
+  return Math.round(
+    arcKm(greatCircle(origin.coordinates.from, origin.coordinates.to, CROSSING_SEGMENTS).radians),
+  );
 }

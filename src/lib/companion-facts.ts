@@ -41,6 +41,8 @@ export interface CompanionFacts {
   readonly worlds: {
     readonly stops: number;
     readonly crossingKm: number;
+    /** `crossingKm` as the globe prints it: "14,960 km". */
+    readonly crossing: string;
   };
   /**
    * The Journey's own counts, both halves of its rail: what the drawing draws
@@ -83,6 +85,7 @@ export function buildCompanionFacts(): CompanionFacts {
   // `totalTechnologies()`: those count all twenty entries, including the nine
   // the stage no longer draws as branches.
   const drawn = buildDrawnTree();
+  const km = crossingKm();
 
   return {
     about: {
@@ -91,7 +94,8 @@ export function buildCompanionFacts(): CompanionFacts {
     },
     worlds: {
       stops: buildStops().length,
-      crossingKm: crossingKm(),
+      crossingKm: km,
+      crossing: `${km.toLocaleString("en-US")} km`,
     },
     tree: {
       branches: drawn.length,

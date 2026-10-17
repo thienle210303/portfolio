@@ -25,6 +25,7 @@ describe("buildCompanionFacts", () => {
   it("carries the globe's own counts", () => {
     expect(facts.worlds.stops).toBe(3);
     expect(facts.worlds.crossingKm).toBeGreaterThan(12_000);
+    expect(facts.worlds.crossing).toBe(`${facts.worlds.crossingKm.toLocaleString("en-US")} km`);
   });
 
   it("counts branches, leaves and technologies off the tree the Journey draws, not every entry", () => {
