@@ -27,7 +27,13 @@ export default function UnbranchedCaseStudies() {
   if (homeless.length === 0) return null;
 
   return (
-    <section data-unbranched-case-studies="" aria-labelledby={HEADING_ID} className="mt-16">
+    // Skipped while far off screen at lg, like the timeline above it (see
+    // KnowledgeTreeList): 3655px is its height at 1440.
+    <section
+      data-unbranched-case-studies=""
+      aria-labelledby={HEADING_ID}
+      className="mt-16 lg:[content-visibility:auto] lg:[contain-intrinsic-size:auto_3655px] print:[content-visibility:visible]"
+    >
       <h3
         id={HEADING_ID}
         className="font-display text-[length:var(--step-2)] font-semibold leading-[1.2] tracking-(--tracking-display) text-fg"
