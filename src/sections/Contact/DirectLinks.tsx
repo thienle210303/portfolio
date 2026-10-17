@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ExternalLink from "@/components/ui/ExternalLink";
 import { validBookingUrl } from "@/lib/booking";
 import { profile } from "@/content/portfolio";
@@ -6,12 +7,15 @@ import { profile } from "@/content/portfolio";
  * The ways out that need no form and that `BusinessCard` does not already
  * carry. The card holds the email (with its copy button), GitHub and
  * LinkedIn; repeating them here would put the same facts twice in one
- * section, so this row is the résumé PDF plus, when a booking URL is
- * configured, a link to book a call. Without a usable booking URL
+ * section, so this row is the résumé view (`/resume`) and the résumé PDF,
+ * plus, when a booking URL is configured, a link to book a call. Without a usable booking URL
  * (see `validBookingUrl`) there is no booking link and no placeholder for one.
  *
  * The PDF path is read from `profile.resumePdf` so it cannot drift from the
- * one the `/resume` page's "Download PDF" button uses. Booking is a plain link, never an embedded
+ * one the `/resume` page's "Download PDF" button uses. The view link is
+ * `next/link`, the page's only link to `/resume` since round 20 took it out of
+ * the hero, so the trip there and back is client-side (see `threadCache` in
+ * AskThisSite.tsx). Booking is a plain link, never an embedded
  * widget: the JS budget and the no-dependency rule both forbid a script.
  *
  * A Server Component: plain anchors, no client JS. Deliberately not blue-
@@ -28,13 +32,17 @@ const linkClass =
 export default function DirectLinks({ bookingUrl }: DirectLinksProps) {
   const resumePdf = profile.resumePdf;
   const booking = validBookingUrl(bookingUrl);
-  if (!resumePdf && !booking) return null;
   return (
     <div className="no-print mt-8">
       <p id="direct-links-label" className="text-[length:var(--step--1)] text-fg-muted">
         Or skip the form
       </p>
       <ul role="list" aria-labelledby="direct-links-label" className="mt-3 flex flex-wrap gap-4">
+        <li>
+          <Link href="/resume" className={linkClass}>
+            Résumé
+          </Link>
+        </li>
         {booking ? (
           <li>
             <ExternalLink href={booking} className={linkClass}>

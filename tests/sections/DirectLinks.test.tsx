@@ -7,11 +7,19 @@ import { profile, socialLinks } from "@/content/portfolio";
 describe("the no-form row", () => {
   it("offers the résumé PDF at the path the profile names, in a new tab", () => {
     render(<DirectLinks />);
-    const link = screen.getByRole("link", { name: /résumé/i });
+    const link = screen.getByRole("link", { name: /résumé \(pdf\)/i });
     expect(link).toHaveAttribute("href", profile.resumePdf);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
     expect(link).toHaveAccessibleName(/opens in a new tab/i);
+  });
+
+  it("links the résumé view in the same tab, client-side", () => {
+    // The page's only link to /resume since round 20 took it out of the hero.
+    render(<DirectLinks />);
+    const link = screen.getByRole("link", { name: "Résumé" });
+    expect(link).toHaveAttribute("href", "/resume");
+    expect(link).not.toHaveAttribute("target");
   });
 
   it("restates nothing the business card already carries", () => {
@@ -33,7 +41,8 @@ describe("Contact with the no-form row", () => {
     const asides = container.querySelectorAll("aside");
     expect(asides).toHaveLength(1);
     expect(within(asides[0] as HTMLElement).queryByRole("link", { name: /résumé/i })).toBeNull();
-    expect(screen.getAllByRole("link", { name: /résumé/i })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: /résumé \(pdf\)/i })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: "Résumé" })).toHaveLength(1);
   });
 });
 
@@ -44,7 +53,7 @@ describe("booking in the no-form row", () => {
     const { container } = render(<DirectLinks bookingUrl={undefined} />);
     expect(screen.queryByRole("link", { name: /book a call/i })).toBeNull();
     expect(container.textContent).not.toMatch(/undefined|null/);
-    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getAllByRole("link")).toHaveLength(2);
   });
 
   it("renders a plain external link when an https URL is configured", () => {
@@ -62,14 +71,14 @@ describe("booking in the no-form row", () => {
     (bad) => {
       render(<DirectLinks bookingUrl={bad} />);
       expect(screen.queryByRole("link", { name: /book a call/i })).toBeNull();
-      expect(screen.getAllByRole("link")).toHaveLength(1);
+      expect(screen.getAllByRole("link")).toHaveLength(2);
     },
   );
 
   it("labels the row so a list of links is not unexplained", () => {
     render(<DirectLinks bookingUrl={url} />);
     const list = screen.getByRole("list", { name: /skip the form/i });
-    expect(within(list).getAllByRole("link")).toHaveLength(2);
+    expect(within(list).getAllByRole("link")).toHaveLength(3);
   });
 });
 

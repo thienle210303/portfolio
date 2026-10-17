@@ -388,21 +388,18 @@ test.describe("ask this site", () => {
 
   test("the conversation survives a client-side trip to the résumé and back", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    // Round 20 Phase 3: the hero's two actions (spec §3) dropped "Open
-    // résumé", the only `next/link` from `/` to `/resume`. Spec §6 puts a
-    // Résumé link on the business card; point this at it then.
-    test.fixme(true, "no in-page link from / to /resume until the business card's Résumé link (spec §6)");
     // The one remaining case that unmounts the chat (see `threadCache` in
     // AskThisSite.tsx): `/` and `/resume` link to each other with
-    // `next/link`, so the trip is a client-side navigation and the module
-    // scope the thread lives in survives it.
+    // `next/link` (Contact's "Résumé" since round 20 took it out of the hero),
+    // so the trip is a client-side navigation and the module scope the thread
+    // lives in survives it.
     await openChat(page);
     const input = questionField(page);
     await input.fill("What did Thien build at DoorDash?");
     await input.press("Enter");
     await expect(conversation(page).getByText("What did Thien build at DoorDash?")).toBeVisible();
 
-    await page.getByRole("link", { name: "Open résumé" }).click();
+    await page.locator("#contact").getByRole("link", { name: "Résumé", exact: true }).click();
     await expect(page).toHaveURL(/\/resume$/);
     await page.getByRole("link", { name: "Back to the site" }).click();
     await expect(page).toHaveURL(/\/$/);

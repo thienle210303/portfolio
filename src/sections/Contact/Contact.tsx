@@ -16,7 +16,7 @@ import DirectLinks from "./DirectLinks";
  * Two panes at >=1024px: the form beside one business-card panel that
  * carries email, GitHub and LinkedIn plus the name, title and philosophy
  * line that make it read as an actual card rather than a link list. Under
- * the form, `DirectLinks` adds the ways out the card lacks: the résumé PDF
+ * the form, `DirectLinks` adds the ways out the card lacks: the résumé view, its PDF
  * and, when a booking URL is configured, a link to book a call.
  * Round 18 removed the one-field "leave a number" form that used to sit above
  * the full one: choosing an intent now produces a whole message, which is the
