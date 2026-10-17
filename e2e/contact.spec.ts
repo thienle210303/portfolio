@@ -73,7 +73,7 @@ test("the page's only blue fills are the hero's See my work and Contact's send",
   // import observer's margin, and the chunk is never fetched.
   const worlds = page.locator("#worlds");
   await worlds.getByRole("group", { name: /playground earth/i }).scrollIntoViewIfNeeded();
-  const flight = worlds.getByRole("button", { name: /take the flight|stop the replay/i });
+  const flight = worlds.getByRole("button", { name: /replay the flight|stop the replay/i });
   await expect(flight).toBeVisible({ timeout: 20_000 });
   // Hairlines are not fills: the nav's 1px active-underline (one per link)
   // uses `bg-accent` to draw a rule, so only boxes taller than 2px count.

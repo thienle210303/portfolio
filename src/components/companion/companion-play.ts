@@ -117,9 +117,8 @@ const DASH_BOW = 30;
  * skipped outright, which is how the bowl drops its nudge when there is nowhere
  * clear for the nudged cat to retreat to.
  */
-// Derived, not duplicated: the names live in `scene-names.ts`, which carries
-// no "use client" so the globe's Animals world can cite the same list from a
-// server component. See that file's own note.
+// Derived, not duplicated: the names live in `scene-names.ts`. See that
+// file's own note.
 export type SceneKind = SceneName;
 
 type PlayPhase =

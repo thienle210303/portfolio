@@ -2,19 +2,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { rotate, unproject, type Vec3 } from "@/lib/globe";
-import { SKIN_IDS } from "@/lib/skins";
-import { CHAPTER_IDS } from "@/lib/worlds";
 import {
-  CHAPTER_INDEX,
   FRAGMENT_SOURCE,
-  SKIN_INDEX,
   SPHERE_UNIFORMS,
   VERTEX_SOURCE,
-  glslName,
 } from "@/sections/Worlds/gl/shaders";
 import { robotLights } from "@/sections/Worlds/gl/robot";
 import {
-  REST_STATE,
   createSphere,
   globeStroke,
   inverseRotation,
@@ -22,6 +16,7 @@ import {
   sphereView,
   surfaceGeo,
   type SphereColors,
+  type SphereState,
 } from "@/sections/Worlds/gl/sphere";
 
 const DEG = Math.PI / 180;
@@ -53,10 +48,18 @@ describe("the sphere's uniform surface", () => {
     // the shader, the planet renders, and the feature simply does nothing.
     expect(SPHERE_UNIFORMS).toEqual([
       "uResolution", "uCenter", "uRadius", "uInverseRotation", "uCoastlines",
-      "uChapter", "uSkin", "uRobot", "uRobotLon", "uCityLight",
+      "uRobot", "uRobotLon", "uCityLight",
       "uInk", "uPaper",
     ]);
     expect(declaredUniforms(FRAGMENT_SOURCE)).toEqual([...SPHERE_UNIFORMS]);
+  });
+
+  it("has no chapter or skin uniforms in the shader source: one rest look", () => {
+    // Round 20 retired the six chapters and the five skins. A leftover branch
+    // would be dead GLSL reading a uniform nothing sets.
+    expect(FRAGMENT_SOURCE).not.toMatch(/uChapter|uSkin|CHAPTER_|SKIN_/);
+    expect(SPHERE_UNIFORMS).not.toContain("uChapter");
+    expect(SPHERE_UNIFORMS).not.toContain("uSkin");
   });
 
   it("declares each uniform exactly once", () => {
@@ -76,34 +79,27 @@ describe("the shader's colours", () => {
     expect(FRAGMENT_SOURCE).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
   });
 
-  it("uses no accent at all: the Night and Volcanic coastline glow is the palest of ink and paper", () => {
+  it("uses no accent at all", () => {
     // Blue is never decoration, and the surface carries no fact, so it has no
     // way to paint blue: no accent uniform, and no read of one.
     expect(FRAGMENT_SOURCE).not.toMatch(/uAccent/);
     expect(SPHERE_UNIFORMS).not.toContain("uAccent");
-    expect(FRAGMENT_SOURCE).toContain("color = mix(color, palest, glow);");
-    // The glow is still drawn, and only in those two skins.
-    const glowSets = [...FRAGMENT_SOURCE.matchAll(/^\s*glow = /gm)];
-    expect(glowSets).toHaveLength(2);
-    for (const set of glowSets) {
-      const branch = FRAGMENT_SOURCE.slice(0, set.index).lastIndexOf("uSkin == ");
-      expect(FRAGMENT_SOURCE.slice(branch, branch + 25)).toMatch(/SKIN_(NIGHT_SIDE|VOLCANIC)/);
-    }
   });
 
-  it("draws the robot and its city lights in the Technology chapter, in ink", () => {
-    // R9: the walk belongs to Technology, not to a skin. Every read of the
-    // three robot uniforms sits inside that chapter's branch.
-    const tech = FRAGMENT_SOURCE.indexOf("if (uChapter == CHAPTER_TECH) {");
-    expect(tech).toBeGreaterThan(0);
-    const branchEnd = FRAGMENT_SOURCE.indexOf("\n  }\n", tech);
-    const branch = FRAGMENT_SOURCE.slice(tech, branchEnd);
+  it("draws the robot's city lights only while a robot is out, in ink", () => {
+    // Every read of the three robot uniforms sits inside the one branch that
+    // runs while a robot is on the planet (`uRobot >= 0`): walking, or held
+    // as the reduced-motion still.
+    const walk = FRAGMENT_SOURCE.indexOf("if (uRobot >= 0.0) {");
+    expect(walk).toBeGreaterThan(0);
+    const branchEnd = FRAGMENT_SOURCE.indexOf("\n  }\n", walk);
+    const branch = FRAGMENT_SOURCE.slice(walk, branchEnd);
     const body = FRAGMENT_SOURCE.slice(FRAGMENT_SOURCE.indexOf("void main()"));
     for (const name of ["uRobot", "uRobotLon", "uCityLight"]) {
       const reads = body.match(new RegExp(`\\b${name}\\b`, "g")) ?? [];
       const inBranch = branch.match(new RegExp(`\\b${name}\\b`, "g")) ?? [];
       expect(reads.length, name).toBeGreaterThan(0);
-      expect(inBranch.length, `${name} is read outside the Technology branch`).toBe(reads.length);
+      expect(inBranch.length, `${name} is read outside the walk branch`).toBe(reads.length);
     }
     // The lights are the planet's own ink, so they read as light by night and
     // as dark points by day. Applied after the lighting, so a light on the
@@ -116,53 +112,6 @@ describe("the shader's colours", () => {
   it("the check catches a literal colour", () => {
     expect(colourLiterals("  air = mix(air, vec3(0.86, 0.35, 0.12), 0.75);")).toHaveLength(1);
     expect(colourLiterals("  fragColor = vec4(0.0, 0.0, 0.0, 0.0);")).toEqual([]);
-  });
-});
-
-describe("the index contract with CHAPTER_IDS and SKIN_IDS", () => {
-  it("pins the order of both arrays, so a reorder is a deliberate edit here", () => {
-    expect(CHAPTER_IDS).toEqual(["living-earth", "sea", "sky", "plants", "animals", "tech"]);
-    expect(SKIN_IDS).toEqual(["ice-age", "night-side", "volcanic", "underwater", "desert"]);
-  });
-
-  it("rests on Living Earth by id, not by position", () => {
-    expect(REST_STATE.chapter).toBe(CHAPTER_INDEX["living-earth"]);
-    expect(CHAPTER_IDS[REST_STATE.chapter]).toBe("living-earth");
-  });
-
-  it("maps each id to its position in the content-derived arrays", () => {
-    CHAPTER_IDS.forEach((id, i) => expect(CHAPTER_INDEX[id], id).toBe(i));
-    SKIN_IDS.forEach((id, i) => expect(SKIN_INDEX[id], id).toBe(i));
-    expect(Object.keys(CHAPTER_INDEX)).toHaveLength(CHAPTER_IDS.length);
-    expect(Object.keys(SKIN_INDEX)).toHaveLength(SKIN_IDS.length);
-  });
-
-  it("declares a GLSL constant for every id, equal to that id's index", () => {
-    CHAPTER_IDS.forEach((id, i) =>
-      expect(FRAGMENT_SOURCE).toContain(`const int ${glslName("CHAPTER", id)} = ${i};`),
-    );
-    SKIN_IDS.forEach((id, i) =>
-      expect(FRAGMENT_SOURCE).toContain(`const int ${glslName("SKIN", id)} = ${i};`),
-    );
-  });
-
-  it("branches only through those constants, never a bare index", () => {
-    expect(FRAGMENT_SOURCE).not.toMatch(/u(Chapter|Skin)\s*[=!]=\s*-?\d/);
-    const used = new Set(FRAGMENT_SOURCE.match(/\b(CHAPTER|SKIN)_[A-Z_]+\b/g));
-    const declared = new Set(
-      [...FRAGMENT_SOURCE.matchAll(/const int ((?:CHAPTER|SKIN)_\w+) =/g)].map((m) => m[1]),
-    );
-    for (const name of used) expect(declared, name).toContain(name);
-  });
-
-  it("draws every skin, and the three chapters that change the surface", () => {
-    for (const id of SKIN_IDS) {
-      expect(FRAGMENT_SOURCE, id).toMatch(new RegExp(`uSkin == ${glslName("SKIN", id)}\\b`));
-    }
-    for (const id of ["sea", "plants", "tech"]) {
-      expect(CHAPTER_IDS).toContain(id);
-      expect(FRAGMENT_SOURCE, id).toMatch(new RegExp(`uChapter == ${glslName("CHAPTER", id)}\\b`));
-    }
   });
 });
 
@@ -323,6 +272,8 @@ describe("parseCssColor", () => {
   });
 });
 
+/** No robot out: the planet's plain look. */
+const REST_STATE: SphereState = { spin: 0, tilt: 0, robot: -1 };
 const COLORS: SphereColors = { ink: [0, 0, 0], paper: [1, 1, 1] };
 const COVERAGE = { width: 4, height: 2, data: new Uint8ClampedArray(4 * 2 * 4) };
 
@@ -383,7 +334,7 @@ describe("createSphere", () => {
     const named = (fn: string, uniform: string) =>
       fake.named(fn).filter((c) => (c.args[0] as { name: string }).name === uniform).at(-1)?.args.slice(1);
 
-    sphere.draw({ ...REST_STATE, chapter: CHAPTER_INDEX.tech, robot: 0.7 }, sphereView(10, 10, 1));
+    sphere.draw({ ...REST_STATE, robot: 0.7 }, sphereView(10, 10, 1));
     const lights = robotLights(0.7)!;
     expect(named("uniform1f", "uRobot")).toEqual([0.7]);
     expect(named("uniform1f", "uRobotLon")?.[0]).toBeCloseTo(lights.lonDegrees * DEG, 12);
@@ -444,16 +395,15 @@ describe("createSphere", () => {
     const fake = fakeGl();
     const sphere = createSphere(fake.gl, { coverage: COVERAGE, colors: COLORS });
     const view = sphereView(800, 600, 2);
-    sphere.draw({ ...REST_STATE, chapter: CHAPTER_INDEX.tech, skin: SKIN_INDEX.volcanic }, view);
+    sphere.draw({ ...REST_STATE, spin: 0.4 }, view);
     expect(fake.named("drawArrays")).toHaveLength(1);
     expect(fake.named("drawArrays")[0].args).toEqual([20, 0, 4]);
     sphere.draw(REST_STATE, view);
     expect(fake.named("drawArrays")).toHaveLength(2);
 
-    const ints = fake.named("uniform1i").map((c) => [(c.args[0] as { name: string }).name, c.args[1]]);
-    expect(ints).toContainEqual(["uChapter", CHAPTER_INDEX.tech]);
-    expect(ints).toContainEqual(["uSkin", SKIN_INDEX.volcanic]);
-    expect(ints).toContainEqual(["uSkin", -1]);
+    // Only the texture unit is an int: there is no chapter or skin to send.
+    const ints = fake.named("uniform1i").map((c) => (c.args[0] as { name: string }).name);
+    expect(ints).toEqual(["uCoastlines"]);
     const center = fake.named("uniform2f").find((c) => (c.args[0] as { name: string }).name === "uCenter");
     expect(center?.args.slice(1)).toEqual([view.cx, view.cy]);
     const matrix = fake.named("uniformMatrix3fv").at(-1);

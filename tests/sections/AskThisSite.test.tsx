@@ -382,17 +382,18 @@ describe("AskThisSite -- a passage whose subject is rendered nowhere has no sect
 
 /**
  * The panel's promise, in its own words. Not every answer is a sentence quoted
- * whole: the globe's seven computed plaques are counts and lists made from the
- * content, and some documents join a record's fields into one line. So the
- * copy says "comes from what's written", never "quoted word for word". Pinned
+ * whole: some documents join a record's fields into one line. So the copy
+ * says "comes from what's written", never "quoted word for word". (It said
+ * "or a count made from them" while the globe's computed plaques were in the
+ * corpus; round 20 retired them, and with them every count.) Pinned
  * exactly, because a false sentence here is the defect this file guards.
  */
 describe("AskThisSite -- what it says about its answers", () => {
-  it("says, before any question, that answers come from what's written, or a count made from it", () => {
+  it("says, before any question, that answers come from what's written, or joined from it", () => {
     render(<AskThisSite liveModeConfigured={false} />);
     expect(
       screen.getByText(
-        "Every answer below comes from what’s written for this site — his words as written, or a count made from them — with its source. No model, nothing generated. If it isn’t written down, you’re told so.",
+        "Every answer below comes from what’s written for this site — his words as written, or a few of them joined into one line — with its source. No model, nothing generated. If it isn’t written down, you’re told so.",
       ),
     ).toBeVisible();
     expect(screen.queryByText(/word for word/)).toBeNull();

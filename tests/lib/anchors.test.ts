@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { careerEntries, projects } from "@/content/portfolio";
-import { ACT_IDS, actAnchorId, actForEntry, actForProject } from "@/lib/anchors";
+import { careerEntries } from "@/content/portfolio";
+import { ACT_IDS, actAnchorId, actForEntry } from "@/lib/anchors";
 
 describe("act anchors", () => {
   it("has seven acts, in story order", () => {
@@ -29,16 +29,7 @@ describe("act anchors", () => {
     }
   });
 
-  it("places every project in the act its career entry is in", () => {
-    for (const project of projects) {
-      expect(actForProject(project.id), project.id).toBe(
-        actForEntry(project.careerEntryId)
-      );
-    }
-  });
-
   it("returns undefined for an id that does not exist, rather than guessing", () => {
     expect(actForEntry("not-a-real-entry")).toBeUndefined();
-    expect(actForProject("not-a-real-project")).toBeUndefined();
   });
 });

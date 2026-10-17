@@ -321,6 +321,11 @@ export const subjectExpansions: Record<string, readonly string[]> = {
 
   "acm-webmaster": ["club", "chapter", "society", "volunteer", "webmaster", "leadership"],
 
+  /* --- Globe stops (keys are `stop-<OriginStop id>`) ------------------- */
+
+  "stop-kien-giang": ["vietnam", "việt nam", "kiên giang", "kien giang"],
+  "stop-usc": ["usc", "columbia", "university"],
+
   "deans-list": ["honour", "honor", "academic award", "gpa", "won"],
 
   /* --- Skill categories -------------------------------------------------- */
@@ -376,10 +381,12 @@ export const subjectExpansions: Record<string, readonly string[]> = {
  */
 export const sectionExpansions: Record<string, readonly string[]> = {
   about: ["who", "bio", "introduction", "background", "profile", "himself"],
-  // Round 16: Playground Earth. Every plaque document is indexed under this
-  // section (see buildDocuments in answer-corpus.ts), so its aliases are the
-  // vocabulary for the globe itself rather than for any one plaque's field.
-  worlds: ["globe", "world", "map", "earth", "vietnam", "việt nam", "kiên giang", "cat", "cats", "moon", "mi", "origin"],
+  // Round 20: the globe's stop documents are indexed under this section (see
+  // buildDocuments in answer-corpus.ts), so its aliases name the globe itself.
+  // Place names belong to one stop each, in `subjectExpansions` — on the
+  // section they attached Việt Nam to the USC stop. The cat and moon terms
+  // were earned by plaques that are gone.
+  worlds: ["globe", "world", "map", "earth", "origin"],
   // "work" itself was missing, which is easy to miss because it is the section's
   // own key — but the key is not indexed, only these strings are.
   work: ["work", "project", "portfolio", "case study", "shipped", "built"],

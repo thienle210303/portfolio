@@ -13,7 +13,7 @@ import { test, expect, type Page } from "@playwright/test";
  * a deleted section until a reviewer read the diff. This sweep reads the links,
  * not the imports.
  *
- * What it covers: every `main a[href^="#"]` — the Hero, the globe's plaques, the
+ * What it covers: every `main a[href^="#"]` — the Hero, the
  * Journey in both of its presentations (one is `display: none` at any width,
  * and a hidden link still has to resolve), the case studies and Contact. It
  * does NOT cover the header (`a[href="/#id"]`, derived from `navItems`, which
@@ -23,14 +23,10 @@ import { test, expect, type Page } from "@playwright/test";
  *
  * Two things this spec is built not to do:
  *
- *  - **Pass vacuously.** Two counts of *distinct* hrefs are asserted non-zero,
- *    each with a message that says what a green run would otherwise have
- *    meant: the hrefs on first paint (so the day the selector stops matching
- *    anything the sweep goes red instead of green), and the hrefs that only
- *    appear once the worlds have been stepped through (so the globe's plaque
- *    links cannot quietly drop out of the sweep). Not a running total: every
- *    pass re-collects the whole page, so a cumulative count grows whether or
- *    not anything new appeared, and an earlier version asserted on one. (Two older sweeps in `sections.spec.ts`
+ *  - **Pass vacuously.** The count of *distinct* hrefs is asserted non-zero,
+ *    with a message that says what a green run would otherwise have meant:
+ *    the day the selector stops matching anything the sweep goes red instead
+ *    of green. (Two older sweeps in `sections.spec.ts`
  *    filtered into an array and asserted `toEqual([])` over a list that had
  *    become empty; round 18 deleted both as superseded by this one.)
  *  - **See only first paint.** Disclosures are opened first, the way
@@ -83,48 +79,16 @@ test("every in-page fragment link on the page resolves to a real element", async
   await page.waitForLoadState("networkidle");
   await expandAllDisclosures(page);
 
-  // Distinct hrefs, not a running count. Each sweep re-collects every link on
-  // the page, so a cumulative count grows by the first-paint total on every
-  // pass whether or not anything new appeared — an earlier version of this
-  // spec asserted on that count and could not fail.
-  const hrefs = new Set<string>();
-  const dead = new Set<string>();
-  const take = (result: { hrefs: string[]; unresolved: string[] }) => {
-    for (const href of result.hrefs) hrefs.add(href);
-    for (const href of result.unresolved) dead.add(href);
-  };
-
-  take(await sweep(page));
-  const firstPaint = new Set(hrefs);
-
-  // The globe's plaque links are rendered by the panel of whichever world is
-  // selected, one world at a time, so a sweep of the first paint cannot see
-  // them. Step through all seven and sweep after each: these are the links
-  // round 18 repointed at the Journey's act anchors, and the ones a deleted
-  // section would have orphaned.
-  const section = page.locator("#worlds");
-  const buttons = section.getByRole("list", { name: /chapters/i }).getByRole("button");
-  const worldCount = await buttons.count();
-  expect(worldCount, "found no world buttons to step through — the plaque links went unswept").toBeGreaterThan(0);
-  for (let index = 0; index < worldCount; index += 1) {
-    await buttons.nth(index).click();
-    take(await sweep(page));
-  }
-
+  const { hrefs, unresolved } = await sweep(page);
+  const distinct = new Set(hrefs);
+  const dead = new Set(unresolved);
   expect(
-    firstPaint.size,
-    "the sweep collected no fragment links on first paint — its selector has stopped matching, so a green result would prove nothing",
-  ).toBeGreaterThan(0);
-  const revealedByWorlds = [...hrefs].filter((href) => !firstPaint.has(href));
-  expect(
-    revealedByWorlds.length,
-    "stepping through the worlds revealed no href that was absent from first paint — the plaque links are no longer reachable, so the globe went unswept",
+    distinct.size,
+    "the sweep collected no fragment links — its selector has stopped matching, so a green result would prove nothing",
   ).toBeGreaterThan(0);
   expect([...dead], `${dead.size} distinct fragment targets point at nothing`).toEqual([]);
 
   // Said in the output, not just in the assertion, so a run's evidence for
-  // "not vacuous" is two numbers a reader can see.
-  console.log(
-    `[fragments] first paint: ${firstPaint.size} distinct hrefs (${[...firstPaint].join(" ")}); after the worlds: ${hrefs.size} (${[...hrefs].join(" ")}); revealed by the worlds: ${revealedByWorlds.join(" ")}; unresolved: ${dead.size}`,
-  );
+  // "not vacuous" is a number a reader can see.
+  console.log(`[fragments] ${distinct.size} distinct hrefs (${[...distinct].join(" ")}); unresolved: ${dead.size}`);
 });

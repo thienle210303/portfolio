@@ -1,11 +1,10 @@
 /**
  * The eight play scenes, by name, with no `"use client"` on this file.
  *
- * That last part is the only reason this module exists. `companion-play.ts`
- * is a client module, and the globe's Animals world needs to *cite* this list
- * from a server resolver (`src/lib/worlds.ts`) rather than restate it — the
- * site's rule is that a fact lives in exactly one place. A directive-free
- * list both sides import is the smallest thing that satisfies both.
+ * That last part is why this module exists: through round 19 the globe's
+ * Animals chapter cited this list from a server resolver, and a client
+ * module (`companion-play.ts`) could not be imported there. The chapter is
+ * retired; the list stays the one place the names live.
  *
  * `companion-play.ts` derives its own `SceneKind` from this, so there is one
  * list and the type follows it rather than the other way round. That

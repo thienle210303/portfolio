@@ -11,7 +11,6 @@ export interface Motion {
   playing: boolean;
   flight: number;
   landed: boolean;
-  seed: number;
   robot: number;
   walking: boolean;
 }
@@ -19,10 +18,10 @@ export interface Motion {
 /**
  * Put everything that is moving where it was going, so a single draw shows
  * the end state and no frame is needed after it: the played crossing lands on
- * the arrival pin with the sapling grown (the same frame reduced motion's
- * `fly()` draws), a growing sapling finishes, an easing camera arrives,
- * inertia stops, and a robot mid-walk ends lit. A crossing the visitor is
- * dragging is theirs and is left alone.
+ * the arrival pin with the walk that landing starts already over (robot
+ * gone), an easing camera arrives, inertia stops, and a robot mid-walk
+ * finishes and leaves. A crossing the visitor is dragging is theirs
+ * and is left alone.
  *
  * Returns true when it landed a flight, so the caller can fire `onLanded`.
  */
@@ -32,10 +31,11 @@ export function settleMotion(m: Motion, arrival: { spin: number; tilt: number })
     m.playing = false;
     m.flight = 1;
     m.landed = true;
-    m.seed = 1;
     m.target = arrival;
+    // The walk a landing starts, already finished.
+    m.robot = -1;
+    m.walking = false;
   }
-  if (m.seed > 0) m.seed = 1;
   if (m.target) {
     m.spin = m.target.spin;
     m.tilt = m.target.tilt;
@@ -44,7 +44,7 @@ export function settleMotion(m: Motion, arrival: { spin: number; tilt: number })
   m.vSpin = 0;
   m.vTilt = 0;
   if (m.walking) {
-    m.robot = 1;
+    m.robot = -1;
     m.walking = false;
   }
   return landing;

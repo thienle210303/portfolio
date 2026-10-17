@@ -57,7 +57,7 @@ export function robotLights(progress: number): RobotLights | null {
 }
 
 /** One longitude's light level. The shader's twin of this is `walked` in
- *  `FRAGMENT_SOURCE`'s Technology branch. */
+ *  `FRAGMENT_SOURCE`'s walk branch. */
 export function lightLevel(lights: RobotLights, lonDegrees: number): number {
   return lonDegrees <= lights.lonDegrees ? lights.behind : lights.ahead;
 }
@@ -73,14 +73,6 @@ export function robotSky(progress: number): "moon" | "sun" | null {
   return robotPass(progress).pass === 1 ? "moon" : "sun";
 }
 
-/**
- * Under reduced motion the two passes are two still frames behind a toggle.
- * "Unsupervised" is the instant the dark lap finishes, every light out;
- * "Human in the loop" is where the walk ends.
- */
-export const ROBOT_HOLDS = {
-  unsupervised: 0.5 - Number.EPSILON,
-  "human-in-the-loop": 1,
-} as const;
-
-export type RobotHold = keyof typeof ROBOT_HOLDS;
+/** Where the walk ends, lit, under the Sun: the still the globe shows after
+ *  a landing under reduced motion, where the robot never walks. */
+export const ROBOT_STILL = 1;

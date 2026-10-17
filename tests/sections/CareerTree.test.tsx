@@ -9,7 +9,6 @@ import { caseStudyAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries, projects } from "@/content/portfolio";
 import { buildDocuments } from "@/lib/answer-corpus";
 import { careerIndexable, education, projectsIndexable } from "@/lib/answer-sources";
-import { resolveChapters } from "@/lib/worlds";
 import type { CareerEntry } from "@/types/portfolio";
 
 /**
@@ -97,20 +96,6 @@ describe("the Journey section", () => {
     expect(document.body.textContent).toContain(
       `${careerEntries.length - DEMOTED_ENTRY_IDS.length} drawn · ${DEMOTED_ENTRY_IDS.length} as credentials`,
     );
-  });
-
-  it("draws the same number of branches the globe's tree-shape plaque says it does", () => {
-    // Two places on one page state how many branches there are: the rail beside
-    // the drawing and a plaque on the globe. They once disagreed (20 against 11)
-    // because only one of them knew nine entries had become credentials.
-    render(<CareerTree />);
-    const plaque = resolveChapters()
-      .flatMap((world) => world.plaques)
-      .find((candidate) => /\d+ branches ·/.test(candidate.text));
-    if (!plaque) throw new Error("no tree-shape plaque on the globe");
-    const claimed = Number(/(\d+) branches ·/.exec(plaque.text)?.[1]);
-    expect(claimed).toBe(document.querySelectorAll("[data-tree-branch][data-branch-act]").length);
-    expect(document.body.textContent).toContain(`${claimed} drawn · `);
   });
 });
 

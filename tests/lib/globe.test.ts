@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  arcApex,
   arcKm,
-  arcMidpoint,
   clampTilt,
   easeFraction,
   FRAME_MS,
@@ -152,30 +150,6 @@ describe("greatCircle", () => {
     for (const [x, y, z] of greatCircle({ lat: 10, lon: 0 }, { lat: -10, lon: 180 }, 8).points) {
       expect(Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)).toBe(true);
       expect(Math.hypot(x, y, z)).toBeCloseTo(1, 8);
-    }
-  });
-});
-
-describe("derived worlds", () => {
-  const arc = greatCircle(origin.coordinates.from, origin.coordinates.to, 72);
-
-  it("puts the Sea's midpoint north of the origin pin and equidistant from both pins", () => {
-    const mid = arcMidpoint(arc);
-    // The route bends poleward, so the midpoint sits north of the origin pin.
-    expect(mid.lat).toBeGreaterThan(origin.coordinates.from.lat);
-    // And it is equidistant from both pins. This used to assert "|lon| > 150",
-    // i.e. out over the Pacific — true of the country-centroid pin and false of
-    // Taylors, whose great circle clears Siberia instead. The claim worth
-    // keeping was always "midway", which does not depend on where the pins are.
-    const dot = (p: typeof mid, q: typeof mid) =>
-      toVector(p).reduce((sum, component, i) => sum + component * toVector(q)[i], 0);
-    expect(dot(mid, origin.coordinates.from)).toBeCloseTo(dot(mid, origin.coordinates.to), 6);
-  });
-
-  it("puts the Sky's apex at the arc's highest latitude", () => {
-    const apex = arcApex(arc);
-    for (const point of arc.points) {
-      expect(apex.lat).toBeGreaterThanOrEqual(toGeo(point).lat - 1e-9);
     }
   });
 });

@@ -3,24 +3,13 @@ import type { GeoPoint } from "@/types/portfolio";
 import type { CoastlineTexture } from "./coastline-texture";
 import { compileProgram } from "./context";
 import { robotLights } from "./robot";
-import { CHAPTER_INDEX, FRAGMENT_SOURCE, SPHERE_UNIFORMS, VERTEX_SOURCE, type SphereUniform } from "./shaders";
+import { FRAGMENT_SOURCE, SPHERE_UNIFORMS, VERTEX_SOURCE, type SphereUniform } from "./shaders";
 
 export interface SphereState {
   readonly spin: number;      // radians
   readonly tilt: number;      // radians, already through clampTilt()
-  readonly chapter: number;   // CHAPTER_INDEX[id]
-  readonly skin: number;      // SKIN_INDEX[id], or -1 for none
   readonly robot: number;     // 0..1 across both passes, or -1 for absent
 }
-
-/** The at-rest state: Living Earth, no skin, no robot. */
-export const REST_STATE: SphereState = {
-  spin: 0,
-  tilt: 0,
-  chapter: CHAPTER_INDEX["living-earth"],
-  skin: -1,
-  robot: -1,
-};
 
 /** `--fg` and `--ground`, parsed to 0..1. */
 export interface SphereColors {
@@ -54,7 +43,7 @@ export interface Sphere {
  * Where the disc sits in a stage of this CSS size: the one definition both
  * canvases use. GlobeCanvas's overlay strokes with it in CSS pixels; the GL
  * surface gets it scaled to device pixels through `sphereView`. Two copies of
- * this maths would let the shaded planet and the markers drift apart.
+ * this maths would let the shaded planet and the pins drift apart.
  */
 export function globeStroke(cssWidth: number, cssHeight: number): Viewport {
   return {
@@ -218,8 +207,6 @@ export function createSphere(gl: WebGL2RenderingContext | null, options: SphereO
       gl.uniform2f(at.uCenter, view.cx, view.cy);
       gl.uniform1f(at.uRadius, view.radius);
       gl.uniformMatrix3fv(at.uInverseRotation, false, matrix);
-      gl.uniform1i(at.uChapter, state.chapter);
-      gl.uniform1i(at.uSkin, state.skin);
       gl.uniform1f(at.uRobot, state.robot);
       const lights = robotLights(state.robot);
       gl.uniform1f(at.uRobotLon, lights ? (lights.lonDegrees * Math.PI) / 180 : 0);

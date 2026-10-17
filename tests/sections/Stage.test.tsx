@@ -119,9 +119,7 @@ describe("the pinned stage", () => {
     for (const act of ACTS) {
       // Real elements with real ids, so an inbound link lands with
       // JavaScript disabled. Not a client-side hash rewrite. Looked up through
-      // `actAnchorId`, the function the globe's plaque links are built with —
-      // this is the "rendered" half of the declared/rendered pair that
-      // `tests/lib/worlds.test.ts` documents.
+      // `actAnchorId`, the one function every act link is built with.
       expect(act.anchorId).toBe(actAnchorId(act.id));
       expect(document.getElementById(actAnchorId(act.id)), act.id).not.toBeNull();
     }

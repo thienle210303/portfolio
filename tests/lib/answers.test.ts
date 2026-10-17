@@ -10,7 +10,7 @@ import {
 } from "@/lib/answer-sources";
 import { navItems, origin } from "@/content/portfolio";
 import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
-import { resolveChapters } from "@/lib/worlds";
+import { buildStops } from "@/lib/origin-stops";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -55,18 +55,10 @@ const CORPUS = new Set<string>([
   // reachable, cited to Contact (the business card prints it). Round 16 also removed the Lab and its
   // experiment and scraping-playbook documents.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
-  // Round 16: Playground Earth. Every plaque is a document (buildDocuments in
-  // answer-corpus.ts). Most plaque text already duplicates a string in one
-  // of the sets above (career and project fields) — but not all of it: a
-  // computed plaque (the tree's shape, the crossing, the scene list, the AI
-  // tools joined) or a companion plaque (`cat.name`) is composed by
-  // resolveChapters() and appears nowhere else in this file, so this line
-  // covers those too. Built from resolveChapters() rather than transcribed by
-  // hand, so a typo here can never silently under-cover it; the other half
-  // of the guarantee — that each composed string really is drawn from real
-  // content, not invented — is what tests/lib/worlds.test.ts's honesty-rule
-  // suite proves.
-  ...resolveChapters().flatMap((world) => world.plaques.map((plaque) => plaque.text)),
+  // Round 20: the globe's three stops, one document per caption. Built from
+  // buildStops() rather than transcribed, so a typo here cannot under-cover
+  // it; tests/lib/origin-stops.test.ts proves each caption is a content field.
+  ...buildStops().map((stop) => stop.caption),
 ]);
 
 /** Sections an answer may link into: every section the nav lists, which is

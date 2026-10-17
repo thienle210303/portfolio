@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, waitFor } from "@testing-library/react";
-import { resolveChapters } from "@/lib/worlds";
+import { buildStops } from "@/lib/origin-stops";
 import GlobeCanvas, { COASTLINE_PNG } from "@/sections/Worlds/GlobeCanvas";
 
 /*
@@ -32,19 +32,16 @@ vi.mock("@/sections/Worlds/gl/sphere", async (importActual) => {
   return { ...actual, createSphere: fake.createSphere };
 });
 
-const WORLDS = resolveChapters();
+const STOPS = buildStops();
 
 function mount(onSurfaceChange: (live: boolean) => void) {
   return render(
     <GlobeCanvas
-      worlds={WORLDS}
-      currentId={WORLDS[0].id}
-      onSelect={() => {}}
+      stops={STOPS}
+      activeStopId={null}
       onLanded={() => {}}
       onReady={() => {}}
-      skinId={null}
       onSurfaceChange={onSurfaceChange}
-      robotHold="unsupervised"
     />,
   );
 }

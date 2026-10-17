@@ -204,8 +204,8 @@ export function totalTechnologies(): number {
  * So real text leaves the drawing: those `impact` lines and technologies were
  * leaves, and they are not drawn any more. **`llm-classifier` is the one entry
  * whose authored `built` and `impact` text is now rendered nowhere on the
- * site** — it has no project record, so no case study carries it; no globe
- * plaque quotes it; and `/resume` never showed it (see below). Thien was shown
+ * site** — it has no project record, so no case study carries it; and
+ * `/resume` never showed it (see below). Thien was shown
  * this and accepted it explicitly: it is a deliberate cost of fitting the
  * drawing on one screen, not an oversight. `capstone`, `cockyhacks` and
  * `code-to-give` lose their `built` lines the same way. `capstone` at least
@@ -229,15 +229,15 @@ export function totalTechnologies(): number {
  * entries. An earlier version of this comment said `/resume` "still shows them
  * in full"; it never did.
  *
- * Nothing is deleted from the content layer: `careerEntries` is unchanged, the
- * globe still quotes four of these entries' `role` fields on its plaques, and
+ * Nothing is deleted from the content layer: `careerEntries` is unchanged, and
  * the chat still indexes all nine. Only the drawing stops giving each a limb.
  *
  * ## Why it lives here
  *
- * In `lib/` rather than beside the strip that renders them, because the globe's
- * "tree-shape" plaque has to count the same branches the Journey draws, and
- * nothing under `lib/` may import from `sections/`. It is a set, not a
+ * In `lib/` rather than beside the strip that renders them, because the
+ * companion's facts (`src/lib/companion-facts.ts`) have to count the same
+ * branches the Journey draws, and nothing under `lib/` may import from
+ * `sections/`. It is a set, not a
  * sequence: the strip sorts by `sortKey`, the same way the tree does.
  */
 export const DEMOTED_ENTRY_IDS = [
@@ -263,9 +263,9 @@ export function isDemotedEntry(entryId: string): boolean {
 /**
  * The tree the Journey actually draws: `buildCareerTree()` without the nine
  * demoted entries. Everything that says how many branches, leaves or
- * technologies there are on the drawing — the section's rail, the globe's
- * "tree-shape" plaque — counts this, so the numbers a visitor reads on one page
- * cannot disagree.
+ * technologies there are on the drawing — the section's rail, the companion's
+ * facts — counts this, so the numbers a visitor reads on one page cannot
+ * disagree.
  */
 export function buildDrawnTree(): readonly TreeBranch[] {
   return buildCareerTree().filter((branch) => !isDemotedEntry(branch.id));
@@ -281,9 +281,8 @@ export function treeTechnologies(branches: readonly TreeBranch[]): number {
  * Every leaf across a set of branches: every technology each of them lists,
  * summed — so a technology two branches list counts twice, once per leaf.
  * Impact lines are not leaves and are not counted. Takes the built tree rather than building
- * its own — `CareerTree.tsx`'s rail and `src/lib/worlds.ts`'s Plants-world
- * plaque each already have one in hand, and this was previously written out
- * as the same `reduce` in both places.
+ * its own — `CareerTree.tsx`'s rail and `src/lib/companion-facts.ts` each
+ * already have one in hand.
  */
 export function totalLeaves(branches: readonly TreeBranch[]): number {
   return branches.reduce((total, branch) => total + branch.leaves.length, 0);

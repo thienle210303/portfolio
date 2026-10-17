@@ -34,7 +34,7 @@ export default function Home() {
         Round 18 took the page from six sections to four. Selected Work and
         Skills are gone because nothing needs them any more: the case studies
         render inside the branches of the roles that produced them, in the
-        Journey, and the globe's plaques point at the Journey's act anchors.
+        Journey.
         Skills as a section is gone, not the skills — `skillCategories` is
         still content, still rendered by /resume and still in the answer
         corpus.

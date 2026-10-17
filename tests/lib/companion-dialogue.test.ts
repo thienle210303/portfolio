@@ -25,7 +25,7 @@ import type { CompanionFacts } from "@/lib/companion-facts";
 
 const FACTS: CompanionFacts = {
   about: { role: "Software Engineer", organization: "DoorDash, Inc." },
-  worlds: { count: 7, plaques: 19, decorations: 3, crossingKm: 13000 },
+  worlds: { stops: 3, crossingKm: 14960, crossing: "14,960 km" },
   tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
   contact: { email: "x@y.z" },
 };
