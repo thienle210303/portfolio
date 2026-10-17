@@ -975,8 +975,8 @@
   /* painted (just offset by up to 10px) from frame one. The h1 is the LCP  */
   /* candidate this protects. The terminal is not fully painted from frame  */
   /* one: `term-type` clips each `whoami` line in turn. Each line is its    */
-  /* own small block of text, so none should outgrow the h1 as a candidate  */
-  /* — inferred, to be confirmed by Phase 3 Task 2's perf trace.            */
+  /* own small block of text, so none outgrows the h1 as a candidate:      */
+  /* confirmed, LCP is `h1#hero-heading` (2404 ms, R20-P3 perf row).        */
   /* ---------------------------------------------------------------------- */
   @keyframes ink-rise {
     from {

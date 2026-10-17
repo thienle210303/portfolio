@@ -828,11 +828,12 @@ function overlaps(a: Point, b: Point): boolean {
  * `headClear`, so a cat is not parked with its ears and face across a line of
  * prose when ground clear for the whole drawing is nearby; the ordinary
  * three-point pass follows, so a crowded viewport still gets the nearest spot
- * its feet can have rather than the corner. It exists for the phone-width
- * hero: since round 18 put the About paragraphs in the fold, a 390px first
- * screen is prose to its bottom edge, its gutter is narrower than a cat, and
- * a declined explorer plan parked both cats with their heads on the last
- * paragraph (e2e/companion.spec.ts, "on load, in About").
+ * its feet can have rather than the corner. It was written for the phone-width
+ * hero: once round 18 put the About paragraphs in the fold, a 390px first
+ * screen was prose to its bottom edge, its gutter narrower than a cat, and a
+ * declined explorer plan parked both cats with their heads on the last
+ * paragraph (e2e/companion.spec.ts, "on load, in About"). Round 20 Phase 3
+ * took the paragraphs out; the pass stays for any crowded first screen.
  *
  * Opt-in, and only where a spot is chosen once and then held: the explorers'
  * fallbacks (`planExplore`, `repickExploreSpot`) and `Companion`'s settle
