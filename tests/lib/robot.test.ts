@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FRAME_MS } from "@/lib/globe";
 import {
-  ROBOT_HOLDS,
+  ROBOT_STILL,
   ROBOT_WALK_FRAMES,
   lightLevel,
   robotLights,
@@ -75,15 +75,15 @@ describe("the walk's length and its two held states", () => {
     expect(ms).toBeLessThan(6_500);
   });
 
-  it("holds 'Unsupervised' at the end of the dark lap: every light out", () => {
-    const lights = robotLights(ROBOT_HOLDS.unsupervised)!;
+  it("has every light out at the end of the dark lap", () => {
+    const lights = robotLights(0.5 - Number.EPSILON)!;
     expect(lights.pass).toBe(1);
     for (let lon = -179; lon <= 179; lon += 1) expect(lightLevel(lights, lon)).toBe(0);
   });
 
-  it("holds 'Human in the loop' where the walk ends: lit, brighter than it started", () => {
-    expect(ROBOT_HOLDS["human-in-the-loop"]).toBe(1);
-    const lights = robotLights(ROBOT_HOLDS["human-in-the-loop"])!;
+  it("stands still where the walk ends: lit, brighter than it started", () => {
+    expect(ROBOT_STILL).toBe(1);
+    const lights = robotLights(ROBOT_STILL)!;
     expect(lights.pass).toBe(2);
     for (let lon = -179; lon <= 179; lon += 1) {
       expect(lightLevel(lights, lon)).toBeGreaterThan(robotPass(0).cityLight);
@@ -100,8 +100,8 @@ describe("the body over each lap", () => {
     expect(robotSky(1)).toBe("sun");
   });
 
-  it("agrees with the two still holds", () => {
-    expect(robotSky(ROBOT_HOLDS.unsupervised)).toBe("moon");
-    expect(robotSky(ROBOT_HOLDS["human-in-the-loop"])).toBe("sun");
+  it("is a Moon at the end of the dark lap and a Sun at the still", () => {
+    expect(robotSky(0.5 - Number.EPSILON)).toBe("moon");
+    expect(robotSky(ROBOT_STILL)).toBe("sun");
   });
 });

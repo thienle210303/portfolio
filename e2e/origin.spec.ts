@@ -144,8 +144,8 @@ test.describe("the player", () => {
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
     // The one geographic fact the story is allowed to name is the crossing —
-    // `origin.from` → `origin.to` · `origin.arrived`, both ends as authored
-    // (the same string `computedFact("crossing")` gives the globe) — and never
+    // `origin.from` → `origin.to` · `origin.arrived`, both ends as authored —
+    // and never
     // a schooling location. `origin-story.test.ts` holds `Season.caption` to a
     // ban on every place name; the flight is the one beat exempt from the
     // arrival's own two ends, and this is its copy of the schooling ban.

@@ -1,8 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import type { Result } from "axe-core";
-import { resolveSkins } from "../src/lib/skins";
-import { resolveChapters } from "../src/lib/worlds";
+import { buildStops } from "../src/lib/origin-stops";
 
 /**
  * Automated accessibility auditing via axe-core, on top of the hand-rolled
@@ -90,7 +89,7 @@ async function stageSettled(page: Page): Promise<void> {
 async function stopTheReplay(page: Page): Promise<void> {
   const stop = page.locator("#worlds").getByRole("button", { name: "Stop the replay" });
   if (await stop.isVisible()) await stop.click();
-  await expect(page.locator("#worlds").getByRole("button", { name: "Take the flight" })).toBeVisible();
+  await expect(page.locator("#worlds").getByRole("button", { name: "Replay the flight" })).toBeVisible();
 }
 
 test.describe("full-page audit", () => {
@@ -253,29 +252,20 @@ test.describe("interactive states", () => {
     }
   });
 
-  test("zero WCAG violations with the globe landed and the handoff link shown", async ({
-    page,
-  }) => {
+  test("zero WCAG violations with the globe landed and a stop chosen", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // The one piece of UI in `#worlds` that does not exist until the flight
-    // has landed: the career-tree handoff link, rendered only once a seed is
-    // on the globe (see `WorldsStage.tsx`). The crossing plays itself once
-    // when half the stage is in view, so this centres the stage and waits for
-    // the stage to say it landed. Audits that never bring the stage that far
-    // into view see the section in its pre-flight state, so without this the
-    // link ships with no automated coverage at all — and it is a prose link on
-    // a `tone="deep"` ground, which is both a contrast pair and axe's
-    // `link-in-text-block` rule (a link may not be distinguished from its
-    // surrounding text by colour alone; `.ink-link`'s resting underline is
-    // what satisfies it).
+    // The crossing plays itself once when half the stage is in view, so this
+    // centres the stage and waits for the stage to say it landed; audits that
+    // never bring the stage that far into view see the pre-flight state.
     await scrollIntoViewAndSettle(page, "#worlds-heading");
     const stage = page.locator("#worlds").getByRole("group", { name: /playground earth/i });
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
     await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 30_000 });
     await stopTheReplay(page);
-    await expect(page.locator("#worlds").getByRole("link", { name: /career tree/i })).toBeVisible();
+    await page.locator("#worlds ol > li:first-child > button").click();
+    await expect(page.locator("#worlds ol > li:first-child > button")).toHaveAttribute("aria-pressed", "true");
     await auditHasNoViolations(page, "#worlds");
   });
 });
@@ -388,15 +378,12 @@ test.describe("theme toggle", () => {
 });
 
 /**
- * `#worlds` across the chapter and skin matrix, in both themes: each of the six
- * chapters with no skin, and each of the five skins worn over Living Earth,
- * then the robot's lap toggle (which exists only under reduced motion). The
- * tone is not a matrix axis here: tone is set per section, and the globe is
- * always `tone="deep"`; the other tones are covered by the audits above.
- *
- * Skins need the GL surface: those cases wait for it and fail, naming WebGL2, if it never appears.
+ * `#worlds` with each stop chosen, in both themes: a chosen stop's button
+ * changes its ground and border, and that is the pairing these audit. The tone
+ * is not a matrix axis here: the globe is always `tone="deep"`; the other tones
+ * are covered by the audits above.
  */
-test.describe("the globe's chapters and skins", () => {
+test.describe("the globe's stops", () => {
   async function openGlobe(page: Page, theme: "day" | "night") {
     await page.addInitScript((value) => window.localStorage.setItem("theme", value), theme);
     await page.goto("/");
@@ -410,47 +397,15 @@ test.describe("the globe's chapters and skins", () => {
   }
 
   for (const theme of ["day", "night"] as const) {
-    for (const chapter of resolveChapters()) {
-      test(`${theme}: ${chapter.name}, no skin`, async ({ page }) => {
+    for (const [index, stop] of buildStops().entries()) {
+      test(`${theme}: ${stop.place} chosen`, async ({ page }) => {
         test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
         await openGlobe(page, theme);
-        const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
-        await list.getByRole("button", { name: new RegExp(chapter.name, "i") }).click();
-        await expect(page.locator("#worlds").getByRole("heading", { level: 3, name: chapter.name })).toBeVisible();
-        await auditHasNoViolations(page, "#worlds");
-      });
-    }
-
-    for (const skin of resolveSkins()) {
-      test(`${theme}: the ${skin.name} skin on Living Earth`, async ({ page }) => {
-        test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
-        await openGlobe(page, theme);
-        await expect(
-          page.locator("#worlds canvas[data-globe-surface]"),
-          "no GL surface appeared: WebGL2 is unavailable or the globe failed to create it, so no skin can be audited",
-        ).toHaveCount(1, { timeout: 15_000 });
-        const section = page.locator("#worlds");
-        await section.getByRole("list", { name: /chapters/i }).getByRole("button", { name: /living earth/i }).click();
-        const button = section
-          .getByRole("group", { name: /skins/i })
-          .getByRole("button", { name: new RegExp(`^${skin.name}\\b`) });
+        const button = page.locator(`#worlds ol > li:nth-child(${index + 1}) > button`);
         await button.click();
         await expect(button).toHaveAttribute("aria-pressed", "true");
         await auditHasNoViolations(page, "#worlds");
       });
     }
-
-    test(`${theme}: Technology with the robot's lap toggle, under reduced motion`, async ({ page }) => {
-      test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await openGlobe(page, theme);
-      const section = page.locator("#worlds");
-      await section.getByRole("list", { name: /chapters/i }).getByRole("button", { name: /technology/i }).click();
-      const laps = section.getByRole("group", { name: "The robot's two laps" });
-      await expect(laps.getByRole("button")).toHaveCount(2);
-      await laps.getByRole("button", { name: "Unsupervised" }).click();
-      await expect(laps.getByRole("button", { name: "Unsupervised" })).toHaveAttribute("aria-pressed", "true");
-      await auditHasNoViolations(page, "#worlds");
-    });
   }
 });

@@ -51,23 +51,15 @@ Rules that keep that working:
 
 ### The globe
 
-Every drawn object in `#worlds` is exactly one of two things, and the
-distinction is the section's whole reason to exist. A **plaque** comes in two
-kinds, and both name their source in the panel. `kind: "field"` is a typed
-reference to one field of one authored record, rendered **verbatim** — no
-plaque may quote a sub-sentence, and a reference that resolves to nothing is
-dropped rather than rendered. `kind: "computed"` renders one named computation
-over the content layer (`computedFact()` in `src/lib/worlds.ts`: a count of
-branches, a count of seasons, the list of scene names, the list of tool
-names); its `source` names the computation rather than a record and a field.
-Twelve of the nineteen plaques are quoted fields and seven are computations,
-and the rail says so — do not let any prose round that back to "every plaque
-is one field, quoted whole". A **decoration** carries no fact at all and is
-labelled `no plaque · decoration` in its own accessible name.
-`tests/lib/worlds.test.ts` enforces this string-for-string. If a quoted
-plaque's text is not `===` a string the content layer produces, fix the
-reference or edit the authored field — never relax the assertion to a
-substring or a normalised comparison.
+`#worlds` is the origin story: one crossing, three stops. The globe flies the
+crossing once on first view ("Replay the flight" replays it), and pressing a
+stop in the list beside it turns the globe to that stop's pin. Every word in
+that list — each stop's place, date and caption — and every number in the
+rail comes from the content layer through `buildStops()` and `crossingKm()` in
+`src/lib/origin-stops.ts`: `origin` (the crossing's two pins, its places and
+dates), `originStops` (the first and third captions and the university's pin)
+and `eastside-high`'s `headline` (the second caption). To change what a stop
+says, edit the field; nothing in `src/sections/Worlds/` types a fact.
 
 **No 3D library, and that was measured, not assumed.** Against the initial-JS
 budget (207 KB when the comparison was made, 199.5 KB after round 18 Plan C), a
@@ -81,12 +73,6 @@ coverage texture is a PNG baked ahead of time by `gl/coastline-texture`
 2D globe is the fallback, and it takes over for good when there is no WebGL2, a
 program fails to compile or link, the context is lost, `forced-colors` is
 active, or the coverage PNG fails to load or decode. Do not add a library.
-
-**Chapters carry facts; skins carry none.** The globe has six chapters
-(`living-earth`, `sea`, `sky`, `plants`, `animals`, `tech`, in
-`src/content/worlds.ts`) and five skins (`src/content/skins.ts`, resolved in
-`src/lib/skins.ts`). A skin is a look, labelled `no plaque · decoration` in
-its own accessible name, and it may never carry a plaque.
 
 `src/sections/Worlds/coastline-data.ts` is fenced: `GlobeCanvas.tsx` is the
 only file under `src/` allowed to import it, and
@@ -122,10 +108,9 @@ second rendering of the timeline and the case studies.
 Copy rules (first person, surface vs depth, headlines) live in
 [docs/voice.md](docs/voice.md).
 
-Everything factual lives in `src/content/portfolio.ts` (the globe's addresses
-into it live in `src/content/worlds.ts`); components read from it and never
-restate a fact. One career entry feeds the Journey, the résumé and the globe's
-plaques at once. Practical recipes — adding a
+Everything factual lives in `src/content/portfolio.ts`; components read from
+it and never restate a fact. One career entry feeds the Journey, the résumé
+and the chat at once. Practical recipes — adding a
 metric, adding a role, attaching a case study — are in
 [docs/editing.md](docs/editing.md).
 
@@ -145,8 +130,8 @@ The fix was to take the strings off the indexed surface, which the retrieval
 eval priced at zero, where gating the engine harder instead cost ten points of
 recall@3. The strings are gone now, so no test fences them; the lesson is that
 text whose vocabulary is generic costs precision everywhere and earns recall
-nowhere the eval can see. `aiTools` is `src/content/portfolio.ts` content and
-composes the globe's Technology plaque through `computedFact("ai-tools")`.
+nowhere the eval can see. `aiTools` is `src/content/portfolio.ts` content; the
+hero's terminal reads it.
 
 ### The Journey's tree
 

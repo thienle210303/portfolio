@@ -73,14 +73,6 @@ export function robotSky(progress: number): "moon" | "sun" | null {
   return robotPass(progress).pass === 1 ? "moon" : "sun";
 }
 
-/**
- * The walk's two still frames. "Unsupervised" is the instant the dark lap
- * finishes, every light out; "Human in the loop" is where the walk ends, and
- * is the still the globe shows after a landing under reduced motion.
- */
-export const ROBOT_HOLDS = {
-  unsupervised: 0.5 - Number.EPSILON,
-  "human-in-the-loop": 1,
-} as const;
-
-export type RobotHold = keyof typeof ROBOT_HOLDS;
+/** Where the walk ends, lit, under the Sun: the still the globe shows after
+ *  a landing under reduced motion, where the robot never walks. */
+export const ROBOT_STILL = 1;

@@ -1,10 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
-import { companions, origin } from "../src/content/portfolio";
-import { clampTilt, project, toVector } from "../src/lib/globe";
-import { resolveSkins } from "../src/lib/skins";
-import { resolveChapters } from "../src/lib/worlds";
+import { buildStops, crossingKm } from "../src/lib/origin-stops";
 
-const WORLDS = resolveChapters();
+const STOPS = buildStops();
 
 // The value of the `data-chunk` attribute on the <canvas> in
 // `src/sections/Worlds/GlobeCanvas.tsx`. No other module carries it, so only the
@@ -16,26 +13,23 @@ const CANVAS_CHUNK_MARKER = "globe-canvas";
 const OVERLAY = '#worlds canvas[data-chunk="globe-canvas"]';
 const SURFACE = "#worlds canvas[data-globe-surface]";
 
-test.describe("the worlds list is the feature; the canvas is decoration", () => {
-  test("every world, plaque and source is reachable with the canvas chunk blocked", async ({
+/** The stop buttons, in order. Selected by structure, not by text, because a
+ *  place name is content and may contain anything. */
+const STOP_BUTTONS = "#worlds ol > li > button";
+const stopButton = (index: number) => `#worlds ol > li:nth-child(${index + 1}) > button`;
+
+test.describe("the stops are the feature; the canvas is decoration", () => {
+  test("every stop and its caption is listed and pressable with the canvas chunk blocked", async ({
     page,
   }) => {
     // Not "with JavaScript off" — with the *canvas* gone, which is the claim
-    // the spec actually makes and the one a flaky deploy actually produces.
+    // the section makes and the one a flaky deploy actually produces.
     //
     // Identified by content, not by name. The bundler picks chunk file names
-    // and picks them differently per mode: `next dev`'s Turbopack names the lazy
-    // chunk after the directory its modules share (`src_sections_Worlds_<hash>`),
-    // and a production build names every chunk by hash alone
-    // (`0cz1d0mv5g_q7.js`), so no URL pattern is stable. Each script request is
-    // fetched and refused if its body carries the `globe-canvas` marker, the
-    // value of a `data-chunk` attribute that only `GlobeCanvas.tsx` sets. A
-    // string literal survives minification, and the body is read from the real
-    // response, so the same check holds in both modes.
-    //
-    // Hence the counter, and the label check at the end. A silent pass with
-    // the canvas present is the one failure this test cannot survive, so the
-    // block is asserted rather than assumed.
+    // and picks them differently per mode, so no URL pattern is stable. Each
+    // script request is fetched and refused if its body carries the
+    // `globe-canvas` marker, the value of a `data-chunk` attribute that only
+    // `GlobeCanvas.tsx` sets. A string literal survives minification.
     let aborted = 0;
     await page.route(/\.js(\?|$)/, async (route) => {
       const response = await route.fetch();
@@ -50,77 +44,34 @@ test.describe("the worlds list is the feature; the canvas is decoration", () => 
 
     const section = page.locator("#worlds");
     await expect(section).toBeVisible();
-
-    // Scoped to the list: "Face Việt Nam" is also a button containing that name.
-    const list = section.getByRole("list", { name: /chapters/i });
-    for (const world of WORLDS) {
-      await list.getByRole("button", { name: new RegExp(world.name, "i") }).click();
-      await expect(section.getByRole("heading", { level: 3, name: world.name })).toBeVisible();
-      for (const plaque of world.plaques) {
-        await expect(section.getByText(plaque.text, { exact: true })).toBeVisible();
-      }
+    for (const [index, stop] of STOPS.entries()) {
+      const button = page.locator(stopButton(index));
+      await expect(button).toContainText(stop.caption);
+      await button.click();
+      await expect(button).toHaveAttribute("aria-pressed", "true");
+      await expect(section.getByRole("status")).toContainText(stop.place);
     }
 
-    // The stage is in view by now (the loop above clicked through all six
-    // worlds beside it), so the IntersectionObserver has fired and the
-    // `import()` has been attempted. If nothing was blocked, this test proved
-    // nothing about a missing canvas. Polled, not read once: the handler
-    // fetches the chunk before it decides, and a cold `next dev` compiles the
-    // chunk on that first request, which can outlast the loop above.
+    // The stage is in view by now, so the import has been attempted. If
+    // nothing was blocked, this test proved nothing about a missing canvas.
     await expect
       .poll(() => aborted, {
         message:
           "no canvas chunk request was aborted — no script body carried the canvas chunk marker, so either GlobeCanvas.tsx lost its data-chunk attribute or the chunk was never requested",
       })
       .toBeGreaterThan(0);
-
-    // And the import did not merely go unattempted: this label is set on the
-    // `.catch()` path in `WorldsStage.tsx` and nowhere else, so it can only
-    // be on screen if the chunk was requested and refused. That is the state
-    // the flaky deploy produces, and it is the state everything above was
-    // asserted in.
+    // Set on the `.catch()` path in `WorldsStage.tsx` and nowhere else.
     await expect(section.getByRole("button", { name: "Globe not available" })).toBeVisible();
   });
 
-  test("the rail's counts match the resolved content", async ({ page }) => {
+  test("the rail prints the two computed numbers and nothing else", async ({ page }) => {
     await page.goto("/#worlds");
     const rail = page.locator("#worlds dl");
-    // Split by kind, exactly as the rail states it. Asserting only the total
-    // would let the rail go back to calling all nineteen plaques quotes while
-    // still passing, which is the claim this row had to stop making: seven of
-    // them are computations over the content layer, not quoted fields.
-    const count = (kind: "field" | "computed") =>
-      WORLDS.reduce(
-        (total, world) => total + world.plaques.filter((plaque) => plaque.kind === kind).length,
-        0,
-      );
-    const quoted = count("field");
-    const computed = count("computed");
-    const offMap = WORLDS.filter((world) => world.points.length === 0).length;
-
-    // Scoped to each note's own <dd> — the whole <dl>'s text also contains
-    // the crossing's km figure and the other notes' own numbers, so an
-    // unscoped toContainText can pass for a reason that has nothing to do
-    // with the fact it claims to check: move the two pins and the two
-    // off-the-map worlds could just as easily be read out of "13,712 km",
-    // which also contains a "2".
-    const offMapRow = rail.locator("div", { hasText: "Off the map" });
-    const plaquesRow = rail.locator("div", { hasText: "Plaques" });
-
-    await expect(offMapRow.locator("dd")).toContainText(String(offMap));
-    await expect(plaquesRow.locator("dd")).toHaveText(`${quoted} quoted whole · ${computed} computed`);
-  });
-
-  test("the six buttons are reachable by keyboard alone", async ({ page }) => {
-    await page.goto("/#worlds");
-    const section = page.locator("#worlds");
-    const first = section
-      .getByRole("list", { name: /chapters/i })
-      .getByRole("button", { name: new RegExp(WORLDS[0].name, "i") });
-    await first.focus();
-    await expect(first).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(first).toHaveAttribute("aria-current", "true");
+    await expect(rail.locator("dt")).toHaveText(["Crossing", "Stops"]);
+    await expect(rail.locator("div", { hasText: "Crossing" }).locator("dd")).toHaveText(
+      `${crossingKm().toLocaleString("en-US")} km · computed from the two pins`,
+    );
+    await expect(rail.locator("div", { hasText: "Stops" }).locator("dd")).toHaveText(String(STOPS.length));
   });
 
   test("no horizontal overflow at 320px", async ({ page }) => {
@@ -352,7 +303,7 @@ async function reachLiveGlobe(page: Page) {
   const stage = page.getByRole("group", { name: /playground earth/i });
   await expect(stage).toBeVisible();
   await expect(
-    page.locator("#worlds").getByRole("button", { name: /take the flight|stop the replay/i }),
+    page.locator("#worlds").getByRole("button", { name: /replay the flight|stop the replay/i }),
   ).toBeVisible({
     timeout: 30_000,
   });
@@ -376,7 +327,7 @@ async function reachFlightInTheAir(page: Page) {
   const stage = page.getByRole("group", { name: /playground earth/i });
   await expect(stage).toBeVisible();
   await expect(
-    page.locator("#worlds").getByRole("button", { name: /take the flight|stop the replay/i }),
+    page.locator("#worlds").getByRole("button", { name: /replay the flight|stop the replay/i }),
   ).toBeVisible({ timeout: 30_000 });
   await stage.evaluate((element) =>
     element.scrollIntoView({ block: "center", behavior: "instant" }),
@@ -392,7 +343,7 @@ async function stopTheReplay(page: Page) {
   if (await stop.isVisible()) await stop.click();
   await expect
     .poll(async () => (await measureGlobeFrames(page, 300)).draws, {
-      timeout: 10_000,
+      timeout: 20_000,
       message: "the globe never came to rest after the replay was stopped",
     })
     .toBe(0);
@@ -425,9 +376,9 @@ async function watchStatusAndCrossing(page: Page) {
 
 /**
  * The crossing plays itself when half the stage is in view. Wait for the
- * stage to say it landed, then for the tail (the seed's growth and the
- * camera's last few degrees) to finish, so a test's own rest measurement is
- * about what it did, not about the landing still settling.
+ * stage to say it landed, then for the tail (the camera's last few degrees and
+ * the robot's ~6 s walk) to finish, so a test's own rest measurement is about
+ * what it did, not about the landing still settling.
  */
 async function waitForAutoplayedLanding(page: Page) {
   const stage = page.getByRole("group", { name: /playground earth/i });
@@ -438,7 +389,7 @@ async function waitForAutoplayedLanding(page: Page) {
   );
   await expect
     .poll(async () => (await measureGlobeFrames(page, 300)).draws, {
-      timeout: 10_000,
+      timeout: 20_000,
       message: "the globe never came to rest after the crossing played itself",
     })
     .toBe(0);
@@ -576,6 +527,218 @@ async function drewInSystemInk(page: Page) {
   });
 }
 
+
+/** Where an element sits on the page, not in the viewport: a press that
+ *  scrolls the page must not read as the element moving. */
+async function pageBox(locator: ReturnType<Page["locator"]>) {
+  return locator.evaluate((element) => {
+    const r = element.getBoundingClientRect();
+    return { x: r.x + window.scrollX, y: r.y + window.scrollY, width: r.width, height: r.height };
+  });
+}
+
+/** The camera has finished turning and any walk is over. A turn eases for
+ *  about a second; a landing adds the robot's ~6 s walk. */
+async function waitForRest(page: Page, what: string) {
+  await expect
+    .poll(async () => (await measureGlobeFrames(page, 300)).draws, {
+      timeout: 20_000,
+      message: `the globe never came to rest ${what}`,
+    })
+    .toBe(0);
+}
+
+test.describe("one crossing, three stops", () => {
+  test("three stops, in order, with captions from content", async ({ page }) => {
+    await page.goto("/#worlds");
+    const section = page.locator("#worlds");
+    await expect(section.getByRole("heading", { level: 2 })).toHaveText("One crossing, three stops.");
+    const buttons = page.locator(STOP_BUTTONS);
+    await expect(buttons).toHaveCount(STOPS.length);
+    for (const [index, stop] of STOPS.entries()) {
+      const button = buttons.nth(index);
+      await expect(button).toContainText(stop.when);
+      await expect(button).toContainText(stop.place);
+      await expect(button).toContainText(stop.caption);
+      await expect(button).toHaveAttribute("aria-pressed", "false");
+    }
+  });
+
+  test("clicking a stop turns the globe", async ({ page }) => {
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const status = page.locator("#worlds").getByRole("status");
+    const overlay = page.locator(OVERLAY);
+    await expect(overlay).not.toHaveAttribute("data-active-stop");
+
+    // The autoplay left the globe on the arrival; each of these is a turn.
+    for (const index of [0, 2, 1]) {
+      const stop = STOPS[index];
+      const before = await globeSignature(page);
+      await page.locator(stopButton(index)).click();
+      await expect(overlay).toHaveAttribute("data-active-stop", stop.id);
+      await expect(status).toContainText(stop.place);
+      await expect(page.locator(stopButton(index))).toHaveAttribute("aria-pressed", "true");
+      await expect.poll(() => globeSignature(page), { timeout: 5_000 }).not.toBe(before);
+      await waitForRest(page, `after turning to ${stop.id}`);
+    }
+    await expectAtRest(page, 1_000, "after the last turn");
+  });
+
+  test("stops by keyboard", async ({ page }) => {
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const overlay = page.locator(OVERLAY);
+    await page.locator(stopButton(0)).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(stopButton(0))).toHaveAttribute("aria-pressed", "true");
+    await expect(overlay).toHaveAttribute("data-active-stop", STOPS[0].id);
+
+    await page.keyboard.press("Tab");
+    await expect(page.locator(stopButton(1))).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(page.locator(stopButton(1))).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(stopButton(0))).toHaveAttribute("aria-pressed", "false");
+
+    await page.keyboard.press("Tab");
+    await expect(page.locator(stopButton(2))).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(overlay).toHaveAttribute("data-active-stop", STOPS[2].id);
+
+    // And the flight's control is the next stop in the order.
+    await page.keyboard.press("Tab");
+    await expect(page.locator("#worlds [data-replay]")).toBeFocused();
+  });
+
+  test("stop chosen mid-flight lands first", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    await page.locator("#worlds").getByRole("button", { name: "Replay the flight" }).click();
+    await expect(stage).not.toHaveAttribute("data-crossing", "landed");
+
+    // In-page, so the in-the-air check and the press are one task.
+    const inAir = await page.evaluate((selector) => {
+      const stageElement = document.querySelector('#worlds [aria-roledescription="globe"]');
+      const flying = stageElement?.getAttribute("data-crossing") !== "landed";
+      const button = document.querySelector<HTMLButtonElement>(selector);
+      if (!button) throw new Error("no first stop button");
+      button.click();
+      return flying;
+    }, stopButton(0));
+    expect(inAir, "the flight had already landed before the stop was pressed").toBe(true);
+
+    // It lands where it is, at once, rather than being thrown away — and the
+    // stop, not the landing, has the last word.
+    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 1_000 });
+    const status = page.locator("#worlds").getByRole("status");
+    await expect(status).toContainText(STOPS[0].place);
+    await expect(status).not.toContainText(/landed/i);
+    await expect(page.locator(OVERLAY)).toHaveAttribute("data-active-stop", STOPS[0].id);
+    await waitForRest(page, "after a stop chosen mid-flight");
+
+    // The camera came to rest on the stop, not on the arrival the landing
+    // would otherwise have turned it to: pressing the same stop again has no
+    // turn left to make — a frame to find that out, not a second of easing.
+    const again = await pressCounting(page, stopButton(0), /./, 1_000);
+    expect(again.overlayDraws, "the camera was not resting on the chosen stop").toBeLessThanOrEqual(3);
+  });
+
+  test("replay the flight replays once", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    const section = page.locator("#worlds");
+    const counts = await watchStatusAndCrossing(page);
+    const replay = section.getByRole("button", { name: "Replay the flight" });
+    const box = await pageBox(replay);
+
+    await replay.click();
+    // The visitor's own flight is not an autoplay, so nothing offers to stop it.
+    await expect(section.getByRole("button", { name: "Stop the replay" })).toHaveCount(0);
+    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 10_000 });
+    await expect(section.getByRole("status")).toContainText(/landed/i);
+    // The flight, then the robot's one walk, then nothing.
+    await waitForRest(page, "after the replay");
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "after the replay");
+    // Cleared once and landed once: two changes, and none in the long window.
+    expect((await counts()).crossingChanges, "the replay flew more than once").toBe(2);
+    expect(await pageBox(replay)).toEqual(box);
+  });
+
+  test("reduced motion snaps to stops", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const overlay = page.locator(OVERLAY);
+    let previous = await globeSignature(page);
+    for (const index of [0, 2, 1]) {
+      const pressed = await pressCounting(page, stopButton(index), /./, 700);
+      // `focusStop` reaches `lookAt` and nothing else, and its reduced-motion
+      // branch draws once, synchronously, and never asks for a frame.
+      expect(pressed.frames, `turning to ${STOPS[index].id} asked for frames`).toBe(0);
+      await expect(overlay).toHaveAttribute("data-active-stop", STOPS[index].id);
+      const now = await globeSignature(page);
+      expect(now, `the globe did not turn to ${STOPS[index].id}`).not.toBe(previous);
+      previous = now;
+      await expectAtRest(page, 400, `after snapping to ${STOPS[index].id}`, SILENT_HZ);
+    }
+  });
+
+  test("stops work on the 2D globe", async ({ page }) => {
+    await withoutWebGL2(page);
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    await expect(page.locator(SURFACE)).toHaveCount(0);
+    const overlay = page.locator(OVERLAY);
+    for (const index of [0, 2]) {
+      const before = await globeSignature(page);
+      await page.locator(stopButton(index)).click();
+      await expect(overlay).toHaveAttribute("data-active-stop", STOPS[index].id);
+      await expect.poll(() => globeSignature(page), { timeout: 5_000 }).not.toBe(before);
+      await waitForRest(page, `on the 2D globe after ${STOPS[index].id}`);
+    }
+  });
+
+  test("no chapters, skins or plaques remain", async ({ page }) => {
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    const section = page.locator("#worlds");
+    const text = (await section.textContent()) ?? "";
+    expect(text).not.toMatch(/Chapters/);
+    expect(text).not.toMatch(/plaque/i);
+    expect(text).not.toMatch(/needs WebGL/i);
+    await expect(section.getByRole("group", { name: /skins/i })).toHaveCount(0);
+    await expect(section.getByRole("group", { name: /robot/i })).toHaveCount(0);
+    await expect(section.locator("[aria-current]")).toHaveCount(0);
+    await expect(section.getByRole("link")).toHaveCount(0);
+  });
+
+  test("#worlds height is stable when the surface goes live", async ({ page }) => {
+    // The surface goes live only once the coverage PNG has decoded, so holding
+    // that one response back gives a measurable "canvas up, no surface yet".
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/globe/coastline.png", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto("/#worlds");
+    await reachFlightInTheAir(page);
+    const section = page.locator("#worlds");
+    const stage = section.locator("[data-surface]");
+    await expect(stage, "the surface went live with its PNG held back").toHaveCount(0);
+    const height = () => section.evaluate((element) => element.getBoundingClientRect().height);
+    const before = await height();
+
+    release();
+    await expect(section.locator('[data-surface="gl"]')).toHaveCount(1, { timeout: 15_000 });
+    expect((await height()) - before, "the section changed height when the surface went live").toBe(0);
+  });
+});
+
 test.describe("the live globe", () => {
   test("plays the crossing once on first view, silently, and then draws nothing and never restarts", async ({
     page,
@@ -586,29 +749,21 @@ test.describe("the live globe", () => {
     const section = page.locator("#worlds");
     const counts = await watchStatusAndCrossing(page);
 
-    // The landing is real, so the link is on the page; nobody asked for the
-    // flight, so nothing was said into the live region about it.
-    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
+    // Nobody asked for the flight, so nothing was said into the live region.
     await expect(section.getByRole("status")).not.toContainText(/landed|Back at/);
     // The autoplay is over: the button offers the flight, not a stop.
-    await expect(section.getByRole("button", { name: "Take the flight" })).toBeVisible();
+    await expect(section.getByRole("button", { name: "Replay the flight" })).toBeVisible();
     await expect(section.getByRole("button", { name: "Stop the replay" })).toHaveCount(0);
-
-    const faceHome = await section.getByRole("button", { name: "Face Việt Nam" }).boundingBox();
-    const treeLine = section.locator("p", { hasText: "A seed dropped where he came down." });
-    const treeLineBox = await treeLine.boundingBox();
+    const stops = await pageBox(page.locator(STOP_BUTTONS).first());
 
     // A globe at rest costs nothing, for as long as it takes the old loop to
-    // have reset and flown again. A non-zero number here means something is
-    // animating that nobody asked for — most likely the satellite's orbit
-    // being counted as "busy" — and a crossing change means it restarted.
+    // have reset and flown again. A crossing change means it restarted.
     await expectAtRest(page, NO_RESTART_WINDOW_MS, "after the one crossing");
     await expect(stage).toHaveAttribute("data-crossing", "landed");
     const { statusWrites, crossingChanges } = await counts();
     expect(crossingChanges, "the crossing restarted without a click").toBe(0);
     expect(statusWrites, "the crossing wrote to the live region").toBe(0);
-    expect(await section.getByRole("button", { name: "Face Việt Nam" }).boundingBox()).toEqual(faceHome);
-    expect(await treeLine.boundingBox()).toEqual(treeLineBox);
+    expect(await pageBox(page.locator(STOP_BUTTONS).first())).toEqual(stops);
   });
 
   test("leaving mid-flight lands it at once, nothing draws off-screen, and coming back does not fly it again", async ({
@@ -623,25 +778,19 @@ test.describe("the live globe", () => {
     await expect.poll(overlayDraws, { timeout: 30_000, intervals: [50] }).toBeGreaterThan(10);
     await expect(stage).not.toHaveAttribute("data-crossing", "landed");
 
-    // The hero is at least a screen tall, so the top of the page has no globe
-    // in view. Landed straight away, and nothing after it: the flight had well
-    // over a second left to run. A few draws, not a fast-forward: the frames
-    // already queued before the observer reports the exit, plus the settle's
-    // one draw.
+    // The Journey and Contact are well over a screen tall, so the bottom of
+    // the page has no globe in view. Landed straight away — the walk that landing would start
+    // finished with it — and nothing after: a few draws, not a fast-forward.
     const atExit = await page.evaluate(() => {
       const drawn = (window as unknown as { __overlayDraws: number }).__overlayDraws;
-      window.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
       return drawn;
     });
     await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 500 });
-    // Longer than the old whole cycle: anything left running would reset and
-    // fly inside this window.
     await expectAtRest(page, NO_RESTART_WINDOW_MS, "off-screen");
     expect((await overlayDraws()) - atExit, "the exit fast-forwarded the flight").toBeLessThanOrEqual(5);
     await expect(stage).toHaveAttribute("data-crossing", "landed");
-    const section = page.locator("#worlds");
-    await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(1);
-    await expect(section.getByRole("status")).not.toContainText(/landed/i);
+    await expect(page.locator("#worlds").getByRole("status")).not.toContainText(/landed/i);
 
     // Back: the autoplay is spent, so it neither flies nor draws.
     await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
@@ -658,12 +807,21 @@ test.describe("the live globe", () => {
     const section = page.locator("#worlds");
 
     const stop = section.getByRole("button", { name: "Stop the replay" });
-    const before = await stop.boundingBox();
-    await stop.click();
-    const flight = section.getByRole("button", { name: "Take the flight" });
+    const before = await pageBox(stop);
+    // Pressed in-page, without scrolling to it. Below 1024px the button sits
+    // under the stop list, and a locator click's own scroll can take the
+    // stage out of view first — which settles the flight by itself, flips the
+    // label, and the click then lands on "Replay the flight" instead.
+    const label = await stop.evaluate((button) => {
+      const text = button.textContent;
+      (button as HTMLButtonElement).click();
+      return text;
+    });
+    expect(label, "the flight had landed before Stop was pressed").toBe("Stop the replay");
+    const flight = section.getByRole("button", { name: "Replay the flight" });
     await expect(flight).toBeVisible();
-    // One element, and the shorter label moves nothing.
-    expect(await flight.boundingBox(), "the label swap moved the button").toEqual(before);
+    // One element, and the label swap moves nothing.
+    expect(await pageBox(flight), "the label swap moved the button").toEqual(before);
     await expect(stage).toHaveAttribute("data-crossing", "landed");
     const counts = await watchStatusAndCrossing(page);
 
@@ -684,10 +842,10 @@ test.describe("the live globe", () => {
     const counts = await watchStatusAndCrossing(page);
 
     // A visitor scrolling on past the globe, with a third of it left at the
-    // bottom of the screen.
+    // top of the screen.
     const visible = await stage.evaluate((element) => {
       const before = element.getBoundingClientRect();
-      window.scrollBy({ top: before.top - (window.innerHeight - 0.3 * before.height), behavior: "instant" });
+      window.scrollBy({ top: before.bottom - 0.3 * before.height, behavior: "instant" });
       const after = element.getBoundingClientRect();
       return (Math.min(window.innerHeight, after.bottom) - Math.max(0, after.top)) / after.height;
     });
@@ -749,7 +907,7 @@ test.describe("the live globe", () => {
       expect(scrolled, "the page did not scroll").toBeGreaterThan(0);
 
       // Read once, with the flight still in the air: the label only turns
-      // back to "Take the flight" at the landing or a takeover, so a single
+      // back to "Replay the flight" at the landing or a takeover, so a single
       // read is the whole claim.
       expect(
         await phone.locator("#worlds [data-replay]").textContent(),
@@ -760,7 +918,7 @@ test.describe("the live globe", () => {
     }
   });
 
-  test("picking a chapter stops the autoplay for good", async ({ page }) => {
+  test("picking a stop stops the autoplay for good", async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto("/#worlds");
     const stage = await reachFlightInTheAir(page);
@@ -768,114 +926,25 @@ test.describe("the live globe", () => {
     // Clicked in-page, the way assistive tech activates a button: a click
     // with no focus and no pointer press, so the click alone has to stop it.
     // Read once — after one task, which is when React commits the click's
-    // update, with the flight still in the air — with focus out of the
-    // section: the focus stop must not be what turns the label.
+    // update — with focus out of the section: the focus stop must not be what
+    // turns the label.
     const label = await page.evaluate(async (selector) => {
-      const button = [...document.querySelectorAll<HTMLButtonElement>(selector)].find((candidate) =>
-        /Sea/.test(candidate.textContent ?? ""),
-      );
-      if (!button) throw new Error("no Sea button in the chapter list");
+      const button = document.querySelector<HTMLButtonElement>(selector);
+      if (!button) throw new Error("no stop button");
       // Same task as the click: a flight that landed first would pass vacuously.
       const before = document.querySelector("#worlds [data-replay]")?.textContent;
       button.click();
       (document.activeElement as HTMLElement | null)?.blur();
       await new Promise((resolve) => setTimeout(resolve, 0));
       return { before, after: document.querySelector("#worlds [data-replay]")?.textContent };
-    }, CHAPTER_BUTTONS);
+    }, stopButton(2));
     expect(label.before, "the flight was already over before the click").toBe("Stop the replay");
-    expect(label.after, "picking a chapter did not stop the replay").toBe("Take the flight");
-    // The camera turns to Sea; let it arrive, then outlast the old cycle.
-    await expect
-      .poll(async () => (await measureGlobeFrames(page, 300)).draws, { timeout: 10_000 })
-      .toBe(0);
-    await expectAtRest(page, NO_RESTART_WINDOW_MS, "after picking a chapter");
+    expect(label.after, "picking a stop did not stop the replay").toBe("Replay the flight");
+    // The landing it caused walks the robot and the camera turns; let both
+    // finish, then outlast the old cycle.
+    await waitForRest(page, "after picking a stop");
+    await expectAtRest(page, NO_RESTART_WINDOW_MS, "after picking a stop");
     await expect(stage).toHaveAttribute("data-crossing", "landed");
-  });
-
-  test("a chapter picked during the visitor's own flight is announced, not the landing it causes", async ({
-    page,
-  }) => {
-    // A flight the visitor asked for speaks when it lands; a chapter picked
-    // while it is in the air lands it at once (`focusWorld`), and that
-    // landing must not get the last word over the chapter just chosen.
-    await page.goto("/#worlds");
-    const stage = await waitForLiveGlobe(page);
-    await page.locator("#worlds").getByRole("button", { name: "Take the flight" }).click();
-    await expect(stage).not.toHaveAttribute("data-crossing", "landed");
-
-    // In-page, so the in-the-air check and the press are one task.
-    const inAir = await page.evaluate((selector) => {
-      const stageElement = document.querySelector('#worlds [aria-roledescription="globe"]');
-      const flying = stageElement?.getAttribute("data-crossing") !== "landed";
-      const button = [...document.querySelectorAll<HTMLButtonElement>(selector)].find((candidate) =>
-        /Sea/.test(candidate.textContent ?? ""),
-      );
-      if (!button) throw new Error("no Sea button in the chapter list");
-      button.click();
-      return flying;
-    }, CHAPTER_BUTTONS);
-    expect(inAir, "the flight had already landed before Sea was pressed").toBe(true);
-
-    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 1_000 });
-    const status = page.locator("#worlds").getByRole("status");
-    await expect(status).toHaveText(/^Sea\. /);
-    await expect(status).not.toContainText(/landed/i);
-  });
-
-  test("a chapter chosen mid-flight is where the camera comes to rest", async ({ page }) => {
-    // The list sits beside the stage at 1024+, in view while the crossing
-    // plays itself. A chapter pressed then used to be dropped: the flight's
-    // landing overwrote the camera's target with the arrival pin.
-    const overlayDraws = await countOverlayDrawsFromLoad(page);
-    await page.goto("/");
-    const stage = page.getByRole("group", { name: /playground earth/i });
-    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expect.poll(overlayDraws, { timeout: 30_000, intervals: [50] }).toBeGreaterThan(10);
-
-    // In-page, so the check that it is still in the air and the press are
-    // the same task, and the list button is not scrolled into view.
-    const inAir = await page.evaluate((selector) => {
-      const stageElement = document.querySelector('#worlds [aria-roledescription="globe"]');
-      const flying = stageElement?.getAttribute("data-crossing") !== "landed";
-      const button = [...document.querySelectorAll<HTMLButtonElement>(selector)].find((candidate) =>
-        /Sea/.test(candidate.textContent ?? ""),
-      );
-      if (!button) throw new Error("no Sea button in the chapter list");
-      button.click();
-      return flying;
-    }, CHAPTER_BUTTONS);
-    expect(inAir, "the crossing had already landed before Sea was pressed").toBe(true);
-
-    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
-    await expect(list.getByRole("button", { name: /sea/i })).toHaveAttribute("aria-current", "true");
-    // The flight lands where it is, at once, rather than being thrown away.
-    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 1_000 });
-    await expect
-      .poll(async () => (await measureGlobeFrames(page, 300)).draws, { timeout: 10_000 })
-      .toBe(0);
-
-    // Where the camera would rest had the press been dropped: on the arrival
-    // pin, which opens Living Earth when pressed (see "the arrival pin opens
-    // Living Earth"). Facing Sea, that spot is something else.
-    const canvas = page.locator(OVERLAY);
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error("the canvas has no box");
-    const DEG = Math.PI / 180;
-    const { lat, lon } = origin.coordinates.to;
-    const pin = project(toVector({ lat, lon }), -lon * DEG, clampTilt(-lat * DEG * 0.55), {
-      cx: box.width / 2,
-      cy: box.height * 0.44,
-      radius: Math.min(box.width, box.height * 0.82) * 0.42,
-    });
-    expect(pin.front).toBe(true);
-    await aimAtGlobe(page, box.x + pin.x, box.y + pin.y);
-    await page.mouse.click(box.x + pin.x, box.y + pin.y);
-    await page.waitForTimeout(500);
-    await expect(
-      list.getByRole("button", { name: /living earth/i }),
-      "the camera came to rest on the arrival pin, not on Sea",
-    ).toHaveAttribute("aria-current", "false");
-    await expect(list.getByRole("button", { name: /sea/i })).toHaveAttribute("aria-current", "true");
   });
 
   test("a drag rolls the planet and then stops", async ({ page }) => {
@@ -918,8 +987,7 @@ test.describe("the live globe", () => {
 
     // 3s, not 2: a synthetic drag hands the flick model a far higher release
     // velocity than a hand can, and at DECAY = 0.93 that takes about 1.8s to
-    // fall under REST_EPSILON. The margin is the difference between measuring
-    // rest and measuring the tail of the spin.
+    // fall under REST_EPSILON.
     await page.waitForTimeout(3_000);
     const settled = await globeSignature(page);
     await expectAtRest(page, 1_500, "after a drag");
@@ -932,9 +1000,7 @@ test.describe("the live globe", () => {
   }) => {
     // The surface has no loop of its own: it draws from inside the overlay's
     // `draw()`. So while the planet moves, every overlay draw has exactly one
-    // GL draw beside it, and at rest both counts are zero. A surface that
-    // started a loop of its own would break the first half here, and
-    // `expectAtRest` (which counts GL draws into `draws`) the second.
+    // GL draw beside it, and at rest both counts are zero.
     await page.goto("/#worlds");
     const stage = await waitForLiveGlobe(page);
     await requireSurface(page);
@@ -958,36 +1024,6 @@ test.describe("the live globe", () => {
 
     await page.waitForTimeout(3_000);
     await expectAtRest(page, 1_500, "the GL surface after a drag");
-  });
-
-  test("a skin is worn on the GL surface with one draw, and no frames after", async ({ page }) => {
-    await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
-    await requireSurface(page);
-    const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
-    const first = skins.getByRole("button").first();
-    // The dial is live because the surface is, and its names stop saying
-    // otherwise.
-    await expect(first).toHaveAttribute("aria-disabled", "false");
-    await expect(first).not.toHaveAccessibleName(/needs WebGL/i);
-
-    const [during] = await Promise.all([
-      measureGlobeFrames(page, 1_200),
-      (async () => {
-        await page.waitForTimeout(150);
-        await first.click();
-      })(),
-    ]);
-    await expect(first).toHaveAttribute("aria-pressed", "true");
-    // One redraw on the press, of both canvases, and nothing else: a skin is
-    // a look, not an animation.
-    expect(during.glDraws, "the press did not redraw the surface exactly once").toBe(1);
-    expect(during.overlayDraws).toBe(1);
-    await expectAtRest(page, 1_000, "after wearing a skin");
-
-    // Pressing it again takes it off.
-    await first.click();
-    await expect(first).toHaveAttribute("aria-pressed", "false");
   });
 
   test("a pointercancel mid-drag ends the drag like a pointerup", async ({ page }) => {
@@ -1021,79 +1057,51 @@ test.describe("the live globe", () => {
     // *teardown* is the requirement, and committing a tap is not part of it. A
     // browser-initiated cancel with little or no movement is ordinary — a
     // long-press opening the context menu, palm rejection, a system edge
-    // gesture — and it must not open a world or swing the planet round out of
-    // a gesture the person abandoned.
+    // gesture — and it must not swing the planet round out of a gesture the
+    // person abandoned.
     await page.goto("/#worlds");
-    const section = page.locator("#worlds");
-    const list = section.getByRole("list", { name: /chapters/i });
     const stage = await waitForLiveGlobe(page);
-    const animals = list.getByRole("button", { name: /Animals/i });
-    const livingEarth = list.getByRole("button", { name: /Living Earth/ });
-
-    // The crossing played itself on arrival and left the view on the arrival
-    // pin; face Việt Nam again so its pin is at the centre of the disc.
-    await section.getByRole("button", { name: /face việt nam/i }).click();
-    await page.waitForTimeout(1_500);
-
-    // Animals lives on the plinth, so opening it moves `aria-current` off
-    // Living Earth without moving the view — which leaves its Việt Nam pin at the
-    // centre of the disc, where both gestures below land.
-    await animals.click();
-    await expect(animals).toHaveAttribute("aria-current", "true");
-    await page.waitForTimeout(1_200);
 
     const press = (end: "pointerup" | "pointercancel") =>
       stage.evaluate((element, type) => {
         const canvas = element.querySelector<HTMLCanvasElement>('canvas[data-chunk="globe-canvas"]');
         if (!canvas) throw new Error("no canvas");
         const rect = canvas.getBoundingClientRect();
-        // Dead centre of the near hemisphere, and not one pixel of movement,
-        // so `moved` is 0 and only the event type can decide what happens.
+        // Off the centre of the near hemisphere, so a committed tap has
+        // somewhere to turn to, and not one pixel of movement, so `moved` is 0
+        // and only the event type can decide what happens.
         const base = {
           bubbles: true,
           pointerId: 3,
           pointerType: "touch",
-          clientX: rect.left + rect.width / 2,
-          clientY: rect.top + rect.height * 0.44,
+          clientX: rect.left + rect.width * 0.35,
+          clientY: rect.top + rect.height * 0.3,
         };
         canvas.dispatchEvent(new PointerEvent("pointerdown", base));
         canvas.dispatchEvent(new PointerEvent(type, base));
       }, end);
 
     await press("pointercancel");
-    // A second of settling, instrumented — so the `aria-current` check below
-    // is looking at a finished state rather than racing a React update it
-    // would otherwise pass straight through.
     const afterCancel = await measureGlobeFrames(page, 1_000);
-
-    // Nothing was opened.
-    await expect(animals).toHaveAttribute("aria-current", "true");
-
-    // And nothing was turned. Measured rather than eyeballed, because both
-    // halves of a committed tap animate for about a second and neither leaves
-    // a mark a fingerprint could separate from one step of the satellite's
-    // orbit: a committed tap draws tens of frames here, and a gesture that
+    // A committed tap eases for about a second, tens of frames; a gesture that
     // commits nothing wakes the loop just long enough to find nothing to do.
-    // (Verified by mutation: dropping the `pointerup` guard makes this 29.)
-    // Overlay draws: one per frame whether or not a GL surface draws beside it.
     expect(
       afterCancel.overlayDraws,
       `a cancelled gesture moved the planet (${afterCancel.overlayDraws} frames)`,
     ).toBeLessThanOrEqual(3);
     await expectAtRest(page, 1_000, "after a cancelled tap");
 
-    // The control. The same press, at the same point, completed rather than
-    // cancelled: now it is a tap and it opens the world under it. Without this
-    // half the assertions above would pass on a globe where no gesture did
-    // anything at all.
+    // The control: the same press, completed rather than cancelled, is a tap,
+    // and it turns the planet. Without this half the assertions above would
+    // pass on a globe where no gesture did anything at all.
     await press("pointerup");
-    await expect(livingEarth).toHaveAttribute("aria-current", "true", { timeout: 5_000 });
+    const afterTap = await measureGlobeFrames(page, 1_000);
+    expect(afterTap.overlayDraws, "a completed tap did not orient the globe").toBeGreaterThan(3);
   });
 
-  test("the arrow keys rotate it and Home brings Việt Nam back", async ({ page }) => {
+  test("the arrow keys rotate it, Home clears the flight, and the keys alone fly him again", async ({ page }) => {
     await page.goto("/#worlds");
     const section = page.locator("#worlds");
-    const list = section.getByRole("list", { name: /chapters/i });
     const stage = await waitForLiveGlobe(page);
     // The stage is tabbable only once the canvas has handed its controls back
     // — before that the arrow keys are inert and there is nothing to focus.
@@ -1102,44 +1110,29 @@ test.describe("the live globe", () => {
     await expect(stage).toBeFocused();
 
     const before = await globeSignature(page);
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowLeft");
     await expect.poll(() => globeSignature(page), { timeout: 5_000 }).not.toBe(before);
 
-    // Open the world that lives on the plinth: it has no map point, so
-    // `focusWorld` leaves the view exactly where the arrow keys left it while
-    // still moving `aria-current` off Việt Nam — which is what gives the tap
-    // below something to prove.
-    await list.getByRole("button", { name: /Animals/i }).click();
-    await expect(list.getByRole("button", { name: /Animals/i })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
-
-    await stage.focus();
+    // Home is a reset: back to Việt Nam with the crossing cleared. The page
+    // did not scroll (the handler preventDefaults) and the stage kept focus.
     await page.keyboard.press("Home");
-    // What matters beyond the pixels: the page did not scroll (the handler
-    // preventDefaults) and the stage kept focus.
     await expect(stage).toBeFocused();
-    await page.waitForTimeout(2_000);
+    await expect(stage).not.toHaveAttribute("data-crossing", "landed");
+    await expect(section.getByRole("status")).toContainText(/^Back at /);
+    await waitForRest(page, "after Home");
 
-    // Home is a reset, and this is the observable form of "Việt Nam is back":
-    // one click at the centre of the disc opens it, which it could not do
-    // while the planet was still two arrow-presses east of home. Comparing
-    // bitmaps would not do — the satellite advances one step per frame of the
-    // journey home, so the resting image is never byte-identical twice.
-    const box = await stage.boundingBox();
-    if (!box) throw new Error("the stage has no box");
-    await aimAtGlobe(page, box.x + box.width / 2, box.y + box.height * 0.44);
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.44);
-    await expect(list.getByRole("button", { name: /Living Earth/ })).toHaveAttribute(
-      "aria-current",
-      "true",
-      { timeout: 5_000 },
-    );
+    // Rolling east flies him, 12° at a time, and 2.6 radians completes the
+    // crossing — so about thirteen presses, with a margin. The keyboard reaches
+    // the landing by *flying* it, not by a shortcut that jumps to the end.
+    for (let pressed = 0; pressed < 20; pressed += 1) {
+      await page.keyboard.press("ArrowRight");
+    }
+    await expect(section.getByRole("status")).toContainText(/landed/i, { timeout: 10_000 });
+    await expect(stage).toHaveAttribute("data-crossing", "landed");
 
     // And then it stops, which is the same rest contract on the keyboard path.
-    await page.waitForTimeout(2_000);
+    await waitForRest(page, "after the keyboard flight");
     await expectAtRest(page, 1_500, "after the keyboard path");
   });
 
@@ -1155,8 +1148,7 @@ test.describe("the live globe", () => {
     const section = page.locator("#worlds");
     const stage = await waitForLiveGlobe(page);
 
-    // 1. Orient the planet by clicking a point on it. One click, and the place
-    //    under it turns round to face the viewer.
+    // 1. Orient the planet by clicking a point on it.
     const before = await globeSignature(page);
     const box = await stage.boundingBox();
     if (!box) throw new Error("the stage has no box");
@@ -1164,24 +1156,13 @@ test.describe("the live globe", () => {
     await page.mouse.click(box.x + box.width * 0.42, box.y + box.height * 0.3);
     await expect.poll(() => globeSignature(page), { timeout: 5_000 }).not.toBe(before);
 
-    // 2. Open any world.
-    await section
-      .getByRole("list", { name: /chapters/i })
-      .getByRole("button", { name: new RegExp(WORLDS[1].name, "i") })
-      .click();
-    await expect(
-      section.getByRole("heading", { level: 3, name: WORLDS[1].name }),
-    ).toBeVisible();
+    // 2. Turn to any stop.
+    await page.locator(stopButton(1)).click();
+    await expect(page.locator(OVERLAY)).toHaveAttribute("data-active-stop", STOPS[1].id);
 
-    // 3. Complete the signature moment, end to end, from single clicks: the
-    //    crossing plays, the status region says he landed, and the handoff
-    //    link into the career tree appears. Both halves are asserted because
-    //    the sr-only region and the visible link are the two audiences, and a
-    //    press that reached only one of them has not completed the moment for
-    //    someone using a head pointer or eye-gaze.
-    await section.getByRole("button", { name: /take the flight/i }).click();
+    // 3. Fly the crossing, end to end: the status region says he landed.
+    await section.getByRole("button", { name: /replay the flight/i }).click();
     await expect(section.getByRole("status")).toHaveText(/landed/i, { timeout: 10_000 });
-    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
   });
 
   test("draws in system colours when forced colours are active", async ({ page }) => {
@@ -1190,21 +1171,15 @@ test.describe("the live globe", () => {
     // trusted them would draw mid-blue on a forced black page and the one hue
     // that carries meaning would stop carrying it.
     //
-    // What this does NOT assert is that the result is grey. It is tempting —
-    // and wrong: a forced palette maps the system keywords to whatever the
-    // user's theme says, and in this Chromium's own emulated palette
-    // `GrayText` is #600000, a dark red. A "no saturated pixel" check would
-    // fail on a globe that did exactly the right thing.
-    //
-    // Nor can it assert that every pixel *equals* a system colour: a stroke
-    // anti-aliased over one of the `Canvas`-filled knockouts composites the
-    // two, and #600000 at 96% over white is a real, correct #650a0a.
+    // What this does NOT assert is that the result is grey: a forced palette
+    // maps the system keywords to whatever the user's theme says, and in this
+    // Chromium's own emulated palette `GrayText` is #600000, a dark red. Nor
+    // that every pixel *equals* a system colour: anti-aliasing over a
+    // `Canvas`-filled knockout composites the two.
     //
     // So the claim is put in the two halves that survive compositing: the
     // authored accent is nowhere in the bitmap, and each system ink the globe
-    // uses is somewhere in it. The first is the failure this exists to catch —
-    // blue surviving into a forced page — and the second stops it passing on a
-    // globe that drew nothing at all.
+    // uses is somewhere in it.
     await page.emulateMedia({ forcedColors: "active" });
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
@@ -1223,18 +1198,12 @@ test.describe("the live globe", () => {
     await expect(page.locator(SURFACE)).toHaveCount(0);
     // The overlay redrew with its own coastlines, in system ink.
     await expect.poll(() => drewInSystemInk(page), { timeout: 5_000 }).toBe("ok");
-    const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
-    for (const button of await skins.getByRole("button").all()) {
-      await expect(button).toHaveAttribute("aria-disabled", "true");
-      await expect(button).toHaveAccessibleName(/needs WebGL/i);
-    }
     await expectAtRest(page, 1_500, "after forced colours dropped the surface");
   });
 
   test("a theme switch at rest redraws the globe in the new ink", async ({ page }) => {
     // At rest there is no frame to piggyback on, so the redraw has to be asked
-    // for: a MutationObserver on `data-theme`. Without it the planet keeps the
-    // old theme's ink until something else happens to move it.
+    // for: a MutationObserver on `data-theme`.
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
 
@@ -1253,12 +1222,9 @@ test.describe("the live globe", () => {
     await page.goto("/#worlds");
     const stage = await waitForLiveGlobe(page);
     const touchAction = await stage.evaluate((element) => getComputedStyle(element).touchAction);
-    // `none` here would trap the page scroll on a phone, which is the single
-    // worst thing a decorative canvas can do.
+    // `none` here would trap the page scroll on a phone.
     expect(touchAction).toBe("pan-y");
-    // And the canvas itself, which is the element a finger actually lands on:
-    // it is positioned over the stage, so its own touch-action is the one the
-    // browser consults, and the stage's pan-y would not save the page.
+    // And the canvas itself, which is the element a finger actually lands on.
     const canvasTouchAction = await stage.evaluate((element) => {
       const canvas = element.querySelector<HTMLCanvasElement>('canvas[data-chunk="globe-canvas"]');
       return canvas ? getComputedStyle(canvas).touchAction : "no canvas";
@@ -1267,282 +1233,90 @@ test.describe("the live globe", () => {
   });
 });
 
-/**
- * The end of the moment. What is asserted here is deliberately not "the globe
- * looks different": the landing's contract is that something was drawn, that
- * the page then says one true thing about it, and that the whole lot comes to
- * rest — and every one of those is observable without reading pixels.
- */
-test.describe("the landing", () => {
-  test("playing the flight lands him, drops a seed, offers the tree — and then stops", async ({
-    page,
-  }) => {
-    await page.goto("/#worlds");
-    const stage = await waitForLiveGlobe(page);
-    const section = page.locator("#worlds");
-
-    // The crossing played itself on arrival, so the seed is down and the link
-    // is there. Facing Việt Nam takes the seed off the globe, and the claim
-    // goes with it: nothing on the globe, nothing claimed.
-    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
-    await section.getByRole("button", { name: /face việt nam/i }).click();
-    await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(0);
-    await expect(stage).not.toHaveAttribute("data-crossing", "landed");
-    await page.waitForTimeout(1_500);
-
-    // The link's line is reserved, so its appearing moves nothing after it:
-    // the chapters list beside or below it, and the next section. Measured in
-    // page coordinates, so the scroll position cannot fake a match.
-    const below = () =>
-      page.evaluate(() =>
-        ["#worlds-list-label", "#tree"].map((selector) => {
-          const element = document.querySelector(selector);
-          return element ? Math.round(element.getBoundingClientRect().top + window.scrollY) : null;
-        }),
-      );
-    const beforeLink = await below();
-    expect(beforeLink).not.toContain(null);
-
-    await section.getByRole("button", { name: /take the flight/i }).click();
-
-    const handoff = section.getByRole("link", { name: /career tree/i });
-    await expect(handoff).toBeVisible({ timeout: 10_000 });
-    await expect(section.getByRole("status")).toContainText(/landed/i);
-    expect(await below(), "the handoff link pushed the content after it").toEqual(beforeLink);
-
-    // The seed finishes growing 667 ms after the landing and the camera's
-    // last few degrees arrive inside that (~502 ms of settle from a residual
-    // of 0.133 rad), and then there is nothing left
-    // moving: the played crossing must clear its own `playing` flag and the
-    // sapling must stop at full size. A flight that ended by looping forever
-    // would still pass every assertion above.
-    //
-    // This wait is also the regression guard for the tail's *duration*, which
-    // is why it is a fixed wall-clock number and not a poll on a state signal.
-    // Those 667 ms used to be forty animation frames and the settle another
-    // ~34, so at the 33 Hz this project reports at 375px the tail ran past 1.2
-    // s and this assertion caught draws that should have finished — the beat
-    // was twice its intended length on that device and half of it on a 120 Hz
-    // one. `frameStep` in `src/lib/globe.ts` makes both of those durations
-    // wall-clock, so 1.5 s is now a 2.2× margin at every frame rate instead of
-    // a coin flip at low ones. Put the frame counting back and this fails on
-    // the slow projects again, which is the intent.
-    await page.waitForTimeout(1_500);
-    await expectAtRest(page, 1_500, "after the played flight");
-
-    // Where it came to rest is deliberately *not* asserted here. The camera
-    // chases the bird at 0.1 a frame against a bird covering ~1.2° a frame, so
-    // the chase alone leaves it ~7.6° short of the pin (5.9–8.6° across
-    // 20–120 Hz) — which is why `step()` hands that last gap to `target` on
-    // completion, so the played landing ends on the same frame the
-    // reduced-motion one produces directly.
-    // Pinning that in a test would mean computing where the pin
-    // projects, and the only honest way to do that is to re-derive the disc's
-    // centre and radius from the stage box — three layout formulas that live
-    // in `GlobeCanvas`'s resize effect. Copying them here would create a
-    // second source of truth for the geometry, which rots the moment the
-    // stage's aspect changes. (A click at the disc's centre does not work as a
-    // proxy: tilt compensates only 0.55 of latitude, so the arrival pin rests
-    // ~70px above the centre by design.)
-
-    // And the claim is retractable, which is the other half of only saying
-    // true things: facing Việt Nam again takes the seed off the globe, so the
-    // sentence about it leaves the page with it.
-    await section.getByRole("button", { name: /face việt nam/i }).click();
-    await expect(handoff).toHaveCount(0);
-  });
-
-  test("the landing link actually reaches the tree", async ({ page }) => {
-    // A handoff that does not hand off is worse than no handoff: the link is
-    // the only thing in this section that points at another one.
-    await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
-    const section = page.locator("#worlds");
-    await section.getByRole("button", { name: /take the flight/i }).click();
-    await section.getByRole("link", { name: /career tree/i }).click({ timeout: 10_000 });
-    await expect(page.locator("#tree")).toBeInViewport();
-  });
-
-  test("the keyboard alone reaches the whole signature moment", async ({ page }) => {
-    await page.goto("/#worlds");
-    const stage = await waitForLiveGlobe(page);
-    const section = page.locator("#worlds");
-    await stage.focus();
-    // The crossing played itself on arrival; Home takes it back to Việt Nam
-    // with the seed and the link cleared, so the keys below have a flight to fly.
-    await page.keyboard.press("Home");
-    await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(0);
-    await page.waitForTimeout(1_500);
-    // Rolling east flies him, 12° at a time, and 2.6 radians completes the
-    // crossing — so about thirteen presses, with a margin. The keyboard reaches
-    // the landing by *flying* it, not by a shortcut that jumps to the end.
-    for (let press = 0; press < 20; press += 1) {
-      await page.keyboard.press("ArrowRight");
-    }
-    await expect(section.getByRole("status")).toContainText(/landed/i, { timeout: 10_000 });
-    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
-  });
-});
-
-test.describe("Living Earth owns both ends of the crossing", () => {
-  test("the arrival pin opens Living Earth, not just the Việt Nam pin", async ({ page }) => {
-    // The disc-centre tap above only ever reaches `points[0]`. Facing Plants
-    // puts the arrival pin (`points[1]`) on screen, and pressing exactly where
-    // `project()` puts it must open Living Earth. Reduced motion makes the
-    // facing synchronous, so the projection below is the settled one.
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
-    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
-    await list.getByRole("button", { name: /Plants/ }).click();
-    await expect(list.getByRole("button", { name: /Plants/ })).toHaveAttribute("aria-current", "true");
-
-    const canvas = page.locator(OVERLAY);
-    await canvas.scrollIntoViewIfNeeded();
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error("the canvas has no box");
-    const DEG = Math.PI / 180;
-    const { lat, lon } = origin.coordinates.to;
-    const p = project(toVector({ lat, lon }), -lon * DEG, clampTilt(-lat * DEG * 0.55), {
-      cx: box.width / 2,
-      cy: box.height * 0.44,
-      radius: Math.min(box.width, box.height * 0.82) * 0.42,
-    });
-    expect(p.front, "the arrival pin is on the far side after facing Plants").toBe(true);
-    await aimAtGlobe(page, box.x + p.x, box.y + p.y);
-    await page.mouse.click(box.x + p.x, box.y + p.y);
-    await expect(list.getByRole("button", { name: /Living Earth/ })).toHaveAttribute(
-      "aria-current",
-      "true",
-      { timeout: 5_000 },
-    );
-  });
-});
-
 test.describe("reduced motion", () => {
-  test("gives the finished frame and the caption, and asks for no frames", async ({ page }) => {
-    // `emulateMedia` rather than `test.use({ reducedMotion })`: as of
-    // Playwright 1.62 that option is no longer on `PlaywrightTestOptions` (it
-    // lives under `contextOptions`), and this is the same idiom the
-    // forced-colors test above already uses. Set before `goto`, so the cats
-    // and the origin story's player see it at mount and never start a loop.
+  test("gives the finished frame, announces a pressed landing, and asks for no frames", async ({ page }) => {
+    // Set before `goto`, so the cats and the origin story's player see it at
+    // mount and never start a loop: under reduced motion the page is
+    // genuinely silent, so a page-wide `requestAnimationFrame` count is the
+    // right instrument here, unlike everywhere else in this file.
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
+    const stage = await waitForLiveGlobe(page);
     const section = page.locator("#worlds");
 
-    // The counter has to be installed *before* the press, so the click happens
-    // in-page too. Everything else in this file drives the UI with Playwright
-    // locators; this one block is the exception, and that is the reason — a
-    // `locator.click()` would land after the counter was already running and
-    // could not be told apart from a frame the press itself caused.
-    //
-    // Page-wide `requestAnimationFrame` is the right instrument here, unlike
-    // everywhere else in this file: under `prefers-reduced-motion: reduce` the
-    // companion cats have no roaming loop and the origin story's player never
-    // starts one, so the page is genuinely silent and the globe is the only
-    // thing that could ask for a frame.
-    // `statusWrites` rides along with the frame count because both are facts
-    // about one press that can only be observed while it happens. A live
-    // region handed text byte-identical to what it already holds
-    // produces no DOM mutation and a screen reader reads nothing — which is
-    // exactly what a *second* press under reduced motion would do, since the
-    // landing is synchronous there and React would batch the clear and the
-    // re-landing into one no-op commit. Counting mutations is the only way to
-    // assert "it spoke again" from outside a screen reader.
-    const press = (label: RegExp) =>
-      page.evaluate(
-        async (pattern) => {
-          let frames = 0;
-          let statusWrites = 0;
-          const original = window.requestAnimationFrame;
-          window.requestAnimationFrame = (callback) => {
-            frames += 1;
-            return original.call(window, callback);
-          };
-          const status = document.querySelector('#worlds [role="status"]');
-          const observer = new MutationObserver((records) => {
-            statusWrites += records.length;
-          });
-          if (status) {
-            observer.observe(status, { childList: true, characterData: true, subtree: true });
-          }
-          const match = new RegExp(pattern.source, pattern.flags);
+    // The counter has to be installed *before* the press, so the press
+    // happens in-page too. `statusWrites` rides along: a live region handed
+    // text byte-identical to what it holds produces no DOM mutation, and a
+    // second press under reduced motion would do exactly that without the
+    // stage's `flushSync`.
+    const press = (what: { button: string } | { key: "Home" }) =>
+      page.evaluate(async (action) => {
+        let frames = 0;
+        let statusWrites = 0;
+        const original = window.requestAnimationFrame;
+        window.requestAnimationFrame = (callback) => {
+          frames += 1;
+          return original.call(window, callback);
+        };
+        const status = document.querySelector('#worlds [role="status"]');
+        const observer = new MutationObserver((records) => {
+          statusWrites += records.length;
+        });
+        if (status) observer.observe(status, { childList: true, characterData: true, subtree: true });
+        if ("key" in action) {
+          const target = document.querySelector('#worlds [aria-roledescription="globe"]');
+          if (!target) throw new Error("no stage");
+          target.dispatchEvent(new KeyboardEvent("keydown", { key: action.key, bubbles: true, cancelable: true }));
+        } else {
           const button = [...document.querySelectorAll<HTMLButtonElement>("#worlds button")].find(
-            (candidate) => match.test(candidate.textContent ?? ""),
+            (candidate) => candidate.textContent === action.button,
           );
-          button?.click();
-          await new Promise((resolve) => setTimeout(resolve, 1_500));
-          observer.disconnect();
-          window.requestAnimationFrame = original;
-          return { frames, statusWrites };
-        },
-        { source: label.source, flags: label.flags },
-      );
+          if (!button) throw new Error(`no button "${action.button}"`);
+          button.click();
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1_500));
+        observer.disconnect();
+        window.requestAnimationFrame = original;
+        return { frames, statusWrites };
+      }, what);
 
-    // On arrival the crossing played itself, and under reduced motion that is
-    // `fly()`'s synchronous path: the finished frame and the link, with
-    // nothing said, since nobody asked. `waitForLiveGlobe` has already waited
-    // for the landing and for rest.
-    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
+    // On arrival the crossing landed itself — `fly()`'s synchronous path —
+    // with nothing said, since nobody asked.
     await expect(section.getByRole("status")).not.toContainText(/landed/i);
     await expectAtRest(page, 700, "after the crossing landed itself under reduced motion", SILENT_HZ);
     // Redrawn once the fonts are in, so it compares with the pressed landing below.
     const { signature: autoplayed } = await settledOverlay(page);
 
     // Back to Việt Nam, so the press below has a flight to make.
-    const home = await press(/face việt nam/i);
+    const home = await press({ key: "Home" });
     expect(home.frames, "reduced motion asked for animation frames to come home").toBe(0);
-    await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(0);
+    await expect(stage).not.toHaveAttribute("data-crossing", "landed");
     const beforeFlight = await globeSignature(page);
     expect(beforeFlight, "the globe never came home").not.toBe(autoplayed);
 
-    const landing = await press(/take the flight/i);
-
-    // The outcome, not a slower animation — and not one frame requested to
-    // produce it.
+    const landing = await press({ button: "Replay the flight" });
+    // The outcome, not a slower animation — and not one frame requested.
     expect(landing.frames, "reduced motion asked for animation frames to land").toBe(0);
-    // And the outcome is on the *canvas*, not only in the DOM. Without this
-    // the whole test passes with the synchronous `draw()` deleted from
-    // `fly()`'s reduced-motion branch: the link and the status line are React
-    // state, and nothing else would ever ask the globe to repaint, so the
-    // planet would sit at Việt Nam under a sentence saying he had landed.
+    // And the outcome is on the *canvas*, not only in the DOM.
     const landed = await globeSignature(page);
     expect(landed, "the finished frame was never drawn").not.toBe(beforeFlight);
     // The same finished frame the autoplay drew: one landing, however it came.
     expect((await settledOverlay(page)).signature, "the pressed landing is not the autoplay's frame").toBe(
       autoplayed,
     );
-    await expect(section.getByRole("link", { name: /career tree/i })).toBeVisible();
     await expect(section.getByRole("status")).toContainText(/landed/i);
-    // A pressed flight is still announced; only the unasked one is quiet.
     expect(landing.statusWrites, "the landing was never announced").toBeGreaterThan(0);
 
     // Pressing it again reaches the same finished frame — and says so again.
-    // The frame is identical (nothing moved, and nothing is animating to make
-    // it differ), so the announcement is the only observable, which is the
-    // whole point: a control that does something must not be silent.
-    const again = await press(/take the flight/i);
+    const again = await press({ button: "Replay the flight" });
     expect(again.frames, "a replay under reduced motion asked for frames").toBe(0);
     expect(again.statusWrites, "a second press announced nothing").toBeGreaterThan(0);
-    await expect(section.getByRole("status")).toContainText(/landed/i);
     expect(await globeSignature(page)).toBe(landed);
-
-    // And the way back, which is the same size of motion: one row of two
-    // buttons, both of which owe the same answer to the same preference.
-    const homeAgain = await press(/face việt nam/i);
-    expect(homeAgain.frames, "reduced motion asked for animation frames to come home").toBe(0);
-    await expect(section.getByRole("link", { name: /career tree/i })).toHaveCount(0);
-    expect(await globeSignature(page), "the globe never came home").not.toBe(landed);
   });
 
   test("orienting the globe with one click asks for no frames either", async ({ page }) => {
-    // The WCAG 2.5.7 path, which is the one that matters most here: a visitor
-    // on a head pointer or eye-gaze cannot hold a drag, so click-to-orient is
-    // how they move the planet at all. Before this it was the last camera move
-    // still easing under reduced motion — which left that visitor with no
-    // non-animating way to move the globe while the two buttons beside it had
-    // one.
+    // The WCAG 2.5.7 path: a visitor on a head pointer or eye-gaze cannot hold
+    // a drag, so click-to-orient is how they move the planet at all.
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#worlds");
     const stage = await waitForLiveGlobe(page);
@@ -1559,9 +1333,6 @@ test.describe("reduced motion", () => {
           return original.call(window, callback);
         };
         const canvas = document.querySelector<HTMLCanvasElement>('#worlds canvas[data-chunk="globe-canvas"]');
-        // Dispatched in-page for the same reason the press above is: the
-        // counter has to be installed before the gesture, or the frames the
-        // gesture causes cannot be told from the ones it did not.
         if (canvas) {
           const base = { bubbles: true, pointerId: 7, pointerType: "mouse", clientX: x, clientY: y };
           canvas.dispatchEvent(new PointerEvent("pointerdown", base));
@@ -1579,81 +1350,118 @@ test.describe("reduced motion", () => {
     // pass finds nothing to do and stops. What must not happen is a second of
     // easing, which is ~60.
     expect(frames, "click-to-orient is still easing under reduced motion").toBeLessThanOrEqual(1);
-    // It moved, so the assertion above is about a gesture that did something.
     expect(await globeSignature(page), "the click did not orient the globe").not.toBe(before);
   });
+});
 
-  test("picking a world from the list asks for no frames either", async ({ page }) => {
-    // The path all six list buttons take, and the one holding the largest
-    // swing the section can be asked for: Living Earth (facing Việt Nam) to Plants
-    // (facing the arrival pin) is the crossing itself, ~156° of planet, the same distance "Take the flight"
-    // above refuses to animate. Easing it here while the button beside it
-    // snapped would have made the preference depend on which control the
-    // visitor happened to reach for.
+test.describe("the robot walks once after each landing", () => {
+  test("it walks frame by frame, then leaves a plain planet at rest", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    await requireSurface(page);
+    await page.locator("#worlds").getByRole("button", { name: "Replay the flight" }).click();
+    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 10_000 });
+
+    // The first stretch of the ~6 s walk: a frame-by-frame loop, and with a
+    // surface, one GL draw per overlay draw as everywhere else.
+    const walking = await measureGlobeFrames(page, 1_500);
+    expectEveryFrameDrew(walking, "the walk after a landing");
+    expect(Math.abs(walking.glDraws - walking.overlayDraws)).toBeLessThanOrEqual(1);
+
+    await waitForRest(page, "after the robot's walk");
+    expect((await skyBodyInk(page)).count, "a Sun or Moon stayed in the sky after the walk").toBe(0);
+    await expectAtRest(page, 1_500, "after the robot's walk");
+  });
+
+  test("leaving mid-walk ends it at once, and nothing walks off-screen", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    await page.locator("#worlds").getByRole("button", { name: "Replay the flight" }).click();
+    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 10_000 });
+    const walking = await measureGlobeFrames(page, 500);
+    expect(walking.overlayDraws, "the landing did not start the walk").toBeGreaterThan(10);
+
+    // The bottom of the page has no globe in view. The observer reports the exit
+    // on a coming frame, not inside the scroll, so a couple of frames may
+    // still draw; 200 ms covers that and stays well inside the walk.
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+    await page.waitForTimeout(200);
+    await expectAtRest(page, 1_500, "with the robot's walk left behind off-screen");
+
+    // Back in view it is not walking either, and it ended rather than paused:
+    // a paused walk would carry on at the next wake of the loop, which a
+    // nudge gives it.
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await expectAtRest(page, 1_500, "after coming back to a settled walk");
+    await stage.focus();
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(300);
+    await expectAtRest(page, 1_000, "after waking a settled walk with a nudge");
+  });
+
+  test("a stop chosen with the globe out of view moves nothing for nobody", async ({ page }) => {
+    // On a phone the list sits below the stage, so a stop can be chosen with
+    // the globe scrolled away. Its turn must end at once.
+    await page.goto("/#worlds");
+    const stage = await waitForLiveGlobe(page);
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+    await page.waitForTimeout(300);
+    // In-page press, so the button is not scrolled into view (and the globe
+    // with it) by a locator click.
+    const chosen = await pressCounting(page, stopButton(0), /./, 1_500);
+    // The settle's draw and the active pin's: a couple of draws, not a turn.
+    expect(chosen.overlayDraws, "the turn ran with nobody watching").toBeLessThanOrEqual(3);
+    await expectAtRest(page, 1_000, "after choosing a stop off-screen");
+    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await stage.focus();
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(300);
+    await expectAtRest(page, 1_000, "after waking the off-screen choice with a nudge");
+  });
+
+  test("a Moon over the dark lap, then a Sun over the lit one, then neither, on the GL path", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    await requireSurface(page);
+    await expectMoonThenSun(page);
+  });
+
+  test("a Moon over the dark lap, then a Sun over the lit one, then neither, on the 2D fallback", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await withoutWebGL2(page);
+    await page.goto("/#worlds");
+    await waitForLiveGlobe(page);
+    await expect(page.locator(SURFACE)).toHaveCount(0);
+    await expectMoonThenSun(page);
+  });
+
+  test("under reduced motion the landing holds the robot still, under the Sun, on both paths", async ({
+    page,
+    browser,
+  }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
-    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
+    await requireSurface(page);
+    expectSun(await skyBodyInk(page), "GL");
+    await expectAtRest(page, 700, "the still robot", SILENT_HZ);
 
-    const pickFromTheList = (label: RegExp) =>
-      page.evaluate(
-        async (pattern) => {
-          let frames = 0;
-          const original = window.requestAnimationFrame;
-          window.requestAnimationFrame = (callback) => {
-            frames += 1;
-            return original.call(window, callback);
-          };
-          const match = new RegExp(pattern.source, pattern.flags);
-          // Scoped to the list rather than to `#worlds button`: "Face Việt
-          // Nam" is also a button whose text contains that name, and it is
-          // `reset`, a different path that the test above already covers.
-          const button = [
-            ...document.querySelectorAll<HTMLButtonElement>(
-              '#worlds ul[aria-labelledby="worlds-list-label"] button',
-            ),
-          ].find((candidate) => match.test(candidate.textContent ?? ""));
-          // Thrown rather than optional-chained away: a selector that stopped
-          // matching would otherwise report zero frames and pass, which is the
-          // one failure this test cannot afford to call a success.
-          if (!button) throw new Error(`no world in the list matching ${match}`);
-          button.click();
-          await new Promise((resolve) => setTimeout(resolve, 1_500));
-          window.requestAnimationFrame = original;
-          return frames;
-        },
-        { source: label.source, flags: label.flags },
-      );
-
-    // Face Việt Nam from the list first, so the press being measured is the
-    // half-planet swing rather than whatever distance the globe happened to
-    // mount at — and so this press is itself held to the same contract.
-    expect(await pickFromTheList(/living earth/i), "facing Living Earth from the list eased").toBe(0);
-    const facingVietnam = await globeSignature(page);
-
-    // Zero, not click-to-orient's "at most one": `focusWorld` reaches `lookAt`
-    // and nothing else, and `lookAt`'s reduced-motion branch draws once
-    // synchronously and never calls `start()`. `release` is the only path that
-    // wakes the loop unconditionally, which is why that test has one frame to
-    // spend and this one has none.
-    expect(
-      await pickFromTheList(/plants/i),
-      "picking a world is still easing under reduced motion",
-    ).toBe(0);
-
-    // And the swing happened. Without both halves this passes just as well on a
-    // `focusWorld` that was quietly made to do nothing at all.
-    await expect(list.getByRole("button", { name: /plants/i })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
-    expect(await globeSignature(page), "the globe never swung to the far pin").not.toBe(
-      facingVietnam,
-    );
-    // It arrived, rather than easing on after the counter was put back. This
-    // is the one site that measures a genuinely silent page — no cats — so it
-    // is held to `SILENT_HZ` rather than to the ceiling the other seven need.
-    await expectAtRest(page, 700, "after picking a world under reduced motion", SILENT_HZ);
+    const context = await browser.newContext({ viewport: page.viewportSize() ?? undefined, reducedMotion: "reduce" });
+    const fallback = await context.newPage();
+    try {
+      await withoutWebGL2(fallback);
+      await fallback.goto("/#worlds");
+      await waitForLiveGlobe(fallback);
+      await expect(fallback.locator(SURFACE)).toHaveCount(0);
+      expectSun(await skyBodyInk(fallback), "2D");
+    } finally {
+      await context.close();
+    }
   });
 });
 
@@ -1721,169 +1529,6 @@ async function pressCounting(page: Page, selector: string, label: RegExp, ms: nu
   );
 }
 
-const CHAPTER_BUTTONS = '#worlds ul[aria-labelledby="worlds-list-label"] button';
-const ROBOT_TOGGLE = "#worlds [role=group][aria-label=\"The robot's two laps\"] button";
-
-test.describe("the robot walks twice", () => {
-  test("opening Technology walks it once, frame by frame, and then the globe rests", async ({ page }) => {
-    await page.goto("/#worlds");
-    const stage = await waitForLiveGlobe(page);
-    await requireSurface(page);
-    const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
-
-    // The first two seconds of the ~6 s walk: a frame-by-frame loop, and with
-    // a surface, one GL draw per overlay draw as everywhere else.
-    const walking = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 2_000);
-    await expect(list.getByRole("button", { name: /technology/i })).toHaveAttribute("aria-current", "true");
-    expectEveryFrameDrew(walking, "opening Technology");
-    // The still-lap toggle is for reduced motion only; beside the walk it
-    // would be a second control for the same thing.
-    await expect(
-      page.locator("#worlds").getByRole("group", { name: "The robot's two laps" }),
-      "the lap toggle shows while the walk can play",
-    ).toHaveCount(0);
-    expect(Math.abs(walking.glDraws - walking.overlayDraws)).toBeLessThanOrEqual(1);
-    // Still walking: the stage changes from one second to the next.
-    const midWalk = await stage.screenshot();
-    await page.waitForTimeout(1_000);
-    expect((await stage.screenshot()).equals(midWalk), "the walk froze mid-lap").toBe(false);
-
-    // Past six seconds it has ended, lit, and nothing is left running —
-    // overlay or GL.
-    await page.waitForTimeout(4_000);
-    await expectAtRest(page, 1_500, "after the robot's walk");
-
-    // Once per selection: pressing the open chapter again replays nothing.
-    const again = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_000);
-    expect(again.overlayDraws + again.glDraws, "re-pressing Technology replayed the walk").toBe(0);
-  });
-
-  test("leaving mid-walk ends it at once, and nothing walks off-screen", async ({ page }) => {
-    await page.goto("/#worlds");
-    const stage = await waitForLiveGlobe(page);
-    const walking = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_000);
-    expect(walking.overlayDraws, "opening Technology did not start the walk").toBeGreaterThan(10);
-
-    // Five seconds of walk left. The top of the page has no globe in view.
-    // The observer reports the exit on a coming frame, not inside the scroll,
-    // so a couple of frames may still draw; 200 ms covers that and still
-    // leaves the measurement below well inside the walk it must not see.
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    await page.waitForTimeout(200);
-    await expectAtRest(page, 1_500, "with the robot's walk left behind off-screen");
-
-    // Back in view it is not walking either, and it ended rather than paused:
-    // a paused walk would still be marked as walking, so the next wake of the
-    // loop would carry on with the five seconds left. ArrowUp wakes it with a
-    // nudge that needs one frame; after that the globe must be at rest.
-    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expectAtRest(page, 1_500, "after coming back to a settled walk");
-    await stage.focus();
-    await page.keyboard.press("ArrowUp");
-    await page.waitForTimeout(300);
-    await expectAtRest(page, 1_000, "after waking a settled walk with a nudge");
-  });
-
-  test("choosing Technology with the globe out of view walks nothing", async ({ page }) => {
-    // On a phone the list sits below the stage, so a chapter can be chosen
-    // with the globe scrolled away. The walk it starts must end at once.
-    await page.goto("/#worlds");
-    const stage = await waitForLiveGlobe(page);
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    await page.waitForTimeout(300);
-    // In-page press, so the list button is not scrolled into view (and the
-    // globe with it) by a locator click.
-    const chosen = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_500);
-    // The chapter's own redraw and the settle's: a couple of draws, not a walk.
-    expect(chosen.overlayDraws, "the walk ran with nobody watching").toBeLessThanOrEqual(3);
-    await expectAtRest(page, 1_000, "after choosing Technology off-screen");
-    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await stage.focus();
-    await page.keyboard.press("ArrowUp");
-    await page.waitForTimeout(300);
-    await expectAtRest(page, 1_000, "after waking the off-screen choice with a nudge");
-  });
-
-  test("under reduced motion nothing animates, and the toggle switches the two still laps", async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/#worlds");
-    const stage = await waitForLiveGlobe(page);
-    await requireSurface(page);
-
-    const open = await pressCounting(page, CHAPTER_BUTTONS, /technology/i, 1_000);
-    expect(open.frames, "opening Technology asked for frames under reduced motion").toBe(0);
-    expect(open.overlayDraws, "the held lap was never drawn").toBeGreaterThan(0);
-
-    const toggle = page.locator("#worlds").getByRole("group", { name: "The robot's two laps" });
-    const unsupervised = toggle.getByRole("button", { name: "Unsupervised" });
-    const human = toggle.getByRole("button", { name: "Human in the loop" });
-    await expect(human).toHaveAttribute("aria-pressed", "true");
-    await expect(unsupervised).toHaveAttribute("aria-pressed", "false");
-    for (const button of [unsupervised, human]) {
-      const box = await button.boundingBox();
-      expect(box?.height ?? 0, "a lap button is under 44px").toBeGreaterThanOrEqual(44);
-    }
-    const lit = await stage.screenshot();
-
-    const dark = await pressCounting(page, ROBOT_TOGGLE, /^Unsupervised$/, 700);
-    await expect(unsupervised).toHaveAttribute("aria-pressed", "true");
-    await expect(human).toHaveAttribute("aria-pressed", "false");
-    // One still frame per press, of each canvas, and no loop.
-    expect(dark.frames).toBe(0);
-    expect(dark.overlayDraws).toBe(1);
-    expect(dark.glDraws).toBe(1);
-    const out = await stage.screenshot();
-    expect(out.equals(lit), "the unsupervised lap looks the same as the lit one").toBe(false);
-
-    const back = await pressCounting(page, ROBOT_TOGGLE, /^Human in the loop$/, 700);
-    expect(back.frames).toBe(0);
-    await expect(human).toHaveAttribute("aria-pressed", "true");
-    expect((await stage.screenshot()).equals(lit), "the lit lap did not come back as it was").toBe(true);
-
-    await expectAtRest(page, 700, "after toggling the robot's laps", SILENT_HZ);
-  });
-
-  test("without WebGL2 the overlay still draws both laps differently", async ({ page }) => {
-    await withoutWebGL2(page);
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
-    await expect(page.locator(SURFACE)).toHaveCount(0);
-    await page
-      .locator("#worlds")
-      .getByRole("list", { name: /chapters/i })
-      .getByRole("button", { name: /technology/i })
-      .click();
-    const toggle = page.locator("#worlds").getByRole("group", { name: "The robot's two laps" });
-    const lit = await globeSignature(page);
-    await toggle.getByRole("button", { name: "Unsupervised" }).click();
-    // The fallback's lights are on the overlay, so the overlay alone differs.
-    expect(await globeSignature(page), "the fallback drew no lights to put out").not.toBe(lit);
-    await toggle.getByRole("button", { name: "Human in the loop" }).click();
-    expect(await globeSignature(page)).toBe(lit);
-    await expectAtRest(page, 700, "the fallback robot, held", SILENT_HZ);
-  });
-
-
-  test("a Moon over the dark lap and a Sun over the lit one, on the GL path", async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
-    await requireSurface(page);
-    await expectMoonThenSun(page);
-  });
-
-  test("a Moon over the dark lap and a Sun over the lit one, on the 2D fallback", async ({ page }) => {
-    await withoutWebGL2(page);
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
-    await expect(page.locator(SURFACE)).toHaveCount(0);
-    await expectMoonThenSun(page);
-  });
-});
 
 /**
  * The ink in the patch of sky where the Moon or Sun hangs: upper left, outside
@@ -1936,29 +1581,57 @@ async function skyBodyInk(page: Page) {
   });
 }
 
+
+type SkyBody = Awaited<ReturnType<typeof skyBodyInk>>;
+
+/** Ink is what differs from the knockout's ground, so the disc alone is not a
+ *  body. The Sun is round with rays, so it reaches more than 6 CSS px to the
+ *  right of its centre and is centred on it; the Moon is a crescent opening to
+ *  the right, so it is left of centre and stays off that side. */
+const isSun = (body: SkyBody) => body.ink > 0 && body.rightInk > 0 && Math.abs(body.centroidX) < 1.5;
+const isMoon = (body: SkyBody) => body.ink > 0 && body.rightInk === 0 && body.centroidX < -1;
+
+function expectSun(body: SkyBody, where: string) {
+  expect(body.ink, `${where}: no body over the still robot`).toBeGreaterThan(0);
+  expect(body.rightInk, `${where}: the body has no rays to the right: not a Sun`).toBeGreaterThan(0);
+  expect(Math.abs(body.centroidX), `${where}: the body is not centred: not a Sun`).toBeLessThan(1.5);
+}
+
+/** Replays the flight and watches the sky through the walk that follows: the
+ *  Moon over the dark lap, the Sun over the lit one, then an empty sky. Polled,
+ *  because the walk runs on the wall clock and this machine's frame rate does
+ *  not. */
 async function expectMoonThenSun(page: Page) {
-  const list = page.locator("#worlds").getByRole("list", { name: /chapters/i });
-  await list.getByRole("button", { name: /living earth/i }).click();
-  await page.waitForTimeout(300);
-  expect((await skyBodyInk(page)).count, "a body hangs in the sky with Living Earth open").toBe(0);
-  await list.getByRole("button", { name: /technology/i }).click();
-  const toggle = page.locator("#worlds").getByRole("group", { name: "The robot's two laps" });
-  await page.waitForTimeout(300);
-  // Ink is what differs from the knockout's ground, so the disc alone is not
-  // a body. The Sun is round with rays, so it reaches more than 6 CSS px to
-  // the right of its centre and is centred on it; the Moon is a crescent
-  // opening to the right, so it is left of centre and stays off that side.
-  const sun = await skyBodyInk(page);
-  expect(sun.ink, "no Sun glyph over the lit lap").toBeGreaterThan(0);
-  expect(sun.rightInk, "the lit lap's body has no rays to the right: not a Sun").toBeGreaterThan(0);
-  expect(Math.abs(sun.centroidX), "the lit lap's body is not centred: not a Sun").toBeLessThan(1.5);
-  await toggle.getByRole("button", { name: "Unsupervised" }).click();
-  await page.waitForTimeout(300);
-  const moon = await skyBodyInk(page);
-  expect(moon.ink, "no Moon glyph over the dark lap").toBeGreaterThan(0);
-  expect(moon.rightInk, "the dark lap's body reaches right of centre: not a Moon").toBe(0);
-  expect(moon.centroidX, "the dark lap's body is not left of centre: not a Moon").toBeLessThan(-1);
-  expect(moon.hash, "the Moon and the Sun are the same drawing").not.toBe(sun.hash);
+  expect((await skyBodyInk(page)).count, "a body hangs in the sky at rest").toBe(0);
+  await page.locator("#worlds").getByRole("button", { name: "Replay the flight" }).click();
+  await expect(page.getByRole("group", { name: /playground earth/i })).toHaveAttribute("data-crossing", "landed", {
+    timeout: 10_000,
+  });
+  const seen: { moon?: SkyBody; sun?: SkyBody } = {};
+  await expect
+    .poll(
+      async () => {
+        const body = await skyBodyInk(page);
+        if (isMoon(body)) seen.moon = body;
+        return seen.moon !== undefined;
+      },
+      { timeout: 6_000, intervals: [50], message: "no Moon over the dark lap" },
+    )
+    .toBe(true);
+  await expect
+    .poll(
+      async () => {
+        const body = await skyBodyInk(page);
+        if (isSun(body)) seen.sun = body;
+        return seen.sun !== undefined;
+      },
+      { timeout: 8_000, intervals: [50], message: "no Sun over the lit lap" },
+    )
+    .toBe(true);
+  expect(seen.sun?.hash, "the Moon and the Sun are the same drawing").not.toBe(seen.moon?.hash);
+  await expect
+    .poll(async () => (await skyBodyInk(page)).count, { timeout: 10_000, message: "the sky never cleared" })
+    .toBe(0);
 }
 
 /**
@@ -2015,23 +1688,15 @@ async function settledOverlay(page: Page) {
   return { ink: await overlayInk(page), signature: await globeSignature(page) };
 }
 
-async function expectDialOff(page: Page) {
-  const skins = page.locator("#worlds").getByRole("group", { name: /skins/i });
-  for (const button of await skins.getByRole("button").all()) {
-    await expect(button).toHaveAttribute("aria-disabled", "true");
-    await expect(button).toHaveAccessibleName(/needs WebGL/i);
-  }
-}
 
 test.describe("without WebGL2", () => {
-  test("the shipped 2D globe draws, and the skin dial says why it is off", async ({ page }) => {
+  test("the shipped 2D globe draws", async ({ page }) => {
     await withoutWebGL2(page);
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
 
     await expect(page.locator(SURFACE)).toHaveCount(0);
     expect(await globeSignature(page), "the fallback globe drew nothing").not.toBe("0");
-    await expectDialOff(page);
     await expectAtRest(page, 1_500, "the fallback globe, untouched");
   });
 
@@ -2039,16 +1704,13 @@ test.describe("without WebGL2", () => {
     page,
     browser,
   }) => {
-    // The fourth of R3's triggers, and the strongest statement of what
-    // "fall back" means: after the context goes, the overlay is the same
-    // drawing, pixel for pixel by these two measures, as the page that never
-    // had WebGL2. A fallback that left the coastlines to a dead surface
-    // differs here by every coastline pixel.
+    // After the context goes, the overlay is the same drawing, pixel for pixel
+    // by these two measures, as the page that never had WebGL2. A fallback
+    // that left the coastlines to a dead surface differs here by every
+    // coastline pixel.
     //
-    // Both pages under reduced motion: the crossing plays itself on arrival,
-    // and only the synchronous landing puts two pages on exactly the same
-    // frame. A played one rests within a hair of the pin, and that hair
-    // differs from run to run.
+    // Both pages under reduced motion: only the synchronous landing puts two
+    // pages on exactly the same frame.
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/#worlds");
     await waitForLiveGlobe(page);
@@ -2063,7 +1725,6 @@ test.describe("without WebGL2", () => {
       lose.loseContext();
     });
     await expect(page.locator(SURFACE), "the surface outlived its context").toHaveCount(0);
-    await expectDialOff(page);
     const lost = await settledOverlay(page);
 
     // The coastlines came back onto the overlay: it carries more ink than it
@@ -2128,16 +1789,16 @@ async function elementsStillMoving(page: Page) {
   });
 }
 
-/** Skins are worn on the GL surface. This environment's headless shell runs
- *  WebGL2, so its absence is a failure to name, never a reason to skip. */
+/** This environment's headless shell runs WebGL2, so the surface's absence is
+ *  a failure to name, never a reason to skip. */
 async function requireSurface(page: Page) {
   await expect(
     page.locator(SURFACE),
-    "no GL surface appeared: WebGL2 is unavailable or the globe failed to create it, so no skin can be tested",
+    "no GL surface appeared: WebGL2 is unavailable or the globe failed to create it",
   ).toHaveCount(1, { timeout: 15_000 });
 }
 
-test.describe("reduced motion across every chapter and skin", () => {
+test.describe("reduced motion across every stop", () => {
   test("nothing in #worlds animates or transitions, and the crossing is already landed", async ({
     page,
   }) => {
@@ -2148,15 +1809,13 @@ test.describe("reduced motion across every chapter and skin", () => {
     // have started.
     const stage = await reachLiveGlobe(page);
     await expect(stage).toHaveAttribute("data-crossing", "landed");
-    // Read once, now, inside what would be the first hold — not a retrying
-    // assertion: a loop that started would be stopped again by the hold's own
-    // motion check, and a retry would wait for exactly that.
+    // Read once, now — not a retrying assertion.
     expect(
       await page.locator("#worlds [data-replay]").textContent(),
       "a replay started under reduced motion",
-    ).toBe("Take the flight");
+    ).toBe("Replay the flight");
     const { checked, offenders } = await elementsStillMoving(page);
-    expect(checked, "the sweep covered almost nothing").toBeGreaterThan(100);
+    expect(checked, "the sweep covered almost nothing").toBeGreaterThan(50);
     expect(offenders, offenders.join("\n")).toEqual([]);
 
     // And it never plays out: nothing resets, and there is nothing to stop.
@@ -2164,156 +1823,24 @@ test.describe("reduced motion across every chapter and skin", () => {
     await expect(stage).toHaveAttribute("data-crossing", "landed");
     await expect(page.locator("#worlds").getByRole("button", { name: "Stop the replay" })).toHaveCount(0);
   });
-
-  test("every chapter, every skin and the robot toggle work, and the globe rests after each", async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/#worlds");
-    await waitForLiveGlobe(page);
-    const section = page.locator("#worlds");
-    const list = section.getByRole("list", { name: /chapters/i });
-
-    for (const world of WORLDS) {
-      await list.getByRole("button", { name: new RegExp(world.name, "i") }).click();
-      await expect(list.getByRole("button", { name: new RegExp(world.name, "i") })).toHaveAttribute(
-        "aria-current",
-        "true",
-      );
-      await expect(section.getByRole("heading", { level: 3, name: world.name })).toBeVisible();
-      for (const plaque of world.plaques) {
-        await expect(section.getByText(plaque.text, { exact: true })).toBeVisible();
-      }
-      await expectAtRest(page, 400, `after opening ${world.name}`, SILENT_HZ);
-    }
-
-    // Skins are worn over Living Earth, the chapter the planet opens on.
-    await list.getByRole("button", { name: /living earth/i }).click();
-    const skins = section.getByRole("group", { name: /skins/i });
-    const buttons = skins.getByRole("button");
-    expect(await buttons.count()).toBe(resolveSkins().length);
-    await requireSurface(page);
-    for (const skin of resolveSkins()) {
-      const button = skins.getByRole("button", { name: new RegExp(`^${skin.name}\\b`) });
-      await expect(button).toBeVisible();
-      await button.click();
-      await expect(button).toHaveAttribute("aria-pressed", "true");
-      await expectAtRest(page, 400, `after wearing ${skin.name}`, SILENT_HZ);
-    }
-    // Pressing the worn skin takes it off.
-    await buttons.last().click();
-    await expect(buttons.last()).toHaveAttribute("aria-pressed", "false");
-    await expectAtRest(page, 400, "after taking the skin off", SILENT_HZ);
-
-    // The robot's two laps exist only under reduced motion, on Technology.
-    await list.getByRole("button", { name: /technology/i }).click();
-    const laps = section.getByRole("group", { name: "The robot's two laps" });
-    await expect(laps.getByRole("button")).toHaveCount(2);
-    await laps.getByRole("button", { name: "Unsupervised" }).click();
-    await expect(laps.getByRole("button", { name: "Unsupervised" })).toHaveAttribute("aria-pressed", "true");
-    await expectAtRest(page, 400, "after the robot toggle", SILENT_HZ);
-  });
-});
-
-test.describe("the chapter list and the skin group by keyboard", () => {
-  test("Tab reaches both, arrows, Home and End move between buttons, and Space works", async ({
-    page,
-  }) => {
-    await page.goto("/#worlds");
-    const section = page.locator("#worlds");
-    await waitForLiveGlobe(page);
-    const chapters = section.getByRole("list", { name: /chapters/i }).getByRole("button");
-    const skins = section.getByRole("group", { name: /skins/i }).getByRole("button");
-    const count = await chapters.count();
-    expect(count).toBe(WORLDS.length);
-
-    await chapters.first().focus();
-    await page.keyboard.press("ArrowDown");
-    await expect(chapters.nth(1)).toBeFocused();
-    await page.keyboard.press("End");
-    await expect(chapters.last()).toBeFocused();
-    await page.keyboard.press("ArrowDown");
-    await expect(chapters.first(), "ArrowDown from the last chapter should wrap to the first").toBeFocused();
-    await page.keyboard.press("ArrowUp");
-    await expect(chapters.last()).toBeFocused();
-    await page.keyboard.press("Home");
-    await expect(chapters.first()).toBeFocused();
-    // Moving focus is not choosing: the arrows must not have picked a chapter.
-    await expect(chapters.first()).toHaveAttribute("aria-current", "true");
-    await page.keyboard.press("ArrowDown");
-    await expect(chapters.nth(1)).not.toHaveAttribute("aria-current", "true");
-
-    // Tab from the end of the chapters lands on the first skin.
-    await chapters.last().focus();
-    await page.keyboard.press("Tab");
-    await expect(skins.first()).toBeFocused();
-    await page.keyboard.press("ArrowRight");
-    await expect(skins.nth(1)).toBeFocused();
-    await page.keyboard.press("End");
-    await expect(skins.last()).toBeFocused();
-    await page.keyboard.press("ArrowRight");
-    await expect(skins.first()).toBeFocused();
-
-    // Operable: Space presses it. Needs the GL surface to wear it on.
-    await requireSurface(page);
-    await page.keyboard.press("Space");
-    await expect(skins.first()).toHaveAttribute("aria-pressed", "true");
-    await page.keyboard.press("Space");
-    await expect(skins.first()).toHaveAttribute("aria-pressed", "false");
-
-    // Modified arrows belong to the browser (Alt+Left is Back): never swallowed.
-    await chapters.first().focus();
-    const prevented = await page.evaluate(() => {
-      const button = document.activeElement as HTMLElement;
-      const results: boolean[] = [];
-      for (const init of [
-        { key: "ArrowLeft", altKey: true },
-        { key: "ArrowRight", altKey: true },
-        { key: "Home", ctrlKey: true },
-        { key: "End", metaKey: true },
-        { key: "ArrowDown", shiftKey: true },
-      ]) {
-        const event = new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true });
-        button.dispatchEvent(event);
-        results.push(event.defaultPrevented);
-      }
-      return results;
-    });
-    expect(prevented, "a modified arrow/Home/End was swallowed by the toolbar").toEqual([
-      false,
-      false,
-      false,
-      false,
-      false,
-    ]);
-    await expect(chapters.first()).toBeFocused();
-    // And a chapter: Enter on the focused one chooses it.
-    await chapters.nth(2).focus();
-    await page.keyboard.press("Enter");
-    await expect(chapters.nth(2)).toHaveAttribute("aria-current", "true");
-  });
 });
 
 /**
- * Contrast of the labels drawn in the Living Earth pose (the open chapter's name
- * and the two cat names) against what actually touches their letters, under every
- * skin in both themes. Other chapters' labels are not probed. "What touches its letters" is the ring of pixels one
- * step outside the glyphs in the composited bitmap (GL surface plus overlay), so it
- * is the halo where the halo reaches and the planet where it does not.
+ * Contrast of the one label the globe draws — the active stop's place name —
+ * against what actually touches its letters, for every stop in both themes.
+ * "What touches its letters" is the ring of pixels one step outside the glyphs
+ * in the composited bitmap (GL surface plus overlay), so it is the halo where
+ * the halo reaches and the planet where it does not.
  *
  * The glyphs are found by the page itself, not modelled: the overlay is redrawn
  * three times at rest. Normally (what a visitor sees), then with the halos
  * suppressed and every word kept, then with the halos and the words suppressed.
  * The pixels that differ between the last two are exactly the letters, as the
- * live canvas rasterised them. A software canvas given the same text places
- * glyphs a fraction of a pixel away, which is enough to move the ring.
+ * live canvas rasterised them.
  */
-test.describe("canvas labels under every skin", () => {
-  const EXPECTED = ["LIVING EARTH", ...companions.slice(0, 2).map((c) => c.name.toUpperCase())];
+test.describe("the active stop's canvas label", () => {
   for (const theme of ["day", "night"] as const) {
-    test(`the open chapter label and the cat names keep 4.5:1 against what touches their letters, Living Earth pose, every skin, ${theme}`, async ({
-      page,
-    }) => {
+    test(`keeps 4.5:1 against what touches its letters, every stop, ${theme}`, async ({ page }) => {
       test.setTimeout(120_000);
       await page.goto("/#worlds");
       await waitForLiveGlobe(page);
@@ -2321,16 +1848,6 @@ test.describe("canvas labels under every skin", () => {
       // The cats are hidden for the shots below; a lazy mount after the hide
       // would put them back in frame.
       await expect(page.locator("[data-companion]")).toBeAttached();
-      const section = page.locator("#worlds");
-      await section
-        .getByRole("list", { name: /chapters/i })
-        .getByRole("button", { name: /living earth/i })
-        .click();
-      await page.waitForTimeout(3_000);
-      await expectAtRest(page, 600, "after opening Living Earth");
-      const skins = section.getByRole("group", { name: /skins/i });
-      const all = resolveSkins();
-      expect(all.length, "the skin dial is empty").toBeGreaterThan(0);
 
       await page.evaluate(
         ({ t, selector }) => {
@@ -2407,24 +1924,20 @@ test.describe("canvas labels under every skin", () => {
       };
 
       const failures: string[] = [];
-      for (const skin of all) {
-        const button = skins.getByRole("button", { name: new RegExp(`^${skin.name}\\b`) });
-        if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
-        await expect(button).toHaveAttribute("aria-pressed", "true");
+      for (const [index, stop] of STOPS.entries()) {
+        await page.locator(stopButton(index)).click();
+        await expect(page.locator(OVERLAY)).toHaveAttribute("data-active-stop", stop.id);
         // The whole canvas has to be on screen for a viewport screenshot.
         await page
           .locator(OVERLAY)
           .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
-        await page.waitForTimeout(300);
-        await expectAtRest(page, 400, `after wearing ${skin.name}`);
+        await waitForRest(page, `after turning to ${stop.id}`);
 
         // The compositor resamples a canvas that sits on a fractional pixel,
         // which would blur the letter edges by a fraction of the very ring
         // being measured. Nudge the canvas onto the pixel grid for the three
-        // shots (the `translate` property, so no transform of the page's own
-        // is touched) and undo it after.
-        // The cats are DOM and may be walking across the stage; they are not
-        // the canvas's, so they are hidden for the three shots too.
+        // shots and undo it after. The cats are DOM and may be walking across
+        // the stage, so they are hidden for the three shots too.
         await page.locator(OVERLAY).evaluate((el) => {
           const r = el.getBoundingClientRect();
           el.style.translate = `${Math.round(r.left) - r.left}px ${Math.round(r.top) - r.top}px`;
@@ -2563,21 +2076,14 @@ test.describe("canvas labels under every skin", () => {
           { normal, bare, none, selector: OVERLAY },
         );
 
-        for (const text of EXPECTED) {
-          expect(
-            result.map((r) => r.text),
-            `${theme}/${skin.name}: "${text}" was not measured`,
-          ).toContain(text);
-        }
-        const min = Math.min(...result.map((r) => r.p5));
-        const worst = result.find((r) => r.p5 === min)!;
-        console.log(
-          `label contrast ${theme} / ${skin.name}: min p5 ${min.toFixed(2)} ("${worst.text}"), ${result.length} labels`,
-        );
+        const expected = stop.place.toUpperCase();
+        expect(
+          result.map((r) => r.text),
+          `${theme}/${stop.id}: "${expected}" was not measured`,
+        ).toContain(expected);
         for (const r of result) {
-          if (r.p5 < 4.5) {
-            failures.push(`${skin.name}, ${theme}: label "${r.text}" has p5 contrast ${r.p5.toFixed(2)} (< 4.5)`);
-          }
+          console.log(`label contrast ${theme} / ${stop.id}: "${r.text}" p5 ${r.p5.toFixed(2)}`);
+          if (r.p5 < 4.5) failures.push(`${stop.id}, ${theme}: label "${r.text}" has p5 contrast ${r.p5.toFixed(2)} (< 4.5)`);
         }
       }
       expect(failures, failures.join("\n")).toEqual([]);

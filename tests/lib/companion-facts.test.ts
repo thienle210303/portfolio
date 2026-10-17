@@ -30,8 +30,7 @@ describe("buildCompanionFacts", () => {
 
   it("counts branches, leaves and technologies off the tree the Journey draws, not every entry", () => {
     // `buildDrawnTree()` is the call `CareerTree.tsx` builds its rail from
-    // ("Branches: N drawn · 9 as credentials") and the globe's tree-shape
-    // plaque counts. Recomputed here by hand from the drawn branches, not by
+    // ("Branches: N drawn · 9 as credentials"). Recomputed here by hand from the drawn branches, not by
     // calling `totalLeaves`/`treeTechnologies` — a test that reused the same
     // helpers would agree with a broken one.
     const drawn = buildDrawnTree();

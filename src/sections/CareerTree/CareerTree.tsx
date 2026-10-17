@@ -51,7 +51,7 @@ import { WatchOrigin } from "./WatchOrigin";
 const HEADING_ID = "tree-heading";
 
 /** What the stage draws: the tree without the nine entries that became one
- *  credentials line. The globe's "tree-shape" plaque counts the same call. */
+ *  credentials line. The companion's facts count the same call. */
 const DRAWN = buildDrawnTree();
 
 /** Every leaf on the drawing: every technology any drawn branch lists, summed

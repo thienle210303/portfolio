@@ -184,8 +184,7 @@ const STILL_MS = 2500;
 /**
  * The flight is the one beat allowed to name both places, and it names them
  * exactly as authored — `origin.from` and `origin.to` whole, composed rather
- * than typed a second time. This is the same string `computedFact("crossing")`
- * produces for the globe, so the two captions cannot diverge. The ban on place
+ * than typed a second time. The ban on place
  * names in `tests/lib/origin-story.test.ts` applies to every `Season.caption`,
  * not to this beat.
  */

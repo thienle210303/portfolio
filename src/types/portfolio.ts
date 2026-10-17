@@ -104,12 +104,10 @@ export interface Origin {
   readonly english: string;
 
   /**
-   * Where the two ends of the crossing are. Authored here rather than in
-   * `src/content/worlds.ts` because they are facts about the crossing itself,
-   * which this record already owns — and because the globe, the flight arc,
-   * the Sea world's derived midpoint and the Sky world's derived apex must
-   * every one of them agree, which they only do if there is one pair of
-   * numbers on the site.
+   * Where the two ends of the crossing are. Authored on this record because
+   * they are facts about the crossing itself — and because the globe's first
+   * two stops, the flight arc and the distance printed beside it must agree,
+   * which they only do if there is one pair of numbers on the site.
    *
    * `to` is Taylors, South Carolina, the town he arrived in — a city since
    * round 18; before that it was the United States country centroid.
@@ -135,7 +133,7 @@ export interface OriginStops {
  * One of the two cats who live on this page — real animals, named by their
  * owner on 2026-09-02, which is why `authoredOn` is here: this is the one
  * record on the site whose provenance is "he told me", with no document
- * behind it, and the globe's Animals world says so on the plaque.
+ * behind it.
  */
 export interface Companion {
   readonly id: string;
@@ -379,113 +377,3 @@ export type CodeTokenKind =
   | "string"
   | "punctuation"
   | "comment";
-
-/* -------------------------------------------------------------------------- */
-/* Playground Earth                                                            */
-/*                                                                             */
-/* The globe's schema is deliberately a schema of *references*. A world does    */
-/* not hold the sentence a plaque renders; it holds the address of the field    */
-/* that sentence already lives in, and `src/lib/worlds.ts` fetches it. That is  */
-/* the difference between a globe that is culturally rich and a globe that      */
-/* invents things about its subject, and `tests/lib/worlds.test.ts` enforces    */
-/* it string-for-string.                                                        */
-/*                                                                             */
-/* `where` and `disclosure` are the one exception, and they are not an           */
-/* exception to the rule so much as outside its scope: they are prose about the  */
-/* *drawing* ("the arrival pin, the first place he lived here"), never           */
-/* a claim about him. A test asserts no plaque ever renders one of them.         */
-/* -------------------------------------------------------------------------- */
-
-export type GlyphId =
-  | "comtam"
-  | "bowl"
-  | "jar"
-  | "blossom"
-  | "cap"
-  | "trophy"
-  | "ribbon"
-  | "chalk"
-  | "net"
-  | "buoy"
-  | "jelly"
-  | "bird"
-  | "plane"
-  | "sprout"
-  | "cat"
-  | "sat"
-  | "robot"
-  | "sun"
-  | "moon"
-  | "chip"
-  | "star"
-  | "book"
-  | "magnifier";
-
-export type WorldAnchor =
-  | { readonly at: "origin-from" }
-  | { readonly at: "origin-to" }
-  | { readonly at: "arc-midpoint" }
-  | { readonly at: "arc-apex" }
-  | { readonly at: "plinth" }
-  | { readonly at: "orbit" };
-
-export type ComputedFactId =
-  | "tree-shape"
-  | "tree-still-growing"
-  | "crossing"
-  | "seasons"
-  | "play-scenes"
-  | "ai-tools";
-
-export type PlaqueRef =
-  | { readonly of: "careerEntry"; readonly id: string; readonly field: "role" | "context" | "learned" }
-  | {
-      readonly of: "careerEntryLine";
-      readonly id: string;
-      readonly field: "impact" | "built";
-      readonly index: number;
-    }
-  | {
-      readonly of: "project";
-      readonly id: string;
-      readonly field: "tagline" | "learned" | "nextQuestion";
-      readonly link?: string;
-    }
-  | { readonly of: "companion"; readonly id: string }
-  | { readonly of: "computed"; readonly id: ComputedFactId };
-
-export interface WorldPlaque {
-  readonly glyph: GlyphId;
-  readonly ref: PlaqueRef;
-}
-
-export interface WorldDecoration {
-  readonly glyph: GlyphId;
-  readonly draws: string;
-}
-
-/**
- * A look for the globe. It deliberately has no `plaques` field, and no other
- * place to put a fact: a skin changes what the planet looks like and says
- * nothing. `tests/lib/worlds.test.ts` holds a `@ts-expect-error` literal that
- * stops typechecking if this interface ever grows one.
- */
-export interface Skin {
-  readonly id: string;
-  readonly name: string;
-  /** One short clause saying what the skin draws. */
-  readonly draws: string;
-}
-
-export interface World {
-  readonly id: string;
-  readonly name: string;
-  readonly glyph: GlyphId;
-  /** Where on the map the chapter has a pin. Empty for the two that are not
-   *  on it; two for Living Earth, whose crossing has two ends. */
-  readonly anchors: readonly WorldAnchor[];
-  readonly where: string;
-  readonly plaques: readonly WorldPlaque[];
-  readonly decorations: readonly WorldDecoration[];
-  readonly disclosure?: string;
-}

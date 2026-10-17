@@ -31,9 +31,9 @@ import {
 } from "./gl/sphere";
 import {
   lightLevel,
-  ROBOT_HOLDS,
   ROBOT_WALK_FRAMES,
   robotLights,
+  ROBOT_STILL,
   robotSky,
 } from "./gl/robot";
 import { TAP_SLOP_PX } from "./gestures";
@@ -109,7 +109,7 @@ import { palette, sphereColors } from "./palette";
  * loop), and a crossing dragged part-way.
  *
  * The crossing is exempt from the loop entirely, and only under
- * `prefers-reduced-motion: reduce`: "Take the flight", or the stage's single
+ * `prefers-reduced-motion: reduce`: "Replay the flight", or the stage's single
  * landing on first sight (it never replays there), then produces the
  * finished frame — crossing drawn, the robot standing still and lit, view on
  * the arrival pin — from a single synchronous `draw()`, with no frame
@@ -198,10 +198,6 @@ const DECAY = 0.93;
  * the coefficient, which overshoots when a frame runs long.
  */
 const FLIGHT_FRAMES = 130;
-
-/** Where the robot stands when it does not walk: under reduced motion, every
- *  landing puts it here at once — the end of the walk, lit. */
-const ROBOT_STILL = ROBOT_HOLDS["human-in-the-loop"];
 
 /** Without a GL surface the overlay draws the robot's lights itself, at every
  *  Nth coastline vertex: a few hundred points, and only while the robot is
@@ -477,36 +473,45 @@ export default function GlobeCanvas({
       }
     }
 
-    /* The three stops. The active one is accent — it is the annotation the
-       visitor asked for — and larger, and the only one labelled, so it is
-       never told apart by hue alone. Far-side pins are not drawn at all
-       rather than faded: a pin you can half-see is a pin you try to press. */
-    for (const stop of stops) {
+    /* The three stops. An inactive stop is a small ink dot; the active one is
+       an accent ring, larger, and the only one labelled, so it is never told
+       apart by hue alone. The active pin is drawn last, over a ground
+       knockout: Taylors and the University of South Carolina are ~140 km
+       apart, which is 4–6 px at these sizes, so the two Carolina pins are one
+       mark at a time rather than two that collide — the knockout covers the
+       other, and the list beside the globe says which stop it is. Far-side
+       pins are not drawn at all rather than faded: a pin you can half-see is
+       a pin you try to press. */
+    const pin = (stop: OriginStop, active: boolean) => {
       const p = at(stop.coordinates);
-      if (!p.front) continue;
-      const active = stop.id === activeStopIdRef.current;
+      if (!p.front) return;
       const scale = 0.62 + 0.32 * p.depth;
-      const radius = (active ? 7 : 5) * scale;
       ctx.fillStyle = c.ground;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, (active ? 7 : 3.2) * scale, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = active ? c.accent : c.fg;
-      ctx.lineWidth = active ? 1.6 : 1.1;
-      ctx.stroke();
+      if (active) {
+        ctx.strokeStyle = c.accent;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+      }
       ctx.fillStyle = active ? c.accent : c.fg;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 1.6 * scale, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, (active ? 1.6 : 1.8) * scale, 0, Math.PI * 2);
       ctx.fill();
       if (active) {
         // Toward the middle of the disc, so a long place name near the limb
         // stays on the canvas.
         const left = p.x > geo.cx;
+        const radius = 7 * scale;
         ctx.font = `600 9.5px ${mono}`;
         ctx.textAlign = left ? "right" : "left";
         label(stop.place.toUpperCase(), left ? p.x - radius - 5 : p.x + radius + 5, p.y + 3.4, c.accent);
       }
-    }
+    };
+    const activeStop = stops.find((stop) => stop.id === activeStopIdRef.current);
+    for (const stop of stops) if (stop !== activeStop) pin(stop, false);
+    if (activeStop) pin(activeStop, true);
 
     /* The robot, walking the equator, and — only when no GL surface is there
        to shade them — the lights it puts out and brings back. Ink, not
@@ -736,7 +741,7 @@ export default function GlobeCanvas({
    * for dragging, the path a visitor on a head pointer or eye-gaze actually
    * uses, and leaving it easing while the buttons snapped would have meant
    * that visitor had no non-animating way to move the globe at all. The swing
-   * between the first two stops is also the ~156° "Take the flight" refuses
+   * between the first two stops is also the ~156° "Replay the flight" refuses
    * to animate, so refusing it there and performing it here was never
    * coherent.
    *
@@ -1052,7 +1057,7 @@ export default function GlobeCanvas({
         // with a single pointer and no drag, for people using a head pointer,
         // eye-gaze or a mouth stick. Keyboard support does not satisfy it;
         // that is 2.1.1, a different criterion. This plus the stop buttons
-        // and "Take the flight" is the non-dragging path through the whole
+        // and "Replay the flight" is the non-dragging path through the whole
         // section.
         const place = unproject(px, py, v.spin, v.tilt, v.stroke);
         // Through `lookAt`, so this path honours reduced motion too — it is
@@ -1193,6 +1198,9 @@ export default function GlobeCanvas({
         // name chunks however they like, so the test reads content, not URLs.
         // Keep it here and nowhere else.
         data-chunk="globe-canvas"
+        // Which stop the globe is turned to and labelling, for tests and
+        // nothing else: the list's `aria-pressed` is what a visitor hears.
+        data-active-stop={activeStopId ?? undefined}
         // pan-y, never none. See WorldsStage.
         className="absolute inset-0 block h-full w-full touch-pan-y"
       />

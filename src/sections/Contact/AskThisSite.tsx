@@ -47,10 +47,8 @@ import {
  *
  *  - **Off (the default, free mode):** `answer()` from `src/lib/answers.ts`
  *    runs synchronously in the browser. No network, no key. Every answer is
- *    a string the content layer produces — an authored field as written, a
- *    mechanical join of a record's fields, or one of the globe's computed
- *    plaques (a count or a list made from the content) — shown with its
- *    source. There is no generation step, so there is nothing to
+ *    a string the content layer produces — an authored field as written or
+ *    a mechanical join of a record's fields — shown with its source. There is no generation step, so there is nothing to
  *    hallucinate with.
  *  - **On:** the visitor's question, and only the passages `answer()`
  *    retrieves for it, are POSTed to `/api/ask`, which hands them to a real
@@ -210,7 +208,7 @@ function recentHistory(turns: readonly Turn[]): Array<{ question: string; answer
  *
  * It used to, and that was a claim the corpus cannot keep. A document's
  * `sectionId` promises that the named section renders **the subject** the quoted
- * sentence belongs to — the role, the project, the plaque — not that the sentence
+ * sentence belongs to — the role, the project, the stop — not that the sentence
  * itself is printed there, and for 38 of the 54 career and education documents it
  * is not (the measurement and the reason are on `Document.sectionId` in
  * `src/lib/answer-corpus.ts`). "Read **it** in Journey" names the sentence, so on
@@ -765,7 +763,7 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
         <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
           {liveModeConfigured
             ? "Ask about the work, his background, or how he thinks. Retrieval runs the same way it always does; a live model composes the answer from exactly what it found, and says so."
-            : "Every answer below comes from what’s written for this site — his words as written, or a count made from them — with its source. No model, nothing generated. If it isn’t written down, you’re told so."}
+            : "Every answer below comes from what’s written for this site — his words as written, or a few of them joined into one line — with its source. No model, nothing generated. If it isn’t written down, you’re told so."}
         </p>
 
         <div className="mt-4">

@@ -53,9 +53,9 @@ export type ActId = (typeof ACT_IDS)[number];
  * branch, and its projects do not surface in this act: `UnbranchedCaseStudies`
  * picks them by `isDemotedEntry` and renders them after all seven acts, full
  * width. What this placement decides is the act `actForProject` reports for
- * them, and the only consumer of that is the globe's project plaques, none of
- * which is one of these four. It is kept right so the first one that is does
- * not link a project into the wrong period. The credentials strip is driven by
+ * them. Since round 20 retired the globe's project plaques nothing on the
+ * page consumes it; it is kept right so the next caller does not link a
+ * project into the wrong period. The credentials strip is driven by
  * the act's `showsCredentials`, not by this entry.
  */
 const ENTRY_ACTS: Readonly<Record<string, ActId>> = {

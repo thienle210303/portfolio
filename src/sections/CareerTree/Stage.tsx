@@ -258,7 +258,7 @@ export default function Stage({ acts, drawing, list, credentials, children }: St
     }
   }, [released]);
 
-  // A link into the stage — `#act-retail-data` from a globe plaque, say — is
+  // A link into the stage — `#act-retail-data` from another site, say — is
   // followed by the browser against the *static* layout the server rendered,
   // and the pin then reshapes the page under it: seven stacked cards become a
   // column of tall captions beside a sticky frame, so the target is somewhere

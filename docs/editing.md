@@ -6,16 +6,11 @@ open a component to change what the site says.
 | What you want to change | File |
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
-| The AI tools reference (`aiTools`), whose tool names the globe's Technology plaque is composed from | `src/content/portfolio.ts` |
-| Which objects sit in which of the globe's six chapters | `src/content/worlds.ts` |
+| The globe's three stops: `origin` (the crossing and its two pins), `originStops` (the first and third stops' captions, and the third's pin), and `eastside-high`'s `headline` (the second stop's caption) | `src/content/portfolio.ts` |
 | Which of the Journey's seven acts draws a role | `src/lib/anchors.ts` (`ENTRY_ACTS`) |
 
-`src/content/worlds.ts` holds **addresses, not sentences**. A quoted plaque on
-the globe names a record and a field; the words a visitor reads come out of
-`src/content/portfolio.ts`, verbatim. (A computed plaque names a computation
-instead — a count or a list made from the content.) So if a quoted line reads
-badly on the globe, the fix is in the field it points at — that same string is
-on screen somewhere else too.
+The globe's stop list is built by `buildStops()` in `src/lib/origin-stops.ts`,
+which only reads those fields — so to change what a stop says, edit the field.
 
 (Round 18 deleted `src/content/ai-experiments.ts` and `src/content/workshop.ts`
 along with the Workshop section and the AI Workflow Lab's content. If you are
@@ -163,68 +158,6 @@ if you want a skill to appear in the tree, list it in a role's `technologies`
 using the same spelling you use elsewhere.
 
 `tests/lib/knowledge-tree.test.ts` fails if anyone reintroduces guessing.
-
-## Add a plaque to a chapter
-
-A plaque is a typed reference to **one field of one authored record**, rendered
-verbatim. Pick the record and the field first, then add a `{ glyph, ref }`
-entry to that chapter's `plaques` in `src/content/worlds.ts`:
-
-```ts
-{ glyph: "cap", ref: { of: "careerEntry", id: "graduation", field: "role" } },
-```
-
-`of` says what kind of record it is — `careerEntry`, `careerEntryLine`,
-`project`, `companion` or `computed` — `id` picks the record, and `field`
-picks the field. A `careerEntryLine` also takes an `index`, because it quotes
-one line out of a list, and that index is **positional against the array as
-authored today**: reordering `impact` silently repoints the plaque at a
-different line. That is the one thing in this file kept in sync by eye.
-
-Then:
-
-```
-pnpm vitest run tests/lib/worlds.test.ts
-```
-
-Two rules that test exists to hold, and neither is negotiable:
-
-- **The text comes from the field.** If a plaque reads badly on the globe,
-  **edit the field**, not the plaque. You cannot quote half of it — a plaque
-  that is not `===` a string the content layer produces fails the test, and
-  the fix is never to relax the comparison to a substring.
-- **A reference that resolves to nothing is dropped, not rendered.** So a
-  plaque pointing at a field you later delete disappears from the globe
-  quietly, and the rail's count goes down with it. Nothing on the globe is
-  ever a string that exists only on the globe.
-
-## Add a decoration
-
-A decoration is the other half of the rule: a drawing that **carries no fact**.
-Add the glyph path to `src/sections/Worlds/glyphs.ts` — open strokes, no
-fills, drawn in a 24-unit box centred on the origin inside `GLYPH_VIEWBOX`,
-the same vocabulary as the companion cats — add its name to `GlyphId` in
-`src/types/portfolio.ts`, then add the entry to that chapter's `decorations`:
-
-```ts
-{ glyph: "comtam", draws: "a plate of cơm tấm" },
-```
-
-`draws` is **what the drawing is**, not what it means, because it becomes the
-accessible name — rendered alongside the literal words `no plaque ·
-decoration`. A screen-reader user is told, in those words, that this object is
-a picture and not evidence. A `draws` string that smuggles in a claim ("the
-food he grew up on") breaks that promise, and no test can catch it for you.
-
-If a chapter has nothing authored, leave `decorations: []`. Plants and Animals
-do exactly that, and carry no `disclosure`, because a panel line saying "there
-is nothing here" would itself be a sentence nobody authored.
-
-A `disclosure` is for the other case: a chapter that *does* draw something and
-wants to bound the claim. Living Earth is the only chapter that has one — five
-decorations, and the line "Five objects, and he named every one. Nothing here
-was invented to fill the space." The two are independent: an empty chapter
-needs no disclosure, and a disclosure does not imply an empty chapter.
 
 ## Contact delivery
 
