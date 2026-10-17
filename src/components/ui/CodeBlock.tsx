@@ -11,7 +11,7 @@ interface CodeBlockProps {
    * Tightens the figcaption/code padding and steps the code type down one
    * notch (`--step--1` → `--step--2`) without touching the content or the
    * token markup. Added in round 12 (WP-K) for the hero's code excerpts,
-   * which round 20 replaced with a terminal; no caller passes it today.
+   * which round 20 replaced with a terminal; no product caller passes it today.
    * `compact` defaults to `false`.
    */
   readonly compact?: boolean;

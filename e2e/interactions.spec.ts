@@ -14,15 +14,14 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState("networkidle");
 });
 
-test.describe("hero code panel", () => {
-  // The panel wraps its lines now (owner feedback, round 6) — the internal
-  // horizontal scroll this test used to exercise no longer exists. What
-  // survives is the invariant the scroll existed to protect: nothing about
-  // the code panel may move the page sideways at the smallest viewport.
+test.describe("hero terminal", () => {
+  // The terminal wraps its lines (round 20; the code panel before it did since
+  // round 6). The invariant: nothing in it may move the page sideways at the
+  // smallest viewport — the focus sentence is its longest value.
   test("wraps at 320px and cannot scroll the page or itself sideways", async ({ page }) => {
     test.skip(viewportWidth(page) !== 320, "smallest configured viewport only");
 
-    const region = page.getByRole("region", { name: "src/lib/globe.ts" });
+    const region = page.locator("#about").getByRole("tabpanel").locator("pre");
     await region.evaluate((el) => {
       el.scrollLeft = 200;
     });
@@ -31,10 +30,10 @@ test.describe("hero code panel", () => {
     const pageScrollX = await page.evaluate(() => window.scrollX);
     const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
-    expect(whiteSpace, "the panel must wrap its lines").toBe("pre-wrap");
-    expect(panelScroll, "a wrapped panel has nothing to scroll — scrollLeft must stay 0").toBe(0);
+    expect(whiteSpace, "the terminal must wrap its lines").toBe("pre-wrap");
+    expect(panelScroll, "a wrapped terminal has nothing to scroll — scrollLeft must stay 0").toBe(0);
     expect(pageScrollX, "the page itself must not have scrolled horizontally").toBe(0);
-    expect(pageOverflow, "the page must not gain horizontal overflow from the code panel").toBeLessThanOrEqual(
+    expect(pageOverflow, "the page must not gain horizontal overflow from the terminal").toBeLessThanOrEqual(
       1,
     );
   });

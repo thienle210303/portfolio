@@ -24,7 +24,8 @@ import {
 /**
  * "Ask this site" — a chat thread over the portfolio's own content. Through
  * round 15 this lived as a static import inside the AI Workflow Lab section;
- * rounds 16 and 17 put it behind the hero's "Ask Thien" tab; since round 18
+ * rounds 16 and 17 put it behind an "Ask Thien" tab in the hero's code
+ * artifact (deleted in round 20); since round 18
  * it lives in Contact, under "Ask about my work" (`#ask`), because a visitor
  * asking the record a question is making contact with less effort. Either
  * way it is reached by a dynamic `import()` (see `AskLoader.tsx`), so the
@@ -501,8 +502,8 @@ function TurnItem({
 /**
  * The thread, hoisted out of the component on purpose.
  *
- * Through round 17 this component's only mount was the hero code artifact's
- * "Ask Thien" tab, and `Tabs` (src/components/ui/Tabs.tsx) renders only the
+ * Through round 17 this component's only mount was the "Ask Thien" tab of the
+ * hero code artifact (deleted in round 20), and `Tabs` (src/components/ui/Tabs.tsx) renders only the
  * active panel — so looking at another tab and coming back was a real
  * unmount and remount, and component state alone would have eaten the
  * conversation. Since round 18 it mounts once, in Contact's `#ask`, and
@@ -513,8 +514,9 @@ function TurnItem({
  * about, because it is not simply "a page load": a hard reload (typing the
  * URL again, hitting the browser's reload button) tears down the whole JS
  * module graph and does clear it — a fresh conversation, same as always.
- * But `/` and `/resume` link to each other with `next/link`
- * (`HeroIdentity.tsx`, `resume/page.tsx`), and the App Router's client-side
+ * But `/resume` links back to `/` with `next/link` (`resume/page.tsx`) — the
+ * hero's "Open résumé" linked the other way until round 20, and nothing on `/`
+ * does now — and the App Router's client-side
  * navigation between two routes in the same build does *not* reload the
  * page or reset the webpack module registry — so `threadCache` (and
  * whatever conversation is in it) survives a `/` → `/resume` → `/` round

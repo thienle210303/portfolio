@@ -8,7 +8,7 @@
  * exist in exactly one place: `src/app/page.tsx` (to decide the boolean it
  * hands down through Contact to `AskThisSite`, which since round 18 lives in
  * Contact's `#ask`; through round 17 `Hero.tsx` made this call, for the
- * hero's "Ask Thien" tab) and `src/app/api/ask/route.ts` (to defend itself
+ * "Ask Thien" tab of the hero's since-deleted code artifact) and `src/app/api/ask/route.ts` (to defend itself
  * independently, the same reason `/api/contact` re-checks its own three env
  * vars rather than trusting the prop it was handed).
  */

@@ -1,55 +1,39 @@
 /**
- * Hero identity column: the eyebrow (name + title), the page's single <h1>
- * (profile.headline), then About itself — the site's one-line positioning
- * (`profile.positioning`) as its lead, one type step above `profile.about`'s
- * three paragraphs — and the hero's two links.
+ * Hero identity column (round 20, spec §3): the eyebrow (current role ·
+ * employer), the page's single <h1> (`profile.headline`), one paragraph
+ * (`profile.positioning`) and two actions.
  *
- * The social links row (GitHub/LinkedIn/Email) that used to close this column
- * is gone (owner feedback, round 2): Contact already carries the same three
- * as cards, so the hero was one more repetition of a fact stated already. A
- * "Contact me" link went the same way in round 18: the sticky header's "Let's
- * talk" is always on screen and goes to the same place.
- *
- * Through round 17 the About paragraphs lived in a full-width band below the
- * fold (`HeroAbout`), because they were too long for this column. Round 18
- * cut them to three short paragraphs, so they render here and the band is
- * gone. Availability is not in this column: it is in the section's margin
- * rail (Hero.tsx). Location is said once, in the first About paragraph, and
- * is in neither the rail nor a metadata row.
+ * The eyebrow reads `currentEntry()`, the same call the terminal's `now` tab
+ * makes, so the two cannot name different jobs. `profile.about` left the hero
+ * in round 20; the field stays because the chat corpus indexes it
+ * (answer-corpus.ts). Nothing else renders it.
  *
  * No heading below the <h1>. Hero has nothing at <h2> (every other section's
  * <h2> comes from `SectionHeading`, which the hero deliberately does not use),
  * so an <h3> here would skip a level and fail the document-wide heading-order
  * check in e2e/accessibility.spec.ts.
  *
- * About asks for nothing (spec §4): one quiet link into the World (`#worlds`,
- * the next section) and the résumé. Neither is a filled blue `primary`;
- * tests/sections/Hero.test.tsx checks that no element in the hero carries the
- * accent fill.
- *
- * "Open résumé" points at /resume, the résumé *view*, rather than straight at
- * the PDF. The view offers the download itself, so this keeps the visitor on
- * the site by default and still gets them the file in one more click — and it
- * means a phone, where a downloaded PDF is an awkward thing to receive
- * unasked, shows a readable page instead.
+ * "See my work" is the screen's one primary control. "Book a call" is quiet:
+ * with `BOOKING_URL` set it is an external link (Button routes `http` hrefs
+ * through `ExternalLink`); without one it falls back to `#contact` rather
+ * than rendering a dead link.
  */
-import Link from "next/link";
 import { profile } from "@/content/portfolio";
 import { Button } from "@/components/ui/Button";
+import { currentEntry } from "@/lib/terminal";
 
 interface HeroIdentityProps {
   /** Must match the id passed as the enclosing <Section>'s `labelledBy`. */
   readonly headingId: string;
+  readonly bookingUrl: string | null;
 }
 
-const RESUME_LINK_CLASS =
-  "inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-6 py-2.5 font-sans text-[length:var(--step-0)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)] active:translate-y-px";
-
-export default function HeroIdentity({ headingId }: HeroIdentityProps) {
+export default function HeroIdentity({ headingId, bookingUrl }: HeroIdentityProps) {
+  const current = currentEntry();
   return (
-    <div>
+    <div data-hero-identity="">
       <p data-hero-step="eyebrow" className="eyebrow">
-        {profile.name} <span aria-hidden="true">·</span> {profile.title}
+        {current.role} <span aria-hidden="true">·</span> {current.organization}
       </p>
 
       {/* LCP guard (Workstream 3, P2): this h1 is the page's most likely
@@ -64,30 +48,18 @@ export default function HeroIdentity({ headingId }: HeroIdentityProps) {
         {profile.headline}
       </h1>
 
-      {/* About: the positioning line as its lead, then the three paragraphs.
-          Plain <p>s with no eyebrow or heading of their own — see the heading
-          note in this file's banner. */}
-      <div data-hero-step="intro" className="mt-6 max-w-[56ch] space-y-4">
-        <p className="text-[length:var(--step-1)] leading-[1.5] text-[color:var(--fg)]">
-          {profile.positioning}
-        </p>
-        {profile.about.map((paragraph) => (
-          <p
-            key={paragraph}
-            className="text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]"
-          >
-            {paragraph}
-          </p>
-        ))}
-      </div>
+      <p
+        data-hero-step="intro"
+        className="mt-6 max-w-[56ch] text-[length:var(--step-0)] leading-[1.6] text-[color:var(--fg-muted)]"
+      >
+        {profile.positioning}
+      </p>
 
-      <div data-hero-step="meta-actions" className="mt-8 flex flex-wrap items-center gap-4">
-        <Button href="#worlds" variant="quiet">
-          Explore my work
+      <div data-hero-step="meta-actions" className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+        <Button href="#tree">See my work</Button>
+        <Button href={bookingUrl ?? "#contact"} variant="quiet">
+          Book a call
         </Button>
-        <Link href="/resume" className={RESUME_LINK_CLASS}>
-          Open résumé
-        </Link>
       </div>
     </div>
   );

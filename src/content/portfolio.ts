@@ -88,9 +88,9 @@ export const profile = {
   // employer, and a location discourages inbound), and the owner has decided
   // that trade is worth making. Recording the decision matters more than
   // recording the hesitation.
-  // `availability` is printed in the hero's rail. `location` is printed as the
-  // hero terminal's `based` line (src/lib/terminal.ts); the rail dropped its
-  // own "Based" note because the first About paragraph says the same place.
+  // `availability` is rendered nowhere on the page since round 20 removed the
+  // hero's rail. `location` is printed as the hero terminal's `based` line
+  // (src/lib/terminal.ts).
   location: "Taylors, South Carolina",
   availability: "Open to remote, and to relocation when it's worth it.",
   resumePdf: "/thien-le-resume.pdf",

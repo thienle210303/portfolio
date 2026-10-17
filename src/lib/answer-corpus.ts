@@ -135,8 +135,9 @@ export function buildDocuments(): Document[] {
   // hero's identity column (HeroIdentity). It was the last sentence of `about`
   // before round 18 and so was indexed with it; it is rendered there again,
   // which is what makes the "More on this in About" link on an answer truthful.
-  // `profile.focus`, next, is printed in #about's margin rail (Hero.tsx) for
-  // the same reason. tests/sections/Hero.test.tsx holds both.
+  // `profile.focus`, next, is printed in #about for the same reason, as the
+  // hero terminal's `focus` line (src/lib/terminal.ts). tests/sections/Hero.test.tsx
+  // holds both.
   docs.push({
     text: profile.positioning,
     source: "About, in his own words",
@@ -181,12 +182,13 @@ export function buildDocuments(): Document[] {
   });
 
   // Philosophy the section is gone (round 16), but this line is still
-  // rendered live in two places — the hero's rail and the business card — so
-  // the document stays and is tagged to About, the hero's own section id
-  // (Hero.tsx renders `id="about"`), rather than being dropped with the rest of
-  // the section's corpus. The third place it used to be rendered was the career
-  // tree's plinth, in `KnowledgeTree.tsx`, which round 18 retired; the rail is
-  // what keeps the About citation true.
+  // rendered live on the business card in #contact, so the document stays and
+  // is tagged to About, the hero's own section id (Hero.tsx renders
+  // `id="about"`), rather than being dropped with the rest of the section's
+  // corpus. It used to be printed in #about too — the career tree's plinth
+  // until round 18, the hero's margin rail until round 20 — and is not now, so
+  // this citation keeps only the weaker promise in the `sectionId` banner
+  // above: About is its subject, not where the sentence is printed.
   //
   // The words below used to live on `sectionExpansions.philosophy`, spread
   // across every document the old section contributed. With only this one

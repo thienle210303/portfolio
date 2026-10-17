@@ -71,7 +71,7 @@ export default function HeroTerminal() {
           thien@portfolio
         </span>
       </div>
-      <Tabs label="Terminal" tabs={tabs} idPrefix="hero-terminal" />
+      <Tabs label="Terminal" tabs={tabs} idPrefix="hero-terminal" caps={false} />
     </div>
   );
 }

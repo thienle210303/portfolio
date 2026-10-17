@@ -388,6 +388,10 @@ test.describe("ask this site", () => {
 
   test("the conversation survives a client-side trip to the résumé and back", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    // Round 20 Phase 3: the hero's two actions (spec §3) dropped "Open
+    // résumé", the only `next/link` from `/` to `/resume`. Spec §6 puts a
+    // Résumé link on the business card; point this at it then.
+    test.fixme(true, "no in-page link from / to /resume until the business card's Résumé link (spec §6)");
     // The one remaining case that unmounts the chat (see `threadCache` in
     // AskThisSite.tsx): `/` and `/resume` link to each other with
     // `next/link`, so the trip is a client-side navigation and the module

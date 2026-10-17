@@ -116,9 +116,13 @@ test.describe("hero", () => {
     await expect(panel).toContainText("motto: Practice makes AI.");
   });
 
-  test("holds no chat: the Ask tab and its field live in #contact", async ({ page }) => {
+  test("holds no chat: the Ask field lives in #contact", async ({ page }) => {
+    const field = { name: "Ask a question about this portfolio" };
     await expect(page.getByRole("tab", { name: "Ask Thien" })).toHaveCount(0);
-    await expect(page.locator("#about").getByRole("textbox", { name: "Ask a question about this portfolio" })).toHaveCount(0);
+    await expect(page.locator("#about").getByRole("textbox", field)).toHaveCount(0);
+    // AskLoader mounts the chat only as #ask nears the viewport.
+    await page.locator("#ask").scrollIntoViewIfNeeded();
+    await expect(page.locator("#contact").getByRole("textbox", field)).toHaveCount(1, { timeout: 15_000 });
   });
 });
 

@@ -62,7 +62,7 @@ test("after choosing, the send button is the only blue fill in Contact", async (
   expect(blue).toEqual(["Send it as written"]);
 });
 
-test("the whole page has one blue fill, and it is Contact's send", async ({ page }) => {
+test("the page's blue fills are one per screen: the hero's See my work and Contact's send", async ({ page }) => {
   await page
     .locator("#contact")
     .getByRole("radio", { name: contactIntents[0].label, exact: true })
@@ -87,7 +87,8 @@ test("the whole page has one blue fill, and it is Contact's send", async ({ page
       )
       .map((el) => el.textContent?.trim()),
   );
-  expect(blue).toEqual(["Send it as written"]);
+  // Round 20 (spec §3): the hero's "See my work" is its screen's primary.
+  expect(blue).toEqual(["See my work", "Send it as written"]);
 });
 
 test("adding a line opens the draft in an editable textarea", async ({ page }) => {

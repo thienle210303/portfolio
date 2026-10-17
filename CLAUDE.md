@@ -100,9 +100,9 @@ the engine *and* the coastlines into the initial bundle.
 
 ## Changing what the site says
 
-The page is four sections, in this order: About (`#about` — one layout, no
-second band: the hero with the About paragraphs in it, no height floor: it is as
-tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`,
+The page is four sections, in this order: About (`#about` — the hero: a short
+identity column beside a terminal card built from content, no rail, no height
+floor: it is as tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`,
 the pinned stage) and Contact (`#contact`, which also holds the chat at
 `#ask`).
 `navItems` in `src/content/portfolio.ts` is the same four items in the same

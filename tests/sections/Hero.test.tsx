@@ -1,140 +1,106 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import Hero from "@/sections/Hero/Hero";
 import { profile } from "@/content/portfolio";
+import { currentEntry } from "@/lib/terminal";
 
 /**
- * Round 18, Plan B Task 2: one fold, two columns. The About band that used to
- * sit under the fold is merged into it, so everything About says renders in
- * the identity column or the margin rail — once each.
+ * Round 20 Phase 3 (spec §3), Hero A: eyebrow (role · employer), headline, one
+ * paragraph, two actions, beside the terminal. No margin rail.
  */
 
-function renderHero() {
-  const { container } = render(<Hero />);
-  const rail = container.querySelector<HTMLElement>("dl.rail");
-  if (!rail) throw new Error("Hero rendered no margin rail");
-  return { container, rail };
+function renderHero(bookingUrl: string | null = null) {
+  const { container } = render(<Hero bookingUrl={bookingUrl} />);
+  const identity = container.querySelector<HTMLElement>("[data-hero-identity]");
+  if (!identity) throw new Error("Hero rendered no identity column");
+  return { container, identity };
 }
 
-describe("About", () => {
-  it("names where he came from", () => {
+describe("Hero", () => {
+  it("names the current role and employer in the eyebrow", () => {
+    const { identity } = renderHero();
+    const current = currentEntry();
+    expect(identity.querySelector(".eyebrow")).toHaveTextContent(`${current.role} · ${current.organization}`);
+  });
+
+  it("renders the headline and the positioning line as its one paragraph", () => {
+    const { identity } = renderHero();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(profile.headline);
+    const body = identity.querySelectorAll("p:not(.eyebrow)");
+    expect(body).toHaveLength(1);
+    expect(body[0]).toHaveTextContent(profile.positioning);
+  });
+
+  it("no longer renders the About paragraphs", () => {
     renderHero();
-    // Twice since round 20: the first About paragraph and the terminal's `from`.
-    expect(screen.getAllByText(/Kiên Giang/)).toHaveLength(2);
+    for (const paragraph of profile.about) expect(screen.queryByText(paragraph)).toBeNull();
   });
 
-  it("renders the positioning line and every About paragraph, verbatim", () => {
+  it("still prints the focus line, which the chat cites #about for", () => {
+    // answer-corpus.ts cites #about for `profile.focus`; the terminal prints it.
     renderHero();
-    // The chat corpus cites #about for each of these (answer-corpus.ts), so
-    // each must be printed there whole.
-    expect(screen.getByText(profile.positioning)).toBeInTheDocument();
-    for (const paragraph of profile.about) {
-      expect(screen.getByText(paragraph)).toBeInTheDocument();
-    }
+    expect(screen.getByText(profile.focus, { exact: false })).toBeInTheDocument();
   });
 
-  it("carries only facts the prose beside it does not say", () => {
-    const { rail } = renderHero();
-    const terms = [...rail.querySelectorAll("dt")].map((dt) => dt.textContent);
-    expect(terms).toEqual(["Open to", "Focus", "Holds", "Reach me"]);
-    const prose = [profile.positioning, ...profile.about];
-    for (const dd of rail.querySelectorAll("dd")) {
-      const text = dd.textContent ?? "";
-      expect(text).not.toBe("");
-      for (const paragraph of prose) expect(paragraph).not.toContain(text);
-    }
-    expect(within(rail).queryByText(/DoorDash|Taylors/)).toBeNull();
-    expect(within(rail).getByText(/Open to remote/)).toBeInTheDocument();
-  });
-
-  it("says availability once, and prints no location row or metadata row", () => {
-    const { rail } = renderHero();
-    // The rail is the one place for availability. The old identity-column <dl>
-    // labelled them "Location" / "Availability".
-    expect(screen.getAllByText(profile.availability as string)).toHaveLength(1);
-    expect(within(rail).queryByText(profile.location as string)).toBeNull();
-    expect(screen.queryByText("Location")).toBeNull();
-    expect(screen.queryByText("Availability")).toBeNull();
-  });
-
-  it("renders the focus line in the rail", () => {
-    // answer-corpus.ts cites #about for `profile.focus`; it has to be there.
-    const { rail } = renderHero();
-    expect(within(rail).getByText(profile.focus)).toBeInTheDocument();
+  it("has no margin rail", () => {
+    const { container } = renderHero();
+    expect(container.querySelector(".rail, .rail-layout")).toBeNull();
   });
 
   it("has exactly one h1 and no h2 of its own", () => {
-    // Hero owns the page's only h1, and nothing here may be an h2 — every
-    // other section's h2 comes from SectionHeading, so a stray one here
+    // Every other section's h2 comes from SectionHeading, so a stray one here
     // breaks the document-wide heading order check in e2e.
     renderHero();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
   });
 
-  it("no longer renders the Ask panel", () => {
-    // It moved to Contact in Task 7.
-    renderHero();
-    expect(screen.queryByRole("tab", { name: /ask/i })).toBeNull();
+  it("offers two actions: See my work (the primary) and a quiet Book a call", () => {
+    const { identity } = renderHero();
+    const links = identity.querySelectorAll("a");
+    expect(links).toHaveLength(2);
+    const work = screen.getByRole("link", { name: "See my work" });
+    expect(work).toHaveAttribute("href", "#tree");
+    expect(work.className).toMatch(/(^|\s)bg-\[color:var\(--accent\)\]/);
+    const book = screen.getByRole("link", { name: "Book a call" });
+    expect(book).toHaveAttribute("href", "#contact");
+    expect(book.className).toMatch(/(^|\s)border-transparent(\s|$)/);
   });
 
-  it("drops the band's counts and lens list", () => {
-    renderHero();
-    expect(screen.queryByText("By the numbers")).toBeNull();
-    expect(screen.queryByText("Where it shows up")).toBeNull();
-  });
-
-  it("fills no element in the hero with the accent", () => {
+  it("fills only See my work with the accent", () => {
     const { container } = renderHero();
-    for (const element of container.querySelectorAll<HTMLElement>("[class]")) {
-      expect(element.className).not.toMatch(/(^|\s)bg-\[color:var\(--accent\)\]/);
-      expect(element.className).not.toMatch(/(^|\s)bg-accent(\s|$)/);
-    }
+    const filled = [...container.querySelectorAll<HTMLElement>("[class]")].filter((element) =>
+      /(^|\s)bg-\[color:var\(--accent\)\]|(^|\s)bg-accent(\s|$)/.test(element.className),
+    );
+    expect(filled.map((element) => element.textContent)).toEqual(["See my work"]);
   });
 
-  it("offers one quiet link into the World, and the résumé — nothing else", () => {
-    renderHero();
-    const explore = screen.getByRole("link", { name: "Explore my work" });
-    expect(explore).toHaveAttribute("href", "#worlds");
-    // Button's `quiet` variant: no border box, no fill.
-    expect(explore.className).toMatch(/(^|\s)border-transparent(\s|$)/);
-    // "Contact me" duplicated the header's always-visible "Let's talk".
-    expect(screen.queryByRole("link", { name: "Contact me" })).toBeNull();
-    expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
-      "#worlds",
-      "/resume",
-    ]);
+  it("opens a configured booking URL in a new tab", () => {
+    const url = "https://cal.com/thienle/20min";
+    renderHero(url);
+    const book = screen.getByRole("link", { name: /^Book a call/ });
+    expect(book).toHaveAttribute("href", url);
+    expect(book).toHaveAttribute("target", "_blank");
+    expect(book).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("sets the positioning lead one type step above the paragraphs", () => {
-    renderHero();
-    expect(screen.getByText(profile.positioning).className).toContain("var(--step-1)");
-    for (const paragraph of profile.about) {
-      expect(screen.getByText(paragraph).className).toContain("var(--step-0)");
-    }
-  });
-
-  it("does not render a second supporting line between the headline and About", () => {
-    // `profile.intro` restated the positioning line beside it; it is gone.
-    renderHero();
-    const h1 = screen.getByRole("heading", { level: 1 });
-    const next = h1.nextElementSibling;
-    expect(next).not.toBeNull();
-    expect(next).toHaveTextContent(profile.positioning);
-    expect(next?.firstElementChild).toHaveTextContent(profile.positioning);
-  });
-
-  it("keeps the résumé link and the cats' perch", () => {
+  it("keeps the cats' perch", () => {
     const { container } = renderHero();
-    expect(screen.getByRole("link", { name: "Open résumé" })).toHaveAttribute("href", "/resume");
     const perch = container.querySelector("[data-cat-perch]");
     expect(perch).not.toBeNull();
     expect(perch).toHaveTextContent("Scroll");
   });
 
+  it("keeps the load choreography's hooks", () => {
+    const { container } = renderHero();
+    for (const step of ["eyebrow", "h1", "intro", "meta-actions", "code", "scroll"]) {
+      expect(container.querySelector(`[data-hero-step="${step}"]`), step).not.toBeNull();
+    }
+    expect(container.querySelector('[data-hero-step="hairline"]')).toBeNull();
+  });
+
   it("keeps About to three paragraphs", () => {
-    // Sixty seconds, not a biography. The owner asked for a "quick less
-    // introduction".
+    // The chat corpus still indexes `profile.about`, though nothing renders it.
     expect(profile.about).toHaveLength(3);
   });
 });

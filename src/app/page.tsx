@@ -50,7 +50,7 @@ export default function Home() {
         `navItems` in src/content/portfolio.ts must stay in this order: the nav
         doubles as the page's table of contents.
       */}
-      <Hero />
+      <Hero bookingUrl={bookingUrl ?? null} />
       <Worlds />
       <CareerTree />
       <Contact

@@ -132,9 +132,9 @@
   :root {
     /*
      * Round 12 (WP-K): the one place below `--step--1` on the scale, added
-     * for the old hero code artifact's compact rendering (`CodeBlock`'s
-     * `compact` prop) — the owner reported it "dominating the hero column"
-     * next to the identity copy. Same clamp shape as its neighbours, one
+     * for the since-deleted hero code artifact (`CodeBlock`'s `compact`
+     * prop). Now used for small mono labels: the hero terminal's title bar
+     * and the chat's "Live mode" tag. Same clamp shape as its neighbours, one
      * notch down: floor and ceiling both ~0.06rem under `--step--1`'s.
      */
     --step--2: clamp(0.75rem, 0.735rem + 0.08vw, 0.8125rem);
@@ -1004,14 +1004,6 @@
       transform: translateY(0);
     }
   }
-  @keyframes ink-draw-y {
-    from {
-      transform: scaleY(0);
-    }
-    to {
-      transform: scaleY(1);
-    }
-  }
 
   @media screen and (prefers-reduced-motion: no-preference) {
     html[data-motion] [data-hero-step] {
@@ -1021,9 +1013,10 @@
     }
 
     /* Timeline, ~850ms end to end. Two parallel tracks — the identity
-       column (eyebrow -> h1 -> intro -> meta/actions) and the code column
-       (the artifact itself) — converge at the hairline, then the rail and
-       the scroll cue close the sequence out. */
+       column (eyebrow -> h1 -> intro -> actions) and the terminal card —
+       then the scroll cue closes the sequence out. The `rail` step is
+       Section's hook for a `reveal={false}` section with a rail; since
+       round 20 the hero has none. */
     html[data-motion] [data-hero-step="eyebrow"] {
       animation-name: ink-fade-rise;
       animation-delay: 0ms;
@@ -1043,12 +1036,6 @@
     html[data-motion] [data-hero-step="code"] {
       animation-name: ink-rise; /* LCP guard — see the block comment above */
       animation-delay: 120ms;
-    }
-    html[data-motion] [data-hero-step="hairline"] {
-      animation-name: ink-draw-y;
-      animation-duration: var(--dur-draw);
-      animation-delay: 160ms;
-      transform-origin: top;
     }
     html[data-motion] [data-hero-step="rail"] {
       animation-name: ink-fade;

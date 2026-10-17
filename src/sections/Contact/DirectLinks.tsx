@@ -11,8 +11,7 @@ import { profile } from "@/content/portfolio";
  * (see `validBookingUrl`) there is no booking link and no placeholder for one.
  *
  * The PDF path is read from `profile.resumePdf` so it cannot drift from the
- * one the `/resume` page's "Download PDF" button uses. (The hero links the
- * `/resume` page, not the file.) Booking is a plain link, never an embedded
+ * one the `/resume` page's "Download PDF" button uses. Booking is a plain link, never an embedded
  * widget: the JS budget and the no-dependency rule both forbid a script.
  *
  * A Server Component: plain anchors, no client JS. Deliberately not blue-
