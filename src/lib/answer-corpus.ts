@@ -7,7 +7,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { resolveChapters } from "@/lib/worlds";
+import { buildStops } from "@/lib/origin-stops";
 
 /**
  * The retrieval corpus for "Ask this site" — every document `src/lib/answers.ts`
@@ -28,9 +28,7 @@ import { resolveChapters } from "@/lib/worlds";
  *
  * Every `text` below is a verbatim string from `src/content`, a mechanical
  * join of a handful of its fields (`"${a}: ${b} → ${c}."`, the same pattern
- * the original metric and education documents already used), or the text of
- * one of the globe's computed plaques (a count or list made from the content,
- * `computedFact()` in `src/lib/worlds.ts`). Nothing
+ * the original metric and education documents already used). Nothing
  * here is composed prose invented for search — see `tests/lib/answers.test.ts`,
  * which asserts every returned answer is a member of the exact set of strings
  * the content layer can produce.
@@ -47,13 +45,13 @@ export interface Document {
    * ## What this promises, precisely
    *
    * That the named section renders **the subject this text belongs to**: the
-   * career entry, the project, the plaque, the About prose. It does *not*
+   * career entry, the project, the globe's stop, the About prose. It does *not*
    * promise the sentence itself is printed there, and for a good number of
    * documents it is not — measured at round 18, 38 of the 54 career and
    * education documents quote a field the page does not render. An entry's
-   * `learned` line is rendered nowhere on the Journey (exactly one of them,
-   * `usc-scraping`'s, is quoted by a globe plaque and so is on the page, in
-   * `#worlds`); an entry's `context` is rendered only by `/resume`, and only for
+   * `learned` line is rendered nowhere on the Journey (until round 20 one of
+   * them, `usc-scraping`'s, was quoted by a globe plaque; the plaques are
+   * retired); an entry's `context` is rendered only by `/resume`, and only for
    * the work entries; and the nine demoted entries' `context` and `impact` lines
    * are named by nothing — the credentials strip is their role, organisation and
    * repository link, one line each. A reader who follows "More on this in Journey →" from one of those lands
@@ -221,22 +219,20 @@ export function buildDocuments(): Document[] {
     ),
   });
 
-  // Round 16. Every plaque on the globe is a string with a named source —
-  // twelve quote one authored field whole, seven are computations over the
-  // content (`computedFact()` in src/lib/worlds.ts) whose source names the
-  // computation — which is exactly the shape this corpus wants. They are indexed under `worlds` rather than
-  // their original section so an answer's "More on this in Worlds →" link lands
-  // where the visitor can actually see the plaque.
-  for (const world of resolveChapters()) {
-    for (const plaque of world.plaques) {
-      docs.push({
-        text: plaque.text,
-        source: `${world.name} — ${plaque.source}`,
-        sectionId: "worlds",
-        sectionLabel: "Worlds",
-        label: label("worlds", undefined, world.name, plaque.source),
-      });
-    }
+  // Round 20: the globe's three stops replaced its nineteen plaques, and the
+  // plaque documents went with them. Each stop's caption is a content field
+  // (`buildStops()`), indexed under `worlds` where the stop is printed —
+  // except Taylors', which is `eastside-high`'s headline. Indexed, that second
+  // copy of the high-school story pushed the degree out of the top three for
+  // "where did he go to school" (recall@3 93.3% → 90.0%, the floor).
+  for (const stop of buildStops().filter((candidate) => candidate.id !== "taylors")) {
+    docs.push({
+      text: stop.caption,
+      source: `${stop.place}, ${stop.when}`,
+      sectionId: "worlds",
+      sectionLabel: "Worlds",
+      label: label("worlds", undefined, stop.place, stop.when),
+    });
   }
 
   // Round 18: Selected Work is gone and its case studies render inside the

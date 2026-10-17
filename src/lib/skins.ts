@@ -1,6 +1,10 @@
 import { skins as authoredSkins, type SkinId } from "@/content/skins";
 import { DECORATION_LABEL } from "@/lib/worlds";
 
+/** @deprecated — retired in round 20 phase 4 for the three stops
+ *  (`src/lib/origin-stops.ts`); still rendered by the globe until Task 3
+ *  deletes this file. Nothing new may import it. */
+
 // Kept out of `lib/worlds.ts` on purpose: that module is imported at runtime by
 // client code (`WorldPanel`, the companion), so anything exported from it rides
 // in the initial bundle. This one is imported by the server component, tests,

@@ -121,6 +121,17 @@ export interface Origin {
 }
 
 /**
+ * What the globe's three stops need that no other record holds: a caption for
+ * the first and last stop, and where the university is. Every other field of a
+ * stop (place, when, the Taylors caption) is read from `origin` or a career
+ * entry by `buildStops()` in `src/lib/origin-stops.ts`.
+ */
+export interface OriginStops {
+  readonly "kien-giang": { readonly caption: string };
+  readonly usc: { readonly caption: string; readonly coordinates: GeoPoint };
+}
+
+/**
  * One of the two cats who live on this page — real animals, named by their
  * owner on 2026-09-02, which is why `authoredOn` is here: this is the one
  * record on the site whose provenance is "he told me", with no document

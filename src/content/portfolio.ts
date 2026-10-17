@@ -23,6 +23,7 @@ import type {
   EducationEntry,
   NavItem,
   Origin,
+  OriginStops,
   Profile,
   Project,
   SkillCategory,
@@ -126,6 +127,24 @@ export const origin = {
     to: { lat: 34.9133, lon: -82.3108 },
   },
 } satisfies Origin;
+
+/**
+ * The globe's three stops: the two captions no other record holds, and the
+ * university's pin. Taylors' caption is `eastside-high`'s headline, read in
+ * `buildStops()`, never retyped here.
+ */
+export const originStops = {
+  "kien-giang": { caption: "Where it starts." },
+  usc: {
+    // `usc-degree.context` says the degree began in chemical engineering.
+    caption: "Chemical engineering first, then computer science.",
+    // University of South Carolina's Columbia campus, authored 2026-10-17
+    // (round 20 phase 4) so the third stop has a pin to turn to. Like Taylors
+    // above it is not from the résumé; unlike Taylors it was not checked
+    // against a gazetteer, so treat it as campus-level, not building-level.
+    coordinates: { lat: 33.9938, lon: -81.03 },
+  },
+} satisfies OriginStops;
 
 /**
  * The two cats. Order is load-bearing: the lead cat is first, which is the

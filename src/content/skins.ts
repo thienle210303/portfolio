@@ -1,5 +1,9 @@
 import type { Skin } from "@/types/portfolio";
 
+/** @deprecated — retired in round 20 phase 4 for the three stops
+ *  (`src/lib/origin-stops.ts`); still rendered by the globe until Task 3
+ *  deletes this file. Nothing new may import it. */
+
 /**
  * Five skins: looks for the planet, and nothing else.
  *

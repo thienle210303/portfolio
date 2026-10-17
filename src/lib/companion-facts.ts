@@ -1,6 +1,6 @@
 import { careerEntries, profile } from "@/content/portfolio";
 import { buildDrawnTree, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
-import { crossingKm, resolveChapters } from "@/lib/worlds";
+import { buildStops, crossingKm } from "@/lib/origin-stops";
 
 /**
  * D1 — facts as a server prop.
@@ -15,15 +15,15 @@ import { crossingKm, resolveChapters } from "@/lib/worlds";
  * count, on purpose: CareerTree.tsx (branches, leaves, technologies, and —
  * since the tree absorbed Journey — the entries and the
  * work/learning/milestone split too), Hero.tsx (the current role)
- * and — since round 16 — Worlds.tsx (plaques, decorations and the crossing's
- * length, via `resolveChapters()`/`crossingKm()` in `src/lib/worlds.ts`).
+ * and Worlds (the stops and the crossing's length, via `buildStops()` /
+ * `crossingKm()` in `src/lib/origin-stops.ts`).
  * Changing what a rail says and
  * forgetting this file is exactly the drift the plan rules out — so if a
  * rail's expression ever changes, this one has to change with it.
  *
  * Pure and server-safe: no DOM, no `Math.random`, nothing but arithmetic over
- * `src/content/*` (and, for `worlds`, the same arithmetic `src/lib/worlds.ts`
- * already does over it). `layout.tsx` calls this once, on the server, and
+ * `src/content/*` (and, for `worlds`, the same arithmetic
+ * `src/lib/origin-stops.ts` already does over it). `layout.tsx` calls this once, on the server, and
  * hands the small object down — the content arrays themselves never reach
  * the client chunk that the cats ship in.
  */
@@ -33,17 +33,13 @@ export interface CompanionFacts {
     readonly organization: string;
   };
   /**
-   * Round 16. The globe's own counts — computed by `resolveChapters()` and
-   * `crossingKm()` rather than typed here, the same discipline every other
-   * fact in this file follows: a dialogue line that quotes a number quotes
-   * the one already computed for the section's own margin rail
-   * (`src/sections/Worlds/Worlds.tsx`), never a second, independently-typed
-   * guess at it.
+   * The globe's own counts — computed by `buildStops()` and `crossingKm()`
+   * rather than typed here, the same discipline every other fact in this file
+   * follows: a dialogue line that quotes a number quotes the one the section
+   * itself computes, never a second, independently-typed guess at it.
    */
   readonly worlds: {
-    readonly count: number;
-    readonly plaques: number;
-    readonly decorations: number;
+    readonly stops: number;
     readonly crossingKm: number;
   };
   /**
@@ -83,15 +79,10 @@ export function buildCompanionFacts(): CompanionFacts {
     .sort((a, b) => (a.sortKey > b.sortKey ? -1 : 1))[0];
 
   // The same three calls CareerTree.tsx makes for its rail — `DRAWN`,
-  // `LEAF_TOTAL` and `TECHNOLOGY_TOTAL` there — and the globe's "tree-shape"
-  // plaque makes in `src/lib/worlds.ts`. Not `buildCareerTree()` /
+  // `LEAF_TOTAL` and `TECHNOLOGY_TOTAL` there. Not `buildCareerTree()` /
   // `totalTechnologies()`: those count all twenty entries, including the nine
   // the stage no longer draws as branches.
   const drawn = buildDrawnTree();
-
-  const resolvedWorlds = resolveChapters();
-  const plaqueTotal = resolvedWorlds.reduce((total, world) => total + world.plaques.length, 0);
-  const decorationTotal = resolvedWorlds.reduce((total, world) => total + world.decorations.length, 0);
 
   return {
     about: {
@@ -99,9 +90,7 @@ export function buildCompanionFacts(): CompanionFacts {
       organization: currentRole?.organization ?? "",
     },
     worlds: {
-      count: resolvedWorlds.length,
-      plaques: plaqueTotal,
-      decorations: decorationTotal,
+      stops: buildStops().length,
       crossingKm: crossingKm(),
     },
     tree: {

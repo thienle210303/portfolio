@@ -1,6 +1,10 @@
 import { origin } from "@/content/portfolio";
 import type { World } from "@/types/portfolio";
 
+/** @deprecated — retired in round 20 phase 4 for the three stops
+ *  (`src/lib/origin-stops.ts`); still rendered by the globe until Task 3
+ *  deletes this file. Nothing new may import it. */
+
 /**
  * Six chapters, and not one sentence about Thien among them.
  *

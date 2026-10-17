@@ -8,7 +8,6 @@ import {
 import { worlds as authoredChapters } from "@/content/worlds";
 import {
   arcApex,
-  arcKm,
   arcMidpoint,
   greatCircle,
   type GreatCircle,
@@ -28,6 +27,13 @@ import {
 } from "@/types/portfolio";
 
 /**
+ * @deprecated — round 20 phase 4 retires the chapters, plaques and skins for
+ * the three stops in `src/lib/origin-stops.ts`. Everything here except the
+ * `crossingKm` re-export is still rendered by the globe until Task 3 deletes
+ * it with `src/content/worlds.ts`, `src/content/skins.ts` and
+ * `src/lib/skins.ts`. Nothing new may import it; the chat corpus and the
+ * companion already do not.
+ *
  * Turns the six chapters' *references* into the flat, serializable shape the
  * section renders — and drops, silently and deliberately, anything that does
  * not resolve.
@@ -52,9 +58,8 @@ function crossing(): GreatCircle {
   return greatCircle(origin.coordinates.from, origin.coordinates.to, CROSSING_SEGMENTS);
 }
 
-export function crossingKm(): number {
-  return Math.round(arcKm(crossing().radians));
-}
+/** @deprecated — import from `@/lib/origin-stops`; this re-export is removed in Task 3. */
+export { crossingKm } from "@/lib/origin-stops";
 
 /** The one string every decoration's accessible name carries, so a visitor
  *  using a screen reader is told a drawing is a drawing. */
