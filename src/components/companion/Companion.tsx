@@ -2255,7 +2255,7 @@ export function Companion({ facts }: CompanionProps) {
      * dispatches on, so wherever a mood exists the tour's placement is that
      * mood, asked for on demand instead of waiting for a settle. Not every
      * stop has one: `planMood` (companion-moods.ts) only knows
-     * about/work/skills/tree/contact, so `worlds` (round 16) falls straight
+     * about/contact, so `worlds` and `tree` fall straight
      * through to the cruder top-edge fallback below, same as any section
      * whose own mood declines. Recomputed
      * every frame the tour is walking to a stop rather than held like an
@@ -4010,8 +4010,8 @@ export function Companion({ facts }: CompanionProps) {
      *
      * The destination has been riding with the page (see the ride in `step`),
      * so after a scroll it is still beside whatever it was beside — but not
-     * everything moves with the document during a scroll (a sticky rail, a
-     * pinned stage), and not every change to the ground is a scroll at all: a
+     * everything moves with the document during a scroll (a sticky rail, the
+     * sticky header), and not every change to the ground is a scroll at all: a
      * placeholder swapped for the thing it held a place for, a panel opening, a
      * list re-laying out all move content under a resting cat while the page
      * stands still. So once a scroll, a resize or a change in the body's size

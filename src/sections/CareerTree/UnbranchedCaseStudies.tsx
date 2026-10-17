@@ -7,12 +7,12 @@ const HEADING_ID = "unbranched-case-studies-heading";
 /**
  * The case studies whose career entry is no longer a branch.
  *
- * A case study renders inside the branch of the role it was built in. Round 18
+ * A case study renders inside the timeline row of the role it was built in. Round 18
  * demotes nine entries to one credentials line, and five projects were built
  * under two of them — four course projects under the degree, and the
  * capstone — so there is no branch for them to open from. They are not
  * trimmed to make that tidy: the prose is the site's best writing. They render
- * here, after the stage, in the same component and with the same markup as
+ * here, after the timeline, in the same component and with the same markup as
  * every other case study, and each still names the entry it came from in its
  * own masthead.
  *

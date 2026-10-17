@@ -26,8 +26,20 @@ test.beforeEach(async ({ page }) => {
  * for React to commit) rather than one Playwright `locator.click()` per
  * button: with 20+ disclosures on the page, Playwright's per-click
  * actionability wait ("is this element done animating and stable") against
- * genuinely-animating neighbours made the naive version time out on mobile. */
+ * genuinely-animating neighbours made the naive version time out on mobile.
+ *
+ * The Journey's timeline opens one row at a time, so clicking its rows would
+ * only ever leave the last one open. Its rows are forced open with a test-only
+ * stylesheet instead (the same override the print stylesheet applies), and
+ * their triggers are left alone. */
 async function expandAllDisclosures(page: Page): Promise<void> {
+  // Hydrated, so a click on a trigger is handled rather than lost.
+  await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
+  await page.addStyleTag({
+    content:
+      '[data-timeline] [role="region"] { grid-template-rows: 1fr !important; } ' +
+      '[data-timeline] [role="region"] > div { visibility: visible !important; transition: none !important; }',
+  });
   await page.evaluate(async () => {
     const isVisible = (el: HTMLElement) => el.offsetParent !== null;
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
@@ -35,7 +47,7 @@ async function expandAllDisclosures(page: Page): Promise<void> {
     while (guard < 200) {
       const buttons = Array.from(
         document.querySelectorAll<HTMLElement>('#main button[aria-expanded="false"]'),
-      ).filter(isVisible);
+      ).filter((button) => isVisible(button) && !button.id.startsWith("tree-list-branch-"));
       if (buttons.length === 0) break;
       buttons[0].click();
       await nextFrame();
@@ -61,10 +73,9 @@ test("no [NEEDS INPUT marker is rendered with the mobile menu open", async ({ pa
 test("every displayed metric has a visible, non-empty source string", async ({ page }) => {
   await expandAllDisclosures(page);
 
-  // Case studies render inside the Journey's branches (and, for the entries
-  // that are not branches, after the stage). The branch panels exist in two
-  // presentations with one of them `display: none`, so only the visible
-  // tables are "displayed metrics" — the others cannot show a source at all.
+  // Case studies render inside the Journey's timeline rows (and, for the
+  // entries that are not branches, after the timeline). Only visible tables
+  // are "displayed metrics" — a hidden one cannot show a source at all.
   const tables = page.locator("#tree table:visible");
   const tableCount = await tables.count();
   expect(tableCount, "content fixture assumption failed: no case study has a metrics table").toBeGreaterThan(0);

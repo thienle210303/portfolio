@@ -169,28 +169,17 @@ function InProgressNote({ note }: { readonly note: string }) {
 interface CaseStudyProps {
   readonly project: Project;
   readonly index: number;
-  /**
-   * Suffix for every id this component writes, for the one case where the same
-   * case study is rendered twice. The Journey draws its branches two ways — a
-   * drawing at >=1024px and a list below it, exactly one of them displayed —
-   * and a case study lives inside a branch in each, so without a scope every
-   * `id`, `aria-controls` and `aria-labelledby` here would exist twice in the
-   * document and point at whichever copy came first. Omitted for the copy that
-   * owns the `work-<id>` anchor.
-   */
-  readonly idScope?: string;
 }
 
-export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
+export default function CaseStudy({ project, index }: CaseStudyProps) {
   const entry = careerEntryById(project.careerEntryId);
   const assumption = resolved(project.assumption);
-  const scope = idScope ? `-${idScope}` : "";
 
-  const titleId = `${project.id}-title${scope}`;
-  const recordingDescriptionId = `${project.id}-recording${scope}`;
-  const techLabelId = `${project.id}-tech-label${scope}`;
-  const proofLabelId = `${project.id}-proof-label${scope}`;
-  const metricsLabelId = `${project.id}-metrics-label${scope}`;
+  const titleId = `${project.id}-title`;
+  const recordingDescriptionId = `${project.id}-recording`;
+  const techLabelId = `${project.id}-tech-label`;
+  const proofLabelId = `${project.id}-proof-label`;
+  const metricsLabelId = `${project.id}-metrics-label`;
 
   // Disclosure's trigger keeps `summary` visible at all times (state is
   // conveyed by an icon + hidden text, not by the visible label changing) —
@@ -218,7 +207,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
 
   return (
     <article
-      id={`${caseStudyAnchorId(project.id)}${scope}`}
+      id={caseStudyAnchorId(project.id)}
       // Focus target for a jump to this case study. Programmatic only —
       // negative tabindex keeps the article itself out of the tab order.
       tabIndex={-1}
@@ -380,7 +369,7 @@ export default function CaseStudy({ project, index, idScope }: CaseStudyProps) {
       */}
       <div className="mt-8">
         <Disclosure
-          id={`case-study-${project.id}${scope}`}
+          id={`case-study-${project.id}`}
           summary={disclosureSummary}
           expandLabel="Expand"
           collapseLabel="Collapse"

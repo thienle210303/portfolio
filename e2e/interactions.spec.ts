@@ -41,12 +41,8 @@ test.describe("hero terminal", () => {
 
 test.describe("reduced motion", () => {
   /*
-   * Through round 17 this opened a journey entry on the timeline's "List"
-   * face. Round 18 deleted the timeline and its toggle; the same contract now
-   * belongs to a Journey branch's own disclosure, in whichever presentation
-   * is on screen (the drawing's panel at >=1024px, the list's row below it).
-   * Under reduced motion the stage never pins, so nothing has to be released
-   * first. DoorDash is chosen because its panel holds its case studies, whose
+   * A Journey timeline row's disclosure under reduced motion, at every width.
+   * DoorDash is chosen because its panel holds its case studies, whose
    * "Read the full case study" triggers are focusable — Tab correctly skips
    * prose-only panels, so reachability needs a panel where landing inside is
    * actually possible.
@@ -54,8 +50,7 @@ test.describe("reduced motion", () => {
   test("a disclosure still opens, closes, and stays keyboard-reachable", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
 
-    const prefix = viewportWidth(page) >= 1024 ? "tree-branch-" : "tree-list-branch-";
-    const trigger = page.locator(`#${prefix}doordash-trigger`);
+    const trigger = page.locator("#tree-list-branch-doordash-trigger");
     await expect(trigger, "expected the DoorDash branch's disclosure trigger").toHaveCount(1);
     const panelId = await trigger.getAttribute("aria-controls");
     expect(panelId, "Disclosure trigger must expose aria-controls").toBeTruthy();

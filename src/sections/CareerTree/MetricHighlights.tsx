@@ -47,7 +47,7 @@ const MAX_SHOWN = 3;
  * case-study index, and three figures in what remained set "Under 1 hour, end
  * to end" as four ragged lines — which is no longer a figure. Full width
  * until `xl`, where the column was wide enough to hold them abreast again.
- * Round 18 moved the case studies into the Journey's branch panels and
+ * Round 18 moved the case studies into the Journey's branch panels (round 20: its timeline rows) and
  * deleted that index; these breakpoints were carried over unchanged and have
  * not been re-measured against the panel's width.
  */

@@ -16,10 +16,9 @@ import { origin } from "../src/content/portfolio";
  * This file owns only the player itself.
  */
 
-// Matches the `lg:` breakpoint (1024px) `CareerTree.tsx` wraps the button in
-// `hidden lg:block` at — round 18 re-homed it from `KnowledgeTree.tsx`'s figure
-// onto the stage's drawing — the same threshold `sections.spec.ts` already
-// tests the drawn-vs-list presentation against.
+// Matches the `lg:` breakpoint (1024px) `CareerTree.tsx` wraps the drawing and
+// the button in `hidden lg:block` at — the same threshold `sections.spec.ts`
+// tests the drawing against.
 const DESKTOP_MIN_WIDTH = 1024;
 // The player's own interactions are not viewport-dependent once the button
 // exists at all, so — matching the "run once, at a representative desktop
@@ -66,37 +65,6 @@ function watchOriginButton(page: Page) {
   return page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
 }
 
-/** Whether the Journey's stage is pinned right now — the same question
- *  `Stage.tsx` asks before it releases the pin, asked the same way, so this
- *  never becomes a second copy of the media query in `globals.css`. False below
- *  1280px, false under reduced motion, false once the pin is released. */
-async function stageIsPinned(page: Page): Promise<boolean> {
-  return page
-    .locator("#tree [data-stage-pin]")
-    .evaluate((element) => getComputedStyle(element).position === "sticky");
-}
-
-/**
- * Get to the finished tree, which is where the origin story lives.
- *
- * Round 18's second plan re-homed "Watch how it grew" onto the stage's own
- * drawing, at the crown, and gave it to the stage's *end state*: while the pin
- * is in force and the acts are still running, the stylesheet hides it, so it is
- * not a second control competing with the scrubber. "Show me the whole tree" is
- * how a reader reaches that end state, and it is the only step added here.
- *
- * This changes the *route* to the button, not the button: `watchOriginButton`
- * above is the same locator it has always been, and every assertion past this
- * point is the same assertion it was before.
- *
- * A no-op wherever the pin never engages — below 1280px, under reduced motion —
- * because there the tree on screen is already the finished one.
- */
-async function showTheFinishedTree(page: Page) {
-  if (!(await stageIsPinned(page))) return;
-  await page.locator("#tree").getByRole("button", { name: "Show me the whole tree" }).click();
-}
-
 /**
  * How long the stage may take to appear after the button is pressed. The
  * player is a lazy chunk fetched on the press (`WatchOrigin.tsx`), and this
@@ -109,26 +77,17 @@ async function showTheFinishedTree(page: Page) {
 const PLAYER_MOUNT_TIMEOUT = 15_000;
 
 test.describe("the button", () => {
-  test("surfaces on the finished tree at >=1024px, and never below it", async ({ page }) => {
+  test("shows on the drawing at >=1024px, and never below it", async ({ page }) => {
     const button = watchOriginButton(page);
     if (viewportWidth(page) < DESKTOP_MIN_WIDTH) {
-      // Below 1024px the list is the presentation and there is no drawing for a
-      // story to grow in, so `CareerTree.tsx`'s `hidden lg:block` wrapper keeps
-      // the button out of the layout entirely. There is no state to reach and
-      // no route to traverse: the pin never engages this narrow, so there is no
-      // "Show me the whole tree" control on the page to press — the whole stage
-      // is already the finished tree. One assertion, and it is the only one
-      // there is anything here to make.
+      // Below 1024px the timeline alone tells the story and there is no drawing
+      // to grow, so `CareerTree.tsx`'s `hidden lg:block` wrapper keeps the
+      // button out of the layout entirely.
       await expect(button).toBeHidden();
       return;
     }
-    // Round 18's second plan: it belongs to the finished tree. While the pin is
-    // in force and the acts are still running it is hidden, and that half is as
-    // much the contract as the other, so both are asserted. At 1024-1279px the
-    // pin never engages, so the first assertion is skipped and the drawing on
-    // screen is already the finished one.
-    if (await stageIsPinned(page)) await expect(button).toBeHidden();
-    await showTheFinishedTree(page);
+    // No pinned stage since round 20: the drawing is always the finished tree,
+    // so the button always shows on it.
     await expect(button).toBeVisible();
   });
 });
@@ -137,7 +96,6 @@ test.describe("the player", () => {
   test("pressing the button opens the stage with an honest flight caption", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the button only mounts at >=1024px; run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
 
     const stage = page.locator("[data-origin-stage]");
@@ -164,7 +122,6 @@ test.describe("the player", () => {
   test("clicking the stage advances to the next beat", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     const status = stage.getByRole("status");
@@ -187,7 +144,6 @@ test.describe("the player", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
     const button = watchOriginButton(page);
-    await showTheFinishedTree(page);
     await button.click();
 
     const stage = page.locator("[data-origin-stage]");
@@ -215,8 +171,7 @@ test.describe("the player", () => {
     }) => {
       test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-      await showTheFinishedTree(page);
-      await watchOriginButton(page).click();
+        await watchOriginButton(page).click();
       const stage = page.locator("[data-origin-stage]");
       await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 
@@ -249,7 +204,6 @@ test.describe("ground anchoring", () => {
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -323,7 +277,6 @@ test.describe("chronological growth", () => {
       "content fixture assumption failed: no season names firstCanopyYear()",
     ).toBeGreaterThanOrEqual(0);
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -420,7 +373,6 @@ test.describe("exit hygiene", () => {
    * here cannot be explained by "nothing was ever pending to begin with".
    */
   async function midStory(page: Page): Promise<{ stage: ReturnType<Page["locator"]> }> {
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -474,7 +426,6 @@ test.describe("narration without the cats", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("button", { name: /wake the cats/i })).toBeVisible();
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -495,7 +446,6 @@ test.describe("accessible narration", () => {
   test("the sr-only status announces every beat, and axe stays clean mid-story", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -552,7 +502,6 @@ test.describe("everything lives in the frame", () => {
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });

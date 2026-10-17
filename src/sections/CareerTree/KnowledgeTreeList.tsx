@@ -1,53 +1,37 @@
-import { Disclosure } from "@/components/ui/Disclosure";
 import { projects } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import type { TreeBranch } from "@/lib/knowledge-tree";
+import { journeyEntryAnchorId } from "./anchors";
 import CaseStudy from "./CaseStudy";
 import { EntryInk, ListGrowingTip, ListTrunk } from "./list-ink";
+import { TimelineAccordion, TimelineRow } from "./TimelineAccordion";
 import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
 
 /**
- * The career tree as an indented disclosure list — the presentation used
- * below 1024px, and the one that has always been here.
+ * The Journey's timeline: one row per drawn career entry, oldest first, at
+ * every width. Through round 19 this was the list shown below 1024px, beside a
+ * drawing that held the same details behind its own branch clicks; round 20
+ * retired the pinned stage and made this the one place those details live.
  *
- * It is not a fallback in the "degraded" sense. A `<ul>` with rules drawn on
- * it is a tree to the eye and a list to everything else: it reflows to any
- * width, it is selectable and searchable, and a screen reader gets real
- * nesting rather than a picture. The drawn presentation in DrawnTree.tsx has
- * the same branches and technology leaves with the same authored edges, laid
- * out as an actual drawing once there is width to draw in. Both show each
- * branch's impact lines (`branch.impact`): this list behind the row's
- * disclosure, as the drawing does behind the branch's click. Each row also
- * shows its headline and technology chips at rest (the `Disclosure`
- * `preview`, outside the trigger); the drawing shows the headline the same
- * way and draws the technologies as leaves.
- * `CareerTree.tsx` hands both to the stage and hides one at each width
- * (`hidden lg:block` on the drawing, `lg:hidden` on this list), so only one
- * is ever exposed at a time: `display: none` takes the other out of the
- * accessibility tree and the tab order together.
+ * A `<ul>` with rules drawn on it is a tree to the eye and a list to everything
+ * else: it reflows to any width, it is selectable and searchable, and a screen
+ * reader gets real nesting rather than a picture. Each row shows its year, role
+ * · organisation and headline at rest (the headline is the `Disclosure`
+ * `preview`, outside the trigger). Opening it shows "What it changed" (the
+ * entry's impact lines, verbatim), the technology chips, the kind and dates,
+ * which drawn branches ran alongside it, and every case study built in that
+ * role, in full. One row is open at a time (`TimelineAccordion`), and none is
+ * open at rest.
  *
- * Round 12 flattens this list to match the drawing's own inversion: through
- * round 11 the outer `<ul>` was five resume lenses, each a `Disclosure`
- * holding the career entries tagged with it; a branch could legitimately
- * repeat under several lenses. Now the outer `<ul>` is the career entries
- * themselves, oldest first — matching `buildCareerTree()`'s own order, the
- * same "up the trunk, oldest lowest" chronology `DrawnTree.tsx` draws — each
- * appearing exactly once, and each its own `Disclosure` rather than a row
- * inside someone else's.
+ * The row owns the entry's `journey-entry-<id>` fragment, and its case studies
+ * own `work-<projectId>`: the drawing above no longer renders either, so each
+ * id is written once. `scroll-mt-20` lands a fragment clear of the sticky
+ * header, the same offset `Section` uses.
  *
- * Collapsed by default apart from the first (the *oldest* entry now, not an
- * arbitrary first lens), so the section opens as one scannable list of titles,
- * headlines and technology chips rather than a wall — the same summary-first
- * shape the case studies use.
- *
- * Round 13 gives this list its own ink: a drawn trunk down the left margin
- * (`ListTrunk`), a curved bough per row (`EntryInk`), and a small "still
- * growing" tip at the newest end (`ListGrowingTip`) — see `list-ink.tsx` for
- * why all three are safe to describe as pure decoration. The list is
- * oldest-first, so the trunk's "ground" end is the top of this list, and the
- * line runs down through every row and past the last one. (Through round 17 a
- * root plaque sat just above it and a short stub carried the line down into
- * this list; round 18 retired the plaque with the figure that mounted it.)
+ * The ink — a trunk down the left margin (`ListTrunk`), a bough per row
+ * (`EntryInk`) and a "still growing" tip at the newest end
+ * (`ListGrowingTip`) — is pure decoration; see `list-ink.tsx`. The list is
+ * oldest-first, so the trunk's "ground" end is the top of this list.
  */
 interface KnowledgeTreeListProps {
   readonly tree: readonly TreeBranch[];
@@ -56,7 +40,7 @@ interface KnowledgeTreeListProps {
 
 export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
   return (
-    <div className={cn("relative", className)}>
+    <TimelineAccordion className={cn("relative", className)}>
       <ListTrunk />
       <ul role="list" className="flex flex-col gap-3 pl-5">
         {tree.map((branch, branchIndex) => {
@@ -68,54 +52,28 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
           return (
             <li
               key={branch.id}
+              id={journeyEntryAnchorId(branch.id)}
               data-tree-branch={branch.id}
-              className="relative border border-rule"
+              className="relative scroll-mt-20 border border-rule"
             >
               {/* The bough joining this row to the trunk on its left,
                   replacing the old plain tick — see list-ink.tsx. */}
               <EntryInk seed={branch.id} showRing={showRing} />
-              <Disclosure
+              <TimelineRow
+                rowId={branch.id}
                 id={`tree-list-branch-${branch.id}`}
-                defaultOpen={branchIndex === 0}
                 expandLabel={`Show what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
                 collapseLabel={`Hide what ${branch.label}${branch.organization ? `, ${branch.organization}` : ""} involved`}
                 className="px-4 sm:px-5"
                 preview={
-                  <div className="space-y-2 pb-3">
-                    {branch.headline ? (
-                      <p
-                        data-tree-headline=""
-                        className="text-[length:var(--step--1)] leading-snug text-[color:var(--fg-muted)]"
-                      >
-                        {branch.headline}
-                      </p>
-                    ) : null}
-                    {branch.leaves.length > 0 ? (
-                      <ul
-                        role="list"
-                        aria-label={`Technologies used — ${branch.label}`}
-                        className="token-run"
-                      >
-                        {branch.leaves.map((leaf) => (
-                          <li key={leaf.text}>
-                            <span className="wrap-anywhere">{leaf.text}</span>
-                            {/* Recurrence is the whole point of a tree view: it
-                                is what shows a technology running through more
-                                than one branch instead of sitting in one. */}
-                            {leaf.alsoUsedIn ? (
-                              <span className="text-accent">
-                                +{leaf.alsoUsedIn}
-                                <span className="sr-only">
-                                  {" "}
-                                  other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
-                                </span>
-                              </span>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
+                  branch.headline ? (
+                    <p
+                      data-tree-headline=""
+                      className="pb-3 text-[length:var(--step--1)] leading-snug text-[color:var(--fg-muted)]"
+                    >
+                      {branch.headline}
+                    </p>
+                  ) : undefined
                 }
                 summary={
                   <span className="flex flex-1 flex-col gap-1 py-3 text-left">
@@ -156,6 +114,32 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                     </>
                   ) : null}
 
+                  {branch.leaves.length > 0 ? (
+                    <ul
+                      role="list"
+                      aria-label={`Technologies used — ${branch.label}`}
+                      className="token-run"
+                    >
+                      {branch.leaves.map((leaf) => (
+                        <li key={leaf.text}>
+                          <span className="wrap-anywhere">{leaf.text}</span>
+                          {/* Recurrence is the whole point of a tree view: it
+                              is what shows a technology running through more
+                              than one branch instead of sitting in one. */}
+                          {leaf.alsoUsedIn ? (
+                            <span className="text-accent">
+                              +{leaf.alsoUsedIn}
+                              <span className="sr-only">
+                                {" "}
+                                other {leaf.alsoUsedIn === 1 ? "place" : "places"} on this page
+                              </span>
+                            </span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
                   <p className="eyebrow">
                     {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
                   </p>
@@ -166,9 +150,7 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                     </p>
                   ) : null}
 
-                  {/* The case studies built in this role, in full — the same
-                      ones the drawing renders inside its own branch panels.
-                      Only one of the two presentations is ever displayed. */}
+                  {/* The case studies built in this role, in full. */}
                   {branch.caseStudies.map((caseStudy) => {
                     const project = projects.find((candidate) => candidate.id === caseStudy.id);
                     if (!project) return null;
@@ -177,12 +159,11 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
                         key={project.id}
                         project={project}
                         index={projects.indexOf(project)}
-                        idScope="list"
                       />
                     );
                   })}
                 </div>
-              </Disclosure>
+              </TimelineRow>
             </li>
           );
         })}
@@ -193,7 +174,7 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
           be "still growing" — the tip would be asserting a fact about a list
           that does not exist. */}
       {tree.length > 0 ? <ListGrowingTip /> : null}
-    </div>
+    </TimelineAccordion>
   );
 }
 

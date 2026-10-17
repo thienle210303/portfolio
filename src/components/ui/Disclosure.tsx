@@ -5,11 +5,15 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 
-interface DisclosureProps {
+export interface DisclosureProps {
   readonly id: string;
   readonly summary: ReactNode;
   readonly children: ReactNode;
   readonly defaultOpen?: boolean;
+  /** Controlled mode: when set, the parent owns the state and `defaultOpen` is
+   *  ignored. The timeline uses it to keep one row open at a time. */
+  readonly open?: boolean;
+  readonly onOpenChange?: (open: boolean) => void;
   /** Hidden text appended to the trigger's accessible name while collapsed. */
   readonly expandLabel?: string;
   /** Hidden text appended to the trigger's accessible name while expanded. */
@@ -65,12 +69,15 @@ export function Disclosure({
   summary,
   children,
   defaultOpen = false,
+  open: controlledOpen,
+  onOpenChange,
   expandLabel = "Read more",
   collapseLabel = "Show less",
   preview,
   className,
 }: DisclosureProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [ownOpen, setOwnOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? ownOpen;
   const triggerId = `${id}-trigger`;
   const panelId = `${id}-panel`;
 
@@ -81,7 +88,10 @@ export function Disclosure({
         id={triggerId}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setOwnOpen(!open);
+          onOpenChange?.(!open);
+        }}
         className="flex min-h-11 w-full items-center justify-between gap-4 py-2 text-left text-[color:var(--fg)]"
       >
         <span>{summary}</span>

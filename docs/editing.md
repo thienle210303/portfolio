@@ -7,7 +7,6 @@ open a component to change what the site says.
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
 | The globe's three stops: `origin` (the crossing and its two pins), `originStops` (the first and third stops' captions, and the third's pin), `eastside-high`'s `headline` (the second stop's caption), and `usc-degree`'s `organization` and `dateRange` (the third stop's place and date) | `src/content/portfolio.ts` |
-| Which of the Journey's seven acts draws a role | `src/lib/anchors.ts` (`ENTRY_ACTS`) |
 
 The globe's stop list is built by `buildStops()` in `src/lib/origin-stops.ts`,
 which only reads those fields — so to change what a stop says, edit the field.
@@ -69,7 +68,7 @@ case study never ends up with no evidence in it.
 Add an entry to `careerEntries`. One entry feeds all of:
 
 - the **Journey** (`#tree`, `src/sections/CareerTree/`) — a branch on the
-  drawing and a row in the list below 1024px, or one line on the credentials
+  drawing (>=1024px) and a row in the timeline, or one line on the credentials
   strip if it is one of the demoted entries (see below)
 - the **résumé** at `/resume` — its Experience list shows `type: "work"`
   entries only
@@ -80,24 +79,20 @@ The hero's eyebrow and the terminal's `now` tab read the current entry
 "Present"). The positioning line names the employer in its own prose, so
 changing jobs also means editing `profile.positioning`.
 
-Then two things the entry cannot decide for itself:
+Then one thing the entry cannot decide for itself:
 
-1. **Which act draws it.** Add its `id` to `ENTRY_ACTS` in
-   `src/lib/anchors.ts`. That is an editorial call about the story, not a date
-   computation, and `tests/lib/acts.test.ts` fails until every entry has an
-   act.
-2. **When it ended.** Set `endSortKey` (`YYYY-MM`) on any role that has ended,
-   and leave it off one that is still running. `concurrentWith()` compares
-   these months inclusively to draw "Ran alongside", so a guessed month can
-   invent an overlap — say so in a comment beside it.
+- **When it ended.** Set `endSortKey` (`YYYY-MM`) on any role that has ended,
+  and leave it off one that is still running. `concurrentWith()` compares
+  these months inclusively to draw "Ran alongside", so a guessed month can
+  invent an overlap — say so in a comment beside it.
 
 The fields that decide what hangs off it in the tree (every entry is its own
 branch, in date order — `sortKey` decides where on the trunk):
 
 ```ts
 technologies: ["Python", "Playwright"],  // technology leaves on its branch
-impact: ["One sentence of what changed."],  // shown verbatim in its branch's panel
-headline: "Result in 12 words or fewer.",  // shown with the branch at rest
+impact: ["One sentence of what changed."],  // shown verbatim in its timeline row
+headline: "Result in 12 words or fewer.",  // shown with the branch and the row at rest
 ```
 
 ### Write a headline
@@ -110,10 +105,10 @@ over-long headline, a figure the entry doesn't contain, or an indexed headline.
 Rules and examples: [docs/voice.md](voice.md).
 
 To attach a case study to a role, set the project's `careerEntryId` to that
-entry's `id`. The case study then renders inside that role's branch on the
-Journey, and the role supplies the employer and dates shown under the
+entry's `id`. The case study then renders inside that role's timeline row on
+the Journey, and the role supplies the employer and dates shown under the
 case-study title, so the two can never drift apart. (A case study whose role is
-demoted has no branch to open from, so it renders after the acts, full width —
+demoted has no row to open from, so it renders after the timeline, full width —
 `UnbranchedCaseStudies`.)
 
 ## Where the résumé lives
@@ -141,12 +136,12 @@ The tree draws **only relationships you have written down**. Each branch *is*
 one career entry (chronological up the trunk, each exactly once), and its
 leaves are that entry's own `technologies` — because you listed them there,
 never because anything matched. Its `impact` lines are not leaves: they show
-verbatim in the branch's panel.
+verbatim in the entry's timeline row, which the branch's label links to.
 
 Nine entries — the degree and eight milestones —
 are not drawn as branches. They are `DEMOTED_ENTRY_IDS` in
-`src/lib/knowledge-tree.ts` and render as one credentials line on the stage
-instead. Nothing is drawn under the ground line: the skill groups that used to
+`src/lib/knowledge-tree.ts` and render as one credentials line below the
+timeline instead. Nothing is drawn under the ground line: the skill groups that used to
 label the roots are on `/resume` now, not on the tree.
 
 It deliberately does *not* try to match `skillCategories.skills` against

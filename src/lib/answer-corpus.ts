@@ -62,7 +62,7 @@ export interface Document {
    * That is a known gap rather than a settled design, and the fix the plan
    * prefers is to render the sentence rather than to re-point the link (the
    * precedent is `profile.positioning`, two paragraphs down). Doing it means
-   * putting `learned` into the branch panels and the demoted entries' one-liners
+   * putting `learned` into the timeline rows and the demoted entries' one-liners
    * onto the strip, which is a change to what the Journey *says* and belongs to
    * whoever owns that.
    *

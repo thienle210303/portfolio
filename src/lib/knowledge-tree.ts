@@ -25,7 +25,7 @@ import type { CareerEntry } from "@/types/portfolio";
  *
  * Through round 18 an entry's `impact` lines were leaves too. Round 19 took
  * them off: they are sentences, not names, and they ride on the branch itself
- * (`TreeBranch.impact`) beside its `headline`, for the branch's panel to show.
+ * (`TreeBranch.impact`) beside its `headline`, for the timeline row to show.
  *
  * ## Round 12 — the tree inverts
  *
@@ -209,7 +209,7 @@ export function totalTechnologies(): number {
  * this and accepted it explicitly: it is a deliberate cost of fitting the
  * drawing on one screen, not an oversight. `capstone`, `cockyhacks` and
  * `code-to-give` lose their `built` lines the same way. `capstone` at least
- * keeps its project (`automotive-genai`) as a case study under the stage, and
+ * keeps its project (`automotive-genai`) as a case study after the timeline, and
  * the two hackathons keep their repository links on the strip — but links
  * rendered is not the same claim as content rendered, and this comment is not
  * using the one to excuse the other.

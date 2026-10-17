@@ -1,16 +1,16 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { careerEntries, projects } from "../src/content/portfolio";
+import { buildDrawnTree } from "../src/lib/knowledge-tree";
 import { buildTerminal } from "../src/lib/terminal";
 
-// Matches the `lg:` breakpoint (1024px) that switches several sections'
-// desktop/mobile presentations, e.g. the career tree's drawn figure vs. its
-// indented-list fallback.
+// Matches the `lg:` breakpoint (1024px) from which the Journey's drawing
+// shows above its timeline.
 const DESKTOP_MIN_WIDTH = 1024;
 
 /**
  * Where a per-entry fragment comes to rest: `scroll-mt-20` (80px) on the
- * landing span `Stage.tsx` renders for it, which is the 3.5rem (56px) sticky
- * header plus 24px of air.
+ * timeline row that carries it, which is the 3.5rem (56px) sticky header plus
+ * 24px of air.
  */
 const ENTRY_RESTING_TOP = 80;
 /** A pixel or two of sub-pixel rounding, and nothing like enough to hide a
@@ -40,8 +40,8 @@ function viewportHeight(page: Page): number {
 async function restingTop(element: Locator): Promise<number> {
   const read = () => element.evaluate((node) => Math.round(node.getBoundingClientRect().top));
   // Never accept a rest before the scroll has had a chance to start: with
-  // JavaScript on, the stage re-lands a fragment only once it has gone live,
-  // which is after the browser's own first landing.
+  // JavaScript on, opening a row can move content above the target after the
+  // browser's own first landing.
   await element.page().waitForTimeout(250);
   let stable = 0;
   let previous = await read();
@@ -159,7 +159,7 @@ test.describe("case studies", () => {
 test.describe("screen recordings", () => {
   const recorded = projects.filter((project) => project.recording);
 
-  test("a full scroll, Journey stage included, requests nothing from /media/", async ({ page }) => {
+  test("a full scroll, Journey included, requests nothing from /media/", async ({ page }) => {
     const media: string[] = [];
     page.on("request", (request) => {
       if (new URL(request.url()).pathname.startsWith("/media/")) media.push(request.url());
@@ -241,58 +241,30 @@ test.describe("screen recordings", () => {
 });
 
 /**
- * The Journey (`#tree`). Round 18 replaced what this block used to test — a
- * "Tree / List" toggle over a filterable chronological timeline, a
- * hover/focus cross-highlight island, root labels under a plinth, and a
- * page-load ink reveal on the figure's wrapper — with one pinned stage
- * (src/sections/CareerTree/Stage.tsx). Every test whose subject went with
- * those was deleted rather than kept green against nothing; what is left is
- * the behaviour that survived in some form: the section and its oldest
- * compatibility id, which presentation shows at which width, the list's
- * decorative ink, a branch panel's disclosure (which now holds the case
- * studies built in that role), a cold-loaded per-entry fragment, and the
- * unfinished shoot.
- *
- * The stage only pins at >=1280px with motion allowed, and while it is pinned
- * a branch the acts have not reached is `pointer-events: none` inside a
- * clipped frame. Any test here that clicks into the drawing goes through
- * `showTheFinishedTree` first — the same route a reader takes, and the same
- * helper `e2e/origin.spec.ts` uses.
+ * The Journey (`#tree`). Round 20 replaced the pinned stage with three stacked
+ * blocks — the highlight cards, the drawing (>=1024px only), and the timeline:
+ * one `KnowledgeTreeList` row per drawn entry, at every width, opening one at a
+ * time. The timeline owns the `journey-entry-<id>` and `work-<projectId>` ids,
+ * so every deep link into the Journey now lands on a row.
  */
 test.describe("career tree", () => {
-  /** Whether the Journey's stage is pinned right now, asked the way
-   *  `Stage.tsx` asks it before releasing the pin — so this never becomes a
-   *  second copy of the media query in `globals.css`. */
-  async function stageIsPinned(page: Page): Promise<boolean> {
-    return page
-      .locator("#tree [data-stage-pin]")
-      .evaluate((element) => getComputedStyle(element).position === "sticky");
-  }
-
-  /** Release the pin if it is in force, so the whole drawing is in normal
-   *  flow and every branch can be scrolled to and pressed. A no-op wherever
-   *  the pin never engages (below 1280px), where the stage is already the
-   *  finished tree. */
-  async function showTheFinishedTree(page: Page): Promise<void> {
-    if (!(await stageIsPinned(page))) return;
-    await page.locator("#tree").getByRole("button", { name: "Show me the whole tree" }).click();
-    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-released", "");
-  }
-
-  /** The entry the branch-panel tests open: the role with the most case
-   *  studies, so the panel has real focusable content inside it. */
+  /** The entry the row tests open: the role with the most case studies, so the
+   *  open row has real focusable content inside it. */
   const PANEL_ENTRY = "doordash";
   const PANEL_STUDIES = projects.filter((project) => project.careerEntryId === PANEL_ENTRY).length;
   if (PANEL_STUDIES === 0) {
     throw new Error(`content fixture assumption failed: no case study belongs to "${PANEL_ENTRY}"`);
   }
+  /** The drawn entries, oldest first — what the timeline has one row for. */
+  const DRAWN = buildDrawnTree();
+  const panelEntry = careerEntries.find((entry) => entry.id === PANEL_ENTRY);
+  if (!panelEntry) throw new Error(`"${PANEL_ENTRY}" is no longer a career entry`);
 
-  /** The branch's own disclosure trigger in whichever presentation is on
-   *  screen: the drawing's panel at >=1024px, the list's row below it. */
-  function branchTrigger(page: Page, entryId: string): Locator {
-    const prefix = viewportWidth(page) >= DESKTOP_MIN_WIDTH ? "tree-branch-" : "tree-list-branch-";
-    return page.locator(`#tree #${prefix}${entryId}-trigger`);
-  }
+  const row = (page: Page, entryId: string) => page.locator(`#tree #journey-entry-${entryId}`);
+  const rowTrigger = (page: Page, entryId: string) =>
+    page.locator(`#tree #tree-list-branch-${entryId}-trigger`);
+  const rowPanel = (page: Page, entryId: string) =>
+    page.locator(`#tree #tree-list-branch-${entryId}-panel`);
 
   test("the section renders and still answers #journey", async ({ page }) => {
     await expect(page.locator("#tree")).toBeVisible();
@@ -302,428 +274,230 @@ test.describe("career tree", () => {
     await expect(page.locator("#journey")).toHaveCount(1);
   });
 
-  test("the drawing shows at >=1024px with the list hidden, and the reverse below it", async ({
-    page,
-  }) => {
-    const tree = page.locator("#tree");
+  test("no pinned stage", async ({ page }) => {
+    await expect(page.locator("[data-stage]")).toHaveCount(0);
+    await expect(page.locator("[data-act]")).toHaveCount(0);
+    // The margin rail (`Section`'s `.rail`) is sticky in every section at lg
+    // and is not the Journey's; everything else inside #tree must scroll.
+    const sticky = await page.locator("#tree").evaluate((tree) =>
+      Array.from(tree.querySelectorAll("*"))
+        .filter((element) => !element.closest(".rail"))
+        .filter((element) => getComputedStyle(element).position === "sticky")
+        .map((element) => element.outerHTML.slice(0, 80)),
+    );
+    expect(sticky, "something inside #tree is position: sticky").toEqual([]);
+  });
 
-    // The drawn presentation's branch panels end their accessible name in
-    // "Show detail — …" and the list presentation's own branch toggles end
-    // theirs in "Show what … involved" (Disclosure appends the label after
-    // the summary text) — two different controls with two different
-    // accessible names, so a substring match on either is a reliable "which
-    // presentation is actually on the page" probe. `CareerTree.tsx` hides one
-    // of the two at every width (`hidden lg:block` / `lg:hidden`).
-    const drawingBranch = tree.getByRole("button", { name: /Show detail — / }).first();
-    const listBranch = tree.getByRole("button", { name: /Show what .+ involved/ }).first();
+  test("the drawing shows at >=1024px only, and the timeline at every width", async ({ page }) => {
+    const drawing = page.locator("#tree [data-origin-host]");
+    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) await expect(drawing).toBeVisible();
+    else await expect(drawing).toBeHidden();
+    await expect(page.locator("#tree [data-timeline] [data-tree-branch]")).toHaveCount(DRAWN.length);
+    await expect(row(page, DRAWN[0].id)).toBeVisible();
+  });
 
-    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
-      await expect(drawingBranch).toBeVisible();
-      await expect(listBranch).toBeHidden();
-    } else {
-      await expect(drawingBranch).toBeHidden();
-      await expect(listBranch).toBeVisible();
+  test("timeline rows: year, role · org, headline at rest", async ({ page }) => {
+    expect(DRAWN.length, "no drawn entries, so no row was checked").toBeGreaterThan(0);
+    for (const branch of DRAWN) {
+      const trigger = rowTrigger(page, branch.id);
+      await expect(trigger, branch.id).toHaveAttribute("aria-expanded", "false");
+      await expect(trigger, branch.id).toContainText(String(branch.startYear));
+      await expect(trigger, branch.id).toContainText(
+        branch.organization ? `${branch.label} · ${branch.organization}` : branch.label,
+      );
+      const headline = row(page, branch.id).locator("[data-tree-headline]");
+      if (branch.headline) {
+        await expect(headline, branch.id).toHaveText(branch.headline);
+        await expect(headline, branch.id).toBeVisible();
+        // Outside the trigger: it is read at rest, never folded into the
+        // button's name.
+        expect(await trigger.textContent(), branch.id).not.toContain(branch.headline);
+      }
+      // At rest the body is closed: nothing inside it is visible.
+      await expect(rowPanel(page, branch.id).getByText("What it changed"), branch.id).toBeHidden();
     }
   });
 
+  test("one row open at a time", async ({ page }) => {
+    const [, second, third, fourth] = DRAWN;
+    await rowTrigger(page, second.id).scrollIntoViewIfNeeded();
+    await rowTrigger(page, second.id).click();
+    await expect(rowTrigger(page, second.id)).toHaveAttribute("aria-expanded", "true");
+
+    await rowTrigger(page, third.id).click();
+    await expect(rowTrigger(page, third.id)).toHaveAttribute("aria-expanded", "true");
+    await expect(rowTrigger(page, second.id)).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator('#tree [data-timeline] button[aria-expanded="true"][id^="tree-list-branch-"]')).toHaveCount(1);
+
+    // The keyboard does the same, and focus stays on the row that was pressed.
+    await rowTrigger(page, fourth.id).focus();
+    await page.keyboard.press("Enter");
+    await expect(rowTrigger(page, fourth.id)).toHaveAttribute("aria-expanded", "true");
+    await expect(rowTrigger(page, third.id)).toHaveAttribute("aria-expanded", "false");
+    await expect(rowTrigger(page, fourth.id)).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(rowTrigger(page, fourth.id)).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator('#tree [data-timeline] button[aria-expanded="true"][id^="tree-list-branch-"]')).toHaveCount(0);
+  });
+
+  test("opened row shows What it changed, impact verbatim, chips, case study", async ({ page }) => {
+    const trigger = rowTrigger(page, PANEL_ENTRY);
+    await trigger.scrollIntoViewIfNeeded();
+    const panel = rowPanel(page, PANEL_ENTRY);
+    const chips = panel.locator('[aria-label^="Technologies used"]');
+    // Chips live in the body now, so a closed row shows none of them.
+    await expect(chips).toBeHidden();
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(panel.getByText("What it changed", { exact: true })).toBeVisible();
+    expect(panelEntry.impact.length, "the entry authors no impact line").toBeGreaterThan(0);
+    await expect(panel.locator('ul[aria-labelledby$="-changed"] > li')).toHaveText([...panelEntry.impact]);
+    await expect(chips).toBeVisible();
+    await expect(chips.locator(":scope > li > span:first-child")).toHaveText([...panelEntry.technologies]);
+    const articles = panel.locator('article[id^="work-"]');
+    await expect(articles).toHaveCount(PANEL_STUDIES);
+    await expect(articles.first()).toBeVisible();
+  });
+
+  test("a closed row's case studies stay out of the tab order", async ({ page }) => {
+    const trigger = rowTrigger(page, PANEL_ENTRY);
+    await trigger.scrollIntoViewIfNeeded();
+    const inner = rowPanel(page, PANEL_ENTRY).getByRole("button", {
+      name: /Read the full case study/,
+      includeHidden: true,
+    });
+    await expect(inner).toHaveCount(PANEL_STUDIES);
+    await expect(inner.first()).toBeHidden();
+
+    await trigger.click();
+    await expect(inner.first()).toBeVisible();
+    await trigger.click();
+    await expect(inner.first()).toBeHidden();
+
+    await trigger.focus();
+    await page.keyboard.press("Tab");
+    const landedInPanel = await page.evaluate(
+      (id) => document.getElementById(id)?.contains(document.activeElement) ?? false,
+      `tree-list-branch-${PANEL_ENTRY}-panel`,
+    );
+    expect(landedInPanel, "Tab from a closed row must not reach inside it").toBe(false);
+  });
+
+  test("legacy anchors land on rows", async ({ page }) => {
+    // Two cold loads plus stability polls; the budget follows the work.
+    test.slow();
+    const study = projects.find((project) => project.id === "dd-scraper-platform");
+    expect(study?.careerEntryId, "dd-scraper-platform no longer belongs to doordash").toBe(PANEL_ENTRY);
+
+    // A real cold load each time, not a same-document hash hop.
+    await page.goto("about:blank");
+    await page.goto(`/#journey-entry-${PANEL_ENTRY}`);
+    await page.waitForLoadState("networkidle");
+    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
+    expectSettledAtScrollMargin(
+      await restingTop(row(page, PANEL_ENTRY)),
+      "a cold load must settle the entry's row at its 80px scroll margin",
+    );
+
+    await page.goto("about:blank");
+    await page.goto("/#work-dd-scraper-platform");
+    await page.waitForLoadState("networkidle");
+    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
+    const article = page.locator("#work-dd-scraper-platform");
+    await expect(article).toBeVisible();
+    await restingTop(article);
+    await expect(article).toBeInViewport();
+  });
+
+  test("branch label links to its row", async ({ page }) => {
+    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the drawing only shows from lg up");
+    const links = page.locator('#tree [data-origin-host] [data-tree-panel] a[href^="#journey-entry-"]');
+    await expect(links).toHaveCount(DRAWN.length);
+    await expect(page.locator("#tree [data-origin-host] [data-tree-panel] button")).toHaveCount(0);
+
+    const link = page.locator(
+      `#tree [data-origin-host] [data-tree-panel] a[href="#journey-entry-${PANEL_ENTRY}"]`,
+    );
+    await link.scrollIntoViewIfNeeded();
+    await link.click();
+    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
+    expectSettledAtScrollMargin(
+      await restingTop(row(page, PANEL_ENTRY)),
+      "the branch label must land its row at the 80px scroll margin",
+    );
+  });
+
+  test("highlight card jumps to its row", async ({ page }) => {
+    // A row above the target is open first: opening the target closes it, and
+    // the target must still end up where the reader was sent.
+    await rowTrigger(page, DRAWN[0].id).scrollIntoViewIfNeeded();
+    await rowTrigger(page, DRAWN[0].id).click();
+    await expect(rowTrigger(page, DRAWN[0].id)).toHaveAttribute("aria-expanded", "true");
+
+    const card = page.locator(`#tree a[href="#journey-entry-${PANEL_ENTRY}"]`).first();
+    await card.scrollIntoViewIfNeeded();
+    await card.click();
+    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
+    await expect(rowTrigger(page, DRAWN[0].id)).toHaveAttribute("aria-expanded", "false");
+    await expect(row(page, PANEL_ENTRY)).toBeInViewport();
+  });
+
   /*
-   * Round 13: the mobile/AT list gets its own drawn ink (a trunk, a curved
-   * bough per row, year rings, a "still growing" tip) — see
-   * src/sections/CareerTree/list-ink.tsx. It is meant to be pure decoration
-   * layered onto the accessible list: this test proves that rather than
-   * trusting it, by checking every drawn piece is `aria-hidden` and that the
-   * list's own accessible controls — one "Show what … involved" button per
+   * Round 13: the list gets its own drawn ink (a trunk, a curved bough per
+   * row, year rings, a "still growing" tip) — see list-ink.tsx. It is meant to
+   * be pure decoration layered onto the accessible list: this checks every
+   * drawn piece is `aria-hidden` and that the list's own controls — one per
    * drawn branch — are unaffected by any of it.
    */
   test("the list's drawn ink is pure decoration layered onto the same accessible list", async ({
     page,
   }) => {
-    test.skip(
-      viewportWidth(page) >= DESKTOP_MIN_WIDTH,
-      "this ink only exists in KnowledgeTreeList.tsx, the <1024px presentation — see list-ink.tsx",
-    );
     const tree = page.locator("#tree");
-
-    // Either wording: the very first (oldest) branch defaults open, so its
-    // own trigger already reads "Hide what … involved" rather than "Show
-    // what … involved" — see KnowledgeTreeList.tsx's `defaultOpen`.
     const branchButtons = tree.getByRole("button", { name: /(Show|Hide) what .+ involved/ });
-    const branchCount = await branchButtons.count();
-    expect(branchCount, "expected at least one career entry in the list").toBeGreaterThan(0);
+    await expect(branchButtons).toHaveCount(DRAWN.length);
 
-    // One continuous trunk …
     const trunk = tree.locator("[data-tree-list-trunk]");
     await expect(trunk).toHaveCount(1);
     await expect(trunk).toHaveAttribute("aria-hidden", "true");
 
-    // … one bough per row, joining it to the trunk …
     const boughs = tree.locator('[data-tree-list-part="bough"]');
-    await expect(boughs).toHaveCount(branchCount);
+    await expect(boughs).toHaveCount(DRAWN.length);
     for (const bough of await boughs.all()) {
       await expect(bough).toHaveAttribute("aria-hidden", "true");
     }
 
-    // … and one growing tip at the newest end.
     const tip = tree.locator("[data-tree-list-tip]");
     await expect(tip).toHaveCount(1);
     await expect(tip).toHaveAttribute("aria-hidden", "true");
     await expect(tip.locator("[data-tree-list-shoot-label]")).toHaveText(/still growing/i);
-
-    // None of it changed how many accessible controls the list itself
-    // exposes.
-    await expect(branchButtons).toHaveCount(branchCount);
   });
 
   /*
-   * Through round 17 an opened branch panel linked out to its case study in
-   * the Selected Work section; round 18 deleted that section and put the case
-   * studies inside the panel itself, in full. So the panel's payload is now
-   * the articles, and that is what this asserts — in whichever presentation
-   * is on screen, since both carry them.
-   */
-  test("opening a branch panel reveals the case studies built in that role", async ({ page }) => {
-    await showTheFinishedTree(page);
-    const trigger = branchTrigger(page, PANEL_ENTRY);
-    await expect(trigger, `expected a branch trigger for "${PANEL_ENTRY}"`).toHaveCount(1);
-    await trigger.scrollIntoViewIfNeeded();
-
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
-
-    const panelId = await trigger.getAttribute("aria-controls");
-    expect(panelId, "Disclosure trigger must expose aria-controls").toBeTruthy();
-    const panel = page.locator(`#${panelId}`);
-
-    // Every case study authored against this entry, each one a real article,
-    // and no fewer — a panel that rendered one of two would still have "a"
-    // case study in it.
-    const articles = panel.locator('article[id^="work-"]');
-    await expect(articles).toHaveCount(PANEL_STUDIES);
-    await expect(articles.first()).toBeVisible();
-
-    // The drawn panel also carries the kind and date range, which the list
-    // shows in its always-visible summary instead.
-    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
-      await expect(panel.getByText(/Role · /)).toBeVisible();
-    }
-  });
-
-  test("the drawing's panels carry every drawn impact line, and opening one shows it", async ({
-    page,
-  }) => {
-    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the drawing only shows from lg up");
-    await showTheFinishedTree(page);
-    // 16 is the drawn tree's impact total (Task 4 confirmed it: 21 across all
-    // entries, 5 on the demoted ones).
-    const lines = page.locator('#tree [data-origin-host] ul[aria-labelledby$="-changed"] > li');
-    await expect(lines).toHaveCount(16);
-
-    const trigger = branchTrigger(page, PANEL_ENTRY);
-    await trigger.scrollIntoViewIfNeeded();
-    await trigger.click();
-    const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
-    await expect(panel.getByText("What it changed", { exact: true })).toBeVisible();
-  });
-
-  /*
-   * The same property the old timeline-link test held a branch panel to,
-   * with the panel's new contents as its subject: what is inside a collapsed
-   * panel — now the case studies' own "Read the full case study" triggers —
-   * is out of the tab order until the panel is opened, so twenty-odd hidden
-   * controls do not become twenty-odd tab stops.
-   */
-  test("a branch panel's case studies are in the tab order only while that panel is open", async ({
-    page,
-  }) => {
-    await showTheFinishedTree(page);
-    const trigger = branchTrigger(page, PANEL_ENTRY);
-    await expect(trigger, `expected a branch trigger for "${PANEL_ENTRY}"`).toHaveCount(1);
-    await trigger.scrollIntoViewIfNeeded();
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-
-    const panelId = await trigger.getAttribute("aria-controls");
-    expect(panelId, "Disclosure trigger must expose aria-controls").toBeTruthy();
-    const inner = page
-      .locator(`#${panelId}`)
-      .getByRole("button", { name: /Read the full case study/, includeHidden: true });
-    await expect(inner).toHaveCount(PANEL_STUDIES);
-
-    // Collapsed: Disclosure holds its panel at `visibility: hidden`, which
-    // takes everything inside it out of the tab order and the accessibility
-    // tree both.
-    await expect(inner.first()).toBeHidden();
-
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
-    await expect(inner.first()).toBeVisible();
-
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await expect(inner.first()).toBeHidden();
-
-    // Hidden is the mechanism; out of the tab order is the point. Same probe
-    // the case-study disclosure test at the top of this file uses.
-    await trigger.focus();
-    await page.keyboard.press("Tab");
-    const landedInPanel = await page.evaluate((id) => {
-      const panel = id ? document.getElementById(id) : null;
-      return panel ? panel.contains(document.activeElement) : false;
-    }, panelId);
-    expect(landedInPanel, "Tab from a collapsed branch panel must not reach inside it").toBe(false);
-  });
-
-  /*
-   * A per-entry fragment, cold-loaded with JavaScript ON. Through round 17
-   * `#journey-entry-<id>` was a timeline `<li>` that the page focused on
-   * arrival; the timeline is gone, and the id is now a zero-size,
-   * `aria-hidden` landing span inside the act that draws the entry
-   * (Stage.tsx). Nothing focuses it — there is nothing there to read, and the
-   * act's own text follows — so the old `toBeFocused()` had lost its subject;
-   * what survives is the landing itself.
-   *
-   * `e2e/legacy-anchors.spec.ts` proves the same landing with JavaScript
-   * disabled. This is the other half: with scripts running, the stage goes
-   * live after the browser has already scrolled, and at >=1280px it reshapes
-   * the page into the pinned layout under the reader — `Stage.tsx` re-lands
-   * the fragment once it has. That re-landing is what this would catch.
-   */
-  test("a cold load of an entry's fragment lands on its act, clear of the header", async ({
-    page,
-  }) => {
-    // Three page loads (the file's own, about:blank, the fragment) plus a
-    // stability poll: measured at 28.6s against `next dev` at 1440px, and over
-    // the 30s default at 375px under load. The budget follows the work.
-    test.slow();
-    expect(
-      careerEntries.some((entry) => entry.id === PANEL_ENTRY),
-      `${PANEL_ENTRY} is no longer a career entry, so this probe checks nothing`,
-    ).toBe(true);
-    const fragment = `journey-entry-${PANEL_ENTRY}`;
-
-    // A real cold load, not a hash hop. The file-level beforeEach has already
-    // loaded "/", so going straight to the fragment from here would be a
-    // same-document hash navigation — a different story from this test's
-    // name, and one where Next's dev router intermittently drops the
-    // fragment before `hashchange` ever fires (measured: location.hash === ""
-    // at failure, 10/12 repeats). Interposing about:blank makes the next
-    // goto a genuine fresh document load.
-    await page.goto("about:blank");
-    await page.goto(`/#${fragment}`);
-    await page.waitForLoadState("networkidle");
-
-    const anchor = page.locator(`#${fragment}`);
-    await expect(anchor).toHaveCount(1);
-    expectSettledAtScrollMargin(
-      await restingTop(anchor),
-      "a cold load must settle the entry's fragment at its 80px scroll margin",
-    );
-    // And the act that draws the entry is what the reader is looking at.
-    await expect(anchor.locator("xpath=ancestor::section[@data-act]")).toBeInViewport();
-  });
-
-  /*
-   * Ruling 84: going live is a cut, not a fade. Until the stage is live the
-   * page is the finished tree; going live drops every branch the first act
-   * has not reached to `opacity: 0`. With the fade's transition already in
-   * force that played as half a second of the tree un-growing on every load —
-   * and axe, landing inside it, measured a branch at ~1.05:1. `Stage.tsx` now
-   * holds every transition until `data-stage-settled`, so two frames after
-   * going live an unreached branch is already fully transparent, not 0.9 of
-   * the way through a fade. Measured from an init script, because the window
-   * this is about closes before any locator could look at it.
-   */
-  test("going live hides the unreached branches at once rather than fading them", async ({ page }) => {
-    test.skip(viewportWidth(page) < 1280, "the pin, and its fade, only engage at >=1280px");
-    await page.addInitScript(() => {
-      const record = window as unknown as { __firstLive?: string };
-      new MutationObserver((mutations, observer) => {
-        const root = mutations
-          .map((mutation) => mutation.target)
-          .find(
-            (target): target is HTMLElement =>
-              target instanceof HTMLElement && target.hasAttribute("data-stage-live"),
-          );
-        if (!root) return;
-        observer.disconnect();
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            const through = Number(root.dataset.through);
-            const unreached = Array.from(root.querySelectorAll<HTMLElement>("[data-branch-act]")).filter(
-              (branch) => Number(branch.dataset.branchAct) > through,
-            );
-            const opacities = unreached.map((branch) => Number(getComputedStyle(branch).opacity));
-            record.__firstLive = `${unreached.length} unreached, max opacity ${Math.max(0, ...opacities)}`;
-          }),
-        );
-      }).observe(document, { attributes: true, attributeFilter: ["data-stage-live"], subtree: true });
-    });
-    await page.goto("about:blank");
-    await page.goto("/");
-    await expect
-      .poll(() => page.evaluate(() => (window as unknown as { __firstLive?: string }).__firstLive ?? ""))
-      .toMatch(/unreached/);
-    const reading = await page.evaluate(() => (window as unknown as { __firstLive?: string }).__firstLive ?? "");
-    const [count] = reading.split(" ");
-    expect(Number(count), `no unreached branch to measure: ${reading}`).toBeGreaterThan(0);
-    expect(reading).toMatch(/max opacity 0$/);
-  });
-
-  /*
-   * The year scrubber, pressed the way an impatient reader presses it. Each
-   * ArrowRight scrolls its act to the centre at once, and the stage's
-   * IntersectionObserver reports crossings a frame or two later — so a report
-   * computed before the latest press's scroll used to land after it and set
-   * the act back: three fast presses stopped on act 1 or 2 instead of 3, and
-   * one trial left the page on act 4 with the drawing showing act 2. The year
-   * label, the drawing (`data-through`), the act marked current and the act
-   * actually under the middle of the screen must all agree once it settles.
-   * Only where the pin engages (>=1280px, motion allowed): everywhere else the
-   * scrubber is not shown.
-   */
-  test("fast presses on the year scrubber land where the page is", async ({ page }) => {
-    test.skip(viewportWidth(page) < 1280, "the scrubber only exists while the stage is pinned");
-    const stage = page.locator("#tree [data-stage]");
-    await stage.scrollIntoViewIfNeeded();
-    await expect.poll(() => stageIsPinned(page)).toBe(true);
-    const scrubber = page.locator("#tree").getByRole("slider", { name: /year/i });
-    await scrubber.focus();
-    await page.keyboard.press("Home");
-    await expect(stage).toHaveAttribute("data-through", "0");
-    // Let the scroll Home caused finish reporting before the presses start.
-    await page.waitForTimeout(500);
-
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("ArrowRight");
-
-    /** Everything that says which act is current, read in one go. */
-    const readings = () =>
-      page.evaluate(() => {
-        const root = document.querySelector<HTMLElement>("#tree [data-stage]");
-        const acts = Array.from(document.querySelectorAll<HTMLElement>("#tree [data-stage] [data-act]"));
-        const middle = window.innerHeight / 2;
-        const underMiddle = acts.findIndex((act) => {
-          const box = act.getBoundingClientRect();
-          return box.top <= middle && box.bottom > middle;
-        });
-        const marked = acts.findIndex((act) => act.getAttribute("aria-current") === "step");
-        const slider = document.querySelector<HTMLInputElement>('#tree [data-stage-scrub] input[type="range"]');
-        return `through=${root?.dataset.through} slider=${slider?.value} marked=${marked} underMiddle=${underMiddle}`;
-      });
-    // Settled means the same reading three times running, 200ms apart — long
-    // enough for any report still in flight to have been delivered.
-    let previous = "";
-    let stable = 0;
-    for (let attempt = 0; attempt < 40 && stable < 3; attempt += 1) {
-      await page.waitForTimeout(200);
-      const next = await readings();
-      stable = next === previous ? stable + 1 : 0;
-      previous = next;
-    }
-    expect(previous).toBe("through=3 slider=3 marked=3 underMiddle=3");
-  });
-
-  /*
-   * `--camera` moves the camera and `--front` sizes the unborn mask. Where
-   * Stage.tsx writes them is a performance choice (an inherited write on
-   * the camera restyled every element under it); what each act must show is
-   * the same: every element that reads one of them has taken its value, the
-   * mask shrinks as the tree grows, and the last act is the whole tree,
-   * unmasked. A `--camera` write that never reaches the camera reads back as
-   * its registered initial 0px, which the equalities accept, so the first and
-   * a middle act must also be genuinely moved and masked — the drawing is far
-   * taller than the frame there.
-   */
-  test("every act moves the camera and the unborn mask to the stage's measured values", async ({
-    page,
-  }) => {
-    test.skip(viewportWidth(page) < 1280, "the camera only moves while the stage is pinned");
-    const stage = page.locator("#tree [data-stage]");
-    await stage.scrollIntoViewIfNeeded();
-    await expect.poll(() => stageIsPinned(page)).toBe(true);
-    await expect(stage).toHaveAttribute("data-stage-settled", "");
-    const scrubber = page.locator("#tree").getByRole("slider", { name: /year/i });
-    const lastAct = Number(await scrubber.getAttribute("max"));
-    await scrubber.focus();
-    await page.keyboard.press("Home");
-
-    const effect = () =>
-      page.evaluate(() => {
-        const camera = document.querySelector<HTMLElement>("#tree [data-stage-camera]")!;
-        const unborn = document.querySelector<HTMLElement>("#tree [data-stage-unborn]")!;
-        const cameraStyle = getComputedStyle(camera);
-        const unbornStyle = getComputedStyle(unborn);
-        return {
-          cameraY: new DOMMatrixReadOnly(cameraStyle.transform).m42,
-          camera: parseFloat(cameraStyle.getPropertyValue("--camera")),
-          height: parseFloat(unbornStyle.height),
-          front: parseFloat(unbornStyle.getPropertyValue("--front")),
-        };
-      });
-
-    let previousFront = Number.POSITIVE_INFINITY;
-    for (let act = 0; act <= lastAct; act += 1) {
-      if (act > 0) await page.keyboard.press("ArrowRight");
-      await expect(stage).toHaveAttribute("data-through", String(act));
-      // Waits out the transitions; a value that never lands fails here.
-      await expect
-        .poll(async () => {
-          const now = await effect();
-          return now.cameraY === now.camera && now.height === now.front;
-        })
-        .toBe(true);
-      const { camera, front, cameraY, height } = await effect();
-      if (act === 0 || act === Math.floor(lastAct / 2)) {
-        expect(camera, `act ${act}: --camera on the camera`).toBeLessThan(0);
-        expect(cameraY, `act ${act}: the camera's transform`).toBeLessThan(0);
-        expect(front, `act ${act}: --front on the mask`).toBeGreaterThan(0);
-        expect(height, `act ${act}: the mask's height`).toBeGreaterThan(0);
-      }
-      expect(front, `act ${act}`).toBeLessThanOrEqual(previousFront);
-      expect(camera, `act ${act}`).toBeLessThanOrEqual(0);
-      previousFront = front;
-      if (act === lastAct) expect({ camera, front }).toEqual({ camera: 0, front: 0 });
-    }
-  });
-
-  /*
-   * The always-on change from the origin-story plan's Task 2 that survives:
-   * the drawing never claims to be finished — an unfinished shoot,
-   * annotated. (Its other half, the root plinth drawn as ground rather than
-   * as a card, went with the plinth in round 18.)
+   * The drawing never claims to be finished — an unfinished shoot, annotated.
    */
   test("the unfinished shoot draws with its still-growing annotation", async ({ page }) => {
     test.skip(
       viewportWidth(page) < DESKTOP_MIN_WIDTH,
       "below 1024px the drawn presentation is display: none",
     );
-
     const tree = page.locator("#tree");
     await expect(tree.locator("[data-tree-shoot]")).toHaveCount(1);
-    // Round 13 gave the mobile list its own "still growing" tip
-    // (KnowledgeTreeList.tsx's `ListGrowingTip`, see list-ink.tsx) — a
-    // second element carrying this same text now exists in the DOM at every
-    // width, just `display: none` here since the drawn presentation is what
-    // shows at >=1024px. `:visible` scopes the count to whichever
-    // presentation is actually on screen.
-    await expect(
-      tree.locator("[data-tree-shoot-label]:visible, [data-tree-list-shoot-label]:visible"),
-    ).toHaveCount(1);
+    await expect(tree.locator("[data-tree-shoot-label]:visible")).toHaveCount(1);
   });
 });
 
 /*
- * Stage.tsx says a fragment landing again once the pin has reshaped the page,
- * for targets inside the stage and below it (Contact, `#ask`). It must do that
- * only when the browser actually landed on the fragment: a reload restores the
- * reader's own scroll position, and re-landing then would yank them away.
+ * A fragment below the Journey, landed on a cold load, and a reload that must
+ * not jump back to it: a reload restores the reader's own scroll position.
  */
 test.describe("fragment landings around the Journey", () => {
-  test("a cold load of /#ask lands on it, after the pin has reshaped the page", async ({ page }) => {
-    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the pin only reshapes the page from lg up");
+  test("a cold load of /#ask lands on it", async ({ page }) => {
+    // Below lg the page ends too soon after #ask for the browser to scroll it
+    // up to its margin (measured at 768px: scrolled to the bottom, #ask at 199px).
+    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "#ask sits too near the page's end below lg");
     await page.goto("about:blank");
     await page.goto("/#ask");
-    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
     await page.waitForLoadState("networkidle");
     expectSettledAtScrollMargin(
       await restingTop(page.locator("#ask")),
@@ -732,10 +506,9 @@ test.describe("fragment landings around the Journey", () => {
   });
 
   test("a reload after scrolling away from the fragment does not jump back to it", async ({ page }) => {
-    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the pin only reshapes the page from lg up");
     await page.goto("about:blank");
     await page.goto("/#contact");
-    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+    await page.waitForLoadState("networkidle");
 
     // Read somewhere else: the Worlds section, far above Contact.
     await page.locator("#worlds").evaluate((el) => el.scrollIntoView({ block: "start" }));
@@ -743,7 +516,6 @@ test.describe("fragment landings around the Journey", () => {
     const before = await page.evaluate(() => window.scrollY);
 
     await page.reload();
-    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(500);
 

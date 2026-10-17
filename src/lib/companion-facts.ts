@@ -84,7 +84,7 @@ export function buildCompanionFacts(): CompanionFacts {
   // The same three calls CareerTree.tsx makes for its rail — `DRAWN`,
   // `LEAF_TOTAL` and `TECHNOLOGY_TOTAL` there. Not `buildCareerTree()` /
   // `totalTechnologies()`: those count all twenty entries, including the nine
-  // the stage no longer draws as branches.
+  // the Journey no longer draws as branches.
   const drawn = buildDrawnTree();
   const km = crossingKm();
 
