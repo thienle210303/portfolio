@@ -52,7 +52,7 @@ const CORPUS = new Set<string>([
   // paragraphs, principles and problem-solving loop were indexed here too
   // until round 16 removed the section and its corpus documents with it —
   // `profile.philosophy` above is the one line from that section still
-  // reachable, re-tagged to About. Round 16 also removed the Lab and its
+  // reachable, cited to Contact (the business card prints it). Round 16 also removed the Lab and its
   // experiment and scraping-playbook documents.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
   // Round 16: Playground Earth. Every plaque is a document (buildDocuments in

@@ -183,12 +183,9 @@ export function buildDocuments(): Document[] {
 
   // Philosophy the section is gone (round 16), but this line is still
   // rendered live on the business card in #contact, so the document stays and
-  // is tagged to About, the hero's own section id (Hero.tsx renders
-  // `id="about"`), rather than being dropped with the rest of the section's
-  // corpus. It used to be printed in #about too — the career tree's plinth
-  // until round 18, the hero's margin rail until round 20 — and is not now, so
-  // this citation keeps only the weaker promise in the `sectionId` banner
-  // above: About is its subject, not where the sentence is printed.
+  // cites Contact, where a reader following the link finds the sentence. It
+  // cited About while the hero's margin rail printed it (and, until round 18,
+  // the career tree's plinth); round 20 removed the rail.
   //
   // The words below used to live on `sectionExpansions.philosophy`, spread
   // across every document the old section contributed. With only this one
@@ -197,10 +194,10 @@ export function buildDocuments(): Document[] {
   docs.push({
     text: profile.philosophy,
     source: "The idea the whole site hangs from",
-    sectionId: "about",
-    sectionLabel: "About",
+    sectionId: "contact",
+    sectionLabel: "Contact",
     label: label(
-      "about",
+      "contact",
       undefined,
       "believe",
       "thinks",
