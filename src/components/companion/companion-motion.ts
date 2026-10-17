@@ -382,8 +382,10 @@ export function trailBehind(lead: Point, facing: 1 | -1, width: number, gap: num
  * A `want` inside his padded box is handed back as is: no waypoint reaches it
  * without entering the box, and routing to one parked her on the waypoint for
  * good — a seat `w + pad` beside him, with him a fraction of a pixel short of
- * his own, was that case. One on the edge, within a quarter pixel, is not inside
- * (float rounding), and her trailing spot is exactly there, so it is still routed.
+ * his own, was that case. "Inside" is the box shrunk by one pixel, for the
+ * target and for every sample: her trailing spot sits exactly on the edge (a
+ * float hair either side of it), and she only ever gets within 0.6 px of a
+ * waypoint, so a strict edge parked her on the waypoint above him.
  */
 export function detourAround(
   from: Point,
@@ -394,10 +396,13 @@ export function detourAround(
   pad: number,
   minY: number,
 ): Point {
-  const hits = (p: Point) => Math.abs(p.x - lead.x) < w + pad && Math.abs(p.y - lead.y) < h + pad;
-  // A quarter pixel in from the edge: a seat exactly on it can land a float-rounding hair inside.
-  const EDGE = 0.25;
-  if (Math.abs(want.x - lead.x) < w + pad - EDGE && Math.abs(want.y - lead.y) < h + pad - EDGE) return want;
+  // One pixel in from the edge, in the guard and the path test alike: `advance`
+  // stops up to 0.6 px short of a waypoint, and a box she has to clear exactly
+  // left her on it, above him, for good.
+  const EDGE = 1;
+  const hits = (p: Point) =>
+    Math.abs(p.x - lead.x) < w + pad - EDGE && Math.abs(p.y - lead.y) < h + pad - EDGE;
+  if (hits(want)) return want;
   let blocked = hits(from);
   for (let i = 1; i <= 12 && !blocked; i += 1) {
     const t = i / 12;

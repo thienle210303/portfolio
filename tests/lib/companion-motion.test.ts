@@ -441,6 +441,32 @@ describe("detourAround", () => {
     expect(wp).toEqual({ x: lead2.x + 80, y: 800 - 42 - 26 });
   });
 
+  // Steps her the way Companion.tsx does (route until within 4 px, then
+  // `advance` at 3 px a frame) and asserts arrival, not the first waypoint: a
+  // first-waypoint test passed while she parked above him for good.
+  it("brings her to her trailing seat from above and from across, at any lead x", () => {
+    const arrives = (lead: { x: number; y: number }, start: { x: number; y: number }) => {
+      const seat = trailBehind(lead, -1, 50, 26);
+      const pos = { ...start };
+      let routing = true;
+      for (let i = 0; i < 400; i += 1) {
+        let want = seat;
+        if (routing) {
+          if (Math.hypot(pos.x - seat.x, pos.y - seat.y) < 4) routing = false;
+          else want = detourAround(pos, seat, lead, 50, 42, 26, 0);
+        }
+        advance(pos, want, 3);
+      }
+      return Math.hypot(pos.x - seat.x, pos.y - seat.y) < 4;
+    };
+    const xs = [948.9193758501593, ...Array.from({ length: 1000 }, (_, i) => 200 + i * 0.7317)];
+    const stuck = xs.filter((x) => {
+      const lead = { x, y: 800 };
+      return !arrives(lead, { x, y: 680 }) || !arrives(lead, { x: x - 76, y: 803 });
+    });
+    expect(stuck).toEqual([]);
+  });
+
   it("never sends her above the safe band when he is just under the header", () => {
     const high = { x: 1000, y: 70 };
     const minY = 64;
