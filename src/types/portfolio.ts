@@ -59,9 +59,8 @@ export interface Profile {
   readonly motto: string;
   /** Hero headline. */
   readonly headline: string;
-  /** A short personal introduction — About's paragraphs, in the hero's
-   *  identity column (`HeroIdentity.tsx`), each also indexed by the chat
-   *  corpus. */
+  /** A short personal introduction. Rendered nowhere since round 20 Phase 3;
+   *  each paragraph is indexed by the chat corpus with no section citation. */
   readonly about: readonly string[];
   readonly email: string;
   readonly location: Maybe<string>;

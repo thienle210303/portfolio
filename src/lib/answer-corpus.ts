@@ -79,6 +79,9 @@ export interface Document {
    * They carry no section rather than a link that lies. See the skills loop at
    * the bottom of this file for why that was chosen over the alternatives.
    *
+   * Round 20 Phase 3 added `profile.about`'s three paragraphs: the hero no
+   * longer prints them and `/resume` never did, so they carry no section either.
+   *
    * A document with no section is still retrieved and quoted; it just has
    * nowhere to send the reader.
    *
@@ -121,12 +124,15 @@ function label(sectionId: string, subjectId: string | undefined, ...local: strin
 export function buildDocuments(): Document[] {
   const docs: Document[] = [];
 
+  // No section: round 20 Phase 3 took these paragraphs out of the hero, and
+  // nothing else renders them, so "More on this in About" would send the reader
+  // to a section with none of the prose. Indexed as before (`label("about", …)`
+  // is the search surface; `sectionId` is not), the same call as the skills
+  // evidence lines at the bottom of this file.
   for (const paragraph of profile.about) {
     docs.push({
       text: paragraph,
       source: "About, in his own words",
-      sectionId: "about",
-      sectionLabel: "About",
       label: label("about", undefined, profile.name, profile.title),
     });
   }

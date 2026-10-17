@@ -146,12 +146,22 @@ describe("answer", () => {
       );
     }
     // The only documents allowed to have no section are the skills evidence
-    // lines, because no subject of theirs (a skill category) is rendered anywhere
-    // on the page. Pinned exactly, in both directions, so a new sectionless
-    // document has to be argued for and so this loop cannot quietly skip every
-    // document.
-    expect(sectionless.sort()).toEqual(skillsIndexable.map((category) => category.evidence).sort());
+    // lines and `profile.about`'s paragraphs, because neither is rendered
+    // anywhere on the page. Pinned exactly, in both directions, so a new
+    // sectionless document has to be argued for and so this loop cannot quietly
+    // skip every document.
+    expect(sectionless.sort()).toEqual(
+      [...skillsIndexable.map((category) => category.evidence), ...profile.about].sort(),
+    );
     expect(sectionless.length).toBeGreaterThan(0);
+    // What cites About is what #about prints: the positioning paragraph and the
+    // terminal's focus line (tests/sections/Hero.test.tsx holds both), plus the
+    // origin flight, whose `from` the terminal prints.
+    expect(buildDocuments().filter((doc) => doc.sectionId === "about").map((doc) => doc.text)).toEqual([
+      profile.positioning,
+      profile.focus,
+      `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
+    ]);
   });
 
   it("cites no compatibility anchor, only a real section", () => {
@@ -298,8 +308,11 @@ describe("answer", () => {
     // "someone who isn't a CS major" must not outrank the About documents.
     const results = answer("who is he", 6);
     expect(results.length).toBeGreaterThan(0);
+    // About's own paragraphs answer it too; they are indexed with no section
+    // because the hero no longer prints them.
     for (const result of results) {
-      expect(result.sectionId, `"${result.text.slice(0, 50)}…" answered an identity question`).toBe("about");
+      const fromAbout = result.sectionId === "about" || profile.about.includes(result.text);
+      expect(fromAbout, `"${result.text.slice(0, 50)}…" answered an identity question`).toBe(true);
     }
   });
 
