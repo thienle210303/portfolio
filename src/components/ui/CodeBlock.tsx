@@ -50,7 +50,7 @@ export function CodeBlock({ code, filename, summary, className, compact = false 
     // No `data-cat-hide` here, and it is worth saying why not: this figure
     // carried it for one commit. A cat hides by standing in the clear band
     // *above* a panel's top edge, and every code figure on this page has
-    // something in that band — the hero's has its tab buttons, and the AI
+    // something in that band — the old hero's had its tab buttons, and the AI
     // Workflow Lab's (removed round 16) had the ask form painting over it.
     // Swept every 40px of the page at 1440 and 1024, the attribute here
     // produced zero usable hiding places out of 695 and 735 scroll positions.
