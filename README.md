@@ -430,7 +430,7 @@ src/
   content/        ← all facts live here
   types/          the contracts content is checked against
   hooks/          small client-side hooks
-  lib/            pure helpers (cn, highlight, content, the act anchors, …);
+  lib/            pure helpers (cn, highlight, content, the tree, …);
                   never imports from sections/
 docs/             generated contrast table, editing recipes, feedback tracker
 scripts/          contrast measurement, screenshots, `pnpm perf`

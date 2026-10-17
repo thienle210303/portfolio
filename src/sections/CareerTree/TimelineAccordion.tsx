@@ -17,7 +17,8 @@ const OpenRowContext = createContext<OpenRow | null>(null);
  * `TimelineRow` are client code.
  *
  * A fragment that names a row (`#journey-entry-<id>`) or anything inside one
- * (`#work-<projectId>`) opens that row, on load and on every `hashchange`.
+ * (`#work-<projectId>`) opens that row, on load, on every `hashchange`, and on
+ * a click on a link to the fragment already in the URL.
  * Until this has mounted, the stylesheet opens the targeted row from
  * `:target` alone (`[data-timeline]:not([data-live])` in `globals.css`), so a
  * reader with JavaScript off lands on an open row too; `data-live` hands the
@@ -81,8 +82,21 @@ export function TimelineAccordion({
       }
       setLive(true);
     });
+    // A link to the fragment already in the URL fires no `hashchange`, so a
+    // reader who closed the row and follows the same link again would land on
+    // a closed row. Read before the default action, handled after it.
+    const onClick = (event: MouseEvent) => {
+      const link = event.target instanceof Element ? event.target.closest("a[href^='#']") : null;
+      if (link && link.getAttribute("href") === window.location.hash) {
+        requestAnimationFrame(onHashChange);
+      }
+    };
     window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
+    document.addEventListener("click", onClick);
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      document.removeEventListener("click", onClick);
+    };
   }, []);
 
   useEffect(() => {

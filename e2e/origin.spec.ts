@@ -171,7 +171,7 @@ test.describe("the player", () => {
     }) => {
       test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-        await watchOriginButton(page).click();
+      await watchOriginButton(page).click();
       const stage = page.locator("[data-origin-stage]");
       await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
 

@@ -306,8 +306,8 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * `OCCUPIED` ancestor's box reads clear here, where a hit test said occupied.
  * What a hit test looks straight through is still skipped — the companion's
  * own subtree (`SELF`), and anything `pointer-events: none` or hidden, such as
- * the Journey's not-yet-drawn branches and its ink overlays — or a cat could
- * never rest anywhere on the stage. Boxes beside the window, or more than one
+ * the Journey's ink overlays and a running origin story's pending branches — or
+ * a cat could never rest anywhere on the drawing. Boxes beside the window, or more than one
  * window height above or below it, are dropped too: no probe point is ever off
  * screen, and the band above and below is what a shifted cache scrolls into
  * view before the next rebuild.

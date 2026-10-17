@@ -1873,6 +1873,8 @@
 /* browser lands on an open row either way. Only the row's own region: a case  */
 /* study's nested disclosure keeps its own state. `!important` because the     */
 /* row's height is an inline style and its visibility a utility class.         */
+/* Known cost, JS off only: following a second in-page link un-targets the     */
+/* first row, which collapses and shifts the new landing above it.             */
 /* -------------------------------------------------------------------------- */
 [data-timeline]:not([data-live]) [data-tree-branch]:is(:target, :has(:target)) > div > [role="region"] {
   grid-template-rows: 1fr !important;

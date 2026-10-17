@@ -292,6 +292,8 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     await page.goto(`/#${caseStudyAnchorId("dd-scraper-platform")}`);
     const article = page.locator(`#${caseStudyAnchorId("dd-scraper-platform")}`);
     await expect(article).toBeVisible();
+    // Only a stability wait: the article's own scroll margin is not this
+    // spec's 80px, so the landing is asserted as "on screen" instead.
     await restingTop(article);
     await expect(article).toBeInViewport();
     await expect(page.locator("#journey-entry-doordash [role=region] > div").first()).toHaveCSS(

@@ -507,6 +507,8 @@ describe("the timeline's rows", () => {
   afterEach(() => {
     setHash("");
     delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("shows year, role · organisation and headline without opening, and nothing open", () => {
@@ -622,7 +624,24 @@ describe("the timeline's rows", () => {
     act(frame);
     expect(scrolled).toHaveBeenCalledTimes(2);
     expect(scrolled.mock.contexts[1]).toBe(document.getElementById(journeyEntryAnchorId("usc-ta")));
-    vi.unstubAllGlobals();
+  });
+
+  it("reopens a closed row when a link to the fragment already in the URL is followed again", async () => {
+    const { frame } = watchLandings();
+    setHash(`#${journeyEntryAnchorId("usc-ta")}`);
+    const list = rows();
+    await act(async () => {});
+    expect(openIds(list)).toEqual(["usc-ta"]);
+    fireEvent.click(trigger(list.find((row) => row.dataset.treeBranch === "usc-ta")!)!);
+    expect(openIds(list)).toEqual([]);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", `#${journeyEntryAnchorId("usc-ta")}`);
+    document.body.append(link);
+    fireEvent.click(link);
+    act(frame);
+    expect(openIds(list)).toEqual(["usc-ta"]);
+    link.remove();
   });
 
   it("opens the row but leaves the scroll alone after a reload", async () => {
@@ -636,8 +655,6 @@ describe("the timeline's rows", () => {
     act(frame);
     expect(openIds(list)).toEqual(["doordash"]);
     expect(scrolled).not.toHaveBeenCalled();
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
   it("hands the no-script :target opening to React once mounted", async () => {

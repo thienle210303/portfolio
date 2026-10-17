@@ -406,6 +406,9 @@ test.describe("career tree", () => {
     await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
     const article = page.locator("#work-dd-scraper-platform");
     await expect(article).toBeVisible();
+    // Only a stability wait: the article sits under its row's own header, so
+    // its offset is not the 80px margin — what matters is that it settled on
+    // screen.
     await restingTop(article);
     await expect(article).toBeInViewport();
   });
@@ -440,7 +443,22 @@ test.describe("career tree", () => {
     await card.click();
     await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
     await expect(rowTrigger(page, DRAWN[0].id)).toHaveAttribute("aria-expanded", "false");
-    await expect(row(page, PANEL_ENTRY)).toBeInViewport();
+    expectSettledAtScrollMargin(
+      await restingTop(row(page, PANEL_ENTRY)),
+      "the highlight card must land its row at the 80px scroll margin",
+    );
+
+    // Close the row and follow the same card again: the URL already holds the
+    // fragment, so no hashchange fires, and the row must still reopen.
+    await rowTrigger(page, PANEL_ENTRY).click();
+    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "false");
+    await card.scrollIntoViewIfNeeded();
+    await card.click();
+    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
+    expectSettledAtScrollMargin(
+      await restingTop(row(page, PANEL_ENTRY)),
+      "following the same card again must land its row at the 80px scroll margin",
+    );
   });
 
   /*
