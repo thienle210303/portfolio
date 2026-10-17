@@ -61,3 +61,21 @@ describe("buildHighlights", () => {
     expect(() => buildHighlights([])).toThrow(/doordash/);
   });
 });
+
+describe("hasToken", () => {
+  it("rejects a token that is only part of a longer figure or a lookalike", () => {
+    expect(hasToken("Supported 2000 students", "200+")).toBe(false);
+    expect(hasToken("took 117 hours", "17 hours")).toBe(false);
+    expect(hasToken("99x9% accurate", "99.9%")).toBe(false);
+  });
+
+  it("accepts the real forms", () => {
+    expect(hasToken("Supported 200+ students", "200+")).toBe(true);
+    expect(hasToken("runtime 17 hours to 3 minutes", "17 hours")).toBe(true);
+    expect(hasToken("runtime 17 hours to 3 minutes", "3 minutes")).toBe(true);
+    expect(hasToken("99.9% validated audio accuracy", "99.9%")).toBe(true);
+    expect(hasToken("3M+ Amazon and Kroger", "3M+")).toBe(true);
+    expect(hasToken("96% increase", "96%")).toBe(true);
+  });
+});
+

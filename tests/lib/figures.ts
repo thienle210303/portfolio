@@ -17,4 +17,4 @@ export const figureTokens = (s: string) =>
 
 /** True when `token` appears in `source` as a whole figure, not inside a longer number. */
 export const hasToken = (source: string, token: string) =>
-  new RegExp(`(?<![\d.,])${token.replace(/[.+]/g, "\$&")}(?!\d)`).test(source);
+  new RegExp(`(?<![\\d.,])${token.replace(/[.+]/g, "\\$&")}(?!\\d)`).test(source);
