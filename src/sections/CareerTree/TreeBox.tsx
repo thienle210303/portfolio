@@ -25,11 +25,15 @@ import { WatchOrigin, type OriginHandle } from "./WatchOrigin";
  * It is keyboard-scrollable (`tabIndex=0`, named) and never captures the page's
  * own scroll.
  *
- * It is only a scroll container (`data-scroller`) while it is within a screen
- * of the viewport or a show is running; otherwise it is `overflow: clip`, and
- * `content-visibility: auto` skips drawing it at all. A scroll container
- * anywhere on the page, even off screen, roughly doubled the compositor's
- * per-frame update at the top of the page (docs/feedback-tracker.md, R20-P5).
+ * Once hydrated, it is only rendered, and only a scroll container, while it is
+ * within 200 px of the viewport or a show is running; otherwise it is
+ * `data-far`: contents `content-visibility: hidden`, `overflow: clip`. With JS
+ * off it is never `data-far`. As an
+ * always-on scroller it roughly doubled the compositor's per-frame update at
+ * the top of the page, and rendered (even under `content-visibility: auto`,
+ * whose margin is not ours to set) it slowed the scroll through Worlds
+ * (docs/feedback-tracker.md, R20-P5). Hidden contents leave the accessibility
+ * tree while far away; every branch label it holds is also a timeline row.
  *
  * When a show starts (the companion's `origin-story` "start"), the box jumps
  * to the ground, where the growth begins. It then follows the growth front
@@ -153,7 +157,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
 
     let near = false;
     let showing = false;
-    const setScroller = () => box.toggleAttribute("data-scroller", near || showing);
+    const setScroller = () => box.toggleAttribute("data-far", !near && !showing);
     const nearby =
       typeof IntersectionObserver === "undefined"
         ? undefined
@@ -162,7 +166,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
               near = entries.some((entry) => entry.isIntersecting);
               setScroller();
             },
-            { rootMargin: "100% 0px" },
+            { rootMargin: "200px 0px" },
           );
     if (nearby) nearby.observe(box);
     else {
@@ -219,7 +223,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
         // `pt-16`: the still-growing shoot and its label draw ~36 px above
         // the host, and a scroller cannot scroll to content above its top.
         // Paper does not scroll: print the whole tree, not one window of it.
-        "hidden h-[min(720px,80svh)] overflow-clip [content-visibility:auto] data-[scroller]:overflow-y-auto border border-rule px-6 pt-16 pb-6 lg:block print:h-auto print:overflow-visible print:[content-visibility:visible]",
+        "hidden h-[min(720px,80svh)] overflow-y-auto data-[far]:overflow-clip data-[far]:[content-visibility:hidden] border border-rule px-6 pt-16 pb-6 lg:block print:h-auto print:overflow-visible print:[content-visibility:visible]!",
         className,
       )}
     >

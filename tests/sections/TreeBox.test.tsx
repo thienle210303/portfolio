@@ -218,23 +218,23 @@ describe("TreeBox", () => {
     expect(player.mounts).toBe(0);
   });
 
-  it("is a scroll container only near the viewport or while a show runs", () => {
+  it("is drawn and scrollable only near the viewport or while a show runs", () => {
     setup();
     const box = screen.getByRole("region", { name: "Career tree" });
     const nearby = FakeObserver.all.find((o) => o.options?.rootMargin);
     if (!nearby) throw new Error("no nearby observer");
     nearby.report(0);
-    expect(box).not.toHaveAttribute("data-scroller");
+    expect(box).toHaveAttribute("data-far");
     nearby.report(0.1);
-    expect(box).toHaveAttribute("data-scroller");
+    expect(box).not.toHaveAttribute("data-far");
     nearby.report(0);
     act(() => {
       document.dispatchEvent(new CustomEvent("origin-story", { detail: "start" }));
     });
-    expect(box).toHaveAttribute("data-scroller");
+    expect(box).not.toHaveAttribute("data-far");
     act(() => {
       document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
     });
-    expect(box).not.toHaveAttribute("data-scroller");
+    expect(box).toHaveAttribute("data-far");
   });
 });

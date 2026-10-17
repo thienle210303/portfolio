@@ -290,8 +290,13 @@ test.describe("career tree", () => {
 
   test("the drawing shows at >=1024px only, and the timeline at every width", async ({ page }) => {
     const drawing = page.locator("#tree [data-origin-host]");
-    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) await expect(drawing).toBeVisible();
-    else await expect(drawing).toBeHidden();
+    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
+      // Far from the viewport the box skips drawing it (`data-far`, TreeBox.tsx).
+      await expect(page.locator("[data-tree-box]")).toHaveAttribute("data-far", "");
+      await page.locator("[data-tree-box]").scrollIntoViewIfNeeded();
+      await expect(page.locator("[data-tree-box]")).not.toHaveAttribute("data-far");
+      await expect(drawing).toBeVisible();
+    } else await expect(drawing).toBeHidden();
     await expect(page.locator("#tree [data-timeline] [data-tree-branch]")).toHaveCount(DRAWN.length);
     await expect(row(page, DRAWN[0].id)).toBeVisible();
   });
@@ -500,6 +505,7 @@ test.describe("career tree", () => {
       "below 1024px the drawn presentation is display: none",
     );
     const tree = page.locator("#tree");
+    await page.locator("[data-tree-box]").scrollIntoViewIfNeeded();
     await expect(tree.locator("[data-tree-shoot]")).toHaveCount(1);
     await expect(tree.locator("[data-tree-shoot-label]:visible")).toHaveCount(1);
   });
