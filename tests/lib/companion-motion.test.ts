@@ -434,6 +434,13 @@ describe("detourAround", () => {
     expect(go({ x: 1080, y: 800 }, { x: 924, y: 803 })).toEqual({ x: 1080, y: 800 - 42 - 26 });
   });
 
+  it("still routes a trailing seat that float rounding puts a hair inside the edge", () => {
+    const lead2 = { x: 123.37, y: 800 };
+    const seat = { x: lead2.x - 76 + 1e-9, y: 803 };
+    const wp = detourAround({ x: lead2.x + 80, y: 800 }, seat, lead2, 50, 42, 26, 0);
+    expect(wp).toEqual({ x: lead2.x + 80, y: 800 - 42 - 26 });
+  });
+
   it("never sends her above the safe band when he is just under the header", () => {
     const high = { x: 1000, y: 70 };
     const minY = 64;
