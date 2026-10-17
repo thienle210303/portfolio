@@ -15,6 +15,12 @@
  * at 4x CPU slowdown. Each `rest` sample starts 10 s after the jump to its
  * section: the jump is a scroll, a scroll tells the cats somebody is here, and
  * for some seconds after it they walk and talk, which is motion, not rest.
+ *
+ * `scroll4x.bands` splits that scroll by the section holding the viewport
+ * centre when each frame ran (section bounds read once, after the scroll), so
+ * a change in one section's cost is not confused with a change in page length:
+ * the totals are means over every frame, and a shorter page drops frames from
+ * whichever section got shorter. `frames` and `scrollHeight` give that length.
  */
 import { createRequire } from "node:module";
 
@@ -61,19 +67,34 @@ const result = {};
 {
   const { page } = await open(4);
   const run = await page.evaluate(
-    () =>
+    (sections) =>
       new Promise((resolve) => {
         const lag = window.__lag;
         const tasksBefore = lag.longTasks.length;
         const deltas = [];
+        const centres = [];
         let last = performance.now();
         const t0 = last;
         const step = (now) => {
           deltas.push(now - last);
+          centres.push(scrollY + innerHeight / 2);
           last = now;
           const max = document.documentElement.scrollHeight - innerHeight;
           if (scrollY >= max) {
-            resolve({ deltas, wall: now - t0, longTasks: lag.longTasks.length - tasksBefore });
+            const bounds = sections.map((id) => {
+              const rect = document.getElementById(id).getBoundingClientRect();
+              return { id, top: rect.top + scrollY, bottom: rect.bottom + scrollY };
+            });
+            const bands = centres.map(
+              (y) => bounds.find((b) => y >= b.top && y < b.bottom)?.id ?? "other",
+            );
+            resolve({
+              deltas,
+              bands,
+              wall: now - t0,
+              longTasks: lag.longTasks.length - tasksBefore,
+              scrollHeight: document.documentElement.scrollHeight,
+            });
             return;
           }
           window.scrollBy(0, 40);
@@ -81,12 +102,27 @@ const result = {};
         };
         requestAnimationFrame(step);
       }),
+    SECTIONS,
   );
+  const bands = {};
+  for (const id of [...SECTIONS, "other"]) {
+    const deltas = run.deltas.filter((_, i) => run.bands[i] === id);
+    if (deltas.length === 0) continue;
+    bands[id] = {
+      frames: deltas.length,
+      fps: round((deltas.length / deltas.reduce((a, b) => a + b, 0)) * 1000),
+      drops: deltas.filter((d) => d > 33).length,
+      worstFrameMs: Math.round(Math.max(...deltas)),
+    };
+  }
   result.scroll4x = {
     fps: round((run.deltas.length / run.wall) * 1000),
     drops: run.deltas.filter((d) => d > 33).length,
     worstFrameMs: Math.round(Math.max(...run.deltas)),
     longTasks: run.longTasks,
+    frames: run.deltas.length,
+    scrollHeight: run.scrollHeight,
+    bands,
   };
   await page.close();
 }
