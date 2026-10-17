@@ -1702,3 +1702,19 @@ Production build on `:3143` at `ae0cdc6`, headless Chromium, `pnpm perf` once an
 Comparability: runs began at 4-10% CPU, against 56% (R20-P2, 31.4 fps) and about 100% (R20-P3, 16-22 fps). The fps gain (about 44-46) is therefore mostly the machine (inferred; no same-machine A/B against `5d36963`). Criteria as before: fps >= 50 missed, worst frame <= 100 ms missed (117-150 ms), rest busy < 5% met in worlds (runs 2-3) and tree (run 1; run 3 is exactly 5), Worlds entry < 50 ms missed (56-65 ms).
 
 **Verification.** `pnpm verify` 5/5 (961 unit tests, 60 files; contrast 31 pairings, lowest 4.66:1). Retrieval eval: recall@1 70.0% (floor 0.7), recall@3 93.3% (0.9), recall@5 96.7% (0.95), MRR@10 0.807 (0.8); recall@1 sits exactly on its floor. Full e2e at `--workers=2` on `:3143`: 914 passed, 706 skipped, 0 failed, no retries needed.
+
+## Round 20 phase 5 (2026-10-17) — Journey
+
+Production build on `:3153` at `35e1b7f`, headless Chromium, `pnpm perf` once and `pnpm lag` three times. Machine CPU (5 s average, between runs): 4.1% before perf, 6.5% after; 9.7 / 6.1% around lag 1, 6.3 / 6.9% around lag 2, 5.1 / 8.7% around lag 3. Close to idle, like the R20-P4 rows.
+
+**Perf row** (0 skipped responses): JS 218.5 KB (223,734 B), JS at load 165.3 KB (169,273 B), CSS 13.7 KB, fonts 72.3 KB, LCP 1564 ms (`h1#hero-heading`), TBT 199 ms, CLS 0, 2135 DOM nodes. Against R20-P4 (`ae0cdc6`: 223,853 / 169,377 B): JS -119 B, JS at load -104 B, so nothing leaked into the load path; DOM 2902 -> 2135 nodes (-767).
+
+| When | scroll4x fps / drops / worst frame / long tasks | rest busy % (about / worlds / tree / contact) | rAF calls per s (about / worlds / tree / contact) | hit tests per 5 s (about / worlds / tree / contact) | Worlds entry worst task |
+|---|---|---|---|---|---|
+| R20-P5 (run 1, `35e1b7f`) | 43.7 / 54 / 167 ms / 4 | 16.3 / 7.3 / 9.1 / 8 | 60.1 / 60 / 54.2 / 42.2 | 75 / 30 / 28 / 26 | 66 ms |
+| R20-P5 (run 2, `35e1b7f`) | 43.9 / 49 / 167 ms / 6 | 14.9 / 8.9 / 6.5 / 5.1 | 60.2 / 34 / 25.4 / 27.3 | 75 / 24 / 24 / 24 | 53 ms |
+| R20-P5 (run 3, `35e1b7f`) | 40.1 / 67 / 133 ms / 9 | 14.8 / 4.8 / 7.5 / 9.4 | 60 / 28 / 48.2 / 42.1 | 75 / 26 / 30 / 26 | 64 ms |
+
+Against R20-P4 (44.4-45.6 fps, worst frame 117-150 ms, tree rest busy 2.7-5.3%): scroll fps is 1-4 fps lower, worst frame equal or worse, tree rest busy higher (6.5-9.1%), and `about` rest busy doubled (15% vs 7-9%, a section this phase did not touch, so partly machine noise). The expected Journey improvement from removing the pinned stage did not show up: `pnpm lag` has no Journey scroll band, and its "tree" rest sample now lands on the auto-playing tree box (rAF-driven) rather than an idle stage. Task 3's -2.4 fps is consistent with this. Inferred, not isolated by an A/B.
+
+**Verification.** `pnpm verify` 5/5 (942 unit tests, 59 files; contrast 31 pairings, lowest 4.66:1). Retrieval eval: recall@1 70.0% (floor 0.7), recall@3 93.3% (0.9), recall@5 96.7% (0.95), MRR@10 0.807 (0.8); unchanged from R20-P4, recall@1 sits exactly on its floor. Full e2e at `--workers=2` on `:3153`: 963 passed, 711 skipped, 0 failed, no retries needed.
