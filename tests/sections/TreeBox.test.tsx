@@ -74,6 +74,9 @@ const stages = () => document.querySelectorAll("[data-origin-stage]");
 const button = () => screen.getByRole("button", { name: "See how it grows" });
 /** Lets the lazy `import()` and the commit after it land. */
 const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+/** Longer than TreeBox's 600 ms dwell: a "nothing played" check before this
+ *  proves nothing, because nothing would have played yet anyway. */
+const pastDwell = () => act(() => new Promise((resolve) => setTimeout(resolve, 800)));
 
 describe("TreeBox", () => {
   beforeEach(() => {
@@ -109,7 +112,7 @@ describe("TreeBox", () => {
     act(() => player.close(false));
     observer.report(0);
     observer.report(1);
-    await settle();
+    await pastDwell();
     expect(stages()).toHaveLength(0);
     expect(player.mounts).toBe(1);
   });
@@ -158,7 +161,7 @@ describe("TreeBox", () => {
     motion.reduce = true;
     const observer = setup();
     observer.report(1);
-    await settle();
+    await pastDwell();
     expect(stages()).toHaveLength(0);
 
     // The button still takes the visitor there; it just does not animate.
@@ -182,18 +185,19 @@ describe("TreeBox", () => {
 
     // A press counts as the first view: scrolling there does not start a third.
     observer.report(1);
-    await settle();
+    await pastDwell();
     expect(player.mounts).toBe(2);
   });
 
-  it("does not auto-play after the visitor already pressed the button", async () => {
+  it("pressed first, then scrolled into view: no second auto-play", async () => {
     const observer = setup();
     fireEvent.click(button());
     await waitFor(() => expect(stages()).toHaveLength(1));
     act(() => player.close(true));
     observer.report(1);
-    await settle();
+    await pastDwell();
     expect(stages()).toHaveLength(0);
     expect(player.mounts).toBe(1);
   });
+
 });
