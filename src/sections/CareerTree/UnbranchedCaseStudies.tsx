@@ -7,12 +7,12 @@ const HEADING_ID = "unbranched-case-studies-heading";
 /**
  * The case studies whose career entry is no longer a branch.
  *
- * A case study renders inside the branch of the role it was built in. Round 18
+ * A case study renders inside the timeline row of the role it was built in. Round 18
  * demotes nine entries to one credentials line, and five projects were built
  * under two of them — four course projects under the degree, and the
  * capstone — so there is no branch for them to open from. They are not
  * trimmed to make that tidy: the prose is the site's best writing. They render
- * here, after the stage, in the same component and with the same markup as
+ * here, after the timeline, in the same component and with the same markup as
  * every other case study, and each still names the entry it came from in its
  * own masthead.
  *
@@ -27,7 +27,13 @@ export default function UnbranchedCaseStudies() {
   if (homeless.length === 0) return null;
 
   return (
-    <section data-unbranched-case-studies="" aria-labelledby={HEADING_ID} className="mt-16">
+    // Skipped while far off screen at lg, like the timeline above it (see
+    // KnowledgeTreeList): 3655px is its height at 1440.
+    <section
+      data-unbranched-case-studies=""
+      aria-labelledby={HEADING_ID}
+      className="mt-16 lg:[content-visibility:auto] lg:[contain-intrinsic-size:auto_3655px] print:[content-visibility:visible]"
+    >
       <h3
         id={HEADING_ID}
         className="font-display text-[length:var(--step-2)] font-semibold leading-[1.2] tracking-(--tracking-display) text-fg"

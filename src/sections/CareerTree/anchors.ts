@@ -12,26 +12,22 @@
  *
  * ## State of the guarantee
  *
- * These ids were rendered by `TimelineEntry`'s `<li>` until round 18 replaced
- * the timeline with the pinned stage, which left them resolving to nothing for
- * the length of that round. They resolve again: `./acts.ts` carries
- * `journeyEntryAnchorId` for every entry an act draws (`Act.entryAnchorIds`)
- * and `./Stage.tsx` renders one zero-size span per id inside that act's
- * `<section>`. Every career entry is in exactly one act, so every entry has
- * exactly one element.
+ * A drawn entry's fragment is its timeline row (`./KnowledgeTreeList.tsx`); a
+ * demoted entry's is its line on the credentials strip
+ * (`./CredentialsStrip.tsx`). Between them every career entry has exactly one
+ * element. (Round 18's pinned stage carried them as zero-size spans inside its
+ * acts; round 20 retired the stage and put them back on real content.)
  *
  * Both halves of that are asserted, because neither is worth much alone:
- * `tests/sections/Stage.test.tsx` requires an element for every
- * `careerEntries` entry after rendering the stage, and
+ * `tests/sections/CareerTree.test.tsx` requires an element for every
+ * `careerEntries` entry after rendering the section, and
  * `e2e/legacy-anchors.spec.ts` requires the ids to be in the server-rendered
  * HTML and to land a real browser on the Journey with JavaScript disabled —
  * which is the case a jsdom test cannot reach.
  *
- * Nothing on the page links to these fragments. They exist for links the site
- * does not control: old bookmarks, a shared résumé PDF, a search result. The
- * component that used to build such a link in-page (`JourneyEntryCrossLink`)
- * was retired in round 18 — a branch pointing at a fragment inside itself is
- * circular, and its visible text named a timeline that no longer exists.
+ * They exist first for links the site does not control: old bookmarks, a
+ * shared résumé PDF, a search result. Round 20 links to them in-page too: the
+ * highlight cards and the drawing's branch labels each point at a row.
  *
  * ## Why `journey-entry-…` and not `journey-…-role`
  *
@@ -62,9 +58,8 @@
  */
 export const LEGACY_SECTION_IDS = ["journey", "work", "skills", "workshop"] as const;
 
-/** Anchor id for one career entry's fragment. `./acts.ts` builds one of these
- *  per entry and `./Stage.tsx` renders it; see the note above for what is
- *  asserted about that. */
+/** Anchor id for one career entry's fragment; see the note above for which
+ *  element carries it and what is asserted about that. */
 export function journeyEntryAnchorId(entryId: string): string {
   return `journey-entry-${entryId}`;
 }
@@ -77,7 +72,7 @@ export function journeyEntryAnchorId(entryId: string): string {
  * The two identifiers a case-study article and anything linking at it have to
  * agree on. They moved here from `SelectedWork/anchors.ts` in round 18 along
  * with `CaseStudy.tsx` itself, because the case studies now render inside the
- * Journey's branches; the section they used to live in, and its `anchors.ts`,
+ * Journey; the section they used to live in, and its `anchors.ts`,
  * are deleted.
  *
  * Derived from `project.id`, never authored: a project added to or removed

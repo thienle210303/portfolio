@@ -174,11 +174,21 @@ test.describe("the résumé route", () => {
   });
 });
 
-// The headline is a Disclosure `preview`, outside the collapsed region, so
-// print shows it whether or not the panel is forced open.
+// A timeline row's headline is its Disclosure `preview`, outside the collapsed
+// region, so print shows it whether or not the row is forced open; the
+// drawing's (>=1024px) is plain text on the branch card.
 test("every drawn branch's headline prints", async ({ page }) => {
-  test.skip((page.viewportSize()?.width ?? 0) < 1024, "the drawing only shows from lg up");
-  const headlines = page.locator("#tree [data-origin-host] [data-tree-headline]");
-  await expect(headlines).toHaveCount(11);
-  for (const headline of await headlines.all()) await expect(headline).toBeVisible();
+  const rows = page.locator("#tree [data-timeline] [data-tree-headline]");
+  await expect(rows).toHaveCount(11);
+  for (const headline of await rows.all()) await expect(headline).toBeVisible();
+  if ((page.viewportSize()?.width ?? 0) < 1024) return;
+  const drawn = page.locator("#tree [data-origin-host] [data-tree-headline]");
+  await expect(drawn).toHaveCount(11);
+  for (const headline of await drawn.all()) await expect(headline).toBeVisible();
+  // On screen the tree box is a scrolling window; on paper there is no
+  // scrolling, so it must print the whole tree rather than one window of it.
+  const clipped = await page
+    .locator("#tree [data-tree-box]")
+    .evaluate((el) => el.scrollHeight - el.clientHeight);
+  expect(clipped).toBeLessThanOrEqual(1);
 });

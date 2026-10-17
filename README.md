@@ -6,10 +6,10 @@ experience, performance, and workflows that did not previously exist.
 The site is a single narrative page in four sections: **About** — the
 hero, a short identity column beside a terminal card built from content; **Worlds** — a drawn globe
 that flies the 2018 crossing once and turns to each of three stops in the origin
-story, every word of which is the site's own authored content; the **Journey** — a career
-tree on a pinned stage, told in seven acts from 2018, with the case studies
-inside it (in the branches of the roles that produced them, or after the acts
-for the coursework); and **Contact**, which
+story, every word of which is the site's own authored content; the **Journey** — five
+measured highlights, a drawn career tree, and a timeline of rows that open one
+at a time, with the case studies inside them (in the rows of the roles that
+produced them, or after the timeline for the coursework); and **Contact**, which
 starts from what the visitor actually came to say, and holds a chat that
 answers only from what's written for the site: by default his words as
 written, or a few of them joined into one line, each with its source and no model; in
@@ -156,7 +156,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the Journey opens on), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference the hero's terminal reads — the globe's three stops (`originStops`, beside `origin`), contact intents and the footer line |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the globe flies), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference the hero's terminal reads — the globe's three stops (`originStops`, beside `origin`), contact intents and the footer line |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
 Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's
@@ -215,9 +215,7 @@ Append to `careerEntries` in `src/content/portfolio.ts`:
 }
 ```
 
-Two more decisions the entry cannot make for itself: which of the Journey's
-seven acts draws it (add its `id` to `ENTRY_ACTS` in `src/lib/anchors.ts` —
-`tests/lib/acts.test.ts` fails until you do), and, once it has ended, its
+One more decision the entry cannot make for itself: once it has ended, its
 `endSortKey`, which the Journey compares month by month to say what ran
 alongside what. The rail's counts are computed from the data — there is
 nothing else to update. [docs/editing.md](docs/editing.md) has the longer
@@ -432,7 +430,7 @@ src/
   content/        ← all facts live here
   types/          the contracts content is checked against
   hooks/          small client-side hooks
-  lib/            pure helpers (cn, highlight, content, the act anchors, …);
+  lib/            pure helpers (cn, highlight, content, the tree, …);
                   never imports from sections/
 docs/             generated contrast table, editing recipes, feedback tracker
 scripts/          contrast measurement, screenshots, `pnpm perf`

@@ -18,8 +18,8 @@ import {
  *
  * ## Why this spec exists and a unit test does not replace it
  *
- * `tests/sections/CareerTree.test.tsx` and `tests/sections/Stage.test.tsx`
- * already assert the elements are in the render. They cannot assert the thing
+ * `tests/sections/CareerTree.test.tsx` already asserts the elements are in the
+ * render. They cannot assert the thing
  * that actually matters, because jsdom has no layout and no fragment
  * navigation: that a real browser, running **none** of this page's JavaScript,
  * receives those ids in the document it is served and scrolls to them. The three
@@ -29,8 +29,8 @@ import {
  *     started. If an id is in that byte stream it exists for a no-JS visitor by
  *     construction — this is the strongest form the claim has, and it is also the
  *     only part that scales to the whole retired set (the four section ids, every
- *     per-entry fragment and every `work-<projectId>`), including the per-entry
- *     fragments inside acts that are off screen.
+ *     per-entry fragment and every `work-<projectId>`), including the ones inside
+ *     timeline rows that are closed and off screen.
  *  2. **The landing, measured.** A browser context with `javaScriptEnabled:
  *     false`, navigated straight at the fragment, and then asked **where** the
  *     anchor came to rest — not merely whether the Journey is somewhere on
@@ -38,8 +38,8 @@ import {
  *     satisfied by a landing anywhere in the Journey and an 80px offset error
  *     changes nothing about it; the resting offset is the only thing that can
  *     catch a missing or wrong `scroll-mt`, which is the whole reason the
- *     anchors carry one. `RESTING_TOP` is `5rem`, the act's own
- *     `scroll-margin-top` in `globals.css`.
+ *     anchors carry one. `RESTING_TOP` is `5rem`, the `scroll-mt-20` the
+ *     section ids, the timeline rows and the credentials lines all carry.
  *  3. **A control.** A fragment that resolves to nothing must leave the page
  *     where it started. Without it, every assertion above could be satisfied by
  *     a page that simply happened to open at the Journey.
@@ -61,19 +61,19 @@ import {
  * ## Why this spec and not `e2e/fragments.spec.ts`
  *
  * That sweep reads `main a[href^="#"]` — the links the page itself renders.
- * Nothing on this page links to any fragment this spec covers — not the section
- * ids, not the per-entry fragments, and not the case-study `work-<projectId>`
- * ids either, which round 18 stopped linking when the Selected Work section and
- * its index went. They exist for inbound links the site does not control, so
- * the sweep cannot see them and this spec is their **only** coverage: an id
- * dropped from `ALL_LEGACY_IDS` below is an id nothing checks at all. Unlinked
- * is not unused — do not remove one from here, or from the page, for that
- * reason.
+ * Round 20 links a few per-entry fragments in-page (the highlight cards and the
+ * drawing's branch labels), so the sweep sees those; it does not see the
+ * section ids, the other per-entry fragments, or the case-study
+ * `work-<projectId>` ids, which round 18 stopped linking when the Selected Work
+ * section and its index went. They exist for inbound links the site does not
+ * control, so this spec is their **only** coverage: an id dropped from
+ * `ALL_LEGACY_IDS` below is an id nothing checks at all. Unlinked is not
+ * unused — do not remove one from here, or from the page, for that reason.
  */
 
 /** The offset from the top of the viewport an anchor must come to rest at:
- *  `5rem`, which is `scroll-mt-20` and the `scroll-margin-top` globals.css gives
- *  `[data-stage] [data-act]`. The sticky header is 3.5rem (56px), so this clears it. */
+ *  `5rem`, which is `scroll-mt-20`. The sticky header is 3.5rem (56px), so this
+ *  clears it. */
 const RESTING_TOP = 80;
 /** Sub-pixel rounding, and nothing like enough to hide a landing that stopped
  *  somewhere else — the header alone is 56px. */
@@ -221,19 +221,15 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     );
   });
 
-  test("per-entry fragments land on their own act, each at a different place in the document", async ({
+  test("per-entry fragments land on their own timeline row, each at a different place in the document", async ({
     page,
   }) => {
-    // Three entries from three different acts, oldest first. One would prove the
-    // mechanism; three prove the fragments are not all resolving to the same
-    // element — which is the failure a single case cannot see, and the one a
-    // derived-then-rendered id list could plausibly produce.
-    const probes = [
-      { entry: "eastside-high", act: "act-high-school" },
-      { entry: "usc-ta", act: "act-research" },
-      { entry: "doordash", act: "act-retail-data" },
-    ] as const;
-    for (const { entry } of probes) {
+    // Three drawn entries, oldest first. One would prove the mechanism; three
+    // prove the fragments are not all resolving to the same element — which is
+    // the failure a single case cannot see, and the one a derived-then-rendered
+    // id list could plausibly produce.
+    const probes = ["eastside-high", "usc-ta", "doordash"] as const;
+    for (const entry of probes) {
       expect(
         careerEntries.some((candidate) => candidate.id === entry),
         `${entry} is no longer a career entry, so this probe checks nothing`,
@@ -241,19 +237,26 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     }
 
     const offsets: number[] = [];
-    for (const { entry, act } of probes) {
+    for (const entry of probes) {
       const fragment = journeyEntryAnchorId(entry);
+      // A fresh document per probe, the way an inbound link arrives. A
+      // same-document hop would un-target the previous row, whose `:target`
+      // opening (globals.css) then collapses above the new landing.
+      await page.goto("about:blank");
       await page.goto(`/#${fragment}`);
-      await expect(page.locator(`#${fragment}`)).toHaveCount(1);
+      const row = page.locator(`#${fragment}`);
+      await expect(row).toHaveCount(1);
+      // The fragment is the row itself, not a span beside it.
+      await expect(row).toHaveAttribute("data-tree-branch", entry);
       expectSettledAtRestingTop(
-        await restingTop(page.locator(`#${fragment}`)),
+        await restingTop(row),
         `/#${fragment} must settle at the ${RESTING_TOP}px scroll margin`,
       );
-      await expect(page.locator(`#${act}`)).toBeInViewport();
+      await expect(row).toBeInViewport();
       offsets.push(await scrollY(page));
     }
 
-    // Strictly increasing: the acts are chronological down the page, so an
+    // Strictly increasing: the rows are chronological down the page, so an
     // older entry's fragment must land above a newer one's. Equal offsets would
     // mean two fragments resolved to the same element.
     expect(
@@ -261,5 +264,41 @@ test.describe("retired URLs, with JavaScript disabled", () => {
       `the three fragments landed at ${offsets.join(", ")} — they must be three distinct places, oldest highest`,
     ).toEqual([...offsets].toSorted((a, b) => a - b));
     expect(new Set(offsets).size, "two fragments landed in the same place").toBe(probes.length);
+  });
+
+  test("a demoted entry's fragment lands on its credentials line", async ({ page }) => {
+    const entry = "deans-list";
+    expect(
+      careerEntries.some((candidate) => candidate.id === entry),
+      `${entry} is no longer a career entry, so this probe checks nothing`,
+    ).toBe(true);
+    const fragment = journeyEntryAnchorId(entry);
+    await page.goto(`/#${fragment}`);
+    const line = page.locator(`#${fragment}`);
+    await expect(line).toHaveCount(1);
+    await expect(page.locator(`[data-credentials-strip] #${fragment}`)).toHaveCount(1);
+    expectSettledAtRestingTop(
+      await restingTop(line),
+      `/#${fragment} must settle at the ${RESTING_TOP}px scroll margin`,
+    );
+  });
+
+  test("a case study's fragment opens its row and lands on it", async ({ page }) => {
+    // The row opens for its target from CSS alone (`:target` in globals.css),
+    // so a case study inside a closed row is still something a scriptless
+    // reader lands on and can read.
+    const study = projects.find((project) => project.id === "dd-scraper-platform");
+    expect(study, "dd-scraper-platform is no longer a project, so this checks nothing").toBeDefined();
+    await page.goto(`/#${caseStudyAnchorId("dd-scraper-platform")}`);
+    const article = page.locator(`#${caseStudyAnchorId("dd-scraper-platform")}`);
+    await expect(article).toBeVisible();
+    // Only a stability wait: the article's own scroll margin is not this
+    // spec's 80px, so the landing is asserted as "on screen" instead.
+    await restingTop(article);
+    await expect(article).toBeInViewport();
+    await expect(page.locator("#journey-entry-doordash [role=region] > div").first()).toHaveCSS(
+      "visibility",
+      "visible",
+    );
   });
 });

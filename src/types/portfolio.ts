@@ -80,8 +80,7 @@ export interface GeoPoint {
 
 /**
  * The one geographic fact the origin story may draw on. Every other place
- * that touches the story — captions, the player's flight label, the
- * reduced-motion storyboard — computes from career entries or from this
+ * that touches the story — captions, the player's flight label — computes from career entries or from this
  * block, never from a second, independently-typed place name.
  */
 export interface Origin {
@@ -89,8 +88,7 @@ export interface Origin {
   readonly to: string;
   readonly arrived: string;
   readonly arrivedYear: number;
-  /** ISO date. The only birth date on the site; `arrivedAge()` subtracts it
-   *  from `arrivedOn` so no age is ever typed twice. */
+  /** ISO date. The only birth date on the site. */
   readonly born: string;
   /** `YYYY-MM` — the machine-readable twin of `arrived`. `arrived` is prose a
    *  visitor reads; this is what arithmetic uses. `arrivedOnAgreesWithArrived()`
@@ -377,3 +375,12 @@ export type CodeTokenKind =
   | "string"
   | "punctuation"
   | "comment";
+
+/** One measured card at the head of the Journey. `value` and `label` may hold a
+ *  figure only if the entry's `headline` or `impact` holds it too
+ *  (`tests/lib/highlights.test.ts`). */
+export interface Highlight {
+  readonly entryId: string;
+  readonly value: string;
+  readonly label: string;
+}

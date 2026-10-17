@@ -464,7 +464,7 @@ test.describe("ask, in contact", () => {
     test.skip(viewportWidth(page) === 390, "covered by 375; five widths are enough");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+    await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
     await expect(questionField(page)).toHaveCount(0);
 
     const footerOffset = () =>

@@ -90,9 +90,9 @@ the engine *and* the coastlines into the initial bundle.
 
 The page is four sections, in this order: About (`#about` — the hero: a short
 identity column beside a terminal card built from content, no rail, no height
-floor: it is as tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`,
-the pinned stage) and Contact (`#contact`, which also holds the chat at
-`#ask`).
+floor: it is as tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`: highlight cards, the
+drawn tree at >=1024px, then a one-open timeline of rows) and Contact
+(`#contact`, which also holds the chat at `#ask`).
 `navItems` in `src/content/portfolio.ts` is the same four items in the same
 order; the nav doubles as the page's table of contents.
 
@@ -140,20 +140,19 @@ hero's terminal reads it.
 The tree draws only authored relationships. Each branch is one career entry
 (chronological, each exactly once) and its leaves are that entry's own
 `technologies`, verbatim. Its `impact` lines render verbatim in that entry's
-panel (and in the mobile list's disclosure), not as leaves; its `headline` is
-shown with the branch at rest. Do not make it infer edges by
+timeline row, not as leaves; its `headline` is shown with the branch and the
+row at rest, and the branch's label links to the row. Do not make it infer edges by
 matching skill names against technology strings: the two vocabularies only
 overlap 17 of 38 ways, so loose matching invents links and strict matching
 claims real skills were never used. `tests/lib/knowledge-tree.test.ts`
 enforces this.
 
-- **What is drawn.** The stage draws `buildDrawnTree()`: every career entry
+- **What is drawn.** The Journey draws `buildDrawnTree()`: every career entry
   except the nine in `DEMOTED_ENTRY_IDS` (`src/lib/knowledge-tree.ts`), which
   render as one credentials line instead. Their content is unchanged and still
   indexed; only the limb is gone.
-- **No roots.** Nothing is drawn below the ground line. The story starts at the
-  crossing — the first act, which is the arrival itself, authored on `origin`
-  rather than on any career entry. The root labels, root system and plinth
+- **No roots.** Nothing is drawn below the ground line. The root labels, root
+  system and plinth
   that used to sit under the tree (`skillCategories` as labels linking to the
   Skills section) were retired in round 18; skill categories now render on
   `/resume` and in the chat corpus, not on the tree. Do not bring them back as
@@ -164,20 +163,20 @@ enforces this.
   contains every role from 2021 to 2025 rather than running beside them, and is
   demoted, so it is never drawn as anyone's sibling. A guessed end month
   creates overlaps by itself — see the comment on `fu-of-kyoto`.
-- **Acts are authored.** Which act draws an entry is `ENTRY_ACTS` in
-  `src/lib/anchors.ts` — an editorial call about the story, not a computation
-  over dates.
+- **The timeline owns the fragments.** Each drawn entry's row carries
+  `journey-entry-<id>` and its case studies' `work-<projectId>`; a demoted
+  entry's credentials line carries its `journey-entry-<id>`. One row is open at
+  a time; a fragment opens its row, and with JavaScript off `:target` does.
 
 ### `src/lib/` never imports from `src/sections/`
 
 Through round 17 `src/lib/worlds.ts` imported an anchor helper from a section's
 own folder, and deleting that section broke the library at compile time. Round
-18 moved everything the library needs — the act ids, the entry → act map and
-the act anchors — into `src/lib/anchors.ts`, and nothing under `src/lib/`
-imports from `src/sections/` now. Keep it that way: when a library function
-needs something a section owns, the thing moves into `lib/`. No lint rule or
-test fences this boundary, so grep for `@/sections` under `src/lib/` before
-adding an import.
+18 moved what the library needed into `lib/` (round 20 then deleted it with the
+acts), and nothing under `src/lib/` imports from `src/sections/` now. Keep it
+that way: when a library function needs something a section owns, the thing
+moves into `lib/`. No lint rule or test fences this boundary, so grep for
+`@/sections` under `src/lib/` before adding an import.
 
 ## Before calling anything done
 

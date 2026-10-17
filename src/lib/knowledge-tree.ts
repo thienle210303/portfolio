@@ -25,7 +25,7 @@ import type { CareerEntry } from "@/types/portfolio";
  *
  * Through round 18 an entry's `impact` lines were leaves too. Round 19 took
  * them off: they are sentences, not names, and they ride on the branch itself
- * (`TreeBranch.impact`) beside its `headline`, for the branch's panel to show.
+ * (`TreeBranch.impact`) beside its `headline`, for the timeline row to show.
  *
  * ## Round 12 — the tree inverts
  *
@@ -169,15 +169,16 @@ export function totalTechnologies(): number {
 }
 
 /**
- * The entries that stop being branches in round 18 and become one credentials
- * line on the Journey's stage.
+ * The entries that stopped being branches in round 18 and render as one
+ * credentials line each, below the Journey's timeline.
  *
  * ## Why: eleven limbs fit one screen and twenty do not
  *
  * That is the whole reason, and it is a reason about space rather than about
- * worth. The stage pins one viewport and grows a tree inside it; twenty limbs
- * at that height are a thicket in which no single branch can be read, and the
- * drawing stops being an argument and becomes texture. Eleven fit. So nine
+ * worth. Round 18's pinned stage grew the tree inside one viewport; twenty
+ * limbs at that height were a thicket in which no single branch could be read,
+ * and the drawing stopped being an argument and became texture. Eleven fit,
+ * and the drawing has kept that number since the stage was retired. So nine
  * entries render as `CredentialsStrip`'s one line each — `role · organization ·
  * dateRange`, plus a repository link where the entry authored one — instead of
  * as branches.
@@ -209,7 +210,7 @@ export function totalTechnologies(): number {
  * this and accepted it explicitly: it is a deliberate cost of fitting the
  * drawing on one screen, not an oversight. `capstone`, `cockyhacks` and
  * `code-to-give` lose their `built` lines the same way. `capstone` at least
- * keeps its project (`automotive-genai`) as a case study under the stage, and
+ * keeps its project (`automotive-genai`) as a case study after the timeline, and
  * the two hackathons keep their repository links on the strip — but links
  * rendered is not the same claim as content rendered, and this comment is not
  * using the one to excuse the other.

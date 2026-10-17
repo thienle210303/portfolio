@@ -3,6 +3,7 @@ import { careerEntries } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { isDemotedEntry } from "@/lib/knowledge-tree";
 import type { CareerEntry } from "@/types/portfolio";
+import { journeyEntryAnchorId } from "./anchors";
 import ProjectRecording from "./ProjectRecording";
 
 // Widened once: `careerEntries` keeps each entry as a literal, so `.link` is
@@ -26,6 +27,9 @@ const ENTRIES: readonly CareerEntry[] = careerEntries;
  * this — is the whole cost. That is the whole of what the strip adds to a
  * line: it is not a re-expansion of the branch the entry used to be.
  *
+ * Each line carries its entry's `journey-entry-<id>` fragment: a demoted entry
+ * has no timeline row, and this line is where an old link to it should land.
+ *
  * An entry that carries a `recording` gets one press-to-play button and its
  * caption under its line (`ProjectRecording`, nothing fetched until the
  * press). The entry has no case study, so this is the one place it renders.
@@ -42,7 +46,8 @@ export default function CredentialsStrip({ className }: { readonly className?: s
         {entries.map((entry) => (
           <li
             key={entry.id}
-            className="wrap-anywhere text-[length:var(--step--1)] leading-snug text-fg-muted"
+            id={journeyEntryAnchorId(entry.id)}
+            className="scroll-mt-20 wrap-anywhere text-[length:var(--step--1)] leading-snug text-fg-muted"
           >
             {entry.link ? (
               <ExternalLink

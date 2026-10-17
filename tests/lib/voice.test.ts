@@ -3,13 +3,11 @@ import { careerEntries, projects } from "@/content/portfolio";
 import { buildDrawnTree, DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
 import { buildDocuments } from "@/lib/answer-corpus";
 import type { CareerEntry } from "@/types/portfolio";
+import { figures } from "./figures";
 
 const ENTRIES: readonly CareerEntry[] = careerEntries;
 const DRAWN_IDS = buildDrawnTree().map((branch) => branch.id);
 const drawn = ENTRIES.filter((e) => DRAWN_IDS.includes(e.id));
-
-const figures = (s: string) =>
-  (s.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((n) => n.replace(/,/g, ""));
 
 describe("Journey headlines", () => {
   it("covers every drawn entry exactly once", () => {

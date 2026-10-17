@@ -56,17 +56,20 @@ test.describe("no-JS parity", () => {
     await expect(heading).toHaveCSS("opacity", "1");
   });
 
-  test("every drawn branch's headline is visible with its panel closed", async ({ page }) => {
+  test("every drawn branch's headline is visible with its row closed", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the drawing shows from lg up; run once");
     await page.goto("/");
     const headlines = page.locator("#tree [data-origin-host] [data-tree-headline]");
     await expect(headlines).toHaveCount(11);
-    const triggers = page.locator('#tree [data-origin-host] [id^="tree-branch-"][id$="-trigger"]');
+    const triggers = page.locator('#tree [data-timeline] [id^="tree-list-branch-"][id$="-trigger"]');
     await expect(triggers).toHaveCount(11);
     for (const trigger of await triggers.all()) {
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
     }
     for (const headline of await headlines.all()) await expect(headline).toBeVisible();
+    for (const headline of await page.locator("#tree [data-timeline] [data-tree-headline]").all()) {
+      await expect(headline).toBeVisible();
+    }
   });
 
   test("the hero has no data-motion attribute and renders at rest", async ({ page }) => {

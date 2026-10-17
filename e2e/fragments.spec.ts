@@ -14,8 +14,9 @@ import { test, expect, type Page } from "@playwright/test";
  * not the imports.
  *
  * What it covers: every `main a[href^="#"]` — the Hero, the
- * Journey in both of its presentations (one is `display: none` at any width,
- * and a hidden link still has to resolve), the case studies and Contact. It
+ * Journey's highlight cards, drawing (`display: none` below 1024px, and a
+ * hidden link still has to resolve) and timeline, the case studies and
+ * Contact. It
  * does NOT cover the header (`a[href="/#id"]`, derived from `navItems`, which
  * `navigation.spec.ts` already exercises) or the chat's citations (`#ask`), which
  * only exist after a question is asked — `tests/lib/answers.test.ts` walks the
@@ -33,12 +34,22 @@ import { test, expect, type Page } from "@playwright/test";
  *    `content-integrity.spec.ts` does it, because a link inside a collapsed
  *    branch panel is not in the document until its trigger has been pressed.
  *    The loop runs until no collapsed trigger is left, so a panel opened on one
- *    pass exposes the case study inside it to the next.
+ *    pass exposes the case study inside it to the next. The Journey's timeline
+ *    opens one row at a time, so its rows are forced open with a test-only
+ *    stylesheet (the print stylesheet's override) and their triggers skipped.
  */
 
 async function expandAllDisclosures(page: Page): Promise<void> {
+  // Hydrated, so a click on a trigger is handled rather than lost.
+  await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
+  await page.addStyleTag({
+    content:
+      '[data-timeline] [role="region"] { grid-template-rows: 1fr !important; } ' +
+      '[data-timeline] [role="region"] > div { visibility: visible !important; transition: none !important; }',
+  });
   await page.evaluate(async () => {
-    const isVisible = (el: HTMLElement) => el.offsetParent !== null;
+    const isRow = (el: HTMLElement) => el.id.startsWith("tree-list-branch-");
+    const isVisible = (el: HTMLElement) => el.offsetParent !== null && !isRow(el);
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
     for (let guard = 0; guard < 200; guard += 1) {
       const buttons = Array.from(
@@ -52,7 +63,9 @@ async function expandAllDisclosures(page: Page): Promise<void> {
     // clicked 200 times while every other disclosure was skipped) or the page
     // has more than 200 of them. Either way the sweep below would silently see
     // less of the page than it reports, so say so instead.
-    const stuck = document.querySelector('#main button[aria-expanded="false"]');
+    const stuck = Array.from(
+      document.querySelectorAll<HTMLElement>('#main button[aria-expanded="false"]'),
+    ).find((el) => !isRow(el));
     throw new Error(
       `expandAllDisclosures hit its 200-click cap with a collapsed trigger still present: ${stuck?.id || stuck?.textContent?.trim() || "(unnamed)"}`,
     );

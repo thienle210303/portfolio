@@ -45,7 +45,7 @@ const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 const IS_WINDOWS = process.platform === "win32";
 
-// Page order per src/app/page.tsx: about, worlds, tree, contact, closing.
+// Page order per src/app/page.tsx: about, worlds, tree, contact.
 // Round 18 deleted Selected Work (`#work`) and Skills (`#skills`); the case
 // studies render inside the Journey's branches. No standalone "journey" or "resume" section
 // any more — journey folded into tree (see CareerTree.tsx), résumé moved to its own
@@ -55,7 +55,7 @@ const IS_WINDOWS = process.platform === "win32";
 // Playground Earth's "worlds" section joined the same round, second in page
 // order, right after the hero. The Workshop that joined it was removed in
 // round 18.
-const SECTIONS = ["about", "worlds", "tree", "contact", "closing"];
+const SECTIONS = ["about", "worlds", "tree", "contact"];
 
 const outPath = (name) => path.join(OUT_DIR, `${name}.png`);
 
@@ -161,15 +161,12 @@ async function captureDesktop(browser) {
   await settle(page, 250);
   await article.screenshot({ path: outPath("case-study-open-1440") });
 
-  // The Journey with the pin released, via the real "Show me the whole tree"
-  // button — the pinned stage is what shootSections above captures at
-  // whatever act the page happened to be scrolled to, so this is the finished
-  // tree in normal flow instead. (Round 18 replaced the Tree / List toggle
-  // this used to click.)
+  // The Journey whole — highlights, the drawn tree and the timeline — with
+  // one timeline row open, so its impact lines, chips and case studies show.
   const tree = page.locator("#tree");
-  await tree.scrollIntoViewIfNeeded();
-  await page.getByRole("button", { name: "Show me the whole tree" }).click();
+  await page.locator("#tree-list-branch-doordash-trigger").click();
   await settle(page, 250);
+  await tree.scrollIntoViewIfNeeded();
   await tree.screenshot({ path: outPath("tree-list-1440") });
 
   // The chat, with one turn asked from the suggested-questions list. Round 18

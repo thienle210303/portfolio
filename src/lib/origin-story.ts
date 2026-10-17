@@ -168,20 +168,6 @@ export function seasonsFor(): readonly Season[] {
 }
 
 /**
- * How far into the career's growth a given year is, as 0..1: 0 at the flight
- * landing, 1 at the last year any career entry starts in. Clamped outside that
- * span so a caller never has to guard against a stray negative or an
- * overshoot past a fully-grown tree.
- */
-export function growthStage(year: number): number {
-  const { lastYear } = careerYearSpan();
-  const span = lastYear - origin.arrivedYear;
-  if (span <= 0) return year <= origin.arrivedYear ? 0 : 1;
-  const stage = (year - origin.arrivedYear) / span;
-  return Math.min(1, Math.max(0, stage));
-}
-
-/**
  * The first year the canopy exists: the earliest year any career entry lands
  * in, which is the same fact `careerYearSpan().firstYear` already is —
  * this is only a second name for it, so `DrawnTree.tsx` can ask the origin
@@ -328,27 +314,6 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ] as const;
-
-/**
- * His age when he landed, in whole years — `origin.born` subtracted from
- * `origin.arrivedOn`, never typed. Uses the first of the arrival month, which
- * is the conservative read: it can only ever understate the age by rounding
- * down, and it never needs a day that nobody authored.
- *
- * Deliberately not `Date.now()`-relative. The whole page is built once at
- * build time, so anything measured from "now" drifts stale between deploys
- * with no content change — the same reason `careerYearSpan()` reads `sortKey`
- * instead of `Date`.
- */
-export function arrivedAge(): number {
-  const [bornYear, bornMonth, bornDay] = origin.born.split("-").map(Number);
-  const [arrivedYear, arrivedMonth] = origin.arrivedOn.split("-").map(Number);
-  let age = arrivedYear - bornYear;
-  // Arrived on the 1st, so a birthday later in the arrival month has not
-  // happened yet.
-  if (arrivedMonth < bornMonth || (arrivedMonth === bornMonth && bornDay > 1)) age -= 1;
-  return age;
-}
 
 /**
  * Whether `origin.arrived` (prose) and `origin.arrivedOn` (machine) name the

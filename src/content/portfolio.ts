@@ -21,6 +21,7 @@ import type {
   Companion,
   ContactIntent,
   EducationEntry,
+  Highlight,
   NavItem,
   Origin,
   OriginStops,
@@ -99,8 +100,8 @@ export const profile = {
 } satisfies Profile;
 
 /**
- * The only geographic fact the origin story may draw. Every caption, label
- * and storyboard frame the story renders computes from career entries or
+ * The only geographic fact the origin story may draw. Every caption and
+ * label the story renders computes from career entries or
  * from this block — never a second, independently-typed place name.
  */
 export const origin = {
@@ -1400,6 +1401,21 @@ export const achievements = [
     date: "2021 — 2025",
   },
 ] satisfies readonly Achievement[];
+
+/* -------------------------------------------------------------------------- */
+/* Journey highlights                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** The five measured cards that open the Journey, in order. Each `entryId`
+ *  names a career entry; every figure here must also appear in that entry's
+ *  `headline` or `impact`. */
+export const highlights = [
+  { entryId: "doordash", value: "17h → 3m", label: "Reverse engineering scraper: 17 hours to 3 minutes." },
+  { entryId: "wordification", value: "99.9%", label: "Speech QA pipeline, validated audio accuracy." },
+  { entryId: "schaeffler", value: "96%", label: "Throughput lift from custom Java in low-code." },
+  { entryId: "usc-scraping", value: "3M+", label: "Amazon and Kroger records, unattended for months." },
+  { entryId: "usc-ta", value: "200+", label: "Students helped in open lab." },
+] as const satisfies readonly Highlight[];
 
 /* -------------------------------------------------------------------------- */
 /* AI tooling reference                                                        */

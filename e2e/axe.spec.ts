@@ -62,22 +62,12 @@ async function scrollIntoViewAndSettle(page: Page, selector: string): Promise<vo
 }
 
 /**
- * Wait for the Journey's stage to have gone live *and* settled before a
- * full-page audit. Going live re-styles every unreached branch from the
- * finished tree's opacity 1 to the pin's 0; until the final fix wave that ran
- * as a 500ms fade, and an audit landing inside it measured a branch at
- * ~1.05:1 — a real frame, but one no reader is meant to dwell on (Ruling 84).
- * The product fix is that nothing transitions until `data-stage-settled`
- * (`Stage.tsx`), so the switch is a cut; this wait is the spec's own half,
- * so an audit never samples the page between hydration and the stage's first
- * painted act. Both attributes are set at every width wherever an
- * IntersectionObserver exists, so this never waits on a pin that a narrow
- * viewport does not have — and a stage that never goes live fails here, by
- * name, instead of passing an audit of the static layout.
+ * Wait for the Journey's timeline to have hydrated before a full-page audit,
+ * so the audit sees the rows React owns rather than the server render's
+ * `:target` fallback. A timeline that never goes live fails here, by name.
  */
-async function stageSettled(page: Page): Promise<void> {
-  await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-live", "");
-  await expect(page.locator("#tree [data-stage]")).toHaveAttribute("data-stage-settled", "");
+async function timelineLive(page: Page): Promise<void> {
+  await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
 }
 
 /**
@@ -97,7 +87,7 @@ test.describe("full-page audit", () => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "run once, at a representative mobile width");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await stageSettled(page);
+    await timelineLive(page);
     await auditHasNoViolations(page);
   });
 
@@ -105,7 +95,7 @@ test.describe("full-page audit", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once, at a representative desktop width");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await stageSettled(page);
+    await timelineLive(page);
     await auditHasNoViolations(page);
   });
 });
@@ -136,8 +126,8 @@ test.describe("interactive states", () => {
     // that race rather than depending on where the trigger below happens to
     // sit relative to it.
     await scrollIntoViewAndSettle(page, "#tree-heading");
-    // The coursework and capstone case studies render after the stage and are
-    // always in the document; the ones inside a branch sit in a collapsed
+    // The coursework and capstone case studies render after the timeline and
+    // are always in the document; the ones inside a row sit in a collapsed
     // panel, which this test would have to open first.
     const trigger = page
       .locator("#tree [data-unbranched-case-studies]")
@@ -182,12 +172,7 @@ test.describe("interactive states", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await scrollIntoViewAndSettle(page, "#tree-heading");
-    const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
-    // Round 18's second plan put this control on the *finished* tree: while the
-    // pin is in force and the acts are still running, the stylesheet hides it so
-    // it cannot compete with the scrubber. "Show me the whole tree" is the end
-    // state. The locator above is unchanged; only the route to it is new.
-    await page.locator("#tree").getByRole("button", { name: "Show me the whole tree" }).click();
+    const button = page.locator("#tree").getByRole("button", { name: "See how it grows" });
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
     // The stage mounting is also the instant `OriginStory.tsx`'s conductor
@@ -322,7 +307,7 @@ test.describe("night theme", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await stageSettled(page);
+    await timelineLive(page);
     await auditHasNoViolations(page);
   });
 

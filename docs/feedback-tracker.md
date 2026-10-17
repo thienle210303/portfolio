@@ -1702,3 +1702,50 @@ Production build on `:3143` at `ae0cdc6`, headless Chromium, `pnpm perf` once an
 Comparability: runs began at 4-10% CPU, against 56% (R20-P2, 31.4 fps) and about 100% (R20-P3, 16-22 fps). The fps gain (about 44-46) is therefore mostly the machine (inferred; no same-machine A/B against `5d36963`). Criteria as before: fps >= 50 missed, worst frame <= 100 ms missed (117-150 ms), rest busy < 5% met in worlds (runs 2-3) and tree (run 1; run 3 is exactly 5), Worlds entry < 50 ms missed (56-65 ms).
 
 **Verification.** `pnpm verify` 5/5 (961 unit tests, 60 files; contrast 31 pairings, lowest 4.66:1). Retrieval eval: recall@1 70.0% (floor 0.7), recall@3 93.3% (0.9), recall@5 96.7% (0.95), MRR@10 0.807 (0.8); recall@1 sits exactly on its floor. Full e2e at `--workers=2` on `:3143`: 914 passed, 706 skipped, 0 failed, no retries needed.
+
+## Round 20 phase 5 (2026-10-17) — Journey
+
+Production build on `:3153` at `35e1b7f`, headless Chromium, `pnpm perf` once and `pnpm lag` three times. Machine CPU (5 s average, between runs): 4.1% before perf, 6.5% after; 9.7 / 6.1% around lag 1, 6.3 / 6.9% around lag 2, 5.1 / 8.7% around lag 3. Close to idle, like the R20-P4 rows.
+
+**Perf row** (0 skipped responses): JS 218.5 KB (223,734 B), JS at load 165.3 KB (169,273 B), CSS 13.7 KB, fonts 72.3 KB, LCP 1564 ms (`h1#hero-heading`), TBT 199 ms, CLS 0, 2135 DOM nodes. Against R20-P4 (`ae0cdc6`: 223,853 / 169,377 B): JS -119 B, JS at load -104 B, so nothing leaked into the load path; DOM 2902 -> 2135 nodes (-767).
+
+| When | scroll4x fps / drops / worst frame / long tasks | rest busy % (about / worlds / tree / contact) | rAF calls per s (about / worlds / tree / contact) | hit tests per 5 s (about / worlds / tree / contact) | Worlds entry worst task |
+|---|---|---|---|---|---|
+| R20-P5 (run 1, `35e1b7f`) | 43.7 / 54 / 167 ms / 4 | 16.3 / 7.3 / 9.1 / 8 | 60.1 / 60 / 54.2 / 42.2 | 75 / 30 / 28 / 26 | 66 ms |
+| R20-P5 (run 2, `35e1b7f`) | 43.9 / 49 / 167 ms / 6 | 14.9 / 8.9 / 6.5 / 5.1 | 60.2 / 34 / 25.4 / 27.3 | 75 / 24 / 24 / 24 | 53 ms |
+| R20-P5 (run 3, `35e1b7f`) | 40.1 / 67 / 133 ms / 9 | 14.8 / 4.8 / 7.5 / 9.4 | 60 / 28 / 48.2 / 42.1 | 75 / 26 / 30 / 26 | 64 ms |
+
+Against R20-P4 (44.4-45.6 fps, worst frame 117-150 ms, tree rest busy 2.7-5.3%): scroll fps is 1-4 fps lower, worst frame equal or worse, tree rest busy higher (6.5-9.1%), and `about` rest busy doubled (15% vs 7-9%). The tree box was not playing in any of these samples: at rest `#tree` leaves about 17% of the box in view, under the 50% gate, and `scroll4x` scrolls every frame, which keeps resetting the 600 ms dwell. The A/B below, run after the final-review fixes, splits the scroll by section.
+
+**A/B against R20-P4** (`ae0cdc6` on `:3156` vs `19244fb` on `:3155`, both production builds, `pnpm lag` with per-section scroll bands, interleaved, CPU 5 s average before each run). `scrollHeight` is 10,792 px vs 9,741 px, and `frames` 249 vs 223: the `#tree` section is 1,051 px shorter (8,075 -> 7,024 px).
+
+| Run | CPU before | total fps / drops / worst | about band fps | worlds band fps / drops / worst | tree band fps / drops / worst | contact band fps | rest busy % (about / worlds / tree / contact) |
+|---|---|---|---|---|---|---|---|
+| `ae0cdc6` 1 | 13.0% | 44.2 / 61 / 183 ms | 143.9 (2 frames) | 28.3 / 15 / 67 ms | 45.6 / 39 / 183 ms | 48.0 | 7.9 / 3.0 / 3.4 / 5.5 |
+| `19244fb` 1 | 11.7% | 43.5 / 55 / 183 ms | 62.5 (2 frames) | 23.2 / 17 / 100 ms | 46.1 / 32 / 183 ms | 50.9 | 11.0 / 5.7 / 7.2 / 7.7 |
+| `ae0cdc6` 2 | 8.0% | 44.8 / 55 / 183 ms | 89.3 (2 frames) | 28.3 / 13 / 67 ms | 46.3 / 36 / 183 ms | 49.4 | 9.3 / 4.3 / 5.4 / 6.3 |
+| `19244fb` 2 | 7.9% | 43.7 / 56 / 117 ms | 88.5 (2 frames) | 22.2 / 17 / 83 ms | 46.5 / 34 / 117 ms | 52.5 | 12.5 / 2.6 / 9.4 / 5.5 |
+| `ae0cdc6` 3 | 6.1% | 45.4 / 55 / 133 ms | 125.8 (2 frames) | 27.6 / 13 / 67 ms | 46.8 / 38 / 133 ms | 52.5 | 8.4 / 4.8 / 5.9 / 5.8 |
+| `19244fb` 3 | 8.7% | 44.0 / 52 / 133 ms | 61.9 (2 frames) | 23.7 / 17 / 100 ms | 46.7 / 30 / 133 ms | 50.9 | 11.5 / 7.8 / 2.0 / 4.2 |
+
+What it shows (measured): the Journey band is unchanged, 46.1-46.7 fps against 45.6-46.8, with fewer drops (30-34 against 36-39). The page lost 26 Journey frames, which are faster than the page mean, so the total fell even though the Journey band's own fps did not. The `worlds` band (17 frames) is slower in every pair, 22.2-23.7 fps against 27.6-28.3. Nothing in the globe changed; a trace of that band (below, "Fixes for both") puts the difference in Journey content painted every frame, mostly the tree box's drawing. `about` rest busy is higher in every pair (11.0-12.5% against 7.9-9.3%), so it is not machine noise. Tree rest busy overlaps (2.0-9.4% against 3.4-5.9%). An earlier interleaved set without CPU readings showed the same pattern.
+
+**`about` rest trace** (CDP trace plus CPU profile of the same 5 s window `rest.about` samples, two runs per build). The top self-time difference is `PaintArtifactCompositor::Update`: 51 and 60 ms on `ae0cdc6`, 138 and 131 ms on `19244fb`. JS self time is not where the difference is. Forcing the tree box to `height: auto; overflow: visible` on `19244fb` brought it to 69 and 78 ms. So most of the extra compositing-update work at the top of the page comes from the tree box being a scroll container, even though it is off screen (two runs, inferred from that override, not a product change). The rest of the gap (about 15 ms) is not attributed.
+
+**Fixes for both, and their re-measurement (open).** The `worlds`-band trace put the slowdown in the document's `Paint` (37-53 ms on `ae0cdc6` against 84-87 ms over the band's 17 frames). Hiding the tree box (`display: none`) recovered the band, and so did `content-visibility` on the timeline and the case studies below it. Under `content-visibility: auto` the box was still drawn, because the browser's own margin reaches it from Worlds. Three changes landed:
+- The box is `data-far` beyond 200 px of the viewport unless a show runs: contents `content-visibility: hidden`, `overflow: clip`, so it is neither a scroll container nor drawn. With JS off it is never far.
+- The timeline is `content-visibility: auto` at lg.
+- The unbranched case studies are `content-visibility: auto` at lg.
+
+Interleaved traces after the fixes (`2977f07` against `ae0cdc6`, 3 pairs, machine at 92-100% CPU from other work) give these, with fps and worst frame under tracing at that load:
+
+| Metric | `ae0cdc6` | `2977f07` |
+|---|---|---|
+| `about` rest `PaintArtifactCompositor::Update` | 91-105 ms | 68-71 ms |
+| Worlds band `Paint` | 60-79 ms | 41-69 ms |
+| Worlds band fps | 12.4-14.0 | 11.0-13.8 |
+| Worlds band worst frame | 183-217 ms | 250-450 ms |
+
+The worst frames on both builds are one rAF callback (the same `Z` in the shared chunk) whose length tracks the load, plus, on `2977f07`, one layout of about 170 ms near the band's end. That layout is inferred to be the box being drawn as it comes within 200 px. Not yet re-measured: the `pnpm lag` A/B. The machine never dropped below 20% CPU for a pair over about 75 minutes of gated attempts, so no lag row is recorded for the fixes.
+
+**Verification.** `pnpm verify` 5/5 (942 unit tests, 59 files; contrast 31 pairings, lowest 4.66:1). Retrieval eval: recall@1 70.0% (floor 0.7), recall@3 93.3% (0.9), recall@5 96.7% (0.95), MRR@10 0.807 (0.8); unchanged from R20-P4, recall@1 sits exactly on its floor. Full e2e at `--workers=2` on `:3153`: 963 passed, 711 skipped, 0 failed, no retries needed.

@@ -2,12 +2,10 @@ import { describe, expect, it } from "vitest";
 import { careerEntries, origin } from "@/content/portfolio";
 import { careerYearSpan } from "@/lib/knowledge-tree";
 import {
-  arrivedAge,
   arrivedOnAgreesWithArrived,
   CAPTION_MAX_CHARS,
   dueByElapsed,
   firstCanopyYear,
-  growthStage,
   kindFor,
   LEAF_POP_MS,
   ORDINARY_DUR_MS,
@@ -149,29 +147,6 @@ describe("kindFor", () => {
 
   it("never returns \"storm\" — that is Season.storm's job, not kindFor's", () => {
     expect(kindFor({ learning: 3, work: 3, milestones: 3 })).not.toBe("storm");
-  });
-});
-
-describe("growthStage", () => {
-  const { lastYear } = careerYearSpan();
-
-  it("is 0 at arrival and 1 at the career's last year", () => {
-    expect(growthStage(origin.arrivedYear)).toBe(0);
-    expect(growthStage(lastYear)).toBe(1);
-  });
-
-  it("is monotonically non-decreasing across the span", () => {
-    let previous = growthStage(origin.arrivedYear);
-    for (let year = origin.arrivedYear + 1; year <= lastYear; year++) {
-      const stage = growthStage(year);
-      expect(stage).toBeGreaterThanOrEqual(previous);
-      previous = stage;
-    }
-  });
-
-  it("clamps outside the span instead of going negative or past 1", () => {
-    expect(growthStage(origin.arrivedYear - 5)).toBe(0);
-    expect(growthStage(lastYear + 5)).toBe(1);
   });
 });
 
@@ -341,13 +316,6 @@ describe("dueByElapsed", () => {
 });
 
 describe("the crossing's own arithmetic", () => {
-  it("computes his age on arrival rather than carrying a number", () => {
-    // Born 2003-03-03, arrived 2018-12. Fifteen, and nothing in the content
-    // layer says "15" — if it did, a birthday would silently make it wrong.
-    expect(arrivedAge()).toBe(15);
-    expect(JSON.stringify(origin)).not.toContain('"arrivedAge"');
-  });
-
   it("keeps the prose date and the machine date agreeing", () => {
     // `arrived` is what a reader sees; `arrivedOn` is what the arithmetic
     // uses. Two spellings of one fact is exactly the drift this site exists

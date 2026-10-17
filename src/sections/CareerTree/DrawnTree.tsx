@@ -1,6 +1,3 @@
-import { Disclosure } from "@/components/ui/Disclosure";
-import { projects } from "@/content/portfolio";
-import { ACT_IDS, actForEntry } from "@/lib/anchors";
 import { cn } from "@/lib/cn";
 import {
   careerYearSpan,
@@ -9,13 +6,13 @@ import {
   type TreeLeaf,
 } from "@/lib/knowledge-tree";
 import { firstCanopyYear } from "@/lib/origin-story";
-import CaseStudy from "./CaseStudy";
-import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
+import { journeyEntryAnchorId } from "./anchors";
+import { drawnSiblings } from "./tree-labels";
 
 /**
- * The career tree, actually drawn — the presentation used at >=1024px, where
- * there is finally enough width to draw in. Same data, same authored edges,
- * same component boundary as the list in KnowledgeTreeList.tsx.
+ * The career tree, actually drawn — shown at >=1024px, where there is finally
+ * enough width to draw in, above the timeline in KnowledgeTreeList.tsx. Same
+ * data, same authored edges.
  *
  * ## What is drawn, and what draws it
  *
@@ -102,30 +99,16 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
  * show and sparse where it did not, and both readings come out of the
  * content rather than out of a designer's hand.
  *
- * ## Why the branch panel alone is interactive
+ * ## Why the branch label alone is interactive
  *
- * Round 12 moved the `Disclosure` from the leaf to the branch: through round
- * 11 a leaf *was* a career entry, so it needed the collapse — an entry's
- * dates, technologies and case studies are a lot to show at every one of the
- * (up to five) places it hung off the drawing. Now a leaf is a single
- * authored fact — one technology — with nothing further
- * underneath it to disclose, so it is drawn plainly: no button, no panel, no
- * tab stop, just a line-drawn blade and the fact beside it. What still needs
- * disclosing — the impact lines, the kind and dates, the drawn branches that
- * ran alongside it, and (since round 18) its case studies in full — lives on the one thing per
- * branch that still has it: the branch panel itself, at the bough's own end,
- * using the same `Disclosure` component the case studies use. That buys correct
- * `aria-expanded`/`aria-controls` wiring, the collapsed subtree genuinely
- * leaving the tab order, print expansion and the reduced-motion path, without
- * a second implementation of any of it — and, with one tab stop per drawn
- * branch instead of one per leaf-entry (up to twenty-five), it keeps exactly the discipline the
- * round-6 drawing already held: a page a visitor has not touched yet does not
- * hand them a tab stop for every fact on it.
- *
- * Branch panels open independently rather than as an accordion. One-at-a-time
- * would mean opening any panel silently collapsed another somewhere else on
- * the drawing — a layout shift under the pointer, and a tree that can never
- * be read as a whole.
+ * A leaf is a single authored fact — one technology — with nothing underneath
+ * it to disclose, so it is drawn plainly: no button, no panel, no tab stop.
+ * The one control per branch is the role in its panel, a link to that entry's
+ * timeline row, where the impact lines, the dates, what ran alongside and the
+ * case studies live (until round 20 the panel was a `Disclosure`
+ * holding them itself). One tab stop per drawn branch, never one per fact: a
+ * page a visitor has not touched yet does not hand them a tab stop for every
+ * fact on it.
  *
  * Every stroke on this page is `aria-hidden`: to assistive technology this is
  * a list of career entries in order, each holding a list of what it
@@ -135,21 +118,6 @@ import { drawnSiblings, KIND_LABEL, siblingsLabel } from "./tree-labels";
 interface DrawnTreeProps {
   readonly tree: readonly TreeBranch[];
   readonly className?: string;
-}
-
-/** Which act a branch is drawn in, as an index into `ACT_IDS`, stamped on the
- *  branch as `data-branch-act`. The map from entry to act lives in
- *  `src/lib/anchors.ts` and nowhere else; this only asks it.
- *
- *  The drawing never learns which act the stage is at. The stage puts that on
- *  its own root as `data-through`, and `globals.css` compares the two — so this
- *  stays a Server Component, rendered once, and every branch is always in the
- *  DOM: the finished tree is what a reader gets with JavaScript off, under
- *  reduced motion and in print. -1 for an entry the map does not place, which
- *  is left unmarked and so is never faded. */
-function actIndexOf(branch: TreeBranch): number {
-  const act = actForEntry(branch.id);
-  return act === undefined ? -1 : ACT_IDS.indexOf(act);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -753,126 +721,47 @@ function Bough({
 /* -------------------------------------------------------------------------- */
 
 /**
- * The card at a bough's own end: one career entry, named. Collapsed it
- * carries the role, the organisation and the year, with the entry's headline
- * beneath it (the `Disclosure` `preview`: outside the trigger, so it is
- * visible at rest, with JavaScript off and in print, and never joins the
- * trigger's name); opened it adds "What it changed" (the entry's impact lines,
- * verbatim), the kind and date range, which drawn branches ran at the same
- * time, and every case study built in that role, in full (round 18 — they
- * were a section of their own). What it deliberately does *not* repeat is the
- * entry's technologies — those are drawn as this bough's own leaves, always
- * visible on the twig below, so the panel never restates a fact already on
- * the page beside it. Impact lines are shown here and nowhere on the twig.
+ * The card at a bough's own end: one career entry, named — the role and
+ * organisation, the year, and the entry's headline beneath. The role is a link
+ * to the entry's timeline row (`#journey-entry-<id>`), which holds what used to
+ * open here: the impact lines, the dates, what ran alongside, and the case
+ * studies. It deliberately does not list the entry's technologies — those are
+ * drawn as this bough's own leaves, on the twig below.
  *
- * `data-tree-panel` is the origin story's hook, and a live contract. The
- * player lives on the stage's own drawing (`CareerTree.tsx` renders
- * `WatchOrigin` inside `[data-origin-host]`), so while the show runs the
- * conductor stamps `data-origin-running` on that host and the "Origin story
- * v2" block in `globals.css` hides a still-pending branch's panel through this
- * attribute — which is what keeps a card from standing fully readable beside a
- * branch that has not grown yet. `e2e/axe.spec.ts` reads it too: its settle
- * poll waits for `#tree [data-tree-panel]` to finish fading before auditing,
- * and fails rather than passing if the selector matches nothing. **Renaming or
- * dropping the attribute breaks the fade and the audit together.**
- *
- * It had a second reader until round 18: the hover/focus cross-highlight
- * island, `TreeFigure.tsx`. The pinned stage never mounted it, and round 18
- * retired it along with its stylesheet rules (git history has both).
+ * `data-tree-panel` is the origin story's hook, and a live contract. While the
+ * show runs the conductor stamps `data-origin-running` on `[data-origin-host]`
+ * and the "Origin story v2" block in `globals.css` hides a still-pending
+ * branch's panel through this attribute — which is what keeps a card from
+ * standing fully readable beside a branch that has not grown yet.
+ * `e2e/axe.spec.ts` reads it too: its settle poll waits for
+ * `#tree [data-tree-panel]` to finish fading before auditing, and fails rather
+ * than passing if the selector matches nothing. **Renaming or dropping the
+ * attribute breaks the fade and the audit together.**
  */
-function BranchPanel({
-  branch,
-  side,
-  siblings,
-}: {
-  readonly branch: TreeBranch;
-  readonly side: "left" | "right";
-  /** Drawn branches that ran at the same time as this one. */
-  readonly siblings: readonly TreeBranch[];
-}) {
-  const accessibleSuffix = `${branch.label}${branch.organization ? `, ${branch.organization}` : ""}`;
-
+function BranchPanel({ branch, side }: { readonly branch: TreeBranch; readonly side: "left" | "right" }) {
   return (
     <div
       data-tree-panel
-      className={cn("border border-rule bg-surface px-4 py-1", side === "left" && "ml-auto")}
+      className={cn("border border-rule bg-surface px-4 py-2", side === "left" && "ml-auto")}
       style={{ maxWidth: 340 + vary(`${branch.id}|p`, 0, 72) }}
     >
-      <Disclosure
-        id={`tree-branch-${branch.id}`}
-        className="[&>button:hover]:bg-surface"
-        expandLabel={`Show detail — ${accessibleSuffix}`}
-        collapseLabel={`Hide detail — ${accessibleSuffix}`}
-        preview={
-          branch.headline ? (
-            <p
-              data-tree-headline=""
-              className="pb-2 text-[length:var(--step--1)] leading-snug text-fg-muted"
-            >
-              {branch.headline}
-            </p>
-          ) : undefined
-        }
-        summary={
-          <span className="flex items-baseline justify-between gap-2 text-left">
-            <span className="wrap-anywhere text-[length:var(--step-0)] leading-snug text-fg">
-              {branch.label}
-              {branch.organization ? (
-                <span className="text-fg-muted"> · {branch.organization}</span>
-              ) : null}
-            </span>
-            <span aria-hidden="true" className="eyebrow shrink-0">
-              {branch.startYear}
-            </span>
-          </span>
-        }
-      >
-        <div className="space-y-3 border-t border-rule pb-4 pt-3">
-          {/* The entry's own impact lines, verbatim and in authored order.
-              Behind the click, not on the twig: they are claims, not
-              technologies, and a branch that authored none says nothing. */}
-          {branch.impact.length > 0 ? (
-            <>
-              <p className="eyebrow" id={`tree-branch-${branch.id}-changed`}>
-                What it changed
-              </p>
-              <ul
-                role="list"
-                aria-labelledby={`tree-branch-${branch.id}-changed`}
-                className="space-y-1.5 text-[length:var(--step--1)] leading-relaxed text-fg"
-              >
-                {branch.impact.map((line, index) => (
-                  <li key={index}>{line}</li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-
-          <p className="eyebrow">
-            {KIND_LABEL[branch.kind] ?? branch.kind} · {branch.dateRange}
-          </p>
-
-          {/* What ran at the same time, computed from the entries' own dates
-              (`concurrentWith`) and limited to branches that are drawn — see
-              `drawnSiblings`. A fact the content layer already holds, said
-              where a reader is looking at the branch it belongs to. */}
-          {siblings.length > 0 ? (
-            <p className="text-[length:var(--step--1)] leading-relaxed text-fg-muted">
-              Ran alongside {siblingsLabel(siblings)}
-            </p>
-          ) : null}
-
-          {/* The case studies built in this role, in full. They used to be a
-              section of their own; the prose is the site's best writing and
-              is not trimmed to fit a branch. Inside the disclosure, so a
-              collapsed branch costs nothing in the tab order. */}
-          {branch.caseStudies.map((caseStudy) => {
-            const project = projects.find((candidate) => candidate.id === caseStudy.id);
-            if (!project) return null;
-            return <CaseStudy key={project.id} project={project} index={projects.indexOf(project)} />;
-          })}
-        </div>
-      </Disclosure>
+      <p className="flex items-baseline justify-between gap-2">
+        <a
+          href={`#${journeyEntryAnchorId(branch.id)}`}
+          className="wrap-anywhere inline-block py-1 text-[length:var(--step-0)] leading-snug text-fg underline decoration-rule underline-offset-4 hover:decoration-fg"
+        >
+          {branch.label}
+          {branch.organization ? <span className="text-fg-muted"> · {branch.organization}</span> : null}
+        </a>
+        <span aria-hidden="true" className="eyebrow shrink-0">
+          {branch.startYear}
+        </span>
+      </p>
+      {branch.headline ? (
+        <p data-tree-headline="" className="pb-1 text-[length:var(--step--1)] leading-snug text-fg-muted">
+          {branch.headline}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -927,7 +816,7 @@ interface LeafMarkProps {
  * its bough's own twig. Un-boxed and non-interactive: a
  * leaf here has nothing further underneath it to disclose (round 11's leaf
  * *was* a whole career entry and needed the `Disclosure`; round 12's does
- * not — see the file banner's "Why the branch panel alone is interactive").
+ * not — see the file banner's "Why the branch label alone is interactive").
  *
  * Three elements draw its share of the tree: a hairline span for the twig's
  * straight run, one `<svg>` holding one `<path>` for the bend, the stem and
@@ -1148,7 +1037,6 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
           // One placement per branch, in the same order.
           const place = placed[index];
           const side = place.column === 1 ? "left" : "right";
-          const actIndex = actIndexOf(branch);
           // Concurrency, limited to what is on the drawing — see
           // `drawnSiblings` for why that limit is where the degree is dealt
           // with.
@@ -1165,7 +1053,6 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
               data-tree-branch={branch.id}
               data-origin-year={branch.startYear}
               data-origin-tier="branch"
-              data-branch-act={actIndex >= 0 ? actIndex : undefined}
               data-concurrent-with={
                 siblings.length > 0 ? siblings.map((sibling) => sibling.id).join(" ") : undefined
               }
@@ -1186,7 +1073,7 @@ export function DrawnTree({ tree, className }: DrawnTreeProps) {
                   while its outer edge steps in by a different amount per
                   branch. Fourteen panels all reaching the same margin was
                   most of what made the old drawing read as two columns. */}
-              <BranchPanel branch={branch} side={side} siblings={siblings} />
+              <BranchPanel branch={branch} side={side} />
 
               {branch.leaves.length > 0 ? (
                 <ul

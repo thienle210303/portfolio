@@ -4,10 +4,10 @@ import { firstCanopyYear, seasonsFor, STAGGER_STEP_MS } from "../src/lib/origin-
 import { origin } from "../src/content/portfolio";
 
 /**
- * The origin-story player (`WatchOrigin.tsx` / `OriginStory.tsx`, Workstream
- * "origin-story" Tasks 3-4): the "Watch how it grew" button that lazy-loads
- * the flight → seed → seasons → reveal → still-growing show, and its
- * reduced-motion storyboard fallback.
+ * The origin-story player (`TreeBox.tsx` / `WatchOrigin.tsx` /
+ * `OriginStory.tsx`): the tree box that lazy-loads the flight → seed →
+ * seasons → reveal → still-growing show once on sight, and the header's "See
+ * how it grows" that scrolls to the box and plays it again.
  *
  * The always-on change from Task 2 that survives round 18 (the unfinished
  * shoot) has its own coverage in `sections.spec.ts` — see "the unfinished
@@ -16,10 +16,9 @@ import { origin } from "../src/content/portfolio";
  * This file owns only the player itself.
  */
 
-// Matches the `lg:` breakpoint (1024px) `CareerTree.tsx` wraps the button in
-// `hidden lg:block` at — round 18 re-homed it from `KnowledgeTree.tsx`'s figure
-// onto the stage's drawing — the same threshold `sections.spec.ts` already
-// tests the drawn-vs-list presentation against.
+// Matches the `lg:` breakpoint (1024px) `TreeBox.tsx` hides the box and the
+// button below — the same threshold `sections.spec.ts`
+// tests the drawing against.
 const DESKTOP_MIN_WIDTH = 1024;
 // The player's own interactions are not viewport-dependent once the button
 // exists at all, so — matching the "run once, at a representative desktop
@@ -63,38 +62,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 function watchOriginButton(page: Page) {
-  return page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
-}
-
-/** Whether the Journey's stage is pinned right now — the same question
- *  `Stage.tsx` asks before it releases the pin, asked the same way, so this
- *  never becomes a second copy of the media query in `globals.css`. False below
- *  1280px, false under reduced motion, false once the pin is released. */
-async function stageIsPinned(page: Page): Promise<boolean> {
-  return page
-    .locator("#tree [data-stage-pin]")
-    .evaluate((element) => getComputedStyle(element).position === "sticky");
-}
-
-/**
- * Get to the finished tree, which is where the origin story lives.
- *
- * Round 18's second plan re-homed "Watch how it grew" onto the stage's own
- * drawing, at the crown, and gave it to the stage's *end state*: while the pin
- * is in force and the acts are still running, the stylesheet hides it, so it is
- * not a second control competing with the scrubber. "Show me the whole tree" is
- * how a reader reaches that end state, and it is the only step added here.
- *
- * This changes the *route* to the button, not the button: `watchOriginButton`
- * above is the same locator it has always been, and every assertion past this
- * point is the same assertion it was before.
- *
- * A no-op wherever the pin never engages — below 1280px, under reduced motion —
- * because there the tree on screen is already the finished one.
- */
-async function showTheFinishedTree(page: Page) {
-  if (!(await stageIsPinned(page))) return;
-  await page.locator("#tree").getByRole("button", { name: "Show me the whole tree" }).click();
+  return page.locator("#tree").getByRole("button", { name: "See how it grows" });
 }
 
 /**
@@ -109,27 +77,219 @@ async function showTheFinishedTree(page: Page) {
 const PLAYER_MOUNT_TIMEOUT = 15_000;
 
 test.describe("the button", () => {
-  test("surfaces on the finished tree at >=1024px, and never below it", async ({ page }) => {
+  test("shows in the header at >=1024px, and never below it", async ({ page }) => {
     const button = watchOriginButton(page);
     if (viewportWidth(page) < DESKTOP_MIN_WIDTH) {
-      // Below 1024px the list is the presentation and there is no drawing for a
-      // story to grow in, so `CareerTree.tsx`'s `hidden lg:block` wrapper keeps
-      // the button out of the layout entirely. There is no state to reach and
-      // no route to traverse: the pin never engages this narrow, so there is no
-      // "Show me the whole tree" control on the page to press — the whole stage
-      // is already the finished tree. One assertion, and it is the only one
-      // there is anything here to make.
+      // Below 1024px the timeline alone tells the story and there is no drawing
+      // to grow, so the button and the box are both out of the layout.
       await expect(button).toBeHidden();
       return;
     }
-    // Round 18's second plan: it belongs to the finished tree. While the pin is
-    // in force and the acts are still running it is hidden, and that half is as
-    // much the contract as the other, so both are asserted. At 1024-1279px the
-    // pin never engages, so the first assertion is skipped and the drawing on
-    // screen is already the finished one.
-    if (await stageIsPinned(page)) await expect(button).toBeHidden();
-    await showTheFinishedTree(page);
     await expect(button).toBeVisible();
+  });
+
+  test("phone shows no tree box and no button", async ({ page }) => {
+    test.skip(viewportWidth(page) !== 390, "run once, at a phone width");
+    // In the document, so "hidden" is the layout's answer and not a missing box.
+    await expect(page.locator("[data-tree-box]")).toHaveCount(1);
+    await expect(page.locator("[data-tree-box]")).toBeHidden();
+    // `getByRole` skips hidden elements, so count the raw button.
+    const button = page.locator("#tree button", { hasText: "See how it grows" });
+    await expect(button).toHaveCount(1);
+    await expect(button).toBeHidden();
+    // And nothing plays inside the hidden box (Chrome reports it with
+    // zero-height root bounds, which once read as "half in view").
+    await page.waitForTimeout(1_000);
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
+    // The timeline still tells the whole story there.
+    await expect(page.locator("#journey-entry-doordash")).toBeVisible();
+  });
+
+  test("see how it grows scrolls to the box and plays", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    await watchOriginButton(page).click();
+    // The whole box fits the screen now, so the page centres all of it.
+    await expect(page.locator("[data-tree-box]")).toBeInViewport({ ratio: 1 });
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    await expect(page.locator("[data-origin-host]")).toHaveAttribute("data-origin-running", "");
+    // And inside the box: the ground, where the growth starts, not the crown.
+    await expect(page.locator("[data-origin-ground]")).toBeInViewport();
+    await expect(page.getByRole("button", { name: "Skip" })).toBeInViewport();
+  });
+
+  test("the box follows the growth up, and hands itself back on a wheel", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    const scrollTop = () => box.evaluate((el) => el.scrollTop);
+    await watchOriginButton(page).click();
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    const atGround = await box.evaluate((el) => el.scrollHeight - el.clientHeight);
+    await expect.poll(scrollTop, { timeout: 15_000 }).toBeLessThan(atGround - 100);
+
+    // The visitor takes over: following stops, the page stays where it is.
+    await box.hover();
+    await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(500);
+    const handedBack = await scrollTop();
+    await page.waitForTimeout(4_000);
+    expect(await scrollTop()).toBe(handedBack);
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(1);
+  });
+
+  test("a press mid-growth restarts it with one player, and the companion's pair stays balanced", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    await page.evaluate(() => {
+      const w = window as unknown as { originEvents: string[] };
+      w.originEvents = [];
+      document.addEventListener("origin-story", (event) =>
+        w.originEvents.push(String((event as CustomEvent).detail)),
+      );
+    });
+    const events = () =>
+      page.evaluate(() => (window as unknown as { originEvents: string[] }).originEvents);
+
+    const button = watchOriginButton(page);
+    await button.click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    const status = stage.getByRole("status");
+    await expect(status).not.toHaveText("");
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
+    // Past the flight before pressing again.
+    await expect(status).not.toContainText("December 2018");
+
+    await button.click();
+    // A fresh show: back to the flight, and still exactly one stage.
+    await expect(status).toContainText("December 2018");
+    await expect(stage).toHaveCount(1);
+    expect(await events()).toEqual(["start", "end", "start"]);
+
+    await page.keyboard.press("Escape");
+    await expect(stage).toHaveCount(0);
+    expect(await events()).toEqual(["start", "end", "start", "end"]);
+    await expect(page.locator("[data-origin-running]")).toHaveCount(0);
+  });
+
+  test("clicking the stage to advance keeps the box following the growth", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    const scrollTop = () => box.evaluate((el) => el.scrollTop);
+    await watchOriginButton(page).click();
+    const status = page.locator("[data-origin-stage]").getByRole("status");
+    await expect(status).not.toHaveText("", { timeout: PLAYER_MOUNT_TIMEOUT });
+    const flight = await status.textContent();
+
+    // A point inside the box's own window, so the click lands on the stage
+    // rather than on something the box has scrolled out of view.
+    const rect = await box.boundingBox();
+    if (!rect) throw new Error("the tree box has no box");
+    await page.mouse.click(rect.x + 40, rect.y + rect.height - 40);
+    await expect(status).not.toHaveText(flight ?? "");
+
+    const afterClick = await scrollTop();
+    await expect.poll(scrollTop, { timeout: 15_000 }).toBeLessThan(afterClick - 100);
+    // And what it follows is the newest growth, inside the box's window.
+    await expect
+      .poll(() =>
+        box.evaluate((el) => {
+          const released = el.querySelectorAll(
+            "[data-origin-year]:not([data-origin-pending]):not([data-origin-tier='trunk'])",
+          );
+          let front = Infinity;
+          for (const group of released) front = Math.min(front, group.getBoundingClientRect().top);
+          const view = el.getBoundingClientRect();
+          return front >= view.top - 1 && front <= view.bottom;
+        }),
+      )
+      .toBe(true);
+  });
+
+  test("plays once on sight, without taking focus", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    await box.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    // The visitor did not ask, so focus stays where it was.
+    expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
+
+    await page.keyboard.press("Escape");
+    await expect(stage).toHaveCount(0);
+    // Away and back again: once per page load.
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }));
+    await box.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.waitForTimeout(1_000);
+    await expect(stage).toHaveCount(0);
+  });
+
+  test("a branch label stays a working link while a show plays", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    // A label the show has already released (pending ones are visibility: hidden).
+    const link = page
+      .locator('#tree [data-origin-host] [data-tree-panel] a[href^="#journey-entry-"]')
+      .filter({ visible: true })
+      .first();
+    await expect(link).toBeVisible({ timeout: 15_000 });
+    const id = ((await link.getAttribute("href")) ?? "").replace("#journey-entry-", "");
+    await expect(stage).toHaveCount(1);
+    // Not forced, and short: a stage that swallows the click would only let
+    // it through once the show ended, ~20 s later.
+    await link.click({ timeout: 3_000 });
+    await expect(stage, "the click must land mid-show").toHaveCount(1);
+    await expect(page.locator(`#tree #tree-list-branch-${id}-trigger`)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(page.locator(`#tree #journey-entry-${id}`)).toBeInViewport();
+  });
+
+  test("a keyboard press from far above the box still focuses Skip", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const button = watchOriginButton(page);
+    const stage = page.locator("[data-origin-stage]");
+    const box = page.locator("[data-tree-box]");
+    // One show first, so the player's chunk is already loaded.
+    await button.click();
+    await expect(stage).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    await page.keyboard.press("Escape");
+    await expect(stage).toHaveCount(0);
+
+    // The button low in the viewport, the box more than 200 px below it.
+    await button.evaluate((el) => {
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: top - window.innerHeight + 80, behavior: "instant" as ScrollBehavior });
+    });
+    await expect(box).toHaveAttribute("data-far", "");
+    await button.focus();
+    await page.keyboard.press("Enter");
+    await expect(stage.getByRole("button", { name: "Skip" })).toBeFocused();
+  });
+
+  test("does not auto-play under a pointer already on the box", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    await box.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    const rect = await box.boundingBox();
+    if (!rect) throw new Error("the tree box has no box");
+    await page.mouse.move(rect.x + rect.width / 2, rect.y + 100);
+    await page.waitForTimeout(1_500);
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
+  });
+
+  test("does not auto-play under focus already in the box", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    await box.evaluate((el) => {
+      el.scrollIntoView({ block: "start" });
+      (el as HTMLElement).focus({ preventScroll: true });
+    });
+    await page.waitForTimeout(1_500);
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
   });
 });
 
@@ -137,7 +297,6 @@ test.describe("the player", () => {
   test("pressing the button opens the stage with an honest flight caption", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the button only mounts at >=1024px; run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
 
     const stage = page.locator("[data-origin-stage]");
@@ -164,7 +323,6 @@ test.describe("the player", () => {
   test("clicking the stage advances to the next beat", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     const status = stage.getByRole("status");
@@ -174,9 +332,9 @@ test.describe("the player", () => {
     const flightCaption = await status.textContent();
 
     // Top-left corner of the stage: away from the Skip button, which sits in
-    // the top-right (`right-3 top-3`) and stops its own clicks from
-    // propagating to the stage's advance handler.
-    await stage.click({ position: { x: 5, y: 5 } });
+    // the top-right. Forced because the stage lets clicks through to the
+    // drawing (`pointer-events: none`), whose own listener advances.
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
 
     await expect(status).not.toHaveText(flightCaption ?? "");
   });
@@ -187,7 +345,6 @@ test.describe("the player", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
     const button = watchOriginButton(page);
-    await showTheFinishedTree(page);
     await button.click();
 
     const stage = page.locator("[data-origin-stage]");
@@ -210,25 +367,33 @@ test.describe("the player", () => {
   test.describe("reduced motion", () => {
     test.use({ contextOptions: { reducedMotion: "reduce" } });
 
-    test("pressing the button renders the full storyboard, with every season's year present", async ({
-      page,
-    }) => {
+    test("reduced motion: finished tree, no player", async ({ page }) => {
       test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-      await showTheFinishedTree(page);
-      await watchOriginButton(page).click();
-      const stage = page.locator("[data-origin-stage]");
-      await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
+      const box = page.locator("[data-tree-box]");
+      // On sight: nothing plays.
+      await box.evaluate((el) => el.scrollIntoView({ block: "start" }));
+      await page.waitForTimeout(1_000);
+      await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
 
-      // Real text, not an animated frame the click-to-advance idiom would
-      // otherwise gate: the storyboard renders every beat at once, so every
-      // `Season.caption`'s year must already be on the page with nothing
-      // pressed or waited for.
-      const seasons = seasonsFor();
-      expect(seasons.length, "content fixture assumption failed: no seasons computed").toBeGreaterThan(0);
-      for (const season of seasons) {
-        await expect(stage.getByText(String(season.year))).not.toHaveCount(0);
-      }
+      // The button only takes the visitor there.
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }));
+      await watchOriginButton(page).click();
+      await expect(box).toBeInViewport();
+      await page.waitForTimeout(1_000);
+      await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
+      await expect(page.locator("[data-origin-running]")).toHaveCount(0);
+      await expect(page.locator("[data-origin-pending]")).toHaveCount(0);
+      // The finished tree, at the crown: the box was never moved, and the
+      // still-growing label above the tip is inside it, not cut off.
+      expect(await box.evaluate((el) => el.scrollTop)).toBe(0);
+      const overhang = await box.evaluate(
+        (el) =>
+          el.getBoundingClientRect().top -
+          (el.querySelector("[data-tree-shoot-label]")?.getBoundingClientRect().top ?? -Infinity),
+      );
+      expect(overhang).toBeLessThan(0);
+      await expect(box.locator("[data-tree-panel]").first()).toBeVisible();
     });
   });
 });
@@ -249,7 +414,6 @@ test.describe("ground anchoring", () => {
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -284,7 +448,7 @@ test.describe("ground anchoring", () => {
     // Advance to the seed beat (beat 1) — the same box keeps drawing there,
     // not just for the flight.
     const flightCaption = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(flightCaption ?? "");
     await expect(ground.locator("svg")).toHaveCount(1);
     await expect(sky.locator("svg")).toHaveCount(0);
@@ -323,7 +487,6 @@ test.describe("chronological growth", () => {
       "content fixture assumption failed: no season names firstCanopyYear()",
     ).toBeGreaterThanOrEqual(0);
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -338,7 +501,7 @@ test.describe("chronological growth", () => {
     const targetBeatIndex = 2 + seasonIndex;
     for (let i = 0; i < targetBeatIndex; i += 1) {
       const before = await status.textContent();
-      await stage.click({ position: { x: 5, y: 5 } });
+      await stage.click({ position: { x: 5, y: 5 }, force: true });
       await expect(status).not.toHaveText(before ?? "");
     }
 
@@ -420,14 +583,13 @@ test.describe("exit hygiene", () => {
    * here cannot be explained by "nothing was ever pending to begin with".
    */
   async function midStory(page: Page): Promise<{ stage: ReturnType<Page["locator"]> }> {
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
     const before = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(before ?? "");
     expect(
       await page.locator("[data-origin-pending]").count(),
@@ -474,7 +636,6 @@ test.describe("narration without the cats", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("button", { name: /wake the cats/i })).toBeVisible();
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -486,7 +647,7 @@ test.describe("narration without the cats", () => {
 
     // And it keeps narrating rather than freezing on the flight caption.
     const before = await annotation.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(annotation).not.toHaveText(before ?? "");
   });
 });
@@ -495,7 +656,6 @@ test.describe("accessible narration", () => {
   test("the sr-only status announces every beat, and axe stays clean mid-story", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });
@@ -513,10 +673,10 @@ test.describe("accessible narration", () => {
 
     // Every beat is heard as a change, not just the first one.
     const first = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(first ?? "");
     const second = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(second ?? "");
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
@@ -552,7 +712,6 @@ test.describe("everything lives in the frame", () => {
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
 
-    await showTheFinishedTree(page);
     await watchOriginButton(page).click();
     const stage = page.locator("[data-origin-stage]");
     await expect(stage).toBeVisible({ timeout: PLAYER_MOUNT_TIMEOUT });

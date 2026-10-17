@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, within } from "@testing-library/react";
 import CareerTree from "@/sections/CareerTree/CareerTree";
-import { ACTS } from "@/sections/CareerTree/acts";
 import { buildDrawnTree, DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
 import KnowledgeTreeList from "@/sections/CareerTree/KnowledgeTreeList";
-import { ACT_IDS, actAnchorId, actForEntry } from "@/lib/anchors";
-import { caseStudyAnchorId } from "@/sections/CareerTree/anchors";
+import { DrawnTree } from "@/sections/CareerTree/DrawnTree";
+import { caseStudyAnchorId, journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
 import { careerEntries, projects } from "@/content/portfolio";
 import { buildDocuments } from "@/lib/answer-corpus";
 import { careerIndexable, education, projectsIndexable } from "@/lib/answer-sources";
@@ -25,8 +25,8 @@ describe("the Journey section", () => {
    * the content they named went. Real zero-size elements rather than a
    * client-side hash rewrite, so the landing works with JavaScript disabled —
    * which only `e2e/legacy-anchors.spec.ts` can actually prove. The per-entry
-   * `journey-entry-<id>` fragments are `Stage`'s and are asserted in
-   * `tests/sections/Stage.test.tsx`.
+   * `journey-entry-<id>` fragments are asserted below, under "per-entry
+   * fragments".
    */
   const LEGACY = ["journey", "work", "skills", "workshop"];
 
@@ -63,7 +63,7 @@ describe("the Journey section", () => {
     }
   });
 
-  it("puts the projects of demoted entries under the stage, not inside a branch", () => {
+  it("puts the projects of demoted entries after the timeline, not inside a row", () => {
     render(<CareerTree />);
     const homeless = projects.filter((project) =>
       (DEMOTED_ENTRY_IDS as readonly string[]).includes(project.careerEntryId),
@@ -78,10 +78,10 @@ describe("the Journey section", () => {
   });
 
   it("never writes an id into the document twice", () => {
-    // The drawing and the list each hold the branches' case studies, and only
-    // one of them is ever displayed; without a scope on the second copy every
-    // `id`, `aria-controls` and `aria-labelledby` here would exist twice and
-    // point at whichever came first.
+    // The drawing and the timeline present the same branches; only the
+    // timeline holds their case studies and fragments. A second copy of either
+    // would put every `id`, `aria-controls` and `aria-labelledby` here twice,
+    // pointing at whichever came first.
     render(<CareerTree />);
     const seen = new Map<string, number>();
     for (const element of document.querySelectorAll("[id]")) {
@@ -99,13 +99,7 @@ describe("the Journey section", () => {
   });
 });
 
-/**
- * What the Journey *draws* is decided here, not in `Stage`: the drawing, the
- * list and the credentials strip are built by this component and handed to the
- * stage as slots. These tests lived in `Stage.test.tsx` through round 18's
- * first pass and rendered `<CareerTree />` from there, which named the wrong
- * subject; they are the same tests, filed under the component they render.
- */
+/** What the Journey draws, and in what order. */
 describe("what the Journey draws", () => {
   it("leaves the nine demoted entries off the drawing, and keeps the rest", () => {
     render(<CareerTree />);
@@ -121,18 +115,32 @@ describe("what the Journey draws", () => {
     }
   });
 
-  it("puts the credentials strip in exactly one act, the one that says it shows it", () => {
+  it("stacks highlights, drawing, timeline, credentials and the unbranched case studies, in that order", () => {
     render(<CareerTree />);
-    const strips = document.querySelectorAll("[data-credentials-strip]");
-    expect(strips).toHaveLength(1);
-    const owner = ACTS.find((candidate) => candidate.showsCredentials);
-    if (!owner) throw new Error("no act shows the credentials strip");
-    // The same claim `src/lib/anchors.ts` makes in its ENTRY_ACTS comment:
-    // `deans-list` is filed in `two-jobs` because that is where the strip is.
-    expect(owner.id).toBe("two-jobs");
-    expect(document.getElementById(actAnchorId(owner.id))).toContainElement(
-      strips[0] as HTMLElement,
-    );
+    const blocks = [
+      document.querySelector('[aria-label="Highlights"]'),
+      document.querySelector("[data-origin-host]"),
+      document.querySelector("[data-timeline]"),
+      document.querySelector("[data-credentials-strip]"),
+      document.querySelector("[data-unbranched-case-studies]"),
+    ];
+    blocks.forEach((block, index) => expect(block, `block ${index}`).not.toBeNull());
+    for (let index = 1; index < blocks.length; index += 1) {
+      const before = blocks[index - 1] as Element;
+      const after = blocks[index] as Element;
+      expect(
+        before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING,
+        `block ${index - 1} is not before block ${index}`,
+      ).toBeTruthy();
+    }
+    expect(document.querySelectorAll("[data-credentials-strip]")).toHaveLength(1);
+  });
+
+  it("renders no pinned stage and no act", () => {
+    render(<CareerTree />);
+    for (const selector of ["[data-stage]", "[data-act]", "[data-branch-act]", '[id^="act-"]']) {
+      expect(document.querySelectorAll(selector), selector).toHaveLength(0);
+    }
   });
 
   it("names all nine demoted entries on the strip, read from the content layer", () => {
@@ -201,62 +209,42 @@ describe("what the Journey draws", () => {
         ?.split(" "),
     ).toContain("wordification");
   });
-
-  it("marks every branch with the act it is drawn in, and keeps all of them in the document", () => {
-    render(<CareerTree />);
-    // The drawing's branches carry `data-branch-act`; the list shown below
-    // 1024px is the other presentation of the same branches and does not.
-    const branches = document.querySelectorAll("[data-tree-branch][data-branch-act]");
-    expect(branches).toHaveLength(careerEntries.length - DEMOTED_ENTRY_IDS.length);
-    for (const branch of branches) {
-      const id = branch.getAttribute("data-tree-branch") ?? "";
-      expect(Number(branch.getAttribute("data-branch-act")), id).toBe(
-        ACT_IDS.indexOf(actForEntry(id) ?? "crossing"),
-      );
-    }
-    // Scrubbing to the end changes no branch's presence, only the stage's
-    // `data-through`; nothing is ever removed to make it "not yet".
-    fireEvent.change(screen.getByRole("slider", { name: /year/i }), {
-      target: { value: String(ACTS.length - 1) },
-    });
-    expect(document.querySelectorAll("[data-tree-branch][data-branch-act]")).toHaveLength(
-      branches.length,
-    );
-  });
 });
 
 /**
- * The origin-story player, re-homed by round 18's second plan (Decision A).
+ * The origin-story player, now grown in the tree box (`TreeBox.tsx`).
  *
- * `WatchOrigin` is the always-loaded half — a small button that `import()`s the
- * ~1,400-line player on press. These tests are about where it is mounted and
- * what it is mounted *inside*, because that is the part a refactor breaks
- * silently: the player positions itself `absolute inset-0` against
- * `[data-origin-host]` and walks up to the same element with `closest()` to
- * find the growable groups it conducts, so the button, the overlay and the
- * drawing all have to share one box.
+ * `WatchOrigin` is the always-loaded half — a mount point that `import()`s the
+ * ~1,400-line player when the box first plays or "See how it grows" is
+ * pressed. These tests are about where it is mounted and what it is mounted
+ * *inside*, because that is the part a refactor breaks silently: the player
+ * positions itself `absolute inset-0` against `[data-origin-host]` and walks
+ * up to the same element with `closest()` to find the growable groups it
+ * conducts, so the overlay and the drawing have to share one box.
  */
 describe("the way back into the origin story", () => {
-  it("offers \"Watch how it grew\" inside the section", () => {
+  it("offers \"See how it grows\" in the section header, before the box", () => {
     render(<CareerTree />);
     const section = document.getElementById("tree");
     if (!(section instanceof HTMLElement)) throw new Error("no #tree section");
-    // The same locator `e2e/axe.spec.ts` and `e2e/companion.spec.ts` use.
-    expect(within(section).getByRole("button", { name: "Watch how it grew" })).toBeInTheDocument();
+    const button = within(section).getByRole("button", { name: "See how it grows" });
+    const box = section.querySelector("[data-tree-box]");
+    if (!(box instanceof HTMLElement)) throw new Error("no [data-tree-box]");
+    expect(box).not.toContainElement(button);
+    expect(button.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("mounts the button inside the one box the player overlays and conducts", () => {
+  it("puts the one box the player overlays and conducts around the drawing", () => {
     render(<CareerTree />);
-    const host = document.querySelector("[data-origin-host]");
+    const host = document.querySelector("[data-tree-box] > [data-origin-host]");
     if (!(host instanceof HTMLElement)) {
       throw new Error("no [data-origin-host] around the drawing");
     }
-    expect(host).toContainElement(within(host).getByRole("button", { name: "Watch how it grew" }));
-    // The host is the drawing's own box, not the stage's: the player's ground
+    // The host is the drawing's own box, not the section's: the player's ground
     // slice is pinned to its bottom edge, which has to be the tree's own ground
     // line (`e2e/origin.spec.ts`, "ground anchoring").
     expect(
-      host.querySelectorAll("[data-tree-branch][data-branch-act]").length,
+      host.querySelectorAll("[data-tree-panel]").length,
       "the host does not contain the drawing",
     ).toBeGreaterThan(0);
     // And the groups the conductor releases are reachable from it.
@@ -266,12 +254,11 @@ describe("the way back into the origin story", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("keeps the player itself out of the render: one button, no stage", () => {
+  it("keeps the player itself out of the render", () => {
     render(<CareerTree />);
-    // The chunk is fetched on press. Nothing of the player may be in the
-    // document before that, or it is not a lazy boundary any more.
+    // The chunk is fetched on the first play. Nothing of the player may be in
+    // the document before that, or it is not a lazy boundary any more.
     expect(document.querySelectorAll("[data-origin-stage]")).toHaveLength(0);
-    expect(document.querySelectorAll("[data-origin-watch]")).toHaveLength(1);
   });
 
   it("does not bring the roots back with it", () => {
@@ -320,9 +307,6 @@ describe("the subjects #tree is cited for", () => {
     render(<CareerTree />);
     expect(journeyText().length).toBeGreaterThan(1000);
     expect(journeyText().match(/\b(he|his|him|himself)\b/gi) ?? []).toEqual([]);
-    // Only the active act's title is in the DOM at rest, so check them all.
-    const titles = Object.values(ACTS).map((act) => act.title);
-    expect(titles.filter((t) => /\b(he|his|him|himself)\b/i.test(t))).toEqual([]);
   });
 
   /** Every string the corpus's `#tree` documents name a subject by, and which
@@ -375,10 +359,10 @@ describe("the subjects #tree is cited for", () => {
 });
 
 /**
- * What the drawing says about each branch: the headline at rest, outside the
- * trigger, and the impact lines behind the click. Scoped to the desktop
- * drawing (`[data-origin-host]`), because the mobile list renders the same
- * content in its own markup.
+ * What the drawing says about each branch: the role (a link to its timeline
+ * row), the year, and the headline at rest — and nothing the row holds.
+ * Scoped to the drawing (`[data-origin-host]`), because the timeline renders
+ * the same branches in its own markup.
  */
 describe("the drawing's branch cards", () => {
   function drawing(): HTMLElement {
@@ -390,32 +374,27 @@ describe("the drawing's branch cards", () => {
   const drawnEntries = () =>
     careerEntries.filter((entry) => !(DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id));
 
-  it("shows each drawn branch's headline at rest, outside its trigger", () => {
+  it("shows each drawn branch's headline at rest, and links its role to the row", () => {
     const host = drawing();
     let seen = 0;
     for (const entry of drawnEntries()) {
-      if (!entry.headline) continue;
       const branch = host.querySelector(`[data-tree-branch="${entry.id}"]`);
-      const headline = branch?.querySelector("[data-tree-headline]");
-      expect(headline?.textContent, entry.id).toBe(entry.headline);
-      const trigger = host.querySelector(`#tree-branch-${entry.id}-trigger`);
-      expect(trigger?.contains(headline ?? null), entry.id).toBe(false);
-      expect(trigger?.textContent, entry.id).not.toContain(entry.headline);
+      const link = branch?.querySelector("[data-tree-panel] a");
+      expect(link?.getAttribute("href"), entry.id).toBe(`#${journeyEntryAnchorId(entry.id)}`);
+      expect(link?.textContent, entry.id).toContain(entry.role);
+      if (!entry.headline) continue;
+      expect(branch?.querySelector("[data-tree-headline]")?.textContent, entry.id).toBe(entry.headline);
       seen += 1;
     }
     expect(seen, "every drawn branch authors a headline").toBe(11);
   });
 
-  it("puts every impact line, verbatim and in order, in its own branch's panel", () => {
+  it("holds no control but the link, and none of what the row holds", () => {
     const host = drawing();
-    let total = 0;
-    for (const entry of drawnEntries()) {
-      const panel = host.querySelector(`#tree-branch-${entry.id}-panel`);
-      const lines = [...(panel?.querySelectorAll('ul[aria-labelledby$="-changed"] > li') ?? [])].map((li) => li.textContent);
-      expect(lines, entry.id).toEqual([...entry.impact]);
-      total += lines.length;
-    }
-    expect(total).toBe(16);
+    expect(host.querySelectorAll("[data-tree-panel] button")).toHaveLength(0);
+    expect(host.querySelectorAll("[data-tree-panel] [id]")).toHaveLength(0);
+    expect(host.querySelectorAll("article")).toHaveLength(0);
+    expect(host.textContent).not.toContain("What it changed");
   });
 
   it("draws no impact line as a leaf", () => {
@@ -428,22 +407,87 @@ describe("the drawing's branch cards", () => {
     for (const text of leaves) expect(impact.has(text ?? ""), text).toBe(false);
   });
 
-  it("says nothing about change on a branch that authored none", () => {
-    const host = drawing();
-    const bare = drawnEntries().filter((entry) => entry.impact.length === 0);
-    expect(bare).toHaveLength(5);
-    for (const entry of bare) {
-      const panel = host.querySelector(`#tree-branch-${entry.id}-panel`);
-      expect(panel?.textContent, entry.id).not.toContain("What it changed");
+  it("names the branch panel the same way in DrawnTree, the stylesheet and the axe audit", () => {
+    // `data-tree-panel` is a contract with three parties: DrawnTree stamps it,
+    // globals.css hides a pending branch's panel through it while the origin
+    // story runs, and e2e/axe.spec.ts polls it for that fade to finish before
+    // auditing. Renaming it in one place breaks the other two silently.
+    const drawn = buildDrawnTree();
+    const { container } = render(<DrawnTree tree={drawn} />);
+    const stamped = new Set<string>();
+    for (const element of container.querySelectorAll("*")) {
+      for (const name of element.getAttributeNames()) {
+        if (name.startsWith("data-tree-panel")) stamped.add(name);
+      }
+    }
+    expect([...stamped], "DrawnTree stamps no data-tree-panel* attribute").toEqual(["data-tree-panel"]);
+    expect(container.querySelectorAll("[data-tree-panel]").length, "a drawn branch has no panel").toBe(
+      drawn.length,
+    );
+    const css = readFileSync("src/app/globals.css", "utf8");
+    const axe = readFileSync("e2e/axe.spec.ts", "utf8");
+    expect(css).toContain("[data-tree-panel]");
+    expect(axe).toContain("[data-tree-panel]");
+    for (const source of [css, axe]) {
+      for (const name of source.match(/data-tree-panel[\w-]*/g) ?? []) {
+        expect(stamped.has(name), `${name} is selected but never stamped`).toBe(true);
+      }
+    }
+  });
+
+  it("no longer claims to fade root furniture the page does not render", () => {
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).not.toContain("[data-origin-running] [data-tree-root]");
+    expect(css).not.toContain("[data-origin-running] [data-cat-nap] > p");
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Per-entry fragments                                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `journey-entry-<id>` was the deleted timeline `<li>`'s id, then a zero-size
+ * span in the stage's acts; round 20 puts it back on content. A drawn entry's
+ * fragment is its timeline row; a demoted entry's is its credentials line.
+ * Neither landing is provable from jsdom; `e2e/legacy-anchors.spec.ts` is.
+ */
+describe("per-entry fragments", () => {
+  it("gives every career entry exactly one element, inside the section", () => {
+    render(<CareerTree />);
+    const section = document.getElementById("tree");
+    if (!(section instanceof HTMLElement)) throw new Error("no #tree section");
+    expect(careerEntries.length, "no career entries, so nothing was checked").toBeGreaterThan(0);
+    for (const entry of careerEntries) {
+      const id = journeyEntryAnchorId(entry.id);
+      expect(document.querySelectorAll(`[id="${id}"]`), id).toHaveLength(1);
+      expect(section, id).toContainElement(document.getElementById(id));
+      expect(document.getElementById(id)?.className, id).toMatch(/\bscroll-mt-20\b/);
+    }
+  });
+
+  it("puts a drawn entry's fragment on its timeline row and a demoted one's on its credentials line", () => {
+    render(<CareerTree />);
+    const timeline = document.querySelector<HTMLElement>("[data-timeline]");
+    const strip = document.querySelector<HTMLElement>("[data-credentials-strip]");
+    for (const entry of careerEntries) {
+      const element = document.getElementById(journeyEntryAnchorId(entry.id));
+      if ((DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id)) {
+        expect(strip, entry.id).toContainElement(element);
+        expect(element?.textContent, entry.id).toContain(entry.role);
+      } else {
+        expect(timeline, entry.id).toContainElement(element);
+        expect(element?.getAttribute("data-tree-branch"), entry.id).toBe(entry.id);
+      }
     }
   });
 });
 
 /* -------------------------------------------------------------------------- */
-/* The mobile list                                                            */
+/* The timeline                                                               */
 /* -------------------------------------------------------------------------- */
 
-describe("the mobile list's rows", () => {
+describe("the timeline's rows", () => {
   const entries = careerEntries.filter(
     (entry) => !(DEMOTED_ENTRY_IDS as readonly string[]).includes(entry.id),
   );
@@ -451,41 +495,42 @@ describe("the mobile list's rows", () => {
     const { container } = render(<KnowledgeTreeList tree={buildDrawnTree()} />);
     return [...container.querySelectorAll<HTMLElement>("[data-tree-branch]")];
   }
-  const trigger = (row: HTMLElement) => row.querySelector("button[aria-expanded]");
+  const trigger = (row: HTMLElement) => row.querySelector<HTMLButtonElement>("button[aria-expanded]");
+  const openIds = (list: readonly HTMLElement[]) =>
+    list
+      .filter((row) => trigger(row)?.getAttribute("aria-expanded") === "true")
+      .map((row) => row.dataset.treeBranch);
 
-  it("shows title, headline and chips without opening", () => {
+  // `replaceState` rather than assigning `location.hash`: an assignment also
+  // queues a real `hashchange`, which would land a second time.
+  const setHash = (hash: string) => window.history.replaceState(null, "", hash || "/");
+
+  afterEach(() => {
+    setHash("");
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows year, role · organisation and headline without opening, and nothing open", () => {
     const list = rows();
     expect(list).toHaveLength(11);
+    expect(openIds(list)).toEqual([]);
     for (const row of list) {
       const entry = entries.find((candidate) => candidate.id === row.dataset.treeBranch);
       if (!entry) throw new Error(`no entry for ${row.dataset.treeBranch}`);
       const btn = trigger(row);
       expect(btn?.textContent, entry.id).toContain(entry.role);
+      expect(btn?.textContent, entry.id).toContain(entry.sortKey.slice(0, 4));
       const headline = row.querySelector("[data-tree-headline]");
       expect(headline?.textContent, entry.id).toBe(entry.headline);
       expect(btn?.contains(headline ?? null), entry.id).toBe(false);
-      const chips = row.querySelector('[aria-label^="Technologies used"]');
-      if (entry.technologies.length === 0) {
-        expect(chips, entry.id).toBeNull();
-        continue;
-      }
-      expect(chips, entry.id).not.toBeNull();
-      expect(
-        [...(chips?.querySelectorAll(":scope > li > span:first-child") ?? [])].map(
-          (li) => li.textContent,
-        ),
-        entry.id,
-      ).toEqual([...entry.technologies]);
-      expect(btn?.contains(chips ?? null), entry.id).toBe(false);
-      expect(
-        row.querySelector(`#tree-list-branch-${entry.id}-panel`)?.contains(chips ?? null),
-        entry.id,
-      ).toBe(false);
     }
   });
 
-  it("keeps impact, dates, siblings and case studies inside the disclosure", () => {
+  it("keeps impact, chips, dates, siblings and case studies inside the disclosure", () => {
     let impactTotal = 0;
+    let chipLists = 0;
     let siblingLines = 0;
     let studies = 0;
     for (const row of rows()) {
@@ -499,16 +544,23 @@ describe("the mobile list's rows", () => {
       ).toEqual([...entry.impact]);
       for (const li of lines) expect(panel.contains(li), entry.id).toBe(true);
       impactTotal += lines.length;
-      // The kind · dates eyebrow, not the bare range: a one-year range ("2022")
-      // is also the year in the trigger.
+      const chips = row.querySelector('[aria-label^="Technologies used"]');
+      if (entry.technologies.length === 0) {
+        expect(chips, entry.id).toBeNull();
+      } else {
+        expect(panel.contains(chips), entry.id).toBe(true);
+        expect(
+          [...(chips?.querySelectorAll(":scope > li > span:first-child") ?? [])].map(
+            (li) => li.textContent,
+          ),
+          entry.id,
+        ).toEqual([...entry.technologies]);
+        chipLists += 1;
+      }
       const dates = [...panel.querySelectorAll("p.eyebrow")].find((el) =>
         el.textContent?.endsWith(` · ${entry.dateRange}`),
       );
       expect(dates, entry.id).toBeDefined();
-      const trigger = row.querySelector("button[aria-expanded]");
-      const preview = row.querySelector("[data-tree-headline]")?.parentElement;
-      expect(trigger?.textContent, entry.id).not.toContain(dates?.textContent ?? "");
-      expect(preview?.textContent ?? "", entry.id).not.toContain(dates?.textContent ?? "");
       for (const el of row.querySelectorAll("p")) {
         if (el.textContent?.startsWith("Ran alongside")) {
           expect(panel.contains(el), entry.id).toBe(true);
@@ -517,12 +569,103 @@ describe("the mobile list's rows", () => {
       }
       for (const study of row.querySelectorAll("article")) {
         expect(panel.contains(study), entry.id).toBe(true);
+        // The main scope: the timeline owns `work-<projectId>` now.
+        expect(study.id, entry.id).toMatch(/^work-[a-z0-9-]+$/);
+        expect(study.id.endsWith("-list"), entry.id).toBe(false);
         studies += 1;
       }
     }
     expect(impactTotal).toBe(16);
+    expect(chipLists).toBeGreaterThan(0);
     expect(siblingLines, "rows with a Ran alongside line").toBe(10);
     expect(studies, "case studies rendered in the list").toBe(4);
+  });
+
+  it("opens one row at a time", () => {
+    const list = rows();
+    const [first, second] = list.map((row) => trigger(row)!);
+    fireEvent.click(first);
+    expect(openIds(list)).toEqual([list[0].dataset.treeBranch]);
+    fireEvent.click(second);
+    expect(openIds(list)).toEqual([list[1].dataset.treeBranch]);
+    fireEvent.click(second);
+    expect(openIds(list)).toEqual([]);
+  });
+
+  /** jsdom has no scrollIntoView, and a hand-cranked frame says "painted". */
+  function watchLandings() {
+    const scrolled = vi.fn();
+    (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView = scrolled;
+    let queue: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => queue.push(callback));
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+    const frame = () => {
+      const due = queue;
+      queue = [];
+      for (const callback of due) callback(0);
+    };
+    return { scrolled, frame };
+  }
+
+  it("opens the row a fragment names, or the row around the element it names, and lands on it", async () => {
+    const { scrolled, frame } = watchLandings();
+    setHash("#work-dd-scraper-platform");
+    const list = rows();
+    await act(async () => {});
+    expect(openIds(list)).toEqual(["doordash"]);
+    act(frame);
+    expect(scrolled).toHaveBeenCalledTimes(1);
+    expect(scrolled.mock.contexts[0]).toBe(document.getElementById("work-dd-scraper-platform"));
+
+    await act(async () => {
+      setHash(`#${journeyEntryAnchorId("usc-ta")}`);
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(openIds(list)).toEqual(["usc-ta"]);
+    act(frame);
+    expect(scrolled).toHaveBeenCalledTimes(2);
+    expect(scrolled.mock.contexts[1]).toBe(document.getElementById(journeyEntryAnchorId("usc-ta")));
+  });
+
+  it("reopens a closed row when a link to the fragment already in the URL is followed again", async () => {
+    const { frame } = watchLandings();
+    setHash(`#${journeyEntryAnchorId("usc-ta")}`);
+    const list = rows();
+    await act(async () => {});
+    expect(openIds(list)).toEqual(["usc-ta"]);
+    fireEvent.click(trigger(list.find((row) => row.dataset.treeBranch === "usc-ta")!)!);
+    expect(openIds(list)).toEqual([]);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", `#${journeyEntryAnchorId("usc-ta")}`);
+    document.body.append(link);
+    fireEvent.click(link);
+    act(frame);
+    expect(openIds(list)).toEqual(["usc-ta"]);
+    link.remove();
+  });
+
+  it("opens the row but leaves the scroll alone after a reload", async () => {
+    const { scrolled, frame } = watchLandings();
+    vi.spyOn(performance, "getEntriesByType").mockReturnValue([
+      { type: "reload" } as unknown as PerformanceEntry,
+    ]);
+    setHash("#work-dd-scraper-platform");
+    const list = rows();
+    await act(async () => {});
+    act(frame);
+    expect(openIds(list)).toEqual(["doordash"]);
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+
+  it("hands the no-script :target opening to React once mounted", async () => {
+    const { container } = render(<KnowledgeTreeList tree={buildDrawnTree()} />);
+    await act(async () => {});
+    expect(container.querySelector("[data-timeline]")).toHaveAttribute("data-live", "");
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toContain(
+      "[data-timeline]:not([data-live]) [data-tree-branch]:is(:target, :has(:target))",
+    );
   });
 
   it("renders no empty chips list", () => {

@@ -2481,6 +2481,13 @@ test.describe("companion", () => {
       const gap = Date.now() - lastTickAt;
       lastTickAt = Date.now();
       if (gap > 8_000) continue;
+      // Scrolling through #tree plays the origin story on sight (`TreeBox.tsx`),
+      // and its "quiet" season beat has one cat act out a nap on cue. That is
+      // the show, not the idle clock; the idle nap takes both cats.
+      if ((await page.locator("[data-origin-stage]").count()) > 0) {
+        expect(await poses(page), "asleep while somebody was reading").not.toEqual(["sleep", "sleep"]);
+        continue;
+      }
       expect(await poses(page), "asleep while somebody was reading").not.toContain("sleep");
     }
 
@@ -3775,12 +3782,7 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
-    const button = page.locator("#tree").getByRole("button", { name: "Watch how it grew" });
-    // Round 18's second plan put this control on the *finished* tree: while the
-    // pin is in force and the acts are still running, the stylesheet hides it so
-    // it cannot compete with the scrubber. "Show me the whole tree" is the end
-    // state. The locator above is unchanged; only the route to it is new.
-    await page.locator("#tree").getByRole("button", { name: "Show me the whole tree" }).click();
+    const button = page.locator("#tree").getByRole("button", { name: "See how it grows" });
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
 
