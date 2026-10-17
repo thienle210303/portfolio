@@ -1412,7 +1412,7 @@ export const achievements = [
 export const highlights = [
   { entryId: "doordash", value: "17h → 3m", label: "Reverse engineering scraper: 17 hours to 3 minutes." },
   { entryId: "wordification", value: "99.9%", label: "Speech QA pipeline, validated audio accuracy." },
-  { entryId: "schaeffler", value: "96%", label: "Throughput lift after paper sheets went low-code." },
+  { entryId: "schaeffler", value: "96%", label: "Throughput lift from custom Java in low-code." },
   { entryId: "usc-scraping", value: "3M+", label: "Amazon and Kroger records, unattended for months." },
   { entryId: "usc-ta", value: "200+", label: "Students helped in open lab." },
 ] as const satisfies readonly Highlight[];

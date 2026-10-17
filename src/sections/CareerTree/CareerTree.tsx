@@ -136,6 +136,8 @@ export default function CareerTree() {
         What it adds up to
       </SectionHeading>
 
+      <JourneyHighlights className="mt-8" />
+
       {/* The drawing, the list and the credentials strip are built here, on
           the server, and handed to the stage as slots: none of them has a hook
           or a handler, and passing them keeps the drawing and the case-study
@@ -156,8 +158,6 @@ export default function CareerTree() {
           below 1024px — where the list is the presentation and there is no
           drawing for a story to grow — the button is not in the document's
           layout either. Both halves of the figure appear together. */}
-      <JourneyHighlights className="mt-8" />
-
       <Stage
         acts={ACTS}
         drawing={
