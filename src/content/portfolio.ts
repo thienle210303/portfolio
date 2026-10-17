@@ -70,7 +70,7 @@ export const profile = {
     "I write software for retail data at DoorDash. Before that I was a chef in my family's restaurant.",
   focus:
     "Automated collection and integration systems — the pipelines that decide whether a retail partner can be described accurately at all.",
-  // A motto he adopted, not a fact the site asserts. It was generated rather
+  // The philosophy line: one he adopted, not a fact the site asserts. It was generated rather
   // than sourced, and he asked to keep it.
   philosophy: "Unsolved is not the same as unsolvable.",
   // His own line (round 20), the last thing the hero terminal's `whoami` prints.

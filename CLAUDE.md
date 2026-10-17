@@ -206,8 +206,8 @@ For any change that touches the globe's chunk — `src/lib/globe.ts`,
 [docs/feedback-tracker.md](docs/feedback-tracker.md). Read the `JS at
 load` column first: the globe chunk only loads after `load`, so the engine or
 the coastline data leaking into the initial bundle shows there, and a move of
-more than a kilobyte or two means it has. The 8 s `JS` total is not a leak
-detector any more: since R20-P3 the hero is short enough that, at perf's 412×823
+more than a kilobyte or two means it has. The 8 s `JS` total is no longer the primary
+leak detector (a jump against its new baseline still means something moved): since R20-P3 the hero is short enough that, at perf's 412×823
 viewport, the globe stage is inside the post-`load` prefetch's one-screen margin,
 so the total includes the globe chunk (about +25 KB, a new baseline). `pnpm perf` prints a skipped-response count and a
 `content-length` cross-check beside its own total; a run reporting any skipped

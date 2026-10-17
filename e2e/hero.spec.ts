@@ -110,6 +110,20 @@ test.describe("hero A", () => {
     await expect(page.locator(TERMINAL)).toContainText(`motto: ${profile.motto}`);
   });
 
+  test("whoami types on load under normal motion", async ({ page }) => {
+    await open(page);
+    // `fill-mode: both` keeps the animation listed after it ends, so this
+    // cannot race the typing; it fails if the rule or `data-typing` is lost.
+    const typed = await page
+      .locator(`${TERMINAL} [data-type-line]`)
+      .evaluateAll((nodes) =>
+        nodes.filter((node) =>
+          node.getAnimations().some((a) => (a as CSSAnimation).animationName === "term-type"),
+        ).length,
+      );
+    expect(typed).toBeGreaterThan(0);
+  });
+
   test("switching tabs never re-types", async ({ page }) => {
     await open(page);
     await page.waitForSelector("html[data-ink-ready]", { timeout: 30_000 });

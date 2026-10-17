@@ -62,7 +62,7 @@ test("after choosing, the send button is the only blue fill in Contact", async (
   expect(blue).toEqual(["Send it as written"]);
 });
 
-test("the page's blue fills are one per screen: the hero's See my work and Contact's send", async ({ page }) => {
+test("the page's only blue fills are the hero's See my work and Contact's send", async ({ page }) => {
   await page
     .locator("#contact")
     .getByRole("radio", { name: contactIntents[0].label, exact: true })
