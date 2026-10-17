@@ -1732,4 +1732,20 @@ What it shows (measured): the Journey band is unchanged, 46.1-46.7 fps against 4
 
 **`about` rest trace** (CDP trace plus CPU profile of the same 5 s window `rest.about` samples, two runs per build). The top self-time difference is `PaintArtifactCompositor::Update`: 51 and 60 ms on `ae0cdc6`, 138 and 131 ms on `19244fb`. JS self time is not where the difference is. Forcing the tree box to `height: auto; overflow: visible` on `19244fb` brought it to 69 and 78 ms. So most of the extra compositing-update work at the top of the page comes from the tree box being a scroll container, even though it is off screen (two runs, inferred from that override, not a product change). The rest of the gap (about 15 ms) is not attributed.
 
+**Fixes for both, and their re-measurement (open).** The `worlds`-band trace put the slowdown in the document's `Paint` (37-53 ms on `ae0cdc6` against 84-87 ms over the band's 17 frames). Hiding the tree box (`display: none`) recovered the band, and so did `content-visibility` on the timeline and the case studies below it. Under `content-visibility: auto` the box was still drawn, because the browser's own margin reaches it from Worlds. Three changes landed:
+- The box is `data-far` beyond 200 px of the viewport unless a show runs: contents `content-visibility: hidden`, `overflow: clip`, so it is neither a scroll container nor drawn. With JS off it is never far.
+- The timeline is `content-visibility: auto` at lg.
+- The unbranched case studies are `content-visibility: auto` at lg.
+
+Interleaved traces after the fixes (`2977f07` against `ae0cdc6`, 3 pairs, machine at 92-100% CPU from other work) give these, with fps and worst frame under tracing at that load:
+
+| Metric | `ae0cdc6` | `2977f07` |
+|---|---|---|
+| `about` rest `PaintArtifactCompositor::Update` | 91-105 ms | 68-71 ms |
+| Worlds band `Paint` | 60-79 ms | 41-69 ms |
+| Worlds band fps | 12.4-14.0 | 11.0-13.8 |
+| Worlds band worst frame | 183-217 ms | 250-450 ms |
+
+The worst frames on both builds are one rAF callback (the same `Z` in the shared chunk) whose length tracks the load, plus, on `2977f07`, one layout of about 170 ms near the band's end. That layout is inferred to be the box being drawn as it comes within 200 px. Not yet re-measured: the `pnpm lag` A/B. The machine never dropped below 20% CPU for a pair over about 75 minutes of gated attempts, so no lag row is recorded for the fixes.
+
 **Verification.** `pnpm verify` 5/5 (942 unit tests, 59 files; contrast 31 pairings, lowest 4.66:1). Retrieval eval: recall@1 70.0% (floor 0.7), recall@3 93.3% (0.9), recall@5 96.7% (0.95), MRR@10 0.807 (0.8); unchanged from R20-P4, recall@1 sits exactly on its floor. Full e2e at `--workers=2` on `:3153`: 963 passed, 711 skipped, 0 failed, no retries needed.
