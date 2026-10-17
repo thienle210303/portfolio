@@ -12,7 +12,8 @@ import { WatchOrigin, type OriginHandle } from "./WatchOrigin";
  * the box half in view (`DWELL_MS`), and again whenever "See how it grows" is
  * pressed. The dwell keeps a visitor flinging past from spending the one
  * auto-play, and keeps the chunk's load and the conductor's setup out of a
- * fast scroll. Under reduced motion neither starts it: the finished tree is
+ * fast scroll. A visitor whose pointer or focus is already in the box when the
+ * dwell runs out spends the auto-play without it starting. Under reduced motion neither starts it: the finished tree is
  * the tree, and the button only scrolls there.
  *
  * ## A window onto the tree, not a shrunken tree
@@ -101,6 +102,9 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
       if (startedRef.current) return;
       startedRef.current = true;
       observer?.disconnect();
+      // A visitor already pointing at or focused in the box is using it: a
+      // show starting under them would cover the branch links they are on.
+      if (box.matches(":hover") || box.contains(document.activeElement)) return;
       playerRef.current?.start();
     };
     // Every page scroll while the box is half in view restarts the wait, so it

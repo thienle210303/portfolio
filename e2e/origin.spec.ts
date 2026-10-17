@@ -156,7 +156,7 @@ test.describe("the button", () => {
     await expect(stage).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     // Past the flight before pressing again.
     await expect(status).not.toContainText("December 2018");
 
@@ -223,6 +223,52 @@ test.describe("the button", () => {
     await page.waitForTimeout(1_000);
     await expect(stage).toHaveCount(0);
   });
+
+  test("a branch label stays a working link while a show plays", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    await watchOriginButton(page).click();
+    const stage = page.locator("[data-origin-stage]");
+    await expect(stage).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    // A label the show has already released (pending ones are visibility: hidden).
+    const link = page
+      .locator('#tree [data-origin-host] [data-tree-panel] a[href^="#journey-entry-"]')
+      .filter({ visible: true })
+      .first();
+    await expect(link).toBeVisible({ timeout: 15_000 });
+    const id = ((await link.getAttribute("href")) ?? "").replace("#journey-entry-", "");
+    await expect(stage).toHaveCount(1);
+    // Not forced, and short: a stage that swallows the click would only let
+    // it through once the show ended, ~20 s later.
+    await link.click({ timeout: 3_000 });
+    await expect(stage, "the click must land mid-show").toHaveCount(1);
+    await expect(page.locator(`#tree #tree-list-branch-${id}-trigger`)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(page.locator(`#tree #journey-entry-${id}`)).toBeInViewport();
+  });
+
+  test("does not auto-play under a pointer already on the box", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    await box.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    const rect = await box.boundingBox();
+    if (!rect) throw new Error("the tree box has no box");
+    await page.mouse.move(rect.x + rect.width / 2, rect.y + 100);
+    await page.waitForTimeout(1_500);
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
+  });
+
+  test("does not auto-play under focus already in the box", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    await box.evaluate((el) => {
+      el.scrollIntoView({ block: "start" });
+      (el as HTMLElement).focus({ preventScroll: true });
+    });
+    await page.waitForTimeout(1_500);
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
+  });
 });
 
 test.describe("the player", () => {
@@ -264,9 +310,9 @@ test.describe("the player", () => {
     const flightCaption = await status.textContent();
 
     // Top-left corner of the stage: away from the Skip button, which sits in
-    // the top-right (`right-3 top-3`) and stops its own clicks from
-    // propagating to the stage's advance handler.
-    await stage.click({ position: { x: 5, y: 5 } });
+    // the top-right. Forced because the stage lets clicks through to the
+    // drawing (`pointer-events: none`), whose own listener advances.
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
 
     await expect(status).not.toHaveText(flightCaption ?? "");
   });
@@ -380,7 +426,7 @@ test.describe("ground anchoring", () => {
     // Advance to the seed beat (beat 1) — the same box keeps drawing there,
     // not just for the flight.
     const flightCaption = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(flightCaption ?? "");
     await expect(ground.locator("svg")).toHaveCount(1);
     await expect(sky.locator("svg")).toHaveCount(0);
@@ -433,7 +479,7 @@ test.describe("chronological growth", () => {
     const targetBeatIndex = 2 + seasonIndex;
     for (let i = 0; i < targetBeatIndex; i += 1) {
       const before = await status.textContent();
-      await stage.click({ position: { x: 5, y: 5 } });
+      await stage.click({ position: { x: 5, y: 5 }, force: true });
       await expect(status).not.toHaveText(before ?? "");
     }
 
@@ -521,7 +567,7 @@ test.describe("exit hygiene", () => {
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
     const before = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(before ?? "");
     expect(
       await page.locator("[data-origin-pending]").count(),
@@ -579,7 +625,7 @@ test.describe("narration without the cats", () => {
 
     // And it keeps narrating rather than freezing on the flight caption.
     const before = await annotation.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(annotation).not.toHaveText(before ?? "");
   });
 });
@@ -605,10 +651,10 @@ test.describe("accessible narration", () => {
 
     // Every beat is heard as a change, not just the first one.
     const first = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(first ?? "");
     const second = await status.textContent();
-    await stage.click({ position: { x: 5, y: 5 } });
+    await stage.click({ position: { x: 5, y: 5 }, force: true });
     await expect(status).not.toHaveText(second ?? "");
 
     const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();

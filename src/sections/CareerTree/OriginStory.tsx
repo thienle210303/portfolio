@@ -38,7 +38,7 @@ import {
  * and "still growing" (2.5s), which releases the one group nothing else
  * ever does — the unfinished shoot. A single `requestAnimationFrame` master
  * clock auto-advances (see "The master clock" below); a click anywhere on
- * the stage advances immediately, the same "click moves things along" idiom
+ * the drawing that is not a link or a button advances immediately, the same "click moves things along" idiom
  * the companion's duet already uses. Escape or the Skip button end the show
  * early; the last beat's own timeout ends it naturally.
  *
@@ -102,14 +102,15 @@ import {
  *
  * `SkyLayer` is `pointer-events-none` and only ever draws over the drawing
  * — never a `bg-ground` backdrop, because there is no longer anything
- * underneath it that needs covering. The stage `<div>` itself is what
- * catches clicks-to-advance, and it is sized to the *whole* drawing wrapper
- * (`inset-0`, matching `[data-origin-host]`, the relative box
- * `TreeBox.tsx` puts around `<DrawnTree>`), not just either sky/ground
- * slice — a click anywhere the
- * real, growing tree is still visible still advances the story. That
- * wrapper exists only while this component is mounted, so the instant the
- * story ends and `WatchOrigin.tsx` unmounts this player, the tree underneath is exactly as interactive as it always was.
+ * underneath it that needs covering. The stage `<div>` is
+ * `pointer-events-none` too (only Skip takes clicks), so a released branch
+ * label stays a working link mid-show — the show starts on its own, over the
+ * drawing's only links. Clicks-to-advance are caught by a `click` listener on
+ * `[data-origin-host]`, the relative box `TreeBox.tsx` puts around
+ * `<DrawnTree>`, which ignores any click on a link or a button. That listener
+ * exists only while this component is mounted, so the instant the story ends
+ * and `WatchOrigin.tsx` unmounts this player, the tree underneath is exactly
+ * as interactive as it always was.
  *
  * Two small boxes share that wrapper, not one. Through round 14 every beat
  * — flight, seed, every season, still — drew inside one top-pinned
@@ -696,7 +697,7 @@ function FloatingAnnotation({ text }: { readonly text: string }) {
 // inside the tree box (`TreeBox.tsx`), so a corner pinned to the stage's own
 // top would be out of view while the growth plays at the ground.
 const SKIP_BUTTON_CLASS =
-  "sticky top-3 z-10 ml-auto mr-3 mt-3 flex min-h-11 w-fit items-center border border-rule bg-surface px-3 text-[length:var(--step--1)] text-fg hover:text-accent";
+  "pointer-events-auto sticky top-3 z-10 ml-auto mr-3 mt-3 flex min-h-11 w-fit items-center border border-rule bg-surface px-3 text-[length:var(--step--1)] text-fg hover:text-accent";
 
 export interface OriginStoryProps {
   /**
@@ -1048,6 +1049,22 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
     else setIndex((current) => current + 1);
   }, [isLast, end]);
 
+  // Click-to-advance, on the drawing rather than the stage, so links win.
+  useEffect(() => {
+    const host = containerRef.current?.closest<HTMLElement>("[data-origin-host]");
+    if (!host) return;
+    const onClick = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest("a[href], button")) return;
+      advanceRef.current();
+    };
+    host.addEventListener("click", onClick);
+    host.classList.add("cursor-pointer");
+    return () => {
+      host.removeEventListener("click", onClick);
+      host.classList.remove("cursor-pointer");
+    };
+  }, []);
+
   // Keeps the master clock's own copy of `advance` current — the clock
   // effect just below is mount-scoped (it must never restart, or its own
   // `requestAnimationFrame` chain would restart with it), so it reads
@@ -1136,12 +1153,8 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
       role="group"
       aria-label="How the tree grew"
       data-origin-stage
-      onClick={advance}
-      // `inset-0` matches the *whole* drawing wrapper `TreeBox.tsx` puts
-      // around `<DrawnTree>` — the click-to-advance target the whole real
-      // tree draws inside, not just the sky slice — so a click anywhere the
-      // growing tree is visible still advances the story.
-      className="absolute inset-0 z-20 cursor-pointer"
+      // Lets clicks through to the drawing; see "The sky, not a cover".
+      className="pointer-events-none absolute inset-0 z-20"
     >
       {/* The sky slice: a small, top-pinned box (the same 300×200 area
           the old silhouette stage used), `absolute` inside the stage

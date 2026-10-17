@@ -200,4 +200,17 @@ describe("TreeBox", () => {
     expect(player.mounts).toBe(1);
   });
 
+  it("does not auto-play under a visitor already focused in the box, and spends the one auto-play", async () => {
+    const observer = setup();
+    observer.report(1);
+    act(() => screen.getByRole("region", { name: "Career tree" }).focus());
+    await pastDwell();
+    expect(stages()).toHaveLength(0);
+
+    act(() => (document.activeElement as HTMLElement).blur());
+    observer.report(0);
+    observer.report(1);
+    await pastDwell();
+    expect(player.mounts).toBe(0);
+  });
 });
