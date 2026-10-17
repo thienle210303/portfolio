@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { careerEntryById, origin, originStops } from "@/content/portfolio";
-import { buildStops, crossingKm } from "@/lib/origin-stops";
+import { buildStops, crossingKm, crossingLabel } from "@/lib/origin-stops";
 import { buildDocuments } from "@/lib/answer-corpus";
 import { answer } from "@/lib/answers";
 
@@ -85,5 +85,11 @@ describe("stop vocabulary", () => {
 
   it("vietnam does not return the USC caption", () => {
     expect(answer("vietnam", 10).map((result) => result.text)).not.toContain(byId.usc.caption);
+  });
+});
+
+describe("crossingLabel", () => {
+  it("prints the crossing once, grouped, in km", () => {
+    expect(crossingLabel()).toBe("14,960 km");
   });
 });

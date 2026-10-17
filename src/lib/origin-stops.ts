@@ -63,3 +63,8 @@ export function crossingKm(): number {
     arcKm(greatCircle(origin.coordinates.from, origin.coordinates.to, CROSSING_SEGMENTS).radians),
   );
 }
+
+/** The crossing as the page and the companion print it: "14,960 km". */
+export function crossingLabel(): string {
+  return `${crossingKm().toLocaleString("en-US")} km`;
+}

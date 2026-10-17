@@ -1,6 +1,6 @@
 import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { buildStops, crossingKm } from "@/lib/origin-stops";
+import { buildStops, crossingLabel } from "@/lib/origin-stops";
 import WorldsStage from "./WorldsStage";
 
 /**
@@ -24,10 +24,9 @@ import WorldsStage from "./WorldsStage";
 const HEADING_ID = "worlds-heading";
 
 const STOPS = buildStops();
-const KM = crossingKm();
 
 const RAIL: readonly RailNote[] = [
-  { term: "Crossing", detail: `${KM.toLocaleString("en-US")} km · computed from the two pins` },
+  { term: "Crossing", detail: `${crossingLabel()} · computed from the two pins` },
 ];
 
 export default function Worlds() {

@@ -1,6 +1,6 @@
 import { careerEntries, profile } from "@/content/portfolio";
 import { buildDrawnTree, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
-import { buildStops, crossingKm } from "@/lib/origin-stops";
+import { buildStops, crossingKm, crossingLabel } from "@/lib/origin-stops";
 
 /**
  * D1 — facts as a server prop.
@@ -96,7 +96,7 @@ export function buildCompanionFacts(): CompanionFacts {
     worlds: {
       stops: buildStops().length,
       crossingKm: km,
-      crossing: `${km.toLocaleString("en-US")} km`,
+      crossing: crossingLabel(),
     },
     tree: {
       branches: drawn.length,
