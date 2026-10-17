@@ -377,3 +377,12 @@ export type CodeTokenKind =
   | "string"
   | "punctuation"
   | "comment";
+
+/** One measured card at the head of the Journey. `value` and `label` may hold a
+ *  figure only if the entry's `headline` or `impact` holds it too
+ *  (`tests/lib/highlights.test.ts`). */
+export interface Highlight {
+  readonly entryId: string;
+  readonly value: string;
+  readonly label: string;
+}

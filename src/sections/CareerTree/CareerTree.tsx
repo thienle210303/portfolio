@@ -43,6 +43,7 @@ import { ACTS } from "./acts";
 import { LEGACY_SECTION_IDS } from "./anchors";
 import CredentialsStrip from "./CredentialsStrip";
 import DrawnTree from "./DrawnTree";
+import JourneyHighlights from "./JourneyHighlights";
 import KnowledgeTreeList from "./KnowledgeTreeList";
 import Stage from "./Stage";
 import UnbranchedCaseStudies from "./UnbranchedCaseStudies";
@@ -155,6 +156,8 @@ export default function CareerTree() {
           below 1024px — where the list is the presentation and there is no
           drawing for a story to grow — the button is not in the document's
           layout either. Both halves of the figure appear together. */}
+      <JourneyHighlights className="mt-8" />
+
       <Stage
         acts={ACTS}
         drawing={
