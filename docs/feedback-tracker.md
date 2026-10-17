@@ -1686,3 +1686,19 @@ Comparability: every run began at about 100% CPU, against 56% for the R20-P2 run
 **R20-P4 Task 2 perf row** (globe stripped to coastlines, flight, robot and three stop pins; `pnpm perf`, production builds on `:3141`, CPU about 99-100% at both runs, 0 skipped responses). Before (`5ad0b73`): JS 231,056 B, JS at load 174,470 B. After: JS 228,178 B, JS at load 173,864 B (two runs, identical bytes), LCP 2700 / 2800 ms, TBT 1237 / 930 ms, CLS 0. JS at load -606 B (inside the ±1 KB gate: the engine has not leaked). Globe chunk (`data-chunk="globe-canvas"`): 79,771 B raw / 30,074 B gz -> 73,435 B raw / 27,711 B gz (-6,336 B raw, -2,363 B gz).
 
 **R20-P4 Task 3 perf row** (Worlds laid out as one crossing and three stops; chapters, skins, plaques and `WorldPanel` deleted; `pnpm perf` against a production build on `:3142`, CPU about 91%, 0 skipped responses). Before (`254fb48`): JS 228,178 B, JS at load 173,864 B. After: JS 223,899 B, JS at load 169,423 B, LCP 2668 ms, TBT 1163 ms, CLS 0. Both fell (-4,279 B / -4,441 B): the chapter list, `WorldPanel`, the skin dial and the chapter data left the client bundle. Nothing rose, so the engine and the coastlines are still in the lazy chunk.
+
+## Round 20 phase 4 (2026-10-17) — Earth
+
+Production build on `:3143` at `ae0cdc6`, headless Chromium, `pnpm perf` once and `pnpm lag` three times. Machine CPU (5 s average of `\Processor(_Total)\% Processor Time`, between runs): 8.7% before perf, 5.0% after; 3.7 / 6.8% around lag 1, 6.6 / 10.1% around lag 2, 9.9 / 11.0% around lag 3. The machine was close to idle, unlike the R20-P2 (56%) and R20-P3 (about 100%) rows, so the lag rows are not like-for-like with either.
+
+**Perf row** (`pnpm perf`, 0 skipped responses): JS 218.6 KB (223,853 B), JS at load 165.4 KB (169,377 B), CSS 14.2 KB, fonts 72.3 KB (74,024 B), LCP 1528 ms (`h1#hero-heading`), TBT 264 ms, CLS 0, 2902 DOM nodes. Against the R20-P4 Task 3 row (`254fb48` -> `7729c5b`: 223,899 / 169,423 B): JS -46 B, JS at load -46 B, so nothing leaked into the load path. Against R20-P3 (`5d36963`: 233,096 / 177,029 B): JS -9.2 KB, JS at load -7.7 KB, DOM -94 nodes. Globe chunk (`data-chunk="globe-canvas"`, `.next/static/chunks/29mnp60g8t74z.js`): 73,734 B raw / 27,902 B gz (`gzip -9`, so approximate) against 79,771 B / 30,074 B before Task 2. LCP and TBT are far below the saturated P3 values because the machine was idle, not comparable.
+
+| When | scroll4x fps / drops / worst frame / long tasks | rest busy % (about / worlds / tree / contact) | rAF calls per s (about / worlds / tree / contact) | hit tests per 5 s (about / worlds / tree / contact) | Worlds entry worst task |
+|---|---|---|---|---|---|
+| R20-P4 (run 1, `ae0cdc6`) | 44.4 / 58 / 150 ms / 7 | 8.7 / 5.9 / 2.7 / 5.7 | 60.2 / 39.4 / 15.8 / 31 | 75 / 26 / 22 / 26 | 65 ms |
+| R20-P4 (run 2, `ae0cdc6`) | 45.6 / 59 / 133 ms / 4 | 7.9 / 4.1 / 5.3 / 6.7 | 60.1 / 37.9 / 53.4 / 48.1 | 75 / 26 / 28 / 28 | 63 ms |
+| R20-P4 (run 3, `ae0cdc6`) | 44.4 / 58 / 117 ms / 4 | 7.1 / 1.9 / 5 / 6.5 | 60.1 / 25.1 / 41.1 / 50.9 | 75 / 24 / 26 / 30 | 56 ms |
+
+Comparability: runs began at 4-10% CPU, against 56% (R20-P2, 31.4 fps) and about 100% (R20-P3, 16-22 fps). The fps gain (about 44-46) is therefore mostly the machine (inferred; no same-machine A/B against `5d36963`). Criteria as before: fps >= 50 missed, worst frame <= 100 ms missed (117-150 ms), rest busy < 5% met in worlds (runs 2-3) and tree (run 1; run 3 is exactly 5), Worlds entry < 50 ms missed (56-65 ms).
+
+**Verification.** `pnpm verify` 5/5 (961 unit tests, 60 files; contrast 31 pairings, lowest 4.66:1). Retrieval eval: recall@1 70.0% (floor 0.7), recall@3 93.3% (0.9), recall@5 96.7% (0.95), MRR@10 0.807 (0.8); recall@1 sits exactly on its floor. Full e2e at `--workers=2` on `:3143`: 914 passed, 706 skipped, 0 failed, no retries needed.
