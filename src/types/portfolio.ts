@@ -88,8 +88,7 @@ export interface Origin {
   readonly to: string;
   readonly arrived: string;
   readonly arrivedYear: number;
-  /** ISO date. The only birth date on the site; `arrivedAge()` subtracts it
-   *  from `arrivedOn` so no age is ever typed twice. */
+  /** ISO date. The only birth date on the site. */
   readonly born: string;
   /** `YYYY-MM` — the machine-readable twin of `arrived`. `arrived` is prose a
    *  visitor reads; this is what arithmetic uses. `arrivedOnAgreesWithArrived()`

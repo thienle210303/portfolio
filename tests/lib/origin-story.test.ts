@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { careerEntries, origin } from "@/content/portfolio";
 import { careerYearSpan } from "@/lib/knowledge-tree";
 import {
-  arrivedAge,
   arrivedOnAgreesWithArrived,
   CAPTION_MAX_CHARS,
   dueByElapsed,
@@ -317,13 +316,6 @@ describe("dueByElapsed", () => {
 });
 
 describe("the crossing's own arithmetic", () => {
-  it("computes his age on arrival rather than carrying a number", () => {
-    // Born 2003-03-03, arrived 2018-12. Fifteen, and nothing in the content
-    // layer says "15" — if it did, a birthday would silently make it wrong.
-    expect(arrivedAge()).toBe(15);
-    expect(JSON.stringify(origin)).not.toContain('"arrivedAge"');
-  });
-
   it("keeps the prose date and the machine date agreeing", () => {
     // `arrived` is what a reader sees; `arrivedOn` is what the arithmetic
     // uses. Two spellings of one fact is exactly the drift this site exists
