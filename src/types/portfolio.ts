@@ -80,8 +80,7 @@ export interface GeoPoint {
 
 /**
  * The one geographic fact the origin story may draw on. Every other place
- * that touches the story — captions, the player's flight label, the
- * reduced-motion storyboard — computes from career entries or from this
+ * that touches the story — captions, the player's flight label — computes from career entries or from this
  * block, never from a second, independently-typed place name.
  */
 export interface Origin {

@@ -108,9 +108,32 @@ test.describe("the button", () => {
   test("see how it grows scrolls to the box and plays", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
     await watchOriginButton(page).click();
-    await expect(page.locator("[data-tree-box]")).toBeInViewport();
+    // The whole box fits the screen now, so the page centres all of it.
+    await expect(page.locator("[data-tree-box]")).toBeInViewport({ ratio: 1 });
     await expect(page.locator("[data-origin-stage]")).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
     await expect(page.locator("[data-origin-host]")).toHaveAttribute("data-origin-running", "");
+    // And inside the box: the ground, where the growth starts, not the crown.
+    await expect(page.locator("[data-origin-ground]")).toBeInViewport();
+    await expect(page.getByRole("button", { name: "Skip" })).toBeInViewport();
+  });
+
+  test("the box follows the growth up, and hands itself back on a wheel", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const box = page.locator("[data-tree-box]");
+    const scrollTop = () => box.evaluate((el) => el.scrollTop);
+    await watchOriginButton(page).click();
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    const atGround = await box.evaluate((el) => el.scrollHeight - el.clientHeight);
+    await expect.poll(scrollTop, { timeout: 15_000 }).toBeLessThan(atGround - 100);
+
+    // The visitor takes over: following stops, the page stays where it is.
+    await box.hover();
+    await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(500);
+    const handedBack = await scrollTop();
+    await page.waitForTimeout(4_000);
+    expect(await scrollTop()).toBe(handedBack);
+    await expect(page.locator("[data-origin-stage]")).toHaveCount(1);
   });
 
   test("a press mid-growth restarts it with one player, and the companion's pair stays balanced", async ({
@@ -134,12 +157,12 @@ test.describe("the button", () => {
     const status = stage.getByRole("status");
     await expect(status).not.toHaveText("");
     await stage.click({ position: { x: 5, y: 5 } });
-    const secondBeat = await status.textContent();
+    // Past the flight before pressing again.
+    await expect(status).not.toContainText("December 2018");
 
     await button.click();
     // A fresh show: back to the flight, and still exactly one stage.
     await expect(status).toContainText("December 2018");
-    expect(secondBeat).not.toContain("December 2018");
     await expect(stage).toHaveCount(1);
     expect(await events()).toEqual(["start", "end", "start"]);
 
@@ -259,7 +282,15 @@ test.describe("the player", () => {
       await expect(page.locator("[data-origin-stage]")).toHaveCount(0);
       await expect(page.locator("[data-origin-running]")).toHaveCount(0);
       await expect(page.locator("[data-origin-pending]")).toHaveCount(0);
-      // The finished tree: every branch card is there to read.
+      // The finished tree, at the crown: the box was never moved, and the
+      // still-growing label above the tip is inside it, not cut off.
+      expect(await box.evaluate((el) => el.scrollTop)).toBe(0);
+      const overhang = await box.evaluate(
+        (el) =>
+          el.getBoundingClientRect().top -
+          (el.querySelector("[data-tree-shoot-label]")?.getBoundingClientRect().top ?? -Infinity),
+      );
+      expect(overhang).toBeLessThan(0);
       await expect(box.locator("[data-tree-panel]").first()).toBeVisible();
     });
   });

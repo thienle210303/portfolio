@@ -133,6 +133,29 @@ describe("TreeBox", () => {
     await waitFor(() => expect(stages()).toHaveLength(1), { timeout: 2_000 });
   });
 
+  it("is a named, keyboard-scrollable window onto the tree", () => {
+    setup();
+    const box = screen.getByRole("region", { name: "Career tree, scrollable" });
+    expect(box).toHaveAttribute("tabindex", "0");
+    expect(box).toContainElement(screen.getByText("the drawing"));
+  });
+
+  it("jumps to the ground when a show starts, and stays put when it ends", () => {
+    setup();
+    const box = screen.getByRole("region", { name: "Career tree, scrollable" });
+    Object.defineProperty(box, "scrollHeight", { configurable: true, value: 2_000 });
+    expect(box.scrollTop).toBe(0);
+    act(() => {
+      document.dispatchEvent(new CustomEvent("origin-story", { detail: "start" }));
+    });
+    expect(box.scrollTop).toBe(2_000);
+    box.scrollTop = 40;
+    act(() => {
+      document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
+    });
+    expect(box.scrollTop).toBe(40);
+  });
+
   it("never plays a box that is not displayed", async () => {
     // Chrome reports a `display: none` target (the box below 1024px) with
     // zero-height root bounds, so "half the screen" would be zero pixels.

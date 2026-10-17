@@ -100,8 +100,8 @@ export const profile = {
 } satisfies Profile;
 
 /**
- * The only geographic fact the origin story may draw. Every caption, label
- * and storyboard frame the story renders computes from career entries or
+ * The only geographic fact the origin story may draw. Every caption and
+ * label the story renders computes from career entries or
  * from this block — never a second, independently-typed place name.
  */
 export const origin = {

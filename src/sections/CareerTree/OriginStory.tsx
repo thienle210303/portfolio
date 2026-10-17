@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, MouseEvent, ReactNode } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import { origin } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import {
-  growthStage,
   planRelease,
   seasonsFor,
   STAGGER_CLEANUP_MARGIN_MS,
@@ -395,33 +394,10 @@ const FLIGHT_PATH_D = "M20 112C80 20 220 20 280 100";
 const SEED_TRAIL_D = "M150 32C149 56 150 82 150 108";
 const MOUND_D = "M136 150C142 144 158 144 164 150";
 
-/** sun: six rays and a small disc. rain: five falling hatch strokes. storm:
- *  seven denser strokes plus one bent stroke — used only by the reduced-
- *  motion `Storyboard`'s small per-group glyph below, since a running show
- *  draws the storm as its own `StormOverlay`, layered atop whichever of
- *  these the year's base weather already is, not a fourth glyph of its own.
- *  quiet has no glyph at all — a bare sky is the honest picture of a year
- *  with nothing on record. */
+/** Six rays and a small disc — `SunGlyph`'s path. */
 const SUN_D =
   "M0 -11L0 -6M9.5 -5.5L6 -3M9.5 5.5L6 3M0 11L0 6M-9.5 5.5L-6 3M-9.5 -5.5L-6 -3" +
   "M-5 0A5 5 0 1 0 5 0A5 5 0 1 0 -5 0";
-const RAIN_D = "M-10 -8L-13 2M-4 -10L-7 0M2 -9L-1 1M8 -10L5 0M14 -8L11 2";
-const STORM_D =
-  "M-14 -9L-17 1M-9 -11L-12 -1M-4 -10L-7 0M1 -11L-2 -1M6 -10L3 0M11 -11L8 -1M16 -9L13 1" +
-  "M2 -14L-3 -2L4 -2L-2 12";
-
-function weatherGlyph(kind: SeasonKind): string | undefined {
-  switch (kind) {
-    case "sun":
-      return SUN_D;
-    case "rain":
-      return RAIN_D;
-    case "storm":
-      return STORM_D;
-    case "quiet":
-      return undefined;
-  }
-}
 
 const strokeProps = {
   "aria-hidden": true,
@@ -718,149 +694,12 @@ function FloatingAnnotation({ text }: { readonly text: string }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Storyboard — the reduced-motion fallback (unchanged from v1)              */
-/* -------------------------------------------------------------------------- */
 
-/** A trunk and four limbs, one path — the storyboard's own small illustration,
- *  independent of the real tree it sits over: reduced motion never stamps
- *  `data-origin-running` (the beat effect below bails out first), so the
- *  real tree stays exactly as fully drawn as it always is underneath this
- *  static overlay. `pathLength={1}` makes its `stroke-dashoffset` a plain
- *  0..1 fraction regardless of the real path length, the same trick every
- *  growth-drawn path in `DrawnTree.tsx` uses. */
-const SILHOUETTE_D =
-  "M150 150C150 130 148 110 150 92C151 78 149 64 150 50" +
-  "M150 118C138 108 128 100 116 96" +
-  "M150 96C162 88 172 82 182 78" +
-  "M150 74C140 66 132 60 122 56" +
-  "M150 60C158 54 166 50 174 46";
-
-/** The unfinished shoot the storyboard's closing frame adds above the
- *  silhouette's own tip — thinner, open-ended, the same idea as
- *  `DrawnTree.tsx`'s `GrowingTip`, drawn small enough for this frame rather
- *  than shared code. */
-const SHOOT_D = "M150 50C152 42 146 34 156 26";
-
-const KIND_LABEL: Record<SeasonKind, string> = {
-  sun: "Sun years",
-  rain: "Rain years",
-  storm: "Storm years",
-  quiet: "Quiet years",
-};
-
-interface KindGroup {
-  readonly kind: SeasonKind;
-  readonly years: readonly number[];
-  /** The subset of `years` that also carried a storm — surfaced in the
-   *  frame's own caption text below, since the static storyboard draws only
-   *  one small glyph per group and has no running overlay to show a storm
-   *  passing through the way the animated show does. */
-  readonly stormYears: readonly number[];
-}
-
-/** One frame per distinct base `SeasonKind` actually present, in the order
- *  each first appears — not one frame per year, and not a fixed three
- *  regardless of what the real seasons contain. `kind` is always base
- *  weather now (never `"storm"` — see `origin-story.ts`), so this groups
- *  exactly the way it always has; the storm years within a group are
- *  tracked separately rather than fracturing the grouping by a fourth kind. */
-function groupByKind(seasons: readonly Season[]): readonly KindGroup[] {
-  const order: SeasonKind[] = [];
-  const byKind = new Map<SeasonKind, number[]>();
-  const stormByKind = new Map<SeasonKind, number[]>();
-  for (const season of seasons) {
-    if (!byKind.has(season.kind)) {
-      byKind.set(season.kind, []);
-      stormByKind.set(season.kind, []);
-      order.push(season.kind);
-    }
-    byKind.get(season.kind)?.push(season.year);
-    if (season.storm) stormByKind.get(season.kind)?.push(season.year);
-  }
-  return order.map((kind) => ({
-    kind,
-    years: byKind.get(kind) ?? [],
-    stormYears: stormByKind.get(kind) ?? [],
-  }));
-}
-
-function StoryboardFrame({ caption, children }: { readonly caption: string; readonly children: ReactNode }) {
-  return (
-    <figure className="border border-rule bg-surface p-3">
-      <svg
-        {...strokeProps}
-        viewBox={VIEW_BOX}
-        preserveAspectRatio="xMidYMid meet"
-        className="h-20 w-full text-fg-subtle"
-      >
-        <GroundLine />
-        {children}
-      </svg>
-      <figcaption className="mt-2 text-[length:var(--step--1)] leading-snug text-fg">{caption}</figcaption>
-    </figure>
-  );
-}
-
-function Storyboard({ seasons }: { readonly seasons: readonly Season[] }) {
-  const groups = useMemo(() => groupByKind(seasons), [seasons]);
-  const lastYear = seasons[seasons.length - 1]?.year;
-
-  return (
-    // No `h-full`/`overflow-y-auto`: the stage that hosts this (see the
-    // `reduced` branch of `data-origin-stage`'s className below) carries no
-    // aspect-ratio clamp of its own in this mode, so this div sizes to its
-    // real content — all frames, stacked, fully visible — the same way any
-    // ordinary block of static content on the page does. A scroller with no
-    // focusable element inside it is unreachable by keyboard (WCAG 2.1.1),
-    // and "fully readable" storyboard is the one thing the spec asks for
-    // under reduced motion; clipping it into a small box and hoping someone
-    // finds the scrollbar satisfied neither.
-    <div className="flex flex-col gap-4 bg-ground p-4">
-      <StoryboardFrame caption={flightCaption()}>
-        <path d={FLIGHT_PATH_D} />
-        <g transform="translate(280 100)">
-          <path d={BIRD_D} />
-        </g>
-      </StoryboardFrame>
-
-      <StoryboardFrame caption="A seed, carried the whole way.">
-        <path d={SEED_TRAIL_D} />
-        <circle cx={150} cy={112} r={2.4} fill="currentColor" stroke="none" />
-        <path d={MOUND_D} />
-        <path d={SILHOUETTE_D} pathLength={1} style={{ strokeDasharray: 1, strokeDashoffset: 1 }} />
-      </StoryboardFrame>
-
-      {groups.map(({ kind, years, stormYears }) => {
-        const d = weatherGlyph(kind);
-        const stormNote = stormYears.length > 0 ? ` (storm: ${stormYears.join(", ")})` : "";
-        return (
-          <StoryboardFrame key={kind} caption={`${KIND_LABEL[kind]} — ${years.join(", ")}${stormNote}`}>
-            <path
-              d={SILHOUETTE_D}
-              pathLength={1}
-              style={{ strokeDasharray: 1, strokeDashoffset: 1 - growthStage(Math.max(...years)) }}
-            />
-            {d ? (
-              <g transform="translate(240 48)">
-                <path d={d} />
-              </g>
-            ) : null}
-          </StoryboardFrame>
-        );
-      })}
-
-      <StoryboardFrame caption={`The tree as it stands today — and still growing, ${lastYear ?? ""}.`}>
-        <path d={SILHOUETTE_D} pathLength={1} style={{ strokeDasharray: 1, strokeDashoffset: 0 }} />
-        <path d={SHOOT_D} strokeWidth={0.75} />
-      </StoryboardFrame>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-
+// `sticky`, not `absolute`: the stage is as tall as the whole tree and scrolls
+// inside the tree box (`TreeBox.tsx`), so a corner pinned to the stage's own
+// top would be out of view while the growth plays at the ground.
 const SKIP_BUTTON_CLASS =
-  "absolute right-3 top-3 z-10 min-h-11 border border-rule bg-surface px-3 text-[length:var(--step--1)] text-fg hover:text-accent";
+  "sticky top-3 z-10 ml-auto mr-3 mt-3 flex min-h-11 w-fit items-center border border-rule bg-surface px-3 text-[length:var(--step--1)] text-fg hover:text-accent";
 
 export interface OriginStoryProps {
   /**
@@ -888,7 +727,6 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
   // Read once, at open — never rendered on the server, so `window` is always
   // there. The animated beats never start ticking under `reduce`, so there
   // is nothing mid-show for a later preference change to interrupt.
-  const [reduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [index, setIndex] = useState(0);
   const [announced, setAnnounced] = useState("");
   // Flips true the moment the companion answers `origin-story-ack` with
@@ -904,14 +742,13 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
   const containerRef = useRef<HTMLDivElement>(null);
   // The small, top-pinned "sky slice" box `WeatherLayer` renders inside, and
   // `FloatingAnnotation` too for every beat except flight/seed — see the file
-  // banner. Unused (stays null) under reduced motion, where the Storyboard
-  // branch renders none of them.
+  // banner.
   const skySliceRef = useRef<HTMLDivElement>(null);
   // The bottom-pinned "ground slice" box — round 15's fix for the seed
   // dropping into empty air above a tall tree (see the file banner and
   // `SkyLayer`'s own doc comment). `SkyLayer` and `FloatingAnnotation` render
   // inside this one instead of `skySlice` for exactly the flight and seed
-  // beats. Unused (stays null) under reduced motion, same as `skySliceRef`.
+  // beats.
   const groundSliceRef = useRef<HTMLDivElement>(null);
   const skipRef = useRef<HTMLButtonElement>(null);
   const ended = useRef(false);
@@ -1070,12 +907,9 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
   // never re-query the DOM), pend all of them, then immediately release
   // whatever is already true at the flight's own landing year — there is
   // nothing earlier than `origin.arrivedYear` for any group to honestly
-  // claim, so nothing here waits on a beat that will never move it. Skipped
-  // entirely under reduced motion, which never touches these attributes —
-  // see the Storyboard doc comment above for why that overlay is safe
-  // regardless.
+  // claim, so nothing here waits on a beat that will never move it. Never
+  // mounted under reduced motion: `TreeBox.tsx` does not start it then.
   useEffect(() => {
-    if (reduced) return;
     const figure = containerRef.current?.closest<HTMLElement>("[data-origin-host]");
     if (!figure) return;
     // Reset every ref-based bookkeeping set this effect (and everything
@@ -1106,7 +940,7 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
       claimedRef.current.add(item.group.el);
       applyRelease(item.group, item.durationMs, now);
     }
-  }, [reduced, applyRelease]);
+  }, [applyRelease]);
 
   // Layout effects, not passive ones, for the two things a *visible* player
   // must already have: focus on Skip, and a working Escape. A passive effect
@@ -1116,7 +950,8 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
   // check reads focus that never moved to Skip. A full-suite Playwright run
   // hit exactly that window once; a fast human on a slow machine could too.
   useLayoutEffect(() => {
-    if (takeFocus) skipRef.current?.focus();
+    // `preventScroll`: the tree box positions itself when the show starts.
+    if (takeFocus) skipRef.current?.focus({ preventScroll: true });
   }, [takeFocus]);
 
   useLayoutEffect(() => {
@@ -1155,7 +990,6 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
   // `beatDurationRef` are the only state this beat contributes, and the one
   // continuously-running rAF loop reads both every frame from here on.
   useEffect(() => {
-    if (reduced) return;
 
     const groups = groupsRef.current;
     const now = performance.now();
@@ -1213,13 +1047,12 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
         detail: { kind: beat.kind, year: beat.season?.year, storm: beat.season?.storm ?? false, sub: beat.caption },
       }),
     );
-  }, [beat, reduced, applyRelease]);
+  }, [beat, applyRelease]);
 
   const advance = useCallback(() => {
-    if (reduced) return;
     if (isLast) end();
     else setIndex((current) => current + 1);
-  }, [reduced, isLast, end]);
+  }, [isLast, end]);
 
   // Keeps the master clock's own copy of `advance` current — the clock
   // effect just below is mount-scoped (it must never restart, or its own
@@ -1240,7 +1073,6 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
   // has elapsed. Nothing here schedules a future callback of its own; the
   // next frame is simply the next `requestAnimationFrame`.
   useEffect(() => {
-    if (reduced) return;
     let cancelled = false;
 
     function tick() {
@@ -1294,7 +1126,7 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
       if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = null;
     };
-  }, [reduced, applyRelease]);
+  }, [applyRelease]);
 
   const handleSkip = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
@@ -1310,20 +1142,14 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
       role="group"
       aria-label="How the tree grew"
       data-origin-stage
-      onClick={reduced ? undefined : advance}
-      // Non-reduced: `inset-0` matches the *whole* drawing wrapper
-      // `TreeBox.tsx` puts around `<DrawnTree>` — the click-to-advance
-      // target the whole real tree draws inside, not just the sky slice — so
-      // a click anywhere the growing tree is visible still advances the
-      // story. Reduced motion keeps the old top-pinned, unclamped box: the
-      // storyboard is meant to be read start to finish, not clicked through,
-      // and has more than enough height below it to grow into.
-      className={cn("absolute", reduced ? "inset-x-0 top-0 z-20" : "inset-0 z-20 cursor-pointer")}
+      onClick={advance}
+      // `inset-0` matches the *whole* drawing wrapper `TreeBox.tsx` puts
+      // around `<DrawnTree>` — the click-to-advance target the whole real
+      // tree draws inside, not just the sky slice — so a click anywhere the
+      // growing tree is visible still advances the story.
+      className="absolute inset-0 z-20 cursor-pointer"
     >
-      {reduced ? (
-        <Storyboard seasons={seasons} />
-      ) : (
-        <>
+      <>
           {/* The sky slice: a small, top-pinned box (the same 300×200 area
               the old silhouette stage used), `absolute` inside the stage
               above — which is itself `absolute` inside the tree figure's own
@@ -1365,8 +1191,7 @@ export default function OriginStory({ onClose, takeFocus = true }: OriginStoryPr
           <p role="status" className="sr-only">
             {announced}
           </p>
-        </>
-      )}
+      </>
 
       <button type="button" ref={skipRef} onClick={handleSkip} className={SKIP_BUTTON_CLASS}>
         Skip

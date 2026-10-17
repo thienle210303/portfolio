@@ -1235,9 +1235,8 @@
   /* No `[data-ink-ready]` guard here: nothing plays this without JS        */
   /* (`TreeBox.tsx` starts it on sight or on "See how it grows"), so         */
   /* there is no no-JS/print/reduced-motion path where `data-origin-running`  */
-  /* could appear unbidden — `OriginStory.tsx` only ever stamps it after       */
-  /* checking `prefers-reduced-motion` itself, same as the block below this   */
-  /* one. The media guard here is still the belt-and-braces backstop.         */
+  /* could appear unbidden — `TreeBox.tsx` never starts the player under      */
+  /* reduced motion, same as the block below this one. The media guard here is still the belt-and-braces backstop.         */
   /* ---------------------------------------------------------------------- */
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-origin-running] [data-origin-pending].tree-draw,
@@ -1427,11 +1426,10 @@
   /* ---------------------------------------------------------------------- */
   /* Origin story — the sky layer (v2).                                     */
   /*                                                                        */
-  /* `OriginStory.tsx` only ever applies these classes when it has already  */
-  /* checked `prefers-reduced-motion` itself and found "no-preference" —    */
-  /* the reduced-motion path renders a static storyboard instead and never  */
-  /* mounts a single one of these classes. The media guard below is        */
-  /* redundant defence on top of that JS check, the same belt-and-braces    */
+  /* `OriginStory.tsx` only ever mounts after `TreeBox.tsx` has checked     */
+  /* `prefers-reduced-motion` and found "no-preference" — under reduced     */
+  /* motion the player never mounts, so none of these classes appear. The  */
+  /* media guard below is redundant defence on top of that JS check, the same belt-and-braces    */
   /* relationship the tree's own `.tree-draw`/`.tree-grow` rules above have  */
   /* to `InkReveal`.                                                        */
   /*                                                                        */
@@ -1534,9 +1532,9 @@
   /* windy more showing".                                                    */
   /*                                                                        */
   /* Same belt-and-braces as every other block in this file: `WeatherLayer`  */
-  /* only ever mounts after `OriginStory.tsx` has already checked            */
-  /* `prefers-reduced-motion` itself and found "no-preference" — the         */
-  /* reduced-motion Storyboard branch never renders it — so the media guard   */
+  /* only ever mounts after `TreeBox.tsx` has already checked                */
+  /* `prefers-reduced-motion` and found "no-preference" — the player never   */
+  /* mounts under reduced motion — so the media guard                         */
   /* below is defence on top of that JS check, not the only thing standing   */
   /* between a reduced-motion visitor and this animation.                    */
   /*                                                                        */

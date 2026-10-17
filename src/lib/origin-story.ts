@@ -168,20 +168,6 @@ export function seasonsFor(): readonly Season[] {
 }
 
 /**
- * How far into the career's growth a given year is, as 0..1: 0 at the flight
- * landing, 1 at the last year any career entry starts in. Clamped outside that
- * span so a caller never has to guard against a stray negative or an
- * overshoot past a fully-grown tree.
- */
-export function growthStage(year: number): number {
-  const { lastYear } = careerYearSpan();
-  const span = lastYear - origin.arrivedYear;
-  if (span <= 0) return year <= origin.arrivedYear ? 0 : 1;
-  const stage = (year - origin.arrivedYear) / span;
-  return Math.min(1, Math.max(0, stage));
-}
-
-/**
  * The first year the canopy exists: the earliest year any career entry lands
  * in, which is the same fact `careerYearSpan().firstYear` already is —
  * this is only a second name for it, so `DrawnTree.tsx` can ask the origin

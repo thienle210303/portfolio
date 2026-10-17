@@ -185,4 +185,10 @@ test("every drawn branch's headline prints", async ({ page }) => {
   const drawn = page.locator("#tree [data-origin-host] [data-tree-headline]");
   await expect(drawn).toHaveCount(11);
   for (const headline of await drawn.all()) await expect(headline).toBeVisible();
+  // On screen the tree box is a scrolling window; on paper there is no
+  // scrolling, so it must print the whole tree rather than one window of it.
+  const clipped = await page
+    .locator("#tree [data-tree-box]")
+    .evaluate((el) => el.scrollHeight - el.clientHeight);
+  expect(clipped).toBeLessThanOrEqual(1);
 });
