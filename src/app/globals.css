@@ -132,7 +132,7 @@
   :root {
     /*
      * Round 12 (WP-K): the one place below `--step--1` on the scale, added
-     * for the hero code artifact's compact rendering only (`CodeBlock`'s
+     * for the old hero code artifact's compact rendering (`CodeBlock`'s
      * `compact` prop) — the owner reported it "dominating the hero column"
      * next to the identity copy. Same clamp shape as its neighbours, one
      * notch down: floor and ceiling both ~0.06rem under `--step--1`'s.
@@ -654,7 +654,7 @@
    * construction — a monospace face has exactly one advance width for every
    * glyph, digits included, so there is no proportional-width figure for
    * `font-variant-numeric` to fix. The same is true of most of the site's
-   * other figures (case-study numerals, the code artifact, MetricHighlights'
+   * other figures (case-study numerals, the hero terminal, MetricHighlights'
    * headline value); the explicit utility only earns its place on the
    * handful of *sans* figures — MetricTable and the footer copyright — where
    * digits would otherwise sit at their proportional widths beside letters
@@ -968,7 +968,7 @@
   /* fully rendered at its final state, matching every other pre-reveal      */
   /* state on the page.                                                     */
   /*                                                                        */
-  /* LCP guard: the h1 and the code artifact use `ink-rise` (transform-only) */
+  /* LCP guard: the h1 and the terminal use `ink-rise` (transform-only)     */
   /* rather than `ink-fade-rise`. Both are plausible Largest Contentful      */
   /* Paint candidates, and an element that starts at `opacity: 0` delays the */
   /* browser's own LCP timestamp until the animation finishes — a transform  */
@@ -1054,6 +1054,26 @@
     html[data-motion] [data-hero-step="scroll"] {
       animation-name: ink-fade-rise;
       animation-delay: 550ms;
+    }
+  }
+
+  /* The hero terminal's `whoami` types once (HeroTerminal.tsx, TypeOnce.tsx).
+     A clip, not a text change: every character is in the DOM from the first
+     paint and the line box never changes size, so there is no layout shift.
+     Under reduced motion the rule never applies and the lines are whole. */
+  @keyframes term-type {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-typing] [data-type-line] {
+      animation: term-type 0.6s steps(28) both;
+      animation-delay: calc(var(--line) * 120ms);
     }
   }
 

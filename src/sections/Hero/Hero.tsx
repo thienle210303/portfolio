@@ -1,7 +1,8 @@
 /**
  * Hero — id="about", the page's single <h1>. Server Component:
- * HeroCodeArtifact's only interactive piece is the shared Tabs primitive,
- * which supplies its own "use client" boundary, so nothing here needs one.
+ * HeroTerminal's only client pieces, the shared Tabs primitive and its
+ * TypeOnce wrapper, supply their own "use client" boundaries, so nothing
+ * here needs one.
  *
  * Section's bottom padding is overridden through its `className` to 0.6x.
  * There is no height floor: round 20 (spec §2) dropped the `100svh` one, so
@@ -16,9 +17,9 @@
  *
  * Layout, widest to narrowest — all reflow, nothing is ever hidden:
  *
- *   >=1360px  margin rail | identity | hairline | code artifact
- *   >=1024px  margin rail | identity above code artifact
- *    <1024px  identity, code artifact, then the rail as endnotes
+ *   >=1360px  margin rail | identity | hairline | terminal
+ *   >=1024px  margin rail | identity above terminal
+ *    <1024px  identity, terminal, then the rail as endnotes
  *
  * The split's breakpoint and column ratio are explained at the point of use
  * below. The 1360px breakpoint is a holdover from before round 20's 1120px
@@ -33,7 +34,7 @@ import { Section, type RailNote } from "@/components/ui/Section";
 import { profile } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
 import HeroIdentity from "./HeroIdentity";
-import HeroCodeArtifact from "./HeroCodeArtifact";
+import HeroTerminal from "./HeroTerminal";
 
 const HEADING_ID = "hero-heading";
 
@@ -74,10 +75,10 @@ export default function Hero() {
         about 1360px. Since the 1120px content cap, the columns are the same
         ~416px at every width >=1360, so the breakpoint no longer buys
         width. Phase 3 should revisit it. Below 1360 the identity and the
-        code stack in the remaining column.
+        terminal stack in the remaining column.
 
-        An even split. 5.25/6.75 once favoured the code so its ~48-character
-        lines would not wrap, but the artifact wraps (`pre-wrap`) and round
+        An even split. 5.25/6.75 once favoured the old code excerpts so their
+        ~48-character lines would not wrap, but the panel wraps (`pre-wrap`) and round
         20's 1120px content cap leaves ~830px for both columns at every
         width >=1360: at 5.25/6.75 the identity column was 364px and the
         hero ran 864px tall at 1440×900; even, it is ~416px and ~813px (~821px
@@ -108,7 +109,7 @@ export default function Hero() {
         </div>
 
         <div className="min-w-0">
-          <HeroCodeArtifact />
+          <HeroTerminal />
         </div>
       </div>
 

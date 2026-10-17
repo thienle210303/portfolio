@@ -18,7 +18,6 @@ import type {
   AiTool,
   CareerEntry,
   Certification,
-  CodeTab,
   Companion,
   ContactIntent,
   EducationEntry,
@@ -74,6 +73,8 @@ export const profile = {
   // A motto he adopted, not a fact the site asserts. It was generated rather
   // than sourced, and he asked to keep it.
   philosophy: "Unsolved is not the same as unsolvable.",
+  // His own line (round 20), the last thing the hero terminal's `whoami` prints.
+  motto: "Practice makes AI.",
   headline: "I keep asking, and I go and look.",
   about: [
     "I moved from Kiên Giang, Việt Nam to Taylors, South Carolina in December 2018, at fifteen, with my family. I could read and write English. I could not speak it.",
@@ -87,9 +88,9 @@ export const profile = {
   // employer, and a location discourages inbound), and the owner has decided
   // that trade is worth making. Recording the decision matters more than
   // recording the hesitation.
-  // `availability` is printed in the hero's rail. `location` is kept as an
-  // authored fact but nothing renders it today: the first About paragraph says
-  // the same place in prose, and the rail dropped its "Based" note for that.
+  // `availability` is printed in the hero's rail. `location` is printed as the
+  // hero terminal's `based` line (src/lib/terminal.ts); the rail dropped its
+  // own "Based" note because the first About paragraph says the same place.
   location: "Taylors, South Carolina",
   availability: "Open to remote, and to relocation when it's worth it.",
   resumePdf: "/thien-le-resume.pdf",
@@ -191,69 +192,6 @@ export const navItems = [
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
-
-/* -------------------------------------------------------------------------- */
-/* Hero code artifact                                                          */
-/* -------------------------------------------------------------------------- */
-
-export const codeTabs = [
-  {
-    id: "projector",
-    label: "The globe",
-    filename: "src/lib/globe.ts",
-    source: "From this site's own source code.",
-    summary:
-      "A TypeScript function named project that rotates a three-dimensional point by the globe's spin and tilt, then returns its x and y screen position, whether it faces the viewer, and its depth.",
-    code: `export function project(v: Vec3, spin: number, tilt: number, view: Viewport): Projected {
-  const r = rotate(v, spin, tilt);
-  return {
-    x: view.cx + view.radius * r[1],
-    y: view.cy - view.radius * r[2],
-    front: r[0] > 0,
-    depth: r[0],
-  };
-}`,
-  },
-  {
-    id: "honesty",
-    label: "The rule",
-    filename: "tests/lib/worlds.test.ts",
-    source: "From this site's own source code.",
-    summary:
-      "A TypeScript test asserting that the text of every field plaque on the globe is a string the content layer can produce.",
-    code: `  it("renders every field plaque verbatim from the content layer", () => {
-    for (const world of resolved) {
-      for (const plaque of world.plaques) {
-        if (plaque.kind !== "field") continue;
-        expect(
-          AUTHORED.has(plaque.text),
-          \`\${world.id}: "\${plaque.text}" is not a string the content layer can produce\`,
-        ).toBe(true);
-      }
-    }
-  });`,
-  },
-  {
-    id: "overlap",
-    label: "The overlap",
-    filename: "src/lib/knowledge-tree.ts",
-    source: "From this site's own source code.",
-    summary:
-      "A TypeScript function named concurrentWith that returns the ids of every other non-milestone career entry whose start and end months overlap the given entry's, comparing the months inclusively.",
-    code: `export function concurrentWith(entryId: string): readonly string[] {
-  const subject = ENTRIES.find((entry) => entry.id === entryId);
-  if (!subject || subject.type === "milestone") return [];
-  const own = span(subject);
-  return ENTRIES
-    .filter((other) => other.id !== entryId && other.type !== "milestone")
-    .filter((other) => {
-      const theirs = span(other);
-      return own.start <= theirs.end && theirs.start <= own.end;
-    })
-    .map((other) => other.id);
-}`,
-  },
-] satisfies readonly CodeTab[];
 
 /* -------------------------------------------------------------------------- */
 /* Career — canonical source for organisations, roles and dates                */

@@ -15,7 +15,7 @@ function viewportWidth(page: Page): number {
 }
 
 test.describe("LCP guard", () => {
-  test("the hero h1 and code artifact are fully opaque immediately, never mid-fade", async ({
+  test("the hero h1 and terminal are fully opaque immediately, never mid-fade", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "not viewport-dependent; run once");

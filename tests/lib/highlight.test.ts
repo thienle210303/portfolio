@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { highlight } from "@/lib/highlight";
-import { codeTabs } from "@/content/portfolio";
 import type { CodeTokenKind } from "@/types/portfolio";
 
 /**
@@ -49,14 +48,6 @@ const GIRL = String.fromCodePoint(0x1f467);
 const BOY = String.fromCodePoint(0x1f466);
 
 describe("highlight - round-trip property", () => {
-  describe("real content (src/content/portfolio.ts codeTabs)", () => {
-    for (const tab of codeTabs) {
-      it(`reproduces ${tab.filename} exactly`, () => {
-        expect(reconstruct(tab.code)).toBe(tab.code);
-      });
-    }
-  });
-
   const adversarialCases: Record<string, string> = {
     "empty string": "",
     "unterminated double-quoted string": 'const s = "never closed',
@@ -101,8 +92,8 @@ describe("highlight - round-trip property", () => {
     });
   }
 
-  it("never throws across the full real-content + adversarial corpus", () => {
-    const allInputs = [...codeTabs.map((tab) => tab.code), ...Object.values(adversarialCases)];
+  it("never throws across the adversarial corpus", () => {
+    const allInputs = Object.values(adversarialCases);
     for (const code of allInputs) {
       expect(() => highlight(code)).not.toThrow();
     }
