@@ -101,6 +101,10 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
       startedRef.current = true;
       if (reducedMotion()) return;
       const opener = event.target instanceof HTMLElement ? event.target : null;
+      // Drawn before the player mounts: inside `content-visibility: hidden`
+      // the player's Skip refuses focus. The far observer agrees once the
+      // scroll above lands, and the show's start keeps it drawn meanwhile.
+      box.removeAttribute("data-far");
       playerRef.current?.start({ opener });
     };
     document.addEventListener(GROW_EVENT, onGrow);

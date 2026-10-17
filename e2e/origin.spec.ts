@@ -248,6 +248,28 @@ test.describe("the button", () => {
     await expect(page.locator(`#tree #journey-entry-${id}`)).toBeInViewport();
   });
 
+  test("a keyboard press from far above the box still focuses Skip", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
+    const button = watchOriginButton(page);
+    const stage = page.locator("[data-origin-stage]");
+    const box = page.locator("[data-tree-box]");
+    // One show first, so the player's chunk is already loaded.
+    await button.click();
+    await expect(stage).toHaveCount(1, { timeout: PLAYER_MOUNT_TIMEOUT });
+    await page.keyboard.press("Escape");
+    await expect(stage).toHaveCount(0);
+
+    // The button low in the viewport, the box more than 200 px below it.
+    await button.evaluate((el) => {
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: top - window.innerHeight + 80, behavior: "instant" as ScrollBehavior });
+    });
+    await expect(box).toHaveAttribute("data-far", "");
+    await button.focus();
+    await page.keyboard.press("Enter");
+    await expect(stage.getByRole("button", { name: "Skip" })).toBeFocused();
+  });
+
   test("does not auto-play under a pointer already on the box", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
     const box = page.locator("[data-tree-box]");

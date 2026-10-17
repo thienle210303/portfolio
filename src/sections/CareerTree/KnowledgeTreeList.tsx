@@ -42,7 +42,8 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
   return (
     // `content-visibility: auto` at lg: while the timeline is far off screen
     // its rows cost nothing to paint. Without it they were repainted on every
-    // frame of the scroll through Worlds and made that band ~5 fps slower
+    // frame of the scroll through Worlds: hiding them cut that band's document
+    // paint from ~85 to ~50 ms, the tree box being most of the rest
     // (docs/feedback-tracker.md, R20-P5). 1275px is its collapsed height at
     // 1440; `auto` keeps the real height once it has rendered. A hash landing
     // inside it renders it first, so landings stay exact.
