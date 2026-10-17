@@ -60,7 +60,7 @@ export interface GlobeControls {
   readonly focusStop: (id: OriginStop["id"]) => void;
   /** Bring whatever is moving to where it was going, in one draw, and ask
    *  for no further frame: a flight in the air lands (and `onLanded` fires),
-   *  a robot mid-walk ends lit. At rest it does nothing at all. */
+   *  a robot mid-walk finishes and leaves. At rest it does nothing at all. */
   readonly settle: () => void;
 }
 

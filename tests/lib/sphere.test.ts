@@ -9,7 +9,6 @@ import {
 } from "@/sections/Worlds/gl/shaders";
 import { robotLights } from "@/sections/Worlds/gl/robot";
 import {
-  REST_STATE,
   createSphere,
   globeStroke,
   inverseRotation,
@@ -17,6 +16,7 @@ import {
   sphereView,
   surfaceGeo,
   type SphereColors,
+  type SphereState,
 } from "@/sections/Worlds/gl/sphere";
 
 const DEG = Math.PI / 180;
@@ -86,9 +86,10 @@ describe("the shader's colours", () => {
     expect(SPHERE_UNIFORMS).not.toContain("uAccent");
   });
 
-  it("draws the robot's city lights only while it walks, in ink", () => {
+  it("draws the robot's city lights only while a robot is out, in ink", () => {
     // Every read of the three robot uniforms sits inside the one branch that
-    // runs while a robot is on the planet.
+    // runs while a robot is on the planet (`uRobot >= 0`): walking, or held
+    // as the reduced-motion still.
     const walk = FRAGMENT_SOURCE.indexOf("if (uRobot >= 0.0) {");
     expect(walk).toBeGreaterThan(0);
     const branchEnd = FRAGMENT_SOURCE.indexOf("\n  }\n", walk);
@@ -271,6 +272,8 @@ describe("parseCssColor", () => {
   });
 });
 
+/** No robot out: the planet's plain look. */
+const REST_STATE: SphereState = { spin: 0, tilt: 0, robot: -1 };
 const COLORS: SphereColors = { ink: [0, 0, 0], paper: [1, 1, 1] };
 const COVERAGE = { width: 4, height: 2, data: new Uint8ClampedArray(4 * 2 * 4) };
 

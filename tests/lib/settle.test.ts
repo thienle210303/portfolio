@@ -20,14 +20,14 @@ function still(overrides: Partial<Motion> = {}): Motion {
 }
 
 describe("settleMotion: everything moving goes to where it was going", () => {
-  it("lands a flight in the air on the arrival pin, robot already still and lit, and says it landed", () => {
+  it("lands a flight in the air on the arrival pin, its walk already over, and says it landed", () => {
     const m = still({ playing: true, flight: 0.4, spin: 0.1, tilt: 0.05 });
     expect(settleMotion(m, ARRIVAL)).toBe(true);
     expect(m).toMatchObject({
       playing: false,
       flight: 1,
       landed: true,
-      robot: 1,
+      robot: -1,
       walking: false,
       spin: ARRIVAL.spin,
       tilt: ARRIVAL.tilt,
@@ -35,10 +35,10 @@ describe("settleMotion: everything moving goes to where it was going", () => {
     });
   });
 
-  it("ends a robot mid-walk at its lit end, and stops the walk", () => {
+  it("ends a robot mid-walk: the walk stops and the robot leaves", () => {
     const m = still({ robot: 0.3, walking: true });
     expect(settleMotion(m, ARRIVAL)).toBe(false);
-    expect(m.robot).toBe(1);
+    expect(m.robot).toBe(-1);
     expect(m.walking).toBe(false);
   });
 

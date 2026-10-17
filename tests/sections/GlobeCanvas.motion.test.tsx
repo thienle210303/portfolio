@@ -5,6 +5,7 @@ import { buildStops } from "@/lib/origin-stops";
 import GlobeCanvas from "@/sections/Worlds/GlobeCanvas";
 import type { GlobeControls } from "@/sections/Worlds/WorldsStage";
 import { ROBOT_WALK_FRAMES } from "@/sections/Worlds/gl/robot";
+import { GLYPHS } from "@/sections/Worlds/glyphs";
 import type { SphereState } from "@/sections/Worlds/gl/sphere";
 
 /*
@@ -14,7 +15,7 @@ import type { SphereState } from "@/sections/Worlds/gl/sphere";
  * canvas, so the context, the sphere and the 2D context are stand-ins.
  */
 
-const fake = vi.hoisted(() => ({ states: [] as SphereState[] }));
+const fake = vi.hoisted(() => ({ states: [] as SphereState[], paths: [] as string[] }));
 
 vi.mock("@/sections/Worlds/gl/context", async (importActual) => ({
   ...(await importActual<typeof import("@/sections/Worlds/gl/context")>()),
@@ -66,6 +67,7 @@ const last = () => fake.states.at(-1)!;
 
 beforeEach(() => {
   fake.states = [];
+  fake.paths = [];
   queue = [];
   clock = 0;
   motion.reduce = false;
@@ -85,7 +87,15 @@ beforeEach(() => {
   vi.stubGlobal("cancelAnimationFrame", () => {
     queue = [];
   });
-  vi.stubGlobal("Path2D", class {});
+  // Every glyph the overlay strokes goes through `new Path2D(d)`.
+  vi.stubGlobal(
+    "Path2D",
+    class {
+      constructor(d?: string) {
+        if (d) fake.paths.push(d);
+      }
+    },
+  );
   // A 2D context that accepts every call, so `draw()` runs through to the
   // GL surface it hands each frame to.
   const ctx = new Proxy({} as Record<string, unknown>, {
@@ -157,10 +167,13 @@ describe("GlobeCanvas's controls", () => {
 
   it("focusStop on a still globe only turns, and lands nothing", async () => {
     const { controls, onLanded } = await mount();
-    act(() => controls.focusStop("kien-giang"));
+    act(() => controls.focusStop("usc"));
     untilRest();
-    const from = STOPS[0].coordinates;
-    expect(last().spin).toBeCloseTo(-from.lon * DEG, 2);
+    // The globe starts facing Kiên Giang, so USC is a real turn away.
+    const usc = STOPS.find((stop) => stop.id === "usc")!.coordinates;
+    const off = last().spin + usc.lon * DEG;
+    expect(Math.abs(Math.atan2(Math.sin(off), Math.cos(off)))).toBeLessThan(0.003);
+    expect(last().tilt).toBeCloseTo(clampTilt(-usc.lat * DEG * 0.55), 2);
     expect(onLanded).not.toHaveBeenCalled();
     expect(last().robot).toBe(-1);
   });
@@ -183,40 +196,63 @@ describe("GlobeCanvas's robot", () => {
 
     untilRest();
     const walk = fake.states.slice(landedAt).map((state) => state.robot);
-    // Rising, never backwards, and it ends lit and still.
-    expect(walk.every((value, i) => i === 0 || value >= walk[i - 1])).toBe(true);
-    expect(last().robot).toBe(1);
+    // Rising, never backwards, all the way to its lit end, then gone for good.
+    const gone = walk.indexOf(-1);
+    const out = walk.slice(0, gone);
+    expect(out.every((value, i) => i === 0 || value >= out[i - 1])).toBe(true);
+    expect(out.at(-1)).toBe(1);
+    expect(walk.slice(gone).every((value) => value === -1)).toBe(true);
     expect(queue).toHaveLength(0);
   });
 
-  it("walks again after the next landing, and reset takes it off", async () => {
+  it("after the walk the planet is plain again: no robot, Sun, Moon or lit cities", async () => {
+    const { controls } = await mount();
+    act(() => controls.fly());
+    untilRest();
+    // One more frame at rest, watched from its start.
+    fake.paths = [];
+    const before = fake.states.length;
+    act(() => controls.nudge(0, 0));
+    untilRest();
+    expect(fake.states.length).toBeGreaterThan(before);
+    expect(last().robot).toBeLessThan(0);
+    for (const glyph of [GLYPHS.robot, GLYPHS.sun, GLYPHS.moon]) expect(fake.paths).not.toContain(glyph);
+  });
+
+  it("walks again after the next landing", async () => {
     const { controls, onLanded } = await mount();
     act(() => controls.fly());
     untilRest();
-    expect(last().robot).toBe(1);
-
     act(() => controls.fly());
-    frames(1);
-    expect(last().robot).toBe(-1);
-    untilRest();
-    expect(onLanded).toHaveBeenCalledTimes(2);
-    expect(last().robot).toBe(1);
-
-    act(() => controls.reset());
+    while (onLanded.mock.calls.length < 2 && queue.length > 0) frames(1);
+    frames(10);
+    expect(last().robot).toBeGreaterThan(0);
     untilRest();
     expect(last().robot).toBe(-1);
   });
 
-  it("under reduced motion there is no walk: the landing draws the still, with no frame", async () => {
+  it("under reduced motion there is no walk: the landing draws the still, with no frame, and it stays", async () => {
     const { controls, onLanded } = await mount();
     motion.reduce = true;
     act(() => controls.fly());
     expect(onLanded).toHaveBeenCalledTimes(1);
     expect(queue).toHaveLength(0);
     expect(last().robot).toBe(1);
+    expect(fake.paths).toContain(GLYPHS.sun);
+
+    // A later redraw at rest still holds the still pose.
+    fake.paths = [];
+    act(() => controls.nudge(0, 0));
+    untilRest();
+    expect(last().robot).toBe(1);
+    expect(fake.paths).toContain(GLYPHS.sun);
+
+    act(() => controls.reset());
+    untilRest();
+    expect(last().robot).toBe(-1);
   });
 
-  it("settle ends a walk in progress at its lit end", async () => {
+  it("settle ends a walk in progress, and the robot leaves", async () => {
     const { controls } = await mount();
     act(() => controls.fly());
     while (last().robot <= 0 && queue.length > 0) frames(1);
@@ -224,17 +260,17 @@ describe("GlobeCanvas's robot", () => {
     expect(last().robot).toBeGreaterThan(0);
     expect(last().robot).toBeLessThan(1);
     act(() => controls.settle());
-    expect(last().robot).toBe(1);
+    expect(last().robot).toBe(-1);
     expect(queue).toHaveLength(0);
   });
 
-  it("settle mid-flight lands it with the robot already still", async () => {
+  it("settle mid-flight lands it with the walk already over", async () => {
     const { controls, onLanded } = await mount();
     act(() => controls.fly());
     frames(10);
     act(() => controls.settle());
     expect(onLanded).toHaveBeenCalledTimes(1);
-    expect(last().robot).toBe(1);
+    expect(last().robot).toBe(-1);
     expect(queue).toHaveLength(0);
   });
 });

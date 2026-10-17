@@ -11,13 +11,6 @@ export interface SphereState {
   readonly robot: number;     // 0..1 across both passes, or -1 for absent
 }
 
-/** The at-rest state: no robot. */
-export const REST_STATE: SphereState = {
-  spin: 0,
-  tilt: 0,
-  robot: -1,
-};
-
 /** `--fg` and `--ground`, parsed to 0..1. */
 export interface SphereColors {
   readonly ink: Vec3;

@@ -101,8 +101,8 @@ import { palette, sphereColors } from "./palette";
  *
  * The stage can also ask the loop to stop early: `settle()`, called when the
  * stage leaves the viewport or when the stage stops the replay, puts what is
- * still moving at its end (a played flight lands, a robot mid-walk ends lit,
- * an easing camera arrives) in one draw
+ * still moving at its end (a played flight lands, a robot mid-walk finishes
+ * and leaves, an easing camera arrives) in one draw
  * and cancels the pending frame, so nothing animates for a visitor who has
  * scrolled away. Two
  * things it leaves to the visitor: a drag still held (the release wakes the
@@ -114,7 +114,9 @@ import { palette, sphereColors } from "./palette";
  * finished frame — crossing drawn, the robot standing still and lit, view on
  * the arrival pin — from a single synchronous `draw()`, with no frame
  * requested at all. The robot never walks under reduced motion: every landing
- * puts it straight at the end of its walk. That is
+ * puts it straight at the end of its walk, and it stays there as the still.
+ * With motion, the robot, its Sun or Moon and the lit cities are on the globe
+ * only while it walks. That is
  * not a cheaper animation; it is the outcome.
  *
  * ## Colour
@@ -309,8 +311,10 @@ export default function GlobeCanvas({
      *  two things steering the same two angles is a flight that fights the
      *  hand that started it. */
     playing: false,
-    /** The robot's walk across both laps, 0→1, or -1 before a landing.
-     *  `walking` is true only while `step()` is advancing it. */
+    /** The robot's walk across both laps, 0→1, or -1 when no robot is out:
+     *  before a landing and again once its walk is over. Under reduced motion
+     *  it holds `ROBOT_STILL` from the landing on instead. `walking` is true
+     *  only while `step()` is advancing it. */
     robot: -1,
     walking: false,
     running: false,
@@ -641,10 +645,15 @@ export default function GlobeCanvas({
       }
 
       if (v.walking) {
-        // The whole walk in `ROBOT_WALK_FRAMES` reference frames, then it
-        // stops at 1, lit, and so does the loop.
-        v.robot = Math.min(1, v.robot + frames / ROBOT_WALK_FRAMES);
-        if (v.robot >= 1) v.walking = false;
+        // The whole walk in `ROBOT_WALK_FRAMES` reference frames. Its last
+        // frame is drawn lit; then the robot, its Sun and its lights leave,
+        // the planet is plain again, and the loop stops.
+        if (v.robot >= 1) {
+          v.robot = -1;
+          v.walking = false;
+        } else {
+          v.robot = Math.min(1, v.robot + frames / ROBOT_WALK_FRAMES);
+        }
         busy = true;
       }
 
@@ -780,11 +789,12 @@ export default function GlobeCanvas({
       // drag/inertia branch suppressed under it, so the planet would also
       // ignore the hand that woke it.
       v.playing = false;
-      // And a walk torn down mid-lap ends where `settle()` would end it, lit,
-      // rather than frozen part-way with nothing left to advance it.
+      // And a walk torn down mid-lap ends where `settle()` would end it —
+      // over, robot gone — rather than frozen part-way with nothing left to
+      // advance it.
       if (v.walking) {
         v.walking = false;
-        v.robot = ROBOT_STILL;
+        v.robot = -1;
       }
       v.running = false;
       // Same bag, same reason: a timestamp from before the teardown is not
