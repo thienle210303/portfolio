@@ -25,6 +25,12 @@ import { WatchOrigin, type OriginHandle } from "./WatchOrigin";
  * It is keyboard-scrollable (`tabIndex=0`, named) and never captures the page's
  * own scroll.
  *
+ * It is only a scroll container (`data-scroller`) while it is within a screen
+ * of the viewport or a show is running; otherwise it is `overflow: clip`, and
+ * `content-visibility: auto` skips drawing it at all. A scroll container
+ * anywhere on the page, even off screen, roughly doubled the compositor's
+ * per-frame update at the top of the page (docs/feedback-tracker.md, R20-P5).
+ *
  * When a show starts (the companion's `origin-story` "start"), the box jumps
  * to the ground, where the growth begins. It then follows the growth front
  * upward: each released group (`data-origin-pending` removed) that sits above
@@ -145,6 +151,25 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
     const host = hostRef.current;
     if (!box || !host) return;
 
+    let near = false;
+    let showing = false;
+    const setScroller = () => box.toggleAttribute("data-scroller", near || showing);
+    const nearby =
+      typeof IntersectionObserver === "undefined"
+        ? undefined
+        : new IntersectionObserver(
+            (entries) => {
+              near = entries.some((entry) => entry.isIntersecting);
+              setScroller();
+            },
+            { rootMargin: "100% 0px" },
+          );
+    if (nearby) nearby.observe(box);
+    else {
+      near = true;
+      setScroller();
+    }
+
     let mutations: MutationObserver | undefined;
     const stopFollowing = () => {
       mutations?.disconnect();
@@ -152,7 +177,9 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
     };
     const onShow = (event: Event) => {
       stopFollowing();
-      if ((event as CustomEvent<string>).detail !== "start") return;
+      showing = (event as CustomEvent<string>).detail === "start";
+      setScroller();
+      if (!showing) return;
       box.scrollTop = box.scrollHeight;
       mutations = new MutationObserver((records) => followFront(box, records));
       mutations.observe(host, { subtree: true, attributeFilter: ["data-origin-pending"] });
@@ -172,6 +199,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
     box.addEventListener("keydown", onKey);
     return () => {
       stopFollowing();
+      nearby?.disconnect();
       document.removeEventListener("origin-story", onShow);
       box.removeEventListener("wheel", stopFollowing);
       box.removeEventListener("touchmove", stopFollowing);
@@ -191,7 +219,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
         // `pt-16`: the still-growing shoot and its label draw ~36 px above
         // the host, and a scroller cannot scroll to content above its top.
         // Paper does not scroll: print the whole tree, not one window of it.
-        "hidden h-[min(720px,80svh)] overflow-y-auto border border-rule px-6 pt-16 pb-6 lg:block print:h-auto print:overflow-visible",
+        "hidden h-[min(720px,80svh)] overflow-clip [content-visibility:auto] data-[scroller]:overflow-y-auto border border-rule px-6 pt-16 pb-6 lg:block print:h-auto print:overflow-visible print:[content-visibility:visible]",
         className,
       )}
     >

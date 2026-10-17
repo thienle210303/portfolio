@@ -29,7 +29,10 @@ vi.mock("@/sections/CareerTree/OriginStory", () => ({
 class FakeObserver {
   static all: FakeObserver[] = [];
   readonly targets: Element[] = [];
-  constructor(readonly callback: IntersectionObserverCallback) {
+  constructor(
+    readonly callback: IntersectionObserverCallback,
+    readonly options?: IntersectionObserverInit,
+  ) {
     FakeObserver.all.push(this);
   }
   observe(target: Element) {
@@ -65,7 +68,8 @@ function setup() {
       </TreeBox>
     </>,
   );
-  const observer = FakeObserver.all.at(-1);
+  // The auto-play's observer, not the one that keeps the box a scroller nearby.
+  const observer = FakeObserver.all.find((o) => Array.isArray(o.options?.threshold));
   if (!observer) throw new Error("the box never observed itself");
   return observer;
 }
@@ -212,5 +216,25 @@ describe("TreeBox", () => {
     observer.report(1);
     await pastDwell();
     expect(player.mounts).toBe(0);
+  });
+
+  it("is a scroll container only near the viewport or while a show runs", () => {
+    setup();
+    const box = screen.getByRole("region", { name: "Career tree" });
+    const nearby = FakeObserver.all.find((o) => o.options?.rootMargin);
+    if (!nearby) throw new Error("no nearby observer");
+    nearby.report(0);
+    expect(box).not.toHaveAttribute("data-scroller");
+    nearby.report(0.1);
+    expect(box).toHaveAttribute("data-scroller");
+    nearby.report(0);
+    act(() => {
+      document.dispatchEvent(new CustomEvent("origin-story", { detail: "start" }));
+    });
+    expect(box).toHaveAttribute("data-scroller");
+    act(() => {
+      document.dispatchEvent(new CustomEvent("origin-story", { detail: "end" }));
+    });
+    expect(box).not.toHaveAttribute("data-scroller");
   });
 });
