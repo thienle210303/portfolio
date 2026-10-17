@@ -79,6 +79,9 @@ export interface Document {
    * They carry no section rather than a link that lies. See the skills loop at
    * the bottom of this file for why that was chosen over the alternatives.
    *
+   * Round 20 Phase 3 added `profile.about`'s three paragraphs: the hero no
+   * longer prints them and `/resume` never did, so they carry no section either.
+   *
    * A document with no section is still retrieved and quoted; it just has
    * nowhere to send the reader.
    *
@@ -121,22 +124,26 @@ function label(sectionId: string, subjectId: string | undefined, ...local: strin
 export function buildDocuments(): Document[] {
   const docs: Document[] = [];
 
+  // No section: round 20 Phase 3 took these paragraphs out of the hero, and
+  // nothing else renders them, so "More on this in About" would send the reader
+  // to a section with none of the prose. Indexed as before (`label("about", …)`
+  // is the search surface; `sectionId` is not), the same call as the skills
+  // evidence lines at the bottom of this file.
   for (const paragraph of profile.about) {
     docs.push({
       text: paragraph,
       source: "About, in his own words",
-      sectionId: "about",
-      sectionLabel: "About",
       label: label("about", undefined, profile.name, profile.title),
     });
   }
 
-  // The site's one-line positioning, rendered as the lead of About in the
-  // hero's identity column (HeroIdentity). It was the last sentence of `about`
+  // The site's one-line positioning, rendered as the hero's one paragraph, under
+  // the headline in its identity column (HeroIdentity). It was the last sentence of `about`
   // before round 18 and so was indexed with it; it is rendered there again,
   // which is what makes the "More on this in About" link on an answer truthful.
-  // `profile.focus`, next, is printed in #about's margin rail (Hero.tsx) for
-  // the same reason. tests/sections/Hero.test.tsx holds both.
+  // `profile.focus`, next, is printed in #about for the same reason, as the
+  // hero terminal's `focus` line (src/lib/terminal.ts). tests/sections/Hero.test.tsx
+  // holds both.
   docs.push({
     text: profile.positioning,
     source: "About, in his own words",
@@ -181,12 +188,10 @@ export function buildDocuments(): Document[] {
   });
 
   // Philosophy the section is gone (round 16), but this line is still
-  // rendered live in two places — the hero's rail and the business card — so
-  // the document stays and is tagged to About, the hero's own section id
-  // (Hero.tsx renders `id="about"`), rather than being dropped with the rest of
-  // the section's corpus. The third place it used to be rendered was the career
-  // tree's plinth, in `KnowledgeTree.tsx`, which round 18 retired; the rail is
-  // what keeps the About citation true.
+  // rendered live on the business card in #contact, so the document stays and
+  // cites Contact, where a reader following the link finds the sentence. It
+  // cited About while the hero's margin rail printed it (and, until round 18,
+  // the career tree's plinth); round 20 removed the rail.
   //
   // The words below used to live on `sectionExpansions.philosophy`, spread
   // across every document the old section contributed. With only this one
@@ -195,10 +200,10 @@ export function buildDocuments(): Document[] {
   docs.push({
     text: profile.philosophy,
     source: "The idea the whole site hangs from",
-    sectionId: "about",
-    sectionLabel: "About",
+    sectionId: "contact",
+    sectionLabel: "Contact",
     label: label(
-      "about",
+      "contact",
       undefined,
       "believe",
       "thinks",

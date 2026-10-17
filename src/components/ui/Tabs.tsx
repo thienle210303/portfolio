@@ -13,6 +13,9 @@ interface TabsProps {
   readonly label: string;
   readonly tabs: readonly TabItem[];
   readonly idPrefix: string;
+  /** Uppercase, tracked labels — the default. `false` sets them as typed, for
+   *  labels that are commands (the hero terminal's `whoami`). */
+  readonly caps?: boolean;
 }
 
 /**
@@ -23,7 +26,7 @@ interface TabsProps {
  * switching tabs never shifts layout) plus a text-colour shift, on top of
  * `aria-selected` itself.
  */
-export function Tabs({ label, tabs, idPrefix }: TabsProps) {
+export function Tabs({ label, tabs, idPrefix, caps = true }: TabsProps) {
   const [activeId, setActiveId] = useState<string>(() => tabs[0]?.id ?? "");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -95,7 +98,8 @@ export function Tabs({ label, tabs, idPrefix }: TabsProps) {
               onClick={() => selectByIndex(index, false)}
               onKeyDown={(event) => handleKeyDown(event, index)}
               className={cn(
-                "min-h-11 shrink-0 whitespace-nowrap border-b-2 px-1 py-2 font-mono text-[length:var(--step--1)] uppercase tracking-(--tracking-caps) transition-colors duration-200",
+                "min-h-11 shrink-0 whitespace-nowrap border-b-2 px-1 py-2 font-mono text-[length:var(--step--1)] transition-colors duration-200",
+                caps && "uppercase tracking-(--tracking-caps)",
                 selected
                   ? "border-[color:var(--fg)] text-[color:var(--fg)]"
                   : "border-[color:var(--rule-color)] text-[color:var(--fg-muted)] hover:text-[color:var(--fg)]",

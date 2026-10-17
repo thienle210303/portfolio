@@ -3,13 +3,11 @@ import { navItems } from "../src/content/portfolio";
 
 /**
  * "Ask this site" — a chat thread over the portfolio's own content. Rounds 16
- * and 17 kept it behind the hero code artifact's fourth tab, "Ask Thien";
- * round 18 moved it to Contact, under "Ask about my work" (`#ask`), and the
- * hero went back to three code tabs. The chat is still a lazily imported
- * chunk: it does not exist on the page until `#ask` nears the viewport
- * (`AskLoader.tsx`). Every chat e2e test belongs here, not in
- * `sections.spec.ts`, along with the hero artifact's compact rendering,
- * which this file has owned since round 12 (WP-K).
+ * and 17 kept it behind a fourth tab in the hero; round 18 moved it to
+ * Contact, under "Ask about my work" (`#ask`). The chat is still a lazily
+ * imported chunk: it does not exist on the page until `#ask` nears the
+ * viewport (`AskLoader.tsx`). Every chat e2e test belongs here, not in
+ * `sections.spec.ts`.
  *
  * The property worth testing is not answer quality — that is pinned by unit
  * tests against the index in tests/lib/answers.test.ts, and the live-mode
@@ -392,15 +390,16 @@ test.describe("ask this site", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     // The one remaining case that unmounts the chat (see `threadCache` in
     // AskThisSite.tsx): `/` and `/resume` link to each other with
-    // `next/link`, so the trip is a client-side navigation and the module
-    // scope the thread lives in survives it.
+    // `next/link` (Contact's "Résumé" since round 20 took it out of the hero),
+    // so the trip is a client-side navigation and the module scope the thread
+    // lives in survives it.
     await openChat(page);
     const input = questionField(page);
     await input.fill("What did Thien build at DoorDash?");
     await input.press("Enter");
     await expect(conversation(page).getByText("What did Thien build at DoorDash?")).toBeVisible();
 
-    await page.getByRole("link", { name: "Open résumé" }).click();
+    await page.locator("#contact").getByRole("link", { name: "Résumé", exact: true }).click();
     await expect(page).toHaveURL(/\/resume$/);
     await page.getByRole("link", { name: "Back to the site" }).click();
     await expect(page).toHaveURL(/\/$/);
@@ -409,82 +408,6 @@ test.describe("ask this site", () => {
     await expect(conversation(page).getByText("What did Thien build at DoorDash?")).toBeVisible({
       timeout: 15_000,
     });
-  });
-});
-
-/* -------------------------------------------------------------------------- */
-/* The hero's code artifact: three authored tabs (round 12, round 18)          */
-/* -------------------------------------------------------------------------- */
-
-function heroTablist(page: Page) {
-  return page.getByRole("tablist", { name: "Code artifact tabs" });
-}
-
-test.describe("hero code artifact — compact rendering", () => {
-  test("renders noticeably smaller padding than an ordinary CodeBlock (a chat turn's own Code view)", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "layout is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    // The hero's own wrapper: p-3 (12px), not the ordinary p-4 (16px).
-    const heroWrapper = page.locator('[data-hero-step="code"]');
-    const heroWrapperPadding = await heroWrapper.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
-    expect(heroWrapperPadding).toBeLessThan(16);
-
-    // The active tab's CodeBlock itself steps down too.
-    const heroRegion = page.getByRole("region", { name: "src/lib/globe.ts" });
-    const heroRegionPadding = await heroRegion.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
-    expect(heroRegionPadding).toBeLessThan(16);
-
-    // A CodeBlock elsewhere on the page (a chat turn's own "answer, as data"
-    // view, in Contact's `#ask`) keeps the ordinary size — proving compact
-    // is scoped to the hero's authored tabs (`HeroCodeArtifact.tsx` passes
-    // `compact` only to those), not a global change to every CodeBlock.
-    await askBlock(page).scrollIntoViewIfNeeded();
-    await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "Where did he study?" }).click();
-    const turn = conversation(page).locator(":scope > li").last();
-    await turn.getByRole("tablist", { name: "Answer view" }).getByRole("tab", { name: "Code" }).click();
-    const answerRegion = page.getByRole("region", { name: "answer-1.ts" });
-    const answerRegionPadding = await answerRegion.evaluate((el) => parseFloat(getComputedStyle(el).paddingTop));
-    expect(answerRegionPadding).toBe(16);
-  });
-
-  test("the authored tabs render their real excerpts", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "layout is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    await expect(page.getByRole("region", { name: "src/lib/globe.ts" })).toContainText(
-      "export function project(",
-    );
-    await heroTablist(page).getByRole("tab", { name: "The rule" }).click();
-    await expect(page.getByRole("region", { name: "tests/lib/worlds.test.ts" })).toContainText(
-      "renders every field plaque verbatim",
-    );
-  });
-
-  test("holds up in both themes (no overlapping/clipped code text)", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "layout is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    for (const theme of ["day", "night"] as const) {
-      await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
-      const region = page.getByRole("region", { name: "src/lib/globe.ts" });
-      await expect(region).toBeVisible();
-      await expect(region).toContainText("export function project(");
-    }
-  });
-
-  test("is three code tabs, with no chat tab left behind", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    await expect(heroTablist(page).getByRole("tab")).toHaveCount(3);
-    await expect(page.getByRole("tab", { name: "Ask Thien" })).toHaveCount(0);
-    await expect(page.locator("#about").getByRole("textbox", { name: "Ask a question about this portfolio" })).toHaveCount(0);
   });
 });
 

@@ -123,7 +123,7 @@ describe("CodeBlock", () => {
     expect(codeEl?.textContent).toBe(codeWithLongToken);
   });
 
-  describe("compact (round 12, WP-K: the hero code artifact's tightened frame)", () => {
+  describe("compact (round 12, WP-K: added for the since-deleted hero code artifact)", () => {
     it("defaults to the ordinary, non-compact padding and type size", () => {
       const { container } = render(
         <CodeBlock code={SAMPLE_CODE} filename="example.ts" summary="Example summary" />,

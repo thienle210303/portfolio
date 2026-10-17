@@ -100,9 +100,9 @@ the engine *and* the coastlines into the initial bundle.
 
 ## Changing what the site says
 
-The page is four sections, in this order: About (`#about` — one layout, no
-second band: the hero with the About paragraphs in it, no height floor: it is as
-tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`,
+The page is four sections, in this order: About (`#about` — the hero: a short
+identity column beside a terminal card built from content, no rail, no height
+floor: it is as tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`,
 the pinned stage) and Contact (`#contact`, which also holds the chat at
 `#ask`).
 `navItems` in `src/content/portfolio.ts` is the same four items in the same
@@ -203,10 +203,12 @@ and horizontal overflow at 320–1440px.
 For any change that touches the globe's chunk — `src/lib/globe.ts`,
 `src/sections/Worlds/*`, or anything that might import them — also re-run
 `pnpm perf` against a production build and record the row in
-[docs/feedback-tracker.md](docs/feedback-tracker.md). Read the `JS` column
-first (the 8 s total, not `JS at load`): a move of more than a kilobyte or two
-means the engine or the coastline data has leaked out of the lazy chunk. It
-stays comparable only because at perf's 412×823 viewport the globe stage sits
-more than a screen below the top, so its post-`load` prefetch never fires. `pnpm perf` prints a skipped-response count and a
+[docs/feedback-tracker.md](docs/feedback-tracker.md). Read the `JS at
+load` column first: the globe chunk only loads after `load`, so the engine or
+the coastline data leaking into the initial bundle shows there, and a move of
+more than a kilobyte or two means it has. The 8 s `JS` total is no longer the primary
+leak detector (a jump against its new baseline still means something moved): since R20-P3 the hero is short enough that, at perf's 412×823
+viewport, the globe stage is inside the post-`load` prefetch's one-screen margin,
+so the total includes the globe chunk (about +25 KB, a new baseline). `pnpm perf` prints a skipped-response count and a
 `content-length` cross-check beside its own total; a run reporting any skipped
 responses is under-reported and must not be recorded.

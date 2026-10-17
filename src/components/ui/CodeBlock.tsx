@@ -10,10 +10,9 @@ interface CodeBlockProps {
   /**
    * Tightens the figcaption/code padding and steps the code type down one
    * notch (`--step--1` → `--step--2`) without touching the content or the
-   * token markup. Added for the hero code artifact (round 12, WP-K), which
-   * needed to stop "dominating the hero column" next to the identity copy —
-   * every other caller is unaffected by default (`compact` defaults to
-   * `false`, matching every existing usage).
+   * token markup. Added in round 12 (WP-K) for the hero's code excerpts,
+   * which round 20 replaced with a terminal; no product caller passes it today.
+   * `compact` defaults to `false`.
    */
   readonly compact?: boolean;
 }
@@ -51,7 +50,7 @@ export function CodeBlock({ code, filename, summary, className, compact = false 
     // No `data-cat-hide` here, and it is worth saying why not: this figure
     // carried it for one commit. A cat hides by standing in the clear band
     // *above* a panel's top edge, and every code figure on this page has
-    // something in that band — the hero's has its tab buttons, and the AI
+    // something in that band — the old hero's had its tab buttons, and the AI
     // Workflow Lab's (removed round 16) had the ask form painting over it.
     // Swept every 40px of the page at 1440 and 1024, the attribute here
     // produced zero usable hiding places out of 695 and 735 scroll positions.

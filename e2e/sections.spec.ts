@@ -1,5 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { careerEntries, codeTabs, projects } from "../src/content/portfolio";
+import { careerEntries, projects } from "../src/content/portfolio";
+import { buildTerminal } from "../src/lib/terminal";
 
 // Matches the `lg:` breakpoint (1024px) that switches several sections'
 // desktop/mobile presentations, e.g. the career tree's drawn figure vs. its
@@ -84,13 +85,12 @@ test.describe("hero", () => {
     await expect(page.locator("h1")).toHaveCount(1);
   });
 
-  test("code artifact tabs switch panels via mouse and keyboard", async ({ page }) => {
-    const tablist = page.getByRole("tablist", { name: "Code artifact tabs" });
+  test("terminal tabs switch panels via mouse and keyboard", async ({ page }) => {
+    const terminal = buildTerminal();
+    const tablist = page.getByRole("tablist", { name: "Terminal" });
     const tabs = tablist.getByRole("tab");
-    // Exactly the authored code tabs. Through round 17 a fourth, "Ask
-    // Thien", rode the same tablist; round 18 moved the chat to Contact's
-    // `#ask`, and its behaviour is pinned in e2e/ask.spec.ts.
-    await expect(tabs).toHaveCount(codeTabs.length);
+    const panel = page.locator("#about").getByRole("tabpanel");
+    await expect(tabs).toHaveCount(terminal.length);
 
     // Click-and-verify as one retried unit: `networkidle` in beforeEach only
     // approximates "the islands are live" (its own comment says so), and
@@ -103,7 +103,7 @@ test.describe("hero", () => {
       await tabs.nth(1).click();
       await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true", { timeout: 1000 });
     }).toPass({ timeout: 15_000 });
-    await expect(page.getByRole("region", { name: codeTabs[1].filename })).toBeVisible();
+    await expect(panel).toContainText(`$ ${terminal[1].command}`);
 
     await tabs.nth(1).focus();
     await page.keyboard.press("ArrowRight");
@@ -112,7 +112,17 @@ test.describe("hero", () => {
 
     await page.keyboard.press("Home");
     await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("region", { name: codeTabs[0].filename })).toBeVisible();
+    await expect(panel).toContainText(`$ ${terminal[0].command}`);
+    await expect(panel).toContainText("motto: Practice makes AI.");
+  });
+
+  test("holds no chat: the Ask field lives in #contact", async ({ page }) => {
+    const field = { name: "Ask a question about this portfolio" };
+    await expect(page.getByRole("tab", { name: "Ask Thien" })).toHaveCount(0);
+    await expect(page.locator("#about").getByRole("textbox", field)).toHaveCount(0);
+    // AskLoader mounts the chat only as #ask nears the viewport.
+    await page.locator("#ask").scrollIntoViewIfNeeded();
+    await expect(page.locator("#contact").getByRole("textbox", field)).toHaveCount(1, { timeout: 15_000 });
   });
 });
 

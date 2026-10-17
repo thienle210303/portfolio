@@ -55,11 +55,12 @@ export interface Profile {
   readonly focus: string;
   /** The recurring philosophy line. */
   readonly philosophy: string;
+  /** His motto, printed verbatim as the hero terminal's last `whoami` line. */
+  readonly motto: string;
   /** Hero headline. */
   readonly headline: string;
-  /** A short personal introduction — About's paragraphs, in the hero's
-   *  identity column (`HeroIdentity.tsx`), each also indexed by the chat
-   *  corpus. */
+  /** A short personal introduction. Rendered nowhere since round 20 Phase 3;
+   *  each paragraph is indexed by the chat corpus with no section citation. */
   readonly about: readonly string[];
   readonly email: string;
   readonly location: Maybe<string>;
@@ -355,7 +356,7 @@ export interface ContactIntent {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Hero code artifact                                                          */
+/* Code highlighting                                                           */
 /* -------------------------------------------------------------------------- */
 
 /** Token kinds for the hand-rolled, colour-independent highlighter. */
@@ -367,20 +368,6 @@ export type CodeTokenKind =
   | "string"
   | "punctuation"
   | "comment";
-
-export interface CodeTab {
-  readonly id: string;
-  readonly label: string;
-  readonly filename: string;
-  /** A description of what the snippet says, for assistive technology. */
-  readonly summary: string;
-  /** Where this excerpt comes from. `filename` is the repo-relative path of a
-   *  real file and `code` is a verbatim slice of it (tests/lib/content.test.ts
-   *  checks that); this line is the human-readable provenance shown under the
-   *  panel. */
-  readonly source: string;
-  readonly code: string;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Playground Earth                                                            */

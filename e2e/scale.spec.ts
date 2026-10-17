@@ -56,10 +56,9 @@ for (const size of SIZES) {
     });
 
     test("body text is 15–16px", async ({ page }) => {
-      // The first About paragraph — not the first `#about p`, which is the
-      // eyebrow (--step--1, deliberately below body size), nor the positioning
-      // lead (--step-1).
-      within(await px(page, "#about [data-hero-step='intro'] p:nth-of-type(2)", "font-size"), 15, 16);
+      // The hero's one paragraph — not the first `#about p`, which is the
+      // eyebrow (--step--1, deliberately below body size).
+      within(await px(page, "#about [data-hero-step='intro']", "font-size"), 15, 16);
     });
 
     test("section titles are 24–28px", async ({ page }) => {

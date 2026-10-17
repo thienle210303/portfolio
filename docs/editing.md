@@ -80,8 +80,10 @@ Add an entry to `careerEntries`. One entry feeds all of:
   entries only
 - "Ask this site"
 
-The hero's positioning line names the employer in its own prose, and no entry
-feeds it: changing jobs also means editing `profile.positioning`.
+The hero's eyebrow and the terminal's `now` tab read the current entry
+(`currentEntry()` in `src/lib/terminal.ts`: the one whose `dateRange` ends in
+"Present"). The positioning line names the employer in its own prose, so
+changing jobs also means editing `profile.positioning`.
 
 Then two things the entry cannot decide for itself:
 

@@ -110,20 +110,15 @@ test("no element visibly overflows the viewport horizontally", async ({ page }) 
   expect(offenders, `overflowing elements: ${JSON.stringify(offenders, null, 2)}`).toEqual([]);
 });
 
-test("hero code artifact panel scrolls inside itself, never the page", async ({ page }) => {
-  // "src/lib/globe.ts" is codeTabs[0]'s filename — the tab selected by default, so
-  // its CodeBlock <pre role="region"> is present without any interaction.
-  //
-  // The panel no longer scrolls sideways: long lines wrap in place
-  // (`white-space: pre-wrap`, with `overflow-wrap: anywhere` so even an
-  // unbreakable token can't widen it), so the panel grows taller instead of
-  // gaining an inner horizontal scrollbar. What still must hold — the
-  // contract this test now asserts — is that none of that ever escapes into
-  // page-level horizontal overflow.
-  const region = page.getByRole("region", { name: "src/lib/globe.ts" });
-  await expect(region).toBeVisible();
-  const whiteSpace = await region.evaluate((el) => getComputedStyle(el).whiteSpace);
-  expect(whiteSpace, "hero code panel must wrap long lines (white-space: pre-wrap) instead of scrolling").toBe(
+test("hero terminal panel wraps inside itself, never widening the page", async ({ page }) => {
+  // The default `whoami` panel is present without any interaction. Long
+  // values wrap in place (`white-space: pre-wrap`, with `overflow-wrap:
+  // anywhere` so even an unbreakable token can't widen it); none of that may
+  // escape into page-level horizontal overflow.
+  const pre = page.locator("#about").getByRole("tabpanel").locator("pre");
+  await expect(pre).toBeVisible();
+  const whiteSpace = await pre.evaluate((el) => getComputedStyle(el).whiteSpace);
+  expect(whiteSpace, "hero terminal must wrap long lines (white-space: pre-wrap) instead of scrolling").toBe(
     "pre-wrap",
   );
   await assertNoPageOverflow(page);

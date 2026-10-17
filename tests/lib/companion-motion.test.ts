@@ -423,6 +423,50 @@ describe("detourAround", () => {
     expect(go({ x: 1092, y: 780 }, want)).toBe(want);
   });
 
+  it("hands back a target inside his padded box rather than a waypoint", () => {
+    // No waypoint reaches it; routing to one parked her above him for good.
+    const inside = { x: 1000 - 75.5, y: 800 };
+    expect(go({ x: 924.5, y: 732 }, inside)).toBe(inside);
+    // On the edge she can reach it straight down without entering the box.
+    const edge = { x: 1000 - 76, y: 800 };
+    expect(go({ x: 924, y: 732 }, edge)).toBe(edge);
+    // Her trailing spot is on the edge too, and across his box is still routed.
+    expect(go({ x: 1080, y: 800 }, { x: 924, y: 803 })).toEqual({ x: 1080, y: 800 - 42 - 26 });
+  });
+
+  it("still routes a trailing seat that float rounding puts a hair inside the edge", () => {
+    const lead2 = { x: 123.37, y: 800 };
+    const seat = { x: lead2.x - 76 + 1e-9, y: 803 };
+    const wp = detourAround({ x: lead2.x + 80, y: 800 }, seat, lead2, 50, 42, 26, 0);
+    expect(wp).toEqual({ x: lead2.x + 80, y: 800 - 42 - 26 });
+  });
+
+  // Steps her the way Companion.tsx does (route until within 4 px, then
+  // `advance` at 3 px a frame) and asserts arrival, not the first waypoint: a
+  // first-waypoint test passed while she parked above him for good.
+  it("brings her to her trailing seat from above and from across, at any lead x", () => {
+    const arrives = (lead: { x: number; y: number }, start: { x: number; y: number }) => {
+      const seat = trailBehind(lead, -1, 50, 26);
+      const pos = { ...start };
+      let routing = true;
+      for (let i = 0; i < 400; i += 1) {
+        let want = seat;
+        if (routing) {
+          if (Math.hypot(pos.x - seat.x, pos.y - seat.y) < 4) routing = false;
+          else want = detourAround(pos, seat, lead, 50, 42, 26, 0);
+        }
+        advance(pos, want, 3);
+      }
+      return Math.hypot(pos.x - seat.x, pos.y - seat.y) < 4;
+    };
+    const xs = [948.9193758501593, ...Array.from({ length: 1000 }, (_, i) => 200 + i * 0.7317)];
+    const stuck = xs.filter((x) => {
+      const lead = { x, y: 800 };
+      return !arrives(lead, { x, y: 680 }) || !arrives(lead, { x: x - 76, y: 803 });
+    });
+    expect(stuck).toEqual([]);
+  });
+
   it("never sends her above the safe band when he is just under the header", () => {
     const high = { x: 1000, y: 70 };
     const minY = 64;

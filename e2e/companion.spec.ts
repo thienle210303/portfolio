@@ -2046,9 +2046,11 @@ test.describe("companion", () => {
 
   test("on load, in About, neither cat comes to rest on the hero's text", async ({ page }) => {
     /*
-     * Round 18 put the About paragraphs in the fold, so the fold now runs past
-     * the first screen and the hero mood's anchor — the `data-cat-perch`
-     * Scroll row — starts below it at both of these sizes. Nothing is touched:
+     * Round 18 put the About paragraphs in the fold, which ran it past the first
+     * screen with the hero mood's anchor — the `data-cat-perch` Scroll row —
+     * below it. Round 20 Phase 3 took them out: the hero is 466 px tall at
+     * 1440×900, and the Scroll row is inside the first screen at both of these
+     * sizes. The test still holds either way. Nothing is touched:
      * this is what a visitor who has just arrived sees. The first standing
      * sample is the one judged (see `expectRestClearOfContent`), feet and belly
      * and then the head band.

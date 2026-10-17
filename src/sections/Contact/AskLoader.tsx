@@ -11,7 +11,8 @@ import { useCallback, useEffect, useRef, useState, type ComponentType } from "re
  * imports only React — no `@/lib/answers`, no `AskThisSite` — so nothing that
  * module needs (the whole lexical index over the site's content, built at
  * module load) is pulled into the chunk Contact ships with. Through round 17
- * the boundary was the hero's "Ask Thien" tab, where mounting the tab was the
+ * the boundary was the "Ask Thien" tab of the hero's code artifact (deleted in
+ * round 20), where mounting the tab was the
  * trigger; Contact has no tab, so the trigger is the block coming within
  * `LOAD_AHEAD` of the viewport. Loading a little ahead of arrival means a
  * visitor scrolling down normally finds the chat ready rather than watching a
