@@ -16,6 +16,7 @@ import { origin } from "@/content/portfolio";
 // content layer stays out of the initial client bundle.
 import type { ResolvedChapter } from "@/lib/worlds";
 import type { ResolvedSkin } from "@/lib/skins";
+import type { OriginStop } from "@/lib/origin-stops";
 import type { RobotHold } from "./gl/robot";
 import { TAP_SLOP_PX } from "./gestures";
 import WorldPanel from "./WorldPanel";
@@ -28,8 +29,9 @@ import WorldPanel from "./WorldPanel";
  * canvas is decoration.** This component works with no canvas at all, which is
  * not a fallback but the design — `e2e/worlds.spec.ts` blocks the canvas chunk
  * and asserts every plaque is still reachable. That is why `currentId` lives
- * here rather than inside the canvas, and why the canvas is handed a
- * `currentId` and an `onSelect` rather than owning the selection itself.
+ * here rather than inside the canvas. The canvas is handed the stops and the
+ * active one (none, until the stop list replaces this one) and owns no
+ * selection itself.
  *
  * The canvas arrives by `import()` on first scroll into view, not by
  * `next/dynamic`: it is ~53 KB of coastline plus an engine, and nothing about
@@ -53,9 +55,9 @@ export interface GlobeControls {
    *  handoff link with it: the seed being gone is what makes the link untrue
    *  again. */
   readonly reset: () => void;
-  /** Turn a chapter to face the viewer. A flight in the air lands first
+  /** Turn a stop to face the viewer. A flight in the air lands first
    *  (and `onLanded` fires), so the choice is not lost under its landing. */
-  readonly focusWorld: (id: string) => void;
+  readonly focusStop: (id: OriginStop["id"]) => void;
   /** Bring whatever is moving to where it was going, in one draw, and ask
    *  for no further frame: a flight in the air lands (and `onLanded` fires),
    *  a robot mid-walk ends lit. At rest it does nothing at all. */
@@ -63,18 +65,18 @@ export interface GlobeControls {
 }
 
 type CanvasComponent = ComponentType<{
-  readonly worlds: readonly ResolvedChapter[];
-  readonly currentId: string;
-  readonly onSelect: (id: string) => void;
+  readonly stops: readonly OriginStop[];
+  readonly activeStopId: OriginStop["id"] | null;
   readonly onLanded: () => void;
   readonly onReady: (controls: GlobeControls | null) => void;
-  readonly skinId: string | null;
   readonly onSurfaceChange: (live: boolean) => void;
-  readonly robotHold: RobotHold;
 }>;
 
 interface WorldsStageProps {
   readonly worlds: readonly ResolvedChapter[];
+  /** The globe's pins. From the server component, like the chapters, so
+   *  `buildStops()` and what it imports stay out of the client bundle. */
+  readonly stops: readonly OriginStop[];
   readonly skins: readonly ResolvedSkin[];
   /** Forces the skin dial on. The page never passes it: there the dial turns
    *  on only when `GlobeCanvas` reports a live GL surface. Tests use it,
@@ -128,6 +130,7 @@ function moveFocusAmongButtons(event: KeyboardEvent<HTMLElement>) {
 
 export function WorldsStage({
   worlds,
+  stops,
   skins,
   skinsAvailable: forceSkins = false,
   crossingKm,
@@ -196,9 +199,6 @@ export function WorldsStage({
       const world = worlds.find((candidate) => candidate.id === id);
       if (!world) return;
       setCurrentId(id);
-      // Before the announcement: this can land a flight, and the landing's
-      // sentence must not get the last word over the chapter just chosen.
-      controlsRef.current?.focusWorld(id);
       setAnnouncement(
         `${world.name}. ${world.plaques.length} ${world.plaques.length === 1 ? "plaque" : "plaques"}, ` +
           `${world.decorations.length} ${world.decorations.length === 1 ? "decoration" : "decorations"}.`,
@@ -498,9 +498,9 @@ export function WorldsStage({
   }
 
   // A chapter chosen with the stage out of view (a phone, where the list sits
-  // below it) settles at once: the robot's walk or the camera's swing ends in
-  // one draw instead of running for nobody. Runs after the canvas's own
-  // effects for the same commit, so a walk this choice started is there to end.
+  // below it) settles whatever the globe still has moving — the robot's walk
+  // after a landing — in one draw instead of running it for nobody. Choosing
+  // a chapter does not move the globe itself.
   useEffect(() => {
     if (!inViewRef.current) controlsRef.current?.settle();
   }, [currentId]);
@@ -582,14 +582,11 @@ export function WorldsStage({
         >
           {Canvas ? (
             <Canvas
-              worlds={worlds}
-              currentId={currentId}
-              onSelect={select}
+              stops={stops}
+              activeStopId={null}
               onLanded={handleLanded}
               onReady={handleReady}
-              skinId={skinsAvailable ? skinId : null}
               onSurfaceChange={handleSurfaceChange}
-              robotHold={robotHold}
             />
           ) : null}
         </div>

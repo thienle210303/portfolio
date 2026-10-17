@@ -13,7 +13,6 @@ function still(overrides: Partial<Motion> = {}): Motion {
     playing: false,
     flight: 0,
     landed: false,
-    seed: 0,
     robot: -1,
     walking: false,
     ...overrides,
@@ -21,14 +20,15 @@ function still(overrides: Partial<Motion> = {}): Motion {
 }
 
 describe("settleMotion: everything moving goes to where it was going", () => {
-  it("lands a flight in the air on the arrival pin, sapling grown, and says it landed", () => {
+  it("lands a flight in the air on the arrival pin, robot already still and lit, and says it landed", () => {
     const m = still({ playing: true, flight: 0.4, spin: 0.1, tilt: 0.05 });
     expect(settleMotion(m, ARRIVAL)).toBe(true);
     expect(m).toMatchObject({
       playing: false,
       flight: 1,
       landed: true,
-      seed: 1,
+      robot: 1,
+      walking: false,
       spin: ARRIVAL.spin,
       tilt: ARRIVAL.tilt,
       target: null,
@@ -42,10 +42,10 @@ describe("settleMotion: everything moving goes to where it was going", () => {
     expect(m.walking).toBe(false);
   });
 
-  it("finishes a growing sapling and a camera still easing, without claiming a landing", () => {
-    const m = still({ landed: true, flight: 1, seed: 0.3, target: { spin: 2, tilt: 0.1 }, vSpin: 0.2 });
+  it("finishes a camera still easing, without claiming a landing", () => {
+    const m = still({ landed: true, flight: 1, target: { spin: 2, tilt: 0.1 }, vSpin: 0.2 });
     expect(settleMotion(m, ARRIVAL)).toBe(false);
-    expect(m).toMatchObject({ seed: 1, spin: 2, tilt: 0.1, target: null, vSpin: 0, vTilt: 0 });
+    expect(m).toMatchObject({ spin: 2, tilt: 0.1, target: null, vSpin: 0, vTilt: 0 });
   });
 
   it("leaves a still globe exactly as it was", () => {

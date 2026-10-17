@@ -6,6 +6,7 @@ import type { GlobeControls } from "@/sections/Worlds/WorldsStage";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
 import { crossingKm, resolveChapters } from "@/lib/worlds";
 import { resolveSkins } from "@/lib/skins";
+import { buildStops } from "@/lib/origin-stops";
 
 /*
  * The crossing plays itself once, the first time half the stage is in view:
@@ -20,7 +21,7 @@ const globe = vi.hoisted(() => ({
     nudge: ReturnType<typeof vi.fn>;
     fly: ReturnType<typeof vi.fn>;
     reset: ReturnType<typeof vi.fn>;
-    focusWorld: ReturnType<typeof vi.fn>;
+    focusStop: ReturnType<typeof vi.fn>;
     settle: ReturnType<typeof vi.fn>;
   },
   land: () => {},
@@ -42,7 +43,7 @@ vi.mock("@/sections/Worlds/GlobeCanvas", () => ({
         nudge: vi.fn(),
         fly: vi.fn(),
         reset: vi.fn(),
-        focusWorld: vi.fn(),
+        focusStop: vi.fn(),
         settle: vi.fn(),
       };
       globe.controls = controls;
@@ -90,6 +91,7 @@ async function stageWithLiveGlobe({ skinsAvailable = false } = {}) {
   const view = render(
     <WorldsStage
       worlds={resolveChapters()}
+      stops={buildStops()}
       skins={resolveSkins()}
       skinsAvailable={skinsAvailable}
       crossingKm={crossingKm()}
@@ -270,16 +272,6 @@ describe("WorldsStage, the crossing plays itself once", () => {
     await user.click(screen.getByRole("button", { name: /take the flight/i }));
     observer.report(1);
     expect(controls.fly).toHaveBeenCalledTimes(1);
-  });
-
-  it("announces the chapter, not the landing, when a chapter is picked mid-flight", async () => {
-    const user = userEvent.setup();
-    const { controls } = await stageWithLiveGlobe();
-    controls.focusWorld.mockImplementation(() => globe.land());
-    await user.click(screen.getByRole("button", { name: /take the flight/i }));
-    await user.click(screen.getByRole("button", { name: /^02\s*Sea/i }));
-    expect(screen.getByRole("status")).toHaveTextContent(/^Sea\. /);
-    expect(screen.getByRole("status")).not.toHaveTextContent(/landed/i);
   });
 
   it("plays once: flies, lands silently, then stays put however long it is watched", async () => {

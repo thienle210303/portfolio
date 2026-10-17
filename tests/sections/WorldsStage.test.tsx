@@ -4,12 +4,13 @@ import userEvent from "@testing-library/user-event";
 import { WorldsStage } from "@/sections/Worlds/WorldsStage";
 import { crossingKm, resolveChapters } from "@/lib/worlds";
 import { resolveSkins } from "@/lib/skins";
+import { buildStops } from "@/lib/origin-stops";
 
 const WORLDS = resolveChapters();
 const SKINS = resolveSkins();
 
 function renderStage() {
-  return render(<WorldsStage worlds={WORLDS} skins={SKINS} crossingKm={crossingKm()} />);
+  return render(<WorldsStage worlds={WORLDS} stops={buildStops()} skins={SKINS} crossingKm={crossingKm()} />);
 }
 
 /**
@@ -185,7 +186,7 @@ describe("WorldsStage, the skins group", () => {
   });
 
   it("renders nothing for skins when none are passed", () => {
-    render(<WorldsStage worlds={WORLDS} skins={[]} crossingKm={crossingKm()} />);
+    render(<WorldsStage worlds={WORLDS} stops={buildStops()} skins={[]} crossingKm={crossingKm()} />);
     expect(screen.queryByRole("group", { name: /skins/i })).toBeNull();
   });
 
@@ -219,7 +220,7 @@ describe("WorldsStage, the skins group", () => {
 
   describe("once a GL surface exists", () => {
     function renderAvailable() {
-      return render(<WorldsStage worlds={WORLDS} skins={SKINS} skinsAvailable crossingKm={crossingKm()} />);
+      return render(<WorldsStage worlds={WORLDS} stops={buildStops()} skins={SKINS} skinsAvailable crossingKm={crossingKm()} />);
     }
 
     it("drops aria-disabled and the WebGL wording", () => {

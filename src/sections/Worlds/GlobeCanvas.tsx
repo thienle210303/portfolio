@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   clampTilt,
   easeFraction,
@@ -15,9 +15,9 @@ import {
   type GreatCircle,
   type Viewport,
 } from "@/lib/globe";
-import { companions, origin } from "@/content/portfolio";
+import { origin } from "@/content/portfolio";
 import type { GeoPoint } from "@/types/portfolio";
-import { coLocatedWorldIds, type ResolvedChapter } from "@/lib/worlds";
+import type { OriginStop } from "@/lib/origin-stops";
 import type { GlobeControls } from "./WorldsStage";
 import { GLYPHS } from "./glyphs";
 import { COASTLINES } from "./coastline-data";
@@ -25,19 +25,16 @@ import { acquireRenderer, pickSurface } from "./gl/context";
 import {
   createSphere,
   globeStroke,
-  REST_STATE,
   sphereView,
   type Sphere,
   type SphereView,
 } from "./gl/sphere";
-import { CHAPTER_INDEX, SKIN_INDEX } from "./gl/shaders";
 import {
   lightLevel,
   ROBOT_HOLDS,
   ROBOT_WALK_FRAMES,
   robotLights,
   robotSky,
-  type RobotHold,
 } from "./gl/robot";
 import { TAP_SLOP_PX } from "./gestures";
 import { settleMotion } from "./settle";
@@ -49,8 +46,8 @@ import { palette, sphereColors } from "./palette";
  * ## Two canvases
  *
  * The 2D canvas (`data-chunk="globe-canvas"`) carries every handler and every
- * stroke with a position: limb, graticule, crossing, bird, markers, satellite,
- * robot, sun and moon, plinth, cats. Under it, when WebGL2 works, a GL surface
+ * stroke with a position: limb, graticule, crossing, bird, the three stop
+ * pins, robot, sun and moon. Under it, when WebGL2 works, a GL surface
  * (`data-globe-surface`) shades the planet itself: its fill and its
  * coastlines. The surface draws only from inside `draw()`, so it has no loop
  * of its own and rests exactly when the overlay rests. Without a surface the
@@ -62,9 +59,9 @@ import { palette, sphereColors } from "./palette";
  * Frame` loop that switches itself off, rather than in React state. A globe
  * that re-renders React on every frame of an inertial spin is a globe that
  * drops frames on the phone this site is measured on. React owns what a
- * visitor can *ask for* — which world is open — and this file owns what the
- * pixels are doing. The only line between them is `onSelect`, and it fires on
- * a tap, not on a frame.
+ * visitor can *ask for* — which stop is active — and this file owns what the
+ * pixels are doing. The lines between them are props and `GlobeControls`, and
+ * nothing crosses them on a frame.
  *
  * ## The rule about rest
  *
@@ -79,18 +76,19 @@ import { palette, sphereColors } from "./palette";
  * under reduced motion. After it the globe holds no timers and asks for no
  * frames until the visitor wakes it, with the flight button's replay among
  * the ways. So the autoplay asks for zero frames after any interaction, for
- * good; and the globe asks for none at rest after the landing, whenever the
- * stage is off screen, and under reduced motion. The autoplay asks for frames
- * only while a flight or its landing tail is on screen.
+ * good; and the globe asks for none at rest once the robot's walk after the
+ * landing is over, whenever the stage is off screen, and under reduced
+ * motion. The autoplay asks for frames only while a flight, its landing tail
+ * or that walk is on screen.
  * `e2e/worlds.spec.ts` measures exactly that — but *not* by counting `requestAnimationFrame`
  * page-wide, which cannot express the claim here: the companion cats hold a
  * 60 Hz loop of their own open on this page, so a page-wide count would fail
  * against a perfect globe. Its `measureGlobeFrames` attributes frames to this
  * canvas instead (`clearRect` calls on it, which nothing else draws to), and
  * `expectAtRest` asserts both halves: the globe drew nothing, and the page's
- * frame rate stayed inside a single loop. The satellite's orbit is
- * deliberately excluded from "something is moving" for exactly this reason: a
- * decoration that never stops is a decoration that never lets the CPU sleep.
+ * frame rate stayed inside a single loop. Nothing here moves forever, for the
+ * same reason: a decoration that never stops is a decoration that never lets
+ * the CPU sleep.
  *
  * ## The rule about time
  *
@@ -102,9 +100,9 @@ import { palette, sphereColors } from "./palette";
  * below states the two rules for adding one.
  *
  * The stage can also ask the loop to stop early: `settle()`, called when the
- * stage leaves the viewport, when a chapter is chosen while it is out of view,
- * or when "Stop the replay" is pressed, puts what is still moving at its end (a played flight
- * lands, a robot mid-walk ends lit, an easing camera arrives) in one draw
+ * stage leaves the viewport or when the stage stops the replay, puts what is
+ * still moving at its end (a played flight lands, a robot mid-walk ends lit,
+ * an easing camera arrives) in one draw
  * and cancels the pending frame, so nothing animates for a visitor who has
  * scrolled away. Two
  * things it leaves to the visitor: a drag still held (the release wakes the
@@ -113,8 +111,10 @@ import { palette, sphereColors } from "./palette";
  * The crossing is exempt from the loop entirely, and only under
  * `prefers-reduced-motion: reduce`: "Take the flight", or the stage's single
  * landing on first sight (it never replays there), then produces the
- * finished frame — crossing drawn, sapling grown, view on the arrival pin —
- * from a single synchronous `draw()`, with no frame requested at all. That is
+ * finished frame — crossing drawn, the robot standing still and lit, view on
+ * the arrival pin — from a single synchronous `draw()`, with no frame
+ * requested at all. The robot never walks under reduced motion: every landing
+ * puts it straight at the end of its walk. That is
  * not a cheaper animation; it is the outcome.
  *
  * ## Colour
@@ -126,7 +126,7 @@ import { palette, sphereColors } from "./palette";
  * then repoints `--ground` a half-step darker, and this section is
  * `tone="deep"`. A palette read off the root would draw every knockout in
  * `--color-paper` on a `--color-paper-deep` ground — visible pale patches under
- * the cats and every marker — and would freeze the canvas into one tone, which
+ * every pin and the robot — and would freeze the canvas into one tone, which
  * is the exact bug the alias layer exists to prevent. `getComputedStyle` on the
  * canvas resolves the inherited aliases for whichever tone actually encloses
  * it. Never a raw `--color-*` token, never a hex.
@@ -137,9 +137,9 @@ import { palette, sphereColors } from "./palette";
  *
  * ## Accessibility
  *
- * The canvas is `aria-hidden`. Every marker it draws is also a button in the
- * list beside it, which is the real feature — so there is deliberately no DOM
- * control on the canvas at all, and no tab stop that can point at a marker
+ * The canvas is `aria-hidden`. Every stop it pins is also a button in the
+ * stage beside it, which is the real feature — so there is deliberately no DOM
+ * control on the canvas at all, and no tab stop that can point at a pin
  * currently on the far side of the planet. The stage's focus, its
  * `role="group"` and its keyboard handler live in `WorldsStage.tsx`, which
  * drives this file through the `GlobeControls` object handed back by
@@ -147,18 +147,15 @@ import { palette, sphereColors } from "./palette";
  */
 
 interface GlobeCanvasProps {
-  readonly worlds: readonly ResolvedChapter[];
-  readonly currentId: string;
-  readonly onSelect: (id: string) => void;
+  /** The three stops, each drawn as a pin. */
+  readonly stops: readonly OriginStop[];
+  /** The stop whose pin is accent and labelled, or null for none. */
+  readonly activeStopId: OriginStop["id"] | null;
   readonly onLanded: () => void;
   readonly onReady: (controls: GlobeControls | null) => void;
-  /** The worn skin's id, or null. Only a live GL surface can draw one. */
-  readonly skinId: string | null;
   /** True while a GL surface is drawing the planet; false once it has gone
    *  for good (no WebGL2, a failed program, a lost context, forced colours). */
   readonly onSurfaceChange: (live: boolean) => void;
-  /** Which still lap Technology shows under reduced motion. */
-  readonly robotHold: RobotHold;
 }
 
 const DEG = Math.PI / 180;
@@ -185,13 +182,13 @@ const DECAY = 0.93;
  * callback.
  *
  * `step()` measures how long the last callback actually covered, divides by
- * `FRAME_MS`, and scales all of them — so `1 / 130`, `1 / 40`, `0.13`, `0.1`,
- * `0.004` and `DECAY` still mean exactly what they meant when they were tuned
- * on a 60 Hz display, and mean the same thing on every other one. This is not
- * a refinement: before it, the whole landing was two thirds of a second only
- * at 60 Hz — twice that at 33, half at 120 — because the seed's growth and the
- * camera's settle were both counted in callbacks. A moment whose length is a
- * property of the visitor's hardware is a moment nobody tuned.
+ * `FRAME_MS`, and scales all of them — so `1 / 130`, `0.13`, `0.1` and
+ * `DECAY` still mean exactly what they meant when they were tuned on a 60 Hz
+ * display, and mean the same thing on every other one. This is not a
+ * refinement: before it, the whole landing was two thirds of a second only at
+ * 60 Hz — twice that at 33, half at 120 — because its beats were counted in
+ * callbacks. A moment whose length is a property of the visitor's hardware is
+ * a moment nobody tuned.
  *
  * Two rules for adding a rate here. Write it per reference frame and multiply
  * it by `frames`; and if it eases toward something rather than advancing
@@ -199,63 +196,33 @@ const DECAY = 0.93;
  * the coefficient, which overshoots when a frame runs long.
  */
 const FLIGHT_FRAMES = 130;
-const SEED_FRAMES = 40;
 
-/** How much of the seed's growth is the seed *falling* rather than the sapling
- *  rising. Two beats out of one number, because that is what the moment is:
- *  something drops, and then something grows from where it dropped.
- *
- *  0.3 of `SEED_FRAMES` is twelve reference frames — 200 ms of falling, then
- *  about 470 ms of rising — and since the seed's clock is wall-clock now, that
- *  split is a real pair of durations rather than a ratio that stretched to
- *  whatever the display felt like. */
-const SEED_DROP = 0.3;
-
-/**
- * The world whose marker **is** the sapling the flight plants, rather than a
- * marker standing next to one.
- *
- * This is not a rendering preference, it is what the content layer already
- * says: `plants.where` reads "A sapling on the arrival pin — the seed the bird
- * dropped, one beat later", and `plants.anchor` is `origin-to`, the arrival
- * pin itself. So the landing has to *grow this glyph*. Drawing a second sprout
- * beside it would put two objects on the map both claiming to be the one
- * sapling, which is the kind of thing this section exists not to do.
- */
-const SAPLING_WORLD_ID = "plants";
-
-/** The chapter the robot walks. The satellite's hit below uses the same id. */
-const TECH_WORLD_ID = "tech";
+/** Where the robot stands when it does not walk: under reduced motion, every
+ *  landing puts it here at once — the end of the walk, lit. */
+const ROBOT_STILL = ROBOT_HOLDS["human-in-the-loop"];
 
 /** Without a GL surface the overlay draws the robot's lights itself, at every
- *  Nth coastline vertex: a few hundred points, and only while Technology is
- *  open, so the two panel lines stay true on the fallback globe too. */
+ *  Nth coastline vertex: a few hundred points, and only while the robot is
+ *  out, so the fallback globe shows the same walk the GL one does. */
 const FALLBACK_LIGHT_STRIDE = 24;
 
 /** Where the Moon or Sun hangs, in sphere radii from the globe's centre:
- *  upper left, outside the limb and clear of the satellite's orbit ellipse. */
+ *  upper left, outside the limb. */
 const SKY_BODY = { x: -0.97, y: -1.02 } as const;
 
-/** A canvas label's halo, in CSS pixels. Measured, not judged by eye: at 3.5
- *  the open "LIVING EARTH" label fell to 1.7:1 against the pixels touching its
- *  letters (Desert, night) and under 3:1 on Night side and Volcanic, and 4.5
- *  still left 3.9:1 on a pale planet. 5 holds 4.5:1 under every skin in both
- *  themes (e2e "canvas labels under every skin"). Wider would start to blot
- *  out the marker beside a label. */
+/** A canvas label's halo, in CSS pixels. Measured, not judged by eye, back
+ *  when the globe wore skins: at 3.5 a label fell to 1.7:1 against the pixels
+ *  touching its letters (Desert, night), and 4.5 still left 3.9:1 on a pale
+ *  planet; 5 held 4.5:1 under every skin in both themes. The one look the
+ *  surface draws now is gentler than any of those. Wider would start to blot
+ *  out the pin beside a label. */
 const HALO_PX = 5;
 
 const GRATICULE = graticule(30);
-// The same 72 segments the resolver uses, so the arc drawn here and the
-// distance printed in the rail describe one curve. The kilometre figure itself
-// belongs to `src/lib/worlds.ts` and is not recomputed here.
+// 72 segments, as `crossingKm()` in `src/lib/origin-stops.ts` uses (its
+// length does not depend on them), so the arc drawn here and the distance
+// printed beside it describe one curve. The figure is not recomputed here.
 const CROSSING: GreatCircle = greatCircle(origin.coordinates.from, origin.coordinates.to, 72);
-
-interface Hit {
-  readonly id: string;
-  readonly x: number;
-  readonly y: number;
-  readonly r: number;
-}
 
 /** Not a working CSS fallback list (see the note on `--font-mono` in
  *  `globals.css`) but a real one here: this string is handed to `ctx.font`
@@ -290,38 +257,31 @@ function reducedMotion(): boolean {
 }
 
 /**
- * What `seed` becomes at the instant the crossing completes: a hair above zero
- * so the fall-and-grow beat plays, or already **1** — the finished sapling, in
- * the frame it was planted — for someone who asked their operating system not
- * to animate things.
- *
- * All three ways a crossing completes have to agree on this. `fly()` reads
- * the setting itself and never reaches the played path under reduced motion,
- * so `step()`'s landing does not need the branch; a drag east (`move`) and an
- * arrow key (`nudge`) do, and used to set 0.001 unconditionally. The keyboard
- * one is the sharper omission: an arrow key is the non-pointer route through
- * the signature moment, so the visitor most likely to be using it is the one
- * least likely to want 667 ms of growth played at them.
+ * Start the robot's walk, the moment a landing happens: one walk per landing,
+ * whichever way the crossing completed (played, dragged, keyed, or landed
+ * early by `focusStop`). Under reduced motion it does not walk — it is put at
+ * the walk's end, still and lit, in the frame the landing draws.
  */
-function seedOnLanding(): number {
-  return reducedMotion() ? 1 : 0.001;
+function startWalk(v: { robot: number; walking: boolean }) {
+  if (reducedMotion()) {
+    v.robot = ROBOT_STILL;
+    v.walking = false;
+  } else {
+    v.robot = 0;
+    v.walking = true;
+  }
 }
 
 export default function GlobeCanvas({
-  worlds,
-  currentId,
-  onSelect,
+  stops,
+  activeStopId,
   onLanded,
   onReady,
-  skinId,
   onSurfaceChange,
-  robotHold,
 }: GlobeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const currentIdRef = useRef(currentId);
-  const onSelectRef = useRef(onSelect);
+  const activeStopIdRef = useRef(activeStopId);
   const onLandedRef = useRef(onLanded);
-  const skinIdRef = useRef(skinId);
   const onSurfaceChangeRef = useRef(onSurfaceChange);
 
   /* The GL surface under the overlay. `surface` says whether its element is
@@ -344,17 +304,13 @@ export default function GlobeCanvas({
     target: null as { spin: number; tilt: number } | null,
     flight: 0,
     landed: false,
-    /** 0 before the landing, then 0→1 across the drop and the sapling's rise.
-     *  One number for two beats — see `SEED_DROP`. */
-    seed: 0,
     /** True only while `fly()` is playing the crossing itself. It suppresses
      *  the target/drag/inertia branch outright rather than competing with it:
      *  two things steering the same two angles is a flight that fights the
      *  hand that started it. */
     playing: false,
-    orbit: 0,
-    /** The robot's walk across both laps, 0→1, or -1 while Technology is
-     *  closed. `walking` is true only while `step()` is advancing it. */
+    /** The robot's walk across both laps, 0→1, or -1 before a landing.
+     *  `walking` is true only while `step()` is advancing it. */
     robot: -1,
     walking: false,
     running: false,
@@ -367,22 +323,11 @@ export default function GlobeCanvas({
      *  a rest — seconds, or an afternoon — is not elapsed animation time and
      *  must not be handed to `frameStep` as if it were. */
     last: 0,
-    hits: [] as Hit[],
     size: { width: 0, height: 0 },
-    stroke: { cx: 0, cy: 0, radius: 0, plinth: 0 } as Viewport & { plinth: number },
+    stroke: { cx: 0, cy: 0, radius: 0 } as Viewport,
     /** The same disc in device pixels, for the GL surface. */
     device: { width: 0, height: 0, cx: 0, cy: 0, radius: 0 } as SphereView,
   });
-
-  /**
-   * World ids whose map point an earlier world already claimed, so the draw
-   * loop can step those markers aside instead of overprinting them.
-   *
-   * The rule itself is `coLocatedWorldIds` in `src/lib/worlds.ts` — kept there
-   * because a rule about the content layer's geometry should be testable
-   * without a canvas, and this file has none to give it.
-   */
-  const sharesAPin = useMemo(() => coLocatedWorldIds(worlds), [worlds]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -426,10 +371,9 @@ export default function GlobeCanvas({
       ctx.restore();
     };
     /* Every word on the canvas goes through here. A label lands on whatever
-       the planet is under it, and a skin can put that at ~1:1 against the
-       ink, so each one is first stroked in the section's own ground: the
-       standard map-label halo. The text then reads against the halo, not the
-       planet, and the skins keep their look. One path for GL and fallback. */
+       the planet is under it, so each one is first stroked in the section's
+       own ground: the standard map-label halo. The text then reads against
+       the halo, not the planet. One path for GL and fallback. */
     const label = (text: string, x: number, y: number, ink: string) => {
       if (c.halo) {
         ctx.save();
@@ -444,39 +388,6 @@ export default function GlobeCanvas({
       ctx.fillText(text, x, y);
     };
 
-    /* The plinth, hatched below, with the two cats asleep on it. */
-    ctx.strokeStyle = c.rule;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(geo.cx, geo.plinth, geo.radius * 1.05, geo.radius * 0.14, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    for (let i = -6; i <= 6; i += 1) {
-      const x = geo.cx + i * (geo.radius / 6.5);
-      ctx.moveTo(x, geo.plinth + 13 + Math.abs(i));
-      ctx.lineTo(x - 5, geo.plinth + 22 + Math.abs(i));
-    }
-    ctx.stroke();
-
-    const animalsOpen = currentIdRef.current === "animals";
-    const catX = geo.cx - geo.radius * 0.58;
-    const catY = geo.plinth - 11;
-    // A knockout in the section's own ground, so the cats read as sitting on
-    // the plinth rather than being drawn through it.
-    ctx.fillStyle = c.ground;
-    ctx.beginPath();
-    ctx.ellipse(catX + 16, catY + 2, 44, 17, 0, 0, Math.PI * 2);
-    ctx.fill();
-    glyph(GLYPHS.cat, catX, catY, 1.05, animalsOpen ? c.accent : c.muted, 1.2);
-    glyph(GLYPHS.cat, catX + 34, catY + 2, 0.88, animalsOpen ? c.accent : c.subtle, 1.2);
-    ctx.font = `600 8.5px ${mono}`;
-    ctx.textAlign = "center";
-    // Read from the content layer, not typed here: these are the same two names
-    // the Animals world's plaques quote, and `companions` order is load-bearing
-    // — the lead cat is first, and the lead cat is the larger drawing.
-    label((companions[0]?.name ?? "").toUpperCase(), catX, catY + 20, c.subtle);
-    label((companions[1]?.name ?? "").toUpperCase(), catX + 34, catY + 20, c.subtle);
-
     /* The planet's surface, when a GL surface is live: the fill and the
        coastlines, from the same spin and tilt as every stroke below, in the
        same call as the overlay's own draw. That is the whole of its render
@@ -488,17 +399,7 @@ export default function GlobeCanvas({
         held.sphere.setColors(read.colors);
         held.key = read.key;
       }
-      const skin = skinIdRef.current;
-      held.sphere.draw(
-        {
-          spin: v.spin,
-          tilt: v.tilt,
-          chapter: CHAPTER_INDEX[currentIdRef.current] ?? REST_STATE.chapter,
-          skin: skin !== null && skin in SKIN_INDEX ? SKIN_INDEX[skin as keyof typeof SKIN_INDEX] : -1,
-          robot: currentIdRef.current === TECH_WORLD_ID ? v.robot : REST_STATE.robot,
-        },
-        v.device,
-      );
+      held.sphere.draw({ spin: v.spin, tilt: v.tilt, robot: v.robot }, v.device);
     }
 
     /* The ball: limb, graticule, and — only when there is no GL surface to
@@ -572,87 +473,41 @@ export default function GlobeCanvas({
       }
     }
 
-    /* The worlds that live on the ball. */
-    v.hits = [];
-    /** Where this frame drew the sapling's foot, for the falling seed to aim
-     *  at. Null while that marker is on the far side. */
-    let saplingFoot: { x: number; y: number } | null = null;
-    for (const world of worlds) {
-      for (const point of world.points) {
-        const p = at(point);
-        // Far-side markers are not drawn at all rather than faded: a marker you
-        // can half-see is a marker you try to press.
-        if (!p.front) continue;
-        const open = world.id === currentIdRef.current;
-        const scale = 0.62 + 0.32 * p.depth;
-        // A marker whose point an earlier world already claimed steps a
-        // marker-width to the left and takes its name to that side — see
-        // `sharesAPin`. Everything right of a ring is where names go, so left of
-        // it is the one side nothing else is using.
-        const shares = sharesAPin.has(world.id);
-        const x = shares ? p.x - 36 * scale : p.x;
-        const radius = 15 * scale;
-        // How far the sapling has risen, or null for every other marker and for
-        // this one before the seed has touched down. `GLYPHS.sprout`'s stem foot
-        // is at +9 in its own 24-unit box; the glyph's origin is lifted by
-        // `9 * size` so the foot stays planted and the plant gets taller, which
-        // is what makes it *rise* rather than inflate.
-        const risen =
-          world.id === SAPLING_WORLD_ID && v.seed >= SEED_DROP
-            ? (v.seed - SEED_DROP) / (1 - SEED_DROP)
-            : null;
-        const foot = p.y + 9 * scale * 0.82;
-        ctx.fillStyle = c.ground;
-        ctx.beginPath();
-        ctx.arc(x, p.y, radius, 0, Math.PI * 2);
-        ctx.fill();
-        if (risen === null) {
-          glyph(GLYPHS[world.glyph], x, p.y, scale * 0.82, open ? c.accent : c.fg, open ? 1.4 : 1.1);
-          ctx.beginPath();
-          ctx.arc(x, p.y, radius, 0, Math.PI * 2);
-          ctx.strokeStyle = open ? c.accent : c.rule;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        } else {
-          /* The page's one hand-off, and the drawing says it before the prose
-             does: the career tree grows from this spot. Accent, because it is a
-             relationship between two sections rather than decoration — the same
-             reason the crossing is accent.
-
-             No ring once it has grown. A ring says "this is a pin, press it";
-             a sapling that has actually come up is the thing the pin stood for,
-             and it keeps its name and its hit either way, so nothing about
-             reaching the world changes.
-
-             But it still has to *say* when it is the open world, and say it with
-             something other than colour. Accent is already this glyph's resting
-             ink — it is the hand-off, open or not — so unlike every ringed marker
-             it cannot use ink to mark selection, and the label alone would leave
-             the state signalled by hue only. A ringed marker carries a
-             stroke-weight change beside its accent for exactly that reason; this
-             one carries the weight change alone. */
-          const size = scale * 0.82 * (1 + 0.5 * risen);
-          glyph(GLYPHS.sprout, x, foot - 9 * size, size, c.accent, open ? 1.9 : 1.3);
-        }
-        if (open || p.depth > 0.62) {
-          ctx.font = `600 9.5px ${mono}`;
-          ctx.textAlign = shares ? "right" : "left";
-          label(
-            world.name.toUpperCase(),
-            shares ? x - radius - 5 : x + radius + 5,
-            p.y + 3.4,
-            open ? c.accent : c.muted,
-          );
-        }
-        if (world.id === SAPLING_WORLD_ID) saplingFoot = { x, y: foot };
-        v.hits.push({ id: world.id, x, y: p.y, r: 18 * scale });
+    /* The three stops. The active one is accent — it is the annotation the
+       visitor asked for — and larger, and the only one labelled, so it is
+       never told apart by hue alone. Far-side pins are not drawn at all
+       rather than faded: a pin you can half-see is a pin you try to press. */
+    for (const stop of stops) {
+      const p = at(stop.coordinates);
+      if (!p.front) continue;
+      const active = stop.id === activeStopIdRef.current;
+      const scale = 0.62 + 0.32 * p.depth;
+      const radius = (active ? 7 : 5) * scale;
+      ctx.fillStyle = c.ground;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = active ? c.accent : c.fg;
+      ctx.lineWidth = active ? 1.6 : 1.1;
+      ctx.stroke();
+      ctx.fillStyle = active ? c.accent : c.fg;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.6 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      if (active) {
+        // Toward the middle of the disc, so a long place name near the limb
+        // stays on the canvas.
+        const left = p.x > geo.cx;
+        ctx.font = `600 9.5px ${mono}`;
+        ctx.textAlign = left ? "right" : "left";
+        label(stop.place.toUpperCase(), left ? p.x - radius - 5 : p.x + radius + 5, p.y + 3.4, c.accent);
       }
     }
 
     /* The robot, walking the equator, and — only when no GL surface is there
        to shade them — the lights it puts out and brings back. Ink, not
        accent: both are drawings that carry no fact. */
-    const lights = currentIdRef.current === TECH_WORLD_ID ? robotLights(v.robot) : null;
+    const lights = robotLights(v.robot);
     if (lights) {
       if (!held) {
         ctx.fillStyle = c.fg;
@@ -691,40 +546,7 @@ export default function GlobeCanvas({
       }
     }
 
-    /* The seed, in the one beat between the bird landing and the sapling
-       taking: it falls onto the Plants marker, which then grows out of where
-       it came to rest. Drawn after the markers so it is never underneath one,
-       and aimed at the foot that marker actually got drawn at rather than at a
-       position computed twice. */
-    if (v.seed > 0 && v.seed < SEED_DROP && saplingFoot) {
-      ctx.fillStyle = c.accent;
-      ctx.beginPath();
-      ctx.arc(saplingFoot.x, saplingFoot.y - 16 * (1 - v.seed / SEED_DROP), 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    /* Technology, in orbit, counter-rotating so it always faces you. */
-    const orbitCx = geo.cx;
-    const orbitCy = geo.cy - geo.radius * 0.55;
-    const ox = orbitCx + Math.cos(v.orbit) * geo.radius * 1.16;
-    const oy = orbitCy - Math.sin(v.orbit) * geo.radius * 0.34;
-    ctx.strokeStyle = c.rule;
-    ctx.setLineDash([2, 5]);
-    ctx.beginPath();
-    ctx.ellipse(orbitCx, orbitCy, geo.radius * 1.16, geo.radius * 0.34, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = c.ground;
-    ctx.beginPath();
-    ctx.arc(ox, oy, 13, 0, Math.PI * 2);
-    ctx.fill();
-    const techOpen = currentIdRef.current === TECH_WORLD_ID;
-    glyph(GLYPHS.sat, ox, oy, 0.62, techOpen ? c.accent : c.fg, techOpen ? 1.4 : 1.1);
-    v.hits.push({ id: TECH_WORLD_ID, x: ox, y: oy, r: 16 });
-
-    /* Animals: the plinth is its marker. */
-    v.hits.push({ id: "animals", x: catX + 16, y: geo.plinth - 9, r: 34 });
-  }, [sharesAPin, worlds]);
+  }, [stops]);
 
   /**
    * Wake the loop, if it is not already awake. `view.running` is the whole
@@ -761,8 +583,6 @@ export default function GlobeCanvas({
       const frames = v.last === 0 ? 1 : frameStep(time - v.last);
       v.last = time;
 
-      v.orbit = (v.orbit + 0.004 * frames) % (Math.PI * 2);
-
       if (v.playing) {
         // 130 reference frames — about 2.2 seconds, and now the same 2.2
         // seconds on any display. The camera follows the bird rather than the
@@ -797,7 +617,7 @@ export default function GlobeCanvas({
         if (v.flight >= 1) {
           v.playing = false;
           v.landed = true;
-          v.seed = 0.001;
+          startWalk(v);
           // Chasing at 0.1 a reference frame against a bird covering ~1.2° of
           // one leaves the camera short of him, and this is the frame the
           // chase stops — so without this the planet would rest a few degrees
@@ -806,15 +626,12 @@ export default function GlobeCanvas({
           // against the real crossing, the residual is 7.64° of spin (0.133
           // rad) at 60 Hz, and 5.9–8.6° across 20–120 Hz.
           //
-          // Handed to `target` rather than snapped: the seed keeps the loop
-          // alive for another 667 ms, and easing 0.133 rad down to 0.002 at
-          // 0.13 a reference frame takes ~502 ms (517 ms measured, tilt
-          // included), so the last few degrees arrive smoothly and still land
-          // exactly on the pin. Both of those are wall-clock now, so the
-          // margin between them is the same on every display rather than a
-          // coincidence of 60 Hz — at the worst frame rate simulated the
-          // settle is 538 ms, still inside the budget. One landing, one
-          // resting position, whichever way you got there.
+          // Handed to `target` rather than snapped: easing 0.133 rad down to
+          // 0.002 at 0.13 a reference frame takes ~502 ms (517 ms measured,
+          // tilt included), so the last few degrees arrive smoothly and still
+          // land exactly on the pin — 476–538 ms across 20–120 Hz, since the
+          // easing is wall-clock. One landing, one resting position, whichever
+          // way you got there.
           v.target = {
             spin: -origin.coordinates.to.lon * DEG,
             tilt: clampTilt(-origin.coordinates.to.lat * DEG * 0.55),
@@ -824,27 +641,10 @@ export default function GlobeCanvas({
       }
 
       if (v.walking) {
-        // Both laps in `ROBOT_WALK_FRAMES` reference frames, then it stops at
-        // 1, lit, and so does the loop.
+        // The whole walk in `ROBOT_WALK_FRAMES` reference frames, then it
+        // stops at 1, lit, and so does the loop.
         v.robot = Math.min(1, v.robot + frames / ROBOT_WALK_FRAMES);
         if (v.robot >= 1) v.walking = false;
-        busy = true;
-      }
-
-      if (v.seed > 0 && v.seed < 1) {
-        // Forty reference frames: two thirds of a second — long enough to read
-        // as growth, short enough that nobody waits for it — on every display
-        // rather than on the one this was tuned on.
-        //
-        // All three ways a seed starts land here, which is why this is the
-        // only place the growth needed normalising: `fly()` reaches it through
-        // the played crossing above, `nudge()` lights it for the keyboard, and
-        // `move()` for a drag east. None of them advances the seed itself;
-        // they only light the fuse this branch burns — and under reduced
-        // motion all three hand it straight to 1 instead (`seedOnLanding`,
-        // and `fly()`'s own branch), so this condition is false and nothing
-        // animates at all.
-        v.seed = Math.min(1, v.seed + frames / SEED_FRAMES);
         busy = true;
       }
 
@@ -901,7 +701,6 @@ export default function GlobeCanvas({
       // moving, which is the tripwire for exactly that edit.
       draw();
 
-      // The orbit is *not* a reason to keep the loop alive. See the file note.
       if (busy) {
         v.frame = requestAnimationFrame(step);
       } else {
@@ -921,16 +720,16 @@ export default function GlobeCanvas({
    * Point the camera at a place: eased over about a second, or *there already*
    * when the visitor has asked for reduced motion.
    *
-   * Every camera move that is not the flight itself goes through this — the
-   * six list buttons via `focusWorld`, "Face Việt Nam" and `Home` via
-   * `reset`, and a single click on bare planet. That last one is the reason
-   * this is one helper rather than a branch inside `fly()`: click-to-orient is
-   * the section's declared WCAG 2.5.7 substitute for dragging, the path a
-   * visitor on a head pointer or eye-gaze actually uses, and leaving it easing
-   * while the two buttons snapped would have meant that visitor had no
-   * non-animating way to move the globe at all. The swing between Living Earth's
-   * two pins is also the ~156° "Take the flight" refuses to animate, so
-   * refusing it there and performing it here was never coherent.
+   * Every camera move that is not the flight itself goes through this — a
+   * stop via `focusStop`, `reset`, and a single click on bare planet. That
+   * last one is the reason this is one helper rather than a branch inside
+   * `fly()`: click-to-orient is the section's declared WCAG 2.5.7 substitute
+   * for dragging, the path a visitor on a head pointer or eye-gaze actually
+   * uses, and leaving it easing while the buttons snapped would have meant
+   * that visitor had no non-animating way to move the globe at all. The swing
+   * between the first two stops is also the ~156° "Take the flight" refuses
+   * to animate, so refusing it there and performing it here was never
+   * coherent.
    *
    * Reduced motion draws once, synchronously, and never calls `start()`: no
    * frame is requested to produce the result.
@@ -981,11 +780,12 @@ export default function GlobeCanvas({
       // drag/inertia branch suppressed under it, so the planet would also
       // ignore the hand that woke it.
       v.playing = false;
-      // And a walk torn down mid-lap is put back to "not started", not left
-      // frozen part-way: the robot effect only starts a walk from -1, so a
-      // remount with Technology still open walks it again from the start.
-      v.walking = false;
-      v.robot = -1;
+      // And a walk torn down mid-lap ends where `settle()` would end it, lit,
+      // rather than frozen part-way with nothing left to advance it.
+      if (v.walking) {
+        v.walking = false;
+        v.robot = ROBOT_STILL;
+      }
       v.running = false;
       // Same bag, same reason: a timestamp from before the teardown is not
       // elapsed animation time for whatever the remount does next.
@@ -1006,8 +806,7 @@ export default function GlobeCanvas({
       const ratio = Math.min(2, window.devicePixelRatio || 1);
       const v = view.current;
       v.size = { width: rect.width, height: rect.height };
-      const stroke = globeStroke(rect.width, rect.height);
-      v.stroke = { ...stroke, plinth: stroke.cy + stroke.radius + 26 };
+      v.stroke = globeStroke(rect.width, rect.height);
       // One helper sizes both buffers, so the shaded disc and the strokes on
       // top of it are the same disc at every size and ratio.
       v.device = sphereView(rect.width, rect.height, ratio);
@@ -1056,8 +855,8 @@ export default function GlobeCanvas({
     let sphere: Sphere | null = null;
     // The overlay draws its coastlines for as long as `sphereRef` is unset —
     // from the start, and while the PNG loads — so falling back is only
-    // ever taking the empty surface away and telling the stage the skins
-    // cannot be worn. `live` makes it once per visit: nothing re-acquires.
+    // ever taking the empty surface away and telling the stage. `live` makes
+    // it once per visit: nothing re-acquires.
     const fallBack = () => {
       if (!live) return;
       live = false;
@@ -1142,48 +941,21 @@ export default function GlobeCanvas({
     };
   }, [draw]);
 
-  /* The robot. Opening Technology starts its walk once — both laps, about
-     six seconds, ending lit — and leaving stops it, so coming back walks it
-     again. Under reduced motion there is no walk: the globe holds whichever
-     still lap the stage's toggle has pressed, and the effect below draws it
-     once. Declared before that effect so the state is set when it draws. */
+  /* Keep the callback mirrors current, and redraw when the active stop
+     changes — its pin changes ink and gains its label, and at rest nothing
+     else would ask. The refs are written here rather than during render: a
+     render-phase ref write is a side effect in a function React is allowed to
+     call twice, and nothing between render and this effect reads them (every
+     draw happens in an effect or an event handler, both of which run after
+     it). */
   useEffect(() => {
-    const v = view.current;
-    if (currentId !== TECH_WORLD_ID) {
-      v.walking = false;
-      v.robot = -1;
-      return;
-    }
-    if (reducedMotion()) {
-      v.walking = false;
-      v.robot = ROBOT_HOLDS[robotHold];
-      return;
-    }
-    if (v.robot < 0) {
-      v.robot = 0;
-      v.walking = true;
-      start();
-    }
-  }, [currentId, robotHold, start]);
-
-  /* Keep the callback mirrors current, and redraw when the open world changes
-     — the marker and the cats change ink, and at rest nothing else would ask.
-     The refs are written here rather than during render: a render-phase ref
-     write is a side effect in a function React is allowed to call twice, and
-     nothing between render and this effect reads them (every draw happens in
-     an effect or an event handler, both of which run after it). */
-  useEffect(() => {
-    currentIdRef.current = currentId;
-    onSelectRef.current = onSelect;
+    activeStopIdRef.current = activeStopId;
     onLandedRef.current = onLanded;
-    skinIdRef.current = skinId;
     onSurfaceChangeRef.current = onSurfaceChange;
     draw();
-    // `robotHold` is here only so a press of the stage's toggle redraws: the
-    // robot effect above has already put the new still lap in the bag.
-  }, [currentId, draw, onLanded, onSelect, onSurfaceChange, robotHold, skinId]);
+  }, [activeStopId, draw, onLanded, onSurfaceChange]);
 
-  /* Pointer: drag to roll, tap to open, and rolling east flies him. */
+  /* Pointer: drag to roll, tap to orient, and rolling east flies him. */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1223,7 +995,7 @@ export default function GlobeCanvas({
         v.flight = Math.min(1, v.flight + (dx * k) / EAST_FOR_FLIGHT);
         if (v.flight >= 1) {
           v.landed = true;
-          v.seed = seedOnLanding();
+          startWalk(v);
           onLandedRef.current();
         }
       }
@@ -1252,8 +1024,8 @@ export default function GlobeCanvas({
      * What the two do *not* share is the tap. A cancel with almost no movement
      * is a real and ordinary event — a long-press opening the context menu,
      * palm rejection, a system edge gesture — and it would otherwise satisfy
-     * `moved < TAP_SLOP_PX` and open a world, or swing the planet round, out
-     * of a gesture the person abandoned. A cancelled gesture is by definition
+     * `moved < TAP_SLOP_PX` and swing the planet round, out of a gesture the
+     * person abandoned. A cancelled gesture is by definition
      * not a completed one, so only `pointerup` may commit one.
      */
     const release = (event: PointerEvent) => {
@@ -1264,29 +1036,18 @@ export default function GlobeCanvas({
         const rect = canvas.getBoundingClientRect();
         const px = event.clientX - rect.left;
         const py = event.clientY - rect.top;
-        let hitSomething = false;
-        for (let i = v.hits.length - 1; i >= 0; i -= 1) {
-          const hit = v.hits[i];
-          if ((px - hit.x) ** 2 + (py - hit.y) ** 2 <= hit.r ** 2) {
-            onSelectRef.current(hit.id);
-            hitSomething = true;
-            break;
-          }
-        }
         // Click-to-orient: a single click on bare planet brings that place
         // round to face you. This is not a convenience — WCAG 2.5.7 (Dragging
         // Movements, AA) requires that everything a drag does be achievable
         // with a single pointer and no drag, for people using a head pointer,
         // eye-gaze or a mouth stick. Keyboard support does not satisfy it;
-        // that is 2.1.1, a different criterion. This plus the six list
-        // buttons and "Take the flight" is the non-dragging path through the
-        // whole section.
-        if (!hitSomething) {
-          const place = unproject(px, py, v.spin, v.tilt, v.stroke);
-          // Through `lookAt`, so this path honours reduced motion too — it is
-          // the one a pointer that cannot hold a drag depends on.
-          if (place) lookAt(-place.lon * DEG, -place.lat * DEG * 0.55);
-        }
+        // that is 2.1.1, a different criterion. This plus the stop buttons
+        // and "Take the flight" is the non-dragging path through the whole
+        // section.
+        const place = unproject(px, py, v.spin, v.tilt, v.stroke);
+        // Through `lookAt`, so this path honours reduced motion too — it is
+        // the one a pointer that cannot hold a drag depends on.
+        if (place) lookAt(-place.lon * DEG, -place.lat * DEG * 0.55);
       }
       start();
     };
@@ -1316,7 +1077,7 @@ export default function GlobeCanvas({
           v.flight = Math.min(1, v.flight + deltaSpin / EAST_FOR_FLIGHT);
           if (v.flight >= 1) {
             v.landed = true;
-            v.seed = seedOnLanding();
+            startWalk(v);
             onLandedRef.current();
           }
         }
@@ -1327,7 +1088,8 @@ export default function GlobeCanvas({
         v.playing = false;
         v.flight = 0;
         v.landed = false;
-        v.seed = 0;
+        v.robot = -1;
+        v.walking = false;
         v.target = null;
         v.vSpin = 0;
         v.vTilt = 0;
@@ -1341,7 +1103,7 @@ export default function GlobeCanvas({
           // "no frames" as something other than a promise in a comment.
           v.flight = 1;
           v.landed = true;
-          v.seed = 1;
+          startWalk(v);
           v.spin = -origin.coordinates.to.lon * DEG;
           v.tilt = clampTilt(-origin.coordinates.to.lat * DEG * 0.55);
           onLandedRef.current();
@@ -1373,26 +1135,26 @@ export default function GlobeCanvas({
         v.playing = false;
         v.flight = 0;
         v.landed = false;
-        v.seed = 0;
+        v.robot = -1;
+        v.walking = false;
         // Swinging back across the planet from the arrival pin is the same
         // size of motion as flying there, so `lookAt` gives it the same answer
         // under reduced motion that `fly()` gives above.
         lookAt(-origin.coordinates.from.lon * DEG, -12 * DEG);
       },
-      focusWorld: (id) => {
-        const world = worlds.find((candidate) => candidate.id === id);
-        const point = world?.points[0];
+      focusStop: (id) => {
+        const point = stops.find((stop) => stop.id === id)?.coordinates;
         if (!point) return;
-        // A chapter chosen mid-flight would otherwise be dropped: `step()`
+        // A stop chosen mid-flight would otherwise be dropped: `step()`
         // ignores `target` while the flight plays, then its landing overwrites
         // `target` with the arrival pin. So land the flight here, where it is,
-        // and let the camera ease from there to the chapter.
+        // and let the camera ease from there to the stop.
         const v = view.current;
         if (v.playing) {
           v.playing = false;
           v.flight = 1;
           v.landed = true;
-          v.seed = seedOnLanding();
+          startWalk(v);
           onLandedRef.current();
         }
         lookAt(-point.lon * DEG, -point.lat * DEG * 0.55);
@@ -1400,7 +1162,7 @@ export default function GlobeCanvas({
     };
     onReady(controls);
     return () => onReady(null);
-  }, [draw, lookAt, onReady, start, worlds]);
+  }, [draw, lookAt, onReady, start, stops]);
 
   return (
     <>

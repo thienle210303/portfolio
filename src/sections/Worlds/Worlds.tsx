@@ -2,6 +2,7 @@ import { Section, type RailNote } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { crossingKm, resolveChapters } from "@/lib/worlds";
 import { resolveSkins } from "@/lib/skins";
+import { buildStops } from "@/lib/origin-stops";
 import WorldsStage from "./WorldsStage";
 
 /**
@@ -37,6 +38,7 @@ const HEADING_ID = "worlds-heading";
 
 const WORLDS = resolveChapters();
 const SKINS = resolveSkins();
+const STOPS = buildStops();
 const KM = crossingKm();
 
 // Split by kind rather than totalled, because the total is the one number in
@@ -81,7 +83,7 @@ export default function Worlds() {
       >
         Six chapters, and two cats who look after them.
       </SectionHeading>
-      <WorldsStage worlds={WORLDS} skins={SKINS} crossingKm={KM} />
+      <WorldsStage worlds={WORLDS} stops={STOPS} skins={SKINS} crossingKm={KM} />
     </Section>
   );
 }
