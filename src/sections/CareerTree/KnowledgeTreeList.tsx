@@ -40,7 +40,18 @@ interface KnowledgeTreeListProps {
 
 export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
   return (
-    <TimelineAccordion className={cn("relative", className)}>
+    // `content-visibility: auto` at lg: while the timeline is far off screen
+    // its rows cost nothing to paint. Without it they were repainted on every
+    // frame of the scroll through Worlds and made that band ~5 fps slower
+    // (docs/feedback-tracker.md, R20-P5). 1275px is its collapsed height at
+    // 1440; `auto` keeps the real height once it has rendered. A hash landing
+    // inside it renders it first, so landings stay exact.
+    <TimelineAccordion
+      className={cn(
+        "relative lg:[content-visibility:auto] lg:[contain-intrinsic-size:auto_1275px] print:[content-visibility:visible]",
+        className,
+      )}
+    >
       <ListTrunk />
       <ul role="list" className="flex flex-col gap-3 pl-5">
         {tree.map((branch, branchIndex) => {
