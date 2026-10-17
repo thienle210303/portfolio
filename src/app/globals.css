@@ -968,12 +968,15 @@
   /* fully rendered at its final state, matching every other pre-reveal      */
   /* state on the page.                                                     */
   /*                                                                        */
-  /* LCP guard: the h1 and the terminal use `ink-rise` (transform-only)     */
-  /* rather than `ink-fade-rise`. Both are plausible Largest Contentful      */
-  /* Paint candidates, and an element that starts at `opacity: 0` delays the */
-  /* browser's own LCP timestamp until the animation finishes — a transform  */
-  /* never does, because the element is fully painted (just offset by up to  */
-  /* 10px) from frame one.                                                  */
+  /* LCP guard: the h1 and the terminal card use `ink-rise`                 */
+  /* (transform-only) rather than `ink-fade-rise`. An element that starts   */
+  /* at `opacity: 0` delays the browser's own LCP timestamp until the       */
+  /* animation finishes; a transform does not, because the element is       */
+  /* painted (just offset by up to 10px) from frame one. The h1 is the LCP  */
+  /* candidate this protects. The terminal is not fully painted from frame  */
+  /* one: `term-type` clips each `whoami` line in turn. Each line is its    */
+  /* own small block of text, so none should outgrow the h1 as a candidate  */
+  /* — inferred, to be confirmed by Phase 3 Task 2's perf trace.            */
   /* ---------------------------------------------------------------------- */
   @keyframes ink-rise {
     from {

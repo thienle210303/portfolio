@@ -20,7 +20,7 @@ describe("About", () => {
   it("names where he came from", () => {
     renderHero();
     // Twice since round 20: the first About paragraph and the terminal's `from`.
-    expect(screen.getAllByText(/Kiên Giang/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Kiên Giang/)).toHaveLength(2);
   });
 
   it("renders the positioning line and every About paragraph, verbatim", () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildTerminal, currentEntry } from "@/lib/terminal";
 import { aiTools, careerEntries, companions, origin, profile } from "@/content/portfolio";
+import { resolved } from "@/types/portfolio";
 
 function tab(id: "whoami" | "now" | "exploring") {
   const found = buildTerminal().find((t) => t.id === id);
@@ -24,7 +25,7 @@ describe("buildTerminal", () => {
       profile.title,
       profile.focus,
       profile.motto,
-      profile.location as string,
+      resolved(profile.location)!,
       origin.from,
       doordash!.role,
       doordash!.organization,
@@ -41,7 +42,15 @@ describe("buildTerminal", () => {
         for (const value of values) expect(sources.has(value), `${t.id}.${l.key}: ${value}`).toBe(true);
       }
     }
-    expect(line("whoami", "cats")).toEqual(companions.map((c) => c.name));
+    expect(tab("whoami").lines.map((l) => [l.key, l.value])).toEqual([
+      ["role", profile.title],
+      ["employer", doordash!.organization],
+      ["based", resolved(profile.location)],
+      ["from", origin.from],
+      ["focus", profile.focus],
+      ["cats", companions.map((c) => c.name)],
+      ["motto", profile.motto],
+    ]);
   });
 
   it("exploring lists every ai tool in order", () => {

@@ -10,10 +10,9 @@ interface CodeBlockProps {
   /**
    * Tightens the figcaption/code padding and steps the code type down one
    * notch (`--step--1` → `--step--2`) without touching the content or the
-   * token markup. Added for the hero code artifact (round 12, WP-K), which
-   * needed to stop "dominating the hero column" next to the identity copy —
-   * every other caller is unaffected by default (`compact` defaults to
-   * `false`, matching every existing usage).
+   * token markup. Added in round 12 (WP-K) for the hero's code excerpts,
+   * which round 20 replaced with a terminal; no caller passes it today.
+   * `compact` defaults to `false`.
    */
   readonly compact?: boolean;
 }

@@ -115,6 +115,11 @@ test.describe("hero", () => {
     await expect(panel).toContainText(`$ ${terminal[0].command}`);
     await expect(panel).toContainText("motto: Practice makes AI.");
   });
+
+  test("holds no chat: the Ask tab and its field live in #contact", async ({ page }) => {
+    await expect(page.getByRole("tab", { name: "Ask Thien" })).toHaveCount(0);
+    await expect(page.locator("#about").getByRole("textbox", { name: "Ask a question about this portfolio" })).toHaveCount(0);
+  });
 });
 
 // Selected Work was deleted in round 18; its case studies render inside the
