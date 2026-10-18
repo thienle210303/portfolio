@@ -164,7 +164,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
   try {
     const resend = new Resend(apiKey);
 
-    const text = [`Name: ${name}`, email && `Email: ${email}`, phone && `Phone: ${phone}`].filter(Boolean).join("\n");
+    const lines = [`Name: ${name}`];
+    if (email) lines.push(`Email: ${email}`);
+    if (phone) lines.push(`Phone: ${phone}`);
+    const text = lines.join("\n");
 
     const { error } = await resend.emails.send({
       from: fromEmail,

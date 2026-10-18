@@ -55,6 +55,32 @@ describe("/api/contact", () => {
     expect(send.mock.calls[0][0]).not.toHaveProperty("replyTo");
   });
 
+  it("accepts an empty email with a phone", async () => {
+    const res = await POST(post({ name: "Jo", email: "", phone: "5550109999" }));
+    expect(res.status).toBe(200);
+    expect(send.mock.calls[0][0]).not.toHaveProperty("replyTo");
+  });
+
+  it("a malformed non-empty email is an email fieldError", async () => {
+    const res = await POST(post({ name: "Jo", email: "nope", phone: "5550109999" }));
+    expect(res.status).toBe(400);
+    expect(Object.keys((await res.json()).fieldErrors)).toEqual(["email"]);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("a wrong-type body is invalid, not a 500", async () => {
+    const res = await POST(post({ name: 5 }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).reason).toBe("invalid");
+  });
+
+  it("a multi-line name cannot forge a subject or body line", async () => {
+    const res = await POST(post({ name: "Jo\nBcc: x@y.z", email: "j@example.com" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).fieldErrors.name).toBe("Use a single line.");
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("honeypot returns ok and sends nothing", async () => {
     const res = await POST(post({ name: "Bot", website: "http://spam" }));
     expect(await res.json()).toEqual({ ok: true });

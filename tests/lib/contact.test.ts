@@ -24,6 +24,15 @@ describe("leadSchema", () => {
     expect(r.error!.issues[0].path[0]).toBe("phone");
   });
 
+  it("rejects a newline in the phone and control characters in the name", () => {
+    expect(leadSchema.safeParse({ name: "Jo", phone: "555\n0109999" }).success).toBe(false);
+    for (const name of ["Jo\r\nBcc: x@y.z", "Jo\nEmail: forged@example.com", "Jo\tQ", "Jo\u0000"]) {
+      const r = leadSchema.safeParse({ name, email: "j@example.com" });
+      expect(r.success, JSON.stringify(name)).toBe(false);
+      expect(r.error!.issues[0].message).toBe("Use a single line.");
+    }
+  });
+
   it("trims and caps lengths", () => {
     const ok = leadSchema.safeParse({ name: "  Jo  ", email: " j@example.com " });
     expect(ok.data).toMatchObject({ name: "Jo", email: "j@example.com" });
