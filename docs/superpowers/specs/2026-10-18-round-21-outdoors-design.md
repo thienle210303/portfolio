@@ -183,6 +183,12 @@ sprite sheets instead of today's 5,000-line render path.
   the same phase. A size budget is recorded before and after.
 - Reduced motion: no walking, no head tracking; a press still reacts with a
   single frame.
+- **Only the live cats are cats** (owner, 2026-10-18). Static drawn cats are
+  removed everywhere except one: the sleeping "Moon, off duty" drawing in the
+  hero's rice. It is the setup for a joke: the first time a walking cat comes
+  near it, the cat stops, startles (ears back, a hop), creeps up, sniffs, and
+  sits beside it. Once per visit; under reduced motion the cat just sits
+  beside it.
 
 ## 8. Motion
 
