@@ -28,17 +28,15 @@
   - hairline `#C9D0C8`
   - red `#C8102E` (one mark per screen: the stamp, the selected tag, the route)
   - The flag's red `#DA251D` and yellow `#FFDD00` appear only inside the Vietnam flag and its stamp.
-- **Night palette (shown to the owner on the canvas):**
-  - ground `#141A17`
-  - paper/card `#222B26`
-  - raised `#26302A`
-  - ink/fg `#E4E9E3`
-  - muted `#A3AEA6`
-  - moss `#8FB27E`
-  - primary control bg `#A8C99A` with label `#141A17`
-  - twine `#A8977A`
-  - red mark `#FF7A85`
-  - hairline `#3A4741`
+- **Night palette: "moonlit field"** (owner, 2026-10-18, replacing the first dusk set; canvas row "1b at night"). Night is not a dark mode of the day page. The ground is a twilight sky, drawings are silhouettes or moonlit lines, and **paper stays light (lantern-lit) with dark ink**.
+  - sky ground `#142024`, deep ground `#0D1416`, loud ground `#1E2C30`
+  - the sky is a gradient on `body` at night: `linear-gradient(180deg, #1F3237 0%, #142024 50%, #0D1416 100%)`. `--ground` stays the flat `#142024` for anything that needs one colour.
+  - text on the sky: fg `#E6ECE7`, muted `#A9B6AE`, accent (moss) `#86AA76`, mark (red) `#FF7A85`, hairline `#3A4844`
+  - primary control: `#A8C99A` with a `#10181A` label
+  - lantern paper (night `--surface`) `#EDE7D8`, raised `#F3EEE2`
+  - text **on lantern paper**: ink `#1D2321`, muted `#5A5F55`, moss `#46603A`, red `#C8102E`, rule `#D3CCB9`
+  - twine `#B3A27F`
+  - Moon, stars and fireflies are drawn scene pieces and come with Phase 3, not here.
 - **Contrast is the judge.** If any pairing fails, adjust the lighter or darker token of that pair as little as possible until it passes, and record the final value in the tracker. A changed night value goes back to the owner before Phase 1 merges. (Pre-computed: every pairing in Task 1 passes as given, with the lowest at 4.52:1.)
 - **Hex is lowercase in CSS.** `scripts/contrast.mjs` only parses `#[0-9a-f]{6}`, so an uppercase hex is silently not measured.
 - **Rule replacing "Blue is the only hue" (spec, verbatim):** "moss-deep is the primary control, red is the single mark, the flag colours live only in the flag."
@@ -92,7 +90,9 @@
 **Interfaces:**
 - Produces raw tokens (lowercase hex):
   - Day: `--color-lichen` `#e4e8e0`, `--color-lichen-deep` `#dfe3da` (**Assumed**, not in the spec: the `deep` tone's half-step ground), `--color-paper` `#fbfbf8`, `--color-ink` `#1d2321`, `--color-muted` `#56605a`, `--color-moss` `#46603a`, `--color-moss-deep` `#1f3a30`, `--color-hairline` `#c9d0c8`, `--color-red` `#c8102e`.
-  - Night: `--color-dusk` `#141a17`, `--color-dusk-deep` `#1a211d` (**Assumed**), `--color-dusk-card` `#222b26`, `--color-dusk-raised` `#26302a`, `--color-dusk-ink` `#e4e9e3`, `--color-dusk-muted` `#a3aea6`, `--color-dusk-moss` `#8fb27e`, `--color-dusk-control` `#a8c99a`, `--color-dusk-hairline` `#3a4741`, `--color-dusk-red` `#ff7a85`.
+  - Night: `--color-dusk` `#142024`, `--color-dusk-deep` `#0d1416`, `--color-dusk-raised` `#1e2c30`, `--color-dusk-ink` `#e6ece7`, `--color-dusk-muted` `#a9b6ae`, `--color-dusk-moss` `#86aa76`, `--color-dusk-control` `#a8c99a`, `--color-dusk-label` `#10181a`, `--color-dusk-hairline` `#3a4844`, `--color-dusk-red` `#ff7a85`, `--color-lantern` `#ede7d8`, `--color-lantern-raised` `#f3eee2`, `--color-lantern-muted` `#5a5f55`, `--color-lantern-rule` `#d3ccb9`.
+  - **Paper scope at night.** Because night surfaces are light, anything painted `bg-surface` must repoint the text aliases for its subtree. Add, in both the stamped night block and its no-JS twin: `.bg-surface` (and the Tailwind `bg-surface/…` variants if used) sets `--fg` ink, `--fg-muted`/`--fg-subtle` lantern-muted, `--accent` moss, `--mark` red, `--rule-color` lantern-rule, `--control` moss-deep, `--fg-inverse` paper. Custom properties inherit, so components keep using `text-fg` etc. unchanged. Test (add to Step 1): `night paper repoints fg`: the night block and its twin each contain a `.bg-surface` rule declaring `--fg:` and `--fg-muted:`.
+  - **Sky.** At night `body` gets the gradient from Global Constraints as `background-image`, over `--ground`.
   - Twine (`#8b7b5e` / `#a8977a`) and the flag colours are **not** added here. They never carry text, so contrast has nothing to measure, and their first consumer is Phase 3's clothesline and field tag. That phase adds them with a `--twine` alias.
 - Produces aliases (and Tailwind colours via `@theme inline`): `--control` → `bg-control` / `border-control`, and `--mark` → `text-mark` / `border-mark`.
 - `--accent-strong` survives this task, pointing at the `--control` value, so `Button` keeps rendering; Task 2 deletes it.
@@ -100,11 +100,11 @@
 
   | Alias | Day quiet | Day loud (`tone-contrast`) | Night quiet | Night loud |
   |---|---|---|---|---|
-  | ground | lichen (deep: lichen-deep) | ink | dusk (deep: dusk-deep) | dusk-card |
-  | surface | paper | dusk-card | dusk-card | dusk-raised |
+  | ground | lichen (deep: lichen-deep) | ink | dusk (deep: dusk-deep) | dusk-raised |
+  | surface | paper | dusk-raised | lantern (raised: lantern-raised) | lantern |
   | fg | ink | paper | dusk-ink | dusk-ink |
   | fg-muted, fg-subtle | muted | dusk-muted | dusk-muted | dusk-muted |
-  | fg-inverse (label on control) | paper | dusk | dusk | dusk |
+  | fg-inverse (label on control) | paper | dusk-label | dusk-label | dusk-label |
   | accent, ring-color | moss | dusk-moss | dusk-moss | dusk-moss |
   | control | moss-deep | dusk-control | dusk-control | dusk-control |
   | mark | red | dusk-red | dusk-red | dusk-red |
@@ -137,10 +137,12 @@
     - `dusk-moss`/`dusk` (control hover)
   - Night quiet:
     - `dusk` with `dusk-ink`, `dusk-muted`, `dusk-moss`, `dusk-red`
-    - the same four on `dusk-deep` and on `dusk-card`
-    - `dusk-control`/`dusk`
-    - `dusk-moss`/`dusk`
+    - the same four on `dusk-deep`
+    - `lantern` and `lantern-raised` with `ink`, `lantern-muted`, `moss`, `red`
+    - `dusk-control`/`dusk-label`
+    - `dusk-moss`/`dusk-label`
   - Night loud: `dusk-raised` with `dusk-ink`, `dusk-muted`, `dusk-moss`, `dusk-red`.
+  - The pairing count changes from 40; the expected line in Step 6 is whatever `pnpm contrast` reports, all ≥ AA.
   - Template:
     - Retitle the document "Contrast — outdoors palette".
     - Add one line: twine and hairline never carry text and are not measured here.
