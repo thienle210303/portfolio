@@ -315,6 +315,9 @@
     --control: var(--color-moss-deep);
     --accent-strong: var(--color-moss-deep);
     --rule-color: var(--color-lantern-rule);
+    /* The night scrim is black for a dark ground; on lantern paper it must
+       darken toward ink instead. */
+    --code-scrim: rgba(29, 35, 33, 0.18);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -366,6 +369,7 @@
       --control: var(--color-moss-deep);
       --accent-strong: var(--color-moss-deep);
       --rule-color: var(--color-lantern-rule);
+      --code-scrim: rgba(29, 35, 33, 0.18);
     }
   }
 
@@ -602,6 +606,49 @@
   @media (prefers-reduced-transparency: reduce) {
     .blueprint-grid {
       background-image: none;
+    }
+  }
+
+  /*
+   * At night the grid is layered over the sky gradient. This rule lives in
+   * `components` because `.blueprint-grid` does, and a `components` rule
+   * outranks the `base` body gradient above: without it the sky never paints
+   * on the one element that carries the class. The gradient layer is sized and
+   * attached separately from the two grid layers.
+   */
+  :root[data-theme="night"] .blueprint-grid {
+    background-image:
+      linear-gradient(to right, var(--grid-line) var(--rule), transparent var(--rule)),
+      linear-gradient(to bottom, var(--grid-line) var(--rule), transparent var(--rule)),
+      linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
+    background-size: var(--grid-step) var(--grid-step), var(--grid-step) var(--grid-step), 100% 100%;
+    background-attachment: fixed, fixed, scroll;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    :root[data-theme="night"] .blueprint-grid {
+      background-image: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
+      background-size: 100% 100%;
+      background-attachment: scroll;
+    }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="day"]) .blueprint-grid {
+      background-image:
+        linear-gradient(to right, var(--grid-line) var(--rule), transparent var(--rule)),
+        linear-gradient(to bottom, var(--grid-line) var(--rule), transparent var(--rule)),
+        linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
+      background-size: var(--grid-step) var(--grid-step), var(--grid-step) var(--grid-step), 100% 100%;
+      background-attachment: fixed, fixed, scroll;
+    }
+
+    @media (prefers-reduced-transparency: reduce) {
+      :root:not([data-theme="day"]) .blueprint-grid {
+        background-image: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
+        background-size: 100% 100%;
+        background-attachment: scroll;
+      }
     }
   }
 

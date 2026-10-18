@@ -102,6 +102,27 @@ describe("the outdoors palette", () => {
     const twin = decls(rule(':root:not([data-theme="day"])', media));
     expect(stamped.size).toBeGreaterThan(10);
     expect(twin).toEqual(stamped);
+    for (const part of ["body", ".bg-surface"]) {
+      const a = decls(rule(`:root[data-theme="night"] ${part}`));
+      expect(a.size, part).toBeGreaterThan(0);
+      expect(decls(rule(`:root:not([data-theme="day"]) ${part}`, media)), part).toEqual(a);
+    }
+  });
+
+  it("the night sky paints on body even under .blueprint-grid", () => {
+    const sky = "linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%)";
+    const media = CSS.indexOf("@media (prefers-color-scheme: dark)", CSS.indexOf(".blueprint-grid {"));
+    for (const body of [
+      rule(':root[data-theme="night"] .blueprint-grid'),
+      rule(':root:not([data-theme="day"]) .blueprint-grid', media),
+    ]) {
+      expect(body.replace(/\s+/g, " ")).toContain(sky);
+      expect(body).toContain("--grid-line");
+    }
+  });
+
+  it("night paper darkens the code scrim toward ink", () => {
+    expect(rule(':root[data-theme="night"] .bg-surface')).toContain("--code-scrim: rgba(29, 35, 33, 0.18)");
   });
 
   it("night paper repoints fg", () => {
