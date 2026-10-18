@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
-// The schema is shared with the lead form, so the two cannot drift.
-import { leadSchema, leadSubject } from "@/lib/contact";
+import { leadSubject } from "@/lib/contact";
+// Built from the limits and patterns the form also checks; this is the final check.
+import { leadSchema } from "./schema";
 
 /**
  * Lead delivery endpoint.

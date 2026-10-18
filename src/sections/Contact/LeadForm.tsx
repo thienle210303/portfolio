@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CircleAlert, CircleCheck, Loader2, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { buildLeadMailto, EMAIL_MAX, leadSchema, NAME_MAX, openMailClient, PHONE_MAX, type Lead } from "@/lib/contact";
+import {
+  buildLeadMailto,
+  EMAIL_MAX,
+  LEAD_ERRORS,
+  NAME_MAX,
+  openMailClient,
+  PHONE_MAX,
+  PHONE_PATTERN,
+  SINGLE_LINE,
+  type Lead,
+} from "@/lib/contact";
 import { contactCopy, profile } from "@/content/portfolio";
 import VisuallyHidden from "@/components/ui/VisuallyHidden";
 
@@ -11,7 +21,9 @@ import VisuallyHidden from "@/components/ui/VisuallyHidden";
  * The business card's back face: a name and an email or phone, so I can get
  * back to the visitor. No message field.
  *
- * Validation is `leadSchema`, the same object `/api/contact` parses with.
+ * Validation is a hand check against the limits, patterns and messages in
+ * `@/lib/contact`, so zod stays on the server. `/api/contact`'s zod schema is
+ * the final check, and its field errors land on the same fields.
  * "Sent" can only come from a real `fetch` answering `{ ok: true }`; every
  * other path ends in an honest "opened your email app" status or an error.
  */
@@ -37,12 +49,14 @@ const HONEYPOT_STYLE: CSSProperties = { position: "absolute", left: "-10000px", 
 
 const FIELD_CLASS = "min-h-11 w-full border bg-ground px-3 py-2 text-[length:var(--step-0)] text-fg";
 
-function firstErrors(issues: readonly { path: readonly PropertyKey[]; message: string }[]): FieldErrors {
+/** Same messages as the server's schema; length caps are the inputs' `maxLength`. */
+function check(lead: Required<Lead>, emailMalformed: boolean): FieldErrors {
   const errors: FieldErrors = {};
-  for (const issue of issues) {
-    const field = issue.path[0] as FieldName;
-    if (ORDER.includes(field) && !errors[field]) errors[field] = issue.message;
-  }
+  if (!lead.name) errors.name = LEAD_ERRORS.nameRequired;
+  else if (!SINGLE_LINE.test(lead.name)) errors.name = LEAD_ERRORS.singleLine;
+  if (lead.email && emailMalformed) errors.email = LEAD_ERRORS.email;
+  if (lead.phone && !PHONE_PATTERN.test(lead.phone)) errors.phone = LEAD_ERRORS.phone;
+  if (!lead.email && !lead.phone) errors.email = errors.phone = LEAD_ERRORS.pair;
   return errors;
 }
 
@@ -96,10 +110,11 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
     event.preventDefault();
     if (submitting) return;
 
-    const parsed = leadSchema.safeParse(values);
-    if (!parsed.success) return showErrors(firstErrors(parsed.error.issues));
+    const trimmed = { name: values.name.trim(), email: values.email.trim(), phone: values.phone.trim() };
+    const fieldErrors = check(trimmed, refs.email.current?.validity.typeMismatch ?? false);
+    if (ORDER.some((field) => fieldErrors[field])) return showErrors(fieldErrors);
     setErrors({});
-    const lead: Lead = { name: parsed.data.name, email: parsed.data.email, phone: parsed.data.phone };
+    const lead: Lead = { name: trimmed.name, email: trimmed.email || undefined, phone: trimmed.phone || undefined };
     const openMail = (next: Status) => {
       openMailClient(buildLeadMailto(lead, profile.email));
       setStatus(next);

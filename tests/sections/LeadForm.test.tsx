@@ -71,6 +71,20 @@ describe("the lead form", () => {
     expect(emailField()).not.toHaveAttribute("aria-invalid");
   });
 
+  it("rejects a malformed email and a digitless phone before posting", async () => {
+    const spy = stubFetch(200, { ok: true });
+    const user = userEvent.setup();
+    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "not-an-email");
+    await user.type(phoneField(), "-------");
+    await user.click(send());
+    expect(emailField()).toHaveAccessibleDescription("Enter a valid email address.");
+    expect(phoneField()).toHaveAccessibleDescription("Enter a valid phone number.");
+    expect(emailField()).toHaveFocus();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("posts an email-only lead, confirms on the card, clears, and tells the cats", async () => {
     const spy = stubFetch(200, { ok: true });
     const cheer = vi.fn();
@@ -163,4 +177,5 @@ describe("the lead form", () => {
     await user.type(nameField(), "{Escape}");
     expect(onBack).toHaveBeenCalledTimes(2);
   });
+
 });

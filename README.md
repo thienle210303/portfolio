@@ -39,7 +39,7 @@ reliable systems.*
 | Language | **TypeScript** (strict) | The content layer is typed so facts cannot drift |
 | Styling | **Tailwind CSS v4** | Configured in CSS via `@theme` — there is no `tailwind.config.js` |
 | Icons | **lucide-react** | Lightweight, tree-shaken |
-| Validation | **Zod** | Lead-form validation, one schema shared by the form and `/api/contact` |
+| Validation | **Zod** | Server-side lead validation in `/api/contact`; the form hand-checks the same limits and patterns from `src/lib/contact.ts`, so zod never ships to the browser |
 | Email | **Resend** | Optional — the lead form degrades honestly without it |
 | Fonts | **next/font** | IBM Plex Sans, IBM Plex Mono, self-hosted, `display: swap` |
 | Tests | **Vitest** + Testing Library, **Playwright** | Component behaviour and real-viewport smoke tests |
@@ -275,7 +275,8 @@ sent without an explicit visitor action, and a success message is never shown
 for a send that did not happen.
 
 **Configured.** Set all three variables below and the form POSTs to
-`/api/contact`, which validates with the same Zod schema and sends one email via
+`/api/contact`, which re-validates with its Zod schema (built from the limits and patterns the
+form also checks) and sends one email via
 Resend (`replyTo` is the visitor's email when they gave one). If the route
 answers `not-configured`, the form falls back to the email app.
 

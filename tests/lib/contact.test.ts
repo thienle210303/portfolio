@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildLeadMailto, leadSchema, leadSubject, NAME_MAX } from "@/lib/contact";
+import { leadSchema } from "@/app/api/contact/schema";
+import { buildLeadMailto, leadSubject, NAME_MAX, PHONE_MAX } from "@/lib/contact";
 
 describe("leadSchema", () => {
   it("accepts email only", () => {
@@ -22,6 +23,22 @@ describe("leadSchema", () => {
     const r = leadSchema.safeParse({ name: "Jo", phone: "call me" });
     expect(r.success).toBe(false);
     expect(r.error!.issues[0].path[0]).toBe("phone");
+  });
+
+  it("rejects a phone with fewer than seven digits, and accepts real numbers", () => {
+    for (const phone of ["-------", "(((((((", "+ () - .", "555-01"]) {
+      expect(leadSchema.safeParse({ name: "Jo", phone }).success, phone).toBe(false);
+    }
+    for (const phone of ["+1 (864) 555-0100", "864.555.0100", "5550100"]) {
+      expect(leadSchema.safeParse({ name: "Jo", phone }).success, phone).toBe(true);
+    }
+  });
+
+  it("lets the phone input hold the longest phone the pattern accepts", () => {
+    const longest = "+" + "1".repeat(20);
+    expect(longest).toHaveLength(PHONE_MAX);
+    expect(leadSchema.safeParse({ name: "Jo", phone: longest }).success).toBe(true);
+    expect(leadSchema.safeParse({ name: "Jo", phone: longest + "1" }).success).toBe(false);
   });
 
   it("rejects a newline in the phone and control characters in the name", () => {
