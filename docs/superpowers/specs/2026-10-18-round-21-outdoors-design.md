@@ -13,6 +13,8 @@ in both), retired anchors stay in the server HTML.
 
 **A little Việt Nam on every page** (owner, 2026-10-18: "just a bit, so people quickly recognise it"): the hero's bamboo pole carries a nón lá (conical hat) hung by its strap and the field tag's gold star; the Journey's oak holds one Hội An silk lantern (lit at night); the Record's left page has a pressed lotus taped beside the title; Contact has the lantern string, "Xin chào," and the Thiện Lê seal.
 
+Added the same day: a water buffalo (con trâu) grazing in the hero's rice, half hidden by the stalks; a steaming bowl of phở beside the Contact heading. **Tết only:** during the Lunar New Year window (dates computed per year from a small authored table, no runtime dependency), Contact's greeting becomes "Chúc mừng năm mới," and branches of hoa mai (yellow apricot blossom) and a bánh tét join the lantern string; the rest of the year none of it shows.
+
 New rule: **every word is me talking to you.** All copy, including chat
 questions, suggestion chips and empty states, is first person ("What do you
 do at DoorDash?", "Ask me"). `docs/voice.md` gains this line.
