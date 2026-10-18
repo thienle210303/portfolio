@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { ContactIntent } from "@/types/portfolio";
 
 /**
@@ -13,15 +14,65 @@ export const EMAIL_MAX = 200;
 export const REASON_MAX = 120;
 export const MESSAGE_MIN = 10;
 export const MESSAGE_MAX = 5000;
+export const PHONE_MAX = 20;
+const PHONE_PATTERN = /^\+?[\d\s().-]{7,20}$/;
+
+export interface Lead {
+  readonly name: string;
+  readonly email?: string;
+  readonly phone?: string;
+}
+
+/** A blank optional field is "not given", not "invalid". */
+const optional = (field: z.ZodType<string>) =>
+  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), field.optional());
+
+/** Shared by the form and `/api/contact`. `website` is the honeypot. */
+export const leadSchema: z.ZodType<Lead & { website?: string }> = z
+  .object({
+    name: z.string().trim().min(1, "Enter your name.").max(NAME_MAX, `Keep your name under ${NAME_MAX} characters.`),
+    email: optional(
+      z
+        .string()
+        .trim()
+        .pipe(z.email("Enter a valid email address.").max(EMAIL_MAX, `Keep your email under ${EMAIL_MAX} characters.`)),
+    ),
+    phone: optional(z.string().trim().regex(PHONE_PATTERN, "Enter a valid phone number.")),
+    website: z.string().optional(),
+  })
+  .superRefine((lead, ctx) => {
+    if (lead.email || lead.phone) return;
+    const message = "Add an email or a phone number so I can reach you.";
+    ctx.addIssue({ code: "custom", path: ["email"], message });
+    ctx.addIssue({ code: "custom", path: ["phone"], message });
+  });
+
+export function leadSubject(name: string): string {
+  return `Portfolio lead — ${name.trim()}`;
+}
+
+/** RFC 6068 percent-encoding (not `+` for spaces). Body mirrors the API's email. */
+export function buildLeadMailto(lead: Lead, toEmail: string): string {
+  const body = [
+    `Name: ${lead.name.trim()}`,
+    lead.email?.trim() && `Email: ${lead.email.trim()}`,
+    lead.phone?.trim() && `Phone: ${lead.phone.trim()}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return `mailto:${toEmail}?subject=${encodeURIComponent(leadSubject(lead.name))}&body=${encodeURIComponent(body)}`;
+}
 
 const FALLBACK_SUBJECT = "Message from your portfolio site";
 
-/** The subject line: the intent's own, plus the case study the visitor was
+/** @deprecated Intent flow; removed with ContactForm in Task 3.
+ *  The subject line: the intent's own, plus the case study the visitor was
  *  reading when they followed its "Discuss this project" link. */
 export function buildReason(intent: Pick<ContactIntent, "subject">, projectTitle: string | null): string {
   return projectTitle ? `${intent.subject} — ${projectTitle}` : intent.subject;
 }
 
+/** @deprecated Removed with ContactForm in Task 3. */
 export interface MailtoMessage {
   readonly subject: string;
   readonly message: string;
@@ -29,7 +80,8 @@ export interface MailtoMessage {
   readonly email: string;
 }
 
-/** RFC 6068 wants percent-encoding, not `application/x-www-form-urlencoded`
+/** @deprecated Replaced by `buildLeadMailto`; removed with ContactForm in Task 3.
+ * RFC 6068 wants percent-encoding, not `application/x-www-form-urlencoded`
  * encoding — `URLSearchParams` would turn every space into a literal `+` in
  * the opened compose window. The body is the message, then the same
  * name/email footer the API puts under a delivered message. */
