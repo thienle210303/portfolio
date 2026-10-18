@@ -105,14 +105,16 @@
 }
 
 /*
- * Font-family variables. layout.tsx populates the values of --font-sans and
- * --font-mono via next/font's `variable` option; this block registers those
- * names as Tailwind theme keys so `font-sans` / `font-mono` utilities exist.
- * `--font-display` is not a third face: it is Plex Sans under the name the
- * heading classes already use, so display text is Plex Sans at the weight the
- * component sets.
+ * Font-family variables. layout.tsx populates --font-sans (Bricolage
+ * Grotesque, variable so any weight), --font-mono (Courier Prime, static
+ * 400/700) and --font-serif (Newsreader italic, annotations only) via
+ * next/font's `variable` option; this block registers those names as Tailwind
+ * theme keys so `font-sans` / `font-mono` / `font-serif` utilities exist.
+ * `--font-display` is not a fourth face: it is Bricolage under the name the
+ * heading classes already use, at the weight the component sets.
  *
- * The self-reference in --font-sans / --font-mono (`var(--font-sans), ...`) is
+ * The self-reference in --font-sans / --font-mono / --font-serif
+ * (`var(--font-sans), ...`) is
  * intentional. It is safe ONLY because next/font's own declaration (wherever
  * layout.tsx applies `.variable`) is unlayered CSS, while everything @theme
  * emits lives inside Tailwind's `theme` cascade layer, and unlayered author
@@ -121,7 +123,7 @@
  * The text after each var() is NOT a working fallback for that variable: if
  * next/font's variable were ever missing, the self-reference becomes a cycle
  * and CSS invalidates the whole declaration instead of falling through. Do not
- * rename --font-sans / --font-mono away from what layout.tsx passes to
+ * rename --font-sans / --font-mono / --font-serif away from what layout.tsx passes to
  * next/font's `variable` option. `--font-display` has no such constraint: it
  * references --font-sans, so its fallbacks are real.
  */
@@ -129,6 +131,7 @@
   --font-display: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-serif: var(--font-serif), Georgia, "Times New Roman", serif;
 }
 
 @layer base {
@@ -733,7 +736,7 @@
 
   /*
    * No explicit `tabular-nums` here (Workstream 3, P4): every rail detail
-   * renders in `var(--font-mono)`, and IBM Plex Mono's digits are tabular by
+   * renders in `var(--font-mono)`, and Courier Prime's digits are tabular by
    * construction — a monospace face has exactly one advance width for every
    * glyph, digits included, so there is no proportional-width figure for
    * `font-variant-numeric` to fix. The same is true of most of the site's

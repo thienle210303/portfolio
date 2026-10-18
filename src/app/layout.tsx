@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Courier_Prime, Newsreader } from "next/font/google";
 import { cn } from "@/lib/cn";
 import { careerEntries, education, profile, socialLinks, SITE_URL } from "@/content/portfolio";
 import { buildCompanionFacts } from "@/lib/companion-facts";
@@ -11,26 +11,35 @@ import InkReveal from "@/components/ui/InkReveal";
 import SiteAnalytics from "@/components/layout/SiteAnalytics";
 import "./globals.css";
 
-// The whole site is set in IBM Plex Sans and IBM Plex Mono; `--font-display`
-// (globals.css) is an alias for Plex Sans, and display headings set it at 600
-// (`font-semibold`).
+// Three faces, one job each. `--font-display` (globals.css) is an alias for
+// Bricolage, so headings and body share it and the component sets the weight.
 //
-// Both ship as static faces, so the weights actually used have to be listed.
-// Keep these lists minimal — every entry is a file the visitor downloads.
-// Neither is loaded with an italic: every italic on the page is a synthesised
-// oblique.
-const plexSans = IBM_Plex_Sans({
-  weight: ["400", "500", "600"],
+// - Bricolage Grotesque: display and body. A variable font, so no `weight`
+//   list (every weight 200-800 is one file) and no `axes` (only `wght` ships).
+// - Courier Prime: tags, dates and data. Static, so the weights used have to be
+//   listed; 700 is what a `font-semibold` mono line resolves to. Every entry is
+//   a file the visitor downloads.
+// - Newsreader italic: margin annotations only, never a Largest Contentful
+//   Paint candidate, so it is not preloaded.
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
 });
 
-const plexMono = IBM_Plex_Mono({
-  weight: ["400", "600"],
+const courierPrime = Courier_Prime({
+  weight: ["400", "700"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-mono",
+});
+
+const newsreader = Newsreader({
+  style: "italic",
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  variable: "--font-serif",
 });
 
 const title = `${profile.name} — ${profile.title}`;
@@ -150,7 +159,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       // and always will. Suppression does not extend to any child, so a real
       // mismatch anywhere inside the tree still surfaces.
       suppressHydrationWarning
-      className={cn(plexSans.variable, plexMono.variable)}
+      className={cn(bricolage.variable, courierPrime.variable, newsreader.variable)}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

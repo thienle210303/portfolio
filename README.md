@@ -41,7 +41,7 @@ reliable systems.*
 | Icons | **lucide-react** | Lightweight, tree-shaken |
 | Validation | **Zod** | Server-side lead validation in `/api/contact`; the form hand-checks the same limits and patterns from `src/lib/contact.ts`, so zod never ships to the browser |
 | Email | **Resend** | Optional — the lead form degrades honestly without it |
-| Fonts | **next/font** | IBM Plex Sans, IBM Plex Mono, self-hosted, `display: swap` |
+| Fonts | **next/font** | Bricolage Grotesque, Courier Prime, Newsreader italic, self-hosted, `display: swap` |
 | Tests | **Vitest** + Testing Library, **Playwright** | Component behaviour and real-viewport smoke tests |
 | Package manager | **pnpm** | Exclusively — do not introduce another lockfile |
 
