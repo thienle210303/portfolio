@@ -37,10 +37,11 @@ import LeadForm from "./LeadForm";
  * `<aside>`.
  *
  * Print shows the front only: the back face is `.no-print`, and the print
- * stylesheet un-turns `[data-flip]`. Decorations (monogram crop, engraved
- * frame, corner ticks, fleuron) are out of flow, `aria-hidden`, built from
- * `border-rule` so they survive print, and colour stays on the semantic
- * aliases throughout.
+ * stylesheet un-turns `[data-flip]`. Decorations (engraved frame, corner
+ * ticks, fleuron) are out of flow, `aria-hidden`, built from `border-rule` so
+ * they survive print, and colour stays on the semantic aliases throughout.
+ * The front's content sits at the top of its face; when the back is taller,
+ * the spare height falls below the actions, not between the blocks.
  */
 
 interface BusinessCardProps {
@@ -122,16 +123,8 @@ export default function BusinessCard({ bookingUrl, emailDeliveryConfigured }: Bu
           data-face="front"
           inert={flipped}
           onClick={onFrontClick}
-          className={`${FACE_CLASS} flex cursor-pointer flex-col justify-between`}
+          className={`${FACE_CLASS} cursor-pointer`}
         >
-          {/* The one flourish: a deliberate crop, only the letterforms'
-              shoulder clears the face's overflow-hidden edge. */}
-          <p
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-9 -bottom-16 select-none font-display text-[14.5rem] leading-none tracking-tighter text-fg opacity-[0.09] sm:text-[17rem]"
-          >
-            {profile.monogram}
-          </p>
           <Frame />
 
           <div className="relative">
