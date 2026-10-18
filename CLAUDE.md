@@ -22,7 +22,7 @@ reference: [README.md](README.md).
   constraints, not afterthoughts — they're why there's no motion library, no
   icon font, and why sections render on the server by default.
 
-## The design system ("Blueprint")
+## The design system ("The Pass, outdoors")
 
 Two axes, and they must stay independent. Read the theme block in
 `src/app/globals.css` before touching colour.
@@ -40,15 +40,17 @@ Rules that keep that working:
   Never a raw `--color-*` token, never a literal hex. A raw token freezes a
   component into one theme and one tone, which is exactly the bug the alias
   layer exists to prevent.
-- **Blue is the only hue**, and it is reserved for annotation, links, measured
-  values and the single primary control per screen. It is never decoration.
+- **Moss-deep is the primary control, red is the single mark, the flag colours
+  live only in the flag.** Which alias carries what: `--accent` for links,
+  measured values and annotation; `--control` for the one primary control per
+  screen; `--mark` for the single mark. Colour is never decoration.
 - **The margin rail carries facts already true in the content layer** —
   counts, dates, sources, computed from the data. It never restates the prose
   beside it, and it never holds a fact that exists nowhere else.
 - Changing any palette token means re-running `pnpm contrast`, which
   regenerates `docs/contrast.md` and **fails if any pairing drops below
-  4.5:1**. Check tertiary tones against `--color-paper-deep`, not
-  `--color-paper` — the half-step-darker ground is where they fail first.
+  4.5:1**. Check tertiary tones against `--color-lichen-deep`, not
+  `--color-lichen` — the half-step-darker ground is where they fail first.
 
 ### The globe
 

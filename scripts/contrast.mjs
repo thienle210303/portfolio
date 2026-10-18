@@ -55,37 +55,50 @@ const token = (name) => {
 /* ---------------------------------------------------------------- pairings -- */
 
 const PAIRINGS = [
-  ["Day", "quiet", "paper", "ink", "body text"],
-  ["Day", "quiet", "paper", "slate", "secondary text"],
-  ["Day", "quiet", "paper", "slate-soft", "eyebrows, counts, sources"],
-  ["Day", "quiet", "paper", "blue", "links, rail labels, metrics"],
-  ["Day", "quiet", "paper-deep", "ink", "body text, deep sections"],
-  ["Day", "quiet", "paper-deep", "slate-soft", "eyebrows, deep sections"],
-  ["Day", "quiet", "paper-deep", "blue", "links, deep sections"],
-  ["Day", "quiet", "card", "ink", "code panel, cards"],
-  ["Day", "quiet", "card", "slate-soft", "code comments"],
-  ["Day", "quiet", "card", "blue", "code strings"],
-  ["Day", "quiet", "blue", "paper", "primary button label"],
+  ["Day", "quiet", "lichen", "ink", "body text"],
+  ["Day", "quiet", "lichen", "muted", "secondary text"],
+  ["Day", "quiet", "lichen", "moss", "links, rail labels, metrics"],
+  ["Day", "quiet", "lichen", "red", "the single mark"],
+  ["Day", "quiet", "lichen-deep", "ink", "body text, deep sections"],
+  ["Day", "quiet", "lichen-deep", "muted", "secondary text, deep sections"],
+  ["Day", "quiet", "lichen-deep", "moss", "links, rail labels, metrics, deep sections"],
+  ["Day", "quiet", "lichen-deep", "red", "the single mark, deep sections"],
+  ["Day", "quiet", "paper", "ink", "body text, cards"],
+  ["Day", "quiet", "paper", "muted", "secondary text, cards"],
+  ["Day", "quiet", "paper", "moss", "links, rail labels, metrics, cards"],
+  ["Day", "quiet", "paper", "red", "the single mark, cards"],
+  ["Day", "quiet", "moss-deep", "paper", "primary control label"],
+  ["Day", "quiet", "moss", "paper", "primary control, hover"],
   ["Day", "loud", "ink", "paper", "contrast-chapter text"],
-  ["Day", "loud", "ink", "mist", "contrast-chapter secondary"],
-  ["Day", "loud", "ink", "mist-soft", "contrast-chapter eyebrows"],
-  ["Day", "loud", "ink", "blue-bright", "contrast-chapter accent"],
-  ["Day", "loud", "blue-bright", "ink", "primary button, contrast chapter"],
-  ["Night", "quiet", "night", "paper", "body text"],
-  ["Night", "quiet", "night", "mist", "secondary text"],
-  ["Night", "quiet", "night", "mist-soft", "eyebrows, counts, sources"],
-  ["Night", "quiet", "night", "blue-bright", "links, rail labels, metrics"],
-  ["Night", "quiet", "night-deep", "paper", "body text, deep sections"],
-  ["Night", "quiet", "night-deep", "mist-soft", "eyebrows, deep sections"],
-  ["Night", "quiet", "night-card", "paper", "code panel, cards"],
-  ["Night", "quiet", "night-card", "mist-soft", "code comments"],
-  ["Night", "quiet", "night-card", "blue-bright", "code strings"],
-  ["Night", "quiet", "blue-bright", "ink", "primary button label"],
-  ["Night", "loud", "night-card", "paper", "contrast-chapter text"],
-  ["Night", "loud", "night-card", "mist", "contrast-chapter secondary"],
-  ["Night", "loud", "night-card", "blue-bright", "contrast-chapter accent"],
-  ["Night", "loud", "night-raised", "paper", "raised panel text"],
-  ["Night", "loud", "night-raised", "mist", "raised panel secondary"],
+  ["Day", "loud", "ink", "dusk-muted", "contrast-chapter secondary"],
+  ["Day", "loud", "ink", "dusk-moss", "contrast-chapter accent"],
+  ["Day", "loud", "ink", "dusk-red", "contrast-chapter mark"],
+  ["Day", "loud", "dusk-raised", "paper", "contrast-chapter surface text"],
+  ["Day", "loud", "dusk-raised", "dusk-muted", "contrast-chapter surface secondary"],
+  ["Day", "loud", "dusk-control", "dusk", "control label"],
+  ["Day", "loud", "dusk-moss", "dusk", "control hover"],
+  ["Night", "quiet", "dusk", "dusk-ink", "body text"],
+  ["Night", "quiet", "dusk", "dusk-muted", "secondary text"],
+  ["Night", "quiet", "dusk", "dusk-moss", "links, rail labels, metrics"],
+  ["Night", "quiet", "dusk", "dusk-red", "the single mark"],
+  ["Night", "quiet", "dusk-deep", "dusk-ink", "body text, deep sections"],
+  ["Night", "quiet", "dusk-deep", "dusk-muted", "secondary text, deep sections"],
+  ["Night", "quiet", "dusk-deep", "dusk-moss", "links, rail labels, metrics, deep sections"],
+  ["Night", "quiet", "dusk-deep", "dusk-red", "the single mark, deep sections"],
+  ["Night", "quiet", "lantern", "ink", "body text, paper surface"],
+  ["Night", "quiet", "lantern", "lantern-muted", "secondary text, paper surface"],
+  ["Night", "quiet", "lantern", "moss", "links, rail labels, metrics, paper surface"],
+  ["Night", "quiet", "lantern", "red", "the single mark, paper surface"],
+  ["Night", "quiet", "lantern-raised", "ink", "body text, raised paper surface"],
+  ["Night", "quiet", "lantern-raised", "lantern-muted", "secondary text, raised paper surface"],
+  ["Night", "quiet", "lantern-raised", "moss", "links, rail labels, metrics, raised paper surface"],
+  ["Night", "quiet", "lantern-raised", "red", "the single mark, raised paper surface"],
+  ["Night", "quiet", "dusk-control", "dusk-label", "primary control label"],
+  ["Night", "quiet", "dusk-moss", "dusk-label", "primary control, hover"],
+  ["Night", "loud", "dusk-raised", "dusk-ink", "body text, raised panel"],
+  ["Night", "loud", "dusk-raised", "dusk-muted", "secondary text, raised panel"],
+  ["Night", "loud", "dusk-raised", "dusk-moss", "links, rail labels, metrics, raised panel"],
+  ["Night", "loud", "dusk-raised", "dusk-red", "the single mark, raised panel"],
 ];
 
 const AA = 4.5;
@@ -111,12 +124,14 @@ const rows = measured
 
 writeFileSync(
   OUT,
-  `# Contrast — Blueprint palette
+  `# Contrast — outdoors palette
 
 Every foreground/background pairing the design can actually produce, with its
 measured WCAG 2.x contrast ratio. **AA (4.5:1) is the floor for all of them**,
 including the ones carrying small mono text — eyebrows, rail labels, metric
 sources — because at those sizes AA large-text (3:1) does not apply.
+
+Twine and hairline never carry text and are not measured here.
 
 Generated by \`pnpm contrast\`. Do not edit by hand: re-run it after changing
 any token in the \`@theme\` block of \`src/app/globals.css\`. The script exits
@@ -131,8 +146,9 @@ Lowest pairing in the current palette: **${lowest.value.toFixed(2)}:1**
 - **quiet** — \`tone="base"\` and \`tone="deep"\` sections, i.e. most of the page.
 - **loud** — \`tone="contrast"\` surfaces (the footer strip, the last contrast
   surface). In day this inverts to an ink ground; in night it deepens to a
-  raised panel rather than flashing white. See the theme block in
-  \`globals.css\` for why.
+  raised panel rather than flashing white. Night's light \`bg-surface\` paper
+  (lantern) repoints the text aliases to ink, so it is measured under quiet.
+  See the theme block in \`globals.css\` for why.
 
 | Theme | Scope | Background | Foreground | Used for | Ratio | Level |
 |---|---|---|---|---|---|---|
@@ -140,18 +156,16 @@ ${rows}
 
 ## Known tight spots
 
-Two pairings sit closest to the floor and are the ones to re-check first if a
-token moves:
+Red is the first thing to re-check if a ground moves. Two pairings sit closest
+to the floor:
 
-- **\`--color-slate-soft\` on \`--color-paper-deep\`** (day, eyebrows in \`deep\`
-  sections). This token was originally \`#5f6b72\`, which measured 4.79:1 against
-  the *base* ground and passed, but 4.44:1 against the half-step-darker \`deep\`
-  ground and did not. A tertiary tone must be checked against
-  \`--color-paper-deep\`, never only against \`--color-paper\`.
-- **\`--color-mist-soft\` on \`--color-night-card\`** (night, code comments). This
-  is why night's \`--l-fg-subtle\` collapses onto \`--color-mist\` instead: on the
-  raised surface \`--color-night-raised\`, \`--color-mist-soft\` measures 4.23:1
-  and would fail.
+- **\`--color-red\` on \`--color-lichen-deep\`** (day, the mark in \`deep\` sections),
+  4.52:1.
+- **\`--color-red\` on \`--color-lichen\`** (day, the mark on the base ground),
+  4.74:1.
+
+A tertiary tone must be checked against \`--color-lichen-deep\`, the
+half-step-darker ground, never only against \`--color-lichen\`.
 `,
 );
 
