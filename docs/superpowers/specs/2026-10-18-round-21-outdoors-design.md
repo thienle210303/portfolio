@@ -11,6 +11,8 @@ dependency, no 3D library, semantic aliases only, WCAG 2.2 AA, every fact
 from `src/content/portfolio.ts`, day/night toggle kept (every change checked
 in both), retired anchors stay in the server HTML.
 
+**A little Việt Nam on every page** (owner, 2026-10-18: "just a bit, so people quickly recognise it"): the hero's bamboo pole carries a nón lá (conical hat) hung by its strap and the field tag's gold star; the Journey's oak holds one Hội An silk lantern (lit at night); the Record's left page has a pressed lotus taped beside the title; Contact has the lantern string, "Xin chào," and the Thiện Lê seal.
+
 New rule: **every word is me talking to you.** All copy, including chat
 questions, suggestion chips and empty states, is first person ("What do you
 do at DoorDash?", "Ask me"). `docs/voice.md` gains this line.
@@ -168,7 +170,7 @@ dates and full names. Images go to `public/media/certificates/`.
 - The chat becomes a strip under both: "Ask me", "I answer from what I've
   written here", first-person suggestion chips. The two cats sleep on it.
 - The flip card is retired; the postcard is always visible.
-- **Vietnamese touches and polish** (owner, 2026-10-18): a string of Hội An silk lanterns hangs above the postcard (red, gold, green; quiet silk by day, lit and glowing at night); the heading reads "Xin chào," above "say hi."; the business card carries a small red name seal reading "Lê" (my family name), icons on its contact rows, the quote set against a moss rule, and Résumé / Save contact as small outlined chips. The chat strip is two halves: "you asked / I said" with the answer's source on the left, and an underlined question line, a round moss "Ask" and "or try" questions as small paper tags on the right.
+- **Vietnamese touches and polish** (owner, 2026-10-18): a string of Hội An silk lanterns hangs above the postcard (red, gold, green; quiet silk by day, lit and glowing at night); the heading reads "Xin chào," above "say hi."; the business card carries a small red name seal reading "Thiện Lê", icons on its contact rows, the quote set against a moss rule, and Résumé / Save contact as small outlined chips. The chat strip is two halves: "you asked / I said" with the answer's source on the left, and an underlined question line, a round moss "Ask" and "or try" questions as small paper tags on the right.
 
 ## 7. Cats
 
