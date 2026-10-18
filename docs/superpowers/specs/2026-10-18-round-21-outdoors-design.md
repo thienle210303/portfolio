@@ -63,6 +63,8 @@ yellow `#FFDD00` appear only inside the Vietnam flag and its stamp.
 - `scripts/contrast.mjs` pairings are rewritten for the new tokens; every
   pairing ≥ 4.5:1 in both themes.
 
+**Day is a morning field** (owner, 2026-10-18: "night is looking too good, make light mode look good as well"). Day gets the same one-backdrop treatment as night: a soft morning sky on `body` (`#dce6e2` → `#e4eae1` → `#ecece2`, top to bottom) behind transparent quiet sections, and in Phase 3 a low sun with a halo, a few soft clouds, small birds, and dandelion seeds drifting where the fireflies are at night. Text must pass contrast on the lightest and darkest sky stops.
+
 **Fonts** (self-hosted through `next/font/google`, not a runtime dependency):
 Bricolage Grotesque (display and body), Courier Prime (tags, dates, data),
 Newsreader italic (annotations only). IBM Plex is dropped.
