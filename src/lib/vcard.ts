@@ -1,7 +1,8 @@
 import { profile, socialLinks, SITE_URL } from "@/content/portfolio";
 
-// RFC 6350 §3.4 text escaping; backslash first so it doesn't double-escape the rest.
-const esc = (s: string) => s.replace(/[\\,;]/g, "\\$&");
+// RFC 6350 §3.4 text escaping. Newlines go second, so the backslash in their
+// `\n` is not itself escaped; a bare newline would end the property mid-value.
+const esc = (s: string) => s.replace(/[\\,;]/g, "\\$&").replace(/\r\n|[\r\n]/g, "\\n");
 
 export function buildVCard(p = profile, links = socialLinks, site = SITE_URL): string {
   const words = p.name.trim().split(/\s+/);

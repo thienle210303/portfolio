@@ -40,4 +40,9 @@ describe("buildVCard", () => {
     const s = buildVCard({ ...p, title: "A, B; C\\D" });
     expect(s).toContain("TITLE:A\\, B\\; C\\\\D");
   });
+  it("escapes newlines as \\n, never leaving a bare line break inside a property", () => {
+    const s = buildVCard({ ...p, title: "Engineer\nBuilder\r\nWriter" });
+    expect(lines(s)).toContain("TITLE:Engineer\\nBuilder\\nWriter");
+    expect(s.replace(/\r\n/g, "")).not.toMatch(/[\r\n]/);
+  });
 });
