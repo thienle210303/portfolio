@@ -11,7 +11,7 @@ measured highlights, a drawn career tree, and a timeline of rows that open one
 at a time, with the case studies inside them (in the rows of the roles that
 produced them, or after the timeline for the coursework); and **Contact**: a
 business card with every way to reach him (copy the email, save a vCard) that
-flips over to a two-field lead form, beside a chat that
+flips over to a short lead form (a name, plus an email or phone), beside a chat that
 answers only from what's written for the site: by default his words as
 written, or a few of them joined into one line, each with its source and no model; in
 live mode a model writes the answer from just those passages. The résumé is its own route

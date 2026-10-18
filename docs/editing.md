@@ -156,15 +156,16 @@ using the same spelling you use elsewhere.
 
 ## Contact delivery
 
-The contact form posts to `/api/contact`, which needs three environment
-variables:
+The business card's lead form (a name, plus an email or phone) posts to
+`/api/contact`, which needs three environment variables:
 
 ```
 RESEND_API_KEY, CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL
 ```
 
 With any of them missing, it falls back to opening the visitor's own mail app
-with the message prefilled. That fallback is deliberate — it means the site
+with a message to `profile.email` under the subject `Portfolio lead — <name>`,
+carrying the name, email and phone. That fallback is deliberate — it means the site
 never claims to have sent something it did not. See `.env.example`.
 
 ## Changing colours
