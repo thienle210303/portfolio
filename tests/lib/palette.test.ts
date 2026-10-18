@@ -102,27 +102,34 @@ describe("the outdoors palette", () => {
     const twin = decls(rule(':root:not([data-theme="day"])', media));
     expect(stamped.size).toBeGreaterThan(10);
     expect(twin).toEqual(stamped);
-    for (const part of ["body", ".bg-surface"]) {
-      const a = decls(rule(`:root[data-theme="night"] ${part}`));
-      expect(a.size, part).toBeGreaterThan(0);
-      expect(decls(rule(`:root:not([data-theme="day"]) ${part}`, media)), part).toEqual(a);
+    for (const part of ["body", ".bg-surface", ".section-ground:not(.tone-contrast)"]) {
+      const night = decls(rule(`:root[data-theme="night"] ${part}`));
+      expect(night.size, part).toBeGreaterThan(0);
+      expect(decls(rule(`:root:not([data-theme="day"]) ${part}`)), part).toEqual(night);
     }
   });
 
-  it("the night sky paints on body even under .blueprint-grid", () => {
+  it("the sky is defined once and painted fixed on body at night", () => {
     const sky = "linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%)";
-    const media = CSS.indexOf("@media (prefers-color-scheme: dark)", CSS.indexOf(".blueprint-grid {"));
-    for (const body of [
-      rule(':root[data-theme="night"] .blueprint-grid'),
-      rule(':root:not([data-theme="day"]) .blueprint-grid', media),
-    ]) {
-      expect(body.replace(/\s+/g, " ")).toContain(sky);
-      expect(body).toContain("--grid-line");
+    expect(CSS.split(sky)).toHaveLength(3); // the stamped block and its twin, nothing else
+    for (const sel of [':root[data-theme="night"] body', ':root:not([data-theme="day"]) body']) {
+      const body = rule(sel);
+      expect(body).toContain("background-image: var(--sky)");
+      expect(body).toContain("background-attachment: fixed");
+    }
+    for (const sel of [':root[data-theme="night"]', ':root:not([data-theme="day"])']) {
+      expect(rule(sel)).toContain(`--sky: ${sky}`);
     }
   });
 
-  it("night paper darkens the code scrim toward ink", () => {
-    expect(rule(':root[data-theme="night"] .bg-surface')).toContain("--code-scrim: rgba(29, 35, 33, 0.18)");
+  it("night quiet sections let the sky through; loud keeps its ground", () => {
+    for (const sel of [
+      ':root[data-theme="night"] .section-ground:not(.tone-contrast)',
+      ':root:not([data-theme="day"]) .section-ground:not(.tone-contrast)',
+    ]) {
+      expect(rule(sel)).toContain("background-color: transparent");
+    }
+    expect(rule(".section-ground")).toContain("background-color: var(--ground)");
   });
 
   it("night paper repoints fg", () => {

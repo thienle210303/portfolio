@@ -297,13 +297,13 @@
 
     --q-grid: rgba(143, 178, 126, 0.07);
     --l-grid: rgba(143, 178, 126, 0.09);
+
+    /* The sky: one backdrop behind the whole page, painted on `body` (see
+       `:root[data-theme="night"] body` under `.blueprint-grid`). */
+    --sky: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
   }
 
-  :root[data-theme="night"] body {
-    background-image: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
-  }
-
-  /* Paper scope: light surface, dark ink. */
+    /* Paper scope: light surface, dark ink. */
   :root[data-theme="night"] .bg-surface {
     --fg: var(--color-ink);
     --fg-muted: var(--color-lantern-muted);
@@ -315,9 +315,6 @@
     --control: var(--color-moss-deep);
     --accent-strong: var(--color-moss-deep);
     --rule-color: var(--color-lantern-rule);
-    /* The night scrim is black for a dark ground; on lantern paper it must
-       darken toward ink instead. */
-    --code-scrim: rgba(29, 35, 33, 0.18);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -352,10 +349,7 @@
 
       --q-grid: rgba(143, 178, 126, 0.07);
       --l-grid: rgba(143, 178, 126, 0.09);
-    }
-
-    :root:not([data-theme="day"]) body {
-      background-image: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
+      --sky: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
     }
 
     :root:not([data-theme="day"]) .bg-surface {
@@ -369,7 +363,6 @@
       --control: var(--color-moss-deep);
       --accent-strong: var(--color-moss-deep);
       --rule-color: var(--color-lantern-rule);
-      --code-scrim: rgba(29, 35, 33, 0.18);
     }
   }
 
@@ -610,45 +603,44 @@
   }
 
   /*
-   * At night the grid is layered over the sky gradient. This rule lives in
-   * `components` because `.blueprint-grid` does, and a `components` rule
-   * outranks the `base` body gradient above: without it the sky never paints
-   * on the one element that carries the class. The gradient layer is sized and
-   * attached separately from the two grid layers.
+   * The night sky: one backdrop behind the whole page, so it is painted on
+   * `body` and the quiet sections let it show through (`.section-ground`
+   * below). This rule lives in `components` because `.blueprint-grid` (also on
+   * `body`) does, and a `components` rule outranks anything in `base`. It
+   * replaces the grid on `body` only: the hero's own `.blueprint-grid` is a
+   * different element and still draws its fixed ruling over the sky. `fixed`
+   * pins the sky to the viewport, so it is continuous across sections and
+   * simply scrolls with the page where unsupported.
    */
-  :root[data-theme="night"] .blueprint-grid {
-    background-image:
-      linear-gradient(to right, var(--grid-line) var(--rule), transparent var(--rule)),
-      linear-gradient(to bottom, var(--grid-line) var(--rule), transparent var(--rule)),
-      linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
-    background-size: var(--grid-step) var(--grid-step), var(--grid-step) var(--grid-step), 100% 100%;
-    background-attachment: fixed, fixed, scroll;
+  :root[data-theme="night"] body {
+    background-image: var(--sky);
+    background-size: 100% 100%;
+    background-attachment: fixed;
   }
 
-  @media (prefers-reduced-transparency: reduce) {
-    :root[data-theme="night"] .blueprint-grid {
-      background-image: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
-      background-size: 100% 100%;
-      background-attachment: scroll;
-    }
+  /*
+   * A section's own ground. Day and `tone-contrast` paint `--ground` as before;
+   * at night the quiet tones (`base`, `deep`) are transparent so the sky shows
+   * through. `--ground` itself stays a flat colour for anything that needs a
+   * solid fill (the header, the companion's cut-outs).
+   */
+  .section-ground {
+    background-color: var(--ground);
+  }
+
+  :root[data-theme="night"] .section-ground:not(.tone-contrast) {
+    background-color: transparent;
   }
 
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="day"]) .blueprint-grid {
-      background-image:
-        linear-gradient(to right, var(--grid-line) var(--rule), transparent var(--rule)),
-        linear-gradient(to bottom, var(--grid-line) var(--rule), transparent var(--rule)),
-        linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
-      background-size: var(--grid-step) var(--grid-step), var(--grid-step) var(--grid-step), 100% 100%;
-      background-attachment: fixed, fixed, scroll;
+    :root:not([data-theme="day"]) body {
+      background-image: var(--sky);
+      background-size: 100% 100%;
+      background-attachment: fixed;
     }
 
-    @media (prefers-reduced-transparency: reduce) {
-      :root:not([data-theme="day"]) .blueprint-grid {
-        background-image: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
-        background-size: 100% 100%;
-        background-attachment: scroll;
-      }
+    :root:not([data-theme="day"]) .section-ground:not(.tone-contrast) {
+      background-color: transparent;
     }
   }
 

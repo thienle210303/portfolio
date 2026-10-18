@@ -58,7 +58,7 @@ function contactLine(): string {
 
 export default function ResumePage() {
   return (
-    <div className="tone-base bg-ground py-[var(--section-y)]">
+    <div className="tone-base section-ground py-[var(--section-y)]">
       <div className="shell max-w-[52rem]">
         {/* Screen-only chrome. Nothing here belongs on paper. */}
         <div className="no-print mb-12 flex flex-wrap items-center justify-between gap-4">
