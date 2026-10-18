@@ -1736,6 +1736,7 @@ What it shows (measured): the Journey band is unchanged, 46.1-46.7 fps against 4
 - The box is `data-far` beyond 200 px of the viewport unless a show runs: contents `content-visibility: hidden`, `overflow: clip`, so it is neither a scroll container nor drawn. With JS off it is never far.
 - The timeline is `content-visibility: auto` at lg.
 - The unbranched case studies are `content-visibility: auto` at lg.
+- *Round 20 phase 6 removed the last two.* Their placeholder heights (1275 px, 3655 px) are exact only near 1440: rendered, the timeline is 1261-1275 px and the case studies 3653-3736 px across 1024-1920. At 1024 the case studies alone moved the footer 81 px once they rendered, which failed `ask.spec`'s footer test (reproduced on `main`). The tree box's `data-far` skip stays. Phase 6's lag A/B re-measures the band.
 
 Interleaved traces after the fixes (`2977f07` against `ae0cdc6`, 3 pairs, machine at 92-100% CPU from other work) give these, with fps and worst frame under tracing at that load:
 
