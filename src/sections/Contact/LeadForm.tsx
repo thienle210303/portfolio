@@ -89,6 +89,8 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
 
   // Leaving the form clears what it last said; the fields keep their values.
   function back() {
+    // A send in flight would land its status on a face nobody is looking at.
+    if (submitting) return;
     setStatus("idle");
     onBack();
   }
@@ -234,7 +236,8 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
         <button
           type="button"
           onClick={back}
-          className="inline-flex min-h-11 items-center justify-center border border-rule px-5 text-[length:var(--step-0)] text-fg transition-colors duration-150 hover:border-fg-muted active:translate-y-px"
+          disabled={submitting}
+          className="inline-flex min-h-11 items-center justify-center border border-rule px-5 text-[length:var(--step-0)] text-fg transition-colors duration-150 hover:border-fg-muted active:translate-y-px disabled:opacity-60"
         >
           Back
         </button>

@@ -178,4 +178,22 @@ describe("the lead form", () => {
     expect(onBack).toHaveBeenCalledTimes(2);
   });
 
+  it("ignores Back and Escape while a send is in flight", async () => {
+    let answer!: (value: unknown) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => (answer = resolve))));
+    const onBack = vi.fn();
+    const user = userEvent.setup();
+    render(<LeadForm emailDeliveryConfigured={true} onBack={onBack} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+    await user.type(nameField(), "{Escape}");
+    expect(onBack).not.toHaveBeenCalled();
+
+    answer({ ok: true, status: 200, json: async () => ({ ok: true }) });
+    expect(await screen.findByRole("status")).toHaveTextContent(contactCopy.success);
+    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+  });
 });
