@@ -86,11 +86,11 @@ const QUIET_SIZE_CLASSES: Record<ButtonSize, string> = {
 // so every variant stays legible in either theme and in any of the three
 // section tones, with no per-tone branch here.
 //
-// `primary` fills with --accent rather than --fg. That is the one place the
-// blue is allowed to carry a whole element, and it is what makes the single
-// most important control on each screen the only saturated thing on it.
-// --fg-inverse is its partner on purpose: the pair clears 7:1 in both themes,
-// where a hardcoded white would fail against night's lighter accent.
+// `primary` fills with --control (moss-deep), not --accent. It is the one place
+// the fill carries a whole element, and what makes the single most important
+// control on each screen the heaviest thing on it. --fg-inverse is its partner
+// on purpose: it is the label that reads on a --control fill in every theme and
+// tone. Hover shifts the fill to --accent; the label does not change.
 // `primary` additionally carries the etched inner keyline (Workstream 3,
 // P3) — the one rich hover this site allows itself, reserved for the single
 // primary control per screen. `after:inset-[3px]` sits inside the fill, not
@@ -100,7 +100,7 @@ const QUIET_SIZE_CLASSES: Record<ButtonSize, string> = {
 // since it does not render through this component.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "border-[color:var(--accent)] bg-[color:var(--accent)] text-[color:var(--fg-inverse)] after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-[color:var(--accent-strong)] hover:bg-[color:var(--accent-strong)] hover:text-[color:var(--ground)] hover:after:opacity-40",
+    "border-[color:var(--control)] bg-[color:var(--control)] text-[color:var(--fg-inverse)] after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-[color:var(--accent)] hover:bg-[color:var(--accent)] hover:after:opacity-40",
   secondary:
     "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]",
   quiet:

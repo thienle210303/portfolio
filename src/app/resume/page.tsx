@@ -72,7 +72,7 @@ export default function ResumePage() {
 
           <ExternalLink
             href={profile.resumePdf}
-            className="inline-flex min-h-11 items-center gap-2 bg-accent px-5 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 hover:bg-accent-strong hover:text-ground"
+            className="inline-flex min-h-11 items-center gap-2 bg-control px-5 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 hover:bg-accent"
           >
             <Download aria-hidden="true" focusable="false" size={16} />
             Download PDF

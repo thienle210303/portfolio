@@ -502,7 +502,7 @@ function rainLeftPercent(index: number, count: number): number {
 /** ~12 (a storm's own count higher) slanted strokes, evenly spread and each
  *  falling on a loop — `animationDelay` staggers them so the whole width
  *  doesn't fall in lockstep. `dense` both draws more of them and switches
- *  their own colour to the stronger `--fg` alias (never blue — see the
+ *  their own colour to the stronger `--fg` alias (never the accent — see the
  *  design system rules) rather than the ordinary `--fg-subtle` a plain rain
  *  year inherits from its container. */
 function RainStrokes({ dense }: { readonly dense: boolean }) {

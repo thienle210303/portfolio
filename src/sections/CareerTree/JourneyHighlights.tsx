@@ -31,7 +31,7 @@ function Value({ value }: { value: string }) {
  *
  * The `<a>` stays in the base tone and the card's paint is an inner
  * `tone-contrast` box: the focus outline is drawn outside the card, and
- * `tone-contrast` repoints `--ring-color` to a blue that fails 3:1 on the day
+ * `tone-contrast` repoints `--ring-color` to a colour that fails 3:1 on the day
  * ground it would sit on.
  */
 export default function JourneyHighlights({ className }: { className?: string }) {

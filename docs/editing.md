@@ -24,7 +24,7 @@ out — not in production.
 
 ## Change a metric
 
-Metrics are the numbers shown large and blue at the top of each case study.
+Metrics are the numbers shown large in the accent colour at the top of each case study.
 Find the project in `projects` and edit its `metrics` array:
 
 ```ts

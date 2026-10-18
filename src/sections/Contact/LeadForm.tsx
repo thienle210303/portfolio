@@ -215,14 +215,14 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
       {pairError ? <ErrorLine id="lead-pair-error">{pairError}</ErrorLine> : null}
 
       <div className="mt-1 flex flex-wrap items-center gap-3">
-        {/* Contact's one primary control and its only blue fill; the keyline
-            recipe is `Button`'s primary, by hand so the fill is `bg-accent`. */}
+        {/* Contact's one primary control and its only control fill; the keyline
+            recipe is `Button`'s primary, by hand so the fill is `bg-control`. */}
         <button
           type="submit"
           disabled={submitting}
           aria-busy={submitting || undefined}
           aria-describedby={emailDeliveryConfigured ? undefined : "lead-send-note"}
-          className="relative inline-flex min-h-11 items-center justify-center border border-accent bg-accent px-6 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-accent-strong hover:bg-accent-strong hover:text-ground hover:after:opacity-40 active:translate-y-px disabled:opacity-60"
+          className="relative inline-flex min-h-11 items-center justify-center border border-control bg-control px-6 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-accent hover:bg-accent hover:after:opacity-40 active:translate-y-px disabled:opacity-60"
         >
           {submitting ? (
             <span className="inline-flex items-center gap-2">

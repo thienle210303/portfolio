@@ -75,6 +75,11 @@ describe("the outdoors palette", () => {
     for (const [name, hex] of Object.entries(NIGHT)) expect(tokens[name], name).toBe(hex);
   });
 
+  it("accent-strong is gone", () => {
+    expect(CSS).not.toMatch(/--accent-strong/);
+    expect(CSS).not.toMatch(/--color-accent-strong/);
+  });
+
   it("no Blueprint token survives", () => {
     const gone = [
       "blue", "blue-deep", "blue-bright", "slate", "slate-soft", "mist", "mist-soft",

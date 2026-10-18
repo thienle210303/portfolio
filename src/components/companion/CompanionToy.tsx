@@ -5,11 +5,9 @@
  * ## Why none of them is a laser dot
  *
  * The obvious toy is a laser pointer, and a laser pointer is a red dot. This
- * site has exactly one hue — the annotation blue — and `CLAUDE.md` reserves it
- * for links, measured values and the single primary control per screen: "it is
- * never decoration". A red dot would be a second hue introduced for pure
- * decoration, which breaks that rule twice over, and a *blue* dot would spend
- * the site's one meaningful colour on a cat toy — so a visitor scanning for the
+ * site reserves its accent (moss) for links and measured values, and its one red
+ * for the single mark: "it is never decoration". A red dot would spend the
+ * mark on pure decoration, and a *moss* dot would spend the accent on a cat toy — so a visitor scanning for the
  * next link would find a bouncing spot instead.
  *
  * So the props are drawn the way the cats are: `currentColor`, one stroke

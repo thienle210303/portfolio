@@ -73,7 +73,7 @@ describe("a project recording", () => {
     const ours = screen.getByRole("button", { name: PLAY }).className;
     const reference = screen.getByRole("button", { name: "reference" }).className;
     expect(ours).toBe(reference);
-    expect(ours).not.toMatch(/bg-\[color:var\(--accent\)\]/);
+    expect(ours).not.toMatch(/bg-\[color:var\(--control\)\]/);
   });
 
   it("mounts one muted, preload=none video with a poster after the press", () => {

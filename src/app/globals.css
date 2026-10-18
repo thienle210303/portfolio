@@ -99,7 +99,6 @@
   --color-fg-subtle: var(--fg-subtle);
   --color-fg-inverse: var(--fg-inverse);
   --color-accent: var(--accent);
-  --color-accent-strong: var(--accent-strong);
   --color-control: var(--control);
   --color-mark: var(--mark);
   --color-rule: var(--rule-color);
@@ -313,7 +312,6 @@
     --ring-color: var(--color-moss);
     --mark: var(--color-red);
     --control: var(--color-moss-deep);
-    --accent-strong: var(--color-moss-deep);
     --rule-color: var(--color-lantern-rule);
   }
 
@@ -361,7 +359,6 @@
       --ring-color: var(--color-moss);
       --mark: var(--color-red);
       --control: var(--color-moss-deep);
-      --accent-strong: var(--color-moss-deep);
       --rule-color: var(--color-lantern-rule);
     }
   }
@@ -381,8 +378,6 @@
    *   --mark         the single mark
    *   --rule-color   1px borders
    *   --ring-color   focus-visible outline
-   *   --accent-strong  legacy: the --control value, so Button still renders.
-   *                    Task 2 of round 21 removes it.
    *
    * :root carries the quiet set so that anything rendered outside a Section
    * (the header, the footer, the skip link) is styled rather than unstyled.
@@ -399,7 +394,6 @@
     --accent: var(--q-accent);
     --control: var(--q-control);
     --mark: var(--q-mark);
-    --accent-strong: var(--q-control);
     --rule-color: var(--q-rule);
     --ring-color: var(--q-accent);
     --grid-line: var(--q-grid);
@@ -420,7 +414,6 @@
     --accent: var(--l-accent);
     --control: var(--l-control);
     --mark: var(--l-mark);
-    --accent-strong: var(--l-control);
     --rule-color: var(--l-rule);
     --ring-color: var(--l-accent);
     --grid-line: var(--l-grid);
