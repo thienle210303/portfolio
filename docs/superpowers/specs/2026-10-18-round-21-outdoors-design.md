@@ -112,7 +112,7 @@ globe was removed in round 21, and why. `e2e/legacy-anchors.spec.ts` gains
 - A live oak (drawn SVG, Spanish moss) whose long limb carries the highlight
   tags: 17h → 3m, 99.9%, 96%, 3M+, 200+, built from `buildHighlights()` as
   today, verbatim.
-- **DoorDash gets two tags** (owner, 2026-10-18). The 17h → 3m tag also lists `failures 3.9% → 0` and `products 654 → 1,529` (already in content). A second tag tied to it by its own string reads "2 → 25 merchants onboarded a month", DoorDash, 2026, "With a scraping skill I built." The 2 → 25 figure is new: it is authored into `src/content/portfolio.ts` (the doordash entry's impact and a highlight) before the Journey phase renders it. The owner prefers it over "30+ production scrapers in one week" for the quick read; that line stays where it already is.
+- **DoorDash gets two tags** (owner, 2026-10-18), brief, no repeated words. Tag one: "17h → 3m", subtitle "3.9% error → 0% error", DoorDash 2025, "Reverse engineering scraper". Tag two hangs straight below it on its own string: "2 → 25", subtitle "onboarded merchants/month", DoorDash 2026, "Built an agent-driven workflow that scales and adapts to a massive amount of heterogeneity for each merchant". The 2 → 25 figure and that line are new: they are authored into `src/content/portfolio.ts` (the doordash entry) before the Journey phase renders them.
 - "Watch it grow" opens the drawn knowledge tree (today's tree box and its
   rules unchanged: authored edges only, `DEMOTED_ENTRY_IDS`, computed
   concurrency).
