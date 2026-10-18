@@ -1,5 +1,5 @@
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
-import { origin } from "@/content/portfolio";
+import { companions, origin } from "@/content/portfolio";
 import {
   careerIndexable,
   education,
@@ -119,6 +119,11 @@ function label(sectionId: string, subjectId: string | undefined, ...local: strin
   ].join(" ");
 }
 
+/** The cats' document text: fields only, in `companions` order. */
+export function companionsText(): string {
+  return companions.map((cat) => `${cat.name}, ${cat.coat}, belongs to ${cat.belongsTo}: ${cat.habit}`).join(" ");
+}
+
 export function buildDocuments(): Document[] {
   const docs: Document[] = [];
 
@@ -217,6 +222,18 @@ export function buildDocuments(): Document[] {
       "choose",
       "judgement",
     ),
+  });
+
+  // The two cats (`companions`): each one's name, coat, owner and habit, joined
+  // mechanically like the origin flight above. No section: they walk the page
+  // in the companion layer, which no section renders, so — like the About
+  // paragraphs — there is nowhere to send the reader. Their own vocabulary is
+  // local, under no section's expansions, so they cannot pick up About's
+  // "who is he" words and steal those questions.
+  docs.push({
+    text: companionsText(),
+    source: "The two cats",
+    label: label("companions", undefined, "cat", "cats", "pet", "pets", ...companions.map((cat) => cat.name)),
   });
 
   // Round 20: the globe's three stops replaced its nineteen plaques, and the
