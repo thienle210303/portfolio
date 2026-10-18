@@ -73,6 +73,12 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
     if (status === "success") statusRef.current?.focus();
   }, [status]);
 
+  // Leaving the form clears what it last said; the fields keep their values.
+  function back() {
+    setStatus("idle");
+    onBack();
+  }
+
   // "Neither email nor phone" is one error about the pair: shown once, under
   // both fields, and described on both.
   const pairError = errors.email && errors.email === errors.phone ? errors.email : undefined;
@@ -171,9 +177,16 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
   );
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="relative flex flex-col gap-3">
+    <form
+      noValidate
+      onSubmit={handleSubmit}
+      onKeyDown={(e) => e.key === "Escape" && back()}
+      aria-labelledby="lead-heading"
+      data-delivery={emailDeliveryConfigured ? "api" : "mailto"}
+      className="relative flex flex-col gap-3"
+    >
       <div>
-        <h3 className="font-display text-[length:var(--step-1)] leading-[1.05] tracking-[-0.02em] text-fg">
+        <h3 id="lead-heading" className="font-display text-[length:var(--step-1)] leading-[1.05] tracking-[-0.02em] text-fg">
           {contactCopy.formHeading}
         </h3>
         <p className="mt-1 text-[length:var(--step--1)] text-fg-muted">{contactCopy.formNote}</p>
@@ -205,7 +218,7 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
         </button>
         <button
           type="button"
-          onClick={onBack}
+          onClick={back}
           className="inline-flex min-h-11 items-center justify-center border border-rule px-5 text-[length:var(--step-0)] text-fg transition-colors duration-150 hover:border-fg-muted active:translate-y-px"
         >
           Back

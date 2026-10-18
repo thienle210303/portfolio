@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { contactCopy, profile, socialLinks } from "@/content/portfolio";
 import CopyButton from "@/components/ui/CopyButton";
@@ -14,7 +14,7 @@ import LeadForm from "./LeadForm";
  * LinkedIn, the résumé, a vCard to save, a booking link when `BOOKING_URL`
  * is valid — and "Let me reach you", which turns the card over. A click on
  * the front's empty area turns it too; a click on a link or button never does.
- * Back: `LeadForm`. Back and Escape turn it over again.
+ * Back: `LeadForm`. Its Back button and Escape turn it over again.
  *
  * The flip is a CSS 3D rotation of `[data-flip]`; both faces share one grid
  * cell, so the card is as tall as the taller face. Under reduced motion the
@@ -107,16 +107,11 @@ export default function BusinessCard({ bookingUrl, emailDeliveryConfigured }: Bu
     turn(true);
   }
 
-  function onKeyDown(event: KeyboardEvent) {
-    if (flipped && event.key === "Escape") turn(false);
-  }
-
   return (
     <aside aria-label={`${profile.name} — business card`} data-cat-hide className="perspective-distant">
       <div
         data-flip
         data-flipped={flipped}
-        onKeyDown={onKeyDown}
         className={`grid transform-3d transition-transform duration-(--dur-settle) ease-(--ease-ink) ${flipped ? "rotate-y-180" : ""}`}
       >
         <div

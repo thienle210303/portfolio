@@ -150,10 +150,17 @@ describe("the lead form", () => {
     expect(screen.getByRole("status")).toHaveTextContent("");
   });
 
-  it("hands Back to its caller", async () => {
+  it("hands Back and Escape to its caller, clearing what it last said", async () => {
     const onBack = vi.fn();
+    const user = userEvent.setup();
     render(<LeadForm emailDeliveryConfigured={true} onBack={onBack} />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("form", { name: contactCopy.formHeading })).toHaveAttribute("data-delivery", "api");
+    await user.click(send());
+    expect(screen.getByRole("alert")).not.toHaveTextContent("");
+    await user.click(screen.getByRole("button", { name: "Back" }));
     expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("alert")).toHaveTextContent("");
+    await user.type(nameField(), "{Escape}");
+    expect(onBack).toHaveBeenCalledTimes(2);
   });
 });

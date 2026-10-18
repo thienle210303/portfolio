@@ -28,10 +28,9 @@ const back = (page: Page) => card(page).locator('[data-face="back"]');
 const trigger = (page: Page) => front(page).getByRole("button", { name: "Let me reach you" });
 const field = (page: Page, label: RegExp) => back(page).getByLabel(label);
 
-/** The build's delivery mode, read off the Send button: a mailto build
- *  describes it with the "opens your email app" note. */
+/** The build's delivery mode, which the form declares. */
 async function postsToApi(page: Page): Promise<boolean> {
-  return (await back(page).locator('button[type="submit"]').getAttribute("aria-describedby")) === null;
+  return (await back(page).locator("form").getAttribute("data-delivery")) === "api";
 }
 
 async function flipToForm(page: Page) {
@@ -342,4 +341,26 @@ test("the honeypot is present and not reachable by Tab", async ({ page }) => {
     await page.keyboard.press("Tab");
     await expect(honeypot).not.toBeFocused();
   }
+});
+
+test("under reduced motion the flip is instant", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-1440", "runs at 1440 px");
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await open(page);
+  expect(await flip(page).evaluate((el) => getComputedStyle(el).transitionDuration)).toBe("0s");
+  await flipToForm(page);
+  await context.close();
+});
+
+test("leaving the form clears its status", async ({ page }) => {
+  onlyAt(page, [1440]);
+  await open(page);
+  await flipToForm(page);
+  await back(page).getByRole("button", { name: "Send" }).click();
+  await expect(back(page).getByRole("alert")).not.toHaveText("");
+  await page.keyboard.press("Escape");
+  await expect(trigger(page)).toBeFocused();
+  await trigger(page).click();
+  await expect(back(page).getByRole("alert")).toHaveText("");
 });
