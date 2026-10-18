@@ -145,6 +145,7 @@ describe("the outdoors palette", () => {
     expect(twin).toBeGreaterThanOrEqual(0);
     for (const at of [stamped, twin]) {
       const body = rule(CSS.slice(at, CSS.indexOf("{", at)).trim(), at);
+      expect(body).toContain("--ground:");
       expect(body).toContain("--fg:");
       expect(body).toContain("--fg-muted:");
     }

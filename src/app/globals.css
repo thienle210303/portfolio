@@ -302,8 +302,11 @@
     --sky: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
   }
 
-    /* Paper scope: light surface, dark ink. */
+    /* Paper scope: light surface, dark ink. --ground becomes lantern-raised so
+       fields and insets (bg-ground inside the card) sit on paper, not on the
+       night ground. */
   :root[data-theme="night"] .bg-surface {
+    --ground: var(--color-lantern-raised);
     --fg: var(--color-ink);
     --fg-muted: var(--color-lantern-muted);
     --fg-subtle: var(--color-lantern-muted);
@@ -351,6 +354,7 @@
     }
 
     :root:not([data-theme="day"]) .bg-surface {
+      --ground: var(--color-lantern-raised);
       --fg: var(--color-ink);
       --fg-muted: var(--color-lantern-muted);
       --fg-subtle: var(--color-lantern-muted);
