@@ -181,12 +181,12 @@ async function captureDesktop(browser) {
   await settle(page, 400);
   await askPanel.screenshot({ path: outPath("ask-turn-1440") });
 
-  // Contact form with an intent selected (prefills reason + message).
-  const contact = page.locator("#contact");
-  await contact.scrollIntoViewIfNeeded();
-  await page.locator('#contact input[type="radio"]').nth(1).check();
-  await settle(page, 400);
-  await contact.screenshot({ path: outPath("contact-intent-1440") });
+  // The business card, flipped over to its lead form.
+  const card = page.locator("#contact aside");
+  await card.scrollIntoViewIfNeeded();
+  await card.getByRole("button", { name: "Let me reach you" }).click();
+  await settle(page, 800);
+  await card.screenshot({ path: outPath("contact-card-back-1440") });
 
   // Print emulation, from a clean reload (no leftover interactive state).
   //

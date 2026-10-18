@@ -14,9 +14,10 @@ reference: [README.md](README.md).
 - No database, no CMS, no component library. Every component under
   `src/components` and `src/sections` is bespoke — don't reach for a
   dependency to replace one without discussing it first.
-- The Contact form falls back from Resend to a `mailto:` flow whenever
-  `RESEND_API_KEY` / `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set
-  (see `.env.example`). That fallback is intentional, not a bug.
+- The business card's lead form (name plus an email or phone, no message)
+  falls back from Resend to a `mailto:` flow whenever `RESEND_API_KEY` /
+  `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set (see
+  `.env.example`). That fallback is intentional, not a bug.
 - Targets: **WCAG 2.2 AA** and Lighthouse 90+/95+/95+/95+. These are design
   constraints, not afterthoughts — they're why there's no motion library, no
   icon font, and why sections render on the server by default.
@@ -92,7 +93,8 @@ The page is four sections, in this order: About (`#about` — the hero: a short
 identity column beside a terminal card built from content, no rail, no height
 floor: it is as tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`: highlight cards, the
 drawn tree at >=1024px, then a one-open timeline of rows) and Contact
-(`#contact`, which also holds the chat at `#ask`).
+(`#contact`: the chat at `#ask` on the left, and a business card on the right
+that flips to the lead form).
 `navItems` in `src/content/portfolio.ts` is the same four items in the same
 order; the nav doubles as the page's table of contents.
 

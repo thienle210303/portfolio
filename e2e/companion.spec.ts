@@ -1,6 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { contactIntents } from "../src/content/portfolio";
 
 /**
  * The companion cats, their play menu, and the one place they can be put away.
@@ -3836,109 +3835,5 @@ test.describe("companion", () => {
     await expect(page.locator("[data-companion][data-cat-cheer]")).toHaveCount(0, {
       timeout: 3_000,
     });
-  });
-
-  /* --------------------------------------------------------- WP-E: the secret intent -- */
-
-  test("creeps toward the form while data-cat-secret stands, and lets go once it clears", async ({
-    page,
-  }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-    test.setTimeout(45_000);
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    await companionAwake(page);
-
-    const secret = contactIntents.find((intent) => intent.id === "secret");
-    if (!secret) throw new Error("The secret intent left the content layer — update this spec with it.");
-
-    const contact = page.locator("#contact");
-    await contact.scrollIntoViewIfNeeded();
-    // Anchored on the form that owns the name field, the same way
-    // e2e/contact.spec.ts's own data-cat-secret test does, rather than on
-    // DOM order inside #contact.
-    const form = contact.locator("form", { has: page.locator("#contact-name") });
-
-    // WP-E declares the attribute; this is the companion's own half of the
-    // contract — the same declarative shape `data-cat-nap` already uses (see
-    // `SECRET_ATTR` in Companion.tsx), asserted here rather than in
-    // contact.spec.ts, which only proves the attribute itself appears and
-    // clears.
-    await contact.getByRole("radio", { name: secret.label }).check();
-    await expect(form).toHaveAttribute("data-cat-secret", "");
-
-    // The pair creep toward it — polled the same way "settles where the
-    // visitor is reading" polls an arrival, as the distance from the lead
-    // cat's own centre to the nearest point on the form's box.
-    await expect
-      .poll(
-        async () => {
-          const catBox = await catButton(page).boundingBox();
-          const formBox = await form.boundingBox();
-          if (!catBox || !formBox) return Number.POSITIVE_INFINITY;
-          const centre = { x: catBox.x + catBox.width / 2, y: catBox.y + catBox.height / 2 };
-          const nearest = {
-            x: Math.max(formBox.x, Math.min(centre.x, formBox.x + formBox.width)),
-            y: Math.max(formBox.y, Math.min(centre.y, formBox.y + formBox.height)),
-          };
-          return Math.hypot(centre.x - nearest.x, centre.y - nearest.y);
-        },
-        { timeout: 15_000, message: "the cats never crept toward the secret form" },
-      )
-      .toBeLessThan(250);
-
-    // Switching away from the secret intent lowers the attribute — and the
-    // companion's own side lets go: nothing keeps the pair glued to the form
-    // once it is gone, so a pointer move elsewhere carries them off again.
-    const held = await catButton(page).boundingBox();
-    await contact.getByRole("radio", { name: contactIntents[0].label }).check();
-    await expect(form).not.toHaveAttribute("data-cat-secret");
-    await page.mouse.move(200, 200);
-    await page.mouse.move(900, 250);
-    await expect
-      .poll(
-        async () => {
-          const box = await catButton(page).boundingBox();
-          if (!box || !held) return 0;
-          return Math.hypot(box.x - held.x, box.y - held.y);
-        },
-        { timeout: 10_000, message: "the cats stayed put after data-cat-secret cleared" },
-      )
-      .toBeGreaterThan(40);
-  });
-
-  test("reduced motion skips the secret theatrics entirely", async ({ browser }) => {
-    const context = await browser.newContext({
-      viewport: { width: DESKTOP_WIDTH, height: 900 },
-      reducedMotion: "reduce",
-    });
-    const page = await context.newPage();
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    const secret = contactIntents.find((intent) => intent.id === "secret");
-    if (!secret) throw new Error("The secret intent left the content layer — update this spec with it.");
-
-    const contact = page.locator("#contact");
-    await contact.scrollIntoViewIfNeeded();
-    // Anchored on the form that owns the name field, the same way
-    // e2e/contact.spec.ts's own data-cat-secret test does, rather than on
-    // DOM order inside #contact.
-    const form = contact.locator("form", { has: page.locator("#contact-name") });
-    await contact.getByRole("radio", { name: secret.label }).check();
-    await expect(form).toHaveAttribute("data-cat-secret", "");
-
-    // The attribute stands, exactly as it does with motion allowed — but
-    // there is no roaming loop here to react to it, so the cat button never
-    // moves: the same "does not roam" contract this file already asserts for
-    // every other reaction, now proved for this one too.
-    const cat = catButton(page);
-    const before = await cat.boundingBox();
-    await page.waitForTimeout(600);
-    const after = await cat.boundingBox();
-    expect(before).not.toBeNull();
-    expect(after).toEqual(before);
-
-    await context.close();
   });
 });

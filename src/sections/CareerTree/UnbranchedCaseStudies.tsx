@@ -27,13 +27,10 @@ export default function UnbranchedCaseStudies() {
   if (homeless.length === 0) return null;
 
   return (
-    // Skipped while far off screen at lg, like the timeline above it (see
-    // KnowledgeTreeList): 3655px is its height at 1440.
-    <section
-      data-unbranched-case-studies=""
-      aria-labelledby={HEADING_ID}
-      className="mt-16 lg:[content-visibility:auto] lg:[contain-intrinsic-size:auto_3655px] print:[content-visibility:visible]"
-    >
+    // Not `content-visibility: auto` (round 20 phase 5 tried it, at 3655px):
+    // its height follows the prose's wrap, 3653px at 1280 to 3736px at 1024,
+    // so the placeholder moved the footer 81px at 1024 once it rendered.
+    <section data-unbranched-case-studies="" aria-labelledby={HEADING_ID} className="mt-16">
       <h3
         id={HEADING_ID}
         className="font-display text-[length:var(--step-2)] font-semibold leading-[1.2] tracking-(--tracking-display) text-fg"

@@ -344,25 +344,6 @@ export interface AiTool {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Contact                                                                     */
-/* -------------------------------------------------------------------------- */
-
-export interface ContactIntent {
-  readonly id: string;
-  readonly label: string;
-  readonly description: string;
-  readonly subject: string;
-  /** A complete message the visitor can send without editing a word; "Add a
-   *  line of my own" opens it in a textarea for anyone who wants to.
-   *  Paragraphs are separated by a blank line, and the form renders each as
-   *  its own paragraph. It ends on a bare "Best," because the sender's name
-   *  is the form's own field. A draft may say what the sender
-   *  wants; it may not claim feelings they have not expressed, and it holds no
-   *  figure or fact about Thien. Never sent without an explicit action. */
-  readonly messageDraft: string;
-}
-
-/* -------------------------------------------------------------------------- */
 /* Code highlighting                                                           */
 /* -------------------------------------------------------------------------- */
 

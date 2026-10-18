@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
-// Field limits are shared with the form's own validation, so the two cannot drift.
-import { EMAIL_MAX, MESSAGE_MAX, MESSAGE_MIN, NAME_MAX, REASON_MAX } from "@/lib/contact";
+import { leadSubject } from "@/lib/contact";
+// Built from the limits and patterns the form also checks; this is the final check.
+import { leadSchema } from "./schema";
 
 /**
- * Contact form delivery endpoint.
+ * Lead delivery endpoint.
  *
- * Contract with the client (`ContactForm.tsx`):
+ * Contract with the client (the lead form):
  *  - `emailDeliveryConfigured` is computed once on the server in `page.tsx`
  *    and only ever crosses to the browser as a boolean. The client only
  *    POSTs here when that boolean was `true`.
@@ -25,33 +26,11 @@ import { EMAIL_MAX, MESSAGE_MAX, MESSAGE_MIN, NAME_MAX, REASON_MAX } from "@/lib
 
 export const runtime = "nodejs";
 
-const contactSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Enter your name.")
-    .max(NAME_MAX, `Keep your name under ${NAME_MAX} characters.`),
-  email: z
-    .email("Enter a valid email address.")
-    .max(EMAIL_MAX, `Keep your email under ${EMAIL_MAX} characters.`),
-  reason: z.string().max(REASON_MAX, `Keep the reason under ${REASON_MAX} characters.`),
-  message: z
-    .string()
-    .min(MESSAGE_MIN, `Say a little more — at least ${MESSAGE_MIN} characters.`)
-    .max(MESSAGE_MAX, `Keep your message under ${MESSAGE_MAX} characters.`),
-});
-
-type ContactField = keyof z.infer<typeof contactSchema>;
+type ContactField = "name" | "email" | "phone";
 type FieldErrors = Partial<Record<ContactField, string>>;
 
-const CONTACT_FIELDS: readonly ContactField[] = [
-  "name",
-  "email",
-  "reason",
-  "message",
-];
-
 function isContactField(value: unknown): value is ContactField {
-  return typeof value === "string" && (CONTACT_FIELDS as readonly string[]).includes(value);
+  return value === "name" || value === "email" || value === "phone";
 }
 
 /** First message per field is enough for a form that validates one field's
@@ -69,7 +48,7 @@ function collectFieldErrors(issues: readonly z.core.$ZodIssue[]): FieldErrors {
 /**
  * Every possible response this route returns. Kept as a single exhaustive
  * union so the client can switch on `ok` / `reason` instead of guessing at
- * shapes. Not exported — the client component (`ContactForm.tsx`) mirrors
+ * shapes. Not exported — the client component (the lead form) mirrors
  * the small parts of this shape it needs locally rather than importing from
  * a route module.
  */
@@ -150,7 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
   // Honeypot check happens before anything else — including the config
   // check and real validation — so a bot's request is never distinguishable
   // from a real one by its response. A real visitor can never populate this
-  // field (see ContactForm's honeypot input); any value here means the
+  // field (see the lead form's honeypot input); any value here means the
   // submission is automated. Respond exactly as a genuine success would,
   // and send nothing.
   if (asString(body.website) !== "") {
@@ -168,11 +147,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     return respond({ ok: false, reason: "not-configured" }, 503);
   }
 
-  const parsed = contactSchema.safeParse({
+  const parsed = leadSchema.safeParse({
     name: asString(body.name),
     email: asString(body.email),
-    reason: asString(body.reason),
-    message: asString(body.message),
+    phone: asString(body.phone),
   });
 
   if (!parsed.success) {
@@ -182,20 +160,22 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     );
   }
 
-  const { name, email, reason, message } = parsed.data;
+  const { name, email, phone } = parsed.data;
 
   try {
     const resend = new Resend(apiKey);
 
-    const subject = reason ? `Portfolio contact — ${reason}` : "New message from your portfolio site";
-    const textLines = [message, "", "—", `Name: ${name}`, `Email: ${email}`];
+    const lines = [`Name: ${name}`];
+    if (email) lines.push(`Email: ${email}`);
+    if (phone) lines.push(`Phone: ${phone}`);
+    const text = lines.join("\n");
 
     const { error } = await resend.emails.send({
       from: fromEmail,
       to: toEmail,
-      replyTo: email,
-      subject,
-      text: textLines.join("\n"),
+      ...(email ? { replyTo: email } : {}),
+      subject: leadSubject(name),
+      text,
     });
 
     if (error) {

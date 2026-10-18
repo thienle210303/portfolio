@@ -39,7 +39,7 @@
   - One line explains that the details are used only to reply.
   - A Send button.
   - Success and error show on the card.
-- **API:** the schema is `{ name: string(1..NAME_MAX), email?: email(..EMAIL_MAX), phone?: string matching /^\+?[\d\s().-]{7,20}$/, website?: honeypot }`, with "email or phone" enforced by a refine.
+- **API:** the schema is `{ name: string(1..NAME_MAX), email?: email(..EMAIL_MAX), phone?: string matching /^\+?[\d ().-]{7,20}$/, website?: honeypot }`, with "email or phone" enforced by a refine.
   - The rate limit, honeypot, env re-check and Resend send keep their order.
   - Subject: `Portfolio lead — ${name}`.
   - `replyTo`: the email when present.

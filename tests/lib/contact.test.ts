@@ -1,49 +1,73 @@
 import { describe, expect, it } from "vitest";
-import { buildMailtoHref, buildReason, REASON_MAX } from "@/lib/contact";
-import { contactIntents, projects } from "@/content/portfolio";
+import { leadSchema } from "@/app/api/contact/schema";
+import { buildLeadMailto, leadSubject, NAME_MAX, PHONE_MAX } from "@/lib/contact";
 
-describe("buildReason", () => {
-  const intent = { subject: "Career opportunity" };
-
-  it("is the intent's subject when no case study was being read", () => {
-    expect(buildReason(intent, null)).toBe("Career opportunity");
+describe("leadSchema", () => {
+  it("accepts email only", () => {
+    expect(leadSchema.safeParse({ name: "Jo", email: "j@example.com" }).success).toBe(true);
   });
 
-  it("names the case study after the subject when one was", () => {
-    expect(buildReason(intent, "Chess")).toBe("Career opportunity — Chess");
+  it("accepts phone only", () => {
+    expect(leadSchema.safeParse({ name: "Jo", phone: "+1 (555) 010-9999" }).success).toBe(true);
   });
 
-  it("never builds a reason the API would reject as too long", () => {
-    // The form has no reason field to show an error against any more, so a
-    // reason over the route's limit would fail with nothing to fix.
-    expect(contactIntents.length * projects.length).toBeGreaterThan(0);
-    for (const intent of contactIntents) {
-      for (const project of projects) {
-        expect(buildReason(intent, project.title).length, `${intent.id} + ${project.id}`).toBeLessThanOrEqual(
-          REASON_MAX,
-        );
-      }
+  it("rejects neither, with the error on both fields", () => {
+    const r = leadSchema.safeParse({ name: "Jo", email: "", phone: "  " });
+    expect(r.success).toBe(false);
+    const paths = r.error!.issues.map((i) => i.path[0]);
+    expect(paths).toContain("email");
+    expect(paths).toContain("phone");
+  });
+
+  it("rejects a malformed phone", () => {
+    const r = leadSchema.safeParse({ name: "Jo", phone: "call me" });
+    expect(r.success).toBe(false);
+    expect(r.error!.issues[0].path[0]).toBe("phone");
+  });
+
+  it("rejects a phone with fewer than seven digits, and accepts real numbers", () => {
+    for (const phone of ["-------", "(((((((", "+ () - .", "555-01"]) {
+      expect(leadSchema.safeParse({ name: "Jo", phone }).success, phone).toBe(false);
     }
+    for (const phone of ["+1 (864) 555-0100", "864.555.0100", "5550100"]) {
+      expect(leadSchema.safeParse({ name: "Jo", phone }).success, phone).toBe(true);
+    }
+  });
+
+  it("lets the phone input hold the longest phone the pattern accepts", () => {
+    const longest = "+" + "1".repeat(20);
+    expect(longest).toHaveLength(PHONE_MAX);
+    expect(leadSchema.safeParse({ name: "Jo", phone: longest }).success).toBe(true);
+    expect(leadSchema.safeParse({ name: "Jo", phone: longest + "1" }).success).toBe(false);
+  });
+
+  it("rejects a newline in the phone and control characters in the name", () => {
+    expect(leadSchema.safeParse({ name: "Jo", phone: "555\n0109999" }).success).toBe(false);
+    for (const name of ["Jo\r\nBcc: x@y.z", "Jo\nEmail: forged@example.com", "Jo\tQ", "Jo\u0000"]) {
+      const r = leadSchema.safeParse({ name, email: "j@example.com" });
+      expect(r.success, JSON.stringify(name)).toBe(false);
+      expect(r.error!.issues[0].message).toBe("Use a single line.");
+    }
+  });
+
+  it("trims and caps lengths", () => {
+    const ok = leadSchema.safeParse({ name: "  Jo  ", email: " j@example.com " });
+    expect(ok.data).toMatchObject({ name: "Jo", email: "j@example.com" });
+    expect(leadSchema.safeParse({ name: "x".repeat(NAME_MAX + 1), email: "j@example.com" }).success).toBe(false);
   });
 });
 
-describe("buildMailtoHref", () => {
-  const message = { subject: "A secret", message: "Hi Thien,\n\nTwo words.\n\nBest,", name: "Jamie Q", email: "j@example.com" };
+describe("buildLeadMailto", () => {
+  const body = (href: string) => decodeURIComponent(href.slice(href.indexOf("&body=") + 6));
 
-  it("percent-encodes spaces rather than turning them into '+'", () => {
-    const href = buildMailtoHref("to@example.com", message);
-    expect(href.startsWith("mailto:to@example.com?subject=A%20secret&body=")).toBe(true);
-    expect(href).not.toContain("+");
-  });
-
-  it("carries the message verbatim, then who it is from and where to reply", () => {
-    const href = buildMailtoHref("to@example.com", message);
-    const body = decodeURIComponent(href.slice(href.indexOf("&body=") + "&body=".length));
-    expect(body).toBe("Hi Thien,\n\nTwo words.\n\nBest,\n\n—\nName: Jamie Q\nEmail: j@example.com");
-  });
-
-  it("falls back to a generic subject when it is given none", () => {
-    const href = buildMailtoHref("to@example.com", { ...message, subject: "  " });
-    expect(href).toContain(`subject=${encodeURIComponent("Message from your portfolio site")}&`);
+  it("subject and body carry name, email, phone; omits missing ones", () => {
+    const full = buildLeadMailto({ name: "Jo Q", email: "j@example.com", phone: "5550109999" }, "to@example.com");
+    expect(full.startsWith(`mailto:to@example.com?subject=${encodeURIComponent(leadSubject("Jo Q"))}&body=`)).toBe(true);
+    expect(full).not.toContain("+");
+    expect(body(full)).toBe("Name: Jo Q\nEmail: j@example.com\nPhone: 5550109999");
+    expect(body(buildLeadMailto({ name: "Jo Q", phone: "5550109999" }, "to@example.com"))).toBe(
+      "Name: Jo Q\nPhone: 5550109999",
+    );
+    expect(body(buildLeadMailto({ name: "Jo Q", email: "j@example.com" }, "to@example.com"))).not.toContain("Phone");
   });
 });

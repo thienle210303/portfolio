@@ -330,18 +330,6 @@ const NAP_DWELL = 600;
 const NAP_ATTR = "[data-cat-nap]";
 
 /**
- * WP-E's own declarative contract, the same shape as `data-cat-nap`: while
- * the Contact form carries `data-cat-secret` (the "secret" intent selected),
- * the cats creep toward it and sit up alert rather than settling in as they
- * would beneath an ordinary nap spot — see `secretRef` and the `"secret"`
- * branch of `forced` in the loop below. Watched with a `MutationObserver`
- * rather than the nap contract's pointer/focus delegation, because this
- * attribute's own lifetime is driven by form state a visitor may change
- * anywhere on the page, not by hovering or focusing the element itself.
- */
-const SECRET_ATTR = "[data-cat-secret]";
-
-/**
  * Escort budget: cats in the box by 2.2s, police off the page by 6s, whatever
  * happens. A flourish that can hang is not a flourish.
  *
@@ -842,24 +830,6 @@ function napSlots(rect: DOMRect): Spots {
 }
 
 /**
- * Where the pair creep to for `data-cat-secret` — hugging the visible top
- * corner of the form rather than napping beneath it the way `napSlots` does.
- *
- * The Contact form is tall, and the nap contract's own "beneath the
- * element's bottom edge" answer is built for compact anchors — a plinth, a
- * business card — not for something that can run well past the fold. Anchored
- * to the top edge instead: whatever is actually on screen once
- * `clampToViewport` has pulled it back into the window, which for a form the
- * visitor is presently filling in is the form itself.
- */
-function secretSlots(rect: DOMRect): Spots {
-  const x = rect.left + 10;
-  const y = rect.top + 6;
-  const lead = clampToViewport({ x, y });
-  return { lead, follow: clampToViewport({ x: x - CAT_W - FOLLOW_GAP, y }) };
-}
-
-/**
  * Where the police cat stands while it is herding: behind the rearmost of the
  * pair, on the line they are being pushed along.
  *
@@ -1326,10 +1296,6 @@ export function Companion({ facts }: CompanionProps) {
   const napRef = useRef<Nap | null>(null);
   const napPointer = useRef<Element | null>(null);
   const napFocus = useRef<Element | null>(null);
-  /** The `data-cat-secret` element, mirrored the same way `napRef` is — see
-   *  the `MutationObserver` effect below, which is the only thing that
-   *  writes it. */
-  const secretRef = useRef<Nap | null>(null);
   /** The running scene, and the earliest the next one may start. Both live
    *  above the loop effect so a mode change does not hand a returning visitor
    *  a toy immediately, or reset a timer they have already half waited out. */
@@ -1653,7 +1619,7 @@ export function Companion({ facts }: CompanionProps) {
     });
     observer.observe(root, { attributeFilter: ["data-theme"] });
 
-    // D3, the neutral-event half: CopyButton and ContactForm dispatch these
+    // D3, the neutral-event half: CopyButton and LeadForm dispatch these
     // on success with no idea a cat is listening — see the one-line edits in
     // each file. The companion is simply one more thing on the page that
     // happens to care.
@@ -2075,43 +2041,6 @@ export function Companion({ facts }: CompanionProps) {
       document.removeEventListener("pointerleave", onLeave);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
-    };
-  }, [roams, roaming, wake]);
-
-  /**
-   * WP-E's own contract: `data-cat-secret` on the Contact form while the
-   * "secret" intent is selected. Unlike `data-cat-nap`, this is not a
-   * pointer/focus dwell — the attribute's lifetime is driven by form state a
-   * visitor may change from anywhere the form's own controls reach, not by
-   * hovering or focusing the form region itself — so it is watched with a
-   * `MutationObserver` on the attribute directly, the same tool D3 already
-   * uses for `data-theme`, just scoped to `document.body` with `subtree`
-   * rather than to a single known node.
-   *
-   * Reduced motion and touch never reach this at all: gated on `roams &&
-   * roaming` exactly like the nap contract, which is what keeps the
-   * theatrics off — there is no roaming loop to creep the pair anywhere in
-   * either case.
-   */
-  useEffect(() => {
-    if (!roams || !roaming) return;
-
-    const sync = () => {
-      const el = document.querySelector(SECRET_ATTR);
-      const current = secretRef.current;
-      if (el === (current?.el ?? null)) return;
-      secretRef.current = el
-        ? { el, rect: el.getBoundingClientRect(), readAt: performance.now() }
-        : null;
-      wake();
-    };
-
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(document.body, { attributeFilter: ["data-cat-secret"], subtree: true });
-    return () => {
-      observer.disconnect();
-      secretRef.current = null;
     };
   }, [roams, roaming, wake]);
 
@@ -2562,18 +2491,6 @@ export function Companion({ facts }: CompanionProps) {
         if (nap.rect.bottom < safeTop() || nap.rect.top > viewport().height) nap = null;
       }
 
-      // `data-cat-secret`, refreshed on the same throttle as the nap rect
-      // above and for the same reason: WP-E's form can be scrolled while the
-      // attribute stands.
-      let secret = secretRef.current;
-      if (secret) {
-        if (now - secret.readAt > 120) {
-          secret.rect = secret.el.getBoundingClientRect();
-          secret.readAt = now;
-        }
-        if (secret.rect.bottom < safeTop() || secret.rect.top > viewport().height) secret = null;
-      }
-
       // The open panel, on the same "reads first" pass as the two rects above
       // and for the same reason. Its box does not move for as long as it is
       // up, so this is one measurement off one element on the frames a visitor
@@ -2709,7 +2626,7 @@ export function Companion({ facts }: CompanionProps) {
        * that detail to bring its bare-annotation fallback back rather than
        * leaving the story fully dark for whatever beats remain.
        */
-      if (watchRef.current && (run || tour || nap || secret || openRef.current)) {
+      if (watchRef.current && (run || tour || nap || openRef.current)) {
         watchRef.current = null;
         document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
         if (duetRef.current?.scene.kind === "story") {
@@ -2759,13 +2676,11 @@ export function Companion({ facts }: CompanionProps) {
           ? "tour"
           : nap
             ? "nap"
-            : secret
-              ? "secret"
-              : openRef.current
-                ? "corner"
-                : watch
-                  ? "watch"
-                  : null;
+            : openRef.current
+              ? "corner"
+              : watch
+                ? "watch"
+                : null;
 
       // The Contact stop's startle-awake: the moment the fake-nap window
       // lapses, the pair cheer instead of just quietly opening their eyes.
@@ -2818,8 +2733,8 @@ export function Companion({ facts }: CompanionProps) {
        * the menu you just used, and the yarn was gone before it landed. So a
        * requested scene is held through the pointer, and through it alone.
        * Everything else still ends it on the frame it appears: any forced
-       * state (the escort, the guided tour, a nap spot, the contact form's
-       * secret, the origin-story watch, the panel being reopened), the page
+       * state (the escort, the guided tour, a nap spot, the origin-story
+       * watch, the panel being reopened), the page
        * scrolling or resizing out from under the probe, a focus ring arriving
        * on the lead mid-peek, a new request, the mode changing, the scene
        * finishing. A request still walking to its stage can also die two ways
@@ -2935,12 +2850,8 @@ export function Companion({ facts }: CompanionProps) {
         // motionless the entire time — nothing else refreshes `lastSignRef`
         // while it stands. Without this clause both cats would pose asleep
         // for the back half of every show, same as the tour and the escort
-        // never let idle sleep claim them mid-scene. Excludes "secret" for a
-        // simpler reason: WP-E's own contract is "perk up (alert pose)", so
-        // idle sleep must never override it for as long as the attribute
-        // stands — sitting up, not settling in, is the whole point of the
-        // reaction.
-        (forced !== "watch" && forced !== "secret" && aloneFor > sleepAfter && !beat);
+        // never let idle sleep claim them mid-scene.
+        (forced !== "watch" && aloneFor > sleepAfter && !beat);
       /**
        * The nap — the ephemeral sleep, as opposed to the resting box.
        *
@@ -3171,14 +3082,6 @@ export function Companion({ facts }: CompanionProps) {
         followWant = spots.follow;
       } else if (nap) {
         const slots = napSlots(nap.rect);
-        leadWant = slots.lead;
-        followWant = slots.follow;
-      } else if (secret) {
-        // WP-E's own contract: creep toward the form while it carries
-        // `data-cat-secret` — see `secretSlots`, hugging its visible top edge
-        // rather than napping beneath it the way an ordinary `data-cat-nap`
-        // spot would.
-        const slots = secretSlots(secret.rect);
         leadWant = slots.lead;
         followWant = slots.follow;
       } else if (forced === "corner") {
@@ -4589,8 +4492,8 @@ export function Companion({ facts }: CompanionProps) {
    * too, with one exception: `askedRef` holds a requested scene through the
    * pointer (FB-9.1 — the hand that clicked the menu is still on the mouse).
    * Everything else that ends a scene still ends it: any forced state (the
-   * escort, the guided tour, a nap spot, the contact form's secret, the
-   * origin-story watch, the panel reopening), a scroll or a resize, a focus
+   * escort, the guided tour, a nap spot, the origin-story watch, the panel
+   * reopening), a scroll or a resize, a focus
    * ring arriving on the lead mid-peek, a new request for a scene or the tour,
    * the loop being put away (a mode change, the bed), or the scene finishing.
    * A request that has to walk to its stage can also be dropped before it

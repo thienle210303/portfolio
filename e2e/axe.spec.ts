@@ -237,6 +237,29 @@ test.describe("interactive states", () => {
     }
   });
 
+  test("zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    // Page-wide audits only ever see the card's front: the back face is
+    // inert until flipped. This audits the form face, with its errors up.
+    const card = page.locator('#contact aside[aria-label$="business card"]');
+    await scrollIntoViewAndSettle(page, "#contact aside");
+    await card.getByRole("button", { name: "Let me reach you" }).click();
+    await expect(card.locator("[data-flip]")).toHaveAttribute("data-flipped", "true");
+    await card.getByRole("button", { name: "Send" }).click();
+    await expect(card.getByText("Enter your name.")).toBeVisible();
+    // The flip itself is a --dur-settle transition; audit the landed face.
+    await page.waitForTimeout(1000);
+    for (const theme of ["day", "night"] as const) {
+      if ((await page.locator("html").getAttribute("data-theme")) !== theme) {
+        await page.getByRole("button", { name: `Switch to ${theme} theme` }).click();
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      }
+      await auditHasNoViolations(page, "#contact aside");
+    }
+  });
+
   test("zero WCAG violations with the globe landed and a stop chosen", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");

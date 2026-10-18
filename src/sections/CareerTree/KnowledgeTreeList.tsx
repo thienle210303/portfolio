@@ -40,19 +40,13 @@ interface KnowledgeTreeListProps {
 
 export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
   return (
-    // `content-visibility: auto` at lg: while the timeline is far off screen
-    // its rows cost nothing to paint. Without it they were repainted on every
-    // frame of the scroll through Worlds: hiding them cut that band's document
-    // paint from ~85 to ~50 ms, the tree box being most of the rest
-    // (docs/feedback-tracker.md, R20-P5). 1275px is its collapsed height at
-    // 1440; `auto` keeps the real height once it has rendered. A hash landing
-    // inside it renders it first, so landings stay exact.
-    <TimelineAccordion
-      className={cn(
-        "relative lg:[content-visibility:auto] lg:[contain-intrinsic-size:auto_1275px] print:[content-visibility:visible]",
-        className,
-      )}
-    >
+    // Not `content-visibility: auto` (round 20 phase 5 tried it, at 1275px):
+    // its height follows the rows' wrap, 1261px at 1024 to 1275px at 1440, so
+    // the placeholder moved everything below it once it rendered. That gives
+    // back its paint saving (R20-P5 measured the Worlds band's document paint
+    // at ~85 ms without the skip, ~50 ms with it); the tree box's own far-off
+    // skip (TreeBox.tsx) is separate and stays.
+    <TimelineAccordion className={cn("relative", className)}>
       <ListTrunk />
       <ul role="list" className="flex flex-col gap-3 pl-5">
         {tree.map((branch, branchIndex) => {

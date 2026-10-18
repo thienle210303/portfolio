@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { answer, SUGGESTED_QUESTIONS } from "@/lib/answers";
-import { buildDocuments } from "@/lib/answer-corpus";
+import { buildDocuments, companionsText } from "@/lib/answer-corpus";
 import {
   careerIndexable,
   education,
@@ -8,7 +8,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { navItems, origin } from "@/content/portfolio";
+import { companions, navItems, origin } from "@/content/portfolio";
 import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
 import { buildStops } from "@/lib/origin-stops";
 
@@ -59,6 +59,8 @@ const CORPUS = new Set<string>([
   // buildStops() rather than transcribed, so a typo here cannot under-cover
   // it; tests/lib/origin-stops.test.ts proves each caption is a content field.
   ...buildStops().map((stop) => stop.caption),
+  // The cats: `companions`' fields, joined the same mechanical way.
+  companionsText(),
 ]);
 
 /** Sections an answer may link into: every section the nav lists, which is
@@ -143,7 +145,7 @@ describe("answer", () => {
     // sectionless document has to be argued for and so this loop cannot quietly
     // skip every document.
     expect(sectionless.sort()).toEqual(
-      [...skillsIndexable.map((category) => category.evidence), ...profile.about].sort(),
+      [...skillsIndexable.map((category) => category.evidence), ...profile.about, companionsText()].sort(),
     );
     expect(sectionless.length).toBeGreaterThan(0);
     // What cites About is what #about prints: the positioning paragraph and the
@@ -339,4 +341,27 @@ describe("answer", () => {
     const scores = results.map((r) => r.score);
     expect([...scores].sort((a, b) => b - a)).toEqual(scores);
   });
+});
+
+describe("the cats", () => {
+  it("are quoted from `companions`, with the owner the content names", () => {
+    expect(companionsText()).toBe(
+      companions.map((cat) => `${cat.name}, ${cat.coat}, belongs to ${cat.belongsTo}: ${cat.habit}`).join(" "),
+    );
+    for (const cat of companions) expect(companionsText()).toContain(cat.name);
+  });
+
+  it.each(["what are his cats called", "does he have cats", "does he have a pet", "who is Moon"])(
+    "answer %j first",
+    (query) => {
+      expect(answer(query)[0]?.text).toBe(companionsText());
+    },
+  );
+
+  it.each(["where is he from", "who is he", "what does he do", "where did he study"])(
+    "do not answer %j",
+    (query) => {
+      expect(answer(query).map((result) => result.text)).not.toContain(companionsText());
+    },
+  );
 });

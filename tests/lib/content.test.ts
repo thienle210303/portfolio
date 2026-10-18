@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput, withCaseStudyReferral } from "@/lib/content";
+import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
 import * as content from "@/content/portfolio";
-import { careerEntries, contactIntents, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
+import { careerEntries, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
-import { buildMailtoHref, buildReason, EMAIL_MAX, NAME_MAX } from "@/lib/contact";
 
 describe("formatIsoDate", () => {
   it("formats a valid ISO date as 'D Month YYYY'", () => {
@@ -385,7 +384,7 @@ describe("the projects round 18 recovers from Portfolio-v2", () => {
 describe("the invented layer is gone", () => {
   it("no longer exports the copy nothing sourced", async () => {
     const content = await import("@/content/portfolio");
-    for (const name of ["philosophyIntro", "principles", "problemSolvingLoop"]) {
+    for (const name of ["philosophyIntro", "principles", "problemSolvingLoop", "contactIntents"]) {
       expect(name in content, `${name} still exported`).toBe(false);
     }
   });
@@ -428,69 +427,3 @@ describe("the hero's code excerpts", () => {
   });
 });
 
-describe("contact drafts", () => {
-  it("gives every intent a message that can be sent unedited", () => {
-    expect(contactIntents.length).toBeGreaterThan(0);
-    for (const intent of contactIntents) {
-      // A draft, not an opening: the old starter stopped mid-sentence and
-      // left the visitor holding a blank textarea.
-      expect(intent.messageDraft, intent.id).toMatch(/\n\n/);
-      expect(intent.messageDraft.trimEnd(), intent.id).toMatch(/\n\nBest,$/);
-      expect(intent.messageDraft.length, intent.id).toBeGreaterThan(120);
-    }
-  });
-
-  it("never claims a feeling the sender has not expressed", () => {
-    for (const intent of contactIntents) {
-      const text = intent.messageDraft.toLowerCase();
-      expect(text, intent.id).not.toContain("impressed");
-      expect(text, intent.id).not.toContain("love your");
-    }
-  });
-
-  it("types no number into a draft", () => {
-    // Drafts speak for the sender. A digit would be a figure typed by hand
-    // instead of read from the content layer.
-    for (const intent of contactIntents) {
-      expect(intent.messageDraft, intent.id).not.toMatch(/\d/);
-    }
-  });
-
-  it("stays short enough for the mailto: fallback, with its footer", () => {
-    // The real href: buildReason and buildMailtoHref are the functions the
-    // form calls. Name and reply address are ASCII filler at the API's own
-    // maxima (each character costs one byte in the href), and the case study
-    // is the longest project title, the worst referral the form can build.
-    const longestTitle = projects.map((p) => p.title).reduce((a, b) => (b.length > a.length ? b : a));
-    for (const intent of contactIntents) {
-      const href = buildMailtoHref(profile.email, {
-        subject: buildReason(intent, longestTitle),
-        message: withCaseStudyReferral(intent.messageDraft, longestTitle),
-        name: "n".repeat(NAME_MAX),
-        email: "e".repeat(EMAIL_MAX),
-      });
-      expect(href, intent.id).toContain(encodeURIComponent(longestTitle));
-      expect(href.length, intent.id).toBeLessThan(2000);
-    }
-  });
-});
-
-describe("withCaseStudyReferral", () => {
-  const draft = "Hi Thien,\n\nSomething to say.\n\nBest,";
-
-  it("returns the draft untouched when no project was being read", () => {
-    expect(withCaseStudyReferral(draft, null)).toBe(draft);
-  });
-
-  it("puts the referral in its own paragraph before the sign-off", () => {
-    expect(withCaseStudyReferral(draft, "Some Project")).toBe(
-      'Hi Thien,\n\nSomething to say.\n\nSpecifically, I wanted to mention your case study, "Some Project."\n\nBest,'
-    );
-  });
-
-  it("appends the referral when a draft has no sign-off to sit before", () => {
-    expect(withCaseStudyReferral("Hi.\n\nText", "P")).toBe(
-      'Hi.\n\nText\n\nSpecifically, I wanted to mention your case study, "P."'
-    );
-  });
-});
