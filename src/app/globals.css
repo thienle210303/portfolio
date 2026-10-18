@@ -1896,7 +1896,7 @@
 /* height before and after the chat lands. Re-measure if the chat's idle copy */
 /* or suggestions change (at 1rem = 16px, widths 320-1920 every 4px, both     */
 /* modes, natural height with this rule switched off). Last measured with    */
-/* round 18's copy: live mode was never taller than static at any width (up  */
+/* round 18's copy, re-measured after round 21 phase 1 (Bricolage) in the static mode: live mode was never taller than static at any width (up  */
 /* to 28px shorter), so one set of values serves both and is not keyed on the */
 /* mode. e2e/ask.spec.ts fails at five widths if the footer moves by more     */
 /* than 2px across the load, and fails between 400 and 639px if the room is   */
@@ -1919,27 +1919,27 @@
   }
   @media (width >= 32.5rem) {
     :root {
-      --ask-room: 49rem; /* 776px at 544 */
+      --ask-room: 54.5rem; /* 863px at 520 */
     }
   }
   @media (width >= 40rem) {
     :root {
-      --ask-room: 48.5rem; /* 768px at 648 */
+      --ask-room: 48.5rem; /* 752px at 648 */
     }
   }
   @media (width >= 48rem) {
     :root {
-      --ask-room: 44rem; /* 695px at 1020 */
+      --ask-room: 44rem; /* 680px at 1020 */
     }
   }
   @media (width >= 64rem) {
     :root {
-      --ask-room: 50.5rem; /* 802px at 1024 */
+      --ask-room: 55.5rem; /* 886px at 1024 */
     }
   }
   @media (width >= 80rem) {
     :root {
-      --ask-room: 44.5rem; /* 695px at 1280 */
+      --ask-room: 46.5rem; /* 737px at 1592 */
     }
   }
   html[data-motion] [data-ask-slot],

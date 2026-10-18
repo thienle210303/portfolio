@@ -28,3 +28,7 @@ Rules every section's copy follows. Source: the Round 19 design,
    - **The figure stays with its source** (Schaeffler `impact`)
      - Before: 96% increase in production throughput after integrating custom Java functions.
      - After: Moved paper setup sheets to low-code; my Java lifted throughput 96%.
+7. **Every word is me talking to you.** All copy, including chat questions,
+   suggestion chips and empty states, is first person ("What do you do at
+   DoorDash?", "Ask me"). Source: the Round 21 spec. The copy this changes is
+   rewritten in the phases that own it (the chips in Phase 6).
