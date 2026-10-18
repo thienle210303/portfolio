@@ -128,7 +128,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
   // Honeypot check happens before anything else — including the config
   // check and real validation — so a bot's request is never distinguishable
   // from a real one by its response. A real visitor can never populate this
-  // field (see ContactForm's honeypot input); any value here means the
+  // field (see the lead form's honeypot input); any value here means the
   // submission is automated. Respond exactly as a genuine success would,
   // and send nothing.
   if (asString(body.website) !== "") {

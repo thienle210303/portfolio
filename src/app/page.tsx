@@ -8,8 +8,8 @@ import { validBookingUrl } from "@/lib/booking";
 export default function Home() {
   // Server-only check: this reads process.env directly in a Server
   // Component, so the three secrets never enter the client bundle — only
-  // the resulting boolean is passed down as a prop. Contact uses it to
-  // decide whether to submit through the /api/contact Route Handler or
+  // the resulting boolean is passed down as a prop. The card's lead form
+  // uses it to decide whether to post to the /api/contact Route Handler or
   // fall back to an "open the visitor's email app" (mailto:) flow.
   const emailDeliveryConfigured = Boolean(
     process.env.RESEND_API_KEY && process.env.CONTACT_TO_EMAIL && process.env.CONTACT_FROM_EMAIL
@@ -21,9 +21,9 @@ export default function Home() {
   const liveModeConfigured = askLiveModeConfigured();
 
   // The owner's scheduling link. Anything that is not https:// followed by a
-  // host (unset, empty, a typo, a bare "https://") becomes undefined and
-  // Contact renders no booking link.
-  const bookingUrl = validBookingUrl(process.env.BOOKING_URL);
+  // host (unset, empty, a typo, a bare "https://") becomes null and no
+  // booking link renders.
+  const bookingUrl = validBookingUrl(process.env.BOOKING_URL) ?? null;
 
   return (
     <>
@@ -50,7 +50,7 @@ export default function Home() {
         `navItems` in src/content/portfolio.ts must stay in this order: the nav
         doubles as the page's table of contents.
       */}
-      <Hero bookingUrl={bookingUrl ?? null} />
+      <Hero bookingUrl={bookingUrl} />
       <Worlds />
       <CareerTree />
       <Contact

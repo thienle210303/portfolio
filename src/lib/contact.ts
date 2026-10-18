@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { ContactIntent } from "@/types/portfolio";
 
 /**
  * The lead form's contract. `leadSchema`, and the limits it is built from, is
@@ -10,9 +9,6 @@ import type { ContactIntent } from "@/types/portfolio";
 
 export const NAME_MAX = 100;
 export const EMAIL_MAX = 200;
-export const REASON_MAX = 120;
-export const MESSAGE_MIN = 10;
-export const MESSAGE_MAX = 5000;
 export const PHONE_MAX = 20;
 // A literal space, not \s: \s would accept a newline.
 const PHONE_PATTERN = /^\+?[\d ().-]{7,20}$/;
@@ -60,34 +56,6 @@ export function buildLeadMailto(lead: Lead, toEmail: string): string {
   if (lead.phone?.trim()) lines.push(`Phone: ${lead.phone.trim()}`);
   const body = lines.join("\n");
   return `mailto:${toEmail}?subject=${encodeURIComponent(leadSubject(lead.name))}&body=${encodeURIComponent(body)}`;
-}
-
-const FALLBACK_SUBJECT = "Message from your portfolio site";
-
-/** @deprecated Intent flow; removed with ContactForm in Task 3.
- *  The subject line: the intent's own, plus the case study the visitor was
- *  reading when they followed its "Discuss this project" link. */
-export function buildReason(intent: Pick<ContactIntent, "subject">, projectTitle: string | null): string {
-  return projectTitle ? `${intent.subject} — ${projectTitle}` : intent.subject;
-}
-
-/** @deprecated Removed with ContactForm in Task 3. */
-export interface MailtoMessage {
-  readonly subject: string;
-  readonly message: string;
-  readonly name: string;
-  readonly email: string;
-}
-
-/** @deprecated Replaced by `buildLeadMailto`; removed with ContactForm in Task 3.
- * RFC 6068 wants percent-encoding, not `application/x-www-form-urlencoded`
- * encoding — `URLSearchParams` would turn every space into a literal `+` in
- * the opened compose window. The body is the message, then the same
- * name/email footer the API puts under a delivered message. */
-export function buildMailtoHref(toEmail: string, { subject, message, name, email }: MailtoMessage): string {
-  const body = [message.trim(), "", "—", `Name: ${name.trim()}`, `Email: ${email.trim()}`].join("\n");
-  const resolvedSubject = subject.trim() || FALLBACK_SUBJECT;
-  return `mailto:${toEmail}?subject=${encodeURIComponent(resolvedSubject)}&body=${encodeURIComponent(body)}`;
 }
 
 /** Hands a `mailto:` href to the browser. The only impure export here, kept

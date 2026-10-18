@@ -9,8 +9,9 @@ that flies the 2018 crossing once and turns to each of three stops in the origin
 story, every word of which is the site's own authored content; the **Journey** — five
 measured highlights, a drawn career tree, and a timeline of rows that open one
 at a time, with the case studies inside them (in the rows of the roles that
-produced them, or after the timeline for the coursework); and **Contact**, which
-starts from what the visitor actually came to say, and holds a chat that
+produced them, or after the timeline for the coursework); and **Contact**: a
+business card with every way to reach him (copy the email, save a vCard) that
+flips over to a two-field lead form, beside a chat that
 answers only from what's written for the site: by default his words as
 written, or a few of them joined into one line, each with its source and no model; in
 live mode a model writes the answer from just those passages. The résumé is its own route
@@ -38,8 +39,8 @@ reliable systems.*
 | Language | **TypeScript** (strict) | The content layer is typed so facts cannot drift |
 | Styling | **Tailwind CSS v4** | Configured in CSS via `@theme` — there is no `tailwind.config.js` |
 | Icons | **lucide-react** | Lightweight, tree-shaken |
-| Validation | **Zod** | Server-side contact validation |
-| Email | **Resend** | Optional — the form degrades honestly without it |
+| Validation | **Zod** | Lead-form validation, one schema shared by the form and `/api/contact` |
+| Email | **Resend** | Optional — the lead form degrades honestly without it |
 | Fonts | **next/font** | IBM Plex Sans, IBM Plex Mono, self-hosted, `display: swap` |
 | Tests | **Vitest** + Testing Library, **Playwright** | Component behaviour and real-viewport smoke tests |
 | Package manager | **pnpm** | Exclusively — do not introduce another lockfile |
@@ -156,7 +157,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the globe flies), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference the hero's terminal reads — the globe's three stops (`originStops`, beside `origin`), contact intents and the footer line |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the globe flies), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference the hero's terminal reads — the globe's three stops (`originStops`, beside `origin`), Contact's copy (`contactCopy`) and the footer line |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
 Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's
@@ -259,20 +260,24 @@ metrics. When it changes, reconcile `careerEntries`, `education`,
 
 ## Contact form configuration
 
-The form has two honest modes and picks one **on the server** at render time.
+Contact's form is the back of the business card: a name, then an email or a
+phone (at least one), and no message. The card's front also offers the email
+with a copy button, GitHub, LinkedIn, the résumé, a "Save contact" vCard
+(`/contact.vcf`, built from `profile`) and, when `BOOKING_URL` is valid, a
+booking link — so there is always a way to reach him without the form.
 
-**Unconfigured (default).** The send button reads **"Send it as written"** in both
-modes, or **"Send it"** once "Add a line of my own" has opened the draft for
-editing. Here a note beside it says it opens your email app, and pressing it
-builds a URL-encoded `mailto:` link. For every unedited draft that link stays
-under 2,000 characters; a long hand-typed message can exceed it, and nothing
-caps it.
-No message is ever sent without an explicit visitor action, and a success message
-is never shown for a send that did not happen. Copy-email, LinkedIn and GitHub
-alternatives are always offered.
+The form has two honest modes and picks one **on the server** at build time.
+
+**Unconfigured (default).** A note under **Send** says it opens your email app,
+and pressing it opens a `mailto:` addressed to `profile.email` with the subject
+`Portfolio lead — <name>` and the name, email and phone in the body. Nothing is
+sent without an explicit visitor action, and a success message is never shown
+for a send that did not happen.
 
 **Configured.** Set all three variables below and the form POSTs to
-`/api/contact`, which validates with Zod and sends via Resend.
+`/api/contact`, which validates with the same Zod schema and sends one email via
+Resend (`replyTo` is the visitor's email when they gave one). If the route
+answers `not-configured`, the form falls back to the email app.
 
 ```bash
 cp .env.example .env.local
@@ -281,7 +286,7 @@ cp .env.example .env.local
 | Variable | Required | Purpose |
 |---|---|---|
 | `RESEND_API_KEY` | yes | Resend API key |
-| `CONTACT_TO_EMAIL` | yes | Where messages are delivered |
+| `CONTACT_TO_EMAIL` | yes | Where leads are delivered |
 | `CONTACT_FROM_EMAIL` | yes | Verified sender on your Resend domain |
 
 All three are **server-only**. Never prefix them with `NEXT_PUBLIC_` — that would
@@ -422,7 +427,8 @@ pnpm verify
 ```
 src/
   app/            layout, page, route handlers, robots/sitemap/OG image
-    api/contact/  server-side contact endpoint (Zod + Resend)
+    api/contact/  server-side lead endpoint (Zod + Resend)
+    contact.vcf/  static vCard built from the profile
   components/
     layout/       header, nav, footer, skip link
     ui/           Section, Button, Tabs, Disclosure, FilterGroup, CodeBlock, …

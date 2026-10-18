@@ -513,7 +513,7 @@ function TurnItem({
  * URL again, hitting the browser's reload button) tears down the whole JS
  * module graph and does clear it — a fresh conversation, same as always.
  * But `/` and `/resume` link to each other with `next/link`
- * (`DirectLinks.tsx`'s "Résumé", `resume/page.tsx`), and the App Router's client-side
+ * (`BusinessCard.tsx`'s "Résumé", `resume/page.tsx`), and the App Router's client-side
  * navigation between two routes in the same build does *not* reload the
  * page or reset the webpack module registry — so `threadCache` (and
  * whatever conversation is in it) survives a `/` → `/resume` → `/` round

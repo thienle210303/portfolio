@@ -2007,6 +2007,11 @@
     opacity: 1 !important;
     transform: none !important;
   }
+  /* The business card prints its front, even if it was flipped on screen:
+     the back face is `.no-print`, and this un-turns the card. */
+  [data-flip] {
+    transform: none !important;
+  }
   [data-ink-root].hairline-t {
     border-top-color: var(--rule-color) !important;
   }

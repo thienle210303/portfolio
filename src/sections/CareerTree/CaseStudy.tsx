@@ -340,18 +340,10 @@ export default function CaseStudy({ project, index }: CaseStudyProps) {
             {project.source.label}
           </ExternalLink>
         ) : null}
-        {/*
-         * Deliberately a plain <a>, not the shared Button primitive.
-         * Contact listens for `document.querySelectorAll("a[data-project-title]")`
-         * clicks — Button's typed prop union has no room for an arbitrary
-         * data-* attribute, and this specific link is a cross-agent
-         * contract that must not depend on how a component I don't own
-         * forwards props. Styled to match Button's secondary/sm recipe by
-         * hand so it's visually indistinguishable from a real one.
-         */}
+        {/* Styled to match Button's secondary/sm recipe by hand. It only
+            jumps to Contact; nothing is carried over. */}
         <a
           href="#contact"
-          data-project-title={project.title}
           className="inline-flex min-h-11 items-center justify-center gap-2 border border-[color:var(--rule-color)] bg-transparent px-4 py-2 font-sans text-[length:var(--step--1)] font-medium text-[color:var(--fg)] transition-colors duration-200 hover:border-[color:var(--fg)]"
         >
           Discuss this project

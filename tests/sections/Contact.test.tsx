@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import Contact from "@/sections/Contact/Contact";
 
 /**
@@ -21,12 +20,12 @@ const ACCENT_FILLS = [/(^|\s)bg-accent(\s|$)/, /(^|\s)bg-\[color:var\(--accent\)
 
 describe("Ask, in Contact", () => {
   it("is reachable at a stable id", () => {
-    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />);
+    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} bookingUrl={null} />);
     expect(document.getElementById("ask")).not.toBeNull();
   });
 
   it("sits under its own h3, inside #ask", () => {
-    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />);
+    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} bookingUrl={null} />);
     const ask = document.getElementById("ask") as HTMLElement;
     // h3, not h2: the section's own h2 is "Let's talk", and the companion
     // reads a section's first h2 for its scenes.
@@ -36,7 +35,7 @@ describe("Ask, in Contact", () => {
 
   it("is not wrapped in an <aside>, so the business card stays the section's first and only one", () => {
     const { container } = render(
-      <Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />,
+      <Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} bookingUrl={null} />,
     );
     const asides = container.querySelectorAll("#contact aside");
     expect(asides).toHaveLength(1);
@@ -45,24 +44,30 @@ describe("Ask, in Contact", () => {
   });
 
   it("loads the real chat, and hands it the live-mode flag", async () => {
-    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />);
+    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} bookingUrl={null} />);
     const ask = document.getElementById("ask") as HTMLElement;
     expect(await within(ask).findByRole("textbox", QUESTION_FIELD, { timeout: 10_000 })).toBeInTheDocument();
   });
 
   it("is not the section's primary control", async () => {
-    // One primary control per screen, and it is the send button. It only
-    // renders once an intent is chosen, so choose one first; and wait for
-    // the chat's own buttons to be on the page, so they are counted too.
-    // Every element is scanned, not only buttons.
-    const { container } = render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} />);
-    await userEvent.setup().click(screen.getByRole("radio", { name: /career opportunity/i }));
+    // One primary control per screen, and it is the lead form's Send, on
+    // the card's back face. Wait for the chat's own buttons to be on the
+    // page, so they are counted too. Every element is scanned, not only
+    // buttons.
+    const { container } = render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} bookingUrl={null} />);
     await screen.findByRole("textbox", QUESTION_FIELD, { timeout: 10_000 });
 
     const primary = Array.from(container.querySelectorAll<HTMLElement>("[class]")).filter((element) =>
       ACCENT_FILLS.some((fill) => fill.test(element.getAttribute("class") ?? "")),
     );
     expect(primary).toHaveLength(1);
-    expect(primary[0]).toHaveTextContent(/^Send it as written$/);
+    expect(primary[0]).toHaveTextContent(/^Send$/);
+  });
+
+  it("puts the card first in the markup, so it stacks first below 1024px", () => {
+    render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} bookingUrl={null} />);
+    const aside = document.querySelector("#contact aside") as HTMLElement;
+    const ask = document.getElementById("ask") as HTMLElement;
+    expect(aside.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
