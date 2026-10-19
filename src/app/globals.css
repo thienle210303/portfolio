@@ -121,18 +121,18 @@
  * heading classes already use, at the weight the component sets.
  *
  * The self-reference in --font-sans / --font-mono / --font-serif
- * (`var(--font-sans), ...`) is
- * intentional. It is safe ONLY because next/font's own declaration (wherever
- * layout.tsx applies `.variable`) is unlayered CSS, while everything @theme
- * emits lives inside Tailwind's `theme` cascade layer, and unlayered author
- * styles always outrank layered ones regardless of source order. So next/font's
- * real value wins every time and the self-reference is never the one evaluated.
- * The text after each var() is NOT a working fallback for that variable: if
- * next/font's variable were ever missing, the self-reference becomes a cycle
- * and CSS invalidates the whole declaration instead of falling through. Do not
- * rename --font-sans / --font-mono / --font-serif away from what layout.tsx passes to
- * next/font's `variable` option. `--font-display` has no such constraint: it
- * references --font-sans, so its fallbacks are real.
+ * (`var(--font-sans), ...`) is intentional. It is safe ONLY because
+ * next/font's own declaration (wherever layout.tsx applies `.variable`) is
+ * unlayered CSS, while everything @theme emits lives inside Tailwind's `theme`
+ * cascade layer, and unlayered author styles always outrank layered ones
+ * regardless of source order. So next/font's real value wins every time and
+ * the self-reference is never the one evaluated. The text after each var() is
+ * NOT a working fallback for that variable: if next/font's variable were ever
+ * missing, the self-reference becomes a cycle and CSS invalidates the whole
+ * declaration instead of falling through. Do not rename --font-sans /
+ * --font-mono / --font-serif away from what layout.tsx passes to next/font's
+ * `variable` option. `--font-display` has no such constraint: it references
+ * --font-sans, so its fallbacks are real.
  */
 @theme inline {
   --font-display: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -1895,10 +1895,12 @@
 /* measured anywhere in its step's width range, so the box is the same       */
 /* height before and after the chat lands. Re-measure if the chat's idle copy */
 /* or suggestions change (at 1rem = 16px, widths 320-1920 every 4px, both     */
-/* modes, natural height with this rule switched off). Last measured with    */
-/* round 18's copy, re-measured after round 21 phase 1 (Bricolage) in the static mode: live mode was never taller than static at any width (up  */
-/* to 28px shorter), so one set of values serves both and is not keyed on the */
-/* mode. e2e/ask.spec.ts fails at five widths if the footer moves by more     */
+/* modes, natural height with this rule switched off). Round 18's copy was    */
+/* measured in both modes: live was never taller than static at any width     */
+/* (up to 28px shorter), so one set of values serves both and is not keyed    */
+/* on the mode. Round 21 phase 1 (Bricolage) re-measured the static mode      */
+/* only; that live stays no taller under the new face is assumed, not         */
+/* measured. e2e/ask.spec.ts fails at five widths if the footer moves by more */
 /* than 2px across the load, and fails between 400 and 639px if the room is   */
 /* short of the chat or more than 200px taller than it.                       */
 /*                                                                            */
