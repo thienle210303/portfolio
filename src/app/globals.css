@@ -1084,9 +1084,10 @@
   /* rather than `ink-fade-rise`. An element that starts at `opacity: 0`    */
   /* delays the browser's own LCP timestamp until the animation finishes;   */
   /* a transform does not, because the element is painted (just offset by   */
-  /* up to 10px) from frame one. The h1 is the expected LCP element. The    */
-  /* field tag is a large text block too, so it rises without a fade: if    */
-  /* it ever wins LCP, it still paints at frame one.                        */
+  /* up to 10px) from frame one. The sky SVG behind the hero is the LCP     */
+  /* element (preloaded by THEME_SCRIPT); the h1 and the field tag are the  */
+  /* large text candidates, so they rise without a fade: if either wins    */
+  /* LCP, it still paints at frame one.                                     */
   /* ---------------------------------------------------------------------- */
   @keyframes ink-rise {
     from {

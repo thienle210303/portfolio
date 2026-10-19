@@ -19,8 +19,9 @@ import "./globals.css";
 // - Courier Prime: tags, dates and data. Static, so the weights used have to be
 //   listed; 700 is what a `font-semibold` mono line resolves to. Every entry is
 //   a file the visitor downloads.
-// - Newsreader italic: margin annotations only, never a Largest Contentful
-//   Paint candidate, so it is not preloaded.
+// - Newsreader italic: the hero's italic lines (hint, tag backs, captions).
+//   Every use is regular weight, so only 400 ships, not the variable file.
+//   Never the Largest Contentful Paint, so it is not preloaded.
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   display: "swap",
@@ -35,6 +36,7 @@ const courierPrime = Courier_Prime({
 });
 
 const newsreader = Newsreader({
+  weight: "400",
   style: "italic",
   subsets: ["latin"],
   display: "swap",
@@ -146,8 +148,13 @@ const personJsonLd = {
  * read succeeded or the `catch` swallowed a `localStorage` failure, the hero
  * still gets its one entrance. The two real kill switches both live in CSS,
  * not here — see the block comment on the hero keyframes in globals.css.
+ *
+ * On the home page it also preloads the active theme's sky SVG, the hero's
+ * Largest Contentful Paint: as a CSS background it is otherwise found only
+ * after the stylesheet parses, and only this script knows the theme before
+ * then. With no script, the CSS finds it as before.
  */
-const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");document.documentElement.dataset.theme=s==="day"||s==="night"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"night":"day")}catch(e){}document.documentElement.dataset.motion=""})()`;
+const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme"),t=s==="day"||s==="night"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"night":"day");document.documentElement.dataset.theme=t;if(location.pathname==="/"){var l=document.createElement("link");l.rel="preload";l.as="image";l.fetchPriority="high";l.href="/scenery/sky-"+t+".svg";document.head.appendChild(l)}}catch(e){}document.documentElement.dataset.motion=""})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

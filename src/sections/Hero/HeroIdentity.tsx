@@ -29,9 +29,10 @@ interface HeroIdentityProps {
 export default function HeroIdentity({ headingId, bookingUrl }: HeroIdentityProps) {
   return (
     <div data-hero-identity="">
-      {/* LCP guard: this h1 is the page's expected Largest Contentful Paint,
-          so its `data-hero-step="h1"` keyframe in globals.css (`ink-rise`) is
-          transform-only and never starts from `opacity: 0`. */}
+      {/* LCP guard: the sky SVG is the expected Largest Contentful Paint, but
+          this h1 is the largest text candidate, so its `data-hero-step="h1"`
+          keyframe in globals.css (`ink-rise`) is transform-only and never
+          starts from `opacity: 0`. */}
       <h1
         id={headingId}
         data-hero-step="h1"
