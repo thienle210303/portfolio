@@ -974,7 +974,16 @@ test.describe("companion", () => {
         // crossed a boundary a moment ago is legitimately still wearing the
         // section it came from — `steady` is what tells the caller it is
         // looking at a settled answer rather than at the sampling interval.
-        const before = drawings().map((node) => under(node)?.closest("section")?.id ?? null);
+        // A boundary is whatever `syncTone` keys on: the section, and (night's
+        // lantern paper) whether a `.bg-surface` card is behind. Keying on the
+        // section alone let a cat walking onto the business card be read
+        // mid-crossing, still in the sky's pale ink: 1.8:1, half the runs.
+        const zone = (node: Element) => {
+          const behind = under(node);
+          const section = behind?.closest("section")?.id ?? null;
+          return `${section}|${behind?.closest(".bg-surface") != null}`;
+        };
+        const before = drawings().map(zone);
         await new Promise((resolve) => setTimeout(resolve, 400));
 
         return drawings().map((node, index) => {
@@ -984,7 +993,7 @@ test.describe("companion", () => {
           const ground = behind
             ? channels(getComputedStyle(behind).getPropertyValue("--ground"))
             : null;
-          const steady = section !== null && section === before[index];
+          const steady = section !== null && zone(node) === before[index];
           if (!ink || !ground) return { section, steady, ratio: null };
           const light = Math.max(relative(ink), relative(ground));
           const dark = Math.min(relative(ink), relative(ground));

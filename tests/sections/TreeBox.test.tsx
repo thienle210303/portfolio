@@ -111,7 +111,10 @@ describe("TreeBox", () => {
     // It waits for the visitor to stop on the box, not just pass it.
     await settle();
     expect(stages()).toHaveLength(0);
-    await waitFor(() => expect(stages()).toHaveLength(1), { timeout: 2_000 });
+    // `live`, not just the stage: the fake hands over `close` in an effect,
+    // and under load waitFor can see the commit before that effect has run.
+    await waitFor(() => expect(player.live).toBe(1), { timeout: 2_000 });
+    expect(stages()).toHaveLength(1);
 
     act(() => player.close(false));
     observer.report(0);
@@ -196,7 +199,7 @@ describe("TreeBox", () => {
   it("pressed first, then scrolled into view: no second auto-play", async () => {
     const observer = setup();
     fireEvent.click(button());
-    await waitFor(() => expect(stages()).toHaveLength(1));
+    await waitFor(() => expect(player.live).toBe(1));
     act(() => player.close(true));
     observer.report(1);
     await pastDwell();
