@@ -1813,9 +1813,9 @@ Production build at `607f6c5`, headless Chromium, `pnpm start` on `:3185`. **The
 
 **Perf row** (`pnpm perf`, default build, 0 skipped responses, three runs, bytes identical): JS 189.7 KB (194,232 B), JS at load 163.7 KB (167,670 B), CSS 15.5 KB (15,887 B), fonts 134.0 KB (137,168 B), LCP 2252-2580 ms, TBT 360-760 ms, CLS 0, 2191 DOM nodes. Against R21-P2 (193,320 / 166,832 / CSS 13.7 KB / fonts 64,016 B / 2097): JS +912 B, JS at load +838 B (inside the +3 KB budget), CSS +1.8 KB, **fonts +73,152 B**, DOM +94.
 
-- **Fonts, a finding for the owner.** The three P2 files are unchanged (Bricolage latin 41,236 + Courier Prime 400 / 700 11,588 + 11,192 = 64,016 B). Two are new: Bricolage's `vietnamese` unicode-range file, 64,500 B, which "ệ" in the field tag's "Kiên Giang, Việt Nam" (set in Bricolage per the owner's answer) pulls in on every load; and Newsreader italic, 8,652 B, for the hero's italic lines. One glyph costs 64.5 KB.
+- **Fonts, a finding for the owner.** The three P2 files are unchanged (Bricolage latin 41,236 + Courier Prime 400 / 700 11,588 + 11,192 = 64,016 B). Two are new: Newsreader italic `latin`, 64,500 B, pulled by the hero's italic lines; and Bricolage's `vietnamese` unicode-range file, 8,652 B, which "ệ" in the field tag's "Kiên Giang, Việt Nam" (set in Bricolage per the owner's answer) pulls in on every load. At night "lẩu" also pulls Newsreader's `vietnamese` file, +12,024 B (not in perf's day row). The fix wave below cuts the Newsreader files by loading weight 400 only.
 - **LCP element is the sky** (`span.scene-art`), not `h1#hero-heading`, in all three runs. Recorded, not hidden; raised with the owner.
-- **Scenery.** `public/scenery/*.svg`: 14 files, 64,007 B raw, 14,533 B gzip. At perf's 412x823, day loads 8 of them (buffalo, sky-day, morning, rice-field and the four tag drawings: 11,568 B over the wire; bamboo, nón lá and pine are hidden below 1280, so the plan's 13 is a desktop count, not measured here); no `sky-night` or `evening` fetch in day.
+- **Scenery.** `public/scenery/*.svg`: 14 files, 64,007 B raw, 14,533 B gzip. At perf's 412x823, day loads 8 of them (buffalo, sky-day, morning, rice-field and the four tag drawings: 11,568 B over the wire; bamboo, nón lá and pine are hidden below 1440, so the plan's 13 is a desktop count, not measured here); no `sky-night` or `evening` fetch in day.
 
 **DOM.** Per section at 1440x900 (same snippet as before Task 1), before -> after: header 37 -> 37, `#about` 47 -> 137 (+90), `#tree` 1782 -> 1782, `#contact` 80 -> 80, footer 3 -> 3. Only `#about` moved: by tag it is now 41 div, 40 span, 8 button, 7 a, 7 dt, 7 dd, 5 p, 4 li, 4 svg, 10 path, 2 dl, 1 ul, 1 h1 (the four tags, the field tag and the scenery). The other +4 of perf's +94 is outside every section. **Phase 2's +44** is not in any section either: header, tree, contact and footer carry the counts they had before this phase, and perf counts `body *`, which also holds the companion layer (39 nodes at perf's 412x823, 50-56 at 1440) and about 105 inline RSC `<script>` tags. Inferred, not isolated: the companion mounts on idle after `load`, and P1's saturated run likely counted before it had, which would make +44 the cats, not the page.
 
@@ -1832,3 +1832,17 @@ Production build at `607f6c5`, headless Chromium, `pnpm start` on `:3185`. **The
 - The cats sit bottom right (not on the board).
 - At 1024 "Kiên Giang" wraps to two lines on its tag.
 - At 390 night the resting cats sit over the DoorDash tag's label; at 320 day over the Taylors tag's top; at 320 day a scenery bird touches "this" in the headline.
+
+### R21-P3 fix wave
+
+Production build, `pnpm start` on `:3187`, three `pnpm perf` runs per side, 0 skipped responses each. **CPU was busy**: 100/100/100% before, 80/84/99% after (`Get-CimInstance Win32_Processor`), so LCP and TBT are indicative only.
+
+- **Newsreader `weight: "400"`.** Every `font-serif` use is regular italic, so the variable file (200-800) was all overhead. Newsreader italic latin 64,500 -> 24,408 B (-40,092 B); the night-only vietnamese file 12,024 -> 5,544 B, latin-ext 39,708 -> 15,248 B (build file sizes). Perf fonts 137,168 -> 97,076 B.
+- **Sky preload.** `THEME_SCRIPT` adds `<link rel="preload" as="image" fetchpriority="high">` for `/scenery/sky-<theme>.svg` on `/` only; the sky is now requested before the second stylesheet, one fetch per theme, none on `/resume`, and with JS off the CSS still finds it.
+
+| When | JS | JS at load | Fonts | LCP (3 runs) | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| Before (`ad2f895`) | 194,232 B | 167,670 B | 137,168 B | 3100 / 2680 / 3344 ms | 644-2045 ms | 0 | 2191 |
+| After | 194,232 B | 167,670 B | 97,076 B | 2796 / 2856 / 3468 ms | 617-819 ms | 0 | 2191 |
+
+LCP element `span.scene-art` (the sky) in all six runs. LCP median 3100 -> 2856 ms, within the noise of a busy machine: the preload is verified to move the request earlier, not proven to move LCP. JS and JS at load did not move.
