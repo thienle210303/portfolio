@@ -69,9 +69,11 @@ export default function Scenery() {
         name="buffalo"
         className="absolute right-[2%] bottom-[20px] h-[59px] w-[110px] text-[color:var(--scene-buffalo)] lg:right-auto lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[150px] xl:left-[calc(50%+185px)]"
       />
+      {/* Below 1024 the rice stands 24px up, so the two captions sit under
+          the stalks, not on them: text over the stalks fails AA contrast. */}
       <Drawing
         name="rice-field"
-        className="absolute inset-x-0 bottom-0 h-[120px] text-accent lg:right-auto lg:left-[45%] lg:h-[160px] lg:w-[655px] xl:left-[calc(50%-145px)]"
+        className="absolute inset-x-0 bottom-6 h-[120px] text-accent lg:right-auto lg:bottom-0 lg:left-[45%] lg:h-[160px] lg:w-[655px] xl:left-[calc(50%-145px)]"
       />
 
       <span
@@ -85,7 +87,7 @@ export default function Scenery() {
 
       <span
         data-moon-off-duty=""
-        className="absolute bottom-8 left-4 flex flex-col items-start gap-1 lg:bottom-[19px] lg:left-[11.1%] lg:flex-row xl:left-[calc(50%-560px)] lg:items-end lg:gap-2"
+        className="absolute bottom-0 left-4 flex flex-col items-start gap-1 lg:bottom-[19px] lg:left-[11.1%] lg:flex-row xl:left-[calc(50%-560px)] lg:items-end lg:gap-2"
       >
         <svg
           viewBox="18 28 136 74"
