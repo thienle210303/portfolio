@@ -1806,3 +1806,29 @@ Production build at `bd00ad2`, headless Chromium, `pnpm start` on `:3177`. CPU r
 **Screens** (`reports/r21-p2-screens/`, untracked): 1440x900 and 390x844, day and night. The nav reads About, Journey, Contact; `main` holds `#about`, `#tree`, `#contact` in that order; `#worlds` is an `sr-only` span in About.
 
 **Size of the removal** (`git diff --stat main...HEAD`): 70 files changed, 251 insertions, 8263 deletions.
+
+## Round 21 phase 3 (2026-10-19) — the hero
+
+Production build at `607f6c5`, headless Chromium, `pnpm start` on `:3185`. **The machine was saturated**: CPU read 100% before the perf runs and 37% after (`Get-CimInstance Win32_Processor`), so LCP and TBT are noise.
+
+**Perf row** (`pnpm perf`, default build, 0 skipped responses, three runs, bytes identical): JS 189.7 KB (194,232 B), JS at load 163.7 KB (167,670 B), CSS 15.5 KB (15,887 B), fonts 134.0 KB (137,168 B), LCP 2252-2580 ms, TBT 360-760 ms, CLS 0, 2191 DOM nodes. Against R21-P2 (193,320 / 166,832 / CSS 13.7 KB / fonts 64,016 B / 2097): JS +912 B, JS at load +838 B (inside the +3 KB budget), CSS +1.8 KB, **fonts +73,152 B**, DOM +94.
+
+- **Fonts, a finding for the owner.** The three P2 files are unchanged (Bricolage latin 41,236 + Courier Prime 400 / 700 11,588 + 11,192 = 64,016 B). Two are new: Bricolage's `vietnamese` unicode-range file, 64,500 B, which "ệ" in the field tag's "Kiên Giang, Việt Nam" (set in Bricolage per the owner's answer) pulls in on every load; and Newsreader italic, 8,652 B, for the hero's italic lines. One glyph costs 64.5 KB.
+- **LCP element is the sky** (`span.scene-art`), not `h1#hero-heading`, in all three runs. Recorded, not hidden; raised with the owner.
+- **Scenery.** `public/scenery/*.svg`: 14 files, 64,007 B raw, 14,533 B gzip. At perf's 412x823, day loads 8 of them (buffalo, sky-day, morning, rice-field and the four tag drawings: 11,568 B over the wire; bamboo, nón lá and pine are hidden below 1280, so the plan's 13 is a desktop count, not measured here); no `sky-night` or `evening` fetch in day.
+
+**DOM.** Per section at 1440x900 (same snippet as before Task 1), before -> after: header 37 -> 37, `#about` 47 -> 137 (+90), `#tree` 1782 -> 1782, `#contact` 80 -> 80, footer 3 -> 3. Only `#about` moved: by tag it is now 41 div, 40 span, 8 button, 7 a, 7 dt, 7 dd, 5 p, 4 li, 4 svg, 10 path, 2 dl, 1 ul, 1 h1 (the four tags, the field tag and the scenery). The other +4 of perf's +94 is outside every section. **Phase 2's +44** is not in any section either: header, tree, contact and footer carry the counts they had before this phase, and perf counts `body *`, which also holds the companion layer (39 nodes at perf's 412x823, 50-56 at 1440) and about 105 inline RSC `<script>` tags. Inferred, not isolated: the companion mounts on idle after `load`, and P1's saturated run likely counted before it had, which would make +44 the cats, not the page.
+
+**Verification.** `pnpm verify` 5/5 (844 unit tests, 54 files; contrast 60 pairings, all >= AA, lowest 4.52:1). Retrieval eval, printed: recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807, unchanged. The first `verify` failed on `TreeBox.test.tsx` "auto-plays once" (2 of 3 isolated runs at 96% CPU): `waitFor` saw the stage commit before the fake player's effect handed over `close`, so the close was a no-op. The test now waits for the mount (6/6 after).
+
+**e2e** at `--workers=2` against the production build on `:3185`: 710 passed, 880 skipped, 0 failed (18.4 min); no retries needed.
+
+**The flaky `companion.spec.ts:914`** ("stays visible over the section it is crossing", 1440): 5 of 10 failed on a production build, all "a drawing over contact in night is invisible", ratio 1.82. Measured: the follower walked ~50 px from bare sky onto the night business card (`.bg-surface`, lantern paper) inside the test's 400 ms double read, still without `data-paper` because `syncTone` samples every 320 ms. The test's `steady` compared section ids only, so a mid-crossing reading inside one section counted as settled. It now compares what `syncTone` keys on (section and whether a `.bg-surface` is behind). 10/10 after; threshold unchanged. P2's "closed by the data-paper fix" was half right: that fix is what makes the settled reading pass.
+
+**Screens** (`reports/r21-p3-screens/close-*.png`, untracked): 1440x900, 1024x768, 390x844, 320x568, day and night, plus 1440 day with Kiên Giang turned (back line and "Read this part" show). Against `NatHero.png` / `NatHeroNight.png` at 1440, the differences beyond this plan's decisions ("Taylors", "Kiên Giang, Việt Nam" in Bricolage, body copy):
+- The header is the site's (TL, About / Journey / Contact, theme, Let's talk), not the board's; unchanged by this phase.
+- The headline breaks after "kid," (board: after "and this").
+- "Book a call with me" has no underline at rest (board: underlined).
+- The cats sit bottom right (not on the board).
+- At 1024 "Kiên Giang" wraps to two lines on its tag.
+- At 390 night the resting cats sit over the DoorDash tag's label; at 320 day over the Taylors tag's top; at 320 day a scenery bird touches "this" in the headline.
