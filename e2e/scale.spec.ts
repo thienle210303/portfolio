@@ -77,9 +77,26 @@ for (const size of SIZES) {
     });
 
     test("body text is 15–16px", async ({ page }) => {
-      // The hero's one paragraph — not the first `#about p`, which is the
-      // eyebrow (--step--1, deliberately below body size).
-      within(await px(page, "#about [data-hero-step='intro']", "font-size"), 15, 16);
+      // A Journey paragraph rendered at --step-0: the first visible `#tree p`
+      // whose computed font-size equals a `var(--step-0)` probe's. That is a
+      // case study's prose (CaseStudy.tsx PROSE_CLASS). The hero has no body
+      // text at --step-0; its paragraph is the lead (below).
+      const size = await page.locator("#tree").evaluate((tree) => {
+        const probe = document.createElement("div");
+        probe.style.fontSize = "var(--step-0)";
+        tree.append(probe);
+        const step0 = getComputedStyle(probe).fontSize;
+        probe.remove();
+        const p = [...tree.querySelectorAll("p")].find(
+          (el) => el.checkVisibility() && getComputedStyle(el).fontSize === step0,
+        );
+        return p ? parseFloat(step0) : NaN;
+      });
+      within(size, 15, 16);
+    });
+
+    test("hero lead is 17–19px", async ({ page }) => {
+      within(await px(page, "#about [data-hero-step='intro']", "font-size"), 17, 19);
     });
 
     test("section titles are 24–28px", async ({ page }) => {
@@ -88,12 +105,12 @@ for (const size of SIZES) {
       }
     });
 
-    test("hero headline is 40–48px", async ({ page }) => {
+    test("hero headline is 64–72px at 1440", async ({ page }) => {
       const size = await px(page, "#about h1", "font-size");
       if (page.viewportSize()!.width >= 1440) {
-        within(size, 40, 48);
+        within(size, 64, 72);
       } else {
-        expect(size).toBeLessThanOrEqual(48 + TOL);
+        expect(size).toBeLessThanOrEqual(72 + TOL);
         const lines = await page.locator("#about h1").evaluate((el) => {
           const lh = parseFloat(getComputedStyle(el).lineHeight);
           return el.getBoundingClientRect().height / lh;

@@ -15,7 +15,7 @@ function viewportWidth(page: Page): number {
 }
 
 test.describe("LCP guard", () => {
-  test("the hero h1 and terminal are fully opaque immediately, never mid-fade", async ({
+  test("the hero h1 and field tag are fully opaque immediately", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "not viewport-dependent; run once");
@@ -27,9 +27,9 @@ test.describe("LCP guard", () => {
     await page.goto("/");
 
     const h1 = page.locator("h1");
-    const code = page.locator('[data-hero-step="code"]');
+    const fieldTag = page.locator('[data-hero-step="field-tag"]');
     await expect(h1).toHaveCSS("opacity", "1");
-    await expect(code).toHaveCSS("opacity", "1");
+    await expect(fieldTag).toHaveCSS("opacity", "1");
   });
 });
 

@@ -47,7 +47,7 @@ export function analyticsEnabled(): boolean {
 /**
  * Server Component, and deliberately the only place either Vercel package is
  * imported. Both render `null` and inject their own deferred `<script>`, so
- * there is no markup here to style and nothing for the Blueprint alias rules
+ * there is no markup here to style and nothing for the semantic alias rules
  * to apply to.
  *
  * Neither collects personal data or sets a cookie, which is why the site

@@ -184,9 +184,9 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     // spec would prove nothing about scrolling.
     await page.goto("/#no-such-anchor-at-all");
     await expect(page.locator("#about")).toBeInViewport();
-    // No "`#tree` is off screen" check: the hero is as short as its content
-    // (about 520px at 1440x900), so the Journey's heading is in the first
-    // viewport. `scrollY` is the measure of not having scrolled.
+    // No "`#tree` is off screen" check: the hero is as tall as its content
+    // (about 840px at 1440x900 since round 21's clothesline), which can change
+    // with any copy edit. `scrollY` is the measure of not having scrolled.
     expect(await scrollY(page), "a dead fragment scrolled the page").toBe(0);
   });
 
@@ -234,12 +234,14 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     await page.goto("about:blank");
     await page.goto("/#worlds");
     await expect(page.locator("#about #worlds")).toHaveCount(1);
+    // First in About, ahead of the scenery and the words, so landing on it
+    // lands on the top of the hero.
+    await expect(page.locator("#about > .shell > span#worlds:first-child")).toHaveCount(1);
     expect(await page.evaluate(() => document.querySelector(":target")?.id)).toBe("worlds");
     await expect(page.locator("#about")).toBeInViewport();
     // The span sits inside About's top padding, so landing on it scrolls by
     // the few pixels that padding exceeds the 80px scroll margin by — nowhere
-    // near the Journey, which shares the first viewport now that the hero is
-    // short.
+    // near the Journey.
     expect(await scrollY(page), "#worlds scrolled away from About").toBeLessThan(RESTING_TOP);
   });
 

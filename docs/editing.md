@@ -70,10 +70,10 @@ Add an entry to `careerEntries`. One entry feeds all of:
   entries only
 - "Ask this site"
 
-The hero's eyebrow and the terminal's `now` tab read the current entry
-(`currentEntry()` in `src/lib/terminal.ts`: the one whose `dateRange` ends in
-"Present"). The positioning line names the employer in its own prose, so
-changing jobs also means editing `profile.positioning`.
+`currentEntry()` (in `src/lib/content.ts`: the entry whose `dateRange` ends
+in "Present") is no longer rendered in the hero. The hero names my employer
+in authored prose, so changing jobs means editing `profile.positioning`, the
+field tag's `hero.fieldTag.habitat`, and the DoorDash chapter tag (below).
 
 Then one thing the entry cannot decide for itself:
 
@@ -163,6 +163,32 @@ With any of them missing, it falls back to opening the visitor's own mail app
 with a message to `profile.email` under the subject `Portfolio lead — <name>`,
 carrying the name, email and phone. That fallback is deliberate — it means the site
 never claims to have sent something it did not. See `.env.example`.
+
+## The hero's tags and field tag
+
+Each line lives in one place. `buildChapters()` and `buildFieldTag()` in
+`src/lib/hero.ts` assemble them; the hero components only render.
+
+| On the page | Where it comes from |
+|---|---|
+| Kiên Giang tag: year, place | `origin.born`, `origin.from` |
+| Taylors tag: month, place | `origin.arrivedOn`, `origin.to` |
+| USC tag: year, place | `usc-degree`'s `sortKey`, `organization` (three or more words shorten to initials) |
+| DoorDash tag: year, place | `doordash`'s `sortKey`, `organization` |
+| My line on the back of a tag | `hero.chapterLines`, except Taylors: `eastside-high`'s `headline` |
+| "Read this part" | the tag's career entry row in the Journey (Kiên Giang: the Journey itself) |
+| The hint under the line | `hero.hint` |
+| Field tag rows | Name `profile.name`; Native to `origin.from`; Transplanted `origin.to`; Companions `hero.fieldTag.companionsLead` plus every `companions` name; the rest `hero.fieldTag` |
+| The stamp | `profile.motto` |
+| The QR and its link | the `linkedin` entry in `socialLinks` |
+| The vignette captions | `hero.vignette.morning` / `.evening` |
+
+A tag's drawing (and every other piece of scenery) is drawn by
+`scripts/draw-scenery.mjs`. After changing a drawing, run `pnpm draw:scenery`
+and commit the regenerated files in `public/scenery/`;
+`tests/lib/scenery.test.ts` fails until they match. Keep the words in first
+person (see [voice.md](voice.md)), and check a longer line at 320px: the e2e
+suite fails if a tag's text overflows its paper.
 
 ## Changing colours
 

@@ -1,8 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
-
-function viewportWidth(page: Page): number {
-  return page.viewportSize()?.width ?? 0;
-}
+import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   // Playwright retries clicks until an element is actionable, but it dispatches
@@ -12,31 +8,6 @@ test.beforeEach(async ({ page }) => {
   // settle is the closest available "the islands are live now" signal.
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-});
-
-test.describe("hero terminal", () => {
-  // The terminal wraps its lines (round 20; the code panel before it did since
-  // round 6). The invariant: nothing in it may move the page sideways at the
-  // smallest viewport — the focus sentence is its longest value.
-  test("wraps at 320px and cannot scroll the page or itself sideways", async ({ page }) => {
-    test.skip(viewportWidth(page) !== 320, "smallest configured viewport only");
-
-    const region = page.locator("#about").getByRole("tabpanel").locator("pre");
-    await region.evaluate((el) => {
-      el.scrollLeft = 200;
-    });
-    const panelScroll = await region.evaluate((el) => el.scrollLeft);
-    const whiteSpace = await region.evaluate((el) => getComputedStyle(el).whiteSpace);
-    const pageScrollX = await page.evaluate(() => window.scrollX);
-    const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-
-    expect(whiteSpace, "the terminal must wrap its lines").toBe("pre-wrap");
-    expect(panelScroll, "a wrapped terminal has nothing to scroll — scrollLeft must stay 0").toBe(0);
-    expect(pageScrollX, "the page itself must not have scrolled horizontally").toBe(0);
-    expect(pageOverflow, "the page must not gain horizontal overflow from the terminal").toBeLessThanOrEqual(
-      1,
-    );
-  });
 });
 
 test.describe("reduced motion", () => {

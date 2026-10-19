@@ -55,7 +55,7 @@ export interface Profile {
   readonly focus: string;
   /** The recurring philosophy line. */
   readonly philosophy: string;
-  /** His motto, printed verbatim as the hero terminal's last `whoami` line. */
+  /** His motto, the stamp on the hero's field tag (upper-cased by CSS only). */
   readonly motto: string;
   /** Hero headline. */
   readonly headline: string;

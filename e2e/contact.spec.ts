@@ -307,7 +307,7 @@ test("cats cheer on success", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => (window as unknown as { __sent?: number }).__sent)).toBe(1);
 });
 
-test("the page's only control fills are the hero's See my work and the lead form's Send", async ({ page }) => {
+test("the page's only control fills are the hero's Start with where I'm from and the lead form's Send", async ({ page }) => {
   onlyAt(page, [1440]);
   await open(page);
   // Hairlines are not fills: the nav's 1px underline uses `bg-accent`, not a control fill.
@@ -321,7 +321,7 @@ test("the page's only control fills are the hero's See my work and the lead form
       )
       .map((el) => el.textContent?.trim()),
   );
-  expect(fills).toEqual(["See my work", "Send"]);
+  expect(fills).toEqual(["Start with where I'm from", "Send"]);
 });
 
 test("the honeypot is present and not reachable by Tab", async ({ page }) => {

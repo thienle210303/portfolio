@@ -8,7 +8,7 @@ import ExternalLink from "@/components/ui/ExternalLink";
 import LeadForm from "./LeadForm";
 
 /**
- * A business card in the blueprint style that flips over to a short lead form.
+ * A business card that flips over to a short lead form.
  *
  * Front: who I am and every way to reach me — email (with copy), GitHub,
  * LinkedIn, the résumé, a vCard to save, a booking link when `BOOKING_URL`
