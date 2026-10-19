@@ -13,4 +13,11 @@ describe("SiteHeader", () => {
     expect(cta.className).not.toMatch(/(^|\s)bg-\[color:var\(--control\)\]/);
     expect(cta.className).toMatch(/(^|\s)border-\[color:var\(--rule-color\)\]/);
   });
+
+  it("paints the sky behind it, not a flat ground", () => {
+    const { container } = render(<SiteHeader />);
+    const cls = container.querySelector("header")!.className;
+    expect(cls).toMatch(/(^|\s)sky-fill(\s|$)/);
+    expect(cls).not.toMatch(/(^|\s)bg-ground(\s|$)/);
+  });
 });

@@ -29,7 +29,7 @@ export default function Hero({ bookingUrl }: { readonly bookingUrl: string | nul
       id="about"
       labelledBy={HEADING_ID}
       tone="base"
-      className="blueprint-grid pb-[calc(var(--section-y)*0.6)]"
+      className="pb-[calc(var(--section-y)*0.6)]"
       // The hero runs its own `data-motion` load choreography (P2) instead
       // of the generic scroll-triggered ink settle every other section gets
       // — see Section.tsx's own comment on this prop.

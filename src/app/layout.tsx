@@ -164,7 +164,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="blueprint-grid bg-ground text-fg">
+      <body className="bg-ground text-fg">
         {/* P6's header-hairline sentinel: a 1px, off-flow, aria-hidden marker
             InkReveal's second observer watches to know whether the visitor
             is still at the very top of the page. It has to be `body`'s

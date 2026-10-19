@@ -20,7 +20,7 @@ import { Moon, Sun } from "lucide-react";
  * click that triggers it also flips `data-theme` on `<html>`, which
  * recalculates every semantic colour alias on the page at once — a genuine
  * full-tree style recompute, not a scoped one — and repaints
- * `.blueprint-grid`'s `background-attachment: fixed` ruling on `<body>`
+ * the sky's `background-attachment: fixed` on `<body>`
  * along with it. Animating this one icon on top of that same frame means
  * racing a moment the browser is already busy with, and the two crossfading
  * glyphs sit directly against the global `::selection` and focus-ring
