@@ -6,8 +6,21 @@ import { Tag } from "@/components/ui/Tag";
 import { cn } from "@/lib/cn";
 import type { Chapter, ChapterId } from "@/lib/hero";
 
-/** The board's sag of the clothesline under each tag at 1440. */
-const DROPS = ["0px", "19px", "27px", "25px"];
+/**
+ * How far below the clothesline's top (Scenery.tsx) each tag's string meets
+ * the curve. The line stretches with the section, so the sag under a tag
+ * depends on the width: nearly flat across 1024–1279 (one value each), and
+ * linear in the section's width (`cqw`) from 1280. Fitted against the curve:
+ * every string meets it within 2px from 1024 to 1920. Hero.tsx does the same
+ * for the field tag.
+ */
+const DROPS = ["28.8px", "52.4px", "64.8px", "65.5px"];
+const DROPS_XL = [
+  "calc(31.9px + (100cqw - 1280px) * 0.0345)",
+  "calc(55.7px + (100cqw - 1280px) * 0.0115)",
+  "66.2px",
+  "63.4px",
+];
 const TILTS = ["-3deg", "2deg", "-1.5deg", "2.5deg"];
 
 const PAPER = "min-h-[190px] flex-1 px-3.5 pt-8 pb-3";
@@ -42,19 +55,19 @@ export default function ChapterTags({
   }
 
   return (
-    <ul role="list" data-hero-step="line" className="grid grid-cols-2 gap-x-4 gap-y-8 lg:flex lg:gap-[38px]">
+    <ul role="list" data-hero-step="line" className="grid grid-cols-2 gap-x-4 gap-y-8 lg:flex lg:gap-3 xl:gap-[38px]">
       {chapters.map(({ id, year, place, line, drawing, href }, i) => {
         const isOpen = open === id;
         const backId = `${base}-${id}-back`;
         return (
           <li
             key={id}
-            style={{ "--drop": DROPS[i], "--tilt": TILTS[i] } as CSSProperties}
+            style={{ "--drop": DROPS[i], "--drop-xl": DROPS_XL[i], "--tilt": TILTS[i] } as CSSProperties}
             onKeyDown={(e) => {
               if (e.key === "Escape" && isOpen) turn(null);
             }}
             className={cn(
-              "relative pt-3.5 lg:w-[152px] lg:origin-top lg:translate-y-(--drop) lg:rotate-(--tilt)",
+              "relative pt-3.5 lg:max-w-[152px] lg:min-w-0 lg:flex-1 lg:origin-top lg:translate-y-(--drop) lg:rotate-(--tilt) xl:translate-y-(--drop-xl)",
               // Below 1024 each cell draws its share of the row's twine; at 1024+ the clothesline does.
               "before:absolute before:top-0 before:-inset-x-2 before:h-0.5 before:bg-(--twine) lg:before:hidden",
               // The tag's own string, from the line down to the hole.
@@ -89,7 +102,7 @@ export default function ChapterTags({
                     <button
                       type="button"
                       onClick={() => turn(null)}
-                      className="mb-3 cursor-pointer text-left font-serif text-[length:var(--step-1)] leading-snug italic"
+                      className="mb-3 cursor-pointer text-left font-serif text-[length:var(--step-0)] leading-[1.3] italic"
                     >
                       {line}
                       {" "}<span className="sr-only">(turn the tag back)</span>

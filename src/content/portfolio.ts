@@ -69,6 +69,8 @@ export const profile = {
   // a biography.
   positioning:
     "I write software for retail data at DoorDash. Before that I was a chef in my family's restaurant.",
+  // Rendered nowhere since round 21 retired the hero terminal; the chat
+  // indexes it without a section (answer-corpus.ts).
   focus:
     "Automated collection and integration systems — the pipelines that decide whether a retail partner can be described accurately at all.",
   // The philosophy line: one he adopted, not a fact the site asserts. It was generated rather
@@ -1423,6 +1425,8 @@ export const highlights = [
 /* AI tooling reference                                                        */
 /* -------------------------------------------------------------------------- */
 
+/** Rendered nowhere since round 21 retired the hero terminal, its only reader.
+ *  Kept for a later page by the owner's ruling (round 21 phase 3). */
 export const aiTools = [
   {
     id: "claude-code",

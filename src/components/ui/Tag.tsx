@@ -12,7 +12,7 @@ export function Tag({ children, className }: { readonly children: ReactNode; rea
     <div className={cn("tag-cut relative bg-surface text-fg", className)}>
       <span
         aria-hidden="true"
-        className="absolute top-3 left-1/2 size-3 -translate-x-1/2 rounded-full bg-ground shadow-[inset_0_0_0_1.5px_var(--twine)]"
+        className="absolute top-3 left-1/2 size-3 -translate-x-1/2 rounded-full bg-(--hole) shadow-[inset_0_0_0_1.5px_var(--twine)]"
       />
       {children}
     </div>

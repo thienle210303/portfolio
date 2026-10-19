@@ -7,7 +7,7 @@ const DIR = "public/scenery";
 const VIEWBOXES: Record<string, string> = {
   bamboo: "0 110 170 790",
   pine: "1260 80 180 820",
-  "rice-field": "600 740 620 160",
+  "rice-field": "550 740 670 160",
   ripples: "560 860 660 30",
   buffalo: "905 790 150 80",
   "tag-rice": "0 0 150 88",

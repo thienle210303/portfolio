@@ -181,7 +181,7 @@ export function drawScenery() {
   return {
     bamboo: svg("0 110 170 790", bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
     pine: svg("1260 80 180 820", `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g>`),
-    "rice-field": svg("600 740 620 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
+    "rice-field": svg("550 740 670 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
     ripples: svg("560 860 660 30", ripples(560, 872, 640, 3, K, 3)),
     buffalo: svg("905 790 150 80", buffalo(930, 790, 0.78, K)),
     "tag-rice": svg("0 0 150 88", rice(52, 84, 3, 20, 4, K, 44, 26)),

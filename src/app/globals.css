@@ -160,8 +160,8 @@
     /*
      * Round 12 (WP-K): the one place below `--step--1` on the scale, added
      * for the since-deleted hero code artifact (`CodeBlock`'s `compact`
-     * prop). Now used for small mono labels: the hero terminal's title bar
-     * and the chat's "Live mode" tag. Same clamp shape as its neighbours, one
+     * prop). Now used for small mono labels: the chapter tags' years and the
+     * chat's "Live mode" tag. Same clamp shape as its neighbours, one
      * notch down: floor and ceiling both ~0.06rem under `--step--1`'s.
      */
     --step--2: clamp(0.75rem, 0.735rem + 0.08vw, 0.8125rem);
@@ -431,6 +431,9 @@
   .tone-base,
   .tone-deep {
     --ground: var(--ground-quiet);
+    /* A tag's punched hole shows the section's ground, not the paper's: the
+       paper scope repoints --ground, but --hole was resolved out here. */
+    --hole: var(--ground);
     --surface: var(--q-surface);
     --fg: var(--q-fg);
     --fg-muted: var(--q-fg-muted);
@@ -450,6 +453,7 @@
 
   .tone-contrast {
     --ground: var(--ground-loud);
+    --hole: var(--ground);
     --surface: var(--l-surface);
     --fg: var(--l-fg);
     --fg-muted: var(--l-fg-muted);
@@ -762,7 +766,7 @@
    * construction — a monospace face has exactly one advance width for every
    * glyph, digits included, so there is no proportional-width figure for
    * `font-variant-numeric` to fix. The same is true of most of the site's
-   * other figures (case-study numerals, the hero terminal, MetricHighlights'
+   * other figures (case-study numerals, the hero's tags, MetricHighlights'
    * headline value); the explicit utility only earns its place on the
    * handful of *sans* figures — MetricTable and the footer copyright — where
    * digits would otherwise sit at their proportional widths beside letters
@@ -1076,15 +1080,13 @@
   /* fully rendered at its final state, matching every other pre-reveal      */
   /* state on the page.                                                     */
   /*                                                                        */
-  /* LCP guard: the h1 and the terminal card use `ink-rise`                 */
-  /* (transform-only) rather than `ink-fade-rise`. An element that starts   */
-  /* at `opacity: 0` delays the browser's own LCP timestamp until the       */
-  /* animation finishes; a transform does not, because the element is       */
-  /* painted (just offset by up to 10px) from frame one. The h1 is the LCP  */
-  /* candidate this protects. The terminal is not fully painted from frame  */
-  /* one: `term-type` clips each `whoami` line in turn. Each line is its    */
-  /* own small block of text, so none outgrows the h1 as a candidate:      */
-  /* confirmed, LCP is `h1#hero-heading` (2404 ms, R20-P3 perf row).        */
+  /* LCP guard: the h1 and the field tag use `ink-rise` (transform-only)    */
+  /* rather than `ink-fade-rise`. An element that starts at `opacity: 0`    */
+  /* delays the browser's own LCP timestamp until the animation finishes;   */
+  /* a transform does not, because the element is painted (just offset by   */
+  /* up to 10px) from frame one. The h1 is the expected LCP element. The    */
+  /* field tag is a large text block too, so it rises without a fade: if    */
+  /* it ever wins LCP, it still paints at frame one.                        */
   /* ---------------------------------------------------------------------- */
   @keyframes ink-rise {
     from {
@@ -1112,52 +1114,27 @@
       animation-fill-mode: both;
     }
 
-    /* Timeline, ~850ms end to end. Two parallel tracks — the identity
-       column (eyebrow -> h1 -> intro -> actions) and the terminal card —
-       then the scroll cue closes the sequence out. */
-    html[data-motion] [data-hero-step="eyebrow"] {
-      animation-name: ink-fade-rise;
-      animation-delay: 0ms;
-    }
+    /* The identity column (h1 -> intro -> actions), then the line of
+       tags and my field tag, all inside ~0.5s. */
     html[data-motion] [data-hero-step="h1"] {
       animation-name: ink-rise; /* LCP guard — see the block comment above */
-      animation-delay: 40ms;
+      animation-delay: 0ms;
     }
     html[data-motion] [data-hero-step="intro"] {
       animation-name: ink-fade-rise;
-      animation-delay: 90ms;
+      animation-delay: 50ms;
     }
     html[data-motion] [data-hero-step="meta-actions"] {
       animation-name: ink-fade-rise;
-      animation-delay: 140ms;
+      animation-delay: 100ms;
     }
-    html[data-motion] [data-hero-step="code"] {
-      animation-name: ink-rise; /* LCP guard — see the block comment above */
+    html[data-motion] [data-hero-step="line"] {
+      animation-name: ink-fade-rise;
       animation-delay: 120ms;
     }
-    html[data-motion] [data-hero-step="scroll"] {
-      animation-name: ink-fade-rise;
-      animation-delay: 550ms;
-    }
-  }
-
-  /* The hero terminal's `whoami` types once (HeroTerminal.tsx, TypeOnce.tsx).
-     A clip, not a text change: every character is in the DOM from the first
-     paint and the line box never changes size, so there is no layout shift.
-     Under reduced motion the rule never applies and the lines are whole. */
-  @keyframes term-type {
-    from {
-      clip-path: inset(0 100% 0 0);
-    }
-    to {
-      clip-path: inset(0 0 0 0);
-    }
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    [data-typing] [data-type-line] {
-      animation: term-type 0.6s steps(28) both;
-      animation-delay: calc(var(--line) * 120ms);
+    html[data-motion] [data-hero-step="field-tag"] {
+      animation-name: ink-rise; /* LCP guard — see the block comment above */
+      animation-delay: 160ms;
     }
   }
 

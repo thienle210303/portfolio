@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { profile } from "../src/content/portfolio";
-import { currentEntry } from "../src/lib/terminal";
+import { currentEntry } from "../src/lib/content";
 
 // Round 20 Phase 3 (spec §3): Hero A. Identity beside a dark terminal card.
 // Each test pins one viewport rather than running per project.

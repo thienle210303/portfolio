@@ -143,9 +143,7 @@ export function buildDocuments(): Document[] {
   // the headline in its identity column (HeroIdentity). It was the last sentence of `about`
   // before round 18 and so was indexed with it; it is rendered there again,
   // which is what makes the "More on this in About" link on an answer truthful.
-  // `profile.focus`, next, is printed in #about for the same reason, as the
-  // hero terminal's `focus` line (src/lib/terminal.ts). tests/sections/Hero.test.tsx
-  // holds both.
+  // tests/sections/Hero.test.tsx holds it.
   docs.push({
     text: profile.positioning,
     source: "About, in his own words",
@@ -154,11 +152,11 @@ export function buildDocuments(): Document[] {
     label: label("about", undefined, profile.name, profile.title),
   });
 
+  // No section: round 21 retired the hero terminal that printed `focus`, and
+  // nothing else renders it — the same call as `about` above.
   docs.push({
     text: profile.focus,
     source: "About, in his own words",
-    sectionId: "about",
-    sectionLabel: "About",
     label: label("about", undefined, "focus", "areas", "specialism"),
   });
 
