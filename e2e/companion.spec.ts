@@ -1220,7 +1220,8 @@ test.describe("companion", () => {
       stopsRead.length,
       `too few distinct stops were looked at for the head check to mean anything: ${JSON.stringify(stopsRead)}`,
     ).toBeGreaterThanOrEqual(3);
-    expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);    expect(
+    expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);
+    expect(
       await page.evaluate(() => (window as unknown as { __shows: unknown[] }).__shows),
       "the tree's show started",
     ).toEqual([]);

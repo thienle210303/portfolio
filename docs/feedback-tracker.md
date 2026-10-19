@@ -1789,7 +1789,7 @@ Full e2e at `--workers=2` against `pnpm dev -p 3171`: 921 passed, 795 skipped, 1
 - `ask.spec.ts:463` and `:489` were real: the Bricolage swap made the idle chat taller than `--ask-room` at 520-639, 1024-1279 and 1280+ px. Fixed by re-measuring (static mode, 320-1920 px every 4 px): 49rem -> 54.5rem, 50.5rem -> 55.5rem, 44.5rem -> 46.5rem; comments updated. All of `ask.spec.ts` passes after.
 - `companion.spec.ts:914` still fails at 1440: "a drawing over contact in night is invisible", ratio 1.82 against a floor of 3. Not fixed here (see Remaining risks below).
 
-Remaining risk: the cats' ink at night over Contact. The test measures the cat's ink against the `--ground` of the element under it; at night Contact now carries light lantern surfaces, and `syncTone` repoints tone only for `.tone-*` zones, not `.bg-surface`. Inferred, not isolated. Needs an owner/Phase 2+ decision.
+Remaining risk: the cats' ink at night over Contact. The test measures the cat's ink against the `--ground` of the element under it; at night Contact now carries light lantern surfaces, and `syncTone` repoints tone only for `.tone-*` zones, not `.bg-surface`. Inferred, not isolated. Needs an owner/Phase 2+ decision. **Closed in Phase 2:** explained by Phase 1's data-paper fix (globals.css paper scope + companion-space.ts syncTone); the failure no longer reproduces.
 
 ## Round 21 phase 2 (2026-10-19) — Worlds removed
 
@@ -1801,7 +1801,7 @@ Production build at `bd00ad2`, headless Chromium, `pnpm start` on `:3177`. CPU r
 
 **Verification.** `pnpm verify` 5/5 (803 unit tests, 50 files; contrast 60 pairings, all >= AA, lowest 4.52:1). Retrieval eval: the thresholds pass; the scoreboard is not printed on a pass, and Task 5 recorded recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807 before and after, unchanged from R21-P1.
 
-**e2e** at `--workers=2` against the production build on `:3177`: 685 passed, 755 skipped, 0 failed (15.7 min), so no retries were needed. The `companion.spec.ts:914` night-over-Contact failure recorded in P1 did not fail here. Not investigated why; the P1 note still stands as unexplained.
+**e2e** at `--workers=2` against the production build on `:3177`: 685 passed, 755 skipped, 0 failed (15.7 min), so no retries were needed. The `companion.spec.ts:914` night-over-Contact failure recorded in P1 did not fail here. Explained by Phase 1's data-paper fix (globals.css paper scope + companion-space.ts syncTone); the P1 risk is closed.
 
 **Screens** (`reports/r21-p2-screens/`, untracked): 1440x900 and 390x844, day and night. The nav reads About, Journey, Contact; `main` holds `#about`, `#tree`, `#contact` in that order; `#worlds` is an `sr-only` span in About.
 

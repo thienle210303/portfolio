@@ -182,7 +182,6 @@ export function buildDocuments(): Document[] {
       "immigrant",
       "immigrated",
       "moved",
-      "move",
       "vietnam",
       "vietnamese",
       origin.from,

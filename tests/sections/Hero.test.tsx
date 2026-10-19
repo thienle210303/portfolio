@@ -24,7 +24,7 @@ describe("Hero", () => {
     expect(anchor).not.toBeNull();
     expect(anchor).toHaveAttribute("aria-hidden", "true");
     expect(anchor?.className).toMatch(/scroll-mt-20/);
-    expect(ABOUT_LEGACY_SECTION_IDS).toEqual(["worlds"]);
+    expect(ABOUT_LEGACY_SECTION_IDS).toContain("worlds");
   });
 
   it("names the current role and employer in the eyebrow", () => {

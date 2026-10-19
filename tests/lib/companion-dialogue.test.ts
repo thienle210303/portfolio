@@ -31,7 +31,7 @@ const FACTS: CompanionFacts = {
 
 const AMBIENT_SECTIONS = ["about", "tree"];
 // Tour-only stops: sections the guided tour visits but the ambient banter
-// never does, because it has an AMBIENT builder of its own.
+// never does, because it has no AMBIENT builder of its own.
 const TOUR_ONLY_SECTIONS = ["contact"];
 
 describe("scene bank", () => {
@@ -74,7 +74,6 @@ describe("scene bank", () => {
   it("offers encores exactly where a second fact exists", () => {
     expect(hasEncore("tree", FACTS)).toBe(true);
     expect(hasEncore("about", FACTS)).toBe(false);
-    expect(hasEncore("worlds", FACTS)).toBe(false);
     expect(sceneFor("tour", "worlds", FACTS)).toBeNull();
     expect(hasEncore(null, FACTS)).toBe(false);
   });

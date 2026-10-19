@@ -226,6 +226,9 @@ describe("answer", () => {
       // back, and the mechanism assertion that actually pins it is below.
       "how do I file my taxes",
       "how do I file a bug",
+      "how do I move a file",
+      "how to move house",
+      "can I move the meeting",
     ]) {
       expect(answer(offTopic), `"${offTopic}" should return nothing`).toEqual([]);
     }
@@ -343,7 +346,7 @@ describe("origin after Worlds", () => {
     expect(buildDocuments().filter((d) => d.sectionId === "worlds")).toEqual([]);
   });
 
-  it.each(["is he from vietnam", "when did he move to the US"])(
+  it.each(["is he from vietnam", "is he an immigrant"])(
     "origin question %j still cites About",
     (q) => {
       const top = answer(q, 1)[0];

@@ -28,7 +28,7 @@ export default function Home() {
     <>
       {/*
         Three sections, in the order a visitor needs them: who he is, where he
-        has been, how to reach him. Phase 5 adds Record between the Journey and
+        has been, how to reach him. A Record section is planned between the Journey and
         Contact.
 
         Worlds (the globe) left the page in round 21; `#worlds` still lands on

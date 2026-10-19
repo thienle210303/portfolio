@@ -170,7 +170,7 @@ export const socialLinks = [
 // Order must match the render order in src/app/page.tsx: the nav doubles as
 // the page's table of contents, and a nav that lists sections in a different
 // order than the page scrolls through them is actively misleading.
-// Round 21: three sections (Record arrives in Phase 5). Worlds is gone, and
+// Round 21: three sections (a Record section is planned). Worlds is gone, and
 // `#worlds` now lands on About (src/sections/Hero/anchors.ts). Selected Work
 // and Skills went in round 18 — the case studies render inside the Journey's
 // branches. The Journey is the `tree` section,

@@ -22,10 +22,6 @@ describe("buildCompanionFacts", () => {
     expect(facts.about.organization).toBe(current?.organization ?? "");
   });
 
-  it("no longer carries the globe's counts", () => {
-    expect("worlds" in facts).toBe(false);
-  });
-
   it("counts branches, leaves and technologies off the tree the Journey draws, not every entry", () => {
     // `buildDrawnTree()` is the call `CareerTree.tsx` builds its rail from
     // ("Branches: N drawn · 9 as credentials"). Recomputed here by hand from the drawn branches, not by

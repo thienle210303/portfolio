@@ -57,14 +57,14 @@ Rules that keep that working:
 
 ### The globe (removed)
 
-The globe and its WebGL engine were removed in Round 21: the hero's clothesline
-now tells the crossing, so the globe was redundant, and it was the heaviest code
-on the page. It is in git history. There is still no 3D library; do not add one.
+The globe and its WebGL engine were removed in Round 21: the globe was
+redundant, and it was the heaviest code on the page (the crossing moves to the
+hero's clothesline in Round 21's hero phase). It is in git history. There is still no 3D library; do not add one.
 
 ## Changing what the site says
 
-The page is three sections, in this order (Record joins between the Journey and
-Contact in Phase 5): About (`#about` — the hero: a short
+The page is three sections, in this order (a Record section is planned between the Journey and
+Contact): About (`#about` — the hero: a short
 identity column beside a terminal card built from content, no rail, no height
 floor: it is as tall as its content), the Journey (`#tree`: highlight cards, the
 drawn tree at >=1024px, then a one-open timeline of rows) and Contact
