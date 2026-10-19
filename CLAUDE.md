@@ -79,7 +79,8 @@ hook for Phase 7; keep it, once.
 The page is three sections, in this order (a Record section is planned between the Journey and
 Contact): About (`#about` — the hero: my headline and two actions under a
 clothesline of four chapter tags that turn over to my line about each, my
-field tag at the line's end, the scenery behind; no rail, no height floor: it
+field tag with the LinkedIn QR at the line's end, the morning/evening scenery
+drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: highlight cards, the
 drawn tree at >=1024px, then a one-open timeline of rows) and Contact
 (`#contact`: the chat at `#ask` on the left, and a business card on the right
@@ -124,9 +125,7 @@ The fix was to take the strings off the indexed surface, which the retrieval
 eval priced at zero, where gating the engine harder instead cost ten points of
 recall@3. The strings are gone now, so no test fences them; the lesson is that
 text whose vocabulary is generic costs precision everywhere and earns recall
-nowhere the eval can see. `aiTools` is `src/content/portfolio.ts` content;
-nothing renders it since round 21 retired the hero's terminal (its future is
-an open owner question).
+nowhere the eval can see.
 
 ### The Journey's tree
 

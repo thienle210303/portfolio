@@ -321,21 +321,6 @@ export interface Achievement {
 }
 
 /* -------------------------------------------------------------------------- */
-/* AI Workflow Lab                                                             */
-/* -------------------------------------------------------------------------- */
-
-export type AiToolId = "claude-code" | "codex" | "cursor" | "playwright";
-
-export interface AiTool {
-  readonly id: AiToolId;
-  readonly name: string;
-  readonly vendor: string;
-  readonly what: string;
-  /** Official docs. Required for anything time-sensitive. */
-  readonly href: string;
-}
-
-/* -------------------------------------------------------------------------- */
 /* Code highlighting                                                           */
 /* -------------------------------------------------------------------------- */
 

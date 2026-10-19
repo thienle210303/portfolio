@@ -5,7 +5,7 @@ experience, performance, and workflows that did not previously exist.
 
 The site is a single narrative page in three sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
-that turn over to my line about each, with my field tag at its end; the **Journey** — five
+that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — five
 measured highlights, a drawn career tree, and a timeline of rows that open one
 at a time, with the case studies inside them (in the rows of the roles that
 produced them, or after the timeline for the coursework); and **Contact**: a
@@ -172,7 +172,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` (rendered nowhere since round 21), Contact's copy (`contactCopy`) and the footer line |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, Contact's copy (`contactCopy`) and the footer line |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
 Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's

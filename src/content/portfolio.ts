@@ -16,7 +16,6 @@ import { resolveSiteUrl } from "@/lib/site-url";
 import type {
   HeroCopy,
   Achievement,
-  AiTool,
   CareerEntry,
   Certification,
   Companion,
@@ -1420,44 +1419,6 @@ export const highlights = [
   { entryId: "usc-scraping", value: "3M+", label: "Amazon and Kroger records, unattended for months." },
   { entryId: "usc-ta", value: "200+", label: "Students helped in open lab." },
 ] as const satisfies readonly Highlight[];
-
-/* -------------------------------------------------------------------------- */
-/* AI tooling reference                                                        */
-/* -------------------------------------------------------------------------- */
-
-/** Rendered nowhere since round 21 retired the hero terminal. Kept pending the
- *  owner's answer to round 21 phase 3's open question 5 (keep for a later page,
- *  or delete). */
-export const aiTools = [
-  {
-    id: "claude-code",
-    name: "Claude Code",
-    vendor: "Anthropic",
-    what: "Agentic coding in the terminal and editor.",
-    href: "https://code.claude.com/docs",
-  },
-  {
-    id: "codex",
-    name: "Codex",
-    vendor: "OpenAI",
-    what: "Agentic coding assistant.",
-    href: "https://developers.openai.com/codex/",
-  },
-  {
-    id: "cursor",
-    name: "Cursor",
-    vendor: "Anysphere",
-    what: "AI-native code editor.",
-    href: "https://cursor.com/docs",
-  },
-  {
-    id: "playwright",
-    name: "Playwright",
-    vendor: "Microsoft",
-    what: "Browser automation — used as the agent's hands, not as an AI tool.",
-    href: "https://playwright.dev/docs/intro",
-  },
-] satisfies readonly AiTool[];
 
 /* -------------------------------------------------------------------------- */
 /* Contact                                                                     */
