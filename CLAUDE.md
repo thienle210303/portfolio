@@ -49,8 +49,11 @@ Rules that keep that working:
   beside it, and it never holds a fact that exists nowhere else.
 - Changing any palette token means re-running `pnpm contrast`, which
   regenerates `docs/contrast.md` and **fails if any pairing drops below
-  4.5:1**. Check tertiary tones against `--color-lichen-deep`, not
-  `--color-lichen` — the half-step-darker ground is where they fail first.
+  4.5:1**. Quiet sections are transparent and sit on the sky (`--sky`, built
+  from `--color-morning-*` by day and `--color-dusk-high` → `--color-dusk-deep`
+  by night), so text is checked against the sky's top and bottom stops as
+  well as the flat grounds; by day the top stop, `--color-morning-high`, is
+  the sky's darkest.
 
 ### The globe
 

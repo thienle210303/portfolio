@@ -18,6 +18,10 @@ Lowest pairing in the current palette: **4.52:1**
 ## How to read the scope column
 
 - **quiet** — `tone="base"` and `tone="deep"` sections, i.e. most of the page.
+  They are transparent in both themes, so their text sits on the sky: the
+  rows marked "sky top" / "sky bottom" are the stops that text is checked
+  against. The flat lichen / dusk grounds still back the header, the
+  companion's cut-outs and anything else that fills with `--ground`.
 - **loud** — `tone="contrast"` surfaces (the footer strip, the last contrast
   surface). In day this inverts to an ink ground; in night it deepens to a
   raised panel rather than flashing white. Night's light `bg-surface` paper
@@ -26,6 +30,22 @@ Lowest pairing in the current palette: **4.52:1**
 
 | Theme | Scope | Background | Foreground | Used for | Ratio | Level |
 |---|---|---|---|---|---|---|
+| Day | quiet | `#dce6e2` | `#1d2321` | body text, sky top | 12.52:1 | AAA |
+| Day | quiet | `#dce6e2` | `#56605a` | secondary text, sky top | 5.12:1 | AA |
+| Day | quiet | `#dce6e2` | `#46603a` | links, rail labels, metrics, sky top | 5.50:1 | AA |
+| Day | quiet | `#dce6e2` | `#c8102e` | the single mark, sky top | 4.61:1 | AA |
+| Day | quiet | `#ecece2` | `#1d2321` | body text, sky bottom | 13.44:1 | AAA |
+| Day | quiet | `#ecece2` | `#56605a` | secondary text, sky bottom | 5.49:1 | AA |
+| Day | quiet | `#ecece2` | `#46603a` | links, rail labels, metrics, sky bottom | 5.90:1 | AA |
+| Day | quiet | `#ecece2` | `#c8102e` | the single mark, sky bottom | 4.95:1 | AA |
+| Night | quiet | `#1f3237` | `#e6ece7` | body text, sky top | 11.16:1 | AAA |
+| Night | quiet | `#1f3237` | `#a9b6ae` | secondary text, sky top | 6.36:1 | AA |
+| Night | quiet | `#1f3237` | `#86aa76` | links, rail labels, metrics, sky top | 5.11:1 | AA |
+| Night | quiet | `#1f3237` | `#ff7a85` | the single mark, sky top | 5.34:1 | AA |
+| Night | quiet | `#0d1416` | `#e6ece7` | body text, sky bottom | 15.52:1 | AAA |
+| Night | quiet | `#0d1416` | `#a9b6ae` | secondary text, sky bottom | 8.85:1 | AAA |
+| Night | quiet | `#0d1416` | `#86aa76` | links, rail labels, metrics, sky bottom | 7.11:1 | AAA |
+| Night | quiet | `#0d1416` | `#ff7a85` | the single mark, sky bottom | 7.42:1 | AAA |
 | Day | quiet | `#e4e8e0` | `#1d2321` | body text | 12.87:1 | AAA |
 | Day | quiet | `#e4e8e0` | `#56605a` | secondary text | 5.26:1 | AA |
 | Day | quiet | `#e4e8e0` | `#46603a` | links, rail labels, metrics | 5.65:1 | AA |
@@ -46,7 +66,7 @@ Lowest pairing in the current palette: **4.52:1**
 | Day | loud | `#1d2321` | `#ff7a85` | contrast-chapter mark | 6.37:1 | AA |
 | Day | loud | `#1e2c30` | `#fbfbf8` | contrast-chapter surface text | 13.89:1 | AAA |
 | Day | loud | `#1e2c30` | `#a9b6ae` | contrast-chapter surface secondary | 6.85:1 | AA |
-| Day | loud | `#a8c99a` | `#142024` | control label | 9.10:1 | AAA |
+| Day | loud | `#a8c99a` | `#10181a` | control label | 9.84:1 | AAA |
 | Day | loud | `#86aa76` | `#142024` | control hover | 6.36:1 | AA |
 | Night | quiet | `#142024` | `#e6ece7` | body text | 13.88:1 | AAA |
 | Night | quiet | `#142024` | `#a9b6ae` | secondary text | 7.92:1 | AAA |
@@ -76,10 +96,12 @@ Lowest pairing in the current palette: **4.52:1**
 Red is the first thing to re-check if a ground moves. Two pairings sit closest
 to the floor:
 
-- **`--color-red` on `--color-lichen-deep`** (day, the mark in `deep` sections),
+- **`--color-red` on `--color-lichen-deep`** (day, the flat `deep` ground),
   4.52:1.
-- **`--color-red` on `--color-lichen`** (day, the mark on the base ground),
-  4.74:1.
+- **`--color-red` on `--color-morning-high`** (day, the mark on the sky's
+  darkest stop), 4.61:1.
 
-A tertiary tone must be checked against `--color-lichen-deep`, the
-half-step-darker ground, never only against `--color-lichen`.
+Quiet sections sit on the sky, so a text tone must be checked against both
+stops of each theme's sky — in day the darkest is the top stop,
+`--color-morning-high` — and against the flat grounds that still fill
+cut-outs and the header.

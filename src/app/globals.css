@@ -3,10 +3,11 @@
 /* -------------------------------------------------------------------------- */
 /* Palette — "outdoors". Raw tokens and nothing else.                         */
 /*                                                                            */
-/* Day is a lichen ground with paper surfaces and ink type; the one hue is a  */
-/* moss green, reserved for annotation, links and measured values, with a     */
-/* deeper moss for the single primary control and a flag red for the single   */
-/* mark. It is never decoration.                                              */
+/* Day is a morning field: a pale sky over a lichen ground, with paper        */
+/* surfaces and ink type. The one hue is a moss green, reserved for           */
+/* annotation, links and measured values, with a deeper moss for the single   */
+/* primary control and a flag red for the single mark. It is never            */
+/* decoration.                                                                */
 /*                                                                            */
 /* Night is a moonlit field, not a mirrored day: the ground is a dark sky     */
 /* (`dusk`), the surfaces are light "lantern" paper with dark ink, and the    */
@@ -31,6 +32,10 @@
   --color-moss-deep: #1f3a30;
   --color-hairline: #c9d0c8;
   --color-red: #c8102e;
+  /* The morning sky, top to bottom (see --sky). */
+  --color-morning-high: #dce6e2;
+  --color-morning: #e4eae1;
+  --color-morning-low: #ecece2;
 
   /* Night — the moonlit field. */
   --color-dusk: #142024;
@@ -43,6 +48,8 @@
   --color-dusk-label: #10181a;
   --color-dusk-hairline: #3a4844;
   --color-dusk-red: #ff7a85;
+  /* The night sky's top stop; it falls through dusk to dusk-deep. */
+  --color-dusk-high: #1f3237;
   --color-lantern: #ede7d8;
   --color-lantern-raised: #f3eee2;
   --color-lantern-muted: #5a5f55;
@@ -238,6 +245,10 @@
     --l-grid: rgba(143, 178, 126, 0.08);
     --grid-step: 26px;
 
+    /* The sky: one backdrop behind the whole page, painted on `body` (see
+       `:root body` under `.blueprint-grid`). Day is a morning field. */
+    --sky: linear-gradient(180deg, var(--color-morning-high) 0%, var(--color-morning) 45%, var(--color-morning-low) 100%);
+
     /* The fade at the right edge of a horizontally scrollable code panel.
        Paired with each surface, not with the theme: it has to darken toward
        whichever ground the panel is actually drawn on. */
@@ -300,9 +311,8 @@
     --q-grid: rgba(143, 178, 126, 0.07);
     --l-grid: rgba(143, 178, 126, 0.09);
 
-    /* The sky: one backdrop behind the whole page, painted on `body` (see
-       `:root[data-theme="night"] body` under `.blueprint-grid`). */
-    --sky: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
+    /* The night sky: same backdrop as day's, different stops. */
+    --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
   }
 
   /* Paper scope: light surface, dark ink. --ground becomes lantern-raised so
@@ -354,7 +364,7 @@
 
       --q-grid: rgba(143, 178, 126, 0.07);
       --l-grid: rgba(143, 178, 126, 0.09);
-      --sky: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
+      --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
     }
 
     :root:not([data-theme="day"]) :is(.bg-surface, [data-paper]) {
@@ -604,45 +614,34 @@
   }
 
   /*
-   * The night sky: one backdrop behind the whole page, so it is painted on
-   * `body` and the quiet sections let it show through (`.section-ground`
-   * below). This rule lives in `components` because `.blueprint-grid` (also on
-   * `body`) does, and a `components` rule outranks anything in `base`. It
+   * The sky: one backdrop behind the whole page in both themes, so it is
+   * painted on `body` and the quiet sections let it show through
+   * (`.section-ground` below). Each theme only supplies `--sky`, so the no-JS
+   * night path needs nothing here. This rule lives in `components` because
+   * `.blueprint-grid` (also on `body`) does, and `:root body` outranks it. It
    * replaces the grid on `body` only: the hero's own `.blueprint-grid` is a
    * different element and still draws its fixed ruling over the sky. `fixed`
    * pins the sky to the viewport, so it is continuous across sections and
    * simply scrolls with the page where unsupported.
    */
-  :root[data-theme="night"] body {
+  :root body {
     background-image: var(--sky);
     background-size: 100% 100%;
     background-attachment: fixed;
   }
 
   /*
-   * A section's own ground. Day and `tone-contrast` paint `--ground` as before;
-   * at night the quiet tones (`base`, `deep`) are transparent so the sky shows
-   * through. `--ground` itself stays a flat colour for anything that needs a
-   * solid fill (the header, the companion's cut-outs).
+   * A section's own ground. Only `tone-contrast` paints it; the quiet tones
+   * (`base`, `deep`) are transparent in both themes so the sky shows through.
+   * `--ground` itself stays a flat colour for anything that needs a solid fill
+   * (the header, the companion's cut-outs).
    */
   .section-ground {
     background-color: var(--ground);
   }
 
-  :root[data-theme="night"] .section-ground:not(.tone-contrast) {
+  .section-ground:not(.tone-contrast) {
     background-color: transparent;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="day"]) body {
-      background-image: var(--sky);
-      background-size: 100% 100%;
-      background-attachment: fixed;
-    }
-
-    :root:not([data-theme="day"]) .section-ground:not(.tone-contrast) {
-      background-color: transparent;
-    }
   }
 
   /* `position: relative` is for the lead-in below, not decoration. The

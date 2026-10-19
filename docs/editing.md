@@ -172,8 +172,10 @@ never claims to have sent something it did not. See `.env.example`.
 
 Edit the `@theme` block in `src/app/globals.css`, then run `pnpm contrast`. It
 regenerates `docs/contrast.md` and **fails if any pairing drops below 4.5:1**.
-Check tertiary tones against `--color-paper-deep`, not `--color-paper` — the
-half-step-darker ground is where they fail first.
+Quiet sections sit on the sky, so text is checked against the top and bottom
+stop of each theme's sky as well as the flat grounds; by day the top stop,
+`--color-morning-high`, is the sky's darkest. See
+CLAUDE.md's design-system section.
 
 ## Before you publish
 

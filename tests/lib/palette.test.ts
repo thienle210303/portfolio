@@ -13,11 +13,19 @@ for (const [, name, value] of themeBlock.matchAll(/--color-([a-z-]+):\s*(#[0-9a-
   tokens[name] = value;
 }
 
-// Body of the first rule whose selector (text before `{`) matches exactly.
+// Body of the first rule at or after `from` whose selector (text before `{`)
+// matches, with any run of whitespace in `selector` matching any other.
 function rule(selector: string, from = 0): string {
-  const at = CSS.indexOf(`${selector} {`, from);
-  expect(at, `rule "${selector}" not found`).toBeGreaterThanOrEqual(0);
-  const open = CSS.indexOf("{", at);
+  const source = selector
+    .trim()
+    .split(/\s+/)
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("\\s+");
+  const re = new RegExp(`(^|[\\s;}])${source}\\s*\\{`, "g");
+  re.lastIndex = Math.max(0, from - 1); // room for the separator before a selector at `from`
+  const match = re.exec(CSS);
+  expect(match, `rule "${selector}" not found`).not.toBeNull();
+  const open = match!.index + match![0].length - 1;
   let depth = 1;
   let i = open + 1;
   while (depth > 0) {
@@ -37,6 +45,9 @@ const decls = (body: string) =>
       .filter(Boolean),
   );
 
+const PAPER_NIGHT = ':root[data-theme="night"] :is(.bg-surface, [data-paper])';
+const PAPER_TWIN = ':root:not([data-theme="day"]) :is(.bg-surface, [data-paper])';
+
 const DAY = {
   lichen: "#e4e8e0",
   "lichen-deep": "#dfe3da",
@@ -47,6 +58,9 @@ const DAY = {
   "moss-deep": "#1f3a30",
   hairline: "#c9d0c8",
   red: "#c8102e",
+  "morning-high": "#dce6e2",
+  morning: "#e4eae1",
+  "morning-low": "#ecece2",
 };
 
 const NIGHT = {
@@ -64,6 +78,7 @@ const NIGHT = {
   "lantern-raised": "#f3eee2",
   "lantern-muted": "#5a5f55",
   "lantern-rule": "#d3ccb9",
+  "dusk-high": "#1f3237",
 };
 
 describe("the outdoors palette", () => {
@@ -107,44 +122,43 @@ describe("the outdoors palette", () => {
     const twin = decls(rule(':root:not([data-theme="day"])', media));
     expect(stamped.size).toBeGreaterThan(10);
     expect(twin).toEqual(stamped);
-    for (const part of ["body", ".bg-surface", ".section-ground:not(.tone-contrast)"]) {
-      const night = decls(rule(`:root[data-theme="night"] ${part}`));
-      expect(night.size, part).toBeGreaterThan(0);
-      expect(decls(rule(`:root:not([data-theme="day"]) ${part}`)), part).toEqual(night);
-    }
+    const paper = decls(rule(PAPER_NIGHT));
+    expect(paper.size).toBeGreaterThan(0);
+    expect(decls(rule(PAPER_TWIN, media))).toEqual(paper);
   });
 
-  it("the sky is defined once and painted fixed on body at night", () => {
-    const sky = "linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%)";
-    expect(CSS.split(sky)).toHaveLength(3); // the stamped block and its twin, nothing else
-    for (const sel of [':root[data-theme="night"] body', ':root:not([data-theme="day"]) body']) {
-      const body = rule(sel);
-      expect(body).toContain("background-image: var(--sky)");
-      expect(body).toContain("background-attachment: fixed");
-    }
+  const DAY_SKY =
+    "linear-gradient(180deg, var(--color-morning-high) 0%, var(--color-morning) 45%, var(--color-morning-low) 100%)";
+  const NIGHT_SKY =
+    "linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%)";
+  // The day `:root` block is the one that sets `color-scheme: light`.
+  const dayRoot = () => rule(":root", CSS.lastIndexOf(":root {", CSS.indexOf("color-scheme: light")));
+
+  it("each theme defines its sky once, from palette tokens", () => {
+    expect(CSS.match(/--sky:/g)).toHaveLength(3); // day, stamped night, no-JS twin
+    expect(dayRoot()).toContain(`--sky: ${DAY_SKY}`);
     for (const sel of [':root[data-theme="night"]', ':root:not([data-theme="day"])']) {
-      expect(rule(sel)).toContain(`--sky: ${sky}`);
+      expect(rule(sel)).toContain(`--sky: ${NIGHT_SKY}`);
     }
   });
 
-  it("night quiet sections let the sky through; loud keeps its ground", () => {
-    for (const sel of [
-      ':root[data-theme="night"] .section-ground:not(.tone-contrast)',
-      ':root:not([data-theme="day"]) .section-ground:not(.tone-contrast)',
-    ]) {
-      expect(rule(sel)).toContain("background-color: transparent");
-    }
+  it("the sky is painted fixed on body in both themes", () => {
+    const body = rule(":root body");
+    expect(body).toContain("background-image: var(--sky)");
+    expect(body).toContain("background-attachment: fixed");
+    // Theme-keyed body rules would split the two themes' backdrops apart again.
+    expect(CSS).not.toMatch(/data-theme="(day|night)"\]\)?\s+body\s*\{/);
+  });
+
+  it("quiet sections let the sky through in both themes; loud keeps its ground", () => {
+    expect(rule(".section-ground:not(.tone-contrast)")).toContain("background-color: transparent");
     expect(rule(".section-ground")).toContain("background-color: var(--ground)");
+    expect(CSS).not.toMatch(/data-theme="(day|night)"\]\)?\s+\.section-ground/);
   });
 
-  it("night paper repoints fg", () => {
-    const stamped = CSS.indexOf(':root[data-theme="night"] .bg-surface {');
-    expect(stamped).toBeGreaterThanOrEqual(0);
-    const media = CSS.indexOf("@media (prefers-color-scheme: dark)", stamped);
-    const twin = CSS.indexOf(':root:not([data-theme="day"]) .bg-surface {', media);
-    expect(twin).toBeGreaterThanOrEqual(0);
-    for (const at of [stamped, twin]) {
-      const body = rule(CSS.slice(at, CSS.indexOf("{", at)).trim(), at);
+  it("night paper repoints fg, on cards and on the companion over one", () => {
+    const media = CSS.indexOf("@media (prefers-color-scheme: dark)", CSS.indexOf(':root[data-theme="night"]'));
+    for (const body of [rule(PAPER_NIGHT), rule(PAPER_TWIN, media)]) {
       expect(body).toContain("--ground:");
       expect(body).toContain("--fg:");
       expect(body).toContain("--fg-muted:");

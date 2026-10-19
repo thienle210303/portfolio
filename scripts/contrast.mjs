@@ -54,7 +54,23 @@ const token = (name) => {
 
 /* ---------------------------------------------------------------- pairings -- */
 
+// Quiet sections are transparent, so their text sits on the sky: each theme's
+// top and bottom stop is measured (the middle stop lies between them).
+const SKY = [
+  ["Day", "morning-high", "top"],
+  ["Day", "morning-low", "bottom"],
+  ["Night", "dusk-high", "top"],
+  ["Night", "dusk-deep", "bottom"],
+];
+const SKY_TEXT = {
+  Day: [["ink", "body text"], ["muted", "secondary text"], ["moss", "links, rail labels, metrics"], ["red", "the single mark"]],
+  Night: [["dusk-ink", "body text"], ["dusk-muted", "secondary text"], ["dusk-moss", "links, rail labels, metrics"], ["dusk-red", "the single mark"]],
+};
+
 const PAIRINGS = [
+  ...SKY.flatMap(([theme, bg, stop]) =>
+    SKY_TEXT[theme].map(([fg, use]) => [theme, "quiet", bg, fg, `${use}, sky ${stop}`]),
+  ),
   ["Day", "quiet", "lichen", "ink", "body text"],
   ["Day", "quiet", "lichen", "muted", "secondary text"],
   ["Day", "quiet", "lichen", "moss", "links, rail labels, metrics"],
@@ -75,7 +91,7 @@ const PAIRINGS = [
   ["Day", "loud", "ink", "dusk-red", "contrast-chapter mark"],
   ["Day", "loud", "dusk-raised", "paper", "contrast-chapter surface text"],
   ["Day", "loud", "dusk-raised", "dusk-muted", "contrast-chapter surface secondary"],
-  ["Day", "loud", "dusk-control", "dusk", "control label"],
+  ["Day", "loud", "dusk-control", "dusk-label", "control label"],
   ["Day", "loud", "dusk-moss", "dusk", "control hover"],
   ["Night", "quiet", "dusk", "dusk-ink", "body text"],
   ["Night", "quiet", "dusk", "dusk-muted", "secondary text"],
@@ -144,6 +160,10 @@ Lowest pairing in the current palette: **${lowest.value.toFixed(2)}:1**
 ## How to read the scope column
 
 - **quiet** — \`tone="base"\` and \`tone="deep"\` sections, i.e. most of the page.
+  They are transparent in both themes, so their text sits on the sky: the
+  rows marked "sky top" / "sky bottom" are the stops that text is checked
+  against. The flat lichen / dusk grounds still back the header, the
+  companion's cut-outs and anything else that fills with \`--ground\`.
 - **loud** — \`tone="contrast"\` surfaces (the footer strip, the last contrast
   surface). In day this inverts to an ink ground; in night it deepens to a
   raised panel rather than flashing white. Night's light \`bg-surface\` paper
@@ -159,13 +179,15 @@ ${rows}
 Red is the first thing to re-check if a ground moves. Two pairings sit closest
 to the floor:
 
-- **\`--color-red\` on \`--color-lichen-deep\`** (day, the mark in \`deep\` sections),
+- **\`--color-red\` on \`--color-lichen-deep\`** (day, the flat \`deep\` ground),
   4.52:1.
-- **\`--color-red\` on \`--color-lichen\`** (day, the mark on the base ground),
-  4.74:1.
+- **\`--color-red\` on \`--color-morning-high\`** (day, the mark on the sky's
+  darkest stop), 4.61:1.
 
-A tertiary tone must be checked against \`--color-lichen-deep\`, the
-half-step-darker ground, never only against \`--color-lichen\`.
+Quiet sections sit on the sky, so a text tone must be checked against both
+stops of each theme's sky — in day the darkest is the top stop,
+\`--color-morning-high\` — and against the flat grounds that still fill
+cut-outs and the header.
 `,
 );
 
