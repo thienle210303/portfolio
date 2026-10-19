@@ -372,6 +372,8 @@ export function trailBehind(lead: Point, facing: 1 | -1, width: number, gap: num
  * before she closes the gap. The waypoint never rises above `minY`, the top of
  * the cats' safe band: with him just under the header, "over" would be a spot
  * she can never reach, and she would hover at the band's edge until he moved.
+ * A target in his own column is reached down the side of it instead, on a side
+ * inside `minX`..`maxX` (the clamp would otherwise hold her at the edge).
  *
  * Exists for one case: the pair spawn with her on his inland side, his first
  * walk heads that way, and her trailing spot (behind him) is across his own
@@ -395,6 +397,8 @@ export function detourAround(
   h: number,
   pad: number,
   minY: number,
+  minX = -Infinity,
+  maxX = Infinity,
 ): Point {
   // One pixel in from the edge, in the guard and the path test alike: `advance`
   // stops up to 0.6 px short of a waypoint, and a box she has to clear exactly
@@ -410,6 +414,19 @@ export function detourAround(
   }
   if (!blocked) return want;
   const over = Math.max(minY, lead.y - h - pad);
+  // A seat in his own column (on a phone, both clamp to the same edge and
+  // her seat is pushed below his toggle): sliding to `want.x` never leaves
+  // the column, so she parked above him for good. Beside the column, go
+  // straight to the seat's row and then across; in it, step out to whichever
+  // side is in bounds first.
+  const reach = w + pad - EDGE;
+  if (Math.abs(want.x - lead.x) < reach) {
+    if (Math.abs(from.x - lead.x) >= reach) return { x: from.x, y: want.y };
+    const right = lead.x + w + pad;
+    const left = lead.x - w - pad;
+    const x = (from.x >= lead.x && right <= maxX) || left < minX ? right : left;
+    return { x, y: from.y };
+  }
   return from.y < lead.y
     ? { x: want.x, y: Math.max(minY, Math.min(from.y, over)) }
     : { x: from.x, y: over };
