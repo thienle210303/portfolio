@@ -13,7 +13,18 @@ in both), retired anchors stay in the server HTML.
 
 **A little Việt Nam on every page** (owner, 2026-10-18: "just a bit, so people quickly recognise it"): the hero's bamboo pole carries a nón lá (conical hat) hung by its strap and the field tag's gold star; the Journey's oak holds one Hội An silk lantern (lit at night); the Record's left page has a pressed lotus taped beside the title; Contact has the lantern string, "Xin chào," and the Thiện Lê seal.
 
-Added the same day: a water buffalo (con trâu) grazing in the hero's rice, half hidden by the stalks; a steaming bowl of phở beside the Contact heading. **Tết only:** during the Lunar New Year window (dates computed per year from a small authored table, no runtime dependency), Contact's greeting becomes "Chúc mừng năm mới," and branches of hoa mai (yellow apricot blossom) and a bánh tét join the lantern string; the rest of the year none of it shows.
+Added the same day: a water buffalo (con trâu) grazing in the hero's rice, half hidden by the stalks.
+
+**A morning and an evening in Việt Nam** (owner, 2026-10-18): every page carries one small vignette of everyday life, different per page, morning by day and evening at night, each on a red (day) or blue (night) plastic street stool where it sits on the ground, with a short Newsreader caption:
+
+| Page | Day (morning) | Night (evening) |
+|---|---|---|
+| Hero | cà phê phin, first | lẩu, after work |
+| Journey | bánh mì on the way | trà đá on the corner (with sunflower seeds) |
+| Record | cà phê sữa đá, while I write | chè, while I write |
+| Contact | a bowl of phở beside "say hi." | two beers, "Một, hai, ba, dzô!" |
+
+**Tết lives on Contact all year** (owner: it's the showcase of the most important time in the culture, so not a hidden seasonal mode): hoa mai branches on the lantern string and a bánh tét beside the postcard, captioned "bánh tét and hoa mai, for Tết". The greeting stays "Xin chào,". There is no date-gated variant.
 
 New rule: **every word is me talking to you.** All copy, including chat
 questions, suggestion chips and empty states, is first person ("What do you
