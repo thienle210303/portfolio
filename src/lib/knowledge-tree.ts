@@ -313,8 +313,7 @@ export function careerYearSpan(): { firstYear: number; lastYear: number; years: 
 /**
  * The caption the drawing puts under the one shoot that never resolves into a
  * leaf. It lived as a JSX literal in two components (`DrawnTree.tsx` and
- * `list-ink.tsx`) and is now also quoted by the globe's Plants world, which
- * makes three — one too many for a string to be written down three times.
+ * `list-ink.tsx`); one source keeps them from drifting.
  */
 export function stillGrowingCaption(): string {
   return `still growing · ${careerYearSpan().lastYear}`;

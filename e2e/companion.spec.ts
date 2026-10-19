@@ -2569,7 +2569,7 @@ test.describe("companion", () => {
      * top-right and just under the header, after the same jump
      * `axe.spec.ts`'s own "case-study disclosure" test makes to reach
      * `#tree-heading` (it was `#work-heading` until round 18; the Journey now
-     * sits where Work did, straight after the globe).
+     * sits where Work did).
      */
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -2596,7 +2596,7 @@ test.describe("companion", () => {
      * own heading — large enough, this deep in the page, to clamp both cats
      * toward the top of the viewport in one frame. (Round 18 retargeted this
      * from `#work-heading`: Work is deleted and the Journey occupies the slot
-     * right after the globe that Work did, so it is the same jump by position.
+     * that Work did, so it is the same jump by position.
      * The distances are not identical and nothing here has re-measured them.)
      * Made from inside the page, centred as `scrollIntoViewIfNeeded` centres,
      * so the clock below starts at the scroll itself.

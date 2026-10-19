@@ -210,7 +210,7 @@ describe("answer", () => {
       //  - "who won the world cup" is the **load-bearing** probe, and the
       //    strongest refusal case in this file. Three of its four terms are
       //    genuine index terms ("who" is a deliberate non-stop-word aliased
-      //    onto About; "won" is in an award line; "world" is on the globe), so
+      //    onto About; "won" is in an award line; "world" was on the globe), so
       //    vocabulary alone does not save it. It refuses only because
       //    `requiredMatches` demands two matches in one document at four
       //    terms, and no document holds two of them. Loosen that gate and this

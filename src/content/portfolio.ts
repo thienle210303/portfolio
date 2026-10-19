@@ -23,7 +23,6 @@ import type {
   Highlight,
   NavItem,
   Origin,
-  OriginStops,
   Profile,
   Project,
   SkillCategory,
@@ -105,13 +104,10 @@ export const profile = {
  */
 export const origin = {
   // Province level, no city (owner's decision, 2026-09-02). This one string
-  // serves the globe's pin, the origin story's captions and the résumé — the
-  // site must never carry two names for one place.
+  // serves the origin story's captions and the résumé — the site must never
+  // carry two names for one place.
   from: "Kiên Giang, Việt Nam",
-  // Round 18: a city, not a country. Until now no city was authored anywhere
-  // on this site, which is why the globe pinned the geographic centre of the
-  // United States and said so out loud in the arrival pin's `where` line (until round 20,
-  // Living Earth's). Both change with this one field.
+  // A city, not a country (round 18).
   to: "Taylors, South Carolina",
   arrived: "December 2018",
   arrivedOn: "2018-12",
@@ -119,32 +115,7 @@ export const origin = {
   born: "2003-03-03",
   withFamily: true,
   english: "Basic reading, writing and listening. No speaking.",
-  coordinates: {
-    from: { lat: 10.0, lon: 105.1 },
-    // Taylors, South Carolina — 34°54′48″N 82°18′39″W per Wikipedia and
-    // TopoZone (GNIS). The one coordinate pair on this site that is not from
-    // the résumé or the old repo, so it names its source instead.
-    to: { lat: 34.9133, lon: -82.3108 },
-  },
 } satisfies Origin;
-
-/**
- * The globe's three stops: the two captions no other record holds, and the
- * university's pin. Taylors' caption is `eastside-high`'s headline, read in
- * `buildStops()`, never retyped here.
- */
-export const originStops = {
-  "kien-giang": { caption: "Where it starts." },
-  usc: {
-    // `usc-degree.context` says the degree began in chemical engineering.
-    caption: "Chemical engineering first, then computer science.",
-    // University of South Carolina's Columbia campus, authored 2026-10-17
-    // (round 20 phase 4) so the third stop has a pin to turn to. Like Taylors
-    // above it is not from the résumé; unlike Taylors it was not checked
-    // against a gazetteer, so treat it as campus-level, not building-level.
-    coordinates: { lat: 33.9938, lon: -81.03 },
-  },
-} satisfies OriginStops;
 
 /**
  * The two cats. Order is load-bearing: the lead cat is first, which is the

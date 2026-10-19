@@ -43,8 +43,8 @@ export function KnowledgeTreeList({ tree, className }: KnowledgeTreeListProps) {
     // Not `content-visibility: auto` (round 20 phase 5 tried it, at 1275px):
     // its height follows the rows' wrap, 1261px at 1024 to 1275px at 1440, so
     // the placeholder moved everything below it once it rendered. That gives
-    // back its paint saving (R20-P5 measured the Worlds band's document paint
-    // at ~85 ms without the skip, ~50 ms with it); the tree box's own far-off
+    // back its paint saving (R20-P5 measured ~85 ms of document paint without
+    // the skip, ~50 ms with it, on the band above this one); the tree box's own far-off
     // skip (TreeBox.tsx) is separate and stays.
     <TimelineAccordion className={cn("relative", className)}>
       <ListTrunk />

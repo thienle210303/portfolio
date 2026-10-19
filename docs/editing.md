@@ -6,10 +6,6 @@ open a component to change what the site says.
 | What you want to change | File |
 |---|---|
 | Roles, projects, metrics, skills, education, contact details | `src/content/portfolio.ts` |
-| The globe's three stops: `origin` (the crossing and its two pins), `originStops` (the first and third stops' captions, and the third's pin), `eastside-high`'s `headline` (the second stop's caption), and `usc-degree`'s `organization` and `dateRange` (the third stop's place and date) | `src/content/portfolio.ts` |
-
-The globe's stop list is built by `buildStops()` in `src/lib/origin-stops.ts`,
-which only reads those fields — so to change what a stop says, edit the field.
 
 (Round 18 deleted `src/content/ai-experiments.ts` and `src/content/workshop.ts`
 along with the Workshop section and the AI Workflow Lab's content. If you are
@@ -184,9 +180,7 @@ pnpm verify      # typecheck → lint → contrast → test → build
 pnpm test:e2e    # both themes, six viewports, keyboard, print, accessibility
 ```
 
-And if you touched the globe's chunk — `src/lib/globe.ts`,
-`src/sections/Worlds/*`, or anything that might import them — re-measure and
-record the row:
+And if your change could add JavaScript, re-measure and record the row:
 
 ```
 pnpm build
@@ -194,13 +188,8 @@ PORT=3100 pnpm start      # in one terminal
 pnpm perf                 # in another
 ```
 
-Read **initial JS** first. A move of more than a kilobyte or two means the
-globe engine (the WebGL2 shaders included) or the 53 KB of coastline data has
-leaked out of the lazy chunk:
-`GlobeCanvas` reaches the page only through the `import()` in
-`WorldsStage.tsx`, and a static import of it from anything server-rendered
-drags both into the initial bundle.
-`tests/lib/coastline-data.test.ts` fences the data side of that.
+Read **JS at load** first. A move of more than a kilobyte or two means
+something has leaked into the initial bundle.
 
 `pnpm perf` prints a skipped-response count and a `content-length`
 cross-check beside its own totals. A run reporting any skipped responses is

@@ -1,7 +1,6 @@
 /**
  * Measures desktop lag against a running production build: scroll smoothness
- * at 4x CPU, main-thread cost at rest in each section, and the stall on first
- * entry to Worlds. Deliberately NOT part of `pnpm verify`: it needs a server.
+ * at 4x CPU and main-thread cost at rest in each section. Deliberately NOT part of `pnpm verify`: it needs a server.
  *
  * Usage:
  *   pnpm build
@@ -11,7 +10,7 @@
  * Prints one JSON object. Headless Chromium has no real GPU, so this sees
  * main-thread JS and layout cost only. Numbers are comparable between runs on
  * the same machine. `rafPerSec` counts requestAnimationFrame calls scheduled,
- * not frames painted, so it can exceed the display rate. `rest` is unthrottled; `scroll4x` and the Worlds entry run
+ * not frames painted, so it can exceed the display rate. `rest` is unthrottled; `scroll4x` runs
  * at 4x CPU slowdown. Each `rest` sample starts 10 s after the jump to its
  * section: the jump is a scroll, a scroll tells the cats somebody is here, and
  * for some seconds after it they walk and talk, which is motion, not rest.
@@ -28,7 +27,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("@playwright/test");
 
 const targetUrl = process.env.LAG_URL || "http://localhost:3100/";
-const SECTIONS = ["about", "worlds", "tree", "contact"];
+const SECTIONS = ["about", "tree", "contact"];
 
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -150,30 +149,6 @@ const result = {};
       hitTestsPer5s: after.hits - before.hits,
     };
   }
-  await page.close();
-}
-
-// First entry to Worlds on a fresh load, 4x CPU: worst long task within 3 s.
-{
-  const { page } = await open(4);
-  const worst = await page.evaluate(
-    () =>
-      new Promise((resolve) => {
-        const el = document.getElementById("worlds");
-        const io = new IntersectionObserver((entries) => {
-          if (!entries.some((e) => e.isIntersecting)) return;
-          io.disconnect();
-          const t0 = performance.now();
-          setTimeout(() => {
-            const inWindow = window.__lag.longTasks.filter((t) => t.start >= t0 - 100 && t.start <= t0 + 3000);
-            resolve(Math.max(0, ...inWindow.map((t) => t.duration)));
-          }, 3000);
-        });
-        io.observe(el);
-        el.scrollIntoView({ behavior: "instant" });
-      }),
-  );
-  result.worldsEntryWorstTaskMs = Math.round(worst);
   await page.close();
 }
 
