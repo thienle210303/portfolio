@@ -3,7 +3,6 @@
  * layer; the only authored words are `hero` in `src/content/portfolio.ts`.
  */
 import { careerEntries, companions, hero, origin, profile, socialLinks } from "@/content/portfolio";
-import { currentEntry } from "./content";
 
 export type ChapterId = "origin" | "eastside-high" | "usc-degree" | "doordash";
 
@@ -33,6 +32,11 @@ function entry(id: string) {
   return found;
 }
 
+function headline(e: ReturnType<typeof entry>) {
+  if (!e.headline) throw new Error(`hero: career entry "${e.id}" has no headline`);
+  return e.headline;
+}
+
 export function buildChapters(): readonly Chapter[] {
   const eastside = entry("eastside-high");
   const usc = entry("usc-degree");
@@ -51,7 +55,7 @@ export function buildChapters(): readonly Chapter[] {
       id: "eastside-high",
       year: `${MONTH_ABBR[Number(month) - 1]} ${year}`,
       place: shortPlace(origin.to),
-      line: eastside.headline ?? "",
+      line: headline(eastside),
       entryId: eastside.id,
       drawing: "tag-pine",
     },

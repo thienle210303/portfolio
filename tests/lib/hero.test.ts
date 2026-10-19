@@ -19,6 +19,17 @@ describe("hero chapters", () => {
     expect(chapters[1].line).toBe(careerEntries.find((e) => e.id === "eastside-high")!.headline);
   });
 
+  it("throws rather than show a blank Taylors line when the headline is missing", () => {
+    const eastside = careerEntries.find((e) => e.id === "eastside-high") as { headline?: string };
+    const saved = eastside.headline;
+    eastside.headline = undefined;
+    try {
+      expect(() => buildChapters()).toThrow(/eastside-high/);
+    } finally {
+      eastside.headline = saved;
+    }
+  });
+
   it("takes the other lines from the authored ones", () => {
     expect(chapters[0].line).toBe(hero.chapterLines.origin);
     expect(chapters[2].line).toBe(hero.chapterLines["usc-degree"]);

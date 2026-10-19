@@ -92,8 +92,8 @@ export const profile = {
   // that trade is worth making. Recording the decision matters more than
   // recording the hesitation.
   // `availability` is rendered nowhere on the page since round 20 removed the
-  // hero's rail. `location` is printed as the field tag's Transplanted row via
-  // `origin.to`, not from here.
+  // hero's rail. `location` renders nowhere; the field tag's Transplanted row
+  // reads `origin.to`.
   location: "Taylors, South Carolina",
   availability: "Open to remote, and to relocation when it's worth it.",
   resumePdf: "/thien-le-resume.pdf",
