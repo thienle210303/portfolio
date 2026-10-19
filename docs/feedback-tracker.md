@@ -1790,3 +1790,19 @@ Full e2e at `--workers=2` against `pnpm dev -p 3171`: 921 passed, 795 skipped, 1
 - `companion.spec.ts:914` still fails at 1440: "a drawing over contact in night is invisible", ratio 1.82 against a floor of 3. Not fixed here (see Remaining risks below).
 
 Remaining risk: the cats' ink at night over Contact. The test measures the cat's ink against the `--ground` of the element under it; at night Contact now carries light lantern surfaces, and `syncTone` repoints tone only for `.tone-*` zones, not `.bg-surface`. Inferred, not isolated. Needs an owner/Phase 2+ decision.
+
+## Round 21 phase 2 (2026-10-19) — Worlds removed
+
+Production build at `bd00ad2`, headless Chromium, `pnpm start` on `:3177`. CPU read 10% right after the perf runs (`Get-CimInstance Win32_Processor`; `wmic` is not installed), so unlike R21-P1 this machine was close to idle.
+
+**Perf row** (`pnpm perf`, default build, 0 skipped responses, three runs, bytes identical): JS 188.8 KB (193,320 B), JS at load 162.9 KB (166,832 B), CSS 13.7 KB, fonts 62.5 KB (64,016 B), LCP 1544-2232 ms (`h1#hero-heading`), TBT 163-1244 ms (run-to-run noise, CLS 0), 2097 DOM nodes. Against R21-P1 (223,546 / 169,226 / fonts 72,668 B): JS -30,226 B (the globe chunk, as expected), JS at load -2,394 B (WorldsStage client code), fonts -8,652 B. LCP and TBT are not comparable: P1 ran on a saturated machine.
+
+**DOM nodes rose 2053 -> 2097 (+44), unexplained.** The only DOM-affecting source change is one `sr-only` `#worlds` span in the hero (`src/sections/Hero/anchors.ts`). The count is stable across three runs, so it is not noise; P1's number came from a saturated run. A P1 rebuild to A/B it failed (Turbopack rejects a junctioned `node_modules`), so the cause is not isolated. Not a budget item, but worth a check in Phase 3 when the hero is rebuilt.
+
+**Verification.** `pnpm verify` 5/5 (803 unit tests, 50 files; contrast 60 pairings, all >= AA, lowest 4.52:1). Retrieval eval: the thresholds pass; the scoreboard is not printed on a pass, and Task 5 recorded recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807 before and after, unchanged from R21-P1.
+
+**e2e** at `--workers=2` against the production build on `:3177`: 685 passed, 755 skipped, 0 failed (15.7 min), so no retries were needed. The `companion.spec.ts:914` night-over-Contact failure recorded in P1 did not fail here. Not investigated why; the P1 note still stands as unexplained.
+
+**Screens** (`reports/r21-p2-screens/`, untracked): 1440x900 and 390x844, day and night. The nav reads About, Journey, Contact; `main` holds `#about`, `#tree`, `#contact` in that order; `#worlds` is an `sr-only` span in About.
+
+**Size of the removal** (`git diff --stat main...HEAD`): 70 files changed, 251 insertions, 8263 deletions.
