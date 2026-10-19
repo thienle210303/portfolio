@@ -2,8 +2,10 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * Tag paper: cut corners and a punched hole. Put focusable things inside or
- * around it, never on it — the clip would cut their focus ring.
+ * Tag paper: cut corners and a punched hole. Never put the paper on a
+ * focusable element. A focusable inside it keeps its whole ring (2px + 3px
+ * offset) only if it sits at least 5px from every edge and below the 22px
+ * corner cut.
  */
 export function Tag({ children, className }: { readonly children: ReactNode; readonly className?: string }) {
   return (

@@ -41,7 +41,7 @@ describe("ChapterTags", () => {
     expect(front).toHaveAttribute("aria-expanded", "true");
     expect(front).toHaveAttribute("inert");
     expect(back).not.toHaveAttribute("inert");
-    expect(within(back).getByText(hero.chapterLines.origin)).toBeInTheDocument();
+    expect(within(back).getByRole("button", { name: `${hero.chapterLines.origin} (turn the tag back)` })).toBeInTheDocument();
     expect(within(back).getByRole("link", { name: "Read this part" })).toHaveAttribute("href", "#tree");
     expect(flip).toHaveClass("rotate-y-180");
   });
@@ -55,6 +55,15 @@ describe("ChapterTags", () => {
     expect(tag(0).back).toHaveAttribute("inert");
     expect(tag(2).front).toHaveAttribute("aria-expanded", "true");
     expect(tag(2).back).not.toHaveAttribute("inert");
+  });
+
+  it("opening another tag moves focus to its line and closes the first", async () => {
+    const user = userEvent.setup();
+    const { tag } = setup();
+    await user.click(tag(0).front);
+    await user.click(tag(3).front);
+    expect(tag(0).front).toHaveAttribute("aria-expanded", "false");
+    expect(within(tag(3).back).getByRole("button")).toHaveFocus();
   });
 
   it("focus follows the turn", async () => {

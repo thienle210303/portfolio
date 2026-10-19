@@ -42,7 +42,7 @@ export default function ChapterTags({
   }
 
   return (
-    <ul data-hero-step="line" className="grid grid-cols-2 gap-x-4 gap-y-8 lg:flex lg:gap-[38px]">
+    <ul role="list" data-hero-step="line" className="grid grid-cols-2 gap-x-4 gap-y-8 lg:flex lg:gap-[38px]">
       {chapters.map(({ id, year, place, line, drawing, href }, i) => {
         const isOpen = open === id;
         const backId = `${base}-${id}-back`;
@@ -75,8 +75,8 @@ export default function ChapterTags({
                   aria-expanded={isOpen}
                   aria-controls={backId}
                   inert={isOpen}
-                  onClick={() => turn(isOpen ? null : id)}
-                  className="flex flex-col text-left [grid-area:1/1] backface-hidden"
+                  onClick={() => turn(id)}
+                  className="flex cursor-pointer flex-col text-left [grid-area:1/1] backface-hidden"
                 >
                   <Tag className={PAPER}>
                     <span className="block font-mono text-[length:var(--step--2)] text-fg-muted">{year}</span>{" "}
@@ -84,16 +84,17 @@ export default function ChapterTags({
                     <Drawing name={drawing} className="mt-1.5 h-[88px] w-full text-accent" />
                   </Tag>
                 </button>
-                <div id={backId} inert={!isOpen} className="flex flex-col [grid-area:1/1] rotate-y-180 backface-hidden">
+                <div id={backId} inert={!isOpen} className="no-print flex flex-col [grid-area:1/1] rotate-y-180 backface-hidden">
                   <Tag className={cn(PAPER, "flex flex-col")}>
                     <button
                       type="button"
                       onClick={() => turn(null)}
-                      className="text-left font-serif text-[length:var(--step-1)] leading-snug italic"
+                      className="mb-3 cursor-pointer text-left font-serif text-[length:var(--step-1)] leading-snug italic"
                     >
                       {line}
+                      {" "}<span className="sr-only">(turn the tag back)</span>
                     </button>
-                    <a href={href} className="mt-auto pt-3 font-semibold underline underline-offset-4">
+                    <a href={href} className="mt-auto self-start font-semibold underline underline-offset-4">
                       Read this part
                     </a>
                   </Tag>
