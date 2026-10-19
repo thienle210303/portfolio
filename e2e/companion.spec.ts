@@ -1089,6 +1089,15 @@ test.describe("companion", () => {
   test("explorers use both halves of the page while the reader is active", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(120_000);
+    // The tree box plays its growth show when it is over half in view, and the
+    // pair then stand at the tour spot instead of exploring. These tests read
+    // the timeline, below the box, so the show must never start.
+    await page.addInitScript(() => {
+      (window as unknown as { __shows: unknown[] }).__shows = [];
+      document.addEventListener("origin-story", (event) =>
+        (window as unknown as { __shows: unknown[] }).__shows.push((event as CustomEvent).detail),
+      );
+    });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
@@ -1100,9 +1109,11 @@ test.describe("companion", () => {
      * `CHASE_RADIUS` from the lead), which is a reader using the page, not
      * one playing with the cat. A moving mouse anywhere used to be a chase.
      *
-     * Read in `#tree` because it is a section with no mood: the first
-     * stop in a section is that section's perch, and a perch seats the pair
-     * side by side on purpose. Sampling starts once they have stopped
+     * Read in `#tree`'s timeline, not at the top of the section: the tree box
+     * plays a growth show (~24s) when over half in view and holds both cats at
+     * the tour spot for it. The timeline sits below the box, so the show never
+     * starts — asserted at the end. `#tree` has no mood, and a mood's perch
+     * seats the pair side by side on purpose. Sampling starts once they have stopped
      * somewhere with a column each, so what is measured is the explorers and
      * not the walk in.
      */
@@ -1133,8 +1144,8 @@ test.describe("companion", () => {
     };
 
     await page.evaluate(() => {
-      const tree = document.querySelector("#tree");
-      if (!tree) throw new Error("the page has no tree section");
+      const tree = document.querySelector("#tree [data-timeline]");
+      if (!tree) throw new Error("the page has no timeline");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
     });
@@ -1209,19 +1220,31 @@ test.describe("companion", () => {
       stopsRead.length,
       `too few distinct stops were looked at for the head check to mean anything: ${JSON.stringify(stopsRead)}`,
     ).toBeGreaterThanOrEqual(3);
-    expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);
+    expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);    expect(
+      await page.evaluate(() => (window as unknown as { __shows: unknown[] }).__shows),
+      "the tree's show started",
+    ).toEqual([]);
   });
 
   test("each explorer leaves its stop on its own clock, not both at once", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(120_000);
+    // The tree box plays its growth show when it is over half in view, and the
+    // pair then stand at the tour spot instead of exploring. These tests read
+    // the timeline, below the box, so the show must never start.
+    await page.addInitScript(() => {
+      (window as unknown as { __shows: unknown[] }).__shows = [];
+      document.addEventListener("origin-story", (event) =>
+        (window as unknown as { __shows: unknown[] }).__shows.push((event as CustomEvent).detail),
+      );
+    });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
     /*
      * The same reader as the test above (a moving pointer kept out of chasing
-     * range, in `#tree`) — without the scrolling, because a scroll moves the
+     * range, in `#tree`'s timeline, because the tree box auto-plays) — without the scrolling, because a scroll moves the
      * cats' pose around for reasons that are not a stop ending — but what is measured is *when each cat sets off*.
      * A departure is a cat that has not been in its walking pose for at least
      * 800 ms (the pose, not its position, so riding a scroll is not leaving)
@@ -1237,8 +1260,8 @@ test.describe("companion", () => {
      * least three.
      */
     await page.evaluate(() => {
-      const tree = document.querySelector("#tree");
-      if (!tree) throw new Error("the page has no tree section");
+      const tree = document.querySelector("#tree [data-timeline]");
+      if (!tree) throw new Error("the page has no timeline");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
       const button = document.querySelector('[aria-controls="companion-actions"]');
@@ -1297,6 +1320,10 @@ test.describe("companion", () => {
       lonely(grey, tabby) + lonely(tabby, grey),
       `the cats only ever set off together: ${note}`,
     ).toBeGreaterThanOrEqual(2);
+    expect(
+      await page.evaluate(() => (window as unknown as { __shows: unknown[] }).__shows),
+      "the tree's show started",
+    ).toEqual([]);
   });
 
   test("the lead still chases a pointer that comes near him", async ({ page }) => {

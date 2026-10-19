@@ -75,9 +75,10 @@ const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop])
 /**
  * The stops in the order one route walks them — three today, for a
  * well-formed `GREY_MIDDLE`. Both routes are the same *set* — nothing is
- * skipped, nothing is invented — and they agree only on the first stop
- * (About) and the last (Contact); everything between the two is
- * `GREY_MIDDLE`, in order or reversed, per `TourRoute`'s own doc comment.
+ * skipped, nothing is invented — and with a single middle stop they agree
+ * on every stop today. Everything between About and Contact is
+ * `GREY_MIDDLE`, in order or reversed; a later section would split the routes
+ * (see `TourRoute`'s doc comment).
  *
  * The `filter` below (rather than a non-null assertion on the `Map.get`)
  * stops *this function* from throwing on a typo or a stale id in

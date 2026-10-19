@@ -31,7 +31,7 @@ const FACTS: CompanionFacts = {
 
 const AMBIENT_SECTIONS = ["about", "tree"];
 // Tour-only stops: sections the guided tour visits but the ambient banter
-// never does, because neither has an AMBIENT builder of its own.
+// never does, because it has an AMBIENT builder of its own.
 const TOUR_ONLY_SECTIONS = ["contact"];
 
 describe("scene bank", () => {
