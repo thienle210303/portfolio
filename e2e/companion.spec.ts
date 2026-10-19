@@ -1100,7 +1100,7 @@ test.describe("companion", () => {
      * `CHASE_RADIUS` from the lead), which is a reader using the page, not
      * one playing with the cat. A moving mouse anywhere used to be a chase.
      *
-     * Read in `#worlds` because it is the one section with no mood: the first
+     * Read in `#tree` because it is a section with no mood: the first
      * stop in a section is that section's perch, and a perch seats the pair
      * side by side on purpose. Sampling starts once they have stopped
      * somewhere with a column each, so what is measured is the explorers and
@@ -1133,9 +1133,9 @@ test.describe("companion", () => {
     };
 
     await page.evaluate(() => {
-      const worlds = document.querySelector("#worlds");
-      if (!worlds) throw new Error("the page has no worlds section");
-      const box = worlds.getBoundingClientRect();
+      const tree = document.querySelector("#tree");
+      if (!tree) throw new Error("the page has no tree section");
+      const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
     });
     await expect
@@ -1145,7 +1145,7 @@ test.describe("companion", () => {
           const [grey, tabby] = await catPair(page, { still: true });
           return grey.still && tabby.still && grey.column !== tabby.column;
         },
-        { timeout: 30_000, message: "the pair never stopped anywhere after reaching #worlds" },
+        { timeout: 30_000, message: "the pair never stopped anywhere after reaching #tree" },
       )
       .toBe(true);
 
@@ -1221,7 +1221,7 @@ test.describe("companion", () => {
 
     /*
      * The same reader as the test above (a moving pointer kept out of chasing
-     * range, in `#worlds`) — without the scrolling, because a scroll moves the
+     * range, in `#tree`) — without the scrolling, because a scroll moves the
      * cats' pose around for reasons that are not a stop ending — but what is measured is *when each cat sets off*.
      * A departure is a cat that has not been in its walking pose for at least
      * 800 ms (the pose, not its position, so riding a scroll is not leaving)
@@ -1237,9 +1237,9 @@ test.describe("companion", () => {
      * least three.
      */
     await page.evaluate(() => {
-      const worlds = document.querySelector("#worlds");
-      if (!worlds) throw new Error("the page has no worlds section");
-      const box = worlds.getBoundingClientRect();
+      const tree = document.querySelector("#tree");
+      if (!tree) throw new Error("the page has no tree section");
+      const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
       const button = document.querySelector('[aria-controls="companion-actions"]');
       const cats = Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
@@ -2075,118 +2075,6 @@ test.describe("companion", () => {
       )
       .toBe("stopped");
     expect(heads ?? [], "a standing cat's head was on the hero's text on load").toEqual([]);
-  });
-
-  test("never rests on the globe stage, loaded or not", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-    /*
-     * The stage is an empty, tabindex -1 box until its canvas chunk arrives, so
-     * nothing about it reads as occupied ground; once the chunk lands it is a
-     * `<canvas>` the cats' drags would land on. A cat that settled on the empty
-     * box is then sitting on the globe, and no scroll or resize happens to make
-     * the cats look again. A fast network hides this (the box is a canvas almost
-     * at once), so the chunk is held honestly here, the way a slow one is: the
-     * script response is fetched and withheld until the test releases it. The
-     * chunk is recognised by the `data-chunk="globe-canvas"` marker that only
-     * GlobeCanvas.tsx carries, as in worlds.spec.ts.
-     */
-    let release: () => void = () => {};
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    let held = 0;
-    await page.route(/\.js(\?|$)/, async (route) => {
-      const response = await route.fetch();
-      const body = await response.text();
-      if (body.includes("globe-canvas")) {
-        held += 1;
-        await gate;
-      }
-      return route.fulfill({ response, body });
-    });
-
-    await page.goto("/");
-    // Not "networkidle": the globe chunk is requested a screen early after load
-    // and is withheld here, so the network never goes idle.
-    await page.waitForLoadState("load");
-    await companionAwake(page);
-
-    const stage = page.getByRole("group", { name: /playground earth/i });
-    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expect.poll(() => held, { message: "the canvas chunk was never requested" }).toBeGreaterThan(0);
-    expect(await page.locator('#worlds canvas[data-chunk="globe-canvas"]').count(), "the canvas was already there").toBe(0);
-
-    // The pointer on the stage is where the cats come to rest nearest the
-    // reader, and the stage is the only empty ground there: a page nobody is
-    // reading from the stage would never put a cat near it.
-    const box = await stage.boundingBox();
-    if (!box) throw new Error("the stage has no box");
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.move(box.x + box.width / 2 + 2, box.y + box.height / 2 + 2);
-
-    // One sample: which cats held still across a quarter second, and which of
-    // their three resting probes (the ones `isClearSpot` uses) fall on the
-    // stage's rect, and how far each cat is from that rect.
-    const sample = () =>
-      page.evaluate(async () => {
-        const stageEl = document.querySelector("#worlds [role='group'][aria-roledescription='globe']");
-        if (!stageEl) throw new Error("no stage");
-        const cats = () => Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"));
-        const before = cats().map((svg) => svg.getBoundingClientRect());
-        await new Promise((resolve) => setTimeout(resolve, 250));
-        const after = cats().map((svg) => svg.getBoundingClientRect());
-        const rect = stageEl.getBoundingClientRect();
-        let still = 0;
-        let near = Infinity;
-        const onStage: string[] = [];
-        after.forEach((cat, index) => {
-          const was = before[index];
-          const dx = Math.max(rect.left - cat.right, 0, cat.left - rect.right);
-          const dy = Math.max(rect.top - cat.bottom, 0, cat.top - rect.bottom);
-          near = Math.min(near, Math.hypot(dx, dy));
-          if (!was || Math.abs(cat.left - was.left) >= 0.5 || Math.abs(cat.top - was.top) >= 0.5) return;
-          still += 1;
-          const points: Array<[number, number]> = [
-            [cat.left + 6, cat.bottom - 6],
-            [cat.right - 6, cat.bottom - 6],
-            [cat.left + cat.width / 2, cat.top + cat.height * 0.6],
-          ];
-          for (const [x, y] of points) {
-            if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-              onStage.push(`cat ${index} at ${Math.round(x)},${Math.round(y)}`);
-            }
-          }
-        });
-        return { still, near, onStage };
-      });
-
-    // While the chunk is held: give the pair time to walk to the pointer and
-    // settle. What they do here is not asserted, the stage is not a canvas yet;
-    // it only has to have been in reach of the cats, or the second half
-    // proves nothing about it.
-    let closest = Infinity;
-    for (let i = 0; i < 12; i += 1) {
-      closest = Math.min(closest, (await sample()).near);
-    }
-    expect(closest, "the cats never came near the stage while it was empty").toBeLessThan(150);
-
-    release();
-    await expect(page.locator('#worlds canvas[data-chunk="globe-canvas"]')).toHaveCount(1, { timeout: 30_000 });
-    expect(await stage.evaluate((el) => el.getBoundingClientRect().height > 0)).toBe(true);
-
-    // Now the canvas is mounted: for six seconds no still cat may have a
-    // resting probe on it. Counted, so that a run in which every sample was a
-    // walking one cannot pass.
-    let stillSamples = 0;
-    const violations: string[] = [];
-    const end = Date.now() + 6_000;
-    while (Date.now() < end) {
-      const { still, onStage } = await sample();
-      stillSamples += still;
-      violations.push(...onStage);
-    }
-    expect(stillSamples, "the cats never held still, so nothing was checked").toBeGreaterThanOrEqual(5);
-    expect(violations, "a cat came to rest on the globe stage").toEqual([]);
   });
 
   test("settles where the visitor is reading, without covering it", async ({ page }) => {
@@ -3263,7 +3151,7 @@ test.describe("companion", () => {
 
   /* ------------------------------------------------------------- D4/D5: the guided tour -- */
 
-  test("walks all four stops, choosing a route at the fork, and ends back on the cat", async ({
+  test("walks all three stops, choosing a route at the fork, and ends back on the cat", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
@@ -3277,8 +3165,8 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    for (let stop = 1; stop <= 4; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 4`, "i"))).toBeVisible({
+    for (let stop = 1; stop <= 3; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 3`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       const before = await page.evaluate(() => window.scrollY);
@@ -3296,11 +3184,11 @@ test.describe("companion", () => {
       }
       if (stop === 1) {
         // The one fork in the walk, after About: the derived middle is just
-        // Worlds and Journey now (round 18 removed Work, Skills and the
-        // Workshop — see companion-tour.ts's GREY_MIDDLE/stopsFor) — so About
+        // the Journey now (round 18 removed Work, Skills and the Workshop,
+        // round 21 Worlds — see companion-tour.ts's GREY_MIDDLE/stopsFor) — so About
         // is the only stop every route still shares. "Next stop" is gone
         // here, replaced by the two routes — both of which reach every one
-        // of the four stops, just in a different order. This run follows
+        // of the three stops. This run follows
         // Grey's.
         await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
         await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
@@ -3308,7 +3196,7 @@ test.describe("companion", () => {
         await hud.getByRole("button", { name: /follow grey/i }).click();
         continue;
       }
-      const isLast = stop === 4;
+      const isLast = stop === 3;
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
 
@@ -3330,23 +3218,22 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    // To the fork — About alone, the derived middle being Worlds and Journey
-    // — and pick the cat the other test did not: the curious route, which
-    // walks the middle two stops in the opposite order.
-    await expect(hud.getByText(/stop 1 of 4/i)).toBeVisible({ timeout: 10_000 });
+    // To the fork — About alone, the derived middle being the Journey
+    // — and pick the cat the other test did not: the curious route.
+    await expect(hud.getByText(/stop 1 of 3/i)).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /follow tabby/i }).click();
 
-    for (let stop = 2; stop <= 4; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 4`, "i"))).toBeVisible({
+    for (let stop = 2; stop <= 3; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of 3`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       await expect(status).not.toHaveText("", { timeout: 10_000 });
-      const isLast = stop === 4;
+      const isLast = stop === 3;
       if (isLast) {
         // Both routes share the same last stop — Contact — regardless of
-        // which way the middle two were walked.
-        await expect(hud.getByText(/stop 4 of 4.*contact/i)).toBeVisible();
+        // which way the middle was walked.
+        await expect(hud.getByText(/stop 3 of 3.*contact/i)).toBeVisible();
       }
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
@@ -3457,7 +3344,7 @@ test.describe("companion", () => {
 
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
-    // Same wait condition "walks all four stops" uses: the status region is
+    // Same wait condition "walks all three stops" uses: the status region is
     // the arrival signal, not a fixed delay.
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     // Both voices, not one line quoting whichever cat spoke last — the tour

@@ -17,6 +17,7 @@
  * holds that the cats' load rest does not land on the copy.
  */
 import { Section } from "@/components/ui/Section";
+import { ABOUT_LEGACY_SECTION_IDS } from "./anchors";
 import HeroIdentity from "./HeroIdentity";
 import HeroTerminal from "./HeroTerminal";
 
@@ -34,6 +35,11 @@ export default function Hero({ bookingUrl }: { readonly bookingUrl: string | nul
       // — see Section.tsx's own comment on this prop.
       reveal={false}
     >
+      {/* Retired ids that land here; same pattern as CareerTree's. */}
+      {ABOUT_LEGACY_SECTION_IDS.map((id) => (
+        <span key={id} id={id} aria-hidden="true" className="sr-only scroll-mt-20" />
+      ))}
+
       {/* An even split inside the 1120px content cap. */}
       <div className="flex flex-col gap-y-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-x-(--gutter)">
         <div className="min-w-0">

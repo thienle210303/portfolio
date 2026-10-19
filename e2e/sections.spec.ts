@@ -534,8 +534,8 @@ test.describe("fragment landings around the Journey", () => {
     await page.goto("/#contact");
     await page.waitForLoadState("networkidle");
 
-    // Read somewhere else: the Worlds section, far above Contact.
-    await page.locator("#worlds").evaluate((el) => el.scrollIntoView({ block: "start" }));
+    // Read somewhere else: the Journey, far above Contact.
+    await page.locator("#tree").evaluate((el) => el.scrollIntoView({ block: "start" }));
     await page.waitForTimeout(500);
     const before = await page.evaluate(() => window.scrollY);
 

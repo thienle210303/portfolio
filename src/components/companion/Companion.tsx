@@ -2184,7 +2184,7 @@ export function Companion({ facts }: CompanionProps) {
      * dispatches on, so wherever a mood exists the tour's placement is that
      * mood, asked for on demand instead of waiting for a settle. Not every
      * stop has one: `planMood` (companion-moods.ts) only knows
-     * about/contact, so `worlds` and `tree` fall straight
+     * about/contact, so `tree` falls straight
      * through to the cruder top-edge fallback below, same as any section
      * whose own mood declines. Recomputed
      * every frame the tour is walking to a stop rather than held like an
@@ -2582,7 +2582,7 @@ export function Companion({ facts }: CompanionProps) {
 
             /**
              * The play's choreography: Contact is the only stop that gets any,
-             * and it reuses existing mechanics only. About, Worlds and Journey
+             * and it reuses existing mechanics only. About and Journey
              * get nothing here on purpose — the pair's own default sit, and
              * the facing they already carry in from the walk, already read as
              * "peering up" and "looking up at the figure"; adding a forced
@@ -4641,7 +4641,7 @@ export function Companion({ facts }: CompanionProps) {
   /**
    * The HUD's fork in the walk, offered once — see `TourHud`'s
    * `showRouteChoice` — after About's scene, the only stop every route still
-   * shares now that Worlds and Journey are the derived middle (see
+   * shares now that the Journey is the derived middle (see
    * `companion-tour.ts`'s `GREY_MIDDLE` and `stopsFor`). Picking either cat settles
    * `route` for the rest of the walk and immediately does what "Next stop"
    * would have: the choice replaces that button at this one juncture, it

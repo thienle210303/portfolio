@@ -25,7 +25,6 @@ import type { CompanionFacts } from "@/lib/companion-facts";
 
 const FACTS: CompanionFacts = {
   about: { role: "Software Engineer", organization: "DoorDash, Inc." },
-  worlds: { stops: 3, crossingKm: 14960, crossing: "14,960 km" },
   tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
   contact: { email: "x@y.z" },
 };
@@ -33,7 +32,7 @@ const FACTS: CompanionFacts = {
 const AMBIENT_SECTIONS = ["about", "tree"];
 // Tour-only stops: sections the guided tour visits but the ambient banter
 // never does, because neither has an AMBIENT builder of its own.
-const TOUR_ONLY_SECTIONS = ["contact", "worlds"];
+const TOUR_ONLY_SECTIONS = ["contact"];
 
 describe("scene bank", () => {
   it("has a hello scene with both speakers and alternation", () => {
@@ -76,6 +75,7 @@ describe("scene bank", () => {
     expect(hasEncore("tree", FACTS)).toBe(true);
     expect(hasEncore("about", FACTS)).toBe(false);
     expect(hasEncore("worlds", FACTS)).toBe(false);
+    expect(sceneFor("tour", "worlds", FACTS)).toBeNull();
     expect(hasEncore(null, FACTS)).toBe(false);
   });
 
@@ -257,7 +257,6 @@ const MUST_EXIST: { label: string; build: () => DialogueScene | null }[] = [
   { label: "ambient tree", build: () => sceneFor("ambient", "tree", FACTS) },
   { label: "encore tree", build: () => sceneFor("encore", "tree", FACTS) },
   { label: "tour about", build: () => sceneFor("tour", "about", FACTS) },
-  { label: "tour worlds", build: () => sceneFor("tour", "worlds", FACTS) },
   { label: "tour tree", build: () => sceneFor("tour", "tree", FACTS) },
   { label: "tour contact", build: () => sceneFor("tour", "contact", FACTS) },
   ...(["flight", "seed", "still", "rain", "sun", "storm", "quiet"] as StoryBeatKind[]).flatMap((kind) =>

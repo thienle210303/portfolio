@@ -22,10 +22,8 @@ describe("buildCompanionFacts", () => {
     expect(facts.about.organization).toBe(current?.organization ?? "");
   });
 
-  it("carries the globe's own counts", () => {
-    expect(facts.worlds.stops).toBe(3);
-    expect(facts.worlds.crossingKm).toBeGreaterThan(12_000);
-    expect(facts.worlds.crossing).toBe(`${facts.worlds.crossingKm.toLocaleString("en-US")} km`);
+  it("no longer carries the globe's counts", () => {
+    expect("worlds" in facts).toBe(false);
   });
 
   it("counts branches, leaves and technologies off the tree the Journey draws, not every entry", () => {

@@ -199,14 +199,14 @@ export const socialLinks = [
 // Order must match the render order in src/app/page.tsx: the nav doubles as
 // the page's table of contents, and a nav that lists sections in a different
 // order than the page scrolls through them is actively misleading.
-// Round 18: four sections. Selected Work and Skills are gone — the case studies
-// render inside the Journey's branches. The Journey is the `tree` section,
+// Round 21: three sections (Record arrives in Phase 5). Worlds is gone, and
+// `#worlds` now lands on About (src/sections/Hero/anchors.ts). Selected Work
+// and Skills went in round 18 — the case studies render inside the Journey's
+// branches. The Journey is the `tree` section,
 // labelled "Journey" because that is what a hiring manager scans for, and it
 // answers both #tree and #journey (src/sections/CareerTree/CareerTree.tsx).
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
-  // Round 16: Playground Earth takes the slot Philosophy used to hold.
-  { id: "nav-worlds", sectionId: "worlds", label: "Worlds" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];

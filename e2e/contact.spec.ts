@@ -310,12 +310,6 @@ test("cats cheer on success", async ({ page }) => {
 test("the page's only control fills are the hero's See my work and the lead form's Send", async ({ page }) => {
   onlyAt(page, [1440]);
   await open(page);
-  // The globe's controls only take their ready style once its chunk loads.
-  const worlds = page.locator("#worlds");
-  await worlds.getByRole("group", { name: /playground earth/i }).scrollIntoViewIfNeeded();
-  await expect(worlds.getByRole("button", { name: /replay the flight|stop the replay/i })).toBeVisible({
-    timeout: 20_000,
-  });
   // Hairlines are not fills: the nav's 1px underline uses `bg-accent`, not a control fill.
   const fills = await page.evaluate(() =>
     Array.from(document.body.querySelectorAll("*"))
