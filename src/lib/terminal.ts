@@ -5,6 +5,10 @@
  */
 import { aiTools, careerEntries, companions, origin, profile } from "@/content/portfolio";
 import { resolved, type CareerEntry } from "@/types/portfolio";
+import { currentEntry } from "./content";
+
+// Kept for the old Hero and its e2e spec until they are deleted.
+export { currentEntry } from "./content";
 
 export interface TerminalLine {
   readonly key: string;
@@ -15,15 +19,6 @@ export interface TerminalTab {
   readonly id: "whoami" | "now" | "exploring";
   readonly command: string;
   readonly lines: readonly TerminalLine[];
-}
-
-/** The entry whose `dateRange` ends in "Present"; with several, the latest
- *  `sortKey`. Throws when there is none, so a build cannot ship a terminal
- *  that names no current role. */
-export function currentEntry(entries: readonly CareerEntry[] = careerEntries): CareerEntry {
-  const open = entries.filter((entry) => entry.dateRange.endsWith("Present"));
-  if (open.length === 0) throw new Error("terminal: no career entry ends in Present");
-  return open.reduce((latest, entry) => (entry.sortKey > latest.sortKey ? entry : latest));
 }
 
 // Optional fields drop their line rather than print an empty value.

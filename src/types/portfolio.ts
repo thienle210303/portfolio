@@ -115,6 +115,31 @@ export interface Companion {
   readonly belongsTo: string;
 }
 
+/** The hero's authored lines (`hero` in the content layer). */
+export interface HeroCopy {
+  readonly hint: string;
+  /** Follows `profile.positioning` in the hero's body. */
+  readonly invitation: string;
+  /** The Taylors line is the entry's own `headline`, so it is not here. */
+  readonly chapterLines: {
+    readonly origin: string;
+    readonly "usc-degree": string;
+    readonly doordash: string;
+  };
+  readonly fieldTag: {
+    readonly number: string;
+    readonly aside: string;
+    readonly habitat: string;
+    readonly formerly: string;
+    readonly companionsLead: string;
+    readonly status: string;
+    readonly linkLabel: string;
+  };
+  readonly vignette: { readonly morning: string; readonly evening: string };
+  /** The off-duty cat's caption is `${name}, ${offDuty}`. */
+  readonly offDuty: string;
+}
+
 export type SocialPlatform = "GitHub" | "LinkedIn" | "Email";
 
 export interface SocialLink {

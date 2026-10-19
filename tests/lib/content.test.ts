@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
+import { currentEntry, formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
 import * as content from "@/content/portfolio";
 import { careerEntries, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
@@ -425,3 +425,14 @@ describe("the hero's code excerpts", () => {
   });
 });
 
+
+describe("currentEntry", () => {
+  it("picks the open entry with the latest sortKey", () => {
+    expect(currentEntry().id).toBe("doordash");
+  });
+
+  it("throws without a current entry", () => {
+    const past = careerEntries.filter((e) => !e.dateRange.endsWith("Present"));
+    expect(() => currentEntry(past)).toThrow();
+  });
+});
