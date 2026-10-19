@@ -38,7 +38,7 @@ export interface Document {
   readonly source: string;
   /**
    * Where to send a reader who wants to see this in context — the `id` of one
-   * of the page's four sections, which `AskThisSite` turns into `#<sectionId>`.
+   * of the page's sections, which `AskThisSite` turns into `#<sectionId>`.
    * **Both or neither.**
    *
    * ## What this promises, precisely

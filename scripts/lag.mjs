@@ -1,6 +1,7 @@
 /**
  * Measures desktop lag against a running production build: scroll smoothness
- * at 4x CPU and main-thread cost at rest in each section. Deliberately NOT part of `pnpm verify`: it needs a server.
+ * at 4x CPU and main-thread cost at rest in each section. Deliberately NOT
+ * part of `pnpm verify`: it needs a server.
  *
  * Usage:
  *   pnpm build

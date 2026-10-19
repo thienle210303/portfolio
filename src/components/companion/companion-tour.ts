@@ -7,7 +7,7 @@ import { navItems } from "@/content/portfolio";
  *
  * The duet's ambient banter (companion-dialogue.ts) is decorative; this is the
  * opposite — a visitor presses "Show me around" in the toolkit panel, and the
- * pair walk the page's own four sections, performing a short scene at each
+ * pair walk the page's own sections, performing a short scene at each
  * stop through the HUD's `role="status"`. It is the only thing the companion
  * narrates out loud, on purpose: everything else it does is a drawing, and a
  * drawing that starts talking to a screen reader unprompted is noise. Asked

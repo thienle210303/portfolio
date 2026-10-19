@@ -171,4 +171,4 @@ column first: it is the primary leak detector, and a move of more than a
 kilobyte or two means something moved into the initial bundle. The 8 s `JS`
 total also counts chunks fetched on idle. `pnpm perf` prints a skipped-response
 count and a `content-length` cross-check beside its own total; a run reporting
-any skipped responses is under-reported and must not be recorded.responses is under-reported and must not be recorded.
+any skipped responses is under-reported and must not be recorded.
