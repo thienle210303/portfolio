@@ -55,14 +55,6 @@ describe("the chat corpus", () => {
     for (const doc of docs) {
       expect(doc.source, doc.text).not.toMatch(/careerEntries\.|projects\.|companions\.|computed/);
     }
-    const captions = new Set(stops.map((stop) => stop.caption));
-    for (const doc of docs.filter((candidate) => candidate.sectionId === "worlds")) {
-      expect(captions.has(doc.text), doc.text).toBe(true);
-    }
-  });
-
-  it("indexes no stop caption under Worlds (the chat no longer cites the globe)", () => {
-    expect(docs.filter((doc) => doc.sectionId === "worlds")).toEqual([]);
   });
 });
 

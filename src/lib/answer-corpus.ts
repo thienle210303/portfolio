@@ -44,7 +44,7 @@ export interface Document {
    * ## What this promises, precisely
    *
    * That the named section renders **the subject this text belongs to**: the
-   * career entry, the project, the globe's stop, the About prose. It does *not*
+   * career entry, the project, the About prose. It does *not*
    * promise the sentence itself is printed there, and for a good number of
    * documents it is not — measured at round 18, 38 of the 54 career and
    * education documents quote a field the page does not render. An entry's
