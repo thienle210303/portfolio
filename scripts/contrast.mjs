@@ -162,7 +162,7 @@ Lowest pairing in the current palette: **${lowest.value.toFixed(2)}:1**
 - **quiet** — \`tone="base"\` and \`tone="deep"\` sections, i.e. most of the page.
   They are transparent in both themes, so their text sits on the sky: the
   rows marked "sky top" / "sky bottom" are the stops that text is checked
-  against. The flat lichen / dusk grounds still back the header, the
+  against. The flat lichen / dusk grounds still back the
   companion's cut-outs and anything else that fills with \`--ground\`.
 - **loud** — \`tone="contrast"\` surfaces (the footer strip, the last contrast
   surface). In day this inverts to an ink ground; in night it deepens to a
@@ -187,7 +187,7 @@ to the floor:
 Quiet sections sit on the sky, so a text tone must be checked against both
 stops of each theme's sky — in day the darkest is the top stop,
 \`--color-morning-high\` — and against the flat grounds that still fill
-cut-outs and the header.
+cut-outs.
 `,
 );
 

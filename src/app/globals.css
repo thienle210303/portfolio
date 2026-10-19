@@ -246,13 +246,6 @@
     --l-mark: var(--color-dusk-red);
     --l-rule: var(--color-dusk-hairline);
 
-    /* The measurement grid, drawn from the accent each scope actually uses
-       rather than from a grey, so it belongs to the palette — and carried per
-       set, because the same rgba over lichen and over ink are two very
-       different amounts of visible line. */
-    --q-grid: rgba(70, 96, 58, 0.06);
-    --l-grid: rgba(143, 178, 126, 0.08);
-    --grid-step: 26px;
 
     /* Scenery. Aliases, not Tailwind colours (the raw names would collide);
        components read them as [color:var(--twine)]. */
@@ -328,8 +321,6 @@
     --l-mark: var(--color-dusk-red);
     --l-rule: var(--color-dusk-hairline);
 
-    --q-grid: rgba(143, 178, 126, 0.07);
-    --l-grid: rgba(143, 178, 126, 0.09);
 
     /* The night sky: same backdrop as day's, different stops. */
     --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
@@ -391,8 +382,6 @@
       --l-mark: var(--color-dusk-red);
       --l-rule: var(--color-dusk-hairline);
 
-      --q-grid: rgba(143, 178, 126, 0.07);
-      --l-grid: rgba(143, 178, 126, 0.09);
       --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
 
       --twine: var(--color-dusk-twine);
@@ -452,7 +441,6 @@
     --mark: var(--q-mark);
     --rule-color: var(--q-rule);
     --ring-color: var(--q-accent);
-    --grid-line: var(--q-grid);
     --code-scrim: var(--q-code-scrim);
   }
 
@@ -472,7 +460,6 @@
     --mark: var(--l-mark);
     --rule-color: var(--l-rule);
     --ring-color: var(--l-accent);
-    --grid-line: var(--l-grid);
     --code-scrim: var(--l-code-scrim);
   }
 
@@ -661,7 +648,7 @@
    * A section's own ground. Only `tone-contrast` paints it; the quiet tones
    * (`base`, `deep`) are transparent in both themes so the sky shows through.
    * `--ground` itself stays a flat colour for anything that needs a solid fill
-   * (the header, the companion's cut-outs).
+   * (the companion's cut-outs).
    */
   .section-ground {
     background-color: var(--ground);
