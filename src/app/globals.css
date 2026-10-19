@@ -636,6 +636,12 @@
     pointer-events: none;
   }
 
+  /* A shipping tag's cut corners. Only ever on a tag's paper, never on a
+     focusable element, so focus rings are not clipped. */
+  .tag-cut {
+    clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%, 0 22px);
+  }
+
   .day-only {
     display: var(--show-day);
   }
