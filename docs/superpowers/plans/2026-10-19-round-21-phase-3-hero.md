@@ -381,3 +381,11 @@
 6. **Below 1280 px** there is no room for the bamboo pole, the nón lá or the pine beside the content, so they are hidden; Việt Nam still shows through the Kiên Giang tag, the gold star and the cà phê phin / lẩu. OK, or should the nón lá find another place on phones?
 7. **Phone scan** of the QR, day and night, before merge.
 8. **Headline size:** the board sets it at 70 px; round 20 brought it down to 48 px because the page felt too big. This plan follows the board.
+
+## Owner answers (2026-10-19)
+
+- Kiên Giang back line: keep "Where I start. Rice, rivers, and a lot of questions."
+- "Kiên Giang, Việt Nam" on the field tag: set that value in Bricolage (the main face) so "ệ" renders; the rest of the tag stays Courier Prime.
+- Body: `profile.positioning` plus "Come in, I'll show you around."
+- Headline: like the board, about 70px on desktop, scaling down on smaller screens.
+- Controller rulings on the rest: the tag reads "Taylors" (the content's own name; no new string); `aiTools` stays in content untouched (deleting it is out of scope); hiding bamboo, nón lá and pine below 1280px is accepted; the QR phone scan by the owner stays a merge gate.
