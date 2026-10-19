@@ -7,7 +7,6 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { buildStops } from "@/lib/origin-stops";
 
 /**
  * The retrieval corpus for "Ask this site" — every document `src/lib/answers.ts`
@@ -183,6 +182,7 @@ export function buildDocuments(): Document[] {
       "immigrant",
       "immigrated",
       "moved",
+      "move",
       "vietnam",
       "vietnamese",
       origin.from,
@@ -235,22 +235,6 @@ export function buildDocuments(): Document[] {
     source: "The two cats",
     label: label("companions", undefined, "cat", "cats", "pet", "pets", ...companions.map((cat) => cat.name)),
   });
-
-  // Round 20: the globe's three stops replaced its nineteen plaques, and the
-  // plaque documents went with them. Each stop's caption is a content field
-  // (`buildStops()`), indexed under `worlds` where the stop is printed —
-  // except Taylors', which is `eastside-high`'s headline. Indexed, that second
-  // copy of the high-school story pushed the degree out of the top three for
-  // "where did he go to school" (recall@3 93.3% → 90.0%, the floor).
-  for (const stop of buildStops().filter((candidate) => candidate.id !== "taylors")) {
-    docs.push({
-      text: stop.caption,
-      source: `${stop.place}, ${stop.when}`,
-      sectionId: "worlds",
-      sectionLabel: "Worlds",
-      label: label("worlds", `stop-${stop.id}`, stop.place, stop.when),
-    });
-  }
 
   // Round 18: Selected Work is gone and its case studies render inside the
   // Journey's branches, so these documents link to `#tree`. The `label()`

@@ -61,13 +61,8 @@ describe("the chat corpus", () => {
     }
   });
 
-  it("indexes the authored stop captions under Worlds, and not Taylors' headline", () => {
-    for (const stop of stops) {
-      expect(
-        docs.some((doc) => doc.text === stop.caption && doc.sectionId === "worlds"),
-        stop.id,
-      ).toBe(stop.id !== "taylors");
-    }
+  it("indexes no stop caption under Worlds (the chat no longer cites the globe)", () => {
+    expect(docs.filter((doc) => doc.sectionId === "worlds")).toEqual([]);
   });
 });
 

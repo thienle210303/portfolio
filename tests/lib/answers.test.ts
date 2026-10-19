@@ -10,7 +10,6 @@ import {
 } from "@/lib/answer-sources";
 import { companions, navItems, origin } from "@/content/portfolio";
 import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
-import { buildStops } from "@/lib/origin-stops";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -55,10 +54,6 @@ const CORPUS = new Set<string>([
   // reachable, cited to Contact (the business card prints it). Round 16 also removed the Lab and its
   // experiment and scraping-playbook documents.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
-  // Round 20: the globe's three stops, one document per caption. Built from
-  // buildStops() rather than transcribed, so a typo here cannot under-cover
-  // it; tests/lib/origin-stops.test.ts proves each caption is a content field.
-  ...buildStops().map((stop) => stop.caption),
   // The cats: `companions`' fields, joined the same mechanical way.
   companionsText(),
 ]);
@@ -341,6 +336,21 @@ describe("answer", () => {
     const scores = results.map((r) => r.score);
     expect([...scores].sort((a, b) => b - a)).toEqual(scores);
   });
+});
+
+describe("origin after Worlds", () => {
+  it("no document cites Worlds", () => {
+    expect(buildDocuments().filter((d) => d.sectionId === "worlds")).toEqual([]);
+  });
+
+  it.each(["is he from vietnam", "when did he move to the US"])(
+    "origin question %j still cites About",
+    (q) => {
+      const top = answer(q, 1)[0];
+      expect(top.sectionId).toBe("about");
+      expect(top.text).toContain(origin.from);
+    },
+  );
 });
 
 describe("the cats", () => {
