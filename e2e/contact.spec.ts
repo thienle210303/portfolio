@@ -307,7 +307,7 @@ test("cats cheer on success", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => (window as unknown as { __sent?: number }).__sent)).toBe(1);
 });
 
-test("the page's only blue fills are the hero's See my work and the lead form's Send", async ({ page }) => {
+test("the page's only control fills are the hero's See my work and the lead form's Send", async ({ page }) => {
   onlyAt(page, [1440]);
   await open(page);
   // The globe's controls only take their ready style once its chunk loads.
@@ -316,18 +316,18 @@ test("the page's only blue fills are the hero's See my work and the lead form's 
   await expect(worlds.getByRole("button", { name: /replay the flight|stop the replay/i })).toBeVisible({
     timeout: 20_000,
   });
-  // Hairlines are not fills: the nav's 1px underline uses `bg-accent`.
-  const blue = await page.evaluate(() =>
+  // Hairlines are not fills: the nav's 1px underline uses `bg-accent`, not a control fill.
+  const fills = await page.evaluate(() =>
     Array.from(document.body.querySelectorAll("*"))
       .filter((el) => el.getBoundingClientRect().height > 2)
       .filter((el) =>
-        [/(^|\s)bg-accent(\s|$)/, /(^|\s)bg-\[color:var\(--accent\)\](\s|$)/].some((fill) =>
+        [/(^|\s)bg-control(\s|$)/, /(^|\s)bg-\[color:var\(--control\)\](\s|$)/].some((fill) =>
           fill.test(el.getAttribute("class") ?? ""),
         ),
       )
       .map((el) => el.textContent?.trim()),
   );
-  expect(blue).toEqual(["See my work", "Send"]);
+  expect(fills).toEqual(["See my work", "Send"]);
 });
 
 test("the honeypot is present and not reachable by Tab", async ({ page }) => {

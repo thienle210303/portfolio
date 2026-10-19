@@ -18,8 +18,8 @@ live mode a model writes the answer from just those passages. The résumé is it
 at `/resume`, reading the same content, and it is the only place the skills
 inventory renders.
 
-Visually it is **Blueprint**: a cool paper ground ruled with a faint measurement
-grid, one blue reserved for annotation and measured values, and a margin rail
+Visually it is **the outdoors**: a lichen ground ruled with a faint measurement
+grid, one moss green reserved for annotation and measured values, and a margin rail
 down each section carrying the counts, dates and sources the content layer
 already guarantees. It ships in two themes — day and night — and the design
 survives both. See [Design system](#design-system) below.
@@ -41,7 +41,7 @@ reliable systems.*
 | Icons | **lucide-react** | Lightweight, tree-shaken |
 | Validation | **Zod** | Server-side lead validation in `/api/contact`; the form hand-checks the same limits and patterns from `src/lib/contact.ts`, so zod never ships to the browser |
 | Email | **Resend** | Optional — the lead form degrades honestly without it |
-| Fonts | **next/font** | IBM Plex Sans, IBM Plex Mono, self-hosted, `display: swap` |
+| Fonts | **next/font** | Bricolage Grotesque, Courier Prime, Newsreader italic, self-hosted, `display: swap` |
 | Tests | **Vitest** + Testing Library, **Playwright** | Component behaviour and real-viewport smoke tests |
 | Package manager | **pnpm** | Exclusively — do not introduce another lockfile |
 
@@ -61,7 +61,7 @@ no hydration guessing. `globals.css` additionally carries a
 `prefers-color-scheme` fallback for the case where that script never runs.
 
 Night is not a mirror of day. In day, `tone="contrast"` is a true inversion — a
-paper site ending on an ink footer. Mirroring that would make night's
+lichen site ending on an ink footer. Mirroring that would make night's
 contrast sections full paper, a bright full-width flash for someone who asked
 for a dark page, so in night `contrast` *deepens* to a raised panel instead.
 
@@ -77,10 +77,12 @@ Use the semantic aliases, never a raw `--color-*` token and never a literal:
 | `--fg` | `text-fg` | primary text |
 | `--fg-muted` | `text-fg-muted` | secondary text |
 | `--fg-subtle` | `text-fg-subtle` | eyebrows, counts, sources |
-| `--fg-inverse` | `text-fg-inverse` | text on an `--accent` fill |
+| `--fg-inverse` | `text-fg-inverse` | the label on a `--control` fill |
 | `--ground` | `bg-ground` | the section's own ground |
 | `--surface` | `bg-surface` | raised panels: cards, code, the rail |
-| `--accent` | `text-accent` / `bg-accent` | links, measured values, primary control |
+| `--accent` | `text-accent` | links, measured values, annotation |
+| `--control` | `bg-control` / `border-control` | the one primary control per screen |
+| `--mark` | `text-mark` / `border-mark` | the single mark |
 | `--rule-color` | `border-rule` | 1px borders |
 
 This is what lets one component render correctly across two themes × three
@@ -97,17 +99,20 @@ else. `CareerTree.tsx` (every note counted off the tree it draws) and
 
 ### Colour and contrast
 
-Blue is the only hue in the palette, reserved for annotation, links, measured
-values and the single primary control per screen — never decoration.
+Moss is the one hue, reserved for annotation, links and measured values
+(`--accent`); moss-deep is the single primary control per screen (`--control`)
+and red is the single mark (`--mark`) — never decoration. At night the ground is
+a dark sky, the surfaces are light lantern paper with dark ink, and
+`.bg-surface` repoints the text aliases inside it.
 
 `pnpm contrast` measures every pairing the design can produce, regenerates
 [`docs/contrast.md`](docs/contrast.md), and **exits non-zero below 4.5:1**. It
 runs inside `pnpm verify`. AA is the floor for all of them, including small
 mono text, where the large-text 3:1 allowance does not apply.
 
-One trap worth knowing: check tertiary tones against `--color-paper-deep`, not
-`--color-paper`. The original `#5f6b72` passed at 4.79:1 on the base ground and
-failed at 4.44:1 on the half-step-darker one.
+One trap worth knowing: check tertiary tones against `--color-lichen-deep`, not
+`--color-lichen`. Red is the tightest pairing: 4.52:1 on the half-step-darker
+ground against 4.74:1 on the base one.
 
 ---
 

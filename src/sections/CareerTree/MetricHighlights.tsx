@@ -15,9 +15,9 @@ import type { MetricComparison } from "@/types/portfolio";
  * while scrolling past.
  *
  * This is also the one component allowed to spend the accent at size. The
- * palette rule reserves blue for "annotation, links and measured values" —
- * a sourced figure is the most literal measured value on the site, so if blue
- * is not for this, it is not for anything.
+ * palette rule reserves the accent for "annotation, links and measured values" —
+ * a sourced figure is the most literal measured value on the site, so if the
+ * accent is not for this, it is not for anything.
  *
  * Every figure carries its source, exactly as the table does. A number without
  * a citation is the thing this site exists not to do.
@@ -104,7 +104,7 @@ export default function MetricHighlights({
         it also meant the section's evidence arrived inside the same box as
         everything else on the page, and the frame carried no information.
         Each figure now opens on its own 2px accent rule instead, which is the
-        one edge on this component that is allowed to be blue: the palette rule
+        one edge on this component that is allowed to be accent-coloured: the palette rule
         reserves the accent for measured values, and a sourced figure is the
         most literal measured value the site has. The outer border is gone with
         the frame, so a row of figures reads as three tablets standing on the

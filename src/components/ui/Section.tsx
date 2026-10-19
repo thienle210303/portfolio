@@ -63,8 +63,9 @@ const TONE_CLASS: Record<SectionTone, string> = {
  * this design its name.
  *
  * The tone class does not paint anything by itself; it repoints the semantic
- * colour aliases (`--fg`, `--rule-color`, `--accent`, …) and lets `bg-ground`
- * pick the ground up from there. That indirection is what makes one component
+ * colour aliases (`--fg`, `--rule-color`, `--accent`, …) and lets `section-ground`
+ * pick the ground up from there (transparent for the quiet tones at night,
+ * where the page's sky shows through). That indirection is what makes one component
  * render correctly across two themes and three tones with no per-tone branches
  * anywhere in the tree.
  *
@@ -95,7 +96,7 @@ export function Section({
         // No ruled grid here by default — see the note on `.blueprint-grid` in
         // globals.css. Only the hero opts in, by passing the class through
         // `className`.
-        "hairline-t scroll-mt-20 bg-ground py-[var(--section-y)]",
+        "hairline-t scroll-mt-20 section-ground py-[var(--section-y)]",
         TONE_CLASS[tone],
         className,
       )}

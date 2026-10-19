@@ -23,26 +23,47 @@ async function px(page: Page, selector: string, prop: string): Promise<number> {
 }
 
 // Not inside the per-width loop: the face is the same at every width.
-test("headings use IBM Plex Sans", async ({ page }) => {
+const firstFamily = (page: Page, sel: string) =>
+  page
+    .locator(sel)
+    .first()
+    .evaluate((el) => getComputedStyle(el).fontFamily.split(",")[0].trim());
+
+test("headings use Bricolage Grotesque", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  const first = (sel: string) =>
-    page
-      .locator(sel)
-      .first()
-      .evaluate((el) => getComputedStyle(el).fontFamily.split(",")[0].trim());
-  const sans = await first("body");
-  expect(sans).toContain("IBM Plex Sans");
-  expect(await first("#about h1")).toBe(sans);
-  expect(await first("#worlds h2")).toBe(sans);
+  const sans = await firstFamily(page, "body");
+  expect(sans).toContain("Bricolage Grotesque");
+  expect(await firstFamily(page, "#about h1")).toBe(sans);
+  expect(await firstFamily(page, "#worlds h2")).toBe(sans);
+});
+
+test("data uses Courier Prime", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  expect(await firstFamily(page, ".eyebrow")).toContain("Courier Prime");
+});
+
+test("Newsreader is declared, and IBM Plex is not", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
   // next/font hashes file names, so a URL check would be vacuous; its
-  // @font-face family names ("Fraunces", "Fraunces Fallback") are the stable signal.
+  // @font-face family names are the stable signal.
   const families = await page.evaluate(async () => {
     await document.fonts.ready;
     return [...document.fonts].map((f) => f.family);
   });
-  expect(families.length).toBeGreaterThan(0);
-  expect(families.filter((f) => /fraunces/i.test(f))).toEqual([]);
+  expect(families.some((f) => /newsreader/i.test(f))).toBe(true);
+  expect(families.filter((f) => /plex|fraunces/i.test(f))).toEqual([]);
+});
+
+test("Bricolage covers ệ", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  const loaded = await page.evaluate(
+    async () => (await document.fonts.load('16px "Bricolage Grotesque"', "ệ")).length,
+  );
+  expect(loaded).toBeGreaterThan(0);
 });
 
 for (const size of SIZES) {

@@ -2916,7 +2916,7 @@ export function Companion({ facts }: CompanionProps) {
           // Not while the visitor is holding the lead cat on the keyboard: he
           // is a 44px control with a focus ring, and a ring is drawn around the
           // whole button whether or not the drawing inside it is clipped away.
-          // A hiding cat with a blue rectangle sitting on the panel in front of
+          // A hiding cat with a focus-ring rectangle sitting on the panel in front of
           // it reads as a rendering fault, not as a cat.
           if (kind === "peek" && catRinged()) continue;
           opened = openPlay(kind, grey.pos, tabby.pos, grey.facing, now, sectionRef.current);

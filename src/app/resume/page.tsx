@@ -58,7 +58,7 @@ function contactLine(): string {
 
 export default function ResumePage() {
   return (
-    <div className="tone-base bg-ground py-[var(--section-y)]">
+    <div className="tone-base section-ground py-[var(--section-y)]">
       <div className="shell max-w-[52rem]">
         {/* Screen-only chrome. Nothing here belongs on paper. */}
         <div className="no-print mb-12 flex flex-wrap items-center justify-between gap-4">
@@ -72,7 +72,7 @@ export default function ResumePage() {
 
           <ExternalLink
             href={profile.resumePdf}
-            className="inline-flex min-h-11 items-center gap-2 bg-accent px-5 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 hover:bg-accent-strong hover:text-ground"
+            className="inline-flex min-h-11 items-center gap-2 bg-control px-5 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 hover:bg-accent"
           >
             <Download aria-hidden="true" focusable="false" size={16} />
             Download PDF

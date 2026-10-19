@@ -14,9 +14,9 @@ import Contact from "@/sections/Contact/Contact";
 
 const QUESTION_FIELD = { name: "Ask a question about this portfolio" } as const;
 
-/** Both spellings of an accent fill — the pair the Hero test scans for — each
- *  anchored on whitespace, so `hover:bg-accent-strong` is not counted. */
-const ACCENT_FILLS = [/(^|\s)bg-accent(\s|$)/, /(^|\s)bg-\[color:var\(--accent\)\](\s|$)/] as const;
+/** Both spellings of a control fill — the pair the Hero test scans for — each
+ *  anchored on whitespace, so `hover:bg-accent` is not counted. */
+const CONTROL_FILLS = [/(^|\s)bg-control(\s|$)/, /(^|\s)bg-\[color:var\(--control\)\](\s|$)/] as const;
 
 describe("Ask, in Contact", () => {
   it("is reachable at a stable id", () => {
@@ -58,7 +58,7 @@ describe("Ask, in Contact", () => {
     await screen.findByRole("textbox", QUESTION_FIELD, { timeout: 10_000 });
 
     const primary = Array.from(container.querySelectorAll<HTMLElement>("[class]")).filter((element) =>
-      ACCENT_FILLS.some((fill) => fill.test(element.getAttribute("class") ?? "")),
+      CONTROL_FILLS.some((fill) => fill.test(element.getAttribute("class") ?? "")),
     );
     expect(primary).toHaveLength(1);
     expect(primary[0]).toHaveTextContent(/^Send$/);

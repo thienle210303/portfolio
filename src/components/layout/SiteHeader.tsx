@@ -40,8 +40,8 @@ export default function SiteHeader() {
           <ThemeToggle />
           {/* An outline, not a fill: the header shares every screen with the
               rest of the page, including Contact, whose send button is the one
-              blue primary control (round 18, spec §4). This is the same recipe
-              as `Button`'s `secondary` variant — rule-coloured border, blue
+              primary control (round 18, spec §4). This is the same recipe
+              as `Button`'s `secondary` variant — rule-coloured border, accent
               only on hover — written by hand because the header does not
               render through `Button`. `active:translate-y-px` is the
               mechanical press every boxed clickable on the site gets. */}

@@ -8,7 +8,7 @@ import type { CatIcon } from "./companion-dialogue";
  * The same ink discipline as the cats themselves (`STROKE` in
  * CompanionCat.tsx), at a weight scaled to the smaller box: `currentColor`
  * only, never a fill, never a hue of its own — so the icon is whatever ink
- * the bubble is, follows theme and tone with it, and is never a spot of blue
+ * the bubble is, follows theme and tone with it, and is never a spot of colour
  * decoration. `aria-hidden` and wordless: the bubble it sits in is already
  * `aria-hidden` decoration, and the meow beside it is the only text there.
  *

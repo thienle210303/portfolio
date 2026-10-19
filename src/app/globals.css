@@ -1,18 +1,20 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------- */
-/* Palette — "Blueprint". Seventeen raw tokens and nothing else.              */
+/* Palette — "outdoors". Raw tokens and nothing else.                         */
 /*                                                                            */
-/* The ground is a cool paper rather than a warm cream: every neutral here is */
-/* biased toward the accent blue, so paper, hairline and ink read as one      */
-/* family instead of a grey that happens to sit near a blue. Blue is the only */
-/* hue, and it is reserved for annotation, links and measured values — it is  */
-/* never decoration.                                                          */
+/* Day is a morning field: a pale sky over a lichen ground, with paper        */
+/* surfaces and ink type. The one hue is a moss green, reserved for           */
+/* annotation, links and measured values, with a deeper moss for the single   */
+/* primary control and a flag red for the single mark. It is never            */
+/* decoration.                                                                */
 /*                                                                            */
-/* The night group is not a second palette, it is the same drawing on a dark  */
-/* table — which is why it needs its own accent rather than reusing #1e4e8c,  */
-/* a 2.2:1 smear on a dark ground. Every pairing is checked in                */
-/* docs/contrast.md.                                                          */
+/* Night is a moonlit field, not a mirrored day: the ground is a dark sky     */
+/* (`dusk`), the surfaces are light "lantern" paper with dark ink, and the    */
+/* moss lifts to a lighter green on the dark ground. Because night surfaces   */
+/* are light, `.bg-surface` repoints the text aliases for its subtree — see   */
+/* the paper scope in the night block below. Every pairing is checked in      */
+/* docs/contrast.md; the lowest is 4.52:1 (red on lichen-deep).               */
 /*                                                                            */
 /* Components must NOT reach for these directly — style against the semantic  */
 /* aliases (--fg, --rule-color, …) registered further down, which is what     */
@@ -20,27 +22,38 @@
 /* -------------------------------------------------------------------------- */
 
 @theme {
-  /* Day — paper side */
-  --color-paper: #edf0f2;
-  --color-paper-deep: #e3e8ec;
-  --color-card: #ffffff;
-  --color-ink: #12181c;
-  --color-slate: #47535b;
-  --color-slate-soft: #5b666d;
-  --color-line: #d2dadf;
-  --color-blue: #1e4e8c;
-  --color-blue-deep: #16395f;
+  /* Day */
+  --color-lichen: #e4e8e0;
+  --color-lichen-deep: #dfe3da;
+  --color-paper: #fbfbf8;
+  --color-ink: #1d2321;
+  --color-muted: #56605a;
+  --color-moss: #46603a;
+  --color-moss-deep: #1f3a30;
+  --color-hairline: #c9d0c8;
+  --color-red: #c8102e;
+  /* The morning sky, top to bottom (see --sky). */
+  --color-morning-high: #dce6e2;
+  --color-morning: #e4eae1;
+  --color-morning-low: #ecece2;
 
-  /* Night — the same drawing on a dark table. Not a generic dark mode: the
-     ground keeps the blue bias, and the accent moves rather than the identity. */
-  --color-night: #0c1114;
-  --color-night-deep: #111a21;
-  --color-night-card: #16202a;
-  --color-night-raised: #1d2833;
-  --color-mist: #9aa6ae;
-  --color-mist-soft: #7e8a93;
-  --color-line-night: #24313b;
-  --color-blue-bright: #7fa9dc;
+  /* Night — the moonlit field. */
+  --color-dusk: #142024;
+  --color-dusk-deep: #0d1416;
+  --color-dusk-raised: #1e2c30;
+  --color-dusk-ink: #e6ece7;
+  --color-dusk-muted: #a9b6ae;
+  --color-dusk-moss: #86aa76;
+  --color-dusk-control: #a8c99a;
+  --color-dusk-label: #10181a;
+  --color-dusk-hairline: #3a4844;
+  --color-dusk-red: #ff7a85;
+  /* The night sky's top stop; it falls through dusk to dusk-deep. */
+  --color-dusk-high: #1f3237;
+  --color-lantern: #ede7d8;
+  --color-lantern-raised: #f3eee2;
+  --color-lantern-muted: #5a5f55;
+  --color-lantern-rule: #d3ccb9;
 }
 
 /*
@@ -93,35 +106,39 @@
   --color-fg-subtle: var(--fg-subtle);
   --color-fg-inverse: var(--fg-inverse);
   --color-accent: var(--accent);
-  --color-accent-strong: var(--accent-strong);
+  --color-control: var(--control);
+  --color-mark: var(--mark);
   --color-rule: var(--rule-color);
 }
 
 /*
- * Font-family variables. layout.tsx populates the values of --font-sans and
- * --font-mono via next/font's `variable` option; this block registers those
- * names as Tailwind theme keys so `font-sans` / `font-mono` utilities exist.
- * `--font-display` is not a third face: it is Plex Sans under the name the
- * heading classes already use, so display text is Plex Sans at the weight the
- * component sets.
+ * Font-family variables. layout.tsx populates --font-sans (Bricolage
+ * Grotesque, variable so any weight), --font-mono (Courier Prime, static
+ * 400/700) and --font-serif (Newsreader italic, annotations only) via
+ * next/font's `variable` option; this block registers those names as Tailwind
+ * theme keys so `font-sans` / `font-mono` / `font-serif` utilities exist.
+ * `--font-display` is not a fourth face: it is Bricolage under the name the
+ * heading classes already use, at the weight the component sets.
  *
- * The self-reference in --font-sans / --font-mono (`var(--font-sans), ...`) is
- * intentional. It is safe ONLY because next/font's own declaration (wherever
- * layout.tsx applies `.variable`) is unlayered CSS, while everything @theme
- * emits lives inside Tailwind's `theme` cascade layer, and unlayered author
- * styles always outrank layered ones regardless of source order. So next/font's
- * real value wins every time and the self-reference is never the one evaluated.
- * The text after each var() is NOT a working fallback for that variable: if
- * next/font's variable were ever missing, the self-reference becomes a cycle
- * and CSS invalidates the whole declaration instead of falling through. Do not
- * rename --font-sans / --font-mono away from what layout.tsx passes to
- * next/font's `variable` option. `--font-display` has no such constraint: it
- * references --font-sans, so its fallbacks are real.
+ * The self-reference in --font-sans / --font-mono / --font-serif
+ * (`var(--font-sans), ...`) is intentional. It is safe ONLY because
+ * next/font's own declaration (wherever layout.tsx applies `.variable`) is
+ * unlayered CSS, while everything @theme emits lives inside Tailwind's `theme`
+ * cascade layer, and unlayered author styles always outrank layered ones
+ * regardless of source order. So next/font's real value wins every time and
+ * the self-reference is never the one evaluated. The text after each var() is
+ * NOT a working fallback for that variable: if next/font's variable were ever
+ * missing, the self-reference becomes a cycle and CSS invalidates the whole
+ * declaration instead of falling through. Do not rename --font-sans /
+ * --font-mono / --font-serif away from what layout.tsx passes to next/font's
+ * `variable` option. `--font-display` has no such constraint: it references
+ * --font-sans, so its fallbacks are real.
  */
 @theme inline {
   --font-display: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-serif: var(--font-serif), Georgia, "Times New Roman", serif;
 }
 
 @layer base {
@@ -187,46 +204,50 @@
   /* theme means adding one block here and nothing else anywhere.            */
   /*                                                                         */
   /* Contrast for every pairing below is recorded in docs/contrast.md; the   */
-  /* lowest is 4.66:1 against AA's 4.5 floor.                                */
+  /* lowest is 4.52:1 against AA's 4.5 floor.                                */
   /* ---------------------------------------------------------------------- */
 
   :root {
     color-scheme: light;
 
-    --ground-quiet: var(--color-paper);
-    --ground-quiet-deep: var(--color-paper-deep);
+    --ground-quiet: var(--color-lichen);
+    --ground-quiet-deep: var(--color-lichen-deep);
     --ground-loud: var(--color-ink);
 
-    /* Reading against a paper ground. */
-    --q-surface: var(--color-card);
+    /* Reading against a lichen ground. */
+    --q-surface: var(--color-paper);
     --q-fg: var(--color-ink);
-    --q-fg-muted: var(--color-slate);
-    --q-fg-subtle: var(--color-slate-soft);
+    --q-fg-muted: var(--color-muted);
+    /* The spec gives no third text tone, so subtle collapses onto muted. */
+    --q-fg-subtle: var(--color-muted);
     --q-fg-inverse: var(--color-paper);
-    --q-accent: var(--color-blue);
-    --q-accent-strong: var(--color-blue-deep);
-    --q-rule: var(--color-line);
+    --q-accent: var(--color-moss);
+    --q-control: var(--color-moss-deep);
+    --q-mark: var(--color-red);
+    --q-rule: var(--color-hairline);
 
     /* Reading against an ink ground. */
-    --l-surface: var(--color-night-card);
+    --l-surface: var(--color-dusk-raised);
     --l-fg: var(--color-paper);
-    --l-fg-muted: var(--color-mist);
-    --l-fg-subtle: var(--color-mist-soft);
-    --l-fg-inverse: var(--color-ink);
-    --l-accent: var(--color-blue-bright);
-    --l-accent-strong: var(--color-paper);
-    --l-rule: var(--color-line-night);
+    --l-fg-muted: var(--color-dusk-muted);
+    --l-fg-subtle: var(--color-dusk-muted);
+    --l-fg-inverse: var(--color-dusk-label);
+    --l-accent: var(--color-dusk-moss);
+    --l-control: var(--color-dusk-control);
+    --l-mark: var(--color-dusk-red);
+    --l-rule: var(--color-dusk-hairline);
 
-    /* The grid the whole direction is named for. Drawn from the accent at a
-       low alpha rather than from a grey, so it belongs to the palette — and
-       carried per set, because the same rgba over paper and over ink are two
-       very different amounts of visible line. */
-    /* Each is drawn from the accent that scope actually uses, so the ruling is
-       always the lighter blue on a dark ground and the darker blue on paper —
-       swapping them makes the grid vanish rather than merely soften. */
-    --q-grid: rgba(30, 78, 140, 0.06);
-    --l-grid: rgba(127, 169, 220, 0.08);
+    /* The measurement grid, drawn from the accent each scope actually uses
+       rather than from a grey, so it belongs to the palette — and carried per
+       set, because the same rgba over lichen and over ink are two very
+       different amounts of visible line. */
+    --q-grid: rgba(70, 96, 58, 0.06);
+    --l-grid: rgba(143, 178, 126, 0.08);
     --grid-step: 26px;
+
+    /* The sky: one backdrop behind the whole page, painted on `body` (see
+       `:root body` under `.blueprint-grid`). Day is a morning field. */
+    --sky: linear-gradient(180deg, var(--color-morning-high) 0%, var(--color-morning) 45%, var(--color-morning-low) 100%);
 
     /* The fade at the right edge of a horizontally scrollable code panel.
        Paired with each surface, not with the theme: it has to darken toward
@@ -238,95 +259,125 @@
   /*
    * Night is NOT a mirror of day, and the asymmetry is the considered part.
    *
-   * In day, `tone="contrast"` is a true inversion: a paper site ending on an
+   * In day, `tone="contrast"` is a true inversion: a lichen site ending on an
    * ink footer. Mirroring that would make night's contrast sections full
    * paper — a bright, full-width flash for someone who explicitly asked for a
    * dark page. So in night, `contrast` deepens instead of inverting: the loud
-   * ground is a raised, bluer panel a clear step off the base, which still
-   * reads as a chapter change without ever leaving the dark.
+   * ground is a raised panel a clear step off the base, which still reads as a
+   * chapter change without ever leaving the dark.
    *
-   * The consequence is that night's quiet and loud text sets are close to each
-   * other, and that is correct — in night the ground carries the chapter
-   * change, not the text.
+   * Night's surfaces, though, are light "lantern" paper with dark ink. Custom
+   * properties inherit, so the `.bg-surface` rule repoints the text aliases for
+   * everything inside a surface and components keep using `text-fg` etc.
+   * unchanged. The sky is a vertical gradient on `body`, over `--ground`.
    *
-   * Three states, not two, and the duplication below is what buys the third.
-   * The inline script in layout.tsx normally resolves the OS preference and
-   * stamps a concrete `data-theme` before first paint, so `[data-theme="night"]`
-   * is the selector that does the work in practice. The media query is the
-   * no-JS path: with nothing stamped, a dark-preferring visitor still gets
-   * night. It is guarded with `:not([data-theme="day"])` so that an explicit
-   * choice of day still beats a dark OS.
-   *
-   * Keep the two blocks identical. They cannot be merged into one selector
-   * list — a media query is a different nesting context, not a selector.
+   * The night group and the no-JS twin below must stay identical. They cannot
+   * be merged into one selector list — a media query is a different nesting
+   * context, not a selector. The inline script in layout.tsx normally resolves
+   * the OS preference and stamps a concrete `data-theme` before first paint, so
+   * `[data-theme="night"]` does the work in practice; the media query is the
+   * no-JS path, guarded with `:not([data-theme="day"])` so an explicit choice
+   * of day still beats a dark OS.
    */
   :root[data-theme="night"] {
     color-scheme: dark;
 
-    --ground-quiet: var(--color-night);
-    --ground-quiet-deep: var(--color-night-deep);
-    --ground-loud: var(--color-night-card);
+    --ground-quiet: var(--color-dusk);
+    --ground-quiet-deep: var(--color-dusk-deep);
+    --ground-loud: var(--color-dusk-raised);
 
-    --q-surface: var(--color-night-card);
-    --q-fg: var(--color-paper);
-    --q-fg-muted: var(--color-mist);
-    --q-fg-subtle: var(--color-mist-soft);
-    --q-fg-inverse: var(--color-ink);
-    --q-accent: var(--color-blue-bright);
-    --q-accent-strong: var(--color-paper);
-    --q-rule: var(--color-line-night);
+    --q-surface: var(--color-lantern);
+    --q-fg: var(--color-dusk-ink);
+    --q-fg-muted: var(--color-dusk-muted);
+    --q-fg-subtle: var(--color-dusk-muted);
+    --q-fg-inverse: var(--color-dusk-label);
+    --q-accent: var(--color-dusk-moss);
+    --q-control: var(--color-dusk-control);
+    --q-mark: var(--color-dusk-red);
+    --q-rule: var(--color-dusk-hairline);
     --q-code-scrim: rgba(0, 0, 0, 0.6);
     --l-code-scrim: rgba(18, 24, 28, 0.18);
 
-    --l-surface: var(--color-night-raised);
-    --l-fg: var(--color-paper);
-    --l-fg-muted: var(--color-mist);
-    /* --color-mist, not mist-soft: on the raised surface mist-soft lands at
-       4.23:1, under the AA floor. There is no readable third step here, so
-       subtle collapses onto muted rather than inventing an unreadable one. */
-    --l-fg-subtle: var(--color-mist);
-    --l-fg-inverse: var(--color-ink);
-    --l-accent: var(--color-blue-bright);
-    --l-accent-strong: var(--color-paper);
-    --l-rule: var(--color-line-night);
+    --l-surface: var(--color-lantern);
+    --l-fg: var(--color-dusk-ink);
+    --l-fg-muted: var(--color-dusk-muted);
+    --l-fg-subtle: var(--color-dusk-muted);
+    --l-fg-inverse: var(--color-dusk-label);
+    --l-accent: var(--color-dusk-moss);
+    --l-control: var(--color-dusk-control);
+    --l-mark: var(--color-dusk-red);
+    --l-rule: var(--color-dusk-hairline);
 
-    --q-grid: rgba(127, 169, 220, 0.07);
-    --l-grid: rgba(127, 169, 220, 0.09);
+    --q-grid: rgba(143, 178, 126, 0.07);
+    --l-grid: rgba(143, 178, 126, 0.09);
+
+    /* The night sky: same backdrop as day's, different stops. */
+    --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
+  }
+
+  /* Paper scope: light surface, dark ink. --ground becomes lantern-raised so
+     fields and insets (bg-ground inside the card) sit on paper, not on the
+     night ground. `[data-paper]` is the companion's: a fixed cat is outside
+     every card, so `syncTone` stamps it while the cat is over one. */
+  :root[data-theme="night"] :is(.bg-surface, [data-paper]) {
+    --ground: var(--color-lantern-raised);
+    --fg: var(--color-ink);
+    --fg-muted: var(--color-lantern-muted);
+    --fg-subtle: var(--color-lantern-muted);
+    --fg-inverse: var(--color-paper);
+    --accent: var(--color-moss);
+    --ring-color: var(--color-moss);
+    --mark: var(--color-red);
+    --control: var(--color-moss-deep);
+    --rule-color: var(--color-lantern-rule);
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="day"]) {
       color-scheme: dark;
 
-      --ground-quiet: var(--color-night);
-      --ground-quiet-deep: var(--color-night-deep);
-      --ground-loud: var(--color-night-card);
+      --ground-quiet: var(--color-dusk);
+      --ground-quiet-deep: var(--color-dusk-deep);
+      --ground-loud: var(--color-dusk-raised);
 
-      --q-surface: var(--color-night-card);
-      --q-fg: var(--color-paper);
-      --q-fg-muted: var(--color-mist);
-      --q-fg-subtle: var(--color-mist-soft);
-      --q-fg-inverse: var(--color-ink);
-      --q-accent: var(--color-blue-bright);
-      --q-accent-strong: var(--color-paper);
-      --q-rule: var(--color-line-night);
+      --q-surface: var(--color-lantern);
+      --q-fg: var(--color-dusk-ink);
+      --q-fg-muted: var(--color-dusk-muted);
+      --q-fg-subtle: var(--color-dusk-muted);
+      --q-fg-inverse: var(--color-dusk-label);
+      --q-accent: var(--color-dusk-moss);
+      --q-control: var(--color-dusk-control);
+      --q-mark: var(--color-dusk-red);
+      --q-rule: var(--color-dusk-hairline);
       --q-code-scrim: rgba(0, 0, 0, 0.6);
       --l-code-scrim: rgba(18, 24, 28, 0.18);
 
-      --l-surface: var(--color-night-raised);
-      --l-fg: var(--color-paper);
-      --l-fg-muted: var(--color-mist);
-      /* --color-mist, not mist-soft: on the raised surface mist-soft lands at
-         4.23:1, under the AA floor. There is no readable third step here, so
-         subtle collapses onto muted rather than inventing an unreadable one. */
-      --l-fg-subtle: var(--color-mist);
-      --l-fg-inverse: var(--color-ink);
-      --l-accent: var(--color-blue-bright);
-      --l-accent-strong: var(--color-paper);
-      --l-rule: var(--color-line-night);
+      --l-surface: var(--color-lantern);
+      --l-fg: var(--color-dusk-ink);
+      --l-fg-muted: var(--color-dusk-muted);
+      --l-fg-subtle: var(--color-dusk-muted);
+      --l-fg-inverse: var(--color-dusk-label);
+      --l-accent: var(--color-dusk-moss);
+      --l-control: var(--color-dusk-control);
+      --l-mark: var(--color-dusk-red);
+      --l-rule: var(--color-dusk-hairline);
 
-      --q-grid: rgba(127, 169, 220, 0.07);
-      --l-grid: rgba(127, 169, 220, 0.09);
+      --q-grid: rgba(143, 178, 126, 0.07);
+      --l-grid: rgba(143, 178, 126, 0.09);
+      --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
+    }
+
+    :root:not([data-theme="day"]) :is(.bg-surface, [data-paper]) {
+      --ground: var(--color-lantern-raised);
+      --fg: var(--color-ink);
+      --fg-muted: var(--color-lantern-muted);
+      --fg-subtle: var(--color-lantern-muted);
+      --fg-inverse: var(--color-paper);
+      --accent: var(--color-moss);
+      --ring-color: var(--color-moss);
+      --mark: var(--color-red);
+      --control: var(--color-moss-deep);
+      --rule-color: var(--color-lantern-rule);
     }
   }
 
@@ -338,9 +389,11 @@
    *   --fg           primary text
    *   --fg-muted     secondary text
    *   --fg-subtle    tertiary text / metadata (eyebrows, counts, sources)
-   *   --fg-inverse   the tone that reads on top of an --fg-coloured fill
+   *   --fg-inverse   the label that reads on top of a --control fill
    *   --surface      raised panels: cards, the code figure, the rail
-   *   --accent       links, measured values, the margin rail's labels
+   *   --accent       links, measured values, annotation, the margin rail's labels
+   *   --control      the one primary control per screen
+   *   --mark         the single mark
    *   --rule-color   1px borders
    *   --ring-color   focus-visible outline
    *
@@ -357,7 +410,8 @@
     --fg-subtle: var(--q-fg-subtle);
     --fg-inverse: var(--q-fg-inverse);
     --accent: var(--q-accent);
-    --accent-strong: var(--q-accent-strong);
+    --control: var(--q-control);
+    --mark: var(--q-mark);
     --rule-color: var(--q-rule);
     --ring-color: var(--q-accent);
     --grid-line: var(--q-grid);
@@ -376,7 +430,8 @@
     --fg-subtle: var(--l-fg-subtle);
     --fg-inverse: var(--l-fg-inverse);
     --accent: var(--l-accent);
-    --accent-strong: var(--l-accent-strong);
+    --control: var(--l-control);
+    --mark: var(--l-mark);
     --rule-color: var(--l-rule);
     --ring-color: var(--l-accent);
     --grid-line: var(--l-grid);
@@ -558,6 +613,37 @@
     }
   }
 
+  /*
+   * The sky: one backdrop behind the whole page in both themes, so it is
+   * painted on `body` and the quiet sections let it show through
+   * (`.section-ground` below). Each theme only supplies `--sky`, so the no-JS
+   * night path needs nothing here. This rule lives in `components` because
+   * `.blueprint-grid` (also on `body`) does, and `:root body` outranks it. It
+   * replaces the grid on `body` only: the hero's own `.blueprint-grid` is a
+   * different element and still draws its fixed ruling over the sky. `fixed`
+   * pins the sky to the viewport, so it is continuous across sections and
+   * simply scrolls with the page where unsupported.
+   */
+  :root body {
+    background-image: var(--sky);
+    background-size: 100% 100%;
+    background-attachment: fixed;
+  }
+
+  /*
+   * A section's own ground. Only `tone-contrast` paints it; the quiet tones
+   * (`base`, `deep`) are transparent in both themes so the sky shows through.
+   * `--ground` itself stays a flat colour for anything that needs a solid fill
+   * (the header, the companion's cut-outs).
+   */
+  .section-ground {
+    background-color: var(--ground);
+  }
+
+  .section-ground:not(.tone-contrast) {
+    background-color: transparent;
+  }
+
   /* `position: relative` is for the lead-in below, not decoration. The
      ink-reveal block further down repeats the same declaration under its own
      selector for its `::before`; both are idempotent. */
@@ -650,7 +736,7 @@
 
   /*
    * No explicit `tabular-nums` here (Workstream 3, P4): every rail detail
-   * renders in `var(--font-mono)`, and IBM Plex Mono's digits are tabular by
+   * renders in `var(--font-mono)`, and Courier Prime's digits are tabular by
    * construction — a monospace face has exactly one advance width for every
    * glyph, digits included, so there is no proportional-width figure for
    * `font-variant-numeric` to fix. The same is true of most of the site's
@@ -1541,8 +1627,8 @@
   /*                                                                        */
   /* Every colour here is `currentColor` against the `text-fg-subtle`        */
   /* context `WeatherLayer` sets on its own wrapper, or the stronger `--fg`   */
-  /* alias for a storm's own "denser, darker" hatch — never blue, which the   */
-  /* design system reserves for annotation and links alone (CLAUDE.md).      */
+  /* alias for a storm's own "denser, darker" hatch — never the accent, which */
+  /* the design system reserves for annotation and links alone (CLAUDE.md).   */
   /* ---------------------------------------------------------------------- */
   @media screen and (prefers-reduced-motion: no-preference) {
     /* Rain: a slanted hairline per stroke, falling on a loop across the sky
@@ -1740,7 +1826,7 @@
     color: var(--fg);
   }
 
-  /* Strings take the accent. It is the one place blue appears at any volume,
+  /* Strings take the accent. It is the one place the accent appears at any volume,
      and it is legitimate: a string literal in this content is always a real
      quoted claim from the profile. */
   [data-token="string"] {
@@ -1809,10 +1895,12 @@
 /* measured anywhere in its step's width range, so the box is the same       */
 /* height before and after the chat lands. Re-measure if the chat's idle copy */
 /* or suggestions change (at 1rem = 16px, widths 320-1920 every 4px, both     */
-/* modes, natural height with this rule switched off). Last measured with    */
-/* round 18's copy: live mode was never taller than static at any width (up  */
-/* to 28px shorter), so one set of values serves both and is not keyed on the */
-/* mode. e2e/ask.spec.ts fails at five widths if the footer moves by more     */
+/* modes, natural height with this rule switched off). Round 18's copy was    */
+/* measured in both modes: live was never taller than static at any width     */
+/* (up to 28px shorter), so one set of values serves both and is not keyed    */
+/* on the mode. Round 21 phase 1 (Bricolage) re-measured the static mode      */
+/* only; that live stays no taller under the new face is assumed, not         */
+/* measured. e2e/ask.spec.ts fails at five widths if the footer moves by more */
 /* than 2px across the load, and fails between 400 and 639px if the room is   */
 /* short of the chat or more than 200px taller than it.                       */
 /*                                                                            */
@@ -1833,27 +1921,27 @@
   }
   @media (width >= 32.5rem) {
     :root {
-      --ask-room: 49rem; /* 776px at 544 */
+      --ask-room: 54.5rem; /* 863px at 520 */
     }
   }
   @media (width >= 40rem) {
     :root {
-      --ask-room: 48.5rem; /* 768px at 648 */
+      --ask-room: 48.5rem; /* 752px at 648 */
     }
   }
   @media (width >= 48rem) {
     :root {
-      --ask-room: 44rem; /* 695px at 1020 */
+      --ask-room: 44rem; /* 680px at 1020 */
     }
   }
   @media (width >= 64rem) {
     :root {
-      --ask-room: 50.5rem; /* 802px at 1024 */
+      --ask-room: 55.5rem; /* 886px at 1024 */
     }
   }
   @media (width >= 80rem) {
     :root {
-      --ask-room: 44.5rem; /* 695px at 1280 */
+      --ask-room: 46.5rem; /* 737px at 1592 */
     }
   }
   html[data-motion] [data-ask-slot],

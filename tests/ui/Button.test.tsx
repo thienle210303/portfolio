@@ -3,6 +3,25 @@ import { render, screen } from "@testing-library/react";
 import { Button } from "@/components/ui/Button";
 
 describe("Button", () => {
+  it("primary fills with --control and labels with --fg-inverse", () => {
+    render(<Button>Go</Button>);
+    const cls = screen.getByRole("button", { name: "Go" }).className;
+    expect(cls).toMatch(/(^|\s)bg-\[color:var\(--control\)\](\s|$)/);
+    expect(cls).toMatch(/(^|\s)text-\[color:var\(--fg-inverse\)\](\s|$)/);
+  });
+
+  it("secondary and quiet never fill with --control", () => {
+    render(
+      <>
+        <Button variant="secondary">Two</Button>
+        <Button variant="quiet">Three</Button>
+      </>,
+    );
+    for (const name of ["Two", "Three"]) {
+      expect(screen.getByRole("button", { name }).className).not.toMatch(/bg-(control|\[color:var\(--control\)\])/);
+    }
+  });
+
   it("renders an <a> when href is passed", () => {
     render(<Button href="/resume.pdf">Download resume</Button>);
     expect(screen.getByRole("link", { name: "Download resume" })).toBeInTheDocument();

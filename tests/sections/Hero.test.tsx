@@ -61,16 +61,16 @@ describe("Hero", () => {
     expect(links).toHaveLength(2);
     const work = screen.getByRole("link", { name: "See my work" });
     expect(work).toHaveAttribute("href", "#tree");
-    expect(work.className).toMatch(/(^|\s)bg-\[color:var\(--accent\)\]/);
+    expect(work.className).toMatch(/(^|\s)bg-\[color:var\(--control\)\]/);
     const book = screen.getByRole("link", { name: "Book a call" });
     expect(book).toHaveAttribute("href", "#contact");
     expect(book.className).toMatch(/(^|\s)border-transparent(\s|$)/);
   });
 
-  it("fills only See my work with the accent", () => {
+  it("fills only See my work with the control colour", () => {
     const { container } = renderHero();
     const filled = [...container.querySelectorAll<HTMLElement>("[class]")].filter((element) =>
-      /(^|\s)bg-\[color:var\(--accent\)\]|(^|\s)bg-accent(\s|$)/.test(element.className),
+      /(^|\s)bg-\[color:var\(--control\)\](\s|$)|(^|\s)bg-control(\s|$)/.test(element.className),
     );
     expect(filled.map((element) => element.textContent)).toEqual(["See my work"]);
   });
