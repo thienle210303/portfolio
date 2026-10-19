@@ -29,7 +29,7 @@ const HEADING_ID = "hero-heading";
 /** The field tag's string length, fitted like ChapterTags' DROPS (within 2px). */
 const FIELD_DROP = {
   "--drop": "calc(31.2px - (100cqw - 1024px) * 0.0239)",
-  "--drop-xl": "calc(26.1px + (100cqw - 1280px) * 0.031)",
+  "--drop-xl": "calc(26.1px + (min(100cqw, 1920px) - 1280px) * 0.031)",
 } as CSSProperties;
 
 export default function Hero({ bookingUrl }: { readonly bookingUrl: string | null }) {
@@ -46,7 +46,7 @@ export default function Hero({ bookingUrl }: { readonly bookingUrl: string | nul
       // The hero runs its own `data-motion` load choreography instead of the
       // generic scroll-triggered ink settle — see Section.tsx's own comment.
       reveal={false}
-      className="@container relative isolate overflow-hidden pb-[130px] [--line-top:50px] lg:pb-[120px]"
+      className="@container relative isolate overflow-hidden pb-[130px] [--line-top:38px] lg:pb-[132px]"
     >
       {/* Retired ids that land here; same pattern as CareerTree's. */}
       {ABOUT_LEGACY_SECTION_IDS.map((id) => (

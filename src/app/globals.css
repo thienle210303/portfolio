@@ -1115,7 +1115,7 @@
     }
 
     /* The identity column (h1 -> intro -> actions), then the line of
-       tags and my field tag, all inside ~0.5s. */
+       tags and my field tag, done by ~0.7s. */
     html[data-motion] [data-hero-step="h1"] {
       animation-name: ink-rise; /* LCP guard — see the block comment above */
       animation-delay: 0ms;

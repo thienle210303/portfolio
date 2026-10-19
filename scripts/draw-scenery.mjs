@@ -138,6 +138,14 @@ const STILL = {
     + `<ellipse cx="0" cy="-2" rx="16" ry="2.4" fill="#FF8A3D" opacity="0.9"/></g>`,
 };
 
+/**
+ * Sky coordinates the hero's words cover at 1440 (the sky is drawn at 1440 and
+ * centred, like the content). No seed or firefly lands in it; the random draws
+ * still happen, so everything else stays where the board put it.
+ */
+export const SKY_CLEAR = { x0: 120, x1: 860, y0: 400, y1: 800 };
+const clear = (x, y) => x >= SKY_CLEAR.x0 && x <= SKY_CLEAR.x1 && y >= SKY_CLEAR.y0 && y <= SKY_CLEAR.y1;
+
 // Both branches of the board's skyLayer, without its outer <svg>.
 function skyLayer(night, moon, seed) {
   if (!night) {
@@ -155,7 +163,9 @@ function skyLayer(night, moon, seed) {
       const sx = 80 + r() * 1300, sy = 520 + r() * 340, a0 = r() * 6.28;
       let fl = "";
       for (let k = 0; k < 7; k++) { const a = a0 + (k * Math.PI * 2) / 7; fl += `M${f(sx)} ${f(sy)}l${f(Math.cos(a) * 5)} ${f(Math.sin(a) * 5)}`; }
-      seeds += `<g opacity="${f(0.45 + r() * 0.4)}"><path d="${fl}M${f(sx)} ${f(sy)}l${f(-3)} ${f(9)}" fill="none" stroke="#7D867E" stroke-width="0.8" stroke-linecap="round"/><circle cx="${f(sx - 3)}" cy="${f(sy + 9)}" r="1.1" fill="#7D867E"/></g>`;
+      const op = f(0.45 + r() * 0.4);
+      if (clear(sx, sy)) continue;
+      seeds += `<g opacity="${op}"><path d="${fl}M${f(sx)} ${f(sy)}l${f(-3)} ${f(9)}" fill="none" stroke="#7D867E" stroke-width="0.8" stroke-linecap="round"/><circle cx="${f(sx - 3)}" cy="${f(sy + 9)}" r="1.1" fill="#7D867E"/></g>`;
     }
     const [mx, my] = moon;
     return `<defs><filter id="soft" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="6"/></filter>`
@@ -165,7 +175,10 @@ function skyLayer(night, moon, seed) {
   }
   const r = rng(seed); let stars = "", flies = "";
   for (let i = 0; i < 70; i++) stars += `<circle cx="${f(r() * 1440)}" cy="${f(r() * 360)}" r="${[0.8, 1, 1.3][Math.floor(r() * 3)]}" fill="#E8EEDF" opacity="${f(0.35 + r() * 0.55)}"/>`;
-  for (let i = 0; i < 22; i++) flies += `<circle cx="${f(80 + r() * 1300)}" cy="${f(520 + r() * 360)}" r="${f(1.6 + r())}" fill="#FFE18A" filter="url(#glow)" opacity="${f(0.6 + r() * 0.4)}"/>`;
+  for (let i = 0; i < 22; i++) {
+    const x = 80 + r() * 1300, y = 520 + r() * 360, rad = f(1.6 + r()), op = f(0.6 + r() * 0.4);
+    if (!clear(x, y)) flies += `<circle cx="${f(x)}" cy="${f(y)}" r="${rad}" fill="#FFE18A" filter="url(#glow)" opacity="${op}"/>`;
+  }
   const [mx, my] = moon;
   return `<defs><filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
     + `<radialGradient id="halo"><stop offset="0" stop-color="#F6EFD5" stop-opacity="0.35"/><stop offset="1" stop-color="#F6EFD5" stop-opacity="0"/></radialGradient></defs>`
@@ -179,9 +192,9 @@ const K = "#000";
 /** @returns {Record<string, string>} file stem → SVG text */
 export function drawScenery() {
   return {
-    bamboo: svg("0 110 170 790", bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
+    bamboo: svg("0 110 140 790", bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
     pine: svg("1260 80 180 820", `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g>`),
-    "rice-field": svg("550 740 670 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
+    "rice-field": svg("565 740 655 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
     ripples: svg("560 860 660 30", ripples(560, 872, 640, 3, K, 3)),
     buffalo: svg("905 790 150 80", buffalo(930, 790, 0.78, K)),
     "tag-rice": svg("0 0 150 88", rice(52, 84, 3, 20, 4, K, 44, 26)),
@@ -191,8 +204,8 @@ export function drawScenery() {
     "non-la": svg("44 370 120 130", `<path d="M80 372Q96 380 102 396" fill="none" stroke="#8b7b5e" stroke-width="1.2"/>${nonLa(104, 444, 0.9)}`),
     "sky-day": svg("0 0 1440 900", skyLayer(false, [880, 120], 1)),
     "sky-night": svg("0 0 1440 900", skyLayer(true, [880, 120], 1)),
-    morning: svg("420 750 100 134", stool(470, 840, "#C8352B") + STILL.phin(470, 838)),
-    evening: svg("420 750 100 134", stool(470, 840, "#2E6DB4") + STILL.lau(470, 838)),
+    morning: svg("420 770 100 114", stool(470, 840, "#C8352B") + STILL.phin(470, 838)),
+    evening: svg("420 770 100 114", stool(470, 840, "#2E6DB4") + STILL.lau(470, 838)),
   };
 }
 

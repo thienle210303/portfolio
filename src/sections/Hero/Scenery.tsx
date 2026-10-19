@@ -1,10 +1,15 @@
 /**
  * The hero's scenery, behind everything and out of the accessibility tree.
- * Positions are the board's (NatHero), measured from the section's bottom
- * left. The bamboo, nón lá and pine need the board's own 1440: any narrower
- * and the content column runs into the pole and the hat. The clothesline
- * shows from 1024; its top is `--line-top` below the section's padding, the
- * same offset the chapter tags' row starts at, so their strings meet it.
+ * Positions are the board's (NatHero), measured from the section's bottom.
+ * From 1280 the content column is a centred 1120px, so the ground pieces and
+ * the sky stand in a centred 1440 frame (`50% ± n px`) and keep the board's
+ * relation to the words at any width. Below that they take the % positions.
+ *
+ * The clothesline shows from 1024, at most 1920 wide and centred; its top is
+ * `--line-top` below the section's padding, the same offset the chapter tags'
+ * row starts at, so their strings meet it. The bamboo, nón lá and pine hang at
+ * its two ends (`--lx`, `--lw`), and only from 1440: any narrower and the
+ * content column runs into the pole and the hat.
  *
  * `data-moon-off-duty` is a stable hook: Phase 7's surprise reads it.
  */
@@ -14,9 +19,15 @@ import { Drawing } from "@/components/scenery/Drawing";
 
 export default function Scenery() {
   return (
-    <div aria-hidden="true" data-scenery="hero" className="pointer-events-none absolute inset-0 -z-10">
+    <div
+      aria-hidden="true"
+      data-scenery="hero"
+      className="pointer-events-none absolute inset-0 -z-10"
+      // The clothesline's width and left edge; % resolves where each is used.
+      style={{ "--lw": "min(100%, 1920px)", "--lx": "calc((100% - var(--lw)) / 2)" } as CSSProperties}
+    >
       <span
-        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:max(100%,1440px)_auto]"
+        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:1440px_auto]"
         style={{ "--art": "var(--art-sky)" } as CSSProperties}
       />
 
@@ -25,7 +36,7 @@ export default function Scenery() {
       <svg
         viewBox="0 0 1440 140"
         preserveAspectRatio="none"
-        className="absolute inset-x-0 top-[calc(var(--section-y)+var(--line-top))] hidden h-[140px] w-full lg:block"
+        className="absolute top-[calc(var(--section-y)+var(--line-top))] left-(--lx) hidden h-[140px] w-(--lw) lg:block"
       >
         <path
           d="M76 14Q703 126 1330 0"
@@ -36,35 +47,45 @@ export default function Scenery() {
         />
       </svg>
 
-      <Drawing name="bamboo" className="absolute bottom-0 left-0 h-[790px] w-[170px] text-accent max-[1440px]:hidden" />
-      <Drawing name="non-la" className="absolute bottom-[400px] left-[44px] h-[130px] w-[120px] max-[1440px]:hidden" />
-      <Drawing name="pine" className="absolute right-0 bottom-0 h-[820px] w-[180px] text-accent max-[1440px]:hidden" />
+      {/* The line starts at x 76 and ends at x 1330 of its 1440 viewBox. */}
+      <Drawing
+        name="bamboo"
+        className="absolute bottom-0 left-[calc(var(--lx)+var(--lw)*0.052778-76px)] h-[790px] w-[140px] text-accent max-[1440px]:hidden"
+      />
+      <Drawing
+        name="non-la"
+        className="absolute bottom-[400px] left-[calc(var(--lx)+var(--lw)*0.052778-36px)] h-[130px] w-[120px] max-[1440px]:hidden"
+      />
+      <Drawing
+        name="pine"
+        className="absolute bottom-0 left-[calc(var(--lx)+var(--lw)*0.923611-70px)] h-[820px] w-[180px] text-accent max-[1440px]:hidden"
+      />
       <Drawing
         name="ripples"
-        className="absolute bottom-[10px] left-[38.9%] h-[30px] w-[660px] text-[color:var(--scene-water)] max-xl:hidden"
+        className="absolute bottom-[10px] left-[calc(50%-160px)] h-[30px] w-[660px] text-[color:var(--scene-water)] max-xl:hidden"
       />
       {/* Before the rice, so the stalks draw over it. */}
       <Drawing
         name="buffalo"
-        className="absolute right-[2%] bottom-[20px] h-[59px] w-[110px] text-[color:var(--scene-buffalo)] lg:right-auto lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[150px] xl:left-[62.8%]"
+        className="absolute right-[2%] bottom-[20px] h-[59px] w-[110px] text-[color:var(--scene-buffalo)] lg:right-auto lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[150px] xl:left-[calc(50%+185px)]"
       />
       <Drawing
         name="rice-field"
-        className="absolute inset-x-0 bottom-0 h-[120px] text-accent lg:right-auto lg:left-[calc(38%-50px)] lg:h-[160px] lg:w-[670px] xl:left-[38.2%]"
+        className="absolute inset-x-0 bottom-0 h-[120px] text-accent lg:right-auto lg:left-[45%] lg:h-[160px] lg:w-[655px] xl:left-[calc(50%-145px)]"
       />
 
       <span
-        className="scene-art absolute bottom-[12px] left-[40%] h-[96px] w-[72px] lg:bottom-[16px] lg:left-[29.2%] lg:h-[134px] lg:w-[100px]"
+        className="scene-art absolute bottom-[12px] left-[40%] h-[82px] w-[72px] lg:bottom-[16px] lg:left-[29.2%] lg:h-[114px] lg:w-[100px] xl:left-[calc(50%-300px)]"
         style={{ "--art": "var(--art-vignette)" } as CSSProperties}
       />
-      <div className="absolute bottom-0 left-[38%] font-serif text-[length:var(--step--1)] leading-none italic text-fg-muted lg:bottom-[4px] lg:left-[29%]">
+      <div className="absolute bottom-0 left-[38%] font-serif text-[length:var(--step--1)] leading-none italic text-fg-muted lg:bottom-[4px] lg:left-[29%] xl:left-[calc(50%-302px)]">
         <p className="day-only">{hero.vignette.morning}</p>
         <p className="night-only">{hero.vignette.evening}</p>
       </div>
 
       <span
         data-moon-off-duty=""
-        className="absolute bottom-8 left-4 flex flex-col items-start gap-1 lg:bottom-[19px] lg:left-[11.1%] lg:flex-row lg:items-end lg:gap-2"
+        className="absolute bottom-8 left-4 flex flex-col items-start gap-1 lg:bottom-[19px] lg:left-[11.1%] lg:flex-row xl:left-[calc(50%-560px)] lg:items-end lg:gap-2"
       >
         <svg
           viewBox="18 28 136 74"

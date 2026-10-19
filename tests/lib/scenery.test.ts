@@ -1,13 +1,13 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { drawScenery } from "../../scripts/draw-scenery.mjs";
+import { SKY_CLEAR, drawScenery } from "../../scripts/draw-scenery.mjs";
 
 const DIR = "public/scenery";
 
 const VIEWBOXES: Record<string, string> = {
-  bamboo: "0 110 170 790",
+  bamboo: "0 110 140 790",
   pine: "1260 80 180 820",
-  "rice-field": "550 740 670 160",
+  "rice-field": "565 740 655 160",
   ripples: "560 860 660 30",
   buffalo: "905 790 150 80",
   "tag-rice": "0 0 150 88",
@@ -17,8 +17,8 @@ const VIEWBOXES: Record<string, string> = {
   "non-la": "44 370 120 130",
   "sky-day": "0 0 1440 900",
   "sky-night": "0 0 1440 900",
-  morning: "420 750 100 134",
-  evening: "420 750 100 134",
+  morning: "420 770 100 114",
+  evening: "420 770 100 114",
 };
 const INK = ["bamboo", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop"];
 
@@ -44,6 +44,17 @@ describe("the hero's scenery", () => {
       const paints = [...files[stem].matchAll(/\b(?:stroke|fill)="([^"]*)"/g)].map((m) => m[1]);
       expect(paints.length, stem).toBeGreaterThan(0);
       for (const paint of paints) expect(["#000", "none"], `${stem}: ${paint}`).toContain(paint);
+    }
+  });
+
+  it("no seed or firefly lands on the hero's words", () => {
+    const seeds = [...files["sky-day"].matchAll(/<g opacity="[^"]*"><path d="M([\d.]+) ([\d.]+)/g)];
+    const flies = [...files["sky-night"].matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)"[^>]*fill="#FFE18A"/g)];
+    expect(seeds.length).toBeGreaterThan(5);
+    expect(flies.length).toBeGreaterThan(5);
+    for (const [, x, y] of [...seeds, ...flies]) {
+      const inside = +x >= SKY_CLEAR.x0 && +x <= SKY_CLEAR.x1 && +y >= SKY_CLEAR.y0 && +y <= SKY_CLEAR.y1;
+      expect(inside, `${x},${y}`).toBe(false);
     }
   });
 

@@ -15,7 +15,7 @@
  * call with me" is quiet: with `BOOKING_URL` set it is an external link
  * (Button routes `http` hrefs through `ExternalLink`); without one it falls
  * back to `#contact` rather than rendering a dead link. The actions row is the
- * cats' perch, and `w-fit` so `besideRect` has room beside it.
+ * cats' perch.
  */
 import { hero, profile } from "@/content/portfolio";
 import { Button } from "@/components/ui/Button";

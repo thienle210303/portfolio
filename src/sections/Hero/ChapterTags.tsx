@@ -10,14 +10,15 @@ import type { Chapter, ChapterId } from "@/lib/hero";
  * How far below the clothesline's top (Scenery.tsx) each tag's string meets
  * the curve. The line stretches with the section, so the sag under a tag
  * depends on the width: nearly flat across 1024–1279 (one value each), and
- * linear in the section's width (`cqw`) from 1280. Fitted against the curve:
- * every string meets it within 2px from 1024 to 1920. Hero.tsx does the same
- * for the field tag.
+ * linear in the section's width (`cqw`) from 1280. Past 1920 the line stops
+ * growing and stays centred, like the content, so the width is capped there.
+ * Fitted against the curve: every string meets it within 2px at any width.
+ * Hero.tsx does the same for the field tag.
  */
 const DROPS = ["28.8px", "52.4px", "64.8px", "65.5px"];
 const DROPS_XL = [
-  "calc(31.9px + (100cqw - 1280px) * 0.0345)",
-  "calc(55.7px + (100cqw - 1280px) * 0.0115)",
+  "calc(31.9px + (min(100cqw, 1920px) - 1280px) * 0.0345)",
+  "calc(55.7px + (min(100cqw, 1920px) - 1280px) * 0.0115)",
   "66.2px",
   "63.4px",
 ];

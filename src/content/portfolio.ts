@@ -1425,8 +1425,9 @@ export const highlights = [
 /* AI tooling reference                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** Rendered nowhere since round 21 retired the hero terminal, its only reader.
- *  Kept for a later page by the owner's ruling (round 21 phase 3). */
+/** Rendered nowhere since round 21 retired the hero terminal. Kept pending the
+ *  owner's answer to round 21 phase 3's open question 5 (keep for a later page,
+ *  or delete). */
 export const aiTools = [
   {
     id: "claude-code",
