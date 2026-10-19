@@ -7,7 +7,7 @@ import { navItems } from "@/content/portfolio";
  *
  * The duet's ambient banter (companion-dialogue.ts) is decorative; this is the
  * opposite — a visitor presses "Show me around" in the toolkit panel, and the
- * pair walk the page's own four sections, performing a short scene at each
+ * pair walk the page's own sections, performing a short scene at each
  * stop through the HUD's `role="status"`. It is the only thing the companion
  * narrates out loud, on purpose: everything else it does is a drawing, and a
  * drawing that starts talking to a screen reader unprompted is noise. Asked
@@ -44,10 +44,9 @@ export type TourPhase = "walking" | "arrived";
  * one identically — the visitor has not chosen anyone yet at About, and
  * Contact is where every route ends up regardless — so the routes only
  * ever disagree about the stops in between, `GREY_MIDDLE`: `grey`'s is the
- * order the page itself is laid out in (the builder's route, the world
- * first and then the chronology behind it), `tabby`'s runs it backwards
- * (the curious route, starting from what she finds most interesting and
- * working back to how it was built). See `stopsFor`.
+ * order the page itself is laid out in (the builder's route), `tabby`'s
+ * runs it backwards (the curious route). With one middle stop the two
+ * routes now agree; the reversal is kept so a section added later splits them. See `stopsFor`.
  */
 export type TourRoute = "grey" | "tabby";
 
@@ -59,27 +58,27 @@ export type TourRoute = "grey" | "tabby";
  *  lands in both the hard-coded prefix and this list) or never (if it lands
  *  in neither).
  *
- *  Round 18 took it from four to two. The page lost Selected Work and
- *  Skills (their case studies now render inside the Journey's branches), so
- *  Worlds and Journey are all that is left between About and Contact, and
- *  taking the two ids out of this list and out of `navItems` is the whole of
- *  what the tour had to unlearn: `TOUR_STOPS` already derives from `navItems`
+ *  Round 18 took it from four to two, round 21 to one: the Journey is all
+ *  that is left between About and Contact (Selected Work and Skills went in
+ *  round 18, Worlds in round 21), and taking an id out of this list and out
+ *  of `navItems` is the whole of what the tour had to unlearn: `TOUR_STOPS` already derives from `navItems`
  *  and `stopsFor` derives the middle from this one list. A section added to
  *  `navItems` and forgotten here would be visited by neither route —
  *  `stopsFor`'s filter drops nothing, but the middle it builds would simply
  *  never name it — which is the silent skip
  *  `tests/lib/companion-tour.test.ts`'s "visits every nav section" case
  *  exists to catch. */
-const GREY_MIDDLE = ["worlds", "tree"] as const;
+const GREY_MIDDLE = ["tree"] as const;
 
 const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop]));
 
 /**
- * The stops in the order one route walks them — four today, for a
+ * The stops in the order one route walks them — three today, for a
  * well-formed `GREY_MIDDLE`. Both routes are the same *set* — nothing is
- * skipped, nothing is invented — and they agree only on the first stop
- * (About) and the last (Contact); everything between the two is
- * `GREY_MIDDLE`, in order or reversed, per `TourRoute`'s own doc comment.
+ * skipped, nothing is invented — and with a single middle stop they agree
+ * on every stop today. Everything between About and Contact is
+ * `GREY_MIDDLE`, in order or reversed; a later section would split the routes
+ * (see `TourRoute`'s doc comment).
  *
  * The `filter` below (rather than a non-null assertion on the `Map.get`)
  * stops *this function* from throwing on a typo or a stale id in

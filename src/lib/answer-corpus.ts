@@ -7,7 +7,6 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { buildStops } from "@/lib/origin-stops";
 
 /**
  * The retrieval corpus for "Ask this site" — every document `src/lib/answers.ts`
@@ -39,13 +38,13 @@ export interface Document {
   readonly source: string;
   /**
    * Where to send a reader who wants to see this in context — the `id` of one
-   * of the page's four sections, which `AskThisSite` turns into `#<sectionId>`.
+   * of the page's sections, which `AskThisSite` turns into `#<sectionId>`.
    * **Both or neither.**
    *
    * ## What this promises, precisely
    *
    * That the named section renders **the subject this text belongs to**: the
-   * career entry, the project, the globe's stop, the About prose. It does *not*
+   * career entry, the project, the About prose. It does *not*
    * promise the sentence itself is printed there, and for a good number of
    * documents it is not — measured at round 18, 38 of the 54 career and
    * education documents quote a field the page does not render. An entry's
@@ -235,22 +234,6 @@ export function buildDocuments(): Document[] {
     source: "The two cats",
     label: label("companions", undefined, "cat", "cats", "pet", "pets", ...companions.map((cat) => cat.name)),
   });
-
-  // Round 20: the globe's three stops replaced its nineteen plaques, and the
-  // plaque documents went with them. Each stop's caption is a content field
-  // (`buildStops()`), indexed under `worlds` where the stop is printed —
-  // except Taylors', which is `eastside-high`'s headline. Indexed, that second
-  // copy of the high-school story pushed the degree out of the top three for
-  // "where did he go to school" (recall@3 93.3% → 90.0%, the floor).
-  for (const stop of buildStops().filter((candidate) => candidate.id !== "taylors")) {
-    docs.push({
-      text: stop.caption,
-      source: `${stop.place}, ${stop.when}`,
-      sectionId: "worlds",
-      sectionLabel: "Worlds",
-      label: label("worlds", `stop-${stop.id}`, stop.place, stop.when),
-    });
-  }
 
   // Round 18: Selected Work is gone and its case studies render inside the
   // Journey's branches, so these documents link to `#tree`. The `label()`

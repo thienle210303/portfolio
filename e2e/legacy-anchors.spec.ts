@@ -5,6 +5,7 @@ import {
   journeyEntryAnchorId,
   LEGACY_SECTION_IDS,
 } from "../src/sections/CareerTree/anchors";
+import { ABOUT_LEGACY_SECTION_IDS } from "../src/sections/Hero/anchors";
 
 /**
  * Every retired URL still lands — **with JavaScript disabled**.
@@ -82,6 +83,7 @@ const RESTING_TOLERANCE = 2;
 /** Every fragment this spec is responsible for. */
 const ALL_LEGACY_IDS = [
   ...LEGACY_SECTION_IDS,
+  ...ABOUT_LEGACY_SECTION_IDS,
   ...careerEntries.map((entry) => journeyEntryAnchorId(entry.id)),
   // Round 18's brief names these alongside the rest. The id is `work-<projectId>`
   // (`caseStudyAnchorId`) rather than `case-study-<id>`, which is the namespace
@@ -150,7 +152,10 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     ).toBeGreaterThan(0);
     expect(projects.length, "no projects, so no case-study fragment was checked").toBeGreaterThan(0);
     expect(ALL_LEGACY_IDS.length).toBe(
-      LEGACY_SECTION_IDS.length + careerEntries.length + projects.length,
+      LEGACY_SECTION_IDS.length +
+        ABOUT_LEGACY_SECTION_IDS.length +
+        careerEntries.length +
+        projects.length,
     );
 
     const missing = ALL_LEGACY_IDS.filter((id) => !html.includes(`id="${id}"`));
@@ -179,7 +184,9 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     // spec would prove nothing about scrolling.
     await page.goto("/#no-such-anchor-at-all");
     await expect(page.locator("#about")).toBeInViewport();
-    await expect(page.locator("#tree")).not.toBeInViewport();
+    // No "`#tree` is off screen" check: the hero is as short as its content
+    // (about 520px at 1440x900), so the Journey's heading is in the first
+    // viewport. `scrollY` is the measure of not having scrolled.
     expect(await scrollY(page), "a dead fragment scrolled the page").toBe(0);
   });
 
@@ -219,6 +226,21 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(checked, "the loop ended before every retired section id was landed on").toBe(
       LEGACY_SECTION_IDS.length,
     );
+  });
+
+  test("#worlds lands a scriptless browser on About", async ({ page }) => {
+    // The globe's section is gone; its id is a span inside About so an old
+    // link still resolves, to the top of the page.
+    await page.goto("about:blank");
+    await page.goto("/#worlds");
+    await expect(page.locator("#about #worlds")).toHaveCount(1);
+    expect(await page.evaluate(() => document.querySelector(":target")?.id)).toBe("worlds");
+    await expect(page.locator("#about")).toBeInViewport();
+    // The span sits inside About's top padding, so landing on it scrolls by
+    // the few pixels that padding exceeds the 80px scroll margin by — nowhere
+    // near the Journey, which shares the first viewport now that the hero is
+    // short.
+    expect(await scrollY(page), "#worlds scrolled away from About").toBeLessThan(RESTING_TOP);
   });
 
   test("per-entry fragments land on their own timeline row, each at a different place in the document", async ({

@@ -70,14 +70,6 @@ export interface Profile {
   readonly resumePdfLabel: string;
 }
 
-/** A point on the globe, in degrees. Positive latitude is north, positive
- *  longitude is east — the convention Natural Earth and every web map use, so
- *  a coordinate can be read off a map and typed in unchanged. */
-export interface GeoPoint {
-  readonly lat: number;
-  readonly lon: number;
-}
-
 /**
  * The one geographic fact the origin story may draw on. Every other place
  * that touches the story — captions, the player's flight label — computes from career entries or from this
@@ -100,31 +92,6 @@ export interface Origin {
   /** His own description of the English he landed with, condensed from his
    *  words and nobody else's. */
   readonly english: string;
-
-  /**
-   * Where the two ends of the crossing are. Authored on this record because
-   * they are facts about the crossing itself — and because the globe's first
-   * two stops, the flight arc and the distance printed beside it must agree,
-   * which they only do if there is one pair of numbers on the site.
-   *
-   * `to` is Taylors, South Carolina, the town he arrived in — a city since
-   * round 18; before that it was the United States country centroid.
-   */
-  readonly coordinates: {
-    readonly from: GeoPoint;
-    readonly to: GeoPoint;
-  };
-}
-
-/**
- * What the globe's three stops need that no other record holds: a caption for
- * the first and last stop, and where the university is. Every other field of a
- * stop (place, when, the Taylors caption) is read from `origin` or a career
- * entry by `buildStops()` in `src/lib/origin-stops.ts`.
- */
-export interface OriginStops {
-  readonly "kien-giang": { readonly caption: string };
-  readonly usc: { readonly caption: string; readonly coordinates: GeoPoint };
 }
 
 /**

@@ -49,7 +49,7 @@ export interface Answer {
   readonly source: string;
   /**
    * Section anchor, so the reader can go to where this passage's **subject** is
-   * rendered — the role, the project, the globe's stop, the About prose. Not a promise
+   * rendered — the role, the project, the About prose. Not a promise
    * that the quoted sentence is printed in that section: for 38 of the 54 career
    * and education documents it is not, which is why `AskThisSite` labels the link
    * "More on this in …" rather than "Read it in …". The full contract, with the

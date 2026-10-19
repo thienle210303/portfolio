@@ -1,6 +1,5 @@
 import { careerEntries, profile } from "@/content/portfolio";
 import { buildDrawnTree, totalLeaves, treeTechnologies } from "@/lib/knowledge-tree";
-import { buildStops, crossingKm, crossingLabel } from "@/lib/origin-stops";
 
 /**
  * D1 — facts as a server prop.
@@ -14,16 +13,13 @@ import { buildStops, crossingKm, crossingLabel } from "@/lib/origin-stops";
  * Every derivation here is copied from the rail that already renders the same
  * count, on purpose: CareerTree.tsx (branches, leaves, technologies, and —
  * since the tree absorbed Journey — the entries and the
- * work/learning/milestone split too), Hero.tsx (the current role)
- * and Worlds (the stops and the crossing's length, via `buildStops()` /
- * `crossingKm()` in `src/lib/origin-stops.ts`).
+ * work/learning/milestone split too) and Hero.tsx (the current role).
  * Changing what a rail says and
  * forgetting this file is exactly the drift the plan rules out — so if a
  * rail's expression ever changes, this one has to change with it.
  *
  * Pure and server-safe: no DOM, no `Math.random`, nothing but arithmetic over
- * `src/content/*` (and, for `worlds`, the same arithmetic
- * `src/lib/origin-stops.ts` already does over it). `layout.tsx` calls this once, on the server, and
+ * `src/content/*`. `layout.tsx` calls this once, on the server, and
  * hands the small object down — the content arrays themselves never reach
  * the client chunk that the cats ship in.
  */
@@ -31,19 +27,6 @@ export interface CompanionFacts {
   readonly about: {
     readonly role: string;
     readonly organization: string;
-  };
-  /**
-   * The globe's own numbers — computed by `buildStops()` and `crossingKm()`
-   * rather than typed here, the same discipline every other fact in this file
-   * follows. `crossing` is the string the section's rail prints; `stops` is
-   * `buildStops().length`, the list the section renders (its heading says
-   * "three" in words), never a second, independently-typed guess at it.
-   */
-  readonly worlds: {
-    readonly stops: number;
-    readonly crossingKm: number;
-    /** `crossingKm` as the globe prints it: "14,960 km". */
-    readonly crossing: string;
   };
   /**
    * The Journey's own counts, both halves of its rail: what the drawing draws
@@ -86,17 +69,11 @@ export function buildCompanionFacts(): CompanionFacts {
   // `totalTechnologies()`: those count all twenty entries, including the nine
   // the Journey no longer draws as branches.
   const drawn = buildDrawnTree();
-  const km = crossingKm();
 
   return {
     about: {
       role: currentRole?.role ?? "",
       organization: currentRole?.organization ?? "",
-    },
-    worlds: {
-      stops: buildStops().length,
-      crossingKm: km,
-      crossing: crossingLabel(),
     },
     tree: {
       branches: drawn.length,

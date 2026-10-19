@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import Hero from "@/sections/Hero/Hero";
 import { profile } from "@/content/portfolio";
 import { currentEntry } from "@/lib/terminal";
+import { ABOUT_LEGACY_SECTION_IDS } from "@/sections/Hero/anchors";
 
 /**
  * Round 20 Phase 3 (spec §3), Hero A: eyebrow (role · employer), headline, one
@@ -17,6 +18,15 @@ function renderHero(bookingUrl: string | null = null) {
 }
 
 describe("Hero", () => {
+  it("carries the retired #worlds anchor", () => {
+    const { container } = renderHero();
+    const anchor = container.querySelector("#about #worlds");
+    expect(anchor).not.toBeNull();
+    expect(anchor).toHaveAttribute("aria-hidden", "true");
+    expect(anchor?.className).toMatch(/scroll-mt-20/);
+    expect(ABOUT_LEGACY_SECTION_IDS).toContain("worlds");
+  });
+
   it("names the current role and employer in the eyebrow", () => {
     const { identity } = renderHero();
     const current = currentEntry();

@@ -170,12 +170,6 @@ const TOUR: Record<string, SceneBuilder> = {
       "paw",
     ),
   ],
-  // Every number here is quoted from `f.worlds`, never typed — the same
-  // discipline every other scene in this file keeps.
-  worlds: (f) => [
-    tabby("Mrrrow!", `${f.worlds.stops} stops! I'd nap at each.`, "globe", "stretch"),
-    grey("Mrp. Meow.", `${f.worlds.crossing} in one flight.`, "sparkle"),
-  ],
   // Round 10: the tree absorbed Journey, and this one stop now narrates both
   // faces — the branch/leaf/technology counts first, then the entries' own
   // work count that used to be `journey`'s own tour stop, tabby's nap line

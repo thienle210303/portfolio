@@ -45,17 +45,15 @@ const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 const IS_WINDOWS = process.platform === "win32";
 
-// Page order per src/app/page.tsx: about, worlds, tree, contact.
+// Page order per src/app/page.tsx: about, tree, contact.
 // Round 18 deleted Selected Work (`#work`) and Skills (`#skills`); the case
 // studies render inside the Journey's branches. No standalone "journey" or "resume" section
 // any more — journey folded into tree (see CareerTree.tsx), résumé moved to its own
 // route (captured separately, below); Philosophy and the AI Workflow Lab
 // both removed entirely (round 16) — the Lab's chat lives on in Contact's
 // `#ask` (round 18), captured with a turn asked separately below.
-// Playground Earth's "worlds" section joined the same round, second in page
-// order, right after the hero. The Workshop that joined it was removed in
-// round 18.
-const SECTIONS = ["about", "worlds", "tree", "contact"];
+// Worlds (the globe) was removed in round 21.
+const SECTIONS = ["about", "tree", "contact"];
 
 const outPath = (name) => path.join(OUT_DIR, `${name}.png`);
 

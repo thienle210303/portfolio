@@ -278,7 +278,7 @@ describe("the content layer matches the September 2026 résumé", () => {
   it("does not let the case studies argue with the career entries", () => {
     // The two case studies once kept the pre-September figures after the
     // entries moved on, so the page said "99%" in one place and "17 hours to
-    // 3 minutes" in another. The Technology globe quotes the tagline verbatim,
+    // 3 minutes" in another. The chat quotes the tagline verbatim,
     // which is where a stale one would be most visible.
     //
     // So this is an agreement test, read off both sides rather than a list of
@@ -407,11 +407,9 @@ describe("the invented layer is gone", () => {
   });
 });
 
-describe("the page is four sections", () => {
-  it("lists exactly About, Worlds, Journey and Contact", () => {
-    expect(navItems.map((item) => item.sectionId)).toEqual([
-      "about", "worlds", "tree", "contact",
-    ]);
+describe("the page is three sections", () => {
+  it("lists exactly About, Journey and Contact", () => {
+    expect(navItems.map((item) => item.sectionId)).toEqual(["about", "tree", "contact"]);
   });
 
   it("keeps skillCategories, which /resume still renders", () => {

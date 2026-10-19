@@ -78,8 +78,8 @@ describe("stopsFor", () => {
 
   it("walks the builder's route in page order, and the curious route in reverse", () => {
     const middle = (route: TourRoute) => stopsFor(route).slice(1, -1).map((stop) => stop.sectionId);
-    expect(middle("grey")).toEqual(["worlds", "tree"]);
-    expect(middle("tabby")).toEqual(["tree", "worlds"]);
+    expect(middle("grey")).toEqual(["tree"]);
+    expect(middle("tabby")).toEqual(["tree"]);
   });
 
   it("visits every nav section, in an order that includes the new ones", () => {

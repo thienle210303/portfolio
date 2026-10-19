@@ -14,7 +14,7 @@
  *
  * Two JS figures, which answer different questions:
  *   - JS: every script response from navigation start through the 8 s wait
- *     after `load`, including chunks fetched on idle. This is the globe-chunk leak detector.
+ *     after `load`, including chunks fetched on idle. This catches anything fetched on idle.
  *   - JS at load: only script responses that began before the window `load`
  *     event, i.e. what blocks the page becoming interactive. Same counting
  *     and skipped-response rules as JS.

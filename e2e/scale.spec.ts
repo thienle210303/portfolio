@@ -35,7 +35,7 @@ test("headings use Bricolage Grotesque", async ({ page }) => {
   const sans = await firstFamily(page, "body");
   expect(sans).toContain("Bricolage Grotesque");
   expect(await firstFamily(page, "#about h1")).toBe(sans);
-  expect(await firstFamily(page, "#worlds h2")).toBe(sans);
+  expect(await firstFamily(page, "#tree h2")).toBe(sans);
 });
 
 test("data uses Courier Prime", async ({ page }) => {
@@ -83,7 +83,7 @@ for (const size of SIZES) {
     });
 
     test("section titles are 24–28px", async ({ page }) => {
-      for (const id of ["worlds", "tree", "contact"]) {
+      for (const id of ["tree", "contact"]) {
         within(await px(page, `#${id} h2`, "font-size"), 24, 28);
       }
     });
@@ -122,7 +122,7 @@ for (const size of SIZES) {
 
     test("sections are about 64px apart on desktop, 48 on mobile", async ({ page }) => {
       const gap =
-        (await px(page, "#worlds", "padding-bottom")) + (await px(page, "#tree", "padding-top"));
+        (await px(page, "#tree", "padding-bottom")) + (await px(page, "#contact", "padding-top"));
       if (page.viewportSize()!.width >= 1440) within(gap, 56, 72);
       else within(gap, 40, 56);
     });

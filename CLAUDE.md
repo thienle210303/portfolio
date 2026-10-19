@@ -55,58 +55,29 @@ Rules that keep that working:
   well as the flat grounds; by day the top stop, `--color-morning-high`, is
   the sky's darkest.
 
-### The globe
+### The globe (removed)
 
-`#worlds` is the origin story: one crossing, three stops. The globe flies the
-crossing once on first view ("Replay the flight" replays it), and pressing a
-stop in the list beside it turns the globe to that stop's pin. Every word in
-that list — each stop's place, date and caption — and the crossing's distance
-in the rail come from the content layer through `buildStops()` and
-`crossingKm()` in `src/lib/origin-stops.ts`: `origin` (the crossing's two pins,
-its places and dates), `eastside-high`'s `headline` (the second caption),
-`usc-degree`'s `organization` and `dateRange` (the third stop's place and
-date), and `originStops` (the first and third captions and the university's
-pin). The distance is printed once, in the rail. To change what a stop
-says, edit the field; nothing in `src/sections/Worlds/` types a fact.
-
-**No 3D library, and that was measured, not assumed.** Against the initial-JS
-budget (207 KB when the comparison was made, 199.5 KB after round 18 Plan C), a
-minimal three.js scene is ~133 KB gz, `@react-three/fiber` + `drei` ~254 KB,
-and `globe.gl` ~509 KB. The globe uses no runtime dependency at all: a
-hand-written WebGL2 surface (`src/sections/Worlds/gl/`: `context`, `robot`,
-`shaders`, `sphere`) under a Canvas 2D overlay, an orthographic projector in
-`src/lib/globe.ts`, and a pre-generated simplified coastline. The surface's
-coverage texture is a PNG baked ahead of time by `gl/coastline-texture`
-(`scripts/bake-coastline.ts`); nothing at runtime imports the baker. The shipped
-2D globe is the fallback, and it takes over for good when there is no WebGL2, a
-program fails to compile or link, the context is lost, `forced-colors` is
-active, or the coverage PNG fails to load or decode. Do not add a library.
-
-`src/sections/Worlds/coastline-data.ts` is fenced: `GlobeCanvas.tsx` is the
-only file under `src/` allowed to import it, and
-`tests/lib/coastline-data.test.ts` fails if anything else there does. The GL
-surface does not rasterise it at runtime: it decodes
-`public/globe/coastline.png`, which `pnpm bake:coastline` bakes from it, and
-`tests/lib/coastline-png.test.ts` fails until the committed PNG matches a fresh
-bake. `GlobeCanvas` itself reaches the page only through the `import()` in
-`WorldsStage.tsx` — a static import of it from anything server-rendered pulls
-the engine *and* the coastlines into the initial bundle.
+The globe and its WebGL engine were removed in Round 21: the globe was
+redundant, and it was the heaviest code on the page (the crossing moves to the
+hero's clothesline in Round 21's hero phase). It is in git history. There is still no 3D library; do not add one.
 
 ## Changing what the site says
 
-The page is four sections, in this order: About (`#about` — the hero: a short
+The page is three sections, in this order (a Record section is planned between the Journey and
+Contact): About (`#about` — the hero: a short
 identity column beside a terminal card built from content, no rail, no height
-floor: it is as tall as its content), Worlds (`#worlds`, the globe), the Journey (`#tree`: highlight cards, the
+floor: it is as tall as its content), the Journey (`#tree`: highlight cards, the
 drawn tree at >=1024px, then a one-open timeline of rows) and Contact
 (`#contact`: the chat at `#ask` on the left, and a business card on the right
 that flips to the lead form).
-`navItems` in `src/content/portfolio.ts` is the same four items in the same
+`navItems` in `src/content/portfolio.ts` is the same three items in the same
 order; the nav doubles as the page's table of contents.
 
-The retired ids — `#journey`, `#work`, `#skills`, `#workshop`, every
+The retired ids — `#journey`, `#work`, `#skills`, `#workshop`, `#worlds`, every
 `journey-entry-<id>` and every `work-<projectId>` — are all still in the
 server-rendered HTML, and the section and per-entry ones land on the Journey
-with JavaScript off (`e2e/legacy-anchors.spec.ts`). Nothing on the page links
+with JavaScript off (`e2e/legacy-anchors.spec.ts`); `#worlds` lands on About via
+`src/sections/Hero/anchors.ts`. Nothing on the page links
 to most of them; they exist for inbound links the site does not control, so
 "unreferenced" is not a reason to delete one.
 
@@ -193,15 +164,11 @@ then run `pnpm test:e2e` (Playwright + axe-core) — it audits both themes and
 all three tones, and checks keyboard nav, focus restoration, reduced motion,
 and horizontal overflow at 320–1440px.
 
-For any change that touches the globe's chunk — `src/lib/globe.ts`,
-`src/sections/Worlds/*`, or anything that might import them — also re-run
-`pnpm perf` against a production build and record the row in
-[docs/feedback-tracker.md](docs/feedback-tracker.md). Read the `JS at
-load` column first: the globe chunk only loads after `load`, so the engine or
-the coastline data leaking into the initial bundle shows there, and a move of
-more than a kilobyte or two means it has. The 8 s `JS` total is no longer the primary
-leak detector (a jump against its new baseline still means something moved): since R20-P3 the hero is short enough that, at perf's 412×823
-viewport, the globe stage is inside the post-`load` prefetch's one-screen margin,
-so the total includes the globe chunk (about +25 KB, a new baseline). `pnpm perf` prints a skipped-response count and a
-`content-length` cross-check beside its own total; a run reporting any skipped
-responses is under-reported and must not be recorded.
+Also run `pnpm perf` against a production build for any change that could add
+JavaScript, and record the row in
+[docs/feedback-tracker.md](docs/feedback-tracker.md). Read the `JS at load`
+column first: it is the primary leak detector, and a move of more than a
+kilobyte or two means something moved into the initial bundle. The 8 s `JS`
+total also counts chunks fetched on idle. `pnpm perf` prints a skipped-response
+count and a `content-length` cross-check beside its own total; a run reporting
+any skipped responses is under-reported and must not be recorded.

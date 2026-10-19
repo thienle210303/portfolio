@@ -10,7 +10,6 @@ import {
 } from "@/lib/answer-sources";
 import { companions, navItems, origin } from "@/content/portfolio";
 import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
-import { buildStops } from "@/lib/origin-stops";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -55,10 +54,6 @@ const CORPUS = new Set<string>([
   // reachable, cited to Contact (the business card prints it). Round 16 also removed the Lab and its
   // experiment and scraping-playbook documents.
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
-  // Round 20: the globe's three stops, one document per caption. Built from
-  // buildStops() rather than transcribed, so a typo here cannot under-cover
-  // it; tests/lib/origin-stops.test.ts proves each caption is a content field.
-  ...buildStops().map((stop) => stop.caption),
   // The cats: `companions`' fields, joined the same mechanical way.
   companionsText(),
 ]);
@@ -215,7 +210,7 @@ describe("answer", () => {
       //  - "who won the world cup" is the **load-bearing** probe, and the
       //    strongest refusal case in this file. Three of its four terms are
       //    genuine index terms ("who" is a deliberate non-stop-word aliased
-      //    onto About; "won" is in an award line; "world" is on the globe), so
+      //    onto About; "won" is in an award line; "world" was on the globe), so
       //    vocabulary alone does not save it. It refuses only because
       //    `requiredMatches` demands two matches in one document at four
       //    terms, and no document holds two of them. Loosen that gate and this
@@ -231,6 +226,9 @@ describe("answer", () => {
       // back, and the mechanism assertion that actually pins it is below.
       "how do I file my taxes",
       "how do I file a bug",
+      "how do I move a file",
+      "how to move house",
+      "can I move the meeting",
     ]) {
       expect(answer(offTopic), `"${offTopic}" should return nothing`).toEqual([]);
     }
@@ -341,6 +339,21 @@ describe("answer", () => {
     const scores = results.map((r) => r.score);
     expect([...scores].sort((a, b) => b - a)).toEqual(scores);
   });
+});
+
+describe("origin after Worlds", () => {
+  it("no document cites Worlds", () => {
+    expect(buildDocuments().filter((d) => d.sectionId === "worlds")).toEqual([]);
+  });
+
+  it.each(["is he from vietnam", "is he an immigrant"])(
+    "origin question %j still cites About",
+    (q) => {
+      const top = answer(q, 1)[0];
+      expect(top.sectionId).toBe("about");
+      expect(top.text).toContain(origin.from);
+    },
+  );
 });
 
 describe("the cats", () => {

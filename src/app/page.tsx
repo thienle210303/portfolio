@@ -1,5 +1,4 @@
 import Hero from "@/sections/Hero/Hero";
-import Worlds from "@/sections/Worlds/Worlds";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import Contact from "@/sections/Contact/Contact";
 import { askLiveModeConfigured } from "@/lib/ask-live-config";
@@ -28,8 +27,12 @@ export default function Home() {
   return (
     <>
       {/*
-        Four sections, in the order a visitor needs them: who he is, the world
-        his work lives in, where he has been, how to reach him.
+        Three sections, in the order a visitor needs them: who he is, where he
+        has been, how to reach him. A Record section is planned between the Journey and
+        Contact.
+
+        Worlds (the globe) left the page in round 21; `#worlds` still lands on
+        About (src/sections/Hero/anchors.ts).
 
         Round 18 took the page from six sections to four. Selected Work and
         Skills are gone because nothing needs them any more: the case studies
@@ -43,7 +46,7 @@ export default function Home() {
         telling of this same page. The résumé lives at /resume as a view to
         read or download, which is what a résumé is.
 
-        The Journey (`#tree`) follows the globe and precedes Contact: it is the
+        The Journey (`#tree`) follows About and precedes Contact: it is the
         chronology the rest of the page's claims hang from, and the last thing
         to read before being asked to get in touch.
 
@@ -51,7 +54,6 @@ export default function Home() {
         doubles as the page's table of contents.
       */}
       <Hero bookingUrl={bookingUrl} />
-      <Worlds />
       <CareerTree />
       <Contact
         emailDeliveryConfigured={emailDeliveryConfigured}

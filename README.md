@@ -3,10 +3,8 @@
 A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
-The site is a single narrative page in four sections: **About** — the
-hero, a short identity column beside a terminal card built from content; **Worlds** — a drawn globe
-that flies the 2018 crossing once and turns to each of three stops in the origin
-story, every word of which is the site's own authored content; the **Journey** — five
+The site is a single narrative page in three sections: **About** — the
+hero, a short identity column beside a terminal card built from content; the **Journey** — five
 measured highlights, a drawn career tree, and a timeline of rows that open one
 at a time, with the case studies inside them (in the rows of the roles that
 produced them, or after the timeline for the coursework); and **Contact**: a
@@ -94,8 +92,8 @@ tones with no per-tone branch anywhere. A raw token freezes it into one.
 at ≥1024px, stacking after the body as endnotes below that. Every note must be
 a fact **computed from the content layer** — a count, a date, a source — never
 a restatement of the prose beside it, and never a fact that exists nowhere
-else. `CareerTree.tsx` (every note counted off the tree it draws) and
-`Worlds.tsx` are the reference examples.
+else. `CareerTree.tsx` (every note counted off the tree it draws) is the reference
+example.
 
 ### Colour and contrast
 
@@ -162,7 +160,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing the globe flies), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference the hero's terminal reads — the globe's three stops (`originStops`, beside `origin`), Contact's copy (`contactCopy`) and the footer line |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference the hero's terminal reads, Contact's copy (`contactCopy`) and the footer line |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
 Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's

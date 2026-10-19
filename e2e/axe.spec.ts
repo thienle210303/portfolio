@@ -1,7 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import type { Result } from "axe-core";
-import { buildStops } from "../src/lib/origin-stops";
 
 /**
  * Automated accessibility auditing via axe-core, on top of the hand-rolled
@@ -68,18 +67,6 @@ async function scrollIntoViewAndSettle(page: Page, selector: string): Promise<vo
  */
 async function timelineLive(page: Page): Promise<void> {
   await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
-}
-
-/**
- * The crossing plays once on first view; an audit that starts mid-flight
- * would see the globe before its landing. Settle it first (the button reads
- * "Stop the replay" only while the flight is in the air), so the audit sees
- * the landed state it waited for.
- */
-async function stopTheReplay(page: Page): Promise<void> {
-  const stop = page.locator("#worlds").getByRole("button", { name: "Stop the replay" });
-  if (await stop.isVisible()) await stop.click();
-  await expect(page.locator("#worlds").getByRole("button", { name: "Replay the flight" })).toBeVisible();
 }
 
 test.describe("full-page audit", () => {
@@ -259,23 +246,6 @@ test.describe("interactive states", () => {
       await auditHasNoViolations(page, "#contact aside");
     }
   });
-
-  test("zero WCAG violations with the globe landed and a stop chosen", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    // The crossing plays itself once when half the stage is in view, so this
-    // centres the stage and waits for the stage to say it landed; audits that
-    // never bring the stage that far into view see the pre-flight state.
-    await scrollIntoViewAndSettle(page, "#worlds-heading");
-    const stage = page.locator("#worlds").getByRole("group", { name: /playground earth/i });
-    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 30_000 });
-    await stopTheReplay(page);
-    await page.locator("#worlds ol > li:first-child > button").click();
-    await expect(page.locator("#worlds ol > li:first-child > button")).toHaveAttribute("aria-pressed", "true");
-    await auditHasNoViolations(page, "#worlds");
-  });
 });
 
 /**
@@ -285,12 +255,12 @@ test.describe("interactive states", () => {
  * `contrast` changes the ground out from under every nested component at once.
  */
 test.describe("off-base section tones", () => {
-  test("Worlds (#worlds, tone deep) has zero WCAG violations", async ({ page }) => {
+  test("Contact (#contact, tone deep) has zero WCAG violations", async ({ page }) => {
     test.skip(viewportWidth(page) !== MOBILE_WIDTH, "contrast is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#worlds-heading");
-    await auditHasNoViolations(page, "#worlds");
+    await scrollIntoViewAndSettle(page, "#contact-heading");
+    await auditHasNoViolations(page, "#contact");
   });
 
   test("footer (tone contrast) has zero WCAG violations", async ({ page }) => {
@@ -340,11 +310,11 @@ test.describe("night theme", () => {
     await page.waitForLoadState("networkidle");
     await scrollIntoViewAndSettle(page, "footer");
     await auditHasNoViolations(page, "footer");
-    // The globe is `tone="deep"`: its stage and list. The full-page audits
-    // above see it too, but scoped is what reports a contrast pair against
-    // `--color-paper-deep` as belonging to the section that owns it.
-    await scrollIntoViewAndSettle(page, "#worlds-heading");
-    await auditHasNoViolations(page, "#worlds");
+    // Contact is `tone="deep"`. The full-page audits above see it too, but
+    // scoped is what reports a contrast pair against `--color-paper-deep` as
+    // belonging to the section that owns it.
+    await scrollIntoViewAndSettle(page, "#contact-heading");
+    await auditHasNoViolations(page, "#contact");
   });
 });
 
@@ -383,37 +353,4 @@ test.describe("theme toggle", () => {
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "day");
   });
-});
-
-/**
- * `#worlds` with each stop chosen, in both themes: a chosen stop's button
- * changes its ground and border, and that is the pairing these audit. The tone
- * is not a matrix axis here: the globe is always `tone="deep"`; the other tones
- * are covered by the audits above.
- */
-test.describe("the globe's stops", () => {
-  async function openGlobe(page: Page, theme: "day" | "night") {
-    await page.addInitScript((value) => window.localStorage.setItem("theme", value), theme);
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    await scrollIntoViewAndSettle(page, "#worlds-heading");
-    const stage = page.locator("#worlds").getByRole("group", { name: /playground earth/i });
-    await stage.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-    await expect(stage).toHaveAttribute("data-crossing", "landed", { timeout: 30_000 });
-    await stopTheReplay(page);
-    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-  }
-
-  for (const theme of ["day", "night"] as const) {
-    for (const [index, stop] of buildStops().entries()) {
-      test(`${theme}: ${stop.place} chosen`, async ({ page }) => {
-        test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "contrast is viewport-independent; run once");
-        await openGlobe(page, theme);
-        const button = page.locator(`#worlds ol > li:nth-child(${index + 1}) > button`);
-        await button.click();
-        await expect(button).toHaveAttribute("aria-pressed", "true");
-        await auditHasNoViolations(page, "#worlds");
-      });
-    }
-  }
 });
