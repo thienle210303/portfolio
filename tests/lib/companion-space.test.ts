@@ -996,6 +996,19 @@ describe("syncTone", () => {
     expect(node.classList.contains("tone-deep")).toBe(false);
     expect(node.classList.contains("tone-contrast")).toBe(false);
   });
+
+  it("stamps data-paper over a bg-surface card and clears it off one", () => {
+    document.body.innerHTML =
+      '<section class="tone-deep"><div class="bg-surface"><p id="c">c</p></div><p id="s">s</p></section>';
+    const node = cat();
+    over(document.getElementById("c")!);
+    syncTone(node, { x: 1, y: 1 });
+    expect(node.hasAttribute("data-paper")).toBe(true);
+    expect(node.classList.contains("tone-deep")).toBe(true);
+    over(document.getElementById("s")!);
+    syncTone(node, { x: 1, y: 1 });
+    expect(node.hasAttribute("data-paper")).toBe(false);
+  });
 });
 
 describe("followerMuted", () => {

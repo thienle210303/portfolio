@@ -1081,11 +1081,16 @@ const TONES = ".tone-contrast,.tone-deep,.tone-base";
  * until round 5. The line work reads fine on either quiet ground, so for four
  * rounds only the loud one mattered. Then the cats became opaque: they knock
  * themselves out of the page in `var(--ground)`, and `--ground` on a `deep`
- * section is a visible half-step darker than the base one (`#e3e8ec` against
- * `#edf0f2`). A cat carrying the base ground across Contact (or, before
+ * section is a visible half-step darker than the base one (`lichen-deep`
+ * against `lichen`). A cat carrying the base ground across Contact (or, before
  * rounds 16 and 18 removed them, Philosophy and Skills) would be a paler cat-shaped patch
  * on a darker page — which is the same class of bug as the transparent cat,
  * arrived at from the other side.
+ *
+ * Night's light `bg-surface` paper repoints the aliases too, keyed on the
+ * card rather than a tone, so `data-paper` is stamped while the cat is over
+ * one (globals.css's paper scope); without it a cat on a lantern card keeps
+ * the sky's pale ink.
  *
  * Written straight to the DOM rather than through React state: it changes with
  * position, and position is deliberately not in React.
@@ -1101,7 +1106,9 @@ const TONES = ".tone-contrast,.tone-deep,.tone-base";
  */
 export function syncTone(node: HTMLElement | null, at: Point): void {
   if (!node) return;
-  const zone = elementBehind(at.x, at.y)?.closest(TONES) ?? null;
+  const behind = elementBehind(at.x, at.y);
+  const zone = behind?.closest(TONES) ?? null;
   node.classList.toggle("tone-contrast", zone?.classList.contains("tone-contrast") === true);
   node.classList.toggle("tone-deep", zone?.classList.contains("tone-deep") === true);
+  node.toggleAttribute("data-paper", behind?.closest(".bg-surface") != null);
 }

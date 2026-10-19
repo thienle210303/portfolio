@@ -305,10 +305,11 @@
     --sky: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
   }
 
-    /* Paper scope: light surface, dark ink. --ground becomes lantern-raised so
-       fields and insets (bg-ground inside the card) sit on paper, not on the
-       night ground. */
-  :root[data-theme="night"] .bg-surface {
+  /* Paper scope: light surface, dark ink. --ground becomes lantern-raised so
+     fields and insets (bg-ground inside the card) sit on paper, not on the
+     night ground. `[data-paper]` is the companion's: a fixed cat is outside
+     every card, so `syncTone` stamps it while the cat is over one. */
+  :root[data-theme="night"] :is(.bg-surface, [data-paper]) {
     --ground: var(--color-lantern-raised);
     --fg: var(--color-ink);
     --fg-muted: var(--color-lantern-muted);
@@ -356,7 +357,7 @@
       --sky: linear-gradient(180deg, #1f3237 0%, #142024 50%, #0d1416 100%);
     }
 
-    :root:not([data-theme="day"]) .bg-surface {
+    :root:not([data-theme="day"]) :is(.bg-surface, [data-paper]) {
       --ground: var(--color-lantern-raised);
       --fg: var(--color-ink);
       --fg-muted: var(--color-lantern-muted);
