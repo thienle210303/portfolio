@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     // live under here while a background session works. Never lintable
     // source from this checkout's point of view.
     ".claude/worktrees/**",
+    // Design boards and the generator that draws them: kept for refinement,
+    // never shipped (see design/README.md).
+    "design/**",
   ]),
 ]);
 
