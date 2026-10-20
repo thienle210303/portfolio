@@ -52,21 +52,19 @@ describe("the Moon surprise", () => {
     expect(nearDrawing({ x: 900, y: 300 }, drawing)).toBe(false);
   });
 
-  it("sits beside the drawing, on the side she came from, never on it", () => {
-    const right = seatBeside(drawing, { x: 700, y: 620 }, view, () => true)!;
-    expect(right.x).toBeGreaterThanOrEqual(drawing.right);
-    expect(right.y + 42).toBeCloseTo(drawing.bottom, 0);
-    const left = seatBeside(drawing, { x: 50, y: 620 }, view, () => true)!;
+  it("sits beside the drawing, left of it where there is room, never on it", () => {
+    const left = seatBeside(drawing, view, () => true)!;
     expect(left.x + 50).toBeLessThanOrEqual(drawing.left);
-    // The near side refused: the far one.
-    const other = seatBeside(drawing, { x: 700, y: 620 }, view, (p) => p.x < drawing.left)!;
-    expect(other.x + 50).toBeLessThanOrEqual(drawing.left);
-    expect(seatBeside(drawing, { x: 700, y: 620 }, view, () => false)).toBeNull();
+    expect(left.y + 42).toBeCloseTo(drawing.bottom, 0);
+    // The left refused: the right.
+    const right = seatBeside(drawing, view, (p) => p.x > drawing.left)!;
+    expect(right.x).toBeGreaterThanOrEqual(drawing.right);
+    expect(seatBeside(drawing, view, () => false)).toBeNull();
   });
 
   it("does not seat her off the edge of the page", () => {
     const atEdge = { left: 16, top: 600, right: 112, bottom: 652 };
-    const seat = seatBeside(atEdge, { x: 10, y: 600 }, view, () => true)!;
+    const seat = seatBeside(atEdge, view, () => true)!;
     expect(seat.x).toBeGreaterThanOrEqual(atEdge.right);
   });
 

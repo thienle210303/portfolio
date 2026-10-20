@@ -75,21 +75,22 @@ export function surpriseFacing(pos: Point, drawing: RectLike): 1 | -1 {
 }
 
 /**
- * Her seat: level with the drawing's bottom, just off its left or right edge,
- * the side she came from first. `clear` is the content probe (`isClearSpot`);
+ * Her seat: level with the drawing's bottom, just off its left edge, or its
+ * right where the left is off the page. `clear` is the content probe (`isClearSpot`);
  * a side off the page or on content is skipped, and null means neither fits.
  */
 export function seatBeside(
   drawing: RectLike,
-  from: Point,
   view: { readonly minX: number; readonly maxX: number; readonly minY: number; readonly maxY: number },
   clear: (spot: Point) => boolean,
 ): Point | null {
   const y = drawing.bottom - CAT_H;
   const left = { x: drawing.left - SEAT_GAP - CAT_W, y };
   const right = { x: drawing.right + SEAT_GAP, y };
-  const sides = from.x + CAT_W / 2 < (drawing.left + drawing.right) / 2 ? [left, right] : [right, left];
-  for (const seat of sides) {
+  // Left first: on the right are the caption and, from 1024, the hero's
+  // stool and its vignette. On a phone the drawing is at the left edge, so
+  // the left seat is off the page and she takes the right.
+  for (const seat of [left, right]) {
     if (seat.x < view.minX || seat.x > view.maxX || seat.y < view.minY || seat.y > view.maxY) continue;
     if (clear(seat)) return seat;
   }
