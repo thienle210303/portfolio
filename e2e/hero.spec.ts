@@ -441,6 +441,47 @@ test.describe("hero", () => {
     });
   }
 
+  for (const size of [PHONE, { width: 844, height: 390 }]) {
+    for (const theme of ["day", "night"] as const) {
+      test(`the ${theme === "day" ? "sun" : "moon"} stays off the headline at ${size.width}×${size.height}`, async ({ page }) => {
+        await page.setViewportSize(size);
+        await open(page, theme);
+        // The sky is one background image; its disc is drawn at (880, 120),
+        // radius 32 (the sun; the moon is 30), on a 1440px-wide sky. Map that
+        // through the span's computed background-position to the page.
+        const disc = await sky(page).evaluate((el) => {
+          const box = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          const width = 1440;
+          const height = (1440 * 900) / 1440;
+          const axis = (value: string, room: number) => {
+            const parts = value.trim().split(/\s+/);
+            const len = (v: string) => (v.endsWith("%") ? (room * parseFloat(v)) / 100 : parseFloat(v));
+            if (parts.length === 2) return parts[0] === "right" || parts[0] === "bottom" ? room - len(parts[1]) : len(parts[1]);
+            if (parts[0] === "center") return room / 2;
+            if (parts[0] === "right" || parts[0] === "bottom") return room;
+            if (parts[0] === "left" || parts[0] === "top") return 0;
+            return len(parts[0]);
+          };
+          const x = box.left + axis(cs.backgroundPositionX, box.width - width) + 880;
+          const y = box.top + axis(cs.backgroundPositionY, box.height - height) + 120;
+          return { left: x - 32, right: x + 32, top: y - 32, bottom: y + 32 };
+        });
+        for (const sel of ["#about h1", '#about [data-hero-step="intro"]', '#about [data-hero-step="meta-actions"]']) {
+          // The ink, not the block: the h1 and the intro are full-width boxes.
+          const b = await page.locator(sel).evaluate((el) => {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const r = range.getBoundingClientRect();
+            return { x: r.left, y: r.top, width: r.width, height: r.height };
+          });
+          const overlaps = disc.left < b.x + b.width && b.x < disc.right && disc.top < b.y + b.height && b.y < disc.bottom;
+          expect(overlaps, `${sel} vs disc ${JSON.stringify(disc)}`).toBe(false);
+        }
+      });
+    }
+  }
+
   test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
     await open(page);
     const order = await page.evaluate(() =>

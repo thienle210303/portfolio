@@ -40,8 +40,12 @@ export default function Scenery() {
         } as CSSProperties
       }
     >
+      {/* The sun/moon is drawn at (880, 120) of the sky's 1440 width. Centred,
+          that lands on the headline below 1024, so there the sky is pinned to
+          the right instead: the disc sits 40px in from the right edge, 40px
+          down, clear of the text column. */}
       <span
-        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:1440px_auto]"
+        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:1440px_auto] max-lg:bg-[position:right_-520px_top_-80px]"
         style={{ "--art": "var(--art-sky)" } as CSSProperties}
       />
 
