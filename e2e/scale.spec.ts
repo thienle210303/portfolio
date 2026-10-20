@@ -100,9 +100,15 @@ for (const size of SIZES) {
     });
 
     test("section titles are 24–28px", async ({ page }) => {
-      for (const id of ["tree", "contact"]) {
-        within(await px(page, `#${id} h2`, "font-size"), 24, 28);
-      }
+      within(await px(page, "#tree h2", "font-size"), 24, 28);
+    });
+
+    // Round 21's postcard board sets Contact's "say hi." at the hero's
+    // display size (--step-5), under "Xin chào,".
+    test("Contact's say hi. is display-sized, never above the hero's", async ({ page }) => {
+      const size = await px(page, "#contact h2", "font-size");
+      expect(size).toBeGreaterThanOrEqual(40 - TOL);
+      expect(size).toBeLessThanOrEqual(72 + TOL);
     });
 
     test("hero headline is 64–72px at 1440", async ({ page }) => {

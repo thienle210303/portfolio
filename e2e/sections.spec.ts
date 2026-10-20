@@ -491,10 +491,19 @@ test.describe("fragment landings around the Journey", () => {
     await page.goto("about:blank");
     await page.goto("/#ask");
     await page.waitForLoadState("networkidle");
-    expectSettledAtScrollMargin(
-      await restingTop(page.locator("#ask")),
-      "a cold load must settle #ask at its 80px scroll margin",
+    const top = await restingTop(page.locator("#ask"));
+    // Since round 21 the chat is a short strip near the page's end, so the
+    // browser may run out of page before #ask reaches its margin; then it
+    // must have scrolled all the way and show the whole strip.
+    const atEnd = await page.evaluate(
+      () => Math.abs(window.scrollY + window.innerHeight - document.documentElement.scrollHeight) <= 2,
     );
+    if (atEnd && top > 80) {
+      const box = await page.locator("#ask").boundingBox();
+      expect(box!.y + box!.height, "#ask is fully on screen").toBeLessThanOrEqual(page.viewportSize()!.height);
+    } else {
+      expectSettledAtScrollMargin(top, "a cold load must settle #ask at its 80px scroll margin");
+    }
   });
 
   test("a reload after scrolling away from the fragment does not jump back to it", async ({ page }) => {
