@@ -86,25 +86,32 @@ export default function Scenery() {
         name="ripples"
         className="absolute bottom-[10px] left-[calc(50%-160px)] h-[30px] w-[660px] text-[color:var(--scene-water)] max-xl:hidden"
       />
+      {/* Below 1024 the sky's low band again (seeds by day, fireflies by
+          night) just above the ground; the top of the sky is behind the tags. */}
+      <span
+        className="scene-art absolute inset-x-0 bottom-[90px] h-[260px] bg-[position:right_bottom_-40px] bg-[size:1440px_auto] lg:hidden"
+        style={{ "--art": "var(--art-sky)" } as CSSProperties}
+      />
       {/* Before the rice, so the stalks draw over it. */}
       <Drawing
         name="buffalo"
-        className="absolute right-[2%] bottom-[20px] h-[59px] w-[110px] text-[color:var(--scene-buffalo)] lg:right-auto lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[150px] xl:left-[calc(50%+185px)]"
+        className="absolute bottom-[30px] left-[calc(50%-14px)] h-[52px] w-[97px] text-[color:var(--scene-buffalo)] lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[150px] xl:left-[calc(50%+185px)]"
       />
-      {/* Below 1024 the rice stands 24px up, so the two captions sit under
-          the stalks, not on them: text over the stalks fails AA contrast. */}
+      {/* Below 1024 a short patch of the field (its middle, cropped) round
+          the buffalo, standing 24px up so the two captions sit under the
+          stalks, not on them: text over the stalks fails AA contrast. */}
       <Drawing
         name="rice-field"
-        className="absolute inset-x-0 bottom-6 h-[120px] text-accent lg:right-auto lg:bottom-0 lg:left-[45%] lg:h-[160px] lg:w-[655px] xl:left-[calc(50%-145px)]"
+        className="absolute bottom-6 left-[calc(50%-min(85px,19%))] h-[110px] w-[min(170px,38%)] text-accent [mask-size:auto_100%] lg:bottom-0 lg:left-[45%] lg:h-[160px] lg:w-[655px] lg:[mask-size:contain] xl:left-[calc(50%-145px)]"
       />
 
       {/* Below ~1180 29% would put the stool on Moon's caption; it keeps
           clear of her instead. */}
       <span
-        className="scene-art absolute bottom-[12px] left-[40%] h-[82px] w-[72px] lg:bottom-[16px] lg:left-[max(29.2%,11.1%+232px)] lg:h-[114px] lg:w-[100px] xl:left-[calc(50%-300px)]"
+        className="scene-art absolute right-4 bottom-[18px] h-[82px] w-[72px] lg:right-auto lg:bottom-[16px] lg:left-[max(29.2%,11.1%+232px)] lg:h-[114px] lg:w-[100px] xl:left-[calc(50%-300px)]"
         style={{ "--art": "var(--art-vignette)" } as CSSProperties}
       />
-      <div className="absolute bottom-0 left-[38%] font-serif text-[length:var(--step--1)] leading-none italic text-fg-muted lg:bottom-[4px] lg:left-[max(29%,11.1%+230px)] xl:left-[calc(50%-302px)]">
+      <div className="absolute right-4 bottom-0 font-serif text-[length:var(--step--1)] leading-none italic text-fg-muted lg:right-auto lg:bottom-[4px] lg:left-[max(29%,11.1%+230px)] xl:left-[calc(50%-302px)]">
         <p className="day-only">{hero.vignette.morning}</p>
         <p className="night-only">{hero.vignette.evening}</p>
       </div>

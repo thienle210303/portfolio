@@ -77,7 +77,7 @@ describe("hero field tag", () => {
 describe("hero copy", () => {
   it("is not indexed by the chat", () => {
     const text = buildDocuments().map((d) => JSON.stringify(d)).join("\n");
-    for (const s of [hero.hint, hero.invitation, ...Object.values(hero.chapterLines)]) {
+    for (const s of [hero.hintLine, hero.hint, hero.invitation, ...Object.values(hero.chapterLines)]) {
       expect(text).not.toContain(s);
     }
   });

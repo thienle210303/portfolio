@@ -149,7 +149,10 @@ export const companions = [
  * The Taylors chapter line is not here: it is that entry's own `headline`.
  */
 export const hero = {
-  hint: "This line runs from a bamboo pole to a pine. Press a tag and I'll tell you that part.",
+  // Only from 1024, where the line runs from a bamboo pole to a pine; on a
+  // phone it hangs down the page from the bamboo alone.
+  hintLine: "This line runs from a bamboo pole to a pine.",
+  hint: "Press a tag and I'll tell you that part.",
   // Spoken after `profile.positioning`.
   invitation: "Come in, I'll show you around.",
   chapterLines: {

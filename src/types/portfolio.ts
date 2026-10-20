@@ -117,6 +117,8 @@ export interface Companion {
 
 /** The hero's authored lines (`hero` in the content layer). */
 export interface HeroCopy {
+  /** Shown only from 1024, where the line runs between two poles. */
+  readonly hintLine: string;
   readonly hint: string;
   /** Follows `profile.positioning` in the hero's body. */
   readonly invitation: string;

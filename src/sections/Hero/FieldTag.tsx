@@ -8,7 +8,7 @@ const RULE = "my-2.5 border-t-[1.5px] border-dashed border-fg";
 export default function FieldTag() {
   const t = buildFieldTag();
   return (
-    <Tag className="font-mono text-[13.5px] leading-[1.75] w-full max-w-[380px] px-6 pt-10 pb-5 lg:w-[380px] lg:origin-top lg:rotate-2">
+    <Tag className="font-mono text-[13.5px] leading-[1.75] w-full max-w-[380px] px-6 pt-10 pb-5 origin-top rotate-1 lg:w-[380px] lg:rotate-2">
       <div data-hero-step="field-tag">
         <div className="flex justify-between font-bold">
           <span>Field tag No. {t.number}</span>

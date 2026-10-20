@@ -56,7 +56,7 @@ export default function ChapterTags({
   }
 
   return (
-    <ul role="list" data-hero-step="line" className="grid grid-cols-2 gap-x-4 gap-y-8 lg:flex lg:gap-3 xl:gap-[38px]">
+    <ul role="list" data-hero-step="line" className="flex flex-col lg:flex-row lg:gap-3 xl:gap-[38px]">
       {chapters.map(({ id, year, place, line, drawing, href }, i) => {
         const isOpen = open === id;
         const backId = `${base}-${id}-back`;
@@ -68,11 +68,13 @@ export default function ChapterTags({
               if (e.key === "Escape" && isOpen) turn(null);
             }}
             className={cn(
-              "relative pt-3.5 lg:max-w-[152px] lg:min-w-0 lg:flex-1 lg:origin-top lg:translate-y-(--drop) lg:rotate-(--tilt) xl:translate-y-(--drop-xl)",
-              // Below 1024 each cell draws its share of the row's twine; at 1024+ the clothesline does.
-              "before:absolute before:top-0 before:-inset-x-2 before:h-0.5 before:bg-(--twine) lg:before:hidden",
-              // The tag's own string, from the line down to the hole.
-              "after:absolute after:top-0 after:left-1/2 after:z-10 after:h-6.5 after:w-[1.3px] after:-translate-x-1/2 after:bg-(--twine)",
+              "relative rotate-(--tilt) pt-3.5 lg:max-w-[152px] lg:min-w-0 lg:flex-1 lg:origin-top lg:translate-y-(--drop) xl:translate-y-(--drop-xl)",
+              // Below 1024 the tags hang down the line, left, right, left, right,
+              // 18px either side of it, each overlapping the one before; their
+              // strings and clothespins are globals.css's.
+              "max-lg:w-[min(160px,calc(50%-18px))] max-lg:odd:mr-[calc(50%+18px)] max-lg:odd:ml-auto max-lg:even:ml-[calc(50%+18px)] max-lg:not-first:-mt-19",
+              // At 1024+ the tag's own string, from the clothesline down to the hole.
+              "lg:after:absolute lg:after:top-0 lg:after:left-1/2 lg:after:z-10 lg:after:h-6.5 lg:after:w-[1.3px] lg:after:-translate-x-1/2 lg:after:bg-(--twine)",
             )}
           >
             <div className="perspective-distant">

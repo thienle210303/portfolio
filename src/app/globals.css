@@ -648,6 +648,59 @@
     clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%, 0 22px);
   }
 
+  /* Below 1024 the hero's chapter tags hang off the line down the middle
+     (Hero.tsx draws it, 18px from each tag): a short string from the line to
+     a clothespin 18px in from the tag's near corner. Each tag tilts about the
+     point where its string meets the line, so the tilt never parts them. */
+  @media (width < 64rem) {
+    [data-hero-step="line"] > li {
+      transform-origin: calc(100% + 18px) 4px;
+    }
+    [data-hero-step="line"] > li:nth-child(even) {
+      transform-origin: -18px 4px;
+    }
+    [data-hero-step="line"] > li::before,
+    [data-hero-step="line"] > li::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+    [data-hero-step="line"] > li::before {
+      top: 4px;
+      right: -18px;
+      width: 36px;
+      height: 20px;
+      background: linear-gradient(
+        to bottom right,
+        transparent calc(50% - 0.65px),
+        var(--twine) 0 calc(50% + 0.65px),
+        transparent 0
+      );
+    }
+    [data-hero-step="line"] > li:nth-child(even)::before {
+      right: auto;
+      left: -18px;
+      background: linear-gradient(
+        to top right,
+        transparent calc(50% - 0.65px),
+        var(--twine) 0 calc(50% + 0.65px),
+        transparent 0
+      );
+    }
+    [data-hero-step="line"] > li::after {
+      z-index: 10;
+      top: 12px;
+      right: 14px;
+      width: 8px;
+      height: 22px;
+      background: url(/scenery/clothespin.svg) center / 100% 100% no-repeat;
+    }
+    [data-hero-step="line"] > li:nth-child(even)::after {
+      right: auto;
+      left: 14px;
+    }
+  }
+
   .day-only {
     display: var(--show-day);
   }
