@@ -154,12 +154,27 @@ test.describe("interactive states", () => {
     await auditHasNoViolations(page);
   });
 
+  test("Journey stage has zero WCAG violations, day and night, at 1440 and 390", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "pins its own viewports; run once");
+    for (const width of [1440, 390]) {
+      for (const theme of ["day", "night"]) {
+        await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+        await page.addInitScript((value) => window.localStorage.setItem("theme", value), theme);
+        await page.goto("/");
+        await page.waitForLoadState("networkidle");
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        await scrollIntoViewAndSettle(page, "#tree-heading");
+        await auditHasNoViolations(page, "[data-journey-stage]");
+      }
+    }
+  });
+
   test("zero WCAG violations with the origin-story player open", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the player only mounts at >=1024px; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await scrollIntoViewAndSettle(page, "#tree-heading");
-    const button = page.locator("#tree").getByRole("button", { name: "See how it grows" });
+    const button = page.locator("#tree").getByRole("button", { name: "Watch it grow" });
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
     // The stage mounting is also the instant `OriginStory.tsx`'s conductor

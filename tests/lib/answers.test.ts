@@ -8,7 +8,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { companions, navItems, origin } from "@/content/portfolio";
+import { careerEntries, companions, journey, navItems, origin } from "@/content/portfolio";
 import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
 
 /**
@@ -412,4 +412,21 @@ describe("the cats", () => {
       expect(answer(query).map((result) => result.text)).not.toContain(companionsText());
     },
   );
+});
+
+describe("the Journey", () => {
+  it("indexes the 2 → 25 line and cites it on the Journey", () => {
+    const line = careerEntries.find((entry) => entry.id === "doordash")!.impact.find((l) => l.includes("2 to 25"))!;
+    const docs = buildDocuments().filter((doc) => doc.text === line);
+    expect(docs).toHaveLength(1);
+    expect(docs[0].sectionId).toBe("tree");
+  });
+
+  it("does not index its own copy", () => {
+    for (const doc of buildDocuments()) {
+      for (const copy of [journey.lead, journey.vignette.morning, journey.vignette.evening]) {
+        expect(doc.text).not.toContain(copy);
+      }
+    }
+  });
 });

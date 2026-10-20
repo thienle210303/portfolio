@@ -7,16 +7,12 @@ import { buildDrawnTree, totalLeaves, treeTechnologies } from "@/lib/knowledge-t
  * The companion talks about the page in two places now — the field notes and
  * the guided tour — and both are only allowed to say things that are already
  * true on the page. This is the one function that computes those things, so
- * every spoken number is the *same* number a margin rail already prints
- * rather than a second, independently-typed guess at it.
- *
- * Every derivation here is copied from the rail that already renders the same
- * count, on purpose: CareerTree.tsx (branches, leaves, technologies, and —
- * since the tree absorbed Journey — the entries and the
- * work/learning/milestone split too) and Hero.tsx (the current role).
- * Changing what a rail says and
- * forgetting this file is exactly the drift the plan rules out — so if a
- * rail's expression ever changes, this one has to change with it.
+ * every spoken number is counted off the same tree the Journey draws
+ * (`buildDrawnTree()`, which CareerTree.tsx renders) and the same records,
+ * rather than a second, independently-typed guess at it. Through round 20 the
+ * Journey's margin rail printed these counts too; round 21 dropped the rail
+ * with the board, so the drawing and the records are what they must agree
+ * with now (`tests/lib/companion-facts.test.ts` recomputes each by hand).
  *
  * Pure and server-safe: no DOM, no `Math.random`, nothing but arithmetic over
  * `src/content/*`. `layout.tsx` calls this once, on the server, and

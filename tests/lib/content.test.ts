@@ -343,6 +343,15 @@ function figures(texts: readonly string[]): string[] {
   return out;
 }
 
+describe("the Journey's 2 → 25 figure", () => {
+  it("is on the record once", () => {
+    const doordash = careerEntries.find((entry) => entry.id === "doordash")!;
+    const lines = doordash.impact.filter((line) => line.includes("2 to 25"));
+    expect(lines).toHaveLength(1);
+    expect(figures(lines)).toEqual(expect.arrayContaining(["2", "25"]));
+  });
+});
+
 describe("the projects round 18 recovers from Portfolio-v2", () => {
   it("adds all four", () => {
     for (const id of ["chess-minmax", "conscea", "degreeworks-rebuild", "toy-storefront"]) {

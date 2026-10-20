@@ -21,6 +21,7 @@ import type {
   Companion,
   EducationEntry,
   Highlight,
+  JourneyCopy,
   NavItem,
   Origin,
   Profile,
@@ -176,6 +177,20 @@ export const hero = {
   offDuty: "off duty",
 } satisfies HeroCopy;
 
+/** The Journey's authored words (round 21). Not indexed by the chat
+ *  (`tests/lib/answers.test.ts`). The lead is true of the drawing:
+ *  `tests/sections/CareerTree.test.tsx` checks it against `buildDrawnTree()`. */
+export const journey = {
+  heading: "The work, as it grew.",
+  lead: "Every job I've had is a branch, and the tools I used there are its leaves. Each tag holds what I measured there.",
+  watch: "Watch it grow",
+  tagsLabel: "What I measured",
+  vignette: {
+    morning: "bánh mì on the way",
+    evening: "trà đá on the corner",
+  },
+} satisfies JourneyCopy;
+
 export const socialLinks = [
   {
     id: "github",
@@ -254,6 +269,7 @@ export const careerEntries = [
       "Delivered 30+ production scrapers in a single week once the platform and its validation gates were in place.",
       "40+ merchants and 20+ live integrations kept current on hours, holidays and location data.",
       "Reduced cancellations caused by stale hours and unreported closures.",
+      "Built an agent-driven onboarding workflow that adapts to every merchant: onboarded merchants went from 2 to 25 a month.",
     ],
     learned:
       "Throughput problems in data work are usually organisational before they are technical. The scraper was never the unit that needed fixing — the way scrapers got made was.",
@@ -1412,15 +1428,30 @@ export const achievements = [
 /* Journey highlights                                                          */
 /* -------------------------------------------------------------------------- */
 
-/** The five measured cards that open the Journey, in order. Each `entryId`
- *  names a career entry; every figure here must also appear in that entry's
- *  `headline` or `impact`. */
+/** The tags that hang from the Journey's oak, in order. Each `entryId` names a
+ *  career entry; every figure here must also appear in that entry's `headline`
+ *  or `impact`. The two DoorDash halves hang as one ticket. */
 export const highlights = [
-  { entryId: "doordash", value: "17h → 3m", label: "Reverse engineering scraper: 17 hours to 3 minutes." },
-  { entryId: "wordification", value: "99.9%", label: "Speech QA pipeline, validated audio accuracy." },
-  { entryId: "schaeffler", value: "96%", label: "Throughput lift from custom Java in low-code." },
-  { entryId: "usc-scraping", value: "3M+", label: "Amazon and Kroger records, unattended for months." },
-  { entryId: "usc-ta", value: "200+", label: "Students helped in open lab." },
+  {
+    entryId: "doordash",
+    name: "DoorDash",
+    value: "17h → 3m",
+    measure: "3.9% → 0% error",
+    label: "Reverse engineering scraper",
+  },
+  {
+    entryId: "doordash",
+    name: "DoorDash",
+    value: "2 → 25",
+    measure: "onboarded merchants/month",
+    label: "An agent-driven workflow that adapts to every merchant",
+    year: "2026",
+    projectId: "dd-feasibility-agent",
+  },
+  { entryId: "wordification", name: "Wordification", value: "99.9%", label: "Speech QA pipeline, validated audio accuracy." },
+  { entryId: "schaeffler", name: "Schaeffler", value: "96%", label: "Throughput lift from custom Java in low-code." },
+  { entryId: "usc-scraping", name: "USC research", value: "3M+", label: "Amazon and Kroger records, unattended for months." },
+  { entryId: "usc-ta", name: "USC teaching", value: "200+", label: "Students helped in open lab." },
 ] as const satisfies readonly Highlight[];
 
 /* -------------------------------------------------------------------------- */

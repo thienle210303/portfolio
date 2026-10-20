@@ -336,11 +336,28 @@ export type CodeTokenKind =
   | "punctuation"
   | "comment";
 
-/** One measured card at the head of the Journey. `value` and `label` may hold a
- *  figure only if the entry's `headline` or `impact` holds it too
- *  (`tests/lib/highlights.test.ts`). */
+/** One half of a tag on the Journey's oak. `name` is the tag's short name (the
+ *  board's); `measure` the mono line under the value; `year` only when the
+ *  figure belongs to a later year than the entry's start. Consecutive halves of
+ *  one entry hang as one ticket. `projectId` sends the half to that case study
+ *  instead of the entry's row (the case study renders inside the row). `value`,
+ *  `measure` and `label` may hold a figure only if the entry's `headline` or
+ *  `impact` holds it too (`tests/lib/highlights.test.ts`). */
 export interface Highlight {
   readonly entryId: string;
+  readonly name: string;
   readonly value: string;
   readonly label: string;
+  readonly measure?: string;
+  readonly year?: string;
+  readonly projectId?: string;
+}
+
+/** The Journey's authored lines (`journey` in the content layer). Not indexed. */
+export interface JourneyCopy {
+  readonly heading: string;
+  readonly lead: string;
+  readonly watch: string;
+  readonly tagsLabel: string;
+  readonly vignette: { readonly morning: string; readonly evening: string };
 }

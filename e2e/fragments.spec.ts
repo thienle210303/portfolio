@@ -14,7 +14,7 @@ import { test, expect, type Page } from "@playwright/test";
  * not the imports.
  *
  * What it covers: every `main a[href^="#"]` — the Hero, the
- * Journey's highlight cards, drawing (`display: none` below 1024px, and a
+ * Journey's hanging tags, drawing (`display: none` below 1024px, and a
  * hidden link still has to resolve) and timeline, the case studies and
  * Contact. It
  * does NOT cover the header (`a[href="/#id"]`, derived from `navItems`, which

@@ -27,7 +27,7 @@
  *
  * They exist first for links the site does not control: old bookmarks, a
  * shared résumé PDF, a search result. Round 20 links to them in-page too: the
- * highlight cards and the drawing's branch labels each point at a row.
+ * hanging tags and the drawing's branch labels each point at a row.
  *
  * ## Why `journey-entry-…` and not `journey-…-role`
  *

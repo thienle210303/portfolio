@@ -186,6 +186,20 @@ describe("the outdoors palette", () => {
     }
   });
 
+  it("bark and moss are the board's", () => {
+    expect(tokens["dusk-bark"]).toBe("#070c0d");
+    expect(tokens["spanish-moss"]).toBe("#8c9a86");
+  });
+
+  it("every theme scope sets the Journey's aliases", () => {
+    const night = CSS.indexOf(':root[data-theme="night"]');
+    const media = CSS.indexOf("@media (prefers-color-scheme: dark)", night);
+    const aliases = ["--scene-bark:", "--scene-moss:", "--art-lantern:", "--art-journey-vignette:"];
+    for (const body of [dayRoot(), rule(':root[data-theme="night"]'), rule(':root:not([data-theme="day"])', media)]) {
+      for (const a of aliases) expect(body, a).toContain(a);
+    }
+  });
+
   it("blueprint-grid is gone", () => {
     expect(CSS).not.toContain("blueprint-grid");
     expect(readFileSync(join(SRC, "app/layout.tsx"), "utf8")).not.toContain("blueprint-grid");

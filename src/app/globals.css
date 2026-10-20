@@ -64,6 +64,9 @@
   --color-dusk-water: #3f5a5a;
   --color-buffalo: #3b433e;
   --color-dusk-buffalo: #0a1012;
+  /* Journey (round 21): the oak's night bark and its Spanish moss. */
+  --color-dusk-bark: #070c0d;
+  --color-spanish-moss: #8c9a86;
 }
 
 /*
@@ -178,6 +181,9 @@
      * 1440 (the board's size, round 21 phase 3).
      */
     --step-5: clamp(2.5rem, 1.6rem + 3.4vw, 4.375rem);
+    /* Journey (round 21): the Journey's chapter title, 32px at 390 wide and
+       56px at 1440 (the board's h2). */
+    --step-chapter: clamp(2rem, 1.44rem + 2.29vw, 3.5rem);
 
     --gutter: clamp(1.25rem, 5vw, 5rem);
     /*
@@ -255,6 +261,11 @@
     --scene-buffalo: var(--color-buffalo);
     --art-sky: url(/scenery/sky-day.svg);
     --art-vignette: url(/scenery/morning.svg);
+    /* Journey (round 21) */
+    --scene-bark: var(--color-ink);
+    --scene-moss: var(--color-spanish-moss);
+    --art-lantern: url(/scenery/lantern-day.svg);
+    --art-journey-vignette: url(/scenery/journey-morning.svg);
     --show-day: block;
     --show-night: none;
 
@@ -331,6 +342,11 @@
     --scene-buffalo: var(--color-dusk-buffalo);
     --art-sky: url(/scenery/sky-night.svg);
     --art-vignette: url(/scenery/evening.svg);
+    /* Journey (round 21) */
+    --scene-bark: var(--color-dusk-bark);
+    --scene-moss: var(--color-spanish-moss);
+    --art-lantern: url(/scenery/lantern-night.svg);
+    --art-journey-vignette: url(/scenery/journey-evening.svg);
     --show-day: none;
     --show-night: block;
   }
@@ -390,6 +406,11 @@
       --scene-buffalo: var(--color-dusk-buffalo);
       --art-sky: url(/scenery/sky-night.svg);
       --art-vignette: url(/scenery/evening.svg);
+      /* Journey (round 21) */
+      --scene-bark: var(--color-dusk-bark);
+      --scene-moss: var(--color-spanish-moss);
+      --art-lantern: url(/scenery/lantern-night.svg);
+      --art-journey-vignette: url(/scenery/journey-evening.svg);
       --show-day: none;
       --show-night: block;
     }
@@ -698,6 +719,111 @@
     [data-hero-step="line"] > li:nth-child(even)::after {
       right: auto;
       left: 14px;
+    }
+  }
+
+  /* Journey (round 21): the strings the Journey's tags hang by
+     (HangingTags.tsx), each behind its paper so it seems to run into the hole.
+     From 1280 it climbs `--string` from the hole to the oak's limb. */
+  [data-hanging-tags] li::before,
+  [data-hanging-tags] li::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+  [data-hanging-tags] li::after {
+    left: calc(50% - 0.65px);
+    width: 1.3px;
+    background: var(--twine);
+  }
+  @media (width >= 80rem) {
+    [data-hanging-tags] li::after {
+      top: calc(18px - var(--string));
+      height: var(--string);
+    }
+  }
+
+  /* Journey (round 21): below 1280 the tags hang from a branch that grows
+     out of the crown above them (OakCrown, 24px up). On a phone the crown is
+     mirrored and slid right so the foot of its trunk (board x 307 at y 640,
+     mirrored to 78.68% of its width) stands on the stem, 20px in from the
+     right edge: one tree. The stem is drawn at 100px there, as wide as the
+     trunk it continues. From 640 the stem runs down the middle and rises into
+     the crown to meet the limb there (board x 720, y 386: the crown is the
+     board's y 120–640 at the wrapper's width, so 17.6cqw up), and the tags
+     take turns either side, each starting 40px above the last one's foot.
+     Each tag hangs by a string from the tip of a tapered twig of bark (the
+     mask), 26px above it. The branch fades out below the last tag rather than
+     stopping square. */
+  @media (width < 80rem) {
+    [data-hanging-tags] {
+      container-type: inline-size;
+    }
+    [data-crown] {
+      transform: translateX(calc(21.32% - 20px)) scaleX(-1);
+    }
+    [data-hanging-tags] [data-branch] {
+      top: -28px;
+      right: -30px;
+      width: 100px;
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 96px), transparent);
+    }
+    [data-hanging-tags] li {
+      width: min(100% - 44px, 340px);
+      margin-left: auto;
+      margin-right: 44px;
+    }
+    [data-hanging-tags] li::before {
+      top: -26px;
+      left: 50%;
+      right: -24px;
+      height: 24px;
+      background: var(--scene-bark);
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M100 20C70 18 30 6 0 1.2V2.6C30 8 70 21.5 100 23.5Z'/%3E%3C/svg%3E")
+        no-repeat 0 0 / 100% 100%;
+    }
+    [data-hanging-tags] li::after {
+      top: -24px;
+      height: 42px;
+    }
+  }
+  @media (40rem <= width < 80rem) {
+    [data-hanging-tags] [data-branch] {
+      top: calc(-17.6cqw - 24px);
+      right: auto;
+      left: calc(50% - 60px);
+      width: 120px;
+    }
+    [data-crown] {
+      transform: none;
+    }
+    [data-hanging-tags] li {
+      width: min(50% - 44px, 340px);
+    }
+    [data-hanging-tags] li:nth-child(odd) {
+      margin-right: calc(50% + 44px);
+    }
+    [data-hanging-tags] li:nth-child(even) {
+      margin-left: calc(50% + 44px);
+      margin-right: 0;
+    }
+    [data-hanging-tags] li + li {
+      margin-top: -80px;
+    }
+    [data-hanging-tags] li:nth-child(odd)::before {
+      right: -44px;
+    }
+    [data-hanging-tags] li:nth-child(even)::before {
+      left: -44px;
+      right: 50%;
+      transform: scaleX(-1);
+    }
+  }
+  @media print {
+    [data-hanging-tags] li::before,
+    [data-hanging-tags] li::after {
+      display: none;
     }
   }
 
@@ -1372,7 +1498,7 @@
   /* twig), so both the "self" and "descendant" shapes below are needed.     */
   /*                                                                        */
   /* No `[data-ink-ready]` guard here: nothing plays this without JS        */
-  /* (`TreeBox.tsx` starts it on sight or on "See how it grows"), so there  */
+  /* (`TreeBox.tsx` starts it on sight or on "Watch it grow"), so there     */
   /* is no no-JS/print/reduced-motion path where `data-origin-running`      */
   /* could appear unbidden — `TreeBox.tsx` never starts the player under    */
   /* reduced motion, same as the block below this one. The media guard here */

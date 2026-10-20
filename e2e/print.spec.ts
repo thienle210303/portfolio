@@ -68,8 +68,10 @@ test("the home page prints its content rather than a blank sheet", async ({ page
  * now collapses `.rail-layout` to a plain block, which is what this asserts.
  */
 test("hiding the margin rail must not strand section content in its grid track", async ({ page }) => {
+  // Round 21 took the Journey's rail away with the board, and no section has
+  // one now; the loop guards any that comes back, the article check below
+  // still bites today.
   const layouts = page.locator("main .rail-layout");
-  expect(await layouts.count()).toBeGreaterThan(0);
 
   for (const layout of await layouts.all()) {
     const widths = await layout.evaluate((el) => ({
@@ -97,6 +99,17 @@ test("hiding the margin rail must not strand section content in its grid track",
  * the paper edge. The stylesheet re-clips `.sr-only` at higher specificity;
  * this asserts the page stays within its own viewport width in print.
  */
+test("the Journey prints its tags, not its oak", async ({ page }) => {
+  const scenery = page.locator("#tree [data-scenery]");
+  expect(await scenery.count()).toBeGreaterThan(0);
+  for (const el of await scenery.all()) {
+    expect(await el.evaluate((node) => getComputedStyle(node.closest(".no-print") ?? node).display)).toBe("none");
+  }
+  const tags = page.locator("[data-hanging-tags] li > div > a:first-child");
+  await expect(tags).toHaveCount(5);
+  for (const tag of await tags.all()) await expect(tag).toBeVisible();
+});
+
 test("print media does not create phantom horizontal overflow", async ({ page }) => {
   const { scrollWidth, clientWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,

@@ -16,7 +16,7 @@ import { useCallback, useImperativeHandle, useRef, useState, type ComponentType,
  * buy nothing here.
  *
  * `TreeBox.tsx` owns it and calls `start()` through the `ref` handle, from its
- * auto-play observer and from the "See how it grows" button. Each `start()`
+ * auto-play observer and from the "Watch it grow" button. Each `start()`
  * bumps a run counter used as the player's `key`, so a start while a show is
  * running unmounts that player (its own cleanup releases the tree and sends
  * the companion `origin-story` "end") and mounts a fresh one: exactly one is
