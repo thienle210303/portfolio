@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
+  CORNER_INSET,
+  pickCorner,
   boundsFor,
   clampToViewport,
   clearsControls,
@@ -1025,5 +1027,27 @@ describe("followerMuted", () => {
     expect(followerMuted(lead, at(180, 100))).toBe(false); // 22px apart
     expect(followerMuted(lead, at(120, 148))).toBe(false); // touching below
     expect(followerMuted(lead, at(0, 0))).toBe(false);
+  });
+});
+
+describe("pickCorner", () => {
+  const view = { width: 390, height: 844 };
+  const size = { width: 108, height: 48 };
+  it("stays in the bottom-right corner when nothing is there", () => {
+    expect(pickCorner(view, size, [])).toEqual({ side: "right", lift: 0 });
+  });
+
+  it("moves to the other corner, then up, off a control", () => {
+    const tagRight = { left: 210, right: 370, top: 700, bottom: 840 };
+    expect(pickCorner(view, size, [tagRight])).toEqual({ side: "left", lift: 0 });
+    const row = { left: 0, right: 390, top: 760, bottom: 830 };
+    const placed = pickCorner(view, size, [row]);
+    expect(placed.lift).toBeGreaterThan(0);
+    const bottom = view.height - CORNER_INSET - placed.lift;
+    expect(bottom).toBeLessThanOrEqual(row.top);
+  });
+
+  it("stays home when every spot covers a control", () => {
+    expect(pickCorner(view, size, [{ left: 0, right: 390, top: 0, bottom: 844 }])).toEqual({ side: "right", lift: 0 });
   });
 });

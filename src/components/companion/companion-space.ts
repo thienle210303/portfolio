@@ -1112,3 +1112,58 @@ export function syncTone(node: HTMLElement | null, at: Point): void {
   node.classList.toggle("tone-deep", zone?.classList.contains("tone-deep") === true);
   node.toggleAttribute("data-paper", behind?.closest(".bg-surface") != null);
 }
+
+/* ------------------------------------------------------- the parked pair -- */
+
+/** Where the parked pair (touch, reduced motion) sits: a corner, and how far
+ *  above the bottom inset. */
+export interface Corner {
+  readonly side: "right" | "left";
+  readonly lift: number;
+}
+
+/** The inset of the parked pair from the viewport's corner (`bottom-6`). */
+export const CORNER_INSET = 24;
+const LIFT_STEP = 56;
+
+/**
+ * The parked pair is a fixed button, so it sits over whatever scrolls under
+ * its corner — and it must never cover a control (WCAG 2.4.11, Focus Not
+ * Obscured). Tries the bottom-right corner, then bottom-left, then each side
+ * a step higher at a time, up to half the viewport; the first spot that
+ * touches no control rect wins. Covering text is allowed — a corner button
+ * always will — covering something you can press is not. With no clear spot
+ * at all it stays home.
+ */
+export function pickCorner(
+  view: { readonly width: number; readonly height: number },
+  size: { readonly width: number; readonly height: number },
+  controls: readonly RectLike[],
+): Corner {
+  for (let lift = 0; lift <= view.height / 2; lift += LIFT_STEP) {
+    for (const side of ["right", "left"] as const) {
+      const left = side === "right" ? view.width - CORNER_INSET - size.width : CORNER_INSET;
+      const bottom = view.height - CORNER_INSET - lift;
+      const box = { left, right: left + size.width, top: bottom - size.height, bottom };
+      if (!controls.some((rect) => intersects(box, rect))) return { side, lift };
+    }
+  }
+  return { side: "right", lift: 0 };
+}
+
+/** Everything on the page a visitor can press or focus, outside the companion. */
+const CONTROLS =
+  "a[href],button,input,select,textarea,summary,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
+
+export function controlRectsInView(): RectLike[] {
+  const view = viewport();
+  const rects: RectLike[] = [];
+  for (const element of document.querySelectorAll(CONTROLS)) {
+    if (element.closest(SELF)) continue;
+    const box = element.getBoundingClientRect();
+    if (box.width <= 0 || box.height <= 0) continue;
+    if (box.bottom < 0 || box.top > view.height || box.right < 0 || box.left > view.width) continue;
+    rects.push(box);
+  }
+  return rects;
+}

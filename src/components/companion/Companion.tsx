@@ -12,6 +12,7 @@ import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, { BOX_SLOT, PAPER_SLOT } from "./RestingBox";
 import ToolkitPanel, { PANEL_ID, type PlayRequest, type TourRequest } from "./ToolkitPanel";
 import TourHud from "./TourHud";
+import MoonVisit from "./MoonVisit";
 import {
   advancePlay,
   hideCut,
@@ -100,6 +101,10 @@ import {
   setControlRects,
   setReservedRects,
   standingSpots,
+  controlRectsInView,
+  CORNER_INSET,
+  pickCorner,
+  type Corner,
   syncTone,
   viewport,
   type Point,
@@ -107,6 +112,18 @@ import {
   followerMuted,
 } from "./companion-space";
 import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
+import {
+  advanceSurprise,
+  CREEP_SPEED,
+  markSurpriseSpent,
+  nearDrawing,
+  seatBeside,
+  startSurprise,
+  surpriseFacing,
+  surprisePose,
+  surpriseSpent,
+  type Surprise,
+} from "./companion-surprise";
 
 /**
  * Two line-drawn cats that live on the page, keep loose company with the
@@ -454,6 +471,8 @@ interface Nap {
   rect: DOMRect;
   readAt: number;
 }
+
+const HOME_CORNER: Corner = { side: "right", lift: 0 };
 
 const RESTING_VISUAL: Visual = {
   pose: "sit",
@@ -1224,6 +1243,10 @@ export function Companion({ facts }: CompanionProps) {
   const finePointer = useMedia("(pointer: fine)");
   const stillness = useMedia("(prefers-reduced-motion: reduce)");
   const roams = finePointer && !stillness;
+  /** Mi is sitting beside the hero's sleeping Moon (MoonVisit, parked pair only). */
+  const [visiting, setVisiting] = useState(false);
+  /** Where the parked pair sits: off any control (`pickCorner`). */
+  const [corner, setCorner] = useState<Corner>(HOME_CORNER);
 
   const [open, setOpen] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
@@ -1329,6 +1352,8 @@ export function Companion({ facts }: CompanionProps) {
   const settleSpots = useRef<Spots | null>(null);
   /** Where the explorers are heading. Null means "decide on the next frame". */
   const exploreRun = useRef<ExploreRun | null>(null);
+  /** The Moon surprise while it plays — see companion-surprise.ts. */
+  const surpriseRef = useRef<Surprise | null>(null);
   /** True until the explorers have arrived at their first stop in the current
    *  section — set by the section-change effect, consumed on arrival — which
    *  is what makes that first stop the section's perch (see `planExplore`).
@@ -1388,7 +1413,7 @@ export function Companion({ facts }: CompanionProps) {
    *  origin-story overlay — see the effect near the tour's own listeners.
    *  `spots` starts null and is filled in by the loop exactly the way
    *  `tourSpots` is: recomputed every frame they are still walking over
-   *  (`tourStopSpots("tree")`, the tour's own placement for that section),
+   *  (`watchSpots`, beside the tree box),
    *  then left alone once they arrive. Dropped — not merely outranked — the
    *  moment anything with a stronger claim shows up, so it is never resumed
    *  once the visitor has been handed to the escort, the tour, a nap or the
@@ -2211,6 +2236,21 @@ export function Companion({ facts }: CompanionProps) {
     }
 
     /**
+     * Where they sit to watch the tree grow: beside the tree box, level with
+     * the middle of what of it is on screen. `tourStopSpots("tree")` anchors on
+     * the section's top, which is far above the viewport while the show plays
+     * mid-section, so both cats clamped into the top-left corner (round 21).
+     */
+    function watchSpots(): Spots | null {
+      const box = document.querySelector("[data-tree-box]")?.getBoundingClientRect();
+      const top = box ? Math.max(box.top, safeTop()) : 0;
+      const bottom = box ? Math.min(box.bottom, viewport().height) : 0;
+      if (!box || bottom - top < CAT_H) return tourStopSpots("tree");
+      const anchor = { x: box.left - CAT_W - 12, y: (top + bottom) / 2 - CAT_H / 2 };
+      return restSpots(anchor, { x: anchor.x - CAT_W - FOLLOW_GAP, y: anchor.y });
+    }
+
+    /**
      * Where the explorers are going, and how long they stay when they get there.
      *
      * The plan is *held* — see `ExploreRun` — and each cat's part of it is
@@ -2638,7 +2678,7 @@ export function Companion({ facts }: CompanionProps) {
       }
       const watch = watchRef.current;
       if (watch) {
-        const spots = tourStopSpots("tree");
+        const spots = watchSpots();
         if (spots) {
           if (rushRef.current && now < rushRef.current.until) {
             // The storm beat's startle: a short dash off the sit spot and
@@ -3247,6 +3287,44 @@ export function Companion({ facts }: CompanionProps) {
        * see the note just inside it for why that is a second, genuinely new
        * bug rather than part of the freeze above.
        */
+      /*
+       * Round 21: the Moon surprise (companion-surprise.ts). Only while
+       * exploring — anything with a stronger claim on the pair (a chase, a
+       * scene, a tour, a nap) ends it — and only while the drawing is on
+       * screen, so the rect is read per frame only until it has happened.
+       */
+      let moon = surpriseRef.current;
+      let moonSeat: Point | null = null;
+      let moonDrawing: RectLike | null = null;
+      if (moon || (explored && !surpriseSpent())) {
+        const rect = document.querySelector("[data-moon-off-duty]")?.getBoundingClientRect();
+        const band = boundsFor(viewport(), safeTop());
+        if (rect && rect.width > 0 && rect.top >= band.minY && rect.bottom <= viewport().height) moonDrawing = rect;
+      }
+      if (moon && (!explored || !moonDrawing)) moon = surpriseRef.current = null;
+      if (!moon && explored && moonDrawing) {
+        const who =
+          grey.pose === "walk" && nearDrawing(grey.pos, moonDrawing)
+            ? "lead"
+            : tabby.pose === "walk" && nearDrawing(tabby.pos, moonDrawing)
+              ? "follow"
+              : null;
+        if (who) {
+          moon = surpriseRef.current = startSurprise(who, now);
+          markSurpriseSpent();
+        }
+      }
+      if (moon && moonDrawing) {
+        const cat = moon.cat === "lead" ? grey : tabby;
+        moonSeat = seatBeside(moonDrawing, cat.pos, boundsFor(viewport(), safeTop()), isClearSpot);
+        if (!moonSeat) moon = surpriseRef.current = null;
+        else {
+          const want = moon.step === "creep" ? moonSeat : cat.pos;
+          if (moon.cat === "lead") leadWant = want;
+          else followWant = want;
+        }
+      }
+
       if (ride.riding && !run && !rushing) {
         leadWant = grey.pos;
 
@@ -3309,7 +3387,7 @@ export function Companion({ facts }: CompanionProps) {
       const leadStep = advance(
         grey.pos,
         leadWant,
-        run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : LEAD_SPEED,
+        run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : moon?.cat === "lead" ? CREEP_SPEED : LEAD_SPEED,
         frames,
       );
       /**
@@ -3436,6 +3514,7 @@ export function Companion({ facts }: CompanionProps) {
       // the value `advance` actually sees below, so it is the one that has
       // to be frozen last.
       if (ride.riding && !run && !rushing) followWant = tabby.pos;
+      if (moon?.cat === "follow") followWish = Math.min(followWish, CREEP_SPEED);
 
       tabby.speed = ramp(tabby.speed, followWish, frames);
       // Routed round the lead from each placement until she first arrives at a
@@ -3509,6 +3588,21 @@ export function Companion({ facts }: CompanionProps) {
       }
       if (followRate > 0.3) tabby.phase = (tabby.phase + followStep * 0.0115) % 1;
       else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + SIT_SWAY_RATE.tabby * swayFrames) % 1;
+
+      // The surprise's poses, over whatever the chains above chose.
+      if (moon && moonSeat && moonDrawing) {
+        const cat = moon.cat === "lead" ? grey : tabby;
+        const next = advanceSurprise(moon, now, distance(cat.pos, moonSeat) < 4);
+        surpriseRef.current = next;
+        if (next && next.step !== "creep") {
+          const drawn = surprisePose(next.step);
+          calmIdle(cat, now);
+          cat.pose = drawn.pose;
+          cat.facing = surpriseFacing(cat.pos, moonDrawing);
+          if (moon.cat === "lead") leadHopping = drawn.hopping;
+          else followHopping = drawn.hopping;
+        }
+      }
 
       /* ---------------------------------------------------------- police -- */
 
@@ -4734,6 +4828,38 @@ export function Companion({ facts }: CompanionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourView !== null]);
 
+  /*
+   * The parked pair is a fixed button in a corner, so whatever scrolls under it
+   * is covered — round 21 caught it sitting on the hero's tags on phones. After
+   * a scroll settles, on a resize and on every focus move, it takes the first
+   * corner spot that covers no control (`pickCorner`).
+   */
+  useEffect(() => {
+    if (roams || !roaming) return;
+    const width = (visiting ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2;
+    const height = CAT_H + LEAD_PAD_Y * 2;
+    let timer = 0;
+    const place = () => {
+      timer = 0;
+      const next = pickCorner(viewport(), { width, height }, controlRectsInView());
+      setCorner((now) => (now.side === next.side && now.lift === next.lift ? now : next));
+    };
+    const later = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(place, 150);
+    };
+    place();
+    window.addEventListener("scroll", later, { passive: true });
+    window.addEventListener("resize", later);
+    document.addEventListener("focusin", place);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", later);
+      window.removeEventListener("resize", later);
+      document.removeEventListener("focusin", place);
+    };
+  }, [roams, roaming, visiting]);
+
   function sendToBed() {
     setOpen(false);
     endTour();
@@ -4759,6 +4885,8 @@ export function Companion({ facts }: CompanionProps) {
   }
 
   const showRoamers = roaming || escort === "herding";
+  // The panel opens over the home corner, so the pair go home while it is up.
+  const parkedAt = open ? HOME_CORNER : corner;
   const police = frame.police ?? RESTING_VISUAL;
 
   const leadDrawing = roams ? (
@@ -4773,7 +4901,7 @@ export function Companion({ facts }: CompanionProps) {
     // Parked in the corner with nothing to chase, both cats sit in the button
     // itself — there is no second element to position when nothing moves.
     <span className="flex items-end">
-      <CompanionCat variant="tabby" {...frame.follow} />
+      {visiting ? null : <CompanionCat variant="tabby" {...frame.follow} />}
       <CompanionCat variant="grey" {...frame.lead} />
     </span>
   );
@@ -4862,7 +4990,6 @@ export function Companion({ facts }: CompanionProps) {
             // transition layered over a per-frame write fights the loop and
             // smears the motion. When not roaming, the pair is simply pinned to
             // the corner.
-            !roams && "bottom-6 right-6",
           )}
           // The margin around the drawing is the hit target, and while the loop
           // owns the transform the button is inset by exactly that margin: the
@@ -4873,9 +5000,14 @@ export function Companion({ facts }: CompanionProps) {
           // probe is measuring when it says a spot is clear. The box itself is
           // untouched: 58×48 of target either way.
           style={{
-            width: (roams ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2,
+            width: (roams || visiting ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2,
             height: CAT_H + LEAD_PAD_Y * 2,
-            ...(roams ? { left: -LEAD_PAD_X, top: -LEAD_PAD_Y } : null),
+            ...(roams
+              ? { left: -LEAD_PAD_X, top: -LEAD_PAD_Y }
+              : {
+                  [parkedAt.side]: CORNER_INSET,
+                  bottom: CORNER_INSET + parkedAt.lift,
+                }),
           }}
         >
           {leadDrawing}
@@ -5018,6 +5150,8 @@ export function Companion({ facts }: CompanionProps) {
           </span>
         </div>
       ) : null}
+
+      {!roams && roaming ? <MoonVisit onVisit={setVisiting} /> : null}
 
       {open ? (
         <ToolkitPanel
