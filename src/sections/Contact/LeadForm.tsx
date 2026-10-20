@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CircleAlert, CircleCheck, Loader2, TriangleAlert } from "lucide-react";
-import { cn } from "@/lib/cn";
 import {
   buildLeadMailto,
   EMAIL_MAX,
@@ -18,8 +17,8 @@ import { contactCopy, profile } from "@/content/portfolio";
 import VisuallyHidden from "@/components/ui/VisuallyHidden";
 
 /**
- * The business card's back face: a name and an email or phone, so I can get
- * back to the visitor. No message field.
+ * The postcard's address side: a name and an email or phone, written on
+ * lines, so I can get back to the visitor. No message field.
  *
  * Validation is a hand check against the limits, patterns and messages in
  * `@/lib/contact`, so zod stays on the server. `/api/contact`'s zod schema is
@@ -41,13 +40,15 @@ interface ApiPayload {
 }
 
 const ORDER: readonly FieldName[] = ["name", "email", "phone"];
-const GENERIC_ERROR = "Something went wrong sending that. Please try again, or use the email on the front.";
+const GENERIC_ERROR = "Something went wrong sending that. Please try again, or use the email on my card.";
 const FIX_FIELDS = "Please fix the highlighted field.";
 
 /** Off-screen rather than `display: none`, which some bots skip filling. */
 const HONEYPOT_STYLE: CSSProperties = { position: "absolute", left: "-10000px", width: "1px", height: "1px", overflow: "hidden" };
 
-const FIELD_CLASS = "min-h-11 w-full border bg-ground px-3 py-2 text-[length:var(--step-0)] text-fg";
+/** Written on a line, like an address. 16px keeps phones from zooming in. */
+const FIELD_CLASS =
+  "min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 text-[16px] text-fg aria-invalid:border-mark";
 
 /** Same messages as the server's schema; length caps are the inputs' `maxLength`. */
 function check(lead: Required<Lead>, emailMalformed: boolean): FieldErrors {
@@ -71,10 +72,9 @@ function ErrorLine({ id, children }: { id: string; children: ReactNode }) {
 
 interface LeadFormProps {
   emailDeliveryConfigured: boolean;
-  onBack: () => void;
 }
 
-export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormProps) {
+export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
   const [values, setValues] = useState({ name: "", email: "", phone: "", website: "" });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<Status>("idle");
@@ -86,14 +86,6 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
   useEffect(() => {
     if (status === "success") statusRef.current?.focus();
   }, [status]);
-
-  // Leaving the form clears what it last said; the fields keep their values.
-  function back() {
-    // A send in flight would land its status on a face nobody is looking at.
-    if (submitting) return;
-    setStatus("idle");
-    onBack();
-  }
 
   // "Neither email nor phone" is one error about the pair: shown once, under
   // both fields, and described on both.
@@ -166,7 +158,7 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
 
   const input = (field: FieldName, label: string, props: { type: string; autoComplete: string; maxLength: number }) => (
     <div className="flex flex-col gap-1">
-      <label htmlFor={`lead-${field}`} className="text-[length:var(--step--1)] font-medium text-fg-muted">
+      <label htmlFor={`lead-${field}`} className="font-mono text-[12.5px] text-fg-muted">
         {label}
         {field === "name" ? (
           <>
@@ -185,7 +177,7 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
         onChange={(e) => setValues((v) => ({ ...v, [field]: e.target.value }))}
         aria-invalid={errors[field] ? "true" : undefined}
         aria-describedby={describedBy(field)}
-        className={cn(FIELD_CLASS, errors[field] ? "border-fg" : "border-rule")}
+        className={FIELD_CLASS}
       />
       {errors[field] && !(field !== "name" && pairError) ? (
         <ErrorLine id={`lead-${field}-error`}>{errors[field]}</ErrorLine>
@@ -197,24 +189,27 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
     <form
       noValidate
       onSubmit={handleSubmit}
-      onKeyDown={(e) => e.key === "Escape" && back()}
       aria-labelledby="lead-heading"
       data-delivery={emailDeliveryConfigured ? "api" : "mailto"}
-      className="relative flex flex-col gap-3"
+      className="@container relative flex h-full flex-col"
     >
-      <div>
-        <h3 id="lead-heading" className="font-display text-[length:var(--step-1)] leading-[1.05] tracking-[-0.02em] text-fg">
-          {contactCopy.formHeading}
-        </h3>
-        <p className="mt-1 text-[length:var(--step--1)] text-fg-muted">{contactCopy.formNote}</p>
+      <h3 id="lead-heading" className="font-serif text-[length:var(--step-1)] leading-tight italic text-fg">
+        {contactCopy.formHeading}
+      </h3>
+      <p className="mt-1 text-[length:var(--step--1)] text-fg-muted">{contactCopy.formNote}</p>
+
+      <div className="mt-4 flex flex-col gap-3">
+        {input("name", contactCopy.fields.name, { type: "text", autoComplete: "name", maxLength: NAME_MAX })}
+        {/* Side by side on a wide form, or whenever the postcard itself is
+            landscape (its address side is narrow, as on the board). */}
+        <div className="grid gap-3 @min-[20rem]:grid-cols-2 @min-[20rem]:gap-4 @min-[32rem]/postcard:grid-cols-2 @min-[32rem]/postcard:gap-4">
+          {input("email", contactCopy.fields.email, { type: "email", autoComplete: "email", maxLength: EMAIL_MAX })}
+          {input("phone", contactCopy.fields.phone, { type: "tel", autoComplete: "tel", maxLength: PHONE_MAX })}
+        </div>
+        {pairError ? <ErrorLine id="lead-pair-error">{pairError}</ErrorLine> : null}
       </div>
 
-      {input("name", "Name", { type: "text", autoComplete: "name", maxLength: NAME_MAX })}
-      {input("email", "Email", { type: "email", autoComplete: "email", maxLength: EMAIL_MAX })}
-      {input("phone", "Phone", { type: "tel", autoComplete: "tel", maxLength: PHONE_MAX })}
-      {pairError ? <ErrorLine id="lead-pair-error">{pairError}</ErrorLine> : null}
-
-      <div className="mt-1 flex flex-wrap items-center gap-3">
+      <div className="mt-auto pt-6">
         {/* Contact's one primary control and its only control fill; the keyline
             recipe is `Button`'s primary, by hand so the fill is `bg-control`. */}
         <button
@@ -222,7 +217,7 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
           disabled={submitting}
           aria-busy={submitting || undefined}
           aria-describedby={emailDeliveryConfigured ? undefined : "lead-send-note"}
-          className="relative inline-flex min-h-11 items-center justify-center border border-control bg-control px-6 text-[length:var(--step-0)] font-medium text-fg-inverse transition-colors duration-200 after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-accent hover:bg-accent hover:after:opacity-40 active:translate-y-px disabled:opacity-60"
+          className="relative inline-flex min-h-[46px] items-center justify-center rounded-[3px] border border-control bg-control px-[22px] text-[15px] font-semibold text-fg-inverse transition-colors duration-200 after:pointer-events-none after:absolute after:inset-[3px] after:rounded-[2px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-accent hover:bg-accent hover:after:opacity-40 active:translate-y-px disabled:opacity-60"
         >
           {submitting ? (
             <span className="inline-flex items-center gap-2">
@@ -230,23 +225,15 @@ export default function LeadForm({ emailDeliveryConfigured, onBack }: LeadFormPr
               Sending…
             </span>
           ) : (
-            "Send"
+            contactCopy.send
           )}
         </button>
-        <button
-          type="button"
-          onClick={back}
-          disabled={submitting}
-          className="inline-flex min-h-11 items-center justify-center border border-rule px-5 text-[length:var(--step-0)] text-fg transition-colors duration-150 hover:border-fg-muted active:translate-y-px disabled:opacity-60"
-        >
-          Back
-        </button>
+        {emailDeliveryConfigured ? null : (
+          <p id="lead-send-note" className="mt-2 text-[length:var(--step--1)] text-fg-muted">
+            Opens your email app. You send it from there.
+          </p>
+        )}
       </div>
-      {emailDeliveryConfigured ? null : (
-        <p id="lead-send-note" className="text-[length:var(--step--1)] text-fg-muted">
-          Opens your email app. You send it from there.
-        </p>
-      )}
 
       {/* Honeypot: unreachable by keyboard and absent from the accessibility tree. */}
       <div style={HONEYPOT_STYLE} aria-hidden="true">

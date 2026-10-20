@@ -156,7 +156,7 @@ function field(indent: number, key: string, value: string): string[] {
  */
 export function answerLiteral(question: string, results: readonly Answer[]): string {
   const lines: string[] = [
-    "// From what's written for this site. No model, no generation step.",
+    "// From what I've written here. No model, no generation step.",
     "const answer = {",
     ...field(2, "question", question),
   ];

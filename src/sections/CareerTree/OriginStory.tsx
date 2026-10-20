@@ -708,7 +708,7 @@ export interface OriginStoryProps {
    * outside this component moved focus elsewhere before the show ended (a
    * visitor tabbing away, or clicking something else on the page). The
    * caller (`WatchOrigin.tsx`) uses it to decide whether pulling focus back
-   * to the "See how it grows" button is a courtesy or a hijack.
+   * to the "Watch it grow" button is a courtesy or a hijack.
    */
   readonly onClose: (restoreFocus: boolean) => void;
   /**

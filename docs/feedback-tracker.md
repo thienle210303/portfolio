@@ -1789,7 +1789,8 @@ Full e2e at `--workers=2` against `pnpm dev -p 3171`: 921 passed, 795 skipped, 1
 - `ask.spec.ts:463` and `:489` were real: the Bricolage swap made the idle chat taller than `--ask-room` at 520-639, 1024-1279 and 1280+ px. Fixed by re-measuring (static mode, 320-1920 px every 4 px): 49rem -> 54.5rem, 50.5rem -> 55.5rem, 44.5rem -> 46.5rem; comments updated. All of `ask.spec.ts` passes after.
 - `companion.spec.ts:914` still fails at 1440: "a drawing over contact in night is invisible", ratio 1.82 against a floor of 3. Not fixed here (see Remaining risks below).
 
-Remaining risk: the cats' ink at night over Contact. The test measures the cat's ink against the `--ground` of the element under it; at night Contact now carries light lantern surfaces, and `syncTone` repoints tone only for `.tone-*` zones, not `.bg-surface`. Inferred, not isolated. Needs an owner/Phase 2+ decision. **Closed in Phase 2:** explained by Phase 1's data-paper fix (globals.css paper scope + companion-space.ts syncTone); the failure no longer reproduces.
+Remaining risk: the cats' ink at night over Contact. The test measures the cat's ink against the `--ground` of the element under it; at night Contact now carries light lantern surfaces, and `syncTone` repoints tone only for `.tone-*` zones, not `.bg-surface`. Inferred, not isolated. Needs an owner/Phase 2+ decision.
+ **Closed in Phase 2:** explained by Phase 1's data-paper fix (globals.css paper scope + companion-space.ts syncTone); the failure no longer reproduces.
 
 ## Round 21 phase 2 (2026-10-19) — Worlds removed
 
@@ -1856,3 +1857,60 @@ Below 1024 the clothesline hangs down the page (the owner-approved `NatHeroPhone
 | After | 194,257 B | 167,695 B | 16,862 B | 97,076 B | 2720 ms | 463 ms | 0 | 2200 |
 
 JS at load +25 B against 167,670 B (ChapterTags' class strings); the scenery is server-rendered CSS and SVG, no new JS.
+
+## Round 21 phase 4 (2026-10-20) — the Journey
+
+Branch `round-21/journey` (`26cd85a`..`c2fd447` plus this record), production build, `pnpm start` on `:3204`, headless Chromium. **The machine was saturated**: CPU 100% before the perf runs and 99% after (`Get-CimInstance Win32_Processor`), so LCP and TBT are noise.
+
+**Perf row** (`pnpm perf`, default build, 0 skipped responses, three runs, bytes identical): JS 190.1 KB (194,612 B), JS at load 164.1 KB (168,049 B), CSS 17.6 KB (18,042 B), fonts 94.8 KB (97,076 B), other 136,203 B, LCP 2672 / 3016 / 3052 ms (LCP element `span.scene-art`, the hero's sky), TBT 367-539 ms, CLS 0, 2250 DOM nodes. Against this branch's own baseline at `3589620` (one run, same machine): JS 194,261 -> 194,612 (+351 B), **JS at load 167,698 -> 168,049 (+351 B, inside the +1 KB budget)**, CSS 17,268 -> 18,042 (+774 B), fonts unchanged, other 89,045 -> 136,203 (+47,158 B, the oak), DOM 2199 -> 2250 (+51). The +351 B is inferred, not isolated: `TreeBox.tsx` (a client module) now renders "Watch it grow" through `Button`.
+
+- **Scenery.** Ten new files in `public/scenery/`: 252,958 B raw, 48,135 B gzip (`oak-leaves` 181,527 / 29,502; `oak` 37,013 / 9,927; `journey-rice` 14,731 / 2,870; `oak-branch` 7,205 / 1,957; `oak-moss` 4,706 / 1,202; `oak-branch-moss` 3,757 / 987; `journey-evening` 1,570 / 448; `lantern-night` 1,041 / 492; `journey-morning` 819 / 411; `lantern-day` 589 / 339). Over the wire in day, scrolled through: at 412x823 the Journey adds 7 requests, 47,380 B (oak, oak-leaves, oak-moss, oak-branch, oak-branch-moss, lantern-day, journey-morning); at 1440x900 6 requests, 46,953 B (the branch swapped for journey-rice). `sky-day.svg` is fetched once at both widths. "trà đá" pulls Newsreader's `latin-ext` file at night (not in perf's day row).
+- **Tried and reverted:** `content-visibility: auto` on the oak's three containers, to keep the oak out of the load. It did not (other -2.9 KB: perf's window still reaches the Journey) and one of three runs showed CLS 0.0218.
+
+**DOM.** Per section at 1440x900, before -> after: header 37 -> 37, `#about` 146 -> 146, **`#tree` 1782 -> 1830 (+48, budget +60)**, `#contact` 80 -> 80, footer 3 -> 3.
+
+**Verification.** `pnpm verify` 5/5 (870 unit tests, 56 files; contrast 60 pairings, all >= AA, lowest 4.52:1). Retrieval eval, printed: recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807, unchanged with the new DoorDash impact line indexed. **e2e** at `--workers=2` against the production build: 790 passed, 1190 skipped, 0 failed (21.6 min), no retries needed.
+
+**The owner's answers** (plan appendix, 2026-10-20): the corrected italic line and the new DoorDash impact line ship as approved; the 2 -> 25 workflow is `dd-feasibility-agent`, so the ticket's 2026 stub links to `#work-dd-feasibility-agent` (it opens the DoorDash row at the case study) and the 2025 half to the row; the hanging branch below 1280 is built; no rail; the 56px heading is kept.
+
+**Decisions that changed the board or the plan:**
+- **The stub is its own link.** Two papers joined at the perforation, each wrapped by its link, so the ring is never cut and nothing nests. Six tag links, not five.
+- **From 640 to 1279 the branch runs down the middle and the tags take turns either side** (the hero's phone line does the same); one column at the right edge only below 640. The plan's single column left 60% of a 1024 screen empty. The branch rises into the crown to meet the limb, each tag hangs from a tapered twig of bark, and the branch fades out below the last tag.
+- **Past 1440 the oak fades over its first 48 and last 96 px**, and the sky is one unwrapped tile: the frame's edges are on screen there, and a wrapped tile put a second sun at 1920.
+- **Single tags' name row is `--step--1`**: at the board's 15px "Wordification 2024" wrapped its year in 140px.
+- **"onboarded merchants/month" wraps to two lines** in the 210px ticket (the board sets it at 11px; the site's smallest step is 12.9px at 1440).
+- `origin.spec.ts`'s "keyboard press from far above" now starts from the page top: the button sits ~160px above the box, so no scroll position has the button in view and the box far.
+- `print.spec.ts`'s rail test no longer requires a rail (no section has one); its article-width check still bites.
+
+**Screens** (`reports/r21-p4-screens/`, untracked): 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900, 1920x1080, day and night, plus 1440 day with "Watch it grow" playing. Against `NatJourney.png` / `NatJourneyNight.png` at 1440, beyond this plan's decisions: the site's header; the heading at x 160 (content column); tag values at `--step-4` (34px, board 32) and the ticket's at `--step-3` (28px, board 30); "Watch it grow" at x 72 (the gutter); the cats bottom right; the oak's fade at the viewport's edges. At 1280 the lantern is cut by the left edge (planned). At 390 the resting cats sit over the Wordification tag's year (the cats' branch owns them).
+
+### R21-P4 phone fixes (reviewer, 2026-10-20)
+
+- **One tree on a phone.** Below 640 the crown is mirrored and slid right so the foot of its trunk (board x 307 at y 640) stands on the branch the tags hang from; the branch is drawn at 100px there, as wide as the trunk, and starts 4px under it. The lantern, whose limb runs off the edge once mirrored, hangs from the long limb instead.
+- **The branch's Spanish moss is dropped** (`oak-branch-moss.svg` deleted): hugging the stem it read as a rendering glitch. Scenery is now nine files, 249,201 B raw, 47,148 B gzip; a phone day load makes 6 Journey requests, not 7.
+- **The "seam" at y ~860 was the screenshot, not the page.** The body's sky is `background-attachment: fixed`, and a full-page capture paints it one viewport high; a viewport screenshot of the same spot shows no seam. The screenshot script now takes a viewport tall enough for the stage.
+- `pnpm verify` 5/5 (870 tests; eval 70.0 / 93.3 / 96.7 / 0.807); e2e journey + responsive + axe: 65 passed, 235 skipped, 0 failed.
+
+## Round 21 phase 6 — Contact (2026-10-20)
+
+The postcard board (`design/round-21-outdoors/v1/boards/NatContactPostcard*.dc.html`), built on `round-21/contact`. Plan: [2026-10-20-round-21-phase-6-contact.md](superpowers/plans/2026-10-20-round-21-phase-6-contact.md).
+
+**Perf row** (`pnpm perf`, production build on `:3211`, default build (no Resend env), 0 skipped responses, five runs, bytes identical). **CPU read 100%** (`Win32_Processor.LoadPercentage`), so LCP (2740-4680 ms) and TBT (248-1382 ms) are noise.
+
+| When | JS | JS at load | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|---|
+| R21-P3 phone hero | 194,257 B | 167,695 B | 16,862 B | 97,076 B | 2720 ms | 463 ms | 0 | 2200 |
+| After | 192,968 B | 166,405 B | 17,983 B | 102,620 B | 2740 ms | 623 ms | 0 | 2244 |
+
+- **JS at load -1,290 B**: the business card is a server component again (the flip is retired); only `CopyButton` and the lead form stay client.
+- **Fonts +5,544 B**: Newsreader italic's `vietnamese` file, pulled by "Xin chào," and "bánh tét and hoa mai, for Tết" (both Newsreader). The size matches the night-only file R21-P3 recorded; inferred, not isolated by request.
+- **CSS +1,121 B**, **DOM +44** (the postcard, the seal, the scenery spans and the strip's two halves).
+- Scenery: nine new committed SVGs (`public/scenery/`), 60,721 B raw in all, the postcard's picture 31,867 B of it. Only the active theme's lantern string is fetched (e2e).
+
+**Contrast.** `pnpm contrast`: 62 pairings (+2: gold, `--greet`, on the night sky's top and bottom stops, 5.72:1 and 7.96:1), lowest 4.52:1 unchanged.
+
+**Retrieval eval**, printed: recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807 (30 cases), unchanged. The chips changed (first person, four), not the engine or the eval set.
+
+**Verification.** `pnpm verify` 5/5 (851 unit tests, 54 files). e2e against the production build on `:3211`, `--workers=2`: contact, ask, axe, responsive, print and companion specs 222 passed, 546 skipped, 0 failed; then the full suite 760 passed, 1052 skipped, 0 failed (19.4 min), no retries. An earlier full run failed 14, all from this phase's layout and fixed before the clean run: `scale.spec` held Contact's h2 to the 24-28px section-title size (the board sets "say hi." at the hero's display size; the test now pins the Journey only and gives Contact 40-72px), and a cold `/#ask` at 1024 and 1440 runs out of page before the 80px margin now that the chat is a short strip near the end (the test accepts a landing at the page's end with the whole strip on screen).
+
+**Screens** (`reports/r21-p6-screens/`, untracked): `#contact` and the landing view at 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night; no horizontal overflow at any of them.

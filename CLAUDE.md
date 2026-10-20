@@ -14,7 +14,7 @@ reference: [README.md](README.md).
 - No database, no CMS, no component library. Every component under
   `src/components` and `src/sections` is bespoke — don't reach for a
   dependency to replace one without discussing it first.
-- The business card's lead form (name plus an email or phone, no message)
+- The postcard's lead form (name plus an email or phone, no message)
   falls back from Resend to a `mailto:` flow whenever `RESEND_API_KEY` /
   `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set (see
   `.env.example`). That fallback is intentional, not a bug.
@@ -61,16 +61,19 @@ The globe and its WebGL engine were removed in Round 21: the globe was
 redundant, and it was the heaviest code on the page (the crossing moves to the
 hero's clothesline in Round 21's hero phase). It is in git history. There is still no 3D library; do not add one.
 
-### The hero's scenery
+### The scenery
 
-The hero's drawings are generated SVG files under `public/scenery/`, written
+The hero's and the Journey's drawings are generated SVG files under `public/scenery/`, written
 by `scripts/draw-scenery.mjs` (`pnpm draw:scenery`), and
 `tests/lib/scenery.test.ts` fails until the committed files match a fresh
 draw — so change a drawing in the script, never by hand. One-colour drawings
 are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
-`text-accent`); the theme-dependent pieces (the sky, the phin/lẩu vignette)
-take their file from `--art-sky` / `--art-vignette`, so the theme swaps them
-in CSS with no script. Nothing is drawn at runtime and there is no drawing
+`--scene-bark`, `--scene-moss`, `text-accent`); the theme-dependent pieces
+(the sky, the phin/lẩu and bánh mì/trà đá vignettes, the Hội An lantern, lit at
+night) take their file from `--art-sky` / `--art-vignette` /
+`--art-journey-vignette` / `--art-lantern`, so the theme swaps them in CSS with
+no script. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`),
+and `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
 hook for Phase 7; keep it, once.
 
@@ -83,10 +86,13 @@ field tag with the LinkedIn QR at the line's end (below 1024 the line hangs
 down the page from a bamboo pole, the tags either side, my field tag at its
 foot), the morning/evening scenery
 drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
-is as tall as its content), the Journey (`#tree`: highlight cards, the
-drawn tree at >=1024px, then a one-open timeline of rows) and Contact
-(`#contact`: the chat at `#ask` on the left, and a business card on the right
-that flips to the lead form).
+is as tall as its content), the Journey (`#tree`: a live oak whose limb
+carries the highlight tags, the DoorDash one a ticket with a 2026 stub, and
+"Watch it grow", which plays the drawn tree at >=1024px; below 1280 the tags
+hang from a branch under the crown; then a one-open timeline of rows) and Contact
+(`#contact`, round 21's postcard: my business card beside a postcard whose
+address side is the lead form, always visible, and the chat at `#ask` as a
+strip below both).
 `navItems` in `src/content/portfolio.ts` is the same three items in the same
 order; the nav doubles as the page's table of contents.
 

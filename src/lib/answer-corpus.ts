@@ -134,7 +134,7 @@ export function buildDocuments(): Document[] {
   for (const paragraph of profile.about) {
     docs.push({
       text: paragraph,
-      source: "About, in his own words",
+      source: "About, in my own words",
       label: label("about", undefined, profile.name, profile.title),
     });
   }
@@ -146,7 +146,7 @@ export function buildDocuments(): Document[] {
   // tests/sections/Hero.test.tsx holds it.
   docs.push({
     text: profile.positioning,
-    source: "About, in his own words",
+    source: "About, in my own words",
     sectionId: "about",
     sectionLabel: "About",
     label: label("about", undefined, profile.name, profile.title),
@@ -156,7 +156,7 @@ export function buildDocuments(): Document[] {
   // nothing else renders it — the same call as `about` above.
   docs.push({
     text: profile.focus,
-    source: "About, in his own words",
+    source: "About, in my own words",
     label: label("about", undefined, "focus", "areas", "specialism"),
   });
 
@@ -199,7 +199,7 @@ export function buildDocuments(): Document[] {
   // section-wide — the same scope rule this file's own banner states.
   docs.push({
     text: profile.philosophy,
-    source: "The idea the whole site hangs from",
+    source: "The idea everything here hangs from",
     sectionId: "contact",
     sectionLabel: "Contact",
     label: label(
@@ -260,7 +260,7 @@ export function buildDocuments(): Document[] {
 
     docs.push({
       text: project.learned,
-      source: `${where}, what it taught him`,
+      source: `${where}, what it taught me`,
       sectionId: "tree",
       sectionLabel: "Journey",
       // "wrong", "mistake" and "hindsight" belong here rather than on the
@@ -424,7 +424,7 @@ export function buildDocuments(): Document[] {
     if (entry.learned) {
       docs.push({
         text: entry.learned,
-        source: `${where} — what it taught him`,
+        source: `${where} — what it taught me`,
         sectionId: "tree",
         sectionLabel: "Journey",
         label: label("journey", entry.id, ...shared, "learn lesson learned learning takeaway realised"),

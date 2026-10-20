@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import { buildDrawnTree, DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
 import KnowledgeTreeList from "@/sections/CareerTree/KnowledgeTreeList";
 import { DrawnTree } from "@/sections/CareerTree/DrawnTree";
 import { caseStudyAnchorId, journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
-import { careerEntries, projects } from "@/content/portfolio";
+import { careerEntries, journey, projects } from "@/content/portfolio";
 import { buildDocuments } from "@/lib/answer-corpus";
 import { careerIndexable, education, projectsIndexable } from "@/lib/answer-sources";
 import type { CareerEntry } from "@/types/portfolio";
@@ -91,11 +91,62 @@ describe("the Journey section", () => {
     expect(duplicated).toEqual([]);
   });
 
-  it("says in the rail how many entries became credentials", () => {
+  it("has no rail and no eyebrow", () => {
     render(<CareerTree />);
-    expect(document.body.textContent).toContain(
-      `${careerEntries.length - DEMOTED_ENTRY_IDS.length} drawn · ${DEMOTED_ENTRY_IDS.length} as credentials`,
+    const section = document.getElementById("tree")!;
+    expect(section.querySelector(".rail")).toBeNull();
+    expect(section.querySelector(".eyebrow-lead")).toBeNull();
+  });
+
+  it("opens with the heading and my line", () => {
+    render(<CareerTree />);
+    expect(document.querySelector("h2#tree-heading")?.textContent).toBe(journey.heading);
+    const lead = [...document.querySelectorAll("#tree .font-serif.italic")].find((el) => el.textContent === journey.lead);
+    expect(lead).toBeDefined();
+  });
+
+  it("the lead is true", () => {
+    // "Every job I've had is a branch, and the tools I used there are its leaves."
+    const drawn = buildDrawnTree();
+    for (const entry of careerEntries.filter((e) => e.type === "work")) {
+      const branch = drawn.find((b) => b.id === entry.id);
+      expect(branch, entry.id).toBeDefined();
+    }
+    for (const branch of drawn) {
+      const own = careerEntries.find((e) => e.id === branch.id)!.technologies as readonly string[];
+      for (const leaf of branch.leaves) expect(own, `${branch.id}: ${leaf.text}`).toContain(leaf.text);
+    }
+  });
+
+  it("the scenery is decoration", () => {
+    render(<CareerTree />);
+    const section = document.getElementById("tree")!;
+    const art = section.querySelectorAll("[data-scenery]");
+    expect(art.length).toBeGreaterThan(0);
+    for (const el of art) expect(el.closest('[aria-hidden="true"]'), el.getAttribute("data-scenery") ?? "").not.toBeNull();
+    const stage = section.querySelector('[data-scenery="journey"]')!;
+    expect(stage.querySelectorAll("a, button, [tabindex]")).toHaveLength(0);
+  });
+
+  it("the morning by day and the evening at night", () => {
+    render(<CareerTree />);
+    const section = document.getElementById("tree")!;
+    const day = [...section.querySelectorAll(".day-only")];
+    const night = [...section.querySelectorAll(".night-only")];
+    expect(day.map((el) => el.textContent)).toEqual([journey.vignette.morning]);
+    expect(night.map((el) => el.textContent)).toEqual([journey.vignette.evening]);
+  });
+
+  it("the oak holds one lantern per layout", () => {
+    render(<CareerTree />);
+    const section = document.getElementById("tree")!;
+    const lanterns = [...section.querySelectorAll<HTMLElement>("span")].filter(
+      (el) => el.style.getPropertyValue("--art") === "var(--art-lantern)",
     );
+    expect(lanterns).toHaveLength(2);
+    expect(lanterns.filter((el) => el.closest('[data-scenery="journey"]'))).toHaveLength(1);
+    expect(lanterns.filter((el) => el.closest("[data-crown]"))).toHaveLength(1);
+    for (const el of lanterns) expect(el.closest('[aria-hidden="true"]')).not.toBeNull();
   });
 });
 
@@ -115,10 +166,11 @@ describe("what the Journey draws", () => {
     }
   });
 
-  it("stacks highlights, drawing, timeline, credentials and the unbranched case studies, in that order", () => {
+  it("stacks the tags, Watch it grow, drawing, timeline, credentials and the unbranched case studies, in that order", () => {
     render(<CareerTree />);
     const blocks = [
-      document.querySelector('[aria-label="Highlights"]'),
+      document.querySelector("[data-hanging-tags]"),
+      screen.getByRole("button", { name: journey.watch }),
       document.querySelector("[data-origin-host]"),
       document.querySelector("[data-timeline]"),
       document.querySelector("[data-credentials-strip]"),
@@ -215,7 +267,7 @@ describe("what the Journey draws", () => {
  * The origin-story player, now grown in the tree box (`TreeBox.tsx`).
  *
  * `WatchOrigin` is the always-loaded half — a mount point that `import()`s the
- * ~1,400-line player when the box first plays or "See how it grows" is
+ * ~1,400-line player when the box first plays or "Watch it grow" is
  * pressed. These tests are about where it is mounted and what it is mounted
  * *inside*, because that is the part a refactor breaks silently: the player
  * positions itself `absolute inset-0` against `[data-origin-host]` and walks
@@ -223,11 +275,14 @@ describe("what the Journey draws", () => {
  * conducts, so the overlay and the drawing have to share one box.
  */
 describe("the way back into the origin story", () => {
-  it("offers \"See how it grows\" in the section header, before the box", () => {
+  it("offers \"Watch it grow\" before the box, as the primary control", () => {
     render(<CareerTree />);
     const section = document.getElementById("tree");
     if (!(section instanceof HTMLElement)) throw new Error("no #tree section");
-    const button = within(section).getByRole("button", { name: "See how it grows" });
+    const button = within(section).getByRole("button", { name: "Watch it grow" });
+    expect(
+      [/(^|\s)bg-control(\s|$)/, /(^|\s)bg-\[color:var\(--control\)\](\s|$)/].some((fill) => fill.test(button.className)),
+    ).toBe(true);
     const box = section.querySelector("[data-tree-box]");
     if (!(box instanceof HTMLElement)) throw new Error("no [data-tree-box]");
     expect(box).not.toContainElement(button);
@@ -575,7 +630,7 @@ describe("the timeline's rows", () => {
         studies += 1;
       }
     }
-    expect(impactTotal).toBe(16);
+    expect(impactTotal).toBe(17);
     expect(chipLists).toBeGreaterThan(0);
     expect(siblingLines, "rows with a Ran alongside line").toBe(10);
     expect(studies, "case studies rendered in the list").toBe(4);

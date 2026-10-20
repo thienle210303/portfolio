@@ -3,7 +3,8 @@ import { contactCopy, profile } from "../src/content/portfolio";
 import { buildLeadMailto } from "../src/lib/contact";
 
 /**
- * Contact: the chat beside a business card that flips to a short lead form.
+ * Contact (round 21): my business card clipped beside a postcard whose
+ * address side is the lead form, always visible; the chat as a strip below.
  *
  * Which way the form delivers depends on the build: with the three Resend env
  * vars set it posts to /api/contact, without them it opens a `mailto:`. The
@@ -18,25 +19,17 @@ async function open(page: Page) {
   // Wait for the islands to hydrate: key presses race React otherwise.
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  await card(page).scrollIntoViewIfNeeded();
+  await postcard(page).scrollIntoViewIfNeeded();
 }
 
 const card = (page: Page) => page.locator('#contact aside[aria-label="Thien Le — business card"]');
-const flip = (page: Page) => card(page).locator("[data-flip]");
-const front = (page: Page) => card(page).locator('[data-face="front"]');
-const back = (page: Page) => card(page).locator('[data-face="back"]');
-const trigger = (page: Page) => front(page).getByRole("button", { name: "Let me reach you" });
-const field = (page: Page, label: RegExp) => back(page).getByLabel(label);
+const postcard = (page: Page) => page.locator("#contact [data-postcard]");
+const field = (page: Page, label: RegExp) => postcard(page).getByLabel(label);
+const send = (page: Page) => postcard(page).getByRole("button", { name: contactCopy.send });
 
 /** The build's delivery mode, which the form declares. */
 async function postsToApi(page: Page): Promise<boolean> {
-  return (await back(page).locator("form").getAttribute("data-delivery")) === "api";
-}
-
-async function flipToForm(page: Page) {
-  await trigger(page).click();
-  await expect(flip(page)).toHaveAttribute("data-flipped", "true");
-  await expect(field(page, /^Name/)).toBeFocused();
+  return (await postcard(page).locator("form").getAttribute("data-delivery")) === "api";
 }
 
 /** Records every POST body sent to /api/contact and answers with `reply`. */
@@ -54,14 +47,15 @@ function onlyAt(page: Page, widths: readonly number[]) {
   test.skip(!widths.includes(width), `runs at ${widths.join(" and ")} px`);
 }
 
-test("card front has every way to reach me", async ({ page }) => {
+test("my card has every way to reach me", async ({ page }) => {
   onlyAt(page, WIDTHS);
   await open(page);
-  const face = front(page);
+  const face = card(page);
   await expect(face.getByText(profile.name, { exact: true })).toBeVisible();
   await expect(face.getByText(profile.title, { exact: true })).toBeVisible();
   await expect(face.getByText(profile.location, { exact: true })).toBeVisible();
-  await expect(face.getByText(`“${profile.philosophy}”`)).toBeVisible();
+  await expect(face.getByText(profile.philosophy, { exact: true })).toBeVisible();
+  await expect(face.getByText("Thiện", { exact: true })).toBeVisible();
   await expect(face.getByRole("link", { name: profile.email })).toHaveAttribute("href", `mailto:${profile.email}`);
   await expect(face.getByRole("button", { name: "Copy email address" })).toBeVisible();
   for (const name of [/^GitHub/, /^LinkedIn/]) {
@@ -72,7 +66,11 @@ test("card front has every way to reach me", async ({ page }) => {
   const vcf = face.getByRole("link", { name: "Save contact" });
   await expect(vcf).toHaveAttribute("href", "/contact.vcf");
   await expect(vcf).toHaveAttribute("download", "");
-  await expect(trigger(page)).toBeVisible();
+  // The email never truncates: the whole address is on the card.
+  const clipped = await face
+    .getByRole("link", { name: profile.email })
+    .evaluate((a) => a.scrollWidth > a.clientWidth);
+  expect(clipped).toBe(false);
 });
 
 test("copy email copies", async ({ page }) => {
@@ -85,20 +83,19 @@ test("copy email copies", async ({ page }) => {
     });
   });
   await open(page);
-  const button = front(page).getByRole("button", { name: "Copy email address" });
-  await button.click();
+  await card(page).getByRole("button", { name: "Copy email address" }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __copied?: string }).__copied)).toBe(profile.email);
-  await expect(flip(page)).toHaveAttribute("data-flipped", "false");
 });
 
 test("the email copy control's hit area reaches a full 44px even though its visible box is 32px", async ({ page }) => {
   onlyAt(page, [1440]);
   await open(page);
-  const button = front(page).getByRole("button", { name: "Copy email address" });
+  const button = card(page).getByRole("button", { name: "Copy email address" });
   const box = await button.boundingBox();
   if (!box) throw new Error("copy control did not render a box");
-  expect(box.width).toBeCloseTo(32, 0);
-  expect(box.height).toBeCloseTo(32, 0);
+  // The card is turned 2.5°, so the box grows by a pixel or so.
+  expect(box.width).toBeLessThan(36);
+  expect(box.height).toBeLessThan(36);
 
   // Record the real click's target rather than waiting on the clipboard.
   await page.evaluate(() => {
@@ -118,63 +115,30 @@ test("the email copy control's hit area reaches a full 44px even though its visi
     .toBe("BUTTON[Copy email address]");
 });
 
-test("clicking the card's empty area flips; clicking a link does not", async ({ page }) => {
+test("the postcard is the form: always there, nothing to turn over", async ({ page }) => {
   onlyAt(page, WIDTHS);
   await open(page);
-  // Keep the links' own navigation from leaving the page; the card still
-  // sees the click.
-  await page.evaluate(() =>
-    document.addEventListener("click", (e) => (e.target as Element).closest("a") && e.preventDefault(), true),
-  );
-  for (const name of ["Résumé", "Save contact", profile.email]) {
-    await front(page).getByRole("link", { name, exact: true }).click();
-    await expect(flip(page), name).toHaveAttribute("data-flipped", "false");
-  }
-  await front(page).click({ position: { x: 12, y: 12 } });
-  await expect(flip(page)).toHaveAttribute("data-flipped", "true");
-  // The back face does not flip on its own area: only Back and Escape.
-  await back(page).click({ position: { x: 12, y: 12 } });
-  await expect(flip(page)).toHaveAttribute("data-flipped", "true");
+  const pc = postcard(page);
+  await expect(pc.getByText(contactCopy.postcard.greetings)).toBeVisible();
+  await expect(pc.getByText(contactCopy.postcard.place, { exact: true })).toBeVisible();
+  await expect(pc.getByRole("heading", { name: contactCopy.formHeading })).toBeVisible();
+  await expect(pc.getByText(contactCopy.formNote)).toBeVisible();
+  for (const label of [/^Your name/, /^Email/, /^or phone/]) await expect(field(page, label)).toBeVisible();
+  await expect(send(page)).toBeVisible();
+  await expect(page.locator("#contact [data-flip]")).toHaveCount(0);
+  await expect(page.locator("#contact").getByRole("button", { name: /Let me reach you|^Back$/ })).toHaveCount(0);
 });
 
-test("flip by keyboard: focus lands in the name field; Escape flips back to the trigger", async ({ page }) => {
+test("Tab runs from my card into the postcard, in reading order", async ({ page }) => {
   onlyAt(page, WIDTHS);
   await open(page);
-  await trigger(page).focus();
-  await page.keyboard.press("Enter");
-  await expect(flip(page)).toHaveAttribute("data-flipped", "true");
-  await expect(field(page, /^Name/)).toBeFocused();
-  await page.keyboard.type("Jamie");
-  await page.keyboard.press("Escape");
-  await expect(flip(page)).toHaveAttribute("data-flipped", "false");
-  await expect(trigger(page)).toBeFocused();
-
-  // Back, by keyboard, returns focus the same way.
-  await page.keyboard.press("Enter");
-  await expect(field(page, /^Name/)).toBeFocused();
-  await back(page).getByRole("button", { name: "Back" }).focus();
-  await page.keyboard.press("Enter");
-  await expect(trigger(page)).toBeFocused();
-});
-
-test("hidden face is inert", async ({ page }) => {
-  onlyAt(page, WIDTHS);
-  await open(page);
-  await expect(back(page)).toHaveAttribute("inert", "");
-  await expect(front(page)).not.toHaveAttribute("inert");
-  // Playwright's role queries ignore `inert`, so ask the browser: an inert
-  // field refuses focus.
-  await back(page).locator("#lead-name").evaluate((el: HTMLElement) => el.focus());
-  await expect(back(page).locator("#lead-name")).not.toBeFocused();
-
-  await flipToForm(page);
-  await expect(front(page)).toHaveAttribute("inert", "");
-  await expect(back(page)).not.toHaveAttribute("inert");
-  // Tabbing through the whole back face never lands on the front.
-  for (let i = 0; i < 8; i += 1) {
+  await card(page).getByRole("link", { name: "Save contact" }).focus();
+  const order: string[] = [];
+  for (let i = 0; i < 4; i += 1) {
     await page.keyboard.press("Tab");
-    expect(await front(page).evaluate((el) => el.contains(document.activeElement))).toBe(false);
+    order.push(await page.evaluate(() => document.activeElement?.getAttribute("name") ?? document.activeElement?.textContent ?? ""));
   }
+  expect(order).toEqual(["name", "email", "phone", contactCopy.send]);
 });
 
 test("email-only lead posts and shows success", async ({ page }) => {
@@ -182,14 +146,13 @@ test("email-only lead posts and shows success", async ({ page }) => {
   await open(page);
   test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
   const bodies = await mockApi(page, 200, { ok: true });
-  await flipToForm(page);
-  await field(page, /^Name/).fill("Jamie Reviewer");
+  await field(page, /^Your name/).fill("Jamie Reviewer");
   await field(page, /^Email/).fill("jamie@example.com");
-  await back(page).getByRole("button", { name: "Send" }).click();
+  await send(page).click();
 
-  await expect(back(page).getByRole("status")).toHaveText(contactCopy.success);
+  await expect(postcard(page).getByRole("status")).toHaveText(contactCopy.success);
   expect(bodies).toEqual([{ name: "Jamie Reviewer", email: "jamie@example.com", phone: "", website: "" }]);
-  await expect(field(page, /^Name/)).toHaveValue("");
+  await expect(field(page, /^Your name/)).toHaveValue("");
 });
 
 test("phone-only lead posts", async ({ page }) => {
@@ -197,12 +160,11 @@ test("phone-only lead posts", async ({ page }) => {
   await open(page);
   test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
   const bodies = await mockApi(page, 200, { ok: true });
-  await flipToForm(page);
-  await field(page, /^Name/).fill("Jamie Reviewer");
-  await field(page, /^Phone/).fill("+1 (864) 555-0100");
-  await back(page).getByRole("button", { name: "Send" }).click();
+  await field(page, /^Your name/).fill("Jamie Reviewer");
+  await field(page, /^or phone/).fill("+1 (864) 555-0100");
+  await send(page).click();
 
-  await expect(back(page).getByRole("status")).toHaveText(contactCopy.success);
+  await expect(postcard(page).getByRole("status")).toHaveText(contactCopy.success);
   expect(bodies).toEqual([{ name: "Jamie Reviewer", email: "", phone: "+1 (864) 555-0100", website: "" }]);
 });
 
@@ -210,17 +172,16 @@ test("neither shows the paired error", async ({ page }) => {
   onlyAt(page, WIDTHS);
   await open(page);
   const bodies = await mockApi(page, 200, { ok: true });
-  await flipToForm(page);
-  await field(page, /^Name/).fill("Jamie Reviewer");
-  await back(page).getByRole("button", { name: "Send" }).click();
+  await field(page, /^Your name/).fill("Jamie Reviewer");
+  await send(page).click();
 
-  await expect(back(page).getByText(PAIR_ERROR)).toHaveCount(1);
-  for (const label of [/^Email/, /^Phone/]) {
+  await expect(postcard(page).getByText(PAIR_ERROR)).toHaveCount(1);
+  for (const label of [/^Email/, /^or phone/]) {
     await expect(field(page, label)).toHaveAttribute("aria-invalid", "true");
     await expect(field(page, label)).toHaveAccessibleDescription(PAIR_ERROR);
   }
   await expect(field(page, /^Email/)).toBeFocused();
-  await expect(back(page).getByRole("status")).toHaveText("");
+  await expect(postcard(page).getByRole("status")).toHaveText("");
   expect(bodies).toEqual([]);
 });
 
@@ -237,16 +198,15 @@ test("mailto fallback when not configured", async ({ page }) => {
   const requested: string[] = [];
   cdp.on("Page.frameRequestedNavigation", ({ url }) => requested.push(url));
 
-  await flipToForm(page);
-  await field(page, /^Name/).fill("Jamie Reviewer");
+  await field(page, /^Your name/).fill("Jamie Reviewer");
   await field(page, /^Email/).fill("jamie@example.com");
-  await field(page, /^Phone/).fill("864 555 0100");
-  await back(page).getByRole("button", { name: "Send" }).click();
+  await field(page, /^or phone/).fill("864 555 0100");
+  await send(page).click();
 
   const href = buildLeadMailto({ name: "Jamie Reviewer", email: "jamie@example.com", phone: "864 555 0100" }, profile.email);
   await expect.poll(() => requested).toContain(href);
-  await expect(back(page).getByRole("status")).toContainText(/email app/i);
-  await expect(back(page).getByRole("status")).not.toContainText(contactCopy.success);
+  await expect(postcard(page).getByRole("status")).toContainText(/email app/i);
+  await expect(postcard(page).getByRole("status")).not.toContainText(contactCopy.success);
 });
 
 test("GET /contact.vcf returns text/vcard as an attachment", async ({ page, request }) => {
@@ -260,35 +220,59 @@ test("GET /contact.vcf returns text/vcard as an attachment", async ({ page, requ
   expect(body).toContain(`EMAIL;TYPE=INTERNET:${profile.email}`);
 });
 
-test("chat on the left, card on the right at 1440; stacked at 390", async ({ page }) => {
-  onlyAt(page, WIDTHS);
+test("card beside the postcard from 1024, the chat strip under both; stacked below", async ({ page }) => {
+  onlyAt(page, [390, 768, 1024, 1440]);
   await open(page);
-  const cardBox = await card(page).boundingBox();
-  const askBox = await page.locator("#ask").boundingBox();
-  if (!cardBox || !askBox) throw new Error("card or chat rendered no box");
-  if (page.viewportSize()!.width === 1440) {
-    expect(askBox.x + askBox.width).toBeLessThanOrEqual(cardBox.x);
-    expect(Math.abs(askBox.y - cardBox.y)).toBeLessThan(80);
+  const [cardBox, postBox, askBox] = await Promise.all([card(page), postcard(page), page.locator("#ask")].map((l) => l.boundingBox()));
+  if (!cardBox || !postBox || !askBox) throw new Error("card, postcard or chat rendered no box");
+  const side = page.viewportSize()!.width >= 1024;
+  if (side) {
+    // Turned paper: allow the few pixels a 2.5° turn adds.
+    expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(postBox.x + 8);
+    expect(Math.abs(cardBox.y - postBox.y)).toBeLessThan(60);
   } else {
-    expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(askBox.y);
-    expect(cardBox.width).toBeGreaterThan(300);
+    expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(postBox.y + 8);
+  }
+  expect(Math.max(cardBox.y + cardBox.height, postBox.y + postBox.height)).toBeLessThanOrEqual(askBox.y + 8);
+});
+
+test("nothing on the card or the postcard overflows its paper", async ({ page }) => {
+  onlyAt(page, [390, 1024, 1440]);
+  await open(page);
+  for (const paper of [card(page).locator(".paper-lift"), postcard(page).locator(".paper-lift")]) {
+    const spill = await paper.evaluate((el) => {
+      // The monogram bleeds off the card on purpose; it is aria-hidden.
+      const flow = Array.from(el.querySelectorAll<HTMLElement>("p, a, button, input, label, h3, li")).filter(
+        (n) => !n.closest("[aria-hidden=true]"),
+      );
+      const box = el.getBoundingClientRect();
+      return flow
+        .map((n) => n.getBoundingClientRect())
+        .filter((r) => r.right > box.right + 1 || r.bottom > box.bottom + 1 || r.left < box.left - 1).length;
+    });
+    expect(spill).toBe(0);
   }
 });
 
-test("neither face clips its content", async ({ page }) => {
+test("no scenery sits on top of a control", async ({ page }) => {
   onlyAt(page, [390, 1024, 1440]);
   await open(page);
-  // The monogram bleeds off the front on purpose, so scrollHeight says
-  // nothing: compare the last in-flow child's bottom with the face's
-  // padding edge instead.
-  for (const face of [front(page), back(page)]) {
-    const overshoot = await face.evaluate((el) => {
-      const flow = Array.from(el.children).filter((c) => getComputedStyle(c).position !== "absolute");
-      const last = flow[flow.length - 1].getBoundingClientRect().bottom;
-      const edge = el.getBoundingClientRect().bottom - parseFloat(getComputedStyle(el).paddingBottom);
-      return last - edge;
+  // Wait for the chat, so its controls are measured too.
+  await page.locator("#ask").scrollIntoViewIfNeeded();
+  await expect(page.getByRole("textbox", { name: "Your question" })).toBeVisible({ timeout: 15_000 });
+  const controls = page.locator("#contact").locator("a, button, input");
+  const count = await controls.count();
+  expect(count).toBeGreaterThan(10);
+  for (let i = 0; i < count; i += 1) {
+    const control = controls.nth(i);
+    if (!(await control.isVisible()) || (await control.getAttribute("tabindex")) === "-1") continue;
+    await control.scrollIntoViewIfNeeded();
+    const hit = await control.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !top || el === top || el.contains(top) || top.contains(el) ? "ok" : (top.closest("[data-scenery]")?.getAttribute("data-scenery") ?? "ok");
     });
-    expect(overshoot).toBeLessThanOrEqual(1);
+    expect(hit, `scenery over control ${i}`).toBe("ok");
   }
 });
 
@@ -300,14 +284,13 @@ test("cats cheer on success", async ({ page }) => {
   await page.evaluate(() =>
     window.addEventListener("portfolio:contact-sent", () => ((window as unknown as { __sent: number }).__sent = 1)),
   );
-  await flipToForm(page);
-  await field(page, /^Name/).fill("Jamie Reviewer");
+  await field(page, /^Your name/).fill("Jamie Reviewer");
   await field(page, /^Email/).fill("jamie@example.com");
-  await back(page).getByRole("button", { name: "Send" }).click();
+  await send(page).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __sent?: number }).__sent)).toBe(1);
 });
 
-test("the page's only control fills are the hero's Start with where I'm from and the lead form's Send", async ({ page }) => {
+test("the page's only control fills are Start with where I'm from, Watch it grow and Send the postcard", async ({ page }) => {
   onlyAt(page, [1440]);
   await open(page);
   // Hairlines are not fills: the nav's 1px underline uses `bg-accent`, not a control fill.
@@ -321,40 +304,36 @@ test("the page's only control fills are the hero's Start with where I'm from and
       )
       .map((el) => el.textContent?.trim()),
   );
-  expect(fills).toEqual(["Start with where I'm from", "Send"]);
+  expect(fills).toEqual(["Start with where I'm from", "Watch it grow", contactCopy.send]);
 });
 
 test("the honeypot is present and not reachable by Tab", async ({ page }) => {
   onlyAt(page, [1440]);
   await open(page);
-  const honeypot = back(page).locator("#lead-website");
+  const honeypot = postcard(page).locator("#lead-website");
   await expect(honeypot).toHaveAttribute("tabindex", "-1");
   await expect(honeypot).toHaveAttribute("aria-hidden", "true");
-  await flipToForm(page);
+  await field(page, /^Your name/).focus();
   for (let i = 0; i < 8; i += 1) {
     await page.keyboard.press("Tab");
     await expect(honeypot).not.toBeFocused();
   }
 });
 
-test("under reduced motion the flip is instant", async ({ browser }, testInfo) => {
+test("the night lanterns are lit and the day's silk is not fetched at night", async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-1440", "runs at 1440 px");
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "dark" });
   const page = await context.newPage();
+  const fetched: string[] = [];
+  page.on("request", (r) => fetched.push(r.url()));
   await open(page);
-  expect(await flip(page).evaluate((el) => getComputedStyle(el).transitionDuration)).toBe("0s");
-  await flipToForm(page);
+  await page.locator("#contact").scrollIntoViewIfNeeded();
+  await expect(page.locator('#contact [data-scenery="lanterns-night"]')).toBeVisible();
+  await expect(page.locator('#contact [data-scenery="lanterns-day"]')).toBeHidden();
+  await expect(page.locator("#contact").getByText(contactCopy.cheer)).toBeVisible();
+  await expect(page.locator('#contact [data-scenery="pho"]')).toBeHidden();
+  await page.waitForLoadState("networkidle");
+  expect(fetched.some((u) => u.endsWith("/scenery/lanterns-night.svg"))).toBe(true);
+  expect(fetched.some((u) => u.endsWith("/scenery/lanterns-day.svg"))).toBe(false);
   await context.close();
-});
-
-test("leaving the form clears its status", async ({ page }) => {
-  onlyAt(page, [1440]);
-  await open(page);
-  await flipToForm(page);
-  await back(page).getByRole("button", { name: "Send" }).click();
-  await expect(back(page).getByRole("alert")).not.toHaveText("");
-  await page.keyboard.press("Escape");
-  await expect(trigger(page)).toBeFocused();
-  await trigger(page).click();
-  await expect(back(page).getByRole("alert")).toHaveText("");
 });

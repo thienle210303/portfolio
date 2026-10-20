@@ -152,7 +152,7 @@ using the same spelling you use elsewhere.
 
 ## Contact delivery
 
-The business card's lead form (a name, plus an email or phone) posts to
+The postcard's lead form (a name, plus an email or phone) posts to
 `/api/contact`, which needs three environment variables:
 
 ```
@@ -190,6 +190,30 @@ and commit the regenerated files in `public/scenery/`;
 `tests/lib/scenery.test.ts` fails until they match. Keep the words in first
 person (see [voice.md](voice.md)), and check a longer line at 320px: the e2e
 suite fails if a tag's text overflows its paper.
+
+## The Journey's tags
+
+The tags on the oak are `highlights` in `src/content/portfolio.ts`, in board
+order; `buildTickets()` in `src/lib/highlights.ts` assembles them and
+`HangingTags.tsx` only renders.
+
+- A highlight's `name` is the tag's short name (the first word must be a word
+  of the entry's `organization`, or its initials); `value` the big figure;
+  `measure` an optional mono line under it; `label` one short line; `year`
+  only when the figure belongs to a later year than the entry's start (it must
+  fall inside the entry's dates).
+- Consecutive highlights of one entry hang as one ticket, joined at a
+  perforation (DoorDash's 2026 stub). `projectId` sends that half to the case
+  study instead of the row.
+- Every figure in `value`, `measure` or `label` must also be in the entry's
+  `headline` or `impact`; `tests/lib/highlights.test.ts` fails otherwise.
+- Where each tag hangs from 1280 is `TAG_SPOTS` in `HangingTags.tsx`, held to
+  the board's limb by `journeySpots()` in `scripts/draw-scenery.mjs`. A sixth
+  tag needs a spot on the limb, not just a row here.
+- The heading, my line, "Watch it grow" and the vignette captions are
+  `journey`. They are not indexed by the chat.
+- After changing a drawing, run `pnpm draw:scenery` and commit
+  `public/scenery/`.
 
 ## Changing colours
 

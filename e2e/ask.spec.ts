@@ -4,7 +4,7 @@ import { navItems } from "../src/content/portfolio";
 /**
  * "Ask this site" — a chat thread over the portfolio's own content. Rounds 16
  * and 17 kept it behind a fourth tab in the hero; round 18 moved it to
- * Contact, under "Ask about my work" (`#ask`). The chat is still a lazily
+ * Contact, under "Ask me" (`#ask`). The chat is still a lazily
  * imported chunk: it does not exist on the page until `#ask` nears the
  * viewport (`AskLoader.tsx`). Every chat e2e test belongs here, not in
  * `sections.spec.ts`.
@@ -80,7 +80,7 @@ function lastTurn(page: Page) {
  * stale mid-test the moment that happens.
  */
 function questionField(page: Page) {
-  return page.getByRole("textbox", { name: "Ask a question about this portfolio" });
+  return page.getByRole("textbox", { name: "Your question" });
 }
 
 test.describe("ask this site", () => {
@@ -88,7 +88,7 @@ test.describe("ask this site", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await openChat(page);
 
-    await page.getByRole("button", { name: "What does he do at DoorDash?" }).click();
+    await page.getByRole("button", { name: "What do you do at DoorDash?" }).click();
 
     const turn = lastTurn(page);
     const results = turn.getByRole("list", { name: "Sourced answers" }).getByRole("listitem");
@@ -120,7 +120,7 @@ test.describe("ask this site", () => {
     await page.keyboard.press("Enter");
 
     const turn = lastTurn(page);
-    await expect(turn.getByText(/Nothing written for this site answers that/)).toBeVisible();
+    await expect(turn.getByText(/I haven’t written anything here that answers that/)).toBeVisible();
     await expect(turn.getByRole("list", { name: "Sourced answers" })).toHaveCount(0);
   });
 
@@ -132,7 +132,7 @@ test.describe("ask this site", () => {
     // or an API ever creeps in behind this box while live mode is off, this
     // test is what catches it.
     await context.setOffline(true);
-    await page.getByRole("button", { name: "Where did he study?" }).click();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
     await expect(lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
     await context.setOffline(false);
   });
@@ -150,7 +150,7 @@ test.describe("ask this site", () => {
       const turn = lastTurn(page);
       // Either real results or the honest "nothing here" line — never blank.
       const answered = await turn.getByRole("list", { name: "Sourced answers" }).getByRole("listitem").count();
-      const declined = await turn.getByText(/Nothing written for this site answers that/).count();
+      const declined = await turn.getByText(/I haven’t written anything here that answers that/).count();
       expect(answered + declined, `suggestion ${index} produced no response`).toBeGreaterThan(0);
       expect(answered, `suggestion ${index} is a dead control`).toBeGreaterThan(0);
     }
@@ -160,7 +160,7 @@ test.describe("ask this site", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await openChat(page);
 
-    await page.getByRole("button", { name: "Where did he study?" }).click();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
     const turn = lastTurn(page);
 
     // Scoped to this turn's tablist on purpose: an unscoped `tab` named
@@ -179,7 +179,7 @@ test.describe("ask this site", () => {
     await expect(artifact).toBeVisible();
     // The visitor's question, quoted back as a string literal rather than
     // paraphrased — the same discipline the prose view keeps.
-    await expect(artifact).toContainText('question: "Where did he study?"');
+    await expect(artifact).toContainText('question: "What have you measured?"');
 
     // Only one rendering is ever in the DOM, so a screen reader is never handed
     // the same answer twice.
@@ -194,7 +194,7 @@ test.describe("ask this site", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await openChat(page);
 
-    await page.getByRole("button", { name: "Where did he study?" }).click();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
     const turn = lastTurn(page);
 
     const views = turn.getByRole("tablist", { name: "Answer view" });
@@ -228,16 +228,16 @@ test.describe("ask this site", () => {
     // a scroll window the page's own height no longer answers to.
     const pageHeightBeforeAnyTurn = await page.evaluate(() => document.documentElement.scrollHeight);
 
-    await page.getByRole("button", { name: "What does he do at DoorDash?" }).click();
+    await page.getByRole("button", { name: "What do you do at DoorDash?" }).click();
     await expect(lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
 
     const pageHeightAfterOneTurn = await page.evaluate(() => document.documentElement.scrollHeight);
 
     await questionField(page).fill("what is the capital of France");
     await page.keyboard.press("Enter");
-    await expect(lastTurn(page).getByText(/Nothing written for this site answers that/)).toBeVisible();
+    await expect(lastTurn(page).getByText(/I haven’t written anything here that answers that/)).toBeVisible();
 
-    await page.getByRole("button", { name: "Where did he study?" }).click();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
     await expect(lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
 
     const pageHeightAfterThreeTurns = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -258,10 +258,10 @@ test.describe("ask this site", () => {
     await expect(log).toHaveAttribute("tabindex", "0");
     const turns = conversation(page).locator(":scope > li");
     await expect(turns).toHaveCount(3);
-    await expect(turns.nth(0)).toContainText("What does he do at DoorDash?");
+    await expect(turns.nth(0)).toContainText("What do you do at DoorDash?");
     await expect(turns.nth(0)).toContainText(/DoorDash/i);
     await expect(turns.nth(1)).toContainText("what is the capital of France");
-    await expect(turns.nth(2)).toContainText("Where did he study?");
+    await expect(turns.nth(2)).toContainText("What have you measured?");
   });
 
   test("scrolls the thread window internally, without the page lurching to follow it", async ({ page }) => {
@@ -284,6 +284,13 @@ test.describe("ask this site", () => {
     // fail. And it is only meaningful if the page *could* lurch that far, so
     // the room below is asserted first.
     const LURCH = 50;
+    // Since round 21 the chat is a short strip near the page's end, so a
+    // reader scrolled onto it may have nothing below to lurch into. Put its
+    // bottom edge at the viewport's bottom, which leaves the footer below.
+    await page.evaluate(() => {
+      const box = document.querySelector("#ask")!.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + box.bottom - window.innerHeight);
+    });
     const windowScrollBefore = await page.evaluate(() => window.scrollY);
     const roomBelow = await page.evaluate(
       () => document.documentElement.scrollHeight - window.innerHeight - window.scrollY,
@@ -291,9 +298,9 @@ test.describe("ask this site", () => {
     expect(roomBelow, "the page has no room to lurch, so this test could not fail").toBeGreaterThan(LURCH);
 
     for (const question of [
-      "What does he do at DoorDash?",
-      "Where did he study?",
-      "What has he actually measured?",
+      "What do you do at DoorDash?",
+      "What have you measured?",
+      "Are you from Việt Nam?",
     ]) {
       // `dispatchEvent`, not `click()`: Playwright scrolls a target into view
       // before clicking it, which would move the window itself and hide or
@@ -324,7 +331,7 @@ test.describe("ask this site", () => {
     // Idle: nothing to scroll yet, so no extra tab stop.
     await expect(conversationLog(page)).not.toHaveAttribute("tabindex");
 
-    await page.getByRole("button", { name: "What does he do at DoorDash?" }).click();
+    await page.getByRole("button", { name: "What do you do at DoorDash?" }).click();
     const log = conversationLog(page);
     await expect(log).toHaveAttribute("tabindex", "0");
 
@@ -344,7 +351,7 @@ test.describe("ask this site", () => {
 
     await expect(page.getByRole("button", { name: "Clear conversation" })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Where did he study?" }).click();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
     const clearButton = page.getByRole("button", { name: "Clear conversation" });
     await expect(clearButton).toBeVisible();
 
@@ -376,7 +383,7 @@ test.describe("ask this site", () => {
     // A suggestion button click moves focus to the button by default; this
     // box pulls it back to the field so a keyboard-only visitor can keep
     // going without reaching for anything else.
-    await page.getByRole("button", { name: "Where did he study?" }).click();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
     await expect(questionField(page)).toBeFocused();
   });
 
@@ -415,7 +422,7 @@ test.describe("ask, in contact", () => {
     await page.goto("/");
 
     await expect(page.locator("#contact #ask")).toHaveCount(1);
-    await expect(askBlock(page).getByRole("heading", { level: 3, name: "Ask about my work" })).toBeVisible();
+    await expect(askBlock(page).getByRole("heading", { level: 3, name: "Ask me" })).toBeVisible();
     // The companion perches on the first <aside> in #contact (the business
     // card); the chat must not become it.
     await expect(page.locator("#contact aside")).toHaveCount(1);
@@ -426,7 +433,7 @@ test.describe("ask, in contact", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/#ask");
     await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
-    await expect(askBlock(page).getByRole("heading", { name: "Ask about my work" })).toBeInViewport();
+    await expect(askBlock(page).getByRole("heading", { name: "Ask me" })).toBeInViewport();
   });
 
   test("the engine chunk lazy-loads only once #ask nears the viewport", async ({ page }) => {
@@ -449,7 +456,7 @@ test.describe("ask, in contact", () => {
       async (response) =>
         response.request().resourceType() === "script" &&
         !loaded.has(response.url()) &&
-        (await response.text()).includes("Ask a question about this portfolio"),
+        (await response.text()).includes("Your question"),
     );
     await askBlock(page).scrollIntoViewIfNeeded();
     await chunkResponse;
