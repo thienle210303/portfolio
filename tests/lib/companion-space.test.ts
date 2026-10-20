@@ -1047,7 +1047,15 @@ describe("pickCorner", () => {
     expect(bottom).toBeLessThanOrEqual(row.top);
   });
 
-  it("stays home when every spot covers a control", () => {
-    expect(pickCorner(view, size, [{ left: 0, right: 390, top: 0, bottom: 844 }])).toEqual({ side: "right", lift: 0 });
+  it("covers as little as it can when every spot covers a control, and never the focused one", () => {
+    const rows = Array.from({ length: 12 }, (_, i) => ({ left: 16, right: 374, top: i * 70, bottom: i * 70 + 64 }));
+    const placed = pickCorner(view, size, rows);
+    const bottom = view.height - CORNER_INSET - placed.lift;
+    // Straddling the 6px gap between two rows rather than sitting on one.
+    expect(rows.some((r) => r.top < bottom && r.bottom > bottom - size.height && r.top > bottom - size.height)).toBe(true);
+    const focused = rows[11];
+    const away = pickCorner(view, size, rows, focused);
+    const awayBottom = view.height - CORNER_INSET - away.lift;
+    expect(awayBottom <= focused.top || awayBottom - size.height >= focused.bottom).toBe(true);
   });
 });

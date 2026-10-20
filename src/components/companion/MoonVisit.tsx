@@ -11,7 +11,7 @@ import { markSurpriseSpent, surpriseSpent } from "./companion-surprise";
  * time the hero's sleeping "Moon, off duty" is on screen, Mi is simply sitting
  * beside it, no startle and no walk. Once per visit, like the walking version
  * (companion-surprise.ts). While she is there the corner button carries Moon
- * alone (`onVisit`).
+ * alone, her place in it empty (`onVisit`).
  *
  * Drawn into the drawing's own box, so she scrolls with it and takes the
  * section's colours. Marked `data-companion` so the placement probes look

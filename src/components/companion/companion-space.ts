@@ -124,6 +124,10 @@ const OCCUPIED = [
   "[data-cat-avoid]",
 ].join(",");
 
+/** Everything on the page a visitor can press or focus. */
+const CONTROLS =
+  "a[href],button,input,select,textarea,summary,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
+
 /** How close to the viewport edge a cat may sit. Enough that it is never
  *  clipped, small enough that the page gutter still counts as whitespace. */
 const EDGE = 8;
@@ -313,6 +317,9 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * view before the next rebuild.
  */
 let ground: readonly RectLike[] | null = null;
+/** The subset of `ground` a visitor can press or focus (`CONTROLS`), cached
+ *  with it: what the speech bubbles keep off (`groundControls`). */
+let controls: readonly RectLike[] = [];
 /** The scroll offset `ground` was measured at, or last synced to. */
 let groundAt = { x: 0, y: 0 };
 
@@ -336,12 +343,14 @@ export function shiftGround(dx: number, dy: number): void {
   // `step` syncs every frame; a zero shift must not re-map the whole cache.
   if (!ground || (dx === 0 && dy === 0)) return;
   groundAt = { x: groundAt.x + dx, y: groundAt.y + dy };
-  ground = ground.map((box) => ({
+  const shift = (box: RectLike) => ({
     left: box.left - dx,
     top: box.top - dy,
     right: box.right - dx,
     bottom: box.bottom - dy,
-  }));
+  });
+  ground = ground.map(shift);
+  controls = controls.map(shift);
 }
 
 /**
@@ -359,6 +368,7 @@ function groundRects(): readonly RectLike[] {
   groundAt = { x: window.scrollX, y: window.scrollY };
   const view = viewport();
   const rects: RectLike[] = [];
+  const pressable: RectLike[] = [];
   for (const element of document.querySelectorAll(OCCUPIED)) {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
@@ -368,9 +378,17 @@ function groundRects(): readonly RectLike[] {
     const style = getComputedStyle(element);
     if (style.pointerEvents === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
     rects.push(box);
+    if (element.matches(CONTROLS)) pressable.push(box);
   }
   ground = rects;
+  controls = pressable;
   return rects;
+}
+
+/** The controls in the current ground epoch, in viewport coordinates. */
+export function groundControls(): readonly RectLike[] {
+  groundRects();
+  return controls;
 }
 
 function occupied(x: number, y: number): boolean {
@@ -1128,33 +1146,47 @@ const LIFT_STEP = 56;
 
 /**
  * The parked pair is a fixed button, so it sits over whatever scrolls under
- * its corner — and it must never cover a control (WCAG 2.4.11, Focus Not
- * Obscured). Tries the bottom-right corner, then bottom-left, then each side
- * a step higher at a time, up to half the viewport; the first spot that
- * touches no control rect wins. Covering text is allowed — a corner button
- * always will — covering something you can press is not. With no clear spot
- * at all it stays home.
+ * its corner — and it should never cover a control (WCAG 2.4.11, Focus Not
+ * Obscured, and the owner's rule). Tries the bottom-right corner, then
+ * bottom-left, then each side a step higher at a time, up to the header; the
+ * first spot that touches no control wins. Covering text is allowed — a
+ * corner button always will. Where every spot covers something (a stack of
+ * full-width rows on a phone), it takes the one that covers least, and never
+ * the `focused` control: the one a keyboard visitor is on is always in view.
  */
 export function pickCorner(
   view: { readonly width: number; readonly height: number },
   size: { readonly width: number; readonly height: number },
   controls: readonly RectLike[],
+  focused: RectLike | null = null,
 ): Corner {
-  for (let lift = 0; lift <= view.height / 2; lift += LIFT_STEP) {
+  let best: Corner = { side: "right", lift: 0 };
+  let least = Infinity;
+  // Up to just under the sticky header (80px clears it at every width).
+  for (let lift = 0; lift <= view.height - size.height - CORNER_INSET - 80; lift += LIFT_STEP) {
     for (const side of ["right", "left"] as const) {
       const left = side === "right" ? view.width - CORNER_INSET - size.width : CORNER_INSET;
       const bottom = view.height - CORNER_INSET - lift;
       const box = { left, right: left + size.width, top: bottom - size.height, bottom };
-      if (!controls.some((rect) => intersects(box, rect))) return { side, lift };
+      if (focused && intersects(box, focused)) continue;
+      let covered = 0;
+      for (const rect of controls) {
+        if (!intersects(box, rect)) continue;
+        covered +=
+          (Math.min(box.right, rect.right) - Math.max(box.left, rect.left)) *
+          (Math.min(box.bottom, rect.bottom) - Math.max(box.top, rect.top));
+      }
+      if (covered === 0) return { side, lift };
+      if (covered < least) {
+        least = covered;
+        best = { side, lift };
+      }
     }
   }
-  return { side: "right", lift: 0 };
+  return best;
 }
 
-/** Everything on the page a visitor can press or focus, outside the companion. */
-const CONTROLS =
-  "a[href],button,input,select,textarea,summary,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
-
+/** Every control on screen, outside the companion, measured now. */
 export function controlRectsInView(): RectLike[] {
   const view = viewport();
   const rects: RectLike[] = [];

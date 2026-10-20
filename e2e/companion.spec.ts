@@ -3762,3 +3762,184 @@ test.describe("companion", () => {
     });
   });
 });
+
+/* ------------------------------------------------------------------------ */
+/* Round 21: the cats as sprites, the Moon surprise, the parked pair         */
+/* ------------------------------------------------------------------------ */
+
+test.describe("cats (round 21)", () => {
+  const overlaps = (a: DOMRectLike, b: DOMRectLike) =>
+    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  type DOMRectLike = { left: number; right: number; top: number; bottom: number };
+
+  test("draws each cat as a frame of its own sprite sheet", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("[data-companion] svg[data-cat]").first()).toBeAttached();
+    const sheets = await page.$$eval("[data-companion] svg[data-cat] use", (uses) =>
+      uses.map((use) => use.getAttribute("href")?.replace(/#.*/, "")),
+    );
+    expect(new Set(sheets)).toEqual(new Set(["/cats/moon.svg", "/cats/mi.svg"]));
+    for (const sheet of ["/cats/moon.svg", "/cats/mi.svg"]) {
+      const response = await page.request.get(sheet);
+      expect(response.ok()).toBe(true);
+      expect(response.headers()["content-type"]).toContain("image/svg+xml");
+    }
+  });
+
+  test("the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(150_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const pose = (want: string) =>
+      page.evaluate(
+        (p) =>
+          Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).some(
+            (svg) => svg.getAttribute("data-cat-pose") === p,
+          ),
+        want,
+      );
+    // Keep the reader "active" far from the cats so they go on exploring.
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.move(1380 + Math.random() * 20, 140 + Math.random() * 20);
+          await page.keyboard.press("Shift");
+          return pose("startle");
+        },
+        { timeout: 120_000, intervals: [200], message: "no cat ever startled at Moon, off duty" },
+      )
+      .toBe(true);
+    expect(await page.evaluate(() => sessionStorage.getItem("cats-met-moon"))).toBe("1");
+
+    await expect.poll(() => pose("sniff"), { timeout: 15_000, intervals: [100] }).toBe(true);
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const drawing = document.querySelector("[data-moon-off-duty]")!.getBoundingClientRect();
+            return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).some((svg) => {
+              const box = svg.getBoundingClientRect();
+              const beside = box.right <= drawing.left + 1 || box.left >= drawing.right - 1;
+              const level = Math.abs(box.bottom - drawing.bottom) < 4;
+              const near = Math.min(Math.abs(box.right - drawing.left), Math.abs(box.left - drawing.right)) < 12;
+              return svg.getAttribute("data-cat-pose") === "sit" && beside && level && near;
+            });
+          }),
+        { timeout: 5_000, intervals: [100], message: "she never sat down beside it" },
+      )
+      .toBe(true);
+  });
+
+  test("under reduced motion Mi just sits beside Moon, off duty, once", async ({ browser }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    const context = await browser.newContext({
+      viewport: { width: DESKTOP_WIDTH, height: 900 },
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const visit = page.locator("[data-cat-visit] svg[data-cat]");
+    await expect(visit).toBeVisible();
+    await expect(visit).toHaveAttribute("data-cat-pose", "sit");
+    // Two cats still: Moon in the corner button, Mi on her visit.
+    await expect(page.locator("[data-companion] svg[data-cat]")).toHaveCount(2);
+    const [cat, drawing] = await page.evaluate(() =>
+      ["[data-cat-visit] svg", "[data-moon-off-duty] svg"].map((s) => {
+        const r = document.querySelector(s)!.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      }),
+    );
+    expect(overlaps(cat, drawing)).toBe(false);
+    expect(await page.evaluate(() => sessionStorage.getItem("cats-met-moon"))).toBe("1");
+
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    await page.waitForTimeout(1000);
+    await expect(page.locator("[data-cat-visit]")).toHaveCount(0);
+    await context.close();
+  });
+
+  test("the parked pair stays off the hero's controls, and off whatever has focus", async ({ browser }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    test.setTimeout(90_000);
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    const covered = (focusedOnly: boolean) =>
+      page.evaluate((only) => {
+        const toggle = document.querySelector('[aria-controls="companion-actions"]')!.getBoundingClientRect();
+        const hit = (r: DOMRect) =>
+          r.width > 0 && r.left < toggle.right && r.right > toggle.left && r.top < toggle.bottom && r.bottom > toggle.top;
+        const candidates = only
+          ? [document.activeElement!].filter((el) => el !== document.body)
+          : Array.from(
+              document.querySelectorAll("#about a[href], #about button, #about [tabindex]:not([tabindex='-1'])"),
+            );
+        return candidates
+          .filter((el) => !el.closest("[data-companion]") && hit(el.getBoundingClientRect()))
+          .map((el) => el.textContent?.trim().slice(0, 30) || el.tagName);
+      }, focusedOnly);
+
+    // The hero, where the tags hang: nothing under the cats.
+    const about = await page.evaluate(() => document.getElementById("about")!.scrollHeight);
+    for (let y = 0; y < about; y += 250) {
+      await page.evaluate((top) => window.scrollTo(0, top), y);
+      await page.waitForTimeout(350);
+      expect(await covered(false), `the parked cats cover a hero control at scroll ${y}`).toEqual([]);
+    }
+
+    // Everywhere: whatever a keyboard visitor lands on is never under them.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    for (let i = 0; i < 60; i += 1) {
+      await page.keyboard.press("Tab");
+      await page.waitForTimeout(60);
+      expect(await covered(true), `tab stop ${i} is under the parked cats`).toEqual([]);
+    }
+    await context.close();
+  });
+
+  test("while the tree grows they sit beside its box, not in the top-left corner", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    const started = page.evaluate(
+      () => new Promise<void>((resolve) => document.addEventListener("origin-story", () => resolve(), { once: true })),
+    );
+    await page.evaluate(() => {
+      const box = document.querySelector("[data-tree-box]")!.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + box.top - 100);
+    });
+    await started;
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const box = document.querySelector("[data-tree-box]")!.getBoundingClientRect();
+            const top = Math.max(box.top, 0);
+            const bottom = Math.min(box.bottom, window.innerHeight);
+            return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).every((svg) => {
+              const r = svg.getBoundingClientRect();
+              const mid = (r.top + r.bottom) / 2;
+              return svg.getAttribute("data-cat-pose") !== "walk" && mid > top + (bottom - top) * 0.25 && mid < bottom;
+            });
+          }),
+        { timeout: 20_000, intervals: [250], message: "the watchers never settled beside the tree box" },
+      )
+      .toBe(true);
+  });
+});

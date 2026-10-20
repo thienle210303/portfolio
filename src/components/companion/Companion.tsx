@@ -102,6 +102,7 @@ import {
   setReservedRects,
   standingSpots,
   controlRectsInView,
+  groundControls,
   CORNER_INSET,
   pickCorner,
   type Corner,
@@ -1021,7 +1022,8 @@ function paintBeside(
     anchorH,
     size,
     { viewportWidth: window.innerWidth, viewportHeight: window.innerHeight, safeTop: safeTop() },
-    keepOut,
+    // Off the page's controls too, where there is room (round 21).
+    [...keepOut, ...groundControls()],
   );
   paint(node, at);
   return boxAt(at, size.width, size.height);
@@ -4836,12 +4838,17 @@ export function Companion({ facts }: CompanionProps) {
    */
   useEffect(() => {
     if (roams || !roaming) return;
-    const width = (visiting ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2;
+    const width = CAT_W * 2 + LEAD_PAD_X * 2;
     const height = CAT_H + LEAD_PAD_Y * 2;
     let timer = 0;
     const place = () => {
       timer = 0;
-      const next = pickCorner(viewport(), { width, height }, controlRectsInView());
+      const active = document.activeElement;
+      const focused =
+        active && active !== document.body && !active.closest("[data-companion]")
+          ? active.getBoundingClientRect()
+          : null;
+      const next = pickCorner(viewport(), { width, height }, controlRectsInView(), focused);
       setCorner((now) => (now.side === next.side && now.lift === next.lift ? now : next));
     };
     const later = () => {
@@ -4858,7 +4865,7 @@ export function Companion({ facts }: CompanionProps) {
       window.removeEventListener("resize", later);
       document.removeEventListener("focusin", place);
     };
-  }, [roams, roaming, visiting]);
+  }, [roams, roaming]);
 
   function sendToBed() {
     setOpen(false);
@@ -4901,7 +4908,7 @@ export function Companion({ facts }: CompanionProps) {
     // Parked in the corner with nothing to chase, both cats sit in the button
     // itself — there is no second element to position when nothing moves.
     <span className="flex items-end">
-      {visiting ? null : <CompanionCat variant="tabby" {...frame.follow} />}
+      {visiting ? <span style={{ width: CAT_W }} /> : <CompanionCat variant="tabby" {...frame.follow} />}
       <CompanionCat variant="grey" {...frame.lead} />
     </span>
   );
@@ -5000,7 +5007,9 @@ export function Companion({ facts }: CompanionProps) {
           // probe is measuring when it says a spot is clear. The box itself is
           // untouched: 58×48 of target either way.
           style={{
-            width: (roams || visiting ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2,
+            // Parked, the button keeps both seats while Mi is off visiting
+            // (MoonVisit): her place in it is simply empty.
+            width: (roams ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2,
             height: CAT_H + LEAD_PAD_Y * 2,
             ...(roams
               ? { left: -LEAD_PAD_X, top: -LEAD_PAD_Y }
