@@ -11,8 +11,11 @@ import LeadForm from "./LeadForm";
  *
  * Laid out by its own width, not the viewport's: from 32rem the two sides
  * stand side by side as on the board; narrower, it turns portrait, the
- * picture a 300px band on top, cut from the top of the drawing. The postmark's words are HTML, not part of the
- * drawing: an SVG used as an image cannot load the site's fonts.
+ * picture a 300px band on top, cut from the top of the drawing. Side by side,
+ * the drawing is contained, never cropped: it sits on the bottom edge and
+ * the spare sky above it holds "Greetings from". The postmark's words are
+ * HTML, not part of the drawing: an SVG used as an image cannot load the
+ * site's fonts.
  *
  * `.no-print`: a printed page cannot send a postcard.
  */
@@ -20,12 +23,12 @@ export default function Postcard({ emailDeliveryConfigured }: { readonly emailDe
   const postmark = contactCopy.postcard.place.replace(",", "").toUpperCase();
 
   return (
-    <div data-postcard="" className="no-print @container relative rotate-[0.6deg] lg:rotate-[1.2deg]">
+    <div data-postcard="" className="no-print @container/postcard relative rotate-[0.6deg] lg:rotate-[1.2deg]">
       <div className="paper-lift grid bg-surface p-[15px] text-fg @min-[32rem]:min-h-[470px] @min-[32rem]:grid-cols-[minmax(0,0.47fr)_minmax(0,0.53fr)]">
         <div className="relative h-[300px] overflow-hidden bg-ground @min-[32rem]:h-auto">
           <Drawing
             name="postcard-scene"
-            className="absolute inset-0 bg-cover bg-top @min-[32rem]:bg-[position:70%_bottom]"
+            className="absolute inset-0 bg-cover bg-top @min-[32rem]:bg-contain @min-[32rem]:bg-bottom"
           />
           <p className="relative px-[18px] pt-4 font-serif text-[22px] leading-[1.15] italic">
             {contactCopy.postcard.greetings}

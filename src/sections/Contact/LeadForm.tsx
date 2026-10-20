@@ -200,7 +200,9 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
 
       <div className="mt-4 flex flex-col gap-3">
         {input("name", contactCopy.fields.name, { type: "text", autoComplete: "name", maxLength: NAME_MAX })}
-        <div className="grid gap-3 @min-[20rem]:grid-cols-2 @min-[20rem]:gap-4">
+        {/* Side by side on a wide form, or whenever the postcard itself is
+            landscape (its address side is narrow, as on the board). */}
+        <div className="grid gap-3 @min-[20rem]:grid-cols-2 @min-[20rem]:gap-4 @min-[32rem]/postcard:grid-cols-2 @min-[32rem]/postcard:gap-4">
           {input("email", contactCopy.fields.email, { type: "email", autoComplete: "email", maxLength: EMAIL_MAX })}
           {input("phone", contactCopy.fields.phone, { type: "tel", autoComplete: "tel", maxLength: PHONE_MAX })}
         </div>

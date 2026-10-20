@@ -742,7 +742,9 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
   return (
     // `data-ask-chat`: globals.css gives this root the same min-height the
     // loader's placeholder had, so the chat landing does not move the page.
-    <div data-ask-chat="" className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    // Below 1024 the halves stack and whatever room is left over goes to the
+    // compose half (`1fr`), never as a gap inside the thread.
+    <div data-ask-chat="" className="grid grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-none">
       <div className="min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px] lg:border-r lg:border-dashed lg:border-rule">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           {heading}

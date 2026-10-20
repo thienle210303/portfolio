@@ -72,12 +72,15 @@ export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured
       <div className="relative">
         <header className="relative max-w-[34rem] pt-[110px] lg:pt-0">
           {/* The sun by day, the moon by night: the hero's own sky file,
-              shifted so the disc sits beside the heading and cropped above
-              the sky's seeds and fireflies. */}
+              shifted so the disc rises just past the lede's end, between
+              the glasses' caption and the first lantern. From 1280 only:
+              narrower, the lanterns start where it would sit. The file
+              starts 60px into the box so the halo is never cut flat; the
+              box ends above the sky's seeds and fireflies. */}
           <span
             aria-hidden="true"
             data-scenery="contact-sky"
-            className="scene-art pointer-events-none absolute -z-20 h-[300px] w-[1440px] bg-[size:1440px_auto] bg-top max-lg:hidden lg:top-[-38px] lg:left-[-520px]"
+            className="scene-art pointer-events-none absolute -z-20 h-[360px] w-[1440px] bg-[size:1440px_auto] bg-[position:0_60px] hidden xl:block xl:top-[-87px] xl:left-[-435px]"
             style={{ "--art": "var(--art-sky)" } as CSSProperties}
           />
           <p lang="vi" className="font-serif text-[24px] leading-none text-[color:var(--greet)] italic">
@@ -95,7 +98,10 @@ export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured
               <Drawing name="pho" className="h-[48px] w-[63px]" />
             </div>
             <div className="night-only relative mb-1 shrink-0">
-              <p lang="vi" className="absolute -top-[30px] left-1/2 -translate-x-1/2 font-serif text-[18px] whitespace-nowrap text-[color:var(--greet)] italic">
+              {/* The glasses' own caption, beside them, so it never reads as
+                  part of "Xin chào," above. Under 360px there is no room
+                  beside them, so it sits just over their rims. */}
+              <p lang="vi" className="absolute bottom-full left-1/2 -translate-x-1/2 font-serif text-[15px] leading-tight whitespace-nowrap text-[color:var(--greet)] italic min-[22.5rem]:top-1 min-[22.5rem]:bottom-auto min-[22.5rem]:left-full min-[22.5rem]:ml-1.5 min-[22.5rem]:w-[5.5rem] min-[22.5rem]:translate-x-0 min-[22.5rem]:whitespace-normal sm:w-auto sm:whitespace-nowrap lg:text-[17px]">
                 {contactCopy.cheer}
               </p>
               <Drawing name="bia" className="h-[64px] w-[66px]" />

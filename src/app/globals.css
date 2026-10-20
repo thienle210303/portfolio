@@ -1942,20 +1942,18 @@
 /* `AskLoader` imports the chat as `#ask` nears the viewport. Unreserved, the  */
 /* swap from an empty placeholder to the chat pushed the footer down by       */
 /* ~570-960px under a reader already looking at it (End key, a jump to the    */
-/* bottom). So one height per breakpoint, `--ask-room`, is the min-height of  */
-/* BOTH the loader's pre-chat states (`data-ask-slot`) and the chat's own     */
-/* root (`data-ask-chat`): each value is at or above the tallest idle chat    */
-/* measured anywhere in its step's width range, so the box is the same       */
-/* height before and after the chat lands. Re-measure if the chat's idle copy */
-/* or suggestions change (at 1rem = 16px, widths 320-1920 every 4px, both     */
-/* modes, natural height with this rule switched off). Round 18's copy was    */
-/* measured in both modes: live was never taller than static at any width     */
-/* (up to 28px shorter), so one set of values serves both and is not keyed    */
-/* on the mode. Round 21 phase 6 (the postcard's two-half strip) re-measured */
-/* the static mode only; that live stays no taller is assumed, not measured   */
-/* (its resting line is shorter). e2e/ask.spec.ts fails at five widths if   */
-/* the footer moves by more than 2px across the load, and fails between 400 and 639px if the room is   */
-/* short of the chat or more than 200px taller than it.                       */
+/* bottom). So `--ask-room` is the min-height of BOTH the loader's pre-chat */
+/* states (`data-ask-slot`) and the chat's own root (`data-ask-chat`). It is */
+/* a straight line per width range, fitted over the idle chat's natural     */
+/* height measured every 4px from 320 to 1920 (static mode, 1rem = 16px,    */
+/* this rule switched off), so the box is never shorter than the chat and   */
+/* at most the noted slack taller (round 21 phase 6: a step per breakpoint  */
+/* left the strip 100-300px of dead paper on phones). Re-measure if the     */
+/* chat's idle copy or suggestions change. Live mode is assumed no taller   */
+/* (its resting line is shorter), not measured. e2e/ask.spec.ts fails at    */
+/* five widths if the footer moves by more than 2px across the load, and    */
+/* fails between 400 and 639px if the room is short of the chat or more     */
+/* than 200px taller than it.                                               */
 /*                                                                            */
 /* Gated on `html[data-motion]`, which the pre-paint script in layout.tsx     */
 /* stamps unconditionally, i.e. "JavaScript runs": with it off the chat never */
@@ -1965,36 +1963,71 @@
 /* -------------------------------------------------------------------------- */
 @layer components {
   :root {
-    --ask-room: 47.5rem; /* tallest measured: 757px at 320 */
+    --ask-room: calc(768px - (100vw - 320px) * 2.4464); /* slack <= 21px */
   }
-  @media (width >= 25rem) {
+  @media (width >= 352px) {
     :root {
-      --ask-room: 39rem; /* 621px at 400 */
+      --ask-room: calc(703px - (100vw - 352px) * 1.6339); /* slack <= 21px */
     }
   }
-  @media (width >= 32.5rem) {
+  @media (width >= 384px) {
     :root {
-      --ask-room: 33.5rem; /* 530px at 520 */
+      --ask-room: 622px; /* slack <= 1px */
     }
   }
-  @media (width >= 40rem) {
+  @media (width >= 416px) {
     :root {
-      --ask-room: 29rem; /* 460px at 640 */
+      --ask-room: calc(632px - (100vw - 416px) * 0.7768); /* slack <= 21px */
     }
   }
-  @media (width >= 48rem) {
+  @media (width >= 448px) {
     :root {
-      --ask-room: 27.5rem; /* 438px at 768 */
+      --ask-room: 600px; /* slack <= 1px */
     }
   }
-  @media (width >= 64rem) {
+  @media (width >= 480px) {
     :root {
-      --ask-room: 17.5rem; /* 276px at 1024 */
+      --ask-room: calc(559px - (100vw - 480px) * 0.7768); /* slack <= 20px */
     }
   }
-  @media (width >= 80rem) {
+  @media (width >= 512px) {
     :root {
-      --ask-room: 16rem; /* 254px at 1280 */
+      --ask-room: 531px; /* slack <= 2px */
+    }
+  }
+  @media (width >= 544px) {
+    :root {
+      --ask-room: calc(531px - (100vw - 544px) * 2.4911); /* slack <= 40px */
+    }
+  }
+  @media (width >= 576px) {
+    :root {
+      --ask-room: 461px; /* slack <= 2px */
+    }
+  }
+  @media (width >= 640px) {
+    :root {
+      --ask-room: calc(472px - (100vw - 640px) * 0.1754); /* slack <= 23px */
+    }
+  }
+  @media (width >= 768px) {
+    :root {
+      --ask-room: 439px; /* slack <= 1px */
+    }
+  }
+  @media (width >= 960px) {
+    :root {
+      --ask-room: calc(445px - (100vw - 960px) * 0.3625); /* slack <= 22px */
+    }
+  }
+  @media (width >= 1024px) {
+    :root {
+      --ask-room: calc(285px - (100vw - 1024px) * 0.0863); /* slack <= 22px */
+    }
+  }
+  @media (width >= 1280px) {
+    :root {
+      --ask-room: 255px; /* slack <= 2px */
     }
   }
   html[data-motion] [data-ask-slot],
