@@ -5,9 +5,9 @@ experience, performance, and workflows that did not previously exist.
 
 The site is a single narrative page in three sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
-that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — five
-measured highlights, a drawn career tree, and a timeline of rows that open one
-at a time, with the case studies inside them (in the rows of the roles that
+that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — a live oak
+with five measured tags hanging from it, a drawn career tree that grows on
+"Watch it grow", and a timeline of rows that open one at a time, with the case studies inside them (in the rows of the roles that
 produced them, or after the timeline for the coursework); and **Contact**: a
 business card with every way to reach him (copy the email, save a vCard) that
 flips over to a short lead form (a name, plus an email or phone), beside a chat that
@@ -17,9 +17,7 @@ live mode a model writes the answer from just those passages. The résumé is it
 at `/resume`, reading the same content, and it is the only place the skills
 inventory renders.
 
-Visually it is **the outdoors**: a lichen ground under one painted sky, one moss green reserved for annotation and measured values, and a margin rail
-down each section carrying the counts, dates and sources the content layer
-already guarantees. It ships in two themes — day and night — and the design
+Visually it is **the outdoors**: a lichen ground under one painted sky, and one moss green reserved for annotation and measured values. It ships in two themes — day and night — and the design
 survives both. See [Design system](#design-system) below.
 
 **Positioning:** *I engineer software that turns complex work into clear,
@@ -83,7 +81,7 @@ Use the semantic aliases, never a raw `--color-*` token and never a literal:
 | `--mark` | `text-mark` / `border-mark` | the single mark |
 | `--rule-color` | `border-rule` | 1px borders |
 
-The hero's scenery has its own aliases, read as `[color:var(--…)]` or as a
+The scenery has its own aliases, read as `[color:var(--…)]` or as a
 CSS variable (the raw names would collide with Tailwind colours):
 
 | Alias | For |
@@ -94,6 +92,10 @@ CSS variable (the raw names would collide with Tailwind colours):
 | `--scene-buffalo` | the buffalo |
 | `--art-sky` | the hero's sky file (day: sun, night: moon) |
 | `--art-vignette` | the vignette file (day: the phin, night: the lẩu) |
+| `--scene-bark` | the Journey's oak and its branch (day: ink, night: a silhouette) |
+| `--scene-moss` | the oak's Spanish moss |
+| `--art-lantern` | the oak's Hội An lantern (day: plain, night: lit) |
+| `--art-journey-vignette` | the Journey's vignette (day: bánh mì, night: trà đá) |
 
 This is what lets one component render correctly across two themes × three
 tones with no per-tone branch anywhere. A raw token freezes it into one.

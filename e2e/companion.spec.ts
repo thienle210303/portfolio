@@ -3706,7 +3706,7 @@ test.describe("companion", () => {
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
-    const button = page.locator("#tree").getByRole("button", { name: "See how it grows" });
+    const button = page.locator("#tree").getByRole("button", { name: "Watch it grow" });
     await button.click();
     await expect(page.locator("[data-origin-stage]")).toBeVisible();
 

@@ -98,7 +98,7 @@ export default function CareerTree() {
         {/* The board's still life (1196, 780) and its caption (1186, 870). */}
         <div
           aria-hidden="true"
-          className="mt-8 w-fit xl:absolute xl:top-[780px] xl:left-[calc(var(--fx)+1186px)] xl:mt-0"
+          className="no-print mt-8 w-fit xl:absolute xl:top-[780px] xl:left-[calc(var(--fx)+1186px)] xl:mt-0"
         >
           <span
             className="scene-art ml-2.5 block h-[90px] w-[92px]"

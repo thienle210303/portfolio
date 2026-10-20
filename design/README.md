@@ -26,6 +26,6 @@ Each version holds:
   `node source/gen-nature.mjs boards` (day) and
   `NIGHT=1 node source/gen-nature.mjs boards` (night).
 
-The site does not import anything from here. The hero's drawings reach the
-page through `scripts/draw-scenery.mjs`, which ports the generator's drawing
-functions and writes `public/scenery/`.
+The site does not import anything from here. The hero's and the Journey's
+drawings reach the page through `scripts/draw-scenery.mjs`, which ports the
+generator's drawing functions and writes `public/scenery/`.

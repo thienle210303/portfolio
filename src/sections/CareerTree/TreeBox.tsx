@@ -254,7 +254,7 @@ export function WatchItGrow({ label, className }: { readonly label: string; read
       onClick={(event) =>
         event.currentTarget.dispatchEvent(new CustomEvent(GROW_EVENT, { bubbles: true }))
       }
-      className={cn("no-print hidden lg:inline-flex [html:not([data-motion])_&]:hidden", className)}
+      className={cn("no-print max-lg:hidden [html:not([data-motion])_&]:hidden", className)}
     >
       {label}
     </Button>

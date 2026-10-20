@@ -124,13 +124,16 @@ export default function HangingTags({ className }: { readonly className?: string
                       <Tag className="px-[18px] pt-[34px] pb-4">
                         <span className="mb-2.5 block font-semibold">{ticket.name}</span>
                         <Half h={first} />
-                        <span aria-hidden="true" className={cn(notch, "-bottom-[7px] -left-[7px]")} />
-                        <span aria-hidden="true" className={cn(notch, "-right-[7px] -bottom-[7px]")} />
+                        {/* Clipped by their own box, so they never count as overflow. */}
+                        <span aria-hidden="true" className="absolute inset-0 overflow-hidden">
+                          <span className={cn(notch, "-bottom-[7px] -left-[7px]")} />
+                          <span className={cn(notch, "-right-[7px] -bottom-[7px]")} />
+                        </span>
                       </Tag>
                     </a>
                     <a href={stub.href} className="block">
                       <div data-stub="" className="relative overflow-hidden bg-surface px-[18px] pt-3.5 pb-[18px] text-fg">
-                        <span data-perforation="" aria-hidden="true" className="absolute inset-x-0 top-0">
+                        <span data-perforation="" aria-hidden="true" className="absolute inset-0 overflow-hidden">
                           <span className="absolute inset-x-0 top-0 border-t-[1.5px] border-dashed border-rule" />
                           <span className={cn(notch, "-top-[7px] -left-[7px]")} />
                           <span className={cn(notch, "-top-[7px] -right-[7px]")} />

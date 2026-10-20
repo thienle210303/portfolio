@@ -210,7 +210,8 @@ test.describe("screen recordings", () => {
 
 /**
  * The Journey (`#tree`). Round 20 replaced the pinned stage with three stacked
- * blocks — the highlight cards, the drawing (>=1024px only), and the timeline:
+ * blocks; round 21 opens them with the oak — the hanging tags, the drawing
+ * (>=1024px only), and the timeline:
  * one `KnowledgeTreeList` row per drawn entry, at every width, opening one at a
  * time. The timeline owns the `journey-entry-<id>` and `work-<projectId>` ids,
  * so every deep link into the Journey now lands on a row.
@@ -245,8 +246,9 @@ test.describe("career tree", () => {
   test("no pinned stage", async ({ page }) => {
     await expect(page.locator("[data-stage]")).toHaveCount(0);
     await expect(page.locator("[data-act]")).toHaveCount(0);
-    // The margin rail (`Section`'s `.rail`) is sticky in every section at lg
-    // and is not the Journey's; everything else inside #tree must scroll.
+    // A margin rail (`Section`'s `.rail`) is sticky at lg wherever a section
+    // has one (the Journey has none since round 21); everything else inside
+    // #tree must scroll.
     const sticky = await page.locator("#tree").evaluate((tree) =>
       Array.from(tree.querySelectorAll("*"))
         .filter((element) => !element.closest(".rail"))
@@ -404,7 +406,7 @@ test.describe("career tree", () => {
     );
   });
 
-  test("highlight card jumps to its row", async ({ page }) => {
+  test("a hanging tag jumps to its row", async ({ page }) => {
     // A row above the target is open first: opening the target closes it, and
     // the target must still end up where the reader was sent.
     await rowTrigger(page, DRAWN[0].id).scrollIntoViewIfNeeded();
@@ -418,10 +420,10 @@ test.describe("career tree", () => {
     await expect(rowTrigger(page, DRAWN[0].id)).toHaveAttribute("aria-expanded", "false");
     expectSettledAtScrollMargin(
       await restingTop(row(page, PANEL_ENTRY)),
-      "the highlight card must land its row at the 80px scroll margin",
+      "the hanging tag must land its row at the 80px scroll margin",
     );
 
-    // Close the row and follow the same card again: the URL already holds the
+    // Close the row and follow the same tag again: the URL already holds the
     // fragment, so no hashchange fires, and the row must still reopen.
     await rowTrigger(page, PANEL_ENTRY).click();
     await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "false");

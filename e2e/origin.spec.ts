@@ -62,7 +62,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 function watchOriginButton(page: Page) {
-  return page.locator("#tree").getByRole("button", { name: "See how it grows" });
+  return page.locator("#tree").getByRole("button", { name: "Watch it grow" });
 }
 
 /**
@@ -77,7 +77,7 @@ function watchOriginButton(page: Page) {
 const PLAYER_MOUNT_TIMEOUT = 15_000;
 
 test.describe("the button", () => {
-  test("shows in the header at >=1024px, and never below it", async ({ page }) => {
+  test("shows on the stage at >=1024px, and never below it", async ({ page }) => {
     const button = watchOriginButton(page);
     if (viewportWidth(page) < DESKTOP_MIN_WIDTH) {
       // Below 1024px the timeline alone tells the story and there is no drawing
@@ -94,7 +94,7 @@ test.describe("the button", () => {
     await expect(page.locator("[data-tree-box]")).toHaveCount(1);
     await expect(page.locator("[data-tree-box]")).toBeHidden();
     // `getByRole` skips hidden elements, so count the raw button.
-    const button = page.locator("#tree button", { hasText: "See how it grows" });
+    const button = page.locator("#tree button", { hasText: "Watch it grow" });
     await expect(button).toHaveCount(1);
     await expect(button).toBeHidden();
     // And nothing plays inside the hidden box (Chrome reports it with
@@ -105,7 +105,7 @@ test.describe("the button", () => {
     await expect(page.locator("#journey-entry-doordash")).toBeVisible();
   });
 
-  test("see how it grows scrolls to the box and plays", async ({ page }) => {
+  test("Watch it grow scrolls to the box and plays", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "run once");
     await watchOriginButton(page).click();
     // The whole box fits the screen now, so the page centres all of it.
@@ -259,13 +259,13 @@ test.describe("the button", () => {
     await page.keyboard.press("Escape");
     await expect(stage).toHaveCount(0);
 
-    // The button low in the viewport, the box more than 200 px below it.
-    await button.evaluate((el) => {
-      const top = el.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: top - window.innerHeight + 80, behavior: "instant" as ScrollBehavior });
-    });
+    // The page at its top, the box far below the viewport. Round 21 put the
+    // button on the Journey's stage, ~160 px above the box, so there is no
+    // longer a scroll position with the button in view and the box far: focus
+    // reaches it without scrolling, as a keyboard press from far above would.
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }));
     await expect(box).toHaveAttribute("data-far", "");
-    await button.focus();
+    await button.evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }));
     await page.keyboard.press("Enter");
     await expect(stage.getByRole("button", { name: "Skip" })).toBeFocused();
   });
