@@ -209,8 +209,8 @@ test.describe("interactive states", () => {
     await scrollIntoViewAndSettle(page, "#ask");
     const questionField = page.getByRole("textbox", { name: "Ask a question about this portfolio" });
     await expect(questionField).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "Where did he study?" }).click();
-    await expect(page.getByRole("list", { name: "Conversation" }).getByText("Where did he study?")).toBeVisible();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
+    await expect(page.getByRole("list", { name: "Conversation" }).getByText("What have you measured?")).toBeVisible();
     // Scoped to the chat's block rather than the full page, same pattern as
     // the off-base-tone audits below: the fact worth auditing here is the
     // chat's own markup with a turn on screen — in Contact's `deep` tone —
