@@ -3319,7 +3319,11 @@ export function Companion({ facts }: CompanionProps) {
       if (moon && moonDrawing) {
         const cat = moon.cat === "lead" ? grey : tabby;
         moonSeat = seatBeside(moonDrawing, cat.pos, boundsFor(viewport(), safeTop()), isClearSpot);
-        if (!moonSeat) moon = surpriseRef.current = null;
+        // Seated, she holds her own spot, so she gets up the moment content
+        // arrives under her, like any resting cat (the re-probe drops only
+        // explorer stops, and she is not on one).
+        const seated = moon.step === "sniff" || moon.step === "sit";
+        if (!moonSeat || (seated && !isClearSpot(cat.pos))) moon = surpriseRef.current = null;
         else {
           const want = moon.step === "creep" ? moonSeat : cat.pos;
           if (moon.cat === "lead") leadWant = want;
