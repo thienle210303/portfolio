@@ -119,3 +119,19 @@ test("stays free of horizontal overflow at simulated 200% zoom", async ({ page }
   await scrollThroughPage(page);
   await assertNoPageOverflow(page);
 });
+
+// Below 1024 the hero's clothesline hangs down the page from a bamboo pole at
+// the right edge; the pole and its hat run past the hero's edge, which clips
+// them. Pinned widths, so it runs once.
+for (const width of [320, 360, 390, 414, 600, 768]) {
+  test(`the hero's phone line adds no horizontal overflow at ${width}`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    await page.setViewportSize({ width, height: 900 });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await scrollThroughPage(page);
+    await assertNoPageOverflow(page);
+    const offenders = await findHorizontalOverflowOffenders(page);
+    expect(offenders, `overflowing elements: ${JSON.stringify(offenders, null, 2)}`).toEqual([]);
+  });
+}

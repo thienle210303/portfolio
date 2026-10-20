@@ -236,7 +236,7 @@ test.describe("hero", () => {
     });
   }
 
-  for (const width of [1024, 1280, 1440]) {
+  for (const width of [390, 768, 1024, 1280, 1440]) {
     test(`nothing sits on top of a control at ${width}`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ reducedMotion: "reduce" });
@@ -278,19 +278,107 @@ test.describe("hero", () => {
     expect(Math.abs(field.y - tags[0].top)).toBeLessThanOrEqual(40);
   });
 
-  test("layout at 390: text first, then a 2×2 grid of tags, then my field tag", async ({ page }) => {
-    await page.setViewportSize(PHONE);
-    await open(page);
-    const h1 = (await page.locator("#about h1").boundingBox())!;
-    const tags = await page.locator('#about [data-hero-step="line"] > li').evaluateAll((els) =>
-      els.map((el) => el.getBoundingClientRect().toJSON() as DOMRect),
-    );
-    expect(h1.y).toBeLessThan(tags[0].top);
-    expect(Math.abs(tags[0].top - tags[1].top)).toBeLessThanOrEqual(1);
-    expect(Math.abs(tags[0].left - tags[2].left)).toBeLessThanOrEqual(1);
-    const field = (await fieldPaper(page).boundingBox())!;
-    expect(field.y).toBeGreaterThan(tags[3].bottom);
-  });
+  for (const viewport of [{ width: 320, height: 568 }, PHONE, { width: 600, height: 960 }, { width: 768, height: 1024 }, { width: 1023, height: 768 }]) {
+    test(`layout at ${viewport.width}: text, then the tags down the line, then my field tag`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await open(page);
+      const m = await page.evaluate(() => {
+        const rect = (el: Element) => el.getBoundingClientRect().toJSON() as DOMRect;
+        const line = document.querySelector('#about [data-scenery="phone-line"] [data-line]')!;
+        const lis = [...document.querySelectorAll<HTMLElement>('#about [data-hero-step="line"] > li')];
+        const tags = lis.map((li) => {
+          // The tilt turns each tag about its string's end; measure with it lifted.
+          const rotate = li.style.rotate;
+          li.style.rotate = "none";
+          const r = rect(li);
+          li.style.rotate = rotate;
+          const s = getComputedStyle(li, "::before");
+          return {
+            box: r,
+            // Left-hand tags tie on at their right; right-hand ones at their left.
+            ends: { right: r.right - parseFloat(s.right), left: r.left + parseFloat(s.left) },
+            y: r.top + parseFloat(s.top),
+            peg: getComputedStyle(li, "::after").backgroundImage,
+          };
+        });
+        const field = document.querySelector('#about [data-hero-step="field-tag"]')!.parentElement!.parentElement!;
+        return {
+          shown: line.checkVisibility(),
+          line: rect(line),
+          tags,
+          fronts: [...document.querySelectorAll('#about button[id$="-front"]')].map(rect),
+          h1: rect(document.querySelector("#about h1")!),
+          actions: rect(document.querySelector('#about [data-hero-step="meta-actions"]')!),
+          hint: rect(document.querySelector('#about [data-hero-step="line"] + p')!),
+          field: rect(field),
+          fieldPaper: rect(field.firstElementChild!),
+        };
+      });
+      expect(m.shown).toBe(true);
+      const x = m.line.left + m.line.width / 2;
+      expect(m.h1.bottom).toBeLessThan(m.actions.top);
+      expect(m.actions.bottom).toBeLessThan(m.line.top);
+      expect(m.tags).toHaveLength(4);
+      m.tags.forEach((t, i) => {
+        const left = i % 2 === 0;
+        // Alternating sides, each clear of the line.
+        if (left) expect(t.box.right, `tag ${i}`).toBeLessThan(x);
+        else expect(t.box.left, `tag ${i}`).toBeGreaterThan(x);
+        const end = left ? t.ends.right : t.ends.left;
+        expect(Math.abs(end - x), `tag ${i}'s string`).toBeLessThanOrEqual(3);
+        expect(t.y, `tag ${i}'s string`).toBeGreaterThanOrEqual(m.line.top);
+        expect(t.y, `tag ${i}'s string`).toBeLessThanOrEqual(m.line.bottom);
+        expect(t.peg, `tag ${i}'s clothespin`).toContain("clothespin.svg");
+        if (i > 0) expect(t.box.top, `tag ${i} hangs below tag ${i - 1}`).toBeGreaterThan(m.tags[i - 1].box.top);
+        if (i > 1) expect(t.box.top, `tag ${i} clears tag ${i - 2}`).toBeGreaterThan(m.tags[i - 2].box.bottom);
+      });
+      for (const f of m.fronts) {
+        expect(f.width).toBeGreaterThanOrEqual(44);
+        expect(f.height).toBeGreaterThanOrEqual(44);
+      }
+      // The hint sits beside the last tag, left of the line, under the third.
+      const [, , third, last] = m.tags.map((t) => t.box);
+      expect(m.hint.right).toBeLessThan(x);
+      expect(m.hint.top).toBeGreaterThan(third.bottom);
+      expect(m.hint.bottom).toBeLessThanOrEqual(last.bottom + 1);
+      // My field tag hangs from the line's foot, centred under it, below the last tag.
+      expect(m.fieldPaper.top).toBeGreaterThan(last.bottom);
+      expect(Math.abs(m.field.top - m.line.bottom)).toBeLessThanOrEqual(3);
+      expect(Math.abs(m.field.left + m.field.width / 2 - x)).toBeLessThanOrEqual(3);
+    });
+  }
+
+  for (const viewport of [{ width: 360, height: 740 }, PHONE, { width: 768, height: 1024 }]) {
+    test(`below 1024 the line's scenery clears the words and the actions at ${viewport.width}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await open(page);
+      const hits = await page.evaluate(() => {
+        const words = [
+          ...document.querySelectorAll<HTMLElement>("#about [data-hero-identity] :is(h1, p, a, button)"),
+          document.querySelector<HTMLElement>('#about [data-hero-step="line"] + p')!,
+        ];
+        const pieces = [...document.querySelectorAll<HTMLElement>('#about [data-scenery="phone-line"] > :not([data-line])')];
+        const out: string[] = [];
+        for (const w of words) {
+          // The ink, not the block: the h1 and the intro are full-width boxes.
+          const range = document.createRange();
+          range.selectNodeContents(w);
+          const a = range.getBoundingClientRect();
+          for (const p of pieces) {
+            const b = p.getBoundingClientRect();
+            if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) {
+              out.push(`${w.tagName}:${w.innerText.slice(0, 20)} × ${p.getAttribute("data-scenery") ?? p.tagName}`);
+            }
+          }
+        }
+        return { out, pieces: pieces.length };
+      });
+      expect(hits.pieces).toBe(4);
+      expect(hits.out).toEqual([]);
+    });
+  }
 
   test("no tag clips its text at 320", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 568 });
@@ -441,7 +529,7 @@ test.describe("hero", () => {
     });
   }
 
-  for (const size of [PHONE, { width: 844, height: 390 }]) {
+  for (const size of [{ width: 360, height: 740 }, PHONE, { width: 600, height: 960 }, { width: 768, height: 1024 }, { width: 844, height: 390 }]) {
     for (const theme of ["day", "night"] as const) {
       test(`the ${theme === "day" ? "sun" : "moon"} stays off the headline at ${size.width}×${size.height}`, async ({ page }) => {
         await page.setViewportSize(size);
@@ -482,7 +570,9 @@ test.describe("hero", () => {
     }
   }
 
-  test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
+  for (const width of [390, 768, 1440]) {
+  test(`the actions come first in the tab order, then the tags, then the QR, at ${width}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
     await open(page);
     const order = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>("#about a, #about button")]
@@ -491,6 +581,7 @@ test.describe("hero", () => {
     );
     expect(order).toEqual([PRIMARY, BOOK, "tag", "tag", "tag", "tag", "My LinkedIn (opens in a new tab)"]);
   });
+  }
 
   for (const theme of ["day", "night"] as const) {
     test(`${theme} shows the ${theme === "day" ? "sun and the phin" : "moon and the lẩu"}`, async ({ page }) => {

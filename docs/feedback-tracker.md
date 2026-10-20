@@ -1846,3 +1846,13 @@ Production build, `pnpm start` on `:3187`, three `pnpm perf` runs per side, 0 sk
 | After | 194,232 B | 167,670 B | 97,076 B | 2796 / 2856 / 3468 ms | 617-819 ms | 0 | 2191 |
 
 LCP element `span.scene-art` (the sky) in all six runs. LCP median 3100 -> 2856 ms, within the noise of a busy machine: the preload is verified to move the request earlier, not proven to move LCP. JS and JS at load did not move.
+
+### R21-P3 phone hero (2026-10-20)
+
+Below 1024 the clothesline hangs down the page (the owner-approved `NatHeroPhone` board): bamboo and nón lá at the right edge, the four tags alternating left and right on clothespins, the hint beside the last tag, my field tag at the line's foot, Moon / buffalo in a short rice patch / stool on the ground. Production build on `:3189`, one `pnpm perf` run, 0 skipped responses.
+
+| When | JS | JS at load | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|---|
+| After | 194,257 B | 167,695 B | 16,862 B | 97,076 B | 2720 ms | 463 ms | 0 | 2200 |
+
+JS at load +25 B against 167,670 B (ChapterTags' class strings); the scenery is server-rendered CSS and SVG, no new JS.
