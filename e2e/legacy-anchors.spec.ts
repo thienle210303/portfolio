@@ -62,11 +62,11 @@ import { ABOUT_LEGACY_SECTION_IDS } from "../src/sections/Hero/anchors";
  * ## Why this spec and not `e2e/fragments.spec.ts`
  *
  * That sweep reads `main a[href^="#"]` — the links the page itself renders.
- * Round 20 links a few per-entry fragments in-page (the highlight cards and the
- * drawing's branch labels), so the sweep sees those; it does not see the
- * section ids, the other per-entry fragments, or the case-study
- * `work-<projectId>` ids, which round 18 stopped linking when the Selected Work
- * section and its index went. They exist for inbound links the site does not
+ * Round 20 links a few per-entry fragments in-page (now the hanging tags, the
+ * DoorDash stub's `work-dd-feasibility-agent`, and the drawing's branch labels),
+ * so the sweep sees those; it does not see the section ids, the other
+ * per-entry fragments, or the other case-study `work-<projectId>` ids, which
+ * round 18 stopped linking when the Selected Work section and its index went. They exist for inbound links the site does not
  * control, so this spec is their **only** coverage: an id dropped from
  * `ALL_LEGACY_IDS` below is an id nothing checks at all. Unlinked is not
  * unused — do not remove one from here, or from the page, for that reason.

@@ -24,4 +24,10 @@ describe("Drawing", () => {
   it("every ink drawing has a committed file", () => {
     for (const n of INK_DRAWINGS) expect(existsSync(`public/scenery/${n}.svg`), n).toBe(true);
   });
+
+  it("oak-leaves is an ink mask", () => {
+    expect(INK_DRAWINGS).toContain("oak-leaves");
+    const { container } = render(<Drawing name="oak-leaves" className="text-accent" />);
+    expect((container.firstElementChild as HTMLElement).className).toContain("scene-ink");
+  });
 });

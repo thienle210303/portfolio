@@ -1856,3 +1856,36 @@ Below 1024 the clothesline hangs down the page (the owner-approved `NatHeroPhone
 | After | 194,257 B | 167,695 B | 16,862 B | 97,076 B | 2720 ms | 463 ms | 0 | 2200 |
 
 JS at load +25 B against 167,670 B (ChapterTags' class strings); the scenery is server-rendered CSS and SVG, no new JS.
+
+## Round 21 phase 4 (2026-10-20) — the Journey
+
+Branch `round-21/journey` (`26cd85a`..`c2fd447` plus this record), production build, `pnpm start` on `:3204`, headless Chromium. **The machine was saturated**: CPU 100% before the perf runs and 99% after (`Get-CimInstance Win32_Processor`), so LCP and TBT are noise.
+
+**Perf row** (`pnpm perf`, default build, 0 skipped responses, three runs, bytes identical): JS 190.1 KB (194,612 B), JS at load 164.1 KB (168,049 B), CSS 17.6 KB (18,042 B), fonts 94.8 KB (97,076 B), other 136,203 B, LCP 2672 / 3016 / 3052 ms (LCP element `span.scene-art`, the hero's sky), TBT 367-539 ms, CLS 0, 2250 DOM nodes. Against this branch's own baseline at `3589620` (one run, same machine): JS 194,261 -> 194,612 (+351 B), **JS at load 167,698 -> 168,049 (+351 B, inside the +1 KB budget)**, CSS 17,268 -> 18,042 (+774 B), fonts unchanged, other 89,045 -> 136,203 (+47,158 B, the oak), DOM 2199 -> 2250 (+51). The +351 B is inferred, not isolated: `TreeBox.tsx` (a client module) now renders "Watch it grow" through `Button`.
+
+- **Scenery.** Ten new files in `public/scenery/`: 252,958 B raw, 48,135 B gzip (`oak-leaves` 181,527 / 29,502; `oak` 37,013 / 9,927; `journey-rice` 14,731 / 2,870; `oak-branch` 7,205 / 1,957; `oak-moss` 4,706 / 1,202; `oak-branch-moss` 3,757 / 987; `journey-evening` 1,570 / 448; `lantern-night` 1,041 / 492; `journey-morning` 819 / 411; `lantern-day` 589 / 339). Over the wire in day, scrolled through: at 412x823 the Journey adds 7 requests, 47,380 B (oak, oak-leaves, oak-moss, oak-branch, oak-branch-moss, lantern-day, journey-morning); at 1440x900 6 requests, 46,953 B (the branch swapped for journey-rice). `sky-day.svg` is fetched once at both widths. "trà đá" pulls Newsreader's `latin-ext` file at night (not in perf's day row).
+- **Tried and reverted:** `content-visibility: auto` on the oak's three containers, to keep the oak out of the load. It did not (other -2.9 KB: perf's window still reaches the Journey) and one of three runs showed CLS 0.0218.
+
+**DOM.** Per section at 1440x900, before -> after: header 37 -> 37, `#about` 146 -> 146, **`#tree` 1782 -> 1830 (+48, budget +60)**, `#contact` 80 -> 80, footer 3 -> 3.
+
+**Verification.** `pnpm verify` 5/5 (870 unit tests, 56 files; contrast 60 pairings, all >= AA, lowest 4.52:1). Retrieval eval, printed: recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807, unchanged with the new DoorDash impact line indexed. **e2e** at `--workers=2` against the production build: 790 passed, 1190 skipped, 0 failed (21.6 min), no retries needed.
+
+**The owner's answers** (plan appendix, 2026-10-20): the corrected italic line and the new DoorDash impact line ship as approved; the 2 -> 25 workflow is `dd-feasibility-agent`, so the ticket's 2026 stub links to `#work-dd-feasibility-agent` (it opens the DoorDash row at the case study) and the 2025 half to the row; the hanging branch below 1280 is built; no rail; the 56px heading is kept.
+
+**Decisions that changed the board or the plan:**
+- **The stub is its own link.** Two papers joined at the perforation, each wrapped by its link, so the ring is never cut and nothing nests. Six tag links, not five.
+- **From 640 to 1279 the branch runs down the middle and the tags take turns either side** (the hero's phone line does the same); one column at the right edge only below 640. The plan's single column left 60% of a 1024 screen empty. The branch rises into the crown to meet the limb, each tag hangs from a tapered twig of bark, and the branch fades out below the last tag.
+- **Past 1440 the oak fades over its first 48 and last 96 px**, and the sky is one unwrapped tile: the frame's edges are on screen there, and a wrapped tile put a second sun at 1920.
+- **Single tags' name row is `--step--1`**: at the board's 15px "Wordification 2024" wrapped its year in 140px.
+- **"onboarded merchants/month" wraps to two lines** in the 210px ticket (the board sets it at 11px; the site's smallest step is 12.9px at 1440).
+- `origin.spec.ts`'s "keyboard press from far above" now starts from the page top: the button sits ~160px above the box, so no scroll position has the button in view and the box far.
+- `print.spec.ts`'s rail test no longer requires a rail (no section has one); its article-width check still bites.
+
+**Screens** (`reports/r21-p4-screens/`, untracked): 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900, 1920x1080, day and night, plus 1440 day with "Watch it grow" playing. Against `NatJourney.png` / `NatJourneyNight.png` at 1440, beyond this plan's decisions: the site's header; the heading at x 160 (content column); tag values at `--step-4` (34px, board 32) and the ticket's at `--step-3` (28px, board 30); "Watch it grow" at x 72 (the gutter); the cats bottom right; the oak's fade at the viewport's edges. At 1280 the lantern is cut by the left edge (planned). At 390 the resting cats sit over the Wordification tag's year (the cats' branch owns them).
+
+### R21-P4 phone fixes (reviewer, 2026-10-20)
+
+- **One tree on a phone.** Below 640 the crown is mirrored and slid right so the foot of its trunk (board x 307 at y 640) stands on the branch the tags hang from; the branch is drawn at 100px there, as wide as the trunk, and starts 4px under it. The lantern, whose limb runs off the edge once mirrored, hangs from the long limb instead.
+- **The branch's Spanish moss is dropped** (`oak-branch-moss.svg` deleted): hugging the stem it read as a rendering glitch. Scenery is now nine files, 249,201 B raw, 47,148 B gzip; a phone day load makes 6 Journey requests, not 7.
+- **The "seam" at y ~860 was the screenshot, not the page.** The body's sky is `background-attachment: fixed`, and a full-page capture paints it one viewport high; a viewport screenshot of the same spot shows no seam. The screenshot script now takes a viewport tall enough for the stage.
+- `pnpm verify` 5/5 (870 tests; eval 70.0 / 93.3 / 96.7 / 0.807); e2e journey + responsive + axe: 65 passed, 235 skipped, 0 failed.

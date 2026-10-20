@@ -6,7 +6,7 @@ import { buildDrawnTree, DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
 /**
  * D1: `buildCompanionFacts` is only trustworthy if every number in it matches
  * an independent recomputation from `src/content/*` — otherwise it is just a
- * second place a count could quietly drift from the rail beside it. Each
+ * second place a count could quietly drift from the drawing it describes. Each
  * assertion below recomputes its figure a different way than
  * `companion-facts.ts` does, on purpose: a test that copied the same
  * `.reduce` would catch a typo in neither.
@@ -23,8 +23,8 @@ describe("buildCompanionFacts", () => {
   });
 
   it("counts branches, leaves and technologies off the tree the Journey draws, not every entry", () => {
-    // `buildDrawnTree()` is the call `CareerTree.tsx` builds its rail from
-    // ("Branches: N drawn · 9 as credentials"). Recomputed here by hand from the drawn branches, not by
+    // `buildDrawnTree()` is the call `CareerTree.tsx` draws the tree from.
+    // Recomputed here by hand from the drawn branches, not by
     // calling `totalLeaves`/`treeTechnologies` — a test that reused the same
     // helpers would agree with a broken one.
     const drawn = buildDrawnTree();
@@ -45,8 +45,8 @@ describe("buildCompanionFacts", () => {
   it("counts fewer branches than entries: the credentials are not drawn as branches", () => {
     // Through round 17 every entry was a branch and the two numbers were equal
     // by construction. Round 18 moved the credentials to one line on the stage,
-    // so the cats saying "20 branches" beside a rail that says "11 drawn" was
-    // the contradiction this pins shut.
+    // so the cats saying "20 branches" beside a drawing of 11 was the
+    // contradiction this pins shut.
     expect(DEMOTED_ENTRY_IDS.length).toBeGreaterThan(0);
     expect(facts.tree.branches).toBe(facts.tree.entries - DEMOTED_ENTRY_IDS.length);
   });

@@ -100,9 +100,15 @@ for (const size of SIZES) {
     });
 
     test("section titles are 24–28px", async ({ page }) => {
-      for (const id of ["tree", "contact"]) {
-        within(await px(page, `#${id} h2`, "font-size"), 24, 28);
-      }
+      within(await px(page, "#contact h2", "font-size"), 24, 28);
+    });
+
+    test("the Journey's title is 52–58px at 1440 and 30–34px at 390", async ({ page }) => {
+      const width = page.viewportSize()!.width;
+      test.skip(width !== 1440 && width !== 390, "the board's size at its two widths");
+      const size = await px(page, "#tree h2", "font-size");
+      if (width === 1440) within(size, 52, 58);
+      else within(size, 30, 34);
     });
 
     test("hero headline is 64–72px at 1440", async ({ page }) => {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useEffect } from "react";
-import TreeBox, { SeeHowItGrows } from "@/sections/CareerTree/TreeBox";
+import TreeBox, { WatchItGrow } from "@/sections/CareerTree/TreeBox";
 
 /*
  * The tree box's half of the growth: when the player starts, and how many are
@@ -66,7 +66,7 @@ const motion = { reduce: false };
 function setup() {
   render(
     <>
-      <SeeHowItGrows />
+      <WatchItGrow label="Watch it grow" />
       <TreeBox>
         <p>the drawing</p>
       </TreeBox>
@@ -79,7 +79,7 @@ function setup() {
 }
 
 const stages = () => document.querySelectorAll("[data-origin-stage]");
-const button = () => screen.getByRole("button", { name: "See how it grows" });
+const button = () => screen.getByRole("button", { name: "Watch it grow" });
 /** Runs what is already due, lets the lazy `import()` land, and commits it
  *  with its effects. */
 const settle = () =>
@@ -155,6 +155,13 @@ describe("TreeBox", () => {
     await pastDwell();
     await settle();
     expect(stages()).toHaveLength(1);
+  });
+
+  it("Watch it grow hides without the page script", () => {
+    setup();
+    // No `data-motion` on <html> means the inline script never ran: with JS
+    // off the button could start nothing, and the finished tree is below.
+    expect(button().className).toContain("[html:not([data-motion])_&]:hidden");
   });
 
   it("is a named, keyboard-scrollable window onto the tree", () => {
