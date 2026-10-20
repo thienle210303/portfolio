@@ -152,7 +152,7 @@ using the same spelling you use elsewhere.
 
 ## Contact delivery
 
-The business card's lead form (a name, plus an email or phone) posts to
+The postcard's lead form (a name, plus an email or phone) posts to
 `/api/contact`, which needs three environment variables:
 
 ```

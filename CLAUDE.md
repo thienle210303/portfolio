@@ -14,7 +14,7 @@ reference: [README.md](README.md).
 - No database, no CMS, no component library. Every component under
   `src/components` and `src/sections` is bespoke — don't reach for a
   dependency to replace one without discussing it first.
-- The business card's lead form (name plus an email or phone, no message)
+- The postcard's lead form (name plus an email or phone, no message)
   falls back from Resend to a `mailto:` flow whenever `RESEND_API_KEY` /
   `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set (see
   `.env.example`). That fallback is intentional, not a bug.
@@ -85,8 +85,9 @@ foot), the morning/evening scenery
 drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: highlight cards, the
 drawn tree at >=1024px, then a one-open timeline of rows) and Contact
-(`#contact`: the chat at `#ask` on the left, and a business card on the right
-that flips to the lead form).
+(`#contact`, round 21's postcard: my business card beside a postcard whose
+address side is the lead form, always visible, and the chat at `#ask` as a
+strip below both).
 `navItems` in `src/content/portfolio.ts` is the same three items in the same
 order; the nav doubles as the page's table of contents.
 
