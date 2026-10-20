@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
+import { currentEntry, formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
 import * as content from "@/content/portfolio";
 import { careerEntries, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
 import { resolved } from "@/types/portfolio";
@@ -222,9 +222,10 @@ describe("isEntirelyNeedsInput", () => {
 describe("the profile's own metadata row", () => {
   it("names a location and an availability, both resolved", () => {
     // Both were deliberately `undefined` through round 17. Round 18 fills
-    // them — `resolved()` must give real strings, not markers. Location is
-    // rendered as the hero terminal's `based` line; availability is authored
-    // but unrendered since round 20 removed the hero's rail.
+    // them — `resolved()` must give real strings, not markers. Neither is
+    // rendered in the hero since round 21 retired its terminal (the field
+    // tag's Transplanted row reads `origin.to`, the same place); the chat
+    // corpus still indexes them.
     expect(resolved(profile.location)).toBe("Taylors, South Carolina");
     expect(resolved(profile.availability)).toBe(
       "Open to remote, and to relocation when it's worth it."
@@ -420,8 +421,19 @@ describe("the page is three sections", () => {
 });
 
 describe("the hero's code excerpts", () => {
-  it("are gone: the hero terminal reads the content layer instead", () => {
+  it("are gone: the hero renders the content layer, not code", () => {
     expect("codeTabs" in content).toBe(false);
   });
 });
 
+
+describe("currentEntry", () => {
+  it("picks the open entry with the latest sortKey", () => {
+    expect(currentEntry().id).toBe("doordash");
+  });
+
+  it("throws without a current entry", () => {
+    const past = careerEntries.filter((e) => !e.dateRange.endsWith("Present"));
+    expect(() => currentEntry(past)).toThrow();
+  });
+});

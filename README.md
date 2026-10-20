@@ -4,7 +4,8 @@ A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
 The site is a single narrative page in three sections: **About** — the
-hero, a short identity column beside a terminal card built from content; the **Journey** — five
+hero, my headline and two actions under a clothesline of four chapter tags
+that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — five
 measured highlights, a drawn career tree, and a timeline of rows that open one
 at a time, with the case studies inside them (in the rows of the roles that
 produced them, or after the timeline for the coursework); and **Contact**: a
@@ -16,8 +17,7 @@ live mode a model writes the answer from just those passages. The résumé is it
 at `/resume`, reading the same content, and it is the only place the skills
 inventory renders.
 
-Visually it is **the outdoors**: a lichen ground ruled with a faint measurement
-grid, one moss green reserved for annotation and measured values, and a margin rail
+Visually it is **the outdoors**: a lichen ground under one painted sky, one moss green reserved for annotation and measured values, and a margin rail
 down each section carrying the counts, dates and sources the content layer
 already guarantees. It ships in two themes — day and night — and the design
 survives both. See [Design system](#design-system) below.
@@ -82,6 +82,18 @@ Use the semantic aliases, never a raw `--color-*` token and never a literal:
 | `--control` | `bg-control` / `border-control` | the one primary control per screen |
 | `--mark` | `text-mark` / `border-mark` | the single mark |
 | `--rule-color` | `border-rule` | 1px borders |
+
+The hero's scenery has its own aliases, read as `[color:var(--…)]` or as a
+CSS variable (the raw names would collide with Tailwind colours):
+
+| Alias | For |
+|---|---|
+| `--twine` | the clothesline, the tags' strings and holes |
+| `--gold` | the star on my field tag |
+| `--scene-water` | the ripples under the rice |
+| `--scene-buffalo` | the buffalo |
+| `--art-sky` | the hero's sky file (day: sun, night: moon) |
+| `--art-vignette` | the vignette file (day: the phin, night: the lẩu) |
 
 This is what lets one component render correctly across two themes × three
 tones with no per-tone branch anywhere. A raw token freezes it into one.
@@ -160,7 +172,7 @@ JSX, so a date, employer or metric exists in exactly one place.
 
 | File | Contains |
 |---|---|
-| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, `aiTools` — the reference the hero's terminal reads, Contact's copy (`contactCopy`) and the footer line |
+| `src/content/portfolio.ts` | Profile, the origin (the 2018 crossing), the companion cats, social links, navigation, career entries, case studies, skills, education, certifications, achievements, Contact's copy (`contactCopy`) and the footer line |
 | `src/types/portfolio.ts` | The types every one of them is checked against |
 
 Round 18 deleted `src/content/ai-experiments.ts` (the AI Workflow Lab's

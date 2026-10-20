@@ -9,16 +9,16 @@ import ThemeToggle from "./ThemeToggle";
  * "Let's talk" CTA are plain anchors: they need no state, so they stay on
  * the server and keep working with JavaScript disabled.
  *
- * The header sits on the *quiet* ground of whichever theme is active and never
- * takes a section's tone, even when a `contrast` section scrolls under it — it
- * is fixed chrome, not page content, and it stays solid rather than
- * translucent per the "no glassmorphism" rule.
+ * The header is painted on the sky (`sky-fill`), so it shows exactly the
+ * pixels behind it and never takes a section's tone, even when a `contrast`
+ * section scrolls under it — it is fixed chrome, not page content, and it
+ * stays opaque rather than translucent per the "no glassmorphism" rule.
  */
 export default function SiteHeader() {
   return (
     <header
       data-site-header
-      className="no-print sticky top-0 z-50 h-[var(--header-h)] border-b border-rule bg-ground text-fg"
+      className="no-print sticky top-0 z-50 h-[var(--header-h)] border-b border-rule sky-fill text-fg"
     >
       <div
         className="shell flex h-full items-center justify-between gap-4"

@@ -37,6 +37,8 @@ import { test, expect, type Page } from "@playwright/test";
  *    pass exposes the case study inside it to the next. The Journey's timeline
  *    opens one row at a time, so its rows are forced open with a test-only
  *    stylesheet (the print stylesheet's override) and their triggers skipped.
+ *    The hero's chapter tags open one at a time as well; their back faces are
+ *    always in the document, so their triggers are skipped too.
  */
 
 async function expandAllDisclosures(page: Page): Promise<void> {
@@ -48,7 +50,10 @@ async function expandAllDisclosures(page: Page): Promise<void> {
       '[data-timeline] [role="region"] > div { visibility: visible !important; transition: none !important; }',
   });
   await page.evaluate(async () => {
-    const isRow = (el: HTMLElement) => el.id.startsWith("tree-list-branch-");
+    // The hero's chapter tags are one-open too; their backs (and the links on
+    // them) are in the document whether turned or not, so they are skipped.
+    const isRow = (el: HTMLElement) =>
+      el.id.startsWith("tree-list-branch-") || (el.id.endsWith("-front") && !!el.closest("#about"));
     const isVisible = (el: HTMLElement) => el.offsetParent !== null && !isRow(el);
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
     for (let guard = 0; guard < 200; guard += 1) {

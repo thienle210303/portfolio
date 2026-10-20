@@ -1,7 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { careerEntries, projects } from "../src/content/portfolio";
 import { buildDrawnTree } from "../src/lib/knowledge-tree";
-import { buildTerminal } from "../src/lib/terminal";
 
 // Matches the `lg:` breakpoint (1024px) from which the Journey's drawing
 // shows above its timeline.
@@ -83,37 +82,6 @@ test.beforeEach(async ({ page }) => {
 test.describe("hero", () => {
   test("exactly one h1 renders on the page", async ({ page }) => {
     await expect(page.locator("h1")).toHaveCount(1);
-  });
-
-  test("terminal tabs switch panels via mouse and keyboard", async ({ page }) => {
-    const terminal = buildTerminal();
-    const tablist = page.getByRole("tablist", { name: "Terminal" });
-    const tabs = tablist.getByRole("tab");
-    const panel = page.locator("#about").getByRole("tabpanel");
-    await expect(tabs).toHaveCount(terminal.length);
-
-    // Click-and-verify as one retried unit: `networkidle` in beforeEach only
-    // approximates "the islands are live" (its own comment says so), and
-    // under full-matrix dev-server load a click can land on a tablist React
-    // has not attached to yet — the click succeeds, nothing flips, and a
-    // plain assertion waits on state that will never arrive. Retrying the
-    // click keeps the contract honest: a genuinely broken switch still
-    // fails after the timeout.
-    await expect(async () => {
-      await tabs.nth(1).click();
-      await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true", { timeout: 1000 });
-    }).toPass({ timeout: 15_000 });
-    await expect(panel).toContainText(`$ ${terminal[1].command}`);
-
-    await tabs.nth(1).focus();
-    await page.keyboard.press("ArrowRight");
-    await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
-    await expect(tabs.nth(2)).toBeFocused();
-
-    await page.keyboard.press("Home");
-    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-    await expect(panel).toContainText(`$ ${terminal[0].command}`);
-    await expect(panel).toContainText("motto: Practice makes AI.");
   });
 
   test("holds no chat: the Ask field lives in #contact", async ({ page }) => {

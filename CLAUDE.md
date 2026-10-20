@@ -61,12 +61,29 @@ The globe and its WebGL engine were removed in Round 21: the globe was
 redundant, and it was the heaviest code on the page (the crossing moves to the
 hero's clothesline in Round 21's hero phase). It is in git history. There is still no 3D library; do not add one.
 
+### The hero's scenery
+
+The hero's drawings are generated SVG files under `public/scenery/`, written
+by `scripts/draw-scenery.mjs` (`pnpm draw:scenery`), and
+`tests/lib/scenery.test.ts` fails until the committed files match a fresh
+draw — so change a drawing in the script, never by hand. One-colour drawings
+are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
+`text-accent`); the theme-dependent pieces (the sky, the phin/lẩu vignette)
+take their file from `--art-sky` / `--art-vignette`, so the theme swaps them
+in CSS with no script. Nothing is drawn at runtime and there is no drawing
+library. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
+hook for Phase 7; keep it, once.
+
 ## Changing what the site says
 
 The page is three sections, in this order (a Record section is planned between the Journey and
-Contact): About (`#about` — the hero: a short
-identity column beside a terminal card built from content, no rail, no height
-floor: it is as tall as its content), the Journey (`#tree`: highlight cards, the
+Contact): About (`#about` — the hero: my headline and two actions under a
+clothesline of four chapter tags that turn over to my line about each, my
+field tag with the LinkedIn QR at the line's end (below 1024 the line hangs
+down the page from a bamboo pole, the tags either side, my field tag at its
+foot), the morning/evening scenery
+drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
+is as tall as its content), the Journey (`#tree`: highlight cards, the
 drawn tree at >=1024px, then a one-open timeline of rows) and Contact
 (`#contact`: the chat at `#ask` on the left, and a business card on the right
 that flips to the lead form).
@@ -110,8 +127,7 @@ The fix was to take the strings off the indexed surface, which the retrieval
 eval priced at zero, where gating the engine harder instead cost ten points of
 recall@3. The strings are gone now, so no test fences them; the lesson is that
 text whose vocabulary is generic costs precision everywhere and earns recall
-nowhere the eval can see. `aiTools` is `src/content/portfolio.ts` content; the
-hero's terminal reads it.
+nowhere the eval can see.
 
 ### The Journey's tree
 

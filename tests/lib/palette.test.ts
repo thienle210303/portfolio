@@ -143,7 +143,7 @@ describe("the outdoors palette", () => {
   });
 
   it("the sky is painted fixed on body in both themes", () => {
-    const body = rule(":root body");
+    const body = rule(":root body, .sky-fill");
     expect(body).toContain("background-image: var(--sky)");
     expect(body).toContain("background-attachment: fixed");
     // Theme-keyed body rules would split the two themes' backdrops apart again.
@@ -163,6 +163,38 @@ describe("the outdoors palette", () => {
       expect(body).toContain("--fg:");
       expect(body).toContain("--fg-muted:");
     }
+  });
+
+  it("scene tokens are the board's", () => {
+    const scene = {
+      twine: "#8b7b5e", "dusk-twine": "#b3a27f", gold: "#d4a21a",
+      water: "#9fb3ae", "dusk-water": "#3f5a5a",
+      buffalo: "#3b433e", "dusk-buffalo": "#0a1012",
+    };
+    for (const [name, hex] of Object.entries(scene)) expect(tokens[name], name).toBe(hex);
+  });
+
+  it("every theme scope sets the scene aliases", () => {
+    const night = CSS.indexOf(':root[data-theme="night"]');
+    const media = CSS.indexOf("@media (prefers-color-scheme: dark)", night);
+    const aliases = [
+      "--twine:", "--gold:", "--scene-water:", "--scene-buffalo:",
+      "--art-sky:", "--art-vignette:", "--show-day:", "--show-night:",
+    ];
+    for (const body of [dayRoot(), rule(':root[data-theme="night"]'), rule(':root:not([data-theme="day"])', media)]) {
+      for (const a of aliases) expect(body, a).toContain(a);
+    }
+  });
+
+  it("blueprint-grid is gone", () => {
+    expect(CSS).not.toContain("blueprint-grid");
+    expect(readFileSync(join(SRC, "app/layout.tsx"), "utf8")).not.toContain("blueprint-grid");
+  });
+
+  it("the header shares the body's sky", () => {
+    const re = /([^{}]*:root body[^{}]*)\{/;
+    const selector = re.exec(CSS)?.[1] ?? "";
+    expect(selector).toContain(".sky-fill");
   });
 
   it("no component reads a raw palette token", () => {

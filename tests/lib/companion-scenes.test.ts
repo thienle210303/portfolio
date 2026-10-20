@@ -23,6 +23,7 @@ import {
   RUSH_HOLD_MS,
   RUSH_VELOCITY,
 } from "@/components/companion/companion-moods";
+import { advance, detourAround } from "@/components/companion/companion-motion";
 import * as companionSpace from "@/components/companion/companion-space";
 import { SCENE_NAMES } from "@/components/companion/scene-names";
 import { companions } from "@/content/portfolio";
@@ -512,6 +513,69 @@ describe("planMood — a per-frame caller of findClearSpot", () => {
     expect(plan!.spots.follow).toEqual(follow);
     // The same call with the preference would have moved her.
     expect(companionSpace.findClearSpot(follow, HOME, plan!.spots.lead, { preferHead: true })).not.toEqual(follow);
+  });
+});
+
+/**
+ * On a phone the hero's actions row leaves no room beside it, so the About
+ * spot clamps to the right edge and her mate spot lands in his own column,
+ * below him. She walks in from above, routed round him the way Companion.tsx
+ * routes her (`detourAround` until within 4px, clamped every frame like
+ * `keepInView`). Round 21 measured her parked above him for good at 375, so the
+ * tour's route choice never appeared.
+ */
+describe("the About spots on a phone", () => {
+  const HOME = { x: 40, y: 700 };
+  const original = { width: window.innerWidth, height: window.innerHeight };
+
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: original.width });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: original.height });
+    companionSpace.invalidateViewport();
+    document.body.innerHTML = "";
+  });
+
+  it.each([320, 375, 390])("gives both cats a distinct spot she can reach at %ipx", (width) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 812 });
+    companionSpace.invalidateViewport();
+    ground();
+    const perch = document.createElement("div");
+    perch.setAttribute("data-cat-perch", "");
+    perch.getBoundingClientRect = () =>
+      ({ left: 16, top: 330, right: width - 16, bottom: 400, width: width - 32, height: 70 }) as DOMRect;
+    document.body.append(perch);
+
+    const plan = planMood("about", { x: width - 58, y: 200 }, { x: width - 58, y: 120 }, HOME);
+    expect(plan).not.toBeNull();
+    const { lead } = plan!.spots;
+    // Companion.tsx's `clearFollowOfToggle`: her spot pushed clear of his toggle
+    // (his drawn box padded 4 x 3, `LEAD_PAD_X`/`LEAD_PAD_Y`). Below him, that is
+    // what puts her seat outside his padded box, in his own column.
+    const toggle = { left: lead.x - 4, top: lead.y - 3, right: lead.x + CAT_W + 4, bottom: lead.y + CAT_H + 3 };
+    const follow = companionSpace.keepClearOfControl(plan!.spots.follow, toggle);
+    const apart = Math.abs(lead.x - follow.x) >= CAT_W * 0.7 || Math.abs(lead.y - follow.y) >= CAT_H * 0.7;
+    expect(apart).toBe(true);
+
+    const box = companionSpace.boundsFor(companionSpace.viewport(), companionSpace.safeTop());
+    for (const start of [
+      { x: follow.x, y: lead.y - 120 },
+      { x: 20, y: lead.y - 120 },
+      { x: follow.x, y: lead.y + 200 },
+    ]) {
+      const pos = { ...start };
+      let routing = true;
+      for (let i = 0; i < 600; i += 1) {
+        let want = follow;
+        if (routing) {
+          if (Math.hypot(pos.x - follow.x, pos.y - follow.y) < 4) routing = false;
+          else want = detourAround(pos, follow, lead, CAT_W, CAT_H, 26, box.minY, box.minX, box.maxX);
+        }
+        advance(pos, want, 3);
+        Object.assign(pos, companionSpace.clampToViewport(pos));
+      }
+      expect(Math.hypot(pos.x - follow.x, pos.y - follow.y), JSON.stringify(start)).toBeLessThan(4);
+    }
   });
 });
 

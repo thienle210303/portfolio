@@ -7,6 +7,9 @@
  * rather than `Intl` or `toLocaleDateString`.
  */
 
+import { careerEntries } from "@/content/portfolio";
+import type { CareerEntry } from "@/types/portfolio";
+
 const MONTHS = [
   "January",
   "February",
@@ -78,4 +81,13 @@ export function stripNeedsInput(text: string): string {
  */
 export function isEntirelyNeedsInput(text: string): boolean {
   return stripNeedsInput(text).length === 0;
+}
+
+/** The entry whose `dateRange` ends in "Present"; with several, the latest
+ *  `sortKey`. Throws when there is none, so a build cannot ship a page that
+ *  names no current role. */
+export function currentEntry(entries: readonly CareerEntry[] = careerEntries): CareerEntry {
+  const open = entries.filter((entry) => entry.dateRange.endsWith("Present"));
+  if (open.length === 0) throw new Error("content: no career entry ends in Present");
+  return open.reduce((latest, entry) => (entry.sortKey > latest.sortKey ? entry : latest));
 }

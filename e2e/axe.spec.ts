@@ -249,6 +249,27 @@ test.describe("interactive states", () => {
 });
 
 /**
+ * The hero's chapter tags turn over to a back face that is `inert` until
+ * opened, so the default audits only ever see the fronts.
+ */
+test.describe("hero tags", () => {
+  for (const theme of ["day", "night"] as const) {
+    test(`About (#about) with a tag open has zero WCAG violations, by ${theme}`, async ({ page }) => {
+      test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
+      await page.addInitScript((value) => window.localStorage.setItem("theme", value), theme);
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      const tag = page.locator("#about").getByRole("button", { name: /Kiên Giang/ });
+      await tag.click();
+      await expect(tag).toHaveAttribute("aria-expanded", "true");
+      await page.waitForTimeout(1000); // the turn (--dur-settle) finishes
+      await auditHasNoViolations(page, "#about");
+    });
+  }
+});
+
+/**
  * Sections that leave the base ground. Every semantic colour alias is
  * repointed by the tone class, so these are the likeliest places for a
  * contrast regression to hide: `deep` is a half-step off the base, and

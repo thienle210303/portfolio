@@ -55,7 +55,7 @@ export interface Profile {
   readonly focus: string;
   /** The recurring philosophy line. */
   readonly philosophy: string;
-  /** His motto, printed verbatim as the hero terminal's last `whoami` line. */
+  /** His motto, the stamp on the hero's field tag (upper-cased by CSS only). */
   readonly motto: string;
   /** Hero headline. */
   readonly headline: string;
@@ -113,6 +113,33 @@ export interface Companion {
    *  they are his girlfriend's. One field, because the alternative is the
    *  resolver composing a sentence about a relationship nobody authored. */
   readonly belongsTo: string;
+}
+
+/** The hero's authored lines (`hero` in the content layer). */
+export interface HeroCopy {
+  /** Shown only from 1024, where the line runs between two poles. */
+  readonly hintLine: string;
+  readonly hint: string;
+  /** Follows `profile.positioning` in the hero's body. */
+  readonly invitation: string;
+  /** The Taylors line is the entry's own `headline`, so it is not here. */
+  readonly chapterLines: {
+    readonly origin: string;
+    readonly "usc-degree": string;
+    readonly doordash: string;
+  };
+  readonly fieldTag: {
+    readonly number: string;
+    readonly aside: string;
+    readonly habitat: string;
+    readonly formerly: string;
+    readonly companionsLead: string;
+    readonly status: string;
+    readonly linkLabel: string;
+  };
+  readonly vignette: { readonly morning: string; readonly evening: string };
+  /** The off-duty cat's caption is `${name}, ${offDuty}`. */
+  readonly offDuty: string;
 }
 
 export type SocialPlatform = "GitHub" | "LinkedIn" | "Email";
@@ -293,21 +320,6 @@ export interface Achievement {
   readonly context: string;
   readonly date: Maybe<string>;
   readonly note?: string;
-}
-
-/* -------------------------------------------------------------------------- */
-/* AI Workflow Lab                                                             */
-/* -------------------------------------------------------------------------- */
-
-export type AiToolId = "claude-code" | "codex" | "cursor" | "playwright";
-
-export interface AiTool {
-  readonly id: AiToolId;
-  readonly name: string;
-  readonly vendor: string;
-  readonly what: string;
-  /** Official docs. Required for anything time-sensitive. */
-  readonly href: string;
 }
 
 /* -------------------------------------------------------------------------- */

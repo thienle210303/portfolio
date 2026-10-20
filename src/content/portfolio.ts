@@ -14,8 +14,8 @@
 
 import { resolveSiteUrl } from "@/lib/site-url";
 import type {
+  HeroCopy,
   Achievement,
-  AiTool,
   CareerEntry,
   Certification,
   Companion,
@@ -68,14 +68,16 @@ export const profile = {
   // a biography.
   positioning:
     "I write software for retail data at DoorDash. Before that I was a chef in my family's restaurant.",
+  // Rendered nowhere since round 21 retired the hero terminal; the chat
+  // indexes it without a section (answer-corpus.ts).
   focus:
     "Automated collection and integration systems — the pipelines that decide whether a retail partner can be described accurately at all.",
   // The philosophy line: one he adopted, not a fact the site asserts. It was generated rather
   // than sourced, and he asked to keep it.
   philosophy: "Unsolved is not the same as unsolvable.",
-  // His own line (round 20), the last thing the hero terminal's `whoami` prints.
+  // His own line (round 20), printed on the hero's field tag.
   motto: "Practice makes AI.",
-  headline: "I keep asking, and I go and look.",
+  headline: "Just a curious kid, and this is my youth.",
   about: [
     "I moved from Kiên Giang, Việt Nam to Taylors, South Carolina in December 2018, at fifteen, with my family. I could read and write English. I could not speak it.",
     "For the next two and a half years I finished high school, worked the line and the floor at my family's restaurant, and drove for Uber Eats. I started university in chemical engineering. My friends told me to try computer science instead.",
@@ -89,8 +91,8 @@ export const profile = {
   // that trade is worth making. Recording the decision matters more than
   // recording the hesitation.
   // `availability` is rendered nowhere on the page since round 20 removed the
-  // hero's rail. `location` is printed as the hero terminal's `based` line
-  // (src/lib/terminal.ts).
+  // hero's rail. `location` renders nowhere; the field tag's Transplanted row
+  // reads `origin.to`.
   location: "Taylors, South Carolina",
   availability: "Open to remote, and to relocation when it's worth it.",
   resumePdf: "/thien-le-resume.pdf",
@@ -139,6 +141,40 @@ export const companions = [
     belongsTo: "my girlfriend",
   },
 ] satisfies readonly Companion[];
+
+/**
+ * The hero's authored words (round 21). Everything factual in the hero is read
+ * from the records above; these are the lines that carry no fact of their own.
+ * Deliberately not indexed by the chat: `tests/lib/hero.test.ts` fences it.
+ * The Taylors chapter line is not here: it is that entry's own `headline`.
+ */
+export const hero = {
+  // Only from 1024, where the line runs from a bamboo pole to a pine; on a
+  // phone it hangs down the page from the bamboo alone.
+  hintLine: "This line runs from a bamboo pole to a pine.",
+  hint: "Press a tag and I'll tell you that part.",
+  // Spoken after `profile.positioning`.
+  invitation: "Come in, I'll show you around.",
+  chapterLines: {
+    origin: "Where I start. Rice, rivers, and a lot of questions.",
+    "usc-degree": "Chemical engineering first, then computer science.",
+    doordash: "Now I write software for retail data.",
+  },
+  fieldTag: {
+    number: "001",
+    aside: "That's me",
+    habitat: "DoorDash, retail data",
+    formerly: "Chef, family kitchen",
+    companionsLead: "Two cats",
+    status: "Still growing",
+    linkLabel: "My LinkedIn",
+  },
+  vignette: {
+    morning: "cà phê phin, first",
+    evening: "lẩu, after work",
+  },
+  offDuty: "off duty",
+} satisfies HeroCopy;
 
 export const socialLinks = [
   {
@@ -1386,41 +1422,6 @@ export const highlights = [
   { entryId: "usc-scraping", value: "3M+", label: "Amazon and Kroger records, unattended for months." },
   { entryId: "usc-ta", value: "200+", label: "Students helped in open lab." },
 ] as const satisfies readonly Highlight[];
-
-/* -------------------------------------------------------------------------- */
-/* AI tooling reference                                                        */
-/* -------------------------------------------------------------------------- */
-
-export const aiTools = [
-  {
-    id: "claude-code",
-    name: "Claude Code",
-    vendor: "Anthropic",
-    what: "Agentic coding in the terminal and editor.",
-    href: "https://code.claude.com/docs",
-  },
-  {
-    id: "codex",
-    name: "Codex",
-    vendor: "OpenAI",
-    what: "Agentic coding assistant.",
-    href: "https://developers.openai.com/codex/",
-  },
-  {
-    id: "cursor",
-    name: "Cursor",
-    vendor: "Anysphere",
-    what: "AI-native code editor.",
-    href: "https://cursor.com/docs",
-  },
-  {
-    id: "playwright",
-    name: "Playwright",
-    vendor: "Microsoft",
-    what: "Browser automation — used as the agent's hands, not as an AI tool.",
-    href: "https://playwright.dev/docs/intro",
-  },
-] satisfies readonly AiTool[];
 
 /* -------------------------------------------------------------------------- */
 /* Contact                                                                     */

@@ -3452,8 +3452,8 @@ export function Companion({ facts }: CompanionProps) {
       if (routing.current && !walking && followWant !== tabby.pos) {
         if (distance(tabby.pos, followWant) < 4) routing.current = false;
         else {
-          const minY = boundsFor(viewport(), safeTop()).minY;
-          followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP, minY);
+          const box = boundsFor(viewport(), safeTop());
+          followWant = detourAround(tabby.pos, followWant, grey.pos, CAT_W, CAT_H, FOLLOW_GAP, box.minY, box.minX, box.maxX);
         }
       }
       const followDx = followWant.x - tabby.pos.x;

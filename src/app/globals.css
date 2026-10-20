@@ -54,6 +54,16 @@
   --color-lantern-raised: #f3eee2;
   --color-lantern-muted: #5a5f55;
   --color-lantern-rule: #d3ccb9;
+
+  /* The scenery's own colours (never text, so not in docs/contrast.md). Gold
+     is the field tag's star, not the flag's yellow. */
+  --color-twine: #8b7b5e;
+  --color-dusk-twine: #b3a27f;
+  --color-gold: #d4a21a;
+  --color-water: #9fb3ae;
+  --color-dusk-water: #3f5a5a;
+  --color-buffalo: #3b433e;
+  --color-dusk-buffalo: #0a1012;
 }
 
 /*
@@ -150,8 +160,8 @@
     /*
      * Round 12 (WP-K): the one place below `--step--1` on the scale, added
      * for the since-deleted hero code artifact (`CodeBlock`'s `compact`
-     * prop). Now used for small mono labels: the hero terminal's title bar
-     * and the chat's "Live mode" tag. Same clamp shape as its neighbours, one
+     * prop). Now used for small mono labels: the chapter tags' years and the
+     * chat's "Live mode" tag. Same clamp shape as its neighbours, one
      * notch down: floor and ceiling both ~0.06rem under `--step--1`'s.
      */
     --step--2: clamp(0.75rem, 0.735rem + 0.08vw, 0.8125rem);
@@ -164,11 +174,10 @@
     --step-3: clamp(1.5rem, 1.42rem + 0.35vw, 1.75rem);
     --step-4: clamp(1.75rem, 1.6rem + 0.6vw, 2.25rem);
     /*
-     * Used by exactly one element: the hero <h1>. Its ceiling came down from
-     * 6.5rem to 4.25rem when the margin rail took a column, then to 3rem in
-     * round 20 when the owner found the whole page too big.
+     * Used by exactly one element: the hero <h1>. 40px at 390 wide, 70px at
+     * 1440 (the board's size, round 21 phase 3).
      */
-    --step-5: clamp(2.5rem, 2.25rem + 1.1vw, 3rem);
+    --step-5: clamp(2.5rem, 1.6rem + 3.4vw, 4.375rem);
 
     --gutter: clamp(1.25rem, 5vw, 5rem);
     /*
@@ -237,16 +246,20 @@
     --l-mark: var(--color-dusk-red);
     --l-rule: var(--color-dusk-hairline);
 
-    /* The measurement grid, drawn from the accent each scope actually uses
-       rather than from a grey, so it belongs to the palette — and carried per
-       set, because the same rgba over lichen and over ink are two very
-       different amounts of visible line. */
-    --q-grid: rgba(70, 96, 58, 0.06);
-    --l-grid: rgba(143, 178, 126, 0.08);
-    --grid-step: 26px;
 
-    /* The sky: one backdrop behind the whole page, painted on `body` (see
-       `:root body` under `.blueprint-grid`). Day is a morning field. */
+    /* Scenery. Aliases, not Tailwind colours (the raw names would collide);
+       components read them as [color:var(--twine)]. */
+    --twine: var(--color-twine);
+    --gold: var(--color-gold);
+    --scene-water: var(--color-water);
+    --scene-buffalo: var(--color-buffalo);
+    --art-sky: url(/scenery/sky-day.svg);
+    --art-vignette: url(/scenery/morning.svg);
+    --show-day: block;
+    --show-night: none;
+
+    /* The sky: one backdrop behind the whole page, painted on `body` and on
+       the header (`:root body, .sky-fill`). Day is a morning field. */
     --sky: linear-gradient(180deg, var(--color-morning-high) 0%, var(--color-morning) 45%, var(--color-morning-low) 100%);
 
     /* The fade at the right edge of a horizontally scrollable code panel.
@@ -308,11 +321,18 @@
     --l-mark: var(--color-dusk-red);
     --l-rule: var(--color-dusk-hairline);
 
-    --q-grid: rgba(143, 178, 126, 0.07);
-    --l-grid: rgba(143, 178, 126, 0.09);
 
     /* The night sky: same backdrop as day's, different stops. */
     --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
+
+    --twine: var(--color-dusk-twine);
+    --gold: var(--color-gold);
+    --scene-water: var(--color-dusk-water);
+    --scene-buffalo: var(--color-dusk-buffalo);
+    --art-sky: url(/scenery/sky-night.svg);
+    --art-vignette: url(/scenery/evening.svg);
+    --show-day: none;
+    --show-night: block;
   }
 
   /* Paper scope: light surface, dark ink. --ground becomes lantern-raised so
@@ -362,9 +382,16 @@
       --l-mark: var(--color-dusk-red);
       --l-rule: var(--color-dusk-hairline);
 
-      --q-grid: rgba(143, 178, 126, 0.07);
-      --l-grid: rgba(143, 178, 126, 0.09);
       --sky: linear-gradient(180deg, var(--color-dusk-high) 0%, var(--color-dusk) 50%, var(--color-dusk-deep) 100%);
+
+      --twine: var(--color-dusk-twine);
+      --gold: var(--color-gold);
+      --scene-water: var(--color-dusk-water);
+      --scene-buffalo: var(--color-dusk-buffalo);
+      --art-sky: url(/scenery/sky-night.svg);
+      --art-vignette: url(/scenery/evening.svg);
+      --show-day: none;
+      --show-night: block;
     }
 
     :root:not([data-theme="day"]) :is(.bg-surface, [data-paper]) {
@@ -404,6 +431,9 @@
   .tone-base,
   .tone-deep {
     --ground: var(--ground-quiet);
+    /* A tag's punched hole shows the section's ground, not the paper's: the
+       paper scope repoints --ground, but --hole was resolved out here. */
+    --hole: var(--ground);
     --surface: var(--q-surface);
     --fg: var(--q-fg);
     --fg-muted: var(--q-fg-muted);
@@ -414,7 +444,6 @@
     --mark: var(--q-mark);
     --rule-color: var(--q-rule);
     --ring-color: var(--q-accent);
-    --grid-line: var(--q-grid);
     --code-scrim: var(--q-code-scrim);
   }
 
@@ -424,6 +453,7 @@
 
   .tone-contrast {
     --ground: var(--ground-loud);
+    --hole: var(--ground);
     --surface: var(--l-surface);
     --fg: var(--l-fg);
     --fg-muted: var(--l-fg-muted);
@@ -434,7 +464,6 @@
     --mark: var(--l-mark);
     --rule-color: var(--l-rule);
     --ring-color: var(--l-accent);
-    --grid-line: var(--l-grid);
     --code-scrim: var(--l-code-scrim);
   }
 
@@ -583,58 +612,108 @@
   }
 
   /*
-   * The measurement grid — deliberately scoped to the hero alone, not applied
-   * page-wide.
-   *
-   * It ran behind every section once, and behind six long case studies and a
-   * full résumé it stopped being texture and started being noise competing
-   * with the text. Establishing the ruling under the hero and then dropping it
-   * says the same thing with one gesture instead of eight: the drawing paper
-   * introduces the work, then gets out of its way.
-   *
-   * `background-attachment: fixed` still matters here — it keeps the ruling
-   * aligned to the viewport rather than to the element, so it reads as paper
-   * the page sits on rather than as a texture bolted to one box.
-   *
-   * Suppressed under `prefers-reduced-transparency` and in print, where it is
-   * just toner.
-   */
-  .blueprint-grid {
-    background-image:
-      linear-gradient(to right, var(--grid-line) var(--rule), transparent var(--rule)),
-      linear-gradient(to bottom, var(--grid-line) var(--rule), transparent var(--rule));
-    background-size: var(--grid-step) var(--grid-step);
-    background-attachment: fixed;
-  }
-
-  @media (prefers-reduced-transparency: reduce) {
-    .blueprint-grid {
-      background-image: none;
-    }
-  }
-
-  /*
    * The sky: one backdrop behind the whole page in both themes, so it is
    * painted on `body` and the quiet sections let it show through
    * (`.section-ground` below). Each theme only supplies `--sky`, so the no-JS
-   * night path needs nothing here. This rule lives in `components` because
-   * `.blueprint-grid` (also on `body`) does, and `:root body` outranks it. It
-   * replaces the grid on `body` only: the hero's own `.blueprint-grid` is a
-   * different element and still draws its fixed ruling over the sky. `fixed`
-   * pins the sky to the viewport, so it is continuous across sections and
-   * simply scrolls with the page where unsupported.
+   * night path needs nothing here. `fixed` pins the sky to the viewport, so it
+   * is continuous across sections and simply scrolls with the page where
+   * unsupported. `.sky-fill` (the sticky header) shares the declarations, so
+   * the header paints exactly the pixels of the sky behind it.
    */
-  :root body {
+  :root body,
+  .sky-fill {
     background-image: var(--sky);
     background-size: 100% 100%;
     background-attachment: fixed;
+  }
+
+  /* Scenery paint: `--art` is set per element by `Drawing`. `scene-ink` is a
+     mask coloured by the caller's `text-*`; `scene-art` keeps its own colours. */
+  .scene-ink {
+    background-color: currentColor;
+    mask: var(--art) no-repeat center / contain;
+    pointer-events: none;
+  }
+
+  .scene-art {
+    background: var(--art) no-repeat center / contain;
+    pointer-events: none;
+  }
+
+  /* A shipping tag's cut corners. Only ever on a tag's paper, never on a
+     focusable element. A focusable inside the paper keeps its ring (2px +
+     3px offset) only if it clears every edge by 5px and sits below the
+     22px corner cut. */
+  .tag-cut {
+    clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%, 0 22px);
+  }
+
+  /* Below 1024 the hero's chapter tags hang off the line down the middle
+     (Hero.tsx draws it, 18px from each tag): a short string from the line to
+     a clothespin 18px in from the tag's near corner. Each tag tilts about the
+     point where its string meets the line, so the tilt never parts them. */
+  @media (width < 64rem) {
+    [data-hero-step="line"] > li {
+      transform-origin: calc(100% + 18px) 4px;
+    }
+    [data-hero-step="line"] > li:nth-child(even) {
+      transform-origin: -18px 4px;
+    }
+    [data-hero-step="line"] > li::before,
+    [data-hero-step="line"] > li::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+    [data-hero-step="line"] > li::before {
+      top: 4px;
+      right: -18px;
+      width: 36px;
+      height: 20px;
+      background: linear-gradient(
+        to bottom right,
+        transparent calc(50% - 0.65px),
+        var(--twine) 0 calc(50% + 0.65px),
+        transparent 0
+      );
+    }
+    [data-hero-step="line"] > li:nth-child(even)::before {
+      right: auto;
+      left: -18px;
+      background: linear-gradient(
+        to top right,
+        transparent calc(50% - 0.65px),
+        var(--twine) 0 calc(50% + 0.65px),
+        transparent 0
+      );
+    }
+    [data-hero-step="line"] > li::after {
+      z-index: 10;
+      top: 12px;
+      right: 14px;
+      width: 8px;
+      height: 22px;
+      background: url(/scenery/clothespin.svg) center / 100% 100% no-repeat;
+    }
+    [data-hero-step="line"] > li:nth-child(even)::after {
+      right: auto;
+      left: 14px;
+    }
+  }
+
+  .day-only {
+    display: var(--show-day);
+  }
+
+  .night-only {
+    display: var(--show-night);
   }
 
   /*
    * A section's own ground. Only `tone-contrast` paints it; the quiet tones
    * (`base`, `deep`) are transparent in both themes so the sky shows through.
    * `--ground` itself stays a flat colour for anything that needs a solid fill
-   * (the header, the companion's cut-outs).
+   * (the companion's cut-outs).
    */
   .section-ground {
     background-color: var(--ground);
@@ -740,7 +819,7 @@
    * construction — a monospace face has exactly one advance width for every
    * glyph, digits included, so there is no proportional-width figure for
    * `font-variant-numeric` to fix. The same is true of most of the site's
-   * other figures (case-study numerals, the hero terminal, MetricHighlights'
+   * other figures (case-study numerals, the hero's tags, MetricHighlights'
    * headline value); the explicit utility only earns its place on the
    * handful of *sans* figures — MetricTable and the footer copyright — where
    * digits would otherwise sit at their proportional widths beside letters
@@ -1054,15 +1133,14 @@
   /* fully rendered at its final state, matching every other pre-reveal      */
   /* state on the page.                                                     */
   /*                                                                        */
-  /* LCP guard: the h1 and the terminal card use `ink-rise`                 */
-  /* (transform-only) rather than `ink-fade-rise`. An element that starts   */
-  /* at `opacity: 0` delays the browser's own LCP timestamp until the       */
-  /* animation finishes; a transform does not, because the element is       */
-  /* painted (just offset by up to 10px) from frame one. The h1 is the LCP  */
-  /* candidate this protects. The terminal is not fully painted from frame  */
-  /* one: `term-type` clips each `whoami` line in turn. Each line is its    */
-  /* own small block of text, so none outgrows the h1 as a candidate:      */
-  /* confirmed, LCP is `h1#hero-heading` (2404 ms, R20-P3 perf row).        */
+  /* LCP guard: the h1 and the field tag use `ink-rise` (transform-only)    */
+  /* rather than `ink-fade-rise`. An element that starts at `opacity: 0`    */
+  /* delays the browser's own LCP timestamp until the animation finishes;   */
+  /* a transform does not, because the element is painted (just offset by   */
+  /* up to 10px) from frame one. The sky SVG behind the hero is the LCP     */
+  /* element (preloaded by THEME_SCRIPT); the h1 and the field tag are the  */
+  /* large text candidates, so they rise without a fade: if either wins    */
+  /* LCP, it still paints at frame one.                                     */
   /* ---------------------------------------------------------------------- */
   @keyframes ink-rise {
     from {
@@ -1090,52 +1168,27 @@
       animation-fill-mode: both;
     }
 
-    /* Timeline, ~850ms end to end. Two parallel tracks — the identity
-       column (eyebrow -> h1 -> intro -> actions) and the terminal card —
-       then the scroll cue closes the sequence out. */
-    html[data-motion] [data-hero-step="eyebrow"] {
-      animation-name: ink-fade-rise;
-      animation-delay: 0ms;
-    }
+    /* The identity column (h1 -> intro -> actions), then the line of
+       tags and my field tag, done by ~0.7s. */
     html[data-motion] [data-hero-step="h1"] {
       animation-name: ink-rise; /* LCP guard — see the block comment above */
-      animation-delay: 40ms;
+      animation-delay: 0ms;
     }
     html[data-motion] [data-hero-step="intro"] {
       animation-name: ink-fade-rise;
-      animation-delay: 90ms;
+      animation-delay: 50ms;
     }
     html[data-motion] [data-hero-step="meta-actions"] {
       animation-name: ink-fade-rise;
-      animation-delay: 140ms;
+      animation-delay: 100ms;
     }
-    html[data-motion] [data-hero-step="code"] {
-      animation-name: ink-rise; /* LCP guard — see the block comment above */
+    html[data-motion] [data-hero-step="line"] {
+      animation-name: ink-fade-rise;
       animation-delay: 120ms;
     }
-    html[data-motion] [data-hero-step="scroll"] {
-      animation-name: ink-fade-rise;
-      animation-delay: 550ms;
-    }
-  }
-
-  /* The hero terminal's `whoami` types once (HeroTerminal.tsx, TypeOnce.tsx).
-     A clip, not a text change: every character is in the DOM from the first
-     paint and the line box never changes size, so there is no layout shift.
-     Under reduced motion the rule never applies and the lines are whole. */
-  @keyframes term-type {
-    from {
-      clip-path: inset(0 100% 0 0);
-    }
-    to {
-      clip-path: inset(0 0 0 0);
-    }
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    [data-typing] [data-type-line] {
-      animation: term-type 0.6s steps(28) both;
-      animation-delay: calc(var(--line) * 120ms);
+    html[data-motion] [data-hero-step="field-tag"] {
+      animation-name: ink-rise; /* LCP guard — see the block comment above */
+      animation-delay: 160ms;
     }
   }
 

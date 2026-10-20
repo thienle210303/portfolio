@@ -187,11 +187,11 @@ function besideRect(
 }
 
 /* -------------------------------------------------------------------------- */
-/* Hero: on the scroll-cue row                                                 */
+/* Hero: beside the actions row                                                */
 /* -------------------------------------------------------------------------- */
 
-/** `Hero.tsx`'s scroll-cue row — the one-liner adds `data-cat-perch` to it,
- *  which is the whole of what this mood needs from that file. */
+/** The hero's actions row (`HeroIdentity.tsx`) carries `data-cat-perch`, which
+ *  is the whole of what this mood needs from that file. */
 function heroMood(lead: Point, follow: Point, home: Point): MoodPlan | null {
   const rect = rectOf(document.querySelector("[data-cat-perch]"));
   if (!rect) return null;

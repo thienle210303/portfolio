@@ -93,9 +93,6 @@ export function Section({
       aria-labelledby={labelledBy}
       {...(reveal ? { "data-ink-root": "" } : {})}
       className={cn(
-        // No ruled grid here by default — see the note on `.blueprint-grid` in
-        // globals.css. Only the hero opts in, by passing the class through
-        // `className`.
         "hairline-t scroll-mt-20 section-ground py-[var(--section-y)]",
         TONE_CLASS[tone],
         className,

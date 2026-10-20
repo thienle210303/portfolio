@@ -974,7 +974,16 @@ test.describe("companion", () => {
         // crossed a boundary a moment ago is legitimately still wearing the
         // section it came from — `steady` is what tells the caller it is
         // looking at a settled answer rather than at the sampling interval.
-        const before = drawings().map((node) => under(node)?.closest("section")?.id ?? null);
+        // A boundary is whatever `syncTone` keys on: the section, and (night's
+        // lantern paper) whether a `.bg-surface` card is behind. Keying on the
+        // section alone let a cat walking onto the business card be read
+        // mid-crossing, still in the sky's pale ink: 1.8:1, half the runs.
+        const zone = (node: Element) => {
+          const behind = under(node);
+          const section = behind?.closest("section")?.id ?? null;
+          return `${section}|${behind?.closest(".bg-surface") != null}`;
+        };
+        const before = drawings().map(zone);
         await new Promise((resolve) => setTimeout(resolve, 400));
 
         return drawings().map((node, index) => {
@@ -984,7 +993,7 @@ test.describe("companion", () => {
           const ground = behind
             ? channels(getComputedStyle(behind).getPropertyValue("--ground"))
             : null;
-          const steady = section !== null && section === before[index];
+          const steady = section !== null && zone(node) === before[index];
           if (!ink || !ground) return { section, steady, ratio: null };
           const light = Math.max(relative(ink), relative(ground));
           const dark = Math.min(relative(ink), relative(ground));
@@ -2074,10 +2083,11 @@ test.describe("companion", () => {
   test("on load, in About, neither cat comes to rest on the hero's text", async ({ page }) => {
     /*
      * Round 18 put the About paragraphs in the fold, which ran it past the first
-     * screen with the hero mood's anchor — the `data-cat-perch` Scroll row —
-     * below it. Round 20 Phase 3 took them out: the hero is 466 px tall at
-     * 1440×900, and the Scroll row is inside the first screen at both of these
-     * sizes. The test still holds either way. Nothing is touched:
+     * screen with the hero mood's anchor — the `data-cat-perch` row —
+     * below it. Round 20 Phase 3 took them out. Since round 21 the perch is
+     * the hero's actions row (Start with where I'm from, Book a call with
+     * me): about 720–766 px down at 1440×900 and 321–427 px at 390×844, inside
+     * the first screen at both of these sizes. The test still holds either way. Nothing is touched:
      * this is what a visitor who has just arrived sees. The first standing
      * sample is the one judged (see `expectRestClearOfContent`), feet and belly
      * and then the head band.

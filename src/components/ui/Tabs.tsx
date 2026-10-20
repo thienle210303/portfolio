@@ -14,7 +14,8 @@ interface TabsProps {
   readonly tabs: readonly TabItem[];
   readonly idPrefix: string;
   /** Uppercase, tracked labels — the default. `false` sets them as typed, for
-   *  labels that are commands (the hero terminal's `whoami`). */
+   *  labels that are commands (the retired hero terminal's `whoami` was the
+   *  one caller). */
   readonly caps?: boolean;
 }
 

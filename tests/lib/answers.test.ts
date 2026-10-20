@@ -135,22 +135,33 @@ describe("answer", () => {
       );
     }
     // The only documents allowed to have no section are the skills evidence
-    // lines and `profile.about`'s paragraphs, because neither is rendered
-    // anywhere on the page. Pinned exactly, in both directions, so a new
+    // lines, `profile.about`'s paragraphs and `profile.focus`, because none is
+    // rendered anywhere on the page. Pinned exactly, in both directions, so a new
     // sectionless document has to be argued for and so this loop cannot quietly
     // skip every document.
     expect(sectionless.sort()).toEqual(
-      [...skillsIndexable.map((category) => category.evidence), ...profile.about, companionsText()].sort(),
+      [
+        ...skillsIndexable.map((category) => category.evidence),
+        ...profile.about,
+        profile.focus,
+        companionsText(),
+      ].sort(),
     );
     expect(sectionless.length).toBeGreaterThan(0);
-    // What cites About is what #about prints: the positioning paragraph and the
-    // terminal's focus line (tests/sections/Hero.test.tsx holds both), plus the
-    // origin flight, whose `from` the terminal prints.
+    // What cites About is what #about prints: the positioning paragraph
+    // (tests/sections/Hero.test.tsx holds it), plus the origin flight, whose
+    // `from` the field tag prints.
     expect(buildDocuments().filter((doc) => doc.sectionId === "about").map((doc) => doc.text)).toEqual([
       profile.positioning,
-      profile.focus,
       `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
     ]);
+  });
+
+  it("focus is indexed but cited nowhere", () => {
+    // The terminal that printed it is gone; nothing on the page prints it now.
+    const focus = buildDocuments().filter((doc) => doc.text === profile.focus);
+    expect(focus).toHaveLength(1);
+    expect(focus[0].sectionId).toBeUndefined();
   });
 
   it("cites no compatibility anchor, only a real section", () => {
@@ -300,10 +311,11 @@ describe("answer", () => {
     // "someone who isn't a CS major" must not outrank the About documents.
     const results = answer("who is he", 6);
     expect(results.length).toBeGreaterThan(0);
-    // About's own paragraphs answer it too; they are indexed with no section
-    // because the hero no longer prints them.
+    // About's own paragraphs and `focus` answer it too; they are indexed with
+    // no section because the hero no longer prints them.
     for (const result of results) {
-      const fromAbout = result.sectionId === "about" || profile.about.includes(result.text);
+      const fromAbout =
+        result.sectionId === "about" || profile.about.includes(result.text) || result.text === profile.focus;
       expect(fromAbout, `"${result.text.slice(0, 50)}…" answered an identity question`).toBe(true);
     }
   });

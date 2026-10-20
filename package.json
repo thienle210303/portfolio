@@ -12,6 +12,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "contrast": "node scripts/contrast.mjs",
+    "draw:scenery": "node scripts/draw-scenery.mjs",
     "perf": "node scripts/perf.mjs",
     "lag": "node scripts/lag.mjs",
     "test": "vitest run",

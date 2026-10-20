@@ -3,9 +3,9 @@ import { test, expect, type Page } from "@playwright/test";
 /**
  * SPEC §3 (responsive contract): zero page-level horizontal overflow at
  * every configured viewport (320/375/390/768/1024/1440 — see
- * playwright.config.ts), the hero code panel scrolls inside itself, and the
- * page stays usable at simulated 200% zoom. This file runs once per project
- * (one project per viewport) via playwright.config.ts's project matrix.
+ * playwright.config.ts), and the page stays usable at simulated 200% zoom.
+ * This file runs once per project (one project per viewport) via
+ * playwright.config.ts's project matrix.
  */
 
 const OVERFLOW_TOLERANCE_PX = 1;
@@ -55,7 +55,7 @@ interface Offender {
 
 /** Sweeps every rendered element for one whose right edge pokes past the
  * viewport, skipping: elements inside a container that is allowed to
- * scroll/clip internally (the hero code panel, CodeBlocks generally), and
+ * scroll/clip internally (the hero's scenery, CodeBlocks generally), and
  * elements deliberately parked off-canvas to the left (the honeypot field,
  * the skip link before it receives focus). */
 async function findHorizontalOverflowOffenders(page: Page): Promise<Offender[]> {
@@ -110,20 +110,6 @@ test("no element visibly overflows the viewport horizontally", async ({ page }) 
   expect(offenders, `overflowing elements: ${JSON.stringify(offenders, null, 2)}`).toEqual([]);
 });
 
-test("hero terminal panel wraps inside itself, never widening the page", async ({ page }) => {
-  // The default `whoami` panel is present without any interaction. Long
-  // values wrap in place (`white-space: pre-wrap`, with `overflow-wrap:
-  // anywhere` so even an unbreakable token can't widen it); none of that may
-  // escape into page-level horizontal overflow.
-  const pre = page.locator("#about").getByRole("tabpanel").locator("pre");
-  await expect(pre).toBeVisible();
-  const whiteSpace = await pre.evaluate((el) => getComputedStyle(el).whiteSpace);
-  expect(whiteSpace, "hero terminal must wrap long lines (white-space: pre-wrap) instead of scrolling").toBe(
-    "pre-wrap",
-  );
-  await assertNoPageOverflow(page);
-});
-
 test("stays free of horizontal overflow at simulated 200% zoom", async ({ page }) => {
   const viewport = page.viewportSize() ?? { width: 1440, height: 900 };
   await page.setViewportSize({
@@ -133,3 +119,19 @@ test("stays free of horizontal overflow at simulated 200% zoom", async ({ page }
   await scrollThroughPage(page);
   await assertNoPageOverflow(page);
 });
+
+// Below 1024 the hero's clothesline hangs down the page from a bamboo pole at
+// the right edge; the pole and its hat run past the hero's edge, which clips
+// them. Pinned widths, so it runs once.
+for (const width of [320, 360, 390, 414, 600, 768]) {
+  test(`the hero's phone line adds no horizontal overflow at ${width}`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    await page.setViewportSize({ width, height: 900 });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await scrollThroughPage(page);
+    await assertNoPageOverflow(page);
+    const offenders = await findHorizontalOverflowOffenders(page);
+    expect(offenders, `overflowing elements: ${JSON.stringify(offenders, null, 2)}`).toEqual([]);
+  });
+}
