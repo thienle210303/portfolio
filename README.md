@@ -9,8 +9,8 @@ that turn over to my line about each, with my field tag (and its LinkedIn QR) at
 with five measured tags hanging from it, a drawn career tree that grows on
 "Watch it grow", and a timeline of rows that open one at a time, with the case studies inside them (in the rows of the roles that
 produced them, or after the timeline for the coursework); and **Contact**: a
-business card with every way to reach him (copy the email, save a vCard) that
-flips over to a short lead form (a name, plus an email or phone), beside a chat that
+business card with every way to reach him (copy the email, save a vCard) beside a
+postcard that is a short lead form (a name, plus an email or phone), above a chat that
 answers only from what's written for the site: by default his words as
 written, or a few of them joined into one line, each with its source and no model; in
 live mode a model writes the answer from just those passages. The résumé is its own route
@@ -277,8 +277,8 @@ metrics. When it changes, reconcile `careerEntries`, `education`,
 
 ## Contact form configuration
 
-Contact's form is the back of the business card: a name, then an email or a
-phone (at least one), and no message. The card's front also offers the email
+Contact's form is the address side of a postcard beside the business card: a name, then an email or a
+phone (at least one), and no message. The card also offers the email
 with a copy button, GitHub, LinkedIn, the résumé, a "Save contact" vCard
 (`/contact.vcf`, built from `profile`) and, when `BOOKING_URL` is valid, a
 booking link — so there is always a way to reach him without the form.

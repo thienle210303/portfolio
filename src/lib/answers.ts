@@ -303,13 +303,13 @@ export function answer(question: string, limit = 3): readonly Answer[] {
 }
 
 /** Questions worth offering as one-tap buttons, so the common case needs no
- *  typing at all. Each is checked by a test to actually return something. */
+ *  typing at all. First person, like every word on the page (docs/voice.md
+ *  rule 7), and worded for the tokenizer: "Where are you from?" is all stop
+ *  words and returns nothing. tests/lib/answers.test.ts pins each to its
+ *  answer's source and section. */
 export const SUGGESTED_QUESTIONS: readonly string[] = [
-  "What does he do at DoorDash?",
-  "What has he actually measured?",
-  "What did he learn from work that failed?",
-  "How does he use AI agents?",
-  "Where did he study?",
-  "Where is he originally from?",
-  "How does he approach a problem?",
+  "What do you do at DoorDash?",
+  "Are you from Việt Nam?",
+  "What have you measured?",
+  "What are your cats called?",
 ];

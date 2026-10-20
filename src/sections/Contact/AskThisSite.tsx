@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { CornerDownLeft, Loader2 } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 import { answer, SUGGESTED_QUESTIONS, type Answer, type Citation } from "@/lib/answers";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -26,17 +26,16 @@ import {
  * round 15 this lived as a static import inside the AI Workflow Lab section;
  * rounds 16 and 17 put it behind an "Ask Thien" tab in the hero's code
  * artifact (deleted in round 20); since round 18
- * it lives in Contact, under "Ask about my work" (`#ask`), because a visitor
+ * it lives in Contact, under "Ask me" (`#ask`), because a visitor
  * asking the record a question is making contact with less effort. Either
  * way it is reached by a dynamic `import()` (see `AskLoader.tsx`), so the
  * chat engine never rides along in the page's initial JavaScript.
  *
- * It looks unlike the sections around it on purpose. Everything else on the
- * page is a document being read; this is an instrument being operated, so it
- * gets a raised panel, a terminal-ish prompt line and answers that arrive as
- * quoted evidence rather than as prose. That contrast is the point: a visitor
- * should be able to tell at a glance that this is the one part of the page
- * that answers back.
+ * Round 21 lays it out as the postcard board's strip, two halves on one
+ * sheet of paper: on the left, the heading `AskLoader` hands down and the
+ * thread, each turn a "you asked / I said" pair with the answer's source; on
+ * the right, the question line, a round Ask and "or try" questions as small
+ * paper tags. Below 1024px the halves stack in that order.
  *
  * ## Two engines, one thread
  *
@@ -109,13 +108,17 @@ import {
  * same retrieval, handed to a model instead of read straight off the page.
  */
 
-const NOTHING_FOUND =
-  "Nothing written for this site answers that. Answers here come only from what’s written for it, so I’d rather say so than guess.";
+const NOTHING_FOUND = "I haven’t written anything here that answers that, so I’d rather say so than guess.";
 
 /** Shown before the first question — the thread's resting state, rather
  *  than a blank gap above the input. */
-const IDLE_HINT =
-  "No question asked yet. Pick one below, or type your own — the answer lands here with its source, and a link to the section it belongs to when there is one. Ask a follow-up any time; the whole conversation stays on screen.";
+const IDLE_HINT = "No question asked yet.";
+
+/** The thread's resting answer: what I promise about every answer. */
+const PROMISE =
+  "Pick a question or ask your own. Every answer is something I’ve written here, as written or a few lines of it joined into one, with where it came from. No model, nothing generated. If I haven’t written it down, I’ll say so.";
+const PROMISE_LIVE =
+  "Pick a question or ask your own. I find what I’ve written here the same way as always; a live model then writes the answer from exactly that, and says so.";
 
 const LIVE_UPSTREAM_FAILED =
   "The live model didn't answer that time — nothing was sent anywhere that shouldn't have been, it just failed to respond. Try again, or ask something else.";
@@ -130,6 +133,9 @@ interface Props {
   /** Computed once, server-side, in `page.tsx`. Never mutates for the life
    *  of the page load. */
   readonly liveModeConfigured: boolean;
+  /** "Ask me" and its note, rendered on the server by Contact and handed
+   *  down through `AskLoader`, so it shows before the chat arrives. */
+  readonly heading?: ReactNode;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -232,18 +238,18 @@ function recentHistory(turns: readonly Turn[]): Array<{ question: string; answer
  */
 function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
   return (
-    <ol role="list" aria-label="Sourced answers" className="flex flex-col gap-5">
+    <ol role="list" aria-label="Sourced answers" className="flex flex-col gap-3">
       {results.map((result) => (
-        <li key={result.text} className="border-l-2 border-accent pl-4">
-          <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg">
-            {result.text}
-          </p>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="eyebrow">{result.source}</span>
+        <li key={result.text}>
+          <p className="text-[15px] leading-[1.45] text-fg">{result.text}</p>
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="font-mono text-[11.5px] text-fg-muted">
+              from: <span>{result.source}</span>
+            </span>
             {result.sectionId !== undefined && result.sectionLabel !== undefined ? (
               <a
                 href={`#${result.sectionId}`}
-                className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
+                className="font-mono text-[11.5px] text-accent underline underline-offset-4 hover:decoration-2"
               >
                 More on this in {result.sectionLabel} &rarr;
               </a>
@@ -262,9 +268,7 @@ function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
 function LiveProseAnswer({ text, citations }: { readonly text: string; readonly citations: readonly Citation[] }) {
   return (
     <div>
-      <p className="prose-measure border-l-2 border-accent pl-4 text-[length:var(--step-0)] leading-relaxed text-fg">
-        {text}
-      </p>
+      <p className="text-[15px] leading-[1.45] text-fg">{text}</p>
       {citations.length > 0 ? (
         <div className="mt-4">
           <p className="eyebrow">Grounded in</p>
@@ -373,7 +377,7 @@ function HowThisAnswers({ id, liveModeConfigured }: { readonly id: string; reado
           <p className="mt-3 text-[length:var(--step--1)] leading-relaxed text-fg-muted">
             Live mode changes exactly one thing: the same ranked passages are handed to a real
             model instead of quoted straight onto the page. The model sees only what retrieval
-            found — nothing else about this site, and nothing from outside it — and is told to
+            found — nothing else about me, and nothing from outside this page — and is told to
             decline rather than guess when the passages don&rsquo;t actually answer the question.
           </p>
         ) : null}
@@ -396,6 +400,9 @@ function HowThisAnswers({ id, liveModeConfigured }: { readonly id: string; reado
 /* One turn                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/** "you asked" / "I said": the mono labels down the left of every turn. */
+const TURN_LABEL = "font-mono text-[12px] text-fg-muted";
+
 function TurnItem({
   turn,
   turnNumber,
@@ -409,29 +416,22 @@ function TurnItem({
   const filename = answerFilename(turnNumber);
 
   return (
-    <li className="min-w-0 border-t border-rule pt-6 first:border-t-0 first:pt-0">
-      <p className="prose-measure font-mono text-[length:var(--step-0)] text-fg">
-        <span aria-hidden="true" className="mr-2 text-accent">
-          &rsaquo;
-        </span>
-        {turn.question}
-      </p>
+    <li className="grid min-w-0 grid-cols-[4.75rem_minmax(0,1fr)] items-baseline gap-y-1.5 border-t border-dashed border-rule pt-4 first:border-t-0 first:pt-0">
+      <span className={TURN_LABEL}>you asked</span>
+      <p className="text-[15px] font-semibold text-fg">{turn.question}</p>
+      <span className={`${TURN_LABEL} text-accent`}>I said</span>
 
-      <div className="mt-4">
+      <div className="min-w-0">
         {turn.answer.kind === "pending" ? (
-          <p className="flex items-center gap-2 text-[length:var(--step-0)] text-fg-muted">
+          <p className="flex items-center gap-2 text-[15px] text-fg-muted">
             <Loader2 aria-hidden="true" focusable="false" size={16} className="animate-spin motion-reduce:animate-none" />
             Asking the live model&hellip;
           </p>
         ) : turn.answer.kind === "failed" ? (
-          <p className="prose-measure border-l-2 border-rule pl-4 text-[length:var(--step-0)] leading-relaxed text-fg-muted">
-            {turn.answer.message}
-          </p>
+          <p className="text-[15px] leading-[1.45] text-fg-muted">{turn.answer.message}</p>
         ) : turn.answer.kind === "static" ? (
           turn.answer.results.length === 0 ? (
-            <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
-              {NOTHING_FOUND}
-            </p>
+            <p className="text-[15px] leading-[1.45] text-fg-muted">{NOTHING_FOUND}</p>
           ) : (
             <Tabs
               label="Answer view"
@@ -453,9 +453,7 @@ function TurnItem({
             <p className="mb-2">
               <span className="eyebrow">Declined — nothing to ground it in</span>
             </p>
-            <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
-              {turn.answer.text}
-            </p>
+            <p className="text-[15px] leading-[1.45] text-fg-muted">{turn.answer.text}</p>
           </div>
         ) : (
           <div>
@@ -582,7 +580,7 @@ export function clearThreadCache(): void {
   threadCache.nextId = 0;
 }
 
-export default function AskThisSite({ liveModeConfigured }: Props) {
+export default function AskThisSite({ liveModeConfigured, heading }: Props) {
   const fieldId = useId();
   const threadId = useId();
   const viewId = useId();
@@ -744,169 +742,137 @@ export default function AskThisSite({ liveModeConfigured }: Props) {
   return (
     // `data-ask-chat`: globals.css gives this root the same min-height the
     // loader's placeholder had, so the chat landing does not move the page.
-    <div data-ask-chat="" className="border border-rule bg-surface">
-      {/* Prompt bar. The one place on the site that borrows a terminal's
-          vocabulary, because this is the one place that takes a command. */}
-      <div className="flex items-center gap-2 border-b border-rule px-4 py-2.5">
-        <span aria-hidden="true" className="font-mono text-[length:var(--step--1)] text-accent">
-          ?
-        </span>
-        <span className="eyebrow">Ask this site</span>
-        {liveModeConfigured ? (
-          <span className="ml-auto font-mono text-[length:var(--step--2)] uppercase tracking-[0.08em] text-accent">
-            Live mode
-          </span>
-        ) : null}
-      </div>
+    // Below 1024 the halves stack and whatever room is left over goes to the
+    // compose half (`1fr`), never as a gap inside the thread.
+    <div data-ask-chat="" className="grid grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-none">
+      <div className="min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px] lg:border-r lg:border-dashed lg:border-rule">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          {heading}
+          {liveModeConfigured ? (
+            <span className="font-mono text-[11.5px] tracking-[0.08em] text-accent uppercase">Live mode</span>
+          ) : null}
+        </div>
 
-      <div className="p-4 sm:p-6">
-        <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-muted">
-          {liveModeConfigured
-            ? "Ask about the work, his background, or how he thinks. Retrieval runs the same way it always does; a live model composes the answer from exactly what it found, and says so."
-            : "Every answer below comes from what’s written for this site — his words as written, or a few of them joined into one line — with its source. No model, nothing generated. If it isn’t written down, you’re told so."}
-        </p>
+        {turns.length > 0 ? (
+          <div className="mt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={handleClear}
+              className="min-h-11 px-1 font-mono text-[12px] text-fg-muted transition-colors duration-200 hover:text-accent"
+            >
+              Clear conversation
+            </button>
+          </div>
+        ) : null}
+
+        {/*
+          The scroll window. A fixed 22rem (352px) shows the newest turn in
+          full and a little of the one above it, so the thread reads as a
+          conversation and never grows the page however many questions are
+          asked, not even while the first few turns fill it (round 12: "if I click multiple buttons it just keeps
+          stacking up on the page").
+
+          `role="log"` announces new turns politely without repeating the
+          old ones. `tabIndex={0}` only once there is something to scroll,
+          which gives the region its own tab stop without trapping focus;
+          the field's `aria-controls` points here.
+        */}
+        <div
+          ref={logRef}
+          id={threadId}
+          role="log"
+          aria-label="Conversation thread"
+          aria-live="polite"
+          tabIndex={turns.length > 0 ? 0 : undefined}
+          className={cn("min-w-0 overflow-y-auto overscroll-contain", turns.length > 0 ? "h-[22rem] max-h-[22rem]" : "mt-3")}
+        >
+          {turns.length === 0 ? (
+            <div className="grid grid-cols-[4.75rem_minmax(0,1fr)] items-baseline gap-y-1.5">
+              <span className={TURN_LABEL}>you asked</span>
+              <p className="text-[15px] text-fg-muted">{IDLE_HINT}</p>
+              <span className={`${TURN_LABEL} text-accent`}>I said</span>
+              <p className="text-[15px] leading-[1.45] text-fg">{liveModeConfigured ? PROMISE_LIVE : PROMISE}</p>
+            </div>
+          ) : (
+            <ol role="list" aria-label="Conversation" className="flex flex-col gap-4">
+              {turns.map((turn, index) => (
+                <TurnItem key={turn.id} turn={turn} turnNumber={index + 1} viewId={viewId} />
+              ))}
+            </ol>
+          )}
+        </div>
 
         <div className="mt-4">
           <HowThisAnswers id={`${viewId}-how-this-answers`} liveModeConfigured={liveModeConfigured} />
         </div>
+      </div>
 
-        <div className="mt-8 border-t border-rule pt-6">
-          {turns.length > 0 ? (
-            <div className="flex items-center justify-between gap-4">
-              <p className="eyebrow">Conversation</p>
-              <button
-                type="button"
-                onClick={handleClear}
-                className="min-h-11 px-2 font-mono text-[length:var(--step--1)] text-fg-muted transition-colors duration-200 hover:text-accent"
-              >
-                Clear conversation
-              </button>
-            </div>
-          ) : null}
-
-          {/*
-            The scroll window itself. `max-h-[22rem]` (352px) is sized to
-            what one turn actually takes up at this type scale: the question
-            line (~step-0, one row) plus its `mt-4`, the Prose/Code tablist
-            (`min-h-11` row plus its own `pt-6`), and one short answer — a
-            couple of lines of prose plus its source/link line — run close
-            to 210px end to end. 352px comfortably shows the newest turn in
-            full plus roughly half of the one above it: enough to read as a
-            conversation rather than a single flashcard, and short enough
-            that the thread never grows past a fixed patch of the page no
-            matter how many questions get asked — the owner's report this
-            round was literal: "if I click multiple buttons it just keeps
-            stacking up on the page".
-
-            `role="log"` is the ARIA role built for a region whose new
-            content is worth announcing (`aria-live="polite"`, same reason
-            the whole thread carried it before this became scrollable) but
-            whose already-read content a screen reader should not repeat.
-            `tabIndex={0}` only once there is something to scroll — an idle,
-            empty log is just the hint paragraph below, with nothing to
-            reach by keyboard that isn't already reachable — and gives the
-            region its own stop in the tab order without trapping focus:
-            Tab still moves on to whatever a turn's own content makes
-            focusable (a source link, an "Answer view" tab), then past the
-            region entirely to the compose area below, same as any other
-            element in normal document order. `id={threadId}` keeps the
-            input's `aria-controls` pointed at the region it actually
-            updates, now that "the rest of the page below the form" is no
-            longer an accurate description of it.
-          */}
-          <div
-            ref={logRef}
-            id={threadId}
-            role="log"
-            aria-label="Conversation thread"
-            aria-live="polite"
-            tabIndex={turns.length > 0 ? 0 : undefined}
-            className={cn(
-              "mt-4 min-w-0 overflow-y-auto overscroll-contain",
-              turns.length > 0 && "max-h-[22rem]",
-            )}
-          >
-            {turns.length === 0 ? (
-              <p className="prose-measure text-[length:var(--step-0)] leading-relaxed text-fg-subtle">
-                {IDLE_HINT}
-              </p>
-            ) : (
-              <ol role="list" aria-label="Conversation" className="flex flex-col gap-6">
-                {turns.map((turn, index) => (
-                  <TurnItem key={turn.id} turn={turn} turnNumber={index + 1} viewId={viewId} />
-                ))}
-              </ol>
-            )}
+      {/* The question line, the round Ask, and "or try" questions as paper tags. */}
+      <div className="flex min-w-0 flex-col gap-3 bg-ground px-5 pt-[18px] pb-5 sm:px-[26px]">
+        <form
+          className="flex items-end gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            ask(query);
+          }}
+        >
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <label htmlFor={fieldId} className="font-mono text-[12px] text-fg-muted">
+              Your question
+            </label>
+            {/* Not `disabled` while a live request is in flight, on purpose:
+                a disabled input is auto-blurred by the browser, which would
+                throw focus out of the visitor's hands mid-request. `ask()`
+                no-ops while `isBusy`, so Enter here is inert rather than
+                queuing a second question; the Ask button shows the state. */}
+            <input
+              id={fieldId}
+              ref={fieldRef}
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={turns.length === 0 ? "Ask about my work" : "Ask a follow-up"}
+              aria-controls={threadId}
+              className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 text-[16px] text-fg placeholder:text-fg-muted"
+            />
           </div>
-        </div>
+          {/* Moss, not the moss-deep control fill: the postcard's Send is
+              Contact's one primary control. */}
+          <button
+            type="submit"
+            disabled={isBusy}
+            className="inline-flex h-11 shrink-0 items-center rounded-full bg-accent px-[22px] text-[15px] font-semibold text-fg-inverse transition-opacity duration-200 hover:opacity-90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Ask
+          </button>
+        </form>
 
-        {/* The compose area: quick-start suggestions and the input, together
-            at the bottom of the panel — a visitor arriving fresh sees them
-            immediately below the idle hint, and a visitor mid-thread finds
-            them exactly where a chat app keeps its input. */}
-        <div className="mt-8 border-t border-rule pt-6">
-          <p className="eyebrow">Try asking</p>
-          <ul role="list" aria-label="Try asking" className="mt-3 flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-serif text-[14px] text-fg-muted italic">or try</span>
+          <ul role="list" aria-label="Try asking" className="contents">
             {SUGGESTED_QUESTIONS.map((question) => (
               <li key={question}>
+                {/* The paper is a span inside the button: a clipped
+                    element would clip its own focus ring. The button keeps
+                    a 44px target; the tag is 32px to the eye. */}
                 <button
                   type="button"
                   onClick={() => ask(question)}
                   disabled={isBusy}
-                  className={cn(
-                    "min-h-11 border border-rule px-3 py-1.5 text-left text-[length:var(--step--1)]",
-                    "text-fg-muted transition-colors duration-200",
-                    "hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50",
-                    lastAsked === question && "border-accent text-accent",
-                  )}
+                  className="group inline-flex min-h-11 items-center text-left disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {question}
+                  <span
+                    className={cn(
+                      "ask-tag inline-flex min-h-8 items-center py-1 pr-3 pl-[22px] text-[13.5px] text-fg transition-colors duration-200 group-hover:text-accent",
+                      lastAsked === question && "text-accent",
+                    )}
+                  >
+                    {question}
+                  </span>
                 </button>
               </li>
             ))}
           </ul>
-
-          <form
-            className="mt-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              ask(query);
-            }}
-          >
-            <label htmlFor={fieldId} className="sr-only">
-              Ask a question about this portfolio
-            </label>
-            <div className="flex items-center gap-2 border border-rule bg-ground px-3 focus-within:border-accent">
-              <span aria-hidden="true" className="font-mono text-[length:var(--step-0)] text-accent">
-                &rsaquo;
-              </span>
-              {/* Not `disabled` while a live request is in flight, on purpose:
-                  a disabled input is auto-blurred by the browser, which would
-                  throw focus out of the visitor's hands mid-request — exactly
-                  what "keep focus in hand" means to avoid. `ask()` itself
-                  already no-ops while `isBusy`, so Enter here is inert rather
-                  than queuing a second question; the submit button below
-                  still shows the disabled state visually. */}
-              <input
-                id={fieldId}
-                ref={fieldRef}
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={turns.length === 0 ? "or ask your own" : "ask a follow-up"}
-                aria-controls={threadId}
-                className="min-h-12 w-full bg-transparent font-mono text-[length:var(--step-0)] text-fg outline-none placeholder:text-fg-subtle"
-              />
-              <button
-                type="submit"
-                disabled={isBusy}
-                className="grid h-11 w-11 shrink-0 place-items-center text-fg-muted transition-colors duration-200 hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <CornerDownLeft aria-hidden="true" focusable="false" size={17} />
-                <span className="sr-only">Ask</span>
-              </button>
-            </div>
-          </form>
         </div>
       </div>
     </div>

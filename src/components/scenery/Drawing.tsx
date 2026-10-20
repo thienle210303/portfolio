@@ -17,25 +17,44 @@ export const INK_DRAWINGS = [
   "oak-moss",
   "oak-branch",
   "journey-rice",
+  // Contact
+  "postmark",
 ] as const;
 export type InkDrawing = (typeof INK_DRAWINGS)[number];
 
+/** Drawings that keep their own colours. */
+export const ART_DRAWINGS = [
+  "non-la",
+  // Contact
+  "lanterns-day",
+  "lanterns-night",
+  "postcard-scene",
+  "flag-stamp",
+  "pho",
+  "bia",
+  "banh-tet",
+  "paper-clip",
+] as const;
+export type ArtDrawing = (typeof ART_DRAWINGS)[number];
+
+const ART: ReadonlySet<string> = new Set(ART_DRAWINGS);
+
 /**
  * A committed scenery SVG from `public/scenery/`. Ink drawings are masks
- * coloured by the caller's `text-*` class; `non-la` keeps its own colours.
+ * coloured by the caller's `text-*` class; art drawings keep their own colours.
  */
 export function Drawing({
   name,
   className,
 }: {
-  readonly name: InkDrawing | "non-la";
+  readonly name: InkDrawing | ArtDrawing;
   readonly className?: string;
 }) {
   return (
     <span
       aria-hidden="true"
       data-scenery={name}
-      className={cn(name === "non-la" ? "scene-art" : "scene-ink", "block", className)}
+      className={cn(ART.has(name) ? "scene-art" : "scene-ink", "block", className)}
       style={{ "--art": `url(/scenery/${name}.svg)` } as CSSProperties}
     />
   );

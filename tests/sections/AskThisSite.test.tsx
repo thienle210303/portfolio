@@ -55,7 +55,7 @@ function conversationRegion() {
 }
 
 function questionField() {
-  return screen.getByRole("textbox", { name: "Ask a question about this portfolio" });
+  return screen.getByRole("textbox", { name: "Your question" });
 }
 
 let scrollToSpy: ReturnType<typeof vi.fn>;
@@ -100,7 +100,7 @@ describe("AskThisSite -- scrolling thread window", () => {
     const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
-    await user.click(screen.getByRole("button", { name: "Where did he study?" }));
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
 
     const region = conversationRegion();
     expect(region).toHaveAttribute("tabindex", "0");
@@ -117,7 +117,7 @@ describe("AskThisSite -- scrolling thread window", () => {
     const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
-    await user.click(screen.getByRole("button", { name: "Where did he study?" }));
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
 
     expect(scrollToSpy).toHaveBeenCalled();
     // Called on the log region itself -- not on a turn's own element, and
@@ -133,7 +133,7 @@ describe("AskThisSite -- scrolling thread window", () => {
     const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
-    await user.click(screen.getByRole("button", { name: "Where did he study?" }));
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
 
     const lastCall = scrollToSpy.mock.calls.at(-1)?.[0];
     expect(lastCall).toMatchObject({ behavior: "auto" });
@@ -143,7 +143,7 @@ describe("AskThisSite -- scrolling thread window", () => {
     const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
-    await user.click(screen.getByRole("button", { name: "What does he do at DoorDash?" }));
+    await user.click(screen.getByRole("button", { name: "What do you do at DoorDash?" }));
     await user.type(questionField(), "what is the capital of France");
     await user.keyboard("{Enter}");
 
@@ -153,7 +153,7 @@ describe("AskThisSite -- scrolling thread window", () => {
       (el) => el.parentElement === turns,
     );
     expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent("What does he do at DoorDash?");
+    expect(items[0]).toHaveTextContent("What do you do at DoorDash?");
     expect(items[1]).toHaveTextContent("what is the capital of France");
   });
 });
@@ -168,7 +168,7 @@ describe("AskThisSite -- Clear conversation", () => {
     const user = userEvent.setup({ delay: null });
     render(<AskThisSite liveModeConfigured={false} />);
 
-    await user.click(screen.getByRole("button", { name: "Where did he study?" }));
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
     const clearButton = screen.getByRole("button", { name: "Clear conversation" });
     expect(clearButton).toBeInTheDocument();
 
@@ -212,7 +212,7 @@ describe("thread persistence across unmount", () => {
     // they resolve to real, non-empty results -- the point of this test is
     // the two turns' own "Answer view" `Tabs` instances, which a no-results
     // turn never renders at all.
-    await user.click(screen.getByRole("button", { name: "What does he do at DoorDash?" }));
+    await user.click(screen.getByRole("button", { name: "What do you do at DoorDash?" }));
     await screen.findByRole("tablist", { name: "Answer view" });
 
     // An unmount (a `useRef(0)` counter would reset here, even
@@ -220,7 +220,7 @@ describe("thread persistence across unmount", () => {
     first.unmount();
     render(<AskThisSite liveModeConfigured={false} />);
 
-    await user.click(screen.getByRole("button", { name: "Where did he study?" }));
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
     await screen.findAllByRole("tablist", { name: "Answer view" });
 
     // Both turns are present, independently -- not reconciled into one
@@ -231,8 +231,8 @@ describe("thread persistence across unmount", () => {
       (el) => el.parentElement === turns,
     );
     expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent("What does he do at DoorDash?");
-    expect(items[1]).toHaveTextContent("Where did he study?");
+    expect(items[0]).toHaveTextContent("What do you do at DoorDash?");
+    expect(items[1]).toHaveTextContent("What have you measured?");
 
     // Each turn's own "Answer view" tablist is independently present and
     // interactive -- the symptom a duplicate `turn.id` key produces is a
@@ -328,7 +328,7 @@ describe("AskThisSite -- a sectioned passage links to its section", () => {
     // asserts it (the browser-level check lives in e2e/ask.spec.ts). The
     // expectation is derived from `answer()` itself, and its precondition is
     // asserted so the test cannot pass by finding no sectioned answer to check.
-    const question = "What does he do at DoorDash?";
+    const question = "What do you do at DoorDash?";
     const sectioned = answer(question, 3).filter(
       (result) => result.sectionId !== undefined && result.sectionLabel !== undefined,
     );
@@ -393,7 +393,7 @@ describe("AskThisSite -- what it says about its answers", () => {
     render(<AskThisSite liveModeConfigured={false} />);
     expect(
       screen.getByText(
-        "Every answer below comes from what’s written for this site — his words as written, or a few of them joined into one line — with its source. No model, nothing generated. If it isn’t written down, you’re told so.",
+        "Pick a question or ask your own. Every answer is something I’ve written here, as written or a few lines of it joined into one, with where it came from. No model, nothing generated. If I haven’t written it down, I’ll say so.",
       ),
     ).toBeVisible();
     expect(screen.queryByText(/word for word/)).toBeNull();
@@ -406,7 +406,7 @@ describe("AskThisSite -- what it says about its answers", () => {
     await user.keyboard("{Enter}");
     expect(
       screen.getByText(
-        "Nothing written for this site answers that. Answers here come only from what’s written for it, so I’d rather say so than guess.",
+        "I haven’t written anything here that answers that, so I’d rather say so than guess.",
       ),
     ).toBeVisible();
   });

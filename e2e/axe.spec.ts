@@ -222,10 +222,10 @@ test.describe("interactive states", () => {
     // with no turn asked. It is the page's most interactive component, so it
     // earns its own audit, loaded for certain and with a turn on screen.
     await scrollIntoViewAndSettle(page, "#ask");
-    const questionField = page.getByRole("textbox", { name: "Ask a question about this portfolio" });
+    const questionField = page.getByRole("textbox", { name: "Your question" });
     await expect(questionField).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "Where did he study?" }).click();
-    await expect(page.getByRole("list", { name: "Conversation" }).getByText("Where did he study?")).toBeVisible();
+    await page.getByRole("button", { name: "What have you measured?" }).click();
+    await expect(page.getByRole("list", { name: "Conversation" }).getByText("What have you measured?")).toBeVisible();
     // Scoped to the chat's block rather than the full page, same pattern as
     // the off-base-tone audits below: the fact worth auditing here is the
     // chat's own markup with a turn on screen — in Contact's `deep` tone —
@@ -239,25 +239,21 @@ test.describe("interactive states", () => {
     }
   });
 
-  test("zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night", async ({ page }) => {
+  test("zero WCAG violations on the postcard's lead form, invalid, by day and by night", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // Page-wide audits only ever see the card's front: the back face is
-    // inert until flipped. This audits the form face, with its errors up.
-    const card = page.locator('#contact aside[aria-label$="business card"]');
-    await scrollIntoViewAndSettle(page, "#contact aside");
-    await card.getByRole("button", { name: "Let me reach you" }).click();
-    await expect(card.locator("[data-flip]")).toHaveAttribute("data-flipped", "true");
-    await card.getByRole("button", { name: "Send" }).click();
-    await expect(card.getByText("Enter your name.")).toBeVisible();
-    // The flip itself is a --dur-settle transition; audit the landed face.
-    await page.waitForTimeout(1000);
+    // The postcard is always the form (round 21); audit it with its errors up.
+    const postcard = page.locator("#contact [data-postcard]");
+    await scrollIntoViewAndSettle(page, "#contact [data-postcard]");
+    await postcard.getByRole("button", { name: "Send the postcard" }).click();
+    await expect(postcard.getByText("Enter your name.")).toBeVisible();
     for (const theme of ["day", "night"] as const) {
       if ((await page.locator("html").getAttribute("data-theme")) !== theme) {
         await page.getByRole("button", { name: `Switch to ${theme} theme` }).click();
         await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       }
+      await auditHasNoViolations(page, "#contact [data-postcard]");
       await auditHasNoViolations(page, "#contact aside");
     }
   });

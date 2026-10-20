@@ -209,6 +209,108 @@ function skyLayer(night, moon, seed) {
 const svg = (viewBox, body) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${body}</svg>`;
 const K = "#000";
 
+// ---- Contact drawings ----
+// The contact board's pieces (NatContactPostcard), ported from the generator
+// with the same seeds and rounding. Text the board drew inside them (the
+// postmark's "TAYLORS SC", "Một, hai, ba, dzô!") is HTML on the page instead.
+const heron = (x, y, s, stroke) => `<g transform="translate(${x} ${y}) scale(${s})" fill="none" stroke="${stroke}" stroke-width="${f(1.5 / s)}" stroke-linecap="round" stroke-linejoin="round">`
+  + `<path d="M40 90C55 70 95 70 105 92C112 108 90 122 62 120C48 119 36 108 40 90Z"/>`
+  + `<path d="M58 96C70 92 86 94 98 102M54 104C66 101 80 103 90 110" stroke-width="${f(0.8 / s)}"/>`
+  + `<path d="M62 120L34 134M66 121L42 138"/>`
+  + `<path d="M97 80C102 56 82 46 88 28C92 16 104 12 112 18"/>`
+  + `<path d="M112 18C116 13 125 15 125 22C123 26 116 27 112 24"/>`
+  + `<path d="M124 19L152 25L123 25M110 15L96 10"/>`
+  + `<path d="M70 120L72 200M82 118L88 200M72 200l-11 4M72 200l11 3M88 200l-9 4M88 200l13 2"/>`
+  + `</g>`;
+// Hội An silk lanterns: quiet silk by day, lit and glowing at night.
+const LANTERN_COLS = ["#C8352B", "#E1A93A", "#C8352B", "#3F7A57", "#E1A93A", "#C8352B", "#3F7A57"];
+const LANTERN_X = [690, 790, 880, 980, 1080, 1180, 1290];
+const LANTERN_Y = [64, 92, 72, 98, 70, 94, 66];
+function lantern(night, twine, x, y, col, sc) {
+  const glow = night ? `<ellipse cx="0" cy="26" rx="46" ry="52" fill="url(#lanternGlow)"/>` : "";
+  const body = night ? `url(#lit-${col.slice(1)})` : col;
+  return `<g transform="translate(${x} ${y}) scale(${sc})">${glow}`
+    + `<path d="M0 -40V-6" stroke="${twine}" stroke-width="1.2"/>`
+    + `<rect x="-7" y="-6" width="14" height="6" rx="1.5" fill="#6B5640"/>`
+    + `<path d="M-15 0C-27 14 -27 38 -15 52H15C27 38 27 14 15 0Z" fill="${body}"${night ? "" : ` opacity="0.92"`}/>`
+    + `<path d="M-7 0C-12 16 -12 36 -7 52M7 0C12 16 12 36 7 52M0 0V52" stroke="rgba(60,30,20,0.28)" stroke-width="1" fill="none"/>`
+    + `<rect x="-7" y="52" width="14" height="5" rx="1.5" fill="#6B5640"/>`
+    + `<path d="M0 57V76M-2 76h4" stroke="${col}" stroke-width="1.6" stroke-linecap="round"/></g>`;
+}
+// Hoa mai (yellow apricot blossom), for Tết.
+function hoaMai(x, y, sc, flip = 1) {
+  const r = rng(Math.round(x)); let fl = "";
+  for (let i = 0; i < 7; i++) {
+    const fx = 20 + i * 22 + r() * 8, fy = -10 - Math.sin(i) * 14 + r() * 10;
+    let pet = ""; for (let k = 0; k < 5; k++) { const a = (k * 72 * Math.PI) / 180; pet += `<ellipse cx="${f(fx + Math.cos(a) * 5)}" cy="${f(fy + Math.sin(a) * 5)}" rx="4.4" ry="3.2" transform="rotate(${k * 72} ${f(fx + Math.cos(a) * 5)} ${f(fy + Math.sin(a) * 5)})" fill="#F2C230"/>`; }
+    fl += pet + `<circle cx="${f(fx)}" cy="${f(fy)}" r="2" fill="#C2701E"/>`;
+  }
+  return `<g transform="translate(${x} ${y}) scale(${sc * flip} ${sc})"><path d="M0 0C40 -10 90 -30 170 -20" fill="none" stroke="#6B5640" stroke-width="3" stroke-linecap="round"/><path d="M60 -16l14 -18M110 -22l10 -16" stroke="#6B5640" stroke-width="2" stroke-linecap="round"/>${fl}</g>`;
+}
+// The string, its lanterns and the two hoa mai branches at its ends.
+function lanternString(night) {
+  const twine = night ? "#B3A27F" : "#8B7B5E";
+  const defs = night
+    ? `<defs><radialGradient id="lanternGlow"><stop offset="0" stop-color="#FFC768" stop-opacity="0.55"/><stop offset="1" stop-color="#FFC768" stop-opacity="0"/></radialGradient>`
+      + ["#C8352B", "#E1A93A", "#3F7A57"].map((c) => `<radialGradient id="lit-${c.slice(1)}" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#FFE7A8"/><stop offset="0.55" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity="0.85"/></radialGradient>`).join("")
+      + `</defs>`
+    : "";
+  return defs + `<path d="M640 34Q980 86 1380 30" fill="none" stroke="${twine}" stroke-width="1.6"/>`
+    + LANTERN_COLS.map((c, i) => lantern(night, twine, LANTERN_X[i], LANTERN_Y[i], c, i % 2 ? 0.9 : 1)).join("")
+    + hoaMai(640, 40, 1.1) + hoaMai(1430, 30, 1.05, -1);
+}
+// The postcard's picture of Taylors. It sits on paper, which keeps its day
+// colours at night (the paper scope in globals.css), so one file serves both.
+function postcardScene() {
+  return `<circle cx="250" cy="120" r="34" fill="none" stroke="#B3362B" stroke-width="1.4"/>`
+    + `<path d="M0 300Q170 286 340 300" stroke="#1D2321" stroke-width="1" fill="none"/>`
+    + pine(70, 300, 150, "#46603A") + pine(120, 300, 110, "#46603A")
+    + palmetto(290, 300, 90, "#46603A")
+    + ripples(10, 318, 320, 5, "#9FB3AE", 7)
+    + rice(20, 440, 11, 30, 3, "#46603A", 60, 50)
+    + heron(196, 214, 0.5, "#1D2321");
+}
+const star = (x, y, r, fill) => { let d = ""; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.382 : r; d += (i ? "L" : "M") + f(x + rr * Math.cos(a)) + " " + f(y + rr * Math.sin(a)); } return `<path d="${d}Z" fill="${fill}"/>`; };
+// The Vietnam-flag stamp: perforated paper with the flag inset 5px. The board
+// only implied the perforation; here the holes are cut.
+function flagStamp() {
+  let holes = "";
+  for (let x = 0; x <= 77; x += 11) holes += `<circle cx="${x}" cy="0" r="3"/><circle cx="${x}" cy="92" r="3"/>`;
+  for (let y = 11.5; y < 92; y += 11.5) holes += `<circle cx="0" cy="${y}" r="3"/><circle cx="77" cy="${y}" r="3"/>`;
+  return `<defs><mask id="perf"><rect width="77" height="92" fill="#fff"/><g fill="#000">${holes}</g></mask></defs>`
+    + `<rect width="77" height="92" fill="#FBFBF8" mask="url(#perf)"/><rect x="5.5" y="5" width="66" height="82" fill="#DA251D"/>${star(38.5, 43, 17, "#FFDD00")}`;
+}
+const postmark = (c) => `<g fill="none" stroke="${c}" stroke-width="1.3"><circle cx="56" cy="44" r="34"/><circle cx="56" cy="44" r="27"/><path d="M96 28q9 -6 18 0t18 0M96 44q9 -6 18 0t18 0M96 60q9 -6 18 0t18 0"/></g>`;
+// A bowl of phở beside "say hi." in the morning; two beers in the evening.
+const pho = `<g transform="scale(0.55)">${[0, 1, 2].map((i) => `<path d="M${-14 + i * 14} -16q-6 -10 0 -20t0 -20" fill="none" stroke="#9AA39C" stroke-width="2" stroke-linecap="round" opacity="0.7"/>`).join("")}`
+  + `<path d="M-46 0A46 26 0 0 0 46 0Z" fill="#F4EFE6" stroke="#5B6B7E" stroke-width="1.4"/><path d="M-40 10Q0 22 40 10" fill="none" stroke="#3A5A8C" stroke-width="1.6"/>`
+  + `<ellipse cx="0" cy="0" rx="46" ry="9" fill="#D9A55A" stroke="#5B6B7E" stroke-width="1.2"/><circle cx="-12" cy="-3" r="2.6" fill="#5E8A4A"/><circle cx="10" cy="-3" r="2.4" fill="#5E8A4A"/>`
+  + `<path d="M-8 -28L56 8M-2 -32L62 4" stroke="#8A6E3A" stroke-width="2.4" stroke-linecap="round"/></g>`;
+const bia = `<g transform="rotate(-14)"><path d="M-30 -40h20l-2 40h-16Z" fill="#E8B04A" fill-opacity="0.9" stroke="#F3E3B5" stroke-width="1"/><path d="M-31 -46h22v7h-22Z" fill="#FFFFFF"/></g>`
+  + `<g transform="rotate(14)"><path d="M10 -40h20l-2 40h-16Z" fill="#E8B04A" fill-opacity="0.9" stroke="#F3E3B5" stroke-width="1"/><path d="M9 -46h22v7h-22Z" fill="#FFFFFF"/></g>`
+  + `<path d="M-4 -62l-4 -8M4 -62l4 -8M0 -64v-9" stroke="#FFE18A" stroke-width="1.6" stroke-linecap="round"/>`;
+const banhTet = `<rect x="-70" y="-22" width="120" height="44" rx="20" fill="#5E8A4A" stroke="#3F5E35" stroke-width="1.4"/>`
+  + `<path d="M-50 -22v44M-20 -22v44M10 -22v44M36 -21v42" stroke="#C7B27A" stroke-width="2.2"/>`
+  + `<path d="M-62 -14q40 6 106 0M-62 14q40 -6 106 0" fill="none" stroke="#3F5E35" stroke-width="0.9"/>`
+  + `<ellipse cx="70" cy="0" rx="20" ry="22" fill="#F3EEE2" stroke="#3F5E35" stroke-width="3"/>`
+  + `<ellipse cx="70" cy="0" rx="11" ry="12" fill="#E3C46A"/><ellipse cx="70" cy="0" rx="5" ry="5.5" fill="#C98B7A"/>`;
+const paperClip = `<path d="M10 70V16a7 7 0 0 1 14 0v58a10 10 0 0 1-20 0V22" fill="none" stroke="#8C949A" stroke-width="2.6" stroke-linecap="round"/>`;
+
+/** Contact's files. Their names are listed in tests/lib/scenery.test.ts. */
+function contactDrawings() {
+  return {
+    "lanterns-day": svg("626 -12 812 192", lanternString(false)),
+    "lanterns-night": svg("626 -12 812 192", lanternString(true)),
+    "postcard-scene": svg("0 0 340 440", postcardScene()),
+    "flag-stamp": svg("0 0 77 92", flagStamp()),
+    postmark: svg("20 8 120 72", postmark(K)),
+    pho: svg("-27 -33 63 48", pho),
+    bia: svg("-42 -76 84 82", bia),
+    "banh-tet": svg("-72 -24 164 48", banhTet),
+    "paper-clip": svg("0 0 34 86", paperClip),
+  };
+}
+
 // ---- Journey drawings ----
 // The board's NatJourney: the live oak (three one-colour layers, so day ink and
 // night silhouette are one file each), its Hội An lantern, the rice at the
@@ -368,6 +470,7 @@ export function drawScenery() {
     "sky-night": svg("0 0 1440 900", skyLayer(true, [880, 120], 1)),
     morning: svg("420 770 100 114", stool(470, 840, "#C8352B") + STILL.phin(470, 838)),
     evening: svg("420 770 100 114", stool(470, 840, "#2E6DB4") + STILL.lau(470, 838)),
+    ...contactDrawings(),
     ...journeyFiles(),
   };
 }

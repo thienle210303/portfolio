@@ -1789,7 +1789,8 @@ Full e2e at `--workers=2` against `pnpm dev -p 3171`: 921 passed, 795 skipped, 1
 - `ask.spec.ts:463` and `:489` were real: the Bricolage swap made the idle chat taller than `--ask-room` at 520-639, 1024-1279 and 1280+ px. Fixed by re-measuring (static mode, 320-1920 px every 4 px): 49rem -> 54.5rem, 50.5rem -> 55.5rem, 44.5rem -> 46.5rem; comments updated. All of `ask.spec.ts` passes after.
 - `companion.spec.ts:914` still fails at 1440: "a drawing over contact in night is invisible", ratio 1.82 against a floor of 3. Not fixed here (see Remaining risks below).
 
-Remaining risk: the cats' ink at night over Contact. The test measures the cat's ink against the `--ground` of the element under it; at night Contact now carries light lantern surfaces, and `syncTone` repoints tone only for `.tone-*` zones, not `.bg-surface`. Inferred, not isolated. Needs an owner/Phase 2+ decision. **Closed in Phase 2:** explained by Phase 1's data-paper fix (globals.css paper scope + companion-space.ts syncTone); the failure no longer reproduces.
+Remaining risk: the cats' ink at night over Contact. The test measures the cat's ink against the `--ground` of the element under it; at night Contact now carries light lantern surfaces, and `syncTone` repoints tone only for `.tone-*` zones, not `.bg-surface`. Inferred, not isolated. Needs an owner/Phase 2+ decision.
+ **Closed in Phase 2:** explained by Phase 1's data-paper fix (globals.css paper scope + companion-space.ts syncTone); the failure no longer reproduces.
 
 ## Round 21 phase 2 (2026-10-19) — Worlds removed
 
@@ -1889,3 +1890,27 @@ Branch `round-21/journey` (`26cd85a`..`c2fd447` plus this record), production bu
 - **The branch's Spanish moss is dropped** (`oak-branch-moss.svg` deleted): hugging the stem it read as a rendering glitch. Scenery is now nine files, 249,201 B raw, 47,148 B gzip; a phone day load makes 6 Journey requests, not 7.
 - **The "seam" at y ~860 was the screenshot, not the page.** The body's sky is `background-attachment: fixed`, and a full-page capture paints it one viewport high; a viewport screenshot of the same spot shows no seam. The screenshot script now takes a viewport tall enough for the stage.
 - `pnpm verify` 5/5 (870 tests; eval 70.0 / 93.3 / 96.7 / 0.807); e2e journey + responsive + axe: 65 passed, 235 skipped, 0 failed.
+
+## Round 21 phase 6 — Contact (2026-10-20)
+
+The postcard board (`design/round-21-outdoors/v1/boards/NatContactPostcard*.dc.html`), built on `round-21/contact`. Plan: [2026-10-20-round-21-phase-6-contact.md](superpowers/plans/2026-10-20-round-21-phase-6-contact.md).
+
+**Perf row** (`pnpm perf`, production build on `:3211`, default build (no Resend env), 0 skipped responses, five runs, bytes identical). **CPU read 100%** (`Win32_Processor.LoadPercentage`), so LCP (2740-4680 ms) and TBT (248-1382 ms) are noise.
+
+| When | JS | JS at load | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|---|
+| R21-P3 phone hero | 194,257 B | 167,695 B | 16,862 B | 97,076 B | 2720 ms | 463 ms | 0 | 2200 |
+| After | 192,968 B | 166,405 B | 17,983 B | 102,620 B | 2740 ms | 623 ms | 0 | 2244 |
+
+- **JS at load -1,290 B**: the business card is a server component again (the flip is retired); only `CopyButton` and the lead form stay client.
+- **Fonts +5,544 B**: Newsreader italic's `vietnamese` file, pulled by "Xin chào," and "bánh tét and hoa mai, for Tết" (both Newsreader). The size matches the night-only file R21-P3 recorded; inferred, not isolated by request.
+- **CSS +1,121 B**, **DOM +44** (the postcard, the seal, the scenery spans and the strip's two halves).
+- Scenery: nine new committed SVGs (`public/scenery/`), 60,721 B raw in all, the postcard's picture 31,867 B of it. Only the active theme's lantern string is fetched (e2e).
+
+**Contrast.** `pnpm contrast`: 62 pairings (+2: gold, `--greet`, on the night sky's top and bottom stops, 5.72:1 and 7.96:1), lowest 4.52:1 unchanged.
+
+**Retrieval eval**, printed: recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807 (30 cases), unchanged. The chips changed (first person, four), not the engine or the eval set.
+
+**Verification.** `pnpm verify` 5/5 (851 unit tests, 54 files). e2e against the production build on `:3211`, `--workers=2`: contact, ask, axe, responsive, print and companion specs 222 passed, 546 skipped, 0 failed; then the full suite 760 passed, 1052 skipped, 0 failed (19.4 min), no retries. An earlier full run failed 14, all from this phase's layout and fixed before the clean run: `scale.spec` held Contact's h2 to the 24-28px section-title size (the board sets "say hi." at the hero's display size; the test now pins the Journey only and gives Contact 40-72px), and a cold `/#ask` at 1024 and 1440 runs out of page before the 80px margin now that the chat is a short strip near the end (the test accepts a landing at the page's end with the whole strip on screen).
+
+**Screens** (`reports/r21-p6-screens/`, untracked): `#contact` and the landing view at 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night; no horizontal overflow at any of them.

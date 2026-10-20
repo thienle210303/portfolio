@@ -201,6 +201,29 @@ describe("answer", () => {
     }
   });
 
+  it("answers every suggested question in my voice, from the right place", () => {
+    // The chips are me talking to you (docs/voice.md rule 7), and each must
+    // land where it should: a chip that answers from the wrong record is as
+    // dead as one that answers nothing. `null` means no section renders the
+    // subject (the cats live on the page, not in a section).
+    const expected: Record<string, { section: string | null; source: RegExp }> = {
+      "What do you do at DoorDash?": { section: "about", source: /^About/ },
+      "Are you from Việt Nam?": { section: "about", source: /^(About|Origin story)/ },
+      "What have you measured?": { section: "tree", source: /DoorDash/ },
+      "What are your cats called?": { section: null, source: /^The two cats$/ },
+    };
+    expect([...SUGGESTED_QUESTIONS]).toEqual(Object.keys(expected));
+    for (const question of SUGGESTED_QUESTIONS) {
+      expect(question, "a chip speaks to me, not about me").not.toMatch(/\b(he|his|him|Thien)\b/);
+      const results = answer(question);
+      const { section, source } = expected[question];
+      expect(results.length, `"${question}" returned nothing`).toBeGreaterThan(0);
+      expect(results[0].source, question).toMatch(source);
+      if (section === null) expect(results.every((r) => r.sectionId === undefined), question).toBe(true);
+      else expect(results.some((r) => r.sectionId === section), question).toBe(true);
+    }
+  });
+
   it("stays quiet rather than reaching when the site has no answer", () => {
     for (const offTopic of [
       "what is the capital of France",
@@ -326,7 +349,7 @@ describe("answer", () => {
 
     // Deliberately checks the answer *or* its source, not the source alone.
     // The best answer here is the About paragraph that opens "I write software
-    // for retail data at DoorDash" — its source is "About, in his own words",
+    // for retail data at DoorDash" — its source is "About, in my own words",
     // which does not name the employer even though the sentence does. An
     // assertion on the source alone fails a correct answer.
     const top = results[0];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 /**
  * The chat's lazy boundary in Contact: a placeholder, a visibility trigger
@@ -28,12 +28,15 @@ import { useCallback, useEffect, useRef, useState, type ComponentType } from "re
  *
  * A browser without IntersectionObserver imports at once rather than never.
  *
+ * `heading` ("Ask me" and its note) is server-rendered by Contact and shown
+ * in every state, so the strip reads the same before and after the chat lands.
+ *
  * Every state before the chat carries `data-ask-slot`, and the chat's root
  * carries `data-ask-chat`; globals.css gives both the same min-height
  * (`--ask-room`, at or above the idle chat's measured height), so the swap
  * does not move the footer under a reader who jumped to the bottom.
  */
-type ChatComponent = ComponentType<{ readonly liveModeConfigured: boolean }>;
+type ChatComponent = ComponentType<{ readonly liveModeConfigured: boolean; readonly heading?: ReactNode }>;
 
 /** How far below the viewport the block starts loading. */
 const LOAD_AHEAD = "600px 0px";
@@ -42,9 +45,13 @@ interface Props {
   /** Computed once, server-side, in `page.tsx`. Never mutates for the life
    *  of the page load. */
   readonly liveModeConfigured: boolean;
+  readonly heading?: ReactNode;
 }
 
-export function AskLoader({ liveModeConfigured }: Props) {
+/** The pre-chat states sit where the chat's left half will. */
+const SLOT = "px-5 pt-[18px] pb-5 sm:px-[26px]";
+
+export function AskLoader({ liveModeConfigured, heading }: Props) {
   const placeholderRef = useRef<HTMLDivElement | null>(null);
   const [Chat, setChat] = useState<ChatComponent | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,12 +122,13 @@ export function AskLoader({ liveModeConfigured }: Props) {
     setAttempt((n) => n + 1);
   }, []);
 
-  if (Chat) return <Chat liveModeConfigured={liveModeConfigured} />;
+  if (Chat) return <Chat liveModeConfigured={liveModeConfigured} heading={heading} />;
 
   if (failed) {
     return (
-      <div data-ask-slot="">
-        <p role="status" className="text-[length:var(--step--1)] text-fg-muted">
+      <div data-ask-slot="" className={SLOT}>
+        {heading}
+        <p role="status" className="mt-3 text-[length:var(--step--1)] text-fg-muted">
           The chat didn&rsquo;t load. Everything else on this page still works.
         </p>
         <button
@@ -136,8 +144,9 @@ export function AskLoader({ liveModeConfigured }: Props) {
 
   if (loading) {
     return (
-      <div data-ask-slot="" aria-busy="true">
-        <p role="status" className="text-[length:var(--step--1)] text-fg-muted">
+      <div data-ask-slot="" aria-busy="true" className={SLOT}>
+        {heading}
+        <p role="status" className="mt-3 text-[length:var(--step--1)] text-fg-muted">
           Loading&hellip;
         </p>
       </div>
@@ -145,9 +154,10 @@ export function AskLoader({ liveModeConfigured }: Props) {
   }
 
   return (
-    <div ref={placeholderRef} data-ask-slot="">
+    <div ref={placeholderRef} data-ask-slot="" className={SLOT}>
+      {heading}
       <noscript>
-        <p className="text-[length:var(--step--1)] text-fg-muted">The chat needs JavaScript.</p>
+        <p className="mt-3 text-[length:var(--step--1)] text-fg-muted">The chat needs JavaScript.</p>
       </noscript>
     </div>
   );
