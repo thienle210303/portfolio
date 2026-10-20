@@ -377,7 +377,7 @@ function HowThisAnswers({ id, liveModeConfigured }: { readonly id: string; reado
           <p className="mt-3 text-[length:var(--step--1)] leading-relaxed text-fg-muted">
             Live mode changes exactly one thing: the same ranked passages are handed to a real
             model instead of quoted straight onto the page. The model sees only what retrieval
-            found — nothing else about this site, and nothing from outside it — and is told to
+            found — nothing else about me, and nothing from outside this page — and is told to
             decline rather than guess when the passages don&rsquo;t actually answer the question.
           </p>
         ) : null}

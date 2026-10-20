@@ -349,7 +349,7 @@ describe("answer", () => {
 
     // Deliberately checks the answer *or* its source, not the source alone.
     // The best answer here is the About paragraph that opens "I write software
-    // for retail data at DoorDash" — its source is "About, in his own words",
+    // for retail data at DoorDash" — its source is "About, in my own words",
     // which does not name the employer even though the sentence does. An
     // assertion on the source alone fails a correct answer.
     const top = results[0];

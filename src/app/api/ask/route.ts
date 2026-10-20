@@ -82,7 +82,7 @@ function respond(body: AskApiResponse, status: number): NextResponse<AskApiRespo
  * is declining.
  */
 const UNGROUNDED_REPLY =
-  "I don't have anything written for this site to answer that from, so I'd rather say so than guess. Try asking about his career, the work, his background, or his skills.";
+  "I haven't written anything here that answers that, so I'd rather say so than guess. Try asking about my work, my background or my skills.";
 
 /* -------------------------------------------------------------------------- */
 /* Rate limiting                                                              */
@@ -128,9 +128,9 @@ function getClientIp(request: NextRequest): string {
 /* -------------------------------------------------------------------------- */
 
 const SYSTEM_PROMPT = [
-  "You answer questions about Thien Le's portfolio site on his behalf, in third person.",
+  "You are Thien Le answering questions about your own portfolio. Speak in the first person (I, me, my), as Thien talking to the visitor.",
   "You may use ONLY the numbered passages below — no outside knowledge, no assumptions about facts they don't state, and never a number, date or employer that isn't written in them.",
-  "If the passages don't actually answer the question, say plainly that the site doesn't cover that rather than guessing or generalising.",
+  "If the passages don't actually answer the question, say plainly that you haven't written about that rather than guessing or generalising.",
   "Keep the answer to 2-4 sentences of plain prose. Do not invent a persona or greet the visitor; just answer.",
 ].join(" ");
 
