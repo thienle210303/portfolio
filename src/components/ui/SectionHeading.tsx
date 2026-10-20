@@ -51,7 +51,11 @@ export function SectionHeading({ id, children, lead, reveal = true, size = "sect
       </h2>
       {lead ? (
         <p
-          className="prose-measure mt-4 text-[length:var(--step-1)] leading-relaxed text-[color:var(--fg-muted)]"
+          className={cn(
+            "prose-measure mt-4 text-[length:var(--step-1)] leading-relaxed text-[color:var(--fg-muted)]",
+            // The board sets the Journey's line on one row above the crown.
+            size === "chapter" && "xl:max-w-none",
+          )}
           {...(reveal ? { "data-ink": "" } : {})}
           style={reveal ? ({ "--ink-delay": "120ms" } as CSSProperties) : undefined}
         >

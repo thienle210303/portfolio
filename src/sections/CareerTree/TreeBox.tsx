@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { WatchOrigin, type OriginHandle } from "./WatchOrigin";
 
 /**
- * The box the drawn tree grows in, and the header button that asks it to.
+ * The box the drawn tree grows in, and the stage's "Watch it grow" that asks it to.
  *
  * The growth is the lazy `OriginStory` player (`WatchOrigin.tsx`). It plays on
  * its own once per page load, the first time the visitor stops scrolling with
- * the box half in view (`DWELL_MS`), and again whenever "See how it grows" is
+ * the box half in view (`DWELL_MS`), and again whenever "Watch it grow" is
  * pressed. The dwell keeps a visitor flinging past from spending the one
  * auto-play, and keeps the chunk's load and the conductor's setup out of a
  * fast scroll. A visitor whose pointer or focus is already in the box when the
@@ -45,8 +46,8 @@ import { WatchOrigin, type OriginHandle } from "./WatchOrigin";
  *
  * ## Why an event between the button and the box
  *
- * The button sits in the section header and the box below the highlights,
- * with server-rendered blocks between them, so they share no React parent.
+ * The button sits on the Journey's stage and the box below it, with
+ * server-rendered blocks between them, so they share no React parent.
  * The button dispatches `GROW_EVENT` on itself; the box listens on `document`
  * and gets the opener as the event target, which is where focus returns when
  * a pressed show ends.
@@ -91,7 +92,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
   // Any start, on sight or on a press, uses up the one auto-play.
   const startedRef = useRef(false);
 
-  // Auto-play and the header button.
+  // Auto-play and Watch it grow.
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
@@ -239,20 +240,23 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
   );
 }
 
-/** The header's "See how it grows". Only at >=1024 px, where the box is. */
-export function SeeHowItGrows({ className }: { readonly className?: string }) {
+/**
+ * "Watch it grow", the Journey's one primary control. Only at >=1024 px, where
+ * the box is, and only once the page script has run (`data-motion` on
+ * <html>): with JS off it could start nothing, and the finished tree is right
+ * below. The label is a prop because this is a client module: importing the
+ * content file here would ship all of it to the browser.
+ */
+export function WatchItGrow({ label, className }: { readonly label: string; readonly className?: string }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="primary"
       onClick={(event) =>
         event.currentTarget.dispatchEvent(new CustomEvent(GROW_EVENT, { bubbles: true }))
       }
-      className={cn(
-        "no-print ink-link-quiet eyebrow hidden min-h-11 items-center px-2 text-accent lg:inline-flex",
-        className,
-      )}
+      className={cn("no-print hidden lg:inline-flex [html:not([data-motion])_&]:hidden", className)}
     >
-      See how it grows
-    </button>
+      {label}
+    </Button>
   );
 }

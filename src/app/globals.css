@@ -723,11 +723,8 @@
   }
 
   /* Journey (round 21): the strings the Journey's tags hang by
-     (HangingTags.tsx). Each is behind its paper, so it shows down to the top
-     edge and seems to run into the hole. From 1280 it climbs `--string` from
-     the hole to the oak's limb. Below 1280 a short twig of bark runs from
-     above the tag to the branch's stem (24px past the column, the 44px margin
-     less the stem's 20px inset), and the string drops from it. */
+     (HangingTags.tsx), each behind its paper so it seems to run into the hole.
+     From 1280 it climbs `--string` from the hole to the oak's limb. */
   [data-hanging-tags] li::before,
   [data-hanging-tags] li::after {
     content: "";
@@ -740,24 +737,77 @@
     width: 1.3px;
     background: var(--twine);
   }
-  @media (width < 80rem) {
-    [data-hanging-tags] li::before {
-      top: -22px;
-      left: 50%;
-      right: -24px;
-      height: 3px;
-      border-radius: 1.5px;
-      background: var(--scene-bark);
-    }
-    [data-hanging-tags] li::after {
-      top: -20px;
-      height: 38px;
-    }
-  }
   @media (width >= 80rem) {
     [data-hanging-tags] li::after {
       top: calc(18px - var(--string));
       height: var(--string);
+    }
+  }
+
+  /* Journey (round 21): below 1280 the tags hang from a branch that drops
+     from the crown above them (OakCrown, 24px up). Its top rises into the
+     crown to meet the limb: the crown is the board's y 120–640 at the
+     wrapper's width, so a board y is (y - 120) / 1440 of that width up from
+     the crown's top. On a phone the stem runs 20px in from the right edge,
+     under the limb's end (board y ~300: 23.6cqw up); from 640 it runs down
+     the middle (board x 720, y 386: 17.6cqw) and the tags take turns either
+     side, each starting 40px above the last one's foot. Each tag hangs by a
+     string from the tip of a tapered twig of bark (the mask), 26px above it.
+     The branch fades out below the last tag rather than stopping square. */
+  @media (width < 80rem) {
+    [data-hanging-tags] {
+      container-type: inline-size;
+    }
+    [data-hanging-tags] [data-branch] {
+      top: calc(-23.6cqw - 24px);
+      right: -40px;
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 96px), transparent);
+    }
+    [data-hanging-tags] li {
+      width: min(100% - 44px, 340px);
+      margin-left: auto;
+      margin-right: 44px;
+    }
+    [data-hanging-tags] li::before {
+      top: -26px;
+      left: 50%;
+      right: -24px;
+      height: 24px;
+      background: var(--scene-bark);
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M100 20C70 18 30 6 0 1.2V2.6C30 8 70 21.5 100 23.5Z'/%3E%3C/svg%3E")
+        no-repeat 0 0 / 100% 100%;
+    }
+    [data-hanging-tags] li::after {
+      top: -24px;
+      height: 42px;
+    }
+  }
+  @media (40rem <= width < 80rem) {
+    [data-hanging-tags] [data-branch] {
+      top: calc(-17.6cqw - 24px);
+      right: auto;
+      left: calc(50% - 60px);
+    }
+    [data-hanging-tags] li {
+      width: min(50% - 44px, 340px);
+    }
+    [data-hanging-tags] li:nth-child(odd) {
+      margin-right: calc(50% + 44px);
+    }
+    [data-hanging-tags] li:nth-child(even) {
+      margin-left: calc(50% + 44px);
+      margin-right: 0;
+    }
+    [data-hanging-tags] li + li {
+      margin-top: -80px;
+    }
+    [data-hanging-tags] li:nth-child(odd)::before {
+      right: -44px;
+    }
+    [data-hanging-tags] li:nth-child(even)::before {
+      left: -44px;
+      right: 50%;
+      transform: scaleX(-1);
     }
   }
   @media print {
@@ -1438,7 +1488,7 @@
   /* twig), so both the "self" and "descendant" shapes below are needed.     */
   /*                                                                        */
   /* No `[data-ink-ready]` guard here: nothing plays this without JS        */
-  /* (`TreeBox.tsx` starts it on sight or on "See how it grows"), so there  */
+  /* (`TreeBox.tsx` starts it on sight or on "Watch it grow"), so there     */
   /* is no no-JS/print/reduced-motion path where `data-origin-running`      */
   /* could appear unbidden — `TreeBox.tsx` never starts the player under    */
   /* reduced motion, same as the block below this one. The media guard here */

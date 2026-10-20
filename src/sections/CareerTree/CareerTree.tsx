@@ -1,49 +1,41 @@
 /**
- * The Journey — highlights, the drawn tree, and the timeline, stacked.
+ * The Journey — the live oak, then the drawn tree, then the timeline.
  *
- * Round 18 made this a pinned stage that scrolled seven acts past a sticky
- * drawing; round 20 retired it. The section is now three blocks in reading
- * order: the highlight cards (`JourneyHighlights`), the drawing growing in its
- * box (`TreeBox` around `DrawnTree`, >=1024px only), and the timeline (`KnowledgeTreeList`, every width, one row
- * open at a time), then the credentials line and the case studies whose entry
- * is not a branch.
+ * Round 21 (phase 4) opens it with the board (NatJourney): "The work, as it
+ * grew." over a live oak whose long limb carries the highlight tags
+ * (`HangingTags`), a Hội An lantern lit at night, rice at the trunk, the
+ * stool's still life, and "Watch it grow", which plays the drawing growing in
+ * its box (`TreeBox` around `DrawnTree`, >=1024px only). Below the stage come
+ * the timeline (`KnowledgeTreeList`, every width, one row open at a time), the
+ * credentials line and the case studies whose entry is not a branch.
+ *
+ * From 1280 the stage is the board: its pieces stand in a 1440×900 frame whose
+ * left edge is `--fx`, centred, or pulled left so the last tag (board right
+ * 1408) stays 16px inside the viewport. Below 1280 the crown runs across the
+ * top and the tags hang in one column from a branch at the right edge. One
+ * DOM for both; CSS only.
  *
  * This file is the Server Component boundary and the only thing in the
- * directory that knows it is a section. It reads the tree once, computes the
- * rail from it, and carries the compatibility anchors for every retired
- * section id (`LEGACY_SECTION_IDS` in `./anchors.ts`). The per-entry
- * `journey-entry-<id>` fragments are the same promise one level down: the
- * timeline's rows carry them for drawn entries, and the credentials line's
- * items for the nine demoted ones.
- *
- * Every rail note is counted off the drawn tree and `careerEntries` directly,
- * so a number here cannot drift from the drawing beside it. The tree excludes
- * the nine credentials (`DEMOTED_ENTRY_IDS`) — they are one line now — so
- * everything about *the drawing* is counted from the drawn branches, while the
- * entry counts are of the whole record. (Not of what `/resume` renders: that
- * page's Experience list is `type === "work"` only, so none of the thirteen
- * non-work entries appears on it — see the note on `DEMOTED_ENTRY_IDS` in
- * `src/lib/knowledge-tree.ts`.) "Heaviest" is deliberate rather than tactful:
- * one entry authored the most technologies, the drawing is visibly lopsided
- * because of it, and a rail that quietly omitted that would be hiding the one
- * thing the shape is saying.
+ * directory that knows it is a section. It carries the compatibility anchors
+ * for every retired section id (`LEGACY_SECTION_IDS` in `./anchors.ts`). The
+ * per-entry `journey-entry-<id>` fragments are the same promise one level
+ * down: the timeline's rows carry them for drawn entries, and the credentials
+ * line's items for the nine demoted ones. The board has no margin rail, and
+ * neither has the Journey since round 21.
  */
-import { Section, type RailNote } from "@/components/ui/Section";
+import type { CSSProperties } from "react";
+import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { careerEntries } from "@/content/portfolio";
-import {
-  buildDrawnTree,
-  DEMOTED_ENTRY_IDS,
-  totalLeaves,
-  treeTechnologies,
-} from "@/lib/knowledge-tree";
+import { journey } from "@/content/portfolio";
+import { buildDrawnTree } from "@/lib/knowledge-tree";
 import { LEGACY_SECTION_IDS } from "./anchors";
 import CredentialsStrip from "./CredentialsStrip";
 import DrawnTree from "./DrawnTree";
 import HangingTags from "./HangingTags";
 import KnowledgeTreeList from "./KnowledgeTreeList";
+import OakScenery, { OakCrown } from "./OakScenery";
 import UnbranchedCaseStudies from "./UnbranchedCaseStudies";
-import TreeBox, { SeeHowItGrows } from "./TreeBox";
+import TreeBox, { WatchItGrow } from "./TreeBox";
 
 const HEADING_ID = "tree-heading";
 
@@ -51,52 +43,14 @@ const HEADING_ID = "tree-heading";
  *  credentials line. The companion's facts count the same call. */
 const DRAWN = buildDrawnTree();
 
-/** Every leaf on the drawing: every technology any drawn branch lists, summed
- *  — one row per authored fact. Impact lines are not leaves. */
-const LEAF_TOTAL = totalLeaves(DRAWN);
-
-/** Distinct technologies among the drawn leaves. Not `totalTechnologies()`:
- *  that counts every entry, including the demoted ones whose technologies are
- *  no longer drawn anywhere. */
-const TECHNOLOGY_TOTAL = treeTechnologies(DRAWN);
-
-/** The drawn branch with the most leaves — the entry whose own technologies
- *  outnumber every other drawn entry's. Ties go to
- *  the first one written, which is the oldest (`DRAWN` is chronological,
- *  oldest first). */
-const HEAVIEST = DRAWN.reduce<(typeof DRAWN)[number] | undefined>(
-  (largest, branch) => (largest && largest.leaves.length >= branch.leaves.length ? largest : branch),
-  undefined,
-);
-
-const countOf = (type: (typeof careerEntries)[number]["type"]) =>
-  careerEntries.filter((entry) => entry.type === type).length;
-
-const RAIL: readonly RailNote[] = [
-  { term: "Entries", detail: `${careerEntries.length}` },
-  {
-    term: "Split",
-    detail: `${countOf("work")} work · ${countOf("learning")} learning · ${countOf("milestone")} milestones`,
-  },
-  {
-    term: "Branches",
-    detail: `${DRAWN.length} drawn · ${DEMOTED_ENTRY_IDS.length} as credentials`,
-  },
-  { term: "Leaves", detail: `${LEAF_TOTAL} authored facts` },
-  { term: "Technologies", detail: `${TECHNOLOGY_TOTAL} distinct` },
-  ...(HEAVIEST
-    ? [
-        {
-          term: "Heaviest",
-          detail: `${HEAVIEST.label} · ${HEAVIEST.leaves.length} of ${LEAF_TOTAL}`,
-        },
-      ]
-    : []),
-];
-
 export default function CareerTree() {
   return (
-    <Section id="tree" labelledBy={HEADING_ID} eyebrow="Career tree" tone="base" rail={RAIL}>
+    <Section
+      id="tree"
+      labelledBy={HEADING_ID}
+      tone="base"
+      className="relative isolate overflow-x-clip [--fx:min(50%-720px,100%-1424px)]"
+    >
       {/* Every retired section id, kept resolvable. The nav used to point at
           `#journey`, `#work`, `#skills` and `#workshop`; all four are in
           bookmarks, possibly in a shared résumé PDF, and possibly indexed, and
@@ -123,20 +77,42 @@ export default function CareerTree() {
         <span key={id} id={id} aria-hidden="true" className="sr-only scroll-mt-20" />
       ))}
 
-      {/* Short on purpose — the owner wanted one line, not a manual. Both
-          halves are on the record: the first job on the tree is the family
-          restaurant's kitchen (`fu-of-kyoto`), and `doordash` and
-          `self-taught-gap` have no end. It promises no interaction, so it holds with JS off
-          and under reduced motion alike. */}
-      <SectionHeading id={HEADING_ID} lead="Started in a kitchen. Still growing.">
-        What it adds up to
-      </SectionHeading>
-      <SeeHowItGrows className="mt-4 -ml-2" />
+      <OakScenery />
 
-      <HangingTags className="mt-8" />
+      {/* Static at every width: from 1280 the tags, the button and the
+          vignette are placed against the section, in the board's frame. */}
+      <div data-journey-stage="" className="xl:min-h-[calc(900px-var(--section-y))] xl:pt-8">
+        <SectionHeading
+          id={HEADING_ID}
+          size="chapter"
+          lead={<span className="font-serif italic">{journey.lead}</span>}
+        >
+          {journey.heading}
+        </SectionHeading>
+        <OakCrown className="mt-6" />
+        <HangingTags className="mt-6 xl:mt-0" />
+        <WatchItGrow
+          label={journey.watch}
+          className="mt-8 xl:absolute xl:top-[790px] xl:left-[max(var(--fx)+40px,var(--gutter))] xl:mt-0"
+        />
+        {/* The board's still life (1196, 780) and its caption (1186, 870). */}
+        <div
+          aria-hidden="true"
+          className="mt-8 w-fit xl:absolute xl:top-[780px] xl:left-[calc(var(--fx)+1186px)] xl:mt-0"
+        >
+          <span
+            className="scene-art ml-2.5 block h-[90px] w-[92px]"
+            style={{ "--art": "var(--art-journey-vignette)" } as CSSProperties}
+          />
+          <div className="font-serif text-[length:var(--step--1)] leading-none italic text-fg-muted">
+            <p className="day-only">{journey.vignette.morning}</p>
+            <p className="night-only">{journey.vignette.evening}</p>
+          </div>
+        </div>
+      </div>
 
       {/* The drawing grows in its own box (`TreeBox.tsx`): once on sight, and
-          again on "See how it grows" above. `hidden lg:block` is on the box, so
+          again on "Watch it grow" above. `hidden lg:block` is on the box, so
           below 1024px — where the timeline alone tells the story — neither it
           nor the button is in the layout. */}
       <TreeBox className="mt-12">

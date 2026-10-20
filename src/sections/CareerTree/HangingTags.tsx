@@ -73,15 +73,18 @@ const notch = "absolute size-3.5 rounded-full bg-(--hole)";
  *
  * From 1280 each tag stands where the board hangs it, in a 1440 frame whose
  * left edge is the section's `--fx`; the strings are drawn in globals.css
- * (`[data-hanging-tags]`). Below 1280 the same list is one column hanging from
- * a vertical oak branch at the right edge, each tag from its own twig.
+ * (`[data-hanging-tags]`). Below 1280 the same list hangs from a branch that
+ * drops from the crown above it, each tag from its own twig: down the right
+ * edge in one column on a phone, down the middle with the tags either side
+ * from 640 (the hero's phone line does the same). globals.css lays that out.
  */
 export default function HangingTags({ className }: { readonly className?: string }) {
   return (
     <div data-hanging-tags="" className={cn("relative xl:static", className)}>
       <div
         aria-hidden="true"
-        className="no-print pointer-events-none absolute top-0 -right-10 bottom-0 w-[120px] xl:hidden"
+        data-branch=""
+        className="no-print pointer-events-none absolute bottom-0 w-[120px] xl:hidden"
       >
         <Drawing
           name="oak-branch"
@@ -95,7 +98,7 @@ export default function HangingTags({ className }: { readonly className?: string
       <ul
         role="list"
         aria-label={journey.tagsLabel}
-        className="relative mr-11 ml-auto flex w-[min(100%-44px,340px)] flex-col gap-y-10 pt-[22px] xl:static xl:m-0 xl:block xl:w-auto xl:p-0"
+        className="relative flex flex-col gap-y-10 pt-[26px] xl:static xl:block xl:p-0"
       >
         {TICKETS.map((ticket, i) => {
           const spot = TAG_SPOTS[i];
@@ -143,7 +146,7 @@ export default function HangingTags({ className }: { readonly className?: string
                       <span className="block font-display text-[length:var(--step-4)] font-semibold leading-none tracking-(--tracking-display) xl:whitespace-nowrap">
                         <Value value={first.value} />
                       </span>
-                      <span className="mt-3 flex flex-wrap items-baseline justify-between gap-x-2 font-semibold">
+                      <span className="mt-3 flex flex-wrap items-baseline justify-between gap-x-2 text-[length:var(--step--1)] font-semibold">
                         <span>{ticket.name}</span>
                         <span className={year}>{first.year}</span>
                       </span>
