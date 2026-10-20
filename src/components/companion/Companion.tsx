@@ -357,7 +357,7 @@ type Mood = "trail" | "watch" | "drift";
  *  them for a moment, he leaves. */
 type EscortPhase = "herding" | "watching" | "leaving";
 /** The poses a cat can drop into of its own accord while it is sitting. */
-type Flourish = Extract<CatPose, "sit" | "stretch" | "groom" | "bat">;
+type Flourish = Extract<CatPose, "sit" | "stretch" | "groom" | "bat" | "yawn" | "purr">;
 
 /**
  * Idle flourishes: how long a cat sits before it does something with itself,
@@ -422,8 +422,6 @@ interface Visual {
   readonly flick: number;
   /** The `hop` act, live this frame — see `actPose`. */
   readonly hopping: boolean;
-  /** The plain sit's tail is swaying in CSS — see `swaying` on CompanionCat. */
-  readonly swaying?: boolean;
 }
 
 /** What the JSX draws for one beat of the duet — see `beatView`. */
@@ -904,12 +902,18 @@ function tickIdle(cat: Mover, now: number, canBat: boolean): Flourish {
   if (canBat && roll < 0.3) {
     cat.idle = "bat";
     cat.idleUntil = now + 900 + Math.random() * 500;
-  } else if (roll < 0.65) {
+  } else if (roll < 0.5) {
     cat.idle = "groom";
     cat.idleUntil = now + 2200 + Math.random() * 1200;
-  } else {
+  } else if (roll < 0.68) {
     cat.idle = "stretch";
     cat.idleUntil = now + 1000 + Math.random() * 500;
+  } else if (roll < 0.84) {
+    cat.idle = "yawn";
+    cat.idleUntil = now + 900 + Math.random() * 300;
+  } else {
+    cat.idle = "purr";
+    cat.idleUntil = now + 1600 + Math.random() * 900;
   }
   return cat.idle;
 }
@@ -1088,13 +1092,11 @@ function sameVisual(a: Visual, b: Visual): boolean {
     a.facing === b.facing &&
     a.blinking === b.blinking &&
     a.hopping === b.hopping &&
-    Boolean(a.swaying) === Boolean(b.swaying) &&
-    // Quantised: the drawing cannot show more than this, so committing more
-    // than this is pure re-render cost. Not compared at all while CSS sways
-    // the tail: the drawing does not read `phase` then, and a new one would
-    // move the animation's start and jump the tail.
-    ((a.swaying && b.swaying) || Math.round(a.phase * 24) === Math.round(b.phase * 24)) &&
-    Math.round(a.flick * 5) === Math.round(b.flick * 5)
+    // Only what the sprite can show: the walk's frame (eight a stride) and
+    // whether a flick is on. A sitting tail sways in CSS and reads no phase,
+    // so anything finer is pure re-render cost.
+    (a.pose !== "walk" || Math.floor(a.phase * 8) === Math.floor(b.phase * 8)) &&
+    a.flick > 0 === b.flick > 0
   );
 }
 
@@ -3819,8 +3821,6 @@ export function Companion({ facts }: CompanionProps) {
           // go — on the next frame, not the next tick.
           ride.riding,
       });
-      const swaying = cadence === "idle";
-
       const next: Frame = {
         lead: {
           pose: grey.pose,
@@ -3829,7 +3829,6 @@ export function Companion({ facts }: CompanionProps) {
           blinking: leadBlink,
           flick: leadFlick,
           hopping: leadHopping,
-          swaying,
         },
         follow: {
           pose: tabby.pose,
@@ -3838,7 +3837,6 @@ export function Companion({ facts }: CompanionProps) {
           blinking: followBlink,
           flick: followFlick,
           hopping: followHopping,
-          swaying,
         },
         police: policeVisual,
       };

@@ -1,17 +1,30 @@
-import { LineWork, Silhouette, STROKE, type Part } from "./CompanionCat";
+/** Ink, at the line weight the old cat drawings used. */
+const STROKE = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.6,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+/** The knockout under the ink: the page's ground, a hairline wider than it. */
+const MASK_LINE = { ...STROKE, stroke: "var(--ground)", strokeWidth: 3 } as const;
+const MASK_AREA = { ...MASK_LINE, fill: "var(--ground)" } as const;
+
+/** A closed part (filled by the mask; `bare` keeps it unwashed) or an open
+ *  stroke (backed by a wider ground stroke, never filled). */
+type Part =
+  | { readonly kind: "area"; readonly d: string; readonly bare?: boolean }
+  | { readonly kind: "line"; readonly d: string };
 
 /**
  * Mini-Thien: the narrator.
  *
  * Round 10's owner decision is "cats speak meow only; a mini line-drawn Thien
  * translates" — so the cats keep their meows and this is the figure who
- * carries the English. He is drawn in the same ink discipline as the cats
- * (see the file banner on `CompanionCat.tsx`): typed parts, a ground-filled
- * silhouette under open strokes, one continuous contour wherever the shape
- * allows it. He shares that module's two-pass renderer — `Silhouette` lays
- * the knockout down first, `LineWork` draws the ink over it — rather than a
- * second copy of the masking logic, so a page behind him is knocked out in
- * `var(--ground)` exactly the way a cat's body is.
+ * carries the English. He is drawn in two passes: typed parts, a ground-filled
+ * knockout under open strokes, then the ink over it, one continuous contour
+ * wherever the shape allows it. (The cats used to share this renderer; since
+ * round 21 they are sprite sheets with coats of their own, and he keeps it.)
  *
  * Round 14: he is meant to actually look like Thien, verbatim — "silly but
  * dry/friendly · glasses · tall · short dark hair, ivy-league cut (the short
@@ -27,7 +40,7 @@ import { LineWork, Silhouette, STROKE, type Part } from "./CompanionCat";
  * `currentColor` actually resolves against.
  *
  * The glasses and the one raised eyebrow are drawn outside the masked part
- * list, on the same footing as a cat's eye in `CompanionCat.tsx`: they sit
+ * list: they sit
  * on a skull the mask has already knocked the page out from behind, so
  * masking them too would knock a second, redundant hole in the same ground.
  *
@@ -78,11 +91,9 @@ const HAIR =
  * How much denser than the cats' own coat wash the hair reads. Round 13's
  * "dark hair" has to be spent as ink, not as a second colour — the palette
  * has exactly one hue and it is reserved for annotation — so this is the
- * one number in the file that carries that instruction. Higher than
- * `CompanionCat.tsx`'s own `COAT_WASH` (0.42) on purpose: the grey cat's
- * wash reads as a solid *coat* beside the tabby's bare outline, but hair is
- * a smaller, denser mass sitting on top of an otherwise entirely open
- * figure, and it has to hold its own next to that much more line work.
+ * one number in the file that carries that instruction: hair is a small,
+ * dense mass on an otherwise open figure, and it has to hold its own next to
+ * that much line work.
  */
 const HAIR_WASH = 0.68;
 const HAIR_COAT = { ...STROKE, fill: "currentColor", fillOpacity: HAIR_WASH } as const;
@@ -135,8 +146,7 @@ const PARTS: readonly Part[] = [
 
 /**
  * Glasses and the one raised eyebrow — drawn straight to the page rather
- * than through the masked part list, exactly the way `CompanionCat.tsx`
- * draws a cat's eye: both sit on a skull the mask has already covered, and
+ * than through the masked part list: both sit on a skull the mask has already covered, and
  * masking a stroke that lies entirely inside an already-knocked-out area
  * would only cut a second, pointless hole in the same ground.
  *
@@ -182,8 +192,12 @@ export function MiniThien() {
       aria-hidden="true"
       focusable="false"
     >
-      <Silhouette parts={PARTS} />
-      <LineWork parts={PARTS} coat={HAIR_COAT} />
+      {PARTS.map((part, i) => (
+        <path key={`m${i}`} {...(part.kind === "area" ? MASK_AREA : MASK_LINE)} d={part.d} />
+      ))}
+      {PARTS.map((part, i) => (
+        <path key={`i${i}`} {...(part.kind === "area" && !part.bare ? HAIR_COAT : STROKE)} d={part.d} />
+      ))}
       <Face />
     </svg>
   );
