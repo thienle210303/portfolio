@@ -25,7 +25,7 @@ export default function Postcard({ emailDeliveryConfigured }: { readonly emailDe
         <div className="relative h-[300px] overflow-hidden bg-ground @min-[32rem]:h-auto">
           <Drawing
             name="postcard-scene"
-            className="absolute inset-0 bg-cover bg-top @min-[32rem]:bg-bottom"
+            className="absolute inset-0 bg-cover bg-top @min-[32rem]:bg-[position:70%_bottom]"
           />
           <p className="relative px-[18px] pt-4 font-serif text-[22px] leading-[1.15] italic">
             {contactCopy.postcard.greetings}
