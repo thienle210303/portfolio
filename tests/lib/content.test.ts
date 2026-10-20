@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { currentEntry, formatIsoDate, isEntirelyNeedsInput, stripNeedsInput } from "@/lib/content";
 import * as content from "@/content/portfolio";
-import { careerEntries, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
+import { careerEntries, contactCopy, projects, profile, origin, navItems, skillCategories } from "@/content/portfolio";
+import { buildDocuments } from "@/lib/answer-corpus";
 import { resolved } from "@/types/portfolio";
 
 describe("formatIsoDate", () => {
@@ -435,5 +436,30 @@ describe("currentEntry", () => {
   it("throws without a current entry", () => {
     const past = careerEntries.filter((e) => !e.dateRange.endsWith("Present"));
     expect(() => currentEntry(past)).toThrow();
+  });
+});
+
+describe("contactCopy", () => {
+  it("speaks in my voice", () => {
+    const words = JSON.stringify(contactCopy);
+    expect(words).not.toMatch(/\b(he|his|him|Thien's)\b/i);
+  });
+
+  it("sends the postcard from where I live", () => {
+    const [town] = profile.location.split(",");
+    expect(contactCopy.postcard.place.startsWith(`${town},`)).toBe(true);
+  });
+
+  it("keeps the board's Vietnamese as written", () => {
+    expect(contactCopy.greeting).toBe("Xin chào,");
+    expect(contactCopy.cheer).toBe("Một, hai, ba, dzô!");
+    expect(contactCopy.tet).toBe("bánh tét and hoa mai, for Tết");
+  });
+
+  it("is not in the chat's index: generic words cost precision", () => {
+    const indexed = new Set(buildDocuments().map((doc) => doc.text));
+    for (const line of [contactCopy.lead, contactCopy.formNote, contactCopy.ask.note, contactCopy.tet]) {
+      expect(indexed.has(line), line).toBe(false);
+    }
   });
 });

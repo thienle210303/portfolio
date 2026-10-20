@@ -1427,13 +1427,25 @@ export const highlights = [
 /* Contact                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/** Contact's own copy: the section lead and the business card's lead form. */
+/**
+ * Contact's own copy (round 21's postcard board, verbatim). Not indexed by
+ * the chat: these lines are generic words that would only cost it precision.
+ */
 export const contactCopy = {
-  lead: "Ask the site something, or leave a way to reach you.",
-  flip: "Let me reach you",
+  greeting: "Xin chào,",
+  heading: "say hi.",
+  lead: "Take my card, or send me a postcard and I'll reach you.",
+  /** Beside the two beers, at night. */
+  cheer: "Một, hai, ba, dzô!",
+  /** Under the bánh tét. Tết stays on Contact all year (owner, 2026-10-18). */
+  tet: "bánh tét and hoa mai, for Tết",
+  postcard: { greetings: "Greetings from", place: "Taylors, SC" },
   formHeading: "Leave a way to reach you.",
-  formNote: "I'll only use this to get back to you.",
+  formNote: "No message needed. I'll write first.",
+  fields: { name: "Your name", email: "Email", phone: "or phone" },
+  send: "Send the postcard",
   success: "Got it — I'll be in touch.",
+  ask: { heading: "Ask me", note: "I answer from what I've written here." },
 } as const;
 
 /* -------------------------------------------------------------------------- */

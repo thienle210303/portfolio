@@ -26,17 +26,17 @@ function sentBody(spy: ReturnType<typeof vi.fn>) {
   return JSON.parse(spy.mock.calls[0][1].body as string) as Record<string, string>;
 }
 
-const nameField = () => screen.getByLabelText(/^Name/);
+const nameField = () => screen.getByLabelText(/^Your name/);
 const emailField = () => screen.getByLabelText(/^Email/);
-const phoneField = () => screen.getByLabelText(/^Phone/);
-const send = () => screen.getByRole("button", { name: "Send" });
+const phoneField = () => screen.getByLabelText(/^or phone/);
+const send = () => screen.getByRole("button", { name: contactCopy.send });
 
 beforeEach(() => vi.mocked(openMailClient).mockClear());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("the lead form", () => {
   it("asks for a name and an email or phone, and nothing else", () => {
-    const { container } = render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    const { container } = render(<LeadForm emailDeliveryConfigured={true} />);
     expect(screen.getByRole("heading", { name: contactCopy.formHeading })).toBeInTheDocument();
     expect(screen.getByText(contactCopy.formNote)).toBeInTheDocument();
     expect(nameField()).toBeRequired();
@@ -48,7 +48,7 @@ describe("the lead form", () => {
   it("shows the paired error once, on both fields, and sends nothing when neither is given", async () => {
     const spy = stubFetch(200, { ok: true });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.click(send());
 
@@ -63,7 +63,7 @@ describe("the lead form", () => {
   it("rejects a malformed phone on its own", async () => {
     stubFetch(200, { ok: true });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(phoneField(), "call me");
     await user.click(send());
@@ -74,7 +74,7 @@ describe("the lead form", () => {
   it("rejects a malformed email and a digitless phone before posting", async () => {
     const spy = stubFetch(200, { ok: true });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "not-an-email");
     await user.type(phoneField(), "-------");
@@ -90,7 +90,7 @@ describe("the lead form", () => {
     const cheer = vi.fn();
     window.addEventListener("portfolio:contact-sent", cheer);
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
@@ -106,7 +106,7 @@ describe("the lead form", () => {
   it("posts a phone-only lead", async () => {
     const spy = stubFetch(200, { ok: true });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(phoneField(), "+1 (864) 555-0100");
     await user.click(send());
@@ -117,7 +117,7 @@ describe("the lead form", () => {
   it("opens the mail app instead of posting when delivery is not configured", async () => {
     const spy = stubFetch(200, { ok: true });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={false} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={false} />);
     expect(send()).toHaveAccessibleDescription(/opens your email app/i);
     await user.type(nameField(), "Jamie");
     await user.type(phoneField(), "864 555 0100");
@@ -132,7 +132,7 @@ describe("the lead form", () => {
   it("falls back to the mail app when the server says it is not configured", async () => {
     stubFetch(503, { ok: false, reason: "not-configured" });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
@@ -145,7 +145,7 @@ describe("the lead form", () => {
   it("puts the server's field errors on the fields", async () => {
     stubFetch(400, { ok: false, reason: "invalid", fieldErrors: { email: "Enter a valid email address." } });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
@@ -156,7 +156,7 @@ describe("the lead form", () => {
   it("says so on the card when the send fails, and never claims success", async () => {
     stubFetch(502, { ok: false, reason: "send-failed" });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={() => {}} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
@@ -164,36 +164,27 @@ describe("the lead form", () => {
     expect(screen.getByRole("status")).toHaveTextContent("");
   });
 
-  it("hands Back and Escape to its caller, clearing what it last said", async () => {
-    const onBack = vi.fn();
+  it("is the postcard itself: no Back, and Escape does nothing to it", async () => {
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={onBack} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     expect(screen.getByRole("form", { name: contactCopy.formHeading })).toHaveAttribute("data-delivery", "api");
-    await user.click(send());
-    expect(screen.getByRole("alert")).not.toHaveTextContent("");
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(onBack).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("alert")).toHaveTextContent("");
-    await user.type(nameField(), "{Escape}");
-    expect(onBack).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    await user.type(nameField(), "Jamie{Escape}");
+    expect(nameField()).toHaveValue("Jamie");
   });
 
-  it("ignores Back and Escape while a send is in flight", async () => {
+  it("holds Send while a send is in flight", async () => {
     let answer!: (value: unknown) => void;
     vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => (answer = resolve))));
-    const onBack = vi.fn();
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} onBack={onBack} />);
+    render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
 
-    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
-    await user.type(nameField(), "{Escape}");
-    expect(onBack).not.toHaveBeenCalled();
-
+    expect(screen.getByRole("button", { name: /Sending/ })).toBeDisabled();
     answer({ ok: true, status: 200, json: async () => ({ ok: true }) });
     expect(await screen.findByRole("status")).toHaveTextContent(contactCopy.success);
-    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+    expect(send()).toBeEnabled();
   });
 });

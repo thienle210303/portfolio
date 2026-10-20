@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
-import { Drawing, INK_DRAWINGS } from "@/components/scenery/Drawing";
+import { ART_DRAWINGS, Drawing, INK_DRAWINGS } from "@/components/scenery/Drawing";
 
 describe("Drawing", () => {
   it("renders an aria-hidden ink mask", () => {
@@ -23,5 +23,16 @@ describe("Drawing", () => {
 
   it("every ink drawing has a committed file", () => {
     for (const n of INK_DRAWINGS) expect(existsSync(`public/scenery/${n}.svg`), n).toBe(true);
+  });
+});
+
+describe("Drawing — Contact's art", () => {
+  it("paints Contact's coloured pieces as art, and every one has a committed file", () => {
+    for (const n of ART_DRAWINGS) {
+      expect(existsSync(`public/scenery/${n}.svg`), n).toBe(true);
+      const { container } = render(<Drawing name={n} />);
+      expect((container.firstElementChild as HTMLElement).className, n).toContain("scene-art");
+    }
+    expect(ART_DRAWINGS).toContain("lanterns-night");
   });
 });

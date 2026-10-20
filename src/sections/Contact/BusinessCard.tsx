@@ -1,34 +1,18 @@
-"use client";
-
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { contactCopy, profile, socialLinks } from "@/content/portfolio";
+import { profile, socialLinks } from "@/content/portfolio";
+import { Drawing } from "@/components/scenery/Drawing";
 import CopyButton from "@/components/ui/CopyButton";
 import ExternalLink from "@/components/ui/ExternalLink";
-import LeadForm from "./LeadForm";
+import VisuallyHidden from "@/components/ui/VisuallyHidden";
 
 /**
- * A business card that flips over to a short lead form.
- *
- * Front: who I am and every way to reach me — email (with copy), GitHub,
- * LinkedIn, the résumé, a vCard to save, a booking link when `BOOKING_URL`
- * is valid — and "Let me reach you", which turns the card over. A click on
- * the front's empty area turns it too; a click on a link or button never does.
- * Back: `LeadForm`. Its Back button and Escape turn it over again.
- *
- * The flip is a CSS 3D rotation of `[data-flip]`; both faces share one grid
- * cell, so the card is as tall as the taller face. Under reduced motion the
- * global rule in globals.css removes the transition and the turn is instant.
- * The face turned away is `inert`, and focus follows the turn: to the name
- * field going over, to the trigger coming back.
- *
- * No fixed aspect ratio any more. Until round 20 the one-sided card held
- * `lg:aspect-[13/10]`, measured to clear its content at both column widths
- * (352px and 384px). Measured on a production build in round 20 phase 6, each
- * face at its natural height: front 384.9px / 351.2px and back 448.5px /
- * 450.9px at 352px / 384px, against 270.8px / 295.4px for 13/10. Neither
- * face fits, so the card takes its height from the taller face (the back) at
- * every width. `e2e/contact.spec.ts` checks that neither face clips.
+ * My business card, paper-clipped and slightly turned (round 21's postcard
+ * board): name, title and my seal, where I live, the quote on a moss rule,
+ * then every way to reach me with its icon, and Résumé / Save contact (and
+ * Book a call, when `BOOKING_URL` is valid) as outlined chips. The faint
+ * "TL" monogram bleeds off the bottom right. A server component: only the
+ * copy button is a client island. The lead form is the postcard beside it.
  *
  * `data-cat-hide` is a contract with src/components/companion: this panel is
  * opaque and has a clear band above its top edge, so the cats occasionally
@@ -36,170 +20,164 @@ import LeadForm from "./LeadForm";
  * companion perches on `#contact aside`, so this stays the section's only
  * `<aside>`.
  *
- * Print shows the front only: the back face is `.no-print`, and the print
- * stylesheet un-turns `[data-flip]`. Decorations (engraved frame, corner
- * ticks, fleuron) are out of flow, `aria-hidden`, built from `border-rule` so
- * they survive print, and colour stays on the semantic aliases throughout.
- * The front's content sits at the top of its face; when the back is taller,
- * the spare height falls below the actions, not between the blocks.
+ * Every decoration (clip, monogram, icons) is `aria-hidden`. Platform names
+ * are visually hidden at the start of each link, so a row is never announced
+ * as a bare handle and the visible handle stays inside the name.
  */
 
-interface BusinessCardProps {
-  /** Already validated by `validBookingUrl` in `page.tsx`; `null` renders no booking link. */
-  readonly bookingUrl: string | null;
-  readonly emailDeliveryConfigured: boolean;
+/** The board's own line icons, 16px, drawn in `currentColor`. */
+const ICON = {
+  pin: <path d="M7 13s4.5-4.2 4.5-7.3A4.5 4.5 0 0 0 2.5 5.7C2.5 8.8 7 13 7 13ZM8.5 5.7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />,
+  mail: <path d="M2.5 3.5h11a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1ZM2 4.5l6 4.5 6-4.5" />,
+  code: <path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5" />,
+  linkedin: <path d="M3.5 1.5h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2ZM5 7v4.5M5 4.6v.1M8 11.5V8.8c0-1 .7-1.8 1.7-1.8s1.8.8 1.8 1.8v2.7" />,
+  doc: <path d="M3.5 1.5h6L13 5v9.5H3.5ZM9.5 1.5V5H13M5.7 8h4.6M5.7 10.8h4.6" />,
+  card: <path d="M2.5 3.5h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1ZM7.2 7.4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM3.6 11c.4-1.1 1.1-1.6 2.1-1.6s1.7.5 2.1 1.6M9.2 6.8h3.3M9.2 9.2h2.8" />,
+  calendar: <path d="M2.5 3.5h11v10h-11ZM2.5 6.5h11M5.5 2v3M10.5 2v3" />,
+} as const;
+
+function Icon({ name, className = "size-4" }: { readonly name: keyof typeof ICON; readonly className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 16 16"
+      className={`shrink-0 ${className}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {ICON[name]}
+    </svg>
+  );
 }
 
-const FACE_CLASS =
-  "relative isolate overflow-hidden border border-rule bg-surface p-6 [grid-area:1/1] backface-hidden sm:p-7";
+/** An outlined chip, 34px to the eye; `before:` grows the hit area to 44px. */
+const CHIP =
+  "relative inline-flex h-[34px] items-center gap-[7px] rounded-full border border-rule bg-surface px-[13px] text-[14px] text-fg transition-colors duration-150 before:absolute before:inset-x-0 before:-inset-y-[5px] hover:border-fg-muted";
 
-const LINK_ROW_CLASS = "group flex items-baseline gap-2 py-1 text-fg transition-colors duration-200";
-
-/** One column for "GitHub" and "LinkedIn", so both handles start at the same x. */
-const LINK_LABEL_CLASS = "inline-block w-[4.5rem] shrink-0 whitespace-nowrap text-fg-subtle";
-
-/** `.ink-link-quiet` by hand: the hover belongs to the parent row's `<a>`. */
-const HANDLE_CLASS =
-  "whitespace-nowrap underline decoration-transparent underline-offset-4 transition-[color,text-decoration-color] duration-(--dur-quick) group-hover:text-accent group-hover:decoration-current";
-
-const ACTION_LINK_CLASS = "ink-link-quiet inline-flex min-h-6 items-center text-fg hover:text-accent";
-
-const QUIET_BUTTON_CLASS =
-  "inline-flex min-h-11 items-center justify-center border border-rule bg-surface px-4 text-[length:var(--step--1)] text-fg transition-colors duration-150 hover:border-fg-muted active:translate-y-px";
-
-function Frame() {
+function Chip({ icon, children }: { readonly icon: keyof typeof ICON; readonly children: ReactNode }) {
   return (
     <>
-      <span aria-hidden="true" className="pointer-events-none absolute inset-3 border border-rule" />
-      <span aria-hidden="true" className="pointer-events-none absolute top-1 left-1 h-1.5 w-1.5 border-t border-l border-rule" />
-      <span aria-hidden="true" className="pointer-events-none absolute top-1 right-1 h-1.5 w-1.5 border-t border-r border-rule" />
-      <span aria-hidden="true" className="pointer-events-none absolute bottom-1 left-1 h-1.5 w-1.5 border-b border-l border-rule" />
-      <span aria-hidden="true" className="pointer-events-none absolute bottom-1 right-1 h-1.5 w-1.5 border-b border-r border-rule" />
+      <Icon name={icon} className="size-3.5" />
+      {children}
     </>
   );
 }
 
-export default function BusinessCard({ bookingUrl, emailDeliveryConfigured }: BusinessCardProps) {
+export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: string | null }) {
   const github = socialLinks.find((link) => link.platform === "GitHub");
   const linkedin = socialLinks.find((link) => link.platform === "LinkedIn");
 
-  const [flipped, setFlipped] = useState(false);
-  // Focus only follows a turn the visitor made, never the first render.
-  const turned = useRef(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const backRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!turned.current) return;
-    if (flipped) backRef.current?.querySelector("input")?.focus();
-    else triggerRef.current?.focus();
-  }, [flipped]);
-
-  function turn(to: boolean) {
-    turned.current = true;
-    setFlipped(to);
-  }
-
-  function onFrontClick(event: MouseEvent) {
-    if ((event.target as Element).closest("a, button")) return;
-    // A drag that selected text (an address, say) is not a request to flip.
-    if (window.getSelection()?.toString()) return;
-    turn(true);
-  }
-
   return (
-    <aside aria-label={`${profile.name} — business card`} data-cat-hide className="perspective-distant">
-      <div
-        data-flip
-        data-flipped={flipped}
-        className={`grid transform-3d transition-transform duration-(--dur-settle) ease-(--ease-ink) ${flipped ? "rotate-y-180" : ""}`}
-      >
-        <div
-          data-face="front"
-          inert={flipped}
-          onClick={onFrontClick}
-          className={`${FACE_CLASS} cursor-pointer`}
+    <aside
+      aria-label={`${profile.name} — business card`}
+      data-cat-hide
+      className="relative mx-auto w-full max-w-[430px] -rotate-1 lg:mx-0 lg:-rotate-[2.5deg]"
+    >
+      <div className="paper-lift relative isolate flex h-full flex-col overflow-hidden bg-surface p-3">
+        <p
+          aria-hidden="true"
+          data-monogram=""
+          className="pointer-events-none absolute right-[22px] -bottom-[34px] -z-10 font-display text-[210px] leading-[0.8] font-semibold tracking-[-0.02em] text-fg opacity-[0.06]"
         >
-          <Frame />
+          {profile.monogram}
+        </p>
 
-          <div className="relative">
-            <p className="font-display text-[length:var(--step-1)] leading-[1.05] tracking-[-0.02em] text-fg">
-              {profile.name}
-            </p>
-            <p className="eyebrow mt-1 leading-tight">{profile.title}</p>
-            <p className="mt-1 text-[length:var(--step--1)] text-fg-muted">{profile.location}</p>
-            {/* The chat corpus cites this line to Contact; keep it on the front. */}
-            <p className="hanging-quote mt-3 font-display text-[length:var(--step--1)] leading-snug text-fg-muted">
-              &ldquo;{profile.philosophy}&rdquo;
+        <div className="flex flex-1 flex-col border border-rule px-5 pt-6 pb-5 sm:pt-[26px] sm:pb-[22px] xl:px-7">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-display text-[30px] leading-none font-semibold tracking-[-0.02em] text-fg">
+                {profile.name}
+              </p>
+              <p className="mt-2 font-mono text-[12.5px] tracking-[0.16em] text-fg-muted uppercase">{profile.title}</p>
+            </div>
+            {/* My name as it is written at home, on a red seal. */}
+            <p className="flex h-[66px] w-[58px] shrink-0 -rotate-[4deg] flex-col items-center justify-center rounded-[4px] bg-mark font-serif text-[19px] leading-[1.05] text-fg-inverse italic shadow-[inset_0_0_0_3px_var(--mark),inset_0_0_0_4.5px_var(--fg-inverse)]">
+              <VisuallyHidden>My seal: </VisuallyHidden>
+              <span lang="vi" className="contents">
+                <span>Thiện</span> <span>Lê</span>
+              </span>
             </p>
           </div>
 
-          <div className="relative mt-5 space-y-2 border-t border-rule pt-3 font-mono text-[length:var(--step--1)] leading-snug">
-            {/* Fleuron: a rotated square sitting on the rule, out of flow. */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-[3.5px] left-1/2 h-[7px] w-[7px] -translate-x-1/2 rotate-45 border border-rule bg-surface"
-            />
-            {/* The compact CopyButton keeps a 44px hit area on a 32px box,
-                which is what fits it beside the address on one row. */}
-            <div className="flex items-center justify-between gap-2">
+          <p className="mt-3 flex items-center gap-1.5 text-[14px] text-fg-muted">
+            <Icon name="pin" className="size-[13px]" />
+            {profile.location}
+          </p>
+          {/* The chat corpus cites this line to Contact; keep it on the card. */}
+          <p className="mt-4 border-l-2 border-accent pl-3 font-serif text-[18px] leading-[1.35] text-fg italic">
+            {profile.philosophy}
+          </p>
+
+          <div className="mt-5 mb-3.5 h-px bg-rule" />
+
+          <ul role="list" className="flex flex-col gap-[3px] font-mono text-[13px] leading-snug xl:text-[14.5px]">
+            <li className="flex items-center gap-2 xl:gap-2.5">
+              <Icon name="mail" className="size-4 text-accent" />
               <a
                 href={`mailto:${profile.email}`}
-                className="ink-link-quiet block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-fg hover:text-accent"
+                className="ink-link-quiet min-w-0 flex-1 overflow-hidden py-1 text-ellipsis whitespace-nowrap text-fg hover:text-accent"
               >
                 {profile.email}
               </a>
-              <CopyButton value={profile.email} label="Copy email address" variant="compact" className="shrink-0" />
-            </div>
-            {/* The platform name is part of each link's own name, so a row is
-                never announced as a bare handle. */}
+              {/* 32px to the eye, 44px to the pointer (CopyButton's compact). */}
+              <CopyButton
+                value={profile.email}
+                label="Copy email address"
+                variant="compact"
+                className="shrink-0 rounded-full"
+              />
+            </li>
             {github ? (
-              <ExternalLink href={github.href} className={LINK_ROW_CLASS}>
-                <span className={LINK_LABEL_CLASS}>{github.platform}</span>{" "}
-                <span className={HANDLE_CLASS}>{github.handle}</span>
-              </ExternalLink>
+              <li className="flex items-center gap-2 xl:gap-2.5">
+                <Icon name="code" className="size-4 text-accent" />
+                <ExternalLink href={github.href} className="ink-link-quiet min-w-0 py-1 text-fg hover:text-accent">
+                  <VisuallyHidden>{github.platform}</VisuallyHidden>{" "}
+                  <span className="break-all">{github.href.replace(/^https:\/\//, "")}</span>
+                </ExternalLink>
+              </li>
             ) : null}
             {linkedin ? (
-              <ExternalLink href={linkedin.href} className={LINK_ROW_CLASS}>
-                <span className={LINK_LABEL_CLASS}>{linkedin.platform}</span>{" "}
-                <span className={HANDLE_CLASS}>{linkedin.handle}</span>
-              </ExternalLink>
+              <li className="flex items-center gap-2 xl:gap-2.5">
+                <Icon name="linkedin" className="size-4 text-accent" />
+                <ExternalLink href={linkedin.href} className="ink-link-quiet min-w-0 py-1 text-fg hover:text-accent">
+                  <VisuallyHidden>{linkedin.platform}</VisuallyHidden>{" "}
+                  {linkedin.handle}
+                </ExternalLink>
+              </li>
             ) : null}
-          </div>
+          </ul>
 
-          <div className="relative mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-            <ul role="list" className="flex flex-wrap gap-x-4 gap-y-1 text-[length:var(--step--1)]">
-              {/* next/link: the trip to /resume and back keeps the chat's
-                  thread (see `threadCache` in AskThisSite.tsx). */}
+          <ul role="list" className="mt-auto flex flex-wrap gap-2 pt-6">
+            {/* next/link: the trip to /resume and back keeps the chat's
+                thread (see `threadCache` in AskThisSite.tsx). */}
+            <li>
+              <Link href="/resume" className={CHIP}>
+                <Chip icon="doc">Résumé</Chip>
+              </Link>
+            </li>
+            <li>
+              <a href="/contact.vcf" download className={CHIP}>
+                <Chip icon="card">Save contact</Chip>
+              </a>
+            </li>
+            {bookingUrl ? (
               <li>
-                <Link href="/resume" className={ACTION_LINK_CLASS}>
-                  Résumé
-                </Link>
+                <ExternalLink href={bookingUrl} className={CHIP}>
+                  <Chip icon="calendar">Book a call</Chip>
+                </ExternalLink>
               </li>
-              <li>
-                <a href="/contact.vcf" download className={ACTION_LINK_CLASS}>
-                  Save contact
-                </a>
-              </li>
-              {bookingUrl ? (
-                <li>
-                  <ExternalLink href={bookingUrl} className={ACTION_LINK_CLASS}>
-                    Book a call
-                  </ExternalLink>
-                </li>
-              ) : null}
-            </ul>
-            <button ref={triggerRef} type="button" onClick={() => turn(true)} className={QUIET_BUTTON_CLASS}>
-              {contactCopy.flip}
-            </button>
-          </div>
-        </div>
-
-        <div ref={backRef} data-face="back" inert={!flipped} className={`${FACE_CLASS} no-print rotate-y-180`}>
-          <Frame />
-          <LeadForm emailDeliveryConfigured={emailDeliveryConfigured} onBack={() => turn(false)} />
+            ) : null}
+          </ul>
         </div>
       </div>
+      <Drawing
+        name="paper-clip"
+        className="pointer-events-none absolute -top-[26px] left-[55%] h-[86px] w-[34px]"
+      />
     </aside>
   );
 }
