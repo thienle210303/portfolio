@@ -340,7 +340,6 @@ function journeyFiles() {
     "oak-leaves": svg(OAK_BOX, oak.leaves),
     "oak-moss": svg(OAK_BOX, oak.moss),
     "oak-branch": svg(BRANCH_BOX, branch.bark),
-    "oak-branch-moss": svg(BRANCH_BOX, branch.moss),
     "journey-rice": svg("236 776 320 124", rice(330, 896, 7, 22, 31, K, 26, 22)),
     "lantern-day": svg(LANTERN_BOX, `<path d="M152 512V546" stroke="#8b7b5e" stroke-width="1.2"/>` + hoiAn(152, 552, "#C8352B", 1, false)),
     "lantern-night": svg(LANTERN_BOX, HOI_DEFS("#C8352B") + `<path d="M152 512V546" stroke="#b3a27f" stroke-width="1.2"/>` + hoiAn(152, 552, "#C8352B", 1, true)),

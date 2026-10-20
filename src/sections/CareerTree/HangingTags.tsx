@@ -84,15 +84,11 @@ export default function HangingTags({ className }: { readonly className?: string
       <div
         aria-hidden="true"
         data-branch=""
-        className="no-print pointer-events-none absolute bottom-0 w-[120px] xl:hidden"
+        className="no-print pointer-events-none absolute bottom-0 xl:hidden"
       >
         <Drawing
           name="oak-branch"
           className="absolute inset-0 text-[color:var(--scene-bark)] [mask-position:top] [mask-size:100%_auto]"
-        />
-        <Drawing
-          name="oak-branch-moss"
-          className="absolute inset-0 text-[color:var(--scene-moss)] [mask-position:top] [mask-size:100%_auto]"
         />
       </div>
       <ul

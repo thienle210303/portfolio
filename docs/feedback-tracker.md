@@ -1882,3 +1882,10 @@ Branch `round-21/journey` (`26cd85a`..`c2fd447` plus this record), production bu
 - `print.spec.ts`'s rail test no longer requires a rail (no section has one); its article-width check still bites.
 
 **Screens** (`reports/r21-p4-screens/`, untracked): 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900, 1920x1080, day and night, plus 1440 day with "Watch it grow" playing. Against `NatJourney.png` / `NatJourneyNight.png` at 1440, beyond this plan's decisions: the site's header; the heading at x 160 (content column); tag values at `--step-4` (34px, board 32) and the ticket's at `--step-3` (28px, board 30); "Watch it grow" at x 72 (the gutter); the cats bottom right; the oak's fade at the viewport's edges. At 1280 the lantern is cut by the left edge (planned). At 390 the resting cats sit over the Wordification tag's year (the cats' branch owns them).
+
+### R21-P4 phone fixes (reviewer, 2026-10-20)
+
+- **One tree on a phone.** Below 640 the crown is mirrored and slid right so the foot of its trunk (board x 307 at y 640) stands on the branch the tags hang from; the branch is drawn at 100px there, as wide as the trunk, and starts 4px under it. The lantern, whose limb runs off the edge once mirrored, hangs from the long limb instead.
+- **The branch's Spanish moss is dropped** (`oak-branch-moss.svg` deleted): hugging the stem it read as a rendering glitch. Scenery is now nine files, 249,201 B raw, 47,148 B gzip; a phone day load makes 6 Journey requests, not 7.
+- **The "seam" at y ~860 was the screenshot, not the page.** The body's sky is `background-attachment: fixed`, and a full-page capture paints it one viewport high; a viewport screenshot of the same spot shows no seam. The screenshot script now takes a viewport tall enough for the stage.
+- `pnpm verify` 5/5 (870 tests; eval 70.0 / 93.3 / 96.7 / 0.807); e2e journey + responsive + axe: 65 passed, 235 skipped, 0 failed.

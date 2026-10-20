@@ -16,7 +16,6 @@ export const INK_DRAWINGS = [
   "oak-leaves",
   "oak-moss",
   "oak-branch",
-  "oak-branch-moss",
   "journey-rice",
 ] as const;
 export type InkDrawing = (typeof INK_DRAWINGS)[number];

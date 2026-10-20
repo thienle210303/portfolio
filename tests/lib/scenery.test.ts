@@ -26,14 +26,13 @@ const VIEWBOXES: Record<string, string> = {
   "oak-leaves": "0 120 1440 780",
   "oak-moss": "0 120 1440 780",
   "oak-branch": "0 0 120 1700",
-  "oak-branch-moss": "0 0 120 1700",
   "journey-rice": "236 776 320 124",
   "lantern-day": "104 510 96 122",
   "lantern-night": "104 510 96 122",
   "journey-morning": "1196 780 92 90",
   "journey-evening": "1196 780 92 90",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-branch", "oak-branch-moss", "journey-rice"];
+const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-branch", "journey-rice"];
 
 const files = drawScenery();
 

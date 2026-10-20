@@ -744,23 +744,29 @@
     }
   }
 
-  /* Journey (round 21): below 1280 the tags hang from a branch that drops
-     from the crown above them (OakCrown, 24px up). Its top rises into the
-     crown to meet the limb: the crown is the board's y 120–640 at the
-     wrapper's width, so a board y is (y - 120) / 1440 of that width up from
-     the crown's top. On a phone the stem runs 20px in from the right edge,
-     under the limb's end (board y ~300: 23.6cqw up); from 640 it runs down
-     the middle (board x 720, y 386: 17.6cqw) and the tags take turns either
-     side, each starting 40px above the last one's foot. Each tag hangs by a
-     string from the tip of a tapered twig of bark (the mask), 26px above it.
-     The branch fades out below the last tag rather than stopping square. */
+  /* Journey (round 21): below 1280 the tags hang from a branch that grows
+     out of the crown above them (OakCrown, 24px up). On a phone the crown is
+     mirrored and slid right so the foot of its trunk (board x 307 at y 640,
+     mirrored to 78.68% of its width) stands on the stem, 20px in from the
+     right edge: one tree. The stem is drawn at 100px there, as wide as the
+     trunk it continues. From 640 the stem runs down the middle and rises into
+     the crown to meet the limb there (board x 720, y 386: the crown is the
+     board's y 120–640 at the wrapper's width, so 17.6cqw up), and the tags
+     take turns either side, each starting 40px above the last one's foot.
+     Each tag hangs by a string from the tip of a tapered twig of bark (the
+     mask), 26px above it. The branch fades out below the last tag rather than
+     stopping square. */
   @media (width < 80rem) {
     [data-hanging-tags] {
       container-type: inline-size;
     }
+    [data-crown] {
+      transform: translateX(calc(21.32% - 20px)) scaleX(-1);
+    }
     [data-hanging-tags] [data-branch] {
-      top: calc(-23.6cqw - 24px);
-      right: -40px;
+      top: -28px;
+      right: -30px;
+      width: 100px;
       mask-image: linear-gradient(to bottom, #000 calc(100% - 96px), transparent);
     }
     [data-hanging-tags] li {
@@ -787,6 +793,10 @@
       top: calc(-17.6cqw - 24px);
       right: auto;
       left: calc(50% - 60px);
+      width: 120px;
+    }
+    [data-crown] {
+      transform: none;
     }
     [data-hanging-tags] li {
       width: min(50% - 44px, 340px);

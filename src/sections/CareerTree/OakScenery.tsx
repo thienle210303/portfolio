@@ -52,7 +52,8 @@ export default function OakScenery() {
 
 /**
  * Below 1280: the oak's crown across the top of the stage (board y 120–640),
- * its lantern where the board hangs it.
+ * its lantern where the board hangs it. Below 640 it is mirrored and moved
+ * so its trunk stands on the branch the tags hang from (globals.css).
  */
 export function OakCrown({ className }: { readonly className?: string }) {
   const layer = "absolute inset-0 [mask-position:top] [mask-size:100%_auto]";
@@ -65,7 +66,10 @@ export function OakCrown({ className }: { readonly className?: string }) {
       <Drawing name="oak-leaves" className={cn(layer, "text-accent")} />
       <Drawing name="oak-moss" className={cn(layer, "text-[color:var(--scene-moss)]")} />
       <Drawing name="oak" className={cn(layer, "text-[color:var(--scene-bark)]")} />
-      <span className="scene-art absolute top-[75%] left-[7.2%] aspect-[96/122] w-[6.7%]" style={art("--art-lantern")} />
+      {/* Mirrored on a phone (globals.css), the board's lantern limb runs off
+          the edge; there it hangs from the long limb, where that limb crosses
+          board y 510. */}
+      <span className="scene-art absolute top-[75%] left-[7.2%] max-sm:left-[25.8%] aspect-[96/122] w-[6.7%]" style={art("--art-lantern")} />
     </div>
   );
 }
