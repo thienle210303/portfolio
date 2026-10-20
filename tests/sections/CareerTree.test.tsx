@@ -575,7 +575,7 @@ describe("the timeline's rows", () => {
         studies += 1;
       }
     }
-    expect(impactTotal).toBe(16);
+    expect(impactTotal).toBe(17);
     expect(chipLists).toBeGreaterThan(0);
     expect(siblingLines, "rows with a Ran alongside line").toBe(10);
     expect(studies, "case studies rendered in the list").toBe(4);

@@ -41,7 +41,7 @@ export default function JourneyHighlights({ className }: { className?: string })
       className={cn("grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 lg:grid-cols-3", className)}
     >
       {HIGHLIGHTS.map((h, i) => (
-        <li key={h.entryId} className={cn("flex", i === 0 && "col-span-full lg:col-span-2")}>
+        <li key={`${h.entryId}-${h.year}`} className={cn("flex", i === 0 && "col-span-full lg:col-span-2")}>
           <a href={h.href} className="flex w-full">
             <div
               className={cn(
