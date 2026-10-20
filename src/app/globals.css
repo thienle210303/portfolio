@@ -2148,6 +2148,10 @@
     opacity: 1 !important;
     transform: none !important;
   }
+  /* Anything that turns over (the hero's chapter tags) prints its front. */
+  [data-flip] {
+    transform: none !important;
+  }
   [data-ink-root].hairline-t {
     border-top-color: var(--rule-color) !important;
   }

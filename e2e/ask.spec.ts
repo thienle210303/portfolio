@@ -4,7 +4,7 @@ import { navItems } from "../src/content/portfolio";
 /**
  * "Ask this site" — a chat thread over the portfolio's own content. Rounds 16
  * and 17 kept it behind a fourth tab in the hero; round 18 moved it to
- * Contact, under "Ask about my work" (`#ask`). The chat is still a lazily
+ * Contact, under "Ask me" (`#ask`). The chat is still a lazily
  * imported chunk: it does not exist on the page until `#ask` nears the
  * viewport (`AskLoader.tsx`). Every chat e2e test belongs here, not in
  * `sections.spec.ts`.
@@ -415,7 +415,7 @@ test.describe("ask, in contact", () => {
     await page.goto("/");
 
     await expect(page.locator("#contact #ask")).toHaveCount(1);
-    await expect(askBlock(page).getByRole("heading", { level: 3, name: "Ask about my work" })).toBeVisible();
+    await expect(askBlock(page).getByRole("heading", { level: 3, name: "Ask me" })).toBeVisible();
     // The companion perches on the first <aside> in #contact (the business
     // card); the chat must not become it.
     await expect(page.locator("#contact aside")).toHaveCount(1);
@@ -426,7 +426,7 @@ test.describe("ask, in contact", () => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     await page.goto("/#ask");
     await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
-    await expect(askBlock(page).getByRole("heading", { name: "Ask about my work" })).toBeInViewport();
+    await expect(askBlock(page).getByRole("heading", { name: "Ask me" })).toBeInViewport();
   });
 
   test("the engine chunk lazy-loads only once #ask nears the viewport", async ({ page }) => {
