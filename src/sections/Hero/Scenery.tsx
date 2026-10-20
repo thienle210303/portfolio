@@ -3,7 +3,10 @@
  * Positions are the board's (NatHero), measured from the section's bottom.
  * From 1280 the content column is a centred 1120px, so the ground pieces and
  * the sky stand in a centred 1440 frame (`50% ± n px`) and keep the board's
- * relation to the words at any width. Below that they take the % positions.
+ * relation to the words at any width. From 1024 to 1279 they take the %
+ * positions; below 1024 the ground is the phone board's (NatHeroPhone):
+ * Moon at the left, the buffalo in a short rice patch about the middle
+ * (`50%`-based), the stool and its caption at the right (`right-4`).
  *
  * The clothesline shows from 1024, at most 1920 wide and centred; its top is
  * `--line-top` below the section's padding, the same offset the chapter tags'

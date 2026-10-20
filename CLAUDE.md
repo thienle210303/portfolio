@@ -79,7 +79,9 @@ hook for Phase 7; keep it, once.
 The page is three sections, in this order (a Record section is planned between the Journey and
 Contact): About (`#about` — the hero: my headline and two actions under a
 clothesline of four chapter tags that turn over to my line about each, my
-field tag with the LinkedIn QR at the line's end, the morning/evening scenery
+field tag with the LinkedIn QR at the line's end (below 1024 the line hangs
+down the page from a bamboo pole, the tags either side, my field tag at its
+foot), the morning/evening scenery
 drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: highlight cards, the
 drawn tree at >=1024px, then a one-open timeline of rows) and Contact

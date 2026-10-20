@@ -157,7 +157,9 @@ test.describe("hero", () => {
     await expect(kien).toHaveAttribute("aria-expanded", "true");
   });
 
-  test("on the back, the line and the link keep their whole focus ring inside the paper", async ({ page }) => {
+  for (const viewport of [PHONE, WIDE]) {
+  test(`on the back, the line and the link keep their whole focus ring inside the paper at ${viewport.width}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
     await open(page);
     for (let i = 0; i < PLACES.length; i++) {
       await front(page, PLACES[i]).click();
@@ -173,10 +175,13 @@ test.describe("hero", () => {
           bottom: el.offsetTop + el.offsetHeight + 5,
           width: paper.offsetWidth,
           height: paper.offsetHeight,
+          tall: el.offsetHeight,
+          link: el.tagName === "A",
         }));
       });
       expect(boxes).toHaveLength(2);
       for (const b of boxes) {
+        if (b.link) expect(b.tall, `${b.name}: a 44px target`).toBeGreaterThanOrEqual(44);
         expect(b.parent, b.name).toBe(true);
         expect(b.left, b.name).toBeGreaterThanOrEqual(0);
         expect(b.top, `${b.name}: below the 22px corner cut`).toBeGreaterThanOrEqual(22);
@@ -185,6 +190,7 @@ test.describe("hero", () => {
       }
     }
   });
+  }
 
   test("reduced motion: the tag turns without a transition", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -375,7 +381,7 @@ test.describe("hero", () => {
         }
         return { out, pieces: pieces.length };
       });
-      expect(hits.pieces).toBe(4);
+      expect(hits.pieces).toBe(3);
       expect(hits.out).toEqual([]);
     });
   }
@@ -570,18 +576,43 @@ test.describe("hero", () => {
     }
   }
 
-  for (const width of [390, 768, 1440]) {
-  test(`the actions come first in the tab order, then the tags, then the QR, at ${width}`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await open(page);
-    const order = await page.evaluate(() =>
+  /** The hero's live controls in DOM (= tab) order, with their boxes. */
+  const controls = (page: Page) =>
+    page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>("#about a, #about button")]
         .filter((el) => !el.closest("[inert]"))
-        .map((el) => (el.id.endsWith("-front") ? "tag" : el.innerText.replace(/\s+/g, " ").trim())),
+        .map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            name: el.id.endsWith("-front") ? "tag" : el.innerText.replace(/\s+/g, " ").trim(),
+            top: r.top + window.scrollY,
+            left: r.left,
+          };
+        }),
     );
-    expect(order).toEqual([PRIMARY, BOOK, "tag", "tag", "tag", "tag", "My LinkedIn (opens in a new tab)"]);
+  const TAB_ORDER = [PRIMARY, BOOK, "tag", "tag", "tag", "tag", "My LinkedIn (opens in a new tab)"];
+
+  test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
+    await open(page);
+    expect((await controls(page)).map((c) => c.name)).toEqual(TAB_ORDER);
   });
-  }
+
+  test("at 390 the tab order is the order on screen, top to bottom", async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await open(page);
+    const seen = [...(await controls(page))].sort((a, b) => a.top - b.top || a.left - b.left);
+    expect(seen.map((c) => c.name)).toEqual(TAB_ORDER);
+  });
+
+  test("at 1440 each group reads left to right in tab order, the QR last", async ({ page }) => {
+    // From 1024 the grid lifts the line above the words, so top-to-bottom is
+    // tags, then words; within each row the tab order runs left to right.
+    await open(page);
+    const c = await controls(page);
+    expect(c[0].left).toBeLessThan(c[1].left);
+    for (let i = 3; i < 6; i++) expect(c[i].left).toBeGreaterThan(c[i - 1].left);
+    expect(c[6].left).toBeGreaterThan(Math.max(...c.slice(0, 6).map((x) => x.left)));
+  });
 
   for (const theme of ["day", "night"] as const) {
     test(`${theme} shows the ${theme === "day" ? "sun and the phin" : "moon and the lẩu"}`, async ({ page }) => {

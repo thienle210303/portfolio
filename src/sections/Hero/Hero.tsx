@@ -2,8 +2,10 @@
  * Hero — id="about", the page's single <h1>. Server Component; ChapterTags
  * carries its own "use client".
  *
- * Round 21 (phase 3): a clothesline strung from a bamboo pole to a pine, four
- * chapter tags on it, my field tag at its right end, the scenery behind. DOM
+ * Round 21 (phase 3): from 1024 a clothesline strung from a bamboo pole to a
+ * pine, four chapter tags on it, my field tag at its right end, the scenery
+ * behind; below 1024 it hangs down the page (PhoneLine) with my field tag at
+ * its foot. DOM
  * order is text → line → field tag at every width, so a phone reads the
  * headline first; at >=1024 the grid lifts the line above the text.
  *
@@ -40,7 +42,7 @@ const FIELD_DROP = {
  * right edge (the nón lá on it) the twine sags left to the middle, 40px down,
  * then drops straight to my field tag (the grid's 40px gap below). The tags
  * hang off it either side (ChapterTags; globals.css draws their strings).
- * `--pole` is the stem's distance from the middle: 12px in from the hero's
+ * `--pole` is the stem's distance from the middle: 18px in from the hero's
  * edge, or just past the right-hand tags (18px + 160px + 8px) once there is
  * room, so the line keeps the board's shape at any width.
  */
@@ -49,19 +51,12 @@ function PhoneLine() {
     <div
       aria-hidden="true"
       data-scenery="phone-line"
-      className="pointer-events-none absolute inset-0 [--pole:min(50cqw-12px,186px)] lg:hidden"
+      className="pointer-events-none absolute inset-0 [--pole:min(50cqw-18px,186px)] lg:hidden"
     >
-      {/* The bamboo's stem is x 366–378 of its 316–386 viewBox; the line ties
-          on at its top. Two boxes, each the size of its ink: the leaves, then
-          the bare stem. One 70px box would put solid accent, as axe reads a
-          mask, under whatever the cats' box (fixed, bottom right) floats over. */}
+      {/* The bamboo's stem is x 366–378 of its 316–386 viewBox; the line ties on at its top. */}
       <Drawing
         name="bamboo-phone"
-        className="absolute -top-16 left-[calc(50%+var(--pole)-56px)] h-[190px] w-[70px] text-accent [mask-position:top] [mask-size:100%_auto]"
-      />
-      <Drawing
-        name="bamboo-phone"
-        className="absolute top-[126px] bottom-25 left-[calc(50%+var(--pole)-11px)] w-[22px] text-accent [mask-position:-45px_-190px] [mask-size:70px_auto]"
+        className="absolute -top-16 bottom-25 left-[calc(50%+var(--pole)-56px)] w-[70px] text-accent [mask-position:top] [mask-size:100%_auto]"
       />
       {/* The hero's nón lá at 0.56×: its crown sits on the line's knot. */}
       <Drawing name="non-la" className="absolute -top-[13px] left-[calc(50%+var(--pole)-33px)] h-[72px] w-[67px]" />

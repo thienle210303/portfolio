@@ -110,7 +110,7 @@ export default function ChapterTags({
                       {line}
                       {" "}<span className="sr-only">(turn the tag back)</span>
                     </button>
-                    <a href={href} className="mt-auto self-start font-semibold underline underline-offset-4">
+                    <a href={href} className="mt-auto inline-flex min-h-11 items-center self-start font-semibold underline underline-offset-4">
                       Read this part
                     </a>
                   </Tag>
