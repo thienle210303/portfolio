@@ -32,11 +32,14 @@ export default function HeroIdentity({ headingId, bookingUrl }: HeroIdentityProp
       {/* LCP guard: the sky SVG is the expected Largest Contentful Paint, but
           this h1 is the largest text candidate, so its `data-hero-step="h1"`
           keyframe in globals.css (`ink-rise`) is transform-only and never
-          starts from `opacity: 0`. */}
+          starts from `opacity: 0`. From 1024 to ~1180 the column beside my
+          field tag is narrow, so the size follows it (`9cqw - 40px`, the hero
+          is the container) and the headline stays two lines: three pushed the
+          primary action below a 1024×768 screen. */}
       <h1
         id={headingId}
         data-hero-step="h1"
-        className="max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-semibold leading-[0.98] tracking-(--tracking-display-lg) text-fg"
+        className="max-w-[18ch] text-balance font-display text-[length:var(--step-5)] font-semibold lg:text-[length:min(var(--step-5),9cqw_-_40px)] leading-[0.98] tracking-(--tracking-display-lg) text-fg"
       >
         {profile.headline}
       </h1>

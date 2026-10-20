@@ -8,7 +8,9 @@
  * headline first; at >=1024 the grid lifts the line above the text.
  *
  * The tags' row starts `--line-top` below the section's padding, the
- * clothesline's top in Scenery. Each string meets the curve because its drop
+ * clothesline's top in Scenery. On a short laptop screen (<=800px tall) the
+ * line moves up 24px so the primary action still makes the first screen at
+ * 1024×768. Each string meets the curve because its drop
  * is fitted to it (ChapterTags' DROPS; FIELD_DROP below). At >=1024 the grid
  * runs `--gutter - 16px` into the right gutter, which is what puts the field
  * tag where the board hangs it and leaves the four tags their 152px at >=1280.
@@ -46,7 +48,7 @@ export default function Hero({ bookingUrl }: { readonly bookingUrl: string | nul
       // The hero runs its own `data-motion` load choreography instead of the
       // generic scroll-triggered ink settle — see Section.tsx's own comment.
       reveal={false}
-      className="@container relative isolate overflow-hidden pb-[130px] [--line-top:38px] lg:pb-[132px]"
+      className="@container relative isolate overflow-hidden pb-[130px] [--line-top:38px] lg:pb-[132px] [@media(min-width:1024px)_and_(max-height:800px)]:[--line-top:14px]"
     >
       {/* Retired ids that land here; same pattern as CareerTree's. */}
       {ABOUT_LEGACY_SECTION_IDS.map((id) => (

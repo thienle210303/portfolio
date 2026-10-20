@@ -396,6 +396,51 @@ test.describe("hero", () => {
     });
   }
 
+  for (const width of [1024, 1180, 1280, 1366, 1439]) {
+    test(`the line hangs from the bamboo and the pine at ${width}, and the bamboo clears the words`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page);
+      const m = await page.evaluate(() => {
+        const box = (sel: string) => document.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
+        const shown = (sel: string) => document.querySelector<HTMLElement>(sel)!.checkVisibility();
+        const words = [...document.querySelectorAll<HTMLElement>("#about [data-hero-identity] :is(h1, p, a, button)")];
+        const hint = document.querySelector<HTMLElement>('#about [data-hero-step="line"] + p')!;
+        const svg = document.querySelector('#about [data-scenery="hero"] svg')!.getBoundingClientRect();
+        return {
+          bamboo: shown('#about [data-scenery="bamboo"]'),
+          pine: shown('#about [data-scenery="pine"]'),
+          // The stem is x 64–80 of the bamboo's 140px box.
+          stemRight: box('#about [data-scenery="bamboo"]').left + 80,
+          stemTop: box('#about [data-scenery="bamboo"]').top,
+          pineTop: box('#about [data-scenery="pine"]').top,
+          lineTop: svg.top,
+          wordsLeft: Math.min(hint.getBoundingClientRect().left, ...words.map((w) => w.getBoundingClientRect().left)),
+        };
+      });
+      expect(m.bamboo && m.pine).toBe(true);
+      expect(m.stemRight).toBeLessThanOrEqual(m.wordsLeft - 8);
+      // Both poles rise above the line, so it is tied to something at each end.
+      expect(m.stemTop).toBeLessThan(m.lineTop);
+      expect(m.pineTop).toBeLessThan(m.lineTop);
+    });
+  }
+
+  for (const size of [
+    { width: 1024, height: 768 },
+    { width: 1366, height: 768 },
+    { width: 844, height: 390 },
+  ]) {
+    test(`the headline and the primary action make the first screen at ${size.width}×${size.height}`, async ({ page }) => {
+      await page.setViewportSize(size);
+      await open(page);
+      const h1 = (await page.locator("#about h1").boundingBox())!;
+      const primary = (await page.getByRole("link", { name: PRIMARY }).boundingBox())!;
+      expect(h1.y + h1.height).toBeLessThanOrEqual(size.height);
+      expect(primary.y + primary.height).toBeLessThanOrEqual(size.height);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+    });
+  }
+
   test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
     await open(page);
     const order = await page.evaluate(() =>
