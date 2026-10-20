@@ -54,6 +54,6 @@ describe("my business card", () => {
     for (const deco of container.querySelectorAll("[data-scenery], [data-monogram]")) {
       expect(deco.closest("[aria-hidden=true]")).not.toBeNull();
     }
-    expect(container.querySelector("[data-monogram]")).toHaveTextContent(profile.monogram);
+    expect(container.querySelector("[data-monogram]")).toHaveAttribute("data-monogram", profile.monogram);
   });
 });

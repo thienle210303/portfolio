@@ -78,13 +78,13 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
       className="relative mx-auto w-full max-w-[430px] -rotate-1 lg:mx-0 lg:-rotate-[2.5deg]"
     >
       <div className="paper-lift relative isolate flex h-full flex-col overflow-hidden bg-surface p-3">
-        <p
+        {/* Drawn by `::before`, not as text: a watermark at 6% is not text
+            to read, and axe would measure it as text however hidden. */}
+        <span
           aria-hidden="true"
-          data-monogram=""
-          className="pointer-events-none absolute right-[22px] -bottom-[34px] -z-10 font-display text-[210px] leading-[0.8] font-semibold tracking-[-0.02em] text-fg opacity-[0.06]"
-        >
-          {profile.monogram}
-        </p>
+          data-monogram={profile.monogram}
+          className="pointer-events-none absolute right-[22px] -bottom-[34px] -z-10 font-display text-[210px] leading-[0.8] font-semibold tracking-[-0.02em] text-fg opacity-[0.06] before:content-[attr(data-monogram)]"
+        />
 
         <div className="flex flex-1 flex-col border border-rule px-5 pt-6 pb-5 sm:pt-[26px] sm:pb-[22px] xl:px-7">
           <div className="flex items-start justify-between gap-4">

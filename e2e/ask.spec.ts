@@ -284,6 +284,13 @@ test.describe("ask this site", () => {
     // fail. And it is only meaningful if the page *could* lurch that far, so
     // the room below is asserted first.
     const LURCH = 50;
+    // Since round 21 the chat is a short strip near the page's end, so a
+    // reader scrolled onto it may have nothing below to lurch into. Put its
+    // bottom edge at the viewport's bottom, which leaves the footer below.
+    await page.evaluate(() => {
+      const box = document.querySelector("#ask")!.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + box.bottom - window.innerHeight);
+    });
     const windowScrollBefore = await page.evaluate(() => window.scrollY);
     const roomBelow = await page.evaluate(
       () => document.documentElement.scrollHeight - window.innerHeight - window.scrollY,

@@ -764,10 +764,10 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
         ) : null}
 
         {/*
-          The scroll window. `max-h-[22rem]` (352px) shows the newest turn in
+          The scroll window. A fixed 22rem (352px) shows the newest turn in
           full and a little of the one above it, so the thread reads as a
           conversation and never grows the page however many questions are
-          asked (round 12: "if I click multiple buttons it just keeps
+          asked, not even while the first few turns fill it (round 12: "if I click multiple buttons it just keeps
           stacking up on the page").
 
           `role="log"` announces new turns politely without repeating the
@@ -782,7 +782,7 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
           aria-label="Conversation thread"
           aria-live="polite"
           tabIndex={turns.length > 0 ? 0 : undefined}
-          className={cn("min-w-0 overflow-y-auto overscroll-contain", turns.length > 0 ? "max-h-[22rem]" : "mt-3")}
+          className={cn("min-w-0 overflow-y-auto overscroll-contain", turns.length > 0 ? "h-[22rem] max-h-[22rem]" : "mt-3")}
         >
           {turns.length === 0 ? (
             <div className="grid grid-cols-[4.75rem_minmax(0,1fr)] items-baseline gap-y-1.5">
