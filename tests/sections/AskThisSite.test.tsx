@@ -55,7 +55,7 @@ function conversationRegion() {
 }
 
 function questionField() {
-  return screen.getByRole("textbox", { name: "Ask a question about this portfolio" });
+  return screen.getByRole("textbox", { name: "Your question" });
 }
 
 let scrollToSpy: ReturnType<typeof vi.fn>;
@@ -393,7 +393,7 @@ describe("AskThisSite -- what it says about its answers", () => {
     render(<AskThisSite liveModeConfigured={false} />);
     expect(
       screen.getByText(
-        "Every answer below comes from what’s written for this site — his words as written, or a few of them joined into one line — with its source. No model, nothing generated. If it isn’t written down, you’re told so.",
+        "Pick a question or ask your own. Every answer is something I’ve written here, as written or a few lines of it joined into one, with where it came from. No model, nothing generated. If I haven’t written it down, I’ll say so.",
       ),
     ).toBeVisible();
     expect(screen.queryByText(/word for word/)).toBeNull();
@@ -406,7 +406,7 @@ describe("AskThisSite -- what it says about its answers", () => {
     await user.keyboard("{Enter}");
     expect(
       screen.getByText(
-        "Nothing written for this site answers that. Answers here come only from what’s written for it, so I’d rather say so than guess.",
+        "I haven’t written anything here that answers that, so I’d rather say so than guess.",
       ),
     ).toBeVisible();
   });

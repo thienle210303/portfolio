@@ -1951,10 +1951,10 @@
 /* modes, natural height with this rule switched off). Round 18's copy was    */
 /* measured in both modes: live was never taller than static at any width     */
 /* (up to 28px shorter), so one set of values serves both and is not keyed    */
-/* on the mode. Round 21 phase 1 (Bricolage) re-measured the static mode      */
-/* only; that live stays no taller under the new face is assumed, not         */
-/* measured. e2e/ask.spec.ts fails at five widths if the footer moves by more */
-/* than 2px across the load, and fails between 400 and 639px if the room is   */
+/* on the mode. Round 21 phase 6 (the postcard's two-half strip) re-measured */
+/* the static mode only; that live stays no taller is assumed, not measured   */
+/* (its resting line is shorter). e2e/ask.spec.ts fails at five widths if   */
+/* the footer moves by more than 2px across the load, and fails between 400 and 639px if the room is   */
 /* short of the chat or more than 200px taller than it.                       */
 /*                                                                            */
 /* Gated on `html[data-motion]`, which the pre-paint script in layout.tsx     */
@@ -1965,36 +1965,36 @@
 /* -------------------------------------------------------------------------- */
 @layer components {
   :root {
-    --ask-room: 67.5rem; /* tallest measured: 1065px at 320 */
+    --ask-room: 47.5rem; /* tallest measured: 757px at 320 */
   }
   @media (width >= 25rem) {
     :root {
-      --ask-room: 63rem; /* 1006px at 400 */
+      --ask-room: 39rem; /* 621px at 400 */
     }
   }
   @media (width >= 32.5rem) {
     :root {
-      --ask-room: 54.5rem; /* 863px at 520 */
+      --ask-room: 33.5rem; /* 530px at 520 */
     }
   }
   @media (width >= 40rem) {
     :root {
-      --ask-room: 48.5rem; /* 752px at 648 */
+      --ask-room: 29rem; /* 460px at 640 */
     }
   }
   @media (width >= 48rem) {
     :root {
-      --ask-room: 44rem; /* 680px at 1020 */
+      --ask-room: 27.5rem; /* 438px at 768 */
     }
   }
   @media (width >= 64rem) {
     :root {
-      --ask-room: 55.5rem; /* 886px at 1024 */
+      --ask-room: 17.5rem; /* 276px at 1024 */
     }
   }
   @media (width >= 80rem) {
     :root {
-      --ask-room: 46.5rem; /* 737px at 1592 */
+      --ask-room: 16rem; /* 254px at 1280 */
     }
   }
   html[data-motion] [data-ask-slot],
@@ -2148,11 +2148,6 @@
     opacity: 1 !important;
     transform: none !important;
   }
-  /* The business card prints its front, even if it was flipped on screen:
-     the back face is `.no-print`, and this un-turns the card. */
-  [data-flip] {
-    transform: none !important;
-  }
   [data-ink-root].hairline-t {
     border-top-color: var(--rule-color) !important;
   }
@@ -2163,4 +2158,62 @@
 
 @page {
   margin: 1.5cm;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Contact (round 21)                                                         */
+/*                                                                            */
+/* The postcard board's paper and its one colour that is not an alias yet.    */
+/* `--greet` is "Xin chào," and the evening toast: the mark's red by day, the */
+/* lanterns' gold at night (both measured on the sky in docs/contrast.md).    */
+/* The night group and its no-JS twin must stay identical, like the theme     */
+/* block above. Paper shadows are fixed rgba on purpose: a shadow is the      */
+/* ground darkening, not a colour of the palette.                             */
+/* -------------------------------------------------------------------------- */
+@layer components {
+  :root {
+    --greet: var(--color-red);
+    --paper-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 22px 40px rgb(30 40 35 / 0.2);
+  }
+  :root[data-theme="night"] {
+    --greet: var(--color-gold);
+    --paper-shadow: 0 1px 0 rgb(0 0 0 / 0.2), 0 24px 44px rgb(0 0 0 / 0.45);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="day"]) {
+      --greet: var(--color-gold);
+      --paper-shadow: 0 1px 0 rgb(0 0 0 / 0.2), 0 24px 44px rgb(0 0 0 / 0.45);
+    }
+  }
+
+  /* The card, the postcard and the chat strip lift off the ground. */
+  .paper-lift {
+    box-shadow: var(--paper-shadow);
+  }
+
+  .stamp-lift {
+    filter: drop-shadow(0 2px 3px rgb(30 40 35 / 0.25));
+  }
+
+  /* The lantern string keeps its height and shows from its left end; where
+     the box is wider than the string, it hangs centred. */
+  .contact-lanterns {
+    background-size: auto 100%;
+    background-position: left top;
+  }
+  @media (width >= 40rem) and (width < 64rem) {
+    .contact-lanterns {
+      background-position: center top;
+    }
+  }
+
+  /* An "or try" question: a small paper tag, cut to a point on the left with
+     a punched hole. Only on the span inside the button, never on the button:
+     a clipped element would clip its own focus ring. */
+  .ask-tag {
+    background:
+      radial-gradient(circle at 11px 50%, var(--ground) 2.5px, var(--twine) 2.6px 3.6px, transparent 3.7px),
+      var(--surface);
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+  }
 }

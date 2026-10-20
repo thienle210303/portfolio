@@ -85,7 +85,7 @@ test.describe("hero", () => {
   });
 
   test("holds no chat: the Ask field lives in #contact", async ({ page }) => {
-    const field = { name: "Ask a question about this portfolio" };
+    const field = { name: "Your question" };
     await expect(page.getByRole("tab", { name: "Ask Thien" })).toHaveCount(0);
     await expect(page.locator("#about").getByRole("textbox", field)).toHaveCount(0);
     // AskLoader mounts the chat only as #ask nears the viewport.

@@ -1,30 +1,35 @@
+import type { CSSProperties } from "react";
 import Section from "@/components/ui/Section";
-import SectionHeading from "@/components/ui/SectionHeading";
+import { Drawing } from "@/components/scenery/Drawing";
 import { contactCopy } from "@/content/portfolio";
 import AskLoader from "./AskLoader";
 import BusinessCard from "./BusinessCard";
+import Postcard from "./Postcard";
 
 /**
- * Server Component; layout only. The interactive pieces are client islands:
- * `BusinessCard` (which flips to the lead form) and `AskLoader`, the chat's
- * lazy boundary.
+ * Contact — round 21's postcard board. Server Component; layout only. The
+ * client islands are the lead form inside `Postcard`, the copy button on the
+ * card, and `AskLoader`, the chat's lazy boundary.
  *
- * At >=1024px the chat ("Ask about my work", `#ask`) sits on the left and the
- * card on the right. The card comes first in the DOM, so below 1024px it
- * stacks first and it reads and tabs as what it is, an introduction;
- * `lg:col-start-2` moves it right. It is sticky (`lg:top-24`, the offset
- * `.rail` uses) because the chat beside it is taller, and `lg:items-start`
- * keeps the grid row from stretching it.
+ * "Xin chào," over "say hi.", a bowl of phở beside it by day and two beers
+ * at night, a string of Hội An lanterns with hoa mai at its ends; then my
+ * card clipped beside the postcard, the bánh tét under the postcard (Tết
+ * lives here all year), and the chat as a strip across the bottom. Below
+ * 1024px everything stacks in reading order: heading, card, postcard, Tết,
+ * strip; the lanterns hang across the top.
  *
- * `#ask` is a plain wrapper with an `<h3>`, never an `<aside>`: the card must
+ * The card comes first in the DOM, so it reads and tabs as what it is, an
+ * introduction. `#ask` is a plain wrapper, never an `<aside>`: the card must
  * stay the section's only `<aside>`, because the companion perches on it.
  *
  * Three server-side values arrive from `page.tsx`; nothing here reads
  * `process.env`. Only booleans and the validated booking URL cross to the
  * client, never a key.
  *
- * Tone is `deep`, not `contrast`: a full inversion here read as disconnected
- * from the rest of the page. That device is left to the footer strip.
+ * Tone is `base`: the section is transparent on the page's sky, like the
+ * board. Scenery is CSS backgrounds from `public/scenery/` (see `Drawing`),
+ * `aria-hidden` and `pointer-events: none`; the theme picks the day or night
+ * piece with `.day-only` / `.night-only`, so no JavaScript is involved.
  */
 
 interface ContactProps {
@@ -35,28 +40,90 @@ interface ContactProps {
   bookingUrl: string | null;
 }
 
+/** "Ask me" and its note, server-rendered and handed through the loader. */
+function AskHeading() {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+      <h3 className="text-[18px] font-semibold text-fg">{contactCopy.ask.heading}</h3>
+      <p className="font-serif text-[15px] text-fg-muted italic">{contactCopy.ask.note}</p>
+    </div>
+  );
+}
+
 export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured, bookingUrl }: ContactProps) {
   return (
-    <Section id="contact" labelledBy="contact-heading" eyebrow="Contact" tone="deep">
-      <SectionHeading id="contact-heading" lead={contactCopy.lead}>
-        Let&rsquo;s talk
-      </SectionHeading>
+    <Section id="contact" labelledBy="contact-heading" tone="base" className="relative isolate overflow-hidden">
+      {/* The lanterns hang from the section's top edge, across the right of
+          the heading from 1024 and across the whole width below it. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[150px] lg:left-[max(42%,calc(50%-120px))] lg:h-[190px]"
+      >
+        {/* `.day-only` / `.night-only` on wrappers: `Drawing`'s own `block`
+            is a utility and would outrank them. */}
+        <div className="day-only h-full">
+          <Drawing name="lanterns-day" className="contact-lanterns h-full w-full" />
+        </div>
+        <div className="night-only h-full">
+          <Drawing name="lanterns-night" className="contact-lanterns h-full w-full" />
+        </div>
+      </div>
 
-      <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-x-16 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        {/* Not `.no-print`: the card's front is worth printing. */}
-        <div className="lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1">
-          <BusinessCard bookingUrl={bookingUrl} emailDeliveryConfigured={emailDeliveryConfigured} />
+      <div className="relative">
+        <header className="relative max-w-[34rem] pt-[110px] lg:pt-0">
+          {/* The sun by day, the moon by night: the hero's own sky file,
+              shifted so the disc sits beside the heading and cropped above
+              the sky's seeds and fireflies. */}
+          <span
+            aria-hidden="true"
+            data-scenery="contact-sky"
+            className="scene-art pointer-events-none absolute -z-20 h-[300px] w-[1440px] bg-[size:1440px_auto] bg-top max-lg:hidden lg:top-[-38px] lg:left-[-520px]"
+            style={{ "--art": "var(--art-sky)" } as CSSProperties}
+          />
+          <p lang="vi" className="font-serif text-[24px] leading-none text-[color:var(--greet)] italic">
+            {contactCopy.greeting}
+          </p>
+          <div className="mt-2 flex items-end gap-x-5">
+            <h2
+              id="contact-heading"
+              className="font-display text-[length:var(--step-5)] leading-[1] font-semibold tracking-[-0.02em] text-fg"
+            >
+              {contactCopy.heading}
+            </h2>
+            {/* Morning: a bowl of phở. Evening: two beers, and the toast. */}
+            <div className="day-only mb-1.5 shrink-0">
+              <Drawing name="pho" className="h-[48px] w-[63px]" />
+            </div>
+            <div className="night-only relative mb-1 shrink-0">
+              <p lang="vi" className="absolute -top-[30px] left-1/2 -translate-x-1/2 font-serif text-[18px] whitespace-nowrap text-[color:var(--greet)] italic">
+                {contactCopy.cheer}
+              </p>
+              <Drawing name="bia" className="h-[64px] w-[66px]" />
+            </div>
+          </div>
+          <p className="mt-3 font-serif text-[length:var(--step-1)] leading-snug text-fg-muted italic">
+            {contactCopy.lead}
+          </p>
+        </header>
+
+        <div className="mt-10 grid items-start gap-y-10 lg:mt-10 lg:grid-cols-[minmax(20.5rem,430fr)_minmax(0,740fr)] lg:gap-x-[clamp(2.5rem,4.8vw,4.375rem)]">
+          {/* Not `.no-print`: the card is worth printing. */}
+          <div className="pt-6 lg:pt-5">
+            <BusinessCard bookingUrl={bookingUrl} />
+          </div>
+          <div className="min-w-0">
+            <Postcard emailDeliveryConfigured={emailDeliveryConfigured} />
+            <div className="mt-3 flex items-center justify-end gap-3 pr-1 lg:mt-2 lg:pr-14">
+              <p className="font-serif text-[14px] text-fg-muted italic">{contactCopy.tet}</p>
+              <Drawing name="banh-tet" className="h-[34px] w-[115px] shrink-0" />
+            </div>
+          </div>
         </div>
 
         {/* Screen-only: a printed page cannot ask anything. `scroll-mt-20`
             clears the sticky header, the offset `Section` uses. */}
-        <div id="ask" className="no-print min-w-0 max-w-[46rem] scroll-mt-20 lg:col-start-1 lg:row-start-1">
-          <h3 className="font-display text-[length:var(--step-1)] font-semibold leading-snug tracking-(--tracking-display-sm) text-fg">
-            Ask about my work
-          </h3>
-          <div className="mt-4">
-            <AskLoader liveModeConfigured={askLiveModeConfigured} />
-          </div>
+        <div id="ask" className="paper-lift no-print mt-6 scroll-mt-20 overflow-hidden rounded-[4px] bg-surface">
+          <AskLoader liveModeConfigured={askLiveModeConfigured} heading={<AskHeading />} />
         </div>
       </div>
     </Section>

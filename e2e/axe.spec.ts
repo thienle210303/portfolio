@@ -207,7 +207,7 @@ test.describe("interactive states", () => {
     // with no turn asked. It is the page's most interactive component, so it
     // earns its own audit, loaded for certain and with a turn on screen.
     await scrollIntoViewAndSettle(page, "#ask");
-    const questionField = page.getByRole("textbox", { name: "Ask a question about this portfolio" });
+    const questionField = page.getByRole("textbox", { name: "Your question" });
     await expect(questionField).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "What have you measured?" }).click();
     await expect(page.getByRole("list", { name: "Conversation" }).getByText("What have you measured?")).toBeVisible();

@@ -80,7 +80,7 @@ function lastTurn(page: Page) {
  * stale mid-test the moment that happens.
  */
 function questionField(page: Page) {
-  return page.getByRole("textbox", { name: "Ask a question about this portfolio" });
+  return page.getByRole("textbox", { name: "Your question" });
 }
 
 test.describe("ask this site", () => {
@@ -120,7 +120,7 @@ test.describe("ask this site", () => {
     await page.keyboard.press("Enter");
 
     const turn = lastTurn(page);
-    await expect(turn.getByText(/Nothing written for this site answers that/)).toBeVisible();
+    await expect(turn.getByText(/I haven’t written anything here that answers that/)).toBeVisible();
     await expect(turn.getByRole("list", { name: "Sourced answers" })).toHaveCount(0);
   });
 
@@ -150,7 +150,7 @@ test.describe("ask this site", () => {
       const turn = lastTurn(page);
       // Either real results or the honest "nothing here" line — never blank.
       const answered = await turn.getByRole("list", { name: "Sourced answers" }).getByRole("listitem").count();
-      const declined = await turn.getByText(/Nothing written for this site answers that/).count();
+      const declined = await turn.getByText(/I haven’t written anything here that answers that/).count();
       expect(answered + declined, `suggestion ${index} produced no response`).toBeGreaterThan(0);
       expect(answered, `suggestion ${index} is a dead control`).toBeGreaterThan(0);
     }
@@ -235,7 +235,7 @@ test.describe("ask this site", () => {
 
     await questionField(page).fill("what is the capital of France");
     await page.keyboard.press("Enter");
-    await expect(lastTurn(page).getByText(/Nothing written for this site answers that/)).toBeVisible();
+    await expect(lastTurn(page).getByText(/I haven’t written anything here that answers that/)).toBeVisible();
 
     await page.getByRole("button", { name: "What have you measured?" }).click();
     await expect(lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
@@ -449,7 +449,7 @@ test.describe("ask, in contact", () => {
       async (response) =>
         response.request().resourceType() === "script" &&
         !loaded.has(response.url()) &&
-        (await response.text()).includes("Ask a question about this portfolio"),
+        (await response.text()).includes("Your question"),
     );
     await askBlock(page).scrollIntoViewIfNeeded();
     await chunkResponse;
