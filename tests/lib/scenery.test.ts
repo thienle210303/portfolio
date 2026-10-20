@@ -21,8 +21,18 @@ const VIEWBOXES: Record<string, string> = {
   "sky-night": "0 0 1440 900",
   morning: "420 770 100 114",
   evening: "420 770 100 114",
+  // Contact
+  "lanterns-day": "626 -12 812 192",
+  "lanterns-night": "626 -12 812 192",
+  "postcard-scene": "0 0 340 440",
+  "flag-stamp": "0 0 77 92",
+  postmark: "20 8 120 72",
+  pho: "-27 -33 63 48",
+  bia: "-42 -76 84 82",
+  "banh-tet": "-72 -24 164 48",
+  "paper-clip": "0 0 34 86",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop"];
+const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", /* Contact */ "postmark"];
 
 const files = drawScenery();
 
