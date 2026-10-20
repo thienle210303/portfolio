@@ -1,9 +1,6 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { careerEntries, highlights, projects } from "@/content/portfolio";
 import { buildHighlights, buildTickets } from "@/lib/highlights";
-import JourneyHighlights from "@/sections/CareerTree/JourneyHighlights";
 import type { CareerEntry } from "@/types/portfolio";
 import { figureTokens, hasToken } from "./figures";
 
@@ -72,16 +69,6 @@ describe("buildHighlights", () => {
       expect(mine.length, h.entryId).toBeGreaterThan(0);
       for (const t of mine) expect(hasToken(source0, t), `${h.entryId}: ${t}`).toBe(true);
     }
-  });
-
-  it("the focus outline is not drawn from inside .tone-contrast", () => {
-    const html = renderToStaticMarkup(createElement(JourneyHighlights));
-    const links = html.match(/<a [^>]*>/g) ?? [];
-    expect(links).toHaveLength(6);
-    for (const a of links) expect(a).not.toContain("tone-contrast");
-    expect(html).not.toMatch(/<li[^>]*tone-contrast/);
-    // The loud card exists, and only inside the link.
-    expect(html.match(/tone-contrast/g)).toHaveLength(1);
   });
 
   it("labels are at most 8 words", () => {

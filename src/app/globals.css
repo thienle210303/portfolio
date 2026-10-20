@@ -722,6 +722,51 @@
     }
   }
 
+  /* Journey (round 21): the strings the Journey's tags hang by
+     (HangingTags.tsx). Each is behind its paper, so it shows down to the top
+     edge and seems to run into the hole. From 1280 it climbs `--string` from
+     the hole to the oak's limb. Below 1280 a short twig of bark runs from
+     above the tag to the branch's stem (24px past the column, the 44px margin
+     less the stem's 20px inset), and the string drops from it. */
+  [data-hanging-tags] li::before,
+  [data-hanging-tags] li::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+  [data-hanging-tags] li::after {
+    left: calc(50% - 0.65px);
+    width: 1.3px;
+    background: var(--twine);
+  }
+  @media (width < 80rem) {
+    [data-hanging-tags] li::before {
+      top: -22px;
+      left: 50%;
+      right: -24px;
+      height: 3px;
+      border-radius: 1.5px;
+      background: var(--scene-bark);
+    }
+    [data-hanging-tags] li::after {
+      top: -20px;
+      height: 38px;
+    }
+  }
+  @media (width >= 80rem) {
+    [data-hanging-tags] li::after {
+      top: calc(18px - var(--string));
+      height: var(--string);
+    }
+  }
+  @media print {
+    [data-hanging-tags] li::before,
+    [data-hanging-tags] li::after {
+      display: none;
+    }
+  }
+
   .day-only {
     display: var(--show-day);
   }

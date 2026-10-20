@@ -40,7 +40,7 @@ import {
 import { LEGACY_SECTION_IDS } from "./anchors";
 import CredentialsStrip from "./CredentialsStrip";
 import DrawnTree from "./DrawnTree";
-import JourneyHighlights from "./JourneyHighlights";
+import HangingTags from "./HangingTags";
 import KnowledgeTreeList from "./KnowledgeTreeList";
 import UnbranchedCaseStudies from "./UnbranchedCaseStudies";
 import TreeBox, { SeeHowItGrows } from "./TreeBox";
@@ -133,7 +133,7 @@ export default function CareerTree() {
       </SectionHeading>
       <SeeHowItGrows className="mt-4 -ml-2" />
 
-      <JourneyHighlights className="mt-8" />
+      <HangingTags className="mt-8" />
 
       {/* The drawing grows in its own box (`TreeBox.tsx`): once on sight, and
           again on "See how it grows" above. `hidden lg:block` is on the box, so
