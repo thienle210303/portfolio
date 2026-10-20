@@ -5,8 +5,8 @@ import { SKY_CLEAR, drawScenery } from "../../scripts/draw-scenery.mjs";
 const DIR = "public/scenery";
 
 const VIEWBOXES: Record<string, string> = {
-  bamboo: "0 110 140 790",
-  pine: "1260 80 180 820",
+  bamboo: "0 110 140 1234",
+  pine: "1260 80 180 1264",
   "rice-field": "565 740 655 160",
   ripples: "560 860 660 30",
   buffalo: "905 790 150 80",

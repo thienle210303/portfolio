@@ -98,10 +98,15 @@ function buffalo(x, y, sc, fill) {
     + `<path d="M14 30C2 18 -14 16 -26 22C-12 22 -2 28 4 36ZM22 26C26 12 40 6 54 8C42 12 34 20 30 30Z"/>`
     + `</g>`;
 }
+// The poles run on below the board's ground (y 900): the hero is top-anchored
+// to the clothesline and can be taller than the board, so the element clips
+// whatever it does not need. The bamboo's extra nodes keep the 74px rhythm.
+const BAMBOO_FOOT = 900 + 74 * 6;
+const PINE_FOOT = 1344;
 // The hero's bamboo pole; the board fills its leaves rgba(moss, 0.18).
 function bamboo(color, leafFill) {
   let s = "";
-  for (let y = 900; y > 120; y -= 74) s += `<path d="M64 ${y}V${y - 70}M80 ${y}V${y - 70}"/><path d="M60 ${y - 72}Q72 ${y - 78} 84 ${y - 72}" stroke-width="2"/>`;
+  for (let y = BAMBOO_FOOT; y > 120; y -= 74) s += `<path d="M64 ${y}V${y - 70}M80 ${y}V${y - 70}"/><path d="M60 ${y - 72}Q72 ${y - 78} 84 ${y - 72}" stroke-width="2"/>`;
   const leaf = (x, y, a, L) => { const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L, nx = -Math.sin(a) * L * 0.12, ny = Math.cos(a) * L * 0.12; return `<path d="M${f(x)} ${f(y)}Q${f((x + ex) / 2 + nx)} ${f((y + ey) / 2 + ny)} ${f(ex)} ${f(ey)}Q${f((x + ex) / 2 - nx)} ${f((y + ey) / 2 - ny)} ${f(x)} ${f(y)}Z"/>`; };
   const r = rng(19); let leaves = "";
   for (let i = 0; i < 16; i++) { const y = 120 + r() * 200, side = r() > 0.4 ? 1 : -1; leaves += leaf(72, y, (side > 0 ? 0.35 : Math.PI - 0.35) + (r() - 0.5) * 0.7, 46 + r() * 30); }
@@ -192,8 +197,8 @@ const K = "#000";
 /** @returns {Record<string, string>} file stem → SVG text */
 export function drawScenery() {
   return {
-    bamboo: svg("0 110 140 790", bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
-    pine: svg("1260 80 180 820", `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g>`),
+    bamboo: svg(`0 110 140 ${BAMBOO_FOOT - 110}`, bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
+    pine: svg(`1260 80 180 ${PINE_FOOT - 80}`, `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g><path d="M1356 900V${PINE_FOOT}" fill="none" stroke="${K}" stroke-width="4.32"/>`),
     "rice-field": svg("565 740 655 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
     ripples: svg("560 860 660 30", ripples(560, 872, 640, 3, K, 3)),
     buffalo: svg("905 790 150 80", buffalo(930, 790, 0.78, K)),
