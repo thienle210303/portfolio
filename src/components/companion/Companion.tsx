@@ -473,7 +473,9 @@ interface Nap {
   readAt: number;
 }
 
-const HOME_CORNER: Corner = { side: "right", lift: 0 };
+/** A corner from `pickCorner`, and how far left of home that is, in px. */
+type Parked = Corner & { readonly dx: number };
+const HOME_CORNER: Parked = { side: "right", lift: 0, dx: 0 };
 
 const RESTING_VISUAL: Visual = {
   pose: "sit",
@@ -1248,7 +1250,7 @@ export function Companion({ facts }: CompanionProps) {
   /** Mi is sitting beside the hero's sleeping Moon (MoonVisit, parked pair only). */
   const [visiting, setVisiting] = useState(false);
   /** Where the parked pair sits: off any control (`pickCorner`). */
-  const [corner, setCorner] = useState<Corner>(HOME_CORNER);
+  const [corner, setCorner] = useState<Parked>(HOME_CORNER);
 
   const [open, setOpen] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
@@ -4852,8 +4854,12 @@ export function Companion({ facts }: CompanionProps) {
         active && active !== document.body && !active.closest("[data-companion]")
           ? active.getBoundingClientRect()
           : null;
-      const next = pickCorner(viewport(), { width, height }, controlRectsInView(), focused);
-      setCorner((now) => (now.side === next.side && now.lift === next.lift ? now : next));
+      // Measured fresh: the parked pair runs no loop to invalidate `viewport()`.
+      invalidateViewport();
+      const view = viewport();
+      const picked = pickCorner(view, { width, height }, controlRectsInView(), focused);
+      const next = { ...picked, dx: picked.side === "left" ? width + 2 * CORNER_INSET - view.width : 0 };
+      setCorner((now) => (now.dx === next.dx && now.lift === next.lift ? now : next));
     };
     const later = () => {
       window.clearTimeout(timer);
@@ -5018,8 +5024,14 @@ export function Companion({ facts }: CompanionProps) {
             ...(roams
               ? { left: -LEAD_PAD_X, top: -LEAD_PAD_Y }
               : {
-                  [parkedAt.side]: CORNER_INSET,
-                  bottom: CORNER_INSET + parkedAt.lift,
+                  right: CORNER_INSET,
+                  bottom: CORNER_INSET,
+                  // Moved by transform, not by its insets: a fixed box whose
+                  // insets change is a layout shift (CLS), a transform is not.
+                  transform:
+                    parkedAt.dx !== 0 || parkedAt.lift > 0
+                      ? `translate(${parkedAt.dx}px, ${-parkedAt.lift}px)`
+                      : undefined,
                 }),
           }}
         >

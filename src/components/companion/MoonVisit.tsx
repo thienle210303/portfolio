@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import CompanionCat, { CAT_H, CAT_W } from "./CompanionCat";
+import { safeTop } from "./companion-space";
 import { markSurpriseSpent, surpriseSpent } from "./companion-surprise";
 
 /**
@@ -13,63 +13,80 @@ import { markSurpriseSpent, surpriseSpent } from "./companion-surprise";
  * (companion-surprise.ts). While she is there the corner button carries Moon
  * alone, her place in it empty (`onVisit`).
  *
- * Drawn into the drawing's own box, so she scrolls with it and takes the
- * section's colours. Marked `data-companion` so the placement probes look
- * through her and the specs still count two cats.
+ * Drawn on the companion's fixed layer and moved with the drawing on scroll
+ * (no portal: `react-dom`'s entry would join the initial bundle). Hidden while
+ * the drawing is under the sticky header.
  */
 export function MoonVisit({ onVisit }: { readonly onVisit: (visiting: boolean) => void }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
-  const [seat, setSeat] = useState<{ left: number; top: number; facing: 1 | -1 } | null>(null);
+  const [facing, setFacing] = useState<1 | -1>(1);
+  const node = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (surpriseSpent()) return;
     const drawing = document.querySelector<HTMLElement>("[data-moon-off-duty]");
     if (!drawing) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.intersectionRatio >= 0.5)) return;
-      observer.disconnect();
-      markSurpriseSpent();
-      setHost(drawing);
-      onVisit(true);
-    }, { threshold: 0.5 });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.intersectionRatio >= 0.5)) return;
+        observer.disconnect();
+        markSurpriseSpent();
+        setHost(drawing);
+        onVisit(true);
+      },
+      { threshold: 0.5 },
+    );
     observer.observe(drawing);
     return () => observer.disconnect();
   }, [onVisit]);
 
-  useEffect(() => {
+  // Before paint, so she never shows a frame at the layer's origin.
+  useLayoutEffect(() => {
     if (!host) return;
+    let frame = 0;
     const place = () => {
+      frame = 0;
       const box = host.getBoundingClientRect();
       const art = host.querySelector("svg")?.getBoundingClientRect() ?? box;
       // Left of the sleeper where the page leaves room, else right of the
       // drawing and its caption; level with the sleeper's bottom either way.
-      setSeat(
-        art.left >= CAT_W + 12
-          ? { left: art.left - box.left - CAT_W - 4, top: art.bottom - box.top - CAT_H, facing: 1 }
-          : { left: box.width + 4, top: box.height - CAT_H, facing: -1 },
-      );
+      const left = art.left >= CAT_W + 12;
+      const x = left ? art.left - CAT_W - 4 : box.right + 4;
+      const y = (left ? art.bottom : box.bottom) - CAT_H;
+      setFacing(left ? 1 : -1);
+      if (node.current) {
+        node.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        node.current.style.visibility = y < safeTop() ? "hidden" : "";
+      }
+    };
+    const later = () => {
+      frame ||= requestAnimationFrame(place);
     };
     place();
-    window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
+    window.addEventListener("scroll", later, { passive: true });
+    window.addEventListener("resize", later);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", later);
+      window.removeEventListener("resize", later);
+    };
   }, [host]);
 
   useEffect(() => () => onVisit(false), [onVisit]);
 
-  if (!host || !seat) return null;
-  return createPortal(
+  if (!host) return null;
+  return (
     <span
-      data-companion=""
+      ref={node}
       data-cat-visit=""
       aria-hidden="true"
-      className="absolute text-fg-muted"
-      style={{ left: seat.left, top: seat.top, width: CAT_W, height: CAT_H }}
+      className="absolute left-0 top-0 text-fg-muted"
+      style={{ width: CAT_W, height: CAT_H }}
     >
-      <span className="block" style={{ transform: `scaleX(${seat.facing})` }}>
-        <CompanionCat variant="tabby" pose="sit" phase={0} blinking={false} facing={seat.facing} />
+      <span className="block" style={{ transform: `scaleX(${facing})` }}>
+        <CompanionCat variant="tabby" pose="sit" phase={0} blinking={false} facing={facing} />
       </span>
-    </span>,
-    host,
+    </span>
   );
 }
 
