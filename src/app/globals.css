@@ -64,6 +64,9 @@
   --color-dusk-water: #3f5a5a;
   --color-buffalo: #3b433e;
   --color-dusk-buffalo: #0a1012;
+  /* Journey (round 21): the oak's night bark and its Spanish moss. */
+  --color-dusk-bark: #070c0d;
+  --color-spanish-moss: #8c9a86;
 }
 
 /*
@@ -178,6 +181,9 @@
      * 1440 (the board's size, round 21 phase 3).
      */
     --step-5: clamp(2.5rem, 1.6rem + 3.4vw, 4.375rem);
+    /* Journey (round 21): the Journey's chapter title, 32px at 390 wide and
+       56px at 1440 (the board's h2). */
+    --step-chapter: clamp(2rem, 1.44rem + 2.29vw, 3.5rem);
 
     --gutter: clamp(1.25rem, 5vw, 5rem);
     /*
@@ -255,6 +261,11 @@
     --scene-buffalo: var(--color-buffalo);
     --art-sky: url(/scenery/sky-day.svg);
     --art-vignette: url(/scenery/morning.svg);
+    /* Journey (round 21) */
+    --scene-bark: var(--color-ink);
+    --scene-moss: var(--color-spanish-moss);
+    --art-lantern: url(/scenery/lantern-day.svg);
+    --art-journey-vignette: url(/scenery/journey-morning.svg);
     --show-day: block;
     --show-night: none;
 
@@ -331,6 +342,11 @@
     --scene-buffalo: var(--color-dusk-buffalo);
     --art-sky: url(/scenery/sky-night.svg);
     --art-vignette: url(/scenery/evening.svg);
+    /* Journey (round 21) */
+    --scene-bark: var(--color-dusk-bark);
+    --scene-moss: var(--color-spanish-moss);
+    --art-lantern: url(/scenery/lantern-night.svg);
+    --art-journey-vignette: url(/scenery/journey-evening.svg);
     --show-day: none;
     --show-night: block;
   }
@@ -390,6 +406,11 @@
       --scene-buffalo: var(--color-dusk-buffalo);
       --art-sky: url(/scenery/sky-night.svg);
       --art-vignette: url(/scenery/evening.svg);
+      /* Journey (round 21) */
+      --scene-bark: var(--color-dusk-bark);
+      --scene-moss: var(--color-spanish-moss);
+      --art-lantern: url(/scenery/lantern-night.svg);
+      --art-journey-vignette: url(/scenery/journey-evening.svg);
       --show-day: none;
       --show-night: block;
     }

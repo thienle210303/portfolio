@@ -12,6 +12,12 @@ export const INK_DRAWINGS = [
   "tag-pine",
   "tag-palmetto",
   "tag-laptop",
+  "oak",
+  "oak-leaves",
+  "oak-moss",
+  "oak-branch",
+  "oak-branch-moss",
+  "journey-rice",
 ] as const;
 export type InkDrawing = (typeof INK_DRAWINGS)[number];
 
