@@ -516,6 +516,20 @@ async function queueARequest(page: Page): Promise<void> {
   for (const scene of SCENES) {
     await openToolkit(page);
     await page.waitForTimeout(2_500);
+    // Home is the corner, but they may be walking there from far off — the
+    // tree show they were watching seats them beside the tree box — so wait
+    // until the lead has stopped before covering where he stands.
+    await expect
+      .poll(
+        async () => {
+          const a = await catButton(page).boundingBox();
+          await page.waitForTimeout(300);
+          const b = await catButton(page).boundingBox();
+          return a !== null && b !== null && a.x === b.x && a.y === b.y;
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
     const lead = await catButton(page).boundingBox();
     if (!lead) throw new Error("the lead cat has no box");
     await page.evaluate((box) => {
@@ -578,8 +592,11 @@ async function expectNextUnpromptedSceneUnheld(page: Page): Promise<void> {
   expect(unprompted, "the idle timer never opened a scene").not.toBeNull();
 
   const lead = await leadCentre();
+  // Towards the middle of the window: a lead in the right-hand edge band
+  // put a pointer 60px to his right outside it, where no move is reported.
+  const inward = lead.x > DESKTOP_WIDTH / 2 ? -1 : 1;
   for (let i = 0; i < 4; i += 1) {
-    await page.mouse.move(lead.x + 60 - i * 6, lead.y + i * 4);
+    await page.mouse.move(lead.x + inward * (60 - i * 6), lead.y + i * 4);
     await page.waitForTimeout(50);
   }
   expect(
