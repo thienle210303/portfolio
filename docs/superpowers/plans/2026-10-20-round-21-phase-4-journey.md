@@ -305,3 +305,11 @@
 3. **Below 1280 there is no Journey board.** This plan hangs the tags in one column from twigs of a vertical oak branch at the right edge, under a crop of the crown with the lantern. The branch is a new drawing in the oak's style. Approve from the screens, or draw a phone board.
 4. **The Journey's margin rail** (entries, split, branches, leaves, technologies, heaviest) goes, as on the board. Bring it back on the Record in Phase 5, or let it go?
 5. **The heading at 56 px** (the board) where every other section title is 24–28 px. Keep the board's size?
+
+## Owner answers (2026-10-20)
+
+1. Italic line: "Every job I've had is a branch, and the tools I used there are its leaves. Each tag holds what I measured there." (approved)
+2. DoorDash impact line: "Built an agent-driven onboarding workflow that adapts to every merchant: onboarded merchants went from 2 to 25 a month." (approved)
+3. The 2 → 25 workflow is the same work as the case study "The one-hour feasibility question" (`dd-feasibility-agent`): tie the new impact line and the stub to that case study (the stub's "Read" link or the row's case study link points there; the case study may cite the figure only if it states it verbatim from the impact line).
+4. The hanging-branch layout below 1280 px: approved to build.
+5. Controller rulings: the margin of computed counts is dropped as on the board (Phase 5's Record can bring counts back where they fit); the board's 56 px heading is kept.
