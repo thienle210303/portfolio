@@ -6,6 +6,8 @@ const DIR = "public/scenery";
 
 const VIEWBOXES: Record<string, string> = {
   bamboo: "0 110 140 1234",
+  "bamboo-phone": "316 456 70 868",
+  clothespin: "0 0 8.8 22.8",
   pine: "1260 80 180 1264",
   "rice-field": "565 740 655 160",
   ripples: "560 860 660 30",
@@ -20,7 +22,7 @@ const VIEWBOXES: Record<string, string> = {
   morning: "420 770 100 114",
   evening: "420 770 100 114",
 };
-const INK = ["bamboo", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop"];
+const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop"];
 
 const files = drawScenery();
 

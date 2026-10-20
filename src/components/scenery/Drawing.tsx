@@ -3,6 +3,7 @@ import { cn } from "@/lib/cn";
 
 export const INK_DRAWINGS = [
   "bamboo",
+  "bamboo-phone",
   "pine",
   "rice-field",
   "ripples",

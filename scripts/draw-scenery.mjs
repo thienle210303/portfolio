@@ -112,6 +112,20 @@ function bamboo(color, leafFill) {
   for (let i = 0; i < 16; i++) { const y = 120 + r() * 200, side = r() > 0.4 ? 1 : -1; leaves += leaf(72, y, (side > 0 ? 0.35 : Math.PI - 0.35) + (r() - 0.5) * 0.7, 46 + r() * 30); }
   return `<g fill="none" stroke="${color}" stroke-width="1.3" stroke-linecap="round">${s}</g><g ${leafFill} stroke="${color}" stroke-width="1">${leaves}</g>`;
 }
+// The phone's bamboo (the board's NatHeroPhone pole), standing at the right
+// edge where the line turns down the page. Its foot runs on like the hero's
+// pole; the element clips it. Six extra nodes keep the 54px rhythm and leave
+// the top where the board drew it.
+const PHONE_BAMBOO_FOOT = 1000 + 54 * 6;
+function phoneBamboo(color, leafFill) {
+  let s = "";
+  for (let y = PHONE_BAMBOO_FOOT; y > 470; y -= 54) s += `<path d="M366 ${y}V${y - 50}M378 ${y}V${y - 50}"/><path d="M362 ${y - 52}Q372 ${y - 57} 382 ${y - 52}" stroke-width="2"/>`;
+  const r = rng(23); let lv = "";
+  for (let i = 0; i < 9; i++) { const y = 480 + r() * 120, a = Math.PI - 0.4 + (r() - 0.5) * 0.8, L = 30 + r() * 22, ex = 372 + Math.cos(a) * L, ey = y + Math.sin(a) * L; lv += `<path d="M372 ${f(y)}Q${f((372 + ex) / 2)} ${f((y + ey) / 2 - 6)} ${f(ex)} ${f(ey)}Q${f((372 + ex) / 2)} ${f((y + ey) / 2 + 6)} 372 ${f(y)}Z"/>`; }
+  return `<g fill="none" stroke="${color}" stroke-width="1.2" stroke-linecap="round">${s}</g><g ${leafFill} stroke="${color}" stroke-width="0.9">${lv}</g>`;
+}
+// The wooden clothespin each chapter tag hangs by on the phone.
+const clothespin = `<rect x="0.4" y="0.4" width="8" height="22" rx="2" fill="#C4AE85" stroke="#A08B62" stroke-width="0.8"/>`;
 // The DoorDash tag's laptop.
 const laptop = (color) => `<g fill="none" stroke="${color}" stroke-width="1.2"><rect x="44" y="30" width="62" height="40" rx="3"/><path d="M34 76H116M58 44h14M58 54h26M90 44l6 5-6 5"/></g>`;
 
@@ -198,6 +212,8 @@ const K = "#000";
 export function drawScenery() {
   return {
     bamboo: svg(`0 110 140 ${BAMBOO_FOOT - 110}`, bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
+    "bamboo-phone": svg(`316 456 70 ${PHONE_BAMBOO_FOOT - 456}`, phoneBamboo(K, `fill="${K}" fill-opacity="0.18"`)),
+    clothespin: svg("0 0 8.8 22.8", clothespin),
     pine: svg(`1260 80 180 ${PINE_FOOT - 80}`, `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g><path d="M1356 900V${PINE_FOOT}" fill="none" stroke="${K}" stroke-width="4.32"/>`),
     "rice-field": svg("565 740 655 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
     ripples: svg("560 860 660 30", ripples(560, 872, 640, 3, K, 3)),
