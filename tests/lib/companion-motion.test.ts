@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  routeAround,
   advance,
   FOLLOW_ACCEL,
   FOLLOW_BRAKE,
@@ -474,5 +475,39 @@ describe("detourAround", () => {
     expect(over).toEqual({ x: 940, y: minY });
     const side = detourAround({ x: 1010, y: 66 }, { x: 1092, y: 73 }, high, 50, 42, 26, minY);
     expect(side).toEqual({ x: 1092, y: minY });
+  });
+});
+
+describe("routeAround", () => {
+  const lede = { left: 100, right: 600, top: 300, bottom: 330 };
+  it("walks straight when nothing is in the way", () => {
+    expect(routeAround({ x: 0, y: 0 }, { x: 500, y: 100 }, [lede], 50, 42)).toEqual({ x: 500, y: 100 });
+  });
+
+  it("rounds a block of text it would cross, by the shorter corner", () => {
+    const from = { x: 120, y: 120 };
+    const want = { x: 160, y: 520 };
+    const via = routeAround(from, want, [lede], 50, 42);
+    expect(via).not.toEqual(want);
+    // A corner of the grown rect: left of the text by a cat's width, or right of it.
+    expect(via.x <= lede.left - 50 || via.x >= lede.right).toBe(true);
+    expect(via.x).toBeLessThan(lede.left); // the left end is the nearer
+  });
+
+  it("ignores text the cat is already on, and text at the destination", () => {
+    const onIt = { x: 200, y: 290 };
+    expect(routeAround(onIt, { x: 200, y: 500 }, [lede], 50, 42)).toEqual({ x: 200, y: 500 });
+    expect(routeAround({ x: 200, y: 100 }, { x: 200, y: 295 }, [lede], 50, 42)).toEqual({ x: 200, y: 295 });
+  });
+
+  it("still rounds text to reach a stop just beside it", () => {
+    // The stop's box ends 3px above the text: inside the margin, not on it.
+    const via = routeAround({ x: 120, y: 500 }, { x: 120, y: 300 - 42 - 3 }, [lede], 50, 42);
+    expect(via).not.toEqual({ x: 120, y: 255 });
+  });
+
+  it("crosses rather than take a detour much longer than the walk", () => {
+    // Under the middle of a 500px line of text, 70px below to 70px above.
+    expect(routeAround({ x: 330, y: 360 }, { x: 330, y: 220 }, [lede], 50, 42)).toEqual({ x: 330, y: 220 });
   });
 });

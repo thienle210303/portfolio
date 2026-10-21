@@ -11,6 +11,7 @@ import {
   pickExploreSpot,
   safeTop,
   viewport,
+  walkClear,
   type Half,
   type Point,
 } from "./companion-space";
@@ -150,7 +151,7 @@ function mateSpot(lead: Point, side: 1 | -1): Point | null {
   ];
   for (const want of tries) {
     const spot = clampToViewport(want);
-    if (!overlaps(spot, lead) && isClearSpot(spot) && clearsControls(spot)) return spot;
+    if (!overlaps(spot, lead) && isClearSpot(spot) && headClear(spot) && clearsControls(spot)) return spot;
   }
   return null;
 }
@@ -178,7 +179,8 @@ function besideRect(
     const x = side > 0 ? rect.right + MARGIN : rect.left - CAT_W - MARGIN;
     for (const dy of dys) {
       const spot = clampToViewport({ x, y: rect.top + dy });
-      if (!isClearSpot(spot)) continue;
+      // Head as well as feet (round 21): a perch is a stay.
+      if (!isClearSpot(spot) || !headClear(spot)) continue;
       const mate = mateSpot(spot, side) ?? findClearSpot(follow, home, spot);
       return { kind, spots: { lead: spot, follow: mate }, path: [] };
     }
@@ -224,7 +226,9 @@ function contactMood(follow: Point, home: Point): MoodPlan | null {
   const middle = (rect.left + rect.right) / 2;
   for (const want of perches) {
     const spot = clampToViewport(want);
-    if (!isClearSpot(spot)) continue;
+    // Head as well as feet (round 21): at 390 a fallback perch put a cat's
+    // head on the postcard's "Greetings from".
+    if (!isClearSpot(spot) || !headClear(spot)) continue;
     // Only *one* of them perches — the pair lined up along a business card is a
     // logo, not two animals. She takes the nearest clear place off it, and only
     // keeps her own if there is none: two cats a viewport apart have stopped
@@ -323,8 +327,8 @@ const EXPLORE_REST_MARGIN = 1;
  * its arrival tolerance it comes to rest, not only at the exact point. A stop
  * drawn from anywhere on the page must clear the whole cat, not just where it
  * stands. `planExplore` and `repickExploreSpot` pick their half-page stops with
- * it; perches and scene stages are picked by the three-point `isClearSpot`
- * alone, and the `findClearSpot` fallbacks prefer a clear head band without
+ * it; perches by the three-point `isClearSpot` plus `headClear`, scene stages
+ * by `isClearSpot` alone, and the `findClearSpot` fallbacks prefer a clear head band without
  * requiring one (see `findClearSpot`). A held stop is re-checked by
  * `heldExploreClear`, not by this.
  */
@@ -355,8 +359,8 @@ export interface HeldExplore {
 }
 
 /** Records, once, at plan time, what `heldExploreClear` later compares
- *  against. A perch's head band is not read: it is re-checked by the
- *  three-point probe it was picked with. */
+ *  against. A perch's head band is not recorded: it is re-checked by the
+ *  probe and head band it was picked with. */
 export function holdExplore(spots: MoodSpots, perch: boolean): HeldExplore {
   return {
     spots,
@@ -373,7 +377,8 @@ export function holdExplore(spots: MoodSpots, perch: boolean): HeldExplore {
  * on, and the re-check must accept that ground or the stop is dropped on every
  * scroll and the pair never arrive.
  *
- * - A perch: the lead's three-point probe alone (her spot is never walked to).
+ * - A perch: the lead's three-point probe and head band (her spot is never
+ *   walked to).
  * - Otherwise, per cat: the three-point probe always, and the head band only
  *   if that head was clear when the stop was planned. That still drops a
  *   head-clear stop when the page's `position: sticky` margin rail slides
@@ -397,7 +402,7 @@ export function holdExplore(spots: MoodSpots, perch: boolean): HeldExplore {
  * cannot churn.
  */
 export function heldExploreClear(held: HeldExplore, groundSettled = false): boolean {
-  if (held.perch) return isClearSpot(held.spots.lead);
+  if (held.perch) return isClearSpot(held.spots.lead) && headClear(held.spots.lead);
   const still = (spot: Point, headWasClear: boolean) =>
     isClearSpot(spot) && (!(headWasClear || groundSettled) || headClear(spot));
   return still(held.spots.lead, held.headLead) && still(held.spots.follow, held.headFollow);
@@ -443,11 +448,14 @@ export function planExplore(
 
   const view = viewport();
   const top = safeTop();
-  // The perch above is picked by the three-point probe alone, and the
+  // The perch above is picked by the three-point probe and head band, and the
   // `findClearSpot` fallbacks below only prefer a clear head band; the
   // half-page picks require one.
+  // Preferring a stop whose straight walk crosses no text (`walkClear`).
   const pick = (half: Half, other: Point | null) =>
-    pickExploreSpot(half, other, view, top, exploreClear, rng);
+    pickExploreSpot(half, other, view, top, exploreClear, rng, (p) =>
+      walkClear(half === "left" ? lead : follow, p),
+    );
   const leadSpot = pick("left", follow);
   const followSpot = pick("right", leadSpot);
   if (leadSpot && followSpot) return { lead: leadSpot, follow: followSpot, perch: false };
@@ -496,7 +504,7 @@ export function repickExploreSpot(
 ): Point {
   const half: Half = cat === "lead" ? "left" : "right";
   return (
-    pickExploreSpot(half, partner, viewport(), safeTop(), exploreClear, rng) ??
+    pickExploreSpot(half, partner, viewport(), safeTop(), exploreClear, rng, (p) => walkClear(current, p)) ??
     findClearSpot(current, home, partner, HELD)
   );
 }

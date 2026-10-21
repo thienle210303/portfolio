@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
   CORNER_INSET,
+  PEEK,
   pickCorner,
   boundsFor,
   clampToViewport,
@@ -1047,15 +1048,21 @@ describe("pickCorner", () => {
     expect(bottom).toBeLessThanOrEqual(row.top);
   });
 
-  it("covers as little as it can when every spot covers a control, and never the focused one", () => {
-    const rows = Array.from({ length: 12 }, (_, i) => ({ left: 16, right: 374, top: i * 70, bottom: i * 70 + 64 }));
+  it("peeks in from the right edge when every corner spot covers a control", () => {
+    // Full-width rows with 40px gaps: a 48px pair fits in none of them.
+    const rows = Array.from({ length: 12 }, (_, i) => ({ left: 16, right: 374, top: i * 88, bottom: i * 88 + 48 }));
     const placed = pickCorner(view, size, rows);
+    // No spot is clear, and the peek covers least: a sliver of the rows'
+    // right-hand padding, x 360..374, never what is written in them.
+    expect(placed.peek).toBe(true);
+    expect(view.width - PEEK).toBeGreaterThan(374 - 18);
+  });
+
+  it("never sits on the focused control", () => {
+    const everything = { left: 0, right: 390, top: 0, bottom: 844 };
+    const focused = { left: 300, right: 390, top: 700, bottom: 844 };
+    const placed = pickCorner(view, size, [everything], focused);
     const bottom = view.height - CORNER_INSET - placed.lift;
-    // Straddling the 6px gap between two rows rather than sitting on one.
-    expect(rows.some((r) => r.top < bottom && r.bottom > bottom - size.height && r.top > bottom - size.height)).toBe(true);
-    const focused = rows[11];
-    const away = pickCorner(view, size, rows, focused);
-    const awayBottom = view.height - CORNER_INSET - away.lift;
-    expect(awayBottom <= focused.top || awayBottom - size.height >= focused.bottom).toBe(true);
+    expect(bottom <= focused.top || placed.side === "left").toBe(true);
   });
 });

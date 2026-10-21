@@ -128,6 +128,9 @@ const OCCUPIED = [
 const CONTROLS =
   "a[href],button,input,select,textarea,summary,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
 
+/** Blocks of words: a walk goes round them (`routeAround`). */
+const PROSE = "p,h1,h2,h3,h4,h5,h6,dt,dd,blockquote,figcaption,label";
+
 /** How close to the viewport edge a cat may sit. Enough that it is never
  *  clipped, small enough that the page gutter still counts as whitespace. */
 const EDGE = 8;
@@ -320,6 +323,8 @@ let ground: readonly RectLike[] | null = null;
 /** The subset of `ground` a visitor can press or focus (`CONTROLS`), cached
  *  with it: what the speech bubbles keep off (`groundControls`). */
 let controls: readonly RectLike[] = [];
+/** And the subset that is prose (`PROSE`): what a walk goes round. */
+let prose: readonly RectLike[] = [];
 /** The scroll offset `ground` was measured at, or last synced to. */
 let groundAt = { x: 0, y: 0 };
 
@@ -351,6 +356,7 @@ export function shiftGround(dx: number, dy: number): void {
   });
   ground = ground.map(shift);
   controls = controls.map(shift);
+  prose = prose.map(shift);
 }
 
 /**
@@ -369,6 +375,7 @@ function groundRects(): readonly RectLike[] {
   const view = viewport();
   const rects: RectLike[] = [];
   const pressable: RectLike[] = [];
+  const text: RectLike[] = [];
   for (const element of document.querySelectorAll(OCCUPIED)) {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
@@ -379,10 +386,52 @@ function groundRects(): readonly RectLike[] {
     if (style.pointerEvents === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
     rects.push(box);
     if (element.matches(CONTROLS)) pressable.push(box);
+    if (element.matches(PROSE)) text.push(box);
   }
   ground = rects;
   controls = pressable;
+  prose = text;
   return rects;
+}
+
+/** The prose in the current ground epoch, in viewport coordinates. */
+export function groundProse(): readonly RectLike[] {
+  groundRects();
+  return prose;
+}
+
+/**
+ * Whether a cat can walk straight from `from` to `to` without its box crossing
+ * a block of text (round 21: the explorers prefer such stops, so their walks
+ * stay off a lede or a caption). Text the cat is on at either end does not
+ * count: it is leaving it, or the stop was probed clear without it.
+ */
+export function walkClear(from: Point, to: Point): boolean {
+  const d = { x: to.x - from.x, y: to.y - from.y };
+  for (const r of groundProse()) {
+    const g = { left: r.left - CAT_W, right: r.right, top: r.top - CAT_H, bottom: r.bottom };
+    const on = (p: Point) => p.x > g.left && p.x < g.right && p.y > g.top && p.y < g.bottom;
+    if (on(from) || on(to)) continue;
+    let t0 = 0;
+    let t1 = 1;
+    let hit = true;
+    for (const [p, dp, lo, hi] of [
+      [from.x, d.x, g.left, g.right],
+      [from.y, d.y, g.top, g.bottom],
+    ] as const) {
+      if (Math.abs(dp) < 1e-9) {
+        if (p <= lo || p >= hi) hit = false;
+      } else {
+        const ta = Math.min((lo - p) / dp, (hi - p) / dp);
+        const tb = Math.max((lo - p) / dp, (hi - p) / dp);
+        t0 = Math.max(t0, ta);
+        t1 = Math.min(t1, tb);
+        if (t0 >= t1) hit = false;
+      }
+    }
+    if (hit) return false;
+  }
+  return true;
 }
 
 /** The controls in the current ground epoch, in viewport coordinates. */
@@ -1023,6 +1072,9 @@ export function pickExploreSpot(
   top: number,
   probe: (point: Point) => boolean,
   rng: () => number,
+  // Round 21: a spot that also passes this is taken at once; otherwise the
+  // first that passes `probe` once the tries run out (`walkClear`).
+  prefer: (point: Point) => boolean = () => true,
 ): Point | null {
   const { minX, maxX, minY, maxY } = boundsFor(view, top);
   // Left of this a cat's centre is in the left half.
@@ -1031,13 +1083,15 @@ export function pickExploreSpot(
   const sample = (side: Half): Point | null => {
     const lo = side === "left" ? minX : split;
     const hi = side === "left" ? split : maxX;
+    let fallback: Point | null = null;
     for (let tries = 0; tries < EXPLORE_TRIES; tries += 1) {
       const point = { x: lo + rng() * (hi - lo), y: minY + rng() * (maxY - minY) };
       if (!probe(point)) continue;
       if (other && !exploreApart(point, other)) continue;
-      return point;
+      if (prefer(point)) return point;
+      fallback ??= point;
     }
-    return null;
+    return fallback;
   };
 
   return sample(half) ?? sample(half === "left" ? "right" : "left");
@@ -1138,7 +1192,12 @@ export function syncTone(node: HTMLElement | null, at: Point): void {
 export interface Corner {
   readonly side: "right" | "left";
   readonly lift: number;
+  /** Tucked off the right edge with only `PEEK` px showing. */
+  readonly peek?: boolean;
 }
+
+/** How much of a peeking pair stays on screen: a WCAG 2.5.8 target and a face. */
+export const PEEK = 30;
 
 /** The inset of the parked pair from the viewport's corner (`bottom-6`). */
 export const CORNER_INSET = 24;
@@ -1151,8 +1210,10 @@ const LIFT_STEP = 56;
  * bottom-left, then each side a step higher at a time, up to the header; the
  * first spot that touches no control wins. Covering text is allowed — a
  * corner button always will. Where every spot covers something (a stack of
- * full-width rows on a phone), it takes the one that covers least, and never
- * the `focused` control: the one a keyboard visitor is on is always in view.
+ * full-width rows on a phone), the pair tuck off the right edge and peek in,
+ * `PEEK` px of them showing, at the first height that covers nothing; failing
+ * even that, the spot that covers least. Never the `focused` control: the one
+ * a keyboard visitor is on is always in view.
  */
 export function pickCorner(
   view: { readonly width: number; readonly height: number },
@@ -1162,25 +1223,30 @@ export function pickCorner(
 ): Corner {
   let best: Corner = { side: "right", lift: 0 };
   let least = Infinity;
-  // Up to just under the sticky header (80px clears it at every width).
-  for (let lift = 0; lift <= view.height - size.height - CORNER_INSET - 80; lift += LIFT_STEP) {
-    for (const side of ["right", "left"] as const) {
-      const left = side === "right" ? view.width - CORNER_INSET - size.width : CORNER_INSET;
-      const bottom = view.height - CORNER_INSET - lift;
-      const box = { left, right: left + size.width, top: bottom - size.height, bottom };
-      if (focused && intersects(box, focused)) continue;
-      let covered = 0;
-      for (const rect of controls) {
-        if (!intersects(box, rect)) continue;
-        covered +=
-          (Math.min(box.right, rect.right) - Math.max(box.left, rect.left)) *
-          (Math.min(box.bottom, rect.bottom) - Math.max(box.top, rect.top));
-      }
-      if (covered === 0) return { side, lift };
-      if (covered < least) {
-        least = covered;
-        best = { side, lift };
-      }
+  const top = view.height - size.height - CORNER_INSET - 80; // under the sticky header
+  const spots: Corner[] = [];
+  for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift }, { side: "left", lift });
+  for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift, peek: true });
+  for (const spot of spots) {
+    const left = spot.peek
+      ? view.width - PEEK
+      : spot.side === "right"
+        ? view.width - CORNER_INSET - size.width
+        : CORNER_INSET;
+    const bottom = view.height - CORNER_INSET - spot.lift;
+    const box = { left, right: left + size.width, top: bottom - size.height, bottom };
+    if (focused && intersects(box, focused)) continue;
+    let covered = 0;
+    for (const rect of controls) {
+      if (!intersects(box, rect)) continue;
+      covered +=
+        (Math.min(box.right, rect.right) - Math.max(box.left, rect.left)) *
+        (Math.min(box.bottom, rect.bottom) - Math.max(box.top, rect.top));
+    }
+    if (covered === 0) return spot;
+    if (covered < least) {
+      least = covered;
+      best = spot;
     }
   }
   return best;

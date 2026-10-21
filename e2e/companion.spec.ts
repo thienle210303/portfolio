@@ -3928,6 +3928,81 @@ test.describe("cats (round 21)", () => {
     await context.close();
   });
 
+  /** Every `ms` for `seconds`, the cats' boxes that overlap `target`'s, with
+   *  the reader kept active far from them. */
+  async function coverings(
+    page: Page,
+    target: string,
+    seconds: number,
+    fine: boolean,
+    walking: boolean,
+  ): Promise<string[]> {
+    await page.evaluate((js) => {
+      const el = new Function(`return ${js}`)() as Element;
+      const r = el.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + r.top - window.innerHeight / 2 + r.height / 2);
+    }, target);
+    const hits: string[] = [];
+    // `walking`: a cat walking across counts too; otherwise only one resting.
+    const size = page.viewportSize()!;
+    for (let i = 0; i < seconds * 5; i += 1) {
+      // A key, not the mouse: a pointer near a cat is a chase, and a chase
+      // goes where the visitor leads it, text or not.
+      if (fine && i % 5 === 0) await page.keyboard.press("Shift");
+      hits.push(
+        ...(await page.evaluate(([js, moving]) => {
+          const el = new Function(`return ${js}`)() as Element;
+          const t = el.getBoundingClientRect();
+          return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"))
+            .map((svg) => ({ pose: svg.getAttribute("data-cat-pose"), c: svg.getBoundingClientRect() }))
+            .filter(({ pose }) => moving || pose !== "walk")
+            // The drawing, not its box: a cell's outer 3px are empty (ear tips
+            // and paws stop short), so a box that grazes the text is no cat on it.
+            .filter(({ c }) => c.left + 3 < t.right && c.right - 3 > t.left && c.top + 3 < t.bottom && c.bottom - 3 > t.top)
+            .map(({ pose, c }) => `${pose} at ${Math.round(c.left)},${Math.round(c.top)}`);
+        }, [target, walking] as const)),
+      );
+      await page.waitForTimeout(200);
+    }
+    return hits;
+  }
+
+  const WORDIFICATION_YEAR =
+    "[...document.querySelectorAll('#tree a')].find(a => /Wordification/.test(a.textContent)).querySelector('span span:last-child') ?? [...document.querySelectorAll('#tree a')].find(a => /Wordification/.test(a.textContent))";
+  const GREETINGS = "[...document.querySelectorAll('#contact p')].find(p => /Greetings from/.test(p.textContent))";
+  const LEDE = "document.querySelector('#contact header > p:last-of-type')";
+
+  test("they keep off the Wordification tag's year, Contact's lede and the postcard's greeting", async ({
+    browser,
+  }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewports; run once");
+    test.setTimeout(180_000);
+    const cases = [
+      // Phones: no cat rests on them. At 1280 none even walks over the lede.
+      { width: 390, height: 844, touch: true, target: WORDIFICATION_YEAR, seconds: 3, walking: false },
+      { width: 390, height: 844, touch: false, target: WORDIFICATION_YEAR, seconds: 20, walking: false },
+      { width: 1280, height: 800, touch: false, target: LEDE, seconds: 25, walking: true },
+      { width: 390, height: 844, touch: true, target: GREETINGS, seconds: 3, walking: false },
+      { width: 390, height: 844, touch: false, target: GREETINGS, seconds: 20, walking: false },
+    ];
+    for (const c of cases) {
+      const context = await browser.newContext({
+        viewport: { width: c.width, height: c.height },
+        hasTouch: c.touch,
+        isMobile: c.touch,
+      });
+      const page = await context.newPage();
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("[data-companion] svg[data-cat]").first()).toBeAttached();
+      expect(
+        await coverings(page, c.target, c.seconds, !c.touch, c.walking),
+        `a cat covered ${c.target.slice(0, 60)} at ${c.width}${c.touch ? " (touch)" : ""}`,
+      ).toEqual([]);
+      await context.close();
+    }
+  });
+
   test("while the tree grows they sit beside its box, not in the top-left corner", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(60_000);

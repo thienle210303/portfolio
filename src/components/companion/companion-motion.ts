@@ -431,3 +431,102 @@ export function detourAround(
     ? { x: want.x, y: Math.max(minY, Math.min(from.y, over)) }
     : { x: from.x, y: over };
 }
+
+/**
+ * Round 21: a walk that would cross a block of text goes round it instead.
+ * The explorers' stops are probed clear, but the straight line between two of
+ * them ran across whatever lay in between — a lede, a postcard's caption —
+ * and a cat sliding over the words reads as broken even in passing.
+ *
+ * Greedy and one obstacle at a time, recomputed every frame: of the text
+ * rects the segment from `from` to `want` would drag the cat's box across,
+ * the first one hit is rounded by its nearest corner (the one that makes the
+ * shortest two-leg path whose first leg is clear of it). A rect the cat
+ * already overlaps is ignored — she is leaving it. With no clear corner inside
+ * `bounds` (text as wide as a phone), none within `maxRatio` of the straight
+ * walk's length, or no obstacle, the walk goes straight. Rects are in viewport px; the cat is the
+ * `w`×`h` box whose top-left is the position.
+ */
+export function routeAround(
+  from: Point,
+  want: Point,
+  rects: readonly { left: number; right: number; top: number; bottom: number }[],
+  w: number,
+  h: number,
+  bounds: { readonly minX: number; readonly maxX: number; readonly minY: number; readonly maxY: number } | null = null,
+  margin = 6,
+  maxRatio = 2.2,
+): Point {
+  // Each rect grown by the cat's box, so the position (its top-left corner)
+  // is what must stay outside it.
+  const grown = (r: { left: number; right: number; top: number; bottom: number }) => ({
+    left: r.left - w - margin,
+    right: r.right + margin,
+    top: r.top - h - margin,
+    bottom: r.bottom + margin,
+  });
+  // "On it" means the cat's box really overlaps the text, not merely that it
+  // is within the margin: a stop just beside a paragraph is still walked to
+  // round it.
+  const inside = (p: Point, g: ReturnType<typeof grown>) =>
+    p.x > g.left + margin && p.x < g.right - margin && p.y > g.top + margin && p.y < g.bottom - margin;
+  // Slab test: where along a→b the segment enters g, or null.
+  const entry = (a: Point, b: Point, g: ReturnType<typeof grown>): number | null => {
+    let t0 = 0;
+    let t1 = 1;
+    const d = { x: b.x - a.x, y: b.y - a.y };
+    for (const [p, dp, lo, hi] of [
+      [a.x, d.x, g.left, g.right],
+      [a.y, d.y, g.top, g.bottom],
+    ] as const) {
+      if (Math.abs(dp) < 1e-9) {
+        if (p <= lo || p >= hi) return null;
+      } else {
+        let ta = (lo - p) / dp;
+        let tb = (hi - p) / dp;
+        if (ta > tb) [ta, tb] = [tb, ta];
+        t0 = Math.max(t0, ta);
+        t1 = Math.min(t1, tb);
+        if (t0 >= t1) return null;
+      }
+    }
+    return t0;
+  };
+
+  let first: ReturnType<typeof grown> | null = null;
+  let firstT = Infinity;
+  for (const rect of rects) {
+    const g = grown(rect);
+    if (inside(from, g) || inside(want, g)) continue;
+    const t = entry(from, want, g);
+    if (t !== null && t < firstT) {
+      firstT = t;
+      first = g;
+    }
+  }
+  if (!first) return want;
+
+  let best: Point | null = null;
+  let bestLength = Infinity;
+  const g = first;
+  for (const corner of [
+    { x: g.left, y: g.top },
+    { x: g.right, y: g.top },
+    { x: g.left, y: g.bottom },
+    { x: g.right, y: g.bottom },
+  ]) {
+    // Nudged a pixel out so the leg to it does not graze the rect it rounds.
+    const c = { x: corner.x + Math.sign(corner.x - (g.left + g.right) / 2), y: corner.y + Math.sign(corner.y - (g.top + g.bottom) / 2) };
+    if (entry(from, c, g) !== null) continue;
+    // A corner off the cats' band is no way round: text that wide is crossed.
+    if (bounds && (c.x < bounds.minX || c.x > bounds.maxX || c.y < bounds.minY || c.y > bounds.maxY)) continue;
+    const length = Math.hypot(c.x - from.x, c.y - from.y) + Math.hypot(want.x - c.x, want.y - c.y);
+    if (length < bestLength) {
+      bestLength = length;
+      best = c;
+    }
+  }
+  // A detour much longer than the walk itself reads as a cat lost: cross.
+  const direct = Math.hypot(want.x - from.x, want.y - from.y);
+  return best && bestLength <= direct * maxRatio ? best : want;
+}

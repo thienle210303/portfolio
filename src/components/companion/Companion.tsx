@@ -62,6 +62,7 @@ import {
   rideStep,
   trailBehind,
   detourAround,
+  routeAround,
   type RideTracker,
 } from "./companion-motion";
 import { IDLE_TICK_MS, nextCadence } from "./companion-cadence";
@@ -103,7 +104,9 @@ import {
   standingSpots,
   controlRectsInView,
   groundControls,
+  groundProse,
   CORNER_INSET,
+  PEEK,
   pickCorner,
   type Corner,
   syncTone,
@@ -1024,8 +1027,8 @@ function paintBeside(
     anchorH,
     size,
     { viewportWidth: window.innerWidth, viewportHeight: window.innerHeight, safeTop: safeTop() },
-    // Off the page's controls too, where there is room (round 21).
-    [...keepOut, ...groundControls()],
+    // Off the page's controls and prose too, where there is room (round 21).
+    [...keepOut, ...groundControls(), ...groundProse()],
   );
   paint(node, at);
   return boxAt(at, size.width, size.height);
@@ -1356,6 +1359,11 @@ export function Companion({ facts }: CompanionProps) {
   const settleSpots = useRef<Spots | null>(null);
   /** Where the explorers are heading. Null means "decide on the next frame". */
   const exploreRun = useRef<ExploreRun | null>(null);
+  /** Each cat's detour round text to its current destination (`routeAround`). */
+  const detours = useRef<Record<"lead" | "follow", { target: Point; via: Point | null; used: boolean } | null>>({
+    lead: null,
+    follow: null,
+  });
   /** The Moon surprise while it plays — see companion-surprise.ts. */
   const surpriseRef = useRef<Surprise | null>(null);
   /** True until the explorers have arrived at their first stop in the current
@@ -3390,6 +3398,29 @@ export function Companion({ facts }: CompanionProps) {
         }
       }
 
+      /*
+       * Round 21: a walk goes round blocks of text rather than across them
+       * (`routeAround`); the places they walk to are probed clear already.
+       * Not for the escort or a duck out of a fast scroll (both race a clock),
+       * nor a chase, which goes where the visitor's pointer leads.
+       */
+      const routes = !run && !rushing && !chase && !beat?.dash && groundCached();
+      const band = routes ? boundsFor(viewport(), safeTop()) : null;
+      /** One detour per destination, held until reached: re-routing every
+       *  frame let a cat in dense text ping-pong between two corners. */
+      const viaFor = (key: "lead" | "follow", pos: Point, want: Point): Point => {
+        if (!band || distance(pos, want) <= 4) return want;
+        let d = detours.current[key];
+        if (!d || distance(d.target, want) > 4) d = detours.current[key] = { target: want, via: null, used: false };
+        if (d.via && distance(pos, d.via) < 4) d.via = null;
+        if (d.via) return d.via;
+        if (d.used) return want;
+        d.used = true;
+        const via = routeAround(pos, want, groundProse(), CAT_W, CAT_H, band);
+        if (via !== want) d.via = via;
+        return via;
+      };
+      leadWant = viaFor("lead", grey.pos, leadWant);
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
       const leadStep = advance(
@@ -3547,6 +3578,7 @@ export function Companion({ facts }: CompanionProps) {
       }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
+      followWant = viaFor("follow", tabby.pos, followWant);
       const followStep = advance(tabby.pos, followWant, tabby.speed, frames);
       /** Her half of `leadRate` above, and for the same reason. */
       const followRate = frames > 0 ? followStep / frames : 0;
@@ -4858,7 +4890,12 @@ export function Companion({ facts }: CompanionProps) {
       invalidateViewport();
       const view = viewport();
       const picked = pickCorner(view, { width, height }, controlRectsInView(), focused);
-      const next = { ...picked, dx: picked.side === "left" ? width + 2 * CORNER_INSET - view.width : 0 };
+      const dx = picked.peek
+        ? width + CORNER_INSET - PEEK
+        : picked.side === "left"
+          ? width + 2 * CORNER_INSET - view.width
+          : 0;
+      const next = { ...picked, dx };
       setCorner((now) => (now.dx === next.dx && now.lift === next.lift ? now : next));
     };
     const later = () => {
@@ -4949,7 +4986,9 @@ export function Companion({ facts }: CompanionProps) {
       data-cat-tour={tourView ? "true" : undefined}
       data-cat-intent={intent ?? undefined}
       data-cat-cheer={cheer ? "true" : undefined}
-      className="no-print pointer-events-none fixed inset-0 z-40"
+      // Clipped: a peeking pair (`pickCorner`) and a cat entering from the
+      // edge must not widen the page.
+      className="no-print pointer-events-none fixed inset-0 z-40 overflow-clip"
     >
       {/* The toy, under the cats in paint order so a paw lands on top of it.
           Decoration in the strictest sense: no accessible name, no pointer
