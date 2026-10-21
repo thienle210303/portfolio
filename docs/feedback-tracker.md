@@ -1914,3 +1914,24 @@ The postcard board (`design/round-21-outdoors/v1/boards/NatContactPostcard*.dc.h
 **Verification.** `pnpm verify` 5/5 (851 unit tests, 54 files). e2e against the production build on `:3211`, `--workers=2`: contact, ask, axe, responsive, print and companion specs 222 passed, 546 skipped, 0 failed; then the full suite 760 passed, 1052 skipped, 0 failed (19.4 min), no retries. An earlier full run failed 14, all from this phase's layout and fixed before the clean run: `scale.spec` held Contact's h2 to the 24-28px section-title size (the board sets "say hi." at the hero's display size; the test now pins the Journey only and gives Contact 40-72px), and a cold `/#ask` at 1024 and 1440 runs out of page before the 80px margin now that the chat is a short strip near the end (the test accepts a landing at the page's end with the whole strip on screen).
 
 **Screens** (`reports/r21-p6-screens/`, untracked): `#contact` and the landing view at 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night; no horizontal overflow at any of them.
+
+## Round 21 phase 7 — cats (2026-10-20/21)
+
+Plan: `docs/superpowers/plans/2026-10-20-round-21-phase-7-cats.md`. Branch `round-21/cats`, main merged in at `7e3d650` (the Journey and Contact).
+
+**What changed.** The cats are SVG symbol sprite sheets drawn once by `scripts/draw-cats.mjs` (`pnpm draw:cats`) into `public/cats/` — per cat a 3×3 of head directions, a 3×3 of reactions (blink, yawn, purr, startle, stretch, groom, bat, sniff, sleep) and an 8-frame walk, plus the police cat (Moon in a cap). The sleeping cell is the hero's "Moon, off duty" drawing itself. `tests/lib/cats.test.ts` fences the committed sheets. `CompanionCat` draws one `<use>` per frame instead of rebuilding a contour tree; the head follows a fine pointer while sitting, a press holds one reaction for 700 ms (one frame under reduced motion), the sitting tail sways in CSS. Coats (`--cat-coat`, mixed from `--fg-muted` into `--ground`) replace the ground knockout that read as patches on the sky. New: the Moon surprise (`companion-surprise.ts`; `MoonVisit` for reduced motion and touch), the parked pair's corner search (`pickCorner`: off controls, never on the focused one, peeking in from the edge when no corner is clear), the tree-show watchers seated beside the tree box, walks routed round text (`routeAround`, `slideOffText`, `walkClear`), bubbles kept off controls and prose.
+
+**Size** (`pnpm perf`, production builds, 0 skipped responses, 3 runs each, bytes identical across runs):
+
+| Build | JS | JS at load | Companion chunk (idle, raw / gzip) | DOM | CLS |
+|---|---|---|---|---|---|
+| main `0b5d8c4` (before) | 194,261 B | 167,698 B | 81,908 / 26,356 B | 2199 | 0 |
+| `5ba2187` (cats, pre-merge) | 194,849 B | 167,696 B | 83,938 / 26,969 B | 2172 | 0 |
+| main `df1472b` (Journey + Contact) | 193,799 B | 167,236 B | 81,908 / 26,356 B | 2293 | 0 / 0.0218 / 0 |
+| `52390bd` (cats merged) | 195,491 B | 167,234 B | 86,746 / 28,071 B | 2266 | 0 |
+
+JS at load −2 B against the same main; the idle companion chunk +1,715 B gzip (surprise, pointer tracking, corner search, routing); the sheets are 4.1 / 4.9 / 1.8 KB gzip (Moon / Mi / police), fetched with the chunk, not at load. DOM −27 nodes (one `<use>` per cat instead of a path tree). Two regressions found and fixed on the way: `createPortal` pulled react-dom's entry into a shared initial chunk (+103 B gzip at load; `MoonVisit` now draws on the fixed layer), and moving the parked pair by its insets was a layout shift (CLS 0.0042; now a transform).
+
+**Verification.** `pnpm verify` 5/5 (909 unit tests, 58 files; contrast 62 pairings, lowest 4.52:1). Full e2e against a fresh production build of `52390bd` on `:3220`, `--workers=2`: 803 passed, 1207 skipped, 0 failed (39.3 min). Two companion specs were made independent of where the new watch leaves the pair (`queueARequest` waits for the lead to stop; the pointer that ends an unprompted scene moves towards the window's middle).
+
+**Remaining.** The text routing is greedy (two corners at most, up to 4× the straight walk, inside the cats' band): a block of words as wide as the window is still crossed, by design rather than leave a cat stuck. Mini-Thien's spot is not checked against text (he stood on "Taylors, SC" in one 1280 night screen). The parked pair's peek shows Mi's tail, not a face.
