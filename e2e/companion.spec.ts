@@ -3944,7 +3944,6 @@ test.describe("cats (round 21)", () => {
     }, target);
     const hits: string[] = [];
     // `walking`: a cat walking across counts too; otherwise only one resting.
-    const size = page.viewportSize()!;
     for (let i = 0; i < seconds * 5; i += 1) {
       // A key, not the mouse: a pointer near a cat is a chase, and a chase
       // goes where the visitor leads it, text or not.
