@@ -105,6 +105,7 @@ import {
   controlRectsInView,
   groundControls,
   groundProse,
+  slideOffText,
   CORNER_INSET,
   PEEK,
   pickCorner,
@@ -967,6 +968,14 @@ function tickFlick(cat: Mover, now: number, allowed: boolean): number {
   return 0;
 }
 
+/** Applies `slideOffText` to a step just taken, and returns its new length. */
+function stepOffText(pos: Spot, from: Point, want: Point): number {
+  const to = slideOffText(from, pos, want);
+  pos.x = to.x;
+  pos.y = to.y;
+  return Math.hypot(to.x - from.x, to.y - from.y);
+}
+
 function paint(node: HTMLElement | null, pos: Spot): void {
   if (node) node.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
 }
@@ -1360,7 +1369,7 @@ export function Companion({ facts }: CompanionProps) {
   /** Where the explorers are heading. Null means "decide on the next frame". */
   const exploreRun = useRef<ExploreRun | null>(null);
   /** Each cat's detour round text to its current destination (`routeAround`). */
-  const detours = useRef<Record<"lead" | "follow", { target: Point; via: Point | null; used: boolean } | null>>({
+  const detours = useRef<Record<"lead" | "follow", { target: Point; via: Point | null; used: number } | null>>({
     lead: null,
     follow: null,
   });
@@ -3401,21 +3410,25 @@ export function Companion({ facts }: CompanionProps) {
       /*
        * Round 21: a walk goes round blocks of text rather than across them
        * (`routeAround`); the places they walk to are probed clear already.
-       * Not for the escort or a duck out of a fast scroll (both race a clock),
-       * nor a chase, which goes where the visitor's pointer leads.
        */
-      const routes = !run && !rushing && !chase && !beat?.dash && groundCached();
+      // The explorers' own walks, the walk to a nap and a scene's walks; a
+      // tour, the watch and the escort walk to places on a clock and are left
+      // straight, a dash is a dash, and a chase goes where the pointer leads.
+      const routes =
+        (explored || napping || (beat !== null && !beat.dash)) && !run && !rushing && !chase && groundCached();
       const band = routes ? boundsFor(viewport(), safeTop()) : null;
-      /** One detour per destination, held until reached: re-routing every
-       *  frame let a cat in dense text ping-pong between two corners. */
+      /** At most two detours per destination, each held until reached:
+       *  re-routing every frame let a cat in dense text ping-pong between two
+       *  corners. */
       const viaFor = (key: "lead" | "follow", pos: Point, want: Point): Point => {
         if (!band || distance(pos, want) <= 4) return want;
         let d = detours.current[key];
-        if (!d || distance(d.target, want) > 4) d = detours.current[key] = { target: want, via: null, used: false };
+        if (!d || distance(d.target, want) > 4) d = detours.current[key] = { target: want, via: null, used: 0 };
         if (d.via && distance(pos, d.via) < 4) d.via = null;
         if (d.via) return d.via;
-        if (d.used) return want;
-        d.used = true;
+        // Two corners at most: round a block of text and back past its far end.
+        if (d.used >= 2) return want;
+        d.used += 1;
         const via = routeAround(pos, want, groundProse(), CAT_W, CAT_H, band);
         if (via !== want) d.via = via;
         return via;
@@ -3423,12 +3436,15 @@ export function Companion({ facts }: CompanionProps) {
       leadWant = viaFor("lead", grey.pos, leadWant);
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
-      const leadStep = advance(
+      const leadFrom = { x: grey.pos.x, y: grey.pos.y };
+      let leadStep = advance(
         grey.pos,
         leadWant,
         run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : moon?.cat === "lead" ? CREEP_SPEED : LEAD_SPEED,
         frames,
       );
+      // The backstop: a step slides along words rather than onto them.
+      if (band) leadStep = stepOffText(grey.pos, leadFrom, leadWant);
       /**
        * The same movement as a *speed* rather than a distance, because every
        * threshold below asks a question about speed — "is he really walking",
@@ -3579,7 +3595,9 @@ export function Companion({ facts }: CompanionProps) {
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
       followWant = viaFor("follow", tabby.pos, followWant);
-      const followStep = advance(tabby.pos, followWant, tabby.speed, frames);
+      const followFrom = { x: tabby.pos.x, y: tabby.pos.y };
+      let followStep = advance(tabby.pos, followWant, tabby.speed, frames);
+      if (band) followStep = stepOffText(tabby.pos, followFrom, followWant);
       /** Her half of `leadRate` above, and for the same reason. */
       const followRate = frames > 0 ? followStep / frames : 0;
       // Round 14, her half of the same rule the lead gets above: once she has

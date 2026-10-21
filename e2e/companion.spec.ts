@@ -3938,7 +3938,7 @@ test.describe("cats (round 21)", () => {
     walking: boolean,
   ): Promise<string[]> {
     await page.evaluate((js) => {
-      const el = new Function(`return ${js}`)() as Element;
+      const el = new Function(`return ${js}`)() as Element | Range;
       const r = el.getBoundingClientRect();
       window.scrollTo(0, window.scrollY + r.top - window.innerHeight / 2 + r.height / 2);
     }, target);
@@ -3951,7 +3951,7 @@ test.describe("cats (round 21)", () => {
       if (fine && i % 5 === 0) await page.keyboard.press("Shift");
       hits.push(
         ...(await page.evaluate(([js, moving]) => {
-          const el = new Function(`return ${js}`)() as Element;
+          const el = new Function(`return ${js}`)() as Element | Range;
           const t = el.getBoundingClientRect();
           return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"))
             .map((svg) => ({ pose: svg.getAttribute("data-cat-pose"), c: svg.getBoundingClientRect() }))
@@ -3969,7 +3969,10 @@ test.describe("cats (round 21)", () => {
 
   const WORDIFICATION_YEAR =
     "[...document.querySelectorAll('#tree a')].find(a => /Wordification/.test(a.textContent)).querySelector('span span:last-child') ?? [...document.querySelectorAll('#tree a')].find(a => /Wordification/.test(a.textContent))";
-  const GREETINGS = "[...document.querySelectorAll('#contact p')].find(p => /Greetings from/.test(p.textContent))";
+  // The words themselves (a Range over the text node), not the paragraph's
+  // padded box, whose top 16px are the postcard's sky.
+  const GREETINGS =
+    "(() => { const r = document.createRange(); r.selectNodeContents([...document.querySelectorAll('#contact p')].find(p => /Greetings from/.test(p.textContent)).firstChild); return r; })()";
   const LEDE = "document.querySelector('#contact header > p:last-of-type')";
 
   test("they keep off the Wordification tag's year, Contact's lede and the postcard's greeting", async ({

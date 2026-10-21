@@ -434,6 +434,37 @@ export function walkClear(from: Point, to: Point): boolean {
   return true;
 }
 
+/**
+ * The backstop under `routeAround`: a step from `prev` to `next` that would
+ * put the cat's drawing onto a block of words it was not already on slides
+ * along it instead, at the step's full length but never past `want` on that
+ * axis (x alone, else y alone): a slide at a fraction of the walk reads as a
+ * cat that has stopped. With neither free it goes on: a
+ * cat held against a line until her walk times out reads as stuck, which is
+ * worse than a crossing. Inset by 3px, the empty margin of a sprite cell, so
+ * grazing a line is not touching it.
+ */
+export function slideOffText(
+  prev: Point,
+  next: Point,
+  want: Point,
+  rects: readonly RectLike[] = groundProse(),
+): Point {
+  const on = (p: Point) =>
+    rects.some(
+      (r) => p.x + 3 < r.right && p.x + CAT_W - 3 > r.left && p.y + 3 < r.bottom && p.y + CAT_H - 3 > r.top,
+    );
+  if (!on(next) || on(prev)) return next;
+  const step = Math.hypot(next.x - prev.x, next.y - prev.y);
+  const reach = (from: number, to: number) => from + clamp(to - from, -step, step);
+  // A slide that does not move at all is a hold, not a slide.
+  const alongX = { x: reach(prev.x, want.x), y: prev.y };
+  if (alongX.x !== prev.x && !on(alongX)) return alongX;
+  const alongY = { x: prev.x, y: reach(prev.y, want.y) };
+  if (alongY.y !== prev.y && !on(alongY)) return alongY;
+  return next;
+}
+
 /** The controls in the current ground epoch, in viewport coordinates. */
 export function groundControls(): readonly RectLike[] {
   groundRects();

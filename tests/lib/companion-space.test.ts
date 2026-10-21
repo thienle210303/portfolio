@@ -4,6 +4,7 @@ import {
   CORNER_INSET,
   PEEK,
   pickCorner,
+  slideOffText,
   boundsFor,
   clampToViewport,
   clearsControls,
@@ -1064,5 +1065,24 @@ describe("pickCorner", () => {
     const placed = pickCorner(view, size, [everything], focused);
     const bottom = view.height - CORNER_INSET - placed.lift;
     expect(bottom <= focused.top || placed.side === "left").toBe(true);
+  });
+});
+
+describe("slideOffText", () => {
+  const line = { left: 100, right: 600, top: 300, bottom: 330 };
+  it("lets a step that touches no words through", () => {
+    expect(slideOffText({ x: 0, y: 0 }, { x: 4, y: 4 }, { x: 40, y: 40 }, [line])).toEqual({ x: 4, y: 4 });
+  });
+  it("slides along a line rather than onto it, and crosses when it cannot slide", () => {
+    // At the step's full length (about 12.6px), not just its x part.
+    const slid = slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 300, y: 400 }, [line]);
+    expect(slid.y).toBe(250);
+    expect(slid.x).toBeCloseTo(212.6, 1);
+    // Never past the destination on that axis.
+    expect(slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 205, y: 400 }, [line])).toEqual({ x: 205, y: 250 });
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line])).toEqual({ x: 200, y: 262 });
+  });
+  it("lets a cat already on words walk off them", () => {
+    expect(slideOffText({ x: 200, y: 300 }, { x: 200, y: 296 }, { x: 200, y: 0 }, [line])).toEqual({ x: 200, y: 296 });
   });
 });

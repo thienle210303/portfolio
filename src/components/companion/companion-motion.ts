@@ -455,7 +455,7 @@ export function routeAround(
   h: number,
   bounds: { readonly minX: number; readonly maxX: number; readonly minY: number; readonly maxY: number } | null = null,
   margin = 6,
-  maxRatio = 2.2,
+  maxRatio = 4,
 ): Point {
   // Each rect grown by the cat's box, so the position (its top-left corner)
   // is what must stay outside it.
@@ -520,7 +520,10 @@ export function routeAround(
     if (entry(from, c, g) !== null) continue;
     // A corner off the cats' band is no way round: text that wide is crossed.
     if (bounds && (c.x < bounds.minX || c.x > bounds.maxX || c.y < bounds.minY || c.y > bounds.maxY)) continue;
-    const length = Math.hypot(c.x - from.x, c.y - from.y) + Math.hypot(want.x - c.x, want.y - c.y);
+    // A corner from which the rest of the walk still crosses this text costs
+    // a second corner later: counted as the long way round.
+    const rest = entry(c, want, g) === null ? 0 : (g.right - g.left + g.bottom - g.top) / 2;
+    const length = Math.hypot(c.x - from.x, c.y - from.y) + Math.hypot(want.x - c.x, want.y - c.y) + rest;
     if (length < bestLength) {
       bestLength = length;
       best = c;
