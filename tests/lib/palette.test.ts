@@ -169,7 +169,9 @@ describe("the outdoors palette", () => {
     const scene = {
       twine: "#8b7b5e", "dusk-twine": "#b3a27f", gold: "#d4a21a",
       water: "#9fb3ae", "dusk-water": "#3f5a5a",
-      buffalo: "#3b433e", "dusk-buffalo": "#0a1012",
+      buffalo: "#3b433e",
+      // Round 21 phase 8: the board's near-black was lost on the night sky.
+      "dusk-buffalo": "#56665f",
     };
     for (const [name, hex] of Object.entries(scene)) expect(tokens[name], name).toBe(hex);
   });
