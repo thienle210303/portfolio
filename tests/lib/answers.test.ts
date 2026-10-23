@@ -9,7 +9,7 @@ import {
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { careerEntries, companions, journey, navItems, origin } from "@/content/portfolio";
-import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
+import { LEGACY_SECTION_IDS, RECORD_LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -171,17 +171,18 @@ describe("answer", () => {
     // needs asserting: it would look fine and would quietly make the
     // compatibility anchors load-bearing for the site's own UI, so they could
     // never be removed. Career documents cited `journey` until round 18's Task
-    // 13 re-pointed them at `tree`.
-    const legacy = new Set<string>(LEGACY_SECTION_IDS);
+    // 13 re-pointed them at `tree`; round 21 phase 5 at `record`.
+    const legacy = new Set<string>([...LEGACY_SECTION_IDS, ...RECORD_LEGACY_SECTION_IDS]);
     expect(legacy.size, "no compatibility anchors to check for").toBeGreaterThan(0);
     const offenders = buildDocuments()
       .filter((doc) => doc.sectionId !== undefined && legacy.has(doc.sectionId))
       .map((doc) => `${doc.sectionId}: ${doc.text.slice(0, 50)}`);
     expect(offenders).toEqual([]);
-    // And the guard is reachable: `tree` — the id these documents moved onto —
+    // And the guard is reachable: `record` — the id these documents moved onto —
     // is not itself one of the compatibility anchors, so a corpus that cited
     // only legacy ids really would fail above.
-    expect(legacy.has("tree")).toBe(false);
+    expect(legacy.has("record")).toBe(false);
+    expect(legacy.has("work")).toBe(true);
   });
 
   it("never surfaces a [NEEDS INPUT] marker", () => {
@@ -209,7 +210,7 @@ describe("answer", () => {
     const expected: Record<string, { section: string | null; source: RegExp }> = {
       "What do you do at DoorDash?": { section: "about", source: /^About/ },
       "Are you from Việt Nam?": { section: "about", source: /^(About|Origin story)/ },
-      "What have you measured?": { section: "tree", source: /DoorDash/ },
+      "What have you measured?": { section: "record", source: /DoorDash/ },
       "What are your cats called?": { section: null, source: /^The two cats$/ },
     };
     expect([...SUGGESTED_QUESTIONS]).toEqual(Object.keys(expected));
@@ -415,11 +416,11 @@ describe("the cats", () => {
 });
 
 describe("the Journey", () => {
-  it("indexes the 2 → 25 line and cites it on the Journey", () => {
+  it("indexes the 2 → 25 line and cites it on the Record, where its row is", () => {
     const line = careerEntries.find((entry) => entry.id === "doordash")!.impact.find((l) => l.includes("2 to 25"))!;
     const docs = buildDocuments().filter((doc) => doc.text === line);
     expect(docs).toHaveLength(1);
-    expect(docs[0].sectionId).toBe("tree");
+    expect(docs[0].sectionId).toBe("record");
   });
 
   it("does not index its own copy", () => {

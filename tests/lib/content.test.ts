@@ -418,9 +418,9 @@ describe("the invented layer is gone", () => {
   });
 });
 
-describe("the page is three sections", () => {
-  it("lists exactly About, Journey and Contact", () => {
-    expect(navItems.map((item) => item.sectionId)).toEqual(["about", "tree", "contact"]);
+describe("the page is four sections", () => {
+  it("lists exactly About, Journey, Record and Contact", () => {
+    expect(navItems.map((item) => item.sectionId)).toEqual(["about", "tree", "record", "contact"]);
   });
 
   it("keeps skillCategories, which /resume still renders", () => {

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { careerEntries } from "../src/content/portfolio";
 
 /**
  * The ink-reveal system (Workstream 3, P1/P2): `InkReveal.tsx`'s shared
@@ -61,14 +62,16 @@ test.describe("no-JS parity", () => {
     await page.goto("/");
     const headlines = page.locator("#tree [data-origin-host] [data-tree-headline]");
     await expect(headlines).toHaveCount(11);
-    const triggers = page.locator('#tree [data-timeline] [id^="tree-list-branch-"][id$="-trigger"]');
-    await expect(triggers).toHaveCount(11);
+    const triggers = page.locator('#record [data-timeline] [id^="record-row-"][id$="-trigger"]');
+    await expect(triggers).toHaveCount(careerEntries.length);
     for (const trigger of await triggers.all()) {
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
     }
     for (const headline of await headlines.all()) await expect(headline).toBeVisible();
-    for (const headline of await page.locator("#tree [data-timeline] [data-tree-headline]").all()) {
-      await expect(headline).toBeVisible();
+    // On the Record a headline is depth, inside its closed row (round 21
+    // phase 5): in the document, not shown until the row opens.
+    for (const headline of await page.locator("#record [data-timeline] [data-tree-headline]").all()) {
+      await expect(headline).toBeHidden();
     }
   });
 

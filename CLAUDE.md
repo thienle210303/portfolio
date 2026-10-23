@@ -63,24 +63,24 @@ hero's clothesline in Round 21's hero phase). It is in git history. There is sti
 
 ### The scenery
 
-The hero's and the Journey's drawings are generated SVG files under `public/scenery/`, written
+The hero's, the Journey's, Contact's and the Record's drawings are generated SVG files under `public/scenery/`, written
 by `scripts/draw-scenery.mjs` (`pnpm draw:scenery`), and
 `tests/lib/scenery.test.ts` fails until the committed files match a fresh
 draw — so change a drawing in the script, never by hand. One-colour drawings
 are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
 `--scene-bark`, `--scene-moss`, `text-accent`); the theme-dependent pieces
-(the sky, the phin/lẩu and bánh mì/trà đá vignettes, the Hội An lantern, lit at
-night) take their file from `--art-sky` / `--art-vignette` /
-`--art-journey-vignette` / `--art-lantern`, so the theme swaps them in CSS with
-no script. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`),
+(the sky, the phin/lẩu, bánh mì/trà đá and cà phê sữa đá/chè vignettes, the Hội
+An lantern, lit at night) take their file from `--art-sky` / `--art-vignette` /
+`--art-journey-vignette` / `--art-record-vignette` / `--art-lantern`, so the
+theme swaps them in CSS with no script. The Record's tree slice is not a file:
+its rings are computed from content (`src/lib/record.ts`) and drawn inline. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`),
 and `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
 hook for Phase 7; keep it, once.
 
 ## Changing what the site says
 
-The page is three sections, in this order (a Record section is planned between the Journey and
-Contact): About (`#about` — the hero: my headline and two actions under a
+The page is four sections, in this order: About (`#about` — the hero: my headline and two actions under a
 clothesline of four chapter tags that turn over to my line about each, my
 field tag with the LinkedIn QR at the line's end (below 1024 the line hangs
 down the page from a bamboo pole, the tags either side, my field tag at its
@@ -89,18 +89,26 @@ drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: a live oak whose limb
 carries the highlight tags, the DoorDash one a ticket with a 2026 stub, and
 "Watch it grow", which plays the drawn tree at >=1024px; below 1280 the tags
-hang from a branch under the crown; then a one-open timeline of rows) and Contact
+hang from a branch under the crown), the Record (`#record`, round 21 phase 5: a
+notebook spread; the left page, "Pressed, waiting to dry.", holds a tree slice
+whose rings link to their years and the five `featured` entries taped around
+it; the right page lists every career entry by start year with All / Work /
+Study / Milestones filters, as one-open rows that hold the impact lines and the
+case studies, then the certificates as stamps that open the real certificate
+in a native `<dialog>`; the pages stack below 1280) and Contact
 (`#contact`, round 21's postcard: my business card beside a postcard whose
 address side is the lead form, always visible, and the chat at `#ask` as a
 strip below both).
-`navItems` in `src/content/portfolio.ts` is the same three items in the same
-order; the nav doubles as the page's table of contents.
+`navItems` in `src/content/portfolio.ts` is the same four items in the same
+order; the nav doubles as the page's table of contents (and the cats' guided
+tour visits the same four).
 
 The retired ids — `#journey`, `#work`, `#skills`, `#workshop`, `#worlds`, every
 `journey-entry-<id>` and every `work-<projectId>` — are all still in the
-server-rendered HTML, and the section and per-entry ones land on the Journey
-with JavaScript off (`e2e/legacy-anchors.spec.ts`); `#worlds` lands on About via
-`src/sections/Hero/anchors.ts`. Nothing on the page links
+server-rendered HTML and land with JavaScript off (`e2e/legacy-anchors.spec.ts`):
+`#journey`, `#skills` and `#workshop` on the Journey; `#work` (the case studies)
+and every `journey-entry-<id>` / `work-<projectId>` on the Record's rows;
+`#worlds` on About via `src/sections/Hero/anchors.ts`. Nothing on the page links
 to most of them; they exist for inbound links the site does not control, so
 "unreferenced" is not a reason to delete one.
 
@@ -112,8 +120,8 @@ Copy rules (first person, surface vs depth, headlines) live in
 [docs/voice.md](docs/voice.md).
 
 Everything factual lives in `src/content/portfolio.ts`; components read from
-it and never restate a fact. One career entry feeds the Journey, the résumé
-and the chat at once. Practical recipes — adding a
+it and never restate a fact. One career entry feeds the Journey, the Record, the
+résumé and the chat at once. Practical recipes — adding a
 metric, adding a role, attaching a case study — are in
 [docs/editing.md](docs/editing.md).
 
@@ -140,16 +148,16 @@ nowhere the eval can see.
 The tree draws only authored relationships. Each branch is one career entry
 (chronological, each exactly once) and its leaves are that entry's own
 `technologies`, verbatim. Its `impact` lines render verbatim in that entry's
-timeline row, not as leaves; its `headline` is shown with the branch and the
-row at rest, and the branch's label links to the row. Do not make it infer edges by
+Record row, not as leaves; its `headline` is shown with the branch at rest and
+inside the open row, and the branch's label links to the row. Do not make it infer edges by
 matching skill names against technology strings: the two vocabularies only
 overlap 17 of 38 ways, so loose matching invents links and strict matching
 claims real skills were never used. `tests/lib/knowledge-tree.test.ts`
 enforces this.
 
 - **What is drawn.** The Journey draws `buildDrawnTree()`: every career entry
-  except the nine in `DEMOTED_ENTRY_IDS` (`src/lib/knowledge-tree.ts`), which
-  render as one credentials line instead. Their content is unchanged and still
+  except the nine in `DEMOTED_ENTRY_IDS` (`src/lib/knowledge-tree.ts`). Like
+  every entry, they are rows on the Record. Their content is unchanged and still
   indexed; only the limb is gone.
 - **No roots.** Nothing is drawn below the ground line. The root labels, root
   system and plinth
@@ -163,10 +171,12 @@ enforces this.
   contains every role from 2021 to 2025 rather than running beside them, and is
   demoted, so it is never drawn as anyone's sibling. A guessed end month
   creates overlaps by itself — see the comment on `fu-of-kyoto`.
-- **The timeline owns the fragments.** Each drawn entry's row carries
-  `journey-entry-<id>` and its case studies' `work-<projectId>`; a demoted
-  entry's credentials line carries its `journey-entry-<id>`. One row is open at
-  a time; a fragment opens its row, and with JavaScript off `:target` does.
+- **The Record's rows own the fragments.** Each entry's row
+  (`src/sections/Record/RecordYears.tsx`) carries `journey-entry-<id>` and its
+  case studies' `work-<projectId>`; the tags and the drawing's branch labels
+  link there. One row is open at a time; a fragment opens its row, and with
+  JavaScript off `:target` does. The chat cites `#record` for entries, case
+  studies and the degree.
 
 ### `src/lib/` never imports from `src/sections/`
 

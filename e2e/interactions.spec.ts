@@ -21,7 +21,7 @@ test.describe("reduced motion", () => {
   test("a disclosure still opens, closes, and stays keyboard-reachable", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
 
-    const trigger = page.locator("#tree-list-branch-doordash-trigger");
+    const trigger = page.locator("#record-row-doordash-trigger");
     await expect(trigger, "expected the DoorDash branch's disclosure trigger").toHaveCount(1);
     const panelId = await trigger.getAttribute("aria-controls");
     expect(panelId, "Disclosure trigger must expose aria-controls").toBeTruthy();

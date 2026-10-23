@@ -179,9 +179,9 @@ export function totalTechnologies(): number {
  * limbs at that height were a thicket in which no single branch could be read,
  * and the drawing stopped being an argument and became texture. Eleven fit,
  * and the drawing has kept that number since the stage was retired. So nine
- * entries render as `CredentialsStrip`'s one line each — `role · organization ·
- * dateRange`, plus a repository link where the entry authored one — instead of
- * as branches.
+ * entries are not drawn as branches; like every entry, each is a row on the
+ * Record (the credentials line that carried them on the Journey moved there
+ * in round 21 phase 5).
  *
  * An earlier version of this comment said the nine carry nothing. That was
  * false, and the correction is the reason the real reason is written down here.
@@ -312,8 +312,8 @@ export function careerYearSpan(): { firstYear: number; lastYear: number; years: 
 
 /**
  * The caption the drawing puts under the one shoot that never resolves into a
- * leaf. It lived as a JSX literal in two components (`DrawnTree.tsx` and
- * `list-ink.tsx`); one source keeps them from drifting.
+ * leaf. It lived as a JSX literal in two components (`DrawnTree.tsx` and the
+ * timeline's ink, deleted in round 21 phase 5); one source keeps it.
  */
 export function stillGrowingCaption(): string {
   return `still growing · ${careerYearSpan().lastYear}`;

@@ -1,5 +1,5 @@
 /**
- * Draws the hero's and the Journey's scenery once into committed SVGs under
+ * Draws the hero's, the Journey's, Contact's and the Record's scenery once into committed SVGs under
  * public/scenery/.
  *
  * The source is the approved canvas boards' generator
@@ -451,6 +451,68 @@ function journeyFiles() {
 }
 // ---- end Journey drawings ----
 
+// ---- Record drawings ----
+// The board's NatRecordFinal: the pressed lotus taped beside the left page's
+// title, the cà phê sữa đá (day) and chè (night) on the desk, and the stamps'
+// line drawings. Ported verbatim from the generator (`pressedLotus`, `fern`,
+// `STILL.suaDa`, `STILL.che`, `stampArt`). The ring slice is not here: it is
+// computed from content (src/lib/record.ts).
+function fern(x, y, len, angDeg, seed, color, maxP = 26) {
+  const r = rng(seed), a = (angDeg * Math.PI) / 180;
+  const tip = [x + Math.cos(a) * len, y + Math.sin(a) * len];
+  const ctrl = [x + Math.cos(a) * len * 0.5 + Math.sin(a) * len * 0.18, y + Math.sin(a) * len * 0.5 - Math.cos(a) * len * 0.18];
+  let s = `<path d="M${f(x)} ${f(y)}Q${f(ctrl[0])} ${f(ctrl[1])} ${f(tip[0])} ${f(tip[1])}" stroke-width="1.3"/>`;
+  const n = 18;
+  for (let i = 1; i < n; i++) {
+    const t = i / n, u = 1 - t;
+    const px = u*u*x + 2*u*t*ctrl[0] + t*t*tip[0], py = u*u*y + 2*u*t*ctrl[1] + t*t*tip[1];
+    const dx = 2*u*(ctrl[0]-x) + 2*t*(tip[0]-ctrl[0]), dy = 2*u*(ctrl[1]-y) + 2*t*(tip[1]-ctrl[1]);
+    const base = Math.atan2(dy, dx), pl = maxP * Math.pow(Math.sin(Math.PI * (0.15 + t * 0.85)), 0.8) * (1 - t * 0.35);
+    for (const side of [-1, 1]) {
+      const pa = base + side * (0.95 + (r() - 0.5) * 0.15) - side * t * 0.2;
+      const ex = px + Math.cos(pa) * pl, ey = py + Math.sin(pa) * pl;
+      const nx = -Math.sin(pa) * pl * 0.22, ny = Math.cos(pa) * pl * 0.22;
+      const mx = (px + ex) / 2, my = (py + ey) / 2;
+      s += `<path d="M${f(px)} ${f(py)}Q${f(mx + nx)} ${f(my + ny)} ${f(ex)} ${f(ey)}Q${f(mx - nx)} ${f(my - ny)} ${f(px)} ${f(py)}"/>`;
+    }
+  }
+  return `<g fill="none" stroke="${color}" stroke-width="0.9" stroke-linejoin="round">${s}</g>`;
+}
+function pressedLotus(x, y, sc) {
+  const petal = (a, len, w) => { const r = (a * Math.PI) / 180, ex = Math.cos(r) * len, ey = Math.sin(r) * len, nx = -Math.sin(r) * w, ny = Math.cos(r) * w;
+    return `<path d="M0 0Q${f(ex / 2 + nx)} ${f(ey / 2 + ny)} ${f(ex)} ${f(ey)}Q${f(ex / 2 - nx)} ${f(ey / 2 - ny)} 0 0Z" fill="#E8A7B0" fill-opacity="0.75" stroke="#B5606F" stroke-width="0.9"/>`; };
+  let petals = "";
+  [[-150, 40, 13], [-120, 48, 14], [-90, 52, 14], [-60, 48, 14], [-30, 40, 13], [-105, 34, 10], [-75, 34, 10]].forEach(([a, l, w]) => { petals += petal(a, l, w); });
+  return `<g transform="translate(${x} ${y}) scale(${sc}) rotate(-12)">`
+    + `<path d="M0 4Q-6 60 4 120" fill="none" stroke="#5E7A4A" stroke-width="2"/>`
+    + `<path d="M2 70Q40 54 62 72Q40 92 2 78Z" fill="#9DB384" fill-opacity="0.7" stroke="#5E7A4A" stroke-width="0.9"/>`
+    + `${petals}<circle cx="0" cy="-10" r="6" fill="#E3C46A" stroke="#A88A3A" stroke-width="0.8"/></g>`;
+}
+const RECORD_STILL = {
+  suaDa: (x, y) => `<g transform="translate(${x} ${y})">`
+    + `<path d="M-11 -40h22l-2 40h-18Z" fill="#F4EFE6" fill-opacity="0.55" stroke="${INK2}" stroke-width="1"/><path d="M-10.4 -26h20.8l-1.4 26h-18Z" fill="#9A6A44"/>`
+    + `<rect x="-6" y="-24" width="7" height="7" rx="1.5" fill="#FFFFFF" fill-opacity="0.6"/><rect x="2" y="-18" width="6" height="6" rx="1.5" fill="#FFFFFF" fill-opacity="0.6"/>`
+    + `<path d="M3 -52L-1 -14" stroke="#C8352B" stroke-width="2.4" stroke-linecap="round"/></g>`,
+  che: (x, y) => `<g transform="translate(${x} ${y})">`
+    + `<path d="M-11 -44h22l-2 44h-18Z" fill="#F4EFE6" fill-opacity="0.4" stroke="#F3E3B5" stroke-width="1"/><path d="M-10.6 -12h21.2l-.6 12h-20Z" fill="#7FA36F"/><path d="M-10.8 -24h21.6l-.6 12h-20.4Z" fill="#E3C46A"/><path d="M-11 -36h22l-.4 12h-21.2Z" fill="#F3EEE2"/>`
+    + `<path d="M4 -58L-2 -20" stroke="#B9AE95" stroke-width="2.4" stroke-linecap="round"/></g>`,
+};
+function recordFiles() {
+  // The stamps' drawings are the board's `stampArt(92, 40)`; the palmetto (not
+  // on the board, which had three stamps) is the hero's, scaled into the box.
+  const W = 92, H = 40, STAMP_BOX = `0 0 ${W} ${H}`;
+  return {
+    "pressed-lotus": svg("40 10 136 170", pressedLotus(100, 80, 0.9)),
+    "record-morning": svg("134 760 36 66", RECORD_STILL.suaDa(150, 822)),
+    "record-evening": svg("134 760 36 66", RECORD_STILL.che(150, 822)),
+    "stamp-rice": svg(STAMP_BOX, rice(W / 2 - 22, H, 3, 22, 9, K, H * 0.55, H * 0.3)),
+    "stamp-pine": svg(STAMP_BOX, pine(W / 2, H, H * 0.95, K)),
+    "stamp-fern": svg(STAMP_BOX, fern(W / 2 + 8, H + 2, H * 0.95, -98, 17, K, 12)),
+    "stamp-palmetto": svg(STAMP_BOX, `<g transform="translate(12.5 0) scale(0.45)">${palmetto(75, 88, 48, K)}</g>`),
+  };
+}
+// ---- end Record drawings ----
+
 /** @returns {Record<string, string>} file stem → SVG text */
 export function drawScenery() {
   return {
@@ -472,6 +534,7 @@ export function drawScenery() {
     evening: svg("420 770 100 114", stool(470, 840, "#2E6DB4") + STILL.lau(470, 838)),
     ...contactDrawings(),
     ...journeyFiles(),
+    ...recordFiles(),
   };
 }
 
