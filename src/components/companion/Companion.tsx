@@ -3479,14 +3479,17 @@ export function Companion({ facts }: CompanionProps) {
       };
       /*
        * And where it stops: whatever placed it (a perch's trailing seat, a
-       * mate spot, a stage), a destination on a link or a button is moved to
+       * mate spot, an explorer's stop), a destination on a link, a button or a
+       * block of words is moved to
        * clear ground (round 21 review): the least nudge that clears it, else
        * the nearest clear spot. Also while the page carries them: a ride can
        * pin a cat to the edge of the window over whatever scrolls under it.
        * Not the panel's corner nor a nap spot, which are chosen around the
        * companion's own furniture.
        */
-      const controlsHere = band ? groundControls() : [];
+      // Words as well as controls: a stop's probes can leave the cat's side
+      // over the end of a line (Contact's lede at 1280); a nudge fixes it.
+      const controlsHere = band ? [...groundControls(), ...obstacles] : [];
       const offControls = (want: Point, other: Point): Point => {
         // Not a requested scene's stage nor a scene's own marks: those are
         // probed for the scene and snapped to on arrival.

@@ -473,7 +473,9 @@ export function slideOffText(
   // Already on it means well on it: a stop's probes leave a cat's feet a few
   // pixels into a line's box, and a cat leaving such a stop must still go
   // round the line, not straight across it.
-  if (!block || hits(prev, 9)) return next;
+  // And a destination that itself touches the block is arrived at straight:
+  // sliding off a block the stop touches only paces beside it, never there.
+  if (!block || hits(prev, 9) || hits(want)) return next;
   const step = Math.hypot(next.x - prev.x, next.y - prev.y);
   const reach = (from: number, to: number) => from + clamp(to - from, -step, step);
   const vertical = Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x);

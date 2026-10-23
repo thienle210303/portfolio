@@ -1088,6 +1088,10 @@ describe("slideOffText", () => {
     const wall = { left: 0, right: 196, top: 240, bottom: 300 };
     expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line, wall])).toEqual({ x: 200, y: 262 });
   });
+  it("walks straight to a stop that itself touches the words", () => {
+    // The stop's feet 4px into the line: arrive, do not pace beside it.
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 258 }, { x: 200, y: 262 }, [line])).toEqual({ x: 200, y: 258 });
+  });
   it("lets a cat already on words walk off them", () => {
     expect(slideOffText({ x: 200, y: 300 }, { x: 200, y: 296 }, { x: 200, y: 0 }, [line])).toEqual({ x: 200, y: 296 });
   });
