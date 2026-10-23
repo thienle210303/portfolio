@@ -1936,6 +1936,21 @@ JS at load −2 B against the same main; the idle companion chunk +1,715 B gzip 
 
 **Remaining.** The text routing is greedy (two corners at most, up to 4× the straight walk, inside the cats' band): a block of words as wide as the window is still crossed, by design rather than leave a cat stuck. Mini-Thien's spot is not checked against text (he stood on "Taylors, SC" in one 1280 night screen). The parked pair's peek shows Mi's tail, not a face.
 
+### R21-P7 review fixes (2026-10-22/23)
+
+Review: a cat stood on "Book a call with me" at 1366 (1366-day-walk.png); cats rested on the Record's cards, rows and stamps at 414 and 1280; the merge of main `ba45717` (the Record) and its tour stop. Fixes, all in `src/components/companion/`:
+
+- **Never covering a control.** A cat whose walk crosses a link, a button or one of the Record's list items passes *under* it: the part of the cat over it is cut away by an even-odd clip (`passUnder`, `data-cat-under`), measured live each frame. A destination on one (a perch's trailing seat, a mate spot, an explorer's stop, a cat a scroll left at the window's edge) is nudged to clear ground (`offControls`), the explorer's stop moving with it. Where a phone's window holds no clear ground at all, a cat rests behind the row with only the part beside it showing. Mini-Thien's spot now prefers a clear head band (he had stood on "Taylors, SC").
+- **Walks round words.** `routeAround` and `slideOffText` now follow a block's edge towards the end on the destination's side, keep that choice per destination, stay inside the cats' band, arrive straight at a stop that touches the block, and give up sliding after 2.5 s without progress. Each of those fixed a cat pacing on the spot (the nap and reading specs caught two of them).
+- **Sheets fetched once.** `<use href="/cats/moon.svg#walk-3">` re-requested the file on every frame change (138 requests in 8 s; a phone page never reached network idle). Each sheet is now fetched once and each frame's symbol put on the page the first time it is drawn; the generator also joins consecutive stroke-only paths (Mi's sheet 735 -> 521 elements).
+- **Merge.** The Record's tour stop and scene merged cleanly and play on the sprites; the stale `list-ink.tsx` comment is gone.
+
+**e2e added:** at 1366 and 390 a screen at a time down the whole page, and over `#record` at 414 and 1280 with its list items, no cat walks over a control without passing under it or stays on one for about a second (checked to fail with `passUnder` off); the sheet test asserts one request per sheet.
+
+**Size** (`pnpm perf`, production builds, 0 skipped, 3 runs, bytes identical): main `ba45717` JS 195,027 B, JS at load 168,400 B, companion chunk 26,418 B gz, 2,734 DOM nodes; this branch at `0c09d17` JS 198,194 B, **JS at load 168,396 B (-4 B)**, companion chunk 29,606 B gz (+3.2 KB, idle-loaded), 2,741 DOM nodes, CLS 0. Sheets 4.0 / 4.8 / 1.8 KB gz (Moon / Mi / police), fetched with the chunk.
+
+**Verification** at `0c09d17`: `pnpm verify` 5/5 (932 unit tests, 60 files; contrast 62 pairings, lowest 4.52:1). Full e2e on a fresh production build, `--workers=2`: 821 passed, 1327 skipped, 0 failed (18.9 min).
+
 ## Round 21 phase 5 — the Record (2026-10-23)
 
 The notebook board (`design/round-21-outdoors/v1/boards/NatRecordFinal*.dc.html`), built on `round-21/record` from `df1472b`. Plan: [2026-10-21-round-21-phase-5-record.md](superpowers/plans/2026-10-21-round-21-phase-5-record.md).
