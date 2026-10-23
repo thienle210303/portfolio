@@ -55,9 +55,10 @@ export default function Scenery() {
       {/* The sun/moon is drawn at (880, 120) of the sky's 1440 width. Centred,
           that lands on the headline below 1024, so there the sky is pinned to
           the right instead: the disc sits 40px in from the right edge, 40px
-          down, clear of the text column. */}
+          down, clear of the text column. Under 360 "curious" runs under it, so
+          there it drops beside the headline's shorter lines. */}
       <span
-        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:1440px_auto] max-lg:bg-[position:right_-520px_top_-80px]"
+        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:1440px_auto] max-lg:bg-[position:right_-520px_top_-80px] max-[359px]:bg-[position:right_-540px_top_-10px]"
         style={{ "--art": "var(--art-sky)" } as CSSProperties}
       />
 

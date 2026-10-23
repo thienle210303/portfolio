@@ -20,7 +20,8 @@ export default function FieldTag() {
             <div key={r.label} className="contents">
               <dt className="text-fg-muted">{r.label}</dt>
               <dd className={r.face === "sans" ? "font-sans" : undefined}>
-                {r.value}
+                {/* Bind the last two words so a narrow tag never strands one. */}
+                {r.value.replace(/ (\S+)$/, "\u00a0$1")}
                 {r.star && (
                   <svg aria-hidden="true" viewBox="-1 -1 2 2" className="ml-1 inline-block size-2.5" fill="var(--gold)">
                     <path d="M0 -1L0.29 -0.4L0.95 -0.31L0.47 0.15L0.59 0.81L0 0.5L-0.59 0.81L-0.47 0.15L-0.95 -0.31L-0.29 -0.4Z" />
@@ -40,7 +41,7 @@ export default function FieldTag() {
             <LinkedInQr className="size-[72px] text-fg" />
             <span className="text-fg-muted">{t.linkLabel}</span>
           </ExternalLink>
-          <p className="mb-2 -rotate-6 border-[2.5px] border-[color:var(--mark)] px-2.5 py-1 text-[15px] font-bold uppercase tracking-[0.04em] text-[color:var(--mark)]">
+          <p className="mb-2 -rotate-6 border-[2.5px] border-[color:var(--mark)] px-2.5 py-1 text-[15px] [text-wrap:balance] font-bold uppercase tracking-[0.04em] text-[color:var(--mark)]">
             {t.motto}
           </p>
         </div>

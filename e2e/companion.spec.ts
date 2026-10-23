@@ -4026,18 +4026,20 @@ test.describe("cats (round 21)", () => {
    */
   const PRESSABLE = "a[href], button, input:not([type='hidden']), textarea, select";
   for (const size of [
-    { width: 1366, height: 768, selector: PRESSABLE, record: false },
-    { width: 390, height: 844, selector: PRESSABLE, record: false },
+    { width: 1366, height: 768, selector: PRESSABLE, record: false, night: false },
+    { width: 390, height: 844, selector: PRESSABLE, record: false, night: false },
+    // Night: the lẩu and the moon move words, and the cats' corners with them.
+    { width: 390, height: 844, selector: PRESSABLE, record: false, night: true },
     // The Record's cards, rows and stamps (list items) as well, where the
     // review saw cats resting on them.
-    { width: 414, height: 896, selector: `${PRESSABLE}, #record li`, record: true },
-    { width: 1280, height: 800, selector: `${PRESSABLE}, #record li`, record: true },
+    { width: 414, height: 896, selector: `${PRESSABLE}, #record li`, record: true, night: false },
+    { width: 1280, height: 800, selector: `${PRESSABLE}, #record li`, record: true, night: false },
   ]) {
     const what = size.record ? "the Record's cards, rows or stamps" : "a link or a button";
-    test(`a cat never covers ${what}, walking or stopped, at ${size.width}`, async ({ browser }) => {
+    test(`a cat never covers ${what}, walking or stopped, at ${size.width}${size.night ? " at night" : ""}`, async ({ browser }) => {
       test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
       test.setTimeout(600_000);
-      const context = await browser.newContext({ viewport: size });
+      const context = await browser.newContext({ viewport: size, colorScheme: size.night ? "dark" : "light" });
       const page = await context.newPage();
       await page.goto("/");
       // "load", not "networkidle": a phone-width page can keep a request open.
