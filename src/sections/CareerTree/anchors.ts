@@ -1,5 +1,5 @@
 /**
- * Every id the Journey owns that is not its own section id, and that something
+ * Every id the Journey and the Record own that is not a section id, and that something
  * outside this directory might name: the per-entry fragments, the retired
  * section ids, and the case-study ids at the bottom of the file. They live here,
  * next to the section that renders them, because a jump link that disagrees with
@@ -12,17 +12,18 @@
  *
  * ## State of the guarantee
  *
- * A drawn entry's fragment is its timeline row (`./KnowledgeTreeList.tsx`); a
- * demoted entry's is its line on the credentials strip
- * (`./CredentialsStrip.tsx`). Between them every career entry has exactly one
- * element. (Round 18's pinned stage carried them as zero-size spans inside its
- * acts; round 20 retired the stage and put them back on real content.)
+ * Every entry's fragment is its row on the Record's year list
+ * (`src/sections/Record/RecordYears.tsx`), one element per career entry, the
+ * demoted nine included (round 21 phase 5 moved the rows there from the
+ * Journey's timeline and its credentials line). Round 18's pinned stage carried
+ * them as zero-size spans inside its acts; round 20 put them back on real
+ * content.
  *
  * Both halves of that are asserted, because neither is worth much alone:
- * `tests/sections/CareerTree.test.tsx` requires an element for every
+ * `tests/sections/Record.test.tsx` requires an element for every
  * `careerEntries` entry after rendering the section, and
  * `e2e/legacy-anchors.spec.ts` requires the ids to be in the server-rendered
- * HTML and to land a real browser on the Journey with JavaScript disabled —
+ * HTML and to land a real browser on the Record with JavaScript disabled —
  * which is the case a jsdom test cannot reach.
  *
  * They exist first for links the site does not control: old bookmarks, a
@@ -56,7 +57,16 @@
  * `e2e/legacy-anchors.spec.ts` keep their own copies on purpose, so removing an
  * id from here fails them rather than silently narrowing what is checked.
  */
-export const LEGACY_SECTION_IDS = ["journey", "work", "skills", "workshop"] as const;
+export const LEGACY_SECTION_IDS = ["journey", "skills", "workshop"] as const;
+
+/**
+ * Retired section ids the Record answers (round 21 phase 5). `#work` named
+ * Selected Work, the case studies; they render inside the Record's rows now,
+ * so the id went with them. `#journey`, `#skills` and `#workshop` stay on the
+ * Journey: the section of that name, and the nearest honest answer for the two
+ * that have no successor. Same contract as `LEGACY_SECTION_IDS`.
+ */
+export const RECORD_LEGACY_SECTION_IDS = ["work"] as const;
 
 /** Anchor id for one career entry's fragment; see the note above for which
  *  element carries it and what is asserted about that. */
@@ -71,9 +81,9 @@ export function journeyEntryAnchorId(entryId: string): string {
 /*
  * The two identifiers a case-study article and anything linking at it have to
  * agree on. They moved here from `SelectedWork/anchors.ts` in round 18 along
- * with `CaseStudy.tsx` itself, because the case studies now render inside the
- * Journey; the section they used to live in, and its `anchors.ts`,
- * are deleted.
+ * with `CaseStudy.tsx` itself, and the case studies render inside the
+ * Record's rows since round 21 phase 5; the section they used to live in,
+ * and its `anchors.ts`, are deleted.
  *
  * Derived from `project.id`, never authored: a project added to or removed
  * from `projects` renumbers everything without anyone editing a list.

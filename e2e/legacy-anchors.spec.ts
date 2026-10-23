@@ -4,6 +4,7 @@ import {
   caseStudyAnchorId,
   journeyEntryAnchorId,
   LEGACY_SECTION_IDS,
+  RECORD_LEGACY_SECTION_IDS,
 } from "../src/sections/CareerTree/anchors";
 import { ABOUT_LEGACY_SECTION_IDS } from "../src/sections/Hero/anchors";
 
@@ -83,6 +84,7 @@ const RESTING_TOLERANCE = 2;
 /** Every fragment this spec is responsible for. */
 const ALL_LEGACY_IDS = [
   ...LEGACY_SECTION_IDS,
+  ...RECORD_LEGACY_SECTION_IDS,
   ...ABOUT_LEGACY_SECTION_IDS,
   ...careerEntries.map((entry) => journeyEntryAnchorId(entry.id)),
   // Round 18's brief names these alongside the rest. The id is `work-<projectId>`
@@ -153,6 +155,7 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(projects.length, "no projects, so no case-study fragment was checked").toBeGreaterThan(0);
     expect(ALL_LEGACY_IDS.length).toBe(
       LEGACY_SECTION_IDS.length +
+        RECORD_LEGACY_SECTION_IDS.length +
         ABOUT_LEGACY_SECTION_IDS.length +
         careerEntries.length +
         projects.length,
@@ -190,7 +193,9 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(await scrollY(page), "a dead fragment scrolled the page").toBe(0);
   });
 
-  test("every retired section id lands a scriptless browser on the Journey, at the header offset", async ({
+  // Round 21 phase 5: `#journey`, `#skills` and `#workshop` land on the
+  // Journey; `#work` lands on the Record, where the case studies went.
+  test("every retired section id lands a scriptless browser on its section, at the header offset", async ({
     page,
   }) => {
     // Four fresh page loads in one test, each followed by a stability poll,
@@ -203,8 +208,12 @@ test.describe("retired URLs, with JavaScript disabled", () => {
       "no retired section ids, so no landing was checked",
     ).toBeGreaterThan(0);
 
+    const landings = [
+      ...LEGACY_SECTION_IDS.map((id) => [id, "tree"] as const),
+      ...RECORD_LEGACY_SECTION_IDS.map((id) => [id, "record"] as const),
+    ];
     let checked = 0;
-    for (const id of LEGACY_SECTION_IDS) {
+    for (const [id, section] of landings) {
       // A fresh document per id: going from `/#journey` straight to `/#work`
       // would be a same-document hop between two co-located spans, which
       // could look like a landing without the second one doing anything.
@@ -219,13 +228,12 @@ test.describe("retired URLs, with JavaScript disabled", () => {
       expect.soft(top, message).toBeGreaterThanOrEqual(RESTING_TOP - RESTING_TOLERANCE);
       expect.soft(top, message).toBeLessThanOrEqual(RESTING_TOP + RESTING_TOLERANCE);
       // And the section really is what the reader is now looking at.
-      await expect.soft(page.locator("#tree"), `/#${id} left the Journey off screen`).toBeInViewport();
+      await expect.soft(page.locator(`#${section} #${id}`), `/#${id} is not inside #${section}`).toHaveCount(1);
+      await expect.soft(page.locator(`#${section}`), `/#${id} left #${section} off screen`).toBeInViewport();
       expect.soft(await scrollY(page), `/#${id} did not scroll at all`).toBeGreaterThan(0);
       checked += 1;
     }
-    expect(checked, "the loop ended before every retired section id was landed on").toBe(
-      LEGACY_SECTION_IDS.length,
-    );
+    expect(checked, "the loop ended before every retired section id was landed on").toBe(landings.length);
   });
 
   test("#worlds lands a scriptless browser on About", async ({ page }) => {
@@ -245,7 +253,7 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(await scrollY(page), "#worlds scrolled away from About").toBeLessThan(RESTING_TOP);
   });
 
-  test("per-entry fragments land on their own timeline row, each at a different place in the document", async ({
+  test("per-entry fragments land on their own Record row, each at a different place in the document", async ({
     page,
   }) => {
     // Three drawn entries, oldest first. One would prove the mechanism; three
@@ -280,17 +288,17 @@ test.describe("retired URLs, with JavaScript disabled", () => {
       offsets.push(await scrollY(page));
     }
 
-    // Strictly increasing: the rows are chronological down the page, so an
-    // older entry's fragment must land above a newer one's. Equal offsets would
-    // mean two fragments resolved to the same element.
+    // Strictly decreasing: the Record lists the newest year first, so an older
+    // entry's fragment must land below a newer one's. Equal offsets would mean
+    // two fragments resolved to the same element.
     expect(
       offsets,
-      `the three fragments landed at ${offsets.join(", ")} — they must be three distinct places, oldest highest`,
-    ).toEqual([...offsets].toSorted((a, b) => a - b));
+      `the three fragments landed at ${offsets.join(", ")} — they must be three distinct places, newest highest`,
+    ).toEqual([...offsets].toSorted((a, b) => b - a));
     expect(new Set(offsets).size, "two fragments landed in the same place").toBe(probes.length);
   });
 
-  test("a demoted entry's fragment lands on its credentials line", async ({ page }) => {
+  test("an entry the drawing leaves out lands on its Record row too", async ({ page }) => {
     const entry = "deans-list";
     expect(
       careerEntries.some((candidate) => candidate.id === entry),
@@ -300,7 +308,7 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     await page.goto(`/#${fragment}`);
     const line = page.locator(`#${fragment}`);
     await expect(line).toHaveCount(1);
-    await expect(page.locator(`[data-credentials-strip] #${fragment}`)).toHaveCount(1);
+    await expect(page.locator(`#record #${fragment}[data-tree-branch="${entry}"]`)).toHaveCount(1);
     expectSettledAtRestingTop(
       await restingTop(line),
       `/#${fragment} must settle at the ${RESTING_TOP}px scroll margin`,

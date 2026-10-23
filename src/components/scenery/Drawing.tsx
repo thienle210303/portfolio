@@ -19,6 +19,11 @@ export const INK_DRAWINGS = [
   "journey-rice",
   // Contact
   "postmark",
+  // Record
+  "stamp-rice",
+  "stamp-pine",
+  "stamp-fern",
+  "stamp-palmetto",
 ] as const;
 export type InkDrawing = (typeof INK_DRAWINGS)[number];
 
@@ -34,6 +39,8 @@ export const ART_DRAWINGS = [
   "bia",
   "banh-tet",
   "paper-clip",
+  // Record
+  "pressed-lotus",
 ] as const;
 export type ArtDrawing = (typeof ART_DRAWINGS)[number];
 

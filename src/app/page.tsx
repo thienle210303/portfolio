@@ -1,5 +1,6 @@
 import Hero from "@/sections/Hero/Hero";
 import CareerTree from "@/sections/CareerTree/CareerTree";
+import Record from "@/sections/Record/Record";
 import Contact from "@/sections/Contact/Contact";
 import { askLiveModeConfigured } from "@/lib/ask-live-config";
 import { validBookingUrl } from "@/lib/booking";
@@ -27,17 +28,18 @@ export default function Home() {
   return (
     <>
       {/*
-        Three sections, in the order a visitor needs them: who he is, where he
-        has been, how to reach him. A Record section is planned between the Journey and
-        Contact.
+        Four sections, in the order a visitor needs them: who I am, where I
+        have been, everything I have done, how to reach me. The Record (round
+        21 phase 5) holds the full history: every entry by year, with the rows
+        and case studies that used to close the Journey.
 
         Worlds (the globe) left the page in round 21; `#worlds` still lands on
         About (src/sections/Hero/anchors.ts).
 
         Round 18 took the page from six sections to four. Selected Work and
         Skills are gone because nothing needs them any more: the case studies
-        render inside the branches of the roles that produced them, in the
-        Journey.
+        render inside the rows of the roles that produced them, on the
+        Record.
         Skills as a section is gone, not the skills — `skillCategories` is
         still content, still rendered by /resume and still in the answer
         corpus.
@@ -46,15 +48,16 @@ export default function Home() {
         telling of this same page. The résumé lives at /resume as a view to
         read or download, which is what a résumé is.
 
-        The Journey (`#tree`) follows About and precedes Contact: it is the
-        chronology the rest of the page's claims hang from, and the last thing
-        to read before being asked to get in touch.
+        The Journey (`#tree`) follows About: the work as it grew. The Record
+        (`#record`) follows it with the whole history, and is the last thing to
+        read before being asked to get in touch.
 
         `navItems` in src/content/portfolio.ts must stay in this order: the nav
         doubles as the page's table of contents.
       */}
       <Hero bookingUrl={bookingUrl} />
       <CareerTree />
+      <Record />
       <Contact
         emailDeliveryConfigured={emailDeliveryConfigured}
         askLiveModeConfigured={liveModeConfigured}

@@ -283,6 +283,21 @@ export interface CareerEntry {
   readonly recording?: string;
   /** Same contract as `Project.recordingDescription`: required when `recording` is set. */
   readonly recordingDescription?: string;
+  /** One of the five pressed on the Record's left page. An editorial call,
+   *  never computed (spec §5); `tests/lib/record.test.ts` holds it to five. */
+  readonly featured?: true;
+  /** The award's own image, opened from the entry's Record row. */
+  readonly award?: RecordImage;
+}
+
+/** A certificate or award image under `public/media/certificates/`, shown in a
+ *  dialog only when asked for. `width`/`height` are the file's own. */
+export interface RecordImage {
+  readonly src: `/media/certificates/${string}.jpg`;
+  readonly width: number;
+  readonly height: number;
+  /** What the image visibly says. */
+  readonly alt: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -311,7 +326,17 @@ export interface Certification {
   readonly id: string;
   readonly name: string;
   readonly issuer: string;
+  /** The platform it was issued through, when not the issuer itself. */
+  readonly via?: string;
   readonly date: Maybe<string>;
+  /** A postage stamp on the Record. Only a certificate with an image has one. */
+  readonly stamp?: {
+    /** The issuer's short name, set large on the stamp. */
+    readonly short: string;
+    /** A line drawing from `public/scenery/` (`stamp-<drawing>.svg`). */
+    readonly drawing: "pine" | "fern" | "rice" | "palmetto";
+    readonly image: RecordImage;
+  };
 }
 
 export interface Achievement {
@@ -351,6 +376,14 @@ export interface Highlight {
   readonly measure?: string;
   readonly year?: string;
   readonly projectId?: string;
+}
+
+/** The Record's authored lines (`record` in the content layer). Not indexed. */
+export interface RecordCopy {
+  readonly pressed: { readonly heading: string; readonly lead: string; readonly slice: string };
+  readonly byYear: { readonly heading: string; readonly empty: string };
+  readonly certificates: string;
+  readonly vignette: { readonly morning: string; readonly evening: string };
 }
 
 /** The Journey's authored lines (`journey` in the content layer). Not indexed. */

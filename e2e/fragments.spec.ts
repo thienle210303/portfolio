@@ -43,7 +43,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 async function expandAllDisclosures(page: Page): Promise<void> {
   // Hydrated, so a click on a trigger is handled rather than lost.
-  await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
+  await expect(page.locator("#record [data-timeline]")).toHaveAttribute("data-live", "");
   await page.addStyleTag({
     content:
       '[data-timeline] [role="region"] { grid-template-rows: 1fr !important; } ' +
@@ -53,7 +53,7 @@ async function expandAllDisclosures(page: Page): Promise<void> {
     // The hero's chapter tags are one-open too; their backs (and the links on
     // them) are in the document whether turned or not, so they are skipped.
     const isRow = (el: HTMLElement) =>
-      el.id.startsWith("tree-list-branch-") || (el.id.endsWith("-front") && !!el.closest("#about"));
+      el.id.startsWith("record-row-") || (el.id.endsWith("-front") && !!el.closest("#about"));
     const isVisible = (el: HTMLElement) => el.offsetParent !== null && !isRow(el);
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
     for (let guard = 0; guard < 200; guard += 1) {

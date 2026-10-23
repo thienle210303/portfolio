@@ -33,8 +33,8 @@ const items = (page: Page) => page.locator("[data-hanging-tags] li");
 const tagLinks = (page: Page) => page.locator("[data-hanging-tags] a");
 const watch = (page: Page) => page.locator("#tree").getByRole("button", { name: journey.watch });
 const lantern = (page: Page) => page.locator('#tree [data-scenery="journey"] span[style*="--art-lantern"]');
-const rowTrigger = (page: Page, id: string) => page.locator(`#tree #tree-list-branch-${id}-trigger`);
-const row = (page: Page, id: string) => page.locator(`#tree #journey-entry-${id}`);
+const rowTrigger = (page: Page, id: string) => page.locator(`#record #record-row-${id}-trigger`);
+const row = (page: Page, id: string) => page.locator(`#record #journey-entry-${id}`);
 
 type Box = { x: number; y: number; width: number; height: number };
 const boxes = (l: Locator) =>

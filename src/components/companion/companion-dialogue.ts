@@ -180,6 +180,11 @@ const TOUR: Record<string, SceneBuilder> = {
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} were work.`, "paw", "groom"),
     tabby("Mrrrow!", "Napped through it. Counts!", "zzz", "sleep"),
   ],
+  // Round 21 phase 5: the Record joined the nav, so the tour stops there.
+  record: () => [
+    grey("Mrp.", "Every year, pressed flat.", "paw"),
+    tabby("Meow!", "Stamps! Don't lick them.", "heart", "hop"),
+  ],
   contact: () => [
     tabby("Mrrrow-meow-meow!", "Say hi! Leave a note!", "mail", "hop"),
     grey("Mrp.", "Or just email. Fish welcome.", "fish", "eat"),

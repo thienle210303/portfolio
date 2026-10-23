@@ -6,7 +6,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import ProjectRecording, { RecordingVideo } from "@/sections/CareerTree/ProjectRecording";
 import CaseStudy from "@/sections/CareerTree/CaseStudy";
 import { Button } from "@/components/ui/Button";
-import CredentialsStrip from "@/sections/CareerTree/CredentialsStrip";
+import RecordYears from "@/sections/Record/RecordYears";
 import { careerEntries, projects } from "@/content/portfolio";
 
 const DESCRIPTION = "A desktop chess window: pieces move one turn at a time.";
@@ -187,7 +187,7 @@ describe("a recording inside its case study", () => {
   );
 });
 
-describe("a recording on a credentials line", () => {
+describe("a recording on a Record row", () => {
   const recordedEntries = careerEntries.filter((entry) => "recording" in entry && entry.recording);
 
   it("covers every career entry that ships a recording", () => {
@@ -197,18 +197,19 @@ describe("a recording on a credentials line", () => {
     ]);
   });
 
-  it("puts a press-to-mount button and its caption under each such line", () => {
+  it("puts a press-to-mount button and its caption in each such row", () => {
     stubReducedMotion(false);
-    const { container } = render(<CredentialsStrip />);
+    const { container } = render(<RecordYears />);
     expect(container.querySelector("video")).toBeNull();
     expect(container.innerHTML).not.toContain("/media/");
     for (const entry of recordedEntries) {
       const description = "recordingDescription" in entry ? (entry.recordingDescription ?? "") : "";
       const button = screen.getByRole("button", { name: `Play the screen recording of ${entry.role}` });
-      expect(button.closest("li")?.textContent).toContain(entry.role);
+      const row = button.closest("[data-tree-branch]");
+      expect(row?.getAttribute("data-tree-branch")).toBe(entry.id);
       expect(screen.getByText(description).id).toBe(`${entry.id}-recording`);
       fireEvent.click(button);
-      expect(container.querySelector("video")).toHaveAccessibleDescription(description);
+      expect(row?.querySelector("video")).toHaveAccessibleDescription(description);
     }
   });
 });

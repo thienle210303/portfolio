@@ -1935,3 +1935,40 @@ JS at load −2 B against the same main; the idle companion chunk +1,715 B gzip 
 **Verification.** `pnpm verify` 5/5 (909 unit tests, 58 files; contrast 62 pairings, lowest 4.52:1). Full e2e against a fresh production build of `52390bd` on `:3220`, `--workers=2`: 803 passed, 1207 skipped, 0 failed (39.3 min). Two companion specs were made independent of where the new watch leaves the pair (`queueARequest` waits for the lead to stop; the pointer that ends an unprompted scene moves towards the window's middle).
 
 **Remaining.** The text routing is greedy (two corners at most, up to 4× the straight walk, inside the cats' band): a block of words as wide as the window is still crossed, by design rather than leave a cat stuck. Mini-Thien's spot is not checked against text (he stood on "Taylors, SC" in one 1280 night screen). The parked pair's peek shows Mi's tail, not a face.
+
+## Round 21 phase 5 — the Record (2026-10-23)
+
+The notebook board (`design/round-21-outdoors/v1/boards/NatRecordFinal*.dc.html`), built on `round-21/record` from `df1472b`. Plan: [2026-10-21-round-21-phase-5-record.md](superpowers/plans/2026-10-21-round-21-phase-5-record.md).
+
+**Perf row** (`pnpm perf`, production builds, 0 skipped responses, three runs each, bytes identical within each build). Baseline: `df1472b` built in this worktree before any change, on `:3230`. After: this branch on `:3232`.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`df1472b`) | 193,799 B | 167,236 B | 19,602 B | 102,620 B | 0 / 0 / 0 | 2293 |
+| After | 195,027 B | 168,400 B | 21,018 B | 117,868 B | 0.0218 in 4 of 6 runs | 2734 |
+
+- **JS at load +1,164 B**: `RecordFilters.tsx` (the filters, the hidden-target reset, the invoker fallback) and `DialogImage.tsx`. The first build imported `getImageProps` from `next/image` in a server component, which put `next/image`'s client code in the initial JS (**+5,863 B**, measured, chunk compared against the baseline build); the image now mounts through a lazy client import on a dialog's first open, so `next/image` and the certificate load together on the press.
+- **Fonts +15,248 B**: Newsreader italic's `latin-ext` file, pulled by the "đ" in "cà phê sữa đá, while I write" (spec copy). The Journey's "trà đá" already pulled it at night; now it loads by day too.
+- **CLS 0.0218** is the hero, not the Record: the same shift (the bamboo pole and the hero's words, 39px down at ~5 s) reproduces on the `df1472b` build under perf's throttling (`reports/cls.mjs`, untracked); the baseline's three recorded runs happened to miss it.
+- **DOM +441**: per section at 1440x900, `#tree` 1830 -> 492, `#record` 1736 (the rows of all 20 entries with their case studies, the slice, six dialogs), header 40, `#about` 146, `#contact` 119.
+- **Scenery**: seven new files, 14,603 B raw, 4,329 B gzip (`stamp-rice` 6,067 / 1,329; `stamp-pine` 2,589 / 742; `stamp-fern` 2,183 / 755; `stamp-palmetto` 1,540 / 517; `pressed-lotus` 1,247 / 394; `record-morning` 521 / 305; `record-evening` 456 / 287). Certificate and award images: six files, 528,159 B, none over 140 KB, none fetched before a press (e2e).
+
+**Contrast.** 62 pairings, lowest 4.52:1, unchanged: the wood, bark and kind marks carry no text (the kind is said in muted ink beside its mark).
+
+**Retrieval eval**, printed: recall@1 70.0%, recall@3 93.3%, recall@5 96.7%, MRR@10 0.807, unchanged. Career-entry, case-study and degree documents cite `#record` now (`sectionId` is not on the search surface); the Record's own words and the certificates are not indexed.
+
+**Decisions beyond the spec:**
+- **No AT&T stamp** (owner instruction, 2026-10-21): the existing `att` certification is untouched and stays on `/resume`; the spec's "AT&T renders as a stamp with no dialog" is superseded.
+- **Every entry is a Record row.** The Journey's timeline, its credentials line and its unbranched case studies are gone; the nine entries the drawing leaves out are rows like the rest, so their case studies, links and recordings open there.
+- **`#work` lands on the Record** (the case studies are there); `#journey`, `#skills`, `#workshop` stay on the Journey.
+- **Rows open to** the headline, impact (or `context` when an entry has none), technologies, type and dates, link, recording, award and case studies. "Ran alongside" stays on the drawing only.
+- **Kind marks have shapes** (work a circle, study a square, milestone a diamond), so the kind never rests on colour; colours are their own `--kind-*` aliases (moss-deep, a new river teal, the red). Year labels are ink, not the board's red: red stays the single mark.
+- **Card labels say the entry's type** ("Milestone"), not the board's "Award", which no field records.
+- **The dialog needs no script**: invoker commands (`commandfor`/`command`), native Escape and focus return, `closedby="any"`; a click fallback for browsers without invokers rides in `RecordFilters.tsx`.
+- **Layout**: the spread from 1280 (up to 1300px wide, as the board); stacked below. The left page's frame is the board's coordinates from 528px of page width (container query); on phones the slice is centred, the cards two to a row without strings, years over rows.
+- Disclosure gained `dense` (32px rows from 1024; 44px below).
+- The companion tour visits the Record (one line in `companion-tour.ts`, one scene in `companion-dialogue.ts`): `navItems` grew, and the tour derives from it.
+
+**Verification.** `pnpm verify` 5/5 (894 unit tests, 58 files). Full e2e against a fresh production build on `:3232`, `--workers=2`: 806 passed, 1282 skipped, 0 failed (21.8 min). The run before it failed 22, all from this phase and fixed before the clean run: specs that still read the Journey's timeline (scale, print, reveal), the tour's stop count (three to four), and one companion nap test that passed on its isolated retry and in the clean run.
+
+**Screens** (`reports/r21-p5-screens/`, untracked): `#record` at 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night, viewport-tall captures.
