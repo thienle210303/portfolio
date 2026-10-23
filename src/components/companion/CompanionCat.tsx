@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 import styles from "./companion.module.css";
 
@@ -16,8 +16,8 @@ import styles from "./companion.module.css";
  * and `data-paper` (`syncTone`) like every other drawing, and a pose change is
  * one attribute instead of a re-built tree of paths.
  *
- * Each sheet is fetched once and its symbols put on the page (`useSheet`),
- * renamed `cat-<sheet>-<id>`. Pointing `<use>` at the file itself
+ * Each sheet is fetched once (`useSheet`) and each frame's symbol put on the
+ * page the first time it is drawn (`ensureSymbols`), renamed `cat-<sheet>-<id>`. Pointing `<use>` at the file itself
  * (`/cats/moon.svg#walk-3`) re-requested it on every frame change — 138
  * requests in eight seconds of walking, with the files served `max-age=0`.
  *
@@ -91,33 +91,24 @@ const SHEET: Record<CatVariant, "moon" | "mi" | "police"> = {
 
 /* ------------------------------------------------------------ the sheets -- */
 
-const loaded = new Set<string>();
+/** Each fetched sheet's symbols, by id, as markup not yet on the page. */
+const sheets = new Map<string, Map<string, string>>();
 const loading = new Map<string, Promise<void>>();
 const sheetWatchers = new Set<() => void>();
 
-/** Fetches `/cats/<name>.svg` once and puts its symbols, renamed
- *  `cat-<name>-<id>`, in one hidden `<svg>` on the page. */
+/** Fetches `/cats/<name>.svg` once and keeps its symbols, renamed
+ *  `cat-<name>-<id>`, ready to put on the page one at a time (`ensureSymbols`). */
 function loadSheet(name: string): Promise<void> {
   const pending = loading.get(name);
   if (pending) return pending;
   const job = fetch(`/cats/${name}.svg`)
     .then((response) => (response.ok ? response.text() : Promise.reject(new Error(String(response.status)))))
     .then((text) => {
-      const symbols = (text.match(/<symbol[\s\S]*<\/symbol>/)?.[0] ?? "")
-        .replace(/ id="/g, ` id="cat-${name}-`)
-        .replace(/href="#/g, `href="#cat-${name}-`);
-      let host = document.getElementById("cat-sheets");
-      if (!host) {
-        host = document.createElementNS("http://www.w3.org/2000/svg", "svg") as unknown as HTMLElement;
-        host.id = "cat-sheets";
-        host.setAttribute("aria-hidden", "true");
-        host.setAttribute("width", "0");
-        host.setAttribute("height", "0");
-        host.setAttribute("style", "position:absolute;overflow:hidden");
-        document.body.append(host);
+      const symbols = new Map<string, string>();
+      for (const [markup, id] of text.matchAll(/<symbol id="([^"]+)"[\s\S]*?<\/symbol>/g)) {
+        symbols.set(id, markup.replace(/ id="/, ` id="cat-${name}-`));
       }
-      host.insertAdjacentHTML("beforeend", symbols);
-      loaded.add(name);
+      sheets.set(name, symbols);
       for (const watcher of sheetWatchers) watcher();
     })
     .catch(() => {
@@ -129,15 +120,41 @@ function loadSheet(name: string): Promise<void> {
   return job;
 }
 
-/** Whether `name`'s symbols are on the page, loading them if not. */
+/**
+ * Puts the named symbols on the page, once each, in one hidden `<svg>`. Only
+ * the frames a visit actually draws go into the DOM: the whole of Moon's and
+ * Mi's sheets is about a thousand elements, most of them never drawn.
+ */
+function ensureSymbols(name: string, ids: readonly (string | null)[]): void {
+  const symbols = sheets.get(name);
+  if (!symbols) return;
+  let host = document.getElementById("cat-sheets");
+  for (const id of ids) {
+    if (!id || document.getElementById(`cat-${name}-${id}`)) continue;
+    const markup = symbols.get(id);
+    if (!markup) continue;
+    if (!host) {
+      host = document.createElementNS("http://www.w3.org/2000/svg", "svg") as unknown as HTMLElement;
+      host.id = "cat-sheets";
+      host.setAttribute("aria-hidden", "true");
+      host.setAttribute("width", "0");
+      host.setAttribute("height", "0");
+      host.setAttribute("style", "position:absolute;overflow:hidden");
+      document.body.append(host);
+    }
+    host.insertAdjacentHTML("beforeend", markup);
+  }
+}
+
+/** Whether `name`'s sheet has been fetched, fetching it if not. */
 function useSheet(name: string): boolean {
   return useSyncExternalStore(
     (notify) => {
       sheetWatchers.add(notify);
-      if (!loaded.has(name)) void loadSheet(name);
+      if (!sheets.has(name)) void loadSheet(name);
       return () => sheetWatchers.delete(notify);
     },
-    () => loaded.has(name),
+    () => sheets.has(name),
     () => false,
   );
 }
@@ -341,6 +358,10 @@ export function CompanionCat({
   const frame = variant === "police" && !drawn.id.startsWith("walk") ? { id: "look-4", tail: "tail" as const } : drawn;
   const sheet = SHEET[variant];
   const ready = useSheet(sheet);
+  // Before paint, so a frame's symbol is on the page when its <use> is drawn.
+  useLayoutEffect(() => {
+    if (ready) ensureSymbols(sheet, [frame.id, frame.tail]);
+  }, [ready, sheet, frame.id, frame.tail]);
 
   return (
     <svg

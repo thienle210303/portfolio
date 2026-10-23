@@ -281,6 +281,26 @@ function reaction(cat, name) {
 
 const SYMBOL_ATTRS = `viewBox="0 0 ${W} ${H}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"`;
 
+/**
+ * Fewer elements, same drawing: consecutive stroke-only paths with the same
+ * attributes become one path (their `d`s joined). Filled paths are left alone,
+ * because a filled shape has to cover the strokes drawn before it. The page
+ * puts every symbol in its DOM, so this is the sheet's node count.
+ */
+function merge(body) {
+  const parts = body.match(/<path d="[^"]*"[^>]*\/>|<[^>]+>/g) ?? [];
+  const out = [];
+  for (const part of parts) {
+    const m = part.match(/^<path d="([^"]*)"([^>]*)\/>$/);
+    const prev = out.at(-1);
+    const pm = prev?.match(/^<path d="([^"]*)"([^>]*)\/>$/);
+    if (m && pm && m[2] === pm[2] && !/fill=/.test(m[2])) {
+      out[out.length - 1] = `<path d="${pm[1]}${m[1]}"${m[2]}/>`;
+    } else out.push(part);
+  }
+  return out.join("");
+}
+
 function sheet(frames, cols) {
   // The root shows the cells as sheets: rows of `cols`, 4px apart.
   const cells = frames.filter(([id]) => !id.startsWith("tail"));
@@ -297,7 +317,7 @@ function sheet(frames, cols) {
     x += W + 4; col += 1; width = Math.max(width, x - 4);
   }
   const height = y + H;
-  const symbols = frames.map(([id, body]) => `<symbol id="${id}" ${SYMBOL_ATTRS}>${body}</symbol>`).join("");
+  const symbols = frames.map(([id, body]) => `<symbol id="${id}" ${SYMBOL_ATTRS}>${merge(body)}</symbol>`).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">${symbols}${uses}</svg>`;
 }
 

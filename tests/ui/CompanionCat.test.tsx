@@ -40,8 +40,10 @@ describe("CompanionCat", () => {
     await waitFor(() => expect(hrefs(moon.container)).toEqual(["#cat-moon-walk-2"]));
     const mi = render(<CompanionCat variant="tabby" pose="sleep" phase={0} blinking />);
     await waitFor(() => expect(hrefs(mi.container)).toEqual(["#cat-mi-react-8"]));
-    expect(document.querySelector("#cat-sheets #cat-moon-look-4")).not.toBeNull();
+    // Only what is drawn is put on the page: no sitting Moon yet, so no look-4.
+    expect(document.querySelector("#cat-sheets #cat-moon-look-4")).toBeNull();
     render(<CompanionCat variant="grey" pose="sit" phase={0} blinking={false} />);
+    expect(document.querySelector("#cat-sheets #cat-moon-look-4")).not.toBeNull();
     // Once each, however many cats draw from it.
     expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === "/cats/moon.svg")).toHaveLength(1);
   });
