@@ -151,8 +151,8 @@ export default function RecordPressed() {
               >
                 <a href={`#${journeyEntryAnchorId(entry.id)}`} className="group block">
                   <span className="record-tape" aria-hidden="true" style={{ "--tape-rot": `${-slot.rot * 2}deg` } as CSSProperties} />
-                  <span className="block bg-surface px-3.5 pt-4 pb-3.5 paper-lift">
-                    <span className="flex items-center justify-between gap-2 font-mono text-[length:var(--step--2)] text-fg-muted">
+                  <span className="block bg-surface px-3 pt-4 pb-3.5 paper-lift sm:px-3.5">
+                    <span className="flex flex-wrap items-center justify-between gap-x-2 font-mono text-[length:var(--step--2)] text-fg-muted">
                       <span className="inline-flex items-center gap-1.5">
                         <KindDot kind={entry.type} />
                         {KIND_WORD[entry.type]}

@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
  * their triggers are left alone. */
 async function expandAllDisclosures(page: Page): Promise<void> {
   // Hydrated, so a click on a trigger is handled rather than lost.
-  await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
+  await expect(page.locator("#record [data-timeline]")).toHaveAttribute("data-live", "");
   await page.addStyleTag({
     content:
       '[data-timeline] [role="region"] { grid-template-rows: 1fr !important; } ' +
@@ -47,7 +47,7 @@ async function expandAllDisclosures(page: Page): Promise<void> {
     while (guard < 200) {
       const buttons = Array.from(
         document.querySelectorAll<HTMLElement>('#main button[aria-expanded="false"]'),
-      ).filter((button) => isVisible(button) && !button.id.startsWith("tree-list-branch-"));
+      ).filter((button) => isVisible(button) && !button.id.startsWith("record-row-"));
       if (buttons.length === 0) break;
       buttons[0].click();
       await nextFrame();
@@ -76,7 +76,7 @@ test("every displayed metric has a visible, non-empty source string", async ({ p
   // Case studies render inside the Journey's timeline rows (and, for the
   // entries that are not branches, after the timeline). Only visible tables
   // are "displayed metrics" — a hidden one cannot show a source at all.
-  const tables = page.locator("#tree table:visible");
+  const tables = page.locator("#record table:visible");
   const tableCount = await tables.count();
   expect(tableCount, "content fixture assumption failed: no case study has a metrics table").toBeGreaterThan(0);
 

@@ -42,9 +42,16 @@ export function RecordFilters({
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target : null;
-      const link = target?.closest<HTMLAnchorElement>("a[href^='#']");
-      if (link) {
-        const el = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+      // `getAttribute`, not `.hash`: the rings are SVG links, which have none.
+      const href = target?.closest("a[href^='#']")?.getAttribute("href");
+      if (href) {
+        let id = href.slice(1);
+        try {
+          id = decodeURIComponent(id);
+        } catch {
+          // A malformed escape names nothing.
+        }
+        const el = document.getElementById(id);
         if (el && listRef.current?.contains(el) && el.getClientRects().length === 0) {
           flushSync(() => setFilter("all"));
         }

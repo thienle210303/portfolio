@@ -85,7 +85,7 @@ function Row({ entry }: { readonly entry: CareerEntry }) {
       >
         <div className="mb-4 space-y-3 border-l border-rule pb-1 pl-4 ml-1">
           {entry.headline ? (
-            <p className="font-serif text-[length:var(--step-0)] italic text-fg">{entry.headline}</p>
+            <p data-tree-headline="" className="font-serif text-[length:var(--step-0)] italic text-fg">{entry.headline}</p>
           ) : null}
           <ul role="list" className="space-y-1">
             {lines.map((line) => (

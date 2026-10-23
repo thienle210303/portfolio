@@ -2457,36 +2457,11 @@
     transform: rotate(var(--tape-rot, 0deg));
   }
 
-  /* A ring is a link. It shows it is one on hover, and its focus is drawn on
-     the ring itself (an outline would box the whole slice). */
-  .record-ring {
-    cursor: pointer;
-    outline: none;
-  }
-  .record-ring:hover path {
-    stroke: var(--accent);
-    stroke-width: 2;
-  }
-  .record-ring:focus-visible path {
-    stroke: var(--ring-color);
-    stroke-width: 3;
-  }
-
   /* The year a ring jumped to. */
   .record-year:target > h4 {
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 4px;
-  }
-
-  /* Filters: hide the other kinds' rows, and any year left without a row. */
-  [data-record-list][data-filter="work"] [data-kind]:not([data-kind="work"]),
-  [data-record-list][data-filter="learning"] [data-kind]:not([data-kind="learning"]),
-  [data-record-list][data-filter="milestone"] [data-kind]:not([data-kind="milestone"]),
-  [data-record-list][data-filter="work"] [data-record-year]:not(:has([data-kind="work"])),
-  [data-record-list][data-filter="learning"] [data-record-year]:not(:has([data-kind="learning"])),
-  [data-record-list][data-filter="milestone"] [data-record-year]:not(:has([data-kind="milestone"])) {
-    display: none;
   }
 
   /* A stamp's perforated edge: real holes, punched by a mask in the outer 7px
@@ -2505,4 +2480,32 @@
   .record-dialog::backdrop {
     background: rgb(10 14 13 / 0.6);
   }
+}
+
+/* The Record's filters (`RecordFilters.tsx`): hide the other kinds' rows, and
+   any year left without one. Unlayered, so it outranks the `grid` utility on
+   a year. */
+[data-record-list][data-filter="work"] [data-kind]:not([data-kind="work"]),
+[data-record-list][data-filter="learning"] [data-kind]:not([data-kind="learning"]),
+[data-record-list][data-filter="milestone"] [data-kind]:not([data-kind="milestone"]),
+[data-record-list][data-filter="work"] [data-record-year]:not(:has([data-kind="work"])),
+[data-record-list][data-filter="learning"] [data-record-year]:not(:has([data-kind="learning"])),
+[data-record-list][data-filter="milestone"] [data-record-year]:not(:has([data-kind="milestone"])) {
+  display: none;
+}
+
+/* A ring is a link. It shows it is one on hover, and its focus is drawn on
+   the ring itself (an outline would box the whole slice).
+   Unlayered, so it outranks the ring's fill and stroke utilities. */
+.record-ring {
+  cursor: pointer;
+  outline: none;
+}
+.record-ring:hover path {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.record-ring:focus-visible path {
+  stroke: var(--ring-color);
+  stroke-width: 3;
 }

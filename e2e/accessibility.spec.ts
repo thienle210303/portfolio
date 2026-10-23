@@ -108,8 +108,10 @@ test("prefers-reduced-motion: reduce is honoured", async ({ page }) => {
   const scrollBehavior = await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior);
   expect(scrollBehavior).toBe("auto");
 
+  // A case study sits inside its entry's row on the Record (round 21 phase 5).
+  await page.locator("#record-row-capstone-trigger").click();
   const trigger = page
-    .locator("#tree [data-unbranched-case-studies]")
+    .locator("#journey-entry-capstone")
     .getByRole("button", { name: /Read the full case study/ })
     .first();
   const panelId = await trigger.getAttribute("aria-controls");

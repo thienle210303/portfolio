@@ -95,14 +95,14 @@ test.describe("hero", () => {
 });
 
 // Selected Work was deleted in round 18; its case studies render inside the
-// Journey's branches. The ones that are not inside a branch (the coursework and
-// the capstone) are always in the document, which is what makes them the one
-// place this can be exercised without first opening a branch.
+// rows of the roles that produced them, on the Record since round 21 phase 5.
+// The capstone's row is opened first.
 test.describe("case studies", () => {
   test("a case-study disclosure expands and collapses; collapsed content is not reachable by Tab", async ({
     page,
   }) => {
-    const work = page.locator("#tree [data-unbranched-case-studies]");
+    await page.locator("#record-row-capstone-trigger").click();
+    const work = page.locator("#journey-entry-capstone");
     const trigger = work.getByRole("button", { name: /Read the full case study/ }).first();
     const panelId = await trigger.getAttribute("aria-controls");
 
@@ -143,7 +143,7 @@ test.describe("screen recordings", () => {
     }
     await page.waitForLoadState("networkidle");
 
-    expect(await page.locator("#tree video").count(), "no <video> before a press").toBe(0);
+    expect(await page.locator("#record video").count(), "no <video> before a press").toBe(0);
     expect(media, "nothing under /media/ may load until a visitor asks").toEqual([]);
   });
 
@@ -155,6 +155,7 @@ test.describe("screen recordings", () => {
       if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
     });
 
+    await page.locator(`#record-row-${project.careerEntryId}-trigger`).click();
     const article = page.locator(`#work-${project.id}`);
     const trigger = article.getByRole("button", { name: /Read the full case study/ });
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -172,8 +173,8 @@ test.describe("screen recordings", () => {
     expect(media.filter((url) => url.endsWith(".mp4"))).toEqual([`/media/${project.recording}.mp4`]);
     expect(media.filter((url) => url.endsWith(".jpg"))).toEqual([`/media/${project.recording}.jpg`]);
   });
-  // Food Route and MentorHub have no case study: each button sits under its line of the
-  // credentials strip. Any recording added later is picked up from content.
+  // Food Route and MentorHub have no case study: each button sits in its row
+  // on the Record. Any recording added later is picked up from content.
   const recordedEntries = careerEntries.filter((entry) => entry.recording);
 
   test("the entries' recordings are found in content", () => {
@@ -187,9 +188,10 @@ test.describe("screen recordings", () => {
         if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
       });
 
+      await page.locator(`#record-row-${entry.id}-trigger`).click();
       const button = page.getByRole("button", { name: `Play the screen recording of ${entry.role}` });
       // Not `li:has(button)`: the press replaces the button with the video.
-      const line = page.locator("[data-credentials-strip] li", { hasText: entry.role });
+      const line = page.locator(`#journey-entry-${entry.id}`);
       await button.scrollIntoViewIfNeeded();
       await expect(line.locator("video")).toHaveCount(0);
       expect(media, "nothing loads before the press").toEqual([]);
@@ -209,12 +211,11 @@ test.describe("screen recordings", () => {
 });
 
 /**
- * The Journey (`#tree`). Round 20 replaced the pinned stage with three stacked
- * blocks; round 21 opens them with the oak — the hanging tags, the drawing
- * (>=1024px only), and the timeline:
- * one `KnowledgeTreeList` row per drawn entry, at every width, opening one at a
- * time. The timeline owns the `journey-entry-<id>` and `work-<projectId>` ids,
- * so every deep link into the Journey now lands on a row.
+ * The Journey (`#tree`) and the Record's rows. Round 21 opens the Journey with
+ * the oak — the hanging tags and the drawing (>=1024px only). The timeline's
+ * one-open rows moved to the Record in phase 5: one row per career entry, at
+ * every width, owning the `journey-entry-<id>` and `work-<projectId>` ids, so
+ * every deep link (a tag, a branch label) lands on a Record row.
  */
 test.describe("career tree", () => {
   /** The entry the row tests open: the role with the most case studies, so the
@@ -229,11 +230,11 @@ test.describe("career tree", () => {
   const panelEntry = careerEntries.find((entry) => entry.id === PANEL_ENTRY);
   if (!panelEntry) throw new Error(`"${PANEL_ENTRY}" is no longer a career entry`);
 
-  const row = (page: Page, entryId: string) => page.locator(`#tree #journey-entry-${entryId}`);
+  const row = (page: Page, entryId: string) => page.locator(`#record #journey-entry-${entryId}`);
   const rowTrigger = (page: Page, entryId: string) =>
-    page.locator(`#tree #tree-list-branch-${entryId}-trigger`);
+    page.locator(`#record #record-row-${entryId}-trigger`);
   const rowPanel = (page: Page, entryId: string) =>
-    page.locator(`#tree #tree-list-branch-${entryId}-panel`);
+    page.locator(`#record #record-row-${entryId}-panel`);
 
   test("the section renders and still answers #journey", async ({ page }) => {
     await expect(page.locator("#tree")).toBeVisible();
@@ -258,7 +259,7 @@ test.describe("career tree", () => {
     expect(sticky, "something inside #tree is position: sticky").toEqual([]);
   });
 
-  test("the drawing shows at >=1024px only, and the timeline at every width", async ({ page }) => {
+  test("the drawing shows at >=1024px only, and the Record's rows at every width", async ({ page }) => {
     const drawing = page.locator("#tree [data-origin-host]");
     if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
       // Far from the viewport the box skips drawing it (`data-far`, TreeBox.tsx).
@@ -267,29 +268,16 @@ test.describe("career tree", () => {
       await expect(page.locator("[data-tree-box]")).not.toHaveAttribute("data-far");
       await expect(drawing).toBeVisible();
     } else await expect(drawing).toBeHidden();
-    await expect(page.locator("#tree [data-timeline] [data-tree-branch]")).toHaveCount(DRAWN.length);
+    await expect(page.locator("#record [data-timeline] [data-tree-branch]")).toHaveCount(careerEntries.length);
     await expect(row(page, DRAWN[0].id)).toBeVisible();
   });
 
-  test("timeline rows: year, role · org, headline at rest", async ({ page }) => {
-    expect(DRAWN.length, "no drawn entries, so no row was checked").toBeGreaterThan(0);
-    for (const branch of DRAWN) {
-      const trigger = rowTrigger(page, branch.id);
-      await expect(trigger, branch.id).toHaveAttribute("aria-expanded", "false");
-      await expect(trigger, branch.id).toContainText(String(branch.startYear));
-      await expect(trigger, branch.id).toContainText(
-        branch.organization ? `${branch.label} · ${branch.organization}` : branch.label,
-      );
-      const headline = row(page, branch.id).locator("[data-tree-headline]");
-      if (branch.headline) {
-        await expect(headline, branch.id).toHaveText(branch.headline);
-        await expect(headline, branch.id).toBeVisible();
-        // Outside the trigger: it is read at rest, never folded into the
-        // button's name.
-        expect(await trigger.textContent(), branch.id).not.toContain(branch.headline);
-      }
-      // At rest the body is closed: nothing inside it is visible.
-      await expect(rowPanel(page, branch.id).getByText("What it changed"), branch.id).toBeHidden();
+  test("Record rows: kind, title and organisation at rest, nothing open", async ({ page }) => {
+    for (const entry of careerEntries) {
+      const trigger = rowTrigger(page, entry.id);
+      await expect(trigger, entry.id).toHaveAttribute("aria-expanded", "false");
+      await expect(trigger, entry.id).toContainText(entry.role.replace(" — ", ", "));
+      await expect(trigger, entry.id).toContainText(entry.organization);
     }
   });
 
@@ -302,7 +290,7 @@ test.describe("career tree", () => {
     await rowTrigger(page, third.id).click();
     await expect(rowTrigger(page, third.id)).toHaveAttribute("aria-expanded", "true");
     await expect(rowTrigger(page, second.id)).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator('#tree [data-timeline] button[aria-expanded="true"][id^="tree-list-branch-"]')).toHaveCount(1);
+    await expect(page.locator('#record [data-timeline] button[aria-expanded="true"][id^="record-row-"]')).toHaveCount(1);
 
     // The keyboard does the same, and focus stays on the row that was pressed.
     await rowTrigger(page, fourth.id).focus();
@@ -312,22 +300,20 @@ test.describe("career tree", () => {
     await expect(rowTrigger(page, fourth.id)).toBeFocused();
     await page.keyboard.press("Space");
     await expect(rowTrigger(page, fourth.id)).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator('#tree [data-timeline] button[aria-expanded="true"][id^="tree-list-branch-"]')).toHaveCount(0);
+    await expect(page.locator('#record [data-timeline] button[aria-expanded="true"][id^="record-row-"]')).toHaveCount(0);
   });
 
-  test("opened row shows What it changed, impact verbatim, chips, case study", async ({ page }) => {
+  test("opened row shows the impact verbatim, chips and case studies", async ({ page }) => {
     const trigger = rowTrigger(page, PANEL_ENTRY);
     await trigger.scrollIntoViewIfNeeded();
     const panel = rowPanel(page, PANEL_ENTRY);
-    const chips = panel.locator('[aria-label^="Technologies used"]');
-    // Chips live in the body now, so a closed row shows none of them.
+    const chips = panel.locator('[aria-label^="Technologies"]');
     await expect(chips).toBeHidden();
 
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
-    await expect(panel.getByText("What it changed", { exact: true })).toBeVisible();
     expect(panelEntry.impact.length, "the entry authors no impact line").toBeGreaterThan(0);
-    await expect(panel.locator('ul[aria-labelledby$="-changed"] > li')).toHaveText([...panelEntry.impact]);
+    for (const line of panelEntry.impact) await expect(panel.getByText(line, { exact: true })).toBeVisible();
     await expect(chips).toBeVisible();
     await expect(chips.locator(":scope > li > span:first-child")).toHaveText([...panelEntry.technologies]);
     const articles = panel.locator('article[id^="work-"]');
@@ -354,7 +340,7 @@ test.describe("career tree", () => {
     await page.keyboard.press("Tab");
     const landedInPanel = await page.evaluate(
       (id) => document.getElementById(id)?.contains(document.activeElement) ?? false,
-      `tree-list-branch-${PANEL_ENTRY}-panel`,
+      `record-row-${PANEL_ENTRY}-panel`,
     );
     expect(landedInPanel, "Tab from a closed row must not reach inside it").toBe(false);
   });
@@ -434,36 +420,6 @@ test.describe("career tree", () => {
       await restingTop(row(page, PANEL_ENTRY)),
       "following the same card again must land its row at the 80px scroll margin",
     );
-  });
-
-  /*
-   * Round 13: the list gets its own drawn ink (a trunk, a curved bough per
-   * row, year rings, a "still growing" tip) — see list-ink.tsx. It is meant to
-   * be pure decoration layered onto the accessible list: this checks every
-   * drawn piece is `aria-hidden` and that the list's own controls — one per
-   * drawn branch — are unaffected by any of it.
-   */
-  test("the list's drawn ink is pure decoration layered onto the same accessible list", async ({
-    page,
-  }) => {
-    const tree = page.locator("#tree");
-    const branchButtons = tree.getByRole("button", { name: /(Show|Hide) what .+ involved/ });
-    await expect(branchButtons).toHaveCount(DRAWN.length);
-
-    const trunk = tree.locator("[data-tree-list-trunk]");
-    await expect(trunk).toHaveCount(1);
-    await expect(trunk).toHaveAttribute("aria-hidden", "true");
-
-    const boughs = tree.locator('[data-tree-list-part="bough"]');
-    await expect(boughs).toHaveCount(DRAWN.length);
-    for (const bough of await boughs.all()) {
-      await expect(bough).toHaveAttribute("aria-hidden", "true");
-    }
-
-    const tip = tree.locator("[data-tree-list-tip]");
-    await expect(tip).toHaveCount(1);
-    await expect(tip).toHaveAttribute("aria-hidden", "true");
-    await expect(tip.locator("[data-tree-list-shoot-label]")).toHaveText(/still growing/i);
   });
 
   /*

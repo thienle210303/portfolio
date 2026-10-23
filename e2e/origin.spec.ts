@@ -241,11 +241,11 @@ test.describe("the button", () => {
     // it through once the show ended, ~20 s later.
     await link.click({ timeout: 3_000 });
     await expect(stage, "the click must land mid-show").toHaveCount(1);
-    await expect(page.locator(`#tree #tree-list-branch-${id}-trigger`)).toHaveAttribute(
+    await expect(page.locator(`#record #record-row-${id}-trigger`)).toHaveAttribute(
       "aria-expanded",
       "true",
     );
-    await expect(page.locator(`#tree #journey-entry-${id}`)).toBeInViewport();
+    await expect(page.locator(`#record #journey-entry-${id}`)).toBeInViewport();
   });
 
   test("a keyboard press from far above the box still focuses Skip", async ({ page }) => {

@@ -66,7 +66,7 @@ async function scrollIntoViewAndSettle(page: Page, selector: string): Promise<vo
  * `:target` fallback. A timeline that never goes live fails here, by name.
  */
 async function timelineLive(page: Page): Promise<void> {
-  await expect(page.locator("#tree [data-timeline]")).toHaveAttribute("data-live", "");
+  await expect(page.locator("#record [data-timeline]")).toHaveAttribute("data-live", "");
 }
 
 test.describe("full-page audit", () => {
@@ -112,12 +112,12 @@ test.describe("interactive states", () => {
     // can be left permanently pending. Settling it explicitly first sidesteps
     // that race rather than depending on where the trigger below happens to
     // sit relative to it.
-    await scrollIntoViewAndSettle(page, "#tree-heading");
-    // The coursework and capstone case studies render after the timeline and
-    // are always in the document; the ones inside a row sit in a collapsed
-    // panel, which this test would have to open first.
+    await scrollIntoViewAndSettle(page, "#record-heading");
+    // Every case study sits in its entry's row on the Record (round 21 phase
+    // 5): open the capstone's row first.
+    await page.locator("#record-row-capstone-trigger").click();
     const trigger = page
-      .locator("#tree [data-unbranched-case-studies]")
+      .locator("#journey-entry-capstone")
       .getByRole("button", { name: /Read the full case study/ })
       .first();
     await trigger.click();

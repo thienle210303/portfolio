@@ -1153,7 +1153,7 @@ test.describe("companion", () => {
     };
 
     await page.evaluate(() => {
-      const tree = document.querySelector("#tree [data-timeline]");
+      const tree = document.querySelector("#record [data-timeline]");
       if (!tree) throw new Error("the page has no timeline");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
@@ -1270,7 +1270,7 @@ test.describe("companion", () => {
      * least three.
      */
     await page.evaluate(() => {
-      const tree = document.querySelector("#tree [data-timeline]");
+      const tree = document.querySelector("#record [data-timeline]");
       if (!tree) throw new Error("the page has no timeline");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });

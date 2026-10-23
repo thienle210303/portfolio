@@ -61,13 +61,13 @@ test.describe("no-JS parity", () => {
     await page.goto("/");
     const headlines = page.locator("#tree [data-origin-host] [data-tree-headline]");
     await expect(headlines).toHaveCount(11);
-    const triggers = page.locator('#tree [data-timeline] [id^="tree-list-branch-"][id$="-trigger"]');
+    const triggers = page.locator('#record [data-timeline] [id^="record-row-"][id$="-trigger"]');
     await expect(triggers).toHaveCount(11);
     for (const trigger of await triggers.all()) {
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
     }
     for (const headline of await headlines.all()) await expect(headline).toBeVisible();
-    for (const headline of await page.locator("#tree [data-timeline] [data-tree-headline]").all()) {
+    for (const headline of await page.locator("#record [data-timeline] [data-tree-headline]").all()) {
       await expect(headline).toBeVisible();
     }
   });

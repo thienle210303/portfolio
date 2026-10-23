@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { careerEntries } from "../src/content/portfolio";
 
 /**
  * The print stylesheet (globals.css `@media print`) has never been
@@ -85,7 +86,7 @@ test("hiding the margin rail must not strand section content in its grid track",
   }
 
   // And the concrete symptom: case-study articles keep a real measure.
-  const article = page.locator("#tree [data-unbranched-case-studies] article").first();
+  const article = page.locator("#record article").first();
   const articleWidth = await article.evaluate((el) => el.getBoundingClientRect().width);
   expect(articleWidth, "case studies collapsed to zero width in print").toBeGreaterThan(200);
 });
@@ -128,7 +129,7 @@ test("print media does not create phantom horizontal overflow", async ({ page })
 test("a collapsed disclosure's content is forced open for print", async ({ page }) => {
   await page.emulateMedia({ media: "screen" });
   const trigger = page
-    .locator("#tree [data-unbranched-case-studies]")
+    .locator("#record")
     .getByRole("button", { name: /Read the full case study/ })
     .first();
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -187,12 +188,11 @@ test.describe("the résumé route", () => {
   });
 });
 
-// A timeline row's headline is its Disclosure `preview`, outside the collapsed
-// region, so print shows it whether or not the row is forced open; the
+// A Record row's headline is inside its row, which print forces open; the
 // drawing's (>=1024px) is plain text on the branch card.
 test("every drawn branch's headline prints", async ({ page }) => {
-  const rows = page.locator("#tree [data-timeline] [data-tree-headline]");
-  await expect(rows).toHaveCount(11);
+  const rows = page.locator("#record [data-timeline] [data-tree-headline]");
+  await expect(rows).toHaveCount(careerEntries.filter((entry) => entry.headline).length);
   for (const headline of await rows.all()) await expect(headline).toBeVisible();
   if ((page.viewportSize()?.width ?? 0) < 1024) return;
   const drawn = page.locator("#tree [data-origin-host] [data-tree-headline]");
