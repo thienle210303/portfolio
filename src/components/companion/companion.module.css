@@ -66,43 +66,52 @@
 }
 
 /*
- * A seated cat's tail while the loop ticks slowly (`swaying` in
- * CompanionCat.tsx). Drawn, the sway moves each control point of `sitTail` by
- * `lash` times a fixed vector; this is the closest affine fit to that
- * about the tail's root (11.5, 33.5): a shear of -0.09 and a vertical stretch
- * of 0.066 per unit of `lash`, within 0.55 units of the drawn curve anywhere
- * along it. Sine-eased quarters, so 0% is `phase` 0 and 25% is
- * `lash` 1, as in the drawing. The period and the starting offset come from
- * the cat, in `--sway-period` and `--sway-delay`.
+ * The coats (CompanionCat.tsx). Mixed from the aliases the cat is drawn in, so
+ * a coat follows theme, tone and `data-paper` with its ink. A coat is meant to
+ * be seen: the old knockout filled each cat with the flat page ground, which
+ * read as a patch on the sky's gradient. Moon (`grey`) is the blue cat, a solid
+ * coat; Mi (`tabby`) is a light coat with white socks.
+ */
+.cat {
+  --cat-coat: color-mix(in oklab, var(--fg-muted) 40%, var(--ground));
+  --cat-sock: var(--ground);
+  overflow: visible;
+}
+
+.cat[data-coat="tabby"] {
+  --cat-coat: color-mix(in oklab, var(--fg-muted) 14%, var(--ground));
+}
+
+/*
+ * A seated cat's tail is its own cell (`tail` in the sheets), so it can sway
+ * here, about its root (11, 38), on the cat's own period. Mi's starts half a
+ * cycle in, so the two tails never swing together.
  */
 @keyframes companion-tail-sway {
   0%,
-  50%,
   100% {
-    transform: matrix(1, 0, 0, 1, 0, 0);
-    animation-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+    transform: rotate(0deg);
   }
-  25% {
-    transform: matrix(1, 0, -0.09, 1.066, 0, 0);
-    animation-timing-function: cubic-bezier(0.47, 0, 0.745, 0.715);
+  30% {
+    transform: rotate(-7deg);
   }
-  75% {
-    transform: matrix(1, 0, 0.09, 0.934, 0, 0);
-    animation-timing-function: cubic-bezier(0.47, 0, 0.745, 0.715);
+  70% {
+    transform: rotate(4deg);
   }
 }
 
 .tailSway {
   transform-box: view-box;
-  transform-origin: 11.5px 33.5px;
+  transform-origin: 11px 38px;
 }
 
-/* Only where motion is welcome. The loop never runs under reduced motion, so
- * nothing sets `swaying` there anyway; this keeps the stylesheet from being the
- * one place that could add motion if it ever did. */
+/* Only where motion is welcome. */
 @media (prefers-reduced-motion: no-preference) {
   .tailSway {
-    animation: companion-tail-sway var(--sway-period) infinite;
-    animation-delay: var(--sway-delay);
+    animation: companion-tail-sway var(--sway-period, 2800ms) ease-in-out infinite;
+  }
+
+  .cat[data-coat="tabby"] .tailSway {
+    animation-delay: -1.8s;
   }
 }

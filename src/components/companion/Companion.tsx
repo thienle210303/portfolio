@@ -12,6 +12,7 @@ import CompanionToy, { TOY_H, TOY_W, type ToyKind } from "./CompanionToy";
 import RestingBox, { BOX_SLOT, PAPER_SLOT } from "./RestingBox";
 import ToolkitPanel, { PANEL_ID, type PlayRequest, type TourRequest } from "./ToolkitPanel";
 import TourHud from "./TourHud";
+import MoonVisit from "./MoonVisit";
 import {
   advancePlay,
   hideCut,
@@ -61,6 +62,7 @@ import {
   rideStep,
   trailBehind,
   detourAround,
+  routeAround,
   type RideTracker,
 } from "./companion-motion";
 import { IDLE_TICK_MS, nextCadence } from "./companion-cadence";
@@ -100,6 +102,15 @@ import {
   setControlRects,
   setReservedRects,
   standingSpots,
+  controlRectsInView,
+  controlRectsUnder,
+  groundControls,
+  groundProse,
+  slideOffText,
+  CORNER_INSET,
+  PEEK,
+  pickCorner,
+  type Corner,
   syncTone,
   viewport,
   type Point,
@@ -107,6 +118,18 @@ import {
   followerMuted,
 } from "./companion-space";
 import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
+import {
+  advanceSurprise,
+  CREEP_SPEED,
+  markSurpriseSpent,
+  nearDrawing,
+  seatBeside,
+  startSurprise,
+  surpriseFacing,
+  surprisePose,
+  surpriseSpent,
+  type Surprise,
+} from "./companion-surprise";
 
 /**
  * Two line-drawn cats that live on the page, keep loose company with the
@@ -357,7 +380,7 @@ type Mood = "trail" | "watch" | "drift";
  *  them for a moment, he leaves. */
 type EscortPhase = "herding" | "watching" | "leaving";
 /** The poses a cat can drop into of its own accord while it is sitting. */
-type Flourish = Extract<CatPose, "sit" | "stretch" | "groom" | "bat">;
+type Flourish = Extract<CatPose, "sit" | "stretch" | "groom" | "bat" | "yawn" | "purr">;
 
 /**
  * Idle flourishes: how long a cat sits before it does something with itself,
@@ -422,8 +445,6 @@ interface Visual {
   readonly flick: number;
   /** The `hop` act, live this frame — see `actPose`. */
   readonly hopping: boolean;
-  /** The plain sit's tail is swaying in CSS — see `swaying` on CompanionCat. */
-  readonly swaying?: boolean;
 }
 
 /** What the JSX draws for one beat of the duet — see `beatView`. */
@@ -456,6 +477,10 @@ interface Nap {
   rect: DOMRect;
   readAt: number;
 }
+
+/** A corner from `pickCorner`, and how far left of home that is, in px. */
+type Parked = Corner & { readonly dx: number };
+const HOME_CORNER: Parked = { side: "right", lift: 0, dx: 0 };
 
 const RESTING_VISUAL: Visual = {
   pose: "sit",
@@ -904,12 +929,18 @@ function tickIdle(cat: Mover, now: number, canBat: boolean): Flourish {
   if (canBat && roll < 0.3) {
     cat.idle = "bat";
     cat.idleUntil = now + 900 + Math.random() * 500;
-  } else if (roll < 0.65) {
+  } else if (roll < 0.5) {
     cat.idle = "groom";
     cat.idleUntil = now + 2200 + Math.random() * 1200;
-  } else {
+  } else if (roll < 0.68) {
     cat.idle = "stretch";
     cat.idleUntil = now + 1000 + Math.random() * 500;
+  } else if (roll < 0.84) {
+    cat.idle = "yawn";
+    cat.idleUntil = now + 900 + Math.random() * 300;
+  } else {
+    cat.idle = "purr";
+    cat.idleUntil = now + 1600 + Math.random() * 900;
   }
   return cat.idle;
 }
@@ -936,6 +967,21 @@ function tickFlick(cat: Mover, now: number, allowed: boolean): number {
     cat.flickAt = now + FLICK_GAP + Math.random() * FLICK_SPREAD;
   }
   return 0;
+}
+
+/** Applies `slideOffText` to a step just taken, and returns its new length. */
+function stepOffText(
+  pos: Spot,
+  from: Point,
+  want: Point,
+  rects: readonly RectLike[],
+  band: ReturnType<typeof boundsFor>,
+  memo: { x?: 1 | -1; y?: 1 | -1 },
+): number {
+  const to = slideOffText(from, pos, want, rects, band, memo);
+  pos.x = to.x;
+  pos.y = to.y;
+  return Math.hypot(to.x - from.x, to.y - from.y);
 }
 
 function paint(node: HTMLElement | null, pos: Spot): void {
@@ -998,7 +1044,8 @@ function paintBeside(
     anchorH,
     size,
     { viewportWidth: window.innerWidth, viewportHeight: window.innerHeight, safeTop: safeTop() },
-    keepOut,
+    // Off the page's controls and prose too, where there is room (round 21).
+    [...keepOut, ...groundControls(), ...groundProse()],
   );
   paint(node, at);
   return boxAt(at, size.width, size.height);
@@ -1069,6 +1116,44 @@ function thienWant(speaker: Spot, other: Spot): Point {
 }
 
 /**
+ * Round 21 review: a cat walking across a link or a button passes *under* it.
+ * The parts of the cat's element (`node`, drawn `w`×`h` from `pos` + `ox`,`oy`)
+ * that lie over a control are cut out with an even-odd clip path, so the
+ * control is never covered and the cut part takes no clicks either. The outer
+ * ring is drawn 20px wide of the box so a hop is not clipped. Marked
+ * `data-cat-under` while it applies. Resting on a control is prevented where
+ * the destination is chosen; this is for the walk across.
+ */
+function passUnder(
+  node: HTMLElement | null,
+  pos: Spot,
+  ox: number,
+  oy: number,
+  w: number,
+  h: number,
+): void {
+  if (!node) return;
+  const left = pos.x + ox;
+  const top = pos.y + oy;
+  const controls = controlRectsUnder({ left, top, right: left + w, bottom: top + h });
+  let holes = "";
+  for (const r of controls) {
+    const x0 = Math.max(r.left, left) - left;
+    const x1 = Math.min(r.right, left + w) - left;
+    const y0 = Math.max(r.top, top) - top;
+    const y1 = Math.min(r.bottom, top + h) - top;
+    if (x1 > x0 && y1 > y0) {
+      holes += `M${x0.toFixed(1)} ${y0.toFixed(1)}H${x1.toFixed(1)}V${y1.toFixed(1)}H${x0.toFixed(1)}Z`;
+    }
+  }
+  const clip = holes ? `path(evenodd, "M-20 -20H${w + 20}V${h + 20}H-20Z${holes}")` : "";
+  if (node.dataset.clip === clip) return;
+  node.dataset.clip = clip;
+  node.style.clipPath = clip;
+  node.toggleAttribute("data-cat-under", clip !== "");
+}
+
+/**
  * Cut a drawing off at the edge of whatever it is hiding behind; zero puts it
  * back.
  *
@@ -1088,13 +1173,11 @@ function sameVisual(a: Visual, b: Visual): boolean {
     a.facing === b.facing &&
     a.blinking === b.blinking &&
     a.hopping === b.hopping &&
-    Boolean(a.swaying) === Boolean(b.swaying) &&
-    // Quantised: the drawing cannot show more than this, so committing more
-    // than this is pure re-render cost. Not compared at all while CSS sways
-    // the tail: the drawing does not read `phase` then, and a new one would
-    // move the animation's start and jump the tail.
-    ((a.swaying && b.swaying) || Math.round(a.phase * 24) === Math.round(b.phase * 24)) &&
-    Math.round(a.flick * 5) === Math.round(b.flick * 5)
+    // Only what the sprite can show: the walk's frame (eight a stride) and
+    // whether a flick is on. A sitting tail sways in CSS and reads no phase,
+    // so anything finer is pure re-render cost.
+    (a.pose !== "walk" || Math.floor(a.phase * 8) === Math.floor(b.phase * 8)) &&
+    a.flick > 0 === b.flick > 0
   );
 }
 
@@ -1222,6 +1305,10 @@ export function Companion({ facts }: CompanionProps) {
   const finePointer = useMedia("(pointer: fine)");
   const stillness = useMedia("(prefers-reduced-motion: reduce)");
   const roams = finePointer && !stillness;
+  /** Mi is sitting beside the hero's sleeping Moon (MoonVisit, parked pair only). */
+  const [visiting, setVisiting] = useState(false);
+  /** Where the parked pair sits: off any control (`pickCorner`). */
+  const [corner, setCorner] = useState<Parked>(HOME_CORNER);
 
   const [open, setOpen] = useState(false);
   const [escort, setEscort] = useState<EscortPhase | null>(null);
@@ -1327,6 +1414,27 @@ export function Companion({ facts }: CompanionProps) {
   const settleSpots = useRef<Spots | null>(null);
   /** Where the explorers are heading. Null means "decide on the next frame". */
   const exploreRun = useRef<ExploreRun | null>(null);
+  /** Each cat's detour round text to its current destination (`routeAround`). */
+  const detours = useRef<Record<"lead" | "follow", { target: Point; via: Point | null; used: number } | null>>({
+    lead: null,
+    follow: null,
+  });
+  /** Each cat's way round a block of words, kept per destination (`slideOffText`). */
+  const slides = useRef<
+    Record<
+      "lead" | "follow",
+      {
+        target: Point;
+        x: 1 | -1 | undefined;
+        y: 1 | -1 | undefined;
+        best: number;
+        stall: number;
+        off: boolean;
+      } | null
+    >
+  >({ lead: null, follow: null });
+  /** The Moon surprise while it plays — see companion-surprise.ts. */
+  const surpriseRef = useRef<Surprise | null>(null);
   /** True until the explorers have arrived at their first stop in the current
    *  section — set by the section-change effect, consumed on arrival — which
    *  is what makes that first stop the section's perch (see `planExplore`).
@@ -1386,7 +1494,7 @@ export function Companion({ facts }: CompanionProps) {
    *  origin-story overlay — see the effect near the tour's own listeners.
    *  `spots` starts null and is filled in by the loop exactly the way
    *  `tourSpots` is: recomputed every frame they are still walking over
-   *  (`tourStopSpots("tree")`, the tour's own placement for that section),
+   *  (`watchSpots`, beside the tree box),
    *  then left alone once they arrive. Dropped — not merely outranked — the
    *  moment anything with a stronger claim shows up, so it is never resumed
    *  once the visitor has been handed to the escort, the tour, a nap or the
@@ -2209,6 +2317,21 @@ export function Companion({ facts }: CompanionProps) {
     }
 
     /**
+     * Where they sit to watch the tree grow: beside the tree box, level with
+     * the middle of what of it is on screen. `tourStopSpots("tree")` anchors on
+     * the section's top, which is far above the viewport while the show plays
+     * mid-section, so both cats clamped into the top-left corner (round 21).
+     */
+    function watchSpots(): Spots | null {
+      const box = document.querySelector("[data-tree-box]")?.getBoundingClientRect();
+      const top = box ? Math.max(box.top, safeTop()) : 0;
+      const bottom = box ? Math.min(box.bottom, viewport().height) : 0;
+      if (!box || bottom - top < CAT_H) return tourStopSpots("tree");
+      const anchor = { x: box.left - CAT_W - 12, y: (top + bottom) / 2 - CAT_H / 2 };
+      return restSpots(anchor, { x: anchor.x - CAT_W - FOLLOW_GAP, y: anchor.y });
+    }
+
+    /**
      * Where the explorers are going, and how long they stay when they get there.
      *
      * The plan is *held* — see `ExploreRun` — and each cat's part of it is
@@ -2636,7 +2759,7 @@ export function Companion({ facts }: CompanionProps) {
       }
       const watch = watchRef.current;
       if (watch) {
-        const spots = tourStopSpots("tree");
+        const spots = watchSpots();
         if (spots) {
           if (rushRef.current && now < rushRef.current.until) {
             // The storm beat's startle: a short dash off the sit spot and
@@ -3245,6 +3368,48 @@ export function Companion({ facts }: CompanionProps) {
        * see the note just inside it for why that is a second, genuinely new
        * bug rather than part of the freeze above.
        */
+      /*
+       * Round 21: the Moon surprise (companion-surprise.ts). Only while
+       * exploring — anything with a stronger claim on the pair (a chase, a
+       * scene, a tour, a nap) ends it — and only while the drawing is on
+       * screen, so the rect is read per frame only until it has happened.
+       */
+      let moon = surpriseRef.current;
+      let moonSeat: Point | null = null;
+      let moonDrawing: RectLike | null = null;
+      if (moon || (explored && !surpriseSpent())) {
+        const rect = document.querySelector("[data-moon-off-duty]")?.getBoundingClientRect();
+        const band = boundsFor(viewport(), safeTop());
+        if (rect && rect.width > 0 && rect.top >= band.minY && rect.bottom <= viewport().height) moonDrawing = rect;
+      }
+      if (moon && (!explored || !moonDrawing)) moon = surpriseRef.current = null;
+      if (!moon && explored && moonDrawing) {
+        const who =
+          grey.pose === "walk" && nearDrawing(grey.pos, moonDrawing)
+            ? "lead"
+            : tabby.pose === "walk" && nearDrawing(tabby.pos, moonDrawing)
+              ? "follow"
+              : null;
+        if (who) {
+          moon = surpriseRef.current = startSurprise(who, now);
+          markSurpriseSpent();
+        }
+      }
+      if (moon && moonDrawing) {
+        const cat = moon.cat === "lead" ? grey : tabby;
+        moonSeat = seatBeside(moonDrawing, boundsFor(viewport(), safeTop()), isClearSpot);
+        // Seated, she holds her own spot, so she gets up the moment content
+        // arrives under her, like any resting cat (the re-probe drops only
+        // explorer stops, and she is not on one).
+        const seated = moon.step === "sniff" || moon.step === "sit";
+        if (!moonSeat || (seated && !isClearSpot(cat.pos))) moon = surpriseRef.current = null;
+        else {
+          const want = moon.step === "creep" ? moonSeat : cat.pos;
+          if (moon.cat === "lead") leadWant = want;
+          else followWant = want;
+        }
+      }
+
       if (ride.riding && !run && !rushing) {
         leadWant = grey.pos;
 
@@ -3302,14 +3467,124 @@ export function Companion({ facts }: CompanionProps) {
         }
       }
 
+      /*
+       * Round 21: a walk goes round blocks of text rather than across them
+       * (`routeAround`); the places they walk to are probed clear already.
+       */
+      // Every walk but these: a tour walks its stops on a clock, the escort
+      // and a duck out of a fast scroll race one, a chase goes where the
+      // visitor's pointer leads, and the panel's corner and a nap spot are
+      // the companion's own furniture.
+      const routes =
+        !run && !rushing && !chase && forced !== "tour" && forced !== "corner" && forced !== "nap" && groundCached();
+      const band = routes ? boundsFor(viewport(), safeTop()) : null;
+      /** What a walk goes round: words. Links and buttons it passes under
+       *  instead (`passUnder`): routed round them too, a cat in a stack of
+       *  full-width timeline rows paced their edges until her walk timed out. */
+      const obstacles = band ? groundProse() : [];
+      /** At most two detours per destination, each held until reached:
+       *  re-routing every frame let a cat in dense text ping-pong between two
+       *  corners. */
+      const viaFor = (key: "lead" | "follow", pos: Point, want: Point): Point => {
+        if (!band || distance(pos, want) <= 4) return want;
+        let d = detours.current[key];
+        if (!d || distance(d.target, want) > 4) d = detours.current[key] = { target: want, via: null, used: 0 };
+        if (d.via && distance(pos, d.via) < 4) d.via = null;
+        if (d.via) return d.via;
+        // Two corners at most: round a block of text and back past its far end.
+        if (d.used >= 2) return want;
+        d.used += 1;
+        const via = routeAround(pos, want, obstacles, CAT_W, CAT_H, band);
+        if (via !== want) d.via = via;
+        return via;
+      };
+      /*
+       * And where it stops: whatever placed it (a perch's trailing seat, a
+       * mate spot, an explorer's stop), a destination on a link, a button or a
+       * block of words is moved to
+       * clear ground (round 21 review): the least nudge that clears it, else
+       * the nearest clear spot. Also while the page carries them: a ride can
+       * pin a cat to the edge of the window over whatever scrolls under it.
+       * Not the panel's corner nor a nap spot, which are chosen around the
+       * companion's own furniture.
+       */
+      // Words as well as controls: a stop's probes can leave the cat's side
+      // over the end of a line (Contact's lede at 1280); a nudge fixes it.
+      const controlsHere = band ? [...groundControls(), ...obstacles] : [];
+      const offControls = (want: Point, other: Point): Point => {
+        // Not a requested scene's stage nor a scene's own marks: those are
+        // probed for the scene and snapped to on arrival.
+        if (!band || forced === "corner" || forced === "nap" || walking || beat) return want;
+        const blocking = (p: Point) =>
+          controlsHere.find(
+            (r) => p.x + 2 < r.right && p.x + CAT_W - 2 > r.left && p.y + 1 < r.bottom && p.y + CAT_H - 1 > r.top,
+          );
+        const block = blocking(want);
+        if (!block) return want;
+        const nudges = [
+          { x: want.x, y: block.bottom - 1 },
+          { x: want.x, y: block.top - CAT_H + 1 },
+          { x: block.right - 2, y: want.y },
+          { x: block.left - CAT_W + 2, y: want.y },
+        ]
+          .map((p) => clampToViewport(p))
+          .sort((a, b) => distance(a, want) - distance(b, want));
+        let moved = want;
+        for (const p of nudges) {
+          // Never onto the other cat: a nudge that only clears the control by
+          // stepping into him leaves her walking on the spot on top of him.
+          const onOther = Math.abs(p.x - other.x) < CAT_W && Math.abs(p.y - other.y) < CAT_H;
+          if (!onOther && !blocking(p) && isClearSpot(p) && headClear(p)) {
+            moved = p;
+            break;
+          }
+        }
+        if (moved === want) {
+          const spot = findClearSpot(want, home, other, { preferHead: true });
+          if (!blocking(spot) && headClear(spot)) moved = spot;
+        }
+        // An explorer's stop moves with it, or she would never count as
+        // arrived there and her stay would never start.
+        const plan = exploreRun.current;
+        if (moved !== want && plan) {
+          if (distance(plan.spots.lead, want) < 1) plan.spots = { ...plan.spots, lead: moved };
+          else if (distance(plan.spots.follow, want) < 1) plan.spots = { ...plan.spots, follow: moved };
+        }
+        return moved;
+      };
+      /**
+       * Which way each cat is going round a block, per destination, and
+       * whether going round is getting her anywhere: two and a half seconds
+       * with no ground gained on the destination (following the whole length
+       * of a long lede takes about two) and she walks straight on to it
+       * instead — between two blocks that each send her round the other,
+       * sliding alone paced on the spot.
+       */
+      const slideMemo = (key: "lead" | "follow", pos: Point, want: Point) => {
+        let m = slides.current[key];
+        if (!m || distance(m.target, want) > 4) {
+          m = slides.current[key] = { target: want, x: undefined, y: undefined, best: Infinity, stall: 0, off: false };
+        }
+        const away = distance(pos, want);
+        if (away < m.best - 2) {
+          m.best = away;
+          m.stall = 0;
+        } else if ((m.stall += frames) > 150) m.off = true;
+        return m;
+      };
+      leadWant = viaFor("lead", grey.pos, offControls(leadWant, tabby.pos));
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
-      const leadStep = advance(
+      const leadFrom = { x: grey.pos.x, y: grey.pos.y };
+      let leadStep = advance(
         grey.pos,
         leadWant,
-        run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : LEAD_SPEED,
+        run ? ESCORT_SPEED : beat?.dash ? DASH_SPEED : moon?.cat === "lead" ? CREEP_SPEED : LEAD_SPEED,
         frames,
       );
+      // The backstop: a step slides along words rather than onto them.
+      const leadSlide = band ? slideMemo("lead", leadFrom, leadWant) : null;
+      if (band && leadSlide && !leadSlide.off) leadStep = stepOffText(grey.pos, leadFrom, leadWant, obstacles, band, leadSlide);
       /**
        * The same movement as a *speed* rather than a distance, because every
        * threshold below asks a question about speed — "is he really walking",
@@ -3434,6 +3709,7 @@ export function Companion({ facts }: CompanionProps) {
       // the value `advance` actually sees below, so it is the one that has
       // to be frozen last.
       if (ride.riding && !run && !rushing) followWant = tabby.pos;
+      if (moon?.cat === "follow") followWish = Math.min(followWish, CREEP_SPEED);
 
       tabby.speed = ramp(tabby.speed, followWish, frames);
       // Routed round the lead from each placement until she first arrives at a
@@ -3458,7 +3734,22 @@ export function Companion({ facts }: CompanionProps) {
       }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
-      const followStep = advance(tabby.pos, followWant, tabby.speed, frames);
+      // Not while she is being routed round him: her target then is a
+      // waypoint that moves with him, and nudging it bounced her between two
+      // nudges on top of him (the hero perch at 390).
+      const followOff = routing.current ? followWant : offControls(followWant, grey.pos);
+      // Her speed was ramped towards the old target above; one moved off a
+      // control has to be walked to, even from a standstill.
+      if (followOff !== followWant) {
+        tabby.speed = Math.max(tabby.speed, ramp(tabby.speed, followTarget(distance(tabby.pos, followOff), 0), frames));
+      }
+      followWant = viaFor("follow", tabby.pos, followOff);
+      const followFrom = { x: tabby.pos.x, y: tabby.pos.y };
+      let followStep = advance(tabby.pos, followWant, tabby.speed, frames);
+      const followSlide = band ? slideMemo("follow", followFrom, followWant) : null;
+      if (band && followSlide && !followSlide.off) {
+        followStep = stepOffText(tabby.pos, followFrom, followWant, obstacles, band, followSlide);
+      }
       /** Her half of `leadRate` above, and for the same reason. */
       const followRate = frames > 0 ? followStep / frames : 0;
       // Round 14, her half of the same rule the lead gets above: once she has
@@ -3507,6 +3798,21 @@ export function Companion({ facts }: CompanionProps) {
       }
       if (followRate > 0.3) tabby.phase = (tabby.phase + followStep * 0.0115) % 1;
       else if (tabby.pose !== "sleep") tabby.phase = (tabby.phase + SIT_SWAY_RATE.tabby * swayFrames) % 1;
+
+      // The surprise's poses, over whatever the chains above chose.
+      if (moon && moonSeat && moonDrawing) {
+        const cat = moon.cat === "lead" ? grey : tabby;
+        const next = advanceSurprise(moon, now, distance(cat.pos, moonSeat) < 4);
+        surpriseRef.current = next;
+        if (next && next.step !== "creep") {
+          const drawn = surprisePose(next.step);
+          calmIdle(cat, now);
+          cat.pose = drawn.pose;
+          cat.facing = surpriseFacing(cat.pos, moonDrawing);
+          if (moon.cat === "lead") leadHopping = drawn.hopping;
+          else followHopping = drawn.hopping;
+        }
+      }
 
       /* ---------------------------------------------------------- police -- */
 
@@ -3587,7 +3893,10 @@ export function Companion({ facts }: CompanionProps) {
           const speakerPos = speaking.speaker === "grey" ? grey.pos : tabby.pos;
           const otherPos = speaking.speaker === "grey" ? tabby.pos : grey.pos;
           invalidateGround();
-          thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos);
+          // Head band preferred (round 21 review): he stood on "Taylors, SC".
+          thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos, {
+            preferHead: true,
+          });
           thienSpeaker.current = speaking.speaker;
         }
         const target = thienTarget.current;
@@ -3649,6 +3958,9 @@ export function Companion({ facts }: CompanionProps) {
 
       paint(leadNode.current, grey.pos);
       paint(followNode.current, tabby.pos);
+      // A cat whose way crosses a link or a button passes under it.
+      passUnder(leadNode.current, grey.pos, -LEAD_PAD_X, -LEAD_PAD_Y, CAT_W + LEAD_PAD_X * 2, CAT_H + LEAD_PAD_Y * 2);
+      passUnder(followNode.current, tabby.pos, 0, 0, CAT_W, CAT_H);
       // One box test, computed from the positions just painted: while the two
       // buttons truly overlap only the lead's can be pressed. Overlap only, not
       // a spacing band: both targets are at least 24x24, so 2.5.8 and axe fail
@@ -3819,8 +4131,6 @@ export function Companion({ facts }: CompanionProps) {
           // go — on the next frame, not the next tick.
           ride.riding,
       });
-      const swaying = cadence === "idle";
-
       const next: Frame = {
         lead: {
           pose: grey.pose,
@@ -3829,7 +4139,6 @@ export function Companion({ facts }: CompanionProps) {
           blinking: leadBlink,
           flick: leadFlick,
           hopping: leadHopping,
-          swaying,
         },
         follow: {
           pose: tabby.pose,
@@ -3838,7 +4147,6 @@ export function Companion({ facts }: CompanionProps) {
           blinking: followBlink,
           flick: followFlick,
           hopping: followHopping,
-          swaying,
         },
         police: policeVisual,
       };
@@ -4736,6 +5044,52 @@ export function Companion({ facts }: CompanionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourView !== null]);
 
+  /*
+   * The parked pair is a fixed button in a corner, so whatever scrolls under it
+   * is covered — round 21 caught it sitting on the hero's tags on phones. After
+   * a scroll settles, on a resize and on every focus move, it takes the first
+   * corner spot that covers no control (`pickCorner`).
+   */
+  useEffect(() => {
+    if (roams || !roaming) return;
+    const width = CAT_W * 2 + LEAD_PAD_X * 2;
+    const height = CAT_H + LEAD_PAD_Y * 2;
+    let timer = 0;
+    const place = () => {
+      timer = 0;
+      const active = document.activeElement;
+      const focused =
+        active && active !== document.body && !active.closest("[data-companion]")
+          ? active.getBoundingClientRect()
+          : null;
+      // Measured fresh: the parked pair runs no loop to invalidate `viewport()`.
+      invalidateViewport();
+      const view = viewport();
+      const picked = pickCorner(view, { width, height }, controlRectsInView(), focused);
+      const dx = picked.peek
+        ? width + CORNER_INSET - PEEK
+        : picked.side === "left"
+          ? width + 2 * CORNER_INSET - view.width
+          : 0;
+      const next = { ...picked, dx };
+      setCorner((now) => (now.dx === next.dx && now.lift === next.lift ? now : next));
+    };
+    const later = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(place, 150);
+    };
+    place();
+    window.addEventListener("scroll", later, { passive: true });
+    window.addEventListener("resize", later);
+    document.addEventListener("focusin", place);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", later);
+      window.removeEventListener("resize", later);
+      document.removeEventListener("focusin", place);
+    };
+  }, [roams, roaming]);
+
   function sendToBed() {
     setOpen(false);
     endTour();
@@ -4761,6 +5115,8 @@ export function Companion({ facts }: CompanionProps) {
   }
 
   const showRoamers = roaming || escort === "herding";
+  // The panel opens over the home corner, so the pair go home while it is up.
+  const parkedAt = open ? HOME_CORNER : corner;
   const police = frame.police ?? RESTING_VISUAL;
 
   const leadDrawing = roams ? (
@@ -4775,7 +5131,7 @@ export function Companion({ facts }: CompanionProps) {
     // Parked in the corner with nothing to chase, both cats sit in the button
     // itself — there is no second element to position when nothing moves.
     <span className="flex items-end">
-      <CompanionCat variant="tabby" {...frame.follow} />
+      {visiting ? <span style={{ width: CAT_W }} /> : <CompanionCat variant="tabby" {...frame.follow} />}
       <CompanionCat variant="grey" {...frame.lead} />
     </span>
   );
@@ -4806,7 +5162,9 @@ export function Companion({ facts }: CompanionProps) {
       data-cat-tour={tourView ? "true" : undefined}
       data-cat-intent={intent ?? undefined}
       data-cat-cheer={cheer ? "true" : undefined}
-      className="no-print pointer-events-none fixed inset-0 z-40"
+      // Clipped: a peeking pair (`pickCorner`) and a cat entering from the
+      // edge must not widen the page.
+      className="no-print pointer-events-none fixed inset-0 z-40 overflow-clip"
     >
       {/* The toy, under the cats in paint order so a paw lands on top of it.
           Decoration in the strictest sense: no accessible name, no pointer
@@ -4864,7 +5222,6 @@ export function Companion({ facts }: CompanionProps) {
             // transition layered over a per-frame write fights the loop and
             // smears the motion. When not roaming, the pair is simply pinned to
             // the corner.
-            !roams && "bottom-6 right-6",
           )}
           // The margin around the drawing is the hit target, and while the loop
           // owns the transform the button is inset by exactly that margin: the
@@ -4875,9 +5232,22 @@ export function Companion({ facts }: CompanionProps) {
           // probe is measuring when it says a spot is clear. The box itself is
           // untouched: 58×48 of target either way.
           style={{
+            // Parked, the button keeps both seats while Mi is off visiting
+            // (MoonVisit): her place in it is simply empty.
             width: (roams ? CAT_W : CAT_W * 2) + LEAD_PAD_X * 2,
             height: CAT_H + LEAD_PAD_Y * 2,
-            ...(roams ? { left: -LEAD_PAD_X, top: -LEAD_PAD_Y } : null),
+            ...(roams
+              ? { left: -LEAD_PAD_X, top: -LEAD_PAD_Y }
+              : {
+                  right: CORNER_INSET,
+                  bottom: CORNER_INSET,
+                  // Moved by transform, not by its insets: a fixed box whose
+                  // insets change is a layout shift (CLS), a transform is not.
+                  transform:
+                    parkedAt.dx !== 0 || parkedAt.lift > 0
+                      ? `translate(${parkedAt.dx}px, ${-parkedAt.lift}px)`
+                      : undefined,
+                }),
           }}
         >
           {leadDrawing}
@@ -5020,6 +5390,8 @@ export function Companion({ facts }: CompanionProps) {
           </span>
         </div>
       ) : null}
+
+      {!roams && roaming ? <MoonVisit onVisit={setVisiting} /> : null}
 
       {open ? (
         <ToolkitPanel

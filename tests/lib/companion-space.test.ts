@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CAT_H, CAT_W } from "@/components/companion/CompanionCat";
 import {
+  CORNER_INSET,
+  PEEK,
+  pickCorner,
+  slideOffText,
   boundsFor,
   clampToViewport,
   clearsControls,
@@ -1025,5 +1029,87 @@ describe("followerMuted", () => {
     expect(followerMuted(lead, at(180, 100))).toBe(false); // 22px apart
     expect(followerMuted(lead, at(120, 148))).toBe(false); // touching below
     expect(followerMuted(lead, at(0, 0))).toBe(false);
+  });
+});
+
+describe("pickCorner", () => {
+  const view = { width: 390, height: 844 };
+  const size = { width: 108, height: 48 };
+  it("stays in the bottom-right corner when nothing is there", () => {
+    expect(pickCorner(view, size, [])).toEqual({ side: "right", lift: 0 });
+  });
+
+  it("moves to the other corner, then up, off a control", () => {
+    const tagRight = { left: 210, right: 370, top: 700, bottom: 840 };
+    expect(pickCorner(view, size, [tagRight])).toEqual({ side: "left", lift: 0 });
+    const row = { left: 0, right: 390, top: 760, bottom: 830 };
+    const placed = pickCorner(view, size, [row]);
+    expect(placed.lift).toBeGreaterThan(0);
+    const bottom = view.height - CORNER_INSET - placed.lift;
+    expect(bottom).toBeLessThanOrEqual(row.top);
+  });
+
+  it("peeks in from the right edge when every corner spot covers a control", () => {
+    // Full-width rows with 40px gaps: a 48px pair fits in none of them.
+    const rows = Array.from({ length: 12 }, (_, i) => ({ left: 16, right: 374, top: i * 88, bottom: i * 88 + 48 }));
+    const placed = pickCorner(view, size, rows);
+    // No spot is clear, and the peek covers least: a sliver of the rows'
+    // right-hand padding, x 360..374, never what is written in them.
+    expect(placed.peek).toBe(true);
+    expect(view.width - PEEK).toBeGreaterThan(374 - 18);
+  });
+
+  it("never sits on the focused control", () => {
+    const everything = { left: 0, right: 390, top: 0, bottom: 844 };
+    const focused = { left: 300, right: 390, top: 700, bottom: 844 };
+    const placed = pickCorner(view, size, [everything], focused);
+    const bottom = view.height - CORNER_INSET - placed.lift;
+    expect(bottom <= focused.top || placed.side === "left").toBe(true);
+  });
+});
+
+describe("slideOffText", () => {
+  const line = { left: 100, right: 600, top: 300, bottom: 330 };
+  it("lets a step that touches no words through", () => {
+    expect(slideOffText({ x: 0, y: 0 }, { x: 4, y: 4 }, { x: 40, y: 40 }, [line])).toEqual({ x: 4, y: 4 });
+  });
+  it("slides along a line towards a destination past its end, at the step's full length", () => {
+    const slid = slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 650, y: 900 }, [line]);
+    expect(slid.y).toBe(250);
+    expect(slid.x).toBeCloseTo(212.6, 1);
+  });
+  it("follows the line to its end on the destination's side when the destination is behind its middle", () => {
+    // Destination below and a little left of the middle (350): the left end.
+    expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line])).toEqual({ x: 388, y: 250 });
+    // Still left from the left half: the side does not flip as the cat moves.
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 300, y: 400 }, [line]).x).toBe(188);
+  });
+  it("goes round the end it can reach when the other is past the cats' band", () => {
+    // Destination above-left, but the line's top is too close to the band's.
+    const band = { minX: 8, maxX: 1382, minY: 280, maxY: 850 };
+    const tall = { left: 100, right: 600, top: 290, bottom: 700 };
+    const slid = slideOffText({ x: 610, y: 400 }, { x: 590, y: 398 }, { x: 0, y: 300 }, [tall], band);
+    expect(slid.x).toBe(610);
+    expect(slid.y).toBeCloseTo(420.1, 1);
+  });
+  it("keeps going round the way it started for this destination", () => {
+    // Behind the middle, destination low and left: it would pick the left end.
+    const memo: { x?: 1 | -1; y?: 1 | -1 } = {};
+    expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line], null, memo).x).toBe(388);
+    expect(memo.x).toBe(-1);
+    // Told it went right last time, it keeps going right.
+    const right: { x?: 1 | -1 } = { x: 1 };
+    expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line], null, right).x).toBe(412);
+  });
+  it("crosses when it cannot slide", () => {
+    const wall = { left: 0, right: 196, top: 240, bottom: 300 };
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line, wall])).toEqual({ x: 200, y: 262 });
+  });
+  it("walks straight to a stop that itself touches the words", () => {
+    // The stop's feet 4px into the line: arrive, do not pace beside it.
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 258 }, { x: 200, y: 262 }, [line])).toEqual({ x: 200, y: 258 });
+  });
+  it("lets a cat already on words walk off them", () => {
+    expect(slideOffText({ x: 200, y: 300 }, { x: 200, y: 296 }, { x: 200, y: 0 }, [line])).toEqual({ x: 200, y: 296 });
   });
 });

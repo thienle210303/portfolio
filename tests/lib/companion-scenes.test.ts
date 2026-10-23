@@ -785,14 +785,17 @@ describe("heldExploreClear", () => {
     expect(heldExploreClear(stop, true)).toBe(true);
   });
 
-  it("re-checks a perch by its lead's three-point probe alone, as it was picked", () => {
+  it("re-checks a perch by its lead's probe and head band, as it was picked", () => {
     const lead = { x: 100, y: 100 };
     const follow = { x: 700, y: 100 };
     ground();
     const stop = holdExplore({ lead, follow }, true);
-    // Her spot is never walked to on a perch, and his head band was never read.
-    ground([follow.x - 10, -FAR, FAR, FAR], [-FAR, lead.y + 12, FAR, lead.y + 20]);
+    // Her spot is never walked to on a perch.
+    ground([follow.x - 10, -FAR, FAR, FAR]);
     expect(heldExploreClear(stop)).toBe(true);
+    // Round 21: perches are picked head and all, so text under his head drops it.
+    ground([-FAR, lead.y + 12, FAR, lead.y + 20]);
+    expect(heldExploreClear(stop)).toBe(false);
     ground([-FAR, lead.y + 30, FAR, FAR]);
     expect(heldExploreClear(stop)).toBe(false);
   });

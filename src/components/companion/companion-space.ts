@@ -124,6 +124,21 @@ const OCCUPIED = [
   "[data-cat-avoid]",
 ].join(",");
 
+/** Everything on the page a visitor can press or focus. */
+const CONTROLS =
+  "a[href],button,input,select,textarea,summary,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
+
+/**
+ * What a cat passes under and never rests on (`passUnder`, `offControls` in
+ * Companion.tsx), and what a speech bubble keeps off: every control, and the
+ * Record's cards, rows and stamps (round 21 review: cats rested on them at 414
+ * and 1280), which are list items.
+ */
+const PASS_UNDER = `${CONTROLS},#record li`;
+
+/** Blocks of words: a walk goes round them (`routeAround`). */
+const PROSE = "p,h1,h2,h3,h4,h5,h6,dt,dd,blockquote,figcaption,label";
+
 /** How close to the viewport edge a cat may sit. Enough that it is never
  *  clipped, small enough that the page gutter still counts as whitespace. */
 const EDGE = 8;
@@ -313,6 +328,13 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * view before the next rebuild.
  */
 let ground: readonly RectLike[] | null = null;
+/** The subset of `ground` cats pass under and never rest on (`PASS_UNDER`),
+ *  cached with it; the speech bubbles keep off it too (`groundControls`). */
+let controls: readonly RectLike[] = [];
+/** The elements behind `controls`, in the same order. */
+let controlEls: readonly Element[] = [];
+/** And the subset that is prose (`PROSE`): what a walk goes round. */
+let prose: readonly RectLike[] = [];
 /** The scroll offset `ground` was measured at, or last synced to. */
 let groundAt = { x: 0, y: 0 };
 
@@ -336,12 +358,15 @@ export function shiftGround(dx: number, dy: number): void {
   // `step` syncs every frame; a zero shift must not re-map the whole cache.
   if (!ground || (dx === 0 && dy === 0)) return;
   groundAt = { x: groundAt.x + dx, y: groundAt.y + dy };
-  ground = ground.map((box) => ({
+  const shift = (box: RectLike) => ({
     left: box.left - dx,
     top: box.top - dy,
     right: box.right - dx,
     bottom: box.bottom - dy,
-  }));
+  });
+  ground = ground.map(shift);
+  controls = controls.map(shift);
+  prose = prose.map(shift);
 }
 
 /**
@@ -359,6 +384,9 @@ function groundRects(): readonly RectLike[] {
   groundAt = { x: window.scrollX, y: window.scrollY };
   const view = viewport();
   const rects: RectLike[] = [];
+  const pressable: RectLike[] = [];
+  const pressableEls: Element[] = [];
+  const text: RectLike[] = [];
   for (const element of document.querySelectorAll(OCCUPIED)) {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
@@ -368,9 +396,129 @@ function groundRects(): readonly RectLike[] {
     const style = getComputedStyle(element);
     if (style.pointerEvents === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
     rects.push(box);
+    if (element.matches(PASS_UNDER)) {
+      pressable.push(box);
+      pressableEls.push(element);
+    }
+    if (element.matches(PROSE)) text.push(box);
   }
   ground = rects;
+  controls = pressable;
+  controlEls = pressableEls;
+  prose = text;
   return rects;
+}
+
+/** The prose in the current ground epoch, in viewport coordinates. */
+export function groundProse(): readonly RectLike[] {
+  groundRects();
+  return prose;
+}
+
+/**
+ * Whether a cat can walk straight from `from` to `to` without its box crossing
+ * a block of text (round 21: the explorers prefer such stops, so their walks
+ * stay off a lede or a caption). Text the cat is on at either end does not
+ * count: it is leaving it, or the stop was probed clear without it.
+ */
+export function walkClear(from: Point, to: Point): boolean {
+  const d = { x: to.x - from.x, y: to.y - from.y };
+  for (const r of groundProse()) {
+    const g = { left: r.left - CAT_W, right: r.right, top: r.top - CAT_H, bottom: r.bottom };
+    const on = (p: Point) => p.x > g.left && p.x < g.right && p.y > g.top && p.y < g.bottom;
+    if (on(from) || on(to)) continue;
+    let t0 = 0;
+    let t1 = 1;
+    let hit = true;
+    for (const [p, dp, lo, hi] of [
+      [from.x, d.x, g.left, g.right],
+      [from.y, d.y, g.top, g.bottom],
+    ] as const) {
+      if (Math.abs(dp) < 1e-9) {
+        if (p <= lo || p >= hi) hit = false;
+      } else {
+        const ta = Math.min((lo - p) / dp, (hi - p) / dp);
+        const tb = Math.max((lo - p) / dp, (hi - p) / dp);
+        t0 = Math.max(t0, ta);
+        t1 = Math.min(t1, tb);
+        if (t0 >= t1) hit = false;
+      }
+    }
+    if (hit) return false;
+  }
+  return true;
+}
+
+/**
+ * The backstop under `routeAround`: a step from `prev` to `next` that would
+ * put the cat's drawing onto a block of words it was not already on slides
+ * along it instead, at the step's full length: towards `want` (never past
+ * it) when `want` lies beyond the block's end, else towards the block's end
+ * on `want`'s side, so a cat behind a wide block follows its edge round it.
+ * The side is the destination's, not the cat's: chosen by where the cat
+ * stands, it flipped as she crossed the block's middle and she paced there
+ * for good. `rects` is the words. Inset by 3px, the empty margin of a sprite cell, so
+ * grazing a line is not touching it.
+ */
+export function slideOffText(
+  prev: Point,
+  next: Point,
+  want: Point,
+  rects: readonly RectLike[] = groundProse(),
+  band: { readonly minX: number; readonly maxX: number; readonly minY: number; readonly maxY: number } | null = null,
+  /** The way this cat last went round a block on its way to this `want`: kept,
+   *  so two stacked blocks with ends on opposite sides cannot bounce her
+   *  between them. The caller resets it when the destination changes. */
+  memo: { x?: 1 | -1; y?: 1 | -1 } = {},
+): Point {
+  const hits = (p: Point, inset = 3) =>
+    rects.find(
+      (r) =>
+        p.x + inset < r.right && p.x + CAT_W - inset > r.left && p.y + inset < r.bottom && p.y + CAT_H - inset > r.top,
+    );
+  const block = hits(next);
+  // Already on it means well on it: a stop's probes leave a cat's feet a few
+  // pixels into a line's box, and a cat leaving such a stop must still go
+  // round the line, not straight across it.
+  // And a destination that itself touches the block is arrived at straight:
+  // sliding off a block the stop touches only paces beside it, never there.
+  if (!block || hits(prev, 9) || hits(want)) return next;
+  const step = Math.hypot(next.x - prev.x, next.y - prev.y);
+  const reach = (from: number, to: number) => from + clamp(to - from, -step, step);
+  const vertical = Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x);
+  // Is the destination clear of this block on the other axis? Then slide
+  // along the block towards it; if not, sliding towards it only walks back to
+  // the block's middle, so follow the block's edge to its nearer end instead.
+  const pastX = want.x + CAT_W - 3 <= block.left || want.x + 3 >= block.right;
+  const pastY = want.y + CAT_H - 3 <= block.top || want.y + 3 >= block.bottom;
+  let slide: Point;
+  if (vertical) {
+    // The end on want's side, unless the cats' band cannot reach round it.
+    let leftEnd = want.x + CAT_W / 2 <= (block.left + block.right) / 2;
+    if (band && leftEnd && block.left - CAT_W < band.minX) leftEnd = false;
+    else if (band && !leftEnd && block.right > band.maxX) leftEnd = true;
+    memo.x ??= leftEnd ? -1 : 1;
+    slide = pastX ? { x: reach(prev.x, want.x), y: prev.y } : { x: prev.x + memo.x * step, y: prev.y };
+  } else {
+    let topEnd = want.y + CAT_H / 2 <= (block.top + block.bottom) / 2;
+    if (band && topEnd && block.top - CAT_H < band.minY) topEnd = false;
+    else if (band && !topEnd && block.bottom > band.maxY) topEnd = true;
+    memo.y ??= topEnd ? -1 : 1;
+    slide = pastY ? { x: prev.x, y: reach(prev.y, want.y) } : { x: prev.x, y: prev.y + memo.y * step };
+  }
+  // A slide that does not move, or moves onto something else, is no slide:
+  // it goes on (a cat held against a line until her walk times out reads as
+  // stuck, which is worse than a crossing).
+  const inBand = (p: Point) =>
+    !band || (p.x >= band.minX - 0.5 && p.x <= band.maxX + 0.5 && p.y >= band.minY - 0.5 && p.y <= band.maxY + 0.5);
+  if ((slide.x !== prev.x || slide.y !== prev.y) && !hits(slide) && inBand(slide)) return slide;
+  return next;
+}
+
+/** The controls in the current ground epoch, in viewport coordinates. */
+export function groundControls(): readonly RectLike[] {
+  groundRects();
+  return controls;
 }
 
 function occupied(x: number, y: number): boolean {
@@ -856,8 +1004,9 @@ function overlaps(a: Point, b: Point): boolean {
  *  - `tourStopSpots`'s `restSpots` fallback, which is recomputed every frame
  *    too, but from a fixed anchor by the section's top edge rather than a cat's
  *    position: off for the per-frame cost, not for feedback.
- *  - Mini-Thien's spot, probed once per change of speaker: he is not a cat,
- *    and the head band is the cat drawing's geometry, not his.
+ *  (Mini-Thien's spot, probed once per change of speaker, passes it too since
+ *  round 21: the band is the cat drawing's geometry, but its rows sit at his
+ *  face's height, and without it he stood on "Taylors, SC".)
  *
  * Bounded work: fifteen candidates × three rect checks, plus fifteen × nine
  * with `preferHead`.
@@ -1005,6 +1154,9 @@ export function pickExploreSpot(
   top: number,
   probe: (point: Point) => boolean,
   rng: () => number,
+  // Round 21: a spot that also passes this is taken at once; otherwise the
+  // first that passes `probe` once the tries run out (`walkClear`).
+  prefer: (point: Point) => boolean = () => true,
 ): Point | null {
   const { minX, maxX, minY, maxY } = boundsFor(view, top);
   // Left of this a cat's centre is in the left half.
@@ -1013,23 +1165,24 @@ export function pickExploreSpot(
   const sample = (side: Half): Point | null => {
     const lo = side === "left" ? minX : split;
     const hi = side === "left" ? split : maxX;
+    let fallback: Point | null = null;
     for (let tries = 0; tries < EXPLORE_TRIES; tries += 1) {
       const point = { x: lo + rng() * (hi - lo), y: minY + rng() * (maxY - minY) };
       if (!probe(point)) continue;
       if (other && !exploreApart(point, other)) continue;
-      return point;
+      if (prefer(point)) return point;
+      fallback ??= point;
     }
-    return null;
+    return fallback;
   };
 
   return sample(half) ?? sample(half === "left" ? "right" : "left");
 }
 
 /**
- * A small FNV-1a hash into `0..1` — the same shape `list-ink.tsx` and
- * `DrawnTree.tsx` already use for their own per-branch variation, kept as a
- * private copy here for the same reason theirs are private to each other:
- * this is a handful of lines, not a shared dependency worth a third module.
+ * A small FNV-1a hash into `0..1` — the same shape `DrawnTree.tsx` uses for
+ * its own per-branch variation, kept as a private copy here: a handful of
+ * lines, not a shared dependency worth a module.
  */
 function hash01(seed: string): number {
   let h = 2166136261;
@@ -1111,4 +1264,112 @@ export function syncTone(node: HTMLElement | null, at: Point): void {
   node.classList.toggle("tone-contrast", zone?.classList.contains("tone-contrast") === true);
   node.classList.toggle("tone-deep", zone?.classList.contains("tone-deep") === true);
   node.toggleAttribute("data-paper", behind?.closest(".bg-surface") != null);
+}
+
+/* ------------------------------------------------------- the parked pair -- */
+
+/** Where the parked pair (touch, reduced motion) sits: a corner, and how far
+ *  above the bottom inset. */
+export interface Corner {
+  readonly side: "right" | "left";
+  readonly lift: number;
+  /** Tucked off the right edge with only `PEEK` px showing. */
+  readonly peek?: boolean;
+}
+
+/** How much of a peeking pair stays on screen: a WCAG 2.5.8 target and a face. */
+export const PEEK = 30;
+
+/** The inset of the parked pair from the viewport's corner (`bottom-6`). */
+export const CORNER_INSET = 24;
+const LIFT_STEP = 56;
+
+/**
+ * The parked pair is a fixed button, so it sits over whatever scrolls under
+ * its corner — and it should never cover a control (WCAG 2.4.11, Focus Not
+ * Obscured, and the owner's rule). Tries the bottom-right corner, then
+ * bottom-left, then each side a step higher at a time, up to the header; the
+ * first spot that touches no control wins. Covering text is allowed — a
+ * corner button always will. Where every spot covers something (a stack of
+ * full-width rows on a phone), the pair tuck off the right edge and peek in,
+ * `PEEK` px of them showing, at the first height that covers nothing; failing
+ * even that, the spot that covers least. Never the `focused` control: the one
+ * a keyboard visitor is on is always in view.
+ */
+export function pickCorner(
+  view: { readonly width: number; readonly height: number },
+  size: { readonly width: number; readonly height: number },
+  controls: readonly RectLike[],
+  focused: RectLike | null = null,
+): Corner {
+  let best: Corner = { side: "right", lift: 0 };
+  let least = Infinity;
+  const top = view.height - size.height - CORNER_INSET - 80; // under the sticky header
+  const spots: Corner[] = [];
+  for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift }, { side: "left", lift });
+  for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift, peek: true });
+  for (const spot of spots) {
+    const left = spot.peek
+      ? view.width - PEEK
+      : spot.side === "right"
+        ? view.width - CORNER_INSET - size.width
+        : CORNER_INSET;
+    const bottom = view.height - CORNER_INSET - spot.lift;
+    const box = { left, right: left + size.width, top: bottom - size.height, bottom };
+    if (focused && intersects(box, focused)) continue;
+    let covered = 0;
+    for (const rect of controls) {
+      if (!intersects(box, rect)) continue;
+      covered +=
+        (Math.min(box.right, rect.right) - Math.max(box.left, rect.left)) *
+        (Math.min(box.bottom, rect.bottom) - Math.max(box.top, rect.top));
+    }
+    if (covered === 0) return spot;
+    if (covered < least) {
+      least = covered;
+      best = spot;
+    }
+  }
+  return best;
+}
+
+/**
+ * The controls under `box`, measured live: the cached boxes find the
+ * candidates within 64px (cheap), and each candidate is measured now, so a
+ * card that is still settling is right on the frame it is drawn (round 21
+ * review). Hit-testing the box instead cost 40 `elementsFromPoint` a frame.
+ */
+export function controlRectsUnder(box: RectLike): RectLike[] {
+  groundRects();
+  const near = 64;
+  const found: RectLike[] = [];
+  controls.forEach((cached, i) => {
+    if (
+      cached.right < box.left - near ||
+      cached.left > box.right + near ||
+      cached.bottom < box.top - near ||
+      cached.top > box.bottom + near
+    ) {
+      return;
+    }
+    const live = controlEls[i].getBoundingClientRect();
+    if (live.right > box.left && live.left < box.right && live.bottom > box.top && live.top < box.bottom) {
+      found.push(live);
+    }
+  });
+  return found;
+}
+
+/** Every control on screen, outside the companion, measured now. */
+export function controlRectsInView(): RectLike[] {
+  const view = viewport();
+  const rects: RectLike[] = [];
+  for (const element of document.querySelectorAll(CONTROLS)) {
+    if (element.closest(SELF)) continue;
+    const box = element.getBoundingClientRect();
+    if (box.width <= 0 || box.height <= 0) continue;
+    if (box.bottom < 0 || box.top > view.height || box.right < 0 || box.left > view.width) continue;
+    rects.push(box);
+  }
+  return rects;
 }

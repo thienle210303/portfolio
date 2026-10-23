@@ -516,6 +516,20 @@ async function queueARequest(page: Page): Promise<void> {
   for (const scene of SCENES) {
     await openToolkit(page);
     await page.waitForTimeout(2_500);
+    // Home is the corner, but they may be walking there from far off — the
+    // tree show they were watching seats them beside the tree box — so wait
+    // until the lead has stopped before covering where he stands.
+    await expect
+      .poll(
+        async () => {
+          const a = await catButton(page).boundingBox();
+          await page.waitForTimeout(300);
+          const b = await catButton(page).boundingBox();
+          return a !== null && b !== null && a.x === b.x && a.y === b.y;
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
     const lead = await catButton(page).boundingBox();
     if (!lead) throw new Error("the lead cat has no box");
     await page.evaluate((box) => {
@@ -578,8 +592,11 @@ async function expectNextUnpromptedSceneUnheld(page: Page): Promise<void> {
   expect(unprompted, "the idle timer never opened a scene").not.toBeNull();
 
   const lead = await leadCentre();
+  // Towards the middle of the window: a lead in the right-hand edge band
+  // put a pointer 60px to his right outside it, where no move is reported.
+  const inward = lead.x > DESKTOP_WIDTH / 2 ? -1 : 1;
   for (let i = 0; i < 4; i += 1) {
-    await page.mouse.move(lead.x + 60 - i * 6, lead.y + i * 4);
+    await page.mouse.move(lead.x + inward * (60 - i * 6), lead.y + i * 4);
     await page.waitForTimeout(50);
   }
   expect(
@@ -3760,5 +3777,373 @@ test.describe("companion", () => {
     await expect(page.locator("[data-companion][data-cat-cheer]")).toHaveCount(0, {
       timeout: 3_000,
     });
+  });
+});
+
+/* ------------------------------------------------------------------------ */
+/* Round 21: the cats as sprites, the Moon surprise, the parked pair         */
+/* ------------------------------------------------------------------------ */
+
+test.describe("cats (round 21)", () => {
+  const overlaps = (a: DOMRectLike, b: DOMRectLike) =>
+    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  type DOMRectLike = { left: number; right: number; top: number; bottom: number };
+
+  test("draws each cat as a frame of its own sprite sheet, fetched once", async ({ page }) => {
+    const fetched: string[] = [];
+    page.on("request", (request) => {
+      const path = new URL(request.url()).pathname;
+      if (path.startsWith("/cats/")) fetched.push(path);
+    });
+    await page.goto("/");
+    await page.waitForLoadState("load");
+    await expect(page.locator("[data-companion] svg[data-cat] use").first()).toBeAttached();
+    const sheets = await page.$$eval("[data-companion] svg[data-cat] use", (uses) =>
+      uses.map((use) => use.getAttribute("href")?.replace(/^#cat-(\w+)-.*$/, "$1")),
+    );
+    expect(new Set(sheets)).toEqual(new Set(["moon", "mi"]));
+    // A walk changes the frame many times a second; the sheets stay put.
+    await page.mouse.move(viewportWidth(page) - 20, 200);
+    await page.keyboard.press("Shift");
+    await page.waitForTimeout(4000);
+    expect(fetched.filter((path) => path === "/cats/moon.svg")).toHaveLength(1);
+    expect(fetched.filter((path) => path === "/cats/mi.svg")).toHaveLength(1);
+  });
+
+  test("the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once", async ({
+    page,
+  }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(150_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+
+    const pose = (want: string) =>
+      page.evaluate(
+        (p) =>
+          Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).some(
+            (svg) => svg.getAttribute("data-cat-pose") === p,
+          ),
+        want,
+      );
+    // Keep the reader "active" far from the cats so they go on exploring.
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.move(1380 + Math.random() * 20, 140 + Math.random() * 20);
+          await page.keyboard.press("Shift");
+          return pose("startle");
+        },
+        { timeout: 120_000, intervals: [200], message: "no cat ever startled at Moon, off duty" },
+      )
+      .toBe(true);
+    expect(await page.evaluate(() => sessionStorage.getItem("cats-met-moon"))).toBe("1");
+
+    await expect.poll(() => pose("sniff"), { timeout: 15_000, intervals: [100] }).toBe(true);
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const drawing = document.querySelector("[data-moon-off-duty]")!.getBoundingClientRect();
+            return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).some((svg) => {
+              const box = svg.getBoundingClientRect();
+              const beside = box.right <= drawing.left + 1 || box.left >= drawing.right - 1;
+              const level = Math.abs(box.bottom - drawing.bottom) < 4;
+              const near = Math.min(Math.abs(box.right - drawing.left), Math.abs(box.left - drawing.right)) < 12;
+              return svg.getAttribute("data-cat-pose") === "sit" && beside && level && near;
+            });
+          }),
+        { timeout: 5_000, intervals: [100], message: "she never sat down beside it" },
+      )
+      .toBe(true);
+  });
+
+  test("under reduced motion Mi just sits beside Moon, off duty, once", async ({ browser }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    const context = await browser.newContext({
+      viewport: { width: DESKTOP_WIDTH, height: 900 },
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const visit = page.locator("[data-cat-visit] svg[data-cat]");
+    await expect(visit).toBeVisible();
+    await expect(visit).toHaveAttribute("data-cat-pose", "sit");
+    // Two cats still: Moon in the corner button, Mi on her visit.
+    await expect(page.locator("[data-companion] svg[data-cat]")).toHaveCount(2);
+    const [cat, drawing] = await page.evaluate(() =>
+      ["[data-cat-visit] svg", "[data-moon-off-duty] svg"].map((s) => {
+        const r = document.querySelector(s)!.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      }),
+    );
+    expect(overlaps(cat, drawing)).toBe(false);
+    expect(await page.evaluate(() => sessionStorage.getItem("cats-met-moon"))).toBe("1");
+
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    await page.waitForTimeout(1000);
+    await expect(page.locator("[data-cat-visit]")).toHaveCount(0);
+    await context.close();
+  });
+
+  test("the parked pair stays off the hero's controls, and off whatever has focus", async ({ browser }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    test.setTimeout(90_000);
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      reducedMotion: "reduce",
+    });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    const covered = (focusedOnly: boolean) =>
+      page.evaluate((only) => {
+        const toggle = document.querySelector('[aria-controls="companion-actions"]')!.getBoundingClientRect();
+        const hit = (r: DOMRect) =>
+          r.width > 0 && r.left < toggle.right && r.right > toggle.left && r.top < toggle.bottom && r.bottom > toggle.top;
+        const candidates = only
+          ? [document.activeElement!].filter((el) => el !== document.body)
+          : Array.from(
+              document.querySelectorAll("#about a[href], #about button, #about [tabindex]:not([tabindex='-1'])"),
+            );
+        return candidates
+          .filter((el) => !el.closest("[data-companion]") && hit(el.getBoundingClientRect()))
+          .map((el) => el.textContent?.trim().slice(0, 30) || el.tagName);
+      }, focusedOnly);
+
+    // The hero, where the tags hang: nothing under the cats.
+    const about = await page.evaluate(() => document.getElementById("about")!.scrollHeight);
+    for (let y = 0; y < about; y += 250) {
+      await page.evaluate((top) => window.scrollTo(0, top), y);
+      await page.waitForTimeout(350);
+      expect(await covered(false), `the parked cats cover a hero control at scroll ${y}`).toEqual([]);
+    }
+
+    // Everywhere: whatever a keyboard visitor lands on is never under them.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    for (let i = 0; i < 60; i += 1) {
+      await page.keyboard.press("Tab");
+      await page.waitForTimeout(60);
+      expect(await covered(true), `tab stop ${i} is under the parked cats`).toEqual([]);
+    }
+    await context.close();
+  });
+
+  /** Every `ms` for `seconds`, the cats' boxes that overlap `target`'s, with
+   *  the reader kept active far from them. */
+  async function coverings(
+    page: Page,
+    target: string,
+    seconds: number,
+    fine: boolean,
+    walking: boolean,
+  ): Promise<string[]> {
+    await page.evaluate((js) => {
+      const el = new Function(`return ${js}`)() as Element | Range;
+      const r = el.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + r.top - window.innerHeight / 2 + r.height / 2);
+    }, target);
+    const hits: string[] = [];
+    // `walking`: a cat walking across counts too; otherwise only one resting.
+    for (let i = 0; i < seconds * 5; i += 1) {
+      // A key, not the mouse: a pointer near a cat is a chase, and a chase
+      // goes where the visitor leads it, text or not.
+      if (fine && i % 5 === 0) await page.keyboard.press("Shift");
+      hits.push(
+        ...(await page.evaluate(([js, moving]) => {
+          const el = new Function(`return ${js}`)() as Element | Range;
+          const t = el.getBoundingClientRect();
+          return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]"))
+            .map((svg) => ({ pose: svg.getAttribute("data-cat-pose"), c: svg.getBoundingClientRect() }))
+            .filter(({ pose }) => moving || pose !== "walk")
+            // The drawing, not its box: a cell's outer 3px are empty (ear tips
+            // and paws stop short), so a box that grazes the text is no cat on it.
+            .filter(({ c }) => c.left + 3 < t.right && c.right - 3 > t.left && c.top + 3 < t.bottom && c.bottom - 3 > t.top)
+            .map(({ pose, c }) => `${pose} at ${Math.round(c.left)},${Math.round(c.top)}`);
+        }, [target, walking] as const)),
+      );
+      await page.waitForTimeout(200);
+    }
+    return hits;
+  }
+
+  const WORDIFICATION_YEAR =
+    "[...document.querySelectorAll('#tree a')].find(a => /Wordification/.test(a.textContent)).querySelector('span span:last-child') ?? [...document.querySelectorAll('#tree a')].find(a => /Wordification/.test(a.textContent))";
+  // The words themselves (a Range over the text node), not the paragraph's
+  // padded box, whose top 16px are the postcard's sky.
+  const GREETINGS =
+    "(() => { const r = document.createRange(); r.selectNodeContents([...document.querySelectorAll('#contact p')].find(p => /Greetings from/.test(p.textContent)).firstChild); return r; })()";
+  const LEDE = "document.querySelector('#contact header > p:last-of-type')";
+
+  test("they keep off the Wordification tag's year, Contact's lede and the postcard's greeting", async ({
+    browser,
+  }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewports; run once");
+    test.setTimeout(180_000);
+    const cases = [
+      // Phones: no cat rests on them. At 1280 none even walks over the lede.
+      { width: 390, height: 844, touch: true, target: WORDIFICATION_YEAR, seconds: 3, walking: false },
+      { width: 390, height: 844, touch: false, target: WORDIFICATION_YEAR, seconds: 20, walking: false },
+      { width: 1280, height: 800, touch: false, target: LEDE, seconds: 25, walking: true },
+      { width: 390, height: 844, touch: true, target: GREETINGS, seconds: 3, walking: false },
+      { width: 390, height: 844, touch: false, target: GREETINGS, seconds: 20, walking: false },
+    ];
+    for (const c of cases) {
+      const context = await browser.newContext({
+        viewport: { width: c.width, height: c.height },
+        hasTouch: c.touch,
+        isMobile: c.touch,
+      });
+      const page = await context.newPage();
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("[data-companion] svg[data-cat]").first()).toBeAttached();
+      expect(
+        await coverings(page, c.target, c.seconds, !c.touch, c.walking),
+        `a cat covered ${c.target.slice(0, 60)} at ${c.width}${c.touch ? " (touch)" : ""}`,
+      ).toEqual([]);
+      await context.close();
+    }
+  });
+
+  /*
+   * Round 21 review. A cat never stands on a link or a button, and one whose
+   * walk crosses one passes under it: the part of the cat over the control is
+   * cut away (`data-cat-under`, an even-odd clip), so the control is never
+   * covered. Counted as covering: a walking cat over a control without that
+   * cut, and a cat that has stopped (not walking for eight reads in a row,
+   * about a second) over a control without it. Where the window holds no
+   * clear ground at all (a phone's stack of full-width Record rows), a cat
+   * rests behind a row with only the part beside it showing.
+   * Shorter is not a stop: a cat resting at the top edge rides an instant
+   * scroll there, the page moves a control under it, and it gets up on the
+   * next tick of its loop (an idle tick is 250ms).
+   */
+  const PRESSABLE = "a[href], button";
+  for (const size of [
+    { width: 1366, height: 768, selector: PRESSABLE, record: false },
+    { width: 390, height: 844, selector: PRESSABLE, record: false },
+    // The Record's cards, rows and stamps (list items) as well, where the
+    // review saw cats resting on them.
+    { width: 414, height: 896, selector: `${PRESSABLE}, #record li`, record: true },
+    { width: 1280, height: 800, selector: `${PRESSABLE}, #record li`, record: true },
+  ]) {
+    const what = size.record ? "the Record's cards, rows or stamps" : "a link or a button";
+    test(`a cat never covers ${what}, walking or stopped, at ${size.width}`, async ({ browser }) => {
+      test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+      test.setTimeout(600_000);
+      const context = await browser.newContext({ viewport: size });
+      const page = await context.newPage();
+      await page.goto("/");
+      // "load", not "networkidle": a phone-width page can keep a request open.
+      await page.waitForLoadState("load");
+      await expect(page.locator("[data-companion] svg[data-cat]").first()).toBeAttached();
+      const [from, to] = await page.evaluate((record) => {
+        if (!record) return [0, document.documentElement.scrollHeight];
+        const r = document.querySelector("#record")!.getBoundingClientRect();
+        return [r.top + window.scrollY, r.bottom + window.scrollY];
+      }, size.record);
+      const hits = new Set<string>();
+      let walksUnder = 0;
+      // The hero, the Journey's tags and timeline, Contact: a screen at a time,
+      // 40 reads each, about 6s. Kept active by a key, not a pointer: a
+      // pointer near a cat is a chase, which goes where the visitor leads it.
+      for (let y = from; y < to; y += size.height * 0.9) {
+        await page.evaluate((top) => window.scrollTo(0, top), y);
+        const streak = new Map<string, number>();
+        for (let i = 0; i < 40; i += 1) {
+          if (i % 10 === 0) await page.keyboard.press("Shift");
+          const read = await page.evaluate((selector) => {
+            // Hit tests and boxes both: a control is covered where it is drawn —
+            // a tilted tag's box holds empty corners a cat may cross.
+            const found: Array<{ key: string; walking: boolean; under: boolean }> = [];
+            const controls = new Map<Element, number>();
+            Array.from(document.querySelectorAll(selector)).forEach((el, j) => controls.set(el, j));
+            Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).forEach((svg, k) => {
+              // The drawing, not its box: a cell's outer 3px are empty.
+              const c = svg.getBoundingClientRect();
+              const covered = new Set<Element>();
+              for (let i = 0; i < 4; i += 1) {
+                for (let j = 0; j < 3; j += 1) {
+                  const x = c.left + 3 + ((c.width - 6) * i) / 3;
+                  const y = c.top + 3 + ((c.height - 6) * j) / 2;
+                  for (const el of document.elementsFromPoint(x, y)) {
+                    if (el.closest("[data-companion]")) continue;
+                    const control = el.closest(selector);
+                    if (control) covered.add(control);
+                  }
+                }
+              }
+              for (const el of covered) {
+                // And its box: a hit-area halo (the copy button's 7px ::before)
+                // is pressable but not drawn, so a cat over it covers nothing.
+                const r = el.getBoundingClientRect();
+                if (!(c.left + 3 < r.right && c.right - 3 > r.left && c.top + 3 < r.bottom && c.bottom - 3 > r.top)) {
+                  continue;
+                }
+                found.push({
+                  key: `cat ${k} on ${el.tagName.toLowerCase()}#${controls.get(el)} "${(el.textContent ?? "").trim().slice(0, 28)}"`,
+                  walking: svg.getAttribute("data-cat-pose") === "walk",
+                  under: svg.closest("[data-cat-under]") !== null,
+                });
+              }
+            });
+            return found;
+          }, size.selector);
+          const now = new Set(read.map((r) => r.key));
+          for (const key of [...streak.keys()]) if (!now.has(key)) streak.delete(key);
+          for (const { key, walking, under } of read) {
+            const run = walking ? 0 : (streak.get(key) ?? 0) + 1;
+            streak.set(key, run);
+            if (walking && under) walksUnder += 1;
+            // Not on the read right after the jump: an instant scroll moves the
+            // page this frame and the riding cats on the next.
+            if (walking && !under && i > 0) hits.add(`${size.width}: walking over, not under: ${key} (read ${i})`);
+            if (run >= 8 && !under) hits.add(`${size.width}: stopped on: ${key}`);
+          }
+          await page.waitForTimeout(100);
+        }
+      }
+      expect([...hits], `a cat covered ${what} at ${size.width}`).toEqual([]);
+      test.info().annotations.push({ type: "walks under", description: `${size.width}: ${walksUnder}` });
+      await context.close();
+    });
+  }
+
+  test("while the tree grows they sit beside its box, not in the top-left corner", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
+    test.setTimeout(60_000);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    const started = page.evaluate(
+      () => new Promise<void>((resolve) => document.addEventListener("origin-story", () => resolve(), { once: true })),
+    );
+    await page.evaluate(() => {
+      const box = document.querySelector("[data-tree-box]")!.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + box.top - 100);
+    });
+    await started;
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const box = document.querySelector("[data-tree-box]")!.getBoundingClientRect();
+            const top = Math.max(box.top, 0);
+            const bottom = Math.min(box.bottom, window.innerHeight);
+            return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).every((svg) => {
+              const r = svg.getBoundingClientRect();
+              const mid = (r.top + r.bottom) / 2;
+              return svg.getAttribute("data-cat-pose") !== "walk" && mid > top + (bottom - top) * 0.25 && mid < bottom;
+            });
+          }),
+        { timeout: 20_000, intervals: [250], message: "the watchers never settled beside the tree box" },
+      )
+      .toBe(true);
   });
 });
