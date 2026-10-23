@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
+import { glide } from "@/lib/glide";
 
 // Built once at module scope so the array identity never changes across
 // renders — useActiveSection re-subscribes its observer whenever the
@@ -18,6 +19,12 @@ function prefersReducedMotion(): boolean {
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
+}
+
+/** Glide to a section (a View Transition); a plain scroll where it cannot. */
+function goTo(target: HTMLElement): void {
+  if (glide(target, () => target.scrollIntoView({ block: "start" }))) return;
+  target.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
 }
 
 /** Shared underline element for the active-state indicator. Always in the
@@ -136,10 +143,8 @@ export default function SiteNav() {
       const pendingId = pendingScrollIdRef.current;
       if (pendingId) {
         pendingScrollIdRef.current = null;
-        document.getElementById(pendingId)?.scrollIntoView({
-          behavior: prefersReducedMotion() ? "auto" : "smooth",
-          block: "start",
-        });
+        const pending = document.getElementById(pendingId);
+        if (pending) goTo(pending);
       } else {
         // A fixup, not a navigation: `body` was pinned at `position: fixed`
         // for the lock, which reset its scroll offset to 0, so this is
@@ -188,11 +193,8 @@ export default function SiteNav() {
           // (triggered by setOpen(false) below).
           pendingScrollIdRef.current = sectionId;
         } else {
-          // Desktop: no scroll lock in play, so scroll immediately.
-          target.scrollIntoView({
-            behavior: prefersReducedMotion() ? "auto" : "smooth",
-            block: "start",
-          });
+          // Desktop: no scroll lock in play, so go immediately.
+          goTo(target);
         }
       }
       // Escape restores focus to the toggle button (nothing navigated);

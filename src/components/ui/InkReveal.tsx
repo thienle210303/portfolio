@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect } from "react";
+import { glideOnFragmentClick } from "@/lib/glide";
 
 /**
  * The one reveal primitive behind every settle on the page — the hero's own
@@ -13,7 +14,7 @@ import { useEffect, useLayoutEffect } from "react";
  * either attribute — that is what makes "one observer, N roots" true rather
  * than aspirational.
  *
- * Two independent jobs share this file because they share the "small,
+ * Three independent jobs share this file because they share the "small,
  * global, client-only, renders nothing" shape — same reasoning `Companion`
  * documents for why the cats are one mount rather than several:
  *
@@ -28,6 +29,8 @@ import { useEffect, useLayoutEffect } from "react";
  *      reduced-motion: it swaps a border colour, not a transform, and the
  *      global reduced-motion block already zeroes every `transition`
  *      site-wide — there is nothing here for that preference to collapse.
+ *   3. In-page links — one click listener that glides a fragment link to its
+ *      target through a View Transition (`src/lib/glide.ts`).
  *
  * Job 1 bails outright under reduced motion or with no `IntersectionObserver`
  * (old browser, or a test harness that never polyfills it): with the effect
@@ -116,6 +119,14 @@ export function InkReveal() {
     });
     observer.observe(sentinel);
     return () => observer.disconnect();
+  }, []);
+
+  // 3. In-page links glide to their fragment (round 21 phase 8, `glide.ts`).
+  //    Added after hydration, so a link's own handler (the nav's) runs first
+  //    and its `preventDefault` is seen.
+  useEffect(() => {
+    document.addEventListener("click", glideOnFragmentClick);
+    return () => document.removeEventListener("click", glideOnFragmentClick);
   }, []);
 
   return null;
