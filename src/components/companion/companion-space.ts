@@ -668,6 +668,60 @@ function intersects(a: RectLike, b: RectLike): boolean {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
+/** Whether `box` covers none of the page's controls (the cached ground epoch). */
+export function clearOfControls(box: RectLike): boolean {
+  for (const rect of groundControls()) if (intersects(box, rect)) return false;
+  return true;
+}
+
+/**
+ * Round 21 phase 8: mini-Thien never stands on a control (he stood on the
+ * hero's Taylors tag at 390, and on the postcard's fields at 1440). The
+ * nearest top-left to `want` where a `w`×`h` box covers no control and none
+ * of `keepOut`, preferring one that covers no block of words either; inside
+ * the viewport, under the chrome. Null when nothing clears the controls: he
+ * stays away rather than stand on one.
+ * ponytail: a 16px grid within 320px of `want`; widen it if he stays away
+ * on screens that do have room.
+ */
+export function clearBoxNear(
+  want: Point,
+  w: number,
+  h: number,
+  keepOut: readonly RectLike[] = [],
+): Point | null {
+  const view = viewport();
+  const minX = EDGE;
+  const maxX = view.width - w - EDGE;
+  const minY = overlayTop + EDGE;
+  const maxY = view.height - h - EDGE;
+  if (maxX < minX || maxY < minY) return null;
+  const pressable = groundControls();
+  const words = groundProse();
+  let best: Point | null = null;
+  let bestD = Infinity;
+  let fallback: Point | null = null;
+  let fallbackD = Infinity;
+  for (let dy = -320; dy <= 320; dy += 16) {
+    for (let dx = -320; dx <= 320; dx += 16) {
+      const p = { x: clamp(want.x + dx, minX, maxX), y: clamp(want.y + dy, minY, maxY) };
+      const d = (p.x - want.x) ** 2 + (p.y - want.y) ** 2;
+      if (d >= bestD) continue;
+      const box = boxAt(p, w, h);
+      if (pressable.some((r) => intersects(box, r)) || keepOut.some((r) => intersects(box, r))) continue;
+      if (d < fallbackD) {
+        fallback = p;
+        fallbackD = d;
+      }
+      if (!words.some((r) => intersects(box, r))) {
+        best = p;
+        bestD = d;
+      }
+    }
+  }
+  return best ?? fallback;
+}
+
 /** What `placeBeside` needs to know about the screen, passed in rather than
  *  read so the choice can be tested without a window. */
 export interface BesideFrame {

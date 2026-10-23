@@ -4024,7 +4024,7 @@ test.describe("cats (round 21)", () => {
    * scroll there, the page moves a control under it, and it gets up on the
    * next tick of its loop (an idle tick is 250ms).
    */
-  const PRESSABLE = "a[href], button";
+  const PRESSABLE = "a[href], button, input:not([type='hidden']), textarea, select";
   for (const size of [
     { width: 1366, height: 768, selector: PRESSABLE, record: false },
     { width: 390, height: 844, selector: PRESSABLE, record: false },
@@ -4050,6 +4050,7 @@ test.describe("cats (round 21)", () => {
       }, size.record);
       const hits = new Set<string>();
       let walksUnder = 0;
+      let thienReads = 0;
       // The hero, the Journey's tags and timeline, Contact: a screen at a time,
       // 40 reads each, about 6s. Kept active by a key, not a pointer: a
       // pointer near a cat is a chase, which goes where the visitor leads it.
@@ -4064,7 +4065,23 @@ test.describe("cats (round 21)", () => {
             const found: Array<{ key: string; walking: boolean; under: boolean }> = [];
             const controls = new Map<Element, number>();
             Array.from(document.querySelectorAll(selector)).forEach((el, j) => controls.set(el, j));
-            Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).forEach((svg, k) => {
+            // Round 21 phase 8: mini-Thien, his caption and the meow bubbles
+            // too (he stood on the hero's Taylors tag at 390). A hidden one
+            // (no clear spot, so not shown) covers nothing.
+            const drawn = [
+              ...Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")),
+              ...Array.from(
+                document.querySelectorAll("[data-companion] [data-thien], [data-companion] [data-cat-caption], [data-companion] [data-cat-bubble]"),
+              ).filter((el) => getComputedStyle(el).visibility !== "hidden"),
+            ];
+            drawn.forEach((svg, k) => {
+              const who = svg.hasAttribute("data-thien")
+                ? "thien"
+                : svg.hasAttribute("data-cat-caption")
+                  ? "caption"
+                  : svg.hasAttribute("data-cat-bubble")
+                    ? "bubble"
+                    : `cat ${k}`;
               // The drawing, not its box: a cell's outer 3px are empty.
               const c = svg.getBoundingClientRect();
               const covered = new Set<Element>();
@@ -4087,17 +4104,18 @@ test.describe("cats (round 21)", () => {
                   continue;
                 }
                 found.push({
-                  key: `cat ${k} on ${el.tagName.toLowerCase()}#${controls.get(el)} "${(el.textContent ?? "").trim().slice(0, 28)}"`,
+                  key: `${who} on ${el.tagName.toLowerCase()}#${controls.get(el)} "${(el.textContent ?? "").trim().slice(0, 28)}"`,
                   walking: svg.getAttribute("data-cat-pose") === "walk",
                   under: svg.closest("[data-cat-under]") !== null,
                 });
               }
             });
-            return found;
+            return { found, thien: drawn.some((el) => el.hasAttribute("data-thien")) };
           }, size.selector);
-          const now = new Set(read.map((r) => r.key));
+          if (read.thien) thienReads += 1;
+          const now = new Set(read.found.map((r) => r.key));
           for (const key of [...streak.keys()]) if (!now.has(key)) streak.delete(key);
-          for (const { key, walking, under } of read) {
+          for (const { key, walking, under } of read.found) {
             const run = walking ? 0 : (streak.get(key) ?? 0) + 1;
             streak.set(key, run);
             if (walking && under) walksUnder += 1;
@@ -4111,6 +4129,7 @@ test.describe("cats (round 21)", () => {
       }
       expect([...hits], `a cat covered ${what} at ${size.width}`).toEqual([]);
       test.info().annotations.push({ type: "walks under", description: `${size.width}: ${walksUnder}` });
+      test.info().annotations.push({ type: "mini-Thien seen", description: `${size.width}: ${thienReads} reads` });
       await context.close();
     });
   }

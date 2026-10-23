@@ -83,6 +83,8 @@ import {
   boxAt,
   clamp,
   clampToViewport,
+  clearBoxNear,
+  clearOfControls,
   findClearSpot,
   groundCached,
   headClear,
@@ -1048,7 +1050,12 @@ function paintBeside(
     [...keepOut, ...groundControls(), ...groundProse()],
   );
   paint(node, at);
-  return boxAt(at, size.width, size.height);
+  // Round 21 phase 8: a bubble or a caption never covers a control (a tag's
+  // title, a form field). With no clear side it is not shown at all.
+  const box = boxAt(at, size.width, size.height);
+  const blocked = !clearOfControls(box);
+  node.style.visibility = blocked ? "hidden" : "";
+  return blocked ? null : box;
 }
 
 /** Which of the two cats are mid-`hop` act this frame. */
@@ -1097,7 +1104,16 @@ function paintBubble(
  *  standing beside — the two are never the same point once he has arrived,
  *  so this cannot simply reuse `paintBubble`'s own anchor. Kept off his own
  *  drawing as well as off `keepOut`. */
-function paintCaption(node: HTMLElement | null, thien: Spot, keepOut: readonly RectLike[]): RectLike | null {
+function paintCaption(
+  node: HTMLElement | null,
+  thien: Spot,
+  keepOut: readonly RectLike[],
+  away = false,
+): RectLike | null {
+  if (away) {
+    if (node) node.style.visibility = "hidden";
+    return null;
+  }
   return paintBeside(node, thien, THIEN_W, THIEN_H, [...keepOut, boxAt(thien, THIEN_W, THIEN_H)]);
 }
 
@@ -1549,6 +1565,10 @@ export function Companion({ facts }: CompanionProps) {
    *  first. */
   const thienTarget = useRef<Point | null>(null);
   const thienSpeaker = useRef<Speaker | null>(null);
+  /** No spot on screen clears the page's controls: he and his caption stay
+   *  hidden until one does (`clearBoxNear`). */
+  const thienAway = useRef(false);
+  const thienProbedAt = useRef(0);
 
   /* --------------------------------------------------------- nav intent -- */
   /** D2: the nav link the pointer or keyboard focus is dwelling on, by
@@ -3894,10 +3914,24 @@ export function Companion({ facts }: CompanionProps) {
           const otherPos = speaking.speaker === "grey" ? tabby.pos : grey.pos;
           invalidateGround();
           // Head band preferred (round 21 review): he stood on "Taylors, SC".
-          thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos, {
+          const spot = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos, {
             preferHead: true,
           });
+          // His whole box, not a cat's feet, clear of every control (phase 8).
+          const clear = clearBoxNear(spot, THIEN_W, THIEN_H, catBoxes(grey.pos, tabby.pos));
+          thienAway.current = clear === null;
+          thienTarget.current = clear ?? spot;
+          thienProbedAt.current = now;
           thienSpeaker.current = speaking.speaker;
+        } else if (
+          now - thienProbedAt.current > 250 &&
+          !clearOfControls(boxAt(thienTarget.current, THIEN_W, THIEN_H))
+        ) {
+          // The page moved a control under his spot (a scroll): probe again.
+          thienProbedAt.current = now;
+          const clear = clearBoxNear(thienTarget.current, THIEN_W, THIEN_H, catBoxes(grey.pos, tabby.pos));
+          thienAway.current = clear === null;
+          if (clear) thienTarget.current = clear;
         }
         const target = thienTarget.current;
         const thienDx = target.x - thien.current.pos.x;
@@ -3912,6 +3946,7 @@ export function Companion({ facts }: CompanionProps) {
         // stale mark.
         thienTarget.current = null;
         thienSpeaker.current = null;
+        thienAway.current = false;
       }
 
       /* ------------------------------------------------ room for the menu -- */
@@ -3978,6 +4013,9 @@ export function Companion({ facts }: CompanionProps) {
       if (run) paint(policeNode.current, run.police.pos);
       if (duetRef.current) {
         paint(thienNode.current, thien.current.pos);
+        if (thienNode.current) thienNode.current.style.visibility = thienAway.current ? "hidden" : "";
+        // Walking in, he passes under a control the way the cats do.
+        passUnder(thienNode.current, thien.current.pos, 0, 0, THIEN_W, THIEN_H);
         if (thienArt.current) thienArt.current.style.transform = `scaleX(${thien.current.facing})`;
         // The bubble first, then the caption kept off it as well as off both
         // cats: both are painted against the positions just written above, in
@@ -3994,7 +4032,7 @@ export function Companion({ facts }: CompanionProps) {
         const bubble =
           paintBubble(greyBubble.current, grey.pos, cats, hops.lead) ??
           paintBubble(tabbyBubble.current, tabby.pos, cats, hops.follow);
-        paintCaption(thienCaption.current, thien.current.pos, bubble ? [...cats, bubble] : cats);
+        paintCaption(thienCaption.current, thien.current.pos, bubble ? [...cats, bubble] : cats, thienAway.current);
       }
 
       // Behind something. The cut is taken from each animal's own position
@@ -4038,9 +4076,12 @@ export function Companion({ facts }: CompanionProps) {
       // `offsetWidth`/`offsetHeight` at; cleared the one frame nothing is.
       if (duetRef.current) {
         const rects: DOMRect[] = [];
-        const greyRect = greyBubble.current?.getBoundingClientRect();
-        const tabbyRect = tabbyBubble.current?.getBoundingClientRect();
-        const captionRect = thienCaption.current?.getBoundingClientRect();
+        // A bubble hidden for covering a control holds no ground.
+        const shown = (node: HTMLElement | null) =>
+          node && node.style.visibility !== "hidden" ? node.getBoundingClientRect() : undefined;
+        const greyRect = shown(greyBubble.current);
+        const tabbyRect = shown(tabbyBubble.current);
+        const captionRect = shown(thienCaption.current);
         if (greyRect) rects.push(greyRect);
         if (tabbyRect) rects.push(tabbyRect);
         if (captionRect) rects.push(captionRect);
