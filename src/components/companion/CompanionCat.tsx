@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 import styles from "./companion.module.css";
 
@@ -11,10 +11,15 @@ import styles from "./companion.module.css";
  * rendered twice over a `var(--ground)` knockout) with page-mascot's method:
  * each cat is a few small sheets drawn once by `scripts/draw-cats.mjs` into
  * `public/cats/` — 3×3 head directions, 3×3 reactions, an 8-frame walk — and a
- * frame is one `<use href="/cats/moon.svg#walk-3">`. A same-origin `<use>`
- * inherits `currentColor` and custom properties, so the ink still follows
- * theme, tone and `data-paper` (`syncTone`) like every other drawing, and a
- * pose change is one attribute instead of a re-built tree of paths.
+ * frame is one `<use href="#cat-moon-walk-3">`. A `<use>` inherits
+ * `currentColor` and custom properties, so the ink still follows theme, tone
+ * and `data-paper` (`syncTone`) like every other drawing, and a pose change is
+ * one attribute instead of a re-built tree of paths.
+ *
+ * Each sheet is fetched once and its symbols put on the page (`useSheet`),
+ * renamed `cat-<sheet>-<id>`. Pointing `<use>` at the file itself
+ * (`/cats/moon.svg#walk-3`) re-requested it on every frame change — 138
+ * requests in eight seconds of walking, with the files served `max-age=0`.
  *
  *  - **Moon** (`grey`), the blue cat, leads: a solid blue-grey coat.
  *  - **Mi** (`tabby`), the grey tabby, follows: a light coat, mackerel stripes,
@@ -78,11 +83,64 @@ export const REACTIONS = [
 ] as const;
 export type Reaction = (typeof REACTIONS)[number];
 
-const SHEET: Record<CatVariant, string> = {
-  grey: "/cats/moon.svg",
-  tabby: "/cats/mi.svg",
-  police: "/cats/police.svg",
+const SHEET: Record<CatVariant, "moon" | "mi" | "police"> = {
+  grey: "moon",
+  tabby: "mi",
+  police: "police",
 };
+
+/* ------------------------------------------------------------ the sheets -- */
+
+const loaded = new Set<string>();
+const loading = new Map<string, Promise<void>>();
+const sheetWatchers = new Set<() => void>();
+
+/** Fetches `/cats/<name>.svg` once and puts its symbols, renamed
+ *  `cat-<name>-<id>`, in one hidden `<svg>` on the page. */
+function loadSheet(name: string): Promise<void> {
+  const pending = loading.get(name);
+  if (pending) return pending;
+  const job = fetch(`/cats/${name}.svg`)
+    .then((response) => (response.ok ? response.text() : Promise.reject(new Error(String(response.status)))))
+    .then((text) => {
+      const symbols = (text.match(/<symbol[\s\S]*<\/symbol>/)?.[0] ?? "")
+        .replace(/ id="/g, ` id="cat-${name}-`)
+        .replace(/href="#/g, `href="#cat-${name}-`);
+      let host = document.getElementById("cat-sheets");
+      if (!host) {
+        host = document.createElementNS("http://www.w3.org/2000/svg", "svg") as unknown as HTMLElement;
+        host.id = "cat-sheets";
+        host.setAttribute("aria-hidden", "true");
+        host.setAttribute("width", "0");
+        host.setAttribute("height", "0");
+        host.setAttribute("style", "position:absolute;overflow:hidden");
+        document.body.append(host);
+      }
+      host.insertAdjacentHTML("beforeend", symbols);
+      loaded.add(name);
+      for (const watcher of sheetWatchers) watcher();
+    })
+    .catch(() => {
+      // Decoration: without its sheet a cat is simply not drawn. Retried on
+      // the next mount.
+      loading.delete(name);
+    });
+  loading.set(name, job);
+  return job;
+}
+
+/** Whether `name`'s symbols are on the page, loading them if not. */
+function useSheet(name: string): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      sheetWatchers.add(notify);
+      if (!loaded.has(name)) void loadSheet(name);
+      return () => sheetWatchers.delete(notify);
+    },
+    () => loaded.has(name),
+    () => false,
+  );
+}
 
 /** Which reaction cell a pose is drawn with, where it is not a sit or a walk. */
 const POSE_CELL: Partial<Record<CatPose, Reaction>> = {
@@ -282,6 +340,7 @@ export function CompanionCat({
   // The police sheet only stands and walks.
   const frame = variant === "police" && !drawn.id.startsWith("walk") ? { id: "look-4", tail: "tail" as const } : drawn;
   const sheet = SHEET[variant];
+  const ready = useSheet(sheet);
 
   return (
     <svg
@@ -304,8 +363,8 @@ export function CompanionCat({
           : ({ "--sway-period": `${Math.round(1000 / 60 / SIT_SWAY_RATE[variant])}ms` } as CSSProperties)
       }
     >
-      {frame.tail ? <use href={`${sheet}#${frame.tail}`} className={styles.tailSway} /> : null}
-      <use href={`${sheet}#${frame.id}`} />
+      {ready && frame.tail ? <use href={`#cat-${sheet}-${frame.tail}`} className={styles.tailSway} /> : null}
+      {ready ? <use href={`#cat-${sheet}-${frame.id}`} /> : null}
     </svg>
   );
 }

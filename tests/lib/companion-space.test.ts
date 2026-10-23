@@ -1073,14 +1073,18 @@ describe("slideOffText", () => {
   it("lets a step that touches no words through", () => {
     expect(slideOffText({ x: 0, y: 0 }, { x: 4, y: 4 }, { x: 40, y: 40 }, [line])).toEqual({ x: 4, y: 4 });
   });
-  it("slides along a line rather than onto it, and crosses when it cannot slide", () => {
+  it("slides along a line rather than onto it, round it head-on, and crosses when it cannot", () => {
     // At the step's full length (about 12.6px), not just its x part.
     const slid = slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 300, y: 400 }, [line]);
     expect(slid.y).toBe(250);
     expect(slid.x).toBeCloseTo(212.6, 1);
     // Never past the destination on that axis.
     expect(slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 205, y: 400 }, [line])).toEqual({ x: 205, y: 250 });
-    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line])).toEqual({ x: 200, y: 262 });
+    // Head-on, it steps towards the nearer end of the line (the left, 100).
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line])).toEqual({ x: 188, y: 250 });
+    // With that blocked too, it goes on.
+    const wall = { left: 0, right: 196, top: 240, bottom: 300 };
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line, wall])).toEqual({ x: 200, y: 262 });
   });
   it("lets a cat already on words walk off them", () => {
     expect(slideOffText({ x: 200, y: 300 }, { x: 200, y: 296 }, { x: 200, y: 0 }, [line])).toEqual({ x: 200, y: 296 });

@@ -439,9 +439,10 @@ export function walkClear(from: Point, to: Point): boolean {
  * put the cat's drawing onto a block of words it was not already on slides
  * along it instead, at the step's full length but never past `want` on that
  * axis (x alone, else y alone): a slide at a fraction of the walk reads as a
- * cat that has stopped. With neither free it goes on: a
- * cat held against a line until her walk times out reads as stuck, which is
- * worse than a crossing. Inset by 3px, the empty margin of a sprite cell, so
+ * cat that has stopped. Head-on, it steps sideways towards the nearer end of
+ * the block and follows its edge. Only with that blocked too does it go on:
+ * a cat held against a line until her walk times out reads as stuck. `rects`
+ * is the words and, since round 21's review, the controls too. Inset by 3px, the empty margin of a sprite cell, so
  * grazing a line is not touching it.
  */
 export function slideOffText(
@@ -462,7 +463,22 @@ export function slideOffText(
   if (alongX.x !== prev.x && !on(alongX)) return alongX;
   const alongY = { x: prev.x, y: reach(prev.y, want.y) };
   if (alongY.y !== prev.y && !on(alongY)) return alongY;
-  return next;
+  // Head-on: step sideways towards the nearer end of what is in the way and
+  // follow its edge until the way on is clear.
+  const block = rects.find(
+    (r) => next.x + 3 < r.right && next.x + CAT_W - 3 > r.left && next.y + 3 < r.bottom && next.y + CAT_H - 3 > r.top,
+  )!;
+  const vertical = Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x);
+  const around = vertical
+    ? {
+        x: prev.x + (prev.x + CAT_W / 2 - block.left < block.right - prev.x - CAT_W / 2 ? -step : step),
+        y: prev.y,
+      }
+    : {
+        x: prev.x,
+        y: prev.y + (prev.y + CAT_H / 2 - block.top < block.bottom - prev.y - CAT_H / 2 ? -step : step),
+      };
+  return on(around) ? next : around;
 }
 
 /** The controls in the current ground epoch, in viewport coordinates. */
@@ -954,8 +970,9 @@ function overlaps(a: Point, b: Point): boolean {
  *  - `tourStopSpots`'s `restSpots` fallback, which is recomputed every frame
  *    too, but from a fixed anchor by the section's top edge rather than a cat's
  *    position: off for the per-frame cost, not for feedback.
- *  - Mini-Thien's spot, probed once per change of speaker: he is not a cat,
- *    and the head band is the cat drawing's geometry, not his.
+ *  (Mini-Thien's spot, probed once per change of speaker, passes it too since
+ *  round 21: the band is the cat drawing's geometry, but its rows sit at his
+ *  face's height, and without it he stood on "Taylors, SC".)
  *
  * Bounded work: fifteen candidates × three rect checks, plus fifteen × nine
  * with `preferHead`.
@@ -1281,6 +1298,30 @@ export function pickCorner(
     }
   }
   return best;
+}
+
+/**
+ * The controls under `box`, measured live (round 21 review: the cache can lag
+ * a card that is still settling, and this is what a cat passes under, so it
+ * has to be right on the frame it is drawn). A 5×4 grid of hit tests across
+ * the box, its outer rows and columns 2px in from the edges so a control that
+ * only grazes the cat is found too; a control smaller than the ~14px spacing
+ * could slip between, and none on the page is.
+ */
+export function controlRectsUnder(box: RectLike): RectLike[] {
+  const found = new Set<Element>();
+  for (let i = 0; i < 5; i += 1) {
+    for (let j = 0; j < 4; j += 1) {
+      const x = box.left + 2 + ((box.right - box.left - 4) * i) / 4;
+      const y = box.top + 2 + ((box.bottom - box.top - 4) * j) / 3;
+      for (const el of document.elementsFromPoint(x, y)) {
+        if (el.closest(SELF)) continue;
+        const control = el.closest(CONTROLS);
+        if (control && !control.closest(SELF)) found.add(control);
+      }
+    }
+  }
+  return [...found].map((el) => el.getBoundingClientRect());
 }
 
 /** Every control on screen, outside the companion, measured now. */

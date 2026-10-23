@@ -103,6 +103,7 @@ import {
   setReservedRects,
   standingSpots,
   controlRectsInView,
+  controlRectsUnder,
   groundControls,
   groundProse,
   slideOffText,
@@ -969,8 +970,8 @@ function tickFlick(cat: Mover, now: number, allowed: boolean): number {
 }
 
 /** Applies `slideOffText` to a step just taken, and returns its new length. */
-function stepOffText(pos: Spot, from: Point, want: Point): number {
-  const to = slideOffText(from, pos, want);
+function stepOffText(pos: Spot, from: Point, want: Point, rects: readonly RectLike[]): number {
+  const to = slideOffText(from, pos, want, rects);
   pos.x = to.x;
   pos.y = to.y;
   return Math.hypot(to.x - from.x, to.y - from.y);
@@ -1105,6 +1106,44 @@ function paintCaption(node: HTMLElement | null, thien: Spot, keepOut: readonly R
 function thienWant(speaker: Spot, other: Spot): Point {
   const side: 1 | -1 = speaker.x <= other.x ? -1 : 1;
   return { x: speaker.x + side * (CAT_W + 18), y: speaker.y - 4 };
+}
+
+/**
+ * Round 21 review: a cat walking across a link or a button passes *under* it.
+ * The parts of the cat's element (`node`, drawn `w`×`h` from `pos` + `ox`,`oy`)
+ * that lie over a control are cut out with an even-odd clip path, so the
+ * control is never covered and the cut part takes no clicks either. The outer
+ * ring is drawn 20px wide of the box so a hop is not clipped. Marked
+ * `data-cat-under` while it applies. Resting on a control is prevented where
+ * the destination is chosen; this is for the walk across.
+ */
+function passUnder(
+  node: HTMLElement | null,
+  pos: Spot,
+  ox: number,
+  oy: number,
+  w: number,
+  h: number,
+): void {
+  if (!node) return;
+  const left = pos.x + ox;
+  const top = pos.y + oy;
+  const controls = controlRectsUnder({ left, top, right: left + w, bottom: top + h });
+  let holes = "";
+  for (const r of controls) {
+    const x0 = Math.max(r.left, left) - left;
+    const x1 = Math.min(r.right, left + w) - left;
+    const y0 = Math.max(r.top, top) - top;
+    const y1 = Math.min(r.bottom, top + h) - top;
+    if (x1 > x0 && y1 > y0) {
+      holes += `M${x0.toFixed(1)} ${y0.toFixed(1)}H${x1.toFixed(1)}V${y1.toFixed(1)}H${x0.toFixed(1)}Z`;
+    }
+  }
+  const clip = holes ? `path(evenodd, "M-20 -20H${w + 20}V${h + 20}H-20Z${holes}")` : "";
+  if (node.dataset.clip === clip) return;
+  node.dataset.clip = clip;
+  node.style.clipPath = clip;
+  node.toggleAttribute("data-cat-under", clip !== "");
 }
 
 /**
@@ -3411,12 +3450,14 @@ export function Companion({ facts }: CompanionProps) {
        * Round 21: a walk goes round blocks of text rather than across them
        * (`routeAround`); the places they walk to are probed clear already.
        */
-      // The explorers' own walks, the walk to a nap and a scene's walks; a
-      // tour, the watch and the escort walk to places on a clock and are left
-      // straight, a dash is a dash, and a chase goes where the pointer leads.
-      const routes =
-        (explored || napping || (beat !== null && !beat.dash)) && !run && !rushing && !chase && groundCached();
+      // Every walk but three: a tour walks its stops on a clock, the escort
+      // and a duck out of a fast scroll race one, and a chase goes where the
+      // visitor's pointer leads.
+      const routes = !run && !rushing && !chase && forced !== "tour" && groundCached();
       const band = routes ? boundsFor(viewport(), safeTop()) : null;
+      /** What a walk keeps off: words, and (round 21 review) every link and
+       *  button — a cat stood on "Book a call with me" mid-walk. */
+      const obstacles = band ? [...groundProse(), ...groundControls()] : [];
       /** At most two detours per destination, each held until reached:
        *  re-routing every frame let a cat in dense text ping-pong between two
        *  corners. */
@@ -3429,11 +3470,41 @@ export function Companion({ facts }: CompanionProps) {
         // Two corners at most: round a block of text and back past its far end.
         if (d.used >= 2) return want;
         d.used += 1;
-        const via = routeAround(pos, want, groundProse(), CAT_W, CAT_H, band);
+        const via = routeAround(pos, want, obstacles, CAT_W, CAT_H, band);
         if (via !== want) d.via = via;
         return via;
       };
-      leadWant = viaFor("lead", grey.pos, leadWant);
+      /*
+       * And where it stops: whatever placed it (a perch's trailing seat, a
+       * mate spot, a stage), a destination on a link or a button is moved to
+       * clear ground (round 21 review): the least nudge that clears it, else
+       * the nearest clear spot. Also while the page carries them: a ride can
+       * pin a cat to the edge of the window over whatever scrolls under it.
+       * Not the panel's corner nor a nap spot, which are chosen around the
+       * companion's own furniture.
+       */
+      const controlsHere = band ? groundControls() : [];
+      const offControls = (want: Point, other: Point): Point => {
+        if (!band || forced === "corner" || forced === "nap") return want;
+        const blocking = (p: Point) =>
+          controlsHere.find(
+            (r) => p.x + 2 < r.right && p.x + CAT_W - 2 > r.left && p.y + 1 < r.bottom && p.y + CAT_H - 1 > r.top,
+          );
+        const block = blocking(want);
+        if (!block) return want;
+        const nudges = [
+          { x: want.x, y: block.bottom - 1 },
+          { x: want.x, y: block.top - CAT_H + 1 },
+          { x: block.right - 2, y: want.y },
+          { x: block.left - CAT_W + 2, y: want.y },
+        ]
+          .map((p) => clampToViewport(p))
+          .sort((a, b) => distance(a, want) - distance(b, want));
+        for (const p of nudges) if (!blocking(p) && isClearSpot(p)) return p;
+        const spot = findClearSpot(want, home, other, { preferHead: true });
+        return blocking(spot) ? want : spot;
+      };
+      leadWant = viaFor("lead", grey.pos, offControls(leadWant, tabby.pos));
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
       const leadFrom = { x: grey.pos.x, y: grey.pos.y };
@@ -3444,7 +3515,7 @@ export function Companion({ facts }: CompanionProps) {
         frames,
       );
       // The backstop: a step slides along words rather than onto them.
-      if (band) leadStep = stepOffText(grey.pos, leadFrom, leadWant);
+      if (band) leadStep = stepOffText(grey.pos, leadFrom, leadWant, obstacles);
       /**
        * The same movement as a *speed* rather than a distance, because every
        * threshold below asks a question about speed — "is he really walking",
@@ -3594,10 +3665,16 @@ export function Companion({ facts }: CompanionProps) {
       }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
-      followWant = viaFor("follow", tabby.pos, followWant);
+      const followOff = offControls(followWant, grey.pos);
+      // Her speed was ramped towards the old target above; one moved off a
+      // control has to be walked to, even from a standstill.
+      if (followOff !== followWant) {
+        tabby.speed = Math.max(tabby.speed, ramp(tabby.speed, followTarget(distance(tabby.pos, followOff), 0), frames));
+      }
+      followWant = viaFor("follow", tabby.pos, followOff);
       const followFrom = { x: tabby.pos.x, y: tabby.pos.y };
       let followStep = advance(tabby.pos, followWant, tabby.speed, frames);
-      if (band) followStep = stepOffText(tabby.pos, followFrom, followWant);
+      if (band) followStep = stepOffText(tabby.pos, followFrom, followWant, obstacles);
       /** Her half of `leadRate` above, and for the same reason. */
       const followRate = frames > 0 ? followStep / frames : 0;
       // Round 14, her half of the same rule the lead gets above: once she has
@@ -3741,7 +3818,10 @@ export function Companion({ facts }: CompanionProps) {
           const speakerPos = speaking.speaker === "grey" ? grey.pos : tabby.pos;
           const otherPos = speaking.speaker === "grey" ? tabby.pos : grey.pos;
           invalidateGround();
-          thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos);
+          // Head band preferred (round 21 review): he stood on "Taylors, SC".
+          thienTarget.current = findClearSpot(thienWant(speakerPos, otherPos), home, speakerPos, {
+            preferHead: true,
+          });
           thienSpeaker.current = speaking.speaker;
         }
         const target = thienTarget.current;
@@ -3803,6 +3883,9 @@ export function Companion({ facts }: CompanionProps) {
 
       paint(leadNode.current, grey.pos);
       paint(followNode.current, tabby.pos);
+      // A cat whose way crosses a link or a button passes under it.
+      passUnder(leadNode.current, grey.pos, -LEAD_PAD_X, -LEAD_PAD_Y, CAT_W + LEAD_PAD_X * 2, CAT_H + LEAD_PAD_Y * 2);
+      passUnder(followNode.current, tabby.pos, 0, 0, CAT_W, CAT_H);
       // One box test, computed from the positions just painted: while the two
       // buttons truly overlap only the lead's can be pressed. Overlap only, not
       // a spacing band: both targets are at least 24x24, so 2.5.8 and axe fail
