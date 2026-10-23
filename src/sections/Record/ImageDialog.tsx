@@ -1,20 +1,18 @@
 import type { ReactNode } from "react";
-import { getImageProps } from "next/image";
-import { cn } from "@/lib/cn";
 import type { RecordImage } from "@/types/portfolio";
+import { DialogImage } from "./DialogImage";
 
 /**
  * A button that opens a native `<dialog>` holding a certificate or award
- * image. No JavaScript of its own: the button is an invoker
- * (`commandfor` + `command="show-modal"`), so the browser opens the dialog
- * modally, closes it on Escape and returns focus to the button. Browsers
- * without invoker commands get the same calls from `RecordFilters.tsx`'s
- * fallback.
+ * image. The button is an invoker (`commandfor` + `command="show-modal"`), so
+ * the browser opens the dialog modally, closes it on Escape and returns focus
+ * to the button, with no script of ours. Browsers without invoker commands
+ * get the same calls from `RecordFilters.tsx`'s fallback.
  *
- * The image is a plain `<img loading="lazy">` whose optimised `srcset` comes
- * from `getImageProps()` on the server, so no image runtime ships. A lazy
- * image inside a closed dialog is not rendered, so nothing is fetched until
- * the button is pressed (`e2e/record.spec.ts`).
+ * The image is `DialogImage`, which mounts `next/image` only once the dialog
+ * opens, so nothing is fetched (image or code) until the button is pressed
+ * (`e2e/record.spec.ts`). Without JavaScript the dialog offers the file as a
+ * link instead.
  *
  * React does not know the invoker attributes yet, so they are spread in as
  * plain attributes; it passes lowercase unknown attributes through.
@@ -38,14 +36,6 @@ export function ImageDialog({
   /** The button's face. Its text is the button's name. */
   readonly children: ReactNode;
 }) {
-  const { props } = getImageProps({
-    src: image.src,
-    alt: image.alt,
-    width: image.width,
-    height: image.height,
-    sizes: "(min-width: 64rem) 56rem, 92vw",
-    loading: "lazy",
-  });
   return (
     <>
       <button type="button" aria-haspopup="dialog" data-image-dialog={id} className={className} {...invoke(id, "show-modal")}>
@@ -72,8 +62,12 @@ export function ImageDialog({
             Close
           </button>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element -- props come from next/image's getImageProps */}
-        <img {...props} alt={image.alt} className={cn("mt-4 h-auto w-full border border-rule")} />
+        <DialogImage image={image} />
+        <noscript>
+          <a href={image.src} className="mt-4 inline-flex min-h-11 items-center text-accent underline underline-offset-4">
+            Open the certificate image
+          </a>
+        </noscript>
       </dialog>
     </>
   );

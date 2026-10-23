@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 
 export interface FilterOption {
@@ -52,8 +51,12 @@ export function RecordFilters({
           // A malformed escape names nothing.
         }
         const el = document.getElementById(id);
-        if (el && listRef.current?.contains(el) && el.getClientRects().length === 0) {
-          flushSync(() => setFilter("all"));
+        const list = listRef.current;
+        if (el && list?.contains(el) && el.getClientRects().length === 0) {
+          // Set on the element first, synchronously, so the browser's own
+          // scroll to the fragment (right after this handler) finds it shown.
+          list.dataset.filter = "all";
+          setFilter("all");
         }
       }
       const invoker = target?.closest<HTMLButtonElement>("button[commandfor]");

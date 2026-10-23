@@ -130,7 +130,8 @@ test("a collapsed disclosure's content is forced open for print", async ({ page 
   await page.emulateMedia({ media: "screen" });
   const trigger = page
     .locator("#record")
-    .getByRole("button", { name: /Read the full case study/ })
+    // Inside a closed Record row, so hidden on screen until print opens it.
+    .getByRole("button", { name: /Read the full case study/, includeHidden: true })
     .first();
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
   const panelId = await trigger.getAttribute("aria-controls");

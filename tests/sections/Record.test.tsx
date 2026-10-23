@@ -153,17 +153,12 @@ describe("the certificates", () => {
     }
   });
 
-  it("load nothing until pressed: each image is lazy and inside its closed dialog", () => {
+  it("load nothing until pressed: no image is in the page until a dialog opens", () => {
     render(<Record />);
-    const images = [...document.querySelectorAll<HTMLImageElement>("#record img")];
-    expect(images.length).toBe(certifications.filter((c) => "stamp" in c).length + ENTRIES.filter((e) => e.award).length);
-    for (const img of images) {
-      expect(img.getAttribute("loading")).toBe("lazy");
-      expect(img.closest("dialog")).not.toBeNull();
-      expect(img.closest("dialog")).not.toHaveAttribute("open");
-      expect(img.getAttribute("alt")?.length).toBeGreaterThan(20);
-      expect(img.getAttribute("srcset") ?? img.getAttribute("srcSet")).toContain("/_next/image");
-    }
+    expect(document.querySelectorAll("#record img")).toHaveLength(0);
+    const dialogs = document.querySelectorAll("#record dialog");
+    expect(dialogs).toHaveLength(certifications.filter((c) => "stamp" in c).length + ENTRIES.filter((e) => e.award).length);
+    for (const dialog of dialogs) expect(dialog).not.toHaveAttribute("open");
   });
 });
 
