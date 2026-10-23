@@ -52,7 +52,7 @@ function AskHeading() {
 
 export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured, bookingUrl }: ContactProps) {
   return (
-    <Section id="contact" labelledBy="contact-heading" tone="base" className="relative isolate overflow-hidden">
+    <Section id="contact" labelledBy="contact-heading" tone="base" className="relative isolate overflow-hidden supports-[overflow:clip]:overflow-clip">
       {/* The lanterns hang from the section's top edge, across the right of
           the heading from 1024 and across the whole width below it. */}
       <div

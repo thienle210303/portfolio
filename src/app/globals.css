@@ -1348,6 +1348,191 @@
   }
 
   /* ---------------------------------------------------------------------- */
+  /* Motion (round 21 phase 8): the story slides page to page.              */
+  /*                                                                        */
+  /* One move per page, in CSS: the hero's tags sway in on their line, the  */
+  /* oak's tags drop onto their strings, the notebook opens, the postcard    */
+  /* settles. Transforms only, never opacity, so nothing is ever hidden: a   */
+  /* browser without scroll-driven animations, a reduced-motion visitor, a   */
+  /* page with JS off (these need none) and print all get the finished       */
+  /* layout, and a moved paper takes no room from its neighbours (no CLS).   */
+  /* Each runs on the paper's view timeline as it comes into the window, so */
+  /* scrolling back plays it backwards; the hero's line, on screen at load  */
+  /* from 1024, sways on the load clock instead. A view timeline belongs to */
+  /* the nearest scroll container, which is why the hero and Contact clip   */
+  /* (`overflow: clip`) rather than hide their overflow.                    */
+  /*                                                                        */
+  /* Between pages: the four sections snap, gently (`proximity`, so a long  */
+  /* page such as the Record on a phone scrolls freely), and in-page links  */
+  /* glide through a View Transition (`src/lib/glide.ts`). The sky and the  */
+  /* header stay put; only the page slides.                                 */
+  /* ---------------------------------------------------------------------- */
+  @keyframes tag-sway {
+    0% {
+      transform: rotate(-7deg);
+    }
+    45% {
+      transform: rotate(4deg);
+    }
+    75% {
+      transform: rotate(-1.5deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes tag-drop {
+    0% {
+      transform: translateY(-36px) rotate(-5deg);
+    }
+    55% {
+      transform: translateY(3px) rotate(2.5deg);
+    }
+    80% {
+      transform: rotate(-1deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes page-open-left {
+    from {
+      transform: perspective(1800px) rotateY(16deg);
+    }
+  }
+  @keyframes page-open-right {
+    from {
+      transform: perspective(1800px) rotateY(-16deg);
+    }
+  }
+  @keyframes card-settle {
+    0% {
+      transform: translateY(-28px) rotate(-3.5deg);
+    }
+    70% {
+      transform: translateY(2px) rotate(0.4deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes glide-out-up {
+    to {
+      transform: translateY(-48px);
+      opacity: 0;
+    }
+  }
+  @keyframes glide-in-up {
+    from {
+      transform: translateY(48px);
+      opacity: 0;
+    }
+  }
+  @keyframes glide-out-down {
+    to {
+      transform: translateY(48px);
+      opacity: 0;
+    }
+  }
+  @keyframes glide-in-down {
+    from {
+      transform: translateY(-48px);
+      opacity: 0;
+    }
+  }
+
+  @media screen and (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-snap-type: y proximity;
+    }
+    :is(#about, #tree, #record, #contact) {
+      scroll-snap-align: start;
+    }
+
+    /* From 1024 the line is on screen at load: each tag sways once, left to
+       right, while the line settles. */
+    @media (width >= 64rem) {
+      html[data-motion] [data-hero-step="line"] > li {
+        animation: tag-sway 1100ms ease-in-out both;
+        animation-delay: calc(140ms + var(--sway-i, 0) * 90ms);
+      }
+      html[data-motion] [data-hero-step="line"] > li:nth-child(2) {
+        --sway-i: 1;
+      }
+      html[data-motion] [data-hero-step="line"] > li:nth-child(3) {
+        --sway-i: 2;
+      }
+      html[data-motion] [data-hero-step="line"] > li:nth-child(4) {
+        --sway-i: 3;
+      }
+    }
+
+    @supports (animation-timeline: view()) {
+      /* Below 1024 the line hangs down the page: each tag sways as it comes up. */
+      @media (width < 64rem) {
+        [data-hero-step="line"] > li {
+          animation: tag-sway linear both;
+          animation-timeline: view();
+          animation-range: entry 0% cover 40%;
+        }
+      }
+      /* The paper turns about its hole (`origin-[50%_18px]`), so it drops
+         along its string; the string itself stays on the limb. */
+      [data-hanging-tags] li > div {
+        animation: tag-drop linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 40%;
+      }
+      /* The notebook opens while its top edge comes up the window: side by
+         side, the left page falls open from the spine onto the desk; stacked,
+         below 1280, it turns open on its left edge like a cover. The right
+         page never moves: from 1280 it holds the stamps' positioned box
+         (`Record.tsx`), and a transform would make it their containing block. */
+      [data-notebook] {
+        view-timeline: --notebook block;
+      }
+      .record-page-left {
+        animation: page-open-right linear both;
+        animation-timeline: --notebook;
+        animation-range: entry 0% entry 45%;
+        transform-origin: left;
+      }
+      @media (width >= 80rem) {
+        .record-page-left {
+          animation-name: page-open-left;
+          transform-origin: right;
+        }
+      }
+      [data-postcard] {
+        animation: card-settle linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 35%;
+      }
+    }
+
+    header[data-site-header] {
+      view-transition-name: site-header;
+    }
+    html[data-glide]::view-transition-old(root),
+    html[data-glide]::view-transition-new(root) {
+      animation-duration: 420ms;
+      animation-timing-function: var(--ease-ink);
+    }
+    html[data-glide="down"]::view-transition-old(root) {
+      animation-name: glide-out-up;
+    }
+    html[data-glide="down"]::view-transition-new(root) {
+      animation-name: glide-in-up;
+    }
+    html[data-glide="up"]::view-transition-old(root) {
+      animation-name: glide-out-down;
+    }
+    html[data-glide="up"]::view-transition-new(root) {
+      animation-name: glide-in-down;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* Hover vocabulary (Workstream 3, P3)                                    */
   /*                                                                        */
   /* Two link treatments, not one, because a link's rest state has to say    */

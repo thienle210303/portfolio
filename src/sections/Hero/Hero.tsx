@@ -86,7 +86,7 @@ export default function Hero({ bookingUrl }: { readonly bookingUrl: string | nul
       // The hero runs its own `data-motion` load choreography instead of the
       // generic scroll-triggered ink settle — see Section.tsx's own comment.
       reveal={false}
-      className="@container relative isolate overflow-hidden pb-[210px] [--line-top:38px] lg:pb-[132px] [@media(min-width:1024px)_and_(max-height:800px)]:[--line-top:14px]"
+      className="@container relative isolate overflow-hidden supports-[overflow:clip]:overflow-clip pb-[210px] [--line-top:38px] lg:pb-[132px] [@media(min-width:1024px)_and_(max-height:800px)]:[--line-top:14px]"
     >
       {/* Retired ids that land here; same pattern as CareerTree's. */}
       {ABOUT_LEGACY_SECTION_IDS.map((id) => (
