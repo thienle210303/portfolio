@@ -96,7 +96,7 @@ export default function ChapterTags({
                 >
                   <Tag className={PAPER}>
                     <span className="block font-mono text-[length:var(--step--2)] text-fg-muted">{year}</span>{" "}
-                    <span className="block text-[length:var(--step-1)] font-semibold">{place}</span>
+                    <span className="block text-[length:var(--step-1)] font-semibold lg:max-xl:text-[length:var(--step-0)]">{place}</span>
                     <Drawing name={drawing} className="mt-1.5 h-[88px] w-full text-accent" />
                   </Tag>
                 </button>
