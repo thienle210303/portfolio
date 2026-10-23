@@ -1948,6 +1948,6 @@ The notebook board (`design/round-21-outdoors/v1/boards/NatRecordFinal*.dc.html`
 - Disclosure gained `dense` (32px rows from 1024; 44px below).
 - The companion tour visits the Record (one line in `companion-tour.ts`, one scene in `companion-dialogue.ts`): `navItems` grew, and the tour derives from it.
 
-**Verification.** `pnpm verify` 5/5 (894 unit tests, 58 files). e2e: see the report (`reports/r21-p5-report.md`).
+**Verification.** `pnpm verify` 5/5 (894 unit tests, 58 files). Full e2e against a fresh production build on `:3232`, `--workers=2`: 806 passed, 1282 skipped, 0 failed (21.8 min). The run before it failed 22, all from this phase and fixed before the clean run: specs that still read the Journey's timeline (scale, print, reveal), the tour's stop count (three to four), and one companion nap test that passed on its isolated retry and in the clean run.
 
 **Screens** (`reports/r21-p5-screens/`, untracked): `#record` at 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night, viewport-tall captures.
