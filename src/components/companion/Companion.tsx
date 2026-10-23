@@ -3450,14 +3450,17 @@ export function Companion({ facts }: CompanionProps) {
        * Round 21: a walk goes round blocks of text rather than across them
        * (`routeAround`); the places they walk to are probed clear already.
        */
-      // Every walk but three: a tour walks its stops on a clock, the escort
-      // and a duck out of a fast scroll race one, and a chase goes where the
-      // visitor's pointer leads.
-      const routes = !run && !rushing && !chase && forced !== "tour" && groundCached();
+      // Every walk but these: a tour walks its stops on a clock, the escort
+      // and a duck out of a fast scroll race one, a chase goes where the
+      // visitor's pointer leads, and the panel's corner and a nap spot are
+      // the companion's own furniture.
+      const routes =
+        !run && !rushing && !chase && forced !== "tour" && forced !== "corner" && forced !== "nap" && groundCached();
       const band = routes ? boundsFor(viewport(), safeTop()) : null;
-      /** What a walk keeps off: words, and (round 21 review) every link and
-       *  button — a cat stood on "Book a call with me" mid-walk. */
-      const obstacles = band ? [...groundProse(), ...groundControls()] : [];
+      /** What a walk goes round: words. Links and buttons it passes under
+       *  instead (`passUnder`): routed round them too, a cat in a stack of
+       *  full-width timeline rows paced their edges until her walk timed out. */
+      const obstacles = band ? groundProse() : [];
       /** At most two detours per destination, each held until reached:
        *  re-routing every frame let a cat in dense text ping-pong between two
        *  corners. */
@@ -3485,7 +3488,9 @@ export function Companion({ facts }: CompanionProps) {
        */
       const controlsHere = band ? groundControls() : [];
       const offControls = (want: Point, other: Point): Point => {
-        if (!band || forced === "corner" || forced === "nap") return want;
+        // Not a requested scene's stage nor a scene's own marks: those are
+        // probed for the scene and snapped to on arrival.
+        if (!band || forced === "corner" || forced === "nap" || walking || beat) return want;
         const blocking = (p: Point) =>
           controlsHere.find(
             (r) => p.x + 2 < r.right && p.x + CAT_W - 2 > r.left && p.y + 1 < r.bottom && p.y + CAT_H - 1 > r.top,
@@ -3500,9 +3505,25 @@ export function Companion({ facts }: CompanionProps) {
         ]
           .map((p) => clampToViewport(p))
           .sort((a, b) => distance(a, want) - distance(b, want));
-        for (const p of nudges) if (!blocking(p) && isClearSpot(p)) return p;
-        const spot = findClearSpot(want, home, other, { preferHead: true });
-        return blocking(spot) ? want : spot;
+        let moved = want;
+        for (const p of nudges) {
+          if (!blocking(p) && isClearSpot(p) && headClear(p)) {
+            moved = p;
+            break;
+          }
+        }
+        if (moved === want) {
+          const spot = findClearSpot(want, home, other, { preferHead: true });
+          if (!blocking(spot) && headClear(spot)) moved = spot;
+        }
+        // An explorer's stop moves with it, or she would never count as
+        // arrived there and her stay would never start.
+        const plan = exploreRun.current;
+        if (moved !== want && plan) {
+          if (distance(plan.spots.lead, want) < 1) plan.spots = { ...plan.spots, lead: moved };
+          else if (distance(plan.spots.follow, want) < 1) plan.spots = { ...plan.spots, follow: moved };
+        }
+        return moved;
       };
       leadWant = viaFor("lead", grey.pos, offControls(leadWant, tabby.pos));
       const leadDx = leadWant.x - grey.pos.x;

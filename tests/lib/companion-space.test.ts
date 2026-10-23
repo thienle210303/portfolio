@@ -1073,16 +1073,18 @@ describe("slideOffText", () => {
   it("lets a step that touches no words through", () => {
     expect(slideOffText({ x: 0, y: 0 }, { x: 4, y: 4 }, { x: 40, y: 40 }, [line])).toEqual({ x: 4, y: 4 });
   });
-  it("slides along a line rather than onto it, round it head-on, and crosses when it cannot", () => {
-    // At the step's full length (about 12.6px), not just its x part.
-    const slid = slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 300, y: 400 }, [line]);
+  it("slides along a line towards a destination past its end, at the step's full length", () => {
+    const slid = slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 650, y: 900 }, [line]);
     expect(slid.y).toBe(250);
     expect(slid.x).toBeCloseTo(212.6, 1);
-    // Never past the destination on that axis.
-    expect(slideOffText({ x: 200, y: 250 }, { x: 204, y: 262 }, { x: 205, y: 400 }, [line])).toEqual({ x: 205, y: 250 });
-    // Head-on, it steps towards the nearer end of the line (the left, 100).
+  });
+  it("follows the line to its nearer end when the destination is behind its middle", () => {
+    // Behind the line, the destination straight below: left, to the nearer end.
     expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line])).toEqual({ x: 188, y: 250 });
-    // With that blocked too, it goes on.
+    // And it keeps going that way: the nearer end stays the nearer end.
+    expect(slideOffText({ x: 120, y: 250 }, { x: 120, y: 262 }, { x: 200, y: 400 }, [line]).x).toBe(108);
+  });
+  it("crosses when it cannot slide", () => {
     const wall = { left: 0, right: 196, top: 240, bottom: 300 };
     expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line, wall])).toEqual({ x: 200, y: 262 });
   });
