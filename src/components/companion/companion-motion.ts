@@ -468,8 +468,11 @@ export function routeAround(
   // "On it" means the cat's box really overlaps the text, not merely that it
   // is within the margin: a stop just beside a paragraph is still walked to
   // round it.
+  // ...and well into it: a stop's probes can leave a cat's feet a few pixels
+  // into a line's box, and leaving such a stop still goes round the line.
+  const deep = margin + 9;
   const inside = (p: Point, g: ReturnType<typeof grown>) =>
-    p.x > g.left + margin && p.x < g.right - margin && p.y > g.top + margin && p.y < g.bottom - margin;
+    p.x > g.left + deep && p.x < g.right - deep && p.y > g.top + deep && p.y < g.bottom - deep;
   // Slab test: where along a→b the segment enters g, or null.
   const entry = (a: Point, b: Point, g: ReturnType<typeof grown>): number | null => {
     let t0 = 0;

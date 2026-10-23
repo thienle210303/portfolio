@@ -128,6 +128,14 @@ const OCCUPIED = [
 const CONTROLS =
   "a[href],button,input,select,textarea,summary,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
 
+/**
+ * What a cat passes under and never rests on (`passUnder`, `offControls` in
+ * Companion.tsx), and what a speech bubble keeps off: every control, and the
+ * Record's cards, rows and stamps (round 21 review: cats rested on them at 414
+ * and 1280), which are list items.
+ */
+const PASS_UNDER = `${CONTROLS},#record li`;
+
 /** Blocks of words: a walk goes round them (`routeAround`). */
 const PROSE = "p,h1,h2,h3,h4,h5,h6,dt,dd,blockquote,figcaption,label";
 
@@ -320,8 +328,8 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * view before the next rebuild.
  */
 let ground: readonly RectLike[] | null = null;
-/** The subset of `ground` a visitor can press or focus (`CONTROLS`), cached
- *  with it: what the speech bubbles keep off (`groundControls`). */
+/** The subset of `ground` cats pass under and never rest on (`PASS_UNDER`),
+ *  cached with it; the speech bubbles keep off it too (`groundControls`). */
 let controls: readonly RectLike[] = [];
 /** The elements behind `controls`, in the same order. */
 let controlEls: readonly Element[] = [];
@@ -388,7 +396,7 @@ function groundRects(): readonly RectLike[] {
     const style = getComputedStyle(element);
     if (style.pointerEvents === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
     rects.push(box);
-    if (element.matches(CONTROLS)) {
+    if (element.matches(PASS_UNDER)) {
       pressable.push(box);
       pressableEls.push(element);
     }
@@ -456,12 +464,16 @@ export function slideOffText(
   want: Point,
   rects: readonly RectLike[] = groundProse(),
 ): Point {
-  const hits = (p: Point) =>
+  const hits = (p: Point, inset = 3) =>
     rects.find(
-      (r) => p.x + 3 < r.right && p.x + CAT_W - 3 > r.left && p.y + 3 < r.bottom && p.y + CAT_H - 3 > r.top,
+      (r) =>
+        p.x + inset < r.right && p.x + CAT_W - inset > r.left && p.y + inset < r.bottom && p.y + CAT_H - inset > r.top,
     );
   const block = hits(next);
-  if (!block || hits(prev)) return next;
+  // Already on it means well on it: a stop's probes leave a cat's feet a few
+  // pixels into a line's box, and a cat leaving such a stop must still go
+  // round the line, not straight across it.
+  if (!block || hits(prev, 9)) return next;
   const step = Math.hypot(next.x - prev.x, next.y - prev.y);
   const reach = (from: number, to: number) => from + clamp(to - from, -step, step);
   const vertical = Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x);
@@ -1150,10 +1162,9 @@ export function pickExploreSpot(
 }
 
 /**
- * A small FNV-1a hash into `0..1` — the same shape `list-ink.tsx` and
- * `DrawnTree.tsx` already use for their own per-branch variation, kept as a
- * private copy here for the same reason theirs are private to each other:
- * this is a handful of lines, not a shared dependency worth a third module.
+ * A small FNV-1a hash into `0..1` — the same shape `DrawnTree.tsx` uses for
+ * its own per-branch variation, kept as a private copy here: a handful of
+ * lines, not a shared dependency worth a module.
  */
 function hash01(seed: string): number {
   let h = 2166136261;

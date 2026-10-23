@@ -4016,17 +4016,25 @@ test.describe("cats (round 21)", () => {
    * walk crosses one passes under it: the part of the cat over the control is
    * cut away (`data-cat-under`, an even-odd clip), so the control is never
    * covered. Counted as covering: a walking cat over a control without that
-   * cut, and any cat that is not walking on the same control for eight reads
-   * in a row (about a second), cut or not — that is a stop, not a crossing.
+   * cut, and a cat that has stopped (not walking for eight reads in a row,
+   * about a second) over a control without it. Where the window holds no
+   * clear ground at all (a phone's stack of full-width Record rows), a cat
+   * rests behind a row with only the part beside it showing.
    * Shorter is not a stop: a cat resting at the top edge rides an instant
    * scroll there, the page moves a control under it, and it gets up on the
    * next tick of its loop (an idle tick is 250ms).
    */
+  const PRESSABLE = "a[href], button";
   for (const size of [
-    { width: 1366, height: 768 },
-    { width: 390, height: 844 },
+    { width: 1366, height: 768, selector: PRESSABLE, record: false },
+    { width: 390, height: 844, selector: PRESSABLE, record: false },
+    // The Record's cards, rows and stamps (list items) as well, where the
+    // review saw cats resting on them.
+    { width: 414, height: 896, selector: `${PRESSABLE}, #record li`, record: true },
+    { width: 1280, height: 800, selector: `${PRESSABLE}, #record li`, record: true },
   ]) {
-    test(`a cat never covers a link or a button, walking or stopped, at ${size.width}`, async ({ browser }) => {
+    const what = size.record ? "the Record's cards, rows or stamps" : "a link or a button";
+    test(`a cat never covers ${what}, walking or stopped, at ${size.width}`, async ({ browser }) => {
       test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
       test.setTimeout(600_000);
       const context = await browser.newContext({ viewport: size });
@@ -4035,23 +4043,27 @@ test.describe("cats (round 21)", () => {
       // "load", not "networkidle": a phone-width page can keep a request open.
       await page.waitForLoadState("load");
       await expect(page.locator("[data-companion] svg[data-cat]").first()).toBeAttached();
-      const height = await page.evaluate(() => document.documentElement.scrollHeight);
+      const [from, to] = await page.evaluate((record) => {
+        if (!record) return [0, document.documentElement.scrollHeight];
+        const r = document.querySelector("#record")!.getBoundingClientRect();
+        return [r.top + window.scrollY, r.bottom + window.scrollY];
+      }, size.record);
       const hits = new Set<string>();
       let walksUnder = 0;
       // The hero, the Journey's tags and timeline, Contact: a screen at a time,
       // 40 reads each, about 6s. Kept active by a key, not a pointer: a
       // pointer near a cat is a chase, which goes where the visitor leads it.
-      for (let y = 0; y < height; y += size.height * 0.9) {
+      for (let y = from; y < to; y += size.height * 0.9) {
         await page.evaluate((top) => window.scrollTo(0, top), y);
         const streak = new Map<string, number>();
         for (let i = 0; i < 40; i += 1) {
           if (i % 10 === 0) await page.keyboard.press("Shift");
-          const read = await page.evaluate(() => {
+          const read = await page.evaluate((selector) => {
             // Hit tests and boxes both: a control is covered where it is drawn —
             // a tilted tag's box holds empty corners a cat may cross.
             const found: Array<{ key: string; walking: boolean; under: boolean }> = [];
             const controls = new Map<Element, number>();
-            Array.from(document.querySelectorAll("a[href], button")).forEach((el, j) => controls.set(el, j));
+            Array.from(document.querySelectorAll(selector)).forEach((el, j) => controls.set(el, j));
             Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).forEach((svg, k) => {
               // The drawing, not its box: a cell's outer 3px are empty.
               const c = svg.getBoundingClientRect();
@@ -4062,7 +4074,7 @@ test.describe("cats (round 21)", () => {
                   const y = c.top + 3 + ((c.height - 6) * j) / 2;
                   for (const el of document.elementsFromPoint(x, y)) {
                     if (el.closest("[data-companion]")) continue;
-                    const control = el.closest("a[href], button");
+                    const control = el.closest(selector);
                     if (control) covered.add(control);
                   }
                 }
@@ -4082,7 +4094,7 @@ test.describe("cats (round 21)", () => {
               }
             });
             return found;
-          });
+          }, size.selector);
           const now = new Set(read.map((r) => r.key));
           for (const key of [...streak.keys()]) if (!now.has(key)) streak.delete(key);
           for (const { key, walking, under } of read) {
@@ -4092,12 +4104,12 @@ test.describe("cats (round 21)", () => {
             // Not on the read right after the jump: an instant scroll moves the
             // page this frame and the riding cats on the next.
             if (walking && !under && i > 0) hits.add(`${size.width}: walking over, not under: ${key} (read ${i})`);
-            if (run >= 8) hits.add(`${size.width}: stopped on: ${key}`);
+            if (run >= 8 && !under) hits.add(`${size.width}: stopped on: ${key}`);
           }
           await page.waitForTimeout(100);
         }
       }
-      expect([...hits], `a cat covered a control at ${size.width}`).toEqual([]);
+      expect([...hits], `a cat covered ${what} at ${size.width}`).toEqual([]);
       test.info().annotations.push({ type: "walks under", description: `${size.width}: ${walksUnder}` });
       await context.close();
     });
