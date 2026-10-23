@@ -453,9 +453,11 @@ export function walkClear(from: Point, to: Point): boolean {
  * The backstop under `routeAround`: a step from `prev` to `next` that would
  * put the cat's drawing onto a block of words it was not already on slides
  * along it instead, at the step's full length: towards `want` (never past
- * it) when `want` lies beyond the block's end, else towards the block's
- * nearer end, so a cat behind a wide block follows its edge round it rather
- * than pacing back and forth behind its middle. `rects` is the words. Inset by 3px, the empty margin of a sprite cell, so
+ * it) when `want` lies beyond the block's end, else towards the block's end
+ * on `want`'s side, so a cat behind a wide block follows its edge round it.
+ * The side is the destination's, not the cat's: chosen by where the cat
+ * stands, it flipped as she crossed the block's middle and she paced there
+ * for good. `rects` is the words. Inset by 3px, the empty margin of a sprite cell, so
  * grazing a line is not touching it.
  */
 export function slideOffText(
@@ -463,6 +465,11 @@ export function slideOffText(
   next: Point,
   want: Point,
   rects: readonly RectLike[] = groundProse(),
+  band: { readonly minX: number; readonly maxX: number; readonly minY: number; readonly maxY: number } | null = null,
+  /** The way this cat last went round a block on its way to this `want`: kept,
+   *  so two stacked blocks with ends on opposite sides cannot bounce her
+   *  between them. The caller resets it when the destination changes. */
+  memo: { x?: 1 | -1; y?: 1 | -1 } = {},
 ): Point {
   const hits = (p: Point, inset = 3) =>
     rects.find(
@@ -486,16 +493,25 @@ export function slideOffText(
   const pastY = want.y + CAT_H - 3 <= block.top || want.y + 3 >= block.bottom;
   let slide: Point;
   if (vertical) {
-    const nearerLeft = prev.x + CAT_W / 2 - block.left < block.right - prev.x - CAT_W / 2;
-    slide = pastX ? { x: reach(prev.x, want.x), y: prev.y } : { x: prev.x + (nearerLeft ? -step : step), y: prev.y };
+    // The end on want's side, unless the cats' band cannot reach round it.
+    let leftEnd = want.x + CAT_W / 2 <= (block.left + block.right) / 2;
+    if (band && leftEnd && block.left - CAT_W < band.minX) leftEnd = false;
+    else if (band && !leftEnd && block.right > band.maxX) leftEnd = true;
+    memo.x ??= leftEnd ? -1 : 1;
+    slide = pastX ? { x: reach(prev.x, want.x), y: prev.y } : { x: prev.x + memo.x * step, y: prev.y };
   } else {
-    const nearerTop = prev.y + CAT_H / 2 - block.top < block.bottom - prev.y - CAT_H / 2;
-    slide = pastY ? { x: prev.x, y: reach(prev.y, want.y) } : { x: prev.x, y: prev.y + (nearerTop ? -step : step) };
+    let topEnd = want.y + CAT_H / 2 <= (block.top + block.bottom) / 2;
+    if (band && topEnd && block.top - CAT_H < band.minY) topEnd = false;
+    else if (band && !topEnd && block.bottom > band.maxY) topEnd = true;
+    memo.y ??= topEnd ? -1 : 1;
+    slide = pastY ? { x: prev.x, y: reach(prev.y, want.y) } : { x: prev.x, y: prev.y + memo.y * step };
   }
   // A slide that does not move, or moves onto something else, is no slide:
   // it goes on (a cat held against a line until her walk times out reads as
   // stuck, which is worse than a crossing).
-  if ((slide.x !== prev.x || slide.y !== prev.y) && !hits(slide)) return slide;
+  const inBand = (p: Point) =>
+    !band || (p.x >= band.minX - 0.5 && p.x <= band.maxX + 0.5 && p.y >= band.minY - 0.5 && p.y <= band.maxY + 0.5);
+  if ((slide.x !== prev.x || slide.y !== prev.y) && !hits(slide) && inBand(slide)) return slide;
   return next;
 }
 

@@ -970,8 +970,15 @@ function tickFlick(cat: Mover, now: number, allowed: boolean): number {
 }
 
 /** Applies `slideOffText` to a step just taken, and returns its new length. */
-function stepOffText(pos: Spot, from: Point, want: Point, rects: readonly RectLike[]): number {
-  const to = slideOffText(from, pos, want, rects);
+function stepOffText(
+  pos: Spot,
+  from: Point,
+  want: Point,
+  rects: readonly RectLike[],
+  band: ReturnType<typeof boundsFor>,
+  memo: { x?: 1 | -1; y?: 1 | -1 },
+): number {
+  const to = slideOffText(from, pos, want, rects, band, memo);
   pos.x = to.x;
   pos.y = to.y;
   return Math.hypot(to.x - from.x, to.y - from.y);
@@ -1412,6 +1419,20 @@ export function Companion({ facts }: CompanionProps) {
     lead: null,
     follow: null,
   });
+  /** Each cat's way round a block of words, kept per destination (`slideOffText`). */
+  const slides = useRef<
+    Record<
+      "lead" | "follow",
+      {
+        target: Point;
+        x: 1 | -1 | undefined;
+        y: 1 | -1 | undefined;
+        best: number;
+        stall: number;
+        off: boolean;
+      } | null
+    >
+  >({ lead: null, follow: null });
   /** The Moon surprise while it plays — see companion-surprise.ts. */
   const surpriseRef = useRef<Surprise | null>(null);
   /** True until the explorers have arrived at their first stop in the current
@@ -3528,6 +3549,26 @@ export function Companion({ facts }: CompanionProps) {
         }
         return moved;
       };
+      /**
+       * Which way each cat is going round a block, per destination, and
+       * whether going round is getting her anywhere: two and a half seconds
+       * with no ground gained on the destination (following the whole length
+       * of a long lede takes about two) and she walks straight on to it
+       * instead — between two blocks that each send her round the other,
+       * sliding alone paced on the spot.
+       */
+      const slideMemo = (key: "lead" | "follow", pos: Point, want: Point) => {
+        let m = slides.current[key];
+        if (!m || distance(m.target, want) > 4) {
+          m = slides.current[key] = { target: want, x: undefined, y: undefined, best: Infinity, stall: 0, off: false };
+        }
+        const away = distance(pos, want);
+        if (away < m.best - 2) {
+          m.best = away;
+          m.stall = 0;
+        } else if ((m.stall += frames) > 150) m.off = true;
+        return m;
+      };
       leadWant = viaFor("lead", grey.pos, offControls(leadWant, tabby.pos));
       const leadDx = leadWant.x - grey.pos.x;
       if (Math.abs(leadDx) > 2) grey.facing = leadDx > 0 ? 1 : -1;
@@ -3539,7 +3580,8 @@ export function Companion({ facts }: CompanionProps) {
         frames,
       );
       // The backstop: a step slides along words rather than onto them.
-      if (band) leadStep = stepOffText(grey.pos, leadFrom, leadWant, obstacles);
+      const leadSlide = band ? slideMemo("lead", leadFrom, leadWant) : null;
+      if (band && leadSlide && !leadSlide.off) leadStep = stepOffText(grey.pos, leadFrom, leadWant, obstacles, band, leadSlide);
       /**
        * The same movement as a *speed* rather than a distance, because every
        * threshold below asks a question about speed — "is he really walking",
@@ -3698,7 +3740,10 @@ export function Companion({ facts }: CompanionProps) {
       followWant = viaFor("follow", tabby.pos, followOff);
       const followFrom = { x: tabby.pos.x, y: tabby.pos.y };
       let followStep = advance(tabby.pos, followWant, tabby.speed, frames);
-      if (band) followStep = stepOffText(tabby.pos, followFrom, followWant, obstacles);
+      const followSlide = band ? slideMemo("follow", followFrom, followWant) : null;
+      if (band && followSlide && !followSlide.off) {
+        followStep = stepOffText(tabby.pos, followFrom, followWant, obstacles, band, followSlide);
+      }
       /** Her half of `leadRate` above, and for the same reason. */
       const followRate = frames > 0 ? followStep / frames : 0;
       // Round 14, her half of the same rule the lead gets above: once she has

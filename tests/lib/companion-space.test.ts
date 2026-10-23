@@ -1078,11 +1078,28 @@ describe("slideOffText", () => {
     expect(slid.y).toBe(250);
     expect(slid.x).toBeCloseTo(212.6, 1);
   });
-  it("follows the line to its nearer end when the destination is behind its middle", () => {
-    // Behind the line, the destination straight below: left, to the nearer end.
-    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 200, y: 400 }, [line])).toEqual({ x: 188, y: 250 });
-    // And it keeps going that way: the nearer end stays the nearer end.
-    expect(slideOffText({ x: 120, y: 250 }, { x: 120, y: 262 }, { x: 200, y: 400 }, [line]).x).toBe(108);
+  it("follows the line to its end on the destination's side when the destination is behind its middle", () => {
+    // Destination below and a little left of the middle (350): the left end.
+    expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line])).toEqual({ x: 388, y: 250 });
+    // Still left from the left half: the side does not flip as the cat moves.
+    expect(slideOffText({ x: 200, y: 250 }, { x: 200, y: 262 }, { x: 300, y: 400 }, [line]).x).toBe(188);
+  });
+  it("goes round the end it can reach when the other is past the cats' band", () => {
+    // Destination above-left, but the line's top is too close to the band's.
+    const band = { minX: 8, maxX: 1382, minY: 280, maxY: 850 };
+    const tall = { left: 100, right: 600, top: 290, bottom: 700 };
+    const slid = slideOffText({ x: 610, y: 400 }, { x: 590, y: 398 }, { x: 0, y: 300 }, [tall], band);
+    expect(slid.x).toBe(610);
+    expect(slid.y).toBeCloseTo(420.1, 1);
+  });
+  it("keeps going round the way it started for this destination", () => {
+    // Behind the middle, destination low and left: it would pick the left end.
+    const memo: { x?: 1 | -1; y?: 1 | -1 } = {};
+    expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line], null, memo).x).toBe(388);
+    expect(memo.x).toBe(-1);
+    // Told it went right last time, it keeps going right.
+    const right: { x?: 1 | -1 } = { x: 1 };
+    expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line], null, right).x).toBe(412);
   });
   it("crosses when it cannot slide", () => {
     const wall = { left: 0, right: 196, top: 240, bottom: 300 };
