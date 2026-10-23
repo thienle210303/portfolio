@@ -666,15 +666,18 @@ test.describe("hero", () => {
 
   test("the header sits on the sky", async ({ page }) => {
     await open(page);
-    const [header, body] = await page.evaluate(() =>
-      [document.querySelector("header[data-site-header]")!, document.body].map((el) => {
-        const s = getComputedStyle(el);
-        return { image: s.backgroundImage, attachment: s.backgroundAttachment };
-      }),
+    // The sky is a fixed layer under body (round 21 phase 8: iOS ignores
+    // `background-attachment: fixed`); the header paints the same gradient.
+    const [header, sky] = await page.evaluate(() =>
+      [
+        getComputedStyle(document.querySelector("header[data-site-header]")!),
+        getComputedStyle(document.body, "::before"),
+      ].map((s) => ({ image: s.backgroundImage, size: s.backgroundSize, position: s.position })),
     );
-    expect(header.image).toBe(body.image);
+    expect(header.image).toBe(sky.image);
     expect(header.image).not.toBe("none");
-    expect(header.attachment).toBe("fixed");
+    expect(header.size).toBe(sky.size);
+    expect(sky.position).toBe("fixed");
   });
 });
 

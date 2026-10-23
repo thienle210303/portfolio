@@ -279,8 +279,8 @@
     --show-day: block;
     --show-night: none;
 
-    /* The sky: one backdrop behind the whole page, painted on `body` and on
-       the header (`:root body, .sky-fill`). Day is a morning field. */
+    /* The sky: one backdrop behind the whole page, a fixed layer under `body`
+       and the header (`:root body::before, .sky-fill`). Day is a morning field. */
     --sky: linear-gradient(180deg, var(--color-morning-high) 0%, var(--color-morning) 45%, var(--color-morning-low) 100%);
 
     /* The fade at the right edge of a horizontally scrollable code panel.
@@ -647,19 +647,34 @@
   }
 
   /*
-   * The sky: one backdrop behind the whole page in both themes, so it is
-   * painted on `body` and the quiet sections let it show through
-   * (`.section-ground` below). Each theme only supplies `--sky`, so the no-JS
-   * night path needs nothing here. `fixed` pins the sky to the viewport, so it
-   * is continuous across sections and simply scrolls with the page where
-   * unsupported. `.sky-fill` (the sticky header) shares the declarations, so
-   * the header paints exactly the pixels of the sky behind it.
+   * The sky: one backdrop behind the whole page in both themes, a fixed layer
+   * the size of the viewport under `body`'s content, and the quiet sections
+   * let it show through (`.section-ground` below). Each theme only supplies
+   * `--sky`, so the no-JS night path needs nothing here.
+   *
+   * A fixed layer, not a `fixed` background attachment on `body` (round 21
+   * phase 8): iOS Safari ignores `fixed`, and there the gradient stretched
+   * over the whole document, the page's top a different sky from its end.
+   * `lvh` so the layer does not resize as a phone's toolbar comes and goes.
+   * `.sky-fill` (the sticky header, the phone menu) paints the same gradient
+   * at the same size from the top of the window, which is where both sit, so
+   * it shows exactly the pixels of the sky behind it.
    */
-  :root body,
+  :root body::before,
   .sky-fill {
     background-image: var(--sky);
-    background-size: 100% 100%;
-    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: 100% 100vh;
+    background-size: 100% 100lvh;
+  }
+  :root body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: 100vh;
+    height: 100lvh;
+    pointer-events: none;
   }
 
   /* Scenery paint: `--art` is set per element by `Drawing`. `scene-ink` is a

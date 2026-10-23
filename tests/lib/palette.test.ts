@@ -142,10 +142,14 @@ describe("the outdoors palette", () => {
     }
   });
 
-  it("the sky is painted fixed on body in both themes", () => {
-    const body = rule(":root body, .sky-fill");
-    expect(body).toContain("background-image: var(--sky)");
-    expect(body).toContain("background-attachment: fixed");
+  it("the sky is a fixed layer under body in both themes", () => {
+    const sky = rule(":root body::before, .sky-fill");
+    expect(sky).toContain("background-image: var(--sky)");
+    expect(sky).toContain("background-size: 100% 100lvh");
+    // A layer, not `background-attachment: fixed`, which iOS Safari ignores.
+    const layer = rule(":root body::before");
+    expect(layer).toContain("position: fixed");
+    expect(CSS).not.toContain("background-attachment: fixed");
     // Theme-keyed body rules would split the two themes' backdrops apart again.
     expect(CSS).not.toMatch(/data-theme="(day|night)"\]\)?\s+body\s*\{/);
   });
@@ -208,7 +212,7 @@ describe("the outdoors palette", () => {
   });
 
   it("the header shares the body's sky", () => {
-    const re = /([^{}]*:root body[^{}]*)\{/;
+    const re = /([^{}]*:root body::before[^{}]*)\{/;
     const selector = re.exec(CSS)?.[1] ?? "";
     expect(selector).toContain(".sky-fill");
   });
