@@ -67,6 +67,14 @@
   /* Journey (round 21): the oak's night bark and its Spanish moss. */
   --color-dusk-bark: #070c0d;
   --color-spanish-moss: #8c9a86;
+  /* Record (round 21): the tree slice's wood, its bark, and the study dot
+     (work is moss-deep, a milestone the red). Dots and fills, never text. */
+  --color-wood-early: #eee2c9;
+  --color-wood-late: #e6d6b6;
+  --color-wood-line: #b79c74;
+  --color-bark-inner: #8a7154;
+  --color-bark-outer: #6b5640;
+  --color-river: #2a5d6b;
 }
 
 /*
@@ -266,6 +274,8 @@
     --scene-moss: var(--color-spanish-moss);
     --art-lantern: url(/scenery/lantern-day.svg);
     --art-journey-vignette: url(/scenery/journey-morning.svg);
+    /* Record (round 21) */
+    --art-record-vignette: url(/scenery/record-morning.svg);
     --show-day: block;
     --show-night: none;
 
@@ -347,6 +357,8 @@
     --scene-moss: var(--color-spanish-moss);
     --art-lantern: url(/scenery/lantern-night.svg);
     --art-journey-vignette: url(/scenery/journey-evening.svg);
+    /* Record (round 21) */
+    --art-record-vignette: url(/scenery/record-evening.svg);
     --show-day: none;
     --show-night: block;
   }
@@ -411,6 +423,8 @@
       --scene-moss: var(--color-spanish-moss);
       --art-lantern: url(/scenery/lantern-night.svg);
       --art-journey-vignette: url(/scenery/journey-evening.svg);
+      /* Record (round 21) */
+      --art-record-vignette: url(/scenery/record-evening.svg);
       --show-day: none;
       --show-night: block;
     }
@@ -2378,5 +2392,117 @@
       radial-gradient(circle at 11px 50%, var(--ground) 2.5px, var(--twine) 2.6px 3.6px, transparent 3.7px),
       var(--surface);
     clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* The Record (round 21 phase 5): a notebook spread. The pages are paper      */
+/* (`bg-surface`), so the night paper scope gives them dark ink; the wood,    */
+/* the kind marks and the tape are the same in both themes, as on the board.  */
+/* -------------------------------------------------------------------------- */
+@layer components {
+  :root {
+    --wood-early: var(--color-wood-early);
+    --wood-late: var(--color-wood-late);
+    --wood-line: var(--color-wood-line);
+    --bark-inner: var(--color-bark-inner);
+    --bark-outer: var(--color-bark-outer);
+    --kind-work: var(--color-moss-deep);
+    --kind-learning: var(--color-river);
+    --kind-milestone: var(--color-red);
+    /* Masking tape: fixed on purpose, like the paper shadows above. */
+    --tape: rgb(205 190 150 / 0.6);
+  }
+
+  /* From 1280 the spread is wider than the content column: up to 1300px, the
+     board's, and 16px inside the viewport. */
+  @media (width >= 80rem) {
+    .record-notebook {
+      margin-inline: calc((100% - min(1300px, 100vw - 32px)) / 2);
+    }
+    .record-page-left {
+      box-shadow: inset -26px 0 30px -24px rgb(30 40 35 / 0.25);
+    }
+    .record-page-right {
+      box-shadow: inset 26px 0 30px -24px rgb(30 40 35 / 0.25);
+    }
+  }
+  @media (width < 80rem) {
+    .record-page-left {
+      box-shadow: inset 0 -22px 26px -24px rgb(30 40 35 / 0.25);
+    }
+  }
+
+  /* The left page is ruled, 32px a line (the board's). */
+  .record-page-left {
+    background-image: repeating-linear-gradient(
+      transparent 0 31px,
+      color-mix(in srgb, var(--rule-color) 55%, transparent) 31px 32px
+    );
+  }
+
+  .record-tape {
+    position: absolute;
+    display: block;
+    height: 1.125rem;
+    background: var(--tape);
+    pointer-events: none;
+  }
+  .record-card .record-tape {
+    z-index: 1;
+    top: -0.6rem;
+    left: 50%;
+    width: 4.4rem;
+    margin-left: -2.2rem;
+    transform: rotate(var(--tape-rot, 0deg));
+  }
+
+  /* A ring is a link. It shows it is one on hover, and its focus is drawn on
+     the ring itself (an outline would box the whole slice). */
+  .record-ring {
+    cursor: pointer;
+    outline: none;
+  }
+  .record-ring:hover path {
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+  .record-ring:focus-visible path {
+    stroke: var(--ring-color);
+    stroke-width: 3;
+  }
+
+  /* The year a ring jumped to. */
+  .record-year:target > h4 {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  /* Filters: hide the other kinds' rows, and any year left without a row. */
+  [data-record-list][data-filter="work"] [data-kind]:not([data-kind="work"]),
+  [data-record-list][data-filter="learning"] [data-kind]:not([data-kind="learning"]),
+  [data-record-list][data-filter="milestone"] [data-kind]:not([data-kind="milestone"]),
+  [data-record-list][data-filter="work"] [data-record-year]:not(:has([data-kind="work"])),
+  [data-record-list][data-filter="learning"] [data-record-year]:not(:has([data-kind="learning"])),
+  [data-record-list][data-filter="milestone"] [data-record-year]:not(:has([data-kind="milestone"])) {
+    display: none;
+  }
+
+  /* A stamp's perforated edge: real holes, punched by a mask in the outer 7px
+     (the board's 13px pitch), so whatever is behind shows through. */
+  .record-stamp-paper {
+    padding: 7px;
+    mask:
+      radial-gradient(circle, transparent 3.6px, black 4.1px) -6.5px -6.5px / 13px 13px,
+      linear-gradient(black 0 0) content-box;
+    mask-composite: add;
+  }
+  .record-stamp:focus-visible {
+    outline-offset: 4px;
+  }
+
+  .record-dialog::backdrop {
+    background: rgb(10 14 13 / 0.6);
   }
 }

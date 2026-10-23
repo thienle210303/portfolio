@@ -11,8 +11,8 @@ import { drawnSiblings } from "./tree-labels";
 
 /**
  * The career tree, actually drawn — shown at >=1024px, where there is finally
- * enough width to draw in, above the timeline in KnowledgeTreeList.tsx. Same
- * data, same authored edges.
+ * enough width to draw in. Its rows, with the same data, are on the Record
+ * (`src/sections/Record/RecordYears.tsx`). Same authored edges.
  *
  * ## What is drawn, and what draws it
  *

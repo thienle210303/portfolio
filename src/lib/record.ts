@@ -81,8 +81,9 @@ function rng(seed: number) {
 
 /** The slice's centre and the frame the left page's cards are placed in. */
 export const SLICE_CENTRE = { x: 255, y: 440 } as const;
-/** Board coordinates of the region under the left page's heading. */
-export const PAGE_FRAME = { x: 70, y: 190, width: 650, height: 590 } as const;
+/** Board coordinates of the region under the left page's heading, inside
+ *  its margins (the board's text starts at x 112 on a page from x 70). */
+export const PAGE_FRAME = { x: 100, y: 190, width: 612, height: 590 } as const;
 export const CARD_WIDTH = 196;
 
 /** Where each pressed card is taped, in board coordinates: two down the right
@@ -177,4 +178,10 @@ export function buildSlice(entries: readonly CareerEntry[] = ENTRIES): Slice {
 /** Anchor id of a year on the right page; the rings link here. */
 export function recordYearId(year: number): string {
   return `record-${year}`;
+}
+
+/** An entry's line on the Record: its role, with the em dash the content uses
+ *  between an award and its project read as a comma ("Best Design, MentorHub"). */
+export function entryTitle(entry: CareerEntry): string {
+  return entry.role.replace(" — ", ", ");
 }

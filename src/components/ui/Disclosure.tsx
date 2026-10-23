@@ -21,6 +21,9 @@ export interface DisclosureProps {
   /** Always visible, outside the trigger, so it never joins the button's accessible name. */
   readonly preview?: ReactNode;
   readonly className?: string;
+  /** A shorter trigger from 1024 (the Record's year list, a notebook line per
+   *  entry). Still at least 32px tall there, and 44px below 1024. */
+  readonly dense?: boolean;
 }
 
 /**
@@ -75,6 +78,7 @@ export function Disclosure({
   collapseLabel = "Show less",
   preview,
   className,
+  dense = false,
 }: DisclosureProps) {
   const [ownOpen, setOwnOpen] = useState(defaultOpen);
   const open = controlledOpen ?? ownOpen;
@@ -92,7 +96,10 @@ export function Disclosure({
           setOwnOpen(!open);
           onOpenChange?.(!open);
         }}
-        className="flex min-h-11 w-full items-center justify-between gap-4 py-2 text-left text-[color:var(--fg)]"
+        className={cn(
+          "flex min-h-11 w-full items-center justify-between gap-4 py-2 text-left text-[color:var(--fg)]",
+          dense && "lg:min-h-8 lg:py-1",
+        )}
       >
         <span>{summary}</span>
         <ChevronDown

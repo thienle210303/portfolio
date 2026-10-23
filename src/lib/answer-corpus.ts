@@ -47,23 +47,18 @@ export interface Document {
    * career entry, the project, the About prose. It does *not*
    * promise the sentence itself is printed there, and for a good number of
    * documents it is not — measured at round 18, 38 of the 54 career and
-   * education documents quote a field the page does not render. An entry's
-   * `learned` line is rendered nowhere on the Journey (until round 20 one of
-   * them, `usc-scraping`'s, was quoted by a globe plaque; the plaques are
-   * retired); an entry's `context` is rendered only by `/resume`, and only for
-   * the work entries; and the nine demoted entries' `context` and `impact` lines
-   * are named by nothing — the credentials strip is their role, organisation and
-   * repository link, one line each. A reader who follows "More on this in Journey →" from one of those lands
-   * on the entry's branch, its technologies, its impact lines behind its timeline row's click and its case
-   * study — which is where to read about it, and is not nothing, but is not the
-   * sentence.
+   * education documents quote a field the page does not render. Since round 21
+   * phase 5 every entry is a row on the Record, which opens to its impact lines
+   * (or, with none, its `context`), technologies and case studies; an entry's
+   * `learned` line is still rendered nowhere on the page. A reader who follows
+   * "More on this in Record →" from one of those lands on the entry's row, which
+   * is where to read about it, and is not nothing, but is not the sentence.
    *
    * That is a known gap rather than a settled design, and the fix the plan
    * prefers is to render the sentence rather than to re-point the link (the
    * precedent is `profile.positioning`, two paragraphs down). Doing it means
-   * putting `learned` into the timeline rows and the demoted entries' one-liners
-   * onto the strip, which is a change to what the Journey *says* and belongs to
-   * whoever owns that.
+   * putting `learned` into the Record's rows, which is a change to what the
+   * page *says* and belongs to whoever owns that.
    *
    * ## Omitted entirely for the skills evidence lines
    *
@@ -85,10 +80,10 @@ export interface Document {
    * ## Never a compatibility anchor
    *
    * `#journey`, `#work`, `#skills` and `#workshop` all resolve — they are the
-   * zero-size spans `CareerTree.tsx` renders for inbound links it does not
-   * control — and no document may cite one. The career documents cited
-   * `journey` until round 18's Task 13; they cite `tree`, the section that
-   * actually exists, so that the compatibility anchors can be deleted the day
+   * zero-size spans `CareerTree.tsx` and `Record.tsx` render for inbound links
+   * they do not control — and no document may cite one. The career documents
+   * cited `journey` until round 18's Task 13, then `tree`; since round 21 phase
+   * 5 they cite `record`, the section that renders their rows, so that the compatibility anchors can be deleted the day
    * the bookmarks stop arriving without taking the chat's citations with them.
    * `tests/lib/answers.test.ts` holds that line.
    */
@@ -233,8 +228,9 @@ export function buildDocuments(): Document[] {
     label: label("companions", undefined, "cat", "cats", "pet", "pets", ...companions.map((cat) => cat.name)),
   });
 
-  // Round 18: Selected Work is gone and its case studies render inside the
-  // Journey's branches, so these documents link to `#tree`. The `label()`
+  // Round 18: Selected Work is gone; its case studies render inside the
+  // rows of the roles that produced them, on the Record since round 21 phase 5,
+  // so these documents link to `#record`. The `label()`
   // calls below still pass "work" as their first argument on purpose: that
   // argument picks the vocabulary in `sectionExpansions`, which is what a
   // query matches against, and is not the link target. Re-keying it would
@@ -245,8 +241,8 @@ export function buildDocuments(): Document[] {
     docs.push({
       text: project.problem,
       source: `${where}, the problem`,
-      sectionId: "tree",
-      sectionLabel: "Journey",
+      sectionId: "record",
+      sectionLabel: "Record",
       label: label(
         "work",
         project.id,
@@ -261,8 +257,8 @@ export function buildDocuments(): Document[] {
     docs.push({
       text: project.learned,
       source: `${where}, what it taught me`,
-      sectionId: "tree",
-      sectionLabel: "Journey",
+      sectionId: "record",
+      sectionLabel: "Record",
       // "wrong", "mistake" and "hindsight" belong here rather than on the
       // project: this is the one passage per project that actually answers
       // "did anything go wrong", and at subject level the words would land on
@@ -279,8 +275,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: claim,
         source: `${where}, evidence`,
-        sectionId: "tree",
-        sectionLabel: "Journey",
+        sectionId: "record",
+        sectionLabel: "Record",
         label: label("work", project.id, project.title, "result impact outcome proof evidence"),
       });
     }
@@ -327,8 +323,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: project.assumption,
         source: `${where}, the assumption it rested on`,
-        sectionId: "tree",
-        sectionLabel: "Journey",
+        sectionId: "record",
+        sectionLabel: "Record",
         label: label(
           "work",
           project.id,
@@ -355,8 +351,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: path,
         source: `${where}, the paths explored`,
-        sectionId: "tree",
-        sectionLabel: "Journey",
+        sectionId: "record",
+        sectionLabel: "Record",
         label: label(
           "work",
           project.id,
@@ -370,8 +366,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: `${metric.label}: ${metric.before} → ${metric.after}.`,
         source: metric.source,
-        sectionId: "tree",
-        sectionLabel: "Journey",
+        sectionId: "record",
+        sectionLabel: "Record",
         label: label(
           "work",
           project.id,
@@ -396,8 +392,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: entry.summary,
         source: where,
-        sectionId: "tree",
-        sectionLabel: "Journey",
+        sectionId: "record",
+        sectionLabel: "Record",
         label: label("journey", entry.id, ...shared, "did does responsibility"),
       });
     }
@@ -410,8 +406,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: claim,
         source: `${where} — impact`,
-        sectionId: "tree",
-        sectionLabel: "Journey",
+        sectionId: "record",
+        sectionLabel: "Record",
         label: label(
           "journey",
           entry.id,
@@ -425,8 +421,8 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: entry.learned,
         source: `${where} — what it taught me`,
-        sectionId: "tree",
-        sectionLabel: "Journey",
+        sectionId: "record",
+        sectionLabel: "Record",
         label: label("journey", entry.id, ...shared, "learn lesson learned learning takeaway realised"),
       });
     }
@@ -435,12 +431,12 @@ export function buildDocuments(): Document[] {
   for (const school of education) {
     docs.push({
       text: `${school.credential}, ${school.institution} (${school.dateRange}).`,
-      // The degree is a career entry, on the Journey's credentials line, and
+      // The degree is a career entry, a row on the Record, and
       // #resume is no longer a section on the page — linking there would be a
       // dead anchor.
       source: "Education",
-      sectionId: "tree",
-      sectionLabel: "Journey",
+      sectionId: "record",
+      sectionLabel: "Record",
       label: label(
         "journey",
         "usc-degree",
