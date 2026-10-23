@@ -9,10 +9,11 @@ const art = (name: string) => ({ "--art": `var(${name})` }) as CSSProperties;
  * board (NatJourney) draws it. From 1280 every piece stands in the board's
  * 1440×900 frame, whose left edge is the section's `--fx` and whose y 0 is the
  * section's top. The sky is the hero's file (already cached), shifted 300px so
- * its sun sits at the board's x 1180; past the frame the oak fades out.
+ * its sun would sit at the board's x 1180; a mask takes the disc out (one sun
+ * or moon on screen at a time). Past the frame the oak fades out.
  *
- * Below 1280 only the sky is here, pinned like the hero's phone sky (the sun
- * 40px in from the right edge); the crown, its lantern and the branch the tags
+ * Below 1280 only the sky is here, pinned like the hero's phone sky (its disc,
+ * masked out, 40px in from the right edge); the crown, its lantern and the branch the tags
  * hang from are in the stage itself (`CareerTree.tsx`, `HangingTags.tsx`).
  */
 export default function OakScenery() {
@@ -26,8 +27,11 @@ export default function OakScenery() {
           background offset is `min(50%, 100% + 16px)` (a % here is of the
           width minus the 1440px image). Left of it is the plain sky: wrapping
           the tile round would bring a second sun in at wide screens. */}
+      {/* Without its sun or moon: the hero's is still on screen as the Journey
+          comes up, and on a phone this one sat behind the heading. The mask
+          cuts the disc and its halo out where each position puts them. */}
       <span
-        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-[size:1440px_auto] bg-[position:right_-520px_top_-80px] xl:bg-[position:calc(min(50%,100%+16px)+300px)_0]"
+        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-[size:1440px_auto] bg-[position:right_-520px_top_-80px] [mask-image:radial-gradient(circle_at_calc(100%-40px)_40px,transparent_160px,black_176px)] xl:bg-[position:calc(min(50%,100%+16px)+300px)_0] xl:[mask-image:radial-gradient(circle_at_calc(var(--fx)+1180px)_120px,transparent_160px,black_176px)]"
         style={art("--art-sky")}
       />
       {/* The limbs run off the frame's edges; past 1440 the frame's edges are
