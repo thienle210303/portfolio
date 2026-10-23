@@ -68,7 +68,7 @@ export type TourRoute = "grey" | "tabby";
  *  never name it — which is the silent skip
  *  `tests/lib/companion-tour.test.ts`'s "visits every nav section" case
  *  exists to catch. */
-const GREY_MIDDLE = ["tree"] as const;
+const GREY_MIDDLE = ["tree", "record"] as const;
 
 const STOP_BY_SECTION = new Map(TOUR_STOPS.map((stop) => [stop.sectionId, stop]));
 

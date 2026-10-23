@@ -22,6 +22,7 @@ import type {
   EducationEntry,
   Highlight,
   JourneyCopy,
+  RecordCopy,
   NavItem,
   Origin,
   Profile,
@@ -191,6 +192,25 @@ export const journey = {
   },
 } satisfies JourneyCopy;
 
+/** The Record's authored words (round 21, the NatRecordFinal board). Not
+ *  indexed by the chat. `{first}` and `{last}` are the slice's own years. */
+export const record = {
+  pressed: {
+    heading: "Pressed, waiting to dry.",
+    lead: "My best ones, pressed between the pages. Give them a few years.",
+    slice: "A tree slice: {first} at the heart, {last} at the bark. Wider rings, busier years.",
+  },
+  byYear: {
+    heading: "Everything I've done, by year.",
+    empty: "Nothing started this year.",
+  },
+  certificates: "Certificates I've collected",
+  vignette: {
+    morning: "cà phê sữa đá, while I write",
+    evening: "chè, while I write",
+  },
+} satisfies RecordCopy;
+
 export const socialLinks = [
   {
     id: "github",
@@ -230,6 +250,7 @@ export const socialLinks = [
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
+  { id: "nav-record", sectionId: "record", label: "Record" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 
@@ -245,6 +266,7 @@ export const careerEntries = [
     sortKey: "2025-10",
     role: "Software Engineer",
     organization: "DoorDash, Inc.",
+    featured: true,
     headline: "Reverse engineering scraper: 17 hours to 3 minutes.",
     // Omitted on purpose: no other career entry carries one, so a single
     // location here reads as an inconsistency rather than information.
@@ -435,6 +457,7 @@ export const careerEntries = [
     sortKey: "2025-05-e",
     role: "Graduated — B.S. Computer Science",
     organization: "University of South Carolina",
+    featured: true,
     locationOrMode: undefined,
     context: "Cybersecurity minor, 3.8 GPA, Dean's List 2021–2025.",
     responsibilities: [],
@@ -450,6 +473,13 @@ export const careerEntries = [
     sortKey: "2024-04",
     role: "Best Design — MentorHub",
     organization: "CockyHacks, ACM@USC",
+    featured: true,
+    award: {
+      src: "/media/certificates/cockyhacks.jpg",
+      width: 1024,
+      height: 576,
+      alt: "CockyHacks 2024, Best Design: MentorHub, by Aarsh Patel, Maximus Fernandez and Thien Le.",
+    },
     locationOrMode: undefined,
     context:
       "Led a team of three to build a responsive web application connecting students with academic mentors.",
@@ -476,6 +506,13 @@ export const careerEntries = [
     sortKey: "2023-04",
     role: "2nd Place — Food Route",
     organization: "Code to Give Hackathon, Morgan Stanley",
+    featured: true,
+    award: {
+      src: "/media/certificates/code-to-give.jpg",
+      width: 1024,
+      height: 792,
+      alt: "Morgan Stanley's winner's certificate of recognition: 2nd place in the Code to Give Hackathon, Alpharetta 2023, team Atlanta Community Food Bank Team 4.",
+    },
     locationOrMode: undefined,
     context:
       "Built a web application routing people to food based on their location and preferences.",
@@ -534,6 +571,7 @@ export const careerEntries = [
     sortKey: "2024-09",
     role: "Magellan Research Award — TRIO",
     organization: "University of South Carolina",
+    featured: true,
     locationOrMode: undefined,
     context: "Undergraduate research award.",
     responsibilities: [],
@@ -1374,6 +1412,9 @@ export const education = [
   },
 ] satisfies readonly EducationEntry[];
 
+// Round 21 phase 5: names, issuers and dates read off the certificates
+// themselves (`D:\Project\Portfolio-v2\src\assets\certificate`, 2026-10-21).
+// The AT&T entry is as it was: no stamp, no image, no date (owner).
 export const certifications = [
   {
     id: "att",
@@ -1383,15 +1424,71 @@ export const certifications = [
   },
   {
     id: "jpmorgan",
-    name: "Software Engineering",
-    issuer: "JPMorgan",
-    date: undefined,
+    name: "Software Engineering Virtual Experience",
+    issuer: "JPMorgan Chase & Co.",
+    via: "Forage",
+    date: "February 3, 2023",
+    stamp: {
+      short: "JPMorgan",
+      drawing: "pine",
+      image: {
+        src: "/media/certificates/jpmorgan.jpg",
+        width: 1600,
+        height: 1130,
+        alt: "JPMorgan Chase & Co. certificate of completion, issued by Forage to Thien Le for the Software Engineering Virtual Experience, February 3rd, 2023.",
+      },
+    },
   },
   {
     id: "visa",
-    name: "Token Service Technology",
-    issuer: "VISA",
-    date: undefined,
+    name: "Token Service Technology Virtual Experience Program",
+    issuer: "Visa",
+    via: "Forage",
+    date: "February 4, 2023",
+    stamp: {
+      short: "Visa",
+      drawing: "fern",
+      image: {
+        src: "/media/certificates/visa.jpg",
+        width: 1600,
+        height: 1130,
+        alt: "Visa certificate of completion, issued by Forage to Thien Le for the Token Service Technology Virtual Experience Program, February 4th, 2023.",
+      },
+    },
+  },
+  {
+    id: "hkust-software-engineering",
+    name: "Software Engineering Specialization (3 courses)",
+    issuer: "HKUST",
+    via: "Coursera",
+    date: "June 26, 2023",
+    stamp: {
+      short: "HKUST",
+      drawing: "rice",
+      image: {
+        src: "/media/certificates/hkust-software-engineering.jpg",
+        width: 1056,
+        height: 816,
+        alt: "Coursera specialization certificate from HKUST: Software Engineering, three courses, completed June 26, 2023.",
+      },
+    },
+  },
+  {
+    id: "walmart",
+    name: "Advanced Software Engineering Job Simulation",
+    issuer: "Walmart Global Tech",
+    via: "Forage",
+    date: "February 25, 2024",
+    stamp: {
+      short: "Walmart",
+      drawing: "palmetto",
+      image: {
+        src: "/media/certificates/walmart.jpg",
+        width: 1600,
+        height: 1132,
+        alt: "Walmart Global Tech certificate of completion, issued by Forage to Thien Le for the Advanced Software Engineering Job Simulation, February 25th, 2024.",
+      },
+    },
   },
 ] satisfies readonly Certification[];
 
