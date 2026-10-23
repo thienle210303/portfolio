@@ -3531,7 +3531,10 @@ export function Companion({ facts }: CompanionProps) {
           .sort((a, b) => distance(a, want) - distance(b, want));
         let moved = want;
         for (const p of nudges) {
-          if (!blocking(p) && isClearSpot(p) && headClear(p)) {
+          // Never onto the other cat: a nudge that only clears the control by
+          // stepping into him leaves her walking on the spot on top of him.
+          const onOther = Math.abs(p.x - other.x) < CAT_W && Math.abs(p.y - other.y) < CAT_H;
+          if (!onOther && !blocking(p) && isClearSpot(p) && headClear(p)) {
             moved = p;
             break;
           }
@@ -3731,7 +3734,10 @@ export function Companion({ facts }: CompanionProps) {
       }
       const followDx = followWant.x - tabby.pos.x;
       if (tabby.speed > 0.25 && Math.abs(followDx) > 2) tabby.facing = followDx > 0 ? 1 : -1;
-      const followOff = offControls(followWant, grey.pos);
+      // Not while she is being routed round him: her target then is a
+      // waypoint that moves with him, and nudging it bounced her between two
+      // nudges on top of him (the hero perch at 390).
+      const followOff = routing.current ? followWant : offControls(followWant, grey.pos);
       // Her speed was ramped towards the old target above; one moved off a
       // control has to be walked to, even from a standstill.
       if (followOff !== followWant) {
