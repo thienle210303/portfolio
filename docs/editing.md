@@ -64,8 +64,9 @@ case study never ends up with no evidence in it.
 Add an entry to `careerEntries`. One entry feeds all of:
 
 - the **Journey** (`#tree`, `src/sections/CareerTree/`) — a branch on the
-  drawing (>=1024px) and a row in the timeline, or one line on the credentials
-  strip if it is one of the demoted entries (see below)
+  drawing (>=1024px), unless it is one of the demoted entries (see below)
+- the **Record** (`#record`, `src/sections/Record/`) — a dot and a wider ring on
+  the tree slice, and a row under its start year (every entry, demoted or not)
 - the **résumé** at `/resume` — its Experience list shows `type: "work"`
   entries only
 - "Ask this site"
@@ -87,8 +88,8 @@ branch, in date order — `sortKey` decides where on the trunk):
 
 ```ts
 technologies: ["Python", "Playwright"],  // technology leaves on its branch
-impact: ["One sentence of what changed."],  // shown verbatim in its timeline row
-headline: "Result in 12 words or fewer.",  // shown with the branch and the row at rest
+impact: ["One sentence of what changed."],  // shown verbatim in its Record row
+headline: "Result in 12 words or fewer.",  // shown with the branch at rest, and in the open row
 ```
 
 ### Write a headline
@@ -101,11 +102,9 @@ over-long headline, a figure the entry doesn't contain, or an indexed headline.
 Rules and examples: [docs/voice.md](voice.md).
 
 To attach a case study to a role, set the project's `careerEntryId` to that
-entry's `id`. The case study then renders inside that role's timeline row on
-the Journey, and the role supplies the employer and dates shown under the
-case-study title, so the two can never drift apart. (A case study whose role is
-demoted has no row to open from, so it renders after the timeline, full width —
-`UnbranchedCaseStudies`.)
+entry's `id`. The case study then renders inside that role's row on the
+Record, and the role supplies the employer and dates shown under the
+case-study title, so the two can never drift apart.
 
 ## Where the résumé lives
 
@@ -132,12 +131,11 @@ The tree draws **only relationships you have written down**. Each branch *is*
 one career entry (chronological up the trunk, each exactly once), and its
 leaves are that entry's own `technologies` — because you listed them there,
 never because anything matched. Its `impact` lines are not leaves: they show
-verbatim in the entry's timeline row, which the branch's label links to.
+verbatim in the entry's Record row, which the branch's label links to.
 
 Nine entries — the degree and eight milestones —
 are not drawn as branches. They are `DEMOTED_ENTRY_IDS` in
-`src/lib/knowledge-tree.ts` and render as one credentials line below the
-timeline instead. Nothing is drawn under the ground line: the skill groups that used to
+`src/lib/knowledge-tree.ts`; like every entry, each is a row on the Record. Nothing is drawn under the ground line: the skill groups that used to
 label the roots are on `/resume` now, not on the tree.
 
 It deliberately does *not* try to match `skillCategories.skills` against
@@ -176,7 +174,7 @@ Each line lives in one place. `buildChapters()` and `buildFieldTag()` in
 | USC tag: year, place | `usc-degree`'s `sortKey`, `organization` (three or more words shorten to initials) |
 | DoorDash tag: year, place | `doordash`'s `sortKey`, `organization` |
 | My line on the back of a tag | `hero.chapterLines`, except Taylors: `eastside-high`'s `headline` |
-| "Read this part" | the tag's career entry row in the Journey (Kiên Giang: the Journey itself) |
+| "Read this part" | the tag's career entry row on the Record (Kiên Giang: the Journey itself) |
 | The hint under the line | `hero.hint` |
 | The hint's first sentence (from 1024 only, where the line runs from bamboo to pine) | `hero.hintLine` |
 | Field tag rows | Name `profile.name`; Native to `origin.from`; Transplanted `origin.to`; Companions `hero.fieldTag.companionsLead` plus every `companions` name; the rest `hero.fieldTag` |
@@ -214,6 +212,28 @@ order; `buildTickets()` in `src/lib/highlights.ts` assembles them and
   `journey`. They are not indexed by the chat.
 - After changing a drawing, run `pnpm draw:scenery` and commit
   `public/scenery/`.
+
+## The Record
+
+The notebook is `src/sections/Record/`; its numbers and the tree slice are
+computed in `src/lib/record.ts`, so a new entry re-cuts the slice by itself.
+
+| On the page | Where it comes from |
+|---|---|
+| A ring per year, its width | every start year from the first to the last; `4.5 + 3.6 ×` the entries that started that year (`sortKey`) |
+| A dot per entry, its colour and shape | the entry's `type` (`--kind-*`: work a circle, study a square, milestone a diamond) |
+| The five taped cards | `featured: true` on the entry, an editorial call (`tests/lib/record.test.ts` holds the five). Newest year first; a sixth needs a slot in `CARD_SLOTS` |
+| A row's title | the entry's `role`, with " — " read as ", " |
+| A row's body | `headline`, `impact` (or `context` with none), `technologies`, type and `dateRange`, `link`, `recording`, `award`, and every project whose `careerEntryId` is the entry |
+| The filters' counts | the entries' `type`s |
+| A stamp | a `certifications` entry with a `stamp` (`short`, `drawing`, `image`). One without (AT&T) gets no stamp, and stays on `/resume` |
+| An award button in a row | the entry's `award` image |
+| The page's words | `record` (not indexed by the chat) |
+
+Certificate and award images live in `public/media/certificates/`, at most
+~200 KB each (`tests/lib/record.test.ts`); set `width`/`height` to the file's
+own. Write `alt` from what the image says. Nothing is fetched until its dialog
+opens: `next/image` is loaded on the first open.
 
 ## Changing colours
 

@@ -3,12 +3,14 @@
 A personal portfolio for a software engineer working on automation, developer
 experience, performance, and workflows that did not previously exist.
 
-The site is a single narrative page in three sections: **About** — the
+The site is a single narrative page in four sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
 that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — a live oak
-with five measured tags hanging from it, a drawn career tree that grows on
-"Watch it grow", and a timeline of rows that open one at a time, with the case studies inside them (in the rows of the roles that
-produced them, or after the timeline for the coursework); and **Contact**: a
+with five measured tags hanging from it and a drawn career tree that grows on
+"Watch it grow"; the **Record** — a notebook spread: a tree slice with my five
+best pressed around it, every entry by year in rows that open one at a time
+(with the case studies inside the rows of the roles that produced them), and my
+certificates as stamps; and **Contact**: a
 business card with every way to reach him (copy the email, save a vCard) beside a
 postcard that is a short lead form (a name, plus an email or phone), above a chat that
 answers only from what's written for the site: by default his words as
@@ -96,6 +98,9 @@ CSS variable (the raw names would collide with Tailwind colours):
 | `--scene-moss` | the oak's Spanish moss |
 | `--art-lantern` | the oak's Hội An lantern (day: plain, night: lit) |
 | `--art-journey-vignette` | the Journey's vignette (day: bánh mì, night: trà đá) |
+| `--art-record-vignette` | the Record's vignette (day: cà phê sữa đá, night: chè) |
+| `--wood-early`, `--wood-late`, `--wood-line`, `--bark-inner`, `--bark-outer` | the Record's tree slice (both themes) |
+| `--kind-work`, `--kind-learning`, `--kind-milestone` | the Record's kind marks (always beside the kind in words, and shaped) |
 
 This is what lets one component render correctly across two themes × three
 tones with no per-tone branch anywhere. A raw token freezes it into one.
