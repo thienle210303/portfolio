@@ -1343,8 +1343,10 @@ const LIFT_STEP = 56;
  * its corner — and it should never cover a control (WCAG 2.4.11, Focus Not
  * Obscured, and the owner's rule). Tries the bottom-right corner, then
  * bottom-left, then each side a step higher at a time, up to the header; the
- * first spot that touches no control wins. Covering text is allowed — a
- * corner button always will. Where every spot covers something (a stack of
+ * first spot that touches no control wins. A spot that covers no `text`
+ * either is taken first where there is one (round 21 phase 8: on phones the
+ * pair sat on "Everything I've done, by year."); otherwise covering text is
+ * allowed — a corner button often will. Where every spot covers something (a stack of
  * full-width rows on a phone), the pair tuck off the right edge and peek in,
  * `PEEK` px of them showing, at the first height that covers nothing; failing
  * even that, the spot that covers least. Never the `focused` control: the one
@@ -1355,6 +1357,7 @@ export function pickCorner(
   size: { readonly width: number; readonly height: number },
   controls: readonly RectLike[],
   focused: RectLike | null = null,
+  text: readonly RectLike[] = [],
 ): Corner {
   let best: Corner = { side: "right", lift: 0 };
   let least = Infinity;
@@ -1362,14 +1365,25 @@ export function pickCorner(
   const spots: Corner[] = [];
   for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift }, { side: "left", lift });
   for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift, peek: true });
-  for (const spot of spots) {
+  const boxOf = (spot: Corner): RectLike => {
     const left = spot.peek
       ? view.width - PEEK
       : spot.side === "right"
         ? view.width - CORNER_INSET - size.width
         : CORNER_INSET;
     const bottom = view.height - CORNER_INSET - spot.lift;
-    const box = { left, right: left + size.width, top: bottom - size.height, bottom };
+    return { left, right: left + size.width, top: bottom - size.height, bottom };
+  };
+  if (text.length > 0) {
+    for (const spot of spots) {
+      if (spot.peek) continue;
+      const box = boxOf(spot);
+      if (focused && intersects(box, focused)) continue;
+      if (!controls.some((r) => intersects(box, r)) && !text.some((r) => intersects(box, r))) return spot;
+    }
+  }
+  for (const spot of spots) {
+    const box = boxOf(spot);
     if (focused && intersects(box, focused)) continue;
     let covered = 0;
     for (const rect of controls) {
@@ -1414,11 +1428,20 @@ export function controlRectsUnder(box: RectLike): RectLike[] {
   return found;
 }
 
+/** Every block of words on screen, outside the companion, measured now. */
+export function textRectsInView(): RectLike[] {
+  return rectsInView(PROSE);
+}
+
 /** Every control on screen, outside the companion, measured now. */
 export function controlRectsInView(): RectLike[] {
+  return rectsInView(CONTROLS);
+}
+
+function rectsInView(selector: string): RectLike[] {
   const view = viewport();
   const rects: RectLike[] = [];
-  for (const element of document.querySelectorAll(CONTROLS)) {
+  for (const element of document.querySelectorAll(selector)) {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
     if (box.width <= 0 || box.height <= 0) continue;

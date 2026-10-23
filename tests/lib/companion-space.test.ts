@@ -1059,6 +1059,17 @@ describe("pickCorner", () => {
     expect(view.width - PEEK).toBeGreaterThan(374 - 18);
   });
 
+  it("takes a spot clear of words as well where there is one", () => {
+    const heading = { left: 20, right: 370, top: 740, bottom: 790 };
+    const placed = pickCorner(view, size, [], null, [heading]);
+    const bottom = view.height - CORNER_INSET - placed.lift;
+    expect(placed.peek).toBeUndefined();
+    expect(bottom - size.height >= heading.bottom || bottom <= heading.top).toBe(true);
+    // With words everywhere, words are allowed: the first spot clear of controls.
+    const page = { left: 0, right: 390, top: 0, bottom: 844 };
+    expect(pickCorner(view, size, [], null, [page])).toEqual({ side: "right", lift: 0 });
+  });
+
   it("never sits on the focused control", () => {
     const everything = { left: 0, right: 390, top: 0, bottom: 844 };
     const focused = { left: 300, right: 390, top: 700, bottom: 844 };

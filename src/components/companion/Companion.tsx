@@ -106,6 +106,7 @@ import {
   standingSpots,
   controlRectsInView,
   controlRectsUnder,
+  textRectsInView,
   groundControls,
   groundProse,
   slideOffText,
@@ -5106,7 +5107,7 @@ export function Companion({ facts }: CompanionProps) {
       // Measured fresh: the parked pair runs no loop to invalidate `viewport()`.
       invalidateViewport();
       const view = viewport();
-      const picked = pickCorner(view, { width, height }, controlRectsInView(), focused);
+      const picked = pickCorner(view, { width, height }, controlRectsInView(), focused, textRectsInView());
       const dx = picked.peek
         ? width + CORNER_INSET - PEEK
         : picked.side === "left"
