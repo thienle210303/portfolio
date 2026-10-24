@@ -108,13 +108,13 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
             {profile.location}
           </p>
           {/* The chat corpus cites this line to Contact; keep it on the card. */}
-          <p className="mt-4 border-l-2 border-accent pl-3 font-serif text-[18px] leading-[1.35] text-fg italic">
+          <p className="mt-4 border-l-2 border-accent pl-3 [text-wrap:balance] font-serif text-[18px] leading-[1.35] text-fg italic">
             {profile.philosophy}
           </p>
 
           <div className="mt-5 mb-3.5 h-px bg-rule" />
 
-          <ul role="list" className="relative flex flex-col gap-[3px] font-mono text-[13px] leading-snug xl:text-[14.5px]">
+          <ul role="list" className="relative flex flex-col gap-[3px] font-mono text-[13px] max-[339px]:text-[11.5px] leading-snug xl:text-[14.5px]">
             <li className="flex items-center gap-2 xl:gap-2.5">
               <Icon name="mail" className="size-4 text-accent" />
               <a

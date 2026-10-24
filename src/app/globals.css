@@ -606,6 +606,11 @@
   p {
     text-wrap: pretty;
   }
+  /* Round 21 phase 8: every heading, not just the two call sites above; the
+     Record's two page titles stranded "dry." and "year." at 320 and 414. */
+  :is(h1, h2, h3, h4) {
+    text-wrap: balance;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *,

@@ -176,3 +176,26 @@ for (const width of [320, 390, 414, 768]) {
     }
   });
 }
+
+// Round 21 phase 8: at 320 the business card's rows set the grid track's
+// minimum, so the card and the postcard ran 14px past the window, where the
+// page's overflow clip hid it. Their papers stay inside the window.
+for (const width of [320, 360, 390, 414, 768]) {
+  test(`the business card and the postcard sit inside the window at ${width}`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    const boxes = await page.evaluate(() =>
+      ["#contact aside", "#contact [data-postcard]"].map((selector) => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return { selector, left: r.left, right: r.right, width: innerWidth };
+      }),
+    );
+    for (const b of boxes) {
+      expect(b.left, `${b.selector} left`).toBeGreaterThanOrEqual(0);
+      expect(b.right, `${b.selector} right`).toBeLessThanOrEqual(b.width);
+    }
+  });
+}
