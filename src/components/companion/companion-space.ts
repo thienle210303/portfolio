@@ -1345,7 +1345,8 @@ const LIFT_STEP = 56;
  * bottom-left, then each side a step higher at a time, up to the header; the
  * first spot that touches no control wins. A spot that covers no `text`
  * either is taken first where there is one (round 21 phase 8: on phones the
- * pair sat on "Everything I've done, by year."); otherwise covering text is
+ * pair sat on "Everything I've done, by year."), a peek included: tucked off
+ * the edge beats sitting on words (polish 2, 320). Otherwise covering text is
  * allowed — a corner button often will. Where every spot covers something (a stack of
  * full-width rows on a phone), the pair tuck off the right edge and peek in,
  * `PEEK` px of them showing, at the first height that covers nothing; failing
@@ -1376,7 +1377,6 @@ export function pickCorner(
   };
   if (text.length > 0) {
     for (const spot of spots) {
-      if (spot.peek) continue;
       const box = boxOf(spot);
       if (focused && intersects(box, focused)) continue;
       if (!controls.some((r) => intersects(box, r)) && !text.some((r) => intersects(box, r))) return spot;

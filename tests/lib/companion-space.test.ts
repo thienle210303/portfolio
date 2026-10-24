@@ -1070,6 +1070,13 @@ describe("pickCorner", () => {
     expect(pickCorner(view, size, [], null, [page])).toEqual({ side: "right", lift: 0 });
   });
 
+  it("tucks off the edge rather than sit on words when no corner is clear of them", () => {
+    // Full-width lines with 8px gaps and a 16px margin: no corner is clear, the right edge is.
+    const lines = Array.from({ length: 40 }, (_, i) => ({ left: 16, right: 330, top: i * 22, bottom: i * 22 + 14 }));
+    const placed = pickCorner({ width: 360, height: 844 }, size, [], null, lines);
+    expect(placed.peek).toBe(true);
+  });
+
   it("never sits on the focused control", () => {
     const everything = { left: 0, right: 390, top: 0, bottom: 844 };
     const focused = { left: 300, right: 390, top: 700, bottom: 844 };
