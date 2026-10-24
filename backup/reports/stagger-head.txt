@@ -1,0 +1,43 @@
+
+Running 10 tests using 1 worker
+
+  x   1 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (1.0m)
+  ok  2 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (1.0m)
+  ok  3 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.2s)
+  ok  4 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (58.9s)
+  ok  5 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.0s)
+  ok  6 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.1s)
+  ok  7 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.0s)
+  ok  8 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (1.0m)
+  ok  9 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.0s)
+  ok 10 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.2s)
+
+
+  1) [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active 
+
+    Error: an explorer stopped with its head on something readable
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "tabby at 1120,2574: head on button \"07Technology3 plaques\"",
+    + ]
+
+      1134 |       `too few distinct stops were looked at for the head check to mean anything: ${JSON.stringify(stopsRead)}`,
+      1135 |     ).toBeGreaterThanOrEqual(3);
+    > 1136 |     expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);
+           |                                                                                   ^
+      1137 |   });
+      1138 |
+      1139 |   test("each explorer leaves its stop on its own clock, not both at once", async ({ page }) => {
+        at D:\Project\portfolio\.claude\worktrees\cat-stagger\e2e\companion.spec.ts:1136:83
+
+    Error Context: test-results\companion-companion-explor-3d16f--while-the-reader-is-active-chromium-1440\error-context.md
+
+  1 failed
+    [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active 
+  9 passed (10.2m)

@@ -1,0 +1,12 @@
+
+Running 6 tests using 2 workers
+
+  -  2 [chromium-375] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  1 [chromium-320] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  4 [chromium-768] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  3 [chromium-390] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  5 [chromium-1024] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  ok 6 [chromium-1440] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene (19.6s)
+
+  5 skipped
+  1 passed (25.8s)

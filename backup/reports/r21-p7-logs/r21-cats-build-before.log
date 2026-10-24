@@ -1,0 +1,36 @@
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+
+> portfolio@0.1.0 build D:\Project\portfolio\.claude\worktrees\r21-cats
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+✓ Running next.config.ts took 1008ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 17.8s
+  Running TypeScript ...
+  Finished TypeScript in 30.9s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/11) ...
+  Generating static pages using 11 workers (2/11) 
+  Generating static pages using 11 workers (5/11) 
+  Generating static pages using 11 workers (8/11) 
+✓ Generating static pages using 11 workers (11/11) in 1998ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/ask
+├ ƒ /api/contact
+├ ○ /contact.vcf
+├ ○ /icon
+├ ○ /opengraph-image
+├ ○ /resume
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

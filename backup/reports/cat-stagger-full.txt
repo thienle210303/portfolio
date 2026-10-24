@@ -1,0 +1,382 @@
+
+Running 348 tests using 2 workers
+
+  -    1 [chromium-320] › e2e\companion.spec.ts:570:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -    3 [chromium-320] › e2e\companion.spec.ts:621:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -    2 [chromium-320] › e2e\companion.spec.ts:586:7 › companion › is reachable and operable by keyboard alone
+  -    5 [chromium-320] › e2e\companion.spec.ts:731:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -    4 [chromium-320] › e2e\companion.spec.ts:675:7 › companion › plays every scene on demand, or says why it cannot
+  -    6 [chromium-320] › e2e\companion.spec.ts:802:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -    7 [chromium-320] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -    8 [chromium-320] › e2e\companion.spec.ts:845:7 › companion › stays visible over the section it is crossing
+  -    9 [chromium-320] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active
+  -   10 [chromium-320] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   12 [chromium-320] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still
+  -   11 [chromium-320] › e2e\companion.spec.ts:1226:7 › companion › the lead still chases a pointer that comes near him
+  -   13 [chromium-320] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -   14 [chromium-320] › e2e\companion.spec.ts:1494:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -   16 [chromium-320] › e2e\companion.spec.ts:1593:7 › companion › a key that never scrolls still counts as activity
+  -   15 [chromium-320] › e2e\companion.spec.ts:1564:7 › companion › a keyboard-only reader still counts as active
+  -   17 [chromium-320] › e2e\companion.spec.ts:1612:7 › companion › draws two independently positioned cats, not one pair
+  -   18 [chromium-320] › e2e\companion.spec.ts:1644:7 › companion › sends the cats to a visible resting box, which brings them back
+  -   19 [chromium-320] › e2e\companion.spec.ts:1702:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -   20 [chromium-320] › e2e\companion.spec.ts:1739:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -   21 [chromium-320] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -   22 [chromium-320] › e2e\companion.spec.ts:1795:7 › companion › the bed is furniture, not a control panel
+  -   23 [chromium-320] › e2e\companion.spec.ts:1809:7 › companion › never comes to rest on top of readable content
+  -   25 [chromium-320] › e2e\companion.spec.ts:1944:7 › companion › settles where the visitor is reading, without covering it
+  -   24 [chromium-320] › e2e\companion.spec.ts:1834:7 › companion › never rests on the globe stage, loaded or not
+  -   26 [chromium-320] › e2e\companion.spec.ts:2005:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -   27 [chromium-320] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -   28 [chromium-320] › e2e\companion.spec.ts:2118:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -   29 [chromium-320] › e2e\companion.spec.ts:2193:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -   30 [chromium-320] › e2e\companion.spec.ts:2288:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -   32 [chromium-320] › e2e\companion.spec.ts:2516:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  -   33 [chromium-320] › e2e\companion.spec.ts:2715:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -   31 [chromium-320] › e2e\companion.spec.ts:2377:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  ok  35 [chromium-320] › e2e\companion.spec.ts:2758:7 › companion › does not roam when the visitor asks for reduced motion (2.6s)
+  -   36 [chromium-320] › e2e\companion.spec.ts:2965:7 › companion › adds no WCAG violations with its toolkit open
+  -   37 [chromium-320] › e2e\companion.spec.ts:2981:7 › companion › adds no WCAG violations with the cats in their box
+  -   38 [chromium-320] › e2e\companion.spec.ts:2999:7 › companion › is not printed
+  -   39 [chromium-320] › e2e\companion.spec.ts:3009:7 › companion › walks all four stops, choosing a route at the fork, and ends back on the cat
+  -   40 [chromium-320] › e2e\companion.spec.ts:3064:7 › companion › the other route reaches every stop too, ending on Contact
+  -   41 [chromium-320] › e2e\companion.spec.ts:3101:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -   42 [chromium-320] › e2e\companion.spec.ts:3116:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -   43 [chromium-320] › e2e\companion.spec.ts:3136:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -   44 [chromium-320] › e2e\companion.spec.ts:3151:7 › companion › adds no WCAG violations with the tour HUD open
+  -   45 [chromium-320] › e2e\companion.spec.ts:3168:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -   46 [chromium-320] › e2e\companion.spec.ts:3193:7 › companion › the tour HUD carries both speakers' subtitles
+  -   47 [chromium-320] › e2e\companion.spec.ts:3214:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -   48 [chromium-320] › e2e\companion.spec.ts:3261:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -   49 [chromium-320] › e2e\companion.spec.ts:3276:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -   50 [chromium-320] › e2e\companion.spec.ts:3333:7 › companion › clicking the tabby advances the duet a beat
+  -   51 [chromium-320] › e2e\companion.spec.ts:3382:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -   52 [chromium-320] › e2e\companion.spec.ts:3418:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -   53 [chromium-320] › e2e\companion.spec.ts:3474:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -   54 [chromium-320] › e2e\companion.spec.ts:3514:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -   55 [chromium-320] › e2e\companion.spec.ts:3551:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -   56 [chromium-320] › e2e\companion.spec.ts:3571:7 › companion › cheers briefly on a theme toggle
+  -   57 [chromium-320] › e2e\companion.spec.ts:3588:7 › companion › creeps toward the form while data-cat-secret stands, and lets go once it clears
+  ok  58 [chromium-320] › e2e\companion.spec.ts:3656:7 › companion › reduced motion skips the secret theatrics entirely (2.2s)
+  -   59 [chromium-375] › e2e\companion.spec.ts:570:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -   60 [chromium-375] › e2e\companion.spec.ts:586:7 › companion › is reachable and operable by keyboard alone
+  -   61 [chromium-375] › e2e\companion.spec.ts:621:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -   62 [chromium-375] › e2e\companion.spec.ts:675:7 › companion › plays every scene on demand, or says why it cannot
+  -   63 [chromium-375] › e2e\companion.spec.ts:731:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -   64 [chromium-375] › e2e\companion.spec.ts:802:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -   65 [chromium-375] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -   66 [chromium-375] › e2e\companion.spec.ts:845:7 › companion › stays visible over the section it is crossing
+  -   67 [chromium-375] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active
+  -   68 [chromium-375] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   69 [chromium-375] › e2e\companion.spec.ts:1226:7 › companion › the lead still chases a pointer that comes near him
+  -   70 [chromium-375] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still
+  -   71 [chromium-375] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -   72 [chromium-375] › e2e\companion.spec.ts:1494:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -   73 [chromium-375] › e2e\companion.spec.ts:1564:7 › companion › a keyboard-only reader still counts as active
+  -   74 [chromium-375] › e2e\companion.spec.ts:1593:7 › companion › a key that never scrolls still counts as activity
+  -   75 [chromium-375] › e2e\companion.spec.ts:1612:7 › companion › draws two independently positioned cats, not one pair
+  -   76 [chromium-375] › e2e\companion.spec.ts:1644:7 › companion › sends the cats to a visible resting box, which brings them back
+  -   77 [chromium-375] › e2e\companion.spec.ts:1702:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -   78 [chromium-375] › e2e\companion.spec.ts:1739:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -   79 [chromium-375] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -   80 [chromium-375] › e2e\companion.spec.ts:1795:7 › companion › the bed is furniture, not a control panel
+  -   81 [chromium-375] › e2e\companion.spec.ts:1809:7 › companion › never comes to rest on top of readable content
+  -   82 [chromium-375] › e2e\companion.spec.ts:1834:7 › companion › never rests on the globe stage, loaded or not
+  -   83 [chromium-375] › e2e\companion.spec.ts:1944:7 › companion › settles where the visitor is reading, without covering it
+  -   84 [chromium-375] › e2e\companion.spec.ts:2005:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -   85 [chromium-375] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -   86 [chromium-375] › e2e\companion.spec.ts:2118:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -   87 [chromium-375] › e2e\companion.spec.ts:2193:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  ok  34 [chromium-320] › e2e\companion.spec.ts:2845:7 › companion › neither cat obscures the open toolkit while walking home to it (15.8s)
+  -   88 [chromium-375] › e2e\companion.spec.ts:2288:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -   89 [chromium-375] › e2e\companion.spec.ts:2516:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  -   90 [chromium-375] › e2e\companion.spec.ts:2715:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -   92 [chromium-375] › e2e\companion.spec.ts:2377:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  ok  91 [chromium-375] › e2e\companion.spec.ts:2758:7 › companion › does not roam when the visitor asks for reduced motion (2.3s)
+  ok  94 [chromium-375] › e2e\companion.spec.ts:2965:7 › companion › adds no WCAG violations with its toolkit open (5.7s)
+  ok  95 [chromium-375] › e2e\companion.spec.ts:2981:7 › companion › adds no WCAG violations with the cats in their box (6.6s)
+  -   96 [chromium-375] › e2e\companion.spec.ts:2999:7 › companion › is not printed
+  -   97 [chromium-375] › e2e\companion.spec.ts:3009:7 › companion › walks all four stops, choosing a route at the fork, and ends back on the cat
+  -   98 [chromium-375] › e2e\companion.spec.ts:3064:7 › companion › the other route reaches every stop too, ending on Contact
+  -   99 [chromium-375] › e2e\companion.spec.ts:3101:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  100 [chromium-375] › e2e\companion.spec.ts:3116:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  ok  93 [chromium-375] › e2e\companion.spec.ts:2845:7 › companion › neither cat obscures the open toolkit while walking home to it (13.6s)
+  -  101 [chromium-375] › e2e\companion.spec.ts:3136:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  ok 102 [chromium-375] › e2e\companion.spec.ts:3151:7 › companion › adds no WCAG violations with the tour HUD open (6.1s)
+  -  104 [chromium-375] › e2e\companion.spec.ts:3193:7 › companion › the tour HUD carries both speakers' subtitles
+  -  105 [chromium-375] › e2e\companion.spec.ts:3214:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  ok 106 [chromium-375] › e2e\companion.spec.ts:3261:7 › companion › the hello duet stays clear of content at a narrow viewport too (1.8s)
+  -  107 [chromium-375] › e2e\companion.spec.ts:3276:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  ok 103 [chromium-375] › e2e\companion.spec.ts:3168:7 › companion › adds no WCAG violations with the tour's route choice visible (8.4s)
+  -  108 [chromium-375] › e2e\companion.spec.ts:3333:7 › companion › clicking the tabby advances the duet a beat
+  -  109 [chromium-375] › e2e\companion.spec.ts:3382:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  110 [chromium-375] › e2e\companion.spec.ts:3418:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  111 [chromium-375] › e2e\companion.spec.ts:3474:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  112 [chromium-375] › e2e\companion.spec.ts:3514:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  113 [chromium-375] › e2e\companion.spec.ts:3551:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  114 [chromium-375] › e2e\companion.spec.ts:3571:7 › companion › cheers briefly on a theme toggle
+  -  115 [chromium-375] › e2e\companion.spec.ts:3588:7 › companion › creeps toward the form while data-cat-secret stands, and lets go once it clears
+  ok 116 [chromium-375] › e2e\companion.spec.ts:3656:7 › companion › reduced motion skips the secret theatrics entirely (2.2s)
+  -  117 [chromium-390] › e2e\companion.spec.ts:570:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -  118 [chromium-390] › e2e\companion.spec.ts:621:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -  119 [chromium-390] › e2e\companion.spec.ts:675:7 › companion › plays every scene on demand, or says why it cannot
+  -  121 [chromium-390] › e2e\companion.spec.ts:731:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -  122 [chromium-390] › e2e\companion.spec.ts:802:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -  123 [chromium-390] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  120 [chromium-390] › e2e\companion.spec.ts:586:7 › companion › is reachable and operable by keyboard alone
+  -  124 [chromium-390] › e2e\companion.spec.ts:845:7 › companion › stays visible over the section it is crossing
+  -  125 [chromium-390] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active
+  -  126 [chromium-390] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  127 [chromium-390] › e2e\companion.spec.ts:1226:7 › companion › the lead still chases a pointer that comes near him
+  -  128 [chromium-390] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still
+  -  129 [chromium-390] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -  130 [chromium-390] › e2e\companion.spec.ts:1494:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -  132 [chromium-390] › e2e\companion.spec.ts:1593:7 › companion › a key that never scrolls still counts as activity
+  -  131 [chromium-390] › e2e\companion.spec.ts:1564:7 › companion › a keyboard-only reader still counts as active
+  -  133 [chromium-390] › e2e\companion.spec.ts:1612:7 › companion › draws two independently positioned cats, not one pair
+  -  134 [chromium-390] › e2e\companion.spec.ts:1644:7 › companion › sends the cats to a visible resting box, which brings them back
+  -  135 [chromium-390] › e2e\companion.spec.ts:1702:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -  136 [chromium-390] › e2e\companion.spec.ts:1739:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -  137 [chromium-390] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -  138 [chromium-390] › e2e\companion.spec.ts:1795:7 › companion › the bed is furniture, not a control panel
+  -  139 [chromium-390] › e2e\companion.spec.ts:1809:7 › companion › never comes to rest on top of readable content
+  -  140 [chromium-390] › e2e\companion.spec.ts:1834:7 › companion › never rests on the globe stage, loaded or not
+  -  141 [chromium-390] › e2e\companion.spec.ts:1944:7 › companion › settles where the visitor is reading, without covering it
+  -  142 [chromium-390] › e2e\companion.spec.ts:2005:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -  143 [chromium-390] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -  144 [chromium-390] › e2e\companion.spec.ts:2118:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -  145 [chromium-390] › e2e\companion.spec.ts:2193:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -  147 [chromium-390] › e2e\companion.spec.ts:2377:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  -  146 [chromium-390] › e2e\companion.spec.ts:2288:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -  149 [chromium-390] › e2e\companion.spec.ts:2715:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -  148 [chromium-390] › e2e\companion.spec.ts:2516:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  ok 150 [chromium-390] › e2e\companion.spec.ts:2758:7 › companion › does not roam when the visitor asks for reduced motion (2.7s)
+  -  152 [chromium-390] › e2e\companion.spec.ts:2965:7 › companion › adds no WCAG violations with its toolkit open
+  -  153 [chromium-390] › e2e\companion.spec.ts:2981:7 › companion › adds no WCAG violations with the cats in their box
+  -  154 [chromium-390] › e2e\companion.spec.ts:2999:7 › companion › is not printed
+  -  155 [chromium-390] › e2e\companion.spec.ts:3009:7 › companion › walks all four stops, choosing a route at the fork, and ends back on the cat
+  -  156 [chromium-390] › e2e\companion.spec.ts:3064:7 › companion › the other route reaches every stop too, ending on Contact
+  -  157 [chromium-390] › e2e\companion.spec.ts:3101:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  158 [chromium-390] › e2e\companion.spec.ts:3116:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -  159 [chromium-390] › e2e\companion.spec.ts:3136:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -  160 [chromium-390] › e2e\companion.spec.ts:3151:7 › companion › adds no WCAG violations with the tour HUD open
+  -  161 [chromium-390] › e2e\companion.spec.ts:3168:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -  162 [chromium-390] › e2e\companion.spec.ts:3193:7 › companion › the tour HUD carries both speakers' subtitles
+  -  163 [chromium-390] › e2e\companion.spec.ts:3214:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -  164 [chromium-390] › e2e\companion.spec.ts:3261:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -  165 [chromium-390] › e2e\companion.spec.ts:3276:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -  166 [chromium-390] › e2e\companion.spec.ts:3333:7 › companion › clicking the tabby advances the duet a beat
+  -  167 [chromium-390] › e2e\companion.spec.ts:3382:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  168 [chromium-390] › e2e\companion.spec.ts:3418:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  169 [chromium-390] › e2e\companion.spec.ts:3474:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  170 [chromium-390] › e2e\companion.spec.ts:3514:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  171 [chromium-390] › e2e\companion.spec.ts:3551:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  172 [chromium-390] › e2e\companion.spec.ts:3571:7 › companion › cheers briefly on a theme toggle
+  -  173 [chromium-390] › e2e\companion.spec.ts:3588:7 › companion › creeps toward the form while data-cat-secret stands, and lets go once it clears
+  ok 174 [chromium-390] › e2e\companion.spec.ts:3656:7 › companion › reduced motion skips the secret theatrics entirely (2.1s)
+  -  175 [chromium-768] › e2e\companion.spec.ts:570:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -  176 [chromium-768] › e2e\companion.spec.ts:586:7 › companion › is reachable and operable by keyboard alone
+  -  177 [chromium-768] › e2e\companion.spec.ts:621:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -  178 [chromium-768] › e2e\companion.spec.ts:675:7 › companion › plays every scene on demand, or says why it cannot
+  -  179 [chromium-768] › e2e\companion.spec.ts:731:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -  180 [chromium-768] › e2e\companion.spec.ts:802:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -  181 [chromium-768] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  182 [chromium-768] › e2e\companion.spec.ts:845:7 › companion › stays visible over the section it is crossing
+  -  183 [chromium-768] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active
+  -  184 [chromium-768] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  185 [chromium-768] › e2e\companion.spec.ts:1226:7 › companion › the lead still chases a pointer that comes near him
+  -  186 [chromium-768] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still
+  -  187 [chromium-768] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -  188 [chromium-768] › e2e\companion.spec.ts:1494:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -  189 [chromium-768] › e2e\companion.spec.ts:1564:7 › companion › a keyboard-only reader still counts as active
+  -  190 [chromium-768] › e2e\companion.spec.ts:1593:7 › companion › a key that never scrolls still counts as activity
+  -  191 [chromium-768] › e2e\companion.spec.ts:1612:7 › companion › draws two independently positioned cats, not one pair
+  -  192 [chromium-768] › e2e\companion.spec.ts:1644:7 › companion › sends the cats to a visible resting box, which brings them back
+  -  193 [chromium-768] › e2e\companion.spec.ts:1702:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -  194 [chromium-768] › e2e\companion.spec.ts:1739:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -  195 [chromium-768] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -  196 [chromium-768] › e2e\companion.spec.ts:1795:7 › companion › the bed is furniture, not a control panel
+  -  197 [chromium-768] › e2e\companion.spec.ts:1809:7 › companion › never comes to rest on top of readable content
+  -  198 [chromium-768] › e2e\companion.spec.ts:1834:7 › companion › never rests on the globe stage, loaded or not
+  -  199 [chromium-768] › e2e\companion.spec.ts:1944:7 › companion › settles where the visitor is reading, without covering it
+  -  200 [chromium-768] › e2e\companion.spec.ts:2005:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -  201 [chromium-768] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it
+  ok 151 [chromium-390] › e2e\companion.spec.ts:2845:7 › companion › neither cat obscures the open toolkit while walking home to it (14.0s)
+  -  202 [chromium-768] › e2e\companion.spec.ts:2118:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -  203 [chromium-768] › e2e\companion.spec.ts:2288:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -  204 [chromium-768] › e2e\companion.spec.ts:2377:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  -  205 [chromium-768] › e2e\companion.spec.ts:2516:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  -  206 [chromium-768] › e2e\companion.spec.ts:2715:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -  208 [chromium-768] › e2e\companion.spec.ts:2193:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  ok 207 [chromium-768] › e2e\companion.spec.ts:2758:7 › companion › does not roam when the visitor asks for reduced motion (2.8s)
+  -  210 [chromium-768] › e2e\companion.spec.ts:2965:7 › companion › adds no WCAG violations with its toolkit open
+  -  211 [chromium-768] › e2e\companion.spec.ts:2981:7 › companion › adds no WCAG violations with the cats in their box
+  -  212 [chromium-768] › e2e\companion.spec.ts:2999:7 › companion › is not printed
+  -  213 [chromium-768] › e2e\companion.spec.ts:3009:7 › companion › walks all four stops, choosing a route at the fork, and ends back on the cat
+  -  214 [chromium-768] › e2e\companion.spec.ts:3064:7 › companion › the other route reaches every stop too, ending on Contact
+  -  215 [chromium-768] › e2e\companion.spec.ts:3101:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  216 [chromium-768] › e2e\companion.spec.ts:3116:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -  217 [chromium-768] › e2e\companion.spec.ts:3136:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -  218 [chromium-768] › e2e\companion.spec.ts:3151:7 › companion › adds no WCAG violations with the tour HUD open
+  -  219 [chromium-768] › e2e\companion.spec.ts:3168:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -  220 [chromium-768] › e2e\companion.spec.ts:3193:7 › companion › the tour HUD carries both speakers' subtitles
+  -  221 [chromium-768] › e2e\companion.spec.ts:3214:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -  222 [chromium-768] › e2e\companion.spec.ts:3261:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -  223 [chromium-768] › e2e\companion.spec.ts:3276:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -  224 [chromium-768] › e2e\companion.spec.ts:3333:7 › companion › clicking the tabby advances the duet a beat
+  -  225 [chromium-768] › e2e\companion.spec.ts:3382:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  226 [chromium-768] › e2e\companion.spec.ts:3418:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  227 [chromium-768] › e2e\companion.spec.ts:3474:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  228 [chromium-768] › e2e\companion.spec.ts:3514:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  229 [chromium-768] › e2e\companion.spec.ts:3551:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  230 [chromium-768] › e2e\companion.spec.ts:3571:7 › companion › cheers briefly on a theme toggle
+  -  231 [chromium-768] › e2e\companion.spec.ts:3588:7 › companion › creeps toward the form while data-cat-secret stands, and lets go once it clears
+  ok 232 [chromium-768] › e2e\companion.spec.ts:3656:7 › companion › reduced motion skips the secret theatrics entirely (2.3s)
+  -  233 [chromium-1024] › e2e\companion.spec.ts:570:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -  234 [chromium-1024] › e2e\companion.spec.ts:586:7 › companion › is reachable and operable by keyboard alone
+  -  235 [chromium-1024] › e2e\companion.spec.ts:621:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -  236 [chromium-1024] › e2e\companion.spec.ts:675:7 › companion › plays every scene on demand, or says why it cannot
+  -  237 [chromium-1024] › e2e\companion.spec.ts:731:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -  238 [chromium-1024] › e2e\companion.spec.ts:802:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -  239 [chromium-1024] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  240 [chromium-1024] › e2e\companion.spec.ts:845:7 › companion › stays visible over the section it is crossing
+  -  241 [chromium-1024] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active
+  -  242 [chromium-1024] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  243 [chromium-1024] › e2e\companion.spec.ts:1226:7 › companion › the lead still chases a pointer that comes near him
+  -  244 [chromium-1024] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still
+  -  245 [chromium-1024] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -  246 [chromium-1024] › e2e\companion.spec.ts:1494:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -  247 [chromium-1024] › e2e\companion.spec.ts:1564:7 › companion › a keyboard-only reader still counts as active
+  -  248 [chromium-1024] › e2e\companion.spec.ts:1593:7 › companion › a key that never scrolls still counts as activity
+  -  249 [chromium-1024] › e2e\companion.spec.ts:1612:7 › companion › draws two independently positioned cats, not one pair
+  -  250 [chromium-1024] › e2e\companion.spec.ts:1644:7 › companion › sends the cats to a visible resting box, which brings them back
+  -  251 [chromium-1024] › e2e\companion.spec.ts:1702:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -  252 [chromium-1024] › e2e\companion.spec.ts:1739:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -  253 [chromium-1024] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -  254 [chromium-1024] › e2e\companion.spec.ts:1795:7 › companion › the bed is furniture, not a control panel
+  -  255 [chromium-1024] › e2e\companion.spec.ts:1809:7 › companion › never comes to rest on top of readable content
+  -  256 [chromium-1024] › e2e\companion.spec.ts:1834:7 › companion › never rests on the globe stage, loaded or not
+  -  257 [chromium-1024] › e2e\companion.spec.ts:1944:7 › companion › settles where the visitor is reading, without covering it
+  -  258 [chromium-1024] › e2e\companion.spec.ts:2005:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -  259 [chromium-1024] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -  260 [chromium-1024] › e2e\companion.spec.ts:2118:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -  261 [chromium-1024] › e2e\companion.spec.ts:2193:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -  262 [chromium-1024] › e2e\companion.spec.ts:2288:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -  263 [chromium-1024] › e2e\companion.spec.ts:2377:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  -  264 [chromium-1024] › e2e\companion.spec.ts:2516:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  -  265 [chromium-1024] › e2e\companion.spec.ts:2715:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  ok 209 [chromium-768] › e2e\companion.spec.ts:2845:7 › companion › neither cat obscures the open toolkit while walking home to it (13.9s)
+  ok 266 [chromium-1024] › e2e\companion.spec.ts:2758:7 › companion › does not roam when the visitor asks for reduced motion (2.8s)
+  -  267 [chromium-1024] › e2e\companion.spec.ts:2965:7 › companion › adds no WCAG violations with its toolkit open
+  -  268 [chromium-1024] › e2e\companion.spec.ts:2981:7 › companion › adds no WCAG violations with the cats in their box
+  -  269 [chromium-1024] › e2e\companion.spec.ts:2999:7 › companion › is not printed
+  -  270 [chromium-1024] › e2e\companion.spec.ts:3009:7 › companion › walks all four stops, choosing a route at the fork, and ends back on the cat
+  -  271 [chromium-1024] › e2e\companion.spec.ts:3064:7 › companion › the other route reaches every stop too, ending on Contact
+  -  272 [chromium-1024] › e2e\companion.spec.ts:3101:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  273 [chromium-1024] › e2e\companion.spec.ts:3116:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -  274 [chromium-1024] › e2e\companion.spec.ts:3136:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -  275 [chromium-1024] › e2e\companion.spec.ts:3151:7 › companion › adds no WCAG violations with the tour HUD open
+  -  276 [chromium-1024] › e2e\companion.spec.ts:3168:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -  277 [chromium-1024] › e2e\companion.spec.ts:3193:7 › companion › the tour HUD carries both speakers' subtitles
+  -  278 [chromium-1024] › e2e\companion.spec.ts:3214:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -  279 [chromium-1024] › e2e\companion.spec.ts:3261:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -  280 [chromium-1024] › e2e\companion.spec.ts:3276:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -  281 [chromium-1024] › e2e\companion.spec.ts:3333:7 › companion › clicking the tabby advances the duet a beat
+  -  283 [chromium-1024] › e2e\companion.spec.ts:3382:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  284 [chromium-1024] › e2e\companion.spec.ts:3418:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  285 [chromium-1024] › e2e\companion.spec.ts:3474:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  286 [chromium-1024] › e2e\companion.spec.ts:3514:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  287 [chromium-1024] › e2e\companion.spec.ts:3551:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  288 [chromium-1024] › e2e\companion.spec.ts:3571:7 › companion › cheers briefly on a theme toggle
+  -  289 [chromium-1024] › e2e\companion.spec.ts:3588:7 › companion › creeps toward the form while data-cat-secret stands, and lets go once it clears
+  ok 290 [chromium-1024] › e2e\companion.spec.ts:3656:7 › companion › reduced motion skips the secret theatrics entirely (2.5s)
+  ok 291 [chromium-1440] › e2e\companion.spec.ts:570:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat (2.2s)
+  ok 292 [chromium-1440] › e2e\companion.spec.ts:586:7 › companion › is reachable and operable by keyboard alone (1.8s)
+  ok 293 [chromium-1440] › e2e\companion.spec.ts:621:7 › companion › the toolkit offers play and bed, and nothing the page already carries (2.0s)
+  ok 294 [chromium-1440] › e2e\companion.spec.ts:675:7 › companion › plays every scene on demand, or says why it cannot (2.3s)
+  ok 282 [chromium-1024] › e2e\companion.spec.ts:2845:7 › companion › neither cat obscures the open toolkit while walking home to it (14.4s)
+  ok 295 [chromium-1440] › e2e\companion.spec.ts:731:7 › companion › holds a scene the visitor asked for against the next mouse move (2.9s)
+  ok 297 [chromium-1440] › e2e\companion.spec.ts:815:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene (12.4s)
+  ok 296 [chromium-1440] › e2e\companion.spec.ts:802:7 › companion › a request whose walk expires does not hold the next unprompted scene (12.0s)
+  ok 298 [chromium-1440] › e2e\companion.spec.ts:845:7 › companion › stays visible over the section it is crossing (12.2s)
+  ok 300 [chromium-1440] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once (45.9s)
+  ok 299 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (1.0m)
+  ok 301 [chromium-1440] › e2e\companion.spec.ts:1226:7 › companion › the lead still chases a pointer that comes near him (9.9s)
+  x  303 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (6.5s)
+  ok 302 [chromium-1440] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still (24.4s)
+  ok 304 [chromium-1440] › e2e\companion.spec.ts:1494:7 › companion › a layout that keeps changing on its own does not keep the cats awake (26.5s)
+  ok 305 [chromium-1440] › e2e\companion.spec.ts:1564:7 › companion › a keyboard-only reader still counts as active (27.0s)
+  ok 307 [chromium-1440] › e2e\companion.spec.ts:1612:7 › companion › draws two independently positioned cats, not one pair (1.6s)
+  ok 308 [chromium-1440] › e2e\companion.spec.ts:1644:7 › companion › sends the cats to a visible resting box, which brings them back (4.2s)
+  ok 309 [chromium-1440] › e2e\companion.spec.ts:1702:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired (1.8s)
+  ok 310 [chromium-1440] › e2e\companion.spec.ts:1739:7 › companion › wakes visible cats from a stored preference it has never heard of (1.6s)
+  ok 311 [chromium-1440] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner (2.0s)
+  ok 312 [chromium-1440] › e2e\companion.spec.ts:1795:7 › companion › the bed is furniture, not a control panel (1.6s)
+  ok 313 [chromium-1440] › e2e\companion.spec.ts:1809:7 › companion › never comes to rest on top of readable content (1.5s)
+  ok 306 [chromium-1440] › e2e\companion.spec.ts:1593:7 › companion › a key that never scrolls still counts as activity (25.7s)
+  ok 315 [chromium-1440] › e2e\companion.spec.ts:1944:7 › companion › settles where the visitor is reading, without covering it (3.5s)
+  ok 316 [chromium-1440] › e2e\companion.spec.ts:2005:7 › companion › never leaves a cat off-screen or behind the sticky header (1.9s)
+  ok 314 [chromium-1440] › e2e\companion.spec.ts:1834:7 › companion › never rests on the globe stage, loaded or not (11.1s)
+  ok 317 [chromium-1440] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it (22.9s)
+  ok 318 [chromium-1440] › e2e\companion.spec.ts:2118:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll (47.5s)
+  ok 320 [chromium-1440] › e2e\companion.spec.ts:2288:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text (10.8s)
+  ok 319 [chromium-1440] › e2e\companion.spec.ts:2193:7 › companion › stays with a visitor who is reading, and comes back when the page moves (39.8s)
+  ok 322 [chromium-1440] › e2e\companion.spec.ts:2516:7 › companion › the follower never drops under WCAG clearance while the walk back is observed (2.0s)
+  -  323 [chromium-1440] › e2e\companion.spec.ts:2715:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  ok 321 [chromium-1440] › e2e\companion.spec.ts:2377:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner (5.2s)
+  ok 324 [chromium-1440] › e2e\companion.spec.ts:2758:7 › companion › does not roam when the visitor asks for reduced motion (2.4s)
+  -  326 [chromium-1440] › e2e\companion.spec.ts:2965:7 › companion › adds no WCAG violations with its toolkit open
+  -  327 [chromium-1440] › e2e\companion.spec.ts:2981:7 › companion › adds no WCAG violations with the cats in their box
+  ok 328 [chromium-1440] › e2e\companion.spec.ts:2999:7 › companion › is not printed (1.7s)
+  ok 325 [chromium-1440] › e2e\companion.spec.ts:2845:7 › companion › neither cat obscures the open toolkit while walking home to it (15.5s)
+  ok 329 [chromium-1440] › e2e\companion.spec.ts:3009:7 › companion › walks all four stops, choosing a route at the fork, and ends back on the cat (19.1s)
+  ok 331 [chromium-1440] › e2e\companion.spec.ts:3101:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat (1.8s)
+  ok 332 [chromium-1440] › e2e\companion.spec.ts:3116:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself (1.7s)
+  ok 333 [chromium-1440] › e2e\companion.spec.ts:3136:7 › companion › the tour panel item is not offered on /resume, which has no first stop (1.2s)
+  -  334 [chromium-1440] › e2e\companion.spec.ts:3151:7 › companion › adds no WCAG violations with the tour HUD open
+  -  335 [chromium-1440] › e2e\companion.spec.ts:3168:7 › companion › adds no WCAG violations with the tour's route choice visible
+  ok 330 [chromium-1440] › e2e\companion.spec.ts:3064:7 › companion › the other route reaches every stop too, ending on Contact (21.4s)
+  ok 336 [chromium-1440] › e2e\companion.spec.ts:3193:7 › companion › the tour HUD carries both speakers' subtitles (8.6s)
+  -  338 [chromium-1440] › e2e\companion.spec.ts:3261:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  ok 337 [chromium-1440] › e2e\companion.spec.ts:3214:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation (10.4s)
+  ok 339 [chromium-1440] › e2e\companion.spec.ts:3276:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground (11.4s)
+  ok 341 [chromium-1440] › e2e\companion.spec.ts:3382:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph (2.2s)
+  ok 340 [chromium-1440] › e2e\companion.spec.ts:3333:7 › companion › clicking the tabby advances the duet a beat (9.8s)
+  ok 342 [chromium-1440] › e2e\companion.spec.ts:3418:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends (7.5s)
+  ok 343 [chromium-1440] › e2e\companion.spec.ts:3474:7 › companion › scrolling to another section ends an ambient scene mid-beat (2.9s)
+  ok 344 [chromium-1440] › e2e\companion.spec.ts:3514:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam (2.5s)
+  ok 345 [chromium-1440] › e2e\companion.spec.ts:3551:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav (2.3s)
+  ok 346 [chromium-1440] › e2e\companion.spec.ts:3571:7 › companion › cheers briefly on a theme toggle (3.3s)
+  ok 347 [chromium-1440] › e2e\companion.spec.ts:3588:7 › companion › creeps toward the form while data-cat-secret stands, and lets go once it clears (4.0s)
+  ok 348 [chromium-1440] › e2e\companion.spec.ts:3656:7 › companion › reduced motion skips the secret theatrics entirely (2.5s)
+
+
+  1) [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings 
+
+    Error: the stop was not clear to begin with
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "cats still walking",
+    + ]
+
+      1395 |       )
+      1396 |       .toBe("arrived");
+    > 1397 |     expect(await restingOnContent(page, { still: true }), "the stop was not clear to begin with").toEqual(
+           |                                                                                                   ^
+      1398 |       [],
+      1399 |     );
+      1400 |
+        at D:\Project\portfolio\.claude\worktrees\cat-stagger\e2e\companion.spec.ts:1397:99
+
+    Error Context: test-results\companion-companion-a-layo-73d0f-rers-off-the-text-it-brings-chromium-1440\error-context.md
+
+  1 failed
+    [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings 
+  276 skipped
+  71 passed (6.5m)

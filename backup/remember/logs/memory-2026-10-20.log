@@ -1,0 +1,724 @@
+01:14:00 [hook] session-start: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:14:03 [hook] session-start took 5s
+01:14:04 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:14:05 [force] bypassing cooldown + min msgs
+01:14:05 [extract] session a80b966d-b925-4a44-ac7a-6001aa6e20ee
+01:14:09 [extract] 2058 exchanges (398 human)
+01:14:11 [haiku] calling (branch: main)
+01:14:16 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:14:22 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+01:14:22 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:14:22 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:14:23 [haiku] failure 1/3 on this span -- will retry next run
+01:21:54 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:21:55 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:21:57 [extract] 7 exchanges (3 human)
+01:21:59 [haiku] calling (branch: main)
+01:22:01 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:22:08 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+01:22:08 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:22:08 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:22:08 [haiku] failure 1/3 on this span -- will retry next run
+01:23:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:23:54 [cooldown] 117s < 120s, skip
+01:28:28 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:28:29 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:28:31 [extract] 16 exchanges (3 human)
+01:28:32 [haiku] calling (branch: main)
+01:28:35 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:28:41 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+01:28:41 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:28:42 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:28:42 [haiku] failure 1/3 on this span -- will retry next run
+01:28:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:28:53 [cooldown] 22s < 120s, skip
+01:41:50 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:41:51 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:41:52 [extract] 19 exchanges (3 human)
+01:41:54 [haiku] calling (branch: main)
+01:41:56 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:42:02 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+01:42:02 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:42:02 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:42:02 [haiku] failure 1/3 on this span -- will retry next run
+01:47:31 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:47:32 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:47:33 [extract] 19 exchanges (3 human)
+01:47:34 [haiku] calling (branch: main)
+01:47:37 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:47:42 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+01:47:42 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:47:42 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:47:43 [haiku] failure 2/3 on this span -- will retry next run
+01:54:04 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:54:05 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:54:07 [extract] 19 exchanges (3 human)
+01:54:08 [haiku] calling (branch: main)
+01:54:11 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:54:16 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+01:54:16 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:54:16 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:54:16 [haiku] failure 1/3 on this span -- will retry next run
+02:15:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:15:55 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:15:57 [extract] 21 exchanges (4 human)
+02:15:58 [haiku] calling (branch: main)
+02:16:00 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:16:05 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+02:16:05 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:16:05 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:16:05 [haiku] failure 1/3 on this span -- will retry next run
+02:21:34 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:21:34 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:21:36 [extract] 27 exchanges (5 human)
+02:21:37 [haiku] calling (branch: main)
+02:21:40 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:21:45 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+02:21:45 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:21:45 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:21:45 [haiku] failure 1/3 on this span -- will retry next run
+02:27:13 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:27:14 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:27:15 [extract] 29 exchanges (5 human)
+02:27:16 [haiku] calling (branch: main)
+02:27:18 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:27:23 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+02:27:23 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:27:23 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:27:23 [haiku] failure 1/3 on this span -- will retry next run
+02:33:15 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:33:16 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:33:17 [extract] 29 exchanges (5 human)
+02:33:18 [haiku] calling (branch: main)
+02:33:22 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:33:27 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+02:33:27 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:33:27 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:33:27 [haiku] failure 2/3 on this span -- will retry next run
+02:39:06 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:39:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:39:08 [extract] 33 exchanges (6 human)
+02:39:09 [haiku] calling (branch: main)
+02:39:11 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:39:16 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+02:39:16 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:39:16 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:39:16 [haiku] failure 1/3 on this span -- will retry next run
+02:47:12 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:47:12 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:47:13 [extract] 33 exchanges (6 human)
+02:47:14 [haiku] calling (branch: main)
+02:47:16 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:47:20 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+02:47:20 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:47:20 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:47:20 [haiku] failure 2/3 on this span -- will retry next run
+03:00:17 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:00:18 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:00:19 [extract] 33 exchanges (6 human)
+03:00:21 [haiku] calling (branch: main)
+03:00:24 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:00:29 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+03:00:29 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:00:30 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:00:30 [haiku] failure 1/3 on this span -- will retry next run
+03:06:32 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:06:32 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:06:34 [extract] 35 exchanges (7 human)
+03:06:35 [haiku] calling (branch: main)
+03:06:37 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:06:42 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+03:06:42 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:06:42 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:06:42 [haiku] failure 1/3 on this span -- will retry next run
+03:27:16 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:27:17 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:27:18 [extract] 42 exchanges (8 human)
+03:27:20 [haiku] calling (branch: main)
+03:27:22 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:27:27 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+03:27:27 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:27:28 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:27:28 [haiku] failure 1/3 on this span -- will retry next run
+03:32:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:32:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:32:44 [extract] 48 exchanges (8 human)
+03:32:45 [haiku] calling (branch: main)
+03:32:48 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:32:53 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+03:32:53 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:32:53 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:32:53 [haiku] failure 1/3 on this span -- will retry next run
+03:38:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:38:22 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:38:24 [extract] 55 exchanges (8 human)
+03:38:25 [haiku] calling (branch: main)
+03:38:27 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:38:32 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+03:38:32 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:38:32 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:38:32 [haiku] failure 1/3 on this span -- will retry next run
+08:36:29 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+08:36:29 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+08:36:31 [extract] 66 exchanges (9 human)
+08:36:32 [haiku] calling (branch: main)
+08:36:34 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+08:36:39 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+08:36:39 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+08:36:39 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+08:36:39 [haiku] failure 1/3 on this span -- will retry next run
+08:42:21 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+08:42:22 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+08:42:23 [extract] 68 exchanges (9 human)
+08:42:24 [haiku] calling (branch: main)
+08:42:26 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+08:42:31 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+08:42:31 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+08:42:31 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+08:42:31 [haiku] failure 1/3 on this span -- will retry next run
+08:47:32 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+08:47:32 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+08:47:34 [extract] 70 exchanges (10 human)
+08:47:34 [haiku] calling (branch: main)
+08:47:36 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+08:47:40 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+08:47:40 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+08:47:40 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+08:47:40 [haiku] failure 1/3 on this span -- will retry next run
+08:50:31 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+08:50:33 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+08:50:35 [extract] 70 exchanges (10 human)
+08:50:37 [haiku] calling (branch: main)
+08:50:41 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+08:50:48 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+08:50:48 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+08:50:48 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+08:50:48 [haiku] failure 1/3 on this span -- will retry next run
+08:54:35 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+08:54:36 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+08:54:37 [extract] 74 exchanges (10 human)
+08:54:39 [haiku] calling (branch: main)
+08:54:42 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+08:54:49 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+08:54:49 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+08:54:50 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+08:54:50 [haiku] failure 1/3 on this span -- will retry next run
+08:57:50 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+08:57:50 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+08:57:52 [extract] 74 exchanges (10 human)
+08:57:54 [haiku] calling (branch: main)
+08:57:57 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+08:58:03 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+08:58:03 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+08:58:03 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+08:58:04 [haiku] failure 2/3 on this span -- will retry next run
+08:59:25 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+08:59:26 [cooldown] 94s < 120s, skip
+09:01:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+09:01:56 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+09:01:57 [extract] 74 exchanges (10 human)
+09:01:58 [haiku] calling (branch: main)
+09:02:01 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+09:02:06 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+09:02:06 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+09:02:06 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+09:02:06 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 26669 (see thresholds.max_summary_failures)
+12:20:05 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:20:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:20:07 [extract] 2 exchanges (1 human)
+12:20:07 [extract] 1 human msgs < 3, skip
+12:21:54 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:21:55 [cooldown] 108s < 120s, skip
+12:22:37 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:22:38 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:22:39 [extract] 5 exchanges (1 human)
+12:22:40 [extract] 1 human msgs < 3, skip
+12:26:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:26:40 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:26:41 [extract] 5 exchanges (1 human)
+12:26:41 [extract] 1 human msgs < 3, skip
+12:26:47 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:26:48 [cooldown] 7s < 120s, skip
+12:28:54 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:28:54 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:28:56 [extract] 5 exchanges (1 human)
+12:28:56 [extract] 1 human msgs < 3, skip
+12:32:58 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:32:59 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:33:00 [extract] 5 exchanges (1 human)
+12:33:00 [extract] 1 human msgs < 3, skip
+12:34:59 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:35:00 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:35:01 [extract] 5 exchanges (1 human)
+12:35:01 [extract] 1 human msgs < 3, skip
+12:35:12 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:35:15 [cooldown] 14s < 120s, skip
+12:41:57 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:41:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:41:59 [extract] 5 exchanges (1 human)
+12:42:00 [extract] 1 human msgs < 3, skip
+12:42:04 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:42:05 [cooldown] 6s < 120s, skip
+12:48:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:48:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:48:44 [extract] 5 exchanges (1 human)
+12:48:44 [extract] 1 human msgs < 3, skip
+12:48:53 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:48:54 [cooldown] 10s < 120s, skip
+12:48:56 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:48:57 [cooldown] 13s < 120s, skip
+12:55:35 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:55:36 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:55:37 [extract] 5 exchanges (1 human)
+12:55:38 [extract] 1 human msgs < 3, skip
+12:55:40 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:55:41 [cooldown] 4s < 120s, skip
+12:55:44 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:55:45 [cooldown] 8s < 120s, skip
+13:01:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:01:53 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:01:54 [extract] 5 exchanges (1 human)
+13:01:55 [extract] 1 human msgs < 3, skip
+13:02:00 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:02:01 [cooldown] 7s < 120s, skip
+13:02:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:02:37 [cooldown] 43s < 120s, skip
+13:08:46 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:08:46 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:08:48 [extract] 5 exchanges (1 human)
+13:08:48 [extract] 1 human msgs < 3, skip
+13:08:56 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:08:57 [cooldown] 8s < 120s, skip
+13:09:25 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:09:26 [cooldown] 38s < 120s, skip
+13:15:26 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:15:27 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:15:29 [extract] 5 exchanges (1 human)
+13:15:29 [extract] 1 human msgs < 3, skip
+13:15:34 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:15:35 [cooldown] 6s < 120s, skip
+13:15:37 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:15:38 [cooldown] 9s < 120s, skip
+13:22:11 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:22:12 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:22:13 [extract] 5 exchanges (1 human)
+13:22:13 [extract] 1 human msgs < 3, skip
+13:22:19 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:22:20 [cooldown] 7s < 120s, skip
+13:22:32 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:22:33 [cooldown] 20s < 120s, skip
+13:28:35 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:28:36 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:28:37 [extract] 5 exchanges (1 human)
+13:28:38 [extract] 1 human msgs < 3, skip
+13:28:44 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:28:45 [cooldown] 8s < 120s, skip
+13:29:03 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:29:04 [cooldown] 27s < 120s, skip
+13:35:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:35:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:35:41 [extract] 5 exchanges (1 human)
+13:35:41 [extract] 1 human msgs < 3, skip
+13:36:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:36:37 [cooldown] 56s < 120s, skip
+13:36:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:36:43 [cooldown] 62s < 120s, skip
+13:43:01 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:43:02 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:43:03 [extract] 5 exchanges (1 human)
+13:43:03 [extract] 1 human msgs < 3, skip
+13:43:15 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:43:16 [cooldown] 13s < 120s, skip
+13:43:38 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:43:39 [cooldown] 36s < 120s, skip
+13:50:05 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:50:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:50:08 [extract] 5 exchanges (1 human)
+13:50:08 [extract] 1 human msgs < 3, skip
+13:50:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:50:19 [cooldown] 11s < 120s, skip
+13:56:03 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:56:04 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:56:05 [extract] 5 exchanges (1 human)
+13:56:05 [extract] 1 human msgs < 3, skip
+13:58:53 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:58:54 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:58:55 [extract] 5 exchanges (1 human)
+13:58:55 [extract] 1 human msgs < 3, skip
+13:59:04 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:59:04 [cooldown] 9s < 120s, skip
+14:02:32 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:02:33 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:02:35 [extract] 5 exchanges (1 human)
+14:02:35 [extract] 1 human msgs < 3, skip
+14:06:06 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:06:07 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:06:08 [extract] 5 exchanges (1 human)
+14:06:08 [extract] 1 human msgs < 3, skip
+14:06:29 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:06:30 [cooldown] 21s < 120s, skip
+14:13:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:13:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:13:45 [extract] 5 exchanges (1 human)
+14:13:45 [extract] 1 human msgs < 3, skip
+14:17:21 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:17:22 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:17:24 [extract] 5 exchanges (1 human)
+14:17:24 [extract] 1 human msgs < 3, skip
+14:20:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:20:40 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:20:41 [extract] 5 exchanges (1 human)
+14:20:42 [extract] 1 human msgs < 3, skip
+14:27:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:27:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:27:45 [extract] 5 exchanges (1 human)
+14:27:46 [extract] 1 human msgs < 3, skip
+14:29:32 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:29:33 [cooldown] 108s < 120s, skip
+14:34:26 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:34:27 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:34:28 [extract] 5 exchanges (1 human)
+14:34:28 [extract] 1 human msgs < 3, skip
+14:34:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:34:43 [cooldown] 15s < 120s, skip
+14:40:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:40:18 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:40:20 [extract] 5 exchanges (1 human)
+14:40:20 [extract] 1 human msgs < 3, skip
+14:41:04 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:41:05 [cooldown] 45s < 120s, skip
+14:41:45 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:41:46 [cooldown] 86s < 120s, skip
+14:46:50 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:46:50 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:46:51 [extract] 5 exchanges (1 human)
+14:46:51 [extract] 1 human msgs < 3, skip
+14:46:56 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:46:56 [cooldown] 5s < 120s, skip
+14:49:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:49:22 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:49:24 [extract] 5 exchanges (1 human)
+14:49:24 [extract] 1 human msgs < 3, skip
+14:53:04 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:53:05 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:53:07 [extract] 5 exchanges (1 human)
+14:53:07 [extract] 1 human msgs < 3, skip
+14:55:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:55:37 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:55:38 [extract] 5 exchanges (1 human)
+14:55:39 [extract] 1 human msgs < 3, skip
+14:56:03 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:56:04 [cooldown] 26s < 120s, skip
+15:01:07 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:01:07 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:01:09 [extract] 5 exchanges (1 human)
+15:01:09 [extract] 1 human msgs < 3, skip
+15:08:38 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:08:40 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:08:42 [extract] 5 exchanges (1 human)
+15:08:42 [extract] 1 human msgs < 3, skip
+15:12:16 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:12:18 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:12:20 [extract] 5 exchanges (1 human)
+15:12:21 [extract] 1 human msgs < 3, skip
+15:16:48 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:16:49 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:16:51 [extract] 5 exchanges (1 human)
+15:16:52 [extract] 1 human msgs < 3, skip
+15:19:17 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:19:18 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:19:19 [extract] 5 exchanges (1 human)
+15:19:19 [extract] 1 human msgs < 3, skip
+15:25:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:25:55 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:25:57 [extract] 5 exchanges (1 human)
+15:25:57 [extract] 1 human msgs < 3, skip
+15:27:14 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:27:16 [cooldown] 79s < 120s, skip
+15:28:18 [hook] session-start: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:28:20 [hook] session-start took 3s
+15:28:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:28:22 [force] bypassing cooldown + min msgs
+15:28:22 [extract] session a80b966d-b925-4a44-ac7a-6001aa6e20ee
+15:28:25 [extract] 2058 exchanges (398 human)
+15:28:26 [haiku] calling (branch: main)
+15:28:31 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:28:37 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:28:37 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:28:37 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:28:37 [haiku] failure 1/3 on this span -- will retry next run
+15:32:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:32:23 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:32:25 [extract] 14 exchanges (3 human)
+15:32:26 [haiku] calling (branch: main)
+15:32:28 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:32:34 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:32:34 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:32:34 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:32:34 [haiku] failure 1/3 on this span -- will retry next run
+15:35:58 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:35:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:36:00 [extract] 14 exchanges (3 human)
+15:36:01 [haiku] calling (branch: main)
+15:36:04 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:36:09 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:36:09 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:36:10 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:36:10 [haiku] failure 2/3 on this span -- will retry next run
+15:36:13 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:36:14 [cooldown] 14s < 120s, skip
+15:39:44 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:39:45 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:39:46 [extract] 14 exchanges (3 human)
+15:39:47 [haiku] calling (branch: main)
+15:39:50 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:39:56 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:39:56 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:39:56 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:39:56 [haiku] failure 1/3 on this span -- will retry next run
+15:42:50 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:42:51 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:42:53 [extract] 14 exchanges (3 human)
+15:42:54 [haiku] calling (branch: main)
+15:42:57 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:43:02 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:43:02 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:43:02 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:43:02 [haiku] failure 2/3 on this span -- will retry next run
+15:46:14 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:46:15 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:46:16 [extract] 20 exchanges (4 human)
+15:46:18 [haiku] calling (branch: main)
+15:46:21 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:46:27 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:46:27 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:46:28 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:46:28 [haiku] failure 1/3 on this span -- will retry next run
+15:49:16 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:49:17 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:49:19 [extract] 20 exchanges (4 human)
+15:49:20 [haiku] calling (branch: main)
+15:49:23 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:49:28 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:49:28 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:49:28 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:49:28 [haiku] failure 1/3 on this span -- will retry next run
+15:49:46 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:49:46 [cooldown] 27s < 120s, skip
+15:53:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:53:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:53:21 [extract] 21 exchanges (4 human)
+15:53:22 [haiku] calling (branch: main)
+15:53:25 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:53:30 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:53:30 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:53:31 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:53:31 [haiku] failure 1/3 on this span -- will retry next run
+15:56:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:56:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:56:20 [extract] 21 exchanges (4 human)
+15:56:22 [haiku] calling (branch: main)
+15:56:24 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+15:56:30 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+15:56:30 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+15:56:30 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+15:56:30 [haiku] failure 2/3 on this span -- will retry next run
+15:59:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+15:59:55 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+15:59:57 [extract] 21 exchanges (4 human)
+15:59:58 [haiku] calling (branch: main)
+16:00:00 [haiku] WARNING: this CLI failed authentication (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation in case the isolated run's own environment is simply missing a credential the normal one has. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+16:00:06 [haiku] WARNING: the un-isolated retry failed with the same authentication error (Failed to authenticate: OAuth session expired and could not be refreshed) -- hook isolation was not the cause. The CLI's own saved login has expired; log in again with your coding agent's own CLI. This plugin reads no credential of its own any more -- there is no setting here to configure (#129/#131/#860).
+16:00:06 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+16:00:06 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+16:00:06 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 27685 (see thresholds.max_summary_failures)
+16:45:33 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+16:45:33 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+16:45:34 [extract] 2 exchanges (1 human)
+16:45:35 [extract] 1 human msgs < 3, skip
+16:46:08 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+16:46:09 [cooldown] 35s < 120s, skip
+16:46:15 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+16:46:15 [cooldown] 41s < 120s, skip
+16:51:57 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+16:51:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+16:51:59 [extract] 8 exchanges (1 human)
+16:51:59 [extract] 1 human msgs < 3, skip
+16:52:49 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+16:52:49 [cooldown] 50s < 120s, skip
+16:59:10 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+16:59:11 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+16:59:12 [extract] 11 exchanges (1 human)
+16:59:12 [extract] 1 human msgs < 3, skip
+16:59:51 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+16:59:52 [cooldown] 40s < 120s, skip
+17:06:02 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:06:03 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+17:06:04 [extract] 11 exchanges (1 human)
+17:06:05 [extract] 1 human msgs < 3, skip
+17:06:53 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:06:54 [cooldown] 50s < 120s, skip
+17:22:24 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:22:26 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+17:22:28 [extract] 11 exchanges (1 human)
+17:22:28 [extract] 1 human msgs < 3, skip
+17:23:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:23:40 [cooldown] 72s < 120s, skip
+17:32:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:32:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+17:32:20 [extract] 11 exchanges (1 human)
+17:32:20 [extract] 1 human msgs < 3, skip
+17:39:32 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:39:33 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+17:39:34 [extract] 14 exchanges (2 human)
+17:39:34 [extract] 2 human msgs < 3, skip
+17:46:34 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:46:35 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+17:46:36 [extract] 19 exchanges (2 human)
+17:46:36 [extract] 2 human msgs < 3, skip
+17:47:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:47:23 [cooldown] 47s < 120s, skip
+17:52:44 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:52:45 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+17:52:46 [extract] 23 exchanges (2 human)
+17:52:46 [extract] 2 human msgs < 3, skip
+17:59:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+17:59:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+17:59:41 [extract] 23 exchanges (2 human)
+17:59:41 [extract] 2 human msgs < 3, skip
+18:06:17 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+18:06:18 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+18:06:19 [extract] 23 exchanges (2 human)
+18:06:20 [extract] 2 human msgs < 3, skip
+18:13:25 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+18:13:26 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+18:13:27 [extract] 23 exchanges (2 human)
+18:13:28 [extract] 2 human msgs < 3, skip
+18:18:59 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+18:18:59 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+18:19:00 [extract] 23 exchanges (2 human)
+18:19:00 [extract] 2 human msgs < 3, skip
+18:26:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+18:26:36 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+18:26:38 [extract] 23 exchanges (2 human)
+18:26:38 [extract] 2 human msgs < 3, skip
+18:34:29 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+18:34:29 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+18:34:31 [extract] 23 exchanges (2 human)
+18:34:31 [extract] 2 human msgs < 3, skip
+18:45:30 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+18:45:31 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+18:45:32 [extract] 23 exchanges (2 human)
+18:45:32 [extract] 2 human msgs < 3, skip
+18:57:31 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+18:57:31 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+18:57:32 [extract] 23 exchanges (2 human)
+18:57:33 [extract] 2 human msgs < 3, skip
+19:07:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:07:23 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:07:24 [extract] 23 exchanges (2 human)
+19:07:24 [extract] 2 human msgs < 3, skip
+19:19:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:19:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:19:44 [extract] 23 exchanges (2 human)
+19:19:44 [extract] 2 human msgs < 3, skip
+19:27:41 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:27:42 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:27:43 [extract] 23 exchanges (2 human)
+19:27:43 [extract] 2 human msgs < 3, skip
+19:38:40 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:38:41 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:38:42 [extract] 23 exchanges (2 human)
+19:38:42 [extract] 2 human msgs < 3, skip
+19:51:33 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:51:34 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:51:36 [extract] 23 exchanges (2 human)
+19:51:36 [extract] 2 human msgs < 3, skip
+20:02:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+20:02:55 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+20:02:56 [extract] 23 exchanges (2 human)
+20:02:56 [extract] 2 human msgs < 3, skip
+20:18:02 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+20:18:02 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+20:18:03 [extract] 23 exchanges (2 human)
+20:18:04 [extract] 2 human msgs < 3, skip
+20:26:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+20:26:52 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+20:26:53 [extract] 23 exchanges (2 human)
+20:26:53 [extract] 2 human msgs < 3, skip
+20:32:28 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+20:32:29 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+20:32:30 [extract] 23 exchanges (2 human)
+20:32:30 [extract] 2 human msgs < 3, skip
+20:37:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+20:37:23 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+20:37:24 [extract] 23 exchanges (2 human)
+20:37:24 [extract] 2 human msgs < 3, skip
+20:47:53 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+20:47:54 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+20:47:55 [extract] 23 exchanges (2 human)
+20:47:56 [extract] 2 human msgs < 3, skip
+21:01:45 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+21:01:46 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+21:01:47 [extract] 23 exchanges (2 human)
+21:01:47 [extract] 2 human msgs < 3, skip
+21:09:03 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+21:09:03 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+21:09:05 [extract] 23 exchanges (2 human)
+21:09:05 [extract] 2 human msgs < 3, skip
+21:20:24 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+21:20:24 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+21:20:26 [extract] 23 exchanges (2 human)
+21:20:26 [extract] 2 human msgs < 3, skip
+21:27:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+21:27:40 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+21:27:41 [extract] 23 exchanges (2 human)
+21:27:41 [extract] 2 human msgs < 3, skip
+21:38:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+21:38:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+21:38:41 [extract] 23 exchanges (2 human)
+21:38:41 [extract] 2 human msgs < 3, skip
+21:52:31 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+21:52:31 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+21:52:33 [extract] 23 exchanges (2 human)
+21:52:33 [extract] 2 human msgs < 3, skip
+21:59:53 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+21:59:53 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+21:59:54 [extract] 23 exchanges (2 human)
+21:59:54 [extract] 2 human msgs < 3, skip
+22:15:05 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:15:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:15:08 [extract] 23 exchanges (2 human)
+22:15:08 [extract] 2 human msgs < 3, skip
+22:28:41 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:28:41 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:28:43 [extract] 23 exchanges (2 human)
+22:28:43 [extract] 2 human msgs < 3, skip
+22:44:01 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:44:02 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:44:03 [extract] 23 exchanges (2 human)
+22:44:03 [extract] 2 human msgs < 3, skip
+22:58:54 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:58:54 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:58:55 [extract] 23 exchanges (2 human)
+22:58:55 [extract] 2 human msgs < 3, skip
+23:07:19 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:07:20 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:07:21 [extract] 23 exchanges (2 human)
+23:07:21 [extract] 2 human msgs < 3, skip
+23:22:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:22:56 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:22:57 [extract] 23 exchanges (2 human)
+23:22:58 [extract] 2 human msgs < 3, skip
+23:37:45 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:37:47 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:37:48 [extract] 23 exchanges (2 human)
+23:37:48 [extract] 2 human msgs < 3, skip
+23:50:50 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:50:50 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:50:51 [extract] 23 exchanges (2 human)
+23:50:51 [extract] 2 human msgs < 3, skip
+23:56:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:56:37 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:56:38 [extract] 23 exchanges (2 human)
+23:56:38 [extract] 2 human msgs < 3, skip
