@@ -1557,6 +1557,9 @@ test.describe("companion", () => {
      */
     const shift = await page.evaluate(() => {
       document.documentElement.style.overflowAnchor = "none";
+      // Likewise snapping (round 21 phase 8): a layout change makes the browser
+      // re-snap, a scroll the page never asked for, which moves the shift.
+      document.documentElement.style.scrollSnapType = "none";
       const counted = window as unknown as { __shiftScrolls: number };
       counted.__shiftScrolls = 0;
       window.addEventListener("scroll", () => (counted.__shiftScrolls += 1), { passive: true });
