@@ -15,10 +15,10 @@ export default function FieldTag() {
           <span>{t.aside}</span>
         </div>
         <div className={RULE} />
-        <dl className="grid grid-cols-[104px_1fr]">
+        <dl className="grid grid-cols-1 min-[380px]:grid-cols-[104px_1fr]">
           {t.rows.map((r) => (
             <div key={r.label} className="contents">
-              <dt className="text-fg-muted">{r.label}</dt>
+              <dt className="pt-1 text-fg-muted min-[380px]:pt-0">{r.label}</dt>
               <dd className={r.face === "sans" ? "font-sans" : undefined}>
                 {/* Bind the last two words so a narrow tag never strands one. */}
                 {r.value.replace(/ (\S+)$/, "\u00a0$1")}
@@ -32,8 +32,8 @@ export default function FieldTag() {
           ))}
         </dl>
         <div className={RULE} />
-        <dl className="grid grid-cols-[104px_1fr] font-bold">
-          <dt>Status</dt>
+        <dl className="grid grid-cols-1 min-[380px]:grid-cols-[104px_1fr] font-bold">
+          <dt className="pt-1 min-[380px]:pt-0">Status</dt>
           <dd>{t.status}</dd>
         </dl>
         <div className="mt-4 flex items-end justify-between gap-3">
