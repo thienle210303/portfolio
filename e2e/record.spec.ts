@@ -50,6 +50,17 @@ test.describe("the Record", () => {
     await open(page);
     const ring = page.locator('#record a.record-ring[href="#record-2019"]');
     await ring.scrollIntoViewIfNeeded();
+    // The notebook's entrance is scroll-driven (round 21 phase 8): let the
+    // page finish opening before aiming at a ring on it.
+    let seen = "";
+    await expect
+      .poll(async () => {
+        const now = JSON.stringify(await page.locator("#record svg.record-slice").boundingBox());
+        const settled = now === seen;
+        seen = now;
+        return settled;
+      })
+      .toBe(true);
     // The ring is an annulus: press it at its own band, left of the centre.
     const box = await page.locator("#record svg.record-slice").boundingBox();
     const hit = await page.evaluate(() => {
