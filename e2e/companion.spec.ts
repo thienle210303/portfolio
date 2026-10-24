@@ -3937,6 +3937,48 @@ test.describe("cats (round 21)", () => {
     await context.close();
   });
 
+  test("at 320 the parked pair tucks off the edge instead of resting on the postcard's or the chat's words", async ({
+    browser,
+  }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    test.setTimeout(90_000);
+    const context = await browser.newContext({ viewport: { width: 320, height: 640 }, reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    for (const [scope, words] of [
+      ["#contact", /write first/],
+      ["#ask", /^I said$/],
+    ] as const) {
+      const target = page.locator(scope).getByText(words).first();
+      for (const at of [100, 250, 400, 520]) {
+        // Put the words `at` px down the window, let the pair re-pick (150ms debounce).
+        await target.evaluate((el, y) => window.scrollBy(0, el.getBoundingClientRect().top - y), at);
+        await page.waitForTimeout(450);
+        const covered = await page.evaluate(
+          ([sel, source]) => {
+            const toggle = document.querySelector('[aria-controls="companion-actions"]')!.getBoundingClientRect();
+            const el = Array.from(document.querySelectorAll(sel)).find((e) => new RegExp(source).test(e.textContent ?? ""))!;
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return Array.from(range.getClientRects()).some(
+              (r) =>
+                r.width > 0 &&
+                r.left < Math.min(toggle.right, innerWidth) &&
+                r.right > toggle.left &&
+                r.top < toggle.bottom &&
+                r.bottom > toggle.top,
+            );
+          },
+          [`${scope} p, ${scope} dt, ${scope} dd, ${scope} span`, words.source] as const,
+        );
+        expect(covered, `the parked pair covers ${words} in ${scope} with the words ${at}px down`).toBe(false);
+      }
+    }
+    await context.close();
+  });
+
   /** Every `ms` for `seconds`, the cats' boxes that overlap `target`'s, with
    *  the reader kept active far from them. */
   async function coverings(
