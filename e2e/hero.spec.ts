@@ -696,7 +696,7 @@ test.describe("hero", () => {
         [...dl.querySelectorAll("dt")].map((dt) => ({
           label: dt.textContent!.trim(),
           // The last two words are bound with a no-break space.
-          value: dt.nextElementSibling!.textContent!.replace(/ /g, " ").trim(),
+          value: dt.nextElementSibling!.textContent!.replace(/\u00a0/g, " ").trim(),
         })),
       );
     expect(rows).toEqual(t.rows.map((r) => ({ label: r.label, value: r.value })));
