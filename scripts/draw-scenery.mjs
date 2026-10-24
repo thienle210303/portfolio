@@ -176,7 +176,10 @@ function skyLayer(night, moon, seed) {
       clouds += `<g opacity="${f(0.55 + r() * 0.25)}" filter="url(#soft)"><ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(w)}" ry="${f(w * 0.16)}" fill="#FFFFFF"/><ellipse cx="${f(cx - w * 0.3)}" cy="${f(cy - w * 0.08)}" rx="${f(w * 0.45)}" ry="${f(w * 0.14)}" fill="#FFFFFF"/><ellipse cx="${f(cx + w * 0.25)}" cy="${f(cy - w * 0.1)}" rx="${f(w * 0.4)}" ry="${f(w * 0.15)}" fill="#FFFFFF"/></g>`;
     }
     for (let i = 0; i < 5; i++) {
-      const bx = 720 + r() * 600, by = 40 + r() * 90, sc = 0.6 + r() * 0.6;
+      // Under 360 the sky is pinned so x < 920 shows, 10px up: a bird lower than
+      // y 88 there crosses the headline. Those ones fly in the strip under the header.
+      const bx = 720 + r() * 600, y0 = 40 + r() * 90, sc = 0.6 + r() * 0.6;
+      const by = bx < 920 ? 64 + (y0 - 40) * 0.22 : y0;
       birds += `<path d="M${f(bx)} ${f(by)}q${f(6 * sc)} ${f(-5 * sc)} ${f(12 * sc)} 0q${f(6 * sc)} ${f(-5 * sc)} ${f(12 * sc)} 0" fill="none" stroke="#56605A" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>`;
     }
     for (let i = 0; i < 18; i++) {
