@@ -587,6 +587,10 @@ test.describe("hero", () => {
           const width = 1440;
           const height = (1440 * 900) / 1440;
           const axis = (value: string, room: number) => {
+            // Below 1024 the computed value is `calc(100% + 520px)` (a `right`
+            // offset), which has to be read, not split.
+            const calc = /^calc\((-?[\d.]+)%\s*([+-])\s*([\d.]+)px\)$/.exec(value.trim());
+            if (calc) return (room * parseFloat(calc[1])) / 100 + (calc[2] === "-" ? -1 : 1) * parseFloat(calc[3]);
             const parts = value.trim().split(/\s+/);
             const len = (v: string) => (v.endsWith("%") ? (room * parseFloat(v)) / 100 : parseFloat(v));
             if (parts.length === 2) return parts[0] === "right" || parts[0] === "bottom" ? room - len(parts[1]) : len(parts[1]);
@@ -600,14 +604,16 @@ test.describe("hero", () => {
           return { left: x - 32, right: x + 32, top: y - 32, bottom: y + 32 };
         });
         for (const sel of ["#about h1", '#about [data-hero-step="intro"]', '#about [data-hero-step="meta-actions"]']) {
-          // The ink, not the block: the h1 and the intro are full-width boxes.
-          const b = await page.locator(sel).evaluate((el) => {
+          // The ink, line by line: the h1 and the intro are full-width boxes,
+          // and the union of their lines covers the corner a short line leaves.
+          const lines = await page.locator(sel).evaluate((el) => {
             const range = document.createRange();
             range.selectNodeContents(el);
-            const r = range.getBoundingClientRect();
-            return { x: r.left, y: r.top, width: r.width, height: r.height };
+            return [...range.getClientRects()].map((r) => ({ x: r.left, y: r.top, width: r.width, height: r.height }));
           });
-          const overlaps = disc.left < b.x + b.width && b.x < disc.right && disc.top < b.y + b.height && b.y < disc.bottom;
+          const overlaps = lines.some(
+            (b) => disc.left < b.x + b.width && b.x < disc.right && disc.top < b.y + b.height && b.y < disc.bottom,
+          );
           expect(overlaps, `${sel} vs disc ${JSON.stringify(disc)}`).toBe(false);
         }
       });
