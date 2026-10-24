@@ -127,4 +127,11 @@ describe("the Journey's scenery", () => {
     expect(files["lantern-day"]).not.toContain("url(#hoiLit)");
     expect(files["lantern-day"]).not.toContain("url(#hoiGlow)");
   });
+
+  it("no day-sky bird flies where a phone shows it, behind the headline", () => {
+    // Below 1024 the sky is pinned right and only x < 920 shows.
+    const starts = [...files["sky-day"].matchAll(/<path d="M([\d.]+) [\d.]+q[^"]*" fill="none" stroke="#56605A"/g)].map((m) => Number(m[1]));
+    expect(starts).toHaveLength(5);
+    for (const x of starts) expect(x).toBeGreaterThanOrEqual(920);
+  });
 });
