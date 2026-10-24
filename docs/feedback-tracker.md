@@ -2000,7 +2000,7 @@ Spec §8 (`docs/superpowers/specs/2026-10-18-round-21-outdoors-design.md`) and t
 | After | 199,035 B | 168,821 B | 22,054 B | 117,868 B | 0 / 0 / 0 | 2743 |
 
 - **JS at load -371 B** (budget: +512 B). The motion adds none; the one new line of script is `data-no-snap` in `TreeBox`'s Watch it grow handler.
-- **CSS +1,002 B** gzip-measured as transferred: the entrances, the snap and the View Transition rules.
+- **CSS +1,002 B** as `pnpm perf` counts it: the entrances, the snap and the View Transition rules.
 - LCP (2.3-2.7 s) and TBT (190-217 ms) are noisy at this throttle; the baseline's own three runs span 2316-2664 ms and 213-217 ms, and the new build's 2352-2556 ms and 203-216 ms.
 
 **Decisions beyond the spec:**
