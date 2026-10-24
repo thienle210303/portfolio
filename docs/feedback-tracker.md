@@ -2016,7 +2016,7 @@ Spec §8 (`docs/superpowers/specs/2026-10-18-round-21-outdoors-design.md`) and t
 - Headings wrapped one word on the last line ("dry.", "year."): `text-wrap: balance` on h1-h4; the field tag's stamp and values no longer strand a word.
 - The Record's stamps hug the left below 1280: centred.
 
-**Verification.** `pnpm verify` 5/5 (933 unit tests, 60 files; contrast 62 pairings, lowest 4.52:1). Full e2e on a fresh production build, `--workers=2`: see `reports/r21-p8-report.md`.
+**Verification.** `pnpm verify` 5/5 (933 unit tests, 60 files; contrast 62 pairings, lowest 4.52:1). Full e2e on a fresh production build on `:3248`, `--workers=2`: 883 passed, 1523 skipped, 0 failed (20.4 min). The runs before it failed 20 (the snapping, above), then 2 (a ring click aimed at a notebook still opening; the card's links at 320), then 1 (the contact layout test read the postcard mid-entrance); each was fixed and re-run before the clean run.
 
 **Not verified: WebKit.** No WebKit build is installed for this Playwright (`~/AppData/Local/ms-playwright` holds Chromium only), so the iOS sky fix (a fixed layer, not a `fixed` background) is checked in Chromium only.
 
