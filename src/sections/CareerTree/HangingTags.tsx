@@ -38,6 +38,19 @@ function Value({ value }: { readonly value: string }) {
   ));
 }
 
+/** A hyphenated word stays whole ("low-code" never breaks to "low- / code."); the text is unchanged. */
+function Label({ text }: { readonly text: string }) {
+  return text.split(/(\w+-\w+)/).map((part, i) =>
+    i % 2 ? (
+      <span key={i} data-whole-word="" className="whitespace-nowrap">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
 const muted = "text-[length:var(--step--1)] leading-snug text-fg-muted";
 const year = "font-mono font-normal text-[length:var(--step--2)] text-fg-muted";
 
@@ -56,7 +69,9 @@ function Half({ h }: { readonly h: ResolvedHighlight }) {
           <Value value={h.measure} />
         </span>
       ) : null}
-      <span className={cn("mt-1.5 block", muted)}>{h.label}</span>
+      <span className={cn("mt-1.5 block", muted)}>
+        <Label text={h.label} />
+      </span>
     </>
   );
 }
@@ -149,7 +164,9 @@ export default function HangingTags({ className }: { readonly className?: string
                         <span>{ticket.name}</span>
                         <span className={year}>{first.year}</span>
                       </span>
-                      <span className={cn("mt-1.5 block", muted)}>{first.label}</span>
+                      <span className={cn("mt-1.5 block", muted)}>
+                        <Label text={first.label} />
+                      </span>
                     </Tag>
                   </a>
                 )}
