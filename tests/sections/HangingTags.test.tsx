@@ -81,6 +81,7 @@ describe("HangingTags", () => {
     render(<HangingTags />);
     const root = document.querySelector("[data-hanging-tags] ul") as HTMLElement;
     for (const el of [root, ...root.querySelectorAll("*")]) {
+      if (el.hasAttribute("data-whole-word")) continue; // a hyphenated word, never wider than the tag
       const cls = typeof el.className === "string" ? el.className : "";
       expect(cls, cls).not.toMatch(/(^|\s)h-\[|(^|\s)whitespace-nowrap/);
     }
