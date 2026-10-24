@@ -42,7 +42,7 @@ function Value({ value }: { readonly value: string }) {
 function Label({ text }: { readonly text: string }) {
   return text.split(/(\w+-\w+)/).map((part, i) =>
     i % 2 ? (
-      <span key={i} className="whitespace-nowrap">
+      <span key={i} data-whole-word="" className="whitespace-nowrap">
         {part}
       </span>
     ) : (
