@@ -165,6 +165,27 @@ test.describe("motion (round 21 phase 8)", () => {
     expect(await page.evaluate(() => document.documentElement.hasAttribute("data-glide"))).toBe(false);
   });
 
+  test("snapping is for scrolling: off once the address names a fragment, back when it does not", async ({ page }) => {
+    test.skip(width(page) !== 1440, "run once");
+    const snap = () => page.evaluate(() => getComputedStyle(document.documentElement).scrollSnapType);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    expect(await snap(), "proximity serialises as the axis alone").toBe("y");
+    await page.getByRole("link", { name: "Start with where I'm from" }).click();
+    await expect.poll(() => new URL(page.url()).hash).toBe("#tree");
+    expect(await snap(), "a fragment landing is not pulled back to a page's top").toBe("none");
+    await page.goBack();
+    await expect.poll(() => new URL(page.url()).hash).toBe("");
+    expect(await snap(), "proximity serialises as the axis alone").toBe("y");
+    // Cold, on a row near the Record's end (which the next page's snap point is near).
+    await page.goto("about:blank");
+    await page.goto("/#record-2019");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(500);
+    const top = await page.locator("#record-2019").evaluate((el) => el.getBoundingClientRect().top);
+    expect(Math.abs(top - 80), "the year row is where the link sent it").toBeLessThan(4);
+  });
+
   test("the snapping never holds a long page: mid-Record a wheel scroll stays where it stops", async ({ page }) => {
     test.skip(width(page) > 414, "phones, where the Record is several screens tall");
     await page.goto("/");

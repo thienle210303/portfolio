@@ -1447,7 +1447,13 @@
   }
 
   @media screen and (prefers-reduced-motion: no-preference) {
-    html {
+    /* Proximity snapping pulls any landing within a third of a screen of a
+       page's top back to that top, which took a year row, a card's row and
+       `#ask` off the screen they were sent to. So it is for a visitor who is
+       only scrolling: off once the address names a fragment (`:target`: a
+       cold load, a link, the nav) or Watch it grow has moved the page
+       (`data-no-snap`, TreeBox). */
+    html:not(:has(:target), [data-no-snap]) {
       scroll-snap-type: y proximity;
     }
     :is(#about, #tree, #record, #contact) {

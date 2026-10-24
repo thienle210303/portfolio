@@ -119,7 +119,7 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
               <Icon name="mail" className="size-4 text-accent" />
               <a
                 href={`mailto:${profile.email}`}
-                className="ink-link-quiet min-w-0 flex-1 overflow-hidden py-1 max-lg:py-[13px] text-ellipsis whitespace-nowrap text-fg hover:text-accent"
+                className="ink-link-quiet min-w-0 flex-1 overflow-hidden py-1 max-lg:py-[13px] max-[339px]:py-[15px] text-ellipsis whitespace-nowrap text-fg hover:text-accent"
               >
                 {profile.email}
               </a>
@@ -134,7 +134,7 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
             {github ? (
               <li className="flex items-center gap-2 xl:gap-2.5">
                 <Icon name="code" className="size-4 text-accent" />
-                <ExternalLink href={github.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] text-fg hover:text-accent">
+                <ExternalLink href={github.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] max-[339px]:py-[15px] text-fg hover:text-accent">
                   <VisuallyHidden>{github.platform}</VisuallyHidden>{" "}
                   <span className="break-all">{github.href.replace(/^https:\/\//, "")}</span>
                 </ExternalLink>
@@ -143,7 +143,7 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
             {linkedin ? (
               <li className="flex items-center gap-2 xl:gap-2.5">
                 <Icon name="linkedin" className="size-4 text-accent" />
-                <ExternalLink href={linkedin.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] text-fg hover:text-accent">
+                <ExternalLink href={linkedin.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] max-[339px]:py-[15px] text-fg hover:text-accent">
                   <VisuallyHidden>{linkedin.platform}</VisuallyHidden>{" "}
                   {linkedin.handle}
                 </ExternalLink>
