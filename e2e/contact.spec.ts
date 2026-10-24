@@ -222,6 +222,9 @@ test("GET /contact.vcf returns text/vcard as an attachment", async ({ page, requ
 
 test("card beside the postcard from 1024, the chat strip under both; stacked below", async ({ page }) => {
   onlyAt(page, [390, 768, 1024, 1440]);
+  // Where the papers lie, not where they are mid-entrance: the postcard settles
+  // (scroll-driven, round 21 phase 8) from 28px up and 3.5 degrees turned.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await open(page);
   const [cardBox, postBox, askBox] = await Promise.all([card(page), postcard(page), page.locator("#ask")].map((l) => l.boundingBox()));
   if (!cardBox || !postBox || !askBox) throw new Error("card, postcard or chat rendered no box");
