@@ -1,0 +1,3 @@
+# Impeccable's hook launcher is a #!/bin/sh script; with core.autocrlf a CRLF
+# checkout makes sh fail on every hook call.
+.claude/skills/impeccable/scripts/impeccable text eol=lf

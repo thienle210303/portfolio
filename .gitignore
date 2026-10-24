@@ -52,6 +52,14 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 
+# Design tooling (see .claude/skills/the-pass). Impeccable's engine is a ~20 MB
+# per-platform binary its launcher re-downloads; Hallmark's working files are
+# per-machine. Only the marker README in .hallmark is tracked.
+/.claude/skills/impeccable/scripts/bin/
+/.impeccable/config.local.json
+/.hallmark/*
+!/.hallmark/README.md
+
 # Scratch files used while driving a browser during development.
 # Never intended to be tracked; ignored so an "add -A" cannot sweep one in.
 .scratch-*

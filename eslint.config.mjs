@@ -20,6 +20,10 @@ const eslintConfig = defineConfig([
     // Design boards and the generator that draws them: kept for refinement,
     // never shipped (see design/README.md).
     "design/**",
+    // Vendored design skills (Impeccable, Hallmark): third-party scripts,
+    // updated by their installers, never shipped.
+    ".claude/skills/impeccable/**",
+    ".claude/skills/hallmark/**",
   ]),
 ]);
 
