@@ -19,7 +19,7 @@ export default function Stamps({ className }: { readonly className?: string }) {
   return (
     <div className={className}>
       <h4 className="font-serif text-[length:var(--step-1)] italic text-fg">{record.certificates}</h4>
-      <ul role="list" className="mt-4 flex flex-wrap gap-x-3 gap-y-5">
+      <ul role="list" className="mt-4 flex flex-wrap gap-x-3 gap-y-5 max-xl:justify-center">
         {stamped.map((c, i) => {
           const stamp = c.stamp!;
           const date = resolved(c.date);
