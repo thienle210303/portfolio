@@ -1,0 +1,940 @@
+
+Running 912 tests using 2 workers
+
+  -    2 [chromium-320] › e2e\axe.spec.ts:81:7 › full-page audit › zero WCAG violations at a desktop viewport
+  -    3 [chromium-320] › e2e\axe.spec.ts:91:7 › interactive states › zero WCAG violations with the mobile menu open
+  -    4 [chromium-320] › e2e\axe.spec.ts:100:7 › interactive states › zero WCAG violations with a case-study disclosure expanded
+  -    1 [chromium-320] › e2e\axe.spec.ts:73:7 › full-page audit › zero WCAG violations at a mobile viewport
+  -    5 [chromium-320] › e2e\axe.spec.ts:157:7 › interactive states › zero WCAG violations with the origin-story player open
+  -    6 [chromium-320] › e2e\axe.spec.ts:199:7 › interactive states › zero WCAG violations with the chat in Contact loaded and answered, by day and by night
+  -    7 [chromium-320] › e2e\axe.spec.ts:227:7 › interactive states › zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night
+  -    8 [chromium-320] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by day
+  -    9 [chromium-320] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by night
+  -   10 [chromium-320] › e2e\axe.spec.ts:279:7 › off-base section tones › Contact (#contact, tone deep) has zero WCAG violations
+  -   11 [chromium-320] › e2e\axe.spec.ts:287:7 › off-base section tones › footer (tone contrast) has zero WCAG violations
+  -   13 [chromium-320] › e2e\axe.spec.ts:320:7 › night theme › zero WCAG violations across the full page
+  -   12 [chromium-320] › e2e\axe.spec.ts:313:7 › night theme › stamps data-theme before paint
+  -   14 [chromium-320] › e2e\axe.spec.ts:328:7 › night theme › zero WCAG violations in the deep and contrast tones
+  -   15 [chromium-320] › e2e\axe.spec.ts:352:7 › theme toggle › switches theme, keeps its label truthful, and persists across a reload
+  -   17 [chromium-320] › e2e\companion.spec.ts:592:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -   16 [chromium-320] › e2e\companion.spec.ts:608:7 › companion › is reachable and operable by keyboard alone
+  -   18 [chromium-320] › e2e\companion.spec.ts:643:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -   19 [chromium-320] › e2e\companion.spec.ts:697:7 › companion › plays every scene on demand, or says why it cannot
+  -   20 [chromium-320] › e2e\companion.spec.ts:753:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -   21 [chromium-320] › e2e\companion.spec.ts:835:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -   22 [chromium-320] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -   23 [chromium-320] › e2e\companion.spec.ts:878:7 › companion › the pair never offer two overlapping targets while they settle in
+  -   24 [chromium-320] › e2e\companion.spec.ts:914:7 › companion › stays visible over the section it is crossing
+  -   25 [chromium-320] › e2e\companion.spec.ts:1098:7 › companion › explorers use both halves of the page while the reader is active
+  -   26 [chromium-320] › e2e\companion.spec.ts:1239:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   27 [chromium-320] › e2e\companion.spec.ts:1339:7 › companion › the lead still chases a pointer that comes near him
+  -   28 [chromium-320] › e2e\companion.spec.ts:1373:7 › companion › explorers nap when the reader stops, and the page goes still
+  -   29 [chromium-320] › e2e\companion.spec.ts:1474:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -   30 [chromium-320] › e2e\companion.spec.ts:1624:7 › companion › an animation that ends over resting explorers moves them off the text it brings
+  -   31 [chromium-320] › e2e\companion.spec.ts:1741:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -   32 [chromium-320] › e2e\companion.spec.ts:1811:7 › companion › a keyboard-only reader still counts as active
+  -   33 [chromium-320] › e2e\companion.spec.ts:1840:7 › companion › a key that never scrolls still counts as activity
+  -   34 [chromium-320] › e2e\companion.spec.ts:1859:7 › companion › draws two independently positioned cats, not one pair
+  -   35 [chromium-320] › e2e\companion.spec.ts:1891:7 › companion › sends the cats to a visible resting box, which brings them back
+  -   36 [chromium-320] › e2e\companion.spec.ts:1951:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -   37 [chromium-320] › e2e\companion.spec.ts:1988:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -   39 [chromium-320] › e2e\companion.spec.ts:2044:7 › companion › the bed is furniture, not a control panel
+  -   38 [chromium-320] › e2e\companion.spec.ts:2022:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -   41 [chromium-320] › e2e\companion.spec.ts:2083:7 › companion › on load, in About, neither cat comes to rest on the hero's text
+  -   40 [chromium-320] › e2e\companion.spec.ts:2058:7 › companion › never comes to rest on top of readable content
+  -   43 [chromium-320] › e2e\companion.spec.ts:2179:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -   42 [chromium-320] › e2e\companion.spec.ts:2118:7 › companion › settles where the visitor is reading, without covering it
+  -   45 [chromium-320] › e2e\companion.spec.ts:2292:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -   44 [chromium-320] › e2e\companion.spec.ts:2229:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -   47 [chromium-320] › e2e\companion.spec.ts:2469:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -   46 [chromium-320] › e2e\companion.spec.ts:2367:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -   49 [chromium-320] › e2e\companion.spec.ts:2697:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  -   50 [chromium-320] › e2e\companion.spec.ts:2896:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -   48 [chromium-320] › e2e\companion.spec.ts:2558:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  ok  51 [chromium-320] › e2e\companion.spec.ts:2939:7 › companion › does not roam when the visitor asks for reduced motion (2.4s)
+  -   53 [chromium-320] › e2e\companion.spec.ts:3146:7 › companion › adds no WCAG violations with its toolkit open
+  -   54 [chromium-320] › e2e\companion.spec.ts:3162:7 › companion › adds no WCAG violations with the cats in their box
+  -   55 [chromium-320] › e2e\companion.spec.ts:3180:7 › companion › is not printed
+  -   56 [chromium-320] › e2e\companion.spec.ts:3192:7 › companion › walks all three stops, choosing a route at the fork, and ends back on the cat
+  -   57 [chromium-320] › e2e\companion.spec.ts:3247:7 › companion › the other route reaches every stop too, ending on Contact
+  -   58 [chromium-320] › e2e\companion.spec.ts:3283:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -   59 [chromium-320] › e2e\companion.spec.ts:3298:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -   60 [chromium-320] › e2e\companion.spec.ts:3318:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -   61 [chromium-320] › e2e\companion.spec.ts:3333:7 › companion › adds no WCAG violations with the tour HUD open
+  -   62 [chromium-320] › e2e\companion.spec.ts:3350:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -   63 [chromium-320] › e2e\companion.spec.ts:3375:7 › companion › the tour HUD carries both speakers' subtitles
+  -   64 [chromium-320] › e2e\companion.spec.ts:3396:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -   65 [chromium-320] › e2e\companion.spec.ts:3443:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -   66 [chromium-320] › e2e\companion.spec.ts:3460:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -   67 [chromium-320] › e2e\companion.spec.ts:3517:7 › companion › clicking the tabby advances the duet a beat
+  -   68 [chromium-320] › e2e\companion.spec.ts:3566:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -   69 [chromium-320] › e2e\companion.spec.ts:3602:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -   70 [chromium-320] › e2e\companion.spec.ts:3658:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -   71 [chromium-320] › e2e\companion.spec.ts:3698:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -   72 [chromium-320] › e2e\companion.spec.ts:3730:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -   73 [chromium-320] › e2e\companion.spec.ts:3750:7 › companion › cheers briefly on a theme toggle
+  ok  74 [chromium-320] › e2e\companion.spec.ts:3775:7 › cats (round 21) › draws each cat as a frame of its own sprite sheet (3.2s)
+  -   75 [chromium-320] › e2e\companion.spec.ts:3790:7 › cats (round 21) › the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once
+  -   76 [chromium-320] › e2e\companion.spec.ts:3839:7 › cats (round 21) › under reduced motion Mi just sits beside Moon, off duty, once
+  -   77 [chromium-320] › e2e\companion.spec.ts:3870:7 › cats (round 21) › the parked pair stays off the hero's controls, and off whatever has focus
+  -   78 [chromium-320] › e2e\companion.spec.ts:3914:7 › cats (round 21) › while the tree grows they sit beside its box, not in the top-left corner
+  -   79 [chromium-320] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 1440
+  -   80 [chromium-320] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 390
+  -   81 [chromium-320] › e2e\hero.spec.ts:63:7 › hero › hero has no margin rail
+  -   82 [chromium-320] › e2e\hero.spec.ts:68:7 › hero › the tags turn over, one at a time
+  -   83 [chromium-320] › e2e\hero.spec.ts:84:7 › hero › focus follows the turn, by keyboard
+  -   84 [chromium-320] › e2e\hero.spec.ts:98:7 › hero › with a tag open, Tab runs line → Read this part → the next front, and never lands on the open front
+  -   85 [chromium-320] › e2e\hero.spec.ts:114:7 › hero › after a turn, the focused element has a box and is visible
+  -   86 [chromium-320] › e2e\hero.spec.ts:139:7 › hero › the switch path: Enter on another front opens it and closes the first
+  -   87 [chromium-320] › e2e\hero.spec.ts:151:7 › hero › Escape outside the open tag does nothing
+  -   88 [chromium-320] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 390
+  -   89 [chromium-320] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 1440
+  -   90 [chromium-320] › e2e\hero.spec.ts:195:7 › hero › reduced motion: the tag turns without a transition
+  -   91 [chromium-320] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by day
+  -   92 [chromium-320] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by night
+  -   93 [chromium-320] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 390
+  -   94 [chromium-320] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 768
+  -   95 [chromium-320] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1024
+  -   96 [chromium-320] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1280
+  -   97 [chromium-320] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1440
+  -   98 [chromium-320] › e2e\hero.spec.ts:272:7 › hero › layout at 1440: the line above the text, my field tag to the right
+  -   99 [chromium-320] › e2e\hero.spec.ts:288:9 › hero › layout at 320: text, then the tags down the line, then my field tag
+  -  100 [chromium-320] › e2e\hero.spec.ts:288:9 › hero › layout at 390: text, then the tags down the line, then my field tag
+  -  101 [chromium-320] › e2e\hero.spec.ts:288:9 › hero › layout at 600: text, then the tags down the line, then my field tag
+  -  102 [chromium-320] › e2e\hero.spec.ts:288:9 › hero › layout at 768: text, then the tags down the line, then my field tag
+  -  103 [chromium-320] › e2e\hero.spec.ts:288:9 › hero › layout at 1023: text, then the tags down the line, then my field tag
+  -  104 [chromium-320] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 360
+  -  105 [chromium-320] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 390
+  -  106 [chromium-320] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 768
+  -  107 [chromium-320] › e2e\hero.spec.ts:389:7 › hero › no tag clips its text at 320
+  -  108 [chromium-320] › e2e\hero.spec.ts:401:7 › hero › a tag open at 320 does not widen the page
+  -  109 [chromium-320] › e2e\hero.spec.ts:412:7 › hero › print with a tag open shows only the fronts
+  -  110 [chromium-320] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1024
+  -  111 [chromium-320] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1279
+  -  112 [chromium-320] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1280
+  -  113 [chromium-320] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1440
+  -  114 [chromium-320] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1920
+  -  115 [chromium-320] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1440
+  -  116 [chromium-320] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1920
+  -  117 [chromium-320] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1024, and the bamboo clears the words
+  -  118 [chromium-320] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1180, and the bamboo clears the words
+  -  119 [chromium-320] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1280, and the bamboo clears the words
+  -  120 [chromium-320] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1366, and the bamboo clears the words
+  -  121 [chromium-320] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1439, and the bamboo clears the words
+  -  122 [chromium-320] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1024×768
+  -  123 [chromium-320] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1366×768
+  -  124 [chromium-320] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 844×390
+  -  125 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 360×740
+  -  126 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 360×740
+  -  127 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 390×844
+  -  128 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 390×844
+  -  129 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 600×960
+  -  130 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 600×960
+  -  131 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 768×1024
+  -  132 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 768×1024
+  -  133 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 844×390
+  -  134 [chromium-320] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 844×390
+  -  135 [chromium-320] › e2e\hero.spec.ts:595:7 › hero › the actions come first in the tab order, then the tags, then the QR
+  -  136 [chromium-320] › e2e\hero.spec.ts:600:7 › hero › at 390 the tab order is the order on screen, top to bottom
+  -  137 [chromium-320] › e2e\hero.spec.ts:607:7 › hero › at 1440 each group reads left to right in tab order, the QR last
+  -  138 [chromium-320] › e2e\hero.spec.ts:618:9 › hero › day shows the sun and the phin
+  -  139 [chromium-320] › e2e\hero.spec.ts:618:9 › hero › night shows the moon and the lẩu
+  -  140 [chromium-320] › e2e\hero.spec.ts:629:7 › hero › the toggle swaps the scene in place
+  -  141 [chromium-320] › e2e\hero.spec.ts:645:7 › hero › the field tag reads from content
+  -  142 [chromium-320] › e2e\hero.spec.ts:667:7 › hero › the header sits on the sky
+  -  143 [chromium-320] › e2e\hero.spec.ts:684:7 › hero without JavaScript › JS off, dark scheme: the night scene
+  ok  52 [chromium-320] › e2e\companion.spec.ts:3026:7 › companion › neither cat obscures the open toolkit while walking home to it (14.6s)
+  ok 144 [chromium-320] › e2e\responsive.spec.ts:102:5 › has no page-level horizontal overflow after scrolling through the full page (4.5s)
+  ok 146 [chromium-320] › e2e\responsive.spec.ts:113:5 › stays free of horizontal overflow at simulated 200% zoom (3.8s)
+  ok 145 [chromium-320] › e2e\responsive.spec.ts:107:5 › no element visibly overflows the viewport horizontally (4.0s)
+  -  148 [chromium-320] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 360
+  -  147 [chromium-320] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 320
+  -  149 [chromium-320] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 390
+  -  150 [chromium-320] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 414
+  -  151 [chromium-320] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 600
+  -  152 [chromium-320] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 768
+  -  154 [chromium-375] › e2e\axe.spec.ts:81:7 › full-page audit › zero WCAG violations at a desktop viewport
+  ok 155 [chromium-375] › e2e\axe.spec.ts:91:7 › interactive states › zero WCAG violations with the mobile menu open (6.2s)
+  -  156 [chromium-375] › e2e\axe.spec.ts:100:7 › interactive states › zero WCAG violations with a case-study disclosure expanded
+  -  157 [chromium-375] › e2e\axe.spec.ts:157:7 › interactive states › zero WCAG violations with the origin-story player open
+  -  158 [chromium-375] › e2e\axe.spec.ts:199:7 › interactive states › zero WCAG violations with the chat in Contact loaded and answered, by day and by night
+  -  159 [chromium-375] › e2e\axe.spec.ts:227:7 › interactive states › zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night
+  -  160 [chromium-375] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by day
+  -  161 [chromium-375] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by night
+  ok 153 [chromium-375] › e2e\axe.spec.ts:73:7 › full-page audit › zero WCAG violations at a mobile viewport (7.5s)
+  -  163 [chromium-375] › e2e\axe.spec.ts:287:7 › off-base section tones › footer (tone contrast) has zero WCAG violations
+  -  164 [chromium-375] › e2e\axe.spec.ts:313:7 › night theme › stamps data-theme before paint
+  -  165 [chromium-375] › e2e\axe.spec.ts:320:7 › night theme › zero WCAG violations across the full page
+  ok 162 [chromium-375] › e2e\axe.spec.ts:279:7 › off-base section tones › Contact (#contact, tone deep) has zero WCAG violations (6.2s)
+  -  167 [chromium-375] › e2e\axe.spec.ts:352:7 › theme toggle › switches theme, keeps its label truthful, and persists across a reload
+  -  168 [chromium-375] › e2e\companion.spec.ts:592:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -  169 [chromium-375] › e2e\companion.spec.ts:608:7 › companion › is reachable and operable by keyboard alone
+  -  170 [chromium-375] › e2e\companion.spec.ts:643:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -  171 [chromium-375] › e2e\companion.spec.ts:697:7 › companion › plays every scene on demand, or says why it cannot
+  -  172 [chromium-375] › e2e\companion.spec.ts:753:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -  173 [chromium-375] › e2e\companion.spec.ts:835:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -  174 [chromium-375] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  175 [chromium-375] › e2e\companion.spec.ts:878:7 › companion › the pair never offer two overlapping targets while they settle in
+  -  176 [chromium-375] › e2e\companion.spec.ts:914:7 › companion › stays visible over the section it is crossing
+  -  177 [chromium-375] › e2e\companion.spec.ts:1098:7 › companion › explorers use both halves of the page while the reader is active
+  -  178 [chromium-375] › e2e\companion.spec.ts:1239:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  179 [chromium-375] › e2e\companion.spec.ts:1339:7 › companion › the lead still chases a pointer that comes near him
+  -  180 [chromium-375] › e2e\companion.spec.ts:1373:7 › companion › explorers nap when the reader stops, and the page goes still
+  -  181 [chromium-375] › e2e\companion.spec.ts:1474:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -  182 [chromium-375] › e2e\companion.spec.ts:1624:7 › companion › an animation that ends over resting explorers moves them off the text it brings
+  -  183 [chromium-375] › e2e\companion.spec.ts:1741:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -  184 [chromium-375] › e2e\companion.spec.ts:1811:7 › companion › a keyboard-only reader still counts as active
+  -  185 [chromium-375] › e2e\companion.spec.ts:1840:7 › companion › a key that never scrolls still counts as activity
+  -  186 [chromium-375] › e2e\companion.spec.ts:1859:7 › companion › draws two independently positioned cats, not one pair
+  -  187 [chromium-375] › e2e\companion.spec.ts:1891:7 › companion › sends the cats to a visible resting box, which brings them back
+  ok 166 [chromium-375] › e2e\axe.spec.ts:328:7 › night theme › zero WCAG violations in the deep and contrast tones (8.0s)
+  -  188 [chromium-375] › e2e\companion.spec.ts:1951:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -  189 [chromium-375] › e2e\companion.spec.ts:2022:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -  190 [chromium-375] › e2e\companion.spec.ts:1988:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -  191 [chromium-375] › e2e\companion.spec.ts:2044:7 › companion › the bed is furniture, not a control panel
+  -  192 [chromium-375] › e2e\companion.spec.ts:2058:7 › companion › never comes to rest on top of readable content
+  -  193 [chromium-375] › e2e\companion.spec.ts:2083:7 › companion › on load, in About, neither cat comes to rest on the hero's text
+  -  194 [chromium-375] › e2e\companion.spec.ts:2118:7 › companion › settles where the visitor is reading, without covering it
+  -  195 [chromium-375] › e2e\companion.spec.ts:2179:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -  196 [chromium-375] › e2e\companion.spec.ts:2229:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -  197 [chromium-375] › e2e\companion.spec.ts:2292:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -  198 [chromium-375] › e2e\companion.spec.ts:2367:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -  199 [chromium-375] › e2e\companion.spec.ts:2469:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -  200 [chromium-375] › e2e\companion.spec.ts:2558:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  -  202 [chromium-375] › e2e\companion.spec.ts:2896:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -  201 [chromium-375] › e2e\companion.spec.ts:2697:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  ok 203 [chromium-375] › e2e\companion.spec.ts:2939:7 › companion › does not roam when the visitor asks for reduced motion (2.2s)
+  ok 205 [chromium-375] › e2e\companion.spec.ts:3146:7 › companion › adds no WCAG violations with its toolkit open (7.4s)
+  ok 204 [chromium-375] › e2e\companion.spec.ts:3026:7 › companion › neither cat obscures the open toolkit while walking home to it (16.0s)
+  -  207 [chromium-375] › e2e\companion.spec.ts:3180:7 › companion › is not printed
+  -  208 [chromium-375] › e2e\companion.spec.ts:3192:7 › companion › walks all three stops, choosing a route at the fork, and ends back on the cat
+  -  209 [chromium-375] › e2e\companion.spec.ts:3247:7 › companion › the other route reaches every stop too, ending on Contact
+  -  210 [chromium-375] › e2e\companion.spec.ts:3283:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  211 [chromium-375] › e2e\companion.spec.ts:3298:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -  212 [chromium-375] › e2e\companion.spec.ts:3318:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  ok 206 [chromium-375] › e2e\companion.spec.ts:3162:7 › companion › adds no WCAG violations with the cats in their box (7.9s)
+  ok 213 [chromium-375] › e2e\companion.spec.ts:3333:7 › companion › adds no WCAG violations with the tour HUD open (8.1s)
+  -  215 [chromium-375] › e2e\companion.spec.ts:3375:7 › companion › the tour HUD carries both speakers' subtitles
+  -  216 [chromium-375] › e2e\companion.spec.ts:3396:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  ok 214 [chromium-375] › e2e\companion.spec.ts:3350:7 › companion › adds no WCAG violations with the tour's route choice visible (9.3s)
+  -  218 [chromium-375] › e2e\companion.spec.ts:3460:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -  219 [chromium-375] › e2e\companion.spec.ts:3517:7 › companion › clicking the tabby advances the duet a beat
+  -  220 [chromium-375] › e2e\companion.spec.ts:3566:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  221 [chromium-375] › e2e\companion.spec.ts:3602:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  222 [chromium-375] › e2e\companion.spec.ts:3658:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  223 [chromium-375] › e2e\companion.spec.ts:3698:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  224 [chromium-375] › e2e\companion.spec.ts:3730:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  225 [chromium-375] › e2e\companion.spec.ts:3750:7 › companion › cheers briefly on a theme toggle
+  ok 217 [chromium-375] › e2e\companion.spec.ts:3443:7 › companion › the hello duet stays clear of content at a narrow viewport too (4.4s)
+  -  227 [chromium-375] › e2e\companion.spec.ts:3790:7 › cats (round 21) › the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once
+  -  228 [chromium-375] › e2e\companion.spec.ts:3839:7 › cats (round 21) › under reduced motion Mi just sits beside Moon, off duty, once
+  -  229 [chromium-375] › e2e\companion.spec.ts:3870:7 › cats (round 21) › the parked pair stays off the hero's controls, and off whatever has focus
+  -  230 [chromium-375] › e2e\companion.spec.ts:3914:7 › cats (round 21) › while the tree grows they sit beside its box, not in the top-left corner
+  -  231 [chromium-375] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 1440
+  -  232 [chromium-375] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 390
+  -  233 [chromium-375] › e2e\hero.spec.ts:63:7 › hero › hero has no margin rail
+  -  234 [chromium-375] › e2e\hero.spec.ts:68:7 › hero › the tags turn over, one at a time
+  -  235 [chromium-375] › e2e\hero.spec.ts:84:7 › hero › focus follows the turn, by keyboard
+  -  236 [chromium-375] › e2e\hero.spec.ts:98:7 › hero › with a tag open, Tab runs line → Read this part → the next front, and never lands on the open front
+  -  237 [chromium-375] › e2e\hero.spec.ts:114:7 › hero › after a turn, the focused element has a box and is visible
+  -  238 [chromium-375] › e2e\hero.spec.ts:139:7 › hero › the switch path: Enter on another front opens it and closes the first
+  -  239 [chromium-375] › e2e\hero.spec.ts:151:7 › hero › Escape outside the open tag does nothing
+  -  240 [chromium-375] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 390
+  -  241 [chromium-375] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 1440
+  -  242 [chromium-375] › e2e\hero.spec.ts:195:7 › hero › reduced motion: the tag turns without a transition
+  -  243 [chromium-375] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by day
+  -  244 [chromium-375] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by night
+  -  245 [chromium-375] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 390
+  -  246 [chromium-375] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 768
+  -  247 [chromium-375] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1024
+  -  248 [chromium-375] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1280
+  -  249 [chromium-375] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1440
+  -  250 [chromium-375] › e2e\hero.spec.ts:272:7 › hero › layout at 1440: the line above the text, my field tag to the right
+  -  251 [chromium-375] › e2e\hero.spec.ts:288:9 › hero › layout at 320: text, then the tags down the line, then my field tag
+  -  252 [chromium-375] › e2e\hero.spec.ts:288:9 › hero › layout at 390: text, then the tags down the line, then my field tag
+  -  253 [chromium-375] › e2e\hero.spec.ts:288:9 › hero › layout at 600: text, then the tags down the line, then my field tag
+  -  254 [chromium-375] › e2e\hero.spec.ts:288:9 › hero › layout at 768: text, then the tags down the line, then my field tag
+  -  255 [chromium-375] › e2e\hero.spec.ts:288:9 › hero › layout at 1023: text, then the tags down the line, then my field tag
+  -  256 [chromium-375] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 360
+  -  257 [chromium-375] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 390
+  -  258 [chromium-375] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 768
+  -  259 [chromium-375] › e2e\hero.spec.ts:389:7 › hero › no tag clips its text at 320
+  -  260 [chromium-375] › e2e\hero.spec.ts:401:7 › hero › a tag open at 320 does not widen the page
+  -  261 [chromium-375] › e2e\hero.spec.ts:412:7 › hero › print with a tag open shows only the fronts
+  -  262 [chromium-375] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1024
+  -  263 [chromium-375] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1279
+  -  264 [chromium-375] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1280
+  -  265 [chromium-375] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1440
+  -  266 [chromium-375] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1920
+  -  267 [chromium-375] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1440
+  -  268 [chromium-375] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1920
+  -  269 [chromium-375] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1024, and the bamboo clears the words
+  -  270 [chromium-375] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1180, and the bamboo clears the words
+  -  271 [chromium-375] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1280, and the bamboo clears the words
+  -  272 [chromium-375] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1366, and the bamboo clears the words
+  -  273 [chromium-375] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1439, and the bamboo clears the words
+  -  274 [chromium-375] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1024×768
+  -  275 [chromium-375] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1366×768
+  -  276 [chromium-375] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 844×390
+  -  277 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 360×740
+  -  278 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 360×740
+  -  279 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 390×844
+  -  280 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 390×844
+  -  281 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 600×960
+  -  282 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 600×960
+  -  283 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 768×1024
+  -  284 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 768×1024
+  -  285 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 844×390
+  -  286 [chromium-375] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 844×390
+  -  287 [chromium-375] › e2e\hero.spec.ts:595:7 › hero › the actions come first in the tab order, then the tags, then the QR
+  -  288 [chromium-375] › e2e\hero.spec.ts:600:7 › hero › at 390 the tab order is the order on screen, top to bottom
+  -  289 [chromium-375] › e2e\hero.spec.ts:607:7 › hero › at 1440 each group reads left to right in tab order, the QR last
+  ok 226 [chromium-375] › e2e\companion.spec.ts:3775:7 › cats (round 21) › draws each cat as a frame of its own sprite sheet (4.0s)
+  -  290 [chromium-375] › e2e\hero.spec.ts:618:9 › hero › day shows the sun and the phin
+  -  291 [chromium-375] › e2e\hero.spec.ts:629:7 › hero › the toggle swaps the scene in place
+  -  292 [chromium-375] › e2e\hero.spec.ts:645:7 › hero › the field tag reads from content
+  -  293 [chromium-375] › e2e\hero.spec.ts:618:9 › hero › night shows the moon and the lẩu
+  -  294 [chromium-375] › e2e\hero.spec.ts:667:7 › hero › the header sits on the sky
+  -  295 [chromium-375] › e2e\hero.spec.ts:684:7 › hero without JavaScript › JS off, dark scheme: the night scene
+  ok 296 [chromium-375] › e2e\responsive.spec.ts:102:5 › has no page-level horizontal overflow after scrolling through the full page (5.0s)
+  ok 297 [chromium-375] › e2e\responsive.spec.ts:107:5 › no element visibly overflows the viewport horizontally (5.4s)
+  -  299 [chromium-375] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 320
+  ok 298 [chromium-375] › e2e\responsive.spec.ts:113:5 › stays free of horizontal overflow at simulated 200% zoom (5.5s)
+  -  300 [chromium-375] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 360
+  -  301 [chromium-375] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 390
+  -  302 [chromium-375] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 414
+  -  303 [chromium-375] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 600
+  -  305 [chromium-390] › e2e\axe.spec.ts:73:7 › full-page audit › zero WCAG violations at a mobile viewport
+  -  306 [chromium-390] › e2e\axe.spec.ts:81:7 › full-page audit › zero WCAG violations at a desktop viewport
+  -  307 [chromium-390] › e2e\axe.spec.ts:91:7 › interactive states › zero WCAG violations with the mobile menu open
+  -  304 [chromium-375] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 768
+  -  308 [chromium-390] › e2e\axe.spec.ts:100:7 › interactive states › zero WCAG violations with a case-study disclosure expanded
+  -  309 [chromium-390] › e2e\axe.spec.ts:199:7 › interactive states › zero WCAG violations with the chat in Contact loaded and answered, by day and by night
+  -  310 [chromium-390] › e2e\axe.spec.ts:227:7 › interactive states › zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night
+  -  311 [chromium-390] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by day
+  -  312 [chromium-390] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by night
+  -  313 [chromium-390] › e2e\axe.spec.ts:279:7 › off-base section tones › Contact (#contact, tone deep) has zero WCAG violations
+  -  314 [chromium-390] › e2e\axe.spec.ts:287:7 › off-base section tones › footer (tone contrast) has zero WCAG violations
+  -  315 [chromium-390] › e2e\axe.spec.ts:313:7 › night theme › stamps data-theme before paint
+  -  316 [chromium-390] › e2e\axe.spec.ts:320:7 › night theme › zero WCAG violations across the full page
+  -  317 [chromium-390] › e2e\axe.spec.ts:328:7 › night theme › zero WCAG violations in the deep and contrast tones
+  -  318 [chromium-390] › e2e\axe.spec.ts:352:7 › theme toggle › switches theme, keeps its label truthful, and persists across a reload
+  -  319 [chromium-390] › e2e\companion.spec.ts:592:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -  321 [chromium-390] › e2e\companion.spec.ts:608:7 › companion › is reachable and operable by keyboard alone
+  -  322 [chromium-390] › e2e\companion.spec.ts:643:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -  323 [chromium-390] › e2e\companion.spec.ts:697:7 › companion › plays every scene on demand, or says why it cannot
+  -  324 [chromium-390] › e2e\companion.spec.ts:753:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -  325 [chromium-390] › e2e\companion.spec.ts:835:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -  326 [chromium-390] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  327 [chromium-390] › e2e\companion.spec.ts:878:7 › companion › the pair never offer two overlapping targets while they settle in
+  -  320 [chromium-390] › e2e\axe.spec.ts:157:7 › interactive states › zero WCAG violations with the origin-story player open
+  -  328 [chromium-390] › e2e\companion.spec.ts:914:7 › companion › stays visible over the section it is crossing
+  -  329 [chromium-390] › e2e\companion.spec.ts:1239:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  330 [chromium-390] › e2e\companion.spec.ts:1098:7 › companion › explorers use both halves of the page while the reader is active
+  -  331 [chromium-390] › e2e\companion.spec.ts:1339:7 › companion › the lead still chases a pointer that comes near him
+  -  332 [chromium-390] › e2e\companion.spec.ts:1373:7 › companion › explorers nap when the reader stops, and the page goes still
+  -  333 [chromium-390] › e2e\companion.spec.ts:1474:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -  334 [chromium-390] › e2e\companion.spec.ts:1624:7 › companion › an animation that ends over resting explorers moves them off the text it brings
+  -  335 [chromium-390] › e2e\companion.spec.ts:1741:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -  336 [chromium-390] › e2e\companion.spec.ts:1811:7 › companion › a keyboard-only reader still counts as active
+  -  337 [chromium-390] › e2e\companion.spec.ts:1840:7 › companion › a key that never scrolls still counts as activity
+  -  338 [chromium-390] › e2e\companion.spec.ts:1859:7 › companion › draws two independently positioned cats, not one pair
+  -  339 [chromium-390] › e2e\companion.spec.ts:1891:7 › companion › sends the cats to a visible resting box, which brings them back
+  -  340 [chromium-390] › e2e\companion.spec.ts:1951:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -  341 [chromium-390] › e2e\companion.spec.ts:1988:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -  342 [chromium-390] › e2e\companion.spec.ts:2022:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -  343 [chromium-390] › e2e\companion.spec.ts:2044:7 › companion › the bed is furniture, not a control panel
+  -  344 [chromium-390] › e2e\companion.spec.ts:2058:7 › companion › never comes to rest on top of readable content
+  -  346 [chromium-390] › e2e\companion.spec.ts:2118:7 › companion › settles where the visitor is reading, without covering it
+  -  347 [chromium-390] › e2e\companion.spec.ts:2179:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -  348 [chromium-390] › e2e\companion.spec.ts:2229:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -  349 [chromium-390] › e2e\companion.spec.ts:2292:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -  350 [chromium-390] › e2e\companion.spec.ts:2367:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -  351 [chromium-390] › e2e\companion.spec.ts:2469:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -  352 [chromium-390] › e2e\companion.spec.ts:2558:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  -  353 [chromium-390] › e2e\companion.spec.ts:2697:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  -  354 [chromium-390] › e2e\companion.spec.ts:2896:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  ok 355 [chromium-390] › e2e\companion.spec.ts:2939:7 › companion › does not roam when the visitor asks for reduced motion (2.4s)
+  ok 345 [chromium-390] › e2e\companion.spec.ts:2083:7 › companion › on load, in About, neither cat comes to rest on the hero's text (4.3s)
+  -  357 [chromium-390] › e2e\companion.spec.ts:3146:7 › companion › adds no WCAG violations with its toolkit open
+  -  358 [chromium-390] › e2e\companion.spec.ts:3162:7 › companion › adds no WCAG violations with the cats in their box
+  -  359 [chromium-390] › e2e\companion.spec.ts:3180:7 › companion › is not printed
+  -  360 [chromium-390] › e2e\companion.spec.ts:3192:7 › companion › walks all three stops, choosing a route at the fork, and ends back on the cat
+  -  361 [chromium-390] › e2e\companion.spec.ts:3247:7 › companion › the other route reaches every stop too, ending on Contact
+  -  362 [chromium-390] › e2e\companion.spec.ts:3283:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  363 [chromium-390] › e2e\companion.spec.ts:3298:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -  364 [chromium-390] › e2e\companion.spec.ts:3318:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -  365 [chromium-390] › e2e\companion.spec.ts:3333:7 › companion › adds no WCAG violations with the tour HUD open
+  -  366 [chromium-390] › e2e\companion.spec.ts:3350:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -  367 [chromium-390] › e2e\companion.spec.ts:3375:7 › companion › the tour HUD carries both speakers' subtitles
+  -  368 [chromium-390] › e2e\companion.spec.ts:3396:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -  369 [chromium-390] › e2e\companion.spec.ts:3443:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -  370 [chromium-390] › e2e\companion.spec.ts:3460:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -  371 [chromium-390] › e2e\companion.spec.ts:3517:7 › companion › clicking the tabby advances the duet a beat
+  -  372 [chromium-390] › e2e\companion.spec.ts:3566:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  373 [chromium-390] › e2e\companion.spec.ts:3602:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  374 [chromium-390] › e2e\companion.spec.ts:3658:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  375 [chromium-390] › e2e\companion.spec.ts:3698:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  376 [chromium-390] › e2e\companion.spec.ts:3730:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  377 [chromium-390] › e2e\companion.spec.ts:3750:7 › companion › cheers briefly on a theme toggle
+  ok 378 [chromium-390] › e2e\companion.spec.ts:3775:7 › cats (round 21) › draws each cat as a frame of its own sprite sheet (3.9s)
+  -  379 [chromium-390] › e2e\companion.spec.ts:3790:7 › cats (round 21) › the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once
+  -  380 [chromium-390] › e2e\companion.spec.ts:3839:7 › cats (round 21) › under reduced motion Mi just sits beside Moon, off duty, once
+  -  381 [chromium-390] › e2e\companion.spec.ts:3870:7 › cats (round 21) › the parked pair stays off the hero's controls, and off whatever has focus
+  -  382 [chromium-390] › e2e\companion.spec.ts:3914:7 › cats (round 21) › while the tree grows they sit beside its box, not in the top-left corner
+  -  383 [chromium-390] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 1440
+  -  384 [chromium-390] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 390
+  -  385 [chromium-390] › e2e\hero.spec.ts:63:7 › hero › hero has no margin rail
+  -  386 [chromium-390] › e2e\hero.spec.ts:68:7 › hero › the tags turn over, one at a time
+  -  387 [chromium-390] › e2e\hero.spec.ts:84:7 › hero › focus follows the turn, by keyboard
+  -  388 [chromium-390] › e2e\hero.spec.ts:98:7 › hero › with a tag open, Tab runs line → Read this part → the next front, and never lands on the open front
+  -  389 [chromium-390] › e2e\hero.spec.ts:114:7 › hero › after a turn, the focused element has a box and is visible
+  -  390 [chromium-390] › e2e\hero.spec.ts:139:7 › hero › the switch path: Enter on another front opens it and closes the first
+  -  391 [chromium-390] › e2e\hero.spec.ts:151:7 › hero › Escape outside the open tag does nothing
+  -  392 [chromium-390] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 390
+  -  393 [chromium-390] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 1440
+  -  394 [chromium-390] › e2e\hero.spec.ts:195:7 › hero › reduced motion: the tag turns without a transition
+  -  395 [chromium-390] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by day
+  -  396 [chromium-390] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by night
+  -  397 [chromium-390] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 390
+  -  398 [chromium-390] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 768
+  -  399 [chromium-390] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1024
+  -  400 [chromium-390] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1280
+  -  401 [chromium-390] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1440
+  -  402 [chromium-390] › e2e\hero.spec.ts:272:7 › hero › layout at 1440: the line above the text, my field tag to the right
+  -  403 [chromium-390] › e2e\hero.spec.ts:288:9 › hero › layout at 320: text, then the tags down the line, then my field tag
+  -  404 [chromium-390] › e2e\hero.spec.ts:288:9 › hero › layout at 390: text, then the tags down the line, then my field tag
+  -  405 [chromium-390] › e2e\hero.spec.ts:288:9 › hero › layout at 600: text, then the tags down the line, then my field tag
+  -  406 [chromium-390] › e2e\hero.spec.ts:288:9 › hero › layout at 768: text, then the tags down the line, then my field tag
+  -  407 [chromium-390] › e2e\hero.spec.ts:288:9 › hero › layout at 1023: text, then the tags down the line, then my field tag
+  -  408 [chromium-390] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 360
+  -  409 [chromium-390] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 390
+  -  410 [chromium-390] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 768
+  -  411 [chromium-390] › e2e\hero.spec.ts:389:7 › hero › no tag clips its text at 320
+  -  412 [chromium-390] › e2e\hero.spec.ts:401:7 › hero › a tag open at 320 does not widen the page
+  -  413 [chromium-390] › e2e\hero.spec.ts:412:7 › hero › print with a tag open shows only the fronts
+  -  414 [chromium-390] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1024
+  -  415 [chromium-390] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1279
+  -  416 [chromium-390] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1280
+  -  417 [chromium-390] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1440
+  -  418 [chromium-390] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1920
+  -  419 [chromium-390] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1440
+  -  420 [chromium-390] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1920
+  -  421 [chromium-390] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1024, and the bamboo clears the words
+  -  422 [chromium-390] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1180, and the bamboo clears the words
+  -  423 [chromium-390] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1280, and the bamboo clears the words
+  -  424 [chromium-390] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1366, and the bamboo clears the words
+  -  425 [chromium-390] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1439, and the bamboo clears the words
+  -  426 [chromium-390] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1024×768
+  -  427 [chromium-390] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1366×768
+  -  428 [chromium-390] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 844×390
+  -  429 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 360×740
+  -  430 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 360×740
+  -  431 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 390×844
+  -  432 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 390×844
+  -  433 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 600×960
+  -  434 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 600×960
+  -  435 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 768×1024
+  -  436 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 768×1024
+  -  437 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 844×390
+  -  438 [chromium-390] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 844×390
+  -  439 [chromium-390] › e2e\hero.spec.ts:595:7 › hero › the actions come first in the tab order, then the tags, then the QR
+  -  440 [chromium-390] › e2e\hero.spec.ts:600:7 › hero › at 390 the tab order is the order on screen, top to bottom
+  -  441 [chromium-390] › e2e\hero.spec.ts:607:7 › hero › at 1440 each group reads left to right in tab order, the QR last
+  -  442 [chromium-390] › e2e\hero.spec.ts:618:9 › hero › day shows the sun and the phin
+  -  443 [chromium-390] › e2e\hero.spec.ts:618:9 › hero › night shows the moon and the lẩu
+  -  444 [chromium-390] › e2e\hero.spec.ts:629:7 › hero › the toggle swaps the scene in place
+  -  445 [chromium-390] › e2e\hero.spec.ts:645:7 › hero › the field tag reads from content
+  -  446 [chromium-390] › e2e\hero.spec.ts:667:7 › hero › the header sits on the sky
+  -  447 [chromium-390] › e2e\hero.spec.ts:684:7 › hero without JavaScript › JS off, dark scheme: the night scene
+  ok 448 [chromium-390] › e2e\responsive.spec.ts:102:5 › has no page-level horizontal overflow after scrolling through the full page (4.6s)
+  ok 356 [chromium-390] › e2e\companion.spec.ts:3026:7 › companion › neither cat obscures the open toolkit while walking home to it (15.9s)
+  ok 449 [chromium-390] › e2e\responsive.spec.ts:107:5 › no element visibly overflows the viewport horizontally (4.7s)
+  ok 450 [chromium-390] › e2e\responsive.spec.ts:113:5 › stays free of horizontal overflow at simulated 200% zoom (5.1s)
+  -  451 [chromium-390] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 320
+  -  452 [chromium-390] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 360
+  -  453 [chromium-390] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 390
+  -  454 [chromium-390] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 414
+  -  455 [chromium-390] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 600
+  -  456 [chromium-390] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 768
+  -  457 [chromium-768] › e2e\axe.spec.ts:73:7 › full-page audit › zero WCAG violations at a mobile viewport
+  -  458 [chromium-768] › e2e\axe.spec.ts:91:7 › interactive states › zero WCAG violations with the mobile menu open
+  -  459 [chromium-768] › e2e\axe.spec.ts:100:7 › interactive states › zero WCAG violations with a case-study disclosure expanded
+  -  460 [chromium-768] › e2e\axe.spec.ts:157:7 › interactive states › zero WCAG violations with the origin-story player open
+  -  461 [chromium-768] › e2e\axe.spec.ts:199:7 › interactive states › zero WCAG violations with the chat in Contact loaded and answered, by day and by night
+  -  462 [chromium-768] › e2e\axe.spec.ts:227:7 › interactive states › zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night
+  -  463 [chromium-768] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by day
+  -  464 [chromium-768] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by night
+  -  465 [chromium-768] › e2e\axe.spec.ts:279:7 › off-base section tones › Contact (#contact, tone deep) has zero WCAG violations
+  -  466 [chromium-768] › e2e\axe.spec.ts:287:7 › off-base section tones › footer (tone contrast) has zero WCAG violations
+  -  467 [chromium-768] › e2e\axe.spec.ts:313:7 › night theme › stamps data-theme before paint
+  -  468 [chromium-768] › e2e\axe.spec.ts:320:7 › night theme › zero WCAG violations across the full page
+  -  469 [chromium-768] › e2e\axe.spec.ts:328:7 › night theme › zero WCAG violations in the deep and contrast tones
+  -  470 [chromium-768] › e2e\axe.spec.ts:352:7 › theme toggle › switches theme, keeps its label truthful, and persists across a reload
+  -  471 [chromium-768] › e2e\companion.spec.ts:592:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -  472 [chromium-768] › e2e\companion.spec.ts:608:7 › companion › is reachable and operable by keyboard alone
+  -  473 [chromium-768] › e2e\companion.spec.ts:643:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -  474 [chromium-768] › e2e\companion.spec.ts:697:7 › companion › plays every scene on demand, or says why it cannot
+  -  475 [chromium-768] › e2e\companion.spec.ts:753:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -  476 [chromium-768] › e2e\companion.spec.ts:835:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -  477 [chromium-768] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  478 [chromium-768] › e2e\companion.spec.ts:878:7 › companion › the pair never offer two overlapping targets while they settle in
+  -  479 [chromium-768] › e2e\companion.spec.ts:914:7 › companion › stays visible over the section it is crossing
+  -  480 [chromium-768] › e2e\companion.spec.ts:1098:7 › companion › explorers use both halves of the page while the reader is active
+  -  481 [chromium-768] › e2e\companion.spec.ts:1239:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  482 [chromium-768] › e2e\companion.spec.ts:1339:7 › companion › the lead still chases a pointer that comes near him
+  -  483 [chromium-768] › e2e\companion.spec.ts:1373:7 › companion › explorers nap when the reader stops, and the page goes still
+  -  484 [chromium-768] › e2e\companion.spec.ts:1474:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -  485 [chromium-768] › e2e\companion.spec.ts:1624:7 › companion › an animation that ends over resting explorers moves them off the text it brings
+  -  486 [chromium-768] › e2e\companion.spec.ts:1741:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -  487 [chromium-768] › e2e\companion.spec.ts:1811:7 › companion › a keyboard-only reader still counts as active
+  -  488 [chromium-768] › e2e\companion.spec.ts:1840:7 › companion › a key that never scrolls still counts as activity
+  -  489 [chromium-768] › e2e\companion.spec.ts:1859:7 › companion › draws two independently positioned cats, not one pair
+  -  490 [chromium-768] › e2e\companion.spec.ts:1891:7 › companion › sends the cats to a visible resting box, which brings them back
+  -  491 [chromium-768] › e2e\companion.spec.ts:1951:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -  492 [chromium-768] › e2e\companion.spec.ts:1988:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -  493 [chromium-768] › e2e\companion.spec.ts:2022:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -  494 [chromium-768] › e2e\companion.spec.ts:2044:7 › companion › the bed is furniture, not a control panel
+  -  495 [chromium-768] › e2e\companion.spec.ts:2058:7 › companion › never comes to rest on top of readable content
+  -  496 [chromium-768] › e2e\companion.spec.ts:2083:7 › companion › on load, in About, neither cat comes to rest on the hero's text
+  -  497 [chromium-768] › e2e\companion.spec.ts:2118:7 › companion › settles where the visitor is reading, without covering it
+  -  498 [chromium-768] › e2e\companion.spec.ts:2179:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -  499 [chromium-768] › e2e\companion.spec.ts:2229:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -  500 [chromium-768] › e2e\companion.spec.ts:2292:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -  501 [chromium-768] › e2e\companion.spec.ts:2367:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -  502 [chromium-768] › e2e\companion.spec.ts:2469:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -  503 [chromium-768] › e2e\companion.spec.ts:2558:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  -  504 [chromium-768] › e2e\companion.spec.ts:2697:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  -  505 [chromium-768] › e2e\companion.spec.ts:2896:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -  507 [chromium-768] › e2e\axe.spec.ts:81:7 › full-page audit › zero WCAG violations at a desktop viewport
+  ok 506 [chromium-768] › e2e\companion.spec.ts:2939:7 › companion › does not roam when the visitor asks for reduced motion (2.4s)
+  -  509 [chromium-768] › e2e\companion.spec.ts:3146:7 › companion › adds no WCAG violations with its toolkit open
+  -  510 [chromium-768] › e2e\companion.spec.ts:3162:7 › companion › adds no WCAG violations with the cats in their box
+  -  511 [chromium-768] › e2e\companion.spec.ts:3180:7 › companion › is not printed
+  -  512 [chromium-768] › e2e\companion.spec.ts:3192:7 › companion › walks all three stops, choosing a route at the fork, and ends back on the cat
+  -  513 [chromium-768] › e2e\companion.spec.ts:3247:7 › companion › the other route reaches every stop too, ending on Contact
+  -  514 [chromium-768] › e2e\companion.spec.ts:3283:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  515 [chromium-768] › e2e\companion.spec.ts:3298:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -  516 [chromium-768] › e2e\companion.spec.ts:3318:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -  517 [chromium-768] › e2e\companion.spec.ts:3333:7 › companion › adds no WCAG violations with the tour HUD open
+  -  518 [chromium-768] › e2e\companion.spec.ts:3350:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -  519 [chromium-768] › e2e\companion.spec.ts:3375:7 › companion › the tour HUD carries both speakers' subtitles
+  -  520 [chromium-768] › e2e\companion.spec.ts:3396:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -  521 [chromium-768] › e2e\companion.spec.ts:3443:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -  522 [chromium-768] › e2e\companion.spec.ts:3460:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -  523 [chromium-768] › e2e\companion.spec.ts:3517:7 › companion › clicking the tabby advances the duet a beat
+  -  524 [chromium-768] › e2e\companion.spec.ts:3566:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  525 [chromium-768] › e2e\companion.spec.ts:3602:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  526 [chromium-768] › e2e\companion.spec.ts:3658:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  527 [chromium-768] › e2e\companion.spec.ts:3698:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  528 [chromium-768] › e2e\companion.spec.ts:3730:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  529 [chromium-768] › e2e\companion.spec.ts:3750:7 › companion › cheers briefly on a theme toggle
+  ok 530 [chromium-768] › e2e\companion.spec.ts:3775:7 › cats (round 21) › draws each cat as a frame of its own sprite sheet (5.1s)
+  -  531 [chromium-768] › e2e\companion.spec.ts:3790:7 › cats (round 21) › the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once
+  -  532 [chromium-768] › e2e\companion.spec.ts:3839:7 › cats (round 21) › under reduced motion Mi just sits beside Moon, off duty, once
+  -  533 [chromium-768] › e2e\companion.spec.ts:3870:7 › cats (round 21) › the parked pair stays off the hero's controls, and off whatever has focus
+  -  534 [chromium-768] › e2e\companion.spec.ts:3914:7 › cats (round 21) › while the tree grows they sit beside its box, not in the top-left corner
+  -  535 [chromium-768] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 1440
+  -  536 [chromium-768] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 390
+  -  537 [chromium-768] › e2e\hero.spec.ts:63:7 › hero › hero has no margin rail
+  -  538 [chromium-768] › e2e\hero.spec.ts:68:7 › hero › the tags turn over, one at a time
+  -  539 [chromium-768] › e2e\hero.spec.ts:84:7 › hero › focus follows the turn, by keyboard
+  -  540 [chromium-768] › e2e\hero.spec.ts:98:7 › hero › with a tag open, Tab runs line → Read this part → the next front, and never lands on the open front
+  -  541 [chromium-768] › e2e\hero.spec.ts:114:7 › hero › after a turn, the focused element has a box and is visible
+  -  542 [chromium-768] › e2e\hero.spec.ts:139:7 › hero › the switch path: Enter on another front opens it and closes the first
+  -  543 [chromium-768] › e2e\hero.spec.ts:151:7 › hero › Escape outside the open tag does nothing
+  -  544 [chromium-768] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 390
+  -  545 [chromium-768] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 1440
+  -  546 [chromium-768] › e2e\hero.spec.ts:195:7 › hero › reduced motion: the tag turns without a transition
+  -  547 [chromium-768] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by day
+  -  548 [chromium-768] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by night
+  -  549 [chromium-768] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 390
+  -  550 [chromium-768] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 768
+  -  551 [chromium-768] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1024
+  -  552 [chromium-768] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1280
+  -  553 [chromium-768] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1440
+  -  554 [chromium-768] › e2e\hero.spec.ts:272:7 › hero › layout at 1440: the line above the text, my field tag to the right
+  -  555 [chromium-768] › e2e\hero.spec.ts:288:9 › hero › layout at 320: text, then the tags down the line, then my field tag
+  -  556 [chromium-768] › e2e\hero.spec.ts:288:9 › hero › layout at 390: text, then the tags down the line, then my field tag
+  -  557 [chromium-768] › e2e\hero.spec.ts:288:9 › hero › layout at 600: text, then the tags down the line, then my field tag
+  -  558 [chromium-768] › e2e\hero.spec.ts:288:9 › hero › layout at 768: text, then the tags down the line, then my field tag
+  -  559 [chromium-768] › e2e\hero.spec.ts:288:9 › hero › layout at 1023: text, then the tags down the line, then my field tag
+  -  560 [chromium-768] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 360
+  -  561 [chromium-768] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 390
+  -  562 [chromium-768] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 768
+  -  563 [chromium-768] › e2e\hero.spec.ts:389:7 › hero › no tag clips its text at 320
+  -  564 [chromium-768] › e2e\hero.spec.ts:401:7 › hero › a tag open at 320 does not widen the page
+  -  565 [chromium-768] › e2e\hero.spec.ts:412:7 › hero › print with a tag open shows only the fronts
+  -  566 [chromium-768] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1024
+  -  567 [chromium-768] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1279
+  -  568 [chromium-768] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1280
+  -  569 [chromium-768] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1440
+  -  570 [chromium-768] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1920
+  -  571 [chromium-768] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1440
+  -  572 [chromium-768] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1920
+  -  573 [chromium-768] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1024, and the bamboo clears the words
+  -  574 [chromium-768] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1180, and the bamboo clears the words
+  -  575 [chromium-768] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1280, and the bamboo clears the words
+  -  576 [chromium-768] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1366, and the bamboo clears the words
+  -  577 [chromium-768] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1439, and the bamboo clears the words
+  -  578 [chromium-768] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1024×768
+  -  579 [chromium-768] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1366×768
+  -  580 [chromium-768] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 844×390
+  -  581 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 360×740
+  -  582 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 360×740
+  -  583 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 390×844
+  -  584 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 390×844
+  -  585 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 600×960
+  -  586 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 600×960
+  -  587 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 768×1024
+  -  588 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 768×1024
+  -  589 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 844×390
+  -  590 [chromium-768] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 844×390
+  -  591 [chromium-768] › e2e\hero.spec.ts:595:7 › hero › the actions come first in the tab order, then the tags, then the QR
+  -  592 [chromium-768] › e2e\hero.spec.ts:600:7 › hero › at 390 the tab order is the order on screen, top to bottom
+  -  593 [chromium-768] › e2e\hero.spec.ts:607:7 › hero › at 1440 each group reads left to right in tab order, the QR last
+  -  594 [chromium-768] › e2e\hero.spec.ts:618:9 › hero › day shows the sun and the phin
+  -  595 [chromium-768] › e2e\hero.spec.ts:618:9 › hero › night shows the moon and the lẩu
+  -  596 [chromium-768] › e2e\hero.spec.ts:629:7 › hero › the toggle swaps the scene in place
+  -  597 [chromium-768] › e2e\hero.spec.ts:645:7 › hero › the field tag reads from content
+  -  598 [chromium-768] › e2e\hero.spec.ts:667:7 › hero › the header sits on the sky
+  -  599 [chromium-768] › e2e\hero.spec.ts:684:7 › hero without JavaScript › JS off, dark scheme: the night scene
+  ok 508 [chromium-768] › e2e\companion.spec.ts:3026:7 › companion › neither cat obscures the open toolkit while walking home to it (17.1s)
+  ok 600 [chromium-768] › e2e\responsive.spec.ts:102:5 › has no page-level horizontal overflow after scrolling through the full page (5.3s)
+  ok 601 [chromium-768] › e2e\responsive.spec.ts:107:5 › no element visibly overflows the viewport horizontally (5.5s)
+  ok 602 [chromium-768] › e2e\responsive.spec.ts:113:5 › stays free of horizontal overflow at simulated 200% zoom (5.6s)
+  -  603 [chromium-768] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 320
+  -  604 [chromium-768] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 360
+  -  605 [chromium-768] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 390
+  -  606 [chromium-768] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 414
+  -  607 [chromium-768] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 600
+  -  608 [chromium-768] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 768
+  -  609 [chromium-1024] › e2e\axe.spec.ts:73:7 › full-page audit › zero WCAG violations at a mobile viewport
+  -  611 [chromium-1024] › e2e\axe.spec.ts:91:7 › interactive states › zero WCAG violations with the mobile menu open
+  -  612 [chromium-1024] › e2e\axe.spec.ts:100:7 › interactive states › zero WCAG violations with a case-study disclosure expanded
+  -  613 [chromium-1024] › e2e\axe.spec.ts:157:7 › interactive states › zero WCAG violations with the origin-story player open
+  -  614 [chromium-1024] › e2e\axe.spec.ts:199:7 › interactive states › zero WCAG violations with the chat in Contact loaded and answered, by day and by night
+  -  615 [chromium-1024] › e2e\axe.spec.ts:227:7 › interactive states › zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night
+  -  616 [chromium-1024] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by day
+  -  610 [chromium-1024] › e2e\axe.spec.ts:81:7 › full-page audit › zero WCAG violations at a desktop viewport
+  -  617 [chromium-1024] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by night
+  -  618 [chromium-1024] › e2e\axe.spec.ts:279:7 › off-base section tones › Contact (#contact, tone deep) has zero WCAG violations
+  -  619 [chromium-1024] › e2e\axe.spec.ts:287:7 › off-base section tones › footer (tone contrast) has zero WCAG violations
+  -  620 [chromium-1024] › e2e\axe.spec.ts:313:7 › night theme › stamps data-theme before paint
+  -  621 [chromium-1024] › e2e\axe.spec.ts:320:7 › night theme › zero WCAG violations across the full page
+  -  622 [chromium-1024] › e2e\axe.spec.ts:328:7 › night theme › zero WCAG violations in the deep and contrast tones
+  -  623 [chromium-1024] › e2e\axe.spec.ts:352:7 › theme toggle › switches theme, keeps its label truthful, and persists across a reload
+  -  624 [chromium-1024] › e2e\companion.spec.ts:592:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat
+  -  625 [chromium-1024] › e2e\companion.spec.ts:608:7 › companion › is reachable and operable by keyboard alone
+  -  626 [chromium-1024] › e2e\companion.spec.ts:643:7 › companion › the toolkit offers play and bed, and nothing the page already carries
+  -  627 [chromium-1024] › e2e\companion.spec.ts:697:7 › companion › plays every scene on demand, or says why it cannot
+  -  628 [chromium-1024] › e2e\companion.spec.ts:753:7 › companion › holds a scene the visitor asked for against the next mouse move
+  -  629 [chromium-1024] › e2e\companion.spec.ts:835:7 › companion › a request whose walk expires does not hold the next unprompted scene
+  -  630 [chromium-1024] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene
+  -  631 [chromium-1024] › e2e\companion.spec.ts:878:7 › companion › the pair never offer two overlapping targets while they settle in
+  -  632 [chromium-1024] › e2e\companion.spec.ts:914:7 › companion › stays visible over the section it is crossing
+  -  633 [chromium-1024] › e2e\companion.spec.ts:1098:7 › companion › explorers use both halves of the page while the reader is active
+  -  635 [chromium-1024] › e2e\companion.spec.ts:1339:7 › companion › the lead still chases a pointer that comes near him
+  -  634 [chromium-1024] › e2e\companion.spec.ts:1239:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  637 [chromium-1024] › e2e\companion.spec.ts:1373:7 › companion › explorers nap when the reader stops, and the page goes still
+  -  636 [chromium-1024] › e2e\companion.spec.ts:1474:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings
+  -  638 [chromium-1024] › e2e\companion.spec.ts:1624:7 › companion › an animation that ends over resting explorers moves them off the text it brings
+  -  639 [chromium-1024] › e2e\companion.spec.ts:1741:7 › companion › a layout that keeps changing on its own does not keep the cats awake
+  -  641 [chromium-1024] › e2e\companion.spec.ts:1811:7 › companion › a keyboard-only reader still counts as active
+  -  640 [chromium-1024] › e2e\companion.spec.ts:1840:7 › companion › a key that never scrolls still counts as activity
+  -  642 [chromium-1024] › e2e\companion.spec.ts:1859:7 › companion › draws two independently positioned cats, not one pair
+  -  643 [chromium-1024] › e2e\companion.spec.ts:1891:7 › companion › sends the cats to a visible resting box, which brings them back
+  -  644 [chromium-1024] › e2e\companion.spec.ts:1951:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired
+  -  645 [chromium-1024] › e2e\companion.spec.ts:1988:7 › companion › wakes visible cats from a stored preference it has never heard of
+  -  646 [chromium-1024] › e2e\companion.spec.ts:2022:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner
+  -  647 [chromium-1024] › e2e\companion.spec.ts:2044:7 › companion › the bed is furniture, not a control panel
+  -  648 [chromium-1024] › e2e\companion.spec.ts:2058:7 › companion › never comes to rest on top of readable content
+  -  649 [chromium-1024] › e2e\companion.spec.ts:2083:7 › companion › on load, in About, neither cat comes to rest on the hero's text
+  -  651 [chromium-1024] › e2e\companion.spec.ts:2179:7 › companion › never leaves a cat off-screen or behind the sticky header
+  -  650 [chromium-1024] › e2e\companion.spec.ts:2118:7 › companion › settles where the visitor is reading, without covering it
+  -  653 [chromium-1024] › e2e\companion.spec.ts:2292:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll
+  -  652 [chromium-1024] › e2e\companion.spec.ts:2229:7 › companion › naps where it stops when left alone, and does not remember doing it
+  -  654 [chromium-1024] › e2e\companion.spec.ts:2367:7 › companion › stays with a visitor who is reading, and comes back when the page moves
+  -  655 [chromium-1024] › e2e\companion.spec.ts:2469:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text
+  -  656 [chromium-1024] › e2e\companion.spec.ts:2558:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner
+  -  658 [chromium-1024] › e2e\companion.spec.ts:2896:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  -  657 [chromium-1024] › e2e\companion.spec.ts:2697:7 › companion › the follower never drops under WCAG clearance while the walk back is observed
+  ok 659 [chromium-1024] › e2e\companion.spec.ts:2939:7 › companion › does not roam when the visitor asks for reduced motion (2.4s)
+  -  661 [chromium-1024] › e2e\companion.spec.ts:3146:7 › companion › adds no WCAG violations with its toolkit open
+  -  662 [chromium-1024] › e2e\companion.spec.ts:3162:7 › companion › adds no WCAG violations with the cats in their box
+  -  663 [chromium-1024] › e2e\companion.spec.ts:3180:7 › companion › is not printed
+  -  664 [chromium-1024] › e2e\companion.spec.ts:3192:7 › companion › walks all three stops, choosing a route at the fork, and ends back on the cat
+  -  665 [chromium-1024] › e2e\companion.spec.ts:3247:7 › companion › the other route reaches every stop too, ending on Contact
+  -  666 [chromium-1024] › e2e\companion.spec.ts:3283:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat
+  -  667 [chromium-1024] › e2e\companion.spec.ts:3298:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself
+  -  668 [chromium-1024] › e2e\companion.spec.ts:3318:7 › companion › the tour panel item is not offered on /resume, which has no first stop
+  -  669 [chromium-1024] › e2e\companion.spec.ts:3333:7 › companion › adds no WCAG violations with the tour HUD open
+  -  670 [chromium-1024] › e2e\companion.spec.ts:3350:7 › companion › adds no WCAG violations with the tour's route choice visible
+  -  671 [chromium-1024] › e2e\companion.spec.ts:3375:7 › companion › the tour HUD carries both speakers' subtitles
+  -  672 [chromium-1024] › e2e\companion.spec.ts:3396:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation
+  -  673 [chromium-1024] › e2e\companion.spec.ts:3443:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  -  674 [chromium-1024] › e2e\companion.spec.ts:3460:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground
+  -  675 [chromium-1024] › e2e\companion.spec.ts:3517:7 › companion › clicking the tabby advances the duet a beat
+  -  676 [chromium-1024] › e2e\companion.spec.ts:3566:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph
+  -  677 [chromium-1024] › e2e\companion.spec.ts:3602:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends
+  -  678 [chromium-1024] › e2e\companion.spec.ts:3658:7 › companion › scrolling to another section ends an ambient scene mid-beat
+  -  679 [chromium-1024] › e2e\companion.spec.ts:3698:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam
+  -  680 [chromium-1024] › e2e\companion.spec.ts:3730:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav
+  -  681 [chromium-1024] › e2e\companion.spec.ts:3750:7 › companion › cheers briefly on a theme toggle
+  ok 682 [chromium-1024] › e2e\companion.spec.ts:3775:7 › cats (round 21) › draws each cat as a frame of its own sprite sheet (4.1s)
+  -  683 [chromium-1024] › e2e\companion.spec.ts:3790:7 › cats (round 21) › the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once
+  -  684 [chromium-1024] › e2e\companion.spec.ts:3839:7 › cats (round 21) › under reduced motion Mi just sits beside Moon, off duty, once
+  -  685 [chromium-1024] › e2e\companion.spec.ts:3870:7 › cats (round 21) › the parked pair stays off the hero's controls, and off whatever has focus
+  -  686 [chromium-1024] › e2e\companion.spec.ts:3914:7 › cats (round 21) › while the tree grows they sit beside its box, not in the top-left corner
+  -  687 [chromium-1024] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 1440
+  -  688 [chromium-1024] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 390
+  -  689 [chromium-1024] › e2e\hero.spec.ts:63:7 › hero › hero has no margin rail
+  -  690 [chromium-1024] › e2e\hero.spec.ts:68:7 › hero › the tags turn over, one at a time
+  -  691 [chromium-1024] › e2e\hero.spec.ts:84:7 › hero › focus follows the turn, by keyboard
+  -  692 [chromium-1024] › e2e\hero.spec.ts:98:7 › hero › with a tag open, Tab runs line → Read this part → the next front, and never lands on the open front
+  -  693 [chromium-1024] › e2e\hero.spec.ts:114:7 › hero › after a turn, the focused element has a box and is visible
+  -  694 [chromium-1024] › e2e\hero.spec.ts:139:7 › hero › the switch path: Enter on another front opens it and closes the first
+  -  695 [chromium-1024] › e2e\hero.spec.ts:151:7 › hero › Escape outside the open tag does nothing
+  -  696 [chromium-1024] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 390
+  -  697 [chromium-1024] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 1440
+  -  698 [chromium-1024] › e2e\hero.spec.ts:195:7 › hero › reduced motion: the tag turns without a transition
+  -  699 [chromium-1024] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by day
+  -  700 [chromium-1024] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by night
+  -  701 [chromium-1024] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 390
+  -  702 [chromium-1024] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 768
+  -  703 [chromium-1024] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1024
+  -  704 [chromium-1024] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1280
+  -  705 [chromium-1024] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1440
+  -  706 [chromium-1024] › e2e\hero.spec.ts:272:7 › hero › layout at 1440: the line above the text, my field tag to the right
+  -  707 [chromium-1024] › e2e\hero.spec.ts:288:9 › hero › layout at 320: text, then the tags down the line, then my field tag
+  -  708 [chromium-1024] › e2e\hero.spec.ts:288:9 › hero › layout at 390: text, then the tags down the line, then my field tag
+  -  709 [chromium-1024] › e2e\hero.spec.ts:288:9 › hero › layout at 600: text, then the tags down the line, then my field tag
+  -  710 [chromium-1024] › e2e\hero.spec.ts:288:9 › hero › layout at 768: text, then the tags down the line, then my field tag
+  -  711 [chromium-1024] › e2e\hero.spec.ts:288:9 › hero › layout at 1023: text, then the tags down the line, then my field tag
+  -  712 [chromium-1024] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 360
+  -  713 [chromium-1024] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 390
+  -  714 [chromium-1024] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 768
+  -  715 [chromium-1024] › e2e\hero.spec.ts:389:7 › hero › no tag clips its text at 320
+  -  716 [chromium-1024] › e2e\hero.spec.ts:401:7 › hero › a tag open at 320 does not widen the page
+  -  717 [chromium-1024] › e2e\hero.spec.ts:412:7 › hero › print with a tag open shows only the fronts
+  -  718 [chromium-1024] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1024
+  -  719 [chromium-1024] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1279
+  -  720 [chromium-1024] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1280
+  -  721 [chromium-1024] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1440
+  -  722 [chromium-1024] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1920
+  -  723 [chromium-1024] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1440
+  -  724 [chromium-1024] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1920
+  -  725 [chromium-1024] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1024, and the bamboo clears the words
+  -  726 [chromium-1024] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1180, and the bamboo clears the words
+  -  727 [chromium-1024] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1280, and the bamboo clears the words
+  -  728 [chromium-1024] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1366, and the bamboo clears the words
+  -  729 [chromium-1024] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1439, and the bamboo clears the words
+  -  730 [chromium-1024] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1024×768
+  -  731 [chromium-1024] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1366×768
+  -  732 [chromium-1024] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 844×390
+  -  733 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 360×740
+  -  734 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 360×740
+  -  735 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 390×844
+  -  736 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 390×844
+  -  737 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 600×960
+  -  738 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 600×960
+  -  739 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 768×1024
+  -  740 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 768×1024
+  -  741 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 844×390
+  -  742 [chromium-1024] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 844×390
+  -  743 [chromium-1024] › e2e\hero.spec.ts:595:7 › hero › the actions come first in the tab order, then the tags, then the QR
+  -  744 [chromium-1024] › e2e\hero.spec.ts:600:7 › hero › at 390 the tab order is the order on screen, top to bottom
+  -  745 [chromium-1024] › e2e\hero.spec.ts:607:7 › hero › at 1440 each group reads left to right in tab order, the QR last
+  -  746 [chromium-1024] › e2e\hero.spec.ts:618:9 › hero › day shows the sun and the phin
+  -  747 [chromium-1024] › e2e\hero.spec.ts:618:9 › hero › night shows the moon and the lẩu
+  -  748 [chromium-1024] › e2e\hero.spec.ts:629:7 › hero › the toggle swaps the scene in place
+  -  749 [chromium-1024] › e2e\hero.spec.ts:645:7 › hero › the field tag reads from content
+  -  750 [chromium-1024] › e2e\hero.spec.ts:667:7 › hero › the header sits on the sky
+  -  751 [chromium-1024] › e2e\hero.spec.ts:684:7 › hero without JavaScript › JS off, dark scheme: the night scene
+  ok 660 [chromium-1024] › e2e\companion.spec.ts:3026:7 › companion › neither cat obscures the open toolkit while walking home to it (16.5s)
+  ok 752 [chromium-1024] › e2e\responsive.spec.ts:102:5 › has no page-level horizontal overflow after scrolling through the full page (4.7s)
+  ok 753 [chromium-1024] › e2e\responsive.spec.ts:107:5 › no element visibly overflows the viewport horizontally (4.9s)
+  ok 754 [chromium-1024] › e2e\responsive.spec.ts:113:5 › stays free of horizontal overflow at simulated 200% zoom (4.9s)
+  -  755 [chromium-1024] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 320
+  -  756 [chromium-1024] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 360
+  -  758 [chromium-1024] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 414
+  -  757 [chromium-1024] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 390
+  -  759 [chromium-1024] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 600
+  -  760 [chromium-1024] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 768
+  -  762 [chromium-1440] › e2e\axe.spec.ts:73:7 › full-page audit › zero WCAG violations at a mobile viewport
+  -  763 [chromium-1440] › e2e\axe.spec.ts:91:7 › interactive states › zero WCAG violations with the mobile menu open
+  ok 761 [chromium-1440] › e2e\axe.spec.ts:81:7 › full-page audit › zero WCAG violations at a desktop viewport (8.6s)
+  ok 764 [chromium-1440] › e2e\axe.spec.ts:100:7 › interactive states › zero WCAG violations with a case-study disclosure expanded (10.2s)
+  ok 765 [chromium-1440] › e2e\axe.spec.ts:157:7 › interactive states › zero WCAG violations with the origin-story player open (10.8s)
+  ok 766 [chromium-1440] › e2e\axe.spec.ts:199:7 › interactive states › zero WCAG violations with the chat in Contact loaded and answered, by day and by night (9.4s)
+  ok 768 [chromium-1440] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by day (7.7s)
+  ok 767 [chromium-1440] › e2e\axe.spec.ts:227:7 › interactive states › zero WCAG violations on the business card's lead form, flipped and invalid, by day and by night (11.1s)
+  -  770 [chromium-1440] › e2e\axe.spec.ts:279:7 › off-base section tones › Contact (#contact, tone deep) has zero WCAG violations
+  ok 769 [chromium-1440] › e2e\axe.spec.ts:257:9 › hero tags › About (#about) with a tag open has zero WCAG violations, by night (8.2s)
+  ok 771 [chromium-1440] › e2e\axe.spec.ts:287:7 › off-base section tones › footer (tone contrast) has zero WCAG violations (7.4s)
+  ok 772 [chromium-1440] › e2e\axe.spec.ts:313:7 › night theme › stamps data-theme before paint (5.4s)
+  -  774 [chromium-1440] › e2e\axe.spec.ts:328:7 › night theme › zero WCAG violations in the deep and contrast tones
+  ok 775 [chromium-1440] › e2e\axe.spec.ts:352:7 › theme toggle › switches theme, keeps its label truthful, and persists across a reload (2.2s)
+  ok 773 [chromium-1440] › e2e\axe.spec.ts:320:7 › night theme › zero WCAG violations across the full page (8.7s)
+  ok 776 [chromium-1440] › e2e\companion.spec.ts:592:7 › companion › opens and closes its toolkit, and Escape returns focus to the cat (5.4s)
+  ok 777 [chromium-1440] › e2e\companion.spec.ts:608:7 › companion › is reachable and operable by keyboard alone (5.5s)
+  ok 778 [chromium-1440] › e2e\companion.spec.ts:643:7 › companion › the toolkit offers play and bed, and nothing the page already carries (5.6s)
+  ok 779 [chromium-1440] › e2e\companion.spec.ts:697:7 › companion › plays every scene on demand, or says why it cannot (6.0s)
+  ok 780 [chromium-1440] › e2e\companion.spec.ts:753:7 › companion › holds a scene the visitor asked for against the next mouse move (7.1s)
+  ok 781 [chromium-1440] › e2e\companion.spec.ts:835:7 › companion › a request whose walk expires does not hold the next unprompted scene (15.2s)
+  ok 783 [chromium-1440] › e2e\companion.spec.ts:878:7 › companion › the pair never offer two overlapping targets while they settle in (8.4s)
+  x  782 [chromium-1440] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene (13.6s)
+  ok 784 [chromium-1440] › e2e\companion.spec.ts:914:7 › companion › stays visible over the section it is crossing (7.6s)
+  ok 786 [chromium-1440] › e2e\companion.spec.ts:1239:7 › companion › each explorer leaves its stop on its own clock, not both at once (48.9s)
+  ok 787 [chromium-1440] › e2e\companion.spec.ts:1339:7 › companion › the lead still chases a pointer that comes near him (9.5s)
+  ok 785 [chromium-1440] › e2e\companion.spec.ts:1098:7 › companion › explorers use both halves of the page while the reader is active (1.1m)
+  ok 789 [chromium-1440] › e2e\companion.spec.ts:1474:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (19.6s)
+  ok 788 [chromium-1440] › e2e\companion.spec.ts:1373:7 › companion › explorers nap when the reader stops, and the page goes still (28.8s)
+  ok 790 [chromium-1440] › e2e\companion.spec.ts:1624:7 › companion › an animation that ends over resting explorers moves them off the text it brings (14.3s)
+  ok 791 [chromium-1440] › e2e\companion.spec.ts:1741:7 › companion › a layout that keeps changing on its own does not keep the cats awake (25.3s)
+  ok 792 [chromium-1440] › e2e\companion.spec.ts:1811:7 › companion › a keyboard-only reader still counts as active (30.1s)
+  ok 794 [chromium-1440] › e2e\companion.spec.ts:1859:7 › companion › draws two independently positioned cats, not one pair (5.3s)
+  ok 795 [chromium-1440] › e2e\companion.spec.ts:1891:7 › companion › sends the cats to a visible resting box, which brings them back (11.4s)
+  ok 793 [chromium-1440] › e2e\companion.spec.ts:1840:7 › companion › a key that never scrolls still counts as activity (29.5s)
+  ok 797 [chromium-1440] › e2e\companion.spec.ts:1988:7 › companion › wakes visible cats from a stored preference it has never heard of (1.8s)
+  ok 798 [chromium-1440] › e2e\companion.spec.ts:2022:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner (1.7s)
+  ok 796 [chromium-1440] › e2e\companion.spec.ts:1951:7 › companion › an old stored 'wander' preference wakes as explorers, and is retired (6.4s)
+  ok 799 [chromium-1440] › e2e\companion.spec.ts:2044:7 › companion › the bed is furniture, not a control panel (1.6s)
+  ok 800 [chromium-1440] › e2e\companion.spec.ts:2058:7 › companion › never comes to rest on top of readable content (5.4s)
+  ok 801 [chromium-1440] › e2e\companion.spec.ts:2083:7 › companion › on load, in About, neither cat comes to rest on the hero's text (5.7s)
+  ok 803 [chromium-1440] › e2e\companion.spec.ts:2179:7 › companion › never leaves a cat off-screen or behind the sticky header (6.3s)
+  ok 802 [chromium-1440] › e2e\companion.spec.ts:2118:7 › companion › settles where the visitor is reading, without covering it (11.0s)
+  ok 804 [chromium-1440] › e2e\companion.spec.ts:2229:7 › companion › naps where it stops when left alone, and does not remember doing it (31.3s)
+  ok 805 [chromium-1440] › e2e\companion.spec.ts:2292:7 › companion › costs nothing on a page nobody has touched, and wakes on the next scroll (46.9s)
+  ok 807 [chromium-1440] › e2e\companion.spec.ts:2469:7 › companion › rides the page during a scroll instead of drifting at scroll speed relative to the text (8.6s)
+  ok 808 [chromium-1440] › e2e\companion.spec.ts:2558:7 › companion › keeps the toolkit toggle clear even when a hard scroll rides the pair into a corner (5.6s)
+  ok 809 [chromium-1440] › e2e\companion.spec.ts:2697:7 › companion › the follower never drops under WCAG clearance while the walk back is observed (5.4s)
+  -  810 [chromium-1440] › e2e\companion.spec.ts:2896:8 › companion › the follower stays clear of the toggle during a deep single jump to Contact
+  ok 811 [chromium-1440] › e2e\companion.spec.ts:2939:7 › companion › does not roam when the visitor asks for reduced motion (2.2s)
+  ok 806 [chromium-1440] › e2e\companion.spec.ts:2367:7 › companion › stays with a visitor who is reading, and comes back when the page moves (42.6s)
+  -  813 [chromium-1440] › e2e\companion.spec.ts:3146:7 › companion › adds no WCAG violations with its toolkit open
+  -  814 [chromium-1440] › e2e\companion.spec.ts:3162:7 › companion › adds no WCAG violations with the cats in their box
+  ok 815 [chromium-1440] › e2e\companion.spec.ts:3180:7 › companion › is not printed (5.3s)
+  ok 812 [chromium-1440] › e2e\companion.spec.ts:3026:7 › companion › neither cat obscures the open toolkit while walking home to it (17.3s)
+  ok 816 [chromium-1440] › e2e\companion.spec.ts:3192:7 › companion › walks all three stops, choosing a route at the fork, and ends back on the cat (17.1s)
+  ok 818 [chromium-1440] › e2e\companion.spec.ts:3283:7 › companion › Escape cancels the tour mid-walk and returns focus to the cat (5.8s)
+  ok 817 [chromium-1440] › e2e\companion.spec.ts:3247:7 › companion › the other route reaches every stop too, ending on Contact (17.1s)
+  ok 819 [chromium-1440] › e2e\companion.spec.ts:3298:7 › companion › a wheel scroll cancels the tour rather than the tour's own scroll cancelling itself (5.3s)
+  -  821 [chromium-1440] › e2e\companion.spec.ts:3333:7 › companion › adds no WCAG violations with the tour HUD open
+  -  822 [chromium-1440] › e2e\companion.spec.ts:3350:7 › companion › adds no WCAG violations with the tour's route choice visible
+  ok 820 [chromium-1440] › e2e\companion.spec.ts:3318:7 › companion › the tour panel item is not offered on /resume, which has no first stop (6.3s)
+  ok 823 [chromium-1440] › e2e\companion.spec.ts:3375:7 › companion › the tour HUD carries both speakers' subtitles (7.1s)
+  -  825 [chromium-1440] › e2e\companion.spec.ts:3443:7 › companion › the hello duet stays clear of content at a narrow viewport too
+  ok 824 [chromium-1440] › e2e\companion.spec.ts:3396:7 › companion › the hello duet plays: cats meow only, mini-Thien carries the translation (9.3s)
+  ok 826 [chromium-1440] › e2e\companion.spec.ts:3460:7 › companion › bubbles and Thien's caption paint above the cats, and register as occupied ground (11.3s)
+  ok 827 [chromium-1440] › e2e\companion.spec.ts:3517:7 › companion › clicking the tabby advances the duet a beat (9.1s)
+  ok 828 [chromium-1440] › e2e\companion.spec.ts:3566:7 › companion › the meow bubble draws the beat's icon beside the meow, outside its one paragraph (5.4s)
+  ok 830 [chromium-1440] › e2e\companion.spec.ts:3658:7 › companion › scrolling to another section ends an ambient scene mid-beat (5.6s)
+  ok 829 [chromium-1440] › e2e\companion.spec.ts:3602:7 › companion › the speaking cat hops for a hop beat, and stops when the beat ends (10.9s)
+  ok 831 [chromium-1440] › e2e\companion.spec.ts:3698:7 › companion › narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam (5.6s)
+  ok 832 [chromium-1440] › e2e\companion.spec.ts:3730:7 › companion › marks nav-link intent on hover dwell, and clears it on leaving the nav (5.5s)
+  ok 833 [chromium-1440] › e2e\companion.spec.ts:3750:7 › companion › cheers briefly on a theme toggle (6.6s)
+  ok 834 [chromium-1440] › e2e\companion.spec.ts:3775:7 › cats (round 21) › draws each cat as a frame of its own sprite sheet (5.3s)
+  ok 836 [chromium-1440] › e2e\companion.spec.ts:3839:7 › cats (round 21) › under reduced motion Mi just sits beside Moon, off duty, once (3.1s)
+  ok 837 [chromium-1440] › e2e\companion.spec.ts:3870:7 › cats (round 21) › the parked pair stays off the hero's controls, and off whatever has focus (8.9s)
+  ok 835 [chromium-1440] › e2e\companion.spec.ts:3790:7 › cats (round 21) › the first walking cat near Moon, off duty, startles, sniffs and sits beside it, once (16.5s)
+  ok 839 [chromium-1440] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 1440 (5.2s)
+  ok 838 [chromium-1440] › e2e\companion.spec.ts:3914:7 › cats (round 21) › while the tree grows they sit beside its box, not in the top-left corner (8.4s)
+  ok 840 [chromium-1440] › e2e\hero.spec.ts:49:9 › hero › headline, my paragraph and two actions at 390 (3.9s)
+  ok 841 [chromium-1440] › e2e\hero.spec.ts:63:7 › hero › hero has no margin rail (5.1s)
+  ok 842 [chromium-1440] › e2e\hero.spec.ts:68:7 › hero › the tags turn over, one at a time (5.6s)
+  ok 843 [chromium-1440] › e2e\hero.spec.ts:84:7 › hero › focus follows the turn, by keyboard (5.1s)
+  ok 844 [chromium-1440] › e2e\hero.spec.ts:98:7 › hero › with a tag open, Tab runs line → Read this part → the next front, and never lands on the open front (5.1s)
+  ok 846 [chromium-1440] › e2e\hero.spec.ts:139:7 › hero › the switch path: Enter on another front opens it and closes the first (5.2s)
+  ok 845 [chromium-1440] › e2e\hero.spec.ts:114:7 › hero › after a turn, the focused element has a box and is visible (7.5s)
+  ok 848 [chromium-1440] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 390 (4.4s)
+  ok 847 [chromium-1440] › e2e\hero.spec.ts:151:7 › hero › Escape outside the open tag does nothing (5.1s)
+  ok 850 [chromium-1440] › e2e\hero.spec.ts:195:7 › hero › reduced motion: the tag turns without a transition (1.5s)
+  ok 849 [chromium-1440] › e2e\hero.spec.ts:161:7 › hero › on the back, the line and the link keep their whole focus ring inside the paper at 1440 (5.6s)
+  ok 851 [chromium-1440] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by day (5.3s)
+  ok 853 [chromium-1440] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 390 (1.4s)
+  ok 854 [chromium-1440] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 768 (1.4s)
+  ok 852 [chromium-1440] › e2e\hero.spec.ts:212:9 › hero › focus is visible on every tag, the QR link and both actions, by night (5.2s)
+  ok 855 [chromium-1440] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1024 (1.5s)
+  ok 856 [chromium-1440] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1280 (1.5s)
+  ok 857 [chromium-1440] › e2e\hero.spec.ts:246:9 › hero › nothing sits on top of a control at 1440 (1.5s)
+  ok 858 [chromium-1440] › e2e\hero.spec.ts:272:7 › hero › layout at 1440: the line above the text, my field tag to the right (1.3s)
+  ok 859 [chromium-1440] › e2e\hero.spec.ts:288:9 › hero › layout at 320: text, then the tags down the line, then my field tag (1.2s)
+  ok 860 [chromium-1440] › e2e\hero.spec.ts:288:9 › hero › layout at 390: text, then the tags down the line, then my field tag (1.2s)
+  ok 861 [chromium-1440] › e2e\hero.spec.ts:288:9 › hero › layout at 600: text, then the tags down the line, then my field tag (1.2s)
+  ok 862 [chromium-1440] › e2e\hero.spec.ts:288:9 › hero › layout at 768: text, then the tags down the line, then my field tag (1.2s)
+  ok 863 [chromium-1440] › e2e\hero.spec.ts:288:9 › hero › layout at 1023: text, then the tags down the line, then my field tag (1.2s)
+  ok 864 [chromium-1440] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 360 (1.1s)
+  ok 865 [chromium-1440] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 390 (1.1s)
+  ok 866 [chromium-1440] › e2e\hero.spec.ts:359:9 › hero › below 1024 the line's scenery clears the words and the actions at 768 (1.1s)
+  ok 867 [chromium-1440] › e2e\hero.spec.ts:389:7 › hero › no tag clips its text at 320 (3.4s)
+  ok 868 [chromium-1440] › e2e\hero.spec.ts:401:7 › hero › a tag open at 320 does not widen the page (5.0s)
+  ok 870 [chromium-1440] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1024 (1.2s)
+  ok 871 [chromium-1440] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1279 (1.2s)
+  ok 869 [chromium-1440] › e2e\hero.spec.ts:412:7 › hero › print with a tag open shows only the fronts (5.4s)
+  ok 872 [chromium-1440] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1280 (1.2s)
+  ok 873 [chromium-1440] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1440 (1.3s)
+  ok 874 [chromium-1440] › e2e\hero.spec.ts:426:9 › hero › every string meets the clothesline within 3px at 1920 (1.3s)
+  ok 875 [chromium-1440] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1440 (1.2s)
+  ok 876 [chromium-1440] › e2e\hero.spec.ts:466:9 › hero › no scenery piece covers the words or the actions at 1920 (1.2s)
+  ok 877 [chromium-1440] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1024, and the bamboo clears the words (3.9s)
+  ok 878 [chromium-1440] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1180, and the bamboo clears the words (4.7s)
+  ok 879 [chromium-1440] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1280, and the bamboo clears the words (4.9s)
+  ok 880 [chromium-1440] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1366, and the bamboo clears the words (5.0s)
+  ok 881 [chromium-1440] › e2e\hero.spec.ts:494:9 › hero › the line hangs from the bamboo and the pine at 1439, and the bamboo clears the words (5.0s)
+  ok 882 [chromium-1440] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1024×768 (4.4s)
+  ok 884 [chromium-1440] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 844×390 (3.9s)
+  ok 883 [chromium-1440] › e2e\hero.spec.ts:527:9 › hero › the headline and the primary action make the first screen at 1366×768 (5.0s)
+  ok 885 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 360×740 (4.2s)
+  ok 886 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 360×740 (4.7s)
+  ok 887 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 390×844 (3.9s)
+  ok 888 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 390×844 (4.1s)
+  ok 889 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 600×960 (4.6s)
+  ok 890 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 600×960 (5.4s)
+  ok 891 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 768×1024 (4.8s)
+  ok 892 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 768×1024 (4.8s)
+  ok 893 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the sun stays off the headline at 844×390 (3.3s)
+  ok 894 [chromium-1440] › e2e\hero.spec.ts:540:11 › hero › the moon stays off the headline at 844×390 (3.9s)
+  ok 895 [chromium-1440] › e2e\hero.spec.ts:595:7 › hero › the actions come first in the tab order, then the tags, then the QR (5.2s)
+  ok 896 [chromium-1440] › e2e\hero.spec.ts:600:7 › hero › at 390 the tab order is the order on screen, top to bottom (3.9s)
+  ok 897 [chromium-1440] › e2e\hero.spec.ts:607:7 › hero › at 1440 each group reads left to right in tab order, the QR last (5.4s)
+  ok 898 [chromium-1440] › e2e\hero.spec.ts:618:9 › hero › day shows the sun and the phin (5.3s)
+  ok 899 [chromium-1440] › e2e\hero.spec.ts:618:9 › hero › night shows the moon and the lẩu (5.1s)
+  ok 900 [chromium-1440] › e2e\hero.spec.ts:629:7 › hero › the toggle swaps the scene in place (5.8s)
+  ok 901 [chromium-1440] › e2e\hero.spec.ts:645:7 › hero › the field tag reads from content (5.3s)
+  ok 903 [chromium-1440] › e2e\hero.spec.ts:684:7 › hero without JavaScript › JS off, dark scheme: the night scene (769ms)
+  ok 902 [chromium-1440] › e2e\hero.spec.ts:667:7 › hero › the header sits on the sky (5.3s)
+  ok 904 [chromium-1440] › e2e\responsive.spec.ts:102:5 › has no page-level horizontal overflow after scrolling through the full page (5.8s)
+  ok 905 [chromium-1440] › e2e\responsive.spec.ts:107:5 › no element visibly overflows the viewport horizontally (6.5s)
+  ok 906 [chromium-1440] › e2e\responsive.spec.ts:113:5 › stays free of horizontal overflow at simulated 200% zoom (6.2s)
+  ok 907 [chromium-1440] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 320 (10.2s)
+  ok 908 [chromium-1440] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 360 (10.4s)
+  ok 909 [chromium-1440] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 390 (9.6s)
+  ok 910 [chromium-1440] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 414 (9.7s)
+  ok 911 [chromium-1440] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 600 (9.9s)
+  ok 912 [chromium-1440] › e2e\responsive.spec.ts:127:7 › the hero's phone line adds no horizontal overflow at 768 (10.3s)
+
+
+  1) [chromium-1440] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene 
+
+    Error: the stage did not refuse the scene
+
+    expect(received).toBeNull()
+
+    Received: "yarn"
+
+      868 |     await page.evaluate(() => document.getElementById("round-4-cover")?.remove());
+      869 |     await page.waitForTimeout(1_000);
+    > 870 |     expect(await scenePlaying(page), "the stage did not refuse the scene").toBeNull();
+          |                                                                            ^
+      871 |
+      872 |     await expectNextUnpromptedSceneUnheld(page);
+      873 |   });
+        at D:\Project\portfolio\.claude\worktrees\r21-cats\e2e\companion.spec.ts:870:76
+
+    Error Context: test-results\companion-companion-a-requ-9fddb-d-the-next-unprompted-scene-chromium-1440\error-context.md
+
+  1 failed
+    [chromium-1440] › e2e\companion.spec.ts:848:7 › companion › a request its stage refuses on arrival does not hold the next unprompted scene 
+  730 skipped
+  181 passed (13.6m)

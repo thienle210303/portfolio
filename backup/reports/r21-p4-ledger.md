@@ -1,0 +1,11 @@
+# R21-P4 ledger
+- Baseline: eval 70.0/93.3/96.7/0.807; JS at load 167,698 B; #tree DOM 1782 (1440x900); perf 0 skipped
+- T1 26cd85a figures/tag words/tickets; eval unchanged
+- T2 9ba5cfa drawings (10 SVGs; oak-leaves 29.5 KB gz)
+- T3 c6fc84b tokens/aliases/--step-chapter
+- T4 4089f7f HangingTags; stub = own link (owner answer 3)
+- T5 9ec4ea5 stage; zig-zag 640-1279 (deviation)
+- T6 200a9fc e2e + docs; fixed Watch it grow <1024, notch overflow
+- polish c2fd447 wide-screen fade, single sky tile
+- T7 0e01ac0 tracker; verify 5/5; e2e 790/1190/0; JS at load 168,049 (+351); #tree 1830
+- fix 4c? phone one tree, moss dropped, seam = screenshot artifact; verify 5/5; journey/responsive/axe 65/235/0
