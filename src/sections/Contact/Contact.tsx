@@ -52,7 +52,7 @@ function AskHeading() {
 
 export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured, bookingUrl }: ContactProps) {
   return (
-    <Section id="contact" labelledBy="contact-heading" tone="base" className="relative isolate overflow-hidden">
+    <Section id="contact" labelledBy="contact-heading" tone="base" className="relative isolate overflow-hidden supports-[overflow:clip]:overflow-clip">
       {/* The lanterns hang from the section's top edge, across the right of
           the heading from 1024 and across the whole width below it. */}
       <div
@@ -112,7 +112,7 @@ export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured
           </p>
         </header>
 
-        <div className="mt-10 grid items-start gap-y-10 lg:mt-10 lg:grid-cols-[minmax(20.5rem,430fr)_minmax(0,740fr)] lg:gap-x-[clamp(2.5rem,4.8vw,4.375rem)]">
+        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-y-10 lg:mt-10 lg:grid-cols-[minmax(20.5rem,430fr)_minmax(0,740fr)] lg:gap-x-[clamp(2.5rem,4.8vw,4.375rem)]">
           {/* Not `.no-print`: the card is worth printing. */}
           <div className="pt-6 lg:pt-5">
             <BusinessCard bookingUrl={bookingUrl} />

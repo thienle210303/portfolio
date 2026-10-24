@@ -91,7 +91,7 @@ export function RecordFilters({
               aria-pressed={pressed}
               onClick={() => setFilter(option.id)}
               className={cn(
-                "inline-flex min-h-10 items-center gap-2 border px-3 font-mono text-[length:var(--step--1)] transition-colors duration-(--dur-quick)",
+                "inline-flex min-h-11 items-center gap-2 border px-3 font-mono text-[length:var(--step--1)] transition-colors duration-(--dur-quick)",
                 pressed
                   ? "border-fg bg-fg text-fg-inverse"
                   : "border-rule text-fg-muted hover:border-fg-muted hover:text-fg",

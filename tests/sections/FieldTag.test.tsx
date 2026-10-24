@@ -10,7 +10,8 @@ describe("FieldTag", () => {
     const { container } = render(<FieldTag />);
     const pairs = [...container.querySelectorAll("dl > div")].map((d) => [
       d.querySelector("dt")!.textContent,
-      d.querySelector("dd")!.textContent,
+      // The last two words are bound with a no-break space.
+      d.querySelector("dd")!.textContent!.replace(/\u00a0/g, " "),
     ]);
     expect(pairs).toEqual(buildFieldTag().rows.map((r) => [r.label, r.value]));
     expect(screen.getByText("Still growing")).toBeTruthy();

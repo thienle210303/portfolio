@@ -16,8 +16,12 @@
  * board's ground so the section's bottom clips them. Below 1440 the left
  * gutter is narrower than the line's inset, so the bamboo steps left to clear
  * the text by 20px (`--bx`) and a short length of twine ties it to the line.
- * The pine stands behind my field tag there. The nón lá only from 1440: in a
- * narrower gutter it hangs over the hint and the headline.
+ * Below 1440 the nón lá is the phone's (0.56×), its crown on the knot where
+ * the twine meets the bamboo: the board's spot hangs over the hint and the
+ * headline in a narrower gutter. The pine's trunk stands at the line's end or
+ * 14px clear of my field tag's right edge, whichever is further right (`--tr`),
+ * tied to the line by twine; below ~1440 the tag would otherwise hang in front
+ * of the trunk, and the window's edge crops the pine instead.
  *
  * `data-moon-off-duty` is a stable hook: Phase 7's surprise reads it.
  */
@@ -40,15 +44,21 @@ export default function Scenery() {
           // inside that end, or 20px clear of the content column's left edge.
           "--l0": "calc(var(--lx) + var(--lw) * 0.052778)",
           "--bx": "min(var(--l0) - 4px, (100% - min(100%, 1120px + 2 * var(--gutter))) / 2 + var(--gutter) - 20px)",
+          // The line's right end (x 1330 of 1440), and the pine's trunk: there,
+          // or 14px right of my field tag, which runs 16px short of the
+          // content column's right edge plus its gutter (Hero.tsx).
+          "--le": "calc(var(--lx) + var(--lw) * 0.923611)",
+          "--tr": "max(var(--le) + 26px, 100% - (100% - min(100%, 1120px + 2 * var(--gutter))) / 2 - 2px)",
         } as CSSProperties
       }
     >
       {/* The sun/moon is drawn at (880, 120) of the sky's 1440 width. Centred,
           that lands on the headline below 1024, so there the sky is pinned to
           the right instead: the disc sits 40px in from the right edge, 40px
-          down, clear of the text column. */}
+          down, clear of the text column. Under 360 "curious" runs under it, so
+          there it drops beside the headline's shorter lines. */}
       <span
-        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:1440px_auto] max-lg:bg-[position:right_-520px_top_-80px]"
+        className="scene-art absolute inset-x-0 top-0 h-[900px] bg-top bg-[size:1440px_auto] max-lg:bg-[position:right_-520px_top_-80px] max-[359px]:bg-[position:right_-540px_top_-10px]!"
         style={{ "--art": "var(--art-sky)" } as CSSProperties}
       />
 
@@ -79,11 +89,13 @@ export default function Scenery() {
       />
       <Drawing
         name="non-la"
-        className="absolute top-[calc(var(--section-y)+var(--line-top)+241px)] left-[calc(var(--l0)-36px)] h-[130px] w-[120px] max-[1440px]:hidden"
+        className="absolute top-[calc(var(--section-y)+var(--line-top)+241px)] left-[calc(var(--l0)-36px)] hidden h-[130px] w-[120px] lg:block max-[1440px]:top-[calc(var(--section-y)+var(--line-top))] max-[1440px]:left-[calc(var(--bx)-33px)] max-[1440px]:h-[72px] max-[1440px]:w-[67px]"
       />
+      {/* Twine from the line's end to the pine, where the two part. */}
+      <span className="absolute top-[calc(var(--section-y)+var(--line-top))] left-(--le) hidden h-0.5 w-[calc(var(--tr)-var(--le))] bg-(--twine) lg:block" />
       <Drawing
         name="pine"
-        className="absolute top-[calc(var(--section-y)+var(--line-top)-49px)] bottom-0 left-[calc(var(--lx)+var(--lw)*0.923611-70px)] hidden w-[180px] text-accent [mask-position:top] [mask-size:100%_auto] lg:block"
+        className="absolute top-[calc(var(--section-y)+var(--line-top)-49px)] bottom-0 left-[calc(var(--tr)-96px)] hidden w-[180px] text-accent [mask-position:top] [mask-size:100%_auto] lg:block"
       />
       <Drawing
         name="ripples"

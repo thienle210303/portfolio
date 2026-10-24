@@ -1987,3 +1987,37 @@ The notebook board (`design/round-21-outdoors/v1/boards/NatRecordFinal*.dc.html`
 **Verification.** `pnpm verify` 5/5 (894 unit tests, 58 files). Full e2e against a fresh production build on `:3232`, `--workers=2`: 806 passed, 1282 skipped, 0 failed (21.8 min). The run before it failed 22, all from this phase and fixed before the clean run: specs that still read the Journey's timeline (scale, print, reveal), the tour's stop count (three to four), and one companion nap test that passed on its isolated retry and in the clean run.
 
 **Screens** (`reports/r21-p5-screens/`, untracked): `#record` at 360x740, 390x844, 414x896, 844x390, 768x1024, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night, viewport-tall captures.
+
+## Round 21 phase 8 — motion and polish (2026-10-24)
+
+Spec §8 (`docs/superpowers/specs/2026-10-18-round-21-outdoors-design.md`) and the whole-site polish pass, on `round-21/motion` from `4d08a81`. The motion is CSS (`globals.css`, "Motion") plus `src/lib/glide.ts`; entrances are transforms only, so nothing is ever hidden (no JS, no `animation-timeline`, print and reduced motion all show the finished page).
+
+**Perf row** (`pnpm perf`, production builds, 0 skipped responses, three runs each, bytes identical within each build). Baseline: `4d08a81` built in a second worktree. After: `round-21/motion` at its last commit.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`4d08a81`) | 198,990 B | 169,192 B | 21,052 B | 117,868 B | 0 / 0 / 0 | 2741 |
+| After | 199,035 B | 168,821 B | 22,054 B | 117,868 B | 0 / 0 / 0 | 2743 |
+
+- **JS at load -371 B** (budget: +512 B). The motion adds none; the one new line of script is `data-no-snap` in `TreeBox`'s Watch it grow handler.
+- **CSS +1,002 B** as `pnpm perf` counts it: the entrances, the snap and the View Transition rules.
+- LCP (2.3-2.7 s) and TBT (190-217 ms) are noisy at this throttle; the baseline's own three runs span 2316-2664 ms and 213-217 ms, and the new build's 2352-2556 ms and 203-216 ms.
+
+**Decisions beyond the spec:**
+- **Snapping is for scrolling.** `scroll-snap-type: y proximity` pulls a landing within about a third of a screen of a page's top back to that top: with it on everywhere, `/#record-2019` landed 489px off its row, a pressed card's row 126px off, and Watch it grow's centred box back to the Journey's top (20 e2e failures in the first full run). It now applies only while the URL names no fragment (`html:not(:has(:target), [data-no-snap])`); a nav click, a link or a cold load with a hash turns it off until the hash goes (Back), and Watch it grow sets `data-no-snap` for the visit. Wheel, touch and key scrolling are unchanged. The cost: after a first nav click a visitor no longer snaps.
+- **Snapping off in the cat layout-shift probe** (`companion.spec.ts`), like scroll anchoring: a layout change makes the browser re-snap, a scroll the probe says it does not make.
+- **Moon under 360**: it drops beside the headline's short lines (the rule is `!` so it beats the phone rule).
+- **Tap targets**: the header logo, the Record's filters and the card's three links reach 44px below 1024; the card and postcard chips already reached it with a pseudo-element.
+
+**Fixes found in the hunt** (each has an e2e):
+- Contact at 320: the business card's rows set the grid track's minimum (309px in a 280px column), so the card and postcard ran 14px past the window and the page's clip cut their right edge. The track is `minmax(0, 1fr)` below lg.
+- The "moon stays off the headline" check had never worked below 1024 (the computed `calc(100% + 520px)` read as NaN) and measured the whole headline block; it reads the calc and the headline line by line. That showed the moon under "curious" at 320.
+- Focus ring on a Journey limb label cut by the tree box's top edge (three labels): the scroller keeps 24px of scroll padding.
+- Headings wrapped one word on the last line ("dry.", "year."): `text-wrap: balance` on h1-h4; the field tag's stamp and values no longer strand a word.
+- The Record's stamps hug the left below 1280: centred.
+
+**Verification.** `pnpm verify` 5/5 (933 unit tests, 60 files; contrast 62 pairings, lowest 4.52:1). Full e2e on a fresh production build on `:3248`, `--workers=2`: 883 passed, 1523 skipped, 0 failed (20.4 min). The runs before it failed 20 (the snapping, above), then 2 (a ring click aimed at a notebook still opening; the card's links at 320), then 1 (the contact layout test read the postcard mid-entrance); each was fixed and re-run before the clean run.
+
+**Not verified: WebKit.** No WebKit build is installed for this Playwright (`~/AppData/Local/ms-playwright` holds Chromium only), so the iOS sky fix (a fixed layer, not a `fixed` background) is checked in Chromium only.
+
+**Screens** (`reports/r21-p8-screens/`, untracked): about, tree, record and contact at 320, 360, 390, 414, 768 (1800px tall), 844x390, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night, viewport-tall captures stepped down each section.

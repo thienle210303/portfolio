@@ -98,6 +98,8 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
     if (!box) return;
 
     const onGrow = (event: Event) => {
+      // Proximity snapping would pull the centred box back to the page's top.
+      document.documentElement.dataset.noSnap = "";
       box.scrollIntoView({ block: "center" });
       startedRef.current = true;
       if (reducedMotion()) return;
@@ -228,7 +230,7 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
         // `pt-16`: the still-growing shoot and its label draw ~36 px above
         // the host, and a scroller cannot scroll to content above its top.
         // Paper does not scroll: print the whole tree, not one window of it.
-        "hidden h-[min(720px,80svh)] overflow-y-auto data-[far]:overflow-clip data-[far]:[content-visibility:hidden] border border-rule px-6 pt-16 pb-6 lg:block print:h-auto print:overflow-visible print:[content-visibility:visible]!",
+        "hidden h-[min(720px,80svh)] scroll-py-6 overflow-y-auto data-[far]:overflow-clip data-[far]:[content-visibility:hidden] border border-rule px-6 pt-16 pb-6 lg:block print:h-auto print:overflow-visible print:[content-visibility:visible]!",
         className,
       )}
     >

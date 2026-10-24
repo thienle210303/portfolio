@@ -668,6 +668,60 @@ function intersects(a: RectLike, b: RectLike): boolean {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
+/** Whether `box` covers none of the page's controls (the cached ground epoch). */
+export function clearOfControls(box: RectLike): boolean {
+  for (const rect of groundControls()) if (intersects(box, rect)) return false;
+  return true;
+}
+
+/**
+ * Round 21 phase 8: mini-Thien never stands on a control (he stood on the
+ * hero's Taylors tag at 390, and on the postcard's fields at 1440). The
+ * nearest top-left to `want` where a `w`×`h` box covers no control and none
+ * of `keepOut`, preferring one that covers no block of words either; inside
+ * the viewport, under the chrome. Null when nothing clears the controls: he
+ * stays away rather than stand on one.
+ * ponytail: a 16px grid within 320px of `want`; widen it if he stays away
+ * on screens that do have room.
+ */
+export function clearBoxNear(
+  want: Point,
+  w: number,
+  h: number,
+  keepOut: readonly RectLike[] = [],
+): Point | null {
+  const view = viewport();
+  const minX = EDGE;
+  const maxX = view.width - w - EDGE;
+  const minY = overlayTop + EDGE;
+  const maxY = view.height - h - EDGE;
+  if (maxX < minX || maxY < minY) return null;
+  const pressable = groundControls();
+  const words = groundProse();
+  let best: Point | null = null;
+  let bestD = Infinity;
+  let fallback: Point | null = null;
+  let fallbackD = Infinity;
+  for (let dy = -320; dy <= 320; dy += 16) {
+    for (let dx = -320; dx <= 320; dx += 16) {
+      const p = { x: clamp(want.x + dx, minX, maxX), y: clamp(want.y + dy, minY, maxY) };
+      const d = (p.x - want.x) ** 2 + (p.y - want.y) ** 2;
+      if (d >= bestD) continue;
+      const box = boxAt(p, w, h);
+      if (pressable.some((r) => intersects(box, r)) || keepOut.some((r) => intersects(box, r))) continue;
+      if (d < fallbackD) {
+        fallback = p;
+        fallbackD = d;
+      }
+      if (!words.some((r) => intersects(box, r))) {
+        best = p;
+        bestD = d;
+      }
+    }
+  }
+  return best ?? fallback;
+}
+
 /** What `placeBeside` needs to know about the screen, passed in rather than
  *  read so the choice can be tested without a window. */
 export interface BesideFrame {
@@ -1289,8 +1343,10 @@ const LIFT_STEP = 56;
  * its corner — and it should never cover a control (WCAG 2.4.11, Focus Not
  * Obscured, and the owner's rule). Tries the bottom-right corner, then
  * bottom-left, then each side a step higher at a time, up to the header; the
- * first spot that touches no control wins. Covering text is allowed — a
- * corner button always will. Where every spot covers something (a stack of
+ * first spot that touches no control wins. A spot that covers no `text`
+ * either is taken first where there is one (round 21 phase 8: on phones the
+ * pair sat on "Everything I've done, by year."); otherwise covering text is
+ * allowed — a corner button often will. Where every spot covers something (a stack of
  * full-width rows on a phone), the pair tuck off the right edge and peek in,
  * `PEEK` px of them showing, at the first height that covers nothing; failing
  * even that, the spot that covers least. Never the `focused` control: the one
@@ -1301,6 +1357,7 @@ export function pickCorner(
   size: { readonly width: number; readonly height: number },
   controls: readonly RectLike[],
   focused: RectLike | null = null,
+  text: readonly RectLike[] = [],
 ): Corner {
   let best: Corner = { side: "right", lift: 0 };
   let least = Infinity;
@@ -1308,14 +1365,25 @@ export function pickCorner(
   const spots: Corner[] = [];
   for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift }, { side: "left", lift });
   for (let lift = 0; lift <= top; lift += LIFT_STEP) spots.push({ side: "right", lift, peek: true });
-  for (const spot of spots) {
+  const boxOf = (spot: Corner): RectLike => {
     const left = spot.peek
       ? view.width - PEEK
       : spot.side === "right"
         ? view.width - CORNER_INSET - size.width
         : CORNER_INSET;
     const bottom = view.height - CORNER_INSET - spot.lift;
-    const box = { left, right: left + size.width, top: bottom - size.height, bottom };
+    return { left, right: left + size.width, top: bottom - size.height, bottom };
+  };
+  if (text.length > 0) {
+    for (const spot of spots) {
+      if (spot.peek) continue;
+      const box = boxOf(spot);
+      if (focused && intersects(box, focused)) continue;
+      if (!controls.some((r) => intersects(box, r)) && !text.some((r) => intersects(box, r))) return spot;
+    }
+  }
+  for (const spot of spots) {
+    const box = boxOf(spot);
     if (focused && intersects(box, focused)) continue;
     let covered = 0;
     for (const rect of controls) {
@@ -1360,11 +1428,20 @@ export function controlRectsUnder(box: RectLike): RectLike[] {
   return found;
 }
 
+/** Every block of words on screen, outside the companion, measured now. */
+export function textRectsInView(): RectLike[] {
+  return rectsInView(PROSE);
+}
+
 /** Every control on screen, outside the companion, measured now. */
 export function controlRectsInView(): RectLike[] {
+  return rectsInView(CONTROLS);
+}
+
+function rectsInView(selector: string): RectLike[] {
   const view = viewport();
   const rects: RectLike[] = [];
-  for (const element of document.querySelectorAll(CONTROLS)) {
+  for (const element of document.querySelectorAll(selector)) {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
     if (box.width <= 0 || box.height <= 0) continue;

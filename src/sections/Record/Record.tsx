@@ -14,6 +14,9 @@
  * From 1280 the two pages lie side by side and the notebook is wider than the
  * content column (up to 1300px, the board's); below, they stack. Both pages
  * are paper (`bg-surface`), so the night paper scope gives them dark ink.
+ * Side by side, the stamps are pasted at the foot of the left page, which
+ * holds their room (`xl:pb-60`): left where they are in the reading order,
+ * the left page was half empty ruled paper beside a long right one.
  * A server component; the filters are the only client island it adds.
  */
 import type { CSSProperties } from "react";
@@ -45,8 +48,8 @@ export default function Record() {
         <span key={id} id={id} aria-hidden="true" className="sr-only scroll-mt-20" />
       ))}
 
-      <div data-notebook="" className="record-notebook grid paper-lift xl:grid-cols-2">
-        <div className="record-page record-page-left relative flex flex-col bg-surface px-5 pt-8 pb-6 sm:px-10 sm:pt-10">
+      <div data-notebook="" className="record-notebook relative grid paper-lift xl:grid-cols-2">
+        <div className="record-page record-page-left relative flex flex-col bg-surface px-5 pt-8 pb-6 sm:px-10 sm:pt-10 xl:pb-60">
           <div aria-hidden="true" className="no-print pointer-events-none absolute top-1 right-2 w-[5.5rem] sm:right-6 sm:w-[8.5rem]">
             <Drawing name="pressed-lotus" className="aspect-[136/170] w-full" />
             <span className="record-tape absolute top-[16%] left-[48%] w-[44%] rotate-[-14deg]" />
@@ -73,7 +76,7 @@ export default function Record() {
           </div>
         </div>
 
-        <div className="record-page record-page-right relative bg-surface px-5 pt-8 pb-8 sm:px-10 sm:pt-10">
+        <div className="record-page record-page-right relative bg-surface px-5 pt-8 pb-8 sm:px-10 sm:pt-10 xl:static">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4">
             <h3 className="font-display text-[length:var(--step-2)] font-semibold leading-tight text-fg">
               {record.byYear.heading}
@@ -83,7 +86,7 @@ export default function Record() {
           <RecordFilters options={FILTERS} label="Show entries of one kind">
             <RecordYears />
           </RecordFilters>
-          <Stamps className="mt-10" />
+          <Stamps className="mt-10 xl:absolute xl:bottom-10 xl:left-10 xl:mt-0 xl:w-[calc(50%-5rem)]" />
         </div>
       </div>
     </Section>

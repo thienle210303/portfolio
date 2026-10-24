@@ -30,7 +30,7 @@ export default function SiteHeader() {
         <a
           href="#about"
           aria-label={`${profile.name} — back to top`}
-          className="inline-flex min-h-11 items-center text-[length:var(--step-0)] font-medium tracking-[0.02em] text-fg"
+          className="inline-flex min-h-11 min-w-11 items-center text-[length:var(--step-0)] font-medium tracking-[0.02em] text-fg"
         >
           {profile.monogram}
         </a>

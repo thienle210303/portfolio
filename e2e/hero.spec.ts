@@ -519,6 +519,44 @@ test.describe("hero", () => {
     });
   }
 
+  for (const width of [1024, 1100, 1180, 1279]) {
+    test(`no chapter place wraps, and the pine stands clear of my field tag, at ${width}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page);
+      const m = await page.evaluate(() => {
+        const places = [...document.querySelectorAll<HTMLElement>('#about button[id$="-front"] span.font-semibold')];
+        const lines = places.map((el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          return range.getClientRects().length;
+        });
+        const tag = document.querySelector('#about [data-hero-step="field-tag"]')!.parentElement!.getBoundingClientRect();
+        const pine = document.querySelector<HTMLElement>('#about [data-scenery="pine"]')!.getBoundingClientRect();
+        // The pine's trunk is 96px into its 180px box (Scenery.tsx).
+        return { lines, tagRight: tag.right, trunk: pine.left + 96 };
+      });
+      expect(m.lines.length).toBeGreaterThanOrEqual(4);
+      for (const n of m.lines) expect(n, "each place is one line").toBe(1);
+      expect(m.trunk).toBeGreaterThanOrEqual(m.tagRight);
+    });
+  }
+
+  for (const width of [320, 360, 390, 414, 600, 768, 844, 1023, 1024, 1366, 1439, 1440, 1920]) {
+    test(`the nón lá hangs wherever the bamboo shows, at ${width}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page);
+      const m = await page.evaluate(() => {
+        const shown = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)].some((el) => el.checkVisibility());
+        return {
+          bamboo: shown('#about [data-scenery="bamboo"], #about [data-scenery="bamboo-phone"]'),
+          hat: shown('#about [data-scenery="non-la"]'),
+        };
+      });
+      expect(m.bamboo).toBe(true);
+      expect(m.hat).toBe(true);
+    });
+  }
+
   for (const size of [
     { width: 1024, height: 768 },
     { width: 1366, height: 768 },
@@ -535,7 +573,7 @@ test.describe("hero", () => {
     });
   }
 
-  for (const size of [{ width: 360, height: 740 }, PHONE, { width: 600, height: 960 }, { width: 768, height: 1024 }, { width: 844, height: 390 }]) {
+  for (const size of [{ width: 320, height: 568 }, { width: 340, height: 700 }, { width: 360, height: 740 }, PHONE, { width: 414, height: 896 }, { width: 600, height: 960 }, { width: 768, height: 1024 }, { width: 844, height: 390 }]) {
     for (const theme of ["day", "night"] as const) {
       test(`the ${theme === "day" ? "sun" : "moon"} stays off the headline at ${size.width}×${size.height}`, async ({ page }) => {
         await page.setViewportSize(size);
@@ -549,6 +587,10 @@ test.describe("hero", () => {
           const width = 1440;
           const height = (1440 * 900) / 1440;
           const axis = (value: string, room: number) => {
+            // Below 1024 the computed value is `calc(100% + 520px)` (a `right`
+            // offset), which has to be read, not split.
+            const calc = /^calc\((-?[\d.]+)%\s*([+-])\s*([\d.]+)px\)$/.exec(value.trim());
+            if (calc) return (room * parseFloat(calc[1])) / 100 + (calc[2] === "-" ? -1 : 1) * parseFloat(calc[3]);
             const parts = value.trim().split(/\s+/);
             const len = (v: string) => (v.endsWith("%") ? (room * parseFloat(v)) / 100 : parseFloat(v));
             if (parts.length === 2) return parts[0] === "right" || parts[0] === "bottom" ? room - len(parts[1]) : len(parts[1]);
@@ -562,14 +604,16 @@ test.describe("hero", () => {
           return { left: x - 32, right: x + 32, top: y - 32, bottom: y + 32 };
         });
         for (const sel of ["#about h1", '#about [data-hero-step="intro"]', '#about [data-hero-step="meta-actions"]']) {
-          // The ink, not the block: the h1 and the intro are full-width boxes.
-          const b = await page.locator(sel).evaluate((el) => {
+          // The ink, line by line: the h1 and the intro are full-width boxes,
+          // and the union of their lines covers the corner a short line leaves.
+          const lines = await page.locator(sel).evaluate((el) => {
             const range = document.createRange();
             range.selectNodeContents(el);
-            const r = range.getBoundingClientRect();
-            return { x: r.left, y: r.top, width: r.width, height: r.height };
+            return [...range.getClientRects()].map((r) => ({ x: r.left, y: r.top, width: r.width, height: r.height }));
           });
-          const overlaps = disc.left < b.x + b.width && b.x < disc.right && disc.top < b.y + b.height && b.y < disc.bottom;
+          const overlaps = lines.some(
+            (b) => disc.left < b.x + b.width && b.x < disc.right && disc.top < b.y + b.height && b.y < disc.bottom,
+          );
           expect(overlaps, `${sel} vs disc ${JSON.stringify(disc)}`).toBe(false);
         }
       });
@@ -651,7 +695,8 @@ test.describe("hero", () => {
       .evaluate((dl) =>
         [...dl.querySelectorAll("dt")].map((dt) => ({
           label: dt.textContent!.trim(),
-          value: dt.nextElementSibling!.textContent!.trim(),
+          // The last two words are bound with a no-break space.
+          value: dt.nextElementSibling!.textContent!.replace(/\u00a0/g, " ").trim(),
         })),
       );
     expect(rows).toEqual(t.rows.map((r) => ({ label: r.label, value: r.value })));
@@ -666,15 +711,18 @@ test.describe("hero", () => {
 
   test("the header sits on the sky", async ({ page }) => {
     await open(page);
-    const [header, body] = await page.evaluate(() =>
-      [document.querySelector("header[data-site-header]")!, document.body].map((el) => {
-        const s = getComputedStyle(el);
-        return { image: s.backgroundImage, attachment: s.backgroundAttachment };
-      }),
+    // The sky is a fixed layer under body (round 21 phase 8: iOS ignores
+    // `background-attachment: fixed`); the header paints the same gradient.
+    const [header, sky] = await page.evaluate(() =>
+      [
+        getComputedStyle(document.querySelector("header[data-site-header]")!),
+        getComputedStyle(document.body, "::before"),
+      ].map((s) => ({ image: s.backgroundImage, size: s.backgroundSize, position: s.position })),
     );
-    expect(header.image).toBe(body.image);
+    expect(header.image).toBe(sky.image);
     expect(header.image).not.toBe("none");
-    expect(header.attachment).toBe("fixed");
+    expect(header.size).toBe(sky.size);
+    expect(sky.position).toBe("fixed");
   });
 });
 

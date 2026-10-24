@@ -123,6 +123,31 @@ test.describe("the Journey", () => {
     });
   }
 
+  test("a focus ring in the tree box is never cut by the box's edge", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page);
+    const box = page.locator("[data-tree-box]");
+    await box.scrollIntoViewIfNeeded();
+    const links = box.locator("a");
+    const count = await links.count();
+    expect(count).toBeGreaterThan(5);
+    const cut: string[] = [];
+    for (let i = 0; i < count; i++) {
+      // Focus scrolls the link into the box; the 2px ring and its 3px offset
+      // must still fit under the top edge and above the bottom one.
+      const gap = await links.nth(i).evaluate((el) => {
+        // Not drawn (the timeline's own copies are hidden): not focusable.
+        if (!el.checkVisibility()) return Infinity;
+        (el as HTMLElement).focus();
+        const scroller = el.closest("[data-tree-box]")!.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        return Math.min(r.top - scroller.top, scroller.bottom - r.bottom);
+      });
+      if (gap < 5) cut.push(`${await links.nth(i).innerText()} (${Math.round(gap)}px)`);
+    }
+    expect(cut).toEqual([]);
+  });
+
   test("tags hang from the limb at 1440", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);

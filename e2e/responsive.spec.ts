@@ -135,3 +135,67 @@ for (const width of [320, 360, 390, 414, 600, 768]) {
     expect(offenders, `overflowing elements: ${JSON.stringify(offenders, null, 2)}`).toEqual([]);
   });
 }
+
+// Round 21 phase 8: a thumb's target is 44px. The card's chips and the copy
+// button reach it with a pseudo-element, so measure what answers a touch: the
+// control must be the topmost thing 21px above and below its centre.
+for (const width of [320, 390, 414, 768]) {
+  test(`the header logo, the Record's filters and the card's links answer a 44px touch at ${width}`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    await page.setViewportSize({ width, height: 900 });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    const selectors = [
+      "header a[href='#about']",
+      "#record button[aria-pressed]",
+      "#contact a[href^='mailto:']",
+      "#contact a[href*='github.com']",
+      "#contact a[href*='linkedin.com']",
+    ];
+    for (const selector of selectors) {
+      const count = await page.locator(selector).count();
+      expect(count, selector).toBeGreaterThan(0);
+      for (let i = 0; i < count; i++) {
+        const target = page.locator(selector).nth(i);
+        // Let the entrance (scroll-driven transforms) settle at this scroll.
+        await target.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+        await page.waitForTimeout(150);
+        const misses = await target.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const out: string[] = [];
+          for (const [dx, dy] of [[0, -21], [0, 21], [-21, 0], [21, 0]]) {
+            const hit = document.elementFromPoint(cx + dx, cy + dy);
+            if (!(hit && el.contains(hit))) out.push(`${dx},${dy} -> ${hit?.tagName}.${String(hit?.getAttribute("class")).slice(0, 40)}`);
+          }
+          return out;
+        });
+        expect(misses, `${selector}[${i}] at ${width}`).toEqual([]);
+      }
+    }
+  });
+}
+
+// Round 21 phase 8: at 320 the business card's rows set the grid track's
+// minimum, so the card and the postcard ran 14px past the window, where the
+// page's overflow clip hid it. Their papers stay inside the window.
+for (const width of [320, 360, 390, 414, 768]) {
+  test(`the business card and the postcard sit inside the window at ${width}`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    const boxes = await page.evaluate(() =>
+      ["#contact aside", "#contact [data-postcard]"].map((selector) => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return { selector, left: r.left, right: r.right, width: innerWidth };
+      }),
+    );
+    for (const b of boxes) {
+      expect(b.left, `${b.selector} left`).toBeGreaterThanOrEqual(0);
+      expect(b.right, `${b.selector} right`).toBeLessThanOrEqual(b.width);
+    }
+  });
+}
