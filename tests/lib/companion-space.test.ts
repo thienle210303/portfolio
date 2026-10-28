@@ -13,6 +13,7 @@ import {
   EXPLORE_TRIES,
   exploreApart,
   findClearSpot,
+  groundProse,
   headClear,
   invalidateGround,
   invalidateViewport,
@@ -943,6 +944,41 @@ describe("the ground probe reads rects cached per layout epoch", () => {
       expect(isClearSpot(at), `${style} removed`).toBe(false);
     }
   });
+
+  /** A `<p>` at `box` inside a scroller at `view`, the way the Journey's tree
+   *  box holds every branch label down its content. */
+  function scrolled(view: DOMRect, box: DOMRect, paragraphStyle = ""): HTMLElement {
+    const scroller = document.createElement("div");
+    // Longhands: jsdom does not expand the `overflow` shorthand.
+    scroller.setAttribute("style", "overflow-x: auto; overflow-y: auto");
+    scroller.getBoundingClientRect = () => view;
+    const prose = document.createElement("p");
+    if (paragraphStyle) prose.setAttribute("style", paragraphStyle);
+    prose.getBoundingClientRect = () => box;
+    scroller.append(prose);
+    document.body.append(scroller);
+    invalidateGround();
+    return prose;
+  }
+
+  it("a walk does not go round words a scroller clips out of sight, though a cat still never rests there", () => {
+    // Contact's lede at 1280: the tree box's lower branch labels lay out far
+    // below the box, under the lede, and the walks went round them instead.
+    scrolled(rect(0, 0, 400, 100), rect(0, 300, 400, 50));
+    expect(groundProse()).toEqual([]);
+    expect(isClearSpot({ x: 100, y: 310 })).toBe(false);
+  });
+
+  it("a block half out of its scroller's view is the half that shows", () => {
+    scrolled(rect(0, 0, 400, 100), rect(0, 80, 400, 50));
+    expect(groundProse()).toEqual([{ left: 0, top: 80, right: 400, bottom: 100 }]);
+  });
+
+  it("a positioned block is clipped by its containing block's ancestors only", () => {
+    // `position: absolute` escapes a static scroller between it and the body.
+    scrolled(rect(0, 0, 400, 100), rect(0, 300, 400, 50), "position: absolute");
+    expect(groundProse()).toEqual([expect.objectContaining({ left: 0, top: 300, right: 400, bottom: 350 })]);
+  });
 });
 
 describe("viewport cache", () => {
@@ -1118,6 +1154,14 @@ describe("slideOffText", () => {
     // Told it went right last time, it keeps going right.
     const right: { x?: 1 | -1 } = { x: 1 };
     expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line], null, right).x).toBe(412);
+  });
+  it("slides along the edge the step meets, not the way the walk mostly goes", () => {
+    // Contact's lede at 1280: the follower under the line, heading far up and
+    // right, was slid up into it (the walk is mostly sideways) and crossed.
+    const under = { x: 550, y: line.bottom - 3 };
+    const slid = slideOffText(under, { x: 556, y: under.y - 2 }, { x: 1191, y: 124 }, [line]);
+    expect(slid.y).toBe(under.y);
+    expect(slid.x).toBeGreaterThan(under.x);
   });
   it("crosses when it cannot slide", () => {
     const wall = { left: 0, right: 196, top: 240, bottom: 300 };

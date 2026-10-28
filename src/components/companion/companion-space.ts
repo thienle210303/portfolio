@@ -317,6 +317,8 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * Deliberately conservative where a box is not what a hit test sees: an
  * occupied element that is covered by something else, or clipped by an
  * ancestor, still counts. A false "occupied" only sends a cat to another spot.
+ * Not so for the prose a walk goes round (`shownPart`): there a block nobody
+ * can see costs a detour, and the detours run out.
  * One case goes the other way: a non-`OCCUPIED` child overflowing its
  * `OCCUPIED` ancestor's box reads clear here, where a hit test said occupied.
  * What a hit test looks straight through is still skipped — the companion's
@@ -379,6 +381,51 @@ export function syncGround(scrollX: number, scrollY: number): void {
   shiftGround(scrollX - groundAt.x, scrollY - groundAt.y);
 }
 
+/** An ancestor as `shownPart` reads it: measured once per scan. */
+type Clip = { readonly box: DOMRect; readonly x: boolean; readonly y: boolean; readonly position: string };
+
+/**
+ * The part of an element's `box` its ancestors' overflow lets show, or null
+ * when none does. Only for the prose list (round 21 polish 2): at 1280 the
+ * Journey tree box's lower branch labels lay out far below the box, under
+ * Contact's lede, and a walk spent both its detours going round them, then
+ * crossed the lede itself. A positioned element escapes the clips between it
+ * and its containing block; a fixed one escapes them all.
+ */
+function shownPart(element: Element, box: DOMRect, position: string, clips: Map<Element, Clip>): RectLike | null {
+  if (position === "fixed") return box;
+  let { left, top, right, bottom } = box;
+  let escaping = position === "absolute";
+  for (let a = element.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+    let clip = clips.get(a);
+    if (!clip) {
+      const s = getComputedStyle(a);
+      clip = {
+        box: a.getBoundingClientRect(),
+        x: s.overflowX !== "visible",
+        y: s.overflowY !== "visible",
+        position: s.position || "static",
+      };
+      clips.set(a, clip);
+    }
+    if (escaping && clip.position === "static") continue;
+    if (clip.x) {
+      left = Math.max(left, clip.box.left);
+      right = Math.min(right, clip.box.right);
+    }
+    if (clip.y) {
+      top = Math.max(top, clip.box.top);
+      bottom = Math.min(bottom, clip.box.bottom);
+    }
+    if (left >= right || top >= bottom) return null;
+    if (clip.position === "fixed") break;
+    escaping = clip.position === "absolute";
+  }
+  return left === box.left && top === box.top && right === box.right && bottom === box.bottom
+    ? box
+    : { left, top, right, bottom };
+}
+
 function groundRects(): readonly RectLike[] {
   if (ground) return ground;
   groundAt = { x: window.scrollX, y: window.scrollY };
@@ -387,6 +434,7 @@ function groundRects(): readonly RectLike[] {
   const pressable: RectLike[] = [];
   const pressableEls: Element[] = [];
   const text: RectLike[] = [];
+  const clips = new Map<Element, Clip>();
   for (const element of document.querySelectorAll(OCCUPIED)) {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
@@ -400,7 +448,10 @@ function groundRects(): readonly RectLike[] {
       pressable.push(box);
       pressableEls.push(element);
     }
-    if (element.matches(PROSE)) text.push(box);
+    if (element.matches(PROSE)) {
+      const shown = shownPart(element, box, style.position || "static", clips);
+      if (shown) text.push(shown);
+    }
   }
   ground = rects;
   controls = pressable;
@@ -485,7 +536,14 @@ export function slideOffText(
   if (!block || hits(prev, 9) || hits(want)) return next;
   const step = Math.hypot(next.x - prev.x, next.y - prev.y);
   const reach = (from: number, to: number) => from + clamp(to - from, -step, step);
-  const vertical = Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x);
+  // Slide along the edge the step meets: met across its top or bottom, along
+  // x; across a side, along y. Only a step at a corner goes by the walk's
+  // main direction. By that alone a cat under Contact's lede at 1280, heading
+  // far up and right, was slid up into the line, and so crossed it.
+  const aboveOrBelow = prev.y + CAT_H - 3 <= block.top || prev.y + 3 >= block.bottom;
+  const beside = prev.x + CAT_W - 3 <= block.left || prev.x + 3 >= block.right;
+  const vertical =
+    aboveOrBelow === beside ? Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x) : aboveOrBelow;
   // Is the destination clear of this block on the other axis? Then slide
   // along the block towards it; if not, sliding towards it only walks back to
   // the block's middle, so follow the block's edge to its nearer end instead.
