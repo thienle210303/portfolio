@@ -2021,3 +2021,39 @@ Spec §8 (`docs/superpowers/specs/2026-10-18-round-21-outdoors-design.md`) and t
 **Not verified: WebKit.** No WebKit build is installed for this Playwright (`~/AppData/Local/ms-playwright` holds Chromium only), so the iOS sky fix (a fixed layer, not a `fixed` background) is checked in Chromium only.
 
 **Screens** (`reports/r21-p8-screens/`, untracked): about, tree, record and contact at 320, 360, 390, 414, 768 (1800px tall), 844x390, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night, viewport-tall captures stepped down each section.
+
+## Round 21 polish 2 (2026-10-24/27)
+
+Four small fixes from a hunt at phone widths, on `round-21/polish-2`. Started 2026-10-24 on `9b54c68` and stopped before its checks; finished 2026-10-27, re-applied on `78cae4a` (the Impeccable/Hallmark commit) by cherry-pick, and checked on a Mac (Chromium headless shell 1234, Node 24).
+
+**Fixes** (each has a test):
+- **Parked cats tuck off the edge rather than sit on words.** `pickCorner` used to skip the peek spots in its "covers no text" pass, so at 320 the pair sat on the postcard's "No message needed. I'll write first." and the chat's "I said" rather than peek in from the right edge. A peek now counts in that pass; every corner is still tried before any peek, so a clear corner still wins. Unit test, plus an e2e at 320 that scrolls the words to four heights.
+- **Day-sky birds off the phone headline.** Below 1024 the sky is pinned right and only x < 920 of it shows, behind the headline at y 34 to 221 at every phone width; two birds sat on "curious" and "this" at 320. Birds that would start at x < 920 move 200 east (`scripts/draw-scenery.mjs`, `sky-day.svg` redrawn). The first attempt (clamping y) was wrong and is superseded in the same branch. The cost: a phone's morning has no birds. From 1024 they fly above the clothesline, clear of every word (checked at 1024, 1440 and 1920). Unit test: all five birds start at x >= 920.
+- **A hyphenated word stays whole on a Journey tag.** "low-code." broke to "low- / code." on Schaeffler's tag; `\w+-\w+` runs are wrapped in a `whitespace-nowrap` span marked `data-whole-word` (the text is unchanged, and the no-nowrap test exempts the mark).
+- **Field tag at 320: label over value below 380px.** The 104px label column wrapped five of the six values onto a second line ("Kiên Giang, / Việt Nam", "Taylors, / South Carolina"); below 380 each label stacks over its value.
+
+**Checked by measurement and by eye** (`reports/r21-polish2-screens/`, untracked, before/after, day and night): "low-code." and "agent-driven" sit on one line inside their tag at 320, 390, 768, 1024, 1280, 1366, 1440 and 1920; the field tag's rows stay inside the tag at 320, 360, 375, 379, 380, 390 and 414; no bird at 320, 360, 390, 414 or 768; the parked pair peeks in clear of the postcard's and the chat's words at 320 and 360.
+
+**Perf row** (`pnpm perf`, production builds on this Mac, 0 skipped responses, three runs each, bytes identical within each build). Baseline: `78cae4a` built in a second worktree. These are not comparable with phase 8's Windows row (this machine counts every script before `load`).
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`78cae4a`) | 199,068 B | 199,068 B | 24,381 B | 117,868 B | 0 / 0 / 0 | 2601 |
+| After | 199,059 B | 199,059 B | 24,418 B | 117,868 B | 0 / 0 / 0 | 2603 |
+
+- **JS at load -9 B.** CSS +37 B (the `min-[380px]` grid and `whitespace-nowrap`); DOM +2 (the two whole-word spans). LCP 1072-1080 ms before, 1076-1084 ms after; TBT 0-4 ms.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (62 pairings, lowest 4.52:1) and 935 unit tests (60 files) pass; the build passes run outside the command sandbox (inside it next/font cannot reach Google Fonts and Turbopack cannot bind its worker port). Full e2e on a production build, `--workers=2`: 878 passed, 1528 skipped, 6 failed (14.7 min). None are the branch's; each was re-run three times on both builds:
+
+| Test | polish-2 | `78cae4a` |
+|---|---|---|
+| legacy-anchors: a case study's fragment opens its row and lands on it (JS off; 320, 768, 1440) | 9 of 9 fail | 7 of 9 fail |
+| origin: scrolling away mid-story doesn't end it (1440) | 3 of 3 fail | 3 of 3 fail |
+| companion: they keep off the Wordification tag's year, Contact's lede and the postcard's greeting (a walking cat on the lede at 1280) | 1 of 3 fail | 2 of 3 fail |
+| legacy-anchors: per-entry fragments land on their own Record row (`eastside-high` at 69px, not 80; 1440) | 0 of 3 fail | 0 of 3 fail |
+
+Phase 8's clean run (883 passed) was on Windows; the first three fail on `main` on this Mac too, so they are open against `main`, not this branch. The fourth failed once in the full run only.
+
+**Design checks.** Hallmark sloplint on the two changed components: 2 FAIL, 2 REFLEX, all on lines the branch does not touch and all intentional or noise under the-pass (26a/26b "no focus or active styling anywhere" is per-file; the focus ring is global; 64/67 are Courier Prime and the tracked stamp). Impeccable detect at 1440 and 390x844: 7 findings each, none from this branch (4 `text-occlusion` on the tag backs' "Read this part" and 2 `nested-cards` on the notebook page, both intentional; 1 `tight-leading` at 1.25x, which the branch does not touch).
+
+**Not verified: WebKit**, as in phase 8.
