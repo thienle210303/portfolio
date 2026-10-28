@@ -110,6 +110,7 @@ import {
   groundControls,
   groundProse,
   slideOffText,
+  walkObstacles,
   CORNER_INSET,
   PEEK,
   pickCorner,
@@ -3499,7 +3500,8 @@ export function Companion({ facts }: CompanionProps) {
       const routes =
         !run && !rushing && !chase && forced !== "tour" && forced !== "corner" && forced !== "nap" && groundCached();
       const band = routes ? boundsFor(viewport(), safeTop()) : null;
-      /** What a walk goes round: words. Links and buttons it passes under
+      /** What a walk goes round: words, a run of blocks too close for a cat
+       *  as one (`walkObstacles`). Links and buttons it passes under
        *  instead (`passUnder`): routed round them too, a cat in a stack of
        *  full-width timeline rows paced their edges until her walk timed out. */
       const obstacles = band ? groundProse() : [];
@@ -3515,7 +3517,7 @@ export function Companion({ facts }: CompanionProps) {
         // Two corners at most: round a block of text and back past its far end.
         if (d.used >= 2) return want;
         d.used += 1;
-        const via = routeAround(pos, want, obstacles, CAT_W, CAT_H, band);
+        const via = routeAround(pos, want, walkObstacles(pos, want), CAT_W, CAT_H, band);
         if (via !== want) d.via = via;
         return via;
       };
@@ -3605,7 +3607,9 @@ export function Companion({ facts }: CompanionProps) {
       );
       // The backstop: a step slides along words rather than onto them.
       const leadSlide = band ? slideMemo("lead", leadFrom, leadWant) : null;
-      if (band && leadSlide && !leadSlide.off) leadStep = stepOffText(grey.pos, leadFrom, leadWant, obstacles, band, leadSlide);
+      if (band && leadSlide && !leadSlide.off) {
+        leadStep = stepOffText(grey.pos, leadFrom, leadWant, walkObstacles(leadFrom, leadWant), band, leadSlide);
+      }
       /**
        * The same movement as a *speed* rather than a distance, because every
        * threshold below asks a question about speed — "is he really walking",
@@ -3769,7 +3773,7 @@ export function Companion({ facts }: CompanionProps) {
       let followStep = advance(tabby.pos, followWant, tabby.speed, frames);
       const followSlide = band ? slideMemo("follow", followFrom, followWant) : null;
       if (band && followSlide && !followSlide.off) {
-        followStep = stepOffText(tabby.pos, followFrom, followWant, obstacles, band, followSlide);
+        followStep = stepOffText(tabby.pos, followFrom, followWant, walkObstacles(followFrom, followWant), band, followSlide);
       }
       /** Her half of `leadRate` above, and for the same reason. */
       const followRate = frames > 0 ? followStep / frames : 0;

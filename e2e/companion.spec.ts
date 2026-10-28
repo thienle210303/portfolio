@@ -1284,7 +1284,10 @@ test.describe("companion", () => {
      * within a second — two of them, because a short walk can occasionally
      * leave one cat's pose out of the sample and one such miss must not count —
      * and, so it cannot pass on a handful of events, that each cat made at
-     * least three.
+     * least three. Over a minute: stays run 6 to 18 seconds, and since the
+     * cats go round the year column rather than across it (round 21) a walk
+     * to the margin beside the timeline takes about five, so 40 seconds left
+     * a cat two departures about one run in seven.
      */
     await page.evaluate(() => {
       const tree = document.querySelector("#record [data-timeline]");
@@ -1316,7 +1319,7 @@ test.describe("companion", () => {
     const SPOTS = [80, 400, 720, 1040, 1360].flatMap((x) => [180, 450, 820].map((y) => ({ x, y })));
     let pointer = { x: 720, y: 450 };
     let nudge = 1;
-    for (let tick = 0; tick < 160; tick += 1) {
+    for (let tick = 0; tick < 240; tick += 1) {
       await page.waitForTimeout(250);
       const [grey, tabby] = await catPair(page);
       const reach = (p: { x: number; y: number }) =>

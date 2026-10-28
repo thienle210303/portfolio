@@ -337,6 +337,8 @@ let controls: readonly RectLike[] = [];
 let controlEls: readonly Element[] = [];
 /** And the subset that is prose (`PROSE`): what a walk goes round. */
 let prose: readonly RectLike[] = [];
+/** `prose` grouped into runs (`proseRuns`), cached with it. */
+let runs: readonly Run[] = [];
 /** The scroll offset `ground` was measured at, or last synced to. */
 let groundAt = { x: 0, y: 0 };
 
@@ -369,6 +371,7 @@ export function shiftGround(dx: number, dy: number): void {
   ground = ground.map(shift);
   controls = controls.map(shift);
   prose = prose.map(shift);
+  runs = runs.map((run) => ({ box: shift(run.box), members: run.members.map(shift) }));
 }
 
 /**
@@ -457,6 +460,7 @@ function groundRects(): readonly RectLike[] {
   controls = pressable;
   controlEls = pressableEls;
   prose = text;
+  runs = proseRuns(text);
   return rects;
 }
 
@@ -464,6 +468,76 @@ function groundRects(): readonly RectLike[] {
 export function groundProse(): readonly RectLike[] {
   groundRects();
   return prose;
+}
+
+/** Blocks of words too close together for a cat to pass between, and the box
+ *  round them all. */
+export interface Run {
+  readonly box: RectLike;
+  readonly members: readonly RectLike[];
+}
+
+/**
+ * `rects` grouped into runs: two blocks are in one run when they are stacked
+ * (sharing at least half the narrower one's width) or side by side (half the
+ * shorter one's height) and a cat cannot pass between them, the gap narrower
+ * than her box and `routeAround`'s margin either side of it. Round 21: the
+ * Record's year column at 1280 is three headings 13px apart. Every corner a
+ * walk went round one by sat on the next, and the explorers walked on the spot
+ * beside it until the slide gave up.
+ * Only stacked or side by side: the postcard's greeting, 48px under Contact's
+ * lede and overlapping its end by 75px, made the header an L whose box was
+ * mostly empty, the cats' stops in it, and the run came apart again.
+ */
+export function proseRuns(rects: readonly RectLike[], margin = 6): Run[] {
+  const root = rects.map((_, i) => i);
+  const find = (i: number): number => (root[i] === i ? i : (root[i] = find(root[i])));
+  for (let i = 0; i < rects.length; i += 1) {
+    for (let j = i + 1; j < rects.length; j += 1) {
+      const a = rects[i];
+      const b = rects[j];
+      const gapX = Math.max(a.left - b.right, b.left - a.right);
+      const gapY = Math.max(a.top - b.bottom, b.top - a.bottom);
+      const stacked = -gapX >= Math.min(a.right - a.left, b.right - b.left) / 2 && gapY < CAT_H + margin * 2;
+      const beside = -gapY >= Math.min(a.bottom - a.top, b.bottom - b.top) / 2 && gapX < CAT_W + margin * 2;
+      if (stacked || beside) root[find(i)] = find(j);
+    }
+  }
+  const byRoot = new Map<number, RectLike[]>();
+  rects.forEach((r, i) => {
+    const members = byRoot.get(find(i));
+    if (members) members.push(r);
+    else byRoot.set(find(i), [r]);
+  });
+  return [...byRoot.values()].map((members) => ({
+    box: {
+      left: Math.min(...members.map((r) => r.left)),
+      top: Math.min(...members.map((r) => r.top)),
+      right: Math.max(...members.map((r) => r.right)),
+      bottom: Math.max(...members.map((r) => r.bottom)),
+    },
+    members,
+  }));
+}
+
+/**
+ * What a walk from `from` to `to` goes round: each run of words as the one
+ * box round it, except a run either end stands in, which is its own blocks. A
+ * stop in the notch beside a short heading lies inside its run's box, and
+ * `routeAround` and `slideOffText` both walk straight at a destination on what
+ * they go round; one touching a block still goes round the run's others.
+ * Inset by 3px, as the slide is: a cat sliding along a run grazes its box.
+ */
+export function walkObstacles(from: Point, to: Point): readonly RectLike[] {
+  groundRects();
+  const on = (p: Point, r: RectLike) =>
+    p.x + 3 < r.right && p.x + CAT_W - 3 > r.left && p.y + 3 < r.bottom && p.y + CAT_H - 3 > r.top;
+  const out: RectLike[] = [];
+  for (const run of runs) {
+    if (run.members.length > 1 && !on(from, run.box) && !on(to, run.box)) out.push(run.box);
+    else out.push(...run.members);
+  }
+  return out;
 }
 
 /**
@@ -549,6 +623,16 @@ export function slideOffText(
   // the block's middle, so follow the block's edge to its nearer end instead.
   const pastX = want.x + CAT_W - 3 <= block.left || want.x + 3 >= block.right;
   const pastY = want.y + CAT_H - 3 <= block.top || want.y + 3 >= block.bottom;
+  // A block with neither end inside the band is crossed at once, as
+  // `routeAround` crosses it: at 1440 the Record's year column and its rows
+  // are one run the height of the window, and sliding to the band's edge
+  // first only paced there before crossing anyway.
+  if (band && !(vertical ? pastX : pastY)) {
+    const noWayRound = vertical
+      ? block.left - CAT_W < band.minX && block.right > band.maxX
+      : block.top - CAT_H < band.minY && block.bottom > band.maxY;
+    if (noWayRound) return next;
+  }
   let slide: Point;
   if (vertical) {
     // The end on want's side, unless the cats' band cannot reach round it.
