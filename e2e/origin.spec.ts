@@ -759,11 +759,12 @@ test.describe("everything lives in the frame", () => {
     expect(boxContains(awayStageBox!, awaySkyBox!)).toBe(true);
     expect(boxContains(awayStageBox!, awayGroundBox!)).toBe(true);
 
-    // The story kept advancing the whole time nobody was looking — a season
-    // beat is 2s (`SEASON_MS`), so a caption change here can only mean the
-    // master clock auto-advanced while off-screen, not that scrolling away
-    // paused or ended it.
-    await expect(status).not.toHaveText(beforeScroll ?? "", { timeout: 3_000 });
+    // The story kept advancing the whole time nobody was looking, so a
+    // caption change here can only mean the master clock auto-advanced while
+    // off-screen, not that scrolling away paused or ended it. The caption read
+    // above is the flight's, the first beat, held `FLIGHT_MS` (3s) rather than
+    // a season's 2s: a 3s wait raced it and lost on a quick machine.
+    await expect(status).not.toHaveText(beforeScroll ?? "", { timeout: 5_000 });
 
     // Scroll back to the stage itself — not necessarily the top of the page,
     // since the tree section is not the first thing on it — the show is
