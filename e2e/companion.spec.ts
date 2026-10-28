@@ -1284,7 +1284,10 @@ test.describe("companion", () => {
      * within a second — two of them, because a short walk can occasionally
      * leave one cat's pose out of the sample and one such miss must not count —
      * and, so it cannot pass on a handful of events, that each cat made at
-     * least three.
+     * least three. Over a minute: stays run 6 to 18 seconds, and since the
+     * cats go round the year column rather than across it (round 21) a walk
+     * to the margin beside the timeline takes about five, so 40 seconds left
+     * a cat two departures about one run in seven.
      */
     await page.evaluate(() => {
       const tree = document.querySelector("#record [data-timeline]");
@@ -1316,7 +1319,7 @@ test.describe("companion", () => {
     const SPOTS = [80, 400, 720, 1040, 1360].flatMap((x) => [180, 450, 820].map((y) => ({ x, y })));
     let pointer = { x: 720, y: 450 };
     let nudge = 1;
-    for (let tick = 0; tick < 160; tick += 1) {
+    for (let tick = 0; tick < 240; tick += 1) {
       await page.waitForTimeout(250);
       const [grey, tabby] = await catPair(page);
       const reach = (p: { x: number; y: number }) =>
@@ -3933,6 +3936,48 @@ test.describe("cats (round 21)", () => {
       await page.keyboard.press("Tab");
       await page.waitForTimeout(60);
       expect(await covered(true), `tab stop ${i} is under the parked cats`).toEqual([]);
+    }
+    await context.close();
+  });
+
+  test("at 320 the parked pair tucks off the edge instead of resting on the postcard's or the chat's words", async ({
+    browser,
+  }) => {
+    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    test.setTimeout(90_000);
+    const context = await browser.newContext({ viewport: { width: 320, height: 640 }, reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(catButton(page)).toBeVisible();
+    for (const [scope, words] of [
+      ["#contact", /write first/],
+      ["#ask", /^I said$/],
+    ] as const) {
+      const target = page.locator(scope).getByText(words).first();
+      for (const at of [100, 250, 400, 520]) {
+        // Put the words `at` px down the window, let the pair re-pick (150ms debounce).
+        await target.evaluate((el, y) => window.scrollBy(0, el.getBoundingClientRect().top - y), at);
+        await page.waitForTimeout(450);
+        const covered = await page.evaluate(
+          ([sel, source]) => {
+            const toggle = document.querySelector('[aria-controls="companion-actions"]')!.getBoundingClientRect();
+            const el = Array.from(document.querySelectorAll(sel)).find((e) => new RegExp(source).test(e.textContent ?? ""))!;
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return Array.from(range.getClientRects()).some(
+              (r) =>
+                r.width > 0 &&
+                r.left < Math.min(toggle.right, innerWidth) &&
+                r.right > toggle.left &&
+                r.top < toggle.bottom &&
+                r.bottom > toggle.top,
+            );
+          },
+          [`${scope} p, ${scope} dt, ${scope} dd, ${scope} span`, words.source] as const,
+        );
+        expect(covered, `the parked pair covers ${words} in ${scope} with the words ${at}px down`).toBe(false);
+      }
     }
     await context.close();
   });

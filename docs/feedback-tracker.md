@@ -2021,3 +2021,93 @@ Spec §8 (`docs/superpowers/specs/2026-10-18-round-21-outdoors-design.md`) and t
 **Not verified: WebKit.** No WebKit build is installed for this Playwright (`~/AppData/Local/ms-playwright` holds Chromium only), so the iOS sky fix (a fixed layer, not a `fixed` background) is checked in Chromium only.
 
 **Screens** (`reports/r21-p8-screens/`, untracked): about, tree, record and contact at 320, 360, 390, 414, 768 (1800px tall), 844x390, 1024x768, 1280x800, 1366x768, 1440x900 and 1920x1080, day and night, viewport-tall captures stepped down each section.
+
+## Round 21 polish 2 (2026-10-24/27)
+
+Four small fixes from a hunt at phone widths, on `round-21/polish-2`. Started 2026-10-24 on `9b54c68` and stopped before its checks; finished 2026-10-27, re-applied on `78cae4a` (the Impeccable/Hallmark commit) by cherry-pick, and checked on a Mac (Chromium headless shell 1234, Node 24).
+
+**Fixes** (each has a test):
+- **Parked cats tuck off the edge rather than sit on words.** `pickCorner` used to skip the peek spots in its "covers no text" pass, so at 320 the pair sat on the postcard's "No message needed. I'll write first." and the chat's "I said" rather than peek in from the right edge. A peek now counts in that pass; every corner is still tried before any peek, so a clear corner still wins. Unit test, plus an e2e at 320 that scrolls the words to four heights.
+- **Day-sky birds off the phone headline.** Below 1024 the sky is pinned right and only x < 920 of it shows, behind the headline at y 34 to 221 at every phone width; two birds sat on "curious" and "this" at 320. Birds that would start at x < 920 move 200 east (`scripts/draw-scenery.mjs`, `sky-day.svg` redrawn). The first attempt (clamping y) was wrong and is superseded in the same branch. The cost: a phone's morning has no birds. From 1024 they fly above the clothesline, clear of every word (checked at 1024, 1440 and 1920). Unit test: all five birds start at x >= 920.
+- **A hyphenated word stays whole on a Journey tag.** "low-code." broke to "low- / code." on Schaeffler's tag; `\w+-\w+` runs are wrapped in a `whitespace-nowrap` span marked `data-whole-word` (the text is unchanged, and the no-nowrap test exempts the mark).
+- **Field tag at 320: label over value below 380px.** The 104px label column wrapped five of the six values onto a second line ("Kiên Giang, / Việt Nam", "Taylors, / South Carolina"); below 380 each label stacks over its value.
+
+**Checked by measurement and by eye** (`reports/r21-polish2-screens/`, untracked, before/after, day and night): "low-code." and "agent-driven" sit on one line inside their tag at 320, 390, 768, 1024, 1280, 1366, 1440 and 1920; the field tag's rows stay inside the tag at 320, 360, 375, 379, 380, 390 and 414; no bird at 320, 360, 390, 414 or 768; the parked pair peeks in clear of the postcard's and the chat's words at 320 and 360.
+
+**Perf row** (`pnpm perf`, production builds on this Mac, 0 skipped responses, three runs each, bytes identical within each build). Baseline: `78cae4a` built in a second worktree. These are not comparable with phase 8's Windows row (this machine counts every script before `load`).
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`78cae4a`) | 199,068 B | 199,068 B | 24,381 B | 117,868 B | 0 / 0 / 0 | 2601 |
+| After | 199,059 B | 199,059 B | 24,418 B | 117,868 B | 0 / 0 / 0 | 2603 |
+
+- **JS at load -9 B.** CSS +37 B (the `min-[380px]` grid and `whitespace-nowrap`); DOM +2 (the two whole-word spans). LCP 1072-1080 ms before, 1076-1084 ms after; TBT 0-4 ms.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (62 pairings, lowest 4.52:1) and 935 unit tests (60 files) pass; the build passes run outside the command sandbox (inside it next/font cannot reach Google Fonts and Turbopack cannot bind its worker port). Full e2e on a production build, `--workers=2`: 878 passed, 1528 skipped, 6 failed (14.7 min). None are the branch's; each was re-run three times on both builds:
+
+| Test | polish-2 | `78cae4a` |
+|---|---|---|
+| legacy-anchors: a case study's fragment opens its row and lands on it (JS off; 320, 768, 1440) | 9 of 9 fail | 7 of 9 fail |
+| origin: scrolling away mid-story doesn't end it (1440) | 3 of 3 fail | 3 of 3 fail |
+| companion: they keep off the Wordification tag's year, Contact's lede and the postcard's greeting (a walking cat on the lede at 1280) | 1 of 3 fail | 2 of 3 fail |
+| legacy-anchors: per-entry fragments land on their own Record row (`eastside-high` at 69px, not 80; 1440) | 0 of 3 fail | 0 of 3 fail |
+
+Phase 8's clean run (883 passed) was on Windows; the first three fail on `main` on this Mac too, so they are open against `main`, not this branch. The fourth failed once in the full run only.
+
+**Design checks.** Hallmark sloplint on the two changed components: 2 FAIL, 2 REFLEX, all on lines the branch does not touch and all intentional or noise under the-pass (26a/26b "no focus or active styling anywhere" is per-file; the focus ring is global; 64/67 are Courier Prime and the tracked stamp). Impeccable detect at 1440 and 390x844: 7 findings each, none from this branch (4 `text-occlusion` on the tag backs' "Read this part" and 2 `nested-cards` on the notebook page, both intentional; 1 `tight-leading` at 1.25x, which the branch does not touch).
+
+**Not verified: WebKit**, as in phase 8.
+
+## Round 21: e2e on a Mac (2026-10-27/28)
+
+On `round-21/e2e-mac`, from polish 2. Three tests that also fail on `main` on this Mac (Chromium headless shell 1234; phase 8's clean run was on Windows), each diagnosed before it was touched.
+
+**Fixed:**
+- **A case study's fragment lands on it with JavaScript off** (`legacy-anchors` "a case study's fragment opens its row and lands on it": 7 of 9 failed on `main`, 9 of 9 on polish 2). The `:target` rule in `globals.css` opened the row through its `Disclosure` transitions: grid rows over `--dur-reveal`, visibility held hidden for the same delay. Where the first style pass did not yet match `:target`, the browser scrolled to the fragment on the reveal's first frame (document 6,009px, row hidden), and the opening row then grew the document to 6,803px and pushed the case study 1,281px below the landing (1440). That is a real reader with JavaScript off landing on nothing, not a test artefact. The targeted row now opens with `transition: none`. After: the case study is at 96px on the first frame at 1440, and the test passes 15 of 15 (5 each at 320, 768, 1440).
+- **The origin story's off-screen test waits out the flight** (`origin` "scrolling away mid-story doesn't end it": 3 of 3 failed on `main`). Measured, the story does not pause when scrolled away: its captions change at the same times with and without the scroll. But the caption the test reads first is the flight's, held `FLIGHT_MS` (3s), not a season's 2s, and the test gave it 3s to change: a race a quicker machine loses. The wait is 5s and the comment says why. 5 of 5 after.
+
+**Not fixed: a walking cat crosses Contact's lede at 1280** (`companion` "they keep off the Wordification tag's year, Contact's lede and the postcard's greeting": 2 of 3 failed on `main`, 1 of 3 and 2 of 3 on later runs). Two causes, both traced:
+1. `groundProse` (what a walk goes round) includes text clipped out of sight. The scan keeps clipped boxes on purpose for resting (a false "occupied" only sends a cat elsewhere), but the walks read the same list: at 1280 the Journey tree box's lower branch labels lie, laid out, under Contact's header, and a walk spent both of `viaFor`'s detours going round those, then crossed the lede on its last leg. At the Record view, 40 of the 94 prose boxes a cat sees are clipped like this.
+2. `slideOffText` picks its slide axis from the walk's main direction, not from the edge the step meets, so the follower under the lede, heading far up and right, was slid up into it, refused, and stepped across.
+
+Both are fixed on `round-21/cats-lede-wip` (`b729705`, with unit tests): prose is cut to what its clipping ancestors show, and a slide follows the edge it meets. The lede probe then went from about 1 crossing in 2 to 0 in 15. **It is not merged** because it costs elsewhere: "each explorer leaves its stop on its own clock" failed 6 of 39 runs with it against 0 of 54 without, and 3 of 16 with the clipping change alone, so the clipping is the cause. With the phantom labels gone, the cats meet the Record's year column (the `H4`s at x 760-824, three tall blocks with 13px gaps, narrower than a 42px cat) and stall against it, walking on the spot at (712, 363) and (822, 190) until `slideMemo` gives up after 2.5s. The phantom boxes had been hiding that weakness. Fixing the lede for real means routing round a run of blocks as one obstacle, a decision about the cats' movement rather than a test fix.
+
+**Verification.** Typecheck, lint, contrast and 935 unit tests pass; production build passes. On the final build: `legacy-anchors`, `origin` and `record` specs in full, 84 passed, 0 failed; "each explorer leaves its stop on its own clock" 3 of 3; the lede test still fails as on `main`. The last full e2e (which carried the cat changes too) was 883 passed, 1 failed (the clock test, above).
+
+## Round 21: cats round runs of text (2026-10-28)
+
+On `round-21/cats-runs`, from `round-21/e2e-mac`: the parked lede fix (`b729705`, as `78a4c52`), plus routing round a run of blocks as one (`8c97479`).
+
+**What changed.**
+- **Runs** (`proseRuns`). Two blocks of words are one run when they are stacked (sharing at least half the narrower one's width) or side by side (half the shorter one's height), and the gap is narrower than a cat plus `routeAround`'s 6px margin either side (62px across, 54px down). A walk goes round the run's box (`walkObstacles`). A run either end of the walk stands in goes back to its own blocks, so a stop in a notch beside a short heading is still reached.
+- **Only stacked or side by side.** The first version grouped any two blocks a cat could not pass between. The postcard's greeting is 48px under Contact's lede and overlaps its last 75px, which made the header an L whose box ([80,113]-[851,383] at 1280) was mostly empty floor. The cats' stops were in it, the run came apart, and the lede was crossed every time (20 of 20). Found with a frame log of the follower's walk, after a guess about her seat proved wrong.
+- **No way round, crossed at once.** At 1440 the year column and its rows are one run the height of the window ([760,65]-[1330,840], 9 blocks). Where neither end is inside the cats' band, `slideOffText` now crosses at once, as `routeAround` already did, instead of sliding to the band's edge first.
+- **The clock test watches for a minute.** Stays run 6-18s, and a walk round the year column to the margin beside the timeline takes about 5s. Its 40s window left the tabby two departures, under the floor of three, in 3 of 20 runs. Each of those still had departures far apart, which is what the test checks.
+
+**Measured** (the clock test's setup at 1440, six runs each, every walk recorded):
+
+| | Path ÷ straight line (walks after the first) | Walking on the spot |
+|---|---|---|
+| `round-21/e2e-mac` | 1.11 | 4.4 s |
+| `round-21/cats-runs` | 1.43 | 0.7 s |
+
+The cats now go round the end of the year column, the only way to the margin that crosses no words, instead of pacing against it and then crossing. That trip is about twice the straight line.
+
+**Repeat runs on the final build:**
+
+| Test | Result |
+|---|---|
+| they keep off the Wordification tag's year, Contact's lede and the postcard's greeting | 20 of 20 (fails 1 in 2 on `round-21/e2e-mac`) |
+| each explorer leaves its stop on its own clock | 20 of 20 with the minute window |
+| Lede probe at 1280 (a walking cat ever on the lede, 25s; on the build before the slide rule) | 0 of 10 |
+
+**Perf row** (`pnpm perf`, production builds on this Mac, three runs each, 0 skipped responses, bytes identical within each build). Baseline: `round-21/e2e-mac`.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`3807d17`) | 199,059 B | 199,059 B | 24,421 B | 117,868 B | 0 / 0 / 0 | 2603 |
+| After | 199,706 B | 199,706 B | 24,421 B | 117,868 B | 0 / 0 / 0 | 2603 |
+
+- **JS at load +647 B**: the clipping, the runs and the slide rule, all in the companion module. LCP 1084-1096 ms before, 1084-1092 ms after; TBT 0-1 ms.
+
+**Verification.** Typecheck, lint and contrast pass. 945 unit tests pass, including a walk simulation that stalls against the year column without runs. Production build passes. Full e2e on the final build: 884 passed, 0 failed. Not checked: WebKit; the run boxes at 768 and 1024 beyond the full e2e.

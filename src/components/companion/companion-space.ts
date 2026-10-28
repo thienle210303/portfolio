@@ -317,6 +317,8 @@ export function pointInRects(x: number, y: number, rects: readonly RectLike[]): 
  * Deliberately conservative where a box is not what a hit test sees: an
  * occupied element that is covered by something else, or clipped by an
  * ancestor, still counts. A false "occupied" only sends a cat to another spot.
+ * Not so for the prose a walk goes round (`shownPart`): there a block nobody
+ * can see costs a detour, and the detours run out.
  * One case goes the other way: a non-`OCCUPIED` child overflowing its
  * `OCCUPIED` ancestor's box reads clear here, where a hit test said occupied.
  * What a hit test looks straight through is still skipped — the companion's
@@ -335,6 +337,8 @@ let controls: readonly RectLike[] = [];
 let controlEls: readonly Element[] = [];
 /** And the subset that is prose (`PROSE`): what a walk goes round. */
 let prose: readonly RectLike[] = [];
+/** `prose` grouped into runs (`proseRuns`), cached with it. */
+let runs: readonly Run[] = [];
 /** The scroll offset `ground` was measured at, or last synced to. */
 let groundAt = { x: 0, y: 0 };
 
@@ -367,6 +371,7 @@ export function shiftGround(dx: number, dy: number): void {
   ground = ground.map(shift);
   controls = controls.map(shift);
   prose = prose.map(shift);
+  runs = runs.map((run) => ({ box: shift(run.box), members: run.members.map(shift) }));
 }
 
 /**
@@ -379,6 +384,51 @@ export function syncGround(scrollX: number, scrollY: number): void {
   shiftGround(scrollX - groundAt.x, scrollY - groundAt.y);
 }
 
+/** An ancestor as `shownPart` reads it: measured once per scan. */
+type Clip = { readonly box: DOMRect; readonly x: boolean; readonly y: boolean; readonly position: string };
+
+/**
+ * The part of an element's `box` its ancestors' overflow lets show, or null
+ * when none does. Only for the prose list (round 21 polish 2): at 1280 the
+ * Journey tree box's lower branch labels lay out far below the box, under
+ * Contact's lede, and a walk spent both its detours going round them, then
+ * crossed the lede itself. A positioned element escapes the clips between it
+ * and its containing block; a fixed one escapes them all.
+ */
+function shownPart(element: Element, box: DOMRect, position: string, clips: Map<Element, Clip>): RectLike | null {
+  if (position === "fixed") return box;
+  let { left, top, right, bottom } = box;
+  let escaping = position === "absolute";
+  for (let a = element.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+    let clip = clips.get(a);
+    if (!clip) {
+      const s = getComputedStyle(a);
+      clip = {
+        box: a.getBoundingClientRect(),
+        x: s.overflowX !== "visible",
+        y: s.overflowY !== "visible",
+        position: s.position || "static",
+      };
+      clips.set(a, clip);
+    }
+    if (escaping && clip.position === "static") continue;
+    if (clip.x) {
+      left = Math.max(left, clip.box.left);
+      right = Math.min(right, clip.box.right);
+    }
+    if (clip.y) {
+      top = Math.max(top, clip.box.top);
+      bottom = Math.min(bottom, clip.box.bottom);
+    }
+    if (left >= right || top >= bottom) return null;
+    if (clip.position === "fixed") break;
+    escaping = clip.position === "absolute";
+  }
+  return left === box.left && top === box.top && right === box.right && bottom === box.bottom
+    ? box
+    : { left, top, right, bottom };
+}
+
 function groundRects(): readonly RectLike[] {
   if (ground) return ground;
   groundAt = { x: window.scrollX, y: window.scrollY };
@@ -387,6 +437,7 @@ function groundRects(): readonly RectLike[] {
   const pressable: RectLike[] = [];
   const pressableEls: Element[] = [];
   const text: RectLike[] = [];
+  const clips = new Map<Element, Clip>();
   for (const element of document.querySelectorAll(OCCUPIED)) {
     if (element.closest(SELF)) continue;
     const box = element.getBoundingClientRect();
@@ -400,12 +451,16 @@ function groundRects(): readonly RectLike[] {
       pressable.push(box);
       pressableEls.push(element);
     }
-    if (element.matches(PROSE)) text.push(box);
+    if (element.matches(PROSE)) {
+      const shown = shownPart(element, box, style.position || "static", clips);
+      if (shown) text.push(shown);
+    }
   }
   ground = rects;
   controls = pressable;
   controlEls = pressableEls;
   prose = text;
+  runs = proseRuns(text);
   return rects;
 }
 
@@ -413,6 +468,76 @@ function groundRects(): readonly RectLike[] {
 export function groundProse(): readonly RectLike[] {
   groundRects();
   return prose;
+}
+
+/** Blocks of words too close together for a cat to pass between, and the box
+ *  round them all. */
+export interface Run {
+  readonly box: RectLike;
+  readonly members: readonly RectLike[];
+}
+
+/**
+ * `rects` grouped into runs: two blocks are in one run when they are stacked
+ * (sharing at least half the narrower one's width) or side by side (half the
+ * shorter one's height) and a cat cannot pass between them, the gap narrower
+ * than her box and `routeAround`'s margin either side of it. Round 21: the
+ * Record's year column at 1280 is three headings 13px apart. Every corner a
+ * walk went round one by sat on the next, and the explorers walked on the spot
+ * beside it until the slide gave up.
+ * Only stacked or side by side: the postcard's greeting, 48px under Contact's
+ * lede and overlapping its end by 75px, made the header an L whose box was
+ * mostly empty, the cats' stops in it, and the run came apart again.
+ */
+export function proseRuns(rects: readonly RectLike[], margin = 6): Run[] {
+  const root = rects.map((_, i) => i);
+  const find = (i: number): number => (root[i] === i ? i : (root[i] = find(root[i])));
+  for (let i = 0; i < rects.length; i += 1) {
+    for (let j = i + 1; j < rects.length; j += 1) {
+      const a = rects[i];
+      const b = rects[j];
+      const gapX = Math.max(a.left - b.right, b.left - a.right);
+      const gapY = Math.max(a.top - b.bottom, b.top - a.bottom);
+      const stacked = -gapX >= Math.min(a.right - a.left, b.right - b.left) / 2 && gapY < CAT_H + margin * 2;
+      const beside = -gapY >= Math.min(a.bottom - a.top, b.bottom - b.top) / 2 && gapX < CAT_W + margin * 2;
+      if (stacked || beside) root[find(i)] = find(j);
+    }
+  }
+  const byRoot = new Map<number, RectLike[]>();
+  rects.forEach((r, i) => {
+    const members = byRoot.get(find(i));
+    if (members) members.push(r);
+    else byRoot.set(find(i), [r]);
+  });
+  return [...byRoot.values()].map((members) => ({
+    box: {
+      left: Math.min(...members.map((r) => r.left)),
+      top: Math.min(...members.map((r) => r.top)),
+      right: Math.max(...members.map((r) => r.right)),
+      bottom: Math.max(...members.map((r) => r.bottom)),
+    },
+    members,
+  }));
+}
+
+/**
+ * What a walk from `from` to `to` goes round: each run of words as the one
+ * box round it, except a run either end stands in, which is its own blocks. A
+ * stop in the notch beside a short heading lies inside its run's box, and
+ * `routeAround` and `slideOffText` both walk straight at a destination on what
+ * they go round; one touching a block still goes round the run's others.
+ * Inset by 3px, as the slide is: a cat sliding along a run grazes its box.
+ */
+export function walkObstacles(from: Point, to: Point): readonly RectLike[] {
+  groundRects();
+  const on = (p: Point, r: RectLike) =>
+    p.x + 3 < r.right && p.x + CAT_W - 3 > r.left && p.y + 3 < r.bottom && p.y + CAT_H - 3 > r.top;
+  const out: RectLike[] = [];
+  for (const run of runs) {
+    if (run.members.length > 1 && !on(from, run.box) && !on(to, run.box)) out.push(run.box);
+    else out.push(...run.members);
+  }
+  return out;
 }
 
 /**
@@ -485,12 +610,29 @@ export function slideOffText(
   if (!block || hits(prev, 9) || hits(want)) return next;
   const step = Math.hypot(next.x - prev.x, next.y - prev.y);
   const reach = (from: number, to: number) => from + clamp(to - from, -step, step);
-  const vertical = Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x);
+  // Slide along the edge the step meets: met across its top or bottom, along
+  // x; across a side, along y. Only a step at a corner goes by the walk's
+  // main direction. By that alone a cat under Contact's lede at 1280, heading
+  // far up and right, was slid up into the line, and so crossed it.
+  const aboveOrBelow = prev.y + CAT_H - 3 <= block.top || prev.y + 3 >= block.bottom;
+  const beside = prev.x + CAT_W - 3 <= block.left || prev.x + 3 >= block.right;
+  const vertical =
+    aboveOrBelow === beside ? Math.abs(want.y - prev.y) >= Math.abs(want.x - prev.x) : aboveOrBelow;
   // Is the destination clear of this block on the other axis? Then slide
   // along the block towards it; if not, sliding towards it only walks back to
   // the block's middle, so follow the block's edge to its nearer end instead.
   const pastX = want.x + CAT_W - 3 <= block.left || want.x + 3 >= block.right;
   const pastY = want.y + CAT_H - 3 <= block.top || want.y + 3 >= block.bottom;
+  // A block with neither end inside the band is crossed at once, as
+  // `routeAround` crosses it: at 1440 the Record's year column and its rows
+  // are one run the height of the window, and sliding to the band's edge
+  // first only paced there before crossing anyway.
+  if (band && !(vertical ? pastX : pastY)) {
+    const noWayRound = vertical
+      ? block.left - CAT_W < band.minX && block.right > band.maxX
+      : block.top - CAT_H < band.minY && block.bottom > band.maxY;
+    if (noWayRound) return next;
+  }
   let slide: Point;
   if (vertical) {
     // The end on want's side, unless the cats' band cannot reach round it.
@@ -1345,7 +1487,8 @@ const LIFT_STEP = 56;
  * bottom-left, then each side a step higher at a time, up to the header; the
  * first spot that touches no control wins. A spot that covers no `text`
  * either is taken first where there is one (round 21 phase 8: on phones the
- * pair sat on "Everything I've done, by year."); otherwise covering text is
+ * pair sat on "Everything I've done, by year."), a peek included: tucked off
+ * the edge beats sitting on words (polish 2, 320). Otherwise covering text is
  * allowed — a corner button often will. Where every spot covers something (a stack of
  * full-width rows on a phone), the pair tuck off the right edge and peek in,
  * `PEEK` px of them showing, at the first height that covers nothing; failing
@@ -1376,7 +1519,6 @@ export function pickCorner(
   };
   if (text.length > 0) {
     for (const spot of spots) {
-      if (spot.peek) continue;
       const box = boxOf(spot);
       if (focused && intersects(box, focused)) continue;
       if (!controls.some((r) => intersects(box, r)) && !text.some((r) => intersects(box, r))) return spot;

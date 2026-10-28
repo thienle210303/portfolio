@@ -13,6 +13,7 @@ import {
   EXPLORE_TRIES,
   exploreApart,
   findClearSpot,
+  groundProse,
   headClear,
   invalidateGround,
   invalidateViewport,
@@ -34,9 +35,12 @@ import {
   TOGGLE_CLEARANCE,
   viewport,
   boxAt,
+  walkObstacles,
+  proseRuns,
   type Point,
   type RectLike,
 } from "@/components/companion/companion-space";
+import { advance, routeAround } from "@/components/companion/companion-motion";
 
 /**
  * The collision fix (WP-A, round 10): a cat parking on top of the duet's own
@@ -943,6 +947,41 @@ describe("the ground probe reads rects cached per layout epoch", () => {
       expect(isClearSpot(at), `${style} removed`).toBe(false);
     }
   });
+
+  /** A `<p>` at `box` inside a scroller at `view`, the way the Journey's tree
+   *  box holds every branch label down its content. */
+  function scrolled(view: DOMRect, box: DOMRect, paragraphStyle = ""): HTMLElement {
+    const scroller = document.createElement("div");
+    // Longhands: jsdom does not expand the `overflow` shorthand.
+    scroller.setAttribute("style", "overflow-x: auto; overflow-y: auto");
+    scroller.getBoundingClientRect = () => view;
+    const prose = document.createElement("p");
+    if (paragraphStyle) prose.setAttribute("style", paragraphStyle);
+    prose.getBoundingClientRect = () => box;
+    scroller.append(prose);
+    document.body.append(scroller);
+    invalidateGround();
+    return prose;
+  }
+
+  it("a walk does not go round words a scroller clips out of sight, though a cat still never rests there", () => {
+    // Contact's lede at 1280: the tree box's lower branch labels lay out far
+    // below the box, under the lede, and the walks went round them instead.
+    scrolled(rect(0, 0, 400, 100), rect(0, 300, 400, 50));
+    expect(groundProse()).toEqual([]);
+    expect(isClearSpot({ x: 100, y: 310 })).toBe(false);
+  });
+
+  it("a block half out of its scroller's view is the half that shows", () => {
+    scrolled(rect(0, 0, 400, 100), rect(0, 80, 400, 50));
+    expect(groundProse()).toEqual([{ left: 0, top: 80, right: 400, bottom: 100 }]);
+  });
+
+  it("a positioned block is clipped by its containing block's ancestors only", () => {
+    // `position: absolute` escapes a static scroller between it and the body.
+    scrolled(rect(0, 0, 400, 100), rect(0, 300, 400, 50), "position: absolute");
+    expect(groundProse()).toEqual([expect.objectContaining({ left: 0, top: 300, right: 400, bottom: 350 })]);
+  });
 });
 
 describe("viewport cache", () => {
@@ -1070,6 +1109,13 @@ describe("pickCorner", () => {
     expect(pickCorner(view, size, [], null, [page])).toEqual({ side: "right", lift: 0 });
   });
 
+  it("tucks off the edge rather than sit on words when no corner is clear of them", () => {
+    // Full-width lines with 8px gaps and a 16px margin: no corner is clear, the right edge is.
+    const lines = Array.from({ length: 40 }, (_, i) => ({ left: 16, right: 330, top: i * 22, bottom: i * 22 + 14 }));
+    const placed = pickCorner({ width: 360, height: 844 }, size, [], null, lines);
+    expect(placed.peek).toBe(true);
+  });
+
   it("never sits on the focused control", () => {
     const everything = { left: 0, right: 390, top: 0, bottom: 844 };
     const focused = { left: 300, right: 390, top: 700, bottom: 844 };
@@ -1103,6 +1149,13 @@ describe("slideOffText", () => {
     expect(slid.x).toBe(610);
     expect(slid.y).toBeCloseTo(420.1, 1);
   });
+  it("crosses at once a block the band holds no way round", () => {
+    // The Record at 1440: the year column and its rows are one run the height
+    // of the window. Sliding to the band's edge first only paced there.
+    const band = { minX: 8, maxX: 1382, minY: 64, maxY: 850 };
+    const wall = { left: 760, right: 1330, top: 40, bottom: 900 };
+    expect(slideOffText({ x: 700, y: 400 }, { x: 714, y: 401 }, { x: 1350, y: 420 }, [wall], band)).toEqual({ x: 714, y: 401 });
+  });
   it("keeps going round the way it started for this destination", () => {
     // Behind the middle, destination low and left: it would pick the left end.
     const memo: { x?: 1 | -1; y?: 1 | -1 } = {};
@@ -1111,6 +1164,14 @@ describe("slideOffText", () => {
     // Told it went right last time, it keeps going right.
     const right: { x?: 1 | -1 } = { x: 1 };
     expect(slideOffText({ x: 400, y: 250 }, { x: 400, y: 262 }, { x: 300, y: 400 }, [line], null, right).x).toBe(412);
+  });
+  it("slides along the edge the step meets, not the way the walk mostly goes", () => {
+    // Contact's lede at 1280: the follower under the line, heading far up and
+    // right, was slid up into it (the walk is mostly sideways) and crossed.
+    const under = { x: 550, y: line.bottom - 3 };
+    const slid = slideOffText(under, { x: 556, y: under.y - 2 }, { x: 1191, y: 124 }, [line]);
+    expect(slid.y).toBe(under.y);
+    expect(slid.x).toBeGreaterThan(under.x);
   });
   it("crosses when it cannot slide", () => {
     const wall = { left: 0, right: 196, top: 240, bottom: 300 };
@@ -1122,5 +1183,105 @@ describe("slideOffText", () => {
   });
   it("lets a cat already on words walk off them", () => {
     expect(slideOffText({ x: 200, y: 300 }, { x: 200, y: 296 }, { x: 200, y: 0 }, [line])).toEqual({ x: 200, y: 296 });
+  });
+});
+
+describe("a run of blocks is walked round as one", () => {
+  const band = { minX: 8, maxX: 1272, minY: 80, maxY: 750 };
+  /** The Record's year column at 1280: three year headings, 13px apart. */
+  const column = [rect(760, 120, 64, 200), rect(760, 333, 64, 200), rect(760, 546, 64, 150)];
+
+  /**
+   * One cat's walk the way `Companion.tsx` drives it: `viaFor`'s two detours
+   * round text (`routeAround`), a step (`advance`), the slide off text, and
+   * `slideMemo`'s give-up after 150 frames without gaining ground. The frames
+   * it took to arrive, or null where she stalled; and whether she ever stood
+   * on a block.
+   */
+  function walk(from: Point, want: Point, obstacles: (pos: Point) => readonly RectLike[]) {
+    const pos = { ...from };
+    const memo: { x?: 1 | -1; y?: 1 | -1 } = {};
+    let via: Point | null = null;
+    let used = 0;
+    let best = Infinity;
+    let stall = 0;
+    let on = false;
+    const away = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+    for (let frame = 1; frame <= 400; frame += 1) {
+      if (away(pos, want) < 1) return { frames: frame, on };
+      if (via && away(pos, via) < 4) via = null;
+      if (!via && used < 2) {
+        used += 1;
+        const next = routeAround(pos, want, obstacles(pos), CAT_W, CAT_H, band);
+        if (next !== want) via = next;
+      }
+      const target = via ?? want;
+      const prev = { ...pos };
+      advance(pos, target, 4.4);
+      const d = away(prev, want);
+      if (d < best - 2) {
+        best = d;
+        stall = 0;
+      } else if ((stall += 1) > 150) return { frames: null, on };
+      const to = slideOffText(prev, pos, target, obstacles(prev), band, memo);
+      pos.x = to.x;
+      pos.y = to.y;
+      on ||= column.some((r) => pos.x + 3 < r.right && pos.x + CAT_W - 3 > r.left && pos.y + 3 < r.bottom && pos.y + CAT_H - 3 > r.top);
+    }
+    return { frames: null, on };
+  }
+
+  it("crosses the Record's year column without pacing against it", () => {
+    // At 1280 the explorers stalled at (712, 363), walking on the spot beside
+    // the column, until the slide gave up after 2.5s: the gaps between its
+    // blocks are narrower than a cat, so every way round one block ran into
+    // the next.
+    ground(...column);
+    const walked = walk({ x: 700, y: 363 }, { x: 1000, y: 380 }, (pos) => walkObstacles(pos, { x: 1000, y: 380 }));
+    expect(walked.frames).not.toBeNull();
+    expect(walked.on).toBe(false);
+  });
+
+  it("groups blocks a cat cannot pass between, and only those", () => {
+    const [run, ...rest] = proseRuns(column);
+    expect(rest).toEqual([]);
+    expect(run.box).toEqual({ left: 760, top: 120, right: 824, bottom: 696 });
+    expect(run.members).toHaveLength(3);
+    // A gap a cat and the margin either side fit through, on either axis.
+    const apart = [rect(0, 0, 100, 20), rect(0, 20 + CAT_H + 12, 100, 20), rect(100 + CAT_W + 12, 0, 100, 20)];
+    expect(proseRuns(apart)).toHaveLength(3);
+    // One pixel narrower and the cat no longer fits.
+    expect(proseRuns([rect(0, 0, 100, 20), rect(0, 20 + CAT_H + 11, 100, 20)])).toHaveLength(1);
+    // Side by side counts too.
+    expect(proseRuns([rect(0, 0, 100, 40), rect(100 + CAT_W + 11, 10, 100, 40)])).toHaveLength(1);
+  });
+
+  it("does not make an L of blocks that only meet at their ends", () => {
+    // Contact at 1280: the postcard's greeting is 48px under the lede and
+    // overlaps its last 75px; one box round both was mostly empty floor.
+    const lede = rect(80, 226, 544, 26);
+    const greeting = rect(549, 300, 302, 83);
+    expect(proseRuns([lede, greeting])).toHaveLength(2);
+  });
+
+  it("is the run's box for a walk past it, its blocks for a walk that ends beside them", () => {
+    // A short heading over a wide paragraph: the notch right of the heading is
+    // inside the run's box but on no words.
+    const heading = rect(100, 100, 120, 30);
+    const paragraph = rect(100, 140, 500, 90);
+    ground(heading, paragraph);
+    const box = { left: 100, top: 100, right: 600, bottom: 230 };
+    expect(walkObstacles({ x: 0, y: 300 }, { x: 700, y: 300 })).toEqual([box]);
+    const notch = { x: 400, y: 95 };
+    expect(walkObstacles({ x: 0, y: 300 }, notch)).toEqual([heading, paragraph]);
+    // And a cat walking out of the notch.
+    expect(walkObstacles(notch, { x: 0, y: 300 })).toEqual([heading, paragraph]);
+  });
+
+  it("moves with the page when it scrolls", () => {
+    ground(...column);
+    refreshGround();
+    shiftGround(0, 100);
+    expect(walkObstacles({ x: 0, y: 0 }, { x: 1000, y: 0 })).toEqual([{ left: 760, top: 20, right: 824, bottom: 596 }]);
   });
 });

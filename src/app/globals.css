@@ -2399,12 +2399,17 @@
 /* row's height is an inline style and its visibility a utility class.         */
 /* Known cost, JS off only: following a second in-page link un-targets the     */
 /* first row, which collapses and shifts the new landing above it.             */
+/* Open at once, not over the row's reveal: where the first style pass misses  */
+/* `:target`, the browser scrolled to the fragment on the reveal's first frame */
+/* and the opening row then pushed a case study 1281px below it (1440).        */
 /* -------------------------------------------------------------------------- */
 [data-timeline]:not([data-live]) [data-tree-branch]:is(:target, :has(:target)) > div > [role="region"] {
   grid-template-rows: 1fr !important;
+  transition: none !important;
 }
 [data-timeline]:not([data-live]) [data-tree-branch]:is(:target, :has(:target)) > div > [role="region"] > div {
   visibility: visible !important;
+  transition: none !important;
 }
 
 /* -------------------------------------------------------------------------- */
