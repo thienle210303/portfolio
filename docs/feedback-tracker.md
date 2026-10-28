@@ -2073,3 +2073,41 @@ On `round-21/e2e-mac`, from polish 2. Three tests that also fail on `main` on th
 Both are fixed on `round-21/cats-lede-wip` (`b729705`, with unit tests): prose is cut to what its clipping ancestors show, and a slide follows the edge it meets. The lede probe then went from about 1 crossing in 2 to 0 in 15. **It is not merged** because it costs elsewhere: "each explorer leaves its stop on its own clock" failed 6 of 39 runs with it against 0 of 54 without, and 3 of 16 with the clipping change alone, so the clipping is the cause. With the phantom labels gone, the cats meet the Record's year column (the `H4`s at x 760-824, three tall blocks with 13px gaps, narrower than a 42px cat) and stall against it, walking on the spot at (712, 363) and (822, 190) until `slideMemo` gives up after 2.5s. The phantom boxes had been hiding that weakness. Fixing the lede for real means routing round a run of blocks as one obstacle, a decision about the cats' movement rather than a test fix.
 
 **Verification.** Typecheck, lint, contrast and 935 unit tests pass; production build passes. On the final build: `legacy-anchors`, `origin` and `record` specs in full, 84 passed, 0 failed; "each explorer leaves its stop on its own clock" 3 of 3; the lede test still fails as on `main`. The last full e2e (which carried the cat changes too) was 883 passed, 1 failed (the clock test, above).
+
+## Round 21: cats round runs of text (2026-10-28)
+
+On `round-21/cats-runs`, from `round-21/e2e-mac`: the parked lede fix (`b729705`, as `78a4c52`), plus routing round a run of blocks as one (`8c97479`).
+
+**What changed.**
+- **Runs** (`proseRuns`). Two blocks of words are one run when they are stacked (sharing at least half the narrower one's width) or side by side (half the shorter one's height), and the gap is narrower than a cat plus `routeAround`'s 6px margin either side (62px across, 54px down). A walk goes round the run's box (`walkObstacles`). A run either end of the walk stands in goes back to its own blocks, so a stop in a notch beside a short heading is still reached.
+- **Only stacked or side by side.** The first version grouped any two blocks a cat could not pass between. The postcard's greeting is 48px under Contact's lede and overlaps its last 75px, which made the header an L whose box ([80,113]-[851,383] at 1280) was mostly empty floor. The cats' stops were in it, the run came apart, and the lede was crossed every time (20 of 20). Found with a frame log of the follower's walk, after a guess about her seat proved wrong.
+- **No way round, crossed at once.** At 1440 the year column and its rows are one run the height of the window ([760,65]-[1330,840], 9 blocks). Where neither end is inside the cats' band, `slideOffText` now crosses at once, as `routeAround` already did, instead of sliding to the band's edge first.
+- **The clock test watches for a minute.** Stays run 6-18s, and a walk round the year column to the margin beside the timeline takes about 5s. Its 40s window left the tabby two departures, under the floor of three, in 3 of 20 runs. Each of those still had departures far apart, which is what the test checks.
+
+**Measured** (the clock test's setup at 1440, six runs each, every walk recorded):
+
+| | Path ÷ straight line (walks after the first) | Walking on the spot |
+|---|---|---|
+| `round-21/e2e-mac` | 1.11 | 4.4 s |
+| `round-21/cats-runs` | 1.43 | 0.7 s |
+
+The cats now go round the end of the year column, the only way to the margin that crosses no words, instead of pacing against it and then crossing. That trip is about twice the straight line.
+
+**Repeat runs on the final build:**
+
+| Test | Result |
+|---|---|
+| they keep off the Wordification tag's year, Contact's lede and the postcard's greeting | 20 of 20 (fails 1 in 2 on `round-21/e2e-mac`) |
+| each explorer leaves its stop on its own clock | 20 of 20 with the minute window |
+| Lede probe at 1280 (a walking cat ever on the lede, 25s; on the build before the slide rule) | 0 of 10 |
+
+**Perf row** (`pnpm perf`, production builds on this Mac, three runs each, 0 skipped responses, bytes identical within each build). Baseline: `round-21/e2e-mac`.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`3807d17`) | 199,059 B | 199,059 B | 24,421 B | 117,868 B | 0 / 0 / 0 | 2603 |
+| After | 199,706 B | 199,706 B | 24,421 B | 117,868 B | 0 / 0 / 0 | 2603 |
+
+- **JS at load +647 B**: the clipping, the runs and the slide rule, all in the companion module. LCP 1084-1096 ms before, 1084-1092 ms after; TBT 0-1 ms.
+
+**Verification.** Typecheck, lint and contrast pass. 945 unit tests pass, including a walk simulation that stalls against the year column without runs. Production build passes. Full e2e on the final build: 884 passed, 0 failed. Not checked: WebKit; the run boxes at 768 and 1024 beyond the full e2e.
