@@ -1,0 +1,856 @@
+00:01:54 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:01:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:02:00 [extract] 2 exchanges (1 human)
+00:02:01 [extract] 1 human msgs < 3, skip
+00:05:01 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:05:04 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:05:07 [extract] 6 exchanges (1 human)
+00:05:07 [extract] 1 human msgs < 3, skip
+00:07:33 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:07:42 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:07:45 [extract] 6 exchanges (1 human)
+00:07:46 [extract] 1 human msgs < 3, skip
+00:12:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:12:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:12:21 [extract] 6 exchanges (1 human)
+00:12:21 [extract] 1 human msgs < 3, skip
+00:15:24 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:15:28 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:15:32 [extract] 6 exchanges (1 human)
+00:15:33 [extract] 1 human msgs < 3, skip
+00:17:37 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:17:38 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:17:38 [extract] 6 exchanges (1 human)
+00:17:38 [extract] 1 human msgs < 3, skip
+00:20:37 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:20:38 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:20:40 [extract] 6 exchanges (1 human)
+00:20:40 [extract] 1 human msgs < 3, skip
+00:23:44 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:23:46 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:23:47 [extract] 6 exchanges (1 human)
+00:23:47 [extract] 1 human msgs < 3, skip
+00:26:01 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:26:03 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:26:06 [extract] 6 exchanges (1 human)
+00:26:07 [extract] 1 human msgs < 3, skip
+00:33:49 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:33:49 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:33:50 [extract] 6 exchanges (1 human)
+00:33:51 [extract] 1 human msgs < 3, skip
+00:37:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:37:53 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:37:54 [extract] 6 exchanges (1 human)
+00:37:54 [extract] 1 human msgs < 3, skip
+00:40:19 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:40:20 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:40:21 [extract] 8 exchanges (2 human)
+00:40:21 [extract] 2 human msgs < 3, skip
+00:42:23 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:42:24 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:42:25 [extract] 10 exchanges (2 human)
+00:42:25 [extract] 2 human msgs < 3, skip
+00:44:30 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:44:31 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:44:32 [extract] 16 exchanges (3 human)
+00:44:35 [haiku] calling (branch: main)
+00:44:41 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+00:44:51 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+00:44:51 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+00:44:51 [haiku] failure 1/3 on this span -- will retry next run
+00:46:56 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:46:57 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:46:58 [extract] 16 exchanges (3 human)
+00:47:00 [haiku] calling (branch: main)
+00:47:05 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+00:47:17 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+00:47:17 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+00:47:17 [haiku] failure 1/3 on this span -- will retry next run
+00:58:00 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+00:58:02 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+00:58:03 [extract] 16 exchanges (3 human)
+00:58:05 [haiku] calling (branch: main)
+00:58:11 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+00:58:31 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+00:58:32 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+00:58:32 [haiku] failure 2/3 on this span -- will retry next run
+01:08:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:08:53 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:08:54 [extract] 16 exchanges (3 human)
+01:08:56 [haiku] calling (branch: main)
+01:09:01 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:09:14 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:09:14 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:09:15 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 8460 (see thresholds.max_summary_failures)
+01:25:21 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:25:21 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:25:22 [extract] 2 exchanges (1 human)
+01:25:22 [extract] 1 human msgs < 3, skip
+01:27:27 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:27:28 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:27:29 [extract] 10 exchanges (3 human)
+01:27:30 [haiku] calling (branch: main)
+01:27:34 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:27:45 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:27:45 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:27:45 [haiku] failure 1/3 on this span -- will retry next run
+01:29:33 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:29:34 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:29:35 [extract] 20 exchanges (5 human)
+01:29:36 [haiku] calling (branch: main)
+01:29:41 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:29:49 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:29:50 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:29:50 [haiku] failure 1/3 on this span -- will retry next run
+01:31:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:31:40 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:31:41 [extract] 20 exchanges (5 human)
+01:31:42 [haiku] calling (branch: main)
+01:31:46 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:31:56 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:31:56 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:31:56 [haiku] failure 2/3 on this span -- will retry next run
+01:34:07 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+01:34:08 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+01:34:09 [extract] 20 exchanges (5 human)
+01:34:11 [haiku] calling (branch: main)
+01:34:16 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+01:34:25 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+01:34:25 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+01:34:25 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 8685 (see thresholds.max_summary_failures)
+02:28:57 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:28:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:28:59 [extract] 2 exchanges (1 human)
+02:28:59 [extract] 1 human msgs < 3, skip
+02:31:13 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:31:14 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:31:15 [extract] 7 exchanges (2 human)
+02:31:15 [extract] 2 human msgs < 3, skip
+02:33:38 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:33:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:33:39 [extract] 8 exchanges (2 human)
+02:33:39 [extract] 2 human msgs < 3, skip
+02:38:25 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:38:26 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:38:27 [extract] 8 exchanges (2 human)
+02:38:27 [extract] 2 human msgs < 3, skip
+02:40:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:40:37 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:40:37 [extract] 12 exchanges (3 human)
+02:40:38 [haiku] calling (branch: main)
+02:40:43 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:40:52 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:40:52 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:40:52 [haiku] failure 1/3 on this span -- will retry next run
+02:43:59 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:44:00 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:44:01 [extract] 16 exchanges (4 human)
+02:44:02 [haiku] calling (branch: main)
+02:44:06 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:44:16 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:44:17 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:44:17 [haiku] failure 1/3 on this span -- will retry next run
+02:54:40 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+02:54:42 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+02:54:43 [extract] 16 exchanges (4 human)
+02:54:45 [haiku] calling (branch: main)
+02:54:54 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+02:55:08 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+02:55:08 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+02:55:08 [haiku] failure 2/3 on this span -- will retry next run
+03:05:07 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:05:08 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:05:08 [extract] 16 exchanges (4 human)
+03:05:10 [haiku] calling (branch: main)
+03:05:13 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:05:22 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:05:23 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:05:23 [haiku] failure 1/3 on this span -- will retry next run
+03:07:35 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:07:35 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:07:36 [extract] 24 exchanges (6 human)
+03:07:37 [haiku] calling (branch: main)
+03:07:41 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:07:49 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:07:49 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:07:49 [haiku] failure 1/3 on this span -- will retry next run
+03:10:15 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:10:17 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:10:21 [extract] 24 exchanges (6 human)
+03:10:23 [haiku] calling (branch: main)
+03:10:27 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:10:35 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:10:35 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:10:35 [haiku] failure 2/3 on this span -- will retry next run
+03:13:06 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:13:07 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:13:08 [extract] 24 exchanges (6 human)
+03:13:09 [haiku] calling (branch: main)
+03:13:14 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:13:23 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:13:23 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:13:23 [haiku] failure 1/3 on this span -- will retry next run
+03:23:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:23:37 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:23:38 [extract] 24 exchanges (6 human)
+03:23:41 [haiku] calling (branch: main)
+03:23:54 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:24:13 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:24:13 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:24:14 [haiku] failure 2/3 on this span -- will retry next run
+03:33:41 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:33:42 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:33:44 [extract] 24 exchanges (6 human)
+03:33:46 [haiku] calling (branch: main)
+03:33:50 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:33:58 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:33:59 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:33:59 [haiku] failure 1/3 on this span -- will retry next run
+03:36:06 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:36:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:36:07 [extract] 30 exchanges (8 human)
+03:36:12 [haiku] calling (branch: main)
+03:36:17 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:36:31 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:36:32 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:36:32 [haiku] failure 1/3 on this span -- will retry next run
+03:38:21 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:38:23 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:38:25 [extract] 32 exchanges (8 human)
+03:38:27 [haiku] calling (branch: main)
+03:38:37 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:38:46 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:38:46 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:38:46 [haiku] failure 1/3 on this span -- will retry next run
+03:40:29 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:40:30 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:40:31 [extract] 32 exchanges (8 human)
+03:40:32 [haiku] calling (branch: main)
+03:40:36 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:40:45 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:40:45 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:40:45 [haiku] failure 2/3 on this span -- will retry next run
+03:45:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+03:45:56 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+03:45:56 [extract] 32 exchanges (8 human)
+03:45:59 [haiku] calling (branch: main)
+03:46:04 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+03:46:13 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+03:46:14 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+03:46:14 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 9123 (see thresholds.max_summary_failures)
+04:02:19 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+04:02:21 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+04:02:23 [extract] 2 exchanges (1 human)
+04:02:23 [extract] 1 human msgs < 3, skip
+04:17:30 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+04:17:31 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+04:17:32 [extract] 4 exchanges (2 human)
+04:17:32 [extract] 2 human msgs < 3, skip
+04:21:34 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+04:21:35 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+04:21:35 [extract] 14 exchanges (7 human)
+04:21:36 [haiku] calling (branch: main)
+04:21:41 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+04:21:50 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+04:21:50 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+04:21:51 [haiku] failure 1/3 on this span -- will retry next run
+04:23:38 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+04:23:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+04:23:39 [extract] 16 exchanges (8 human)
+04:23:40 [haiku] calling (branch: main)
+04:23:44 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+04:23:52 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+04:23:52 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+04:23:52 [haiku] failure 1/3 on this span -- will retry next run
+04:26:57 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+04:26:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+04:26:58 [extract] 21 exchanges (9 human)
+04:26:59 [haiku] calling (branch: main)
+04:27:03 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+04:27:10 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+04:27:10 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+04:27:10 [haiku] failure 1/3 on this span -- will retry next run
+04:30:00 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+04:30:01 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+04:30:01 [extract] 21 exchanges (9 human)
+04:30:03 [haiku] calling (branch: main)
+04:30:09 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+04:30:24 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+04:30:24 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+04:30:24 [haiku] failure 2/3 on this span -- will retry next run
+05:00:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:00:40 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:00:41 [extract] 23 exchanges (10 human)
+05:00:42 [haiku] calling (branch: main)
+05:00:50 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+05:01:02 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+05:01:02 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+05:01:03 [haiku] failure 1/3 on this span -- will retry next run
+05:02:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:02:56 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:02:56 [extract] 25 exchanges (11 human)
+05:02:57 [haiku] calling (branch: main)
+05:03:00 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+05:03:07 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+05:03:07 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+05:03:08 [haiku] failure 1/3 on this span -- will retry next run
+05:06:43 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:06:44 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:06:45 [extract] 29 exchanges (12 human)
+05:06:45 [haiku] calling (branch: main)
+05:06:49 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+05:06:56 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+05:06:57 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+05:06:57 [haiku] failure 1/3 on this span -- will retry next run
+05:08:46 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:08:46 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:08:47 [extract] 37 exchanges (14 human)
+05:08:48 [haiku] calling (branch: main)
+05:08:51 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+05:08:59 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+05:08:59 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+05:08:59 [haiku] failure 1/3 on this span -- will retry next run
+05:11:00 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:11:01 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:11:01 [extract] 37 exchanges (14 human)
+05:11:02 [haiku] calling (branch: main)
+05:11:06 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+05:11:15 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+05:11:15 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+05:11:15 [haiku] failure 2/3 on this span -- will retry next run
+05:13:05 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:13:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:13:07 [extract] 37 exchanges (14 human)
+05:13:07 [haiku] calling (branch: main)
+05:13:13 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+05:13:21 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+05:13:21 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+05:13:21 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 9506 (see thresholds.max_summary_failures)
+05:15:55 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:15:56 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:15:56 [extract] 2 exchanges (1 human)
+05:15:56 [extract] 1 human msgs < 3, skip
+05:18:01 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:18:01 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:18:02 [extract] 5 exchanges (2 human)
+05:18:02 [extract] 2 human msgs < 3, skip
+05:20:06 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:20:07 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:20:08 [extract] 7 exchanges (2 human)
+05:20:08 [extract] 2 human msgs < 3, skip
+05:22:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:22:53 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:22:53 [extract] 7 exchanges (2 human)
+05:22:53 [extract] 2 human msgs < 3, skip
+05:25:06 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:25:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:25:07 [extract] 7 exchanges (2 human)
+05:25:07 [extract] 2 human msgs < 3, skip
+05:29:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+05:29:36 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+05:29:37 [extract] 7 exchanges (2 human)
+05:29:37 [extract] 2 human msgs < 3, skip
+06:00:51 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+06:00:52 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+06:00:55 [extract] 9 exchanges (3 human)
+06:00:59 [haiku] calling (branch: main)
+06:01:09 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+06:01:18 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+06:01:18 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+06:01:18 [haiku] failure 1/3 on this span -- will retry next run
+06:03:19 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+06:03:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+06:03:20 [extract] 11 exchanges (4 human)
+06:03:21 [haiku] calling (branch: main)
+06:03:24 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+06:03:30 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+06:03:30 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+06:03:31 [haiku] failure 1/3 on this span -- will retry next run
+06:05:37 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+06:05:38 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+06:05:38 [extract] 11 exchanges (4 human)
+06:05:39 [haiku] calling (branch: main)
+06:05:42 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+06:05:50 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+06:05:50 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+06:05:50 [haiku] failure 2/3 on this span -- will retry next run
+06:07:43 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+06:07:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+06:07:44 [extract] 11 exchanges (4 human)
+06:07:45 [haiku] calling (branch: main)
+06:07:48 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+06:07:54 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+06:07:54 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+06:07:55 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 9704 (see thresholds.max_summary_failures)
+06:09:47 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+06:09:47 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+06:09:48 [extract] 8 exchanges (2 human)
+06:09:48 [extract] 2 human msgs < 3, skip
+10:59:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+10:59:57 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+10:59:59 [extract] 15 exchanges (4 human)
+11:00:00 [haiku] calling (branch: main)
+11:00:06 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+11:00:17 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+11:00:18 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+11:00:18 [haiku] failure 1/3 on this span -- will retry next run
+11:02:25 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:02:27 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:02:29 [extract] 16 exchanges (4 human)
+11:02:31 [haiku] calling (branch: main)
+11:02:38 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+11:02:52 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+11:02:52 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+11:02:52 [haiku] failure 1/3 on this span -- will retry next run
+11:05:10 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:05:11 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:05:14 [extract] 16 exchanges (4 human)
+11:05:17 [haiku] calling (branch: main)
+11:05:24 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+11:05:41 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+11:05:41 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+11:05:42 [haiku] failure 2/3 on this span -- will retry next run
+11:07:38 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:07:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:07:41 [extract] 16 exchanges (4 human)
+11:07:44 [haiku] calling (branch: main)
+11:07:52 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+11:08:07 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+11:08:07 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+11:08:07 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 9860 (see thresholds.max_summary_failures)
+11:19:40 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:19:42 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:19:45 [extract] 4 exchanges (1 human)
+11:19:46 [extract] 1 human msgs < 3, skip
+11:22:37 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:22:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:22:42 [extract] 6 exchanges (1 human)
+11:22:43 [extract] 1 human msgs < 3, skip
+11:24:57 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:24:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:24:59 [extract] 6 exchanges (1 human)
+11:24:59 [extract] 1 human msgs < 3, skip
+11:29:38 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:29:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:29:40 [extract] 6 exchanges (1 human)
+11:29:40 [extract] 1 human msgs < 3, skip
+11:31:45 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:31:46 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:31:47 [extract] 6 exchanges (1 human)
+11:31:47 [extract] 1 human msgs < 3, skip
+11:38:32 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:38:33 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:38:33 [extract] 6 exchanges (1 human)
+11:38:34 [extract] 1 human msgs < 3, skip
+11:41:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:41:39 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:41:40 [extract] 6 exchanges (1 human)
+11:41:40 [extract] 1 human msgs < 3, skip
+11:44:08 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:44:09 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:44:09 [extract] 10 exchanges (2 human)
+11:44:09 [extract] 2 human msgs < 3, skip
+11:46:12 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:46:13 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:46:13 [extract] 14 exchanges (3 human)
+11:46:14 [haiku] calling (branch: main)
+11:46:17 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+11:46:24 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+11:46:24 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+11:46:24 [haiku] failure 1/3 on this span -- will retry next run
+11:48:33 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:48:33 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:48:34 [extract] 14 exchanges (3 human)
+11:48:35 [haiku] calling (branch: main)
+11:48:38 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+11:48:45 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+11:48:46 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+11:48:46 [haiku] failure 2/3 on this span -- will retry next run
+11:50:48 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+11:50:49 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+11:50:49 [extract] 14 exchanges (3 human)
+11:50:51 [haiku] calling (branch: main)
+11:50:55 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+11:51:02 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+11:51:02 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+11:51:02 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 10066 (see thresholds.max_summary_failures)
+12:27:41 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:27:42 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:27:42 [extract] 2 exchanges (1 human)
+12:27:43 [extract] 1 human msgs < 3, skip
+12:29:51 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:29:51 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:29:52 [extract] 8 exchanges (2 human)
+12:29:52 [extract] 2 human msgs < 3, skip
+12:31:57 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:31:58 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:31:58 [extract] 12 exchanges (3 human)
+12:31:59 [haiku] calling (branch: main)
+12:32:02 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+12:32:10 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+12:32:10 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+12:32:10 [haiku] failure 1/3 on this span -- will retry next run
+12:33:59 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:34:00 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:34:01 [extract] 16 exchanges (4 human)
+12:34:02 [haiku] calling (branch: main)
+12:34:05 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+12:34:12 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+12:34:12 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+12:34:12 [haiku] failure 1/3 on this span -- will retry next run
+12:36:08 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:36:09 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:36:09 [extract] 16 exchanges (4 human)
+12:36:10 [haiku] calling (branch: main)
+12:36:13 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+12:36:20 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+12:36:20 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+12:36:20 [haiku] failure 2/3 on this span -- will retry next run
+12:39:07 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+12:39:07 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+12:39:08 [extract] 16 exchanges (4 human)
+12:39:09 [haiku] calling (branch: main)
+12:39:14 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+12:39:21 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+12:39:21 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+12:39:21 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 10263 (see thresholds.max_summary_failures)
+13:00:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:00:42 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:00:43 [extract] 4 exchanges (1 human)
+13:00:43 [extract] 1 human msgs < 3, skip
+13:02:45 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:02:45 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:02:46 [extract] 7 exchanges (2 human)
+13:02:46 [extract] 2 human msgs < 3, skip
+13:05:26 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:05:27 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:05:28 [extract] 11 exchanges (2 human)
+13:05:28 [extract] 2 human msgs < 3, skip
+13:07:45 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:07:46 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:07:46 [extract] 11 exchanges (2 human)
+13:07:46 [extract] 2 human msgs < 3, skip
+13:10:20 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:10:21 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:10:21 [extract] 11 exchanges (2 human)
+13:10:21 [extract] 2 human msgs < 3, skip
+13:12:26 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:12:27 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:12:28 [extract] 15 exchanges (3 human)
+13:12:28 [haiku] calling (branch: main)
+13:12:31 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+13:12:37 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+13:12:38 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+13:12:38 [haiku] failure 1/3 on this span -- will retry next run
+13:14:34 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:14:35 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:14:36 [extract] 18 exchanges (4 human)
+13:14:37 [haiku] calling (branch: main)
+13:14:40 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+13:14:47 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+13:14:47 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+13:14:47 [haiku] failure 1/3 on this span -- will retry next run
+13:18:21 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:18:22 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:18:22 [extract] 19 exchanges (4 human)
+13:18:23 [haiku] calling (branch: main)
+13:18:26 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+13:18:32 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+13:18:33 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+13:18:33 [haiku] failure 1/3 on this span -- will retry next run
+13:22:12 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:22:13 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:22:13 [extract] 19 exchanges (4 human)
+13:22:14 [haiku] calling (branch: main)
+13:22:18 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+13:22:27 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+13:22:27 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+13:22:27 [haiku] failure 1/3 on this span -- will retry next run
+13:24:24 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:24:25 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:24:25 [extract] 27 exchanges (6 human)
+13:24:26 [haiku] calling (branch: main)
+13:24:30 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+13:24:37 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+13:24:37 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+13:24:37 [haiku] failure 1/3 on this span -- will retry next run
+13:28:09 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:28:09 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:28:10 [extract] 27 exchanges (6 human)
+13:28:11 [haiku] calling (branch: main)
+13:28:14 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+13:28:21 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+13:28:22 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+13:28:22 [haiku] failure 2/3 on this span -- will retry next run
+13:30:14 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+13:30:15 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+13:30:16 [extract] 27 exchanges (6 human)
+13:30:18 [haiku] calling (branch: main)
+13:30:22 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+13:30:32 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+13:30:32 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+13:30:32 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 10662 (see thresholds.max_summary_failures)
+14:03:34 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:03:35 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:03:35 [extract] 2 exchanges (1 human)
+14:03:35 [extract] 1 human msgs < 3, skip
+14:05:39 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:05:40 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:05:40 [extract] 11 exchanges (3 human)
+14:05:41 [haiku] calling (branch: main)
+14:05:44 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+14:05:51 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+14:05:51 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+14:05:51 [haiku] failure 1/3 on this span -- will retry next run
+14:07:48 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:07:49 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:07:49 [extract] 11 exchanges (3 human)
+14:07:50 [haiku] calling (branch: main)
+14:07:54 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+14:08:01 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+14:08:01 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+14:08:01 [haiku] failure 2/3 on this span -- will retry next run
+14:10:15 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:10:15 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:10:16 [extract] 11 exchanges (3 human)
+14:10:17 [haiku] calling (branch: main)
+14:10:20 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+14:10:26 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+14:10:27 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+14:10:27 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 10801 (see thresholds.max_summary_failures)
+14:12:41 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:12:41 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:12:42 [extract] 4 exchanges (1 human)
+14:12:42 [extract] 1 human msgs < 3, skip
+14:21:09 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+14:21:09 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+14:21:10 [extract] 4 exchanges (1 human)
+14:21:10 [extract] 1 human msgs < 3, skip
+19:31:23 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:31:24 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:31:25 [extract] 4 exchanges (1 human)
+19:31:25 [extract] 1 human msgs < 3, skip
+19:34:40 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:34:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:34:46 [extract] 12 exchanges (2 human)
+19:34:46 [extract] 2 human msgs < 3, skip
+19:36:52 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+19:36:52 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+19:36:53 [extract] 22 exchanges (4 human)
+19:36:54 [haiku] calling (branch: main)
+19:36:59 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+19:37:07 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+19:37:07 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+19:37:07 [haiku] failure 1/3 on this span -- will retry next run
+22:11:42 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:11:43 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:11:43 [extract] 29 exchanges (5 human)
+22:11:44 [haiku] calling (branch: main)
+22:11:49 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:11:57 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:11:57 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:11:57 [haiku] failure 1/3 on this span -- will retry next run
+22:13:50 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:13:50 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:13:51 [extract] 36 exchanges (5 human)
+22:13:52 [haiku] calling (branch: main)
+22:13:57 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:14:06 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:14:06 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:14:06 [haiku] failure 1/3 on this span -- will retry next run
+22:16:05 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:16:06 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:16:06 [extract] 38 exchanges (5 human)
+22:16:08 [haiku] calling (branch: main)
+22:16:12 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:16:19 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:16:20 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:16:20 [haiku] failure 1/3 on this span -- will retry next run
+22:18:09 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:18:10 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:18:11 [extract] 42 exchanges (6 human)
+22:18:12 [haiku] calling (branch: main)
+22:18:15 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:18:23 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:18:24 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:18:24 [haiku] failure 1/3 on this span -- will retry next run
+22:20:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:20:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:20:20 [extract] 42 exchanges (6 human)
+22:20:21 [haiku] calling (branch: main)
+22:20:24 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:20:31 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:20:31 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:20:31 [haiku] failure 1/3 on this span -- will retry next run
+22:29:19 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:29:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:29:20 [extract] 42 exchanges (6 human)
+22:29:21 [haiku] calling (branch: main)
+22:29:25 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:29:33 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:29:33 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:29:33 [haiku] failure 1/3 on this span -- will retry next run
+22:32:36 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:32:37 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:32:37 [extract] 42 exchanges (6 human)
+22:32:38 [haiku] calling (branch: main)
+22:32:42 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:32:49 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:32:49 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:32:49 [haiku] failure 1/3 on this span -- will retry next run
+22:35:03 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:35:04 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:35:04 [extract] 42 exchanges (6 human)
+22:35:05 [haiku] calling (branch: main)
+22:35:08 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:35:15 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:35:16 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:35:16 [haiku] failure 1/3 on this span -- will retry next run
+22:37:16 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:37:17 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:37:18 [extract] 42 exchanges (6 human)
+22:37:19 [haiku] calling (branch: main)
+22:37:22 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:37:31 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:37:31 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:37:31 [haiku] failure 1/3 on this span -- will retry next run
+22:44:16 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:44:17 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:44:18 [extract] 42 exchanges (6 human)
+22:44:19 [haiku] calling (branch: main)
+22:44:22 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:44:32 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:44:32 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:44:33 [haiku] failure 2/3 on this span -- will retry next run
+22:47:19 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:47:20 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:47:21 [extract] 42 exchanges (6 human)
+22:47:21 [haiku] calling (branch: main)
+22:47:25 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:47:33 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:47:33 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:47:33 [haiku] failure 1/3 on this span -- will retry next run
+22:49:22 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:49:23 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:49:23 [extract] 46 exchanges (7 human)
+22:49:25 [haiku] calling (branch: main)
+22:49:27 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:49:35 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:49:35 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:49:35 [haiku] failure 1/3 on this span -- will retry next run
+22:51:25 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:51:25 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:51:26 [extract] 50 exchanges (8 human)
+22:51:27 [haiku] calling (branch: main)
+22:51:31 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:51:38 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:51:38 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:51:38 [haiku] failure 1/3 on this span -- will retry next run
+22:55:27 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:55:27 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:55:28 [extract] 50 exchanges (8 human)
+22:55:29 [haiku] calling (branch: main)
+22:55:33 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:55:40 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:55:40 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:55:40 [haiku] failure 1/3 on this span -- will retry next run
+22:57:47 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+22:57:48 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+22:57:48 [extract] 56 exchanges (10 human)
+22:57:49 [haiku] calling (branch: main)
+22:57:53 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+22:58:01 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+22:58:01 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+22:58:01 [haiku] failure 1/3 on this span -- will retry next run
+23:00:29 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:00:29 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:00:30 [extract] 58 exchanges (10 human)
+23:00:33 [haiku] calling (branch: main)
+23:00:38 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:00:47 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:00:47 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:00:47 [haiku] failure 1/3 on this span -- will retry next run
+23:02:56 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:02:56 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:02:57 [extract] 58 exchanges (10 human)
+23:02:58 [haiku] calling (branch: main)
+23:03:02 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:03:09 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:03:09 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:03:09 [haiku] failure 1/3 on this span -- will retry next run
+23:05:28 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:05:28 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:05:29 [extract] 58 exchanges (10 human)
+23:05:30 [haiku] calling (branch: main)
+23:05:33 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:05:43 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:05:43 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:05:43 [haiku] failure 2/3 on this span -- will retry next run
+23:10:10 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:10:11 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:10:11 [extract] 58 exchanges (10 human)
+23:10:12 [haiku] calling (branch: main)
+23:10:15 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:10:23 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:10:24 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:10:24 [haiku] failure 1/3 on this span -- will retry next run
+23:12:47 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:12:47 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:12:48 [extract] 66 exchanges (12 human)
+23:12:49 [haiku] calling (branch: main)
+23:12:53 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:13:00 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:13:00 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:13:00 [haiku] failure 1/3 on this span -- will retry next run
+23:14:49 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:14:50 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:14:51 [extract] 74 exchanges (14 human)
+23:14:51 [haiku] calling (branch: main)
+23:14:55 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:15:03 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:15:04 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:15:04 [haiku] failure 1/3 on this span -- will retry next run
+23:17:15 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:17:16 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:17:17 [extract] 76 exchanges (15 human)
+23:17:18 [haiku] calling (branch: main)
+23:17:23 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:17:31 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:17:32 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:17:32 [haiku] failure 1/3 on this span -- will retry next run
+23:21:56 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:21:57 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:21:57 [extract] 76 exchanges (15 human)
+23:21:59 [haiku] calling (branch: main)
+23:22:04 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:22:15 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:22:15 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:22:15 [haiku] failure 2/3 on this span -- will retry next run
+23:24:02 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:24:03 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:24:04 [extract] 76 exchanges (15 human)
+23:24:04 [haiku] calling (branch: main)
+23:24:08 [haiku] WARNING: this CLI rejected --setting-sources (Failed to authenticate: OAuth session expired and could not be refreshed); retrying WITHOUT hook isolation so saves keep working. The nested call will run with your hooks registered -- a hook that blocks it returns its block message as if it were the model's reply (#202).
+23:24:16 [haiku] call exited 1; tokens already spent are unknown -- the failure carried no usage block, so this run's reported cost is lower than what it actually cost
+23:24:16 [haiku] ERROR: call-haiku error: claude exited 1: Failed to authenticate: OAuth session expired and could not be refreshed
+23:24:16 [haiku] WARNING: 3 consecutive failures on this span -- dropping it unsummarized and advancing position -> 11704 (see thresholds.max_summary_failures)
+23:37:34 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:37:34 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:37:35 [extract] 4 exchanges (1 human)
+23:37:35 [extract] 1 human msgs < 3, skip
+23:39:56 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:39:57 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:39:58 [extract] 8 exchanges (2 human)
+23:39:58 [extract] 2 human msgs < 3, skip
+23:42:16 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:42:17 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:42:17 [extract] 8 exchanges (2 human)
+23:42:17 [extract] 2 human msgs < 3, skip
+23:44:18 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:44:19 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:44:19 [extract] 8 exchanges (2 human)
+23:44:19 [extract] 2 human msgs < 3, skip
+23:53:47 [hook] save-session: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.33.0 PYTHON=python3 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:53:48 [extract] session 6a7fe831-6eb6-42ed-ac86-5a7eae481cda
+23:53:49 [extract] 8 exchanges (2 human)
+23:53:49 [extract] 2 human msgs < 3, skip

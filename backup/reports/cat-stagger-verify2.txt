@@ -1,0 +1,66 @@
+
+> portfolio@0.1.0 verify D:\Project\portfolio\.claude\worktrees\cat-stagger
+> pnpm typecheck && pnpm lint && pnpm contrast && pnpm test && pnpm build
+
+
+> portfolio@0.1.0 typecheck D:\Project\portfolio\.claude\worktrees\cat-stagger
+> next typegen && tsc --noEmit
+
+Generating route types...
+✓ Types generated successfully
+
+> portfolio@0.1.0 lint D:\Project\portfolio\.claude\worktrees\cat-stagger
+> eslint
+
+
+> portfolio@0.1.0 contrast D:\Project\portfolio\.claude\worktrees\cat-stagger
+> node scripts/contrast.mjs
+
+✓ 31 pairings, all >= AA. Lowest 4.66:1 (Night, code comments). Wrote docs/contrast.md
+
+> portfolio@0.1.0 test D:\Project\portfolio\.claude\worktrees\cat-stagger
+> vitest run
+
+
+ RUN  v4.1.10 D:/Project/portfolio/.claude/worktrees/cat-stagger
+
+
+ Test Files  37 passed (37)
+      Tests  693 passed (693)
+   Start at  17:49:46
+   Duration  20.06s (transform 4.66s, setup 21.59s, import 11.76s, tests 41.56s, environment 103.79s)
+
+
+> portfolio@0.1.0 build D:\Project\portfolio\.claude\worktrees\cat-stagger
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+✓ Running next.config.ts took 52ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 570ms
+  Running TypeScript ...
+  Finished TypeScript in 3.3s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/10) ...
+  Generating static pages using 11 workers (2/10) 
+  Generating static pages using 11 workers (4/10) 
+  Generating static pages using 11 workers (7/10) 
+✓ Generating static pages using 11 workers (10/10) in 1469ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/ask
+├ ƒ /api/contact
+├ ○ /icon
+├ ○ /opengraph-image
+├ ○ /resume
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
