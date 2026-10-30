@@ -15,12 +15,16 @@ import Postcard from "./Postcard";
  * at night, a string of Hội An lanterns with hoa mai at its ends; then my
  * card clipped beside the postcard, the bánh tét under the postcard (Tết
  * lives here all year), and the chat as a strip across the bottom. Below
- * 1024px everything stacks in reading order: heading, card, postcard, Tết,
+ * 1024px everything stacks in reading order: heading, postcard, Tết, card,
  * strip; the lanterns hang across the top.
  *
- * The card comes first in the DOM, so it reads and tabs as what it is, an
- * introduction. `#ask` is a plain wrapper, never an `<aside>`: the card must
- * stay the section's only `<aside>`, because the companion perches on it.
+ * The postcard comes first in the DOM and on the page, at every width, so the
+ * one thing this section asks for is the first thing you reach (round 22, by
+ * my choice: on a phone the form used to start 1,182px below "say hi.",
+ * under the whole card). From 1024 the board is round 21's mirrored, the
+ * postcard left and the card right, so reading, tab and visual order agree.
+ * `#ask` is a plain wrapper, never an `<aside>`: the card must stay the
+ * section's only `<aside>`, because the companion perches on it.
  *
  * Three server-side values arrive from `page.tsx`; nothing here reads
  * `process.env`. Only booleans and the validated booking URL cross to the
@@ -112,17 +116,17 @@ export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured
           </p>
         </header>
 
-        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-y-10 lg:mt-10 lg:grid-cols-[minmax(20.5rem,430fr)_minmax(0,740fr)] lg:gap-x-[clamp(2.5rem,4.8vw,4.375rem)]">
-          {/* Not `.no-print`: the card is worth printing. */}
-          <div className="pt-6 lg:pt-5">
-            <BusinessCard bookingUrl={bookingUrl} />
-          </div>
+        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-y-10 lg:mt-10 lg:grid-cols-[minmax(0,740fr)_minmax(20.5rem,430fr)] lg:gap-x-[clamp(2.5rem,4.8vw,4.375rem)]">
           <div className="min-w-0">
             <Postcard emailDeliveryConfigured={emailDeliveryConfigured} />
             <div className="mt-3 flex items-center justify-end gap-3 pr-1 lg:mt-2 lg:pr-14">
               <p className="font-serif text-[14px] text-fg-muted italic">{contactCopy.tet}</p>
               <Drawing name="banh-tet" className="h-[34px] w-[115px] shrink-0" />
             </div>
+          </div>
+          {/* Not `.no-print`: the card is worth printing. */}
+          <div className="pt-6 lg:pt-5">
+            <BusinessCard bookingUrl={bookingUrl} />
           </div>
         </div>
 

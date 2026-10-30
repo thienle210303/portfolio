@@ -129,16 +129,23 @@ test("the postcard is the form: always there, nothing to turn over", async ({ pa
   await expect(page.locator("#contact").getByRole("button", { name: /Let me reach you|^Back$/ })).toHaveCount(0);
 });
 
-test("Tab runs from my card into the postcard, in reading order", async ({ page }) => {
+test("Tab runs from the postcard into my card, in reading order", async ({ page }) => {
+  // Round 22: the postcard leads at every width, so its form comes first.
   onlyAt(page, WIDTHS);
   await open(page);
-  await card(page).getByRole("link", { name: "Save contact" }).focus();
+  await postcard(page).locator("input[name=name]").focus();
   const order: string[] = [];
   for (let i = 0; i < 4; i += 1) {
     await page.keyboard.press("Tab");
-    order.push(await page.evaluate(() => document.activeElement?.getAttribute("name") ?? document.activeElement?.textContent ?? ""));
+    order.push(
+      await page.evaluate(() => {
+        const el = document.activeElement;
+        if (el?.closest("aside")) return `card:${el.getAttribute("href") ?? el.textContent?.trim() ?? ""}`;
+        return el?.getAttribute("name") ?? el?.textContent ?? "";
+      }),
+    );
   }
-  expect(order).toEqual(["name", "email", "phone", contactCopy.send]);
+  expect(order).toEqual(["email", "phone", contactCopy.send, `card:mailto:${profile.email}`]);
 });
 
 test("email-only lead posts and shows success", async ({ page }) => {
@@ -220,7 +227,7 @@ test("GET /contact.vcf returns text/vcard as an attachment", async ({ page, requ
   expect(body).toContain(`EMAIL;TYPE=INTERNET:${profile.email}`);
 });
 
-test("card beside the postcard from 1024, the chat strip under both; stacked below", async ({ page }) => {
+test("postcard beside the card from 1024, the chat strip under both; stacked below", async ({ page }) => {
   onlyAt(page, [390, 768, 1024, 1440]);
   // Where the papers lie, not where they are mid-entrance: the postcard settles
   // (scroll-driven, round 21 phase 8) from 28px up and 3.5 degrees turned.
@@ -231,10 +238,11 @@ test("card beside the postcard from 1024, the chat strip under both; stacked bel
   const side = page.viewportSize()!.width >= 1024;
   if (side) {
     // Turned paper: allow the few pixels a 2.5° turn adds.
-    expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(postBox.x + 8);
+    // Round 22 mirrors the board: the postcard on the left, my card on the right.
+    expect(postBox.x + postBox.width).toBeLessThanOrEqual(cardBox.x + 8);
     expect(Math.abs(cardBox.y - postBox.y)).toBeLessThan(60);
   } else {
-    expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(postBox.y + 8);
+    expect(postBox.y + postBox.height).toBeLessThanOrEqual(cardBox.y + 8);
   }
   expect(Math.max(cardBox.y + cardBox.height, postBox.y + postBox.height)).toBeLessThanOrEqual(askBox.y + 8);
 });

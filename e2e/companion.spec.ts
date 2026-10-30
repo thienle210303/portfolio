@@ -3955,6 +3955,13 @@ test.describe("cats (round 21)", () => {
       ["#ask", /^I said$/],
     ] as const) {
       const target = page.locator(scope).getByText(words).first();
+      // The chat mounts as it nears the window. Since round 22 my card sits
+      // between the postcard and the chat, so the postcard's words no longer
+      // bring it in range: scroll to it and wait for its words.
+      if (scope === "#ask") {
+        await page.locator(scope).scrollIntoViewIfNeeded();
+        await expect(target).toBeAttached();
+      }
       for (const at of [100, 250, 400, 520]) {
         // Put the words `at` px down the window, let the pair re-pick (150ms debounce).
         await target.evaluate((el, y) => window.scrollBy(0, el.getBoundingClientRect().top - y), at);

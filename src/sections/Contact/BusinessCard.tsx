@@ -12,7 +12,9 @@ import VisuallyHidden from "@/components/ui/VisuallyHidden";
  * then every way to reach me with its icon, and Résumé / Save contact (and
  * Book a call, when `BOOKING_URL` is valid) as outlined chips. The faint
  * "TL" monogram bleeds off the bottom right. A server component: only the
- * copy button is a client island. The lead form is the postcard beside it.
+ * copy button is a client island. The lead form is the postcard beside it
+ * (before it, since round 22: the card sits right of the postcard from 1024
+ * and under it below, turned the other way to match).
  *
  * `data-cat-hide` is a contract with src/components/companion: this panel is
  * opaque and has a clear band above its top edge, so the cats occasionally
@@ -75,7 +77,7 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
     <aside
       aria-label={`${profile.name} — business card`}
       data-cat-hide
-      className="relative mx-auto w-full max-w-[430px] -rotate-1 lg:mx-0 lg:-rotate-[2.5deg]"
+      className="relative mx-auto w-full max-w-[430px] -rotate-1 lg:mx-0 lg:rotate-[2.5deg]"
     >
       <div className="paper-lift relative isolate flex h-full flex-col overflow-hidden bg-surface p-3">
         {/* Drawn by `::before`, not as text: a watermark at 6% is not text

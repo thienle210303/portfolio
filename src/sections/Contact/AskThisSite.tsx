@@ -836,12 +836,14 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
               className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 text-[16px] text-fg placeholder:text-fg-muted"
             />
           </div>
-          {/* Moss, not the moss-deep control fill: the postcard's Send is
-              Contact's one primary control. */}
+          {/* Button's `secondary` recipe by hand, squared like the postcard's
+              Send: that is Contact's one primary control, and `--accent`
+              is for links, values and annotation, not a fill (round 22; a
+              moss pill read as a second primary beside it). */}
           <button
             type="submit"
             disabled={isBusy}
-            className="inline-flex h-11 shrink-0 items-center rounded-full bg-accent px-[22px] text-[15px] font-semibold text-fg-inverse transition-opacity duration-200 hover:opacity-90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 shrink-0 items-center rounded-[3px] border border-rule bg-transparent px-[22px] text-[15px] font-semibold text-fg transition-colors duration-200 hover:border-accent hover:text-accent active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
           >
             Ask
           </button>

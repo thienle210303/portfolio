@@ -64,11 +64,17 @@ describe("Ask, in Contact", () => {
     expect(primary[0]).toHaveTextContent(contactCopy.send);
   });
 
-  it("puts the card first in the markup, so it stacks first below 1024px", () => {
+  it("puts the postcard, form first, ahead of my card in the markup, and the card ahead of the chat", () => {
     render(<Contact emailDeliveryConfigured={true} askLiveModeConfigured={false} bookingUrl={null} />);
+    const postcard = document.querySelector("#contact [data-postcard]") as HTMLElement;
+    const form = postcard.querySelector("form") as HTMLElement;
     const aside = document.querySelector("#contact aside") as HTMLElement;
     const ask = document.getElementById("ask") as HTMLElement;
-    expect(aside.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const follows = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(postcard, aside)).toBe(true);
+    expect(follows(aside, ask)).toBe(true);
+    // The address side (the form) comes before the picture side's greeting.
+    expect(follows(form, within(postcard).getByText(contactCopy.postcard.place))).toBe(true);
   });
 
   it("greets in Vietnamese above a lowercase h2, and keeps the board's words", () => {

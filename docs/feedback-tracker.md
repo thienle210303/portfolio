@@ -2123,3 +2123,24 @@ From the whole-site critique of 2026-10-28 (Impeccable, dual-agent, 25/36; snaps
 - **The headline is a recorded exception** to `docs/voice.md` rule 4, by the owner's ruling.
 
 **Verification.** `pnpm verify`: typecheck, lint, contrast (62 pairings, lowest 4.52:1) and 945 unit tests pass; the build passes. Full e2e on a production build, `--workers=2`: 885 passed, 0 failed (16.7 min), including a new 460px case of the scenery test. Checked by eye at 1440 and 375, day and night. Impeccable detect at 1280 and 390: no finding in the hero (the same seven as the critique). Hallmark on `HeroIdentity.tsx`: 26a/26b only, per-file noise (the ring is global; `Button` owns the states). No perf row: neither file is a client component, so no JavaScript moved.
+
+## Round 22: Contact, the postcard first (2026-10-29)
+
+On `round-22/contact`, from `round-22/hero` (`ae308a4`). Two of the critique's Contact findings; the board's reds are a later step.
+
+**What changed.**
+- **The postcard leads, at every width** (owner's choice of three: "postcard first, mirrored"). It comes before my card in the markup and on the page, and inside it the address side (the form) comes before the picture. At 390 the name field is 354px under "say hi." (was 1,182px: the 470px card, then the 303px picture band). From 1024 the board is mirrored: the postcard left, the card right, the card turned +2.5° and the postcard −1.2° to match; side by side the form is the postcard's left half, the stamp and postmark moved in to stay off the divider. Reading, tab and visual order agree everywhere; the card is no longer the section's introduction.
+- **"Ask" is a secondary control**: Button's `secondary` recipe by hand (outlined in `--rule`, ink text, squared like Send). It was a moss pill in `bg-accent`, a second primary beside "Send the postcard" and a fill in the colour kept for links, values and annotation.
+
+**Tests.** "Tab runs from the postcard into my card" replaces "from my card into the postcard"; the layout test asserts the postcard left of / above the card; the unit test pins postcard → card → chat and form → picture. The parked-pair test at 320 scrolled to the postcard's words and relied on that bringing the lazy chat in range; with the card now between them it never loaded, so the test scrolls to `#ask` before reading "I said" (5 of 5 after).
+
+**Perf row** (`pnpm perf`, production builds on this Mac, three runs each, 0 skipped responses, bytes identical within each build). Baseline: `ae308a4` built in a second worktree.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`ae308a4`) | 199,706 B | 199,706 B | 24,451 B | 117,868 B | 0 / 0 / 0 | 2603 |
+| After | 199,707 B | 199,707 B | 24,427 B | 117,868 B | 0 / 0 / 0 | 2603 |
+
+- **JS at load +1 B** (the Ask button's class string). LCP 1076-1104 ms before, 1084-1100 ms after; TBT 0-6 ms.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (62 pairings, lowest 4.52:1) and 945 unit tests pass; the build passes. Full e2e on a production build, `--workers=2`: 884 passed, 1 failed (15.6 min), the parked-pair test above, fixed and re-run 5 of 5. Checked by eye at 390, 768, 1024 and 1440, day and night (`reports/r22-contact/`, untracked); no horizontal overflow at any of them. Impeccable detect at 1280 and 390: the critique's seven, none in Contact. Hallmark on the three Contact files: 26a/26b per-file noise; 67 on the card's title, Courier's label voice.
