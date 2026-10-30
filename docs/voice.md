@@ -11,7 +11,10 @@ Rules every section's copy follows. Source: the Round 19 design,
 3. **Story belongs to motion.** Text never retells what an animation shows.
 4. **Headlines:** 12 words or fewer, phrased as a result, every figure taken
    from the same record's own content. "I" allowed, not required. No adjectives
-   about the person.
+   about the person. One exception, by my ruling (2026-10-28): the hero's
+   `<h1>`, `profile.headline` ("Just a curious kid, and this is my youth."),
+   stays as written. It opens the story rather than reporting a record, and
+   the Round 22 critique's case for a result there was heard and declined.
 5. **Taste:** one idea per line; numbers beat adjectives; playful only where it
    costs nothing.
 6. **Before / after**, each "before" quoted from the content layer as it stood at Round 19:

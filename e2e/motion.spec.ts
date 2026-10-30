@@ -145,7 +145,7 @@ test.describe("motion (round 21 phase 8)", () => {
     test.skip(width(page) !== 1440, "run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("link", { name: "Start with where I'm from" }).click();
+    await page.getByRole("link", { name: "See what I've built" }).click();
     await page.waitForFunction(() => !document.documentElement.hasAttribute("data-glide"));
     expect(new URL(page.url()).hash).toBe("#tree");
     const top = await page.locator("#tree").evaluate((el) => el.getBoundingClientRect().top);
@@ -171,7 +171,7 @@ test.describe("motion (round 21 phase 8)", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     expect(await snap(), "proximity serialises as the axis alone").toBe("y");
-    await page.getByRole("link", { name: "Start with where I'm from" }).click();
+    await page.getByRole("link", { name: "See what I've built" }).click();
     await expect.poll(() => new URL(page.url()).hash).toBe("#tree");
     expect(await snap(), "a fragment landing is not pulled back to a page's top").toBe("none");
     await page.goBack();

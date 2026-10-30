@@ -40,10 +40,12 @@ describe("Hero", () => {
 
   it("offers the two actions", () => {
     renderHero();
-    const start = screen.getByRole("link", { name: "Start with where I'm from" });
+    const start = screen.getByRole("link", { name: "See what I've built" });
     expect(start).toHaveAttribute("href", "#tree");
     expect(start.className).toMatch(CONTROL_FILL);
-    expect(screen.getByRole("link", { name: "Book a call with me" })).toHaveAttribute("href", "#contact");
+    // No booking link: the quiet action names the postcard it lands on, not a call.
+    expect(screen.getByRole("link", { name: "Send me a postcard" })).toHaveAttribute("href", "#contact");
+    expect(screen.queryByText(/Book a call/)).toBeNull();
   });
 
   it("opens a configured booking URL in a new tab", () => {
@@ -54,12 +56,12 @@ describe("Hero", () => {
     expect(book).toHaveAttribute("target", "_blank");
   });
 
-  it("fills only Start with where I'm from with the control colour", () => {
+  it("fills only See what I've built with the control colour", () => {
     const { container } = renderHero();
     const filled = [...container.querySelectorAll<HTMLElement>("[class]")].filter((element) =>
       CONTROL_FILL.test(element.className),
     );
-    expect(filled.map((element) => element.textContent)).toEqual(["Start with where I'm from"]);
+    expect(filled.map((element) => element.textContent)).toEqual(["See what I've built"]);
   });
 
   it("hangs four chapter tags and my field tag", () => {

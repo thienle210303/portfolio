@@ -11,11 +11,19 @@
  * so an <h3> here would skip a level and fail the document-wide heading-order
  * check in e2e/accessibility.spec.ts.
  *
- * "Start with where I'm from" is the screen's one primary control. "Book a
- * call with me" is quiet: with `BOOKING_URL` set it is an external link
- * (Button routes `http` hrefs through `ExternalLink`); without one it falls
- * back to `#contact` rather than rendering a dead link. The actions row is the
- * cats' perch.
+ * Each action names where it lands (round 22). "See what I've built" is the
+ * screen's one primary control and goes to the Journey, whose tags carry the
+ * work at every width; it used to say "Start with where I'm from", which the
+ * Journey only drew from 1024. The quiet action is "Book a call with me" with
+ * `BOOKING_URL` set, an external link (Button routes `http` hrefs through
+ * `ExternalLink`); without one it says "Send me a postcard" and goes to
+ * `#contact`, where the postcard is, rather than promise a call nobody can
+ * book. The actions row is the cats' perch.
+ *
+ * Below 640 the actions stack. The phone line's bamboo pole starts 24px above
+ * the row's foot at the right, so two actions side by side ran into it from
+ * 390 to 479 (the shorter labels fit one row there; the old ones always
+ * wrapped).
  */
 import { hero, profile } from "@/content/portfolio";
 import { Button } from "@/components/ui/Button";
@@ -51,11 +59,11 @@ export default function HeroIdentity({ headingId, bookingUrl }: HeroIdentityProp
       <div
         data-hero-step="meta-actions"
         data-cat-perch=""
-        className="mt-6.5 flex w-fit flex-wrap items-center gap-x-5 gap-y-4"
+        className="mt-6.5 flex w-fit flex-wrap items-center gap-x-5 gap-y-4 max-sm:flex-col max-sm:items-start"
       >
-        <Button href="#tree">Start with where I&apos;m from</Button>
+        <Button href="#tree">See what I&apos;ve built</Button>
         <Button href={bookingUrl ?? "#contact"} variant="quiet">
-          Book a call with me
+          {bookingUrl ? "Book a call with me" : "Send me a postcard"}
         </Button>
       </div>
     </div>

@@ -2111,3 +2111,15 @@ The cats now go round the end of the year column, the only way to the margin tha
 - **JS at load +647 B**: the clipping, the runs and the slide rule, all in the companion module. LCP 1084-1096 ms before, 1084-1092 ms after; TBT 0-1 ms.
 
 **Verification.** Typecheck, lint and contrast pass. 945 unit tests pass, including a walk simulation that stalls against the year column without runs. Production build passes. Full e2e on the final build: 884 passed, 0 failed. Not checked: WebKit; the run boxes at 768 and 1024 beyond the full e2e.
+
+## Round 22: the hero's actions (2026-10-28)
+
+From the whole-site critique of 2026-10-28 (Impeccable, dual-agent, 25/36; snapshot in `.impeccable/critique/`, screens in `reports/r22-review/`, untracked). Owner's answers: all five priority issues this round, the hero first; the headline stays; one red per screen. On `round-22/hero`.
+
+**What changed.** Each hero action now names where it lands.
+- **"See what I've built"** (was "Start with where I'm from") goes to `#tree`, as before. The Journey opens on the work, and below 1024 it draws no origin at all, so the old label promised a place the link never showed.
+- **"Send me a postcard"** (was "Book a call with me") when `BOOKING_URL` is unset: it goes to `#contact`, where the postcard is and no call can be booked. With a booking URL it still says "Book a call with me" and opens that link.
+- **Below 640 the actions stack.** The shorter labels fit one row from 390 to 479, and there the quiet one ran into the phone line's bamboo pole, which starts 24px above the row's foot at the right (`hero.spec` "below 1024 the line's scenery clears the words and the actions" failed at 390). Stacked, both clear the pole at every width from 320 to 639, measured; from 640 they share a row with 70px to spare.
+- **The headline is a recorded exception** to `docs/voice.md` rule 4, by the owner's ruling.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (62 pairings, lowest 4.52:1) and 945 unit tests pass; the build passes. Full e2e on a production build, `--workers=2`: 885 passed, 0 failed (16.7 min), including a new 460px case of the scenery test. Checked by eye at 1440 and 375, day and night. Impeccable detect at 1280 and 390: no finding in the hero (the same seven as the critique). Hallmark on `HeroIdentity.tsx`: 26a/26b only, per-file noise (the ring is global; `Button` owns the states). No perf row: neither file is a client component, so no JavaScript moved.

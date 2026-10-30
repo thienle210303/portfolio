@@ -9,8 +9,9 @@ import { buildFieldTag } from "../src/lib/hero";
 const WIDE = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
 const PLACES = ["Kiên Giang", "Taylors", "USC", "DoorDash"];
-const PRIMARY = "Start with where I'm from";
-const BOOK = "Book a call with me";
+const PRIMARY = "See what I've built";
+// The test server runs without BOOKING_URL, so the quiet action names the postcard.
+const QUIET = "Send me a postcard";
 
 async function open(page: Page, theme: "day" | "night" = "day") {
   await page.addInitScript((value) => window.localStorage.setItem("theme", value), theme);
@@ -55,8 +56,7 @@ test.describe("hero", () => {
         `${profile.positioning} ${hero.invitation}`,
       );
       await expect(page.getByRole("link", { name: PRIMARY })).toHaveAttribute("href", "#tree");
-      // The test server runs without BOOKING_URL.
-      await expect(page.getByRole("link", { name: BOOK })).toHaveAttribute("href", "#contact");
+      await expect(page.getByRole("link", { name: QUIET })).toHaveAttribute("href", "#contact");
     });
   }
 
@@ -108,7 +108,7 @@ test.describe("hero", () => {
 
     await back(page, 0).getByRole("button").focus();
     await page.keyboard.press("Shift+Tab");
-    expect(await focused(page)).toBe(BOOK);
+    expect(await focused(page)).toBe(QUIET);
   });
 
   test("after a turn, the focused element has a box and is visible", async ({ page }) => {
@@ -235,7 +235,7 @@ test.describe("hero", () => {
       }
       expect(seen.map((s) => s.replace(/^front:\S+( \d{4})? /, "front:"))).toEqual([
         PRIMARY,
-        BOOK,
+        QUIET,
         ...PLACES.map((p) => `front:${p}`),
         "My LinkedIn (opens in a new tab)",
       ]);
@@ -355,7 +355,7 @@ test.describe("hero", () => {
     });
   }
 
-  for (const viewport of [{ width: 360, height: 740 }, PHONE, { width: 768, height: 1024 }]) {
+  for (const viewport of [{ width: 360, height: 740 }, PHONE, { width: 460, height: 900 }, { width: 768, height: 1024 }]) {
     test(`below 1024 the line's scenery clears the words and the actions at ${viewport.width}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.emulateMedia({ reducedMotion: "reduce" });
@@ -634,7 +634,7 @@ test.describe("hero", () => {
           };
         }),
     );
-  const TAB_ORDER = [PRIMARY, BOOK, "tag", "tag", "tag", "tag", "My LinkedIn (opens in a new tab)"];
+  const TAB_ORDER = [PRIMARY, QUIET, "tag", "tag", "tag", "tag", "My LinkedIn (opens in a new tab)"];
 
   test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
     await open(page);
