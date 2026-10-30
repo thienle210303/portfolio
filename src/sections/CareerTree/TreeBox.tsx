@@ -98,8 +98,6 @@ export default function TreeBox({ children, className }: TreeBoxProps) {
     if (!box) return;
 
     const onGrow = (event: Event) => {
-      // Proximity snapping would pull the centred box back to the page's top.
-      document.documentElement.dataset.noSnap = "";
       box.scrollIntoView({ block: "center" });
       startedRef.current = true;
       if (reducedMotion()) return;

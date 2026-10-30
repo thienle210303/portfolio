@@ -89,11 +89,13 @@ afterEach(() => {
 });
 
 describe("AskThisSite -- scrolling thread window", () => {
-  it("has no scroll region markup while idle -- nothing to reach or scroll yet", () => {
+  it("is one fixed size from the start, but not a tab stop while idle -- nothing to scroll yet", () => {
     render(<AskThisSite liveModeConfigured={false} />);
     const region = screen.getByRole("log", { name: "Conversation thread" });
     expect(region).not.toHaveAttribute("tabindex");
-    expect(region).not.toHaveClass("max-h-[22rem]");
+    // Round 22: the same height idle and in use, so the first question
+    // does not grow the strip.
+    expect(region).toHaveClass("h-[17rem]", "lg:h-[20rem]");
   });
 
   it("becomes a keyboard-reachable, bounded scroll region once a turn exists", async () => {
@@ -104,7 +106,7 @@ describe("AskThisSite -- scrolling thread window", () => {
 
     const region = conversationRegion();
     expect(region).toHaveAttribute("tabindex", "0");
-    expect(region).toHaveClass("max-h-[22rem]");
+    expect(region).toHaveClass("h-[17rem]", "lg:h-[20rem]");
     expect(region).toHaveClass("overflow-y-auto");
 
     // Still the same list, same accessible name, that every other ask.spec

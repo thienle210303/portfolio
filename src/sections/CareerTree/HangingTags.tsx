@@ -76,6 +76,9 @@ function Half({ h }: { readonly h: ResolvedHighlight }) {
   );
 }
 
+/** The trunk's layers, masked from the top: it is cut at the stage's height. */
+const TRUNK = "absolute inset-0 [mask-position:top] [mask-size:100%_auto]";
+
 /** A quarter of a punched notch at one corner; the paper's clip cuts it. */
 const notch = "absolute size-3.5 rounded-full bg-(--hole)";
 
@@ -88,23 +91,20 @@ const notch = "absolute size-3.5 rounded-full bg-(--hole)";
  *
  * From 1280 each tag stands where the board hangs it, in a 1440 frame whose
  * left edge is the section's `--fx`; the strings are drawn in globals.css
- * (`[data-hanging-tags]`). Below 1280 the same list hangs from a branch that
- * drops from the crown above it, each tag from its own twig: down the right
- * edge in one column on a phone, down the middle with the tags either side
- * from 640 (the hero's phone line does the same). globals.css lays that out.
+ * (`[data-hanging-tags]`). Below 1280 it is one tree (round 22): the crown's
+ * own trunk carries on down past the tags to its roots, and each tag hangs
+ * by a string from a leafy bough of its own. The trunk stands at the right
+ * edge on a phone, the tags in one column; from 640 it stands in the middle
+ * and the tags take turns either side. globals.css lays that out.
  */
 export default function HangingTags({ className }: { readonly className?: string }) {
   return (
     <div data-hanging-tags="" className={cn("relative xl:static", className)}>
-      <div
-        aria-hidden="true"
-        data-branch=""
-        className="no-print pointer-events-none absolute bottom-0 xl:hidden"
-      >
-        <Drawing
-          name="oak-branch"
-          className="absolute inset-0 text-[color:var(--scene-bark)] [mask-position:top] [mask-size:100%_auto]"
-        />
+      <div aria-hidden="true" data-trunk="" className="no-print pointer-events-none absolute xl:hidden">
+        <Drawing name="oak-trunk-moss" className={cn(TRUNK, "text-[color:var(--scene-moss)]")} />
+        <Drawing name="oak-trunk" className={cn(TRUNK, "text-[color:var(--scene-bark)]")} />
+        <Drawing name="oak-trunk-leaves" className={cn(TRUNK, "text-accent")} />
+        <Drawing name="oak-roots" className="absolute inset-x-0 bottom-0 aspect-[240/156] text-[color:var(--scene-bark)]" />
       </div>
       <ul
         role="list"
@@ -128,6 +128,10 @@ export default function HangingTags({ className }: { readonly className?: string
                 } as CSSProperties
               }
             >
+              <span aria-hidden="true" data-bough="" className="no-print pointer-events-none absolute xl:hidden">
+                <Drawing name="oak-bough" className="absolute inset-0 text-[color:var(--scene-bark)] [mask-size:100%_100%]" />
+                <Drawing name="oak-bough-leaves" className="absolute inset-0 text-accent [mask-size:100%_100%]" />
+              </span>
               <div className="origin-[50%_18px] rotate-(--tilt)">
                 {stub ? (
                   <>

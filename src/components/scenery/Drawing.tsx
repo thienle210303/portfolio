@@ -15,7 +15,12 @@ export const INK_DRAWINGS = [
   "oak",
   "oak-leaves",
   "oak-moss",
-  "oak-branch",
+  "oak-trunk",
+  "oak-trunk-leaves",
+  "oak-trunk-moss",
+  "oak-roots",
+  "oak-bough",
+  "oak-bough-leaves",
   "journey-rice",
   // Contact
   "postmark",

@@ -764,7 +764,6 @@
   /* Journey (round 21): the strings the Journey's tags hang by
      (HangingTags.tsx), each behind its paper so it seems to run into the hole.
      From 1280 it climbs `--string` from the hole to the oak's limb. */
-  [data-hanging-tags] li::before,
   [data-hanging-tags] li::after {
     content: "";
     position: absolute;
@@ -783,44 +782,43 @@
     }
   }
 
-  /* Journey (round 21): below 1280 the tags hang from a branch that grows
-     out of the crown above them (OakCrown, 24px up). On a phone the crown is
-     mirrored and slid right so the foot of its trunk (board x 307 at y 640,
-     mirrored to 78.68% of its width) stands on the stem, 20px in from the
-     right edge: one tree. The stem is drawn at 100px there, as wide as the
-     trunk it continues. From 640 the stem runs down the middle and rises into
-     the crown to meet the limb there (board x 720, y 386: the crown is the
-     board's y 120–640 at the wrapper's width, so 17.6cqw up), and the tags
-     take turns either side, each starting 40px above the last one's foot.
-     Each tag hangs by a string from the tip of a tapered twig of bark (the
-     mask), 26px above it. The branch fades out below the last tag rather than
-     stopping square. */
+  /* Journey (round 22): below 1280 one tree. The crown is `--crown-w` wide
+     (at least 900px; a % here resolves where it is used, against the stage)
+     and placed so the foot of its trunk (board x 307 at its cut, 21.319% of
+     its width; 78.681% mirrored) stands on the trunk's centre line. The
+     trunk is 240/900 of the crown's width, so its drawn top (29.1 of 240)
+     is exactly the crown's trunk where it is cut, and it rises 26px, past
+     the 24px gap, into the crown. On a phone the centre line is 20px in from
+     the right edge and both are mirrored; from 640 it is the middle. Each
+     tag hangs by a string from the tip of its bough, which runs from the
+     tag's middle into the trunk: the bough's tip is 11/70 down its box, 24px
+     above the tag, where the string starts. */
   @media (width < 80rem) {
-    [data-hanging-tags] {
-      container-type: inline-size;
+    [data-journey-stage] {
+      --crown-w: max(56.25rem, 100%);
     }
     [data-crown] {
-      transform: translateX(calc(21.32% - 20px)) scaleX(-1);
+      width: var(--crown-w);
+      margin-left: calc(100% - 20px - var(--crown-w) * 0.78681);
+      transform: scaleX(-1);
     }
-    [data-hanging-tags] [data-branch] {
-      top: -28px;
-      right: -30px;
-      width: 100px;
-      mask-image: linear-gradient(to bottom, #000 calc(100% - 96px), transparent);
+    [data-hanging-tags] [data-trunk] {
+      top: -26px;
+      bottom: 0;
+      right: calc(20px - var(--crown-w) * 0.13333);
+      width: calc(var(--crown-w) * 0.26667);
+      transform: scaleX(-1);
     }
     [data-hanging-tags] li {
       width: min(100% - 44px, 340px);
       margin-left: auto;
       margin-right: 44px;
     }
-    [data-hanging-tags] li::before {
-      top: -26px;
+    [data-hanging-tags] [data-bough] {
+      top: -61px;
       left: 50%;
-      right: -24px;
-      height: 24px;
-      background: var(--scene-bark);
-      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M100 20C70 18 30 6 0 1.2V2.6C30 8 70 21.5 100 23.5Z'/%3E%3C/svg%3E")
-        no-repeat 0 0 / 100% 100%;
+      right: -26px;
+      height: 63px;
     }
     [data-hanging-tags] li::after {
       top: -24px;
@@ -828,13 +826,13 @@
     }
   }
   @media (40rem <= width < 80rem) {
-    [data-hanging-tags] [data-branch] {
-      top: calc(-17.6cqw - 24px);
-      right: auto;
-      left: calc(50% - 60px);
-      width: 120px;
-    }
     [data-crown] {
+      margin-left: calc(50% - var(--crown-w) * 0.21319);
+      transform: none;
+    }
+    [data-hanging-tags] [data-trunk] {
+      right: auto;
+      left: calc(50% - var(--crown-w) * 0.13333);
       transform: none;
     }
     [data-hanging-tags] li {
@@ -850,17 +848,16 @@
     [data-hanging-tags] li + li {
       margin-top: -80px;
     }
-    [data-hanging-tags] li:nth-child(odd)::before {
-      right: -44px;
+    [data-hanging-tags] li:nth-child(odd) [data-bough] {
+      right: -46px;
     }
-    [data-hanging-tags] li:nth-child(even)::before {
-      left: -44px;
+    [data-hanging-tags] li:nth-child(even) [data-bough] {
+      left: -46px;
       right: 50%;
       transform: scaleX(-1);
     }
   }
   @media print {
-    [data-hanging-tags] li::before,
     [data-hanging-tags] li::after {
       display: none;
     }
@@ -1372,10 +1369,10 @@
   /* the nearest scroll container, which is why the hero and Contact clip   */
   /* (`overflow: clip`) rather than hide their overflow.                    */
   /*                                                                        */
-  /* Between pages: the four sections snap, gently (`proximity`, so a long  */
-  /* page such as the Record on a phone scrolls freely), and in-page links  */
-  /* glide through a View Transition (`src/lib/glide.ts`). The sky and the  */
-  /* header stay put; only the page slides.                                 */
+  /* Between pages, in-page links glide through a View Transition          */
+  /* (`src/lib/glide.ts`). The sky and the header stay put; only the page   */
+  /* slides. Scrolling is never snapped (round 22): proximity snapping      */
+  /* pulled anyone who stopped near a page's edge onto that page's top.     */
   /* ---------------------------------------------------------------------- */
   @keyframes tag-sway {
     0% {
@@ -1452,19 +1449,6 @@
   }
 
   @media screen and (prefers-reduced-motion: no-preference) {
-    /* Proximity snapping pulls any landing within a third of a screen of a
-       page's top back to that top, which took a year row, a card's row and
-       `#ask` off the screen they were sent to. So it is for a visitor who is
-       only scrolling: off once the address names a fragment (`:target`: a
-       cold load, a link, the nav) or Watch it grow has moved the page
-       (`data-no-snap`, TreeBox). */
-    html:not(:has(:target), [data-no-snap]) {
-      scroll-snap-type: y proximity;
-    }
-    :is(#about, #tree, #record, #contact) {
-      scroll-snap-align: start;
-    }
-
     /* From 1024 the line is on screen at load: each tag sways once, left to
        right, while the line settles. */
     @media (width >= 64rem) {
@@ -2300,15 +2284,17 @@
 /* ~570-960px under a reader already looking at it (End key, a jump to the    */
 /* bottom). So `--ask-room` is the min-height of BOTH the loader's pre-chat */
 /* states (`data-ask-slot`) and the chat's own root (`data-ask-chat`). It is */
-/* a straight line per width range, fitted over the idle chat's natural     */
-/* height measured every 4px from 320 to 1920 (static mode, 1rem = 16px,    */
-/* this rule switched off), so the box is never shorter than the chat and   */
-/* at most the noted slack taller (round 21 phase 6: a step per breakpoint  */
-/* left the strip 100-300px of dead paper on phones). Re-measure if the     */
-/* chat's idle copy or suggestions change. Live mode is assumed no taller   */
-/* (its resting line is shorter), not measured. e2e/ask.spec.ts fails at    */
-/* five widths if the footer moves by more than 2px across the load, and    */
-/* fails between 400 and 639px if the room is short of the chat or more     */
+/* a step per width range: since round 22 the thread is a fixed-height      */
+/* window from the start, so the idle chat changes height only where the    */
+/* suggestions re-wrap. Each step is the idle chat's natural height,        */
+/* measured every 4px from 320 to 1920 (static mode, 1rem = 16px, this rule */
+/* switched off), and starts at the first width measured at the lower       */
+/* value, so the room is never short (slack < one step, inside 4px of each  */
+/* breakpoint; 0 elsewhere). Re-measure if the chat's idle copy or          */
+/* suggestions change. Live mode is assumed no taller (its resting line is  */
+/* shorter), not measured. e2e/ask.spec.ts fails at five widths if the      */
+/* footer moves by more than 2px across the load, and fails between 400 and */
+/* 639px if the room is short of the chat or more                           */
 /* than 200px taller than it.                                               */
 /*                                                                            */
 /* Gated on `html[data-motion]`, which the pre-paint script in layout.tsx     */
@@ -2319,71 +2305,36 @@
 /* -------------------------------------------------------------------------- */
 @layer components {
   :root {
-    --ask-room: calc(768px - (100vw - 320px) * 2.4464); /* slack <= 21px */
+    --ask-room: 789px;
   }
-  @media (width >= 352px) {
+  @media (width >= 344px) {
     :root {
-      --ask-room: calc(703px - (100vw - 352px) * 1.6339); /* slack <= 21px */
+      --ask-room: 764px;
     }
   }
-  @media (width >= 384px) {
+  @media (width >= 356px) {
     :root {
-      --ask-room: 622px; /* slack <= 1px */
+      --ask-room: 742px;
     }
   }
-  @media (width >= 416px) {
+  @media (width >= 436px) {
     :root {
-      --ask-room: calc(632px - (100vw - 416px) * 0.7768); /* slack <= 21px */
-    }
-  }
-  @media (width >= 448px) {
-    :root {
-      --ask-room: 600px; /* slack <= 1px */
+      --ask-room: 724px;
     }
   }
   @media (width >= 480px) {
     :root {
-      --ask-room: calc(559px - (100vw - 480px) * 0.7768); /* slack <= 20px */
+      --ask-room: 676px;
     }
   }
-  @media (width >= 512px) {
+  @media (width >= 548px) {
     :root {
-      --ask-room: 531px; /* slack <= 2px */
-    }
-  }
-  @media (width >= 544px) {
-    :root {
-      --ask-room: calc(531px - (100vw - 544px) * 2.4911); /* slack <= 40px */
-    }
-  }
-  @media (width >= 576px) {
-    :root {
-      --ask-room: 461px; /* slack <= 2px */
-    }
-  }
-  @media (width >= 640px) {
-    :root {
-      --ask-room: calc(472px - (100vw - 640px) * 0.1754); /* slack <= 23px */
-    }
-  }
-  @media (width >= 768px) {
-    :root {
-      --ask-room: 439px; /* slack <= 1px */
-    }
-  }
-  @media (width >= 960px) {
-    :root {
-      --ask-room: calc(445px - (100vw - 960px) * 0.3625); /* slack <= 22px */
+      --ask-room: 628px;
     }
   }
   @media (width >= 1024px) {
     :root {
-      --ask-room: calc(285px - (100vw - 1024px) * 0.0863); /* slack <= 22px */
-    }
-  }
-  @media (width >= 1280px) {
-    :root {
-      --ask-room: 255px; /* slack <= 2px */
+      --ask-room: 470px;
     }
   }
   html[data-motion] [data-ask-slot],
@@ -2606,10 +2557,12 @@
     }
   }
 
-  /* An "or try" question: a small paper tag, cut to a point on the left with
-     a punched hole. Only on the span inside the button, never on the button:
-     a clipped element would clip its own focus ring. */
-  .ask-tag {
+  /* An "or try" question, and the header's TL (round 22): a small paper tag,
+     cut to a point on the left with a punched hole. Only on a span inside
+     the control, never on the control: a clipped element would clip its own
+     focus ring. */
+  .ask-tag,
+  .brand-tag {
     background:
       radial-gradient(circle at 11px 50%, var(--ground) 2.5px, var(--twine) 2.6px 3.6px, transparent 3.7px),
       var(--surface);

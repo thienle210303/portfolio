@@ -52,7 +52,10 @@ function ActiveIndicator({ active }: { active: boolean }) {
   );
 }
 
-export default function SiteNav() {
+/** "01" for the first stop: the nav is the page's table of contents. */
+const stopNumber = (index: number) => String(index + 1).padStart(2, "0");
+
+export default function SiteNav({ facts }: { readonly facts: Readonly<Record<string, string>> }) {
   const [open, setOpen] = useState(false);
   const activeId = useActiveSection(SECTION_IDS);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -221,6 +224,12 @@ export default function SiteNav() {
                     isActive ? "text-fg" : "text-fg-muted hover:text-fg"
                   )}
                 >
+                  {/* The chapter number is drawn, not text: the link says only its label. */}
+                  <span
+                    aria-hidden="true"
+                    data-stop={stopNumber(navItems.indexOf(item))}
+                    className="mr-1.5 font-mono text-[11px] text-fg-muted before:content-[attr(data-stop)]"
+                  />
                   {item.label}
                   <ActiveIndicator active={isActive} />
                 </a>
@@ -252,42 +261,75 @@ export default function SiteNav() {
           ref={panelRef}
           className="fixed inset-x-0 top-[var(--header-h)] bottom-0 z-40 overflow-y-auto sky-fill bg-[position:0_calc(-1*var(--header-h))] lg:hidden"
         >
+          {/* The menu is a trail map (round 22): the four pages are stops on a
+              dashed path, the one you are on filled in and marked "you are
+              here", each with one fact computed from the content
+              (`SiteHeader`). Every decoration is `aria-hidden`, so a link's
+              name is still just its label. TL bleeds off the foot, as on the
+              card. */}
           <nav
             aria-label="Mobile"
-            className="shell py-6"
+            className="shell relative isolate min-h-full overflow-hidden py-8"
             style={{
               paddingLeft: "max(var(--gutter), env(safe-area-inset-left))",
               paddingRight: "max(var(--gutter), env(safe-area-inset-right))",
-              paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+              paddingBottom: "calc(2rem + env(safe-area-inset-bottom))",
             }}
           >
-            <ul>
-              {navItems.map((item) => {
+            <p aria-hidden="true" className="font-mono text-[12px] tracking-[0.16em] text-fg-muted uppercase">
+              The trail &middot; {navItems.length} stops
+            </p>
+            <ol role="list" className="relative mt-5">
+              <span
+                aria-hidden="true"
+                className="absolute top-9 bottom-9 left-[11px] border-l-[1.5px] border-dashed border-[color:var(--twine)]"
+              />
+              {navItems.map((item, index) => {
                 const isActive = item.sectionId === activeId;
                 return (
-                  <li key={item.id} className="border-b border-rule first:border-t">
+                  <li key={item.id}>
                     <a
                       href={`/#${item.sectionId}`}
                       aria-current={isActive ? "true" : undefined}
                       onClick={handleNavLinkClick(item.sectionId)}
-                      className={cn(
-                        "flex min-h-11 items-center justify-between py-3 text-[length:var(--step-1)]",
-                        isActive ? "text-fg" : "text-fg-muted"
-                      )}
+                      className="group grid min-h-[4.75rem] grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-4 py-2"
                     >
-                      {item.label}
                       <span
                         aria-hidden="true"
                         className={cn(
-                          "h-px w-6 bg-fg transition-opacity duration-150",
-                          isActive ? "opacity-100" : "opacity-0"
+                          "relative grid size-6 place-items-center rounded-full border-[1.5px] bg-surface transition-colors duration-150",
+                          isActive ? "border-accent" : "border-[color:var(--twine)] group-hover:border-accent",
                         )}
-                      />
+                      >
+                        <span className={cn("size-2.5 rounded-full bg-accent", isActive ? "opacity-100" : "opacity-0")} />
+                      </span>
+                      <span className="min-w-0">
+                        <span aria-hidden="true" className="block font-mono text-[11.5px] text-fg-muted">
+                          {stopNumber(index)}
+                          {isActive ? <span className="text-accent"> &middot; you are here</span> : null}
+                        </span>
+                        <span
+                          className={cn(
+                            "block font-display text-[length:var(--step-3)] leading-[1.1] font-semibold tracking-[-0.02em] transition-colors duration-150",
+                            isActive ? "text-fg" : "text-fg-muted group-hover:text-fg",
+                          )}
+                        >
+                          {item.label}
+                        </span>
+                      </span>
+                      <span aria-hidden="true" className="text-right font-mono text-[12.5px] text-fg-muted">
+                        {facts[item.sectionId]}
+                      </span>
                     </a>
                   </li>
                 );
               })}
-            </ul>
+            </ol>
+            <span
+              aria-hidden="true"
+              data-monogram="TL"
+              className="pointer-events-none absolute right-[var(--gutter)] -bottom-[0.18em] -z-10 font-display text-[clamp(9rem,42vw,15rem)] leading-[0.8] font-semibold tracking-[-0.02em] text-fg opacity-[0.06] before:content-[attr(data-monogram)]"
+            />
           </nav>
         </div>
       ) : null}

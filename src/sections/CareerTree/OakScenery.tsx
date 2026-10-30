@@ -55,9 +55,11 @@ export default function OakScenery() {
 }
 
 /**
- * Below 1280: the oak's crown across the top of the stage (board y 120–640),
- * its lantern where the board hangs it. Below 640 it is mirrored and moved
- * so its trunk stands on the branch the tags hang from (globals.css).
+ * Below 1280: the oak's crown over the stage (board y 120–640), its lantern
+ * where the board hangs it. It is at least 900px wide (globals.css), so the
+ * tree is never a twig on a phone, and placed so its trunk carries straight
+ * on into the one the tags hang from; below 640 it is mirrored, the trunk at
+ * the right edge.
  */
 export function OakCrown({ className }: { readonly className?: string }) {
   const layer = "absolute inset-0 [mask-position:top] [mask-size:100%_auto]";
@@ -65,7 +67,7 @@ export function OakCrown({ className }: { readonly className?: string }) {
     <div
       aria-hidden="true"
       data-crown=""
-      className={cn("no-print pointer-events-none relative aspect-[1440/520] w-full xl:hidden", className)}
+      className={cn("no-print pointer-events-none relative aspect-[1440/520] xl:hidden", className)}
     >
       <Drawing name="oak-leaves" className={cn(layer, "text-accent")} />
       <Drawing name="oak-moss" className={cn(layer, "text-[color:var(--scene-moss)]")} />

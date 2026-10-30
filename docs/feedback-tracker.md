@@ -2172,3 +2172,27 @@ On `round-22/record`, from `round-22/contact` (`92f412c`). The critique's last t
 - **JS at load +35 B**: the counted error line in `LeadForm`. CSS +39 B (the sticky utilities and the lacquer token). DOM +1: the sticky wrapper. LCP 1076-1092 ms; TBT 0-5 ms.
 
 **Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 945 unit tests pass; the build passes. Full e2e on a production build: 886 passed, 0 failed (3.7 min); after the lede change, Contact, Record and the cats again on a fresh build: 133 passed. Against `pnpm dev`, `origin.spec` "a press mid-growth restarts it with one player…" fails with or without this branch's changes: it gets extra start/end pairs from dev mode's doubled effects. It passes against the production build, which is what the gate runs on. Checked by eye at 1440, day and night (the Record) and day (Contact).
+
+## Round 22: owner's five (2026-10-29)
+
+On `round-22/record`, after `e1ef3c3`. The owner's list: a sharper Contact line, the Journey's tree below 1280 ("looking broken"), an auto-scroll glitch, a boring nav, and a glitchy chat. Plus the open item from the last entry, the ring tap targets.
+
+**What changed.**
+- **The glitch: section scroll-snapping is gone.** The four pages had `scroll-snap-type: y proximity`, so stopping within about a third of a screen of a page's edge pulled you onto that page's top ("when I come too close to the border it zooms me to the board"). Removed, with TreeBox's `data-no-snap` hook. `motion.spec` now checks that a wheel scroll stopping 120px short of the Record's top stays there.
+- **Contact's lede**: "One postcard, two lines, and the next move is mine." (10 words; the owner asked for attention and brevity).
+- **The chat is one size from the start.** The thread is a fixed window (17rem, 20rem from 1024) with the resting promise inside it, so the first question no longer grows the strip by about 170px. "Clear" sits in the heading row, laid out but invisible and inert until there is a turn, so it no longer pushes the thread down 44px. A new turn lands at the window's top, not its bottom (a tall answer used to arrive at its last line). The turn labels sit above the text, not in a 4.75rem column (phones had about 230px for the answer). Source lines read "From …" in body type. On a touch screen an ask no longer focuses the field (which opened the keyboard), and it brings the thread into view if it is off screen. `--ask-room` is re-measured: now a step per width range (the idle chat changes height only where the suggestions re-wrap), never short, measured every 4px from 320 to 1920.
+- **The nav.** The phone menu is a trail map: "The trail · 4 stops", each page a stop on a dashed twine path with its number, the one you are on filled and marked "you are here", and one fact per stop computed on the server (`profile.title`, the drawn branch count, the entry count, the postmark's place). TL bleeds off the foot at 6%, as on my card. On desktop each link carries its chapter number, drawn by CSS so the link's text is still just its label. TL itself now hangs on a small paper tag (`.brand-tag`, the "or try" tags' recipe, in the paper scope so it has dark ink at night) and swings level on hover.
+- **The Journey below 1280 is one tree.** The crown is at least 900px wide (it was the viewport's width, so on a phone the trunk was a 12px twig) and placed so its trunk carries straight on into a new drawn trunk (`oak-trunk`, `-leaves`, `-moss`): it starts at the crown's exact trunk width at its cut (46.5 board units × 900/1440 = 29.1) and lean, then runs straight to new roots (`oak-roots`) at the stage's foot. It replaces `oak-branch`, a thin pole that rose into the crown's limb beside the crown's own trunk, which stopped flat in mid-air. Each tag hangs by its string from a leafy bough of its own (`oak-bough`, `-leaves`, stretched from the tag's middle into the trunk) instead of a 24px bark sliver. All drawn by `scripts/draw-scenery.mjs`.
+- **Tags** (every `Tag`: the Journey's, the hero's chapter tags and field tag) get a reinforcing ring round the hole, as on a real shipping tag.
+- **The Record's years are links**, 44px tall, under its heading. A ring can be 4px wide, under WCAG 2.5.8's 24px; these lead to the same years, and a filter that hides a year gives way to All, as it does for the rings.
+
+**Perf row** (`pnpm perf`, production build, four runs, 0 skipped responses, bytes identical across runs). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`e1ef3c3`) | 199,742 B | 199,742 B | 24,466 B | 117,868 B | 0 | 2604 |
+| After | 200,314 B | 200,314 B | 24,452 B | 117,868 B | 0 / 0 / 0 / 0 | 2660 |
+
+- **JS at load +572 B**: the trail menu's markup in `SiteNav` and the chat's touch handling (the chat itself is lazy, so mostly the nav). DOM +56: the year links, the boughs, the trunk's layers, the tags' rings. LCP 1080-1100 ms; TBT 0-6 ms.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 945 unit tests pass (the scenery test re-checks every new file against a fresh draw); the build passes. Full e2e on a production build: 885 passed, 1 failed (`record.spec` read the desktop link's text, which then included its number; the number is now drawn by CSS). After that fix, the Record, navigation, axe (both themes, all tones), Journey, Ask, motion and scale suites on a fresh build: 319 passed. Checked by eye at 375, 846 and 1440, day and night.

@@ -73,8 +73,9 @@ are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
 An lantern, lit at night) take their file from `--art-sky` / `--art-vignette` /
 `--art-journey-vignette` / `--art-record-vignette` / `--art-lantern`, so the
 theme swaps them in CSS with no script. The Record's tree slice is not a file:
-its rings are computed from content (`src/lib/record.ts`) and drawn inline. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`),
-and `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
+its rings are computed from content (`src/lib/record.ts`) and drawn inline. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
+below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
+and a stretched `oak-bough` (with `-leaves`) per tag. `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
 hook for Phase 7; keep it, once.
 
@@ -88,8 +89,9 @@ foot), the morning/evening scenery
 drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: a live oak whose limb
 carries the highlight tags, the DoorDash one a ticket with a 2026 stub, and
-"Watch it grow", which plays the drawn tree at >=1024px; below 1280 the tags
-hang from a branch under the crown), the Record (`#record`, round 21 phase 5: a
+"Watch it grow", which plays the drawn tree at >=1024px; below 1280 it is one
+tree: the crown's trunk runs on past the tags to its roots, each tag on a bough
+of its own), the Record (`#record`, round 21 phase 5: a
 notebook spread; the left page, "Pressed, waiting to dry.", holds a tree slice
 whose rings link to their years and the five `featured` entries taped around
 it; the right page lists every career entry by start year with All / Work /

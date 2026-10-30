@@ -27,7 +27,7 @@ import type { CSSProperties } from "react";
 import { Drawing } from "@/components/scenery/Drawing";
 import { Section } from "@/components/ui/Section";
 import { record } from "@/content/portfolio";
-import { kindCounts } from "@/lib/record";
+import { kindCounts, recordYearId, recordYears } from "@/lib/record";
 import { RECORD_LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
 import RecordPressed from "./RecordPressed";
 import { RecordFilters, type FilterOption } from "./RecordFilters";
@@ -36,6 +36,7 @@ import Stamps from "./Stamps";
 
 const HEADING_ID = "record-heading";
 const COUNTS = kindCounts();
+const YEARS = recordYears().map((y) => y.year);
 const FILTERS: readonly FilterOption[] = [
   { id: "all", label: "All", count: COUNTS.all },
   { id: "work", label: "Work", count: COUNTS.work },
@@ -91,6 +92,24 @@ export default function Record() {
             </h3>
             <span className="font-mono text-[length:var(--step--1)] text-fg-muted">{COUNTS.all} entries</span>
           </div>
+          {/* The years as links (round 22): the slice's rings go to the same
+              places, but a ring can be 4px wide, under WCAG 2.5.8's 24px.
+              These are 44px tall. A filter that hides a year gives way to
+              All when one is followed (`RecordFilters`). */}
+          <nav aria-label="Jump to a year" className="mt-1">
+            <ul role="list" className="-ml-1.5 flex flex-wrap font-mono text-[length:var(--step--1)]">
+              {YEARS.map((year) => (
+                <li key={year}>
+                  <a
+                    href={`#${recordYearId(year)}`}
+                    className="inline-flex min-h-11 items-center px-1.5 text-fg-muted underline-offset-4 transition-colors duration-150 hover:text-accent hover:underline"
+                  >
+                    {year}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <RecordFilters options={FILTERS} label="Show entries of one kind">
             <RecordYears />
           </RecordFilters>

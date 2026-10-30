@@ -400,9 +400,30 @@ const OAK_LIMBS = [
   { p: [[1150, 316], [1180, 272], [1220, 242], [1282, 214]], w0: 6, w1: 2, twigs: 4 },
   { p: [[800, 350], [860, 372], [900, 400], [944, 432]], w0: 7, w1: 2, twigs: 4, moss: 1 },
 ];
-// Not on the board: the vertical branch the tags hang from below 1280, drawn
-// in the oak's style (owner-approved 2026-10-20). Its leaves are not used.
-const OAK_BRANCH = [{ p: [[60, 0], [40, 500], [80, 1100], [56, 1700]], w0: 14, w1: 4, twigs: 12, moss: 8 }];
+// Not on the board: below 1280 the oak is one tree (round 22). The crown is
+// drawn 900px wide there (k = 900/1440), and this trunk continues its own:
+// the crown's trunk crosses its cut at board y 640 at x 307, 46.5 wide,
+// leaning right going up (dx/dy 0.075), so the trunk's top is 46.5k = 29.1
+// wide at x 120 of a 240 box, leaning the same way. Below its first 640 units
+// it runs straight down, so it can be cut at any height (it is masked from
+// the top) and still meet its roots, a file of their own masked at the
+// stage's foot. Each tag hangs from a bough of its own, stretched from the
+// trunk to the tag's string (`preserveAspectRatio="none"`): its tip is at
+// (2, 11), where the string ties on.
+const NARROW_TRUNK_TOP = f(46.5 * (900 / 1440));
+const OAK_TRUNK = [
+  { p: [[120, 2400], [120, 1800], [120, 1200], [120, 640]], w0: 34, w1: 34, twigs: 9, moss: 5 },
+  { p: [[120, 640], [120, 420], [100, 265], [120, 0]], w0: 34, w1: NARROW_TRUNK_TOP, twigs: 4, moss: 2 },
+];
+const OAK_ROOTS = [
+  { p: [[120, 0], [120, 60], [119, 100], [120, 150]], w0: 34, w1: 62, twigs: 0 },
+  { p: [[110, 92], [82, 126], [44, 140], [4, 150]], w0: 24, w1: 3, twigs: 0 },
+  { p: [[130, 88], [160, 122], [198, 138], [238, 148]], w0: 24, w1: 3, twigs: 0 },
+  { p: [[104, 118], [92, 138], [74, 148], [52, 153]], w0: 13, w1: 2, twigs: 0 },
+  { p: [[138, 120], [150, 140], [170, 149], [190, 154]], w0: 13, w1: 2, twigs: 0 },
+];
+const OAK_BOUGH = [{ p: [[200, 30], [140, 8], [60, 2], [2, 11]], w0: 9, w1: 1.6, twigs: 4 }];
+const stretched = (viewBox, body) => svg(viewBox, body).replace("<svg ", '<svg preserveAspectRatio="none" ');
 const yAt = (L, x) => { let lo = 0, hi = 1; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (cubic(L.p, m)[0] < x) lo = m; else hi = m; } return cubic(L.p, lo)[1]; };
 const TAG_XS = [520, 720, 920, 1120, 1320], TAG_DROPS = [8, 40, 96, 52, 84];
 
@@ -438,13 +459,20 @@ const JOURNEY_STILL = {
 
 function journeyFiles() {
   const oak = oakLayers(OAK_LIMBS, 7, { twig: 46 }, K);
-  const branch = oakLayers(OAK_BRANCH, 13, { twig: 34 }, K);
-  const OAK_BOX = "0 120 1440 780", BRANCH_BOX = "0 0 120 1700", LANTERN_BOX = "104 510 96 122", STILL_BOX = "1196 780 92 90";
+  const trunk = oakLayers(OAK_TRUNK, 13, { twig: 30 }, K);
+  const roots = oakLayers(OAK_ROOTS, 17, { twig: 0 }, K);
+  const bough = oakLayers(OAK_BOUGH, 23, { twig: 15 }, K);
+  const OAK_BOX = "0 120 1440 780", TRUNK_BOX = "0 0 240 2400", BOUGH_BOX = "0 -30 200 70", LANTERN_BOX = "104 510 96 122", STILL_BOX = "1196 780 92 90";
   return {
     oak: svg(OAK_BOX, oak.bark),
     "oak-leaves": svg(OAK_BOX, oak.leaves),
     "oak-moss": svg(OAK_BOX, oak.moss),
-    "oak-branch": svg(BRANCH_BOX, branch.bark),
+    "oak-trunk": svg(TRUNK_BOX, trunk.bark),
+    "oak-trunk-leaves": svg(TRUNK_BOX, trunk.leaves),
+    "oak-trunk-moss": svg(TRUNK_BOX, trunk.moss),
+    "oak-roots": svg("0 0 240 156", roots.bark),
+    "oak-bough": stretched(BOUGH_BOX, bough.bark),
+    "oak-bough-leaves": stretched(BOUGH_BOX, bough.leaves),
     "journey-rice": svg("236 776 320 124", rice(330, 896, 7, 22, 31, K, 26, 22)),
     "lantern-day": svg(LANTERN_BOX, `<path d="M152 512V546" stroke="#8b7b5e" stroke-width="1.2"/>` + hoiAn(152, 552, "#C8352B", 1, false)),
     "lantern-night": svg(LANTERN_BOX, HOI_DEFS("#C8352B") + `<path d="M152 512V546" stroke="#b3a27f" stroke-width="1.2"/>` + hoiAn(152, 552, "#C8352B", 1, true)),

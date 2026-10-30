@@ -165,19 +165,19 @@ test.describe("motion (round 21 phase 8)", () => {
     expect(await page.evaluate(() => document.documentElement.hasAttribute("data-glide"))).toBe(false);
   });
 
-  test("snapping is for scrolling: off once the address names a fragment, back when it does not", async ({ page }) => {
+  test("nothing snaps: a scroll that stops near a page's edge stays where it stopped", async ({ page }) => {
     test.skip(width(page) !== 1440, "run once");
-    const snap = () => page.evaluate(() => getComputedStyle(document.documentElement).scrollSnapType);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    expect(await snap(), "proximity serialises as the axis alone").toBe("y");
-    await page.getByRole("link", { name: "See what I've built" }).click();
-    await expect.poll(() => new URL(page.url()).hash).toBe("#tree");
-    expect(await snap(), "a fragment landing is not pulled back to a page's top").toBe("none");
-    await page.goBack();
-    await expect.poll(() => new URL(page.url()).hash).toBe("");
-    expect(await snap(), "proximity serialises as the axis alone").toBe("y");
-    // Cold, on a row near the Record's end (which the next page's snap point is near).
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollSnapType)).toBe("none");
+    // 120px short of the Record's top: proximity snapping used to pull this onto it.
+    const stop = await page.locator("#record").evaluate((el) => el.getBoundingClientRect().top + window.scrollY - 120);
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), stop - 200);
+    await page.mouse.move(700, 400);
+    await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(800);
+    expect(Math.abs((await page.evaluate(() => window.scrollY)) - stop)).toBeLessThan(40);
+    // And a fragment still lands where the link sent it.
     await page.goto("about:blank");
     await page.goto("/#record-2019");
     await page.waitForLoadState("networkidle");
@@ -186,7 +186,7 @@ test.describe("motion (round 21 phase 8)", () => {
     expect(Math.abs(top - 80), "the year row is where the link sent it").toBeLessThan(4);
   });
 
-  test("the snapping never holds a long page: mid-Record a wheel scroll stays where it stops", async ({ page }) => {
+  test("a long page scrolls freely: mid-Record a wheel scroll stays where it stops", async ({ page }) => {
     test.skip(width(page) > 414, "phones, where the Record is several screens tall");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -196,6 +196,6 @@ test.describe("motion (round 21 phase 8)", () => {
     await page.mouse.wheel(0, 300);
     await page.waitForTimeout(800);
     const y = await page.evaluate(() => window.scrollY);
-    expect(Math.abs(y - (start + 300)), "no snap pulled it away").toBeLessThan(40);
+    expect(Math.abs(y - (start + 300)), "nothing pulled it away").toBeLessThan(40);
   });
 });

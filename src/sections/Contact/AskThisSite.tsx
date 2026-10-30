@@ -243,8 +243,8 @@ function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
         <li key={result.text}>
           <p className="text-[15px] leading-[1.45] text-fg">{result.text}</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="font-mono text-[11.5px] text-fg-muted">
-              from: <span>{result.source}</span>
+            <span className="text-[13px] text-fg-muted">
+              From <span>{result.source}</span>
             </span>
             {result.sectionId !== undefined && result.sectionLabel !== undefined ? (
               <a
@@ -416,12 +416,14 @@ function TurnItem({
   const filename = answerFilename(turnNumber);
 
   return (
-    <li className="grid min-w-0 grid-cols-[4.75rem_minmax(0,1fr)] items-baseline gap-y-1.5 border-t border-dashed border-rule pt-4 first:border-t-0 first:pt-0">
-      <span className={TURN_LABEL}>you asked</span>
-      <p className="text-[15px] font-semibold text-fg">{turn.question}</p>
-      <span className={`${TURN_LABEL} text-accent`}>I said</span>
+    <li className="min-w-0 border-t border-dashed border-rule pt-4 first:border-t-0 first:pt-0">
+      <p className="flex flex-wrap items-baseline gap-x-2">
+        <span className={TURN_LABEL}>you asked</span>
+        <span className="text-[15px] font-semibold text-fg">{turn.question}</span>
+      </p>
+      <p className={`${TURN_LABEL} mt-2.5 text-accent`}>I said</p>
 
-      <div className="min-w-0">
+      <div className="mt-1 min-w-0">
         {turn.answer.kind === "pending" ? (
           <p className="flex items-center gap-2 text-[15px] text-fg-muted">
             <Loader2 aria-hidden="true" focusable="false" size={16} className="animate-spin motion-reduce:animate-none" />
@@ -623,12 +625,40 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
   // ancestor, so the page's own scroll position is now untouched by asking
   // a question, full stop. Smooth under ordinary motion, instant (`"auto"`)
   // under `prefers-reduced-motion`.
+  //
+  // It lands on the newest turn's *top*, not the log's bottom (round 22): an
+  // answer taller than the window used to arrive scrolled to its last line,
+  // so you read the end of it first. The log is `relative`, so a turn's
+  // `offsetTop` is measured from the log itself.
   useEffect(() => {
     if (turns.length === 0) return;
     const node = logRef.current;
-    if (!node) return;
-    node.scrollTo({ top: node.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    const newest = node?.querySelector<HTMLElement>(":scope > ol > li:last-child");
+    if (!node || !newest) return;
+    node.scrollTo({ top: newest.offsetTop, behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }, [turns]);
+
+  /**
+   * On a touch screen (round 22). Focusing the field after a tap opens the
+   * keyboard, which nobody asked for; and stacked, the thread sits above the
+   * question line, so the answer arrived off screen. So a touch ask leaves
+   * focus alone (closing the keyboard after a typed one) and brings the
+   * thread's top under the header when it is not already in view. A mouse or
+   * keyboard ask keeps the field focused and never moves the page.
+   */
+  function afterAsk() {
+    if (!window.matchMedia("(pointer: coarse)").matches) {
+      fieldRef.current?.focus();
+      return;
+    }
+    fieldRef.current?.blur();
+    const node = logRef.current;
+    if (!node) return;
+    const { top } = node.getBoundingClientRect();
+    const header = 72;
+    if (top >= header && top < window.innerHeight * 0.4) return;
+    window.scrollTo({ top: window.scrollY + top - header - 64, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }
 
   function handleClear() {
     clearThreadCache();
@@ -735,8 +765,8 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
     // Keep focus in the input rather than wherever the triggering control
     // was (a suggestion button, or the field itself after submit) — a chat
     // thread invites a follow-up, and the visitor should be able to type one
-    // without reaching for the mouse.
-    fieldRef.current?.focus();
+    // without reaching for the mouse. Not on a touch screen: see `afterAsk`.
+    afterAsk();
   }
 
   return (
@@ -746,31 +776,38 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
     // compose half (`1fr`), never as a gap inside the thread.
     <div data-ask-chat="" className="grid grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-none">
       <div className="min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px] lg:border-r lg:border-dashed lg:border-rule">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          {heading}
-          {liveModeConfigured ? (
-            <span className="font-mono text-[11.5px] tracking-[0.08em] text-accent uppercase">Live mode</span>
-          ) : null}
+        <div className="flex items-start justify-between gap-x-3">
+          <div className="min-w-0 pt-2.5">{heading}</div>
+          {/* Always laid out, shown once there is a turn (round 22): it used
+              to arrive as a row of its own, and the thread jumped down by
+              44px on the first question. Until then it is invisible, inert
+              and hidden from assistive tech, so there is nothing to find. */}
+          <button
+            type="button"
+            onClick={handleClear}
+            inert={turns.length === 0}
+            aria-hidden={turns.length === 0 || undefined}
+            aria-label="Clear conversation"
+            className={cn(
+              "min-h-11 shrink-0 px-1 font-mono text-[12px] text-fg-muted transition-colors duration-200 hover:text-accent",
+              turns.length === 0 && "invisible",
+            )}
+          >
+            Clear
+          </button>
         </div>
-
-        {turns.length > 0 ? (
-          <div className="mt-1 flex justify-end">
-            <button
-              type="button"
-              onClick={handleClear}
-              className="min-h-11 px-1 font-mono text-[12px] text-fg-muted transition-colors duration-200 hover:text-accent"
-            >
-              Clear conversation
-            </button>
-          </div>
+        {liveModeConfigured ? (
+          <p className="font-mono text-[11.5px] tracking-[0.08em] text-accent">Live mode</p>
         ) : null}
 
         {/*
-          The scroll window. A fixed 22rem (352px) shows the newest turn in
-          full and a little of the one above it, so the thread reads as a
-          conversation and never grows the page however many questions are
-          asked, not even while the first few turns fill it (round 12: "if I click multiple buttons it just keeps
-          stacking up on the page").
+          The scroll window. A fixed 17rem (20rem from 1024) from the start, the
+          resting promise included, so the strip is one size before and after
+          the first question (round 22: it grew by about 170px on the first,
+          which read as a glitch) and never grows the page however many
+          questions are asked (round 12: "if I click multiple buttons it just
+          keeps stacking up on the page"). A new turn lands at the window's
+          top.
 
           `role="log"` announces new turns politely without repeating the
           old ones. `tabIndex={0}` only once there is something to scroll,
@@ -784,14 +821,16 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
           aria-label="Conversation thread"
           aria-live="polite"
           tabIndex={turns.length > 0 ? 0 : undefined}
-          className={cn("min-w-0 overflow-y-auto overscroll-contain", turns.length > 0 ? "h-[22rem] max-h-[22rem]" : "mt-3")}
+          className="relative mt-2 h-[17rem] min-w-0 overflow-y-auto overscroll-contain lg:h-[20rem]"
         >
           {turns.length === 0 ? (
-            <div className="grid grid-cols-[4.75rem_minmax(0,1fr)] items-baseline gap-y-1.5">
-              <span className={TURN_LABEL}>you asked</span>
-              <p className="text-[15px] text-fg-muted">{IDLE_HINT}</p>
-              <span className={`${TURN_LABEL} text-accent`}>I said</span>
-              <p className="text-[15px] leading-[1.45] text-fg">{liveModeConfigured ? PROMISE_LIVE : PROMISE}</p>
+            <div>
+              <p className="flex flex-wrap items-baseline gap-x-2">
+                <span className={TURN_LABEL}>you asked</span>
+                <span className="text-[15px] text-fg-muted">{IDLE_HINT}</span>
+              </p>
+              <p className={`${TURN_LABEL} mt-2.5 text-accent`}>I said</p>
+              <p className="mt-1 text-[15px] leading-[1.45] text-fg">{liveModeConfigured ? PROMISE_LIVE : PROMISE}</p>
             </div>
           ) : (
             <ol role="list" aria-label="Conversation" className="flex flex-col gap-4">

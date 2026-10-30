@@ -242,14 +242,12 @@ test.describe("ask this site", () => {
 
     const pageHeightAfterThreeTurns = await page.evaluate(() => document.documentElement.scrollHeight);
 
-    // The scroll window appearing (turns 0 → 1) does change the page's
-    // height once — the "Clear conversation" row and the window itself
-    // replace the idle hint. What must not happen is the page growing
-    // *again* for the second and third turns, the way it did before this
-    // round: a few px of rounding slack, nothing resembling three more
-    // turns' worth of prose.
+    // Since round 22 the window is one size from the start and "Clear" is
+    // laid out (invisibly) before there is anything to clear, so the page
+    // does not grow on the first question either: a few px of rounding
+    // slack, nothing resembling a turn's worth of prose.
+    expect(Math.abs(pageHeightAfterOneTurn - pageHeightBeforeAnyTurn)).toBeLessThanOrEqual(4);
     expect(pageHeightAfterThreeTurns).toBeLessThanOrEqual(pageHeightAfterOneTurn + 4);
-    expect(pageHeightAfterOneTurn).toBeGreaterThanOrEqual(pageHeightBeforeAnyTurn);
 
     // All three turns are still there, in order, inside the scrolling log —
     // direct children only, same reasoning as `lastTurn`: a bare listitem

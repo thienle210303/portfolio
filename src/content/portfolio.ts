@@ -1564,8 +1564,9 @@ export const highlights = [
 export const contactCopy = {
   greeting: "Xin chào,",
   heading: "say hi.",
-  // Round 22: the postcard comes first on the page, so it comes first here.
-  lead: "Send me a postcard and I'll reach you, or take my card.",
+  // Round 22 (owner: "catch attention, and brief"): the postcard is two
+  // lines, a name and a way back, and then it is my turn.
+  lead: "One postcard, two lines, and the next move is mine.",
   /** Beside the two beers, at night. */
   cheer: "Một, hai, ba, dzô!",
   /** Under the bánh tét. Tết stays on Contact all year (owner, 2026-10-18). */
