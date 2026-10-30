@@ -60,6 +60,9 @@ Lowest pairing in the current palette: **4.52:1**
 | Day | quiet | `#fbfbf8` | `#56605a` | secondary text, cards | 6.30:1 | AA |
 | Day | quiet | `#fbfbf8` | `#46603a` | links, rail labels, metrics, cards | 6.76:1 | AA |
 | Day | quiet | `#fbfbf8` | `#c8102e` | the single mark, cards | 5.67:1 | AA |
+| Day | quiet | `#fbfbf8` | `#7d5410` | the Record's milestone mark | 6.44:1 | AA |
+| Day | quiet | `#eee2c9` | `#7d5410` | a milestone's dot on the slice, early wood | 5.20:1 | AA |
+| Day | quiet | `#e6d6b6` | `#7d5410` | a milestone's dot on the slice, late wood | 4.66:1 | AA |
 | Day | quiet | `#1f3a30` | `#fbfbf8` | primary control label | 11.87:1 | AAA |
 | Day | quiet | `#46603a` | `#fbfbf8` | primary control, hover | 6.76:1 | AA |
 | Day | loud | `#1d2321` | `#fbfbf8` | contrast-chapter text | 15.41:1 | AAA |
@@ -82,6 +85,7 @@ Lowest pairing in the current palette: **4.52:1**
 | Night | quiet | `#ede7d8` | `#5a5f55` | secondary text, paper surface | 5.32:1 | AA |
 | Night | quiet | `#ede7d8` | `#46603a` | links, rail labels, metrics, paper surface | 5.68:1 | AA |
 | Night | quiet | `#ede7d8` | `#c8102e` | the single mark, paper surface | 4.77:1 | AA |
+| Night | quiet | `#ede7d8` | `#7d5410` | the Record's milestone mark, paper surface | 5.41:1 | AA |
 | Night | quiet | `#f3eee2` | `#1d2321` | body text, raised paper surface | 13.80:1 | AAA |
 | Night | quiet | `#f3eee2` | `#5a5f55` | secondary text, raised paper surface | 5.66:1 | AA |
 | Night | quiet | `#f3eee2` | `#46603a` | links, rail labels, metrics, raised paper surface | 6.06:1 | AA |

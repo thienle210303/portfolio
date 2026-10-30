@@ -16,7 +16,11 @@
  * are paper (`bg-surface`), so the night paper scope gives them dark ink.
  * Side by side, the stamps are pasted at the foot of the left page, which
  * holds their room (`xl:pb-60`): left where they are in the reading order,
- * the left page was half empty ruled paper beside a long right one.
+ * the left page was half empty ruled paper beside a long right one. And the
+ * slice and its cards stay in view while you read down the right page (round
+ * 22): open DoorDash's row and the right page grows by some 2,000px, which
+ * used to be bare paper on the left; now the rings, each a link to its year,
+ * come with you as an index.
  * A server component; the filters are the only client island it adds.
  */
 import type { CSSProperties } from "react";
@@ -63,7 +67,11 @@ export default function Record() {
           <p className="mt-2 pr-16 font-serif text-[length:var(--step-1)] italic leading-snug text-fg-muted sm:pr-32">
             {record.pressed.lead}
           </p>
-          <RecordPressed />
+          {/* Side by side, the board rides down its page while a long row is
+              read on the other (`RecordPressed` is sticky inside this). */}
+          <div className="xl:flex-1">
+            <RecordPressed />
+          </div>
           <div aria-hidden="true" className="no-print mt-auto flex items-end gap-2 pt-8">
             <span
               className="scene-art block h-[3.4rem] w-[1.9rem]"

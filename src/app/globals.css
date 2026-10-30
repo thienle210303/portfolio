@@ -67,14 +67,19 @@
   /* Journey (round 21): the oak's night bark and its Spanish moss. */
   --color-dusk-bark: #070c0d;
   --color-spanish-moss: #8c9a86;
-  /* Record (round 21): the tree slice's wood, its bark, and the study dot
-     (work is moss-deep, a milestone the red). Dots and fills, never text. */
+  /* Record (round 21): the tree slice's wood, its bark, the study dot and
+     the milestone's lacquer (work is moss-deep). Dots and fills, never text.
+     Lacquer is sơn mài's brown-gold (round 22): a milestone was the red, and
+     the red is the one mark per screen, not a kind. It clears 4.5:1 on the
+     paper, the lantern paper and both woods (docs/contrast.md), though a
+     mark only needs 3:1. */
   --color-wood-early: #eee2c9;
   --color-wood-late: #e6d6b6;
   --color-wood-line: #b79c74;
   --color-bark-inner: #8a7154;
   --color-bark-outer: #6b5640;
   --color-river: #2a5d6b;
+  --color-lacquer: #7d5410;
 }
 
 /*
@@ -2557,15 +2562,16 @@
 /* Contact (round 21)                                                         */
 /*                                                                            */
 /* The postcard board's paper and its one colour that is not an alias yet.    */
-/* `--greet` is "Xin chào," and the evening toast: the mark's red by day, the */
-/* lanterns' gold at night (both measured on the sky in docs/contrast.md).    */
+/* `--greet` is "Xin chào," and the evening toast: ink by day, the lanterns' */
+/* gold at night (measured on the sky in docs/contrast.md). By day the seal  */
+/* on my card is the section's one red (round 22: one red per screen).       */
 /* The night group and its no-JS twin must stay identical, like the theme     */
 /* block above. Paper shadows are fixed rgba on purpose: a shadow is the      */
 /* ground darkening, not a colour of the palette.                             */
 /* -------------------------------------------------------------------------- */
 @layer components {
   :root {
-    --greet: var(--color-red);
+    --greet: var(--fg);
     --paper-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 22px 40px rgb(30 40 35 / 0.2);
   }
   :root[data-theme="night"] {
@@ -2625,7 +2631,7 @@
     --bark-outer: var(--color-bark-outer);
     --kind-work: var(--color-moss-deep);
     --kind-learning: var(--color-river);
-    --kind-milestone: var(--color-red);
+    --kind-milestone: var(--color-lacquer);
     /* Masking tape: fixed on purpose, like the paper shadows above. */
     --tape: rgb(205 190 150 / 0.6);
   }

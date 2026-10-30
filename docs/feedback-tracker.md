@@ -2144,3 +2144,31 @@ On `round-22/contact`, from `round-22/hero` (`ae308a4`). Two of the critique's C
 - **JS at load +1 B** (the Ask button's class string). LCP 1076-1104 ms before, 1084-1100 ms after; TBT 0-6 ms.
 
 **Verification.** `pnpm verify`: typecheck, lint, contrast (62 pairings, lowest 4.52:1) and 945 unit tests pass; the build passes. Full e2e on a production build, `--workers=2`: 884 passed, 1 failed (15.6 min), the parked-pair test above, fixed and re-run 5 of 5. Checked by eye at 390, 768, 1024 and 1440, day and night (`reports/r22-contact/`, untracked); no horizontal overflow at any of them. Impeccable detect at 1280 and 390: the critique's seven, none in Contact. Hallmark on the three Contact files: 26a/26b per-file noise; 67 on the card's title, Courier's label voice.
+
+## Round 22: the Record, and one red per screen (2026-10-29)
+
+On `round-22/record`, from `round-22/contact` (`92f412c`). The critique's last two priority findings, plus two small ones.
+
+**What changed.**
+- **The pressed board stays in view** from 1280, where the pages lie side by side. `RecordPressed` is sticky 96px under the viewport's top, inside a wrapper that ends above the desk vignette. Opening DoorDash's row grows the right page by about 2,000px; that used to be bare ruled paper on the left, and now the slice (each ring a link to its year) and the five cards ride down beside the row. The board is 550px tall at 1440, so it fits a 720px-tall screen whole. Below 1280 the pages stack and nothing is sticky.
+- **The five pressed are re-picked**: DoorDash, Wordification, Schaeffler, CockyHacks (Best Design) and the USC research scraping. They were DoorDash and four milestones (graduation, CockyHacks, Magellan, Code to Give), so the left page said "my best ones" over mostly awards. Now four are roles with a measured result and one is the award that has a certificate and a recording. The bold rows on the right page follow `featured`.
+- **A milestone is lacquer, not red.** `--kind-milestone` now points at a new token, `--color-lacquer` (`#7d5410`, sơn mài's brown-gold). The diamond shape stays, so the kind never rests on colour alone. Lacquer is measured at 4.5:1 or better on the paper, the night paper and both woods (four new rows in `docs/contrast.md`; a mark needs only 3:1). The Record now has no red at all.
+- **Contact keeps one red by day: the seal.** `--greet` ("Xin chào,") is ink by day; at night it is still the lanterns' gold, so the night board was already down to the seal. The lanterns, the flag stamp and the postcard's sun are drawings, not interface.
+- **"No institution" → "On my own"** on the 2019 entry: the row read "Whatever I felt like learning, No institution", like a placeholder left in.
+- **Contact's lede follows the page**: "Send me a postcard and I'll reach you, or take my card." (was "Take my card, or send me a postcard…", from when the card came first).
+- **The form's error line counts and speaks in my voice**: "One thing above to fix, then this can reach me." (or "2 things…"). The email-or-phone error counts once. It was "Please fix the highlighted field." even with two fields marked.
+
+**Triaged and left.** The ring bands (4-21px) stay for now and are still open: a ring is a shortcut to a year that is right beside it on the right page, but the year headings there are not links, so WCAG 2.5.8's equivalent exception does not strictly cover them. The fix is a year index on the right page, a separate change. The Résumé / Save contact chips are 34px to the eye and 44px to the pointer (`before:` grows the hit area), so the 41-42px the detector read is the visual box. The companion panels' rgba shadows are fixed on purpose, like the paper shadows. The stamp captions keep `line-clamp-2`; the dialog each stamp opens carries the full name.
+
+**Tests.** The record unit test pins the new five. `record.spec` "a pressed card opens its row" now opens the last card (the USC research row, far down the right page). A new e2e test opens DoorDash's row and checks the board holds at 96px at 30% and 50% of the notebook and ends above the cup at its foot.
+
+**Perf row** (`pnpm perf`, production build on this Mac, four runs, 0 skipped responses, bytes identical across runs). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`92f412c`) | 199,707 B | 199,707 B | 24,427 B | 117,868 B | 0 / 0 / 0 | 2603 |
+| After | 199,742 B | 199,742 B | 24,466 B | 117,868 B | 0 / 0 / 0 / 0 | 2604 |
+
+- **JS at load +35 B**: the counted error line in `LeadForm`. CSS +39 B (the sticky utilities and the lacquer token). DOM +1: the sticky wrapper. LCP 1076-1092 ms; TBT 0-5 ms.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 945 unit tests pass; the build passes. Full e2e on a production build: 886 passed, 0 failed (3.7 min); after the lede change, Contact, Record and the cats again on a fresh build: 133 passed. Against `pnpm dev`, `origin.spec` "a press mid-growth restarts it with one player…" fails with or without this branch's changes: it gets extra start/end pairs from dev mode's doubled effects. It passes against the production build, which is what the gate runs on. Checked by eye at 1440, day and night (the Record) and day (Contact).

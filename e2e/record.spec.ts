@@ -129,9 +129,27 @@ test.describe("the Record", () => {
   test("a pressed card opens its row", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);
-    await page.getByRole("list", { name: "Pressed: my best ones" }).getByRole("link").nth(3).click();
-    await expect(page.locator("#record-row-magellan-trigger")).toHaveAttribute("aria-expanded", "true");
-    expect(Math.abs((await restingTop(page, "#journey-entry-magellan")) - ROW_TOP)).toBeLessThanOrEqual(2);
+    await page.getByRole("list", { name: "Pressed: my best ones" }).getByRole("link").nth(4).click();
+    await expect(page.locator("#record-row-usc-scraping-trigger")).toHaveAttribute("aria-expanded", "true");
+    expect(Math.abs((await restingTop(page, "#journey-entry-usc-scraping")) - ROW_TOP)).toBeLessThanOrEqual(2);
+  });
+
+  test("side by side, the pressed board stays in view down a long open row, and stops above the cup", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page, "day", "#journey-entry-doordash");
+    await expect(page.locator("#record-row-doordash-trigger")).toHaveAttribute("aria-expanded", "true");
+    const board = page.locator("[data-pressed]").locator("..");
+    const notebook = page.locator("[data-notebook]");
+    const { top, height } = await notebook.evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: el.getBoundingClientRect().height }));
+    for (const share of [0.3, 0.5]) {
+      await page.evaluate((y) => window.scrollTo(0, y), top + height * share);
+      await expect.poll(() => board.evaluate((el) => Math.round(el.getBoundingClientRect().top))).toBe(96);
+    }
+    // At the notebook's foot the board has stopped: it ends above the cup.
+    await page.evaluate((y) => window.scrollTo(0, y), top + height - 300);
+    const boardBottom = await board.evaluate((el) => el.getBoundingClientRect().bottom);
+    const cup = await page.locator(".record-page-left [aria-hidden=true].mt-auto").evaluate((el) => el.getBoundingClientRect().top);
+    expect(boardBottom).toBeLessThanOrEqual(cup);
   });
 
   test("the Journey's tags and branch labels land on Record rows", async ({ page }) => {

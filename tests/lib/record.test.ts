@@ -9,7 +9,7 @@ const CERTS: readonly Certification[] = certifications;
 
 describe("the Record's content", () => {
   it("the five pressed are the authored ones, and they exist", () => {
-    expect(featuredEntries().map((e) => e.id)).toEqual(["doordash", "graduation", "cockyhacks", "magellan", "code-to-give"]);
+    expect(featuredEntries().map((e) => e.id)).toEqual(["doordash", "wordification", "schaeffler", "cockyhacks", "usc-scraping"]);
   });
 
   it("every stamp has a date and a committed image under 200 KB", () => {

@@ -41,7 +41,14 @@ interface ApiPayload {
 
 const ORDER: readonly FieldName[] = ["name", "email", "phone"];
 const GENERIC_ERROR = "Something went wrong sending that. Please try again, or use the email on my card.";
-const FIX_FIELDS = "Please fix the highlighted field.";
+/** Counted, and in my voice: the email-or-phone error is one problem, said
+ *  once, however many fields it marks. */
+function fixFields(errors: FieldErrors): string {
+  const count = new Set(Object.values(errors)).size;
+  return count === 1
+    ? "One thing above to fix, then this can reach me."
+    : `${count} things above to fix, then this can reach me.`;
+}
 
 /** Off-screen rather than `display: none`, which some bots skip filling. */
 const HONEYPOT_STYLE: CSSProperties = { position: "absolute", left: "-10000px", width: "1px", height: "1px", overflow: "hidden" };
@@ -95,7 +102,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
 
   function showErrors(next: FieldErrors) {
     setErrors(next);
-    setStatus({ error: FIX_FIELDS });
+    setStatus({ error: fixFields(next) });
     const first = ORDER.find((field) => next[field]);
     if (first) refs[first].current?.focus();
   }

@@ -319,6 +319,7 @@ export const careerEntries = [
     endSortKey: "2025-05",
     role: "Software Engineer",
     organization: "Wordification by ScholarsTech LLC",
+    featured: true,
     headline: "Built a speech QA pipeline with 99.9% validated audio accuracy.",
     locationOrMode: undefined,
     context:
@@ -352,6 +353,7 @@ export const careerEntries = [
     endSortKey: "2024-08",
     role: "Software Engineer Co-op",
     organization: "Schaeffler Group",
+    featured: true,
     headline: "Moved paper setup sheets to low-code; my Java lifted throughput 96%.",
     locationOrMode: undefined,
     context:
@@ -386,6 +388,7 @@ export const careerEntries = [
     endSortKey: "2025-05",
     role: "Web Scraping Engineer",
     organization: "University of South Carolina",
+    featured: true,
     headline: "Collected 3M+ Amazon and Kroger records at 99.9% success, unattended for months.",
     locationOrMode: undefined,
     context:
@@ -457,7 +460,6 @@ export const careerEntries = [
     sortKey: "2025-05-e",
     role: "Graduated — B.S. Computer Science",
     organization: "University of South Carolina",
-    featured: true,
     locationOrMode: undefined,
     context: "Cybersecurity minor, 3.8 GPA, Dean's List 2021–2025.",
     responsibilities: [],
@@ -506,7 +508,6 @@ export const careerEntries = [
     sortKey: "2023-04",
     role: "2nd Place — Food Route",
     organization: "Code to Give Hackathon, Morgan Stanley",
-    featured: true,
     award: {
       src: "/media/certificates/code-to-give.jpg",
       width: 1024,
@@ -571,7 +572,6 @@ export const careerEntries = [
     sortKey: "2024-09",
     role: "Magellan Research Award — TRIO",
     organization: "University of South Carolina",
-    featured: true,
     locationOrMode: undefined,
     context: "Undergraduate research award.",
     responsibilities: [],
@@ -684,7 +684,9 @@ export const careerEntries = [
     dateRange: "2019 — Present",
     sortKey: "2019-06",
     role: "Whatever I felt like learning",
-    organization: "No institution",
+    // Round 22: "No institution" read like a placeholder left in the
+    // Record's row ("Whatever I felt like learning, No institution").
+    organization: "On my own",
     headline: "Drove for Uber Eats and taught myself whatever I was curious about.",
     locationOrMode: undefined,
     // The owner's own description of this period was "just being bored and
@@ -1562,7 +1564,8 @@ export const highlights = [
 export const contactCopy = {
   greeting: "Xin chào,",
   heading: "say hi.",
-  lead: "Take my card, or send me a postcard and I'll reach you.",
+  // Round 22: the postcard comes first on the page, so it comes first here.
+  lead: "Send me a postcard and I'll reach you, or take my card.",
   /** Beside the two beers, at night. */
   cheer: "Một, hai, ba, dzô!",
   /** Under the bánh tét. Tết stays on Contact all year (owner, 2026-10-18). */
