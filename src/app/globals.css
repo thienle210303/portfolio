@@ -863,6 +863,62 @@
     }
   }
 
+  /* Bé Nhi's swing (round 22, NhiSwing.tsx). `--tie-l`/`--tie-r` are where
+     each rope is tied, above the ride's top; `--tie` is what it swings
+     about; `--seat` is the seat's top. From 1280 the ropes are tied round the
+     oak's left limb at board x 212 and 264, where it is at y 542 and 564;
+     below 1280 the swing hangs from a bough of its own off the trunk, its tip
+     over the left rope (over the right rope, mirrored, from 640), the ropes
+     tied where the bough's curve passes over them, and the roots below her
+     feet. */
+  [data-swing] {
+    position: relative;
+    --seat: 130px;
+    --ride-h: calc(var(--seat) + 18px);
+    --tie-l: -25px;
+    --tie-r: -28px;
+    --tie: -26px;
+    width: fit-content;
+    margin-top: 72px;
+    padding-bottom: 120px;
+    margin-left: auto;
+    margin-right: 120px;
+  }
+  [data-swing] [data-bough] {
+    top: -61px;
+    left: 0;
+    right: -146px;
+    height: 63px;
+  }
+  @media (40rem <= width < 80rem) {
+    [data-swing] {
+      --tie-l: -25px;
+      --tie-r: -24px;
+      --tie: -25px;
+      margin-top: 24px;
+      margin-left: calc(50% + 100px);
+      margin-right: 0;
+    }
+    [data-swing] [data-bough] {
+      left: -102px;
+      right: 0;
+      transform: scaleX(-1);
+    }
+  }
+  @media (width >= 80rem) {
+    [data-swing] {
+      --seat: 150px;
+      --tie-l: 2px;
+      --tie-r: 24px;
+      --tie: 13px;
+      position: absolute;
+      top: 540px;
+      left: calc(var(--fx) + 206px);
+      margin: 0;
+      padding-bottom: 0;
+    }
+  }
+
   .day-only {
     display: var(--show-day);
   }

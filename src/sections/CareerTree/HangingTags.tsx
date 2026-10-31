@@ -4,6 +4,7 @@ import { Tag } from "@/components/ui/Tag";
 import { journey } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { buildTickets, type ResolvedHighlight } from "@/lib/highlights";
+import NhiSwing from "./NhiSwing";
 
 const TICKETS = buildTickets();
 
@@ -97,6 +98,9 @@ const notch = "absolute size-3.5 rounded-full bg-(--hole)";
  * edge on a phone, the tags in one column; from 640 it stands in the middle
  * and the tags take turns either side. globals.css lays that out.
  *
+ * Bé Nhi's swing (`NhiSwing`) hangs here too, so below 1280 the trunk runs
+ * on past her to its roots.
+ *
  * `data-year` is the year the tag drops in when "Watch it grow" plays
  * (`GrowOak.tsx`): its first half's, so the DoorDash ticket comes with 2025.
  */
@@ -183,6 +187,9 @@ export default function HangingTags({ className }: { readonly className?: string
           );
         })}
       </ul>
+      {/* Bé Nhi's swing: from 1280 on the oak's left limb, below it on a
+          bough of its own under the last tag (globals.css). */}
+      <NhiSwing copy={journey.swing} />
     </div>
   );
 }

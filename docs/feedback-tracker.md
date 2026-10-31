@@ -2219,3 +2219,24 @@ On `round-22/record`, after `3286115`. The owner, on the Journey at 1600: "those
 **Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 920 unit tests pass (`TreeBox.test` and the old clock's tests went with the code; new tests drive the show on fake timers: beats, tag years, Skip, Escape, reduced motion, the cats' events); the build passes. Full e2e on a production build: 857 passed, 0 failed (3.5 min; `origin.spec` was retired with the player, the Journey spec now grows the oak at 1440 and 390). Checked by eye at 1600, 1440, 900 and 390, day and night. Hallmark's 26a/26b on `GrowOak.tsx` are noise: its control is the shared `Button`, which carries the focus ring (the Journey e2e measures it) and the states.
 
 **Left for later.** `src/lib/knowledge-tree.ts` outlived the drawing: `buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS` and `concurrentWith` are tested but no longer rendered.
+
+## Round 22: Bé Nhi (2026-10-30)
+
+On `round-22/record`, after `8c8ca07`. Feedback from Thien's girlfriend: "add my girlfriend character dumb dumb cute cute easy mood changing!", with four photos of her. The owner chose both places offered: on a rope swing under the Journey's oak, which everyone sees, phones too, and walking with mini-Thien in the cats' scenes (desktop, roaming on). Her name on the page is what he calls her, Bé Nhi.
+
+**What changed.**
+- **Her drawing** (`src/components/companion/MiniNhi.tsx`), inline line work in mini-Thien's two-pass style, drawn from the photos' traits, never from the photos: long black hair parted in the middle (the one washed part, at mini-Thien's density), thin oval glasses, round cheeks, a buttoned cardigan, the bunny she carries. Five faces, each from a photo: `pout` (the mirror selfie), `grin` (the FaceTime), `huh`, `sleepy`, `hug`. Standing beside mini-Thien, sitting on the swing.
+- **The swing** (`NhiSwing.tsx`, a client island inside `HangingTags`). From 1280 its ropes are tied round the oak's left limb at board x 212 and 264, between the lantern and the trunk; below 1280 it hangs from a bough of its own under the last tag, so the trunk runs on past her to its roots. She is ink on paper (`[data-paper]`) in both themes, like the tags. "Easy mood changing" with no timer: a press gives her a new mood and a push (one damped sway, none under reduced motion); she has changed her mind each time she comes back into view; she falls asleep at night and grins at the morning; she grins while the oak grows and hugs it at the end. Each change hangs her line over her head ("hứ!", "hihi!", "hả?", "zzz…", "mine!"); the caption beside the seat always says how she is ("Bé Nhi, pouting"). Only a press is announced (`aria-live`). Her words are `journey.swing` in the content file, not indexed by the chat.
+- **With the cats**, she walks a step behind mini-Thien, the pair flipping together; every place that probes, clears or captions him uses the pair's width (`PAIR_W`). A new face every beat (`nhiMood`, picked by the beat's words).
+- The caption first sat under the swing, in the strip where the cats wait above Watch it grow; the companion e2e caught them unable to settle, so from 1280 it sits beside the seat under the lantern.
+
+**Perf row** (`pnpm perf`, production build, 0 skipped responses). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`8c8ca07`) | 199,372 B | 199,372 B | 23,754 B | 117,868 B | 0 | 2283 |
+| After | 204,012 B | 204,012 B | 24,071 B | 117,868 B | 0 | 2321 |
+
+- **JS at load +4,640 B**: the swing is a new interactive island on the page, so it loads with it: `NhiSwing` and her drawing (its paths are most of it). Expected, not a leak; the companion's lazy chunk carries its own copy of the drawing, not loaded up front. If it ever needs trimming, the five faces could render on the server with the island only switching which shows. CSS +317 B, DOM +38. LCP 1108 ms, TBT 2 ms.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 929 unit tests pass (`NhiSwing.test`: every face distinct, a press changes her mood and is announced, the push skipped under reduced motion, the show's and the theme's moods); the build passes. Full e2e on a production build: 860 passed, 0 failed (new: she swings clear of the tags at 1440 and 390 with a 44px target and changes on press; under reduced motion she changes and nothing moves). Checked by eye at 1440, 900 and 390, day and night, and the pair in the hello scene in both themes. Hallmark 26a/26b on `NhiSwing.tsx` are noise: the global `*:focus-visible` draws the ring, the push is her press state, and she is never disabled.

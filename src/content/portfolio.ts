@@ -193,6 +193,21 @@ export const journey = {
     morning: "bánh mì on the way",
     evening: "trà đá on the corner",
   },
+  // Bé Nhi, my girlfriend (round 22, her own request: "dumb dumb cute cute
+  // easy mood changing"). Her name is what I call her. `says` is her line in
+  // the bubble, `is` the caption under the swing and what a screen reader
+  // hears. Not indexed by the chat.
+  swing: {
+    name: "Bé Nhi",
+    action: "change her mood",
+    moods: {
+      pout: { says: "hứ!", is: "pouting" },
+      grin: { says: "hihi!", is: "grinning" },
+      huh: { says: "hả?", is: "confused" },
+      sleepy: { says: "zzz…", is: "sleepy" },
+      hug: { says: "mine!", is: "in love" },
+    },
+  },
 } satisfies JourneyCopy;
 
 /** The Record's authored words (round 21, the NatRecordFinal board). Not

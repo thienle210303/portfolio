@@ -395,4 +395,14 @@ export interface JourneyCopy {
   readonly skip: string;
   readonly tagsLabel: string;
   readonly vignette: { readonly morning: string; readonly evening: string };
+  /** Bé Nhi on the oak's swing; the same drawing walks with mini-Thien. */
+  readonly swing: {
+    readonly name: string;
+    /** What pressing her does, after her name: "Bé Nhi, change her mood". */
+    readonly action: string;
+    readonly moods: Readonly<Record<NhiMood, { readonly says: string; readonly is: string }>>;
+  };
 }
+
+/** Bé Nhi's faces (`MiniNhi.tsx`), each from a photo of her. */
+export type NhiMood = "pout" | "grin" | "huh" | "sleepy" | "hug";

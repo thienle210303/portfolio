@@ -76,7 +76,8 @@ theme swaps them in CSS with no script. The Record's tree slice is not a file:
 its rings are computed from content (`src/lib/record.ts`) and drawn inline. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
 below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
 and a stretched `oak-bough` (with `-leaves`) per tag. `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
-library. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
+library; the two figures, mini-Thien and Bé Nhi, are fixed inline SVG in
+`src/components/companion/` because their poses and faces are state. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
 hook for Phase 7; keep it, once.
 
 ## Changing what the site says
@@ -88,10 +89,10 @@ down the page from a bamboo pole, the tags either side, my field tag at its
 foot), the morning/evening scenery
 drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: a live oak whose limb
-carries the highlight tags, the DoorDash one a ticket with a 2026 stub, and
-"Watch it grow", which grows the oak itself; below 1280 it is one tree: the
-crown's trunk runs on past the tags to its roots, each tag on a bough of its
-own), the Record (`#record`, round 21 phase 5: a
+carries the highlight tags, the DoorDash one a ticket with a 2026 stub,
+Bé Nhi (my girlfriend) on a rope swing, and "Watch it grow", which grows the
+oak itself; below 1280 it is one tree: the crown's trunk runs on past the tags
+and her swing to its roots, each on a bough of its own), the Record (`#record`, round 21 phase 5: a
 notebook spread; the left page, "Pressed, waiting to dry.", holds a tree slice
 whose rings link to their years and the five `featured` entries taped around
 it; the right page lists every career entry by start year with All / Work /
@@ -165,6 +166,16 @@ the Record's rows. They are in git history; do not bring a second tree back.
   case studies' `work-<projectId>`; the tags link there. One row is open at a
   time; a fragment opens its row, and with JavaScript off `:target` does. The
   chat cites `#record` for entries, case studies and the degree.
+- **Bé Nhi swings from the oak (round 22, her own request: "dumb dumb cute
+  cute easy mood changing").** `NhiSwing.tsx` hangs her from the left limb
+  between the lantern and the trunk (below 1280, from a bough under the last
+  tag); a press gives her a new mood and a push, and she also changes on her
+  own when she comes back into view, at nightfall and dawn, and while the oak
+  grows. Her name, lines and captions are `journey.swing` in the content file;
+  her drawing is `src/components/companion/MiniNhi.tsx`, inline line work like
+  mini-Thien's (its faces are state, so it is not a `public/scenery/` file),
+  drawn from her photos' traits, never from the photos. The same drawing walks
+  a step behind mini-Thien in the cats' scenes, a new face each beat.
 - **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
   (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)
   are still tested but no longer rendered; `careerYearSpan`,

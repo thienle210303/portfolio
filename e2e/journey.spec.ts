@@ -376,6 +376,54 @@ test.describe("the Journey", () => {
     expect(moving).toEqual({ animations: 0, transitions: 0 });
   });
 
+  /* Bé Nhi's swing (round 22). */
+  for (const viewport of [WIDE, PHONE]) {
+    test(`Bé Nhi swings clear of the tags at ${viewport.width}, and a press changes her mood`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await open(page);
+      const swing = page.locator("#tree [data-swing]");
+      await swing.scrollIntoViewIfNeeded();
+      const nhi = swing.getByRole("button", { name: `${journey.swing.name}, ${journey.swing.action}` });
+      await expect(nhi).toBeVisible();
+      const box = (await nhi.boundingBox())!;
+      expect(box.width, "target width").toBeGreaterThanOrEqual(44);
+      expect(box.height, "target height").toBeGreaterThanOrEqual(44);
+      const ride = (await swing.boundingBox())!;
+      const overlaps = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
+        a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      for (const li of await items(page).all()) expect(overlaps(ride, (await li.boundingBox())!)).toBe(false);
+      if (viewport.width >= 1280) {
+        // Between the lantern and the trunk, above Watch it grow.
+        const lantern = (await page.locator("#tree [data-scenery] [data-grow-late]").boundingBox())!;
+        expect(ride.x).toBeGreaterThanOrEqual(lantern.x + lantern.width);
+        expect(overlaps(ride, (await watch(page).boundingBox())!)).toBe(false);
+      }
+      const caption = swing.locator("p", { hasText: `${journey.swing.name},` }).last();
+      const moods = new Set([await caption.textContent()]);
+      for (let i = 0; i < 4; i++) {
+        const before = await caption.textContent();
+        await nhi.click();
+        await expect(caption).not.toHaveText(before!);
+        moods.add(await caption.textContent());
+      }
+      expect(moods.size).toBeGreaterThanOrEqual(3);
+      await expect(swing.locator("[aria-live]")).toContainText(journey.swing.name);
+    });
+  }
+
+  test("reduced motion: Bé Nhi still changes her mood, and the swing stays still", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page);
+    const swing = page.locator("#tree [data-swing]");
+    await swing.scrollIntoViewIfNeeded();
+    const caption = swing.locator("p", { hasText: `${journey.swing.name},` }).last();
+    const before = await caption.textContent();
+    await swing.getByRole("button").click();
+    await expect(caption).not.toHaveText(before!);
+    expect(await swing.evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
+  });
+
   test("tags link to rows that exist", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);

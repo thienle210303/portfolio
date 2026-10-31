@@ -121,6 +121,7 @@ import {
   type RectLike,
   followerMuted,
 } from "./companion-space";
+import MiniNhi, { NHI_W, nhiMood } from "./MiniNhi";
 import MiniThien, { THIEN_H, THIEN_W } from "./MiniThien";
 import {
   advanceSurprise,
@@ -1030,7 +1031,7 @@ function paint(node: HTMLElement | null, pos: Spot): void {
  * the box it painted so the caption can keep off the bubble painted before it.
  * `anchorW`/`anchorH` are the anchor's own drawn size (`CAT_W`×`CAT_H` for a
  * bubble beside a sitting cat — raised by `CAT_HOP_RISE` and that much taller
- * while it hops, see `paintBubble` — and `THIEN_W`×`THIEN_H` for a caption
+ * while it hops, see `paintBubble` — and `PAIR_W`×`THIEN_H` for a caption
  * beside the narrator).
  */
 function paintBeside(
@@ -1102,6 +1103,14 @@ function paintBubble(
   return paintBeside(node, { x: box.left, y: box.top }, CAT_W, box.bottom - box.top, keepOut);
 }
 
+/**
+ * Mini-Thien and Bé Nhi walk in as a pair (round 22): she stands a step
+ * behind him, so everything that places, probes or clears him uses the pair's
+ * width. He is the taller, so the pair's height is his.
+ */
+const PAIR_GAP = 4;
+const PAIR_W = NHI_W + PAIR_GAP + THIEN_W;
+
 /** Mini-Thien's caption, clamped to him rather than to the cat he is
  *  standing beside — the two are never the same point once he has arrived,
  *  so this cannot simply reuse `paintBubble`'s own anchor. Kept off his own
@@ -1116,7 +1125,7 @@ function paintCaption(
     if (node) node.style.visibility = "hidden";
     return null;
   }
-  return paintBeside(node, thien, THIEN_W, THIEN_H, [...keepOut, boxAt(thien, THIEN_W, THIEN_H)]);
+  return paintBeside(node, thien, PAIR_W, THIEN_H, [...keepOut, boxAt(thien, PAIR_W, THIEN_H)]);
 }
 
 /**
@@ -1129,8 +1138,8 @@ function paintCaption(
  * off a paragraph, not to model its own exact footprint.
  */
 function thienWant(speaker: Spot, other: Spot): Point {
-  const side: 1 | -1 = speaker.x <= other.x ? -1 : 1;
-  return { x: speaker.x + side * (CAT_W + 18), y: speaker.y - 4 };
+  const left = speaker.x <= other.x;
+  return { x: left ? speaker.x - PAIR_W - 18 : speaker.x + CAT_W + 18, y: speaker.y - 4 };
 }
 
 /**
@@ -3918,18 +3927,18 @@ export function Companion({ facts }: CompanionProps) {
             preferHead: true,
           });
           // His whole box, not a cat's feet, clear of every control (phase 8).
-          const clear = clearBoxNear(spot, THIEN_W, THIEN_H, catBoxes(grey.pos, tabby.pos));
+          const clear = clearBoxNear(spot, PAIR_W, THIEN_H, catBoxes(grey.pos, tabby.pos));
           thienAway.current = clear === null;
           thienTarget.current = clear ?? spot;
           thienProbedAt.current = now;
           thienSpeaker.current = speaking.speaker;
         } else if (
           now - thienProbedAt.current > 250 &&
-          !clearOfControls(boxAt(thienTarget.current, THIEN_W, THIEN_H))
+          !clearOfControls(boxAt(thienTarget.current, PAIR_W, THIEN_H))
         ) {
           // The page moved a control under his spot (a scroll): probe again.
           thienProbedAt.current = now;
-          const clear = clearBoxNear(thienTarget.current, THIEN_W, THIEN_H, catBoxes(grey.pos, tabby.pos));
+          const clear = clearBoxNear(thienTarget.current, PAIR_W, THIEN_H, catBoxes(grey.pos, tabby.pos));
           thienAway.current = clear === null;
           if (clear) thienTarget.current = clear;
         }
@@ -4015,7 +4024,7 @@ export function Companion({ facts }: CompanionProps) {
         paint(thienNode.current, thien.current.pos);
         if (thienNode.current) thienNode.current.style.visibility = thienAway.current ? "hidden" : "";
         // Walking in, he passes under a control the way the cats do.
-        passUnder(thienNode.current, thien.current.pos, 0, 0, THIEN_W, THIEN_H);
+        passUnder(thienNode.current, thien.current.pos, 0, 0, PAIR_W, THIEN_H);
         if (thienArt.current) thienArt.current.style.transform = `scaleX(${thien.current.facing})`;
         // The bubble first, then the caption kept off it as well as off both
         // cats: both are painted against the positions just written above, in
@@ -4122,7 +4131,7 @@ export function Companion({ facts }: CompanionProps) {
           // line work exactly like the bubbles beside them, and need the
           // same repointing for the same reason.
           const thienCentre = {
-            x: thien.current.pos.x + THIEN_W / 2,
+            x: thien.current.pos.x + PAIR_W / 2,
             y: thien.current.pos.y + THIEN_H / 2,
           };
           syncTone(thienNode.current, thienCentre);
@@ -5375,9 +5384,17 @@ export function Companion({ facts }: CompanionProps) {
             ref={attachThien}
             aria-hidden="true"
             className="pointer-events-none absolute left-0 top-0 text-fg-muted"
-            style={{ width: THIEN_W, height: THIEN_H }}
+            style={{ width: PAIR_W, height: THIEN_H }}
           >
-            <span ref={thienArt} className="block" style={{ transform: `scaleX(${thien.current.facing})` }}>
+            {/* Bé Nhi walks a step behind him (round 22), so the flip that
+                turns him round puts her behind him either way; her face is
+                a new mood every beat. */}
+            <span
+              ref={thienArt}
+              className="flex items-end"
+              style={{ gap: PAIR_GAP, height: THIEN_H, transform: `scaleX(${thien.current.facing})` }}
+            >
+              <MiniNhi mood={nhiMood(duetBeat.sub)} />
               <MiniThien />
             </span>
           </div>

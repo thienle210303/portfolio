@@ -202,6 +202,10 @@ order; `buildTickets()` in `src/lib/highlights.ts` assembles them and
 - The heading, my line, "Watch it grow" (and its "Skip") and the vignette
   captions are `journey`. A tag drops in on its first half's year when the
   oak grows. They are not indexed by the chat.
+- Bé Nhi's name and her five moods (`says`, her line over her head; `is`, the
+  caption under the swing) are `journey.swing`. A new mood needs a face in
+  `MiniNhi.tsx` and a name in `NhiMood` (`src/types/portfolio.ts`); the type
+  makes the content name it too.
 - After changing a drawing, run `pnpm draw:scenery` and commit
   `public/scenery/`.
 
