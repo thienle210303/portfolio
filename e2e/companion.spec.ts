@@ -1115,9 +1115,9 @@ test.describe("companion", () => {
   test("explorers use both halves of the page while the reader is active", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(120_000);
-    // The tree box plays its growth show when it is over half in view, and the
-    // pair then stand at the tour spot instead of exploring. These tests read
-    // the timeline, below the box, so the show must never start.
+    // While the oak grows the pair sit and watch instead of exploring. The
+    // show only starts on a press (round 22), and these tests never press
+    // it; the log proves it never started.
     await page.addInitScript(() => {
       (window as unknown as { __shows: unknown[] }).__shows = [];
       document.addEventListener("origin-story", (event) =>
@@ -1256,9 +1256,9 @@ test.describe("companion", () => {
   test("each explorer leaves its stop on its own clock, not both at once", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(120_000);
-    // The tree box plays its growth show when it is over half in view, and the
-    // pair then stand at the tour spot instead of exploring. These tests read
-    // the timeline, below the box, so the show must never start.
+    // While the oak grows the pair sit and watch instead of exploring. The
+    // show only starts on a press (round 22), and these tests never press
+    // it; the log proves it never started.
     await page.addInitScript(() => {
       (window as unknown as { __shows: unknown[] }).__shows = [];
       document.addEventListener("origin-story", (event) =>
@@ -1271,7 +1271,7 @@ test.describe("companion", () => {
 
     /*
      * The same reader as the test above (a moving pointer kept out of chasing
-     * range, in `#tree`'s timeline, because the tree box auto-plays) — without the scrolling, because a scroll moves the
+     * range) — without the scrolling, because a scroll moves the
      * cats' pose around for reasons that are not a stop ending — but what is measured is *when each cat sets off*.
      * A departure is a cat that has not been in its walking pose for at least
      * 800 ms (the pose, not its position, so riding a scroll is not leaving)
@@ -2429,10 +2429,10 @@ test.describe("companion", () => {
       const gap = Date.now() - lastTickAt;
       lastTickAt = Date.now();
       if (gap > 8_000) continue;
-      // Scrolling through #tree plays the origin story on sight (`TreeBox.tsx`),
-      // and its "quiet" season beat has one cat act out a nap on cue. That is
-      // the show, not the idle clock; the idle nap takes both cats.
-      if ((await page.locator("[data-origin-stage]").count()) > 0) {
+      // While the oak grows (`GrowOak.tsx`) its "quiet" season beat has one
+      // cat act out a nap on cue. That is the show, not the idle clock; the
+      // idle nap takes both cats.
+      if ((await page.locator("#tree[data-growing]").count()) > 0) {
         expect(await poses(page), "asleep while somebody was reading").not.toEqual(["sleep", "sleep"]);
         continue;
       }
@@ -3721,21 +3721,17 @@ test.describe("companion", () => {
   test("narrates the origin story with a meow bubble and mini-Thien's caption while the cats roam", async ({
     page,
   }) => {
-    test.skip(
-      viewportWidth(page) !== DESKTOP_WIDTH,
-      "the origin-story button only mounts at >=1024px; run once",
-    );
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
 
     const button = page.locator("#tree").getByRole("button", { name: "Watch it grow" });
     await button.click();
-    await expect(page.locator("[data-origin-stage]")).toBeVisible();
+    await expect(page.locator("#tree")).toHaveAttribute("data-growing", "");
 
-    // `Companion.tsx`'s "start" handler answers `origin-story-ack`
-    // synchronously and narrates the flight beat straight away, so a bubble
-    // should appear well inside the flight beat's own 3s run.
+    // The flight beat is dispatched with the show's start and narrated
+    // straight away, so a bubble should appear well inside the show.
     const bubble = page.locator("[data-cat-bubble]");
     await expect(bubble).toBeVisible({ timeout: 5_000 });
     await expect(bubble).toHaveAttribute("aria-hidden", "true");
@@ -4191,34 +4187,32 @@ test.describe("cats (round 21)", () => {
     });
   }
 
-  test("while the tree grows they sit beside its box, not in the top-left corner", async ({ page }) => {
+  test("while the oak grows they sit just above Watch it grow, not in the top-left corner", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(60_000);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
-    const started = page.evaluate(
-      () => new Promise<void>((resolve) => document.addEventListener("origin-story", () => resolve(), { once: true })),
-    );
-    await page.evaluate(() => {
-      const box = document.querySelector("[data-tree-box]")!.getBoundingClientRect();
-      window.scrollTo(0, window.scrollY + box.top - 100);
-    });
-    await started;
+    const button = page.locator("#tree").getByRole("button", { name: "Watch it grow" });
+    await button.scrollIntoViewIfNeeded();
+    await button.click();
     await expect
       .poll(
         () =>
           page.evaluate(() => {
-            const box = document.querySelector("[data-tree-box]")!.getBoundingClientRect();
-            const top = Math.max(box.top, 0);
-            const bottom = Math.min(box.bottom, window.innerHeight);
+            const button = document.querySelector("[data-grow] button")!.getBoundingClientRect();
             return Array.from(document.querySelectorAll("[data-companion] svg[data-cat]")).every((svg) => {
               const r = svg.getBoundingClientRect();
-              const mid = (r.top + r.bottom) / 2;
-              return svg.getAttribute("data-cat-pose") !== "walk" && mid > top + (bottom - top) * 0.25 && mid < bottom;
+              return (
+                svg.getAttribute("data-cat-pose") !== "walk" &&
+                r.bottom <= button.top &&
+                r.bottom > button.top - 80 &&
+                r.left > button.left - 60 &&
+                r.right < button.right + 160
+              );
             });
           }),
-        { timeout: 20_000, intervals: [250], message: "the watchers never settled beside the tree box" },
+        { timeout: 9_000, intervals: [250], message: "the watchers never settled above the button" },
       )
       .toBe(true);
   });

@@ -63,8 +63,9 @@ case study never ends up with no evidence in it.
 
 Add an entry to `careerEntries`. One entry feeds all of:
 
-- the **Journey** (`#tree`, `src/sections/CareerTree/`) — a branch on the
-  drawing (>=1024px), unless it is one of the demoted entries (see below)
+- the **Journey** (`#tree`, `src/sections/CareerTree/`) — a tag on the oak
+  only if one of its `highlights` is picked (see "The Journey's tags" below); its
+  start year is a beat of "Watch it grow" either way
 - the **Record** (`#record`, `src/sections/Record/`) — a dot and a wider ring on
   the tree slice, and a row under its start year (every entry, demoted or not)
 - the **résumé** at `/resume` — its Experience list shows `type: "work"`
@@ -80,22 +81,21 @@ Then one thing the entry cannot decide for itself:
 
 - **When it ended.** Set `endSortKey` (`YYYY-MM`) on any role that has ended,
   and leave it off one that is still running. `concurrentWith()` compares
-  these months inclusively to draw "Ran alongside", so a guessed month can
-  invent an overlap — say so in a comment beside it.
+  these months inclusively, so a guessed month can invent an overlap — say so
+  in a comment beside it.
 
-The fields that decide what hangs off it in the tree (every entry is its own
-branch, in date order — `sortKey` decides where on the trunk):
+The fields its Record row shows when it opens (`sortKey` decides its year):
 
 ```ts
-technologies: ["Python", "Playwright"],  // technology leaves on its branch
-impact: ["One sentence of what changed."],  // shown verbatim in its Record row
-headline: "Result in 12 words or fewer.",  // shown with the branch at rest, and in the open row
+technologies: ["Python", "Playwright"],  // listed in its row
+impact: ["One sentence of what changed."],  // shown verbatim in its row
+headline: "Result in 12 words or fewer.",  // the first line of the open row
 ```
 
 ### Write a headline
 
-Every drawn branch needs a `headline` on its career entry: the one line shown
-with it at rest. Keep it to 12 words or fewer, phrased as a result, with every
+Every entry outside `DEMOTED_ENTRY_IDS` needs a `headline`: the first line
+of its open Record row. Keep it to 12 words or fewer, phrased as a result, with every
 figure taken from the same entry's own `impact`, `context` or `built`. It is
 never indexed for the chat. `tests/lib/voice.test.ts` fails on a missing or
 over-long headline, a figure the entry doesn't contain, or an indexed headline.
@@ -127,26 +127,17 @@ the page. `Ctrl/Cmd+P` on `/resume` produces a clean copy to replace it with.
 
 ## A note on the Journey's tree
 
-The tree draws **only relationships you have written down**. Each branch *is*
-one career entry (chronological up the trunk, each exactly once), and its
-leaves are that entry's own `technologies` — because you listed them there,
-never because anything matched. Its `impact` lines are not leaves: they show
-verbatim in the entry's Record row, which the branch's label links to.
+The Journey draws one tree, the oak, and only the tags you pick hang on it
+(below). Round 22 retired the drawn career tree that used to grow in a box
+under it: every entry's row on the Record already said what it did.
 
-Nine entries — the degree and eight milestones —
-are not drawn as branches. They are `DEMOTED_ENTRY_IDS` in
-`src/lib/knowledge-tree.ts`; like every entry, each is a row on the Record. Nothing is drawn under the ground line: the skill groups that used to
-label the roots are on `/resume` now, not on the tree.
-
-It deliberately does *not* try to match `skillCategories.skills` against
-`technologies`. Those are two different vocabularies — of 38 skills, 17 match a
-technology string exactly, and the rest are near-misses like "React" against
-"JavaScript/React". Matching them loosely would draw lines you never drew;
-matching them strictly would claim "React — used nowhere", which is false. So
-if you want a skill to appear in the tree, list it in a role's `technologies`
-using the same spelling you use elsewhere.
-
-`tests/lib/knowledge-tree.test.ts` fails if anyone reintroduces guessing.
+Its rules still live in `src/lib/knowledge-tree.ts`, tested by
+`tests/lib/knowledge-tree.test.ts`, for the day a drawing of entries comes
+back: a branch is one career entry, its leaves that entry's own
+`technologies`, never inferred by matching `skillCategories.skills` against
+them (of 38 skills, 17 match a technology string exactly; loose matching would
+draw lines you never drew, strict matching would claim real skills were never
+used).
 
 ## Contact delivery
 
@@ -208,8 +199,9 @@ order; `buildTickets()` in `src/lib/highlights.ts` assembles them and
 - Where each tag hangs from 1280 is `TAG_SPOTS` in `HangingTags.tsx`, held to
   the board's limb by `journeySpots()` in `scripts/draw-scenery.mjs`. A sixth
   tag needs a spot on the limb, not just a row here.
-- The heading, my line, "Watch it grow" and the vignette captions are
-  `journey`. They are not indexed by the chat.
+- The heading, my line, "Watch it grow" (and its "Skip") and the vignette
+  captions are `journey`. A tag drops in on its first half's year when the
+  oak grows. They are not indexed by the chat.
 - After changing a drawing, run `pnpm draw:scenery` and commit
   `public/scenery/`.
 

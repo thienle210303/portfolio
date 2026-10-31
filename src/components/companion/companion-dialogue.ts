@@ -136,8 +136,8 @@ const AMBIENT: Record<string, SceneBuilder> = {
         ]
       : null,
   tree: (f) => [
-    tabby("Mrrrow! Meow!", `${f.tree.branches} branches! Climbing all!`, "branch", "hop"),
-    grey("Meow.", `${f.tree.leaves} leaves. Ooh, crunchy!`, "leaf"),
+    tabby("Mrrrow! Meow!", `${f.tree.tags} tags! Batting all!`, "branch", "hop"),
+    grey("Meow.", "Press Watch it grow. Purr!", "leaf"),
   ],
 };
 
@@ -150,7 +150,7 @@ const AMBIENT: Record<string, SceneBuilder> = {
 const ENCORE: Record<string, SceneBuilder> = {
   tree: (f) => [
     grey("Meow. Mrp.", `${f.tree.technologies} techs. I sniffed each.`, "sparkle"),
-    tabby("Mrrrow?", "Pick a branch. Peek inside!", "question", "bat"),
+    tabby("Mrrrow?", "Pick a tag. Peek inside!", "question", "bat"),
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} were work.`, "paw"),
     tabby("Meow!", `${f.tree.milestones} milestones. Zoomies!`, "sparkle", "hop"),
   ],
@@ -171,12 +171,13 @@ const TOUR: Record<string, SceneBuilder> = {
     ),
   ],
   // Round 10: the tree absorbed Journey, and this one stop now narrates both
-  // faces — the branch/leaf/technology counts first, then the entries' own
-  // work count that used to be `journey`'s own tour stop, tabby's nap line
+  // faces — the oak's tag and technology counts first (round 22: the drawn
+  // tree's branches and leaves went with it), then the entries' own work
+  // count that used to be `journey`'s own tour stop, tabby's nap line
   // preserved rather than dropped.
   tree: (f) => [
-    tabby("Meow meow meow!", `Look up! ${f.tree.branches} branches!`, "branch", "hop"),
-    grey("Mrp.", `${f.tree.leaves} leaves, ${f.tree.technologies} techs!`, "leaf"),
+    tabby("Meow meow meow!", `Look up! ${f.tree.tags} tags!`, "branch", "hop"),
+    grey("Mrp.", `${f.tree.technologies} techs, all sniffed!`, "leaf"),
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} were work.`, "paw", "groom"),
     tabby("Mrrrow!", "Napped through it. Counts!", "zzz", "sleep"),
   ],
@@ -205,12 +206,12 @@ const TOUR: Record<string, SceneBuilder> = {
  * typed twice. `flight`, `seed` and `still` name no year at all: none of
  * them dates a single beat, so nothing here pretends to lead with one. The
  * flight's own date is `origin.arrived` (`src/content/portfolio.ts`), not a
- * literal — the same fact `flightCaption()` in `OriginStory.tsx` composes
+ * literal — the same fact `flightCaption()` in `origin-story.ts` composes
  * from, so a change to the arrival date never has to be typed twice.
  *
  * The four weather members are `SeasonKind` itself (`@/lib/origin-story`),
- * type-only imported rather than retyped: `OriginStory.tsx`'s own
- * `BeatKind` is `"flight" | "seed" | SeasonKind | "still"`, the exact shape
+ * type-only imported rather than retyped: `GrowBeat`'s own `kind`
+ * (`origin-story.ts`) is drawn from `"flight" | SeasonKind | "still"`, the shape
  * below, and a season kind added there without a matching update here would
  * otherwise only ever surface as a silent "nothing to say" (the guarded
  * lookup a few lines down) rather than a type error at the call site.
@@ -288,7 +289,7 @@ const STORY_BEAT: Record<
  * failure in this function gives, not a thrown exception.
  *
  * `storm` (default `false`) is the beat's own storm overlay fact —
- * `OriginStory.tsx` passes `beat.season?.storm ?? false` — independent of
+ * `GrowOak.tsx` passes the beat's own `storm` — independent of
  * `kind`, which is always base weather now. When true, this narrates the
  * `STORY_BEAT.storm` line instead of `kind`'s own, for any of `rain`/`sun`/
  * `quiet`; `flight`/`seed`/`still` never carry a storm and ignore the flag,

@@ -2196,3 +2196,26 @@ On `round-22/record`, after `e1ef3c3`. The owner's list: a sharper Contact line,
 - **JS at load +572 B**: the trail menu's markup in `SiteNav` and the chat's touch handling (the chat itself is lazy, so mostly the nav). DOM +56: the year links, the boughs, the trunk's layers, the tags' rings. LCP 1080-1100 ms; TBT 0-6 ms.
 
 **Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 945 unit tests pass (the scenery test re-checks every new file against a fresh draw); the build passes. Full e2e on a production build: 885 passed, 1 failed (`record.spec` read the desktop link's text, which then included its number; the number is now drawn by CSS). After that fix, the Record, navigation, axe (both themes, all tones), Journey, Ask, motion and scale suites on a fresh build: 319 passed. Checked by eye at 375, 846 and 1440, day and night.
+
+## Round 22: one tree (2026-10-30)
+
+On `round-22/record`, after `3286115`. The owner, on the Journey at 1600: "those journeys have 2 tree is pretty tough, how we make it better here? for user experience!" Below the oak (from 1024) sat a second tree, the drawn career tree, in a 720px box of its own holding a drawing about 2,000px tall: a scroll box inside the page, in thin lines under a painted oak, repeating what the Record's rows say right below it. The owner chose one tree, with Watch it grow growing the oak.
+
+**What changed.**
+- **The drawn tree is gone**: `DrawnTree`, `TreeBox`, the `OriginStory` player and its loader `WatchOrigin`, `tree-labels.ts`, and about 470 lines of the player's CSS. Every fact the drawing held (each entry's headline, technologies, impact) is in its Record row.
+- **Watch it grow grows the oak** (`GrowOak.tsx`, a small client island). A press stamps `data-growing` on `#tree`: the oak opens out from its trunk's foot (below 1280 the trunk rises first, then the crown), each tag waits hidden and drops onto its string on its own `data-year` with the drop it already had on scroll, and the lantern comes last. A paper caption under the button (beside it from 1280) reads each beat of `growBeats()`: the flight, a season per year, "still growing". About 10 s; the button says Skip meanwhile, and Skip or Escape ends it at once. It hangs over the oak, so the page never moves (an e2e test pins the crown's offset). Not shown under reduced motion or with JS off: the grown oak is the end state. Below 1280 the button now sits under the heading, above the oak it grows; from 1280 it keeps its board spot.
+- **The cats** narrate it through the same `origin-story` / `origin-story-beat` events, and sit just above the button to watch. Their facts no longer count the drawing's branches and leaves (nobody can see them now): they count the oak's tags ("5 tags! Batting all!") and every technology on the Record. The `origin-story-ack` events, which only the old player listened for, are gone.
+- **The Journey's lead** was untrue once the drawing went ("Every job I've had is a branch, and the tools I used there are its leaves"): it is now "Planted in 2018 and still growing. Each tag holds a number I measured." A unit test holds the year to `origin.arrivedYear`. The nav's Journey stop reads "5 tags".
+
+**Perf row** (`pnpm perf`, production build, four runs, 0 skipped responses, bytes identical across runs). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`3286115`) | 200,314 B | 200,314 B | 24,452 B | 117,868 B | 0 | 2660 |
+| After | 199,372 B | 199,372 B | 23,754 B | 117,868 B | 0 / 0 / 0 / 0 | 2283 |
+
+- **JS at load −942 B**: `TreeBox` and `WatchOrigin` out, `GrowOak` in (the player itself was a lazy chunk, never in this column). CSS −698 B. DOM −377: the drawing. LCP 1080-1100 ms; TBT 0-4 ms.
+
+**Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 920 unit tests pass (`TreeBox.test` and the old clock's tests went with the code; new tests drive the show on fake timers: beats, tag years, Skip, Escape, reduced motion, the cats' events); the build passes. Full e2e on a production build: 857 passed, 0 failed (3.5 min; `origin.spec` was retired with the player, the Journey spec now grows the oak at 1440 and 390). Checked by eye at 1600, 1440, 900 and 390, day and night. Hallmark's 26a/26b on `GrowOak.tsx` are noise: its control is the shared `Button`, which carries the focus ring (the Journey e2e measures it) and the states.
+
+**Left for later.** `src/lib/knowledge-tree.ts` outlived the drawing: `buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS` and `concurrentWith` are tested but no longer rendered.

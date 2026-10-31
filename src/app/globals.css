@@ -1686,474 +1686,61 @@
   }
 
   /* ---------------------------------------------------------------------- */
-  /* Origin story v2 — chronological growth                                */
+  /* Journey — Watch it grow (round 22)                                     */
   /*                                                                        */
-  /* `[data-origin-running]`/`[data-origin-pending]` gate *individual*       */
-  /* growable groups (leaves, branches, the trunk, the shoot — every         */
-  /* `[data-origin-year]` in DrawnTree.tsx) as the story's conductor         */
-  /* (`OriginStory.tsx`) releases them one beat at a time. Four ink classes  */
-  /* (`.tree-draw` / `.tree-grow` / `.tree-grow-down` / `.tree-fade`), each   */
-  /* with one collapsed shape, drawn with the `--dur-draw`/`--dur-settle`/   */
-  /* `--ease-ink` tokens — a group plays whichever ink treatment DrawnTree   */
-  /* gave it; the story just decides *when* each one is allowed to play it.  */
-  /*                                                                        */
-  /* (Through round 17 a page-load reveal, keyed off `InkReveal`'s           */
-  /* `[data-inked]` on the tree figure's wrapper, drew the same four classes */
-  /* in once on scroll-into-view. Round 18's pinned stage never mounted that */
-  /* wrapper, and its rules were retired with it, so outside a running story */
-  /* these four classes sit at their finished state from first paint.)      */
-  /*                                                                        */
-  /* `data-origin-running` is stamped on `[data-origin-host]` only while the */
-  /* story is playing (imperative DOM) and `data-origin-pending` is stamped  */
-  /* on every growable group at story start, then removed group-by-group as  */
-  /* the beats reach that group's own `data-origin-year`. A group can be the */
-  /* pending element itself (the shoot's own `<g data-tree-shoot>`) or an    */
-  /* ancestor of the ink classes (a branch `<li>` wrapping its bough and     */
-  /* twig), so both the "self" and "descendant" shapes below are needed.     */
-  /*                                                                        */
-  /* No `[data-ink-ready]` guard here: nothing plays this without JS        */
-  /* (`TreeBox.tsx` starts it on sight or on "Watch it grow"), so there     */
-  /* is no no-JS/print/reduced-motion path where `data-origin-running`      */
-  /* could appear unbidden — `TreeBox.tsx` never starts the player under    */
-  /* reduced motion, same as the block below this one. The media guard here */
-  /* is still the belt-and-braces backstop.                                 */
+  /* `GrowOak.tsx` stamps `data-growing` on `#tree` for one show, with      */
+  /* `--grow-ms` its length, and `data-grown` on each tag as its year comes */
+  /* round. The oak opens out from the foot of its trunk (board x 307, 21.3% */
+  /* of its width, at its bottom edge); below 1280 the trunk rises first,   */
+  /* then the crown opens. A tag waits hidden, then drops onto its string   */
+  /* with the drop it already has on scroll (`tag-drop`); its bough comes   */
+  /* with it. The lantern comes last. Nothing here applies without          */
+  /* `data-growing`, which the button never sets under reduced motion: the  */
+  /* grown oak is the end state, and every other visitor's page.            */
   /* ---------------------------------------------------------------------- */
-  @media screen and (prefers-reduced-motion: no-preference) {
-    [data-origin-running] [data-origin-pending].tree-draw,
-    [data-origin-running] [data-origin-pending] .tree-draw {
-      stroke-dasharray: 1;
-      stroke-dashoffset: 1;
+  @keyframes oak-open {
+    from {
+      clip-path: circle(0 at 21.3% 100%);
     }
-    [data-origin-running] [data-origin-pending].tree-grow,
-    [data-origin-running] [data-origin-pending] .tree-grow {
-      transform: scaleY(0);
-      transform-origin: bottom;
-    }
-    [data-origin-running] [data-origin-pending].tree-grow-down,
-    [data-origin-running] [data-origin-pending] .tree-grow-down {
-      transform: scaleY(0);
-      transform-origin: top;
-    }
-    [data-origin-running] [data-origin-pending].tree-fade,
-    [data-origin-running] [data-origin-pending] .tree-fade {
-      opacity: 0;
-    }
-
-    /* Released: a group's `data-origin-pending` has been removed while the
-       figure is still `data-origin-running`. Lower specificity than the four
-       pending rules above (one attribute selector short each), so a group
-       still pending is unaffected by this — the moment it stops matching
-       `[data-origin-pending]`, though, this is what it falls into, and the
-       `transition` declared alongside each end state is what makes that
-       change a draw-in rather than a jump cut.
-
-       The `transition-delay: 0ms` below looks like the thing clearing a
-       leftover `--ink-delay` stagger a group might still carry from the
-       page-load ink reveal that round 18 retired — it is not (and no tree
-       element carries one any more). Each of the three
-       per-class rules immediately after this one repeats this rule's own
-       selector text exactly, so the cascade always prefers whichever comes
-       later in the source, and that rule's `transition` shorthand already
-       resets `transition-delay` to its initial `0s` on its own, simply by
-       never naming a delay term. This declaration restates a value the
-       shorthand below was already going to produce; deleting it would
-       change nothing on screen. It stays as documentation of the intended
-       reset, not as the rule actually performing it. */
-    /* Bare `[data-origin-running]` — two selectors, deliberately. Bringing
-       this up to three would tie it with this very file's own
-       `[data-origin-running] [data-origin-pending] .tree-draw` hide rule
-       just above — which is three on purpose, so a still-pending group keeps
-       winning over its own revealed state regardless of source order. A
-       three-selector "revealed" rule tied with that hide rule, but declared
-       *after* it, would reverse that outcome: a group's `stroke-dashoffset`
-       would resolve to its finished value the instant `data-origin-pending`
-       was ever stamped, transition or not — a real regression a
-       design-polish pass hit (while the retired page-load reveal still
-       existed, and a fix for its collision raised this rule to three), caught
-       by sampling a still-pending group's computed `stroke-dashoffset` and
-       finding it already finished. Two selectors, losing cleanly to the hide
-       rule's three whenever a group is genuinely still pending, is the one
-       specificity that keeps every case honest. */
-    [data-origin-running] .tree-draw,
-    [data-origin-running] .tree-grow,
-    [data-origin-running] .tree-grow-down,
-    [data-origin-running] .tree-fade {
-      transition-delay: 0ms;
-    }
-    [data-origin-running] .tree-draw {
-      stroke-dashoffset: 0;
-      transition: stroke-dashoffset var(--origin-rise, var(--origin-pop, var(--dur-draw)))
-        var(--ease-ink) var(--origin-stagger, 0ms);
-    }
-    [data-origin-running] .tree-grow,
-    [data-origin-running] .tree-grow-down {
-      transform: none;
-      transition: transform var(--origin-rise, var(--origin-pop, var(--dur-draw))) var(--ease-ink)
-        var(--origin-stagger, 0ms);
-    }
-    [data-origin-running] .tree-fade {
-      opacity: 1;
-      transition: opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
-        var(--origin-stagger, 0ms);
-    }
-
-    /* Non-ink chrome (Task 2, implementer's judgment per the plan's
-       self-review note; the branch panel and the shoot's own label were
-       added in a later design-polish pass — see below): the pending rules
-       above only ever collapse `.tree-draw`/`.tree-grow`/`.tree-fade` — a
-       leaf's label, a branch's own panel and the shoot's "still growing"
-       words carry none of those classes, so without this they would sit at
-       full opacity next to a bare, undrawn tree and break the "nothing here
-       yet" illusion the story is trying to tell. Three targets,
-       each already an existing hook (no new markup beyond the two
-       `data-tree-shoot-label`/`data-origin-tier` attributes the
-       choreography pass added in `DrawnTree.tsx`):
-         - a leaf's label (the `<div>` directly inside
-           `[data-tree-entry]`) fades with its own leaf's pending state,
-           exactly like its ink neighbours, so the label reappears the same
-           moment the leaf's twig does;
-         - a branch's own panel (`[data-tree-panel]`, the role,
-           organisation and year at the bough's end) fades with the branch
-           `<li>` it sits inside — a visitor who scrolled past the
-           canopy mid-story used to find every branch's card fully readable
-           regardless of whether that branch had grown yet, which is the
-           same "chrome outran the ink" bug the leaf rule above already
-           existed to close, just for a hook this pass had missed;
-         - the shoot's own annotation (`[data-tree-shoot-label]`, "still
-           growing · <year>") fades with the shoot itself — an aria-hidden
-           `<span>` beside the ink, not a descendant of it (SVG and HTML
-           don't nest that way), so it needed to become its own
-           `data-origin-year` group rather than ride the ink's own class;
-           `OriginStory.tsx`'s `queryGroups` treats it as another shoot
-           (`isShoot`) so it is still released only by the closing beat, in
-           lockstep with the mark it names, not merely tied to whatever year
-           the mark happens to share.
-
-       There were five until round 18. The other two were `[data-tree-root]`
-       (every root label under the plinth) and the plinth's own
-       name/philosophy/count line (`[data-cat-nap] > p`), neither conducted by
-       any beat — they simply stayed hidden for the whole run. Round 18
-       replaced the figure that drew them with the pinned stage, so both
-       selectors matched nothing (and the figure, `RootLabels` and the plinth
-       were later deleted outright); a rule claiming to fade root furniture is
-       a claim that there is root furniture on the page. They are deleted rather than kept "in case": if
-       either comes back, its rule comes back with it, written against whatever
-       actually renders at the time.
-
-       The leaf, panel and shoot-label rules each need the extra
-       `[data-origin-pending]` ancestor to out-specify their own release rule
-       below, the same reason the four pending shapes above do.
-
-       `opacity: 0` alone was a WCAG 2.4.7 hole: a leaf's disclosure
-       `<button>` stays hit-testable and in the tab order at zero opacity, so a
-       keyboard visitor could Tab onto a focus ring nobody can see; and while
-       the root labels and the plinth links were still rendered, they sat
-       *outside* this stage's own click-catcher entirely, so a pointer could
-       still click something invisible. `visibility: hidden` fixes both (it
-       drops an element from
-       hit-testing and the tab order together) without losing the fade:
-       `visibility` is a discrete property, so listing it in `transition`
-       alongside `opacity` with the same duration holds it `visible` for the
-       *entire* fade-out and only flips to `hidden` at the very last instant
-       — and flips back to `visible` immediately at the *start* of the
-       reverse change, which is exactly what a Skip/Escape needs, since that
-       reverse change is losing `[data-origin-running]` itself (no rule below
-       matches any more, so there is no transition left to run — the same
-       instant reappearance every other pending group already gets). The
-       panel and shoot-label targets carry no focusable content of their own
-       (a card is plain text, the shoot's words are `aria-hidden`), but
-       `visibility: hidden` costs nothing extra here and keeps all three
-       targets in this block behaving identically. */
-    [data-origin-running] [data-tree-entry][data-origin-pending] > div {
-      visibility: hidden;
-      opacity: 0;
-    }
-    [data-origin-running] [data-tree-entry] > div {
-      visibility: visible;
-      opacity: 1;
-      transition:
-        opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
-          var(--origin-stagger, 0ms),
-        visibility var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
-          var(--origin-stagger, 0ms);
-    }
-    [data-origin-running] [data-origin-pending] [data-tree-panel] {
-      visibility: hidden;
-      opacity: 0;
-    }
-    [data-origin-running] [data-tree-panel] {
-      visibility: visible;
-      opacity: 1;
-      transition:
-        opacity var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
-          var(--origin-stagger, 0ms),
-        visibility var(--origin-rise, var(--origin-pop, var(--dur-settle))) var(--ease-ink)
-          var(--origin-stagger, 0ms);
-    }
-    [data-origin-running] [data-tree-shoot-label][data-origin-pending] {
-      visibility: hidden;
-      opacity: 0;
-    }
-    [data-origin-running] [data-tree-shoot-label] {
-      visibility: visible;
-      opacity: 1;
-      transition:
-        opacity var(--dur-settle) var(--ease-ink),
-        visibility var(--dur-settle) var(--ease-ink);
+    to {
+      clip-path: circle(125% at 21.3% 100%);
     }
   }
-
-  /* ---------------------------------------------------------------------- */
-  /* Origin story — the sky layer (v2).                                     */
-  /*                                                                        */
-  /* `OriginStory.tsx` only ever mounts after `TreeBox.tsx` has checked     */
-  /* `prefers-reduced-motion` and found "no-preference" — under reduced     */
-  /* motion the player never mounts, so none of these classes appear. The   */
-  /* media guard below is redundant defence on top of that JS check, the    */
-  /* same belt-and-braces relationship the tree's own                       */
-  /* `.tree-draw`/`.tree-grow` rules above have to `InkReveal`.             */
-  /*                                                                        */
-  /* v2 deleted the covering silhouette entirely — the story now grows the  */
-  /* real tree via `[data-origin-running]`/`[data-origin-pending]` (the      */
-  /* block above this one), so `.origin-silhouette` and the dissolving       */
-  /* `.origin-fade` backdrop it used to reveal through are gone. What is     */
-  /* left is the transparent sky layer's own cast: a bird tracing a flight   */
-  /* path, a seed settling in, and each season's weather glyph — all drawn   */
-  /* over the canopy, never covering it.                                     */
-  /*                                                                        */
-  /* Timing comes from two places on purpose. The flight beat's bird and    */
-  /* its drawn-behind path both read `--origin-dur`, an inline custom       */
-  /* property the component sets to that beat's own authored duration —     */
-  /* there is no existing token for a 3-second flight because nothing else   */
-  /* on the page plays one. Everything else — a glyph settling in — reuses   */
-  /* `--dur-settle` and `--ease-ink` exactly as the tree's own draw-in does,  */
-  /* because that is the same *kind* of motion the rest of the page already  */
-  /* has a name for.                                                        */
-  /* ---------------------------------------------------------------------- */
-  @media screen and (prefers-reduced-motion: no-preference) {
-    @keyframes origin-flight-path-draw {
-      from {
-        stroke-dashoffset: 1;
-      }
-      to {
-        stroke-dashoffset: 0;
-      }
+  @keyframes oak-rise {
+    from {
+      clip-path: inset(100% 0 0 0);
     }
-    .origin-flight-path {
-      stroke-dasharray: 1;
-      stroke-dashoffset: 1;
-      animation: origin-flight-path-draw var(--origin-dur, 3000ms) linear forwards;
-    }
-
-    /* Approximates the same arc `origin-flight-path-draw` traces — a rise
-       and fall between the two ends of `FLIGHT_PATH_D` in OriginStory.tsx. */
-    @keyframes origin-flight {
-      0% {
-        transform: translate(20px, 112px) rotate(-10deg);
-      }
-      30% {
-        transform: translate(110px, 45px) rotate(-2deg);
-      }
-      60% {
-        transform: translate(190px, 35px) rotate(4deg);
-      }
-      100% {
-        transform: translate(280px, 100px) rotate(14deg);
-      }
-    }
-    .origin-bird {
-      /* Without these two, `rotate()` above turns around the SVG's default
-         transform-origin for a child element — the *viewport's* centre
-         (150,100 in `VIEW_BOX` units), not the bird's own shape — because the
-         initial value of `transform-box` for an SVG geometry element is
-         `view-box`. Compounded with each keyframe's `translate()`, that swung
-         the bird through points nowhere near `FLIGHT_PATH_D`: ≈(5,139) at 0%
-         instead of (20,112), ≈(309,67) at 100% instead of (280,100) — past
-         the right edge of the viewBox entirely. `fill-box` + `50% 50%` moves
-         the rotation origin to the bird's own bounding-box centre, so each
-         keyframe's `translate()` lands where it says and `rotate()` only
-         turns the bird in place around that point. */
-      transform-box: fill-box;
-      transform-origin: 50% 50%;
-      animation: origin-flight var(--origin-dur, 3000ms) linear forwards;
-    }
-
-    /* The seed's own glyph settles in once with this — a fresh element
-       rising into place, the same motion `--dur-settle` already names
-       everywhere else on the page. (A season's own weather used to remount
-       through the same animation too, as a small glyph in this sky slice;
-       a design-polish pass moved it to `WeatherLayer`, below, which is
-       where its own motion now lives instead.) */
-    @keyframes origin-settle {
-      from {
-        opacity: 0;
-        transform: translateY(4px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    .origin-glyph {
-      animation: origin-settle var(--dur-settle) var(--ease-ink);
+    to {
+      clip-path: inset(0);
     }
   }
-
-  /* ---------------------------------------------------------------------- */
-  /* Origin story — weather presence                                        */
-  /*                                                                        */
-  /* A season's weather used to be a small glyph sharing the sky slice's own */
-  /* 300×200 box with the bird and the seed (see the block above) — a        */
-  /* design-polish pass grew it into its own layer, `WeatherLayer` in        */
-  /* `OriginStory.tsx`: a `pointer-events-none`, `aria-hidden` overlay that   */
-  /* fills the sky slice, `position: absolute` (round 12 — see that          */
-  /* component's own doc comment for why it is no longer `fixed` against the */
-  /* viewport). The owner's own brief for this pass: "make raining, sunny,   */
-  /* windy more showing".                                                    */
-  /*                                                                        */
-  /* Same belt-and-braces as every other block in this file: `WeatherLayer` */
-  /* only ever mounts after `TreeBox.tsx` has already checked               */
-  /* `prefers-reduced-motion` and found "no-preference" — the player never  */
-  /* mounts under reduced motion — so the media guard below is defence on   */
-  /* top of that JS check, not the only thing standing between a            */
-  /* reduced-motion visitor and this animation.                             */
-  /*                                                                        */
-  /* Every colour here is `currentColor` against the `text-fg-subtle`        */
-  /* context `WeatherLayer` sets on its own wrapper, or the stronger `--fg`   */
-  /* alias for a storm's own "denser, darker" hatch — never the accent, which */
-  /* the design system reserves for annotation and links alone (CLAUDE.md).   */
-  /* ---------------------------------------------------------------------- */
-  @media screen and (prefers-reduced-motion: no-preference) {
-    /* Rain: a slanted hairline per stroke, falling on a loop across the sky
-       slice `WeatherLayer` fills (`OriginStory.tsx`) — `vh` units size the
-       travel generously (comfortably taller than that box ever renders) so
-       every drop clears it regardless of the box's own height; `overflow:
-       hidden` on `WeatherLayer` clips whatever falls past. `RainStrokes` in
-       OriginStory.tsx staggers the start of each with `animationDelay`, so a
-       dozen of these never fall in lockstep. */
-    @keyframes origin-weather-drop-fall {
-      from {
-        transform: translateY(0) rotate(14deg);
-      }
-      to {
-        transform: translateY(112vh) rotate(14deg);
-      }
-    }
-    .origin-weather-drop {
-      position: absolute;
-      top: -6vh;
-      width: 1px;
-      height: 6vh;
-      background-color: currentColor;
-      opacity: 0.45;
-      animation: origin-weather-drop-fall 900ms linear infinite;
-    }
-    /* A storm's own rain: more of them (`RainStrokes({ dense: true })`
-       simply draws more `.origin-weather-drop`s), and each one switched to
-       the stronger `--fg` alias rather than the ordinary `--fg-subtle` a
-       plain rain year inherits — "denser, darker", the same phrase the
-       owner's brief used. */
-    .origin-weather-drop--dense {
-      opacity: 0.8;
-      background-color: var(--fg);
-    }
-
-    /* Sun: the existing ray-and-disc glyph, breathing — the one season
-       whose whole point is a steady, untroubled year, so the only motion it
-       gets is the gentlest one in this block. `translateX(-50%)` is baked
-       into both keyframe steps because animating `transform` replaces the
-       whole property for the run of the animation — it cannot compose with
-       a separate, static `-translate-x-1/2` utility the way an unanimated
-       transform could, so the centring has to travel with the animation
-       itself rather than sit beside it. */
-    @keyframes origin-weather-sun-breathe {
-      from {
-        transform: translateX(-50%) scale(1);
-      }
-      to {
-        transform: translateX(-50%) scale(1.06);
-      }
-    }
-    .origin-weather-sun {
-      animation: origin-weather-sun-breathe 4s ease-in-out infinite alternate;
-    }
-
-    /* Storm: a passage through the beat, not the whole beat's own weather —
-       see `Season.storm` (origin-story.ts) and `StormOverlay`
-       (OriginStory.tsx) for why a milestone year no longer replaces its base
-       rain/sun/quiet. `.origin-weather-storm-overlay` is mounted for the
-       entire beat but starts at `opacity: 0`; both animations below share a
-       600ms delay, so the overlay stays invisible until roughly a third of
-       the way into a 2000ms season beat, then the shudder (one-time, 500ms)
-       and the fade (`origin-weather-storm-fade`, 1100ms — up quickly, a
-       brief hold, back down) run together, finishing at 1700ms: comfortably
-       inside the beat, so the storm reads as *passing through* rather than
-       painting the sky for the whole two seconds. `WeatherLayer`'s own
-       `key={season.year}` remount is what makes "every storm beat replays
-       this from the top" true here: a fresh element plays these two
-       non-`infinite` animations from their own start every time, rather than
-       only once for the whole run. `StormBolts`' own bent strokes need no
-       animation of their own; the shudder and fade they ride along with are
-       loud enough. */
-    @keyframes origin-weather-shudder-kf {
-      0% {
-        transform: translateX(0);
-      }
-      20% {
-        transform: translateX(-6px);
-      }
-      40% {
-        transform: translateX(5px);
-      }
-      60% {
-        transform: translateX(-4px);
-      }
-      80% {
-        transform: translateX(2px);
-      }
-      100% {
-        transform: translateX(0);
-      }
-    }
-    @keyframes origin-weather-storm-fade {
-      0% {
-        opacity: 0;
-      }
-      15% {
-        opacity: 1;
-      }
-      70% {
-        opacity: 1;
-      }
-      100% {
-        opacity: 0;
-      }
-    }
-    .origin-weather-storm-overlay {
+  @keyframes grow-in {
+    from {
       opacity: 0;
-      animation:
-        origin-weather-storm-fade 1100ms ease-in-out 600ms forwards,
-        origin-weather-shudder-kf 500ms ease-out 600ms 1;
     }
-
-    /* Quiet: wind, not an empty sky — two long strokes drifting across the
-       sky slice `WeatherLayer` fills, `vw` units sizing the crossing
-       generously (comfortably wider than that box ever renders) regardless
-       of how wide the stroke's own stretched box is drawn; `overflow:
-       hidden` on `WeatherLayer` clips whatever drifts past. `WindStrokes`
-       staggers the second stroke's `animationDelay` so the pair never
-       travels together. */
-    @keyframes origin-weather-wind-drift {
-      from {
-        transform: translateX(-20vw);
-      }
-      to {
-        transform: translateX(120vw);
-      }
+  }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    #tree[data-growing] [data-oak] {
+      animation: oak-open 2.6s var(--ease-ink) both;
     }
-    .origin-weather-wind {
-      left: -10%;
-      animation: origin-weather-wind-drift 6s linear infinite;
+    #tree[data-growing] [data-trunk] {
+      animation: oak-rise 1.2s var(--ease-ink) both;
+    }
+    #tree[data-growing] [data-crown] {
+      animation: oak-open 2.2s var(--ease-ink) 0.8s both;
+    }
+    #tree[data-growing] [data-grow-late] {
+      animation: grow-in 1s var(--ease-ink) calc(var(--grow-ms, 0ms) - 2.2s) both;
+    }
+    #tree[data-growing] [data-hanging-tags] li:not([data-grown]) {
+      visibility: hidden;
+    }
+    #tree[data-growing] [data-hanging-tags] li[data-grown] > div {
+      animation: tag-drop 0.9s var(--ease-ink) both;
+    }
+    #tree[data-growing] [data-hanging-tags] li[data-grown] > [data-bough],
+    #tree[data-growing] [data-hanging-tags] li[data-grown]::after {
+      animation: grow-in 0.5s var(--ease-ink) both;
     }
   }
 

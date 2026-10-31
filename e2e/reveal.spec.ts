@@ -57,19 +57,17 @@ test.describe("no-JS parity", () => {
     await expect(heading).toHaveCSS("opacity", "1");
   });
 
-  test("every drawn branch's headline is visible with its row closed", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the drawing shows from lg up; run once");
+  test("every headline waits in its closed Record row", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "not viewport-dependent; run once");
     await page.goto("/");
-    const headlines = page.locator("#tree [data-origin-host] [data-tree-headline]");
-    await expect(headlines).toHaveCount(11);
     const triggers = page.locator('#record [data-timeline] [id^="record-row-"][id$="-trigger"]');
     await expect(triggers).toHaveCount(careerEntries.length);
     for (const trigger of await triggers.all()) {
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
     }
-    for (const headline of await headlines.all()) await expect(headline).toBeVisible();
-    // On the Record a headline is depth, inside its closed row (round 21
-    // phase 5): in the document, not shown until the row opens.
+    // A headline is depth on the Record (round 21 phase 5), inside its closed
+    // row: in the document, not shown until the row opens. Round 22 retired
+    // the drawn tree that showed them at rest.
     for (const headline of await page.locator("#record [data-timeline] [data-tree-headline]").all()) {
       await expect(headline).toBeHidden();
     }

@@ -179,12 +179,15 @@ export const hero = {
 } satisfies HeroCopy;
 
 /** The Journey's authored words (round 21). Not indexed by the chat
- *  (`tests/lib/answers.test.ts`). The lead is true of the drawing:
- *  `tests/sections/CareerTree.test.tsx` checks it against `buildDrawnTree()`. */
+ *  (`tests/lib/answers.test.ts`). The lead is true of the oak (round 22, when
+ *  the drawn tree it used to describe was retired): its year is the year I
+ *  landed and every tag holds a measured value, which
+ *  `tests/sections/CareerTree.test.tsx` checks. */
 export const journey = {
   heading: "The work, as it grew.",
-  lead: "Every job I've had is a branch, and the tools I used there are its leaves. Each tag holds what I measured there.",
+  lead: "Planted in 2018 and still growing. Each tag holds a number I measured.",
   watch: "Watch it grow",
+  skip: "Skip",
   tagsLabel: "What I measured",
   vignette: {
     morning: "bánh mì on the way",

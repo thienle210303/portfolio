@@ -391,6 +391,8 @@ export interface JourneyCopy {
   readonly heading: string;
   readonly lead: string;
   readonly watch: string;
+  /** The same button while the show plays: it ends the show. */
+  readonly skip: string;
   readonly tagsLabel: string;
   readonly vignette: { readonly morning: string; readonly evening: string };
 }

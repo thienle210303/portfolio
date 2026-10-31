@@ -63,12 +63,11 @@ async function restingTop(element: Locator): Promise<number> {
   throw new Error(`element never stopped scrolling (last offset ${previous}px)`);
 }
 
-/** What has focus: a link by its href, the button by its text, the box by its data hook. */
+/** What has focus: a link by its href, the button by its text. */
 const focused = (page: Page) =>
   page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null;
     if (!el) return "";
-    if (el.matches("[data-tree-box]")) return "tree-box";
     return el.getAttribute("href") ?? el.textContent?.trim() ?? "";
   });
 
@@ -122,31 +121,6 @@ test.describe("the Journey", () => {
       expect(lead).toBeLessThanOrEqual(190);
     });
   }
-
-  test("a focus ring in the tree box is never cut by the box's edge", async ({ page }) => {
-    await page.setViewportSize(WIDE);
-    await open(page);
-    const box = page.locator("[data-tree-box]");
-    await box.scrollIntoViewIfNeeded();
-    const links = box.locator("a");
-    const count = await links.count();
-    expect(count).toBeGreaterThan(5);
-    const cut: string[] = [];
-    for (let i = 0; i < count; i++) {
-      // Focus scrolls the link into the box; the 2px ring and its 3px offset
-      // must still fit under the top edge and above the bottom one.
-      const gap = await links.nth(i).evaluate((el) => {
-        // Not drawn (the timeline's own copies are hidden): not focusable.
-        if (!el.checkVisibility()) return Infinity;
-        (el as HTMLElement).focus();
-        const scroller = el.closest("[data-tree-box]")!.getBoundingClientRect();
-        const r = el.getBoundingClientRect();
-        return Math.min(r.top - scroller.top, scroller.bottom - r.bottom);
-      });
-      if (gap < 5) cut.push(`${await links.nth(i).innerText()} (${Math.round(gap)}px)`);
-    }
-    expect(cut).toEqual([]);
-  });
 
   test("tags hang from the limb at 1440", async ({ page }) => {
     await page.setViewportSize(WIDE);
@@ -224,17 +198,14 @@ test.describe("the Journey", () => {
       await open(page);
       await focusHeading(page);
       const order: string[] = [];
-      const expected = viewport.width >= 1024 ? [...TAB_ORDER, journey.watch, "tree-box"] : TAB_ORDER;
+      // Watch it grow first at every width (round 22): it sits under the
+      // heading below 1280 and is the board's first control from 1280.
+      const expected = [journey.watch, ...TAB_ORDER];
       for (let i = 0; i < expected.length; i++) {
         await page.keyboard.press("Tab");
         order.push(await focused(page));
       }
       expect(order).toEqual(expected);
-      if (viewport.width < 1024) {
-        // No box and no Watch it grow below 1024: the timeline is next.
-        await page.keyboard.press("Tab");
-        expect(await focused(page)).not.toBe(journey.watch);
-      }
     });
   }
 
@@ -289,21 +260,43 @@ test.describe("the Journey", () => {
     });
   }
 
-  test("Watch it grow plays the tree", async ({ page }) => {
-    await page.setViewportSize(WIDE);
-    await open(page);
-    await page.evaluate(() => {
-      const w = window as unknown as { originEvents: string[] };
-      w.originEvents = [];
-      document.addEventListener("origin-story", (event) => w.originEvents.push(String((event as CustomEvent).detail)));
+  for (const viewport of [WIDE, PHONE]) {
+    test(`Watch it grow grows the oak and hangs every tag back at ${viewport.width}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await open(page);
+      await page.evaluate(() => {
+        const w = window as unknown as { originEvents: string[] };
+        w.originEvents = [];
+        document.addEventListener("origin-story", (event) => w.originEvents.push(String((event as CustomEvent).detail)));
+      });
+      await watch(page).click();
+      await expect(page.locator("#tree")).toHaveAttribute("data-growing", "");
+      const skip = page.locator("#tree").getByRole("button", { name: journey.skip });
+      await expect(skip).toBeFocused();
+      await expect(page.locator("[data-grow-caption]")).toBeVisible();
+      // A tag waits for its year, hidden, so it is never a link to nowhere.
+      await expect(items(page).last()).toBeHidden();
+      await expect(page.locator("#tree")).not.toHaveAttribute("data-growing", { timeout: 15_000 });
+      for (const li of await items(page).all()) await expect(li).toBeVisible();
+      await expect(watch(page)).toBeFocused();
+      expect(await page.evaluate(() => (window as unknown as { originEvents: string[] }).originEvents)).toEqual([
+        "start",
+        "end",
+      ]);
     });
+  }
+
+  test("Skip ends the show at once, and the caption never moves the page", async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await open(page);
+    const crown = page.locator("[data-crown]");
+    const before = await crown.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
     await watch(page).click();
-    await expect(page.locator("[data-tree-box]")).toBeInViewport();
-    await expect
-      .poll(() => page.evaluate(() => (window as unknown as { originEvents: string[] }).originEvents), {
-        timeout: 15_000,
-      })
-      .toContain("start");
+    await expect(page.locator("[data-grow-caption]")).toBeVisible();
+    expect(await crown.evaluate((el) => el.getBoundingClientRect().top + window.scrollY)).toBe(before);
+    await page.locator("#tree").getByRole("button", { name: journey.skip }).click();
+    await expect(page.locator("#tree")).not.toHaveAttribute("data-growing");
+    for (const li of await items(page).all()) await expect(li).toBeVisible();
   });
 
   for (const theme of ["day", "night"] as const) {
@@ -356,15 +349,22 @@ test.describe("the Journey", () => {
     const page = await context.newPage();
     await page.goto("/");
     await expect(page.locator("#tree button", { hasText: journey.watch })).toBeHidden();
-    await expect(page.locator("[data-tree-box]")).toBeVisible();
+    for (const li of await items(page).all()) await expect(li).toBeVisible();
     await context.close();
   });
 
-  test("reduced motion: nothing on the stage moves", async ({ page }) => {
+  test("one tree: no tree box anywhere", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page);
+    await expect(page.locator("[data-tree-box], [data-origin-host]")).toHaveCount(0);
+  });
+
+  test("reduced motion: nothing on the stage moves, and there is no Watch it grow", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
     await toTree(page);
+    await expect(watch(page)).toBeHidden();
     const moving = await page.evaluate(() => {
       const stage = document.querySelector("[data-journey-stage]")!;
       const animations = stage.getAnimations({ subtree: true }).length;

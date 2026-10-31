@@ -6,7 +6,7 @@ experience, performance, and workflows that did not previously exist.
 The site is a single narrative page in four sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
 that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — a live oak
-with five measured tags hanging from it and a drawn career tree that grows on
+with five measured tags hanging from it, which grows, tags and all, on
 "Watch it grow"; the **Record** — a notebook spread: a tree slice with my five
 best pressed around it, every entry by year in rows that open one at a time
 (with the case studies inside the rows of the roles that produced them), and my

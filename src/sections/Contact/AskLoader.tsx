@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ComponentType, type Reac
 /**
  * The chat's lazy boundary in Contact: a placeholder, a visibility trigger
  * and a plain `import()` of the actual chat (`AskThisSite.tsx`, beside this
- * file), the same idiom as `CareerTree/WatchOrigin.tsx`'s player chunk.
+ * file).
  *
  * This file is the reason the chat costs the page's initial JS nothing. It
  * imports only React — no `@/lib/answers`, no `AskThisSite` — so nothing that

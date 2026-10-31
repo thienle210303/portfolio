@@ -189,20 +189,9 @@ test.describe("the résumé route", () => {
   });
 });
 
-// A Record row's headline is inside its row, which print forces open; the
-// drawing's (>=1024px) is plain text on the branch card.
-test("every drawn branch's headline prints", async ({ page }) => {
+// A Record row's headline is inside its row, which print forces open.
+test("every headline prints", async ({ page }) => {
   const rows = page.locator("#record [data-timeline] [data-tree-headline]");
   await expect(rows).toHaveCount(careerEntries.filter((entry) => entry.headline).length);
   for (const headline of await rows.all()) await expect(headline).toBeVisible();
-  if ((page.viewportSize()?.width ?? 0) < 1024) return;
-  const drawn = page.locator("#tree [data-origin-host] [data-tree-headline]");
-  await expect(drawn).toHaveCount(11);
-  for (const headline of await drawn.all()) await expect(headline).toBeVisible();
-  // On screen the tree box is a scrolling window; on paper there is no
-  // scrolling, so it must print the whole tree rather than one window of it.
-  const clipped = await page
-    .locator("#tree [data-tree-box]")
-    .evaluate((el) => el.scrollHeight - el.clientHeight);
-  expect(clipped).toBeLessThanOrEqual(1);
 });

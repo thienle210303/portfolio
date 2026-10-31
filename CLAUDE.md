@@ -89,9 +89,9 @@ foot), the morning/evening scenery
 drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: a live oak whose limb
 carries the highlight tags, the DoorDash one a ticket with a 2026 stub, and
-"Watch it grow", which plays the drawn tree at >=1024px; below 1280 it is one
-tree: the crown's trunk runs on past the tags to its roots, each tag on a bough
-of its own), the Record (`#record`, round 21 phase 5: a
+"Watch it grow", which grows the oak itself; below 1280 it is one tree: the
+crown's trunk runs on past the tags to its roots, each tag on a bough of its
+own), the Record (`#record`, round 21 phase 5: a
 notebook spread; the left page, "Pressed, waiting to dry.", holds a tree slice
 whose rings link to their years and the five `featured` entries taped around
 it; the right page lists every career entry by start year with All / Work /
@@ -147,38 +147,32 @@ nowhere the eval can see.
 
 ### The Journey's tree
 
-The tree draws only authored relationships. Each branch is one career entry
-(chronological, each exactly once) and its leaves are that entry's own
-`technologies`, verbatim. Its `impact` lines render verbatim in that entry's
-Record row, not as leaves; its `headline` is shown with the branch at rest and
-inside the open row, and the branch's label links to the row. Do not make it infer edges by
-matching skill names against technology strings: the two vocabularies only
-overlap 17 of 38 ways, so loose matching invents links and strict matching
-claims real skills were never used. `tests/lib/knowledge-tree.test.ts`
-enforces this.
+There is one tree: the oak. Round 22 retired the drawn tree (`DrawnTree`, the
+scroll box it grew in, `TreeBox`, and the origin-story player, `OriginStory`):
+it was a second tree under the oak, in a scroll box of its own, and it repeated
+the Record's rows. They are in git history; do not bring a second tree back.
 
-- **What is drawn.** The Journey draws `buildDrawnTree()`: every career entry
-  except the nine in `DEMOTED_ENTRY_IDS` (`src/lib/knowledge-tree.ts`). Like
-  every entry, they are rows on the Record. Their content is unchanged and still
-  indexed; only the limb is gone.
-- **No roots.** Nothing is drawn below the ground line. The root labels, root
-  system and plinth
-  that used to sit under the tree (`skillCategories` as labels linking to the
-  Skills section) were retired in round 18; skill categories now render on
-  `/resume` and in the chat corpus, not on the tree. Do not bring them back as
-  roots: no category → entry edge has ever been authored.
-- **Concurrency is computed.** A branch's "Ran alongside" line comes from
-  `concurrentWith()`, comparing the entries' own `sortKey`/`endSortKey` months
-  inclusively, limited to drawn branches by `drawnSiblings()`. `usc-degree`
-  contains every role from 2021 to 2025 rather than running beside them, and is
-  demoted, so it is never drawn as anyone's sibling. A guessed end month
-  creates overlaps by itself — see the comment on `fu-of-kyoto`.
+- **Watch it grow grows the oak.** `GrowOak.tsx` stamps `data-growing` on
+  `#tree`: the oak opens out from its trunk's foot, each tag drops on its
+  `data-year`, the lantern comes last (globals.css, "Watch it grow"), and a
+  caption under the button reads each beat of `growBeats()`
+  (`src/lib/origin-story.ts`: the flight, a season per year, the shoot). The
+  cats narrate it through the same `origin-story` / `origin-story-beat` events
+  they always have. It never starts under reduced motion or with JS off: the
+  grown oak is the end state.
 - **The Record's rows own the fragments.** Each entry's row
   (`src/sections/Record/RecordYears.tsx`) carries `journey-entry-<id>` and its
-  case studies' `work-<projectId>`; the tags and the drawing's branch labels
-  link there. One row is open at a time; a fragment opens its row, and with
-  JavaScript off `:target` does. The chat cites `#record` for entries, case
-  studies and the degree.
+  case studies' `work-<projectId>`; the tags link there. One row is open at a
+  time; a fragment opens its row, and with JavaScript off `:target` does. The
+  chat cites `#record` for entries, case studies and the degree.
+- **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
+  (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)
+  are still tested but no longer rendered; `careerYearSpan`,
+  `stillGrowingCaption` and `totalTechnologies` still feed the show and the
+  cats. If a drawing of entries ever returns, its edges are authored, never
+  inferred by matching skill names against technology strings (the two
+  vocabularies overlap 17 of 38 ways), and nothing is drawn below the ground
+  line.
 
 ### `src/lib/` never imports from `src/sections/`
 

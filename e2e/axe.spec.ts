@@ -169,46 +169,21 @@ test.describe("interactive states", () => {
     }
   });
 
-  test("zero WCAG violations with the origin-story player open", async ({ page }) => {
-    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "the player only mounts at >=1024px; run once");
+  test("zero WCAG violations while the oak grows", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await scrollIntoViewAndSettle(page, "#tree-heading");
-    const button = page.locator("#tree").getByRole("button", { name: "Watch it grow" });
-    await button.click();
-    await expect(page.locator("[data-origin-stage]")).toBeVisible();
-    // The stage mounting is also the instant `OriginStory.tsx`'s conductor
-    // stamps `data-origin-running` and starts fading out the tree's own
-    // non-growable chrome — a branch's summary card and a leaf's disclosure
-    // text (globals.css, "Origin story v2 — chronological growth":
-    // `[data-origin-running] [data-origin-pending] [data-tree-panel]` and
-    // friends) — over `--dur-settle` (500ms), holding `visibility: visible` for
-    // nearly the whole transition so the fade actually plays. Auditing the
-    // instant the stage appears catches that fade mid-flight: a card at
-    // `opacity: 0.05` and `visibility: visible` is a real, if momentary,
-    // contrast violation to axe, even though it is milliseconds away from
-    // settling honestly (hidden) or reverting (Skip/Escape). Polling for the
-    // computed `visibility` that transition ends on — rather than a fixed wait
-    // guessing how long it takes — settles exactly when the fade finishes, on
-    // any machine.
-    //
-    // This polled the root plinth's own `[data-cat-nap] > p` until round 18
-    // stopped rendering the plinth and the root labels; the branch panels are
-    // what carries the same fade now. `-1` rather than `0` when there are no
-    // panels at all, so a drawing that stopped rendering them could not make
-    // this poll succeed by having nothing to wait for.
-    await expect
-      .poll(() =>
-        page.evaluate(() => {
-          const panels = Array.from(
-            document.querySelectorAll<HTMLElement>("#tree [data-tree-panel]"),
-          );
-          if (panels.length === 0) return -1;
-          return panels.filter((el) => getComputedStyle(el).visibility === "hidden").length;
-        }),
-      )
-      .toBeGreaterThan(0);
-    await auditHasNoViolations(page);
+    await page.locator("#tree").getByRole("button", { name: "Watch it grow" }).click();
+    // Mid-show: the caption is up, some tags have dropped and some still
+    // wait. Each drop is a 0.9s fade-and-swing, and a paper caught at half
+    // opacity is a momentary contrast failure to axe, so the running
+    // animations are finished first: what is audited is the show's state,
+    // not a frame of its motion.
+    await expect(page.locator("#tree [data-hanging-tags] li[data-grown]")).not.toHaveCount(0, { timeout: 10_000 });
+    await expect(page.locator("[data-grow-caption]")).toBeVisible();
+    await page.evaluate(() => document.getAnimations().forEach((animation) => animation.finish()));
+    await auditHasNoViolations(page, "#tree");
   });
 
   test("zero WCAG violations with the chat in Contact loaded and answered, by day and by night", async ({ page }) => {

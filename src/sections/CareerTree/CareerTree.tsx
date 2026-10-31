@@ -1,15 +1,15 @@
 /**
- * The Journey — the live oak, then the drawn tree, then the timeline.
+ * The Journey — one live oak.
  *
  * Round 21 (phase 4) opens it with the board (NatJourney): "The work, as it
  * grew." over a live oak whose long limb carries the highlight tags
  * (`HangingTags`), a Hội An lantern lit at night, rice at the trunk, the
- * stool's still life, and "Watch it grow", which plays the drawing growing in
- * its box (`TreeBox` around `DrawnTree`, >=1024px only). The timeline rows,
- * the credentials line and the unbranched case studies that used to follow
- * moved to the Record in round 21 phase 5 (spec §4): the tags and the
- * drawing's branch labels still link to `#journey-entry-<id>`, which is a
- * Record row now.
+ * stool's still life, and "Watch it grow", which grows the oak itself
+ * (`GrowOak`). Round 22 retired the drawn tree that used to grow in a box
+ * below: a second tree in a scroll box of its own, repeating the Record's
+ * rows. The timeline rows, the credentials line and the unbranched case
+ * studies moved to the Record in round 21 phase 5 (spec §4): the tags still
+ * link to `#journey-entry-<id>`, which is a Record row now.
  *
  * From 1280 the stage is the board: its pieces stand in a 1440×900 frame whose
  * left edge is `--fx`, centred, or pulled left so the last tag (board right
@@ -27,18 +27,16 @@ import type { CSSProperties } from "react";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { journey } from "@/content/portfolio";
-import { buildDrawnTree } from "@/lib/knowledge-tree";
+import { growBeats } from "@/lib/origin-story";
 import { LEGACY_SECTION_IDS } from "./anchors";
-import DrawnTree from "./DrawnTree";
+import GrowOak from "./GrowOak";
 import HangingTags from "./HangingTags";
 import OakScenery, { OakCrown } from "./OakScenery";
-import TreeBox, { WatchItGrow } from "./TreeBox";
 
 const HEADING_ID = "tree-heading";
 
-/** What the Journey draws: the tree without the nine entries that became one
- *  credentials line. The companion's facts count the same call. */
-const DRAWN = buildDrawnTree();
+/** The show "Watch it grow" plays: the flight, the seasons, the shoot. */
+const BEATS = growBeats();
 
 export default function CareerTree() {
   return (
@@ -84,12 +82,16 @@ export default function CareerTree() {
         >
           {journey.heading}
         </SectionHeading>
+        {/* Before the oak below 1280, where its growth starts; from 1280 the
+            board puts it under the trunk. */}
+        <GrowOak
+          label={journey.watch}
+          skipLabel={journey.skip}
+          beats={BEATS}
+          className="mt-6 xl:absolute xl:top-[790px] xl:left-[max(var(--fx)+40px,var(--gutter))] xl:mt-0"
+        />
         <OakCrown className="mt-6" />
         <HangingTags className="mt-6 xl:mt-0" />
-        <WatchItGrow
-          label={journey.watch}
-          className="mt-8 xl:absolute xl:top-[790px] xl:left-[max(var(--fx)+40px,var(--gutter))] xl:mt-0"
-        />
         {/* The board's still life (1196, 780) and its caption (1186, 870). */}
         <div
           aria-hidden="true"
@@ -105,14 +107,6 @@ export default function CareerTree() {
           </div>
         </div>
       </div>
-
-      {/* The drawing grows in its own box (`TreeBox.tsx`): once on sight, and
-          again on "Watch it grow" above. `hidden lg:block` is on the box, so
-          below 1024px — where the timeline alone tells the story — neither it
-          nor the button is in the layout. */}
-      <TreeBox className="mt-12">
-        <DrawnTree tree={DRAWN} />
-      </TreeBox>
     </Section>
   );
 }

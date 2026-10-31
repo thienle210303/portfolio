@@ -1508,11 +1508,11 @@ export function Companion({ facts }: CompanionProps) {
   } | null>(null);
 
   /* ------------------------------------------------------------- watch -- */
-  /** Non-null while the pair have been invited to sit and watch the
-   *  origin-story overlay — see the effect near the tour's own listeners.
+  /** Non-null while the pair have been invited to sit and watch the oak
+   *  grow — see the effect near the tour's own listeners.
    *  `spots` starts null and is filled in by the loop exactly the way
    *  `tourSpots` is: recomputed every frame they are still walking over
-   *  (`watchSpots`, beside the tree box),
+   *  (`watchSpots`, on the Watch it grow button),
    *  then left alone once they arrive. Dropped — not merely outranked — the
    *  moment anything with a stronger claim shows up, so it is never resumed
    *  once the visitor has been handed to the escort, the tour, a nap or the
@@ -2339,18 +2339,18 @@ export function Companion({ facts }: CompanionProps) {
     }
 
     /**
-     * Where they sit to watch the tree grow: beside the tree box, level with
-     * the middle of what of it is on screen. `tourStopSpots("tree")` anchors on
-     * the section's top, which is far above the viewport while the show plays
-     * mid-section, so both cats clamped into the top-left corner (round 21).
+     * Where they sit to watch the tree grow: side by side just above the
+     * "Watch it grow" button (round 22, `GrowOak.tsx`), which is where the
+     * show was asked for and where its caption runs, 32px clear of it (a
+     * control keeps `TOGGLE_CLEARANCE` round it). Off screen, they fall back
+     * to the section's own stop.
      */
     function watchSpots(): Spots | null {
-      const box = document.querySelector("[data-tree-box]")?.getBoundingClientRect();
-      const top = box ? Math.max(box.top, safeTop()) : 0;
-      const bottom = box ? Math.min(box.bottom, viewport().height) : 0;
-      if (!box || bottom - top < CAT_H) return tourStopSpots("tree");
-      const anchor = { x: box.left - CAT_W - 12, y: (top + bottom) / 2 - CAT_H / 2 };
-      return restSpots(anchor, { x: anchor.x - CAT_W - FOLLOW_GAP, y: anchor.y });
+      const button = document.querySelector("[data-grow] button")?.getBoundingClientRect();
+      const top = button ? button.top - 32 - CAT_H : 0;
+      if (!button || top < safeTop() || button.bottom > viewport().height) return tourStopSpots("tree");
+      const anchor = { x: button.left, y: top };
+      return restSpots(anchor, { x: anchor.x + CAT_W + FOLLOW_GAP, y: anchor.y });
     }
 
     /**
@@ -2764,16 +2764,11 @@ export function Companion({ facts }: CompanionProps) {
        * trying to know ahead of time when the section's anchor has finished
        * settling.
        *
-       * The player still has a show running when this fires — only the
-       * watch is dropped, not the story — so it is told with its own
-       * `"stop"` detail rather than the plain, detail-less dispatch `"end"`
-       * gets elsewhere in this file: `OriginStory.tsx`'s ack listener reads
-       * that detail to bring its bare-annotation fallback back rather than
-       * leaving the story fully dark for whatever beats remain.
+       * Only the watch is dropped, not the show: the oak keeps growing and
+       * its caption keeps running beside the button.
        */
       if (watchRef.current && (run || tour || nap || openRef.current)) {
         watchRef.current = null;
-        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
         if (duetRef.current?.scene.kind === "story") {
           duetRef.current = null;
           setDuetBeat(null);
@@ -4514,13 +4509,9 @@ export function Companion({ facts }: CompanionProps) {
       // the visitor turning roaming off mid-show, same as `roams` itself
       // dropping — is the one watch-drop site that reaching into `watchRef`
       // from inside the loop's own frames can never catch, because there is
-      // no frame left to reach from. `"stop"`, not the plain `"end"` this
-      // file also dispatches elsewhere: the story itself is still running,
-      // only the cats' narration of it just went dark.
-      if (watchRef.current) {
-        watchRef.current = null;
-        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "stop" }));
-      }
+      // no frame left to reach from. The show itself keeps running; only
+      // the cats' narration of it goes dark.
+      watchRef.current = null;
       window.clearTimeout(recheck);
       cancelAnimationFrame(scrollFrame);
       restart.current = null;
@@ -4575,28 +4566,17 @@ export function Companion({ facts }: CompanionProps) {
   /* ------------------------------------------------------------ origin story */
 
   /**
-   * The origin-story overlay (`OriginStory.tsx`) dispatches `"origin-story"`
-   * on `document` — `"start"` once on mount, `"end"` exactly once on every
-   * exit. Neither carries a payload beyond that, so that much is the whole
-   * contract.
+   * "Watch it grow" (`GrowOak.tsx`) dispatches `"origin-story"` on
+   * `document` — `"start"` when the oak starts growing, `"end"` exactly once
+   * when the show ends or is skipped. Neither carries a payload beyond that,
+   * so that much is the whole contract.
    *
    * `"start"` only sets `watchRef` — see its declaration — when nothing
    * already has a stronger claim on the pair; a visitor mid-tour, mid-nap or
    * with the panel open keeps whatever they already have, the same refusal
-   * every other invitation in this file gives a claimed pair. Accepting also
-   * answers the player with `origin-story-ack`'s `detail: "start"`, which is
-   * what tells it to hide its own bare-annotation fallback — the player is
-   * listening for this before it ever dispatches `"start"` (see its own
-   * mount effect's comment), so there is no race to lose here.
-   *
-   * The same `origin-story-ack` event carries a second detail, `"stop"`,
-   * dispatched from every site in this file that drops `watchRef` *without*
-   * the story itself ending — the per-frame drop a few dozen lines above
-   * (toolkit open, escort, tour, nap) and the loop's own cleanup (roaming
-   * turned off, or `roams` itself dropping). The player's own ack listener
-   * treats that as "the cats stopped narrating, not the show" and brings
-   * its fallback annotation back rather than sitting fully dark for
-   * whatever beats remain — see its `catsNarrating` state.
+   * every other invitation in this file gives a claimed pair. The show
+   * needs no answer: its caption runs beside the button whether or not the
+   * cats are narrating it.
    *
    * `"end"` clears `watchRef` unconditionally (it may already be null, if
    * the invitation was declined or a stronger claim dropped it while the
@@ -4623,7 +4603,6 @@ export function Companion({ facts }: CompanionProps) {
         rushRef.current = null;
         rainHuddleUntil.current = 0;
         lastSignRef.current = performance.now();
-        document.dispatchEvent(new CustomEvent("origin-story-ack", { detail: "start" }));
         wake();
       } else if (detail === "end") {
         watchRef.current = null;
@@ -4669,14 +4648,9 @@ export function Companion({ facts }: CompanionProps) {
      * mid-show — narrates nothing rather than starting a scene nobody is
      * sitting still to deliver.
      *
-     * The speaker alternates every beat, including a duplicate first beat —
-     * React Strict Mode's dev-only double-invocation of `OriginStory`'s own
-     * mount effect can dispatch the flight beat twice in immediate
-     * succession. Flipping twice back-to-back is harmless (the second call's
-     * `playDuetScene` simply supersedes the first's before either paints),
-     * and every choreography window below is armed by writing a fresh
-     * `{ until }`, not by toggling a flag — so replaying a beat re-arms the
-     * same window rather than corrupting it.
+     * The speaker alternates every beat. Every choreography window below is
+     * armed by writing a fresh `{ until }`, not by toggling a flag, so a beat
+     * that arrives twice re-arms the same window rather than corrupting it.
      *
      * `detail?.kind` rather than a bare destructure: the payload comes in as
      * an untyped `CustomEvent`, not through anything TypeScript checks, so an

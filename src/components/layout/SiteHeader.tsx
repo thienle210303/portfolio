@@ -1,5 +1,5 @@
 import { careerEntries, contactCopy, profile } from "@/content/portfolio";
-import { buildDrawnTree } from "@/lib/knowledge-tree";
+import { buildTickets } from "@/lib/highlights";
 import SiteNav from "./SiteNav";
 import ThemeToggle from "./ThemeToggle";
 
@@ -20,7 +20,7 @@ import ThemeToggle from "./ThemeToggle";
  *  island only receives four strings. */
 const STOP_FACTS: Readonly<Record<string, string>> = {
   about: profile.title,
-  tree: `${buildDrawnTree().length} branches`,
+  tree: `${buildTickets().length} tags`,
   record: `${careerEntries.length} entries`,
   contact: contactCopy.postcard.place,
 };

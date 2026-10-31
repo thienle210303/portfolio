@@ -96,6 +96,9 @@ const notch = "absolute size-3.5 rounded-full bg-(--hole)";
  * by a string from a leafy bough of its own. The trunk stands at the right
  * edge on a phone, the tags in one column; from 640 it stands in the middle
  * and the tags take turns either side. globals.css lays that out.
+ *
+ * `data-year` is the year the tag drops in when "Watch it grow" plays
+ * (`GrowOak.tsx`): its first half's, so the DoorDash ticket comes with 2025.
  */
 export default function HangingTags({ className }: { readonly className?: string }) {
   return (
@@ -117,6 +120,7 @@ export default function HangingTags({ className }: { readonly className?: string
           return (
             <li
               key={ticket.entryId}
+              data-year={first.year}
               className="relative xl:absolute xl:top-(--y) xl:left-[calc(var(--fx)+var(--x))] xl:w-(--w)"
               style={
                 {

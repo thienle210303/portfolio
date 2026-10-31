@@ -225,7 +225,7 @@ test.describe("career tree", () => {
   if (PANEL_STUDIES === 0) {
     throw new Error(`content fixture assumption failed: no case study belongs to "${PANEL_ENTRY}"`);
   }
-  /** The drawn entries, oldest first — what the timeline has one row for. */
+  /** The entries the Journey once drew, oldest first: each has a Record row. */
   const DRAWN = buildDrawnTree();
   const panelEntry = careerEntries.find((entry) => entry.id === PANEL_ENTRY);
   if (!panelEntry) throw new Error(`"${PANEL_ENTRY}" is no longer a career entry`);
@@ -259,15 +259,9 @@ test.describe("career tree", () => {
     expect(sticky, "something inside #tree is position: sticky").toEqual([]);
   });
 
-  test("the drawing shows at >=1024px only, and the Record's rows at every width", async ({ page }) => {
-    const drawing = page.locator("#tree [data-origin-host]");
-    if (viewportWidth(page) >= DESKTOP_MIN_WIDTH) {
-      // Far from the viewport the box skips drawing it (`data-far`, TreeBox.tsx).
-      await expect(page.locator("[data-tree-box]")).toHaveAttribute("data-far", "");
-      await page.locator("[data-tree-box]").scrollIntoViewIfNeeded();
-      await expect(page.locator("[data-tree-box]")).not.toHaveAttribute("data-far");
-      await expect(drawing).toBeVisible();
-    } else await expect(drawing).toBeHidden();
+  test("one tree, and the Record's rows at every width", async ({ page }) => {
+    // Round 22 retired the drawn tree and its box: the oak is the only tree.
+    await expect(page.locator("#tree [data-tree-box], #tree [data-origin-host]")).toHaveCount(0);
     await expect(page.locator("#record [data-timeline] [data-tree-branch]")).toHaveCount(careerEntries.length);
     await expect(row(page, DRAWN[0].id)).toBeVisible();
   });
@@ -374,24 +368,6 @@ test.describe("career tree", () => {
     await expect(article).toBeInViewport();
   });
 
-  test("branch label links to its row", async ({ page }) => {
-    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "the drawing only shows from lg up");
-    const links = page.locator('#tree [data-origin-host] [data-tree-panel] a[href^="#journey-entry-"]');
-    await expect(links).toHaveCount(DRAWN.length);
-    await expect(page.locator("#tree [data-origin-host] [data-tree-panel] button")).toHaveCount(0);
-
-    const link = page.locator(
-      `#tree [data-origin-host] [data-tree-panel] a[href="#journey-entry-${PANEL_ENTRY}"]`,
-    );
-    await link.scrollIntoViewIfNeeded();
-    await link.click();
-    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
-    expectSettledAtScrollMargin(
-      await restingTop(row(page, PANEL_ENTRY)),
-      "the branch label must land its row at the 80px scroll margin",
-    );
-  });
-
   test("a hanging tag jumps to its row", async ({ page }) => {
     // A row above the target is open first: opening the target closes it, and
     // the target must still end up where the reader was sent.
@@ -420,20 +396,6 @@ test.describe("career tree", () => {
       await restingTop(row(page, PANEL_ENTRY)),
       "following the same card again must land its row at the 80px scroll margin",
     );
-  });
-
-  /*
-   * The drawing never claims to be finished — an unfinished shoot, annotated.
-   */
-  test("the unfinished shoot draws with its still-growing annotation", async ({ page }) => {
-    test.skip(
-      viewportWidth(page) < DESKTOP_MIN_WIDTH,
-      "below 1024px the drawn presentation is display: none",
-    );
-    const tree = page.locator("#tree");
-    await page.locator("[data-tree-box]").scrollIntoViewIfNeeded();
-    await expect(tree.locator("[data-tree-shoot]")).toHaveCount(1);
-    await expect(tree.locator("[data-tree-shoot-label]:visible")).toHaveCount(1);
   });
 });
 

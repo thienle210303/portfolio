@@ -25,7 +25,7 @@ import type { CompanionFacts } from "@/lib/companion-facts";
 
 const FACTS: CompanionFacts = {
   about: { role: "Software Engineer", organization: "DoorDash, Inc." },
-  tree: { branches: 5, leaves: 25, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
+  tree: { tags: 5, technologies: 33, entries: 12, work: 5, learning: 4, milestones: 3 },
   contact: { email: "x@y.z" },
 };
 
@@ -200,8 +200,7 @@ describe("story scenes", () => {
    * in every active year, so the storm overlay has to layer on top of
    * whichever base weather (rain/sun/quiet) the year actually had, not
    * replace it as its own fourth kind — see `Season.storm` in
-   * `origin-story.ts` and `WeatherLayer`/`StormOverlay` in
-   * `OriginStory.tsx`.
+   * `origin-story.ts`.
    */
   describe("the storm overlay", () => {
     const BASE_KINDS: StoryBeatKind[] = ["rain", "sun", "quiet"];

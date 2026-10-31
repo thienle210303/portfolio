@@ -12,6 +12,10 @@ const art = (name: string) => ({ "--art": `var(${name})` }) as CSSProperties;
  * its sun would sit at the board's x 1180; a mask takes the disc out (one sun
  * or moon on screen at a time). Past the frame the oak fades out.
  *
+ * `data-oak` is what "Watch it grow" opens out from its trunk's foot, and
+ * `data-grow-late` marks what comes last, the lantern (globals.css, "Watch
+ * it grow").
+ *
  * Below 1280 only the sky is here, pinned like the hero's phone sky (its disc,
  * masked out, 40px in from the right edge); the crown, its lantern and the branch the tags
  * hang from are in the stage itself (`CareerTree.tsx`, `HangingTags.tsx`).
@@ -37,12 +41,13 @@ export default function OakScenery() {
       {/* The limbs run off the frame's edges; past 1440 the frame's edges are
           on screen, so the oak fades out there instead of stopping square. The
           last tag's string meets the limb at x 1320, clear of the fade. */}
-      <div className="absolute top-[120px] left-(--fx) hidden h-[780px] w-[1440px] [mask-image:linear-gradient(to_right,transparent,black_48px,black_calc(100%-96px),transparent)] xl:block">
+      <div data-oak="" className="absolute top-[120px] left-(--fx) hidden h-[780px] w-[1440px] [mask-image:linear-gradient(to_right,transparent,black_48px,black_calc(100%-96px),transparent)] xl:block">
         <Drawing name="oak-leaves" className="absolute inset-0 text-accent" />
         <Drawing name="oak-moss" className="absolute inset-0 text-[color:var(--scene-moss)]" />
         <Drawing name="oak" className="absolute inset-0 text-[color:var(--scene-bark)]" />
       </div>
       <span
+        data-grow-late=""
         className="scene-art absolute top-[510px] left-[calc(var(--fx)+104px)] hidden h-[122px] w-[96px] xl:block"
         style={art("--art-lantern")}
       />
@@ -75,7 +80,7 @@ export function OakCrown({ className }: { readonly className?: string }) {
       {/* Mirrored on a phone (globals.css), the board's lantern limb runs off
           the edge; there it hangs from the long limb, where that limb crosses
           board y 510. */}
-      <span className="scene-art absolute top-[75%] left-[7.2%] max-sm:left-[25.8%] aspect-[96/122] w-[6.7%]" style={art("--art-lantern")} />
+      <span data-grow-late="" className="scene-art absolute top-[75%] left-[7.2%] max-sm:left-[25.8%] aspect-[96/122] w-[6.7%]" style={art("--art-lantern")} />
     </div>
   );
 }

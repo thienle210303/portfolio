@@ -390,7 +390,7 @@ type Clip = { readonly box: DOMRect; readonly x: boolean; readonly y: boolean; r
 /**
  * The part of an element's `box` its ancestors' overflow lets show, or null
  * when none does. Only for the prose list (round 21 polish 2): at 1280 the
- * Journey tree box's lower branch labels lay out far below the box, under
+ * Journey's old tree box (retired in round 22) laid its lower branch labels out far below the box, under
  * Contact's lede, and a walk spent both its detours going round them, then
  * crossed the lede itself. A positioned element escapes the clips between it
  * and its containing block; a fixed one escapes them all.

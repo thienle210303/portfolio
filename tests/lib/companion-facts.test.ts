@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { careerEntries } from "@/content/portfolio";
 import { buildCompanionFacts } from "@/lib/companion-facts";
-import { buildDrawnTree, DEMOTED_ENTRY_IDS } from "@/lib/knowledge-tree";
+import { buildTickets } from "@/lib/highlights";
 
 /**
  * D1: `buildCompanionFacts` is only trustworthy if every number in it matches
@@ -22,33 +22,19 @@ describe("buildCompanionFacts", () => {
     expect(facts.about.organization).toBe(current?.organization ?? "");
   });
 
-  it("counts branches, leaves and technologies off the tree the Journey draws, not every entry", () => {
-    // `buildDrawnTree()` is the call `CareerTree.tsx` draws the tree from.
-    // Recomputed here by hand from the drawn branches, not by
-    // calling `totalLeaves`/`treeTechnologies` — a test that reused the same
-    // helpers would agree with a broken one.
-    const drawn = buildDrawnTree();
-    expect(drawn.length, "the drawn tree is empty, so the counts below prove nothing").toBeGreaterThan(0);
-    expect(facts.tree.branches).toBe(drawn.length);
-    let leaves = 0;
-    const technologies = new Set<string>();
-    for (const branch of drawn) {
-      for (const leaf of branch.leaves) {
-        leaves += 1;
-        if (leaf.kind === "technology") technologies.add(leaf.text);
-      }
-    }
-    expect(facts.tree.leaves).toBe(leaves);
-    expect(facts.tree.technologies).toBe(technologies.size);
+  it("counts the oak's tags, one per ticket, as the Journey hangs them", () => {
+    // Round 22 retired the drawn tree, and its branch and leaf counts with
+    // it: the oak's tags are what a visitor can count now. Counted here off
+    // the tickets' entries, not their array, so a duplicated ticket shows.
+    const tickets = buildTickets();
+    expect(tickets.length, "no tags, so the count below proves nothing").toBeGreaterThan(0);
+    expect(facts.tree.tags).toBe(new Set(tickets.map((ticket) => ticket.entryId)).size);
   });
 
-  it("counts fewer branches than entries: the credentials are not drawn as branches", () => {
-    // Through round 17 every entry was a branch and the two numbers were equal
-    // by construction. Round 18 moved the credentials to one line on the stage,
-    // so the cats saying "20 branches" beside a drawing of 11 was the
-    // contradiction this pins shut.
-    expect(DEMOTED_ENTRY_IDS.length).toBeGreaterThan(0);
-    expect(facts.tree.branches).toBe(facts.tree.entries - DEMOTED_ENTRY_IDS.length);
+  it("counts every technology the Record's rows list, each once", () => {
+    // Recomputed by hand from the entries, not with `totalTechnologies`.
+    const technologies = new Set(careerEntries.flatMap((entry) => entry.technologies as readonly string[]));
+    expect(facts.tree.technologies).toBe(technologies.size);
   });
 
   it("splits the absorbed journey by entry type on the tree fact, and the parts sum to the whole", () => {
