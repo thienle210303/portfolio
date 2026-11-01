@@ -665,10 +665,11 @@ test.describe("hero", () => {
       const art = await sky(page).evaluate((el) => getComputedStyle(el).backgroundImage);
       expect(art).toContain(theme === "day" ? "sky-day.svg" : "sky-night.svg");
       // Round 23: the buffalo ploughs by day and sleeps at night, Moon's võng
-      // and the stool's meal swap with her, all by the theme's art variables.
+      // and the stool's meal swap with her, by the theme's art variables.
       const painted = (selector: string, property: "mask-image" | "background-image") =>
         page.locator(selector).first().evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), property);
-      expect(await painted('#about [data-scenery="buffalo"]', "mask-image")).toContain(theme === "day" ? "buffalo-plow.svg" : "buffalo-sleep.svg");
+      await expect(page.locator('#about [data-scenery="buffalo-plow"]')).toBeVisible({ visible: theme === "day" });
+      await expect(page.locator('#about [data-scenery="buffalo-sleep"]')).toBeVisible({ visible: theme === "night" });
       expect(await painted("#about [data-moon-art]", "background-image")).toContain(theme === "day" ? "offduty-day.svg" : "offduty-night.svg");
       expect(await painted('#about [data-scenery="vignette"]', "background-image")).toContain(theme === "day" ? "morning.svg" : "evening.svg");
       const [shown, gone] =

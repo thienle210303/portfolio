@@ -63,7 +63,7 @@
   --color-water: #9fb3ae;
   --color-dusk-water: #3f5a5a;
   --color-buffalo: #3b433e;
-  --color-dusk-buffalo: #56665f;
+  --color-dusk-buffalo: #7f9489;
   /* Journey (round 21): the oak's night bark and its Spanish moss. */
   --color-dusk-bark: #070c0d;
   --color-spanish-moss: #8c9a86;
@@ -274,8 +274,7 @@
     --scene-buffalo: var(--color-buffalo);
     --art-sky: url(/scenery/sky-day.svg);
     --art-vignette: url(/scenery/morning.svg);
-    /* Round 23: she ploughs by day and sleeps at night; Moon's hammock swaps too. */
-    --art-buffalo: url(/scenery/buffalo-plow.svg);
+    /* Round 23: Moon's hammock swaps by theme. */
     --art-offduty: url(/scenery/offduty-day.svg);
     /* Journey (round 21) */
     --scene-bark: var(--color-ink);
@@ -360,7 +359,6 @@
     --scene-buffalo: var(--color-dusk-buffalo);
     --art-sky: url(/scenery/sky-night.svg);
     --art-vignette: url(/scenery/evening.svg);
-    --art-buffalo: url(/scenery/buffalo-sleep.svg);
     --art-offduty: url(/scenery/offduty-night.svg);
     /* Journey (round 21) */
     --scene-bark: var(--color-dusk-bark);
@@ -428,7 +426,6 @@
       --scene-buffalo: var(--color-dusk-buffalo);
       --art-sky: url(/scenery/sky-night.svg);
       --art-vignette: url(/scenery/evening.svg);
-      --art-buffalo: url(/scenery/buffalo-sleep.svg);
       --art-offduty: url(/scenery/offduty-night.svg);
       /* Journey (round 21) */
       --scene-bark: var(--color-dusk-bark);

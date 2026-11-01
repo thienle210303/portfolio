@@ -99,54 +99,55 @@ function ripples(x, y, w, n, color, seed) {
 const BUF_BOX = "0 0 250 104";
 const buffaloLine = (d, w = 1.5) => `<path d="${d}" stroke-width="${w}"/>`;
 // The crescent: from the poll it sweeps back over the neck and hooks up at the tip.
+// A horn is a thick crescent: out of the top of the skull it sweeps back and up
+// in a wide C and the tip curls in. Ridges are lines near the base, in the
+// body's own value so they stay quiet. The far horn shows its arc behind.
 const buffaloHorn = (x, y, s = 1) => {
-  const horn = `<path d="M-3 3C-12 -14 4 -30 28 -30C40 -30 50 -32 56 -42C50 -30 42 -24 32 -22C20 -20 14 -10 5 4Z" stroke-width="0.8" stroke-linejoin="round"/>`;
-  // the far horn peeks out behind, a little higher and lighter
-  return `<g transform="translate(${x} ${y}) scale(${s})" fill="${K}" stroke="${K}"><g transform="translate(9 -4)" opacity="0.4">${horn}</g>${horn}</g>`;
+  const horn = `<path d="M0 4C14 14 40 12 54 -6C58 -12 58 -20 54 -26C52 -16 46 -8 38 -3C26 2 12 0 4 -8Q-4 -3 0 4Z" stroke-width="1" stroke-linejoin="round"/>`;
+  // a few ridges near the base, a gap cut through the solid by a lighter stroke is not possible
+  // in one colour, so none: the crescent stays clean.
+  return `<g transform="translate(${x} ${y}) rotate(-16) scale(${s})" fill="${K}" stroke="${K}"><g transform="translate(-6 -10)" opacity="0.5">${horn}</g>${horn}</g>`;
 };
 function buffaloPlow() {
-  // The far legs, lighter, are drawn first and start under the belly.
-  const far = `<g fill="${K}" opacity="0.36">`
-    + `<path d="M66 68C68 73 70 77 66 80L58 84L61 88L70 84C74 80 76 74 76 68Z"/>`
-    + `<path d="M132 68C134 74 138 78 140 82L139 92L147 92L147 82C149 78 152 74 152 68Z"/></g>`;
-  const near = `<g fill="${K}" opacity="0.66">`
-    // body, neck and head in one outline: head low, neck thick, back sloping from the shoulders
-    + `<path d="M98 30C84 31 66 38 56 48C48 50 42 54 40 60C38 68 36 74 34 80C32 86 38 88 44 85C48 82 50 76 52 70C62 68 72 66 80 66C86 68 92 68 100 67C120 70 146 68 164 64C172 62 177 57 177 50C177 44 168 40 152 38C130 36 112 28 98 30Z"/>`
-    // near fore- and hind legs, planted
-    + `<path d="M80 62C79 72 82 77 83 80L82 92L90 92L90 80C92 77 98 72 98 64Z"/>`
-    + `<path d="M150 60C148 68 154 74 156 80L155 92L163 92L163 80C165 74 172 66 172 60Z"/>`
-    // the ear, level out to the side under the horn
-    + `<path d="M58 53C68 47 80 50 86 56C76 59 66 59 58 57Z"/></g>`;
+  const body = `<g fill="${K}" opacity="0.72">`
+    // a heavy barrel, a slight hump, a straight back to the hip, and a short deep head with a square muzzle
+    + `<path d="M92 33C80 34 70 38 62 42C56 42 46 44 38 48C33 50 30 54 30 60L30 70C30 75 34 77 40 76C48 75 54 72 58 68C66 68 74 70 82 70C90 71 100 72 112 72C130 74 150 72 164 68C172 66 177 60 177 52C177 44 168 38 152 36C130 34 108 31 92 33Z"/>`
+    // four straight legs, hooves splayed (two nearer, two behind)
+    + `<path d="M80 64L81 86L77 93L95 93L91 86L92 64Z"/>`
+    + `<path d="M100 66L101 86L98 93L112 93L110 86L111 66Z"/>`
+    + `<path d="M132 66L133 86L130 93L144 93L142 86L143 66Z"/>`
+    + `<path d="M150 62L151 86L147 93L165 93L161 86L165 62Z"/>`
+    // the ear, level out to the side just under the horn
+    + `<path d="M58 46C68 40 80 44 84 50C74 54 64 52 58 50Z"/></g>`;
   const ink = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
-    + buffaloLine("M98 30C112 28 130 36 152 38C168 40 177 44 177 50C177 57 172 62 164 64", 1.7)
-    + buffaloLine("M164 64C146 68 120 70 100 67C92 68 86 68 80 66C72 66 62 68 52 70C50 76 48 82 44 85C38 88 32 86 34 80C36 74 38 68 40 60C42 54 48 50 56 48C66 38 84 31 98 30", 1.7)
-    // legs
-    + buffaloLine("M80 64C79 72 82 77 83 80L82 92M98 66C98 72 92 77 90 80L90 92")
-    + buffaloLine("M150 62C148 68 154 74 156 80L155 92M172 62C172 66 165 74 163 80L163 92")
-    + buffaloLine("M66 68C68 73 70 77 66 80L58 84M76 68C76 74 74 80 70 84")
-    + buffaloLine("M132 68C134 74 138 78 140 82L139 92M152 68C152 74 149 78 147 82L147 92")
-    // the shoulder and the bony hip, and two ribs: what makes her a buffalo
-    + buffaloLine("M100 38C106 46 104 56 98 64", 1)
-    + buffaloLine("M152 42C144 48 144 56 150 60", 1)
-    + buffaloLine("M116 48C120 54 120 62 116 67M130 48C134 54 134 62 130 68", 0.8)
+    + buffaloLine("M92 33C108 31 130 34 152 36C168 38 177 44 177 52C177 60 172 66 164 68", 1.7)
+    + buffaloLine("M164 68C150 72 130 74 112 72C100 72 90 71 82 70C74 70 66 68 58 68C54 72 48 75 40 76C34 77 30 75 30 70L30 60C30 54 33 50 38 48C46 44 56 42 62 42C70 38 80 34 92 33", 1.7)
+    // legs: straight sides, and the near pair set off from the far pair
+    + buffaloLine("M80 66L81 86L77 93M92 66L91 86L95 93")
+    + buffaloLine("M150 64L151 86L147 93M164 64L161 86L165 93")
+    + buffaloLine("M100 72L101 86L98 93M111 72L110 86L112 93", 1.1)
+    + buffaloLine("M132 72L133 86L130 93M143 72L142 86L144 93", 1.1)
+    // shoulder, the bony hip, two ribs
+    + buffaloLine("M96 40C102 48 102 58 96 66", 1)
+    + buffaloLine("M152 40C144 48 144 56 150 62", 1)
+    + buffaloLine("M118 50C122 56 122 64 118 71M132 50C136 56 136 64 132 72", 0.8)
     // ear, eye, nostril and mouth
-    + buffaloLine("M58 53C68 47 80 50 86 56C76 59 66 59 58 57Z", 1.1)
-    + `<circle cx="47" cy="60" r="1.8" fill="${K}" stroke="none"/>`
-    + buffaloLine("M35 80q2 2 5 1", 1.1)
-    + buffaloLine("M36 85q4 1 8 -2", 1)
-    // the tail and its tuft
-    + buffaloLine("M177 48C186 52 189 62 185 74", 1.8)
+    + buffaloLine("M58 46C68 40 80 44 84 50C74 54 64 52 58 50Z", 1.1)
+    + `<circle cx="45" cy="55" r="1.8" fill="${K}" stroke="none"/>`
+    + `<circle cx="34" cy="65" r="1.6" fill="${K}" stroke="none"/>`
+    + buffaloLine("M31 72Q36 74 41 73", 1.1)
+    // the thin tail and its tuft
+    + buffaloLine("M177 48C185 52 188 62 185 74", 1.7)
     + `</g>`
     + `<path d="M184 72C180 80 182 88 186 87C190 86 190 78 186 72Z" fill="${K}"/>`
-    // hooves
-    + `<path d="M80 90h12v4h-12ZM153 90h12v4h-12Z" fill="${K}"/>`;
-  // The yoke across the nape with its two pegs and the cord under the throat;
+    + `<path d="M77 90h18v3h-18ZM98 90h14v3h-14ZM130 90h14v3h-14ZM147 90h18v3h-18Z" fill="${K}"/>`;
+  // The yoke sits on the shoulders with its two pegs and a cord under the neck;
   // the trace runs back under the belly to the plough she drags.
   const yoke = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
-    + `<path d="M72 42L93 34" stroke-width="4.6"/>`
-    + `<path d="M75 43L73 63M91 36L93 62" stroke-width="1.9"/>`
-    + `<path d="M73 63Q83 69 93 62" stroke-width="1.5"/>`
-    + `<path d="M93 62C118 80 168 82 204 76" stroke-width="1.2"/>`
+    + `<path d="M102 36L120 33" stroke-width="4.6"/>`
+    + `<path d="M105 38L104 62M118 34L120 60" stroke-width="1.9"/>`
+    + `<path d="M104 62Q112 68 120 60" stroke-width="1.5"/>`
+    + `<path d="M120 60C146 82 174 82 204 76" stroke-width="1.2"/>`
     // the plough: beam, handle, share, and the soil it turns
     + `<path d="M204 76C210 82 214 88 215 93" stroke-width="2.6"/>`
     + `<path d="M215 93C222 84 228 68 232 52" stroke-width="2.4"/>`
@@ -156,35 +157,36 @@ function buffaloPlow() {
     // mud about her feet
     + `<path d="M62 97h14M104 98h18M150 97h16M180 98h12" stroke-width="1"/>`
     + `</g>`;
-  return far + near + ink + buffaloHorn(54, 50) + yoke;
+  return body + ink + buffaloHorn(56, 41, 0.85) + yoke;
 }
 function buffaloSleep() {
   const body = `<g fill="${K}" opacity="0.8">`
     + `<path d="M98 54C114 46 140 48 160 52C178 55 192 66 194 78C195 88 190 92 180 93L92 93C84 93 80 88 80 80C80 68 86 60 98 54Z"/>`
-    // the head, resting on the bank, deep and blunt
-    + `<path d="M86 58C74 58 62 62 54 70C46 76 40 80 38 87C37 93 46 94 54 94C66 93 78 89 86 82Z"/>`
-    + `<path d="M64 66C74 60 90 62 96 68C86 72 74 72 64 70Z"/></g>`;
+    // the same short, deep head, resting level on the bank
+    + `<path d="M88 58C74 58 60 62 50 67C42 70 40 74 40 80L40 88C40 93 44 94 50 94C62 94 76 92 86 86Z"/>`
+    + `<path d="M70 66C78 60 90 62 96 68C86 72 76 72 70 70Z"/></g>`;
   const ink = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
     + buffaloLine("M98 54C114 46 140 48 160 52C178 55 192 66 194 78C195 88 190 92 180 93", 1.7)
-    + buffaloLine("M86 58C74 58 62 62 54 70C46 76 40 80 38 87C37 93 46 94 54 94C66 93 78 89 86 82", 1.7)
+    + buffaloLine("M88 58C74 58 60 62 50 67C42 70 40 74 40 80L40 88C40 93 44 94 50 94C62 94 76 92 86 86", 1.7)
     + buffaloLine("M92 93C84 93 80 88 80 80", 1.2)
     // the fore-leg folded under the chin, the haunch and hock behind
-    + buffaloLine("M84 84C76 82 64 86 54 90", 1.3)
+    + buffaloLine("M86 86C76 84 64 86 54 90", 1.3)
     + buffaloLine("M150 58C140 68 142 84 156 91", 1.1)
     + buffaloLine("M164 60C172 68 172 82 164 90", 0.9)
-    // the closed eye, a nostril
-    + buffaloLine("M62 78q5 4 10 0", 1.7)
-    + buffaloLine("M42 88q2 2 5 0", 1.1)
-    + buffaloLine("M64 66C74 60 90 62 96 68C86 72 74 72 64 70Z", 1.1)
+    // the closed eye, a nostril, the ear
+    + buffaloLine("M60 76q5 4 10 0", 1.7)
+    + `<circle cx="45" cy="82" r="1.6" fill="${K}" stroke="none"/>`
+    + buffaloLine("M70 66C78 60 90 62 96 68C86 72 76 72 70 70Z", 1.1)
     // the tail curled on the bank
     + buffaloLine("M194 74C204 78 206 88 198 93", 1.8)
     + `</g>`
     + `<path d="M199 92C192 89 188 93 186 93C190 96 197 96 199 92Z" fill="${K}"/>`;
-  const zs = `<g fill="none" stroke="${K}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">`
-    + `<path d="M26 52h11l-11 12h11"/><path d="M42 28h15l-15 17h15"/></g>`;
+  const zs = `<g fill="none" stroke="${K}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">`
+    + `<path d="M20 56h12l-12 13h12"/><path d="M38 30h16l-16 18h16"/></g>`;
   const mud = `<path d="M56 97h16M110 98h22M160 97h20" fill="none" stroke="${K}" stroke-width="1" stroke-linecap="round"/>`;
-  return body + ink + buffaloHorn(68, 62, 1.05) + zs + mud;
+  return body + ink + buffaloHorn(80, 61, 0.9) + zs + mud;
 }
+
 // ---- Moon in a võng (round 23) ----
 // Moon, the blue cat, in a Vietnamese hammock slung between two bamboo
 // stakes: her head on the rim, a paw and the tail hanging over. By day her

@@ -175,7 +175,7 @@ describe("the outdoors palette", () => {
       water: "#9fb3ae", "dusk-water": "#3f5a5a",
       buffalo: "#3b433e",
       // Round 21 phase 8: the board's near-black was lost on the night sky.
-      "dusk-buffalo": "#56665f",
+      "dusk-buffalo": "#7f9489",
     };
     for (const [name, hex] of Object.entries(scene)) expect(tokens[name], name).toBe(hex);
   });
@@ -186,8 +186,8 @@ describe("the outdoors palette", () => {
     const aliases = [
       "--twine:", "--gold:", "--scene-water:", "--scene-buffalo:",
       "--art-sky:", "--art-vignette:", "--show-day:", "--show-night:",
-      // Round 23: the plough by day and the sleeper at night, Moon's võng.
-      "--art-buffalo:", "--art-offduty:",
+      // Round 23: Moon's võng.
+      "--art-offduty:",
     ];
     for (const body of [dayRoot(), rule(':root[data-theme="night"]'), rule(':root:not([data-theme="day"])', media)]) {
       for (const a of aliases) expect(body, a).toContain(a);

@@ -30,6 +30,9 @@ import type { CSSProperties } from "react";
 import { companions, hero } from "@/content/portfolio";
 import { Drawing } from "@/components/scenery/Drawing";
 
+const BUFFALO =
+  "absolute bottom-[30px] left-[calc(50%-46px)] h-[50px] w-[120px] text-[color:var(--scene-buffalo)] max-[359px]:h-[38px] max-[359px]:w-[91px] lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[192px] xl:left-[calc(50%+185px)]";
+
 export default function Scenery() {
   return (
     <div
@@ -108,14 +111,12 @@ export default function Scenery() {
         className="scene-art absolute inset-x-0 bottom-[90px] h-[260px] bg-[position:right_bottom_-40px] bg-[size:1440px_auto] lg:hidden"
         style={{ "--art": "var(--art-sky)" } as CSSProperties}
       />
-      {/* Round 23: she ploughs by day and lies down at night (`--art-buffalo`
-          swaps the mask by theme). Before the rice, so the stalks draw over
-          her. Below 1024 she stands between Moon and the stool and shrinks
-          under 360 so the three do not touch. */}
-      <span
-        data-scenery="buffalo"
-        className="scene-ink absolute bottom-[30px] left-[calc(50%-46px)] h-[50px] w-[120px] text-[color:var(--scene-buffalo)] max-[359px]:h-[38px] max-[359px]:w-[91px] lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[192px] xl:left-[calc(50%+185px)]"
-        style={{ "--art": "var(--art-buffalo)" } as CSSProperties}
+      {/* Round 23: she ploughs by day, before the rice so the stalks draw
+          over her. Below 1024 she stands between Moon and the stool and
+          shrinks under 360 so the three do not touch. */}
+      <Drawing
+        name="buffalo-plow"
+        className={`day-only [display:var(--show-day)]! ${BUFFALO}`}
       />
       {/* Below 1024 a short patch of the field (its middle, cropped) round
           the buffalo, standing 24px up so the two captions sit under the
@@ -123,6 +124,13 @@ export default function Scenery() {
       <Drawing
         name="rice-field"
         className="absolute bottom-6 left-[calc(50%+14px-min(85px,19%))] h-[110px] w-[min(170px,38%)] text-accent [mask-size:auto_100%] lg:bottom-0 lg:left-[45%] lg:h-[160px] lg:w-[655px] lg:[mask-size:contain] xl:left-[calc(50%-145px)]"
+      />
+
+      {/* At night she lies down, in front of the stalks so the dusk sky does
+          not swallow her. */}
+      <Drawing
+        name="buffalo-sleep"
+        className={`night-only [display:var(--show-night)]! ${BUFFALO}`}
       />
 
       {/* Below ~1180 29% would put the stool on Moon's caption; it keeps

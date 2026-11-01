@@ -73,10 +73,10 @@ are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
 vignettes, Moon in her võng, the Hội An lantern, lit at night) take their file
 from `--art-sky` / `--art-vignette` / `--art-offduty` /
 `--art-journey-vignette` / `--art-record-vignette` / `--art-lantern`, so the
-theme swaps them in CSS with no script. The hero's buffalo is the one mask
-that changes with the theme: she ploughs by day (`buffalo-plow`) and sleeps at
-night (`buffalo-sleep`), swapped by `--art-buffalo` and painted by
-`--scene-buffalo`. The chapter tags' drawings are masks too: rice, a Venus
+theme swaps them in CSS with no script. The hero's buffalo is two masks painted
+by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, behind the rice) and
+sleeps at night (`buffalo-sleep`, in front of it), shown with `.day-only` /
+`.night-only`. The chapter tags' drawings are masks too: rice, a Venus
 flytrap (Taylors grows it wild), an open book (USC), a laptop. The Record's tree slice is not a file:
 its rings are computed from content (`src/lib/record.ts`) and drawn inline. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
 below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
