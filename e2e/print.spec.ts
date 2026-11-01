@@ -178,10 +178,9 @@ test.describe("the résumé route", () => {
     await page.waitForLoadState("networkidle");
     await page.emulateMedia({ media: "print" });
 
+    // Round 23: the route is the PDF in a viewer, so the PDF frame is what prints.
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    for (const heading of ["Experience", "Skills", "Education"]) {
-      await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
-    }
+    await expect(page.locator("main iframe")).toHaveAttribute("src", "/thien-le-resume.pdf");
 
     // The back link and the download button are for the screen only.
     await expect(page.getByRole("link", { name: /Back to the site/ })).toBeHidden();

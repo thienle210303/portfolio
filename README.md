@@ -290,17 +290,18 @@ booking link — so there is always a way to reach him without the form.
 
 The form has two honest modes and picks one **on the server** at build time.
 
-**Unconfigured (default).** A note under **Send** says it opens your email app,
-and pressing it opens a `mailto:` addressed to `profile.email` with the subject
-`Portfolio lead — <name>` and the name, email and phone in the body. Nothing is
-sent without an explicit visitor action, and a success message is never shown
-for a send that did not happen.
+**Unconfigured (default).** A note under **Send** says sending isn't switched
+on in this build, and pressing it (after the fields validate) answers in first
+person with `profile.email` as text and a copy button. The visitor's mail app
+is never opened, and a success message is never shown for a send that did not
+happen.
 
 **Configured.** Set all three variables below and the form POSTs to
 `/api/contact`, which re-validates with its Zod schema (built from the limits and patterns the
 form also checks) and sends one email via
 Resend (`replyTo` is the visitor's email when they gave one). If the route
-answers `not-configured`, the form falls back to the email app.
+answers `not-configured`, or a send fails, the form shows the same honest
+message and my address. A send that works inks a "SENT" stamp on the postcard.
 
 ```bash
 cp .env.example .env.local
@@ -357,13 +358,13 @@ an empty config file only overrides detection that is already correct.
    | Variable | Environments | Notes |
    |---|---|---|
    | `NEXT_PUBLIC_SITE_URL` | Production, optional | overrides the site's address; without it production uses the project's production domain (`thienle.vercel.app`, or a custom domain once connected) |
-   | `RESEND_API_KEY` | Production (+ Preview to test it) | omit and the form falls back to `mailto:` |
+   | `RESEND_API_KEY` | Production (+ Preview to test it) | omit and the form shows my address to copy instead. Read at build time: redeploy after adding it |
    | `CONTACT_TO_EMAIL` | same as above | |
    | `CONTACT_FROM_EMAIL` | same as above | must be on a domain verified in Resend |
 
    The three contact variables are all-or-nothing: with any one missing the
    route returns `503 { reason: "not-configured" }` and the UI switches to the
-   email-app flow. That is a working site, not a broken one — so it is safe to
+   "cannot send, here is my address" form. That is a working site, not a broken one — so it is safe to
    deploy before Resend is set up.
 3. **Name the address.** For the free one, add `thienle.vercel.app` under
    Project → Settings → Domains. For a domain you own, add it there and point

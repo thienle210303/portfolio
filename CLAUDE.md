@@ -14,10 +14,12 @@ reference: [README.md](README.md).
 - No database, no CMS, no component library. Every component under
   `src/components` and `src/sections` is bespoke — don't reach for a
   dependency to replace one without discussing it first.
-- The postcard's lead form (name plus an email or phone, no message)
-  falls back from Resend to a `mailto:` flow whenever `RESEND_API_KEY` /
-  `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set (see
-  `.env.example`). That fallback is intentional, not a bug.
+- The postcard's lead form (name plus an email or phone, no message) sends
+  through Resend and nothing else; it never opens the visitor's mail app. When
+  `RESEND_API_KEY` / `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set
+  (read at build time, see `.env.example`) or a send fails, it says so in
+  first person and offers my address with a copy button. That is intentional,
+  not a bug. A send is confirmed by a "SENT" stamp inked on the form.
 - Targets: **WCAG 2.2 AA** and Lighthouse 90+/95+/95+/95+. These are design
   constraints, not afterthoughts — they're why there's no motion library, no
   icon font, and why sections render on the server by default.
@@ -115,9 +117,12 @@ and every `journey-entry-<id>` / `work-<projectId>` on the Record's rows;
 to most of them; they exist for inbound links the site does not control, so
 "unreferenced" is not a reason to delete one.
 
-There is no résumé section on the page — it is a route, `/resume`, that reads
-the same content. Do not reintroduce it as a section: it was almost entirely a
-second rendering of the timeline and the case studies.
+There is no résumé section on the page, and no HTML résumé any more (round 23).
+The business card's Résumé chip is a link to `profile.resumePdf`; from 640px
+with JavaScript it opens the PDF in a native `<dialog>` (`ResumeLink.tsx`, the
+iframe's `src` set only on first open), below that the PDF itself. `/resume`
+is the same PDF full page (back to the site, Download) so inbound links still
+land. Do not reintroduce the résumé as a section or an HTML page.
 
 Copy rules (first person, surface vs depth, headlines) live in
 [docs/voice.md](docs/voice.md).

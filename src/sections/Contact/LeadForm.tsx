@@ -3,11 +3,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CircleAlert, CircleCheck, Loader2, TriangleAlert } from "lucide-react";
 import {
-  buildLeadMailto,
   EMAIL_MAX,
   LEAD_ERRORS,
   NAME_MAX,
-  openMailClient,
   PHONE_MAX,
   PHONE_PATTERN,
   SINGLE_LINE,
@@ -15,6 +13,7 @@ import {
 } from "@/lib/contact";
 import { contactCopy, profile } from "@/content/portfolio";
 import VisuallyHidden from "@/components/ui/VisuallyHidden";
+import CopyButton from "@/components/ui/CopyButton";
 
 /**
  * The postcard's address side: a name and an email or phone, written on
@@ -23,13 +22,17 @@ import VisuallyHidden from "@/components/ui/VisuallyHidden";
  * Validation is a hand check against the limits, patterns and messages in
  * `@/lib/contact`, so zod stays on the server. `/api/contact`'s zod schema is
  * the final check, and its field errors land on the same fields.
- * "Sent" can only come from a real `fetch` answering `{ ok: true }`; every
- * other path ends in an honest "opened your email app" status or an error.
+ *
+ * "Sent" can only come from a real `fetch` answering `{ ok: true }`, and it
+ * is stamped on the postcard (round 23). Nothing here ever opens the
+ * visitor's mail app: when this build cannot send (no Resend env, or the
+ * server says `not-configured`) or a send fails, the form says so in my voice
+ * and offers my address with a copy button.
  */
 
 type FieldName = "name" | "email" | "phone";
 type FieldErrors = Partial<Record<FieldName, string>>;
-type Status = "idle" | "success" | "mail-opened" | "fallback-opened" | { error: string };
+type Status = "idle" | "success" | "offline" | "failed" | "rate-limited" | { error: string };
 
 /** The part of `/api/contact`'s response this file reads, mirrored locally so
  *  a client file never imports a route module. */
@@ -40,7 +43,6 @@ interface ApiPayload {
 }
 
 const ORDER: readonly FieldName[] = ["name", "email", "phone"];
-const GENERIC_ERROR = "Something went wrong sending that. Please try again, or use the email on my card.";
 /** Counted, and in my voice: the email-or-phone error is one problem, said
  *  once, however many fields it marks. */
 function fixFields(errors: FieldErrors): string {
@@ -74,6 +76,21 @@ function ErrorLine({ id, children }: { id: string; children: ReactNode }) {
       <CircleAlert aria-hidden="true" focusable="false" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       <span>{children}</span>
     </p>
+  );
+}
+
+/** The postmark's answer: "SENT" and today's date, inked on the form as it
+ *  lands (globals.css, "The postcard is stamped"). Decorative: the status line
+ *  carries the meaning. */
+function SentStamp() {
+  const [today] = useState(() =>
+    new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase(),
+  );
+  return (
+    <div aria-hidden="true" data-sent-stamp="" className="sent-stamp">
+      <span className="sent-stamp__word">{contactCopy.stamp}</span>
+      <span className="sent-stamp__date">{today}</span>
+    </div>
   );
 }
 
@@ -115,13 +132,8 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
     const fieldErrors = check(trimmed, refs.email.current?.validity.typeMismatch ?? false);
     if (ORDER.some((field) => fieldErrors[field])) return showErrors(fieldErrors);
     setErrors({});
-    const lead: Lead = { name: trimmed.name, email: trimmed.email || undefined, phone: trimmed.phone || undefined };
-    const openMail = (next: Status) => {
-      openMailClient(buildLeadMailto(lead, profile.email));
-      setStatus(next);
-    };
 
-    if (!emailDeliveryConfigured) return openMail("mail-opened");
+    if (!emailDeliveryConfigured) return setStatus("offline");
 
     setSubmitting(true);
     setStatus("idle");
@@ -140,28 +152,31 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
         window.dispatchEvent(new CustomEvent("portfolio:contact-sent"));
       } else if (payload?.reason === "not-configured") {
         // The server says, authoritatively, that it cannot send.
-        openMail("fallback-opened");
+        setStatus("offline");
+      } else if (payload?.reason === "rate-limited") {
+        setStatus("rate-limited");
       } else if (payload?.reason === "invalid" && payload.fieldErrors && ORDER.some((f) => payload.fieldErrors?.[f])) {
         showErrors(payload.fieldErrors);
       } else {
-        setStatus({ error: GENERIC_ERROR });
+        setStatus("failed");
       }
     } catch {
-      setStatus({ error: GENERIC_ERROR });
+      setStatus("failed");
     } finally {
       setSubmitting(false);
     }
   }
 
-  const info =
-    status === "success"
-      ? contactCopy.success
-      : status === "mail-opened"
-        ? "Your email app should be open with this ready to send. Nothing is sent until you send it there."
-        : status === "fallback-opened"
-          ? "Direct sending isn't available right now, so I opened your email app instead. Nothing is sent until you send it there."
+  const info = status === "success" ? contactCopy.success : "";
+  const fault =
+    status === "offline"
+      ? contactCopy.offline
+      : status === "failed"
+        ? contactCopy.failed
+        : status === "rate-limited"
+          ? contactCopy.rateLimited
           : "";
-  const error = typeof status === "object" ? status.error : "";
+  const error = typeof status === "object" ? status.error : fault;
 
   const input = (field: FieldName, label: string, props: { type: string; autoComplete: string; maxLength: number }) => (
     <div className="flex flex-col gap-1">
@@ -197,7 +212,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
       noValidate
       onSubmit={handleSubmit}
       aria-labelledby="lead-heading"
-      data-delivery={emailDeliveryConfigured ? "api" : "mailto"}
+      data-delivery={emailDeliveryConfigured ? "api" : "off"}
       className="@container relative flex h-full flex-col"
     >
       <h3 id="lead-heading" className="font-serif text-[length:var(--step-1)] leading-tight italic text-fg">
@@ -223,7 +238,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
           type="submit"
           disabled={submitting}
           aria-busy={submitting || undefined}
-          aria-describedby={emailDeliveryConfigured ? undefined : "lead-send-note"}
+          aria-describedby="lead-send-note"
           className="relative inline-flex min-h-[46px] items-center justify-center rounded-[3px] border border-control bg-control px-[22px] text-[15px] font-semibold text-fg-inverse transition-colors duration-200 after:pointer-events-none after:absolute after:inset-[3px] after:rounded-[2px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-accent hover:bg-accent hover:after:opacity-40 active:translate-y-px disabled:opacity-60"
         >
           {submitting ? (
@@ -235,11 +250,9 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
             contactCopy.send
           )}
         </button>
-        {emailDeliveryConfigured ? null : (
-          <p id="lead-send-note" className="mt-2 text-[length:var(--step--1)] text-fg-muted">
-            Opens your email app. You send it from there.
-          </p>
-        )}
+        <p id="lead-send-note" className="mt-2 text-[length:var(--step--1)] text-fg-muted">
+          {emailDeliveryConfigured ? contactCopy.sendNote : contactCopy.sendOffNote}
+        </p>
       </div>
 
       {/* Honeypot: unreachable by keyboard and absent from the accessibility tree. */}
@@ -276,7 +289,16 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
             </>
           ) : null}
         </p>
+        {fault ? (
+          // The way out: my address as text (never a mailto: link) and a copy button.
+          <p data-reach="" className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[length:var(--step--1)] text-fg">
+            <span className="break-all">{profile.email}</span>
+            <CopyButton value={profile.email} label={contactCopy.copyAddress} variant="compact" className="shrink-0 rounded-full" />
+          </p>
+        ) : null}
       </div>
+
+      {status === "success" ? <SentStamp /> : null}
     </form>
   );
 }

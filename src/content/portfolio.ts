@@ -1597,7 +1597,19 @@ export const contactCopy = {
   formNote: "No message needed. I'll write first.",
   fields: { name: "Your name", email: "Email", phone: "or phone" },
   send: "Send the postcard",
-  success: "Got it — I'll be in touch.",
+  /** Under the button when sending works (round 23). */
+  sendNote: "Goes straight to my inbox.",
+  /** Under the button when this build cannot send: said before they try. */
+  sendOffNote: "Sending isn't switched on in this build. I'll show you where to write instead.",
+  /** The line that confirms a send, beside the postmark's "SENT" stamp. */
+  success: "Stamped and sent. It's in my inbox, and I'll write first.",
+  /** Inked into the stamp. */
+  stamp: "Sent",
+  /** Said when the server can't send (no key) and when a send fails. */
+  offline: "I can't send this from here, so nothing has left your browser. Write to me directly:",
+  failed: "That didn't go through, and the fault is on my side. Nothing was sent; write to me directly:",
+  rateLimited: "That's a lot of postcards in a short while. Give it a few minutes, or write to me directly:",
+  copyAddress: "Copy my address",
   ask: { heading: "Ask me", note: "I answer from what I've written here." },
 } as const;
 
