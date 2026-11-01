@@ -12,8 +12,9 @@
  *
  *   1. an explicit `NEXT_PUBLIC_SITE_URL` — set this once in the host's
  *      project settings and it wins everywhere,
- *   2. the host's own per-deployment hostname, if it exposes one, so previews
- *      describe themselves rather than production,
+ *   2. the host's own hostname, if it exposes one: on Vercel, production's
+ *      is the project's production domain and a preview's is its own, so
+ *      previews describe themselves rather than production,
  *   3. the production domain compiled in as the fallback.
  *
  * The reads must stay literal `process.env.NEXT_PUBLIC_*` member expressions

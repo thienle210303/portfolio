@@ -39,15 +39,18 @@ import type {
  * The domain the site describes itself as living at. It drives metadataBase,
  * canonical URLs, the sitemap and JSON-LD.
  *
- * The literal below is the fallback — change it when the real domain changes.
- * A deployment can override it without a code change by setting
- * `NEXT_PUBLIC_SITE_URL`, and a preview deployment falls back to its own
- * hostname so it never claims to be production. See `resolveSiteUrl`.
+ * A deployment can set it without a code change with `NEXT_PUBLIC_SITE_URL`.
+ * Otherwise, on Vercel, production takes the project's production domain
+ * (`thienle.vercel.app` today, a custom domain the day one is connected) and a
+ * preview its own hostname, so a preview never claims to be production. The
+ * literal is the fallback off Vercel. See `resolveSiteUrl`.
  */
 export const SITE_URL = resolveSiteUrl(
   process.env.NEXT_PUBLIC_SITE_URL,
-  process.env.NEXT_PUBLIC_VERCEL_URL,
-  "https://thienle.dev",
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
+    ? process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+    : process.env.NEXT_PUBLIC_VERCEL_URL,
+  "https://thienle.vercel.app",
 );
 
 /* -------------------------------------------------------------------------- */

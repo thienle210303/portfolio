@@ -356,7 +356,7 @@ an empty config file only overrides detection that is already correct.
 
    | Variable | Environments | Notes |
    |---|---|---|
-   | `NEXT_PUBLIC_SITE_URL` | Production | your real domain, e.g. `https://thienle.dev` |
+   | `NEXT_PUBLIC_SITE_URL` | Production, optional | overrides the site's address; without it production uses the project's production domain (`thienle.vercel.app`, or a custom domain once connected) |
    | `RESEND_API_KEY` | Production (+ Preview to test it) | omit and the form falls back to `mailto:` |
    | `CONTACT_TO_EMAIL` | same as above | |
    | `CONTACT_FROM_EMAIL` | same as above | must be on a domain verified in Resend |
@@ -365,8 +365,10 @@ an empty config file only overrides detection that is already correct.
    route returns `503 { reason: "not-configured" }` and the UI switches to the
    email-app flow. That is a working site, not a broken one — so it is safe to
    deploy before Resend is set up.
-3. **Add the domain** (Project → Settings → Domains) and point DNS at it. Then
-   set `NEXT_PUBLIC_SITE_URL` to it and redeploy, so canonical URLs, the
+3. **Name the address.** For the free one, add `thienle.vercel.app` under
+   Project → Settings → Domains. For a domain you own, add it there and point
+   its DNS at Vercel. Either way the site picks it up on the next deploy
+   (`NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL`), so canonical URLs, the
    sitemap and the JSON-LD all agree with where the site actually is.
 4. **Turn on Web Analytics and Speed Insights** (Project → Analytics, and
    Project → Speed Insights). The code is already there and inert until you
