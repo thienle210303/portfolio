@@ -45,6 +45,8 @@ import type { GrowBeat } from "@/lib/origin-story";
 export const BEAT_MS = 1600;
 /** How long the grown oak holds before the attributes come off. */
 export const HOLD_MS = 1200;
+/** Room kept between the header's paper and the heading, and under the button. */
+const CLEARANCE = 16;
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -79,6 +81,7 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
   const [calendar, setCalendar] = useState<CalendarState | null>(null);
   const timers = useRef<number[]>([]);
   const runningRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const finish = useCallback(() => {
     for (const timer of timers.current) window.clearTimeout(timer);
@@ -121,8 +124,24 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
     section.setAttribute("data-growing", "");
     // From 1280 the button is under the oak, at the board's foot; below, it
     // is above it, under the heading.
-    const board = window.matchMedia("(width >= 80rem)").matches;
-    section.scrollIntoView({ behavior: "smooth", block: board ? "end" : "start" });
+    if (window.matchMedia("(width >= 80rem)").matches) {
+      // Line the board's foot up with the bottom of the screen, but stop
+      // while the heading still clears the header: the header has been
+      // see-through paper since round 23, so a heading under it shows through
+      // the TL tag. The button's row (the caption and the lịch) always stays
+      // on screen. On a screen too short for both, the heading and its lead
+      // go up past the top edge whole, so the oak fills the screen and nothing
+      // sits half under the paper.
+      const rect = (selector: string) => section.querySelector(selector)?.getBoundingClientRect();
+      const header = document.querySelector("[data-site-header]")?.getBoundingClientRect().bottom ?? 0;
+      const foot = section.getBoundingClientRect().bottom - window.innerHeight;
+      const clear = Math.min(foot, (rect("h2")?.top ?? 0) - header - CLEARANCE);
+      const row = (rootRef.current?.getBoundingClientRect().bottom ?? 0) + CLEARANCE - window.innerHeight;
+      const gone = (rect("h2 + p") ?? rect("h2"))?.bottom ?? 0;
+      window.scrollBy({ top: clear >= row ? clear : Math.max(row, gone), behavior: "smooth" });
+    } else {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     setGrowing(true);
     tellCats("start");
 
@@ -149,7 +168,7 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
   };
 
   return (
-    <div data-grow="" className={cn("no-print relative w-fit", className)}>
+    <div ref={rootRef} data-grow="" className={cn("no-print relative w-fit", className)}>
       <Button
         variant="primary"
         onClick={() => (runningRef.current ? finish() : start())}
