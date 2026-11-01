@@ -704,8 +704,15 @@
      focusable element. A focusable inside the paper keeps its ring (2px +
      3px offset) only if it clears every edge by 5px and sits below the
      22px corner cut. */
+  /* A classic shipping tag (round 22): both top corners cut deep at 45°,
+     so the top reads as the tag's shoulders, not a card's clipped corners.
+     `--cut` is the corner's leg; the Journey's wider tags cut deeper. */
   .tag-cut {
-    clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%, 0 22px);
+    --cut: 30px;
+    clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%, 0 var(--cut));
+  }
+  [data-hanging-tags] .tag-cut {
+    --cut: 36px;
   }
 
   /* Below 1024 the hero's chapter tags hang off the line down the middle
@@ -810,7 +817,7 @@
       transform: scaleX(-1);
     }
     [data-hanging-tags] li {
-      width: min(100% - 44px, 340px);
+      width: min(100% - 44px, 240px);
       margin-left: auto;
       margin-right: 44px;
     }
@@ -826,6 +833,13 @@
     }
   }
   @media (40rem <= width < 80rem) {
+    /* Round 22: at the stage's own width the crown was a squashed cap on a
+       thin, tall trunk (a utility pole). Wider than the stage, it runs off
+       both edges, the canopy fills out, and the trunk, sized from the crown,
+       thickens with it. */
+    [data-journey-stage] {
+      --crown-w: max(56.25rem, 128%);
+    }
     [data-crown] {
       margin-left: calc(50% - var(--crown-w) * 0.21319);
       transform: none;
@@ -836,7 +850,7 @@
       transform: none;
     }
     [data-hanging-tags] li {
-      width: min(50% - 44px, 340px);
+      width: min(50% - 44px, 236px);
     }
     [data-hanging-tags] li:nth-child(odd) {
       margin-right: calc(50% + 44px);
@@ -874,7 +888,7 @@
   [data-swing] {
     position: relative;
     --seat: 130px;
-    --ride-h: calc(var(--seat) + 18px);
+    --ride-h: calc(var(--seat) + 20px);
     --tie-l: -25px;
     --tie-r: -28px;
     --tie: -26px;

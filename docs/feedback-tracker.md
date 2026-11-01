@@ -2240,3 +2240,47 @@ On `round-22/record`, after `8c8ca07`. Feedback from Thien's girlfriend: "add my
 - **JS at load +4,640 B**: the swing is a new interactive island on the page, so it loads with it: `NhiSwing` and her drawing (its paths are most of it). Expected, not a leak; the companion's lazy chunk carries its own copy of the drawing, not loaded up front. If it ever needs trimming, the five faces could render on the server with the island only switching which shows. CSS +317 B, DOM +38. LCP 1108 ms, TBT 2 ms.
 
 **Verification.** `pnpm verify`: typecheck, lint, contrast (66 pairings, lowest 4.52:1) and 929 unit tests pass (`NhiSwing.test`: every face distinct, a press changes her mood and is announced, the push skipped under reduced motion, the show's and the theme's moods); the build passes. Full e2e on a production build: 860 passed, 0 failed (new: she swings clear of the tags at 1440 and 390 with a 44px target and changes on press; under reduced motion she changes and nothing moves). Checked by eye at 1440, 900 and 390, day and night, and the pair in the hello scene in both themes. Hallmark 26a/26b on `NhiSwing.tsx` are noise: the global `*:focus-visible` draws the ring, the push is her press state, and she is never disabled.
+
+### Bé Nhi, cuter, with her bunny plush (2026-10-30)
+
+Thien: "Make my girlfriends character more cuter more beautiful!", then "my girlfriend love miffy as well!! so add a plush miffy with her!".
+
+**What changed** (`MiniNhi.tsx` only, plus the ride's height in globals.css).
+- **Chibi proportions**: the head is nearly as big as the rest of her (face 16 units wide in a 28 box), legs shorter, little round shoes, mitten hands.
+- **Her face**: big eyes, dark ovals with a catch-light and a lash, behind bigger round glasses; blush as three manga strokes on each cheek (strokes, not a tint: colour is never decoration); new faces for each mood: half-moon eyes under heavy lids for the pout, a "ω" smile for the hug, a bubble at her nose when she sleeps.
+- **Her hair**: more volume, curtain bangs, tips curled in, a shine in the ground's colour, and a bow.
+- **A collared cardigan**; standing, one arm waves.
+- **The plush**: she loves Miffy, so she carries a bunny plush in a little dress, at her side standing and on her lap on the swing. It is not Miffy: no X mouth and no name, because Miffy's design belongs to its owners and they enforce it (they took Sanrio to court over a lookalike rabbit). Noted in CLAUDE.md so a later change does not draw the real one.
+- The drawing now has two layers, behind (legs, cardigan, face, hair) and in front (arms, hands, plush, bow), each knocked out then inked, so what is in front of her hair is not washed by it.
+
+**Perf row** (`pnpm perf`, production build, 0 skipped responses). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (`d2f5d81`) | 204,012 B | 204,012 B | 24,071 B | 117,868 B | 0 | 2321 |
+| After | 205,454 B | 205,454 B | 24,072 B | 117,868 B | 0 | 2352 |
+
+- **JS at load +1,442 B**: the drawing's extra line work (her face, hair, plush); nothing else moved. DOM +31 (the swing's svg). LCP 1132 ms, TBT 6 ms.
+
+**Verification.** `pnpm verify` passes (929 unit tests; contrast 66 pairings, lowest 4.52:1). Full e2e on a production build: 860 passed, 0 failed. Every mood checked by eye on a sheet at 4× and 1×, standing and sitting, on both grounds; then on the swing at 1440 by day and night and at 390, and beside mini-Thien in the hello scene.
+
+## Round 22: five from the owner (2026-10-31)
+
+On `round-22/record`, after `d2f5d81` (with the cuter Bé Nhi above, also uncommitted). Five notes from Thien, with screenshots.
+
+1. **A cat sat on the Taylors tag** (below 1024, the other half cut out where it overlapped the tag). The cats' stops are probed against cached boxes, re-measured on scroll, resize, body resize and `animationend`; the hero's tags below 1024 sway with a scroll-driven animation that fires no `animationend`, so a stop could be probed against a tag that then swung under it. Not reproduced exactly (the closest run put a sleeping cat on the USC tag's corner at 820), so the fix is a net under every such path: a cat at rest whose drawn box still covers a control 600 ms later (`ON_CONTROL_MS`) re-measures the page and drops its held stop and settle spots, so it is sent somewhere clear. Once per spot, so a home that cannot clear does not churn (`Companion.tsx`, after `passUnder`).
+2. **The bamboo looked AI.** Both poles are redrawn by a shared `culm()` in `scripts/draw-scenery.mjs`: a washed stalk that tapers going up with a slight lean, each node a raised ring over its sheath scar, a highlight down the lit side, fibre marks above the nodes, a new shoot at the tip; sprays of drooping, lance-shaped leaves with midribs, no two alike, the crowns irregular (more into the open sky than the line), a short sprig now and then down the pole.
+3. **The oak looked off at medium widths** (a small crown capping a thin, tall trunk). From 640 to 1280 the crown is 128% of the stage (`--crown-w`), running off both edges: a fuller canopy and, sized from it, a thicker trunk. Boughs thicker (`OAK_BOUGH` w0 9 → 13).
+4. **The Record's link and "See the award" ran into each other** (both inline-flex in a `space-y` stack): they are one wrapping row now with a gap. The recording beside them showed a blank frame in the screenshot; it plays here (Chromium, the app's browser, a production build), so as a guard the poster is also painted under the video, and the frame is never empty while the first frame loads.
+5. **The tag shape.** The owner chose a classic shipping tag for every tag: both top corners cut deep at 45° (`.tag-cut`'s `--cut`, 30px, 36px on the Journey's tags; was 22px, which read as a card's clipped corners), the reinforced eyelet kept. The Journey's tags are taller (more paper above and below) and narrower below 1280 (240px on a phone, 236px from 640), so they hang as tags, not cards; their 1280+ widths are unchanged, since each hole meets its string on the limb. The hero's e2e focus-ring check now holds the back face's controls clear of the deeper cut at their own left edge.
+
+**Perf row** (`pnpm perf`, production build, 0 skipped responses). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (cuter Bé Nhi) | 205,454 B | 205,454 B | 24,072 B | 117,868 B | 0 | 2352 |
+| After | 205,579 B | 205,579 B | 24,132 B | 117,868 B | 0 | 2355 |
+
+- **JS at load +125 B**: the cats' check. CSS +60 B (the cut variable, the crown width). LCP 1084 ms, TBT 6 ms.
+
+**Verification.** `pnpm verify` passes (929 unit tests; the scenery test holds both new bamboo files to a fresh draw; contrast 66 pairings, lowest 4.52:1). Full e2e on a production build: 860 passed, 0 failed. By eye: the bamboo at 800 (day) and 1440 (day and night), the Journey at 1440, 1000 and 390 (day and night), the hero tags at 800, the award row and the playing recording at 1440.

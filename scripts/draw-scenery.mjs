@@ -104,26 +104,139 @@ function buffalo(x, y, sc, fill) {
 // whatever it does not need. The bamboo's extra nodes keep the 74px rhythm.
 const BAMBOO_FOOT = 900 + 74 * 6;
 const PINE_FOOT = 1344;
+/**
+ * A bamboo culm, drawn as one would by hand (round 22: the two straight lines
+ * per segment read as generated). Each internode is a washed body that tapers
+ * a little going up, with a gentle lean; each node is a raised ring over the
+ * scar its sheath left; a highlight runs down one side and a few fibre marks
+ * sit above each node. `cx` is the stem's centre at the foot, `top` where the
+ * last node is, `step` the node rhythm, `w0`/`w1` its width at foot and top.
+ * Returns the outline and the wash apart, so the caller can wash it.
+ */
+function culm({ cx, top, foot, step, w0, w1, lean, seed }) {
+  const r = rng(seed);
+  const n = Math.round((foot - top) / step);
+  let wash = "", ink = "", fine = "";
+  const at = (y) => {
+    const t = (foot - y) / (foot - top);
+    return { x: cx + lean * t + Math.sin(t * 5.1) * 0.5, w: w0 + (w1 - w0) * t };
+  };
+  for (let i = 0; i < n; i++) {
+    const y0 = foot - i * step, y1 = y0 - step + 3;
+    const a = at(y0), b = at(y1);
+    const al = a.x - a.w / 2, ar = a.x + a.w / 2, bl = b.x - b.w / 2, br = b.x + b.w / 2;
+    // The internode swells a hair under each node.
+    wash += `<path d="M${f(al)} ${f(y0)}Q${f((al + bl) / 2 + 0.4)} ${f((y0 + y1) / 2)} ${f(bl - 0.3)} ${f(y1)}L${f(br + 0.3)} ${f(y1)}Q${f((ar + br) / 2 - 0.4)} ${f((y0 + y1) / 2)} ${f(ar)} ${f(y0)}Z"/>`;
+    ink += `<path d="M${f(al)} ${f(y0)}Q${f((al + bl) / 2 + 0.4)} ${f((y0 + y1) / 2)} ${f(bl - 0.3)} ${f(y1)}M${f(ar)} ${f(y0)}Q${f((ar + br) / 2 - 0.4)} ${f((y0 + y1) / 2)} ${f(br + 0.3)} ${f(y1)}"/>`;
+    // The node above: a raised ring, and the sheath's scar just under it.
+    const yn = y1 - 1.5;
+    ink += `<path d="M${f(bl - 1.4)} ${f(yn + 0.6)}Q${f(b.x)} ${f(yn - 2.6)} ${f(br + 1.4)} ${f(yn + 0.6)}" stroke-width="1.9"/>`;
+    fine += `<path d="M${f(bl)} ${f(y1 + 1.6)}Q${f(b.x)} ${f(y1 - 0.2)} ${f(br)} ${f(y1 + 1.6)}"/>`;
+    // A highlight down the lit side, broken short of both nodes.
+    fine += `<path d="M${f(al + a.w * 0.28)} ${f(y0 - 6)}L${f(bl + b.w * 0.28)} ${f(y1 + 7)}" stroke-opacity="0.7"/>`;
+    // Fibre marks above the node below.
+    for (let k = 0; k < 2 + Math.floor(r() * 2); k++) {
+      const fx = al + a.w * (0.45 + r() * 0.4), fy = y0 - 3 - r() * 5;
+      fine += `<path d="M${f(fx)} ${f(fy)}l${f((r() - 0.5) * 0.4)} ${f(-2 - r() * 2)}"/>`;
+    }
+  }
+  // The top node, where a shoot or the crown starts.
+  const tip = foot - n * step + 3 - 1.5;
+  return { wash, ink, fine, at, tip };
+}
+
+/** A bamboo leaf: long, pointed, drooping from `x,y` along `a`, with a midrib. */
+function bambooLeaf(x, y, a, L) {
+  const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L;
+  const nx = -Math.sin(a), ny = Math.cos(a), w = L * 0.13;
+  const m1x = x + (ex - x) * 0.35, m1y = y + (ey - y) * 0.35;
+  return {
+    blade: `<path d="M${f(x)} ${f(y)}Q${f(m1x + nx * w)} ${f(m1y + ny * w)} ${f(ex)} ${f(ey)}Q${f(m1x - nx * w * 0.8)} ${f(m1y - ny * w * 0.8)} ${f(x)} ${f(y)}Z"/>`,
+    rib: `<path d="M${f(x)} ${f(y)}Q${f(m1x + nx * w * 0.15)} ${f(m1y + ny * w * 0.15)} ${f(x + (ex - x) * 0.85)} ${f(y + (ey - y) * 0.85)}"/>`,
+  };
+}
+
+/**
+ * A twig off a node, and the leaves along and at its end: `dir` is -1 for
+ * left. No two alike: the twig bends, the leaves come off at different points
+ * and lengths, and they droop by different amounts (bamboo leaves hang).
+ */
+function bambooSpray(x, y, dir, len, count, L, r) {
+  const rise = 0.25 + r() * 0.35;
+  const tx = x + dir * len, ty = y - len * rise;
+  const mx = x + dir * len * 0.55, my = y - len * rise * 0.9 - r() * 3;
+  let twig = `<path d="M${f(x)} ${f(y)}Q${f(mx)} ${f(my)} ${f(tx)} ${f(ty)}"/>`;
+  let blades = "", ribs = "";
+  for (let i = 0; i < count; i++) {
+    // Where on the twig this leaf comes off: the last ones at its tip.
+    const t = count === 1 ? 1 : 0.45 + 0.55 * (i / (count - 1));
+    const u = 1 - t;
+    const lx = u * u * x + 2 * u * t * mx + t * t * tx, ly = u * u * y + 2 * u * t * my + t * t * ty;
+    // Out and down: between nearly level and hanging, never up.
+    const droop = 0.25 + r() * 1.05;
+    const a = dir < 0 ? Math.PI - droop : droop;
+    const leaf = bambooLeaf(lx, ly, a, L * (0.6 + r() * 0.7));
+    blades += leaf.blade; ribs += leaf.rib;
+  }
+  return { twig, blades, ribs };
+}
+
+/** The culm's last node runs on into a new shoot, tapering to a point. */
+function bambooShoot(c, color) {
+  const top = c.tip, p = c.at(top);
+  return `<path d="M${f(p.x - p.w * 0.3)} ${f(top - 3)}Q${f(p.x - 0.6)} ${f(top - 10)} ${f(p.x + 0.4)} ${f(top - 15)}Q${f(p.x + 0.8)} ${f(top - 9)} ${f(p.x + p.w * 0.3)} ${f(top - 3)}" fill="${color}" fill-opacity="0.14" stroke="${color}" stroke-width="1.1" stroke-linejoin="round"/>`;
+}
+
+/** The pieces of a pole put together: wash, line, fine line, then leaves. */
+function bambooPole(color, leafFill, c, sprays) {
+  let twigs = "", blades = "", ribs = "";
+  for (const s of sprays) { twigs += s.twig; blades += s.blades; ribs += s.ribs; }
+  return `<g fill="${color}" fill-opacity="0.14" stroke="none">${c.wash}</g>`
+    + `<g fill="none" stroke="${color}" stroke-width="1.3" stroke-linecap="round">${c.ink}${twigs}</g>`
+    + `<g fill="none" stroke="${color}" stroke-width="0.6" stroke-linecap="round">${c.fine}</g>`
+    + `<g ${leafFill} stroke="${color}" stroke-width="0.9" stroke-linejoin="round">${blades}</g>`
+    + `<g fill="none" stroke="${color}" stroke-width="0.5" stroke-linecap="round">${ribs}</g>`;
+}
+
 // The hero's bamboo pole; the board fills its leaves rgba(moss, 0.18).
 function bamboo(color, leafFill) {
-  let s = "";
-  for (let y = BAMBOO_FOOT; y > 120; y -= 74) s += `<path d="M64 ${y}V${y - 70}M80 ${y}V${y - 70}"/><path d="M60 ${y - 72}Q72 ${y - 78} 84 ${y - 72}" stroke-width="2"/>`;
-  const leaf = (x, y, a, L) => { const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L, nx = -Math.sin(a) * L * 0.12, ny = Math.cos(a) * L * 0.12; return `<path d="M${f(x)} ${f(y)}Q${f((x + ex) / 2 + nx)} ${f((y + ey) / 2 + ny)} ${f(ex)} ${f(ey)}Q${f((x + ex) / 2 - nx)} ${f((y + ey) / 2 - ny)} ${f(x)} ${f(y)}Z"/>`; };
-  const r = rng(19); let leaves = "";
-  for (let i = 0; i < 16; i++) { const y = 120 + r() * 200, side = r() > 0.4 ? 1 : -1; leaves += leaf(72, y, (side > 0 ? 0.35 : Math.PI - 0.35) + (r() - 0.5) * 0.7, 46 + r() * 30); }
-  return `<g fill="none" stroke="${color}" stroke-width="1.3" stroke-linecap="round">${s}</g><g ${leafFill} stroke="${color}" stroke-width="1">${leaves}</g>`;
+  const c = culm({ cx: 72, top: 128, foot: BAMBOO_FOOT, step: 74, w0: 17, w1: 13, lean: -1.5, seed: 19 });
+  const r = rng(29), sprays = [];
+  // The crown: sprays off the top nodes at their own heights, more to the
+  // left (where the open sky is) than the right, where the line runs.
+  const crown = [[-1, 4, 6], [1, 22, 4], [-1, 68, 5], [-1, 134, 4], [1, 108, 5], [1, 172, 3], [-1, 202, 3]];
+  for (const [dir, dy, n] of crown) {
+    const y = c.tip + dy, p = c.at(y);
+    sprays.push(bambooSpray(p.x + dir * p.w / 2, y, dir, 14 + r() * 18, n, 34 + r() * 22, r));
+  }
+  // Lower down, a twig now and then, never two alike.
+  for (const [dir, y, n] of [[1, 436, 2], [-1, 590, 3], [1, 742, 2]]) {
+    const p = c.at(y);
+    sprays.push(bambooSpray(p.x + dir * p.w / 2, y, dir, 8 + r() * 8, n, 22 + r() * 10, r));
+  }
+  return bambooShoot(c, color) + bambooPole(color, leafFill, c, sprays);
 }
 // The phone's bamboo (the board's NatHeroPhone pole), standing at the right
 // edge where the line turns down the page. Its foot runs on like the hero's
 // pole; the element clips it. Six extra nodes keep the 54px rhythm and leave
-// the top where the board drew it.
+// the top where the board drew it. The stem stays at x 366–378 at its top,
+// where the line ties on; its leaves go left, into the page.
 const PHONE_BAMBOO_FOOT = 1000 + 54 * 6;
 function phoneBamboo(color, leafFill) {
-  let s = "";
-  for (let y = PHONE_BAMBOO_FOOT; y > 470; y -= 54) s += `<path d="M366 ${y}V${y - 50}M378 ${y}V${y - 50}"/><path d="M362 ${y - 52}Q372 ${y - 57} 382 ${y - 52}" stroke-width="2"/>`;
-  const r = rng(23); let lv = "";
-  for (let i = 0; i < 9; i++) { const y = 480 + r() * 120, a = Math.PI - 0.4 + (r() - 0.5) * 0.8, L = 30 + r() * 22, ex = 372 + Math.cos(a) * L, ey = y + Math.sin(a) * L; lv += `<path d="M372 ${f(y)}Q${f((372 + ex) / 2)} ${f((y + ey) / 2 - 6)} ${f(ex)} ${f(ey)}Q${f((372 + ex) / 2)} ${f((y + ey) / 2 + 6)} 372 ${f(y)}Z"/>`; }
-  return `<g fill="none" stroke="${color}" stroke-width="1.2" stroke-linecap="round">${s}</g><g ${leafFill} stroke="${color}" stroke-width="0.9">${lv}</g>`;
+  const c = culm({ cx: 372.6, top: 474, foot: PHONE_BAMBOO_FOOT, step: 54, w0: 13.5, w1: 11, lean: -0.6, seed: 23 });
+  const r = rng(31), sprays = [];
+  // The crown, into the page; one short sprig on the right, at the edge.
+  const crown = [[-1, 4, 5], [-1, 26, 4], [1, 14, 2], [-1, 60, 4], [-1, 98, 3]];
+  for (const [dir, dy, n] of crown) {
+    const y = c.tip + dy, p = c.at(y);
+    sprays.push(bambooSpray(p.x + dir * p.w / 2, y, dir, dir > 0 ? 3 : 8 + r() * 12, n, dir > 0 ? 11 : 22 + r() * 14, r));
+  }
+  // Down the pole, a short sprig every few nodes, tucked behind the tags.
+  for (const y of [690, 852]) {
+    const p = c.at(y);
+    sprays.push(bambooSpray(p.x - p.w / 2, y, -1, 6 + r() * 5, 2 + Math.floor(r() * 2), 16 + r() * 8, r));
+  }
+  return bambooShoot(c, color) + bambooPole(color, leafFill, c, sprays);
 }
 // The wooden clothespin each chapter tag hangs by on the phone.
 const clothespin = `<rect x="0.4" y="0.4" width="8" height="22" rx="2" fill="#C4AE85" stroke="#A08B62" stroke-width="0.8"/>`;
@@ -422,7 +535,7 @@ const OAK_ROOTS = [
   { p: [[104, 118], [92, 138], [74, 148], [52, 153]], w0: 13, w1: 2, twigs: 0 },
   { p: [[138, 120], [150, 140], [170, 149], [190, 154]], w0: 13, w1: 2, twigs: 0 },
 ];
-const OAK_BOUGH = [{ p: [[200, 30], [140, 8], [60, 2], [2, 11]], w0: 9, w1: 1.6, twigs: 4 }];
+const OAK_BOUGH = [{ p: [[200, 30], [140, 8], [60, 2], [2, 11]], w0: 13, w1: 2, twigs: 4 }];
 const stretched = (viewBox, body) => svg(viewBox, body).replace("<svg ", '<svg preserveAspectRatio="none" ');
 const yAt = (L, x) => { let lo = 0, hi = 1; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (cubic(L.p, m)[0] < x) lo = m; else hi = m; } return cubic(L.p, lo)[1]; };
 const TAG_XS = [520, 720, 920, 1120, 1320], TAG_DROPS = [8, 40, 96, 52, 84];

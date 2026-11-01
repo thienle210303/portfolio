@@ -353,6 +353,10 @@ const THIEN_SPEED = 3.6;
  * the mouse would wake them.
  */
 
+/** How long a cat may sit over a control before it is sent somewhere clear:
+ *  long enough that one walking past under it and turning never trips it. */
+const ON_CONTROL_MS = 600;
+
 /** Pointer dwell before a `data-cat-nap` element calls the cats over, in ms. */
 const NAP_DWELL = 600;
 const NAP_ATTR = "[data-cat-nap]";
@@ -2532,6 +2536,11 @@ export function Companion({ facts }: CompanionProps) {
       return now < cat.blinkUntil || cat.pose === "sleep";
     }
 
+    /** When a resting cat was first seen over a control, and the spot it was
+     *  last sent away from (see the check after `passUnder` below). */
+    let onControlSince = 0;
+    const onControlAt = { x: -1, y: -1 };
+
     function step() {
       frameId = 0;
       if (!running) return;
@@ -4005,6 +4014,32 @@ export function Companion({ facts }: CompanionProps) {
       // A cat whose way crosses a link or a button passes under it.
       passUnder(leadNode.current, grey.pos, -LEAD_PAD_X, -LEAD_PAD_Y, CAT_W + LEAD_PAD_X * 2, CAT_H + LEAD_PAD_Y * 2);
       passUnder(followNode.current, tabby.pos, 0, 0, CAT_W, CAT_H);
+      // Round 22: one sat on the hero's Taylors tag below 1024. Wherever a
+      // stop was probed against ground that has since moved (the tags sway
+      // with the scroll and fire no `animationend`), a cat at rest whose
+      // drawn box still covers a control a beat later re-measures the page
+      // and is sent somewhere clear. Once per spot, so a home that cannot
+      // clear does not churn.
+      {
+        const resting = (m: Mover) =>
+          m.pose !== "walk" && controlRectsUnder(boxAt(m.pos, CAT_W, CAT_H)).length > 0;
+        const on = resting(grey) ? grey.pos : resting(tabby) ? tabby.pos : null;
+        if (!on) {
+          onControlSince = 0;
+        } else if (onControlSince === 0) {
+          onControlSince = now;
+        } else if (
+          now - onControlSince > ON_CONTROL_MS &&
+          (Math.abs(on.x - onControlAt.x) > 4 || Math.abs(on.y - onControlAt.y) > 4)
+        ) {
+          onControlSince = 0;
+          onControlAt.x = on.x;
+          onControlAt.y = on.y;
+          invalidateGround();
+          exploreRun.current = null;
+          settleSpots.current = null;
+        }
+      }
       // One box test, computed from the positions just painted: while the two
       // buttons truly overlap only the lead's can be pressed. Overlap only, not
       // a spacing band: both targets are at least 24x24, so 2.5.8 and axe fail

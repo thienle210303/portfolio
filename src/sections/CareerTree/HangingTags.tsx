@@ -144,7 +144,7 @@ export default function HangingTags({ className }: { readonly className?: string
                 {stub ? (
                   <>
                     <a href={ticket.href} className="block">
-                      <Tag className="px-[18px] pt-[34px] pb-4">
+                      <Tag className="px-[18px] pt-12 pb-5">
                         <span className="mb-2.5 block font-semibold">{ticket.name}</span>
                         <Half h={first} />
                         {/* Clipped by their own box, so they never count as overflow. */}
@@ -155,7 +155,7 @@ export default function HangingTags({ className }: { readonly className?: string
                       </Tag>
                     </a>
                     <a href={stub.href} className="block">
-                      <div data-stub="" className="relative overflow-hidden bg-surface px-[18px] pt-3.5 pb-[18px] text-fg">
+                      <div data-stub="" className="relative overflow-hidden bg-surface px-[18px] pt-3.5 pb-7 text-fg">
                         <span data-perforation="" aria-hidden="true" className="absolute inset-0 overflow-hidden">
                           <span className="absolute inset-x-0 top-0 border-t-[1.5px] border-dashed border-rule" />
                           <span className={cn(notch, "-top-[7px] -left-[7px]")} />
@@ -168,7 +168,7 @@ export default function HangingTags({ className }: { readonly className?: string
                   </>
                 ) : (
                   <a href={ticket.href} className="block">
-                    <Tag className="px-[18px] pt-9 pb-5">
+                    <Tag className="px-[18px] pt-13 pb-8">
                       <span className="block font-display text-[length:var(--step-4)] font-semibold leading-none tracking-(--tracking-display) xl:whitespace-nowrap">
                         <Value value={first.value} />
                       </span>

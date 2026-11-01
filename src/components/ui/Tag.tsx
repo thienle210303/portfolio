@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * Tag paper: cut corners and a punched hole in a reinforcing ring, as on a
- * real shipping tag (round 22: the plain hole read as a sticker). Never put the paper on a
+ * Tag paper: a classic shipping tag, both top corners cut deep and a punched
+ * hole in a reinforcing ring (round 22: the plain hole read as a sticker, and
+ * the shallow cut as a card's clipped corners). Never put the paper on a
  * focusable element. A focusable inside it keeps its whole ring (2px + 3px
- * offset) only if it sits at least 5px from every edge and below the 22px
- * corner cut.
+ * offset) only if it sits at least 5px from every edge and clear of the
+ * corner cut (`--cut`, 30px; 36px on the Journey's tags).
  */
 export function Tag({ children, className }: { readonly children: ReactNode; readonly className?: string }) {
   return (

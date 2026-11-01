@@ -106,24 +106,30 @@ function Row({ entry }: { readonly entry: CareerEntry }) {
           <p className="eyebrow">
             {KIND_WORD[entry.type]} · {entry.dateRange}
           </p>
-          {entry.link ? (
-            <ExternalLink
-              href={entry.link.href}
-              className="inline-flex min-h-11 items-center font-mono text-[length:var(--step--1)] text-accent underline underline-offset-4 hover:no-underline wrap-anywhere"
-            >
-              {entry.link.label}
-            </ExternalLink>
-          ) : null}
-          {entry.award ? (
-            <ImageDialog
-              id={`award-${entry.id}`}
-              title={title}
-              meta={`${entry.organization} · ${entry.dateRange}`}
-              image={entry.award}
-              className="inline-flex min-h-11 items-center gap-2 border border-rule px-4 text-[length:var(--step--1)] text-fg hover:border-[color:var(--accent)] hover:text-accent"
-            >
-              See the award
-            </ImageDialog>
+          {/* One row that wraps, so the link and the award never run into
+              each other (they are both inline-flex). */}
+          {entry.link || entry.award ? (
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              {entry.link ? (
+                <ExternalLink
+                  href={entry.link.href}
+                  className="inline-flex min-h-11 items-center font-mono text-[length:var(--step--1)] text-accent underline underline-offset-4 hover:no-underline wrap-anywhere"
+                >
+                  {entry.link.label}
+                </ExternalLink>
+              ) : null}
+              {entry.award ? (
+                <ImageDialog
+                  id={`award-${entry.id}`}
+                  title={title}
+                  meta={`${entry.organization} · ${entry.dateRange}`}
+                  image={entry.award}
+                  className="inline-flex min-h-11 items-center gap-2 border border-rule px-4 text-[length:var(--step--1)] text-fg hover:border-[color:var(--accent)] hover:text-accent"
+                >
+                  See the award
+                </ImageDialog>
+              ) : null}
+            </div>
           ) : null}
           {entry.recording && entry.recordingDescription ? (
             <div className="no-print">

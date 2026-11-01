@@ -58,7 +58,11 @@ export function RecordingVideo({ recording, title, loop, describedBy }: Recordin
       // arrives keeps the press from shifting what is below it, and a
       // recording that is not 16:9 (Food Route is 604×568) letterboxes inside
       // it instead of resizing it.
-      className="aspect-video w-full border border-[color:var(--rule-color)] bg-[color:var(--surface)]"
+      className="aspect-video w-full border border-[color:var(--rule-color)] bg-[color:var(--surface)] bg-contain bg-center bg-no-repeat"
+      // The poster again, under the video: until the first frame is decoded
+      // (a slow network, or a play the browser refused) the browser can drop
+      // the poster and paint an empty frame; this keeps the picture there.
+      style={{ backgroundImage: `url(/media/${recording}.jpg)` }}
     />
   );
 }

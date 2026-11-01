@@ -184,7 +184,8 @@ test.describe("hero", () => {
         if (b.link) expect(b.tall, `${b.name}: a 44px target`).toBeGreaterThanOrEqual(44);
         expect(b.parent, b.name).toBe(true);
         expect(b.left, b.name).toBeGreaterThanOrEqual(0);
-        expect(b.top, `${b.name}: below the 22px corner cut`).toBeGreaterThanOrEqual(22);
+        // Clear of the 30px corner cut at its own left edge (`.tag-cut`).
+        expect(b.top, `${b.name}: clear of the corner cut`).toBeGreaterThanOrEqual(30 - b.left);
         expect(b.right, b.name).toBeLessThanOrEqual(b.width);
         expect(b.bottom, b.name).toBeLessThanOrEqual(b.height);
       }

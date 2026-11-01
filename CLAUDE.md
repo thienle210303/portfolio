@@ -175,7 +175,10 @@ the Record's rows. They are in git history; do not bring a second tree back.
   her drawing is `src/components/companion/MiniNhi.tsx`, inline line work like
   mini-Thien's (its faces are state, so it is not a `public/scenery/` file),
   drawn from her photos' traits, never from the photos. The same drawing walks
-  a step behind mini-Thien in the cats' scenes, a new face each beat.
+  a step behind mini-Thien in the cats' scenes, a new face each beat. She
+  loves Miffy, so she carries a bunny plush in a little dress; it is a bunny
+  of her own, never Miffy (no X mouth, no name): Miffy's design belongs to
+  its owners, who enforce it.
 - **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
   (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)
   are still tested but no longer rendered; `careerYearSpan`,
