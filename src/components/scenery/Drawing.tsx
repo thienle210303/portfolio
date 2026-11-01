@@ -26,10 +26,13 @@ export const INK_DRAWINGS = [
   // Contact
   "postmark",
   // Record
-  "stamp-rice",
-  "stamp-pine",
-  "stamp-fern",
-  "stamp-palmetto",
+  "stamp-bank",
+  "stamp-card",
+  "stamp-code",
+  "stamp-cart",
+  "diary-selftaught",
+  "diary-cap",
+  "diary-podium",
 ] as const;
 export type InkDrawing = (typeof INK_DRAWINGS)[number];
 

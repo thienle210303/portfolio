@@ -34,26 +34,19 @@ import { test, expect, type Page } from "@playwright/test";
  *    `content-integrity.spec.ts` does it, because a link inside a collapsed
  *    branch panel is not in the document until its trigger has been pressed.
  *    The loop runs until no collapsed trigger is left, so a panel opened on one
- *    pass exposes the case study inside it to the next. The Journey's timeline
- *    opens one row at a time, so its rows are forced open with a test-only
- *    stylesheet (the print stylesheet's override) and their triggers skipped.
- *    The hero's chapter tags open one at a time as well; their back faces are
- *    always in the document, so their triggers are skipped too.
+ *    pass exposes what is inside it to the next. The hero's chapter tags open
+ *    one at a time; their back faces are always in the document, so their
+ *    triggers are skipped. (The Record's rows were skipped too, until round 23
+ *    made it a book: every page is in the document, so there is nothing to open.)
  */
 
 async function expandAllDisclosures(page: Page): Promise<void> {
   // Hydrated, so a click on a trigger is handled rather than lost.
-  await expect(page.locator("#record [data-timeline]")).toHaveAttribute("data-live", "");
-  await page.addStyleTag({
-    content:
-      '[data-timeline] [role="region"] { grid-template-rows: 1fr !important; } ' +
-      '[data-timeline] [role="region"] > div { visibility: visible !important; transition: none !important; }',
-  });
+  await expect(page.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
   await page.evaluate(async () => {
-    // The hero's chapter tags are one-open too; their backs (and the links on
+    // The hero's chapter tags are one-open; their backs (and the links on
     // them) are in the document whether turned or not, so they are skipped.
-    const isRow = (el: HTMLElement) =>
-      el.id.startsWith("record-row-") || (el.id.endsWith("-front") && !!el.closest("#about"));
+    const isRow = (el: HTMLElement) => el.id.endsWith("-front") && !!el.closest("#about");
     const isVisible = (el: HTMLElement) => el.offsetParent !== null && !isRow(el);
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
     for (let guard = 0; guard < 200; guard += 1) {

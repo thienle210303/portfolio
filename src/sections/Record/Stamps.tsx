@@ -6,20 +6,24 @@ import { ImageDialog } from "./ImageDialog";
 
 const CERTS: readonly Certification[] = certifications;
 /** Each stamp a little askew (the board's three, and a fourth). */
-const TILT = [-7, 4, -3, 5];
+const TILT = [-5, 3, -3, 4];
 
 /**
  * "Certificates I've collected": every certification that has an image, as a
- * perforated postage stamp with a small line drawing. Pressing one opens the
- * certificate itself (`ImageDialog`). A certification without an image (AT&T)
- * gets no stamp: owner, 2026-10-21. It is still on `/resume`.
+ * perforated postage stamp with a line drawing of what it was about (round
+ * 23: a bank's columns, a card with a key, code in brackets around a gear, a
+ * cart; never an issuer's logo). Pressing one opens the certificate itself
+ * (`ImageDialog`). A certification without an image (AT&T) gets no stamp:
+ * owner, 2026-10-21. It is still on `/resume`.
  */
-export default function Stamps({ className }: { readonly className?: string }) {
+export default function Stamps({ titleId }: { readonly titleId: string }) {
   const stamped = CERTS.filter((c) => c.stamp);
   return (
-    <div className={className}>
-      <h4 className="font-serif text-[length:var(--step-1)] italic text-fg">{record.certificates}</h4>
-      <ul role="list" className="mt-4 flex flex-wrap gap-x-3 gap-y-5 max-xl:justify-center">
+    <>
+      <h3 id={titleId} className="font-serif text-[length:var(--step-2)] italic leading-tight text-fg">
+        {record.certificates}
+      </h3>
+      <ul role="list" className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-9 @min-[34rem]:justify-start">
         {stamped.map((c, i) => {
           const stamp = c.stamp!;
           const date = resolved(c.date);
@@ -30,11 +34,11 @@ export default function Stamps({ className }: { readonly className?: string }) {
                 title={c.name}
                 meta={[c.issuer, c.via ? `via ${c.via}` : null, date].filter(Boolean).join(" · ")}
                 image={stamp.image}
-                className="record-stamp block w-[7.5rem] text-left"
+                className="record-stamp block w-[8.5rem] text-left"
               >
                 <span className="record-stamp-paper flex aspect-[132/150] flex-col justify-between bg-surface">
-                  <span className="flex min-h-0 flex-1 flex-col justify-between border border-rule p-2.5">
-                    <Drawing name={`stamp-${stamp.drawing}`} className="h-11 w-full shrink-0 text-accent [mask-position:bottom]" />
+                  <span className="flex min-h-0 flex-1 flex-col justify-between border border-rule p-3">
+                    <Drawing name={`stamp-${stamp.drawing}`} className="h-12 w-full shrink-0 text-accent" />
                     <span className="block">
                       <span className="block font-display text-[length:var(--step-0)] font-semibold leading-none text-fg">
                         {stamp.short}
@@ -50,6 +54,6 @@ export default function Stamps({ className }: { readonly className?: string }) {
           );
         })}
       </ul>
-    </div>
+    </>
   );
 }

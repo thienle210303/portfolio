@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { careerEntries } from "../src/content/portfolio";
+import { diaryPages } from "../src/lib/record";
 
 /**
  * The ink-reveal system (Workstream 3, P1/P2): `InkReveal.tsx`'s shared
@@ -57,20 +57,22 @@ test.describe("no-JS parity", () => {
     await expect(heading).toHaveCSS("opacity", "1");
   });
 
-  test("every headline waits in its closed Record row", async ({ page }) => {
+  test("every page of the Diary is in the document, shown, with the tabs and corners left out", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "not viewport-dependent; run once");
     await page.goto("/");
-    const triggers = page.locator('#record [data-timeline] [id^="record-row-"][id$="-trigger"]');
-    await expect(triggers).toHaveCount(careerEntries.length);
-    for (const trigger of await triggers.all()) {
-      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    // The pages are a scroll-snap track, so with no script every one of them
+    // is there to be swiped to (round 23); only the tabs, the corners and the
+    // page counter, which are the island's, are not shown.
+    const slots = page.locator("#record .diary-slot");
+    await expect(slots).toHaveCount(diaryPages().length);
+    for (const slot of await slots.all()) {
+      await expect(slot).not.toHaveAttribute("data-hidden", /.*/);
+      expect(await slot.evaluate((el) => getComputedStyle(el).display)).toBe("flex");
+      await expect(slot.locator("article")).toHaveCount(1);
     }
-    // A headline is depth on the Record (round 21 phase 5), inside its closed
-    // row: in the document, not shown until the row opens. Round 22 retired
-    // the drawn tree that showed them at rest.
-    for (const headline of await page.locator("#record [data-timeline] [data-tree-headline]").all()) {
-      await expect(headline).toBeHidden();
-    }
+    await expect(page.locator("#record .diary-tabs")).toBeHidden();
+    await expect(page.locator("#record .diary-corner")).toHaveCount(2);
+    for (const corner of await page.locator("#record .diary-corner").all()) await expect(corner).toBeHidden();
   });
 
   test("the hero has no data-motion attribute and renders at rest", async ({ page }) => {

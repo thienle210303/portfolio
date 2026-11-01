@@ -85,10 +85,10 @@ test("hiding the margin rail must not strand section content in its grid track",
     expect(widths.content).toBeGreaterThan(widths.layout / 2);
   }
 
-  // And the concrete symptom: case-study articles keep a real measure.
+  // And the concrete symptom: the Diary's pages keep a real measure.
   const article = page.locator("#record article").first();
   const articleWidth = await article.evaluate((el) => el.getBoundingClientRect().width);
-  expect(articleWidth, "case studies collapsed to zero width in print").toBeGreaterThan(200);
+  expect(articleWidth, "a Diary page collapsed to zero width in print").toBeGreaterThan(200);
 });
 
 /*
@@ -124,16 +124,18 @@ test("print media does not create phantom horizontal overflow", async ({ page })
 // The subtlest part of the print stylesheet: `data-print-expand` must force a
 // *collapsed* disclosure's panel open for print, including restoring
 // visibility on Disclosure's inner wrapper (the element that pulls collapsed
-// content out of the tab order on-screen — see Disclosure.tsx). Case studies
-// collapse by default, so the state needs no setup.
+// content out of the tab order on-screen — see Disclosure.tsx). The Record's
+// rows were the page's disclosures until round 23 turned it into a book; the
+// ones left are the chat's, under an answer, so an answer is asked for first.
 test("a collapsed disclosure's content is forced open for print", async ({ page }) => {
   await page.emulateMedia({ media: "screen" });
-  const trigger = page
-    .locator("#record")
-    // Inside a closed Record row, so hidden on screen until print opens it.
-    .getByRole("button", { name: /Read the full case study/, includeHidden: true })
-    .first();
-  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await page.locator("#ask").scrollIntoViewIfNeeded();
+  const chip = page.getByRole("button", { name: "What do you do at DoorDash?" });
+  await expect(chip).toBeVisible({ timeout: 15_000 });
+  await chip.click();
+  await expect(page.getByRole("list", { name: "Sourced answers" })).toBeVisible();
+  const trigger = page.locator("#ask button[aria-expanded='false'][aria-controls]").first();
+  await expect(trigger).toBeAttached();
   const panelId = await trigger.getAttribute("aria-controls");
 
   await page.emulateMedia({ media: "print" });
@@ -188,9 +190,34 @@ test.describe("the résumé route", () => {
   });
 });
 
-// A Record row's headline is inside its row, which print forces open.
-test("every headline prints", async ({ page }) => {
-  const rows = page.locator("#record [data-timeline] [data-tree-headline]");
-  await expect(rows).toHaveCount(careerEntries.filter((entry) => entry.headline).length);
-  for (const headline of await rows.all()) await expect(headline).toBeVisible();
+// The Diary is a book on screen and its pages one under another on paper
+// (round 23): no tabs, corners, folios or counter, every page whatever tab was
+// on, and no scroller.
+test("the Diary prints its pages one under another, every one of them", async ({ page }) => {
+  await page.emulateMedia({ media: "print" });
+  const slots = page.locator("#record .diary-slot:not(.diary-slot-blank)");
+  const count = await slots.count();
+  expect(count).toBeGreaterThan(10);
+  const tops: number[] = [];
+  for (const slot of await slots.all()) {
+    await expect(slot).toBeVisible();
+    const box = (await slot.boundingBox())!;
+    tops.push(Math.round(box.y));
+    expect(box.width, "a page is as wide as the sheet").toBeGreaterThan(200);
+  }
+  expect(tops, "pages stack, in order").toEqual([...tops].toSorted((a, b) => a - b));
+  expect(new Set(tops).size, "no two pages share a place").toBe(count);
+  for (const hidden of ["#record .diary-tabs", "#record .diary-corner", "#record [data-diary-page]", "#record .diary-folio"]) {
+    for (const el of await page.locator(hidden).all()) await expect(el).toBeHidden();
+  }
+  const track = await page.locator("#record .diary-track").evaluate((el) => ({ overflow: getComputedStyle(el).overflowX, display: getComputedStyle(el).display }));
+  expect(track).toEqual({ overflow: "visible", display: "block" });
+});
+
+// Every entry's headline-sized title prints with its page.
+test("every entry prints, with its title", async ({ page }) => {
+  for (const entry of careerEntries) {
+    const heading = page.locator(`#record #journey-entry-${entry.id}`).getByRole("heading").first();
+    await expect(heading).toBeVisible();
+  }
 });

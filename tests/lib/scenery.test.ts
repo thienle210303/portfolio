@@ -59,10 +59,13 @@ const VIEWBOXES: Record<string, string> = {
   "pressed-lotus": "40 10 136 170",
   "record-morning": "134 760 36 66",
   "record-evening": "134 760 36 66",
-  "stamp-rice": "0 0 92 40",
-  "stamp-pine": "0 0 92 40",
-  "stamp-fern": "0 0 92 40",
-  "stamp-palmetto": "0 0 92 40",
+  "stamp-bank": "0 0 92 40",
+  "stamp-card": "0 0 92 40",
+  "stamp-code": "0 0 92 40",
+  "stamp-cart": "0 0 92 40",
+  "diary-selftaught": "0 0 130 142",
+  "diary-cap": "0 0 120 80",
+  "diary-podium": "0 0 140 80",
   // Weather (round 23)
   plane: "0 0 180 64",
   ufo: "0 0 130 70",
@@ -73,7 +76,7 @@ const VIEWBOXES: Record<string, string> = {
   rain: "0 0 200 200",
   snow: "0 0 240 240",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", /* Record */ "stamp-rice", "stamp-pine", "stamp-fern", "stamp-palmetto", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
+const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
 
 const files = drawScenery();
 

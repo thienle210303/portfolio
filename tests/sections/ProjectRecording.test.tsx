@@ -4,9 +4,8 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import ProjectRecording, { RecordingVideo } from "@/sections/CareerTree/ProjectRecording";
-import CaseStudy from "@/sections/CareerTree/CaseStudy";
 import { Button } from "@/components/ui/Button";
-import RecordYears from "@/sections/Record/RecordYears";
+import Record from "@/sections/Record/Record";
 import { careerEntries, projects } from "@/content/portfolio";
 
 const DESCRIPTION = "A desktop chess window: pieces move one turn at a time.";
@@ -151,43 +150,7 @@ describe("a project recording", () => {
   });
 });
 
-describe("a recording inside its case study", () => {
-  const recorded = projects.filter((candidate) => candidate.recording);
-
-  it("covers every project that ships a recording", () => {
-    expect(recorded.map((candidate) => candidate.recording)).toEqual(["chess", "conscea", "degreework", "toys"]);
-  });
-
-  it("every project with a recording has a non-empty description", () => {
-    for (const candidate of recorded) {
-      expect(candidate.recordingDescription?.trim(), candidate.id).toBeTruthy();
-    }
-  });
-
-  it.each(recorded.map((candidate) => [candidate.id, candidate] as const))(
-    "%s: is described by its own caption, visible before and after the press (WCAG 1.2.1)",
-    (_id, recordedProject) => {
-      stubReducedMotion(false);
-      const description = recordedProject.recordingDescription ?? "";
-      const { container } = render(<CaseStudy project={recordedProject} index={0} />);
-      expect(screen.getByText(description)).toBeVisible();
-      const button = screen.getByRole("button", {
-        name: `Play the screen recording of ${recordedProject.title}`,
-      });
-      expect(button.closest('[role="region"]'), "the button sits outside the closed disclosure").toBeNull();
-      fireEvent.click(button);
-      const video = container.querySelector("video");
-      if (!video) throw new Error("no video after the press");
-      const describedBy = video.getAttribute("aria-describedby") ?? "";
-      expect(describedBy).toBeTruthy();
-      expect(container.querySelectorAll(`[id="${describedBy}"]`)).toHaveLength(1);
-      expect(document.getElementById(describedBy)?.textContent).toBe(description);
-      expect(video).toHaveAccessibleDescription(description);
-    },
-  );
-});
-
-describe("a recording on a Record row", () => {
+describe("a recording on a Diary page", () => {
   const recordedEntries = careerEntries.filter((entry) => "recording" in entry && entry.recording);
 
   it("covers every career entry that ships a recording", () => {
@@ -197,9 +160,9 @@ describe("a recording on a Record row", () => {
     ]);
   });
 
-  it("puts a press-to-mount button and its caption in each such row", () => {
+  it("puts a press-to-mount button and its caption on each such page", () => {
     stubReducedMotion(false);
-    const { container } = render(<RecordYears />);
+    const { container } = render(<Record />);
     expect(container.querySelector("video")).toBeNull();
     expect(container.innerHTML).not.toContain("/media/");
     for (const entry of recordedEntries) {

@@ -1170,8 +1170,8 @@ test.describe("companion", () => {
     };
 
     await page.evaluate(() => {
-      const tree = document.querySelector("#record [data-timeline]");
-      if (!tree) throw new Error("the page has no timeline");
+      const tree = document.querySelector("#record [data-diary]");
+      if (!tree) throw new Error("the page has no Diary");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
     });
@@ -1290,8 +1290,8 @@ test.describe("companion", () => {
      * a cat two departures about one run in seven.
      */
     await page.evaluate(() => {
-      const tree = document.querySelector("#record [data-timeline]");
-      if (!tree) throw new Error("the page has no timeline");
+      const tree = document.querySelector("#record [data-diary]");
+      if (!tree) throw new Error("the page has no Diary");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
       const button = document.querySelector('[aria-controls="companion-actions"]');
@@ -4127,12 +4127,12 @@ test.describe("cats (round 21)", () => {
     { width: 390, height: 844, selector: PRESSABLE, record: false, night: false },
     // Night: the lẩu and the moon move words, and the cats' corners with them.
     { width: 390, height: 844, selector: PRESSABLE, record: false, night: true },
-    // The Record's cards, rows and stamps (list items) as well, where the
+    // The Diary's cards, contents lines and stamps (list items) as well, where the
     // review saw cats resting on them.
     { width: 414, height: 896, selector: `${PRESSABLE}, #record li`, record: true, night: false },
     { width: 1280, height: 800, selector: `${PRESSABLE}, #record li`, record: true, night: false },
   ]) {
-    const what = size.record ? "the Record's cards, rows or stamps" : "a link or a button";
+    const what = size.record ? "the Diary's cards, contents or stamps" : "a link or a button";
     test(`a cat never covers ${what}, walking or stopped, at ${size.width}${size.night ? " at night" : ""}`, async ({ browser }) => {
       test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
       test.setTimeout(600_000);
