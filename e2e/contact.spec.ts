@@ -1,15 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
 import { contactCopy, profile } from "../src/content/portfolio";
-import { buildLeadMailto } from "../src/lib/contact";
 
 /**
  * Contact (round 21): my business card clipped beside a postcard whose
  * address side is the lead form, always visible; the chat as a strip below.
  *
  * Which way the form delivers depends on the build: with the three Resend env
- * vars set it posts to /api/contact, without them it opens a `mailto:`. The
- * posting tests mock the route with `page.route` and skip on a mailto build;
- * the fallback test runs on either (directly, or through a mocked 503).
+ * vars set it posts to /api/contact; without them it says it cannot send and
+ * offers my address to copy (round 23: it never opens the visitor's mail app).
+ * The posting tests mock the route with `page.route` and skip on a build
+ * without the env; the "cannot send" test runs on either (directly, or through
+ * a mocked 503).
  */
 
 const PAIR_ERROR = "Add an email or a phone number so I can reach you.";
@@ -62,7 +63,7 @@ test("my card has every way to reach me", async ({ page }) => {
     await expect(face.getByRole("link", { name })).toHaveAttribute("target", "_blank");
     await expect(face.getByRole("link", { name })).toHaveAttribute("rel", "noopener noreferrer");
   }
-  await expect(face.getByRole("link", { name: "Résumé", exact: true })).toHaveAttribute("href", "/resume");
+  await expect(face.getByRole("link", { name: "Résumé", exact: true })).toHaveAttribute("href", profile.resumePdf!);
   const vcf = face.getByRole("link", { name: "Save contact" });
   await expect(vcf).toHaveAttribute("href", "/contact.vcf");
   await expect(vcf).toHaveAttribute("download", "");
@@ -158,6 +159,7 @@ test("email-only lead posts and shows success", async ({ page }) => {
   await send(page).click();
 
   await expect(postcard(page).getByRole("status")).toHaveText(contactCopy.success);
+  await expect(postcard(page).locator("[data-sent-stamp]")).toContainText(contactCopy.stamp);
   expect(bodies).toEqual([{ name: "Jamie Reviewer", email: "jamie@example.com", phone: "", website: "" }]);
   await expect(field(page, /^Your name/)).toHaveValue("");
 });
@@ -192,10 +194,10 @@ test("neither shows the paired error", async ({ page }) => {
   expect(bodies).toEqual([]);
 });
 
-test("mailto fallback when not configured", async ({ page }) => {
+test("when it cannot send, it says so, offers my address to copy, and never opens the mail app", async ({ page }) => {
   onlyAt(page, WIDTHS);
   await open(page);
-  // A posting build is pushed down the fallback by the server's own answer.
+  // A posting build is pushed there by the server's own answer.
   if (await postsToApi(page)) await mockApi(page, 503, { ok: false, reason: "not-configured" });
 
   // A `mailto:` navigation leaves no page or network trace, but the renderer
@@ -210,10 +212,68 @@ test("mailto fallback when not configured", async ({ page }) => {
   await field(page, /^or phone/).fill("864 555 0100");
   await send(page).click();
 
-  const href = buildLeadMailto({ name: "Jamie Reviewer", email: "jamie@example.com", phone: "864 555 0100" }, profile.email);
-  await expect.poll(() => requested).toContain(href);
-  await expect(postcard(page).getByRole("status")).toContainText(/email app/i);
-  await expect(postcard(page).getByRole("status")).not.toContainText(contactCopy.success);
+  await expect(postcard(page).getByRole("alert")).toContainText(contactCopy.offline);
+  await expect(postcard(page).locator("[data-reach]")).toContainText(profile.email);
+  await expect(postcard(page).locator("p[role=status]")).not.toContainText(contactCopy.success);
+  await expect(postcard(page).locator("[data-sent-stamp]")).toHaveCount(0);
+  expect(requested.filter((url) => url.startsWith("mailto:"))).toEqual([]);
+
+  // The copy button writes my address (the clipboard is recorded, not real).
+  await page.evaluate(() => {
+    (navigator.clipboard as unknown as { writeText: (v: string) => Promise<void> }).writeText = async (v) => {
+      (window as unknown as { __copied?: string }).__copied = v;
+    };
+  });
+  await postcard(page).getByRole("button", { name: contactCopy.copyAddress }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __copied?: string }).__copied)).toBe(profile.email);
+});
+
+test("a failed send is said plainly, with the same way out", async ({ page }) => {
+  onlyAt(page, WIDTHS);
+  await open(page);
+  test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
+  await mockApi(page, 502, { ok: false, reason: "send-failed" });
+  await field(page, /^Your name/).fill("Jamie Reviewer");
+  await field(page, /^Email/).fill("jamie@example.com");
+  await send(page).click();
+  await expect(postcard(page).getByRole("alert")).toContainText(contactCopy.failed);
+  await expect(postcard(page).locator("[data-reach]")).toContainText(profile.email);
+  await expect(postcard(page).locator("[data-sent-stamp]")).toHaveCount(0);
+});
+
+test("the Résumé chip opens the PDF in a dialog from 640px, and the PDF waits until then", async ({ page }) => {
+  onlyAt(page, [1440]);
+  const pdfRequests: string[] = [];
+  page.on("request", (r) => r.url().endsWith(profile.resumePdf!) && pdfRequests.push(r.url()));
+  await open(page);
+  const chip = card(page).getByRole("link", { name: "Résumé", exact: true });
+  const dialog = page.locator("dialog[data-resume-dialog]");
+  await expect(dialog).toBeHidden();
+  expect(pdfRequests).toEqual([]);
+
+  await chip.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("iframe")).toHaveAttribute("src", profile.resumePdf!);
+  await expect(dialog.getByRole("link", { name: "Download" })).toHaveAttribute("download", "");
+  await expect(dialog.getByRole("link", { name: "Open in a new tab" })).toHaveAttribute("target", "_blank");
+  const box = await dialog.boundingBox();
+  expect(box!.width).toBeGreaterThan(900);
+  expect(box!.height).toBeGreaterThan(700);
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(chip).toBeFocused();
+});
+
+test("on a phone the Résumé chip just opens the PDF", async ({ page }) => {
+  onlyAt(page, [390]);
+  await open(page);
+  const chip = card(page).getByRole("link", { name: "Résumé", exact: true });
+  // A headless browser turns a PDF navigation into a download, so watch for the request.
+  const asked = page.waitForRequest((r) => r.url().endsWith(profile.resumePdf!));
+  await chip.click();
+  await asked;
+  await expect(page.locator("dialog[data-resume-dialog]")).toBeHidden();
 });
 
 test("GET /contact.vcf returns text/vcard as an attachment", async ({ page, request }) => {
@@ -254,7 +314,7 @@ test("nothing on the card or the postcard overflows its paper", async ({ page })
     const spill = await paper.evaluate((el) => {
       // The monogram bleeds off the card on purpose; it is aria-hidden.
       const flow = Array.from(el.querySelectorAll<HTMLElement>("p, a, button, input, label, h3, li")).filter(
-        (n) => !n.closest("[aria-hidden=true]"),
+        (n) => !n.closest("[aria-hidden=true], dialog:not([open])"),
       );
       const box = el.getBoundingClientRect();
       return flow

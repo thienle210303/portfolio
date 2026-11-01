@@ -21,7 +21,7 @@ describe("my business card", () => {
     expect(github).toHaveAccessibleName(/^GitHub github\.com\/thienle210303/);
     expect(screen.getByRole("link", { name: /^LinkedIn/ })).toHaveAttribute("target", "_blank");
     expect(screen.getByRole("link", { name: /^Book a call/ })).toHaveAttribute("href", BOOKING);
-    expect(screen.getByRole("link", { name: "Résumé" })).toHaveAttribute("href", "/resume");
+    expect(screen.getByRole("link", { name: "Résumé" })).toHaveAttribute("href", profile.resumePdf);
     const vcf = screen.getByRole("link", { name: "Save contact" });
     expect(vcf).toHaveAttribute("href", "/contact.vcf");
     expect(vcf).toHaveAttribute("download");

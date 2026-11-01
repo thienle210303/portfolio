@@ -385,20 +385,20 @@ test.describe("ask this site", () => {
     await expect(questionField(page)).toBeFocused();
   });
 
-  test("the conversation survives a client-side trip to the résumé and back", async ({ page }) => {
+  test("the conversation survives a client-side trip to the résumé route and back", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
     // The one remaining case that unmounts the chat (see `threadCache` in
-    // AskThisSite.tsx): `/` and `/resume` link to each other with
-    // `next/link` (Contact's "Résumé" since round 20 took it out of the hero),
-    // so the trip is a client-side navigation and the module scope the thread
-    // lives in survives it.
+    // AskThisSite.tsx). Contact's "Résumé" chip opens a dialog now (round 23),
+    // so the only client-side trip is the nav's: `/resume` links back with
+    // `next/link`. Nothing on `/` links there, so go by history: open the
+    // route in the same tab, then follow its "Back to the site" link.
     await openChat(page);
     const input = questionField(page);
     await input.fill("What did Thien build at DoorDash?");
     await input.press("Enter");
     await expect(conversation(page).getByText("What did Thien build at DoorDash?")).toBeVisible();
 
-    await page.locator("#contact").getByRole("link", { name: "Résumé", exact: true }).click();
+    await page.evaluate(() => (window as unknown as { next: { router: { push: (u: string) => void } } }).next.router.push("/resume"));
     await expect(page).toHaveURL(/\/resume$/);
     await page.getByRole("link", { name: "Back to the site" }).click();
     await expect(page).toHaveURL(/\/$/);

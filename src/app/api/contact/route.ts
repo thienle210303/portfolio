@@ -17,7 +17,8 @@ import { leadSchema } from "./schema";
  *    actual environment, and this endpoint must never be the reason a
  *    visitor sees a false "sent" confirmation. If it finds itself
  *    unconfigured, it says so explicitly (503 / "not-configured") so the
- *    client can fall back to the mailto flow honestly instead of guessing.
+ *    client can show my address and a copy button honestly instead of
+ *    guessing. No path ever opens the visitor's mail app (round 23).
  *  - Every response is one of the shapes in `ContactApiResponse` below.
  *    Nothing else is ever returned, and nothing throws past this module —
  *    nodejs runtime errors are caught and turned into a generic
