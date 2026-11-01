@@ -268,6 +268,13 @@ test.describe("the Journey", () => {
         const w = window as unknown as { originEvents: string[] };
         w.originEvents = [];
         document.addEventListener("origin-story", (event) => w.originEvents.push(String((event as CustomEvent).detail)));
+        // Every weather the show stamps on the section, in order.
+        const seen: string[] = [];
+        (window as unknown as { weathers: string[] }).weathers = seen;
+        new MutationObserver(() => {
+          const now = document.getElementById("tree")?.getAttribute("data-weather");
+          if (now && seen.at(-1) !== now) seen.push(now);
+        }).observe(document.getElementById("tree")!, { attributes: true, attributeFilter: ["data-weather"] });
       });
       await watch(page).click();
       await expect(page.locator("#tree")).toHaveAttribute("data-growing", "");
@@ -276,7 +283,20 @@ test.describe("the Journey", () => {
       await expect(page.locator("[data-grow-caption]")).toBeVisible();
       // A tag waits for its year, hidden, so it is never a link to nowhere.
       await expect(items(page).last()).toBeHidden();
-      await expect(page.locator("#tree")).not.toHaveAttribute("data-growing", { timeout: 15_000 });
+      // The weather is only ever decoration: out of the tree, and it takes no clicks.
+      const layer = page.locator("#tree [data-weather-layer]");
+      await expect(layer).toHaveAttribute("aria-hidden", "true");
+      expect(await layer.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+      await expect(page.locator("#tree [data-lich]")).toBeVisible();
+      await expect(page.locator("#tree")).not.toHaveAttribute("data-growing", { timeout: 30_000 });
+      // Every weather has gone with the show, and the plane came first, the UFO last.
+      await expect(page.locator("#tree")).not.toHaveAttribute("data-weather");
+      await expect(page.locator("#tree [data-weather-layer]")).toBeHidden();
+      await expect(page.locator("#tree [data-lich]")).toHaveCount(0);
+      const weathers = await page.evaluate(() => (window as unknown as { weathers: string[] }).weathers);
+      expect(weathers[0]).toBe("plane");
+      expect(weathers.at(-1)).toBe("ufo");
+      for (const weather of ["rain", "snow", "flood", "thunderstorm", "hurricane"]) expect(weathers).toContain(weather);
       for (const li of await items(page).all()) await expect(li).toBeVisible();
       await expect(watch(page)).toBeFocused();
       expect(await page.evaluate(() => (window as unknown as { originEvents: string[] }).originEvents)).toEqual([
@@ -294,9 +314,57 @@ test.describe("the Journey", () => {
     await watch(page).click();
     await expect(page.locator("[data-grow-caption]")).toBeVisible();
     expect(await crown.evaluate((el) => el.getBoundingClientRect().top + window.scrollY)).toBe(before);
+    // Let a weather arrive, then skip: it must go with the show.
+    await expect(page.locator("#tree")).toHaveAttribute("data-weather", /.+/);
     await page.locator("#tree").getByRole("button", { name: journey.skip }).click();
     await expect(page.locator("#tree")).not.toHaveAttribute("data-growing");
+    await expect(page.locator("#tree")).not.toHaveAttribute("data-weather");
+    await expect(page.locator("#tree [data-weather-layer]")).toBeHidden();
     for (const li of await items(page).all()) await expect(li).toBeVisible();
+  });
+
+  test("no weather shape covers a word, and the lịch and the caption never overlap", async ({ page }) => {
+    await open(page);
+    await watch(page).click();
+    // The rain beat: the clouds are up.
+    await expect(page.locator("#tree")).toHaveAttribute("data-weather", "rain", { timeout: 6_000 });
+    await expect(page.locator("[data-grow-caption]")).toContainText("rain");
+    const rects = await page.evaluate(() => {
+      const box = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return { l: r.left, t: r.top, r: r.right, b: r.bottom };
+      };
+      const tree = document.getElementById("tree")!;
+      const words = [
+        tree.querySelector("h2"),
+        tree.querySelector("h2")?.parentElement?.querySelector("p"),
+        tree.querySelector("[data-grow] button"),
+        tree.querySelector("[data-grow-caption]"),
+        tree.querySelector("[data-lich]"),
+      ].filter((el): el is Element => !!el);
+      return {
+        words: words.map(box),
+        clouds: [...tree.querySelectorAll(".wx-cloud")].map(box),
+        lich: box(tree.querySelector("[data-lich]")!),
+        caption: box(tree.querySelector("[data-grow-caption]")!),
+      };
+    });
+    const meets = (a: { l: number; t: number; r: number; b: number }, b: typeof a) =>
+      a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+    expect(meets(rects.lich, rects.caption)).toBe(false);
+    for (const cloud of rects.clouds) {
+      for (const word of rects.words) expect(meets(cloud, word), JSON.stringify({ cloud, word })).toBe(false);
+    }
+  });
+
+  test("Escape ends the show too, weather and calendar with it", async ({ page }) => {
+    await open(page);
+    await watch(page).click();
+    await expect(page.locator("#tree")).toHaveAttribute("data-weather", /.+/);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#tree")).not.toHaveAttribute("data-growing");
+    await expect(page.locator("#tree")).not.toHaveAttribute("data-weather");
+    await expect(page.locator("#tree [data-lich]")).toHaveCount(0);
   });
 
   for (const theme of ["day", "night"] as const) {

@@ -162,10 +162,25 @@ the Record's rows. They are in git history; do not bring a second tree back.
   `#tree`: the oak opens out from its trunk's foot, each tag drops on its
   `data-year`, the lantern comes last (globals.css, "Watch it grow"), and a
   caption under the button reads each beat of `growBeats()`
-  (`src/lib/origin-story.ts`: the flight, a season per year, the shoot). The
-  cats narrate it through the same `origin-story` / `origin-story-beat` events
-  they always have. It never starts under reduced motion or with JS off: the
+  (`src/lib/origin-story.ts`: the flight, a season per year, the shoot), each
+  1.6s long. The cats narrate it through the same `origin-story` /
+  `origin-story-beat` events they always have (round 23 adds `weather` to the
+  beat's detail). It never starts under reduced motion or with JS off: the
   grown oak is the end state.
+- **The show has weather (round 23).** Every `GrowBeat` carries a `weather`
+  computed by `weatherFor` from the season, never typed per year: `plane` for the
+  flight, `rain` (schooling), `sun` (plain work), `snow` (an empty year), `flood`
+  (rain with a milestone), `thunderstorm` (any other storm year), `hurricane`
+  (the one year with the most milestones; the earlier wins a tie) and a `ufo`
+  for the shoot. `GrowOak` stamps `data-weather` (and `--beat-ms`) on `#tree`;
+  `Weather.tsx` holds every piece, `aria-hidden`, and globals.css ("Watch it
+  grow, with weather") shows and animates them in CSS alone. Plane, saucer,
+  clouds, leaves, bolt, rain and snow are masks in `draw-scenery.mjs`; light is
+  `--surface`, silhouettes `--fg`, water `--scene-water`; never `--mark` or the
+  flag's gold. In the real content every working year also has a milestone, so
+  the thunderstorm opens in sun. A lịch bloc beside the button tears off a page
+  per year. `finish()` removes every weather attribute, whether the show ran out
+  or was skipped.
 - **The Record's rows own the fragments.** Each entry's row
   (`src/sections/Record/RecordYears.tsx`) carries `journey-entry-<id>` and its
   case studies' `work-<projectId>`; the tags link there. One row is open at a
