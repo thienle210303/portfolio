@@ -1534,6 +1534,13 @@ export function Companion({ facts }: CompanionProps) {
    *  every frame below. Zero (the initial value) never satisfies `now <
    *  rainHuddleUntil.current`, so this is inert until the first rain beat. */
   const rainHuddleUntil = useRef(0);
+  /** The weather of the last beat narrated (round 23: each beat now carries
+   *  one, and beats are 1.6s long). The huddle and the startle are reactions to
+   *  the weather *arriving*, so they fire when it changes, not on every beat of
+   *  a run of the same weather: re-armed per beat, a 1.8s huddle and a 0.78s
+   *  dash left the pair no moment to sit between 2021 and 2025, and they never
+   *  settled above the button while the show played. */
+  const lastWeatherRef = useRef<string | null>(null);
 
   /* ------------------------------------------------------------- duet -- */
   /** The next moment a scene may start on its own, and the sections that have
@@ -2799,7 +2806,11 @@ export function Companion({ facts }: CompanionProps) {
             // The naive offset behind him, same as the huddle below — see
             // `clearFollowOfToggle`, which is what actually keeps her off
             // the toolkit toggle if this lands too close.
-            const naive = clampToViewport({ x: startled.x - (CAT_W + FOLLOW_GAP), y: startled.y });
+            // Behind him on the side with room: the watch sits at the page's
+            // left edge, where "behind" is off screen and she was shoved
+            // somewhere else entirely, far from the seat.
+            const behind = startled.x - (CAT_W + FOLLOW_GAP);
+            const naive = clampToViewport({ x: behind >= 8 ? behind : startled.x + CAT_W + FOLLOW_GAP, y: startled.y });
             watch.spots = clearFollowOfToggle({ lead: startled, follow: naive });
           } else if (now < rainHuddleUntil.current) {
             // The rain beat's huddle: she comes in beside him instead of
@@ -2810,7 +2821,9 @@ export function Companion({ facts }: CompanionProps) {
             // space, it widens just enough to fix that and no more — the
             // coordinator's own call is that a huddle still reads as one at
             // the WCAG minimum.
-            const naive = clampToViewport({ x: spots.lead.x - (CAT_W + 6), y: spots.lead.y });
+            // Beside him on whichever side has room (see the startle above).
+            const beside = spots.lead.x - (CAT_W + 6);
+            const naive = clampToViewport({ x: beside >= 8 ? beside : spots.lead.x + CAT_W + 6, y: spots.lead.y });
             watch.spots = clearFollowOfToggle({ lead: spots.lead, follow: naive });
           } else {
             watch.spots = clearFollowOfToggle(spots);
@@ -4636,6 +4649,7 @@ export function Companion({ facts }: CompanionProps) {
         storySpeakerRef.current = "grey";
         rushRef.current = null;
         rainHuddleUntil.current = 0;
+        lastWeatherRef.current = null;
         lastSignRef.current = performance.now();
         wake();
       } else if (detail === "end") {
@@ -4695,7 +4709,7 @@ export function Companion({ facts }: CompanionProps) {
     const onOriginStoryBeat = (event: Event) => {
       if (!watchRef.current) return;
       const detail = (
-        event as CustomEvent<{ kind?: StoryBeatKind; year?: number; storm?: boolean; sub?: string }>
+        event as CustomEvent<{ kind?: StoryBeatKind; year?: number; storm?: boolean; sub?: string; weather?: string }>
       ).detail;
       const kind = detail?.kind ?? null;
       if (!kind) return;
@@ -4724,10 +4738,14 @@ export function Companion({ facts }: CompanionProps) {
       // the per-frame read above, so the pair visibly startles first and
       // settles back into the huddle once that window lapses, rather than
       // the two fighting over the same beat.
-      if (kind === "rain") {
+      // Only when the weather changes: a run of one weather is one reaction
+      // and then the pair sit again (see `lastWeatherRef`).
+      const arrived = detail?.weather === undefined || detail.weather !== lastWeatherRef.current;
+      lastWeatherRef.current = detail?.weather ?? null;
+      if (kind === "rain" && arrived) {
         rainHuddleUntil.current = now + HUDDLE_MS;
       }
-      if (storm) {
+      if (storm && arrived) {
         rushRef.current = { dir: lead.current.facing === 1 ? -1 : 1, until: now + RUSH_HOLD_MS + 500 };
       }
       // Spec §2: "any growth year (forces > 0) → a small excited hop (cheer
