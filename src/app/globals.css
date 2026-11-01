@@ -1814,6 +1814,562 @@
     }
   }
 
+
+  /* ---------------------------------------------------------------------- */
+  /* Watch it grow, with weather and a calendar (round 23)                  */
+  /*                                                                        */
+  /* `GrowOak.tsx` stamps `data-weather` on `#tree` for each beat and        */
+  /* `--beat-ms` (the beat's length). `Weather.tsx` holds every piece, all   */
+  /* `display: none`; each weather below shows the ones it needs and animates */
+  /* them for one beat. CSS only: gradients, and masks from public/scenery   */
+  /* (draw-scenery.mjs) painted by aliases: `--surface` for light (sun,      */
+  /* snow, beam, flash), `--fg` for the plane and the saucer, `--scene-water`*/
+  /* for rain clouds and water, `--scene-bark` for storm clouds, `--accent`  */
+  /* for leaves. The red `--mark` and the flag's gold are not used.          */
+  /* Everything is aria-hidden; the caption says the weather aloud. Nothing  */
+  /* here applies without `data-growing` (never set under reduced motion).   */
+  /* ---------------------------------------------------------------------- */
+  @keyframes wx-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes wx-fall {
+    to {
+      transform: translate3d(-12px, var(--tile), 0);
+    }
+  }
+  @keyframes wx-flow {
+    to {
+      mask-position: 32px 0;
+    }
+  }
+  @keyframes wx-spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+  @keyframes wx-drift {
+    from {
+      transform: translateX(-26px);
+    }
+    to {
+      transform: translateX(26px);
+    }
+  }
+  @keyframes wx-cross {
+    from {
+      transform: translateX(-220px);
+    }
+    to {
+      transform: translateX(calc(100vw + 40px));
+    }
+  }
+  /* The storm rolls in after the sun: the sun holds, then goes behind cloud. */
+  @keyframes wx-sun-out {
+    0%,
+    30% {
+      opacity: 1;
+    }
+    62%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes wx-late {
+    0%,
+    38% {
+      opacity: 0;
+    }
+    62%,
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes wx-darken {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 0.3;
+    }
+  }
+  @keyframes wx-flash {
+    0%,
+    44%,
+    58%,
+    100% {
+      opacity: 0;
+    }
+    47% {
+      opacity: var(--flash, 0.42);
+    }
+    50% {
+      opacity: 0.08;
+    }
+    52% {
+      opacity: calc(var(--flash, 0.42) * 0.7);
+    }
+  }
+  @keyframes wx-bolt {
+    0%,
+    44%,
+    56%,
+    100% {
+      opacity: 0;
+    }
+    46%,
+    52% {
+      opacity: 1;
+    }
+  }
+  @keyframes wx-sway {
+    from {
+      rotate: calc(var(--sway, 2deg) * -1);
+    }
+    to {
+      rotate: var(--sway, 2deg);
+    }
+  }
+  @keyframes wx-blow {
+    from {
+      transform: translate3d(-8vw, 0, 0) rotate(-30deg);
+    }
+    50% {
+      transform: translate3d(50vw, 40px, 0) rotate(160deg);
+    }
+    to {
+      transform: translate3d(112vw, -30px, 0) rotate(340deg);
+    }
+  }
+  @keyframes wx-flood {
+    0% {
+      transform: translateY(105%);
+    }
+    38%,
+    66% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(105%);
+    }
+  }
+  @keyframes wx-settle {
+    from {
+      transform: translateY(105%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes wx-ufo {
+    0% {
+      opacity: 0;
+      transform: translate(280px, -90px) rotate(10deg);
+    }
+    24% {
+      opacity: 1;
+      transform: translate(0, 0) rotate(-4deg);
+    }
+    34%,
+    68% {
+      opacity: 1;
+      transform: translate(0, -4px) rotate(2deg);
+    }
+    80% {
+      opacity: 1;
+      transform: translate(0, 0) rotate(-2deg);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(360px, -170px) rotate(18deg) scale(0.5);
+    }
+  }
+  @keyframes wx-beam {
+    0%,
+    30% {
+      opacity: 0;
+      transform: scaleY(0);
+    }
+    40%,
+    66% {
+      opacity: 1;
+      transform: scaleY(1);
+    }
+    76%,
+    100% {
+      opacity: 0;
+      transform: scaleY(1);
+    }
+  }
+  @keyframes wx-glow {
+    0%,
+    32% {
+      opacity: 0;
+    }
+    46%,
+    64% {
+      opacity: 1;
+    }
+    78%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes lich-tear {
+    from {
+      opacity: 1;
+      transform: translate(0, 0) rotate(0deg);
+    }
+    35% {
+      opacity: 1;
+      transform: translate(-14px, 14px) rotate(-12deg);
+    }
+    to {
+      opacity: 0;
+      transform: translate(18px, 96px) rotate(26deg);
+    }
+  }
+
+  /* The weather layer shows while the oak grows; the pieces start hidden. */
+  [data-weather-layer],
+  [data-weather-layer] [data-w],
+  [data-ufo] {
+    display: none;
+  }
+  #tree[data-growing] [data-weather-layer] {
+    display: block;
+  }
+
+  /* The lịch bloc: a tear-off calendar beside the button. Paper, the year in
+     the accent, the pad's thickness a few hairlines under it, a nail above. */
+  .lich {
+    display: grid;
+    place-items: center;
+    width: 4.75rem;
+    padding: 1.1rem 0.25rem 0.5rem;
+    background: var(--surface);
+    color: var(--fg);
+    box-shadow:
+      0 1px 0 var(--rule-color),
+      0 3px 0 -1px var(--surface),
+      0 4px 0 -1px var(--rule-color),
+      0 6px 0 -2px var(--surface),
+      0 7px 0 -2px var(--rule-color),
+      var(--paper-shadow);
+    animation: wx-in 0.4s var(--ease-ink) both;
+  }
+  .lich::before {
+    content: "";
+    position: absolute;
+    top: 0.4rem;
+    left: 50%;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-left: -0.275rem;
+    border: 1.5px solid var(--rule-color);
+    border-radius: 999px;
+  }
+  .lich-label {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.8125rem;
+    line-height: 1;
+    color: var(--fg-muted);
+  }
+  .lich-year {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  /* The page that has just come off, lying over the pad and fluttering away. */
+  .lich-torn {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding-top: 0.9rem;
+    background: var(--surface);
+    box-shadow: 0 1px 0 var(--rule-color);
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+    transform-origin: 20% 0;
+    animation: lich-tear 0.95s cubic-bezier(0.4, 0, 0.7, 1) both;
+  }
+
+  @media screen and (prefers-reduced-motion: no-preference) {
+    .wx-window > * {
+      position: absolute;
+    }
+
+    /* ---- the pieces ---- */
+    .wx-sun {
+      top: 96px;
+      right: 14%;
+      width: 150px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, var(--surface) 0 23%, transparent 24%),
+        radial-gradient(circle, color-mix(in srgb, var(--surface) 70%, transparent) 0, transparent 68%);
+    }
+    .wx-sun::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-conic-gradient(var(--surface) 0 4deg, transparent 4deg 22.5deg);
+      mask: radial-gradient(circle, transparent 33%, #000 35% 58%, transparent 60%);
+      animation: wx-spin 14s linear infinite;
+    }
+    .wx-dark {
+      inset: 0;
+      background: linear-gradient(to bottom, var(--scene-bark), transparent 78%);
+    }
+    .wx-cloud {
+      width: 260px;
+      aspect-ratio: 220 / 100;
+      background: var(--wx-cloud, var(--scene-water));
+      mask: var(--art) no-repeat center / contain;
+      animation: wx-drift 3.2s ease-in-out infinite alternate;
+    }
+    .wx-cloud-a {
+      top: 156px;
+      left: 6%;
+    }
+    .wx-cloud-b {
+      top: 150px;
+      left: 38%;
+      width: 320px;
+      animation-duration: 4.1s;
+      animation-direction: alternate-reverse;
+    }
+    .wx-cloud-c {
+      top: 176px;
+      left: 68%;
+      width: 230px;
+      animation-duration: 2.7s;
+    }
+    .wx-rain,
+    .wx-snow {
+      inset: -240px 0 0;
+      background: var(--scene-water);
+      mask: var(--art) 0 0 / var(--tile) var(--tile);
+      animation: wx-fall var(--fall, 0.6s) linear infinite;
+    }
+    .wx-rain-a {
+      --tile: 200px;
+      opacity: 0.8;
+    }
+    .wx-rain-b {
+      --tile: 130px;
+      --fall: 0.42s;
+      opacity: 0.5;
+    }
+    .wx-snow {
+      background: var(--surface);
+      filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--fg) 55%, transparent));
+    }
+    .wx-snow-a {
+      --tile: 240px;
+      --fall: 7s;
+    }
+    .wx-snow-b {
+      --tile: 160px;
+      --fall: 4.8s;
+      opacity: 0.8;
+    }
+    /* A drift gathers along the foot as it snows. */
+    .wx-drift {
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 84px;
+      background:
+        radial-gradient(ellipse 120px 44px at 20% 100%, var(--surface) 98%, transparent),
+        radial-gradient(ellipse 160px 52px at 58% 100%, var(--surface) 98%, transparent),
+        radial-gradient(ellipse 110px 38px at 88% 100%, var(--surface) 98%, transparent);
+      animation: wx-settle 1.4s var(--ease-ink) both;
+    }
+    .wx-flood {
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 230px;
+      background: linear-gradient(to bottom, var(--scene-water), color-mix(in srgb, var(--scene-water) 72%, var(--scene-bark)));
+      opacity: 0.86;
+      mask: radial-gradient(circle 16px at 50% 0, transparent 15px, #000 16px) 0 0 / 32px 100% repeat-x;
+      animation:
+        wx-flood var(--beat-ms, 1600ms) ease-in-out both,
+        wx-flow 1.1s linear infinite;
+    }
+    .wx-flash {
+      inset: 0;
+      background: var(--surface);
+      opacity: 0;
+      animation: wx-flash var(--beat-ms, 1600ms) linear both;
+    }
+    .wx-bolt {
+      top: 70px;
+      left: 52%;
+      width: 44px;
+      height: 120px;
+      background: var(--surface);
+      mask: var(--art) no-repeat center / contain;
+      filter: drop-shadow(0 0 6px var(--surface));
+      opacity: 0;
+      animation: wx-bolt var(--beat-ms, 1600ms) linear both;
+    }
+    .wx-leaf {
+      top: calc(14% + var(--i) * 7%);
+      left: 0;
+      width: 24px;
+      height: 34px;
+      background: var(--accent);
+      mask: var(--art) no-repeat center / contain;
+      animation: wx-blow calc(var(--beat-ms, 1600ms) * (0.5 + var(--i) * 0.05)) linear calc(var(--i) * 0.11s) infinite;
+    }
+    .wx-plane {
+      top: 128px;
+      left: 0;
+      width: clamp(96px, 12vw, 160px);
+      aspect-ratio: 180 / 64;
+      background: var(--fg);
+      mask: var(--art) no-repeat center / contain;
+      animation: wx-cross var(--beat-ms, 1600ms) linear both;
+    }
+
+    /* ---- the weathers ---- */
+    #tree[data-weather="plane"] .wx-plane,
+    #tree[data-weather="sun"] .wx-sun,
+    #tree[data-weather="thunderstorm"] .wx-sun {
+      display: block;
+    }
+    #tree[data-weather="sun"] .wx-sun {
+      animation: wx-in 0.6s var(--ease-ink) both;
+    }
+    #tree[data-weather="thunderstorm"] .wx-sun {
+      animation: wx-sun-out var(--beat-ms, 1600ms) linear both;
+    }
+
+    #tree:is([data-weather="rain"], [data-weather="flood"], [data-weather="thunderstorm"], [data-weather="hurricane"], [data-weather="snow"]) .wx-cloud {
+      display: block;
+      --wx-cloud: var(--scene-water);
+    }
+    #tree:is([data-weather="thunderstorm"], [data-weather="hurricane"]) .wx-cloud {
+      --wx-cloud: color-mix(in srgb, var(--scene-bark) 70%, var(--scene-water));
+    }
+    #tree[data-weather="snow"] .wx-cloud {
+      --wx-cloud: var(--surface);
+      filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--fg) 45%, transparent));
+    }
+    #tree[data-weather="thunderstorm"] .wx-cloud {
+      animation:
+        wx-drift 3.2s ease-in-out infinite alternate,
+        wx-late var(--beat-ms, 1600ms) linear both;
+    }
+
+    #tree:is([data-weather="rain"], [data-weather="flood"], [data-weather="hurricane"]) .wx-rain {
+      display: block;
+    }
+    #tree[data-weather="thunderstorm"] .wx-rain {
+      display: block;
+      animation:
+        wx-fall 0.5s linear infinite,
+        wx-late var(--beat-ms, 1600ms) linear both;
+    }
+    #tree[data-weather="hurricane"] .wx-rain {
+      --fall: 0.3s;
+      opacity: 0.9;
+    }
+    #tree[data-weather="snow"] :is(.wx-snow, .wx-drift) {
+      display: block;
+    }
+
+    #tree[data-weather="flood"] .wx-flood {
+      display: block;
+    }
+
+    #tree:is([data-weather="thunderstorm"], [data-weather="hurricane"]) :is(.wx-flash, .wx-bolt) {
+      display: block;
+    }
+    #tree[data-weather="thunderstorm"] .wx-flash {
+      --flash: 0.3;
+    }
+    #tree[data-weather="hurricane"] :is(.wx-dark, .wx-leaf) {
+      display: block;
+    }
+    #tree[data-weather="hurricane"] .wx-dark {
+      animation: wx-darken 0.5s var(--ease-ink) both;
+    }
+    #tree[data-weather="hurricane"] .wx-cloud {
+      animation-duration: 0.9s;
+    }
+
+    /* The wind: the oak sways from the foot of its trunk (the mobile crown
+       too), each drawing about the same point the oak opens out from. */
+    #tree:is([data-weather="thunderstorm"], [data-weather="hurricane"]) :is([data-oak], [data-crown]) > [data-scenery] {
+      transform-origin: 21.3% 100%;
+      animation: wx-sway 1.1s ease-in-out infinite alternate;
+      --sway: 1deg;
+    }
+    #tree[data-weather="hurricane"] :is([data-oak], [data-crown]) > [data-scenery] {
+      animation-duration: 0.5s;
+      --sway: 3.2deg;
+    }
+
+    /* The UFO cameo, over the lantern. */
+    /* The board's saucer from 1280, the crown's below it. */
+    @media (width >= 80rem) {
+      #tree[data-weather="ufo"] .wx-ufo-board {
+        display: block;
+      }
+    }
+    @media (width < 80rem) {
+      #tree[data-weather="ufo"] .wx-ufo-crown {
+        display: block;
+      }
+    }
+    .wx-ufo-wrap {
+      z-index: 1;
+    }
+    .wx-ufo {
+      position: absolute;
+      inset: 0;
+      background: var(--fg);
+      mask: var(--art) no-repeat center / contain;
+      animation: wx-ufo calc(var(--beat-ms, 1600ms) + 1.2s) var(--ease-ink) both;
+    }
+    .wx-beam {
+      position: absolute;
+      top: 86%;
+      left: -8%;
+      width: 116%;
+      height: 160%;
+      transform-origin: 50% 0;
+      clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--surface) 85%, transparent), color-mix(in srgb, var(--surface) 30%, transparent));
+      animation: wx-beam calc(var(--beat-ms, 1600ms) + 1.2s) linear both;
+    }
+    .wx-glow {
+      position: absolute;
+      top: 140%;
+      left: 4%;
+      width: 92%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--surface), transparent 68%);
+      opacity: 0;
+      animation: wx-glow calc(var(--beat-ms, 1600ms) + 1.2s) linear both;
+    }
+  }
+
   /* ---------------------------------------------------------------------- */
   /* Screen-reader-only utilities                                           */
   /* ---------------------------------------------------------------------- */

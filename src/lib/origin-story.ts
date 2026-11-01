@@ -34,6 +34,22 @@ import type { CareerEntry, CareerEntryType } from "@/types/portfolio";
  * separately, so a year can honestly be both (rain, with a storm that rode
  * in) rather than forced to pick one. The companion narrates the two
  * together: a storm year gets the storm's line over its base weather's.
+ *
+ * Round 23 makes the weather visible. `Weather` (below) is what "Watch it grow"
+ * draws over the oak for each beat; `weatherFor` computes it from the season
+ * and, again, nothing is typed per year. What the real content produces today
+ * (the test recomputes it; this list can go stale, the function cannot):
+ *
+ *   - the flight is a `plane` crossing the sky, the last beat a `ufo` cameo;
+ *   - a year of schooling is `rain`, a plain working year is `sun`, and a year
+ *     with nothing on record is `snow` (a quiet, white, underground winter);
+ *   - rain with a milestone riding in is a `flood`;
+ *   - the one year with the most milestones is the `hurricane` (ties go to the
+ *     earlier year, so there is exactly one); it beats the rules below;
+ *   - any other storm year is a `thunderstorm`. Every working year in the real
+ *     content also carries a milestone, so plain `sun` never occurs on its own
+ *     there; the thunderstorm therefore opens in sun (the caption says so) and
+ *     the clouds roll in, which keeps the sun the owner asked for on screen.
  */
 
 /*
@@ -61,6 +77,32 @@ export interface SeasonForces {
  */
 export type SeasonKind = "rain" | "sun" | "storm" | "quiet";
 
+/** What "Watch it grow" draws over the oak for one beat (globals.css, "Watch it
+ *  grow", `data-weather`). */
+export type Weather =
+  | "plane"
+  | "sun"
+  | "rain"
+  | "snow"
+  | "flood"
+  | "thunderstorm"
+  | "hurricane"
+  | "ufo";
+
+/**
+ * A season's weather, from its base kind, its storm overlay and whether it is
+ * the year with the most milestones. Pure: the show's only per-year rule.
+ * Hurricane first (the one peak year), then a storm over rain is a flood, any
+ * other storm a thunderstorm, otherwise the base kind itself (quiet is snow).
+ */
+export function weatherFor(kind: SeasonKind, storm: boolean, peak: boolean): Weather {
+  if (storm && peak) return "hurricane";
+  if (storm) return kind === "rain" ? "flood" : "thunderstorm";
+  if (kind === "rain") return "rain";
+  if (kind === "sun") return "sun";
+  return "snow";
+}
+
 export interface Season {
   readonly year: number;
   readonly forces: SeasonForces;
@@ -71,6 +113,8 @@ export interface Season {
    *  of the base weather this year. Independent of `kind` — a year can be
    *  rain-with-a-storm or sun-with-a-storm equally honestly. */
   readonly storm: boolean;
+  /** What is drawn over the oak this year. See `weatherFor`. */
+  readonly weather: Weather;
   /** Authored copy around computed counts. Always starts with the year,
    *  never a place name — see `tests/lib/origin-story.test.ts`. */
   readonly caption: string;
@@ -109,34 +153,30 @@ export function kindFor(forces: SeasonForces): SeasonKind {
 }
 
 /**
- * Composes base weather and storm honestly rather than picking one: a
- * storm year still says what the base weather *was*, with the storm named
- * as something that rode in on top of it, not a replacement for it. Every
- * branch stays under `CAPTION_MAX_CHARS`, leads with the year, and names no
- * city — see `tests/lib/origin-story.test.ts`.
+ * One line per weather, in first person, led by the year, naming the weather
+ * the oak is standing in. Counts are read from `forces`, never typed. Every
+ * branch stays under `CAPTION_MAX_CHARS` and names no city — see
+ * `tests/lib/origin-story.test.ts`.
  */
-function captionFor(year: number, kind: SeasonKind, storm: boolean): string {
-  if (storm) {
-    switch (kind) {
-      case "rain":
-        return `${year} — rain for the roots, and a storm rode in`;
-      case "sun":
-        return `${year} — steady sun, then a storm broke — and passed`;
-      case "quiet":
-        return `${year} — quiet growth, until a storm rode in`;
-      case "storm":
-        return `${year} — a storm rode in`;
-    }
-  }
-  switch (kind) {
+function captionFor(year: number, weather: Weather, forces: SeasonForces): string {
+  switch (weather) {
+    case "hurricane":
+      return `${year} — a hurricane of ${forces.milestones} milestones; I held on`;
+    case "flood":
+      return `${year} — rain, then a flood; my roots held`;
+    case "thunderstorm":
+      return forces.work > 0
+        ? `${year} — sun on my work, then thunder rolled in and passed`
+        : `${year} — a quiet sky, then thunder rolled through`;
     case "rain":
-      return `${year} — rain for the roots: education`;
+      return `${year} — rain fell on my roots while I studied`;
     case "sun":
-      return `${year} — steady sun: working growth`;
-    case "quiet":
-      return `${year} — quiet growth underground`;
-    case "storm":
-      return `${year} — a storm rode in`;
+      return `${year} — sun on my work, steady and warm`;
+    case "snow":
+      return `${year} — snow; I grew quiet underground`;
+    case "plane":
+    case "ufo":
+      return `${year}`;
   }
 }
 
@@ -149,7 +189,7 @@ function captionFor(year: number, kind: SeasonKind, storm: boolean): string {
  */
 export function seasonsFor(): readonly Season[] {
   const { lastYear } = careerYearSpan();
-  const seasons: Season[] = [];
+  const drafts: { year: number; forces: SeasonForces; kind: SeasonKind; storm: boolean }[] = [];
 
   for (let year = origin.arrivedYear; year <= lastYear; year++) {
     const inYear = ENTRIES.filter((entry) => Number(entry.sortKey.slice(0, 4)) === year);
@@ -158,12 +198,17 @@ export function seasonsFor(): readonly Season[] {
       work: countOf(inYear, "work"),
       milestones: countOf(inYear, "milestone"),
     };
-    const kind = kindFor(forces);
-    const storm = forces.milestones > 0;
-    seasons.push({ year, forces, kind, storm, caption: captionFor(year, kind, storm) });
+    drafts.push({ year, forces, kind: kindFor(forces), storm: forces.milestones > 0 });
   }
 
-  return seasons;
+  // The hurricane is the year with the most milestones; the earlier year wins a tie.
+  const most = Math.max(0, ...drafts.map((d) => d.forces.milestones));
+  const peakYear = most > 0 ? drafts.find((d) => d.forces.milestones === most)?.year : undefined;
+
+  return drafts.map((d) => {
+    const weather = weatherFor(d.kind, d.storm, d.year === peakYear);
+    return { ...d, weather, caption: captionFor(d.year, weather, d.forces) };
+  });
 }
 
 /**
@@ -177,6 +222,9 @@ export interface GrowBeat {
   readonly kind: "flight" | SeasonKind | "still";
   readonly year: number | null;
   readonly storm: boolean;
+  /** What is drawn over the oak for this beat: a plane for the flight, a UFO
+   *  for the shoot, the season's own weather between. */
+  readonly weather: Weather;
   readonly caption: string;
 }
 
@@ -188,9 +236,9 @@ export function flightCaption(): string {
 /** The show, in order: the flight, one beat per season, then the shoot. */
 export function growBeats(): readonly GrowBeat[] {
   return [
-    { kind: "flight", year: null, storm: false, caption: flightCaption() },
-    ...seasonsFor().map(({ year, kind, storm, caption }) => ({ year, kind, storm, caption })),
-    { kind: "still", year: null, storm: false, caption: stillGrowingCaption() },
+    { kind: "flight", year: null, storm: false, weather: "plane", caption: flightCaption() },
+    ...seasonsFor().map(({ year, kind, storm, weather, caption }) => ({ year, kind, storm, weather, caption })),
+    { kind: "still", year: null, storm: false, weather: "ufo", caption: `${stillGrowingCaption()} — and a UFO stopped to look` },
   ];
 }
 

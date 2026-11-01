@@ -8,6 +8,7 @@ import {
   growBeats,
   kindFor,
   seasonsFor,
+  weatherFor,
   type SeasonForces,
 } from "@/lib/origin-story";
 import type { CareerEntry } from "@/types/portfolio";
@@ -151,10 +152,11 @@ describe("growBeats", () => {
   const seasons = seasonsFor();
 
   it("opens on the flight, ends on the shoot, and plays every season between, in order", () => {
-    expect(beats[0]).toEqual({ kind: "flight", year: null, storm: false, caption: flightCaption() });
-    expect(beats.at(-1)).toEqual({ kind: "still", year: null, storm: false, caption: stillGrowingCaption() });
+    expect(beats[0]).toEqual({ kind: "flight", year: null, storm: false, weather: "plane", caption: flightCaption() });
+    expect(beats.at(-1)).toMatchObject({ kind: "still", year: null, storm: false, weather: "ufo" });
+    expect(beats.at(-1)?.caption.startsWith(stillGrowingCaption())).toBe(true);
     expect(beats.slice(1, -1)).toEqual(
-      seasons.map(({ year, kind, storm, caption }) => ({ year, kind, storm, caption })),
+      seasons.map(({ year, kind, storm, weather, caption }) => ({ year, kind, storm, weather, caption })),
     );
   });
 
@@ -164,6 +166,65 @@ describe("growBeats", () => {
 
   it("keeps every caption inside budget", () => {
     for (const beat of beats) expect(beat.caption.length, beat.caption).toBeLessThanOrEqual(CAPTION_MAX_CHARS);
+  });
+});
+
+/**
+ * The weather each beat draws over the oak. `weatherFor` is proven against
+ * crafted inputs (so every weather is covered whatever the content says), then
+ * the real seasons are checked against an independent recomputation.
+ */
+describe("weatherFor", () => {
+  it("is the base weather when nothing storms: rain, sun, and snow for a quiet year", () => {
+    expect(weatherFor("rain", false, false)).toBe("rain");
+    expect(weatherFor("sun", false, false)).toBe("sun");
+    expect(weatherFor("quiet", false, false)).toBe("snow");
+  });
+
+  it("makes a storm over rain a flood, and any other storm a thunderstorm", () => {
+    expect(weatherFor("rain", true, false)).toBe("flood");
+    expect(weatherFor("sun", true, false)).toBe("thunderstorm");
+    expect(weatherFor("quiet", true, false)).toBe("thunderstorm");
+  });
+
+  it("gives the peak storm year the hurricane, whatever its base weather", () => {
+    for (const kind of ["rain", "sun", "quiet"] as const) expect(weatherFor(kind, true, true)).toBe("hurricane");
+  });
+
+  it("never draws a hurricane for a year with no storm", () => {
+    expect(weatherFor("sun", false, true)).toBe("sun");
+  });
+});
+
+describe("the weather of the real seasons", () => {
+  const seasons = seasonsFor();
+  const most = Math.max(...seasons.map((s) => s.forces.milestones));
+
+  it("has exactly one hurricane: the year with the most milestones, the earlier on a tie", () => {
+    const hurricanes = seasons.filter((s) => s.weather === "hurricane");
+    expect(hurricanes).toHaveLength(1);
+    expect(hurricanes[0].forces.milestones).toBe(most);
+    expect(hurricanes[0].year).toBe(seasons.find((s) => s.forces.milestones === most)?.year);
+  });
+
+  it("follows the rules for every other year, read straight off the forces", () => {
+    for (const season of seasons) {
+      if (season.weather === "hurricane") continue;
+      const { learning, work, milestones } = season.forces;
+      const base = learning > 0 && learning >= work ? "rain" : work > 0 ? "sun" : "snow";
+      const want = milestones > 0 ? (base === "rain" ? "flood" : "thunderstorm") : base;
+      expect(season.weather, `${season.year}`).toBe(want);
+    }
+  });
+
+  it("opens with a plane and closes with a UFO, and names its weather in first person", () => {
+    const beats = growBeats();
+    expect(beats[0].weather).toBe("plane");
+    expect(beats.at(-1)?.weather).toBe("ufo");
+    for (const season of seasons) {
+      expect(season.caption, season.caption).not.toMatch(/\b(he|his|him)\b/i);
+      if (season.weather === "hurricane") expect(season.caption).toContain(String(season.forces.milestones));
+    }
   });
 });
 

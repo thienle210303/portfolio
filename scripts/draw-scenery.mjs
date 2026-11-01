@@ -657,6 +657,73 @@ function recordFiles() {
 }
 // ---- end Record drawings ----
 
+// ---- Weather drawings (round 23) ----
+// "Watch it grow" plays a different weather over the oak for each year
+// (src/lib/origin-story.ts, `weatherFor`); these are the shapes CSS cannot make
+// out of gradients. All one-colour masks, painted by an alias. A hole (a
+// window, a light, a midrib) is an evenodd subpath, so the sky shows through.
+function weatherFiles() {
+  const circle = (cx, cy, r) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0Z`;
+  // An airliner, nose right: fuselage with a row of windows, two swept wings,
+  // a fin and an engine.
+  let windows = "";
+  for (let x = 96; x <= 156; x += 10) windows += circle(x, 31, 2.4);
+  const plane = `<path fill-rule="evenodd" fill="${K}" d="M6 30C6 24 30 22 70 22L140 22C160 22 176 28 176 32C176 37 160 42 140 42L40 42C18 42 6 38 6 30Z${windows}"/>`
+    + `<path fill="${K}" d="M12 26L4 4h18l26 20Z"/>`
+    + `<path fill="${K}" d="M96 38L64 62h20l44-24Z"/>`
+    + `<path fill="${K}" d="M100 24L78 8h14l32 16Z"/>`
+    + `<ellipse fill="${K}" cx="94" cy="49" rx="9" ry="4"/>`;
+  // A flying saucer: a glass dome with a little pilot, a disc with a row of
+  // lights, three legs.
+  let lights = "";
+  for (const x of [24, 44, 65, 86, 106]) lights += circle(x, 46, 3.2);
+  const ufo = `<path fill-rule="evenodd" fill="${K}" d="M38 34C38 6 92 6 92 34ZM46 34C46 14 84 14 84 34Z"/>`
+    + `<path fill="${K}" d="${circle(65, 26, 5.4)}M60 32c0-3 10-3 10 0Z"/><path fill="none" stroke="${K}" stroke-width="1.6" stroke-linecap="round" d="M62 21l-3-5M68 21l3-5"/>`
+    + `<path fill-rule="evenodd" fill="${K}" d="M4 44C4 34 30 32 65 32C100 32 126 34 126 44C126 54 100 58 65 58C30 58 4 54 4 44Z${lights}"/>`
+    + `<path fill="none" stroke="${K}" stroke-width="3" stroke-linecap="round" d="M40 56l-6 12M90 56l6 12M65 58v10"/>`;
+  // An oak leaf: four rounded lobes a side, a stem, the midrib a hole.
+  const lobes = [[50, 18], [38, 21], [26, 18], [14, 11]];
+  let outline = "M22 63V56";
+  for (const [y, w] of lobes) outline += `Q${22 + w * 0.6} ${y + 8} ${22 + w} ${y}Q${22 + w * 0.6} ${y - 7} 25 ${y - 6}`;
+  outline += "L22 2";
+  for (const [y, w] of [...lobes].reverse()) outline += `L19 ${y - 6}Q${22 - w * 0.6} ${y - 7} ${22 - w} ${y}Q${22 - w * 0.6} ${y + 8} 22 ${y + 6}`;
+  const leaf = `<path fill-rule="evenodd" fill="${K}" d="${outline}ZM21.2 12h1.6v42h-1.6Z"/>`;
+  // A cloud: heaped puffs on a flat base.
+  const cloud = `<path fill="${K}" d="${circle(60, 62, 28)}${circle(100, 44, 36)}${circle(146, 56, 30)}${circle(178, 72, 20)}${circle(36, 74, 20)}M36 70v28h142v-28Z"/>`;
+  const bolt = `<path fill="${K}" d="M26 2L6 58H20L10 118L40 40H25L38 2Z"/>`;
+  // Two seamless tiles the CSS scrolls down a mask: slanted rain streaks and
+  // snowflakes (dots, and now and then a six-armed flake). Seeded, so the draw
+  // is deterministic. Nothing touches a tile's edge, so it wraps cleanly.
+  const rr = rng(23);
+  let streaks = "";
+  for (let i = 0; i < 34; i++) {
+    const x = 14 + rr() * 172, y = 12 + rr() * 150, len = 12 + rr() * 14;
+    streaks += `M${f(x)} ${f(y)}l${f(-len * 0.22)} ${f(len)}`;
+  }
+  const rain = `<path fill="none" stroke="${K}" stroke-width="1.6" stroke-linecap="round" d="${streaks}"/>`;
+  const sr = rng(7);
+  let dots = "", stars = "";
+  for (let i = 0; i < 30; i++) dots += circle(f(12 + sr() * 216), f(12 + sr() * 216), f(1.4 + sr() * 1.9));
+  for (let i = 0; i < 6; i++) {
+    const x = 20 + sr() * 200, y = 20 + sr() * 200;
+    for (const a of [0, 60, 120]) {
+      const dx = Math.cos((a * Math.PI) / 180) * 5.5, dy = Math.sin((a * Math.PI) / 180) * 5.5;
+      stars += `M${f(x - dx)} ${f(y - dy)}L${f(x + dx)} ${f(y + dy)}`;
+    }
+  }
+  const snow = `<path fill="${K}" d="${dots}"/><path fill="none" stroke="${K}" stroke-width="1.1" stroke-linecap="round" d="${stars}"/>`;
+  return {
+    rain: svg("0 0 200 200", rain),
+    snow: svg("0 0 240 240", snow),
+    plane: svg("0 0 180 64", plane),
+    ufo: svg("0 0 130 70", ufo),
+    leaf: svg("0 0 44 64", leaf),
+    cloud: svg("0 0 220 100", cloud),
+    bolt: svg("0 0 44 120", bolt),
+  };
+}
+// ---- end Weather drawings ----
+
 /** @returns {Record<string, string>} file stem → SVG text */
 export function drawScenery() {
   return {
@@ -679,6 +746,7 @@ export function drawScenery() {
     ...contactDrawings(),
     ...journeyFiles(),
     ...recordFiles(),
+    ...weatherFiles(),
   };
 }
 
