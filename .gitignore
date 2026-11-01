@@ -63,3 +63,8 @@ next-env.d.ts
 # Scratch files used while driving a browser during development.
 # Never intended to be tracked; ignored so an "add -A" cannot sweep one in.
 .scratch-*
+
+# Review screenshots and design-tool reports: local working material (the
+# tracker cites them as untracked; ~34 MB of PNGs would bloat every clone).
+/reports/
+/.impeccable/critique/

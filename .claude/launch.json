@@ -4,9 +4,21 @@
     {
       "name": "portfolio-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "portfolio-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "start",
+        "-p",
+        "3300"
+      ],
+      "port": 3300
     }
   ]
 }
