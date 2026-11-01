@@ -323,6 +323,40 @@ test.describe("the Journey", () => {
     for (const li of await items(page).all()) await expect(li).toBeVisible();
   });
 
+  test("no weather shape covers a word, and the lịch and the caption never overlap", async ({ page }) => {
+    await open(page);
+    await watch(page).click();
+    // The rain beat: the clouds are up.
+    await expect(page.locator("#tree")).toHaveAttribute("data-weather", "rain", { timeout: 6_000 });
+    await expect(page.locator("[data-grow-caption]")).toContainText("rain");
+    const rects = await page.evaluate(() => {
+      const box = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return { l: r.left, t: r.top, r: r.right, b: r.bottom };
+      };
+      const tree = document.getElementById("tree")!;
+      const words = [
+        tree.querySelector("h2"),
+        tree.querySelector("h2")?.parentElement?.querySelector("p"),
+        tree.querySelector("[data-grow] button"),
+        tree.querySelector("[data-grow-caption]"),
+        tree.querySelector("[data-lich]"),
+      ].filter((el): el is Element => !!el);
+      return {
+        words: words.map(box),
+        clouds: [...tree.querySelectorAll(".wx-cloud")].map(box),
+        lich: box(tree.querySelector("[data-lich]")!),
+        caption: box(tree.querySelector("[data-grow-caption]")!),
+      };
+    });
+    const meets = (a: { l: number; t: number; r: number; b: number }, b: typeof a) =>
+      a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+    expect(meets(rects.lich, rects.caption)).toBe(false);
+    for (const cloud of rects.clouds) {
+      for (const word of rects.words) expect(meets(cloud, word), JSON.stringify({ cloud, word })).toBe(false);
+    }
+  });
+
   test("Escape ends the show too, weather and calendar with it", async ({ page }) => {
     await open(page);
     await watch(page).click();

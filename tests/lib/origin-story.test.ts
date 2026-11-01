@@ -217,6 +217,16 @@ describe("the weather of the real seasons", () => {
     }
   });
 
+  it("names each thunderstorm year's own milestone count, so neighbouring storms read differently", () => {
+    const storms = seasons.filter((s) => s.weather === "thunderstorm");
+    for (const season of storms) {
+      expect(season.caption).toContain(`${season.forces.milestones} milestone`);
+    }
+    expect(new Set(storms.map((s) => s.caption.replace(/^\d{4}/, ""))).size).toBe(
+      new Set(storms.map((s) => `${s.forces.work}/${s.forces.milestones}`)).size,
+    );
+  });
+
   it("opens with a plane and closes with a UFO, and names its weather in first person", () => {
     const beats = growBeats();
     expect(beats[0].weather).toBe("plane");

@@ -158,6 +158,8 @@ export function kindFor(forces: SeasonForces): SeasonKind {
  * branch stays under `CAPTION_MAX_CHARS` and names no city — see
  * `tests/lib/origin-story.test.ts`.
  */
+const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
 function captionFor(year: number, weather: Weather, forces: SeasonForces): string {
   switch (weather) {
     case "hurricane":
@@ -165,9 +167,10 @@ function captionFor(year: number, weather: Weather, forces: SeasonForces): strin
     case "flood":
       return `${year} — rain, then a flood; my roots held`;
     case "thunderstorm":
+      // The counts keep consecutive thunderstorm years from reading alike.
       return forces.work > 0
-        ? `${year} — sun on my work, then thunder rolled in and passed`
-        : `${year} — a quiet sky, then thunder rolled through`;
+        ? `${year} — sun on ${plural(forces.work, "role")}, then thunder: ${plural(forces.milestones, "milestone")}`
+        : `${year} — a quiet sky, then thunder: ${plural(forces.milestones, "milestone")}`;
     case "rain":
       return `${year} — rain fell on my roots while I studied`;
     case "sun":

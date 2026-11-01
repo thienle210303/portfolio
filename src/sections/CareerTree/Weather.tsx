@@ -33,9 +33,9 @@ export default function Weather() {
       <div className="wx-window sticky top-0 h-svh w-full">
         <span data-w="sun" className="wx-sun" />
         <span data-w="dark" className="wx-dark" />
-        <span data-w="cloud" className="wx-cloud wx-cloud-a" style={ink("cloud")} />
-        <span data-w="cloud" className="wx-cloud wx-cloud-b" style={ink("cloud")} />
-        <span data-w="cloud" className="wx-cloud wx-cloud-c" style={ink("cloud")} />
+        <span data-w="cloud" className="wx-cloud wx-cloud-a" />
+        <span data-w="cloud" className="wx-cloud wx-cloud-b" />
+        <span data-w="cloud" className="wx-cloud wx-cloud-c" />
         <span data-w="rain" className="wx-rain wx-rain-a" style={ink("rain")} />
         <span data-w="rain" className="wx-rain wx-rain-b" style={ink("rain")} />
         <span data-w="snow" className="wx-snow wx-snow-a" style={ink("snow")} />

@@ -688,8 +688,31 @@ function weatherFiles() {
   outline += "L22 2";
   for (const [y, w] of [...lobes].reverse()) outline += `L19 ${y - 6}Q${22 - w * 0.6} ${y - 7} ${22 - w} ${y}Q${22 - w * 0.6} ${y + 8} 22 ${y + 6}`;
   const leaf = `<path fill-rule="evenodd" fill="${K}" d="${outline}ZM21.2 12h1.6v42h-1.6Z"/>`;
-  // A cloud: heaped puffs on a flat base.
-  const cloud = `<path fill="${K}" d="${circle(60, 62, 28)}${circle(100, 44, 36)}${circle(146, 56, 30)}${circle(178, 72, 20)}${circle(36, 74, 20)}M36 70v28h142v-28Z"/>`;
+  // A cloud, drawn as a hand would: the outline of heaped puffs on a flat base,
+  // traced twice with a wobble (a line, and a wash inside it), and a few curls
+  // inside. Two files, so the page can paint a pale wash and a firmer line.
+  const puffs = [[34, 70, 20], [62, 52, 26], [102, 40, 32], [146, 50, 26], [178, 64, 22], [196, 76, 13]];
+  const BASE = 90, C0 = [110, 72];
+  const trace = (seed, wobble) => {
+    const cr = rng(seed);
+    const pts = [];
+    for (let a = 0; a < 360; a += 4) {
+      const dx = Math.cos((a * Math.PI) / 180), dy = Math.sin((a * Math.PI) / 180);
+      let far = 0;
+      for (const [cx, cy, r] of puffs) {
+        const b = dx * (cx - C0[0]) + dy * (cy - C0[1]);
+        const c = (cx - C0[0]) ** 2 + (cy - C0[1]) ** 2 - r * r;
+        const disc = b * b - c;
+        if (disc >= 0) far = Math.max(far, b + Math.sqrt(disc));
+      }
+      if (far === 0) continue;
+      pts.push([f(C0[0] + dx * far + (cr() - 0.5) * wobble), f(Math.min(BASE, C0[1] + dy * far) + (cr() - 0.5) * wobble)]);
+    }
+    return "M" + pts.map((q) => q.join(" ")).join("L") + "Z";
+  };
+  const curls = puffs.slice(0, 4).map(([cx, cy, r]) => `M${f(cx - r * 0.45)} ${f(cy + r * 0.35)}A${f(r * 0.6)} ${f(r * 0.6)} 0 0 1 ${f(cx + r * 0.15)} ${f(cy + r * 0.05)}`).join("");
+  const cloud = `<path fill="${K}" d="${trace(41, 0.4)}"/>`;
+  const cloudLine = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="2.2" d="${trace(41, 0.4)}"/><path stroke-width="1.1" d="${trace(77, 2.2)}"/><path stroke-width="1.2" d="${curls}"/></g>`;
   const bolt = `<path fill="${K}" d="M26 2L6 58H20L10 118L40 40H25L38 2Z"/>`;
   // Two seamless tiles the CSS scrolls down a mask: slanted rain streaks and
   // snowflakes (dots, and now and then a six-armed flake). Seeded, so the draw
@@ -719,6 +742,7 @@ function weatherFiles() {
     ufo: svg("0 0 130 70", ufo),
     leaf: svg("0 0 44 64", leaf),
     cloud: svg("0 0 220 100", cloud),
+    "cloud-line": svg("0 0 220 100", cloudLine),
     bolt: svg("0 0 44 120", bolt),
   };
 }

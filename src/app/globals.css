@@ -2027,7 +2027,7 @@
     }
     to {
       opacity: 0;
-      transform: translate(18px, 96px) rotate(26deg);
+      transform: translate(var(--tear-x, 18px), var(--tear-y, 96px)) rotate(26deg);
     }
   }
 
@@ -2104,6 +2104,15 @@
     animation: lich-tear 0.95s cubic-bezier(0.4, 0, 0.7, 1) both;
   }
 
+  /* Below 1280 the caption hangs under the lịch, so its page flutters away
+     sideways, clear of it. */
+  @media (width < 80rem) {
+    .lich-torn {
+      --tear-x: 84px;
+      --tear-y: 28px;
+    }
+  }
+
   @media screen and (prefers-reduced-motion: no-preference) {
     .wx-window > * {
       position: absolute;
@@ -2111,7 +2120,7 @@
 
     /* ---- the pieces ---- */
     .wx-sun {
-      top: 96px;
+      top: calc(var(--wx-sky) - 60px);
       right: 14%;
       width: 150px;
       aspect-ratio: 1;
@@ -2128,32 +2137,62 @@
       mask: radial-gradient(circle, transparent 33%, #000 35% 58%, transparent 60%);
       animation: wx-spin 14s linear infinite;
     }
+    /* Where the sky's pieces sit: below the heading, the lead, the button, the
+       lịch and the caption, which fill the top of the section's screen (about
+       430px below 1280, 215px from it). No weather shape covers a word; rain
+       and snow fall behind the text instead, as they do the tags. */
+    .wx-window {
+      --wx-sky: 430px;
+    }
+    @media (width >= 80rem) {
+      .wx-window {
+        --wx-sky: 215px;
+      }
+    }
     .wx-dark {
       inset: 0;
-      background: linear-gradient(to bottom, var(--scene-bark), transparent 78%);
+      background: linear-gradient(to bottom, transparent 0 18%, var(--scene-bark) 52%, transparent 90%);
     }
+    /* A cloud is two hand-drawn masks, a pale wash and a firmer line, so it has
+       the oak's line quality rather than a flat blob. */
     .wx-cloud {
-      width: 260px;
+      width: clamp(150px, 20vw, 260px);
       aspect-ratio: 220 / 100;
-      background: var(--wx-cloud, var(--scene-water));
-      mask: var(--art) no-repeat center / contain;
+      color: var(--wx-cloud, var(--scene-water));
       animation: wx-drift 3.2s ease-in-out infinite alternate;
     }
+    .wx-cloud::before,
+    .wx-cloud::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: currentColor;
+      mask: no-repeat center / contain;
+    }
+    .wx-cloud::before {
+      mask-image: url(/scenery/cloud.svg);
+      opacity: var(--wx-wash, 0.3);
+    }
+    .wx-cloud::after {
+      color: var(--wx-line, var(--fg-muted));
+      mask-image: url(/scenery/cloud-line.svg);
+      opacity: 0.75;
+    }
     .wx-cloud-a {
-      top: 156px;
-      left: 6%;
+      top: calc(var(--wx-sky) + 6px);
+      left: 4%;
     }
     .wx-cloud-b {
-      top: 150px;
-      left: 38%;
-      width: 320px;
+      top: var(--wx-sky);
+      left: 36%;
+      width: clamp(190px, 25vw, 320px);
       animation-duration: 4.1s;
       animation-direction: alternate-reverse;
     }
     .wx-cloud-c {
-      top: 176px;
+      top: calc(var(--wx-sky) + 26px);
       left: 68%;
-      width: 230px;
+      width: clamp(140px, 18vw, 230px);
       animation-duration: 2.7s;
     }
     .wx-rain,
@@ -2216,7 +2255,7 @@
       animation: wx-flash var(--beat-ms, 1600ms) linear both;
     }
     .wx-bolt {
-      top: 70px;
+      top: calc(var(--wx-sky) + 50px);
       left: 52%;
       width: 44px;
       height: 120px;
@@ -2236,7 +2275,7 @@
       animation: wx-blow calc(var(--beat-ms, 1600ms) * (0.5 + var(--i) * 0.05)) linear calc(var(--i) * 0.11s) infinite;
     }
     .wx-plane {
-      top: 128px;
+      top: calc(var(--wx-sky) - 40px);
       left: 0;
       width: clamp(96px, 12vw, 160px);
       aspect-ratio: 180 / 64;
@@ -2261,13 +2300,16 @@
     #tree:is([data-weather="rain"], [data-weather="flood"], [data-weather="thunderstorm"], [data-weather="hurricane"], [data-weather="snow"]) .wx-cloud {
       display: block;
       --wx-cloud: var(--scene-water);
+      --wx-line: var(--fg-muted);
     }
     #tree:is([data-weather="thunderstorm"], [data-weather="hurricane"]) .wx-cloud {
       --wx-cloud: color-mix(in srgb, var(--scene-bark) 70%, var(--scene-water));
+      --wx-wash: 0.4;
+      --wx-line: var(--scene-bark);
     }
     #tree[data-weather="snow"] .wx-cloud {
       --wx-cloud: var(--surface);
-      filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--fg) 45%, transparent));
+      --wx-wash: 0.6;
     }
     #tree[data-weather="thunderstorm"] .wx-cloud {
       animation:
