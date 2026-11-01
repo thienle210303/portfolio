@@ -249,10 +249,14 @@ test.describe("career tree", () => {
     await expect(page.locator("[data-act]")).toHaveCount(0);
     // A margin rail (`Section`'s `.rail`) is sticky at lg wherever a section
     // has one (the Journey has none since round 21); everything else inside
-    // #tree must scroll.
+    // #tree must scroll. The one exception is the weather's window (round 23,
+    // `Weather.tsx`): aria-hidden sky, shown only while "Watch it grow" plays,
+    // sticky so the weather stays on screen down a phone's tall section. It
+    // holds no content, so it is no stage.
     const sticky = await page.locator("#tree").evaluate((tree) =>
       Array.from(tree.querySelectorAll("*"))
         .filter((element) => !element.closest(".rail"))
+        .filter((element) => !element.closest("[data-weather-layer]"))
         .filter((element) => getComputedStyle(element).position === "sticky")
         .map((element) => element.outerHTML.slice(0, 80)),
     );
