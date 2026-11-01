@@ -156,18 +156,23 @@ export function clamp(value: number, min: number, max: number): number {
 /*  1. Off the viewport. `html` and `body` carry `overflow-x: clip`, so a fixed */
 /*     element parked past an edge produces no scrollbar and no other tell —    */
 /*     the cat is simply not there, and nothing about the page hints at it.     */
-/*  2. Behind the chrome. The site header is `sticky top-0 z-50` and opaque     */
-/*     (`bg-ground`); the entire companion layer is `fixed inset-0 z-40`. Any   */
-/*     cat in the top band is painted *under* a solid bar. The old probe could  */
-/*     not see this at all: it samples the cat's belly and feet — the bottom    */
-/*     60% of the box — so a spot whose feet clear the header by a pixel reads  */
-/*     as "clear" while the animal's head and shoulders are behind it.          */
+/*  2. The chrome. Through round 22 the site header was `sticky top-0 z-50`    */
+/*     and opaque while the companion layer was `fixed inset-0 z-40`, so any    */
+/*     cat in the top band was painted *under* a solid bar, and the probe       */
+/*     (which samples the belly and feet, the bottom 60% of the box) read a     */
+/*     spot as "clear" while the head and shoulders were behind it. Round 23:   */
+/*     the layer is `z-55`, above the header, so a cat is never covered; the    */
+/*     open phone menu (the layer drops to 40 while `html[data-menu-open]`),    */
+/*     the skip link (60) and native dialogs (top layer) are the only things    */
+/*     above it. The header is paper on the sky now, not a bar, but the band    */
+/*     below is still kept clear: a cat resting on the nav or the TL tag        */
+/*     would sit on the one place a visitor aims for.                           */
 /*                                                                             */
 /* Both are answered here, once, by a single pair of bounds that every target   */
 /* and every settle position is run through.                                    */
 /* -------------------------------------------------------------------------- */
 
-/** The height of the page chrome that paints above the companion layer. */
+/** The height of the header band the cats keep clear (they float above it). */
 let overlayTop = 0;
 
 /**

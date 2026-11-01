@@ -2204,10 +2204,12 @@ test.describe("companion", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // The two ways a cat becomes invisible without ever leaving the DOM. The
-    // header is `sticky top-0 z-50` over a companion layer at `z-40`, and it is
-    // opaque; `overflow-x: clip` on the document means a cat past an edge does
-    // not even produce a scrollbar to hint at where it went.
+    // The two ways a cat becomes invisible without ever leaving the DOM. Before
+    // round 23 the header was `sticky top-0 z-50` and opaque over a companion
+    // layer at `z-40` (the layer is above it now, see the layer test below, but
+    // the band is still kept clear); `overflow-x: clip` on the document means a
+    // cat past an edge does not even produce a scrollbar to hint at where it
+    // went.
     //
     // Deliberately every svg the companion paints, not just the animals: the
     // corner furniture is line work on the same fixed layer and is subject to
@@ -2247,6 +2249,50 @@ test.describe("companion", () => {
     await expect
       .poll(hidden, { timeout: 10_000, message: "a resize left a cat outside the viewport" })
       .toEqual([]);
+  });
+
+  /*
+   * Round 23, ask 12: the cats are first priority and always on top. The layer
+   * is above the header (and so above every section); only the skip link, native
+   * dialogs and the open phone menu are above it, and none of them is hidden
+   * *by* it. The layer takes no pointer events of its own, so a nav item under
+   * it still answers a click.
+   */
+  test("the layer is above the header, below the open menu, and lets clicks through to the nav", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    const stack = () =>
+      page.evaluate(() => {
+        const z = (selector: string) => Number(getComputedStyle(document.querySelector(selector)!).zIndex);
+        // With the layer made hit-testable, what is on top of the header's paper?
+        const style = document.createElement("style");
+        style.textContent = "[data-companion]{pointer-events:auto !important}";
+        document.head.append(style);
+        const paper = document.querySelector(".nav-strip")!.getBoundingClientRect();
+        const top = document.elementsFromPoint(paper.left + paper.width / 2, paper.top + 20)[0];
+        const overHeader = top === document.querySelector("[data-companion]");
+        style.remove();
+        return { layer: z("[data-companion]"), header: z("header"), skip: 60, overHeader };
+      });
+    const closed = await stack();
+    expect(closed.layer).toBeGreaterThan(closed.header);
+    expect(closed.layer).toBeLessThan(closed.skip);
+    expect(closed.overHeader).toBe(true);
+
+    if (viewportWidth(page) >= 1024) {
+      // A click on a nav item goes to the nav item, cat or no cat above it.
+      await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Contact", exact: true }).click();
+      await expect(page.locator("#contact")).toBeInViewport();
+    } else {
+      await page.getByRole("button", { name: "Open menu" }).click();
+      await expect(page.getByRole("navigation", { name: "Mobile" })).toBeVisible();
+      const open = await stack();
+      expect(open.layer).toBeLessThan(open.header);
+      expect(open.overHeader).toBe(false);
+      await page.keyboard.press("Escape");
+      expect((await stack()).layer).toBeGreaterThan(closed.header);
+    }
   });
 
   test("naps where it stops when left alone, and does not remember doing it", async ({ page }) => {

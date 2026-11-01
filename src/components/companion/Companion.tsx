@@ -1147,13 +1147,15 @@ function thienWant(speaker: Spot, other: Spot): Point {
 }
 
 /**
- * Round 21 review: a cat walking across a link or a button passes *under* it.
- * The parts of the cat's element (`node`, drawn `w`×`h` from `pos` + `ox`,`oy`)
- * that lie over a control are cut out with an even-odd clip path, so the
- * control is never covered and the cut part takes no clicks either. The outer
- * ring is drawn 20px wide of the box so a hop is not clipped. Marked
- * `data-cat-under` while it applies. Resting on a control is prevented where
- * the destination is chosen; this is for the walk across.
+ * A cat walking across a link or a button (round 21 review), now drawn *over*
+ * it (round 23: the cats are always on top). The control is never made
+ * unpressable: while any part of the cat's box (`node`, `w`×`h` from `pos` +
+ * `ox`,`oy`) lies over a control it is marked `data-cat-under`, and globals.css
+ * gives it `pointer-events: none`, so the press goes through to the control.
+ * Round 21 cut the covered part out with an even-odd clip instead, which hid
+ * that part of the cat behind the control and is what the owner saw as a cat
+ * "hidden by some UI". Resting on a control is prevented where the
+ * destination is chosen; this is for the walk across.
  */
 function passUnder(
   node: HTMLElement | null,
@@ -1166,22 +1168,10 @@ function passUnder(
   if (!node) return;
   const left = pos.x + ox;
   const top = pos.y + oy;
-  const controls = controlRectsUnder({ left, top, right: left + w, bottom: top + h });
-  let holes = "";
-  for (const r of controls) {
-    const x0 = Math.max(r.left, left) - left;
-    const x1 = Math.min(r.right, left + w) - left;
-    const y0 = Math.max(r.top, top) - top;
-    const y1 = Math.min(r.bottom, top + h) - top;
-    if (x1 > x0 && y1 > y0) {
-      holes += `M${x0.toFixed(1)} ${y0.toFixed(1)}H${x1.toFixed(1)}V${y1.toFixed(1)}H${x0.toFixed(1)}Z`;
-    }
-  }
-  const clip = holes ? `path(evenodd, "M-20 -20H${w + 20}V${h + 20}H-20Z${holes}")` : "";
-  if (node.dataset.clip === clip) return;
-  node.dataset.clip = clip;
-  node.style.clipPath = clip;
-  node.toggleAttribute("data-cat-under", clip !== "");
+  const under = controlRectsUnder({ left, top, right: left + w, bottom: top + h }).some(
+    (r) => Math.min(r.right, left + w) > Math.max(r.left, left) && Math.min(r.bottom, top + h) > Math.max(r.top, top),
+  );
+  if (node.hasAttribute("data-cat-under") !== under) node.toggleAttribute("data-cat-under", under);
 }
 
 /**
@@ -5226,9 +5216,14 @@ export function Companion({ facts }: CompanionProps) {
       data-cat-tour={tourView ? "true" : undefined}
       data-cat-intent={intent ?? undefined}
       data-cat-cheer={cheer ? "true" : undefined}
+      // Round 23: the cats are above everything on the page and the header
+      // (`z-55`; the header is `z-50`). Above them, and only these: the skip
+      // link (60), native dialogs (the top layer), and the open phone menu —
+      // `SiteNav` stamps `data-menu-open` on <html> and globals.css drops the
+      // layer to 40 while it is set.
       // Clipped: a peeking pair (`pickCorner`) and a cat entering from the
       // edge must not widen the page.
-      className="no-print pointer-events-none fixed inset-0 z-40 overflow-clip"
+      className="no-print pointer-events-none fixed inset-0 z-55 overflow-clip"
     >
       {/* The toy, under the cats in paint order so a paw lands on top of it.
           Decoration in the strictest sense: no accessible name, no pointer

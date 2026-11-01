@@ -748,6 +748,63 @@ function weatherFiles() {
 }
 // ---- end Weather drawings ----
 
+// ---- Header drawings (round 23, builder E) ----
+// The paper strip's torn lower edge (a tile, so the strip can be any width),
+// the ink swash drawn under the current section, and the sun and crescent moon
+// that are the theme switch. All one-colour masks painted by an alias.
+function navTorn() {
+  // Black above a ragged line 3-9px down a 240px tile; the line starts and ends
+  // at the same height so the tile repeats without a seam.
+  const r = rng(23), W = 240, H = 10, pts = [];
+  for (let x = 0; x <= W; x += 5) pts.push([x, 5.4 + (r() - 0.5) * 5 + Math.sin(x / 19) * 1.4]);
+  pts[pts.length - 1][1] = pts[0][1];
+  let d = `M0 0H${W}V${f(pts[pts.length - 1][1])}`;
+  for (let i = pts.length - 2; i >= 0; i--) d += `L${f(pts[i][0])} ${f(pts[i][1])}`;
+  return svg(`0 0 ${W} ${H}`, `<path d="${d}Z" fill="${K}"/>`);
+}
+function navSwash() {
+  // One brush stroke, heavier at the start and dry at the tail, stretched to
+  // the label's width (the page sizes it to the label with a mask).
+  return svg(
+    "0 0 120 12",
+    `<path d="M3 7.6C16 4.4 34 3.2 56 4.2C80 5.2 100 3.4 117 4.6C109 5.8 98 6.6 84 6.8C64 7.2 40 8.8 24 9.4C14 9.7 7 9.3 3 7.6Z" fill="${K}"/>`
+      + `<path d="M30 10.6C48 10 70 10.4 92 8.8" fill="none" stroke="${K}" stroke-width="0.9" stroke-linecap="round" stroke-dasharray="14 5 6 4"/>`,
+  );
+}
+function navSun() {
+  // A sun as one would draw it in the margin: a lopsided disc, eight rays that
+  // are not the same length.
+  const r = rng(5);
+  let rays = "";
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 + (r() - 0.5) * 0.18, r0 = 11.5 + r(), r1 = r0 + 4.2 + r() * 3.4;
+    const bend = (r() - 0.5) * 1.6;
+    rays += `<path d="M${f(20 + Math.cos(a) * r0)} ${f(20 + Math.sin(a) * r0)}Q${f(20 + Math.cos(a) * (r0 + r1) / 2 - Math.sin(a) * bend)} ${f(20 + Math.sin(a) * (r0 + r1) / 2 + Math.cos(a) * bend)} ${f(20 + Math.cos(a) * r1)} ${f(20 + Math.sin(a) * r1)}"/>`;
+  }
+  return svg(
+    "0 0 40 40",
+    `<g fill="none" stroke="${K}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">`
+      + `<path d="M20 12.4C24.4 12.2 28 15.6 27.8 20.2C27.6 24.6 24.2 27.8 19.8 27.6C15.4 27.4 12.2 24 12.4 19.6C12.6 15.6 16 12.6 20.4 12.5"/>${rays}</g>`,
+  );
+}
+function navMoon() {
+  // A crescent with a small star above its horn.
+  return svg(
+    "0 0 40 40",
+    `<path d="M26.6 7.2C17.4 8 11 15.2 11.6 23.6C12.2 31.4 18.8 36.8 26.4 36C30.2 35.6 33.4 33.8 35.6 31.2C25.8 32.4 18.6 25.6 19.6 17.4C20 13.2 22.6 9.6 26.6 7.2Z" fill="${K}"/>`
+      + `<path d="M31.5 8.5v6M28.5 11.5h6" fill="none" stroke="${K}" stroke-width="2" stroke-linecap="round"/>`,
+  );
+}
+function navFiles() {
+  return {
+    "nav-torn": navTorn(),
+    "nav-swash": navSwash(),
+    "nav-sun": navSun(),
+    "nav-moon": navMoon(),
+  };
+}
+// ---- end Header drawings ----
+
 /** @returns {Record<string, string>} file stem → SVG text */
 export function drawScenery() {
   return {
@@ -767,6 +824,7 @@ export function drawScenery() {
     "sky-night": svg("0 0 1440 900", skyLayer(true, [880, 120], 1)),
     morning: svg("420 770 100 114", stool(470, 840, "#C8352B") + STILL.phin(470, 838)),
     evening: svg("420 770 100 114", stool(470, 840, "#2E6DB4") + STILL.lau(470, 838)),
+    ...navFiles(),
     ...contactDrawings(),
     ...journeyFiles(),
     ...recordFiles(),

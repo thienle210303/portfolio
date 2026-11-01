@@ -710,20 +710,22 @@ test.describe("hero", () => {
     );
   });
 
-  test("the header sits on the sky", async ({ page }) => {
+  test("the header is no bar: paper on the sky, nothing painted of its own", async ({ page }) => {
     await open(page);
-    // The sky is a fixed layer under body (round 21 phase 8: iOS ignores
-    // `background-attachment: fixed`); the header paints the same gradient.
-    const [header, sky] = await page.evaluate(() =>
+    // Round 23. The sky is a fixed layer under body (round 21 phase 8: iOS
+    // ignores `background-attachment: fixed`); the header is transparent over
+    // it and borderless, and its paper (the strip, the stamp) is opaque.
+    const [header, strip] = await page.evaluate(() =>
       [
         getComputedStyle(document.querySelector("header[data-site-header]")!),
-        getComputedStyle(document.body, "::before"),
-      ].map((s) => ({ image: s.backgroundImage, size: s.backgroundSize, position: s.position })),
+        getComputedStyle(document.querySelector(".nav-paper")!),
+      ].map((s) => ({ image: s.backgroundImage, color: s.backgroundColor, border: s.borderBottomWidth })),
     );
-    expect(header.image).toBe(sky.image);
-    expect(header.image).not.toBe("none");
-    expect(header.size).toBe(sky.size);
-    expect(sky.position).toBe("fixed");
+    expect(header.image).toBe("none");
+    expect(header.color).toBe("rgba(0, 0, 0, 0)");
+    expect(header.border).toBe("0px");
+    expect(strip.color).not.toBe("rgba(0, 0, 0, 0)");
+    expect(await page.evaluate(() => getComputedStyle(document.body, "::before").position)).toBe("fixed");
   });
 });
 

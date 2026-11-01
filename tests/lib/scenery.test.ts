@@ -22,6 +22,11 @@ const VIEWBOXES: Record<string, string> = {
   "sky-night": "0 0 1440 900",
   morning: "420 770 100 114",
   evening: "420 770 100 114",
+  // Header
+  "nav-torn": "0 0 240 10",
+  "nav-swash": "0 0 120 12",
+  "nav-sun": "0 0 40 40",
+  "nav-moon": "0 0 40 40",
   // Contact
   "lanterns-day": "626 -12 812 192",
   "lanterns-night": "626 -12 812 192",
@@ -65,7 +70,7 @@ const VIEWBOXES: Record<string, string> = {
   rain: "0 0 200 200",
   snow: "0 0 240 240",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Contact */ "postmark", /* Record */ "stamp-rice", "stamp-pine", "stamp-fern", "stamp-palmetto", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
+const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", /* Record */ "stamp-rice", "stamp-pine", "stamp-fern", "stamp-palmetto", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
 
 const files = drawScenery();
 
