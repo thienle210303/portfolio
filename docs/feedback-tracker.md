@@ -2284,3 +2284,18 @@ On `round-22/record`, after `d2f5d81` (with the cuter Bé Nhi above, also uncomm
 - **JS at load +125 B**: the cats' check. CSS +60 B (the cut variable, the crown width). LCP 1084 ms, TBT 6 ms.
 
 **Verification.** `pnpm verify` passes (929 unit tests; the scenery test holds both new bamboo files to a fresh draw; contrast 66 pairings, lowest 4.52:1). Full e2e on a production build: 860 passed, 0 failed. By eye: the bamboo at 800 (day) and 1440 (day and night), the Journey at 1440, 1000 and 390 (day and night), the hero tags at 800, the award row and the playing recording at 1440.
+
+## Live: thienle.vercel.app (2026-11-01)
+
+`thienle.dev` was never registered, so the site went live free on Vercel's own subdomain. The `portfolio` project (team `thien17`, Hobby) was already connected to GitHub and deploys `main` on every push; `thienle.vercel.app` was added as its domain, and production was redeployed so the site names itself by it (`338bb44`: on Vercel, production takes `NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL`). Canonical, `og:url`, the sitemap and robots all say `https://thienle.vercel.app`; `/resume`, `/contact.vcf`, the share image, the icon, the recordings and the scenery all serve. No console errors in day, night or at 390.
+
+As configured on Vercel: `BOOKING_URL` is set (the hero's second action is "Book a call with me"); Resend is not (the postcard uses the `mailto:` flow); the chat's live model is not (`/api/ask` answers `503 not-configured` and the page answers from its own index).
+
+**Lighthouse 12, live** (headless Chromium):
+
+| | Performance | Accessibility | Best practices | SEO | LCP | TBT | CLS |
+|---|---|---|---|---|---|---|---|
+| Mobile | 95 | 100 | 100 | 100 | 2.9 s | 10 ms | 0 |
+| Desktop | 100 | 100 | 100 | 100 | 0.6 s | 0 ms | 0 |
+
+**Seen while checking, then fixed.** Asked "What did you build at DoorDash?", the chat's local answer led with Schaeffler's low-code build and the chess bot. Two causes: the stemmer only folds plurals, so "built" never met "build", and the rare exact "build" in three other passages took the top slots; and only a case study's problem statement carried its employer's name, so DoorDash's evidence could not be reached by naming DoorDash. Fixed by folding "built" onto "build" (`IRREGULAR` in `answers.ts`), the employer on every case-study passage, and career rows indexed before case studies (equal scores keep corpus order; the impact line "Built an agent-driven onboarding workflow…" had tied a problem statement and lost on order). A tie-break on passage length was tried first and dropped: recall@1 fell from 67.7% to 54.8%. The live query is now an eval case, the first not written by the aliases' author: missed → rank 1; the set goes 67.7 / 90.3 / 93.5 / 0.781 → 71.0 / 93.5 / 96.8 / 0.812 (recall@1/3/5, MRR), refusals 4/4; of the other 30, one case moved ("how many retailers has he integrated", rank 4 → 5). `pnpm verify` (929 tests) and the full e2e (860) pass.

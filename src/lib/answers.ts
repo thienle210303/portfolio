@@ -117,6 +117,14 @@ const STOP_WORDS = new Set([
 ]);
 
 /**
+ * Past tenses no suffix rule can reach, folded onto the verb. "built" is the
+ * one that cost an answer: asked "what did you build at DoorDash", the index
+ * held "Built an agent-driven onboarding workflow" and could not see it, while
+ * the rare exact "build" in other passages carried the top three slots.
+ */
+const IRREGULAR: ReadonlyMap<string, string> = new Map([["built", "build"]]);
+
+/**
  * Collapses plurals onto their singular so the query and the index agree.
  *
  * Deliberately *not* an "-es" rule. English cannot tell "buses" → "bus" from
@@ -129,6 +137,8 @@ const STOP_WORDS = new Set([
  * compared with each other, and both sides fold through this one function.
  */
 export function stem(token: string): string {
+  const irregular = IRREGULAR.get(token);
+  if (irregular) return irregular;
   if (token.length > 4 && token.endsWith("ies")) return `${token.slice(0, -3)}y`;
   if (token.length > 3 && token.endsWith("s") && !token.endsWith("ss")) {
     return token.slice(0, -1);

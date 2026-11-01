@@ -312,6 +312,22 @@ export const EVAL_CASES: readonly EvalCase[] = [
     expect: ["Multi-agent feasibility workflow at DoorDash"],
     probes: "the site's own suggested question, reworded after the AI Workflow Lab was removed",
   },
+  {
+    // Asked on the live site on 2026-11-01, the first query in this set not
+    // written by the hand that wrote the aliases. It answered with Schaeffler's
+    // low-code build and the chess bot: "built" never met "build", and only one
+    // of each case study's passages carried its employer's name.
+    query: "What did you build at DoorDash?",
+    expect: [
+      "Built an agent-driven onboarding workflow",
+      "Re-engineered a major retailer's catalog scraper",
+      "Delivered 30+ production scrapers in a single week",
+      "30+ production scrapers delivered in a single week",
+      "Re-engineered a legacy scraper from HTML crawling to a direct API",
+      "Production scrapers delivered: Built individually",
+    ],
+    probes: "an employer with a generic verb in the past tense, observed live",
+  },
 ];
 
 /**

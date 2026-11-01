@@ -228,6 +228,58 @@ export function buildDocuments(): Document[] {
     label: label("companions", undefined, "cat", "cats", "pet", "pets", ...companions.map((cat) => cat.name)),
   });
 
+  // Career rows go in before the case studies. Equal scores keep corpus
+  // order, and a role's impact lines are the most concrete statements the site
+  // makes: asked "what did you build at DoorDash", "Built an agent-driven
+  // onboarding workflow…" tied a case study's problem statement and lost on
+  // order. Measured, not argued: the eval's other 30 cases kept their ranks
+  // but one ("how many retailers", 4 → 5). A tie-break on passage length was
+  // tried first and cost 13 points of recall@1, because ties are everywhere in
+  // a corpus this small.
+  for (const entry of careerIndexable) {
+    const where = `${entry.role}, ${entry.organization} · ${entry.dateRange}`;
+    const shared = [entry.role, entry.organization, entry.type];
+
+    if (entry.summary) {
+      docs.push({
+        text: entry.summary,
+        source: where,
+        sectionId: "record",
+        sectionLabel: "Record",
+        label: label("journey", entry.id, ...shared, "did does responsibility"),
+      });
+    }
+
+    // The impact lines were reachable from `answer-sources` but never indexed,
+    // which meant "what has he actually delivered at DoorDash" could only be
+    // answered by the one-line context blurb. They are the most concrete
+    // statements any career entry makes, so they are also the most answerable.
+    for (const claim of entry.impact) {
+      docs.push({
+        text: claim,
+        source: `${where} — impact`,
+        sectionId: "record",
+        sectionLabel: "Record",
+        label: label(
+          "journey",
+          entry.id,
+          ...shared,
+          "impact result achievement delivered accomplished",
+        ),
+      });
+    }
+
+    if (entry.learned) {
+      docs.push({
+        text: entry.learned,
+        source: `${where} — what it taught me`,
+        sectionId: "record",
+        sectionLabel: "Record",
+        label: label("journey", entry.id, ...shared, "learn lesson learned learning takeaway realised"),
+      });
+    }
+  }
+
   // Round 18: Selected Work is gone; its case studies render inside the
   // rows of the roles that produced them, on the Record since round 21 phase 5,
   // so these documents link to `#record`. The `label()`
@@ -235,6 +287,11 @@ export function buildDocuments(): Document[] {
   // argument picks the vocabulary in `sectionExpansions`, which is what a
   // query matches against, and is not the link target. Re-keying it would
   // change retrieval, not just where "More on this in …" lands.
+  // Every passage of a case study carries its employer's name as an alias,
+  // not only its problem statement: "what did you build at DoorDash" has to be
+  // able to reach the evidence, which is where what was built is written. The
+  // name is the subject's identity, not boilerplate this file writes (compare
+  // `source`, in answers.ts).
   for (const project of projectsIndexable) {
     const where = project.organization ? `${project.title} — ${project.organization}` : project.title;
 
@@ -267,6 +324,7 @@ export function buildDocuments(): Document[] {
         "work",
         project.id,
         project.title,
+        project.organization ?? "",
         "learn lesson learned learning takeaway wrong mistake failed failure hindsight differently again",
       ),
     });
@@ -277,7 +335,7 @@ export function buildDocuments(): Document[] {
         source: `${where}, evidence`,
         sectionId: "record",
         sectionLabel: "Record",
-        label: label("work", project.id, project.title, "result impact outcome proof evidence"),
+        label: label("work", project.id, project.title, project.organization ?? "", "result impact outcome proof evidence"),
       });
     }
 
@@ -329,6 +387,7 @@ export function buildDocuments(): Document[] {
           "work",
           project.id,
           project.title,
+          project.organization ?? "",
           "assumption assumed assume believed guess bet premise riskiest",
         ),
       });
@@ -357,6 +416,7 @@ export function buildDocuments(): Document[] {
           "work",
           project.id,
           project.title,
+          project.organization ?? "",
           "alternative option considered weighed explored tried approach other way",
         ),
       });
@@ -372,6 +432,7 @@ export function buildDocuments(): Document[] {
           "work",
           project.id,
           project.title,
+          project.organization ?? "",
           metric.label,
           "metric number measured before after improvement",
           // Every metric cites "Résumé — …" as its provenance, and "resume" is
@@ -380,50 +441,6 @@ export function buildDocuments(): Document[] {
           // this, so both spellings land on the same term.
           "resume cv curriculum vitae",
         ),
-      });
-    }
-  }
-
-  for (const entry of careerIndexable) {
-    const where = `${entry.role}, ${entry.organization} · ${entry.dateRange}`;
-    const shared = [entry.role, entry.organization, entry.type];
-
-    if (entry.summary) {
-      docs.push({
-        text: entry.summary,
-        source: where,
-        sectionId: "record",
-        sectionLabel: "Record",
-        label: label("journey", entry.id, ...shared, "did does responsibility"),
-      });
-    }
-
-    // The impact lines were reachable from `answer-sources` but never indexed,
-    // which meant "what has he actually delivered at DoorDash" could only be
-    // answered by the one-line context blurb. They are the most concrete
-    // statements any career entry makes, so they are also the most answerable.
-    for (const claim of entry.impact) {
-      docs.push({
-        text: claim,
-        source: `${where} — impact`,
-        sectionId: "record",
-        sectionLabel: "Record",
-        label: label(
-          "journey",
-          entry.id,
-          ...shared,
-          "impact result achievement delivered accomplished",
-        ),
-      });
-    }
-
-    if (entry.learned) {
-      docs.push({
-        text: entry.learned,
-        source: `${where} — what it taught me`,
-        sectionId: "record",
-        sectionLabel: "Record",
-        label: label("journey", entry.id, ...shared, "learn lesson learned learning takeaway realised"),
       });
     }
   }

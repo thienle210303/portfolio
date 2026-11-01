@@ -34,6 +34,12 @@ import { EVAL_CASES, MUST_BE_EMPTY, type EvalCase } from "@/../tests/fixtures/an
  * back at a real cost in recall, which is what a single score threshold forces
  * you to choose between. Only separating coverage from ranking got both.
  *
+ * Round 22 added the first query from outside the set's author, asked on the
+ * live site: "What did you build at DoorDash?" missed entirely (67.7 / 90.3 /
+ * 93.5 / 0.781 with it). Folding "built" onto "build", giving every case-study
+ * passage its employer's name and indexing career rows before case studies
+ * took it to rank 1: 71.0 / 93.5 / 96.8 / 0.812, refusals 4/4.
+ *
  * The defects, in order of damage done:
  *
  *  1. **Skills were not indexed at all**, and career impact lines were plumbed
