@@ -175,8 +175,8 @@ export const hero = {
     linkLabel: "My LinkedIn",
   },
   vignette: {
-    morning: "cà phê phin, first",
-    evening: "lẩu, after work",
+    morning: "cà phê phin & cơm tấm, first",
+    evening: "lẩu & bia, after work",
   },
   offDuty: "off duty",
 } satisfies HeroCopy;

@@ -13,7 +13,7 @@ export interface Chapter {
   readonly line: string;
   /** The career entry "Read this part" opens; null means the Journey itself. */
   readonly entryId: string | null;
-  readonly drawing: "tag-rice" | "tag-pine" | "tag-palmetto" | "tag-laptop";
+  readonly drawing: "tag-rice" | "tag-flytrap" | "tag-book" | "tag-laptop";
 }
 
 const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -57,7 +57,7 @@ export function buildChapters(): readonly Chapter[] {
       place: shortPlace(origin.to),
       line: headline(eastside),
       entryId: eastside.id,
-      drawing: "tag-pine",
+      drawing: "tag-flytrap",
     },
     {
       id: "usc-degree",
@@ -65,7 +65,7 @@ export function buildChapters(): readonly Chapter[] {
       place: shortPlace(usc.organization),
       line: hero.chapterLines["usc-degree"],
       entryId: usc.id,
-      drawing: "tag-palmetto",
+      drawing: "tag-book",
     },
     {
       id: "doordash",

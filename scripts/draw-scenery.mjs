@@ -89,15 +89,155 @@ function ripples(x, y, w, n, color, seed) {
   }
   return `<g fill="none" stroke="${color}" stroke-width="1" stroke-linecap="round">${s}</g>`;
 }
-// Con trâu: a water buffalo, grazing, head low.
-function buffalo(x, y, sc, fill) {
-  return `<g transform="translate(${x} ${y}) scale(${sc})" fill="${fill}">`
-    + `<path d="M18 30C26 10 70 6 104 12C124 16 136 26 136 44C136 58 126 64 112 64L40 64C26 64 16 54 18 30Z"/>`
-    + `<path d="M30 60l-4 34h9l5-30M58 62l-1 32h9l2-31M100 62l2 32h9l1-33M120 58l5 34h9l-4-38"/>`
-    + `<path d="M136 34C146 40 150 56 146 70" fill="none" stroke="${fill}" stroke-width="3" stroke-linecap="round"/>`
-    + `<path d="M24 28C10 30 0 44 -4 58C-6 66 0 72 8 70C16 68 22 56 30 46Z"/>`
-    + `<path d="M14 30C2 18 -14 16 -26 22C-12 22 -2 28 4 36ZM22 26C26 12 40 6 54 8C42 12 34 20 30 30Z"/>`
+// ---- Con trâu (round 23) ----
+// Two one-colour masks painted by --scene-buffalo, both in a 250 × 104 box with
+// the ground at y 94 and the animal facing left. The body is a wash (group
+// opacity, so overlaps never darken) with its line over it, and the horns are
+// solid: they are what a water buffalo is recognised by, so they are the
+// darkest thing in the drawing. By day she is working, yoked to a plough with
+// the furrow turning behind her; at night she lies down, chin on the bank.
+const BUF_BOX = "0 0 250 104";
+const buffaloLine = (d, w = 1.5) => `<path d="${d}" stroke-width="${w}"/>`;
+// The crescent: from the poll it sweeps back over the neck and hooks up at the tip.
+// A horn is a thick crescent: out of the top of the skull it sweeps back and up
+// in a wide C and the tip curls in. Ridges are lines near the base, in the
+// body's own value so they stay quiet. The far horn shows its arc behind.
+const buffaloHorn = (x, y, s = 1) => {
+  const horn = `<path d="M0 4C14 14 40 12 54 -6C58 -12 58 -20 54 -26C52 -16 46 -8 38 -3C26 2 12 0 4 -8Q-4 -3 0 4Z" stroke-width="1" stroke-linejoin="round"/>`;
+  // a few ridges near the base, a gap cut through the solid by a lighter stroke is not possible
+  // in one colour, so none: the crescent stays clean.
+  return `<g transform="translate(${x} ${y}) rotate(-16) scale(${s})" fill="${K}" stroke="${K}"><g transform="translate(-6 -10)" opacity="0.5">${horn}</g>${horn}</g>`;
+};
+function buffaloPlow() {
+  const body = `<g fill="${K}" opacity="0.72">`
+    // a heavy barrel, a slight hump, a straight back to the hip, and a short deep head with a square muzzle
+    + `<path d="M92 33C80 34 70 38 62 42C56 42 46 44 38 48C33 50 30 54 30 60L30 70C30 75 34 77 40 76C48 75 54 72 58 68C66 68 74 70 82 70C90 71 100 72 112 72C130 74 150 72 164 68C172 66 177 60 177 52C177 44 168 38 152 36C130 34 108 31 92 33Z"/>`
+    // four straight legs, hooves splayed (two nearer, two behind)
+    + `<path d="M80 64L81 86L77 93L95 93L91 86L92 64Z"/>`
+    + `<path d="M100 66L101 86L98 93L112 93L110 86L111 66Z"/>`
+    + `<path d="M132 66L133 86L130 93L144 93L142 86L143 66Z"/>`
+    + `<path d="M150 62L151 86L147 93L165 93L161 86L165 62Z"/>`
+    // the ear, level out to the side just under the horn
+    + `<path d="M58 46C68 40 80 44 84 50C74 54 64 52 58 50Z"/></g>`;
+  const ink = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
+    + buffaloLine("M92 33C108 31 130 34 152 36C168 38 177 44 177 52C177 60 172 66 164 68", 1.7)
+    + buffaloLine("M164 68C150 72 130 74 112 72C100 72 90 71 82 70C74 70 66 68 58 68C54 72 48 75 40 76C34 77 30 75 30 70L30 60C30 54 33 50 38 48C46 44 56 42 62 42C70 38 80 34 92 33", 1.7)
+    // legs: straight sides, and the near pair set off from the far pair
+    + buffaloLine("M80 66L81 86L77 93M92 66L91 86L95 93")
+    + buffaloLine("M150 64L151 86L147 93M164 64L161 86L165 93")
+    + buffaloLine("M100 72L101 86L98 93M111 72L110 86L112 93", 1.1)
+    + buffaloLine("M132 72L133 86L130 93M143 72L142 86L144 93", 1.1)
+    // shoulder, the bony hip, two ribs
+    + buffaloLine("M96 40C102 48 102 58 96 66", 1)
+    + buffaloLine("M152 40C144 48 144 56 150 62", 1)
+    + buffaloLine("M118 50C122 56 122 64 118 71M132 50C136 56 136 64 132 72", 0.8)
+    // ear, eye, nostril and mouth
+    + buffaloLine("M58 46C68 40 80 44 84 50C74 54 64 52 58 50Z", 1.1)
+    + `<circle cx="45" cy="55" r="1.8" fill="${K}" stroke="none"/>`
+    + `<circle cx="34" cy="65" r="1.6" fill="${K}" stroke="none"/>`
+    + buffaloLine("M31 72Q36 74 41 73", 1.1)
+    // the thin tail and its tuft
+    + buffaloLine("M177 48C185 52 188 62 185 74", 1.7)
+    + `</g>`
+    + `<path d="M184 72C180 80 182 88 186 87C190 86 190 78 186 72Z" fill="${K}"/>`
+    + `<path d="M77 90h18v3h-18ZM98 90h14v3h-14ZM130 90h14v3h-14ZM147 90h18v3h-18Z" fill="${K}"/>`;
+  // The yoke sits on the shoulders with its two pegs and a cord under the neck;
+  // the trace runs back under the belly to the plough she drags.
+  const yoke = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
+    + `<path d="M102 36L120 33" stroke-width="4.6"/>`
+    + `<path d="M105 38L104 62M118 34L120 60" stroke-width="1.9"/>`
+    + `<path d="M104 62Q112 68 120 60" stroke-width="1.5"/>`
+    + `<path d="M120 60C146 82 174 82 204 76" stroke-width="1.2"/>`
+    // the plough: beam, handle, share, and the soil it turns
+    + `<path d="M204 76C210 82 214 88 215 93" stroke-width="2.6"/>`
+    + `<path d="M215 93C222 84 228 68 232 52" stroke-width="2.4"/>`
+    + `<path d="M227 52h13" stroke-width="2.4"/>`
+    + `<path d="M203 94h17l-2 -5Z" fill="${K}" stroke-width="1"/>`
+    + `<path d="M222 93q7 -5 14 0t14 0M226 98q7 -4 14 0t10 0" stroke-width="1.1"/>`
+    // mud about her feet
+    + `<path d="M62 97h14M104 98h18M150 97h16M180 98h12" stroke-width="1"/>`
     + `</g>`;
+  return body + ink + buffaloHorn(56, 41, 0.85) + yoke;
+}
+function buffaloSleep() {
+  const body = `<g fill="${K}" opacity="0.8">`
+    + `<path d="M98 54C114 46 140 48 160 52C178 55 192 66 194 78C195 88 190 92 180 93L92 93C84 93 80 88 80 80C80 68 86 60 98 54Z"/>`
+    // the same short, deep head, resting level on the bank
+    + `<path d="M88 58C74 58 60 62 50 67C42 70 40 74 40 80L40 88C40 93 44 94 50 94C62 94 76 92 86 86Z"/>`
+    + `<path d="M70 66C78 60 90 62 96 68C86 72 76 72 70 70Z"/></g>`;
+  const ink = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
+    + buffaloLine("M98 54C114 46 140 48 160 52C178 55 192 66 194 78C195 88 190 92 180 93", 1.7)
+    + buffaloLine("M88 58C74 58 60 62 50 67C42 70 40 74 40 80L40 88C40 93 44 94 50 94C62 94 76 92 86 86", 1.7)
+    + buffaloLine("M92 93C84 93 80 88 80 80", 1.2)
+    // the fore-leg folded under the chin, the haunch and hock behind
+    + buffaloLine("M86 86C76 84 64 86 54 90", 1.3)
+    + buffaloLine("M150 58C140 68 142 84 156 91", 1.1)
+    + buffaloLine("M164 60C172 68 172 82 164 90", 0.9)
+    // the closed eye, a nostril, the ear
+    + buffaloLine("M60 76q5 4 10 0", 1.7)
+    + `<circle cx="45" cy="82" r="1.6" fill="${K}" stroke="none"/>`
+    + buffaloLine("M70 66C78 60 90 62 96 68C86 72 76 72 70 70Z", 1.1)
+    // the tail curled on the bank
+    + buffaloLine("M194 74C204 78 206 88 198 93", 1.8)
+    + `</g>`
+    + `<path d="M199 92C192 89 188 93 186 93C190 96 197 96 199 92Z" fill="${K}"/>`;
+  const zs = `<g fill="none" stroke="${K}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">`
+    + `<path d="M20 56h12l-12 13h12"/><path d="M38 30h16l-16 18h16"/></g>`;
+  const mud = `<path d="M56 97h16M110 98h22M160 97h20" fill="none" stroke="${K}" stroke-width="1" stroke-linecap="round"/>`;
+  return body + ink + buffaloHorn(80, 61, 0.9) + zs + mud;
+}
+
+// ---- Moon in a võng (round 23) ----
+// Moon, the blue cat, in a Vietnamese hammock slung between two bamboo
+// stakes: her head on the rim, a paw and the tail hanging over. By day her
+// eyes are half open; at night they are shut and she snores. Art, not ink: the
+// cat is a colour (the blue cat), and the page swaps the file by theme
+// (`--art-offduty`), like the vignettes.
+const VONG_BOX = "0 0 150 84";
+function moonVong(night) {
+  const C = night
+    ? { fur: "#8FA3B3", shade: "#6B8092", line: "#1C2A30", ear: "#C99AA0", cord: "#A9A07F", band: "#D8CFB4", stripe: "#6C9C95", bam: "#4C6A55", bamLine: "#9DBE8E", iris: "#E4D48A", ground: "#5C7A74", z: "#E8EEDF" }
+    : { fur: "#8CA0B0", shade: "#6F8393", line: "#2E3A44", ear: "#D9A7A7", cord: "#A88A52", band: "#F0E7CE", stripe: "#4F8C86", bam: "#B4C8A8", bamLine: "#3F5E35", iris: "#D8C468", ground: "#8FA39C", z: "#5B6B7E" };
+  const q = (a, c, b, t) => (1 - t) * (1 - t) * a + 2 * t * (1 - t) * c + t * t * b;
+  const topY = (t) => q(26, 84, 26, t), botY = (t) => q(30, 98, 30, t), xAt = (t) => 14 + 122 * t;
+  // two bamboo stakes, each with a few nodes and a short leaf
+  const stake = (x, dir) => `<path d="M${x - 3} 80L${x - 2.6} 14L${x + 3.4} 12L${x + 3} 80Z" fill="${C.bam}" stroke="${C.bamLine}" stroke-width="1.1" stroke-linejoin="round"/>`
+    + [30, 50, 68].map((y) => `<path d="M${x - 3.6} ${y}Q${x} ${y - 2} ${x + 3.8} ${y}" fill="none" stroke="${C.bamLine}" stroke-width="1.5" stroke-linecap="round"/>`).join("")
+    + `<path d="M${x + 0.2} 13Q${x + dir * 8} 4 ${x + dir * 16} 8Q${x + dir * 8} 12 ${x + 0.2} 13Z" fill="${C.bam}" stroke="${C.bamLine}" stroke-width="0.9" stroke-linejoin="round"/>`;
+  // the mesh across the band, both ways, then its edges and the coloured stripe
+  let mesh = "";
+  for (let i = 0; i < 20; i++) {
+    const t = i / 20, u = Math.min(1, t + 0.05);
+    mesh += `M${f(xAt(t))} ${f(topY(t))}L${f(xAt(u))} ${f(botY(u))}M${f(xAt(u))} ${f(topY(u))}L${f(xAt(t))} ${f(botY(t))}`;
+  }
+  const band = `<path d="M14 26Q75 84 136 26L136 30Q75 98 14 30Z" fill="${C.band}"/>`
+    + `<path d="M14 28Q75 91 136 28" fill="none" stroke="${C.stripe}" stroke-width="2.2"/>`
+    + `<path d="${mesh}" fill="none" stroke="${C.cord}" stroke-width="0.6" stroke-opacity="0.85"/>`
+    + `<path d="M14 26Q75 84 136 26M14 30Q75 98 136 30" fill="none" stroke="${C.cord}" stroke-width="1.3" stroke-linecap="round"/>`
+    // the lashing where each end is tied to its stake
+    + `<path d="M10.5 24h9M10.5 27h9M10.5 30h9M130.5 24h9M130.5 27h9M130.5 30h9" stroke="${C.cord}" stroke-width="1.4" stroke-linecap="round"/>`;
+  const fur = `fill="${C.fur}" stroke="${C.line}" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"`;
+  // her body, behind the band: only the back of it shows above the rim
+  const body = `<clipPath id="vongTop"><path d="M0 0H150V28L136 28Q75 91 14 28Z"/></clipPath><g clip-path="url(#vongTop)">`
+    + `<path d="M38 48C40 36 56 30 74 31C92 32 106 38 108 52L108 70L38 70Z" ${fur}/>`
+    + `<path d="M60 34C74 32 92 34 102 40" fill="none" stroke="${C.shade}" stroke-width="1" stroke-linecap="round"/>`
+    + `<path d="M92 40C100 44 102 54 98 62" fill="none" stroke="${C.shade}" stroke-width="1" stroke-linecap="round"/></g>`;
+  // her head on the rim, left; ears, then the face
+  const eyes = night
+    ? `<path d="M27.4 35q3 3.2 6 0M36 35q3 3.2 6 0" fill="none" stroke="${C.line}" stroke-width="1.4" stroke-linecap="round"/>`
+    : `<path d="M27.4 35h6q-3 4.2 -6 0ZM36 35h6q-3 4.2 -6 0Z" fill="${C.iris}" stroke="${C.line}" stroke-width="1" stroke-linejoin="round"/><path d="M30.4 35.4v2.6M39 35.4v2.6" stroke="${C.line}" stroke-width="1.1" stroke-linecap="round"/>`;
+  const head = `<path d="M22 38L23 23L32 29ZM44 38L45 23L36 29Z" ${fur}/>`
+    + `<path d="M24.6 32L25 27.5L28.6 30ZM42.4 32L42 27.5L38.4 30Z" fill="${C.ear}" stroke="none"/>`
+    + `<ellipse cx="34.5" cy="36" rx="13.5" ry="10" ${fur}/>`
+    + eyes
+    + `<path d="M33 40.4l1.5 1.4l1.5 -1.4Z" fill="${C.ear}" stroke="${C.line}" stroke-width="0.8" stroke-linejoin="round"/>`
+    + `<path d="M34.5 41.8q-1.4 2 -3.4 1.6M34.5 41.8q1.4 2 3.4 1.6M26 40l-9 -1.4M26 42.2l-8 2M43 40l9 -1.4M43 42.2l8 2" fill="none" stroke="${C.line}" stroke-width="0.7" stroke-linecap="round"/>`;
+  // a forepaw hanging over the front of the band, and the tail down the right
+  const paw = `<path d="M48 49C47 56 47 62 48.5 66C50 69.500 54 69.500 55.500 66C57 62 56.500 56 56 50Z" ${fur}/><path d="M51 67.500v-3M54 67.500v-3" stroke="${C.line}" stroke-width="0.7" stroke-linecap="round"/>`;
+  const tail = `<path d="M104 44C116 46 122 54 120 66" fill="none" stroke="${C.line}" stroke-width="5.8" stroke-linecap="round"/><path d="M104 44C116 46 122 54 120 66" fill="none" stroke="${C.fur}" stroke-width="3.8" stroke-linecap="round"/>`;
+  const ground = `<path d="M2 81h24M44 82h66M118 81h30" fill="none" stroke="${C.ground}" stroke-width="1.2" stroke-linecap="round"/>`;
+  const zz = night ? `<g fill="none" stroke="${C.z}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M56 18h8l-8 9h8"/><path d="M69 6h11l-11 12h11"/></g>` : "";
+  return ground + stake(12, 1) + stake(138, -1) + body + head + band + paw + tail + zz;
 }
 // The poles run on below the board's ground (y 900): the hero is top-anchored
 // to the clothesline and can be taller than the board, so the element clips
@@ -243,6 +383,79 @@ const clothespin = `<rect x="0.4" y="0.4" width="8" height="22" rx="2" fill="#C4
 // The DoorDash tag's laptop.
 const laptop = (color) => `<g fill="none" stroke="${color}" stroke-width="1.2"><rect x="44" y="30" width="62" height="40" rx="3"/><path d="M34 76H116M58 44h14M58 54h26M90 44l6 5-6 5"/></g>`;
 
+// Round 23: the Taylors tag is a Venus flytrap (it grows wild only in the
+// Carolinas) and the USC tag an open book. Line work like the tags beside them.
+// One trap, hinged at (0, 0) and pointing along -y: two lobes, each a half-oval
+// whose free rim carries the teeth. Open, the lobes part like a mouth; shut,
+// they lie together and the teeth lock along the seam. A wash gives each lobe
+// body, the rim and its teeth are the line.
+function flytrapTrap(x, y, angle, len, open, color) {
+  const w = len * 0.36;
+  const P = (side) => [[0, 0], [side * w * 1.3, -len * 0.08], [side * w * 1.3, -len * 0.92], [0, -len]];
+  const at = (pts, t) => {
+    const u = 1 - t;
+    return [0, 1].map((i) => u * u * u * pts[0][i] + 3 * u * u * t * pts[1][i] + 3 * u * t * t * pts[2][i] + t * t * t * pts[3][i]);
+  };
+  const lobe = (side, spread) => {
+    const pts = P(side);
+    const rim = `M0 0C${f(pts[1][0])} ${f(pts[1][1])} ${f(pts[2][0])} ${f(pts[2][1])} 0 ${f(-len)}`;
+    let teeth = "";
+    for (let k = 1; k <= 9; k++) {
+      const [bx, by] = at(pts, k / 10);
+      // out along the rim's normal, leaning to the tip
+      teeth += `M${f(bx)} ${f(by)}l${f(side * 2.7)} ${f(-1.4)}`;
+    }
+    return `<g transform="rotate(${side * spread})"><path d="${rim}Z" fill="${color}" fill-opacity="0.14" stroke="none"/><path d="${rim}" stroke-width="1.1"/><path d="${teeth}" stroke-width="0.8"/>`
+      // the veins on the lobe, running out from the midrib
+      + `<path d="M0 ${f(-len * 0.25)}Q${f(side * w * 0.5)} ${f(-len * 0.28)} ${f(side * w * 0.8)} ${f(-len * 0.42)}M0 ${f(-len * 0.5)}Q${f(side * w * 0.5)} ${f(-len * 0.53)} ${f(side * w * 0.85)} ${f(-len * 0.66)}" stroke-width="0.5"/></g>`;
+  };
+  const spread = open ? 34 : 3;
+  let g = lobe(-1, spread) + lobe(1, spread);
+  // the midrib, and the trigger hairs standing up inside an open trap
+  g += `<path d="M0 0L0 ${f(-len * 0.9)}" stroke-width="0.9"/>`;
+  if (open) g += `<path d="M${f(-len * 0.18)} ${f(-len * 0.5)}l-1.2 -3M${f(len * 0.18)} ${f(-len * 0.45)}l1.2 -3M0 ${f(-len * 0.62)}v-3" stroke-width="0.7"/>`;
+  return `<g transform="translate(${x} ${y}) rotate(${angle})">${g}</g>`;
+}
+function flytrap(color) {
+  // Each leaf: a winged stalk from the rosette's heart to its trap's hinge.
+  const heart = [75, 86];
+  const leaf = (hx, hy, angle, len, open, bow) => {
+    const mx = (heart[0] + hx) / 2 + bow, my = (heart[1] + hy) / 2;
+    const stalk = `<path d="M${heart[0] - 2} ${heart[1]}Q${f(mx - 2.5)} ${f(my)} ${hx - 1.5} ${hy}M${heart[0] + 2} ${heart[1]}Q${f(mx + 2.5)} ${f(my)} ${hx + 1.5} ${hy}"/>`;
+    return stalk + flytrapTrap(hx, hy, angle, len, open, color);
+  };
+  let s = leaf(40, 58, -36, 30, true, -6) + leaf(112, 58, 30, 27, false, 6) + leaf(56, 70, -62, 18, false, -2) + leaf(95, 70, 58, 17, true, 2);
+  // the flower stalk, thin and tall, and its cluster of small white flowers
+  s += `<path d="M75 86C74 60 77 36 75 22" stroke-width="0.9"/>`;
+  for (const [fx, fy] of [[75, 10], [67, 15], [83, 15], [71, 21], [79, 21]]) {
+    s += `<circle cx="${fx}" cy="${fy}" r="3.2" stroke-width="0.8"/><circle cx="${fx}" cy="${fy}" r="0.9" fill="${color}" stroke="none"/>`;
+  }
+  s += `<path d="M75 22L71 21M75 22L79 21M75 22L67 15M75 22L83 15M75 22L75 10" stroke-width="0.6"/>`;
+  return `<g fill="none" stroke="${color}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">${s}</g>`;
+}
+function openBook(color) {
+  let s = "";
+  // the cover, wider than the pages, and the spine's dip
+  s += `<path d="M14 66C40 60 62 64 75 74C88 64 110 60 136 66L136 72C110 66 88 70 75 80C62 70 40 66 14 72Z"/>`;
+  s += `<path d="M14 66v6M136 66v6" stroke-width="1.2"/>`;
+  // pages: each side is a stack, its top edge fanned over the one below
+  for (let k = 0; k < 5; k++) {
+    const dy = k * 1.9;
+    s += `<path d="M75 ${f(70 - dy)}C62 ${f(58 - dy)} 38 ${f(56 - dy)} 20 ${f(60 - dy)}M75 ${f(70 - dy)}C88 ${f(58 - dy)} 112 ${f(56 - dy)} 130 ${f(60 - dy)}" stroke-width="${k === 0 ? 1.2 : 0.8}"/>`;
+  }
+  // the two open pages, fanned up from the gutter, and lines of text on them
+  s += `<path d="M75 60C62 46 38 42 20 46L20 56M75 60C88 46 112 42 130 46L130 56" stroke-width="1.1"/>`;
+  s += `<path d="M75 60L75 30" stroke-width="0.9"/>`;
+  s += `<path d="M75 30C62 18 40 16 24 22L22 46M75 30C88 18 110 16 126 22L128 46" stroke-width="1.1"/>`;
+  for (let k = 0; k < 4; k++) {
+    const y = 26 + k * 5.4;
+    s += `<path d="M30 ${f(y + 1)}C42 ${f(y - 2)} 56 ${f(y + 1)} 69 ${f(y + 7)}M81 ${f(y + 7)}C94 ${f(y + 1)} 108 ${f(y - 2)} 120 ${f(y + 1)}" stroke-width="0.6"/>`;
+  }
+  // the ribbon: out of the gutter, over the foot of the page, ends cut in a V
+  s += `<path d="M78 42C80 54 82 70 80 82L84 78L88 83C87 72 85 58 82 42Z" stroke-width="1"/>`;
+  return `<g fill="none" stroke="${color}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">${s}</g>`;
+}
+
 // Nón lá: a conical straw hat, hung by its chin strap.
 function nonLa(x, y, sc) {
   let straw = "";
@@ -270,6 +483,45 @@ const STILL = {
     + `<path d="M-34 -24h-6M34 -24h6" stroke="#6E777C" stroke-width="3" stroke-linecap="round"/><rect x="-22" y="-2" width="44" height="8" rx="2" fill="#3B433E"/><path d="M-14 6l-3 6M14 6l3 6" stroke="#3B433E" stroke-width="2"/>`
     + `<ellipse cx="0" cy="-2" rx="16" ry="2.4" fill="#FF8A3D" opacity="0.9"/></g>`,
 };
+
+// Round 23: the hero's two stools hold a meal now, so the seat is a long
+// low one (a plastic bench stool) with room for a drink and a plate side by side.
+const STOOL_BOX = "406 774 128 110";
+function stoolLong(x, y, col) {
+  return `<g transform="translate(${x} ${y})">`
+    + `<path d="M-50 0h100l-3 9h-94Z" fill="${col}"/><path d="M-42 9l-6 30h8l4 -22h72l4 22h8l-6 -30Z" fill="${col}"/>`
+    + `<path d="M-34 17h68" stroke="rgba(0,0,0,0.18)" stroke-width="3"/><path d="M-48 1h96" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/></g>`;
+}
+const scaled = (x, y, sc, body) => `<g transform="translate(${x} ${y}) scale(${sc})">${body}</g>`;
+// Cơm tấm: broken rice, a grilled pork chop, a fried egg, and cucumber and tomato.
+function comTam(x, y) {
+  const r = rng(23);
+  let grains = "";
+  for (let i = 0; i < 14; i++) {
+    const gx = 0 + r() * 20, gy = -4 - r() * 11;
+    grains += `M${f(gx)} ${f(gy)}l${f(1.6 + r())} ${f((r() - 0.5) * 1.4)}`;
+  }
+  const slice = (cx, cy, rim, flesh, edge) => `<ellipse cx="${cx}" cy="${cy}" rx="5" ry="2.4" fill="${rim}" stroke="${edge}" stroke-width="0.8"/><ellipse cx="${cx}" cy="${cy}" rx="3" ry="1.3" fill="${flesh}"/>`;
+  return `<g transform="translate(${x} ${y})">`
+    + `<path d="M-9 2.5h18l-2 3h-14Z" fill="#E7E1D3" stroke="#8C949A" stroke-width="0.8"/>`
+    + `<ellipse cx="0" cy="-1" rx="25" ry="6.5" fill="#F7F3EA" stroke="#8C949A" stroke-width="1"/><ellipse cx="0" cy="-1.6" rx="19" ry="4.2" fill="#EFEAE0"/>`
+    + slice(-15, -8, "#8DB36A", "#D6E6BA", "#4F7A3A") + slice(-8, -11, "#8DB36A", "#D6E6BA", "#4F7A3A")
+    + slice(20, -9, "#E0584A", "#F4B1A6", "#A02F25") + slice(14, -12, "#E0584A", "#F4B1A6", "#A02F25")
+    + `<path d="M-8 -3C-7 -17 4 -20 10 -19C17 -17 20 -9 19 -3Z" fill="#FFFDF6" stroke="#A9A190" stroke-width="0.9"/>`
+    + `<path d="${grains}" fill="none" stroke="#C9C2AE" stroke-width="0.8" stroke-linecap="round"/>`
+    + `<g transform="translate(-14 0)"><path d="M-9 -1C-11 -6 -6 -9 -1 -7C4 -9 8 -5 6 -1C4 2 -2 3 -6 2C-8 2 -9 1 -9 -1Z" fill="#FFFDF4" stroke="#C9C2B0" stroke-width="0.9"/><circle cx="-1" cy="-4" r="3.2" fill="#F0B429" stroke="#C98A12" stroke-width="0.6"/></g>`
+    + `<g transform="translate(8 0) rotate(-8)"><rect x="-11" y="-5" width="22" height="10" rx="3.5" fill="#9A5A2E" stroke="#5E3318" stroke-width="1"/><path d="M-6 -4.5l2 9M0 -5l2 10M6 -4.5l2 9" stroke="#4A2812" stroke-width="1.2" stroke-linecap="round"/><path d="M-11 -1h-3" stroke="#E8DCC2" stroke-width="2.6" stroke-linecap="round"/></g>`
+    + `</g>`;
+}
+// Bia: a bottle with its label, and a glass of it over ice, foam on top.
+function biaPair(x, y) {
+  const bottle = `<path d="M-6 0v-24q0 -5 2.5 -8v-12h7v12q2.5 3 2.5 8v24Z" fill="#7A4A1F" stroke="#3A2410" stroke-width="1"/><rect x="-6" y="-22" width="12" height="11" fill="#F3E9C9"/><path d="M-6 -17h12" stroke="#C8352B" stroke-width="1.5"/><rect x="-3.5" y="-47" width="7" height="3" rx="1" fill="#E1A93A"/><path d="M-3 -40v14" stroke="#F0C27A" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/>`;
+  const glass = `<g transform="translate(17 0)"><path d="M-8 0L-10 -27H10L8 0Z" fill="#E8B04A" fill-opacity="0.92" stroke="#F3E3B5" stroke-width="1"/>`
+    + `<path d="M-10.5 -27h21v-3c-4 -4 -8 1 -11 -2c-3 3 -7 -2 -10 2Z" fill="#FFFFFF"/>`
+    + `<g fill="#EAF6F8" fill-opacity="0.85" stroke="#9FC9D2" stroke-width="0.7"><rect x="-6" y="-24" width="6" height="6" rx="1" transform="rotate(14 -3 -21)"/><rect x="1" y="-20" width="6" height="6" rx="1" transform="rotate(-12 4 -17)"/><rect x="-5" y="-13" width="5.5" height="5.5" rx="1" transform="rotate(-8 -2 -10)"/></g>`
+    + `<path d="M-6 -4L-7 -10" stroke="#FFF1C9" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/></g>`;
+  return `<g transform="translate(${x} ${y})">${bottle}${glass}</g>`;
+}
 
 /**
  * Sky coordinates the hero's words cover at 1440 (the sky is drawn at 1440 and
@@ -814,16 +1066,19 @@ export function drawScenery() {
     pine: svg(`1260 80 180 ${PINE_FOOT - 80}`, `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g><path d="M1356 900V${PINE_FOOT}" fill="none" stroke="${K}" stroke-width="4.32"/>`),
     "rice-field": svg("565 740 655 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
     ripples: svg("560 860 660 30", ripples(560, 872, 640, 3, K, 3)),
-    buffalo: svg("905 790 150 80", buffalo(930, 790, 0.78, K)),
+    "buffalo-plow": svg(BUF_BOX, buffaloPlow()),
+    "buffalo-sleep": svg(BUF_BOX, buffaloSleep()),
+    "offduty-day": svg(VONG_BOX, moonVong(false)),
+    "offduty-night": svg(VONG_BOX, moonVong(true)),
     "tag-rice": svg("0 0 150 88", rice(52, 84, 3, 20, 4, K, 44, 26)),
-    "tag-pine": svg("0 0 150 88", pine(75, 84, 76, K)),
-    "tag-palmetto": svg("0 0 150 88", palmetto(75, 84, 48, K)),
+    "tag-flytrap": svg("0 0 150 88", flytrap(K)),
+    "tag-book": svg("0 0 150 88", openBook(K)),
     "tag-laptop": svg("0 0 150 88", laptop(K)),
     "non-la": svg("44 370 120 130", `<path d="M80 372Q96 380 102 396" fill="none" stroke="#8b7b5e" stroke-width="1.2"/>${nonLa(104, 444, 0.9)}`),
     "sky-day": svg("0 0 1440 900", skyLayer(false, [880, 120], 1)),
     "sky-night": svg("0 0 1440 900", skyLayer(true, [880, 120], 1)),
-    morning: svg("420 770 100 114", stool(470, 840, "#C8352B") + STILL.phin(470, 838)),
-    evening: svg("420 770 100 114", stool(470, 840, "#2E6DB4") + STILL.lau(470, 838)),
+    morning: svg(STOOL_BOX, stoolLong(470, 840, "#C8352B") + scaled(440, 838, 1.1, STILL.phin(0, 0)) + scaled(493, 838, 1.1, comTam(0, 0))),
+    evening: svg(STOOL_BOX, stoolLong(470, 840, "#2E6DB4") + scaled(446, 838, 0.95, STILL.lau(0, 0)) + scaled(490, 838, 1.1, biaPair(0, 0))),
     ...navFiles(),
     ...contactDrawings(),
     ...journeyFiles(),

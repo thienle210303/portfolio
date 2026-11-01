@@ -71,16 +71,23 @@ by `scripts/draw-scenery.mjs` (`pnpm draw:scenery`), and
 draw — so change a drawing in the script, never by hand. One-colour drawings
 are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
 `--scene-bark`, `--scene-moss`, `text-accent`); the theme-dependent pieces
-(the sky, the phin/lẩu, bánh mì/trà đá and cà phê sữa đá/chè vignettes, the Hội
-An lantern, lit at night) take their file from `--art-sky` / `--art-vignette` /
+(the sky, the phin & cơm tấm/lẩu & bia, bánh mì/trà đá and cà phê sữa đá/chè
+vignettes, Moon in her võng, the Hội An lantern, lit at night) take their file
+from `--art-sky` / `--art-vignette` / `--art-offduty` /
 `--art-journey-vignette` / `--art-record-vignette` / `--art-lantern`, so the
-theme swaps them in CSS with no script. The Record's tree slice is not a file:
+theme swaps them in CSS with no script. The hero's buffalo is two masks painted
+by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, behind the rice) and
+sleeps at night (`buffalo-sleep`, in front of it), shown with `.day-only` /
+`.night-only`. The chapter tags' drawings are masks too: rice, a Venus
+flytrap (Taylors grows it wild), an open book (USC), a laptop. The Record's tree slice is not a file:
 its rings are computed from content (`src/lib/record.ts`) and drawn inline. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
 below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
 and a stretched `oak-bough` (with `-leaves`) per tag. `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library; the two figures, mini-Thien and Bé Nhi, are fixed inline SVG in
-`src/components/companion/` because their poses and faces are state. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
-hook for Phase 7; keep it, once.
+`src/components/companion/` because their poses and faces are state. `data-moon-off-duty` (Moon lying in her võng, hung between two bamboo stakes,
+in `Scenery.tsx`) is a stable hook for Phase 7; keep it, once. The drawing
+inside it carries `data-moon-art`, which is what the cats visit and sit beside
+(it is an art span, not an inline `<svg>`).
 
 ### The header and the cats' layer (round 23)
 

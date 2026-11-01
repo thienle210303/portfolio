@@ -3922,7 +3922,7 @@ test.describe("cats (round 21)", () => {
     // Two cats still: Moon in the corner button, Mi on her visit.
     await expect(page.locator("[data-companion] svg[data-cat]")).toHaveCount(2);
     const [cat, drawing] = await page.evaluate(() =>
-      ["[data-cat-visit] svg", "[data-moon-off-duty] svg"].map((s) => {
+      ["[data-cat-visit] svg", "[data-moon-off-duty] [data-moon-art]"].map((s) => {
         const r = document.querySelector(s)!.getBoundingClientRect();
         return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
       }),
