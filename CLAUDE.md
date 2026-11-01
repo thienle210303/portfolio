@@ -80,6 +80,30 @@ library; the two figures, mini-Thien and Bé Nhi, are fixed inline SVG in
 `src/components/companion/` because their poses and faces are state. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
 hook for Phase 7; keep it, once.
 
+### The header and the cats' layer (round 23)
+
+The header is not a bar. `SiteHeader` is transparent, borderless and
+`pointer-events-none`; three bits of paper sit on the sky: the TL tag, a torn
+strip held by washi tape (the nav, no numbers, and the theme switch — a drawn
+sun by day, crescent by night, no box) and a postage stamp for "Let's talk"
+(paper and ink, never `--control` or `--mark`; hidden under 640px). Below 1024
+the strip holds a "Menu" tag (punched hole) and the sun/moon, and the menu is a
+notebook page. The current section gets an ink swash drawn on by its link's
+`aria-current`. The drawings (`nav-torn`, `nav-swash`, `nav-sun`, `nav-moon`)
+are in `draw-scenery.mjs` like the rest. **The strip's wrapper must carry no
+transform or filter** — the phone menu's panel is `position: fixed` inside it —
+so tilt, shadow and torn edge live on its aria-hidden layers. `--header-h` is
+still 3.5rem.
+
+The cats are above everything: the companion layer is `z-55`, over the header
+(`z-50`). Only the skip link (60), native `<dialog>`s (top layer) and the open
+phone menu are above it (`SiteNav` stamps `data-menu-open` on `<html>`, which
+drops the layer to 40). A cat walking over a link or button is drawn on top and
+marked `data-cat-under`, which gives it `pointer-events: none` so the press
+reaches the control (round 21 cut the cat out behind the control instead — that
+was the "hidden by UI"). Cats still keep out of the header's band when they
+settle.
+
 ## Changing what the site says
 
 The page is four sections, in this order: About (`#about` — the hero: my headline and two actions under a
