@@ -51,12 +51,15 @@ const VIEWBOXES: Record<string, string> = {
   "pressed-lotus": "40 10 136 170",
   "record-morning": "134 760 36 66",
   "record-evening": "134 760 36 66",
-  "stamp-rice": "0 0 92 40",
-  "stamp-pine": "0 0 92 40",
-  "stamp-fern": "0 0 92 40",
-  "stamp-palmetto": "0 0 92 40",
+  "stamp-bank": "0 0 92 40",
+  "stamp-card": "0 0 92 40",
+  "stamp-code": "0 0 92 40",
+  "stamp-cart": "0 0 92 40",
+  "diary-selftaught": "0 0 130 142",
+  "diary-cap": "0 0 120 80",
+  "diary-podium": "0 0 140 80",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Contact */ "postmark", /* Record */ "stamp-rice", "stamp-pine", "stamp-fern", "stamp-palmetto"];
+const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Contact */ "postmark", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium"];
 
 const files = drawScenery();
 

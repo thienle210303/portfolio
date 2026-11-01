@@ -11,7 +11,6 @@ import { expect, test, type Page } from "@playwright/test";
 const ENTRANCES = [
   "[data-hero-step='line'] > li",
   "[data-hanging-tags] li > div",
-  ".record-page-left",
   "[data-postcard]",
 ];
 const HEADINGS = ["#hero-heading", "#tree-heading", "#record-heading", "#contact-heading"];
@@ -125,7 +124,7 @@ test.describe("motion (round 21 phase 8)", () => {
     await page.waitForLoadState("networkidle");
     const nav = page.getByRole("navigation", { name: "Primary" });
     for (const [label, id] of [
-      ["Record", "record"],
+      ["Diary", "record"],
       ["About", "about"],
       ["Contact", "contact"],
     ] as const) {
@@ -160,7 +159,7 @@ test.describe("motion (round 21 phase 8)", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Record", exact: true }).click();
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Diary", exact: true }).click();
     await expect(page.locator("#record")).toBeInViewport();
     expect(await page.evaluate(() => document.documentElement.hasAttribute("data-glide"))).toBe(false);
   });

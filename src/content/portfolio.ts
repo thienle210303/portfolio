@@ -213,19 +213,24 @@ export const journey = {
   },
 } satisfies JourneyCopy;
 
-/** The Record's authored words (round 21, the NatRecordFinal board). Not
+/** The Diary's authored words (round 21, the NatRecordFinal board; named the
+ *  Diary and bound as a book in round 23, its section id still `record`). Not
  *  indexed by the chat. `{first}` and `{last}` are the slice's own years. */
 export const record = {
+  name: "Diary",
   pressed: {
     heading: "Pressed, waiting to dry.",
     lead: "My best ones, pressed between the pages. Give them a few years.",
     slice: "A tree slice: {first} at the heart, {last} at the bark. Wider rings, busier years.",
   },
-  byYear: {
-    heading: "Everything I've done, by year.",
-    empty: "Nothing started this year.",
+  contents: {
+    heading: "Contents",
+    note: "Every line is a link. Swipe, or use the corners.",
   },
   certificates: "Certificates I've collected",
+  funFactLabel: "Fun fact",
+  bookLabel: "My diary, one page at a time",
+  tabsLabel: "Show pages of one kind",
   vignette: {
     morning: "cà phê sữa đá, while I write",
     evening: "chè, while I write",
@@ -271,7 +276,7 @@ export const socialLinks = [
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
-  { id: "nav-record", sectionId: "record", label: "Record" },
+  { id: "nav-record", sectionId: "record", label: "Diary" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
 ] satisfies readonly NavItem[];
 
@@ -331,6 +336,17 @@ export const careerEntries = [
       "SQL",
       "Claude Code",
     ],
+    diary: {
+      bullets: [
+        "Coverage 654 to 1,529 products, and failures 3.9% to zero.",
+        "An eight-stage SKU governance process in one run, restoring SKUs worth $2.8M cumulative GOV.",
+        "30+ production scrapers in a single week.",
+        "Onboarded merchants from 2 to 25 a month.",
+      ],
+      figure: { kind: "before-after", caption: "One catalog scraper's runtime", before: { label: "17 hours", value: 1020 }, after: { label: "3 minutes", value: 3 } },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "Calling the API instead of crawling the pages found data the crawl never reached.",
+    },
   },
   {
     id: "wordification",
@@ -365,6 +381,16 @@ export const careerEntries = [
       label: "wordification.scholastechnology.com",
       href: "https://wordification.scholastechnology.com/",
     },
+    diary: {
+      bullets: [
+        "50+ issues resolved across the frontend, backend and database.",
+        "A no-account game preview, so an educator can play a lesson before assigning it.",
+        "Speech QA that verifies each transcript and regenerates what it hears wrong.",
+      ],
+      figure: { kind: "count", caption: "Issues resolved", total: 50 },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "ElevenLabs says each word, Google's speech recognition listens back, and a miss gets regenerated.",
+    },
   },
   {
     id: "schaeffler",
@@ -395,6 +421,16 @@ export const careerEntries = [
     learned:
       "Low-code platforms are a constraint, not a ceiling. The interesting work was deciding exactly where to escape into real Java and where the platform was genuinely faster.",
     technologies: ["Mendix", "Java", "External APIs", "Damerau–Levenshtein"],
+    diary: {
+      bullets: [
+        "Fuzzy matching across 1M+ legacy records at 99.9% accuracy.",
+        "A low-code app with version control, role-based access control and reusable templates.",
+        "A Jira collector for live production debugging, and automated Zebra label printing.",
+      ],
+      figure: { kind: "before-after", caption: "Production throughput", before: { label: "Paper setup sheets", value: 100 }, after: { label: "+96% with my Java", value: 196 } },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "I fuzzy-matched 1M+ legacy records with the Damerau–Levenshtein algorithm, a name with two surnames in it.",
+    },
   },
   {
     // Round 18 date fix. `D:\Project\Portfolio-v2`'s own experience data
@@ -430,6 +466,16 @@ export const careerEntries = [
     learned:
       "Reliability over months is a different discipline from correctness on one run. Everything that could drift, eventually did.",
     technologies: ["Python", "Selenium", "JavaScript", "DOM", "BFS"],
+    diary: {
+      bullets: [
+        "3M+ Amazon and Kroger records at a 99.9% success rate.",
+        "Custom JavaScript inside Selenium replaced element-by-element WebDriver calls.",
+        "Sellers and products crawled breadth-first as a graph, by rating, review volume and product count.",
+      ],
+      figure: { kind: "before-after", caption: "Scraper runtime", before: { label: "Element by element", value: 100 }, after: { label: "−95% in one script", value: 5 } },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "The scrapers mimicked human interaction patterns to avoid detection, and ran unattended for months.",
+    },
   },
   {
     id: "usc-ta",
@@ -455,6 +501,16 @@ export const careerEntries = [
     learned:
       "Explaining a data structure to someone who isn't a CS major is the fastest way to find out whether you understand it.",
     technologies: ["Java", "Data structures", "OOP", "Python", "JavaScript", "HTML/CSS"],
+    diary: {
+      bullets: [
+        "Led lab sessions for 30+ students in Algorithm Design I & II.",
+        "Labs on data structures and algorithms.",
+        "Open lab hours for the introductory programming courses.",
+      ],
+      figure: { kind: "count", caption: "Each dot is ten students", total: 200, per: 10 },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "Explaining a data structure to someone who isn't a CS major is the fastest way to find out whether I understand it.",
+    },
   },
   {
     id: "usc-degree",
@@ -473,6 +529,17 @@ export const careerEntries = [
     learned:
       "The cybersecurity minor changed how I read systems — I started looking for what a system assumes about the people using it.",
     technologies: [],
+    diary: {
+      highlight: { value: "3.8", label: "GPA, Dean's List 2021–2025" },
+      bullets: [
+        "Computer science with a cybersecurity minor.",
+        "Dean's List, 2021–2025.",
+        "Started in chemical engineering, then switched.",
+      ],
+      figure: { kind: "drawing", caption: "Graduated May 2025", name: "diary-cap" },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "The cybersecurity minor changed how I read systems: I started looking for what a system assumes about the people using it.",
+    },
   },
   {
     id: "graduation",
@@ -521,6 +588,17 @@ export const careerEntries = [
     recording: "mentorhub",
     recordingDescription:
       "A mentorship app's welcome page and About Us page, then a login, a dashboard with a profile card, a Discovery page of eight subject buttons, and a Mentors list with a search box.",
+    diary: {
+      highlight: { value: "Best Design", label: "MentorHub, at CockyHacks" },
+      bullets: [
+        "Led a team of three.",
+        "MentorHub: a mentorship-matching web application, built during the hackathon.",
+        "Python/Flask and React behind it, with APIs.",
+      ],
+      figure: { kind: "count", caption: "A team of three", total: 3 },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "MentorHub was built during the hackathon itself, by a team of three that I led.",
+    },
   },
   {
     id: "code-to-give",
@@ -553,6 +631,17 @@ export const careerEntries = [
     recording: "foodroute",
     recordingDescription:
       "A food bank's ordering site: items with stock and expiry dates, an order being placed, and a delivery-status table with a map of marked sites joined by lines.",
+    diary: {
+      highlight: { value: "2nd place", label: "Food Route, Code to Give" },
+      bullets: [
+        "2nd place at Morgan Stanley's Code to Give Hackathon.",
+        "Food Route routed people to food by their location and preferences.",
+        "Python/Flask and React, with Redux and SQL.",
+      ],
+      figure: { kind: "drawing", caption: "2nd place", name: "diary-podium" },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "At the Alpharetta hackathon in 2023, my team was Atlanta Community Food Bank Team 4.",
+    },
   },
   {
     id: "capstone",
@@ -585,6 +674,10 @@ export const careerEntries = [
     impact: ["92% accuracy."],
     learned: undefined,
     technologies: ["PyTorch", "Transformers", "DistilBERT", "GPT-2", "Fine-tuning"],
+    diary: {
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "A DistilBERT fine-tuned on a 50K IMDB review dataset reached 92% accuracy.",
+    },
   },
   {
     id: "magellan",
@@ -615,6 +708,10 @@ export const careerEntries = [
     impact: [],
     learned: undefined,
     technologies: [],
+    diary: {
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "ACM@USC, the chapter whose website I looked after, also ran the CockyHacks where MentorHub won Best Design.",
+    },
   },
   {
     id: "deans-list",
@@ -666,6 +763,10 @@ export const careerEntries = [
     learned:
       "Reading a language and speaking it are different skills, and only one of them can be practised alone.",
     technologies: [],
+    diary: {
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "I landed in December 2018, at fifteen, and was in an American classroom three weeks later.",
+    },
   },
   {
     id: "fu-of-kyoto",
@@ -695,6 +796,10 @@ export const careerEntries = [
     learned:
       "Service is a system under load, and the kitchen teaches you where a process actually breaks faster than any diagram.",
     technologies: [],
+    diary: {
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "I worked both sides of the family restaurant: the line, and the floor.",
+    },
   },
   {
     id: "self-taught-gap",
@@ -708,24 +813,37 @@ export const careerEntries = [
     // Round 22: "No institution" read like a placeholder left in the
     // Record's row ("Whatever I felt like learning, No institution").
     organization: "On my own",
-    headline: "Drove for Uber Eats and taught myself whatever I was curious about.",
+    headline: "Drove for Uber Eats; taught myself plants, an aquarium, stocks and finance.",
     locationOrMode: undefined,
     // The owner's own description of this period was "just being bored and
     // live day by day". That line is better than anything this file could
     // write about him, and it is the one string in this round that must not
     // ship without him approving it — he asked that nothing go public that is
     // "not worth it". It is deliberately NOT authored here. What is authored
-    // is only what he did. On 2026-10-02 he cut the hobby list (investing,
-    // plants, aquarium — still true, "not that useful" to show); what he is
+    // is only what he did. On 2026-10-02 he cut the hobby list; on 2026-11-01
+    // (round 23) he asked for it back, by name: growing plants, a planted
+    // aquarium, trading stocks, investing and personal finance. What he is
     // curious about now, LLMs and machine learning, lives in `profile.about`.
     context:
-      "Drove for Uber Eats, and taught myself whatever I was curious about.",
+      "Drove for Uber Eats, and taught myself whatever I was curious about: growing plants, a planted aquarium, trading stocks, investing and personal finance.",
     responsibilities: [],
     built: [],
     impact: [],
     learned:
       "Just curiosity, and a kid who wanted to explore something.",
     technologies: [],
+    diary: {
+      blurb: "Drove for Uber Eats, and taught myself whatever I was curious about.",
+      bullets: [
+        "Growing plants.",
+        "A planted aquarium.",
+        "Learning to trade stocks.",
+        "Investing, and personal finance.",
+      ],
+      figure: { kind: "drawing", caption: "Plants, an aquarium, stocks and money", name: "diary-selftaught" },
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "It never stopped. I still do some of it.",
+    },
   },
   {
     id: "usc-cheme",
@@ -744,6 +862,10 @@ export const careerEntries = [
     learned:
       "No chemical equation seemed more interesting than a linear equation.",
     technologies: [],
+    diary: {
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "No chemical equation seemed more interesting than a linear equation.",
+    },
   },
   {
     id: "cs-switch",
@@ -761,6 +883,10 @@ export const careerEntries = [
     impact: [],
     learned: "The recommendation was worth more than the plan.",
     technologies: [],
+    diary: {
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "My friends told me to try computer science, and the recommendation was worth more than the plan.",
+    },
   },
   {
     id: "usc-honors-ta",
@@ -783,6 +909,10 @@ export const careerEntries = [
     learned:
       "Teaching people who did not choose this subject is the fastest way to find out which parts of it you only think you understand.",
     technologies: ["JavaScript", "HTML/CSS", "Python"],
+    diary: {
+      // DRAFT 2026-11-01 — awaiting Thien's approval
+      funFact: "Teaching people who did not choose this subject shows me which parts I only think I understand.",
+    },
   },
 ] satisfies readonly CareerEntry[];
 
@@ -1453,7 +1583,7 @@ export const certifications = [
     date: "February 3, 2023",
     stamp: {
       short: "JPMorgan",
-      drawing: "pine",
+      drawing: "bank",
       image: {
         src: "/media/certificates/jpmorgan.jpg",
         width: 1600,
@@ -1470,7 +1600,7 @@ export const certifications = [
     date: "February 4, 2023",
     stamp: {
       short: "Visa",
-      drawing: "fern",
+      drawing: "card",
       image: {
         src: "/media/certificates/visa.jpg",
         width: 1600,
@@ -1487,7 +1617,7 @@ export const certifications = [
     date: "June 26, 2023",
     stamp: {
       short: "HKUST",
-      drawing: "rice",
+      drawing: "code",
       image: {
         src: "/media/certificates/hkust-software-engineering.jpg",
         width: 1056,
@@ -1504,7 +1634,7 @@ export const certifications = [
     date: "February 25, 2024",
     stamp: {
       short: "Walmart",
-      drawing: "palmetto",
+      drawing: "cart",
       image: {
         src: "/media/certificates/walmart.jpg",
         width: 1600,

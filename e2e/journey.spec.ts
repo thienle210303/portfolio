@@ -33,8 +33,16 @@ const items = (page: Page) => page.locator("[data-hanging-tags] li");
 const tagLinks = (page: Page) => page.locator("[data-hanging-tags] a");
 const watch = (page: Page) => page.locator("#tree").getByRole("button", { name: journey.watch });
 const lantern = (page: Page) => page.locator('#tree [data-scenery="journey"] span[style*="--art-lantern"]');
-const rowTrigger = (page: Page, id: string) => page.locator(`#record #record-row-${id}-trigger`);
 const row = (page: Page, id: string) => page.locator(`#record #journey-entry-${id}`);
+/** Is the whole of the entry's page (or block) inside the Diary's window, sideways? Round 23: the
+ *  Record's rows are a book's pages, and a tag that lands vertically but leaves the book on another
+ *  page is a miss. */
+const inBook = (page: Page, id: string) =>
+  page.evaluate((entry) => {
+    const box = document.querySelector("#record .diary-track")!.getBoundingClientRect();
+    const r = document.getElementById(`journey-entry-${entry}`)!.getBoundingClientRect();
+    return r.left >= box.left - 2 && r.right <= box.right + 2;
+  }, id);
 
 type Box = { x: number; y: number; width: number; height: number };
 const boxes = (l: Locator) =>
@@ -228,35 +236,36 @@ test.describe("the Journey", () => {
     });
   }
 
-  test("a tag opens its row", async ({ page }) => {
+  test("a tag lands on its page of the Diary", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);
     await page.locator('[data-hanging-tags] a[href="#journey-entry-schaeffler"]').click();
-    await expect(rowTrigger(page, "schaeffler")).toHaveAttribute("aria-expanded", "true");
     expect(Math.abs((await restingTop(row(page, "schaeffler"))) - ROW_TOP)).toBeLessThanOrEqual(2);
+    expect(await inBook(page, "schaeffler"), "the book is on another page").toBe(true);
   });
 
-  test("the stub opens the DoorDash row at its case study", async ({ page }) => {
+  test("the stub lands on DoorDash's page, where its case study was", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);
     await page.locator('[data-hanging-tags] a[href="#work-dd-feasibility-agent"]').click();
-    await expect(rowTrigger(page, "doordash")).toHaveAttribute("aria-expanded", "true");
-    // A case study lands at its own scroll margin (CaseStudy.tsx), not the row's.
+    // The case study is not drawn any more (round 23); its id is a real, zero-height
+    // element at the top of DoorDash's page, at the header offset.
     const study = page.locator("#work-dd-feasibility-agent");
-    const margin = await study.evaluate((el) => parseFloat(getComputedStyle(el).scrollMarginTop));
-    expect(Math.abs((await restingTop(study)) - margin)).toBeLessThanOrEqual(2);
+    expect(Math.abs((await restingTop(study)) - ROW_TOP)).toBeLessThanOrEqual(2);
+    await expect(page.locator("#journey-entry-doordash #work-dd-feasibility-agent")).toHaveCount(1);
+    expect(await inBook(page, "doordash"), "the book is on another page").toBe(true);
   });
 
   for (const viewport of [WIDE, PHONE]) {
-    test(`the hero's Read this part lands the DoorDash row at ${viewport.width}`, async ({ page }) => {
+    test(`the hero's Read this part lands DoorDash's page at ${viewport.width}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await open(page);
       await page.locator('#about button[id$="-front"]').filter({ hasText: "DoorDash" }).click();
       const read = page.locator('#about [id$="-back"]').nth(3).getByRole("link", { name: "Read this part" });
       await expect(read).toHaveAttribute("href", "#journey-entry-doordash");
       await read.click();
-      await expect(rowTrigger(page, "doordash")).toHaveAttribute("aria-expanded", "true");
       expect(Math.abs((await restingTop(row(page, "doordash"))) - ROW_TOP)).toBeLessThanOrEqual(2);
+      expect(await inBook(page, "doordash"), "the book is on another page").toBe(true);
     });
   }
 

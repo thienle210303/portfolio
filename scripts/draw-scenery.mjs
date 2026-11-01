@@ -641,18 +641,103 @@ const RECORD_STILL = {
     + `<path d="M-11 -44h22l-2 44h-18Z" fill="#F4EFE6" fill-opacity="0.4" stroke="#F3E3B5" stroke-width="1"/><path d="M-10.6 -12h21.2l-.6 12h-20Z" fill="#7FA36F"/><path d="M-10.8 -24h21.6l-.6 12h-20.4Z" fill="#E3C46A"/><path d="M-11 -36h22l-.4 12h-21.2Z" fill="#F3EEE2"/>`
     + `<path d="M4 -58L-2 -20" stroke="#B9AE95" stroke-width="2.4" stroke-linecap="round"/></g>`,
 };
+// Round 23: the Diary. Each certificate's stamp is a drawing of what it was
+// about, never the issuer's logo (a bank's columns, a card with a key, code
+// brackets and a gear, a cart), and three small pictures for the pages that
+// have no number to chart (what I taught myself, the degree, a podium).
+// Plain line work in one colour, like the rest of the ink files.
+const line = (body, sw = 1.2) =>
+  `<g fill="none" stroke="${K}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</g>`;
+function gear(cx, cy, teeth, R, r, hole) {
+  let d = "";
+  for (let i = 0; i < teeth; i++) {
+    const a = (i * 2 * Math.PI) / teeth;
+    for (const [da, rad] of [[-0.3, r], [-0.17, R], [0.17, R], [0.3, r]]) {
+      d += (d ? "L" : "M") + f(cx + Math.cos(a + da) * rad) + " " + f(cy + Math.sin(a + da) * rad);
+    }
+  }
+  return `<path d="${d}Z"/><circle cx="${cx}" cy="${cy}" r="${hole}"/>`;
+}
+const STAMP_ART = {
+  // JPMorgan: a bank's façade, pediment over four columns on steps.
+  bank: () =>
+    line(
+      `<path d="M20 13L46 3L72 13Z"/><circle cx="46" cy="9.5" r="1.7"/><path d="M22 16.5H70"/>`
+        + [27, 39, 51, 63].map((x) => `<rect x="${x - 3}" y="19" width="6" height="12"/>`).join("")
+        + `<path d="M18 33.5H74M14 37H78"/>`,
+    ),
+  // Visa: a card with a stripe and digits, and the key to its token.
+  card: () =>
+    line(
+      `<rect x="5" y="6" width="52" height="30" rx="4"/><path d="M12 28h8M24 28h8M36 28h8"/>`
+        + `<circle cx="68" cy="27" r="6"/><circle cx="68" cy="27" r="2"/><path d="M74 27H88M81 27v5M86 27v4"/>`,
+    )
+    + `<rect x="5" y="12" width="52" height="6" fill="${K}"/>`,
+  // HKUST: code in its brackets around a gear.
+  code: () => line(`<path d="M30 8L14 20L30 32M62 8L78 20L62 32"/>${gear(46, 20, 8, 9.5, 7, 3)}`),
+  // Walmart: a shopping cart.
+  cart: () =>
+    line(
+      `<path d="M5 6H12L21 28H62"/><path d="M15 12H74L68 25H21Z"/><path d="M17.5 18.5H71"/>`
+        + [28, 41, 54, 66].map((x) => `<path d="M${x} 12V25"/>`).join("")
+        + `<circle cx="30" cy="33.5" r="3"/><circle cx="58" cy="33.5" r="3"/>`,
+    ),
+};
+const DIARY_ART = {
+  // Plants, a planted aquarium, trading, and money with a sprout on it.
+  selftaught: () => {
+    const plant = `<g transform="translate(33 36)">`
+      + line(`<path d="M-12 8H12L9 28H-9Z"/><path d="M-14 8H14"/>`) + fern(0, 8, 36, -98, 3, K, 9) + fern(0, 8, 26, -58, 5, K, 8) + `</g>`;
+    const tank = `<g transform="translate(97 36)">`
+      + line(
+        `<path d="M-22 -14H22V26H-22Z"/><path d="M-22 -6q5.5 -3 11 0t11 0t11 0t11 0"/>`
+          + [-18, -12, -6, 0, 6, 12, 18].map((x) => `<circle cx="${x}" cy="22.5" r="1"/>`).join("")
+          + `<path d="M-14 23q-5 -11 1 -22M-9 23q4 -10 -1 -16"/><path d="M-13 12q-5 -2 -6 -6M-12 6q5 -1 6 -5"/>`
+          + `<ellipse cx="5" cy="10" rx="7" ry="4"/><path d="M-2 10L-8 5V15Z"/><circle cx="9" cy="9" r="0.9"/>`
+          + `<circle cx="14" cy="1" r="1.3"/><circle cx="16" cy="-4" r="1"/>`,
+      )
+      + `</g>`;
+    const candles = `<g transform="translate(33 106)">`
+      + line(
+        `<path d="M-22 -26V26H24"/>`
+          + `<rect x="-14" y="-4" width="4" height="12"/><path d="M-12 -10V14"/>`
+          + `<rect x="-4" y="-14" width="4" height="14"/><path d="M-2 -20V4"/>`
+          + `<rect x="6" y="-18" width="4" height="12"/><path d="M8 -24V-2"/>`,
+      )
+      + `<path d="M-18 14L-6 2L6 -10L20 -22" fill="none" stroke="${K}" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2 3"/></g>`;
+    const coin = (y) => `<path d="M-14 ${y}v4a14 4.5 0 0 0 28 0v-4"/><ellipse cx="0" cy="${y}" rx="14" ry="4.5"/>`;
+    const money = `<g transform="translate(97 106)">`
+      + line(coin(20) + coin(13) + coin(6) + `<path d="M0 1V-14M0 -8q-8 -2 -10 -10q8 0 10 10M0 -13q8 -2 10 -10q-8 0 -10 10"/>`)
+      + `</g>`;
+    return plant + tank + candles + money;
+  },
+  // A mortarboard with its tassel.
+  cap: () =>
+    line(
+      `<path d="M60 14L108 33L60 52L12 33Z"/><path d="M32 43V58Q60 72 88 58V43"/><circle cx="60" cy="33" r="2"/>`
+        + `<path d="M60 33L100 36V58"/><path d="M100 58L97 68H103Z"/>`,
+    ),
+  // Second place: the lower step with its medal, the winner's with a cup.
+  podium: () =>
+    line(
+      `<path d="M10 44H50V72H10Z"/><path d="M50 30H90V72H50Z"/><path d="M90 52H130V72H90Z"/><path d="M4 72H136"/>`
+        + `<path d="M24 12L30 24L36 12"/><circle cx="30" cy="31" r="6"/><circle cx="30" cy="31" r="2.5"/>`
+        + `<path d="M62 12H78V20Q78 28 70 28Q62 28 62 20Z"/><path d="M62 14Q55 14 56 20Q57 24 62 23M78 14Q85 14 84 20Q83 24 78 23"/>`,
+    ),
+};
 function recordFiles() {
-  // The stamps' drawings are the board's `stampArt(92, 40)`; the palmetto (not
-  // on the board, which had three stamps) is the hero's, scaled into the box.
-  const W = 92, H = 40, STAMP_BOX = `0 0 ${W} ${H}`;
+  const STAMP_BOX = "0 0 92 40";
   return {
     "pressed-lotus": svg("40 10 136 170", pressedLotus(100, 80, 0.9)),
     "record-morning": svg("134 760 36 66", RECORD_STILL.suaDa(150, 822)),
     "record-evening": svg("134 760 36 66", RECORD_STILL.che(150, 822)),
-    "stamp-rice": svg(STAMP_BOX, rice(W / 2 - 22, H, 3, 22, 9, K, H * 0.55, H * 0.3)),
-    "stamp-pine": svg(STAMP_BOX, pine(W / 2, H, H * 0.95, K)),
-    "stamp-fern": svg(STAMP_BOX, fern(W / 2 + 8, H + 2, H * 0.95, -98, 17, K, 12)),
-    "stamp-palmetto": svg(STAMP_BOX, `<g transform="translate(12.5 0) scale(0.45)">${palmetto(75, 88, 48, K)}</g>`),
+    "stamp-bank": svg(STAMP_BOX, STAMP_ART.bank()),
+    "stamp-card": svg(STAMP_BOX, STAMP_ART.card()),
+    "stamp-code": svg(STAMP_BOX, STAMP_ART.code()),
+    "stamp-cart": svg(STAMP_BOX, STAMP_ART.cart()),
+    "diary-selftaught": svg("0 0 130 142", DIARY_ART.selftaught()),
+    "diary-cap": svg("0 0 120 80", DIARY_ART.cap()),
+    "diary-podium": svg("0 0 140 80", DIARY_ART.podium()),
   };
 }
 // ---- end Record drawings ----

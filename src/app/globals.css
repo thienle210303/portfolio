@@ -1472,14 +1472,16 @@
       transform: none;
     }
   }
-  @keyframes page-open-left {
+  /* The Diary's pages tilt about their middle as they slide into and out of
+     the book (round 23), and are flat whenever they are fully in view. */
+  @keyframes diary-in {
     from {
-      transform: perspective(1800px) rotateY(16deg);
+      transform: perspective(1600px) rotateY(-14deg);
     }
   }
-  @keyframes page-open-right {
-    from {
-      transform: perspective(1800px) rotateY(-16deg);
+  @keyframes diary-out {
+    to {
+      transform: perspective(1600px) rotateY(14deg);
     }
   }
   @keyframes card-settle {
@@ -1553,24 +1555,20 @@
         animation-timeline: view();
         animation-range: entry 0% cover 40%;
       }
-      /* The notebook opens while its top edge comes up the window: side by
-         side, the left page falls open from the spine onto the desk; stacked,
-         below 1280, it turns open on its left edge like a cover. The right
-         page never moves: from 1280 it holds the stamps' positioned box
-         (`Record.tsx`), and a transform would make it their containing block. */
-      [data-notebook] {
-        view-timeline: --notebook block;
-      }
-      .record-page-left {
-        animation: page-open-right linear both;
-        animation-timeline: --notebook;
-        animation-range: entry 0% entry 45%;
-        transform-origin: left;
-      }
-      @media (width >= 80rem) {
-        .record-page-left {
-          animation-name: page-open-left;
-          transform-origin: right;
+      /* The Diary's pages turn as they come into the book and leave it: each
+         tilts about its middle on the track's own view timeline (the nearest
+         scroll container), in over its entry and out over its exit, so a page
+         fully in view is flat. Transforms only; reduced motion, print and a
+         browser without scroll-driven animations get flat pages. */
+      @media (prefers-reduced-motion: no-preference) {
+        .diary-slot > .diary-page {
+          animation:
+            diary-in linear both,
+            diary-out linear both;
+          animation-timeline: view(inline), view(inline);
+          animation-range:
+            entry 0% entry 100%,
+            exit 0% exit 100%;
         }
       }
       [data-postcard] {
@@ -2060,6 +2058,30 @@
     display: none !important;
   }
 
+  /* The Diary prints as its pages one under another: no tabs, corners,
+     folios or page counter, every page whatever a tab had hidden, and no
+     scroller or page turn. */
+  .diary-tabs,
+  .diary-corner,
+  .diary-where,
+  .diary-folio,
+  .diary-slot-blank {
+    display: none !important;
+  }
+  .diary-track,
+  .diary-slot,
+  .diary-slot[data-hidden] {
+    display: block !important;
+    overflow: visible !important;
+  }
+  .diary-slot > .diary-page {
+    animation: none !important;
+    break-inside: avoid-page;
+  }
+  .diary-track[data-filter] .diary-entry {
+    display: block !important;
+  }
+
   /* The margin rail is `.no-print`, but `display: none` on a grid item does
      not remove the 10rem track `.rail-layout` reserves for it at >=1024px —
      and the content column, placed by `lg:order-2` alone with no explicit
@@ -2246,31 +2268,246 @@
     --tape: rgb(205 190 150 / 0.6);
   }
 
-  /* From 1280 the spread is wider than the content column: up to 1300px, the
-     board's, and 16px inside the viewport. */
-  @media (width >= 80rem) {
-    .record-notebook {
-      margin-inline: calc((100% - min(1300px, 100vw - 32px)) / 2);
-    }
-    .record-page-left {
-      box-shadow: inset -26px 0 30px -24px rgb(30 40 35 / 0.25);
-    }
-    .record-page-right {
-      box-shadow: inset 26px 0 30px -24px rgb(30 40 35 / 0.25);
-    }
+  /* ------------------------------------------------------------------ */
+  /* The Diary (round 23): a book you swipe left and right.              */
+  /*                                                                    */
+  /* The pages are a horizontal scroll-snap track: one page to a view    */
+  /* below 1280, a spread of two from there (a snap point on each left   */
+  /* page). It works with JavaScript off; `DiaryBook.tsx` adds the tabs,  */
+  /* the dog-eared corners and "p. 3 of 14". `data-hidden` is a tab      */
+  /* hiding a kind's page, which stays in the document so a fragment can  */
+  /* find it. From 1280 the book is wider than the content column, up to  */
+  /* 1300px (the board's) and 16px inside the viewport, with the index    */
+  /* tabs sticking out of its fore-edge on the right.                    */
+  /* ------------------------------------------------------------------ */
+  .diary-frame {
+    position: relative;
   }
-  @media (width < 80rem) {
-    .record-page-left {
-      box-shadow: inset 0 -22px 26px -24px rgb(30 40 35 / 0.25);
-    }
+  .diary-tabs {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-bottom: -1px;
+    padding-inline: 0.25rem;
   }
-
-  /* The left page is ruled, 32px a line (the board's). */
-  .record-page-left {
+  .diary-tab {
+    border-radius: 6px 6px 0 0;
+    border-bottom-color: transparent;
+  }
+  .diary-tab[aria-pressed="true"] {
+    padding-top: 0.25rem;
+    transform: translateY(-4px);
+    min-height: calc(2.75rem + 4px);
+  }
+  .diary-track {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-color) transparent;
+  }
+  .diary-track:focus-visible {
+    outline: 3px solid var(--ring-color);
+    outline-offset: -3px;
+  }
+  .diary-slot {
+    position: relative;
+    display: flex;
+    flex: 0 0 100%;
+    min-width: 0;
+    flex-direction: column;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .diary-slot[data-hidden] {
+    display: none;
+  }
+  .diary-slot > .diary-page {
+    flex: 1 1 auto;
+    box-shadow: inset 16px 0 20px -18px rgb(30 40 35 / 0.25);
+  }
+  .diary-slot-blank {
+    display: none;
+  }
+  /* The entries that share a page are ruled apart. */
+  .diary-entry ~ .diary-entry {
+    border-top: 1px solid var(--rule-color);
+    padding-top: 1.25rem;
+  }
+  /* The summary page is ruled, 32px a line (the board's). */
+  .diary-ruled {
     background-image: repeating-linear-gradient(
       transparent 0 31px,
       color-mix(in srgb, var(--rule-color) 55%, transparent) 31px 32px
     );
+  }
+  .diary-folio {
+    position: absolute;
+    right: 0;
+    bottom: 1rem;
+    left: 0;
+    pointer-events: none;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--fg-muted);
+  }
+  .diary-leader {
+    flex: 1 1 1rem;
+    min-width: 1rem;
+    border-bottom: 1px dotted var(--rule-color);
+    transform: translateY(-0.3em);
+  }
+  .diary-where {
+    margin-top: 0.75rem;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--fg-muted);
+  }
+
+  /* A dog-eared corner turns the page: a 44px square at the book's foot, the
+     folded flap and the gap it leaves drawn on a span inside, so the
+     button's own focus ring stays whole. */
+  .diary-corner {
+    position: absolute;
+    bottom: 0;
+    z-index: 2;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .diary-corner-prev {
+    left: 0;
+  }
+  .diary-corner-next {
+    right: 0;
+  }
+  .diary-corner > span {
+    position: absolute;
+    inset: 0;
+    transition: transform var(--dur-quick);
+  }
+  .diary-corner-next > span {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--fg) 14%, var(--surface)) 50%, transparent 50%);
+    filter: drop-shadow(-1px -1px 1px rgb(30 40 35 / 0.3));
+    transform-origin: bottom right;
+  }
+  .diary-corner-prev > span {
+    background: linear-gradient(225deg, color-mix(in srgb, var(--fg) 14%, var(--surface)) 50%, transparent 50%);
+    filter: drop-shadow(1px -1px 1px rgb(30 40 35 / 0.3));
+    transform-origin: bottom left;
+  }
+  .diary-corner > span::after {
+    content: "";
+    position: absolute;
+    top: 30%;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-top: 2px solid var(--fg);
+    border-right: 2px solid var(--fg);
+  }
+  .diary-corner-next > span::after {
+    left: 28%;
+    transform: rotate(45deg);
+  }
+  .diary-corner-prev > span::after {
+    right: 28%;
+    transform: rotate(-135deg);
+  }
+  .diary-corner:hover:not([aria-disabled="true"]) > span {
+    transform: scale(1.14);
+  }
+  .diary-corner[aria-disabled="true"] {
+    cursor: default;
+    opacity: 0.35;
+  }
+  .diary-corner:focus-visible {
+    outline: 3px solid var(--ring-color);
+    outline-offset: -3px;
+  }
+
+  @media (width >= 80rem) {
+    /* A spread: two pages to a view, and the tabs sticking out on the right. */
+    .diary-frame {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      width: min(1344px, 100vw - 2rem);
+      margin-inline: calc((100% - min(1344px, 100vw - 2rem)) / 2);
+    }
+    .diary-book {
+      order: 1;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .diary-tabs {
+      order: 2;
+      flex: 0 0 2.75rem;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      margin: 4rem 0 0 -0.5rem;
+      padding: 0;
+    }
+    .diary-where {
+      order: 3;
+      flex: 0 0 100%;
+    }
+    .diary-tab {
+      writing-mode: vertical-rl;
+      min-height: 5.5rem;
+      border-radius: 0 6px 6px 0;
+      border-bottom-color: var(--rule-color);
+      border-left-color: transparent;
+      padding: 0.75rem 0;
+    }
+    .diary-tab[aria-pressed="true"] {
+      padding-top: 0.75rem;
+      transform: translateX(4px);
+      border-left-color: var(--fg);
+    }
+    .diary-slot {
+      flex-basis: 50%;
+      scroll-snap-align: none;
+    }
+    .diary-slot[data-side="left"] {
+      scroll-snap-align: start;
+    }
+    .diary-slot[data-side="left"] > .diary-page {
+      box-shadow: inset -26px 0 30px -24px rgb(30 40 35 / 0.25);
+    }
+    .diary-slot[data-side="right"] > .diary-page {
+      box-shadow: inset 26px 0 30px -24px rgb(30 40 35 / 0.25);
+    }
+    /* A fragment's target is brought into view by its edges, and in a two-page
+       window the page it names would end up on the right, half a spread out:
+       a tie between two snap points. A left page's targets reach over to the
+       page beside them, a right page's back to theirs, so it is the whole
+       spread that comes into view; focus does the same (Tab into a link on a
+       page that is out of the window). (The width is the page's, near enough: it
+       only has to beat the tie.) */
+    .diary-slot {
+      --turn: calc((min(1344px, 100vw - 2rem) - 2.25rem) / 2);
+    }
+    .diary-slot[data-side="left"] :is(.diary-page, .diary-entry, .diary-anchor, a, button, [tabindex]) {
+      scroll-margin-inline-end: var(--turn);
+    }
+    .diary-slot[data-side="right"] :is(.diary-page, .diary-entry, .diary-anchor, a, button, [tabindex]) {
+      scroll-margin-inline-start: var(--turn);
+    }
+    .diary-slot-blank {
+      display: block;
+      box-shadow: inset 26px 0 30px -24px rgb(30 40 35 / 0.25);
+    }
   }
 
   .record-tape {
@@ -2287,13 +2524,6 @@
     width: 4.4rem;
     margin-left: -2.2rem;
     transform: rotate(var(--tape-rot, 0deg));
-  }
-
-  /* The year a ring jumped to. */
-  .record-year:target > h4 {
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 4px;
   }
 
   /* A stamp's perforated edge: real holes, punched by a mask in the outer 7px
@@ -2314,15 +2544,13 @@
   }
 }
 
-/* The Record's filters (`RecordFilters.tsx`): hide the other kinds' rows, and
-   any year left without one. Unlayered, so it outranks the `grid` utility on
-   a year. */
-[data-record-list][data-filter="work"] [data-kind]:not([data-kind="work"]),
-[data-record-list][data-filter="learning"] [data-kind]:not([data-kind="learning"]),
-[data-record-list][data-filter="milestone"] [data-kind]:not([data-kind="milestone"]),
-[data-record-list][data-filter="work"] [data-record-year]:not(:has([data-kind="work"])),
-[data-record-list][data-filter="learning"] [data-record-year]:not(:has([data-kind="learning"])),
-[data-record-list][data-filter="milestone"] [data-record-year]:not(:has([data-kind="milestone"])) {
+/* The Diary's tabs (`DiaryBook.tsx`): a page with no entry of the kind is
+   hidden by the island (`data-hidden`); on a page that holds several, the
+   entries of other kinds give way here. Unlayered, so it outranks the display
+   utilities. */
+.diary-track[data-filter="work"] .diary-entry:not([data-kind="work"]),
+.diary-track[data-filter="learning"] .diary-entry:not([data-kind="learning"]),
+.diary-track[data-filter="milestone"] .diary-entry:not([data-kind="milestone"]) {
   display: none;
 }
 

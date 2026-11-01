@@ -78,13 +78,9 @@ for (const size of SIZES) {
 
     test("body text is 15–16px", async ({ page }) => {
       // A paragraph rendered at --step-0: the first visible `#record p`
-      // whose computed font-size equals a `var(--step-0)` probe's. That is a
-      // case study's prose (CaseStudy.tsx PROSE_CLASS), inside a Record row
-      // since round 21 phase 5, so the DoorDash row is opened first. The hero
-      // has no body text at --step-0; its paragraph is the lead (below).
-      await page.locator("#record-row-doordash-trigger").click();
-      await page.locator("#work-dd-scraper-platform").getByRole("button", { name: /Read the full case study/ }).click();
-      await page.waitForTimeout(300);
+      // whose computed font-size equals a `var(--step-0)` probe's. That is an
+      // entry page's description (EntryPage.tsx), in the Diary since round 23.
+      // The hero has no body text at --step-0; its paragraph is the lead (below).
       const size = await page.locator("#record").evaluate((tree) => {
         const probe = document.createElement("div");
         probe.style.fontSize = "var(--step-0)";

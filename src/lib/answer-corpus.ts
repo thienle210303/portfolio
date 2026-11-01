@@ -245,7 +245,7 @@ export function buildDocuments(): Document[] {
         text: entry.summary,
         source: where,
         sectionId: "record",
-        sectionLabel: "Record",
+        sectionLabel: "Diary",
         label: label("journey", entry.id, ...shared, "did does responsibility"),
       });
     }
@@ -259,7 +259,7 @@ export function buildDocuments(): Document[] {
         text: claim,
         source: `${where} — impact`,
         sectionId: "record",
-        sectionLabel: "Record",
+        sectionLabel: "Diary",
         label: label(
           "journey",
           entry.id,
@@ -274,7 +274,7 @@ export function buildDocuments(): Document[] {
         text: entry.learned,
         source: `${where} — what it taught me`,
         sectionId: "record",
-        sectionLabel: "Record",
+        sectionLabel: "Diary",
         label: label("journey", entry.id, ...shared, "learn lesson learned learning takeaway realised"),
       });
     }
@@ -299,7 +299,7 @@ export function buildDocuments(): Document[] {
       text: project.problem,
       source: `${where}, the problem`,
       sectionId: "record",
-      sectionLabel: "Record",
+      sectionLabel: "Diary",
       label: label(
         "work",
         project.id,
@@ -315,7 +315,7 @@ export function buildDocuments(): Document[] {
       text: project.learned,
       source: `${where}, what it taught me`,
       sectionId: "record",
-      sectionLabel: "Record",
+      sectionLabel: "Diary",
       // "wrong", "mistake" and "hindsight" belong here rather than on the
       // project: this is the one passage per project that actually answers
       // "did anything go wrong", and at subject level the words would land on
@@ -334,7 +334,7 @@ export function buildDocuments(): Document[] {
         text: claim,
         source: `${where}, evidence`,
         sectionId: "record",
-        sectionLabel: "Record",
+        sectionLabel: "Diary",
         label: label("work", project.id, project.title, project.organization ?? "", "result impact outcome proof evidence"),
       });
     }
@@ -382,7 +382,7 @@ export function buildDocuments(): Document[] {
         text: project.assumption,
         source: `${where}, the assumption it rested on`,
         sectionId: "record",
-        sectionLabel: "Record",
+        sectionLabel: "Diary",
         label: label(
           "work",
           project.id,
@@ -411,7 +411,7 @@ export function buildDocuments(): Document[] {
         text: path,
         source: `${where}, the paths explored`,
         sectionId: "record",
-        sectionLabel: "Record",
+        sectionLabel: "Diary",
         label: label(
           "work",
           project.id,
@@ -427,7 +427,7 @@ export function buildDocuments(): Document[] {
         text: `${metric.label}: ${metric.before} → ${metric.after}.`,
         source: metric.source,
         sectionId: "record",
-        sectionLabel: "Record",
+        sectionLabel: "Diary",
         label: label(
           "work",
           project.id,
@@ -453,7 +453,7 @@ export function buildDocuments(): Document[] {
       // dead anchor.
       source: "Education",
       sectionId: "record",
-      sectionLabel: "Record",
+      sectionLabel: "Diary",
       label: label(
         "journey",
         "usc-degree",

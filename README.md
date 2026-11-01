@@ -7,10 +7,10 @@ The site is a single narrative page in four sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
 that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — a live oak
 with five measured tags hanging from it and Bé Nhi on a rope swing (press her
-and her mood changes), which grows, tags and all, on "Watch it grow"; the **Record** — a notebook spread: a tree slice with my five
-best pressed around it, every entry by year in rows that open one at a time
-(with the case studies inside the rows of the roles that produced them), and my
-certificates as stamps; and **Contact**: a
+and her mood changes), which grows, tags and all, on "Watch it grow"; the **Diary** — a book you swipe left and right: a tree slice with my five
+best pressed around it, a contents, a page for each thing I did (a highlighted
+figure, a few bullets, a small chart and a fun fact), 2018 – 2020 as one
+chapter, and my certificates as stamps; and **Contact**: a
 business card with every way to reach him (copy the email, save a vCard) beside a
 postcard that is a short lead form (a name, plus an email or phone), above a chat that
 answers only from what's written for the site: by default his words as
@@ -247,10 +247,12 @@ recipe.
 Where two entries share a `YYYY-MM`, append a disambiguating suffix to `sortKey`
 (`"2025-05-a"`, `"2025-05-b"`) — sorting is reverse-lexicographic on the string.
 
-### Adding a project / case study
+### Adding a project (case study data)
 
-Append to `projects` in `src/content/portfolio.ts`. Every case study follows the
-same narrative arc, and the fields are named for it:
+Append to `projects` in `src/content/portfolio.ts`. A project is not drawn on the
+page (round 23: the Diary has no case studies); the chat answers from it and
+`/resume` lists it, and its `work-<id>` anchor lands on its entry's Diary page.
+A project's fields follow one narrative arc, and are named for it:
 
 **Problem** (`problem`, `whyItMattered`, `assumption`) → **Constraint**
 (`constraints`, `responsibility`) → **Decision** (`decisions`, `pathsExplored`,
@@ -260,7 +262,7 @@ same narrative arc, and the fields are named for it:
 - `careerEntryId` must match an existing entry in `careerEntries`; the
   organisation and date range are read from it.
 - `metrics` entries require a `source` field naming where the figure came from.
-  The provenance is rendered next to the number. Do not add a metric you cannot
+  The provenance is rendered next to the number on `/resume`. Do not add a metric you cannot
   source.
 - `workflow` (before/after diagram) is optional — include it only when the real
   before-state is known.
