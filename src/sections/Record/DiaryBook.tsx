@@ -323,7 +323,8 @@ function ContentsPage({
           if (lines.length === 0) return null;
           return (
             <section key={chapter.id} aria-label={chapter.label} className="grid gap-x-3 @min-[28rem]:grid-cols-[6rem_minmax(0,1fr)]">
-              <h4 aria-hidden="true" className="pt-1.5 font-mono text-[length:var(--step--1)] font-bold whitespace-nowrap text-fg lg:pt-1">
+              {/* Wraps at its spaces: "2018 – 2020" is wider than the column. */}
+              <h4 aria-hidden="true" className="pt-1.5 font-mono text-[length:var(--step--1)] font-bold text-fg lg:pt-1">
                 {chapter.label}
               </h4>
               <ol role="list" className="m-0 list-none p-0">
