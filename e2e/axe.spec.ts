@@ -176,10 +176,17 @@ test.describe("interactive states", () => {
     // wait. Each drop is a 0.9s fade-and-swing, and a paper caught at half
     // opacity is a momentary contrast failure to axe, so the running
     // animations are finished first: what is audited is the show's state,
-    // not a frame of its motion.
+    // not a frame of its motion. The weather's rain and snow loop for as long
+    // as their beat lasts (round 23) and cannot be finished; they are
+    // aria-hidden and carry no text, so they are left running.
     await expect(page.locator("#tree [data-hanging-tags] li[data-grown]")).not.toHaveCount(0, { timeout: 10_000 });
     await expect(page.locator("[data-grow-caption]")).toBeVisible();
-    await page.evaluate(() => document.getAnimations().forEach((animation) => animation.finish()));
+    await page.evaluate(() =>
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+        .forEach((animation) => animation.finish()),
+    );
     await auditHasNoViolations(page, "#tree");
   });
 

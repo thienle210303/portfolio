@@ -3954,8 +3954,17 @@ test.describe("cats (round 21)", () => {
         const toggle = document.querySelector('[aria-controls="companion-actions"]')!.getBoundingClientRect();
         const hit = (r: DOMRect) =>
           r.width > 0 && r.left < toggle.right && r.right > toggle.left && r.top < toggle.bottom && r.bottom > toggle.top;
+        // A focused region the size of a page (the Diary's book, round 23)
+        // cannot be avoided by a corner toggle, and a corner of it under the
+        // cats leaves it far from hidden (WCAG 2.4.11 asks only that focus is
+        // not entirely obscured), so only things smaller than a quarter of
+        // the screen are held to "nothing of it under the cats".
+        const small = (el: Element) => {
+          const r = el.getBoundingClientRect();
+          return r.width * r.height < (window.innerWidth * window.innerHeight) / 4;
+        };
         const candidates = only
-          ? [document.activeElement!].filter((el) => el !== document.body)
+          ? [document.activeElement!].filter((el) => el !== document.body && small(el))
           : Array.from(
               document.querySelectorAll("#about a[href], #about button, #about [tabindex]:not([tabindex='-1'])"),
             );

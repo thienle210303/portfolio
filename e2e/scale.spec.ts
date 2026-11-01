@@ -174,9 +174,17 @@ for (const size of SIZES) {
       await page.getByRole("button", { name: /Open menu/ }).click();
       const panel = page.locator("#" + (await page.getByRole("button", { name: /Close menu/ }).getAttribute("aria-controls")));
       await expect(panel).toBeVisible();
+      // The paper starts at the header's foot with its torn edge (round 23,
+      // `.nav-notebook-edge`, 10px), and the page runs on under that edge
+      // with no gap between them.
       const panelTop = await panel.evaluate((el) => el.getBoundingClientRect().top);
       const headerBottom = await page.locator("header").first().evaluate((el) => el.getBoundingClientRect().bottom);
-      expect(Math.abs(panelTop - headerBottom)).toBeLessThanOrEqual(TOL);
+      const edge = await page.locator(".nav-notebook-edge").evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom };
+      });
+      expect(Math.abs(edge.top - headerBottom)).toBeLessThanOrEqual(TOL);
+      expect(panelTop).toBeLessThanOrEqual(edge.bottom + TOL);
     });
 
     test("nav anchor lands below the header", async ({ page }) => {
