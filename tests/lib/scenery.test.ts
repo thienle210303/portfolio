@@ -12,16 +12,19 @@ const VIEWBOXES: Record<string, string> = {
   pine: "1260 80 180 1264",
   "rice-field": "565 740 655 160",
   ripples: "560 860 660 30",
-  buffalo: "905 790 150 80",
+  "buffalo-plow": "0 0 250 104",
+  "buffalo-sleep": "0 0 250 104",
+  "offduty-day": "0 0 150 84",
+  "offduty-night": "0 0 150 84",
   "tag-rice": "0 0 150 88",
-  "tag-pine": "0 0 150 88",
-  "tag-palmetto": "0 0 150 88",
+  "tag-flytrap": "0 0 150 88",
+  "tag-book": "0 0 150 88",
   "tag-laptop": "0 0 150 88",
   "non-la": "44 370 120 130",
   "sky-day": "0 0 1440 900",
   "sky-night": "0 0 1440 900",
-  morning: "420 770 100 114",
-  evening: "420 770 100 114",
+  morning: "406 774 128 110",
+  evening: "406 774 128 110",
   // Contact
   "lanterns-day": "626 -12 812 192",
   "lanterns-night": "626 -12 812 192",
@@ -56,7 +59,7 @@ const VIEWBOXES: Record<string, string> = {
   "stamp-fern": "0 0 92 40",
   "stamp-palmetto": "0 0 92 40",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo", "tag-rice", "tag-pine", "tag-palmetto", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Contact */ "postmark", /* Record */ "stamp-rice", "stamp-pine", "stamp-fern", "stamp-palmetto"];
+const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Contact */ "postmark", /* Record */ "stamp-rice", "stamp-pine", "stamp-fern", "stamp-palmetto"];
 
 const files = drawScenery();
 

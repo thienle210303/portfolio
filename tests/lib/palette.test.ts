@@ -186,6 +186,8 @@ describe("the outdoors palette", () => {
     const aliases = [
       "--twine:", "--gold:", "--scene-water:", "--scene-buffalo:",
       "--art-sky:", "--art-vignette:", "--show-day:", "--show-night:",
+      // Round 23: the plough by day and the sleeper at night, Moon's võng.
+      "--art-buffalo:", "--art-offduty:",
     ];
     for (const body of [dayRoot(), rule(':root[data-theme="night"]'), rule(':root:not([data-theme="day"])', media)]) {
       for (const a of aliases) expect(body, a).toContain(a);

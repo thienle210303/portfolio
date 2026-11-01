@@ -274,6 +274,9 @@
     --scene-buffalo: var(--color-buffalo);
     --art-sky: url(/scenery/sky-day.svg);
     --art-vignette: url(/scenery/morning.svg);
+    /* Round 23: she ploughs by day and sleeps at night; Moon's hammock swaps too. */
+    --art-buffalo: url(/scenery/buffalo-plow.svg);
+    --art-offduty: url(/scenery/offduty-day.svg);
     /* Journey (round 21) */
     --scene-bark: var(--color-ink);
     --scene-moss: var(--color-spanish-moss);
@@ -357,6 +360,8 @@
     --scene-buffalo: var(--color-dusk-buffalo);
     --art-sky: url(/scenery/sky-night.svg);
     --art-vignette: url(/scenery/evening.svg);
+    --art-buffalo: url(/scenery/buffalo-sleep.svg);
+    --art-offduty: url(/scenery/offduty-night.svg);
     /* Journey (round 21) */
     --scene-bark: var(--color-dusk-bark);
     --scene-moss: var(--color-spanish-moss);
@@ -423,6 +428,8 @@
       --scene-buffalo: var(--color-dusk-buffalo);
       --art-sky: url(/scenery/sky-night.svg);
       --art-vignette: url(/scenery/evening.svg);
+      --art-buffalo: url(/scenery/buffalo-sleep.svg);
+      --art-offduty: url(/scenery/offduty-night.svg);
       /* Journey (round 21) */
       --scene-bark: var(--color-dusk-bark);
       --scene-moss: var(--color-spanish-moss);

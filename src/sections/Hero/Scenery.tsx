@@ -5,8 +5,8 @@
  * the sky stand in a centred 1440 frame (`50% ± n px`) and keep the board's
  * relation to the words at any width. From 1024 to 1279 they take the %
  * positions; below 1024 the ground is the phone board's (NatHeroPhone):
- * Moon at the left, the buffalo in a short rice patch about the middle
- * (`50%`-based), the stool and its caption at the right (`right-4`).
+ * Moon at the left in her võng, the buffalo in a short rice patch about the
+ * middle (`50%`-based), the stool and its caption at the right (`right-4`).
  *
  * The clothesline shows from 1024, at most 1920 wide and centred; its top is
  * `--line-top` below the section's padding, the same offset the chapter tags'
@@ -23,7 +23,8 @@
  * tied to the line by twine; below ~1440 the tag would otherwise hang in front
  * of the trunk, and the window's edge crops the pine instead.
  *
- * `data-moon-off-duty` is a stable hook: Phase 7's surprise reads it.
+ * `data-moon-off-duty` is a stable hook: Phase 7's surprise reads it, and
+ * sits beside the `data-moon-art` drawing inside it.
  */
 import type { CSSProperties } from "react";
 import { companions, hero } from "@/content/portfolio";
@@ -107,63 +108,49 @@ export default function Scenery() {
         className="scene-art absolute inset-x-0 bottom-[90px] h-[260px] bg-[position:right_bottom_-40px] bg-[size:1440px_auto] lg:hidden"
         style={{ "--art": "var(--art-sky)" } as CSSProperties}
       />
-      {/* Before the rice, so the stalks draw over it. */}
-      <Drawing
-        name="buffalo"
-        className="absolute bottom-[30px] left-[calc(50%-14px)] h-[52px] w-[97px] text-[color:var(--scene-buffalo)] lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[150px] xl:left-[calc(50%+185px)]"
+      {/* Round 23: she ploughs by day and lies down at night (`--art-buffalo`
+          swaps the mask by theme). Before the rice, so the stalks draw over
+          her. Below 1024 she stands between Moon and the stool and shrinks
+          under 360 so the three do not touch. */}
+      <span
+        data-scenery="buffalo"
+        className="scene-ink absolute bottom-[30px] left-[calc(50%-46px)] h-[50px] w-[120px] text-[color:var(--scene-buffalo)] max-[359px]:h-[38px] max-[359px]:w-[91px] lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[192px] xl:left-[calc(50%+185px)]"
+        style={{ "--art": "var(--art-buffalo)" } as CSSProperties}
       />
       {/* Below 1024 a short patch of the field (its middle, cropped) round
           the buffalo, standing 24px up so the two captions sit under the
           stalks, not on them: text over the stalks fails AA contrast. */}
       <Drawing
         name="rice-field"
-        className="absolute bottom-6 left-[calc(50%-min(85px,19%))] h-[110px] w-[min(170px,38%)] text-accent [mask-size:auto_100%] lg:bottom-0 lg:left-[45%] lg:h-[160px] lg:w-[655px] lg:[mask-size:contain] xl:left-[calc(50%-145px)]"
+        className="absolute bottom-6 left-[calc(50%+14px-min(85px,19%))] h-[110px] w-[min(170px,38%)] text-accent [mask-size:auto_100%] lg:bottom-0 lg:left-[45%] lg:h-[160px] lg:w-[655px] lg:[mask-size:contain] xl:left-[calc(50%-145px)]"
       />
 
       {/* Below ~1180 29% would put the stool on Moon's caption; it keeps
-          clear of her instead. */}
+          clear of her instead. Round 23: it is a long low stool now, with
+          the phin and a plate of cơm tấm by day and the lẩu and a bia at
+          night, so its box is wider than it was. */}
       <span
-        className="scene-art absolute right-4 bottom-[18px] h-[82px] w-[72px] lg:right-auto lg:bottom-[16px] lg:left-[max(29.2%,11.1%+232px)] lg:h-[114px] lg:w-[100px] xl:left-[calc(50%-300px)]"
+        data-scenery="vignette"
+        className="scene-art absolute right-4 bottom-[18px] h-[82px] w-[95px] lg:right-auto lg:bottom-[16px] lg:left-[max(29.2%,11.1%+232px)] lg:h-[114px] lg:w-[133px] xl:left-[calc(50%-300px)]"
         style={{ "--art": "var(--art-vignette)" } as CSSProperties}
       />
-      <div className="absolute right-4 bottom-0 font-serif text-[length:var(--step--1)] leading-none italic text-fg-muted lg:right-auto lg:bottom-[4px] lg:left-[max(29%,11.1%+230px)] xl:left-[calc(50%-302px)]">
+      <div className="absolute right-4 bottom-0 font-serif text-[length:var(--step--2)] leading-none italic text-fg-muted lg:right-auto lg:bottom-[4px] lg:left-[max(29%,11.1%+230px)] lg:text-[length:var(--step--1)] xl:left-[calc(50%-302px)]">
         <p className="day-only">{hero.vignette.morning}</p>
         <p className="night-only">{hero.vignette.evening}</p>
       </div>
 
+      {/* Moon in a võng, her girlfriend's cat: awake-ish by day, asleep at
+          night (`--art-offduty`). The wrapper keeps the stable hook; the cats
+          visit the drawing (`data-moon-art`), not the caption. */}
       <span
         data-moon-off-duty=""
         className="absolute bottom-0 left-4 flex flex-col items-start gap-1 lg:bottom-[19px] lg:left-[11.1%] lg:flex-row xl:left-[calc(50%-560px)] lg:items-end lg:gap-2"
       >
-        <svg
-          viewBox="18 28 136 74"
-          className="h-[52px] w-[96px] text-fg lg:h-[66px] lg:w-[121px]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M150 74C152 96 112 101 70 96" />
-          <path
-            d="M22 70C22 42 60 28 96 32C130 36 152 54 150 72C148 88 122 93 90 93L44 93C30 93 22 84 22 70Z"
-            fill="var(--ground)"
-           
-          />
-          <path d="M60 52C76 46 98 46 116 54" strokeWidth="1" />
-          <path d="M28 52L25 33L40 45M48 43L59 29L61 46" fill="var(--ground)" />
-          <path
-            d="M22 66C20 50 34 40 48 42C62 44 68 56 64 68C60 80 46 84 34 80C26 77 22 72 22 66Z"
-            fill="var(--ground)"
-           
-          />
-          <path d="M33 62q4 3 8 0M48 62q4 3 8 0M43 69l1 2l1 -2" />
-          <path
-            d="M30 70l-12 -2M30 73l-11 3M58 70l12 -2M58 73l11 3"
-            strokeWidth="0.8"
-           
-          />
-        </svg>
+        <span
+          data-moon-art=""
+          className="scene-art block h-[52px] w-[93px] lg:h-[66px] lg:w-[118px]"
+          style={{ "--art": "var(--art-offduty)" } as CSSProperties}
+        />
         <span className="pb-1 font-serif text-[length:var(--step--1)] italic text-fg-muted">
           {`${companions[0].name}, ${hero.offDuty}`}
         </span>
