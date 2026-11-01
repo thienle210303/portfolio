@@ -2808,6 +2808,18 @@
 /* sheet's tilt, shadow and torn edge are on its own aria-hidden layers.      */
 /* -------------------------------------------------------------------------- */
 @layer components {
+  /* With no bar, the first section's top rule would float on the sky right
+     under the strip: the hero starts where the header ends. Nothing above it
+     needs a boundary, so it has none (the draw-in `::before` included). */
+  #about.hairline-t,
+  [data-ink-ready] #about[data-ink-root].hairline-t {
+    border-top-color: transparent;
+  }
+  #about.hairline-t::before,
+  #about.hairline-t::after {
+    content: none;
+  }
+
   .nav-strip {
     isolation: isolate;
   }
