@@ -5436,13 +5436,14 @@ export function Companion({ facts }: CompanionProps) {
           >
             {/* Bé Nhi walks a step behind him (round 22), so the flip that
                 turns him round puts her behind him either way; her face is
-                a new mood every beat. */}
+                a new mood every beat, and "Hả?" whenever the cats ask a
+                question (round 24). */}
             <span
               ref={thienArt}
               className="flex items-end"
               style={{ gap: PAIR_GAP, height: THIEN_H, transform: `scaleX(${thien.current.facing})` }}
             >
-              <MiniNhi mood={nhiMood(duetBeat.sub)} />
+              <MiniNhi mood={nhiMood(duetBeat.sub, duetBeat.icon)} />
               <MiniThien />
             </span>
           </div>

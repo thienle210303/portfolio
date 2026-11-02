@@ -237,7 +237,9 @@ order; `buildTickets()` in `src/lib/highlights.ts` assembles them and
 - Bé Nhi's name and her five moods (`says`, her line over her head; `is`, the
   caption under the swing) are `journey.swing`. A new mood needs a face in
   `MiniNhi.tsx` and a name in `NhiMood` (`src/types/portfolio.ts`); the type
-  makes the content name it too.
+  makes the content name it too. Her `huh` is her act ("Hả?", surprised): the
+  line is drawn with the capital and the hook, and a screen reader hears the
+  caption, so keep it a state ("surprised") like the others.
 - After changing a drawing, run `pnpm draw:scenery` and commit
   `public/scenery/`.
 
