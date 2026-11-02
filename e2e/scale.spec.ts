@@ -81,6 +81,10 @@ for (const size of SIZES) {
       // whose computed font-size equals a `var(--step-0)` probe's. That is an
       // entry page's description (EntryPage.tsx), in the Diary since round 23.
       // The hero has no body text at --step-0; its paragraph is the lead (below).
+      // The book opens on its first page, and since round 24 the pages not on
+      // show are hidden until found, so open an entry's page first.
+      await page.goto("/#journey-entry-doordash");
+      await expect(page.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
       const size = await page.locator("#record").evaluate((tree) => {
         const probe = document.createElement("div");
         probe.style.fontSize = "var(--step-0)";

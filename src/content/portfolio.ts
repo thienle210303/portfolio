@@ -225,7 +225,7 @@ export const record = {
   },
   contents: {
     heading: "Contents",
-    note: "Every line is a link. Swipe, or use the corners.",
+    note: "Every line is a link. Swipe, or turn a corner.",
   },
   certificates: "Certificates I've collected",
   funFactLabel: "Fun fact",

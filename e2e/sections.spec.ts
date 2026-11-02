@@ -133,7 +133,12 @@ test.describe("screen recordings", () => {
         if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
       });
 
-      // Turn to the page from the contents, as a reader would.
+      // Turn to the page from the contents, as a reader would: below 1280
+      // the book opens on one page, so the contents (page 2) is a turn away.
+      await expect(page.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
+      if ((await page.locator('#record .diary-slot[data-page="contents"]').getAttribute("hidden")) !== null) {
+        await page.getByRole("button", { name: "Next page" }).click();
+      }
       await page.locator(`#diary-contents a[href="#journey-entry-${entry.id}"]`).click();
       const button = page.getByRole("button", { name: `Play the screen recording of ${entry.role}` });
       // Not `li:has(button)`: the press replaces the button with the video.
