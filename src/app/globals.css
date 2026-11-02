@@ -937,6 +937,52 @@
     }
   }
 
+  /* Round 24, builder C: Bé Nhi's Hả? (MiniNhi.tsx, NhiSwing.tsx). Her head
+     tilts 13 degrees about her neck and turns three-quarters; that pose is an
+     inline transform, so what is below only plays the head getting there: a
+     short snap that overshoots the tilt and settles (about 300ms), then the
+     two startle strokes pop in over it. The same drawing walks beside the cats,
+     so this is keyed on her face, not on the swing. `backwards`, not `both`:
+     the inline pose is the end state, so a finished snap leaves no animation
+     in effect. Reduced motion declares no animation at all and shows the end
+     pose. */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-nhi="huh"] [data-nhi-head] {
+      animation: nhi-snap 320ms ease-out backwards;
+    }
+    [data-nhi="huh"] [data-nhi-burst] {
+      transform-box: fill-box;
+      transform-origin: 70% 100%;
+      animation: nhi-burst 280ms ease-out 120ms backwards;
+    }
+    @keyframes nhi-snap {
+      0% {
+        transform: rotate(0deg);
+      }
+      55% {
+        transform: rotate(-17.5deg);
+        animation-timing-function: ease-in-out;
+      }
+      100% {
+        transform: rotate(-13deg);
+      }
+    }
+    @keyframes nhi-burst {
+      0% {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+      60% {
+        opacity: 1;
+        transform: scale(1.25);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  }
+
   .day-only {
     display: var(--show-day);
   }

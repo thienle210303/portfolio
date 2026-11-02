@@ -250,6 +250,27 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   loves Miffy, so she carries a bunny plush in a little dress; it is a bunny
   of her own, never Miffy (no X mouth, no name): Miffy's design belongs to
   its owners, who enforce it.
+- **Her act is "Hả?" (round 24, Thien: "Be Nhi character must have an act,
+  Hả? and surprise like what you say? the head is slightly turn!").** Her
+  `huh` mood is the double take, "what did you say?", captioned "surprised".
+  In `MiniNhi.tsx` her head (hair, face, bow, features) is a group tilted 13°
+  about her neck, the features slid 1.3 units left to turn her three-quarters
+  (the far lens and eye narrower), brows up, eyes wide with shines, a small
+  open "o", her right mitten cupped at her ear in place of the rope or the
+  wave, two startle strokes by her crown and the "?". The tilt is an inline
+  style, so it is the pose under reduced motion; `globals.css` ("Round 24,
+  builder C: Bé Nhi's Hả?") only animates the head's 320ms snap and its
+  overshoot, in her drawing, so the cats' scenes get it too. On the swing
+  `NhiSwing.tsx` adds the beat: the swing checks short (a running sway is
+  cut off, it recoils and settles), the bubble pops, and `beat` re-keys the
+  head so a second startle replays the snap. She startles for real
+  reasons: a press that wakes her from sleepy (always), the theme turning
+  (then she settles into sleepy or a grin), and the thunderclap in "Watch it
+  grow" (a beat whose weather is a thunderstorm or a hurricane, at `CLAP_AT`
+  of the beat, when `wx-bolt` strikes, only for the first beat of a run of
+  the same weather). Other moods and triggers are unchanged. The head
+  must stay one group tilted by one style: split it and the hair, the face
+  and the bow come apart.
 - **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
   (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)
   are still tested but no longer rendered; `careerYearSpan`,

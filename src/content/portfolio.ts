@@ -199,14 +199,15 @@ export const journey = {
   // Bé Nhi, my girlfriend (round 22, her own request: "dumb dumb cute cute
   // easy mood changing"). Her name is what I call her. `says` is her line in
   // the bubble, `is` the caption under the swing and what a screen reader
-  // hears. Not indexed by the chat.
+  // hears. Round 24: her `huh` is her act, the double take ("Hả?", "what did
+  // you say?"), so she is surprised, not confused. Not indexed by the chat.
   swing: {
     name: "Bé Nhi",
     action: "change her mood",
     moods: {
       pout: { says: "hứ!", is: "pouting" },
       grin: { says: "hihi!", is: "grinning" },
-      huh: { says: "hả?", is: "confused" },
+      huh: { says: "Hả?", is: "surprised" },
       sleepy: { says: "zzz…", is: "sleepy" },
       hug: { says: "mine!", is: "in love" },
     },

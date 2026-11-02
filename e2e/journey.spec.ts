@@ -501,6 +501,120 @@ test.describe("the Journey", () => {
     expect(await swing.evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
   });
 
+  /* Bé Nhi's act, "Hả?" (round 24). */
+  const nhiFace = (page: Page) => page.locator("#tree [data-swing] svg[data-nhi]");
+  const nhiCaption = (page: Page) => page.locator("#tree [data-swing] p", { hasText: `${journey.swing.name},` }).last();
+  /** Her head group's rotation in degrees, from its computed transform. */
+  const headTilt = (page: Page) =>
+    page.locator("#tree [data-swing] [data-nhi-head]").first().evaluate((el) => {
+      const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+      return Math.round(Math.atan2(m.b, m.a) * (180 / Math.PI));
+    });
+
+  for (const viewport of [WIDE, PHONE]) {
+    test(`a press that wakes Bé Nhi is her "Hả?" act at ${viewport.width}: tilted head, her line, surprised`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await open(page, "night");
+      const swing = page.locator("#tree [data-swing]");
+      await swing.scrollIntoViewIfNeeded();
+      // At night she is asleep.
+      await expect(nhiFace(page)).toHaveAttribute("data-nhi", "sleepy");
+      await swing.getByRole("button").click();
+      await expect(nhiFace(page)).toHaveAttribute("data-nhi", "huh");
+      await expect(nhiCaption(page)).toHaveText(`${journey.swing.name}, surprised`);
+      await expect(swing.locator("[data-says]")).toHaveText("Hả?");
+      await expect(swing.locator("[aria-live]")).toHaveText(`Hả? ${journey.swing.name} is surprised.`);
+      // Her head ends tilted about 13 degrees, once the snap has settled.
+      await expect.poll(() => headTilt(page)).toBe(-13);
+      // The cupped hand and the strokes are drawn; the target is still 44px.
+      await expect(swing.locator("[data-nhi-burst]")).toHaveCount(1);
+      const box = (await swing.getByRole("button").boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      // Nothing about the swing spills sideways.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    });
+  }
+
+  test("the act snaps (the swing checks, the head overshoots) and then every animation ends", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page, "night");
+    const swing = page.locator("#tree [data-swing]");
+    await swing.scrollIntoViewIfNeeded();
+    await swing.getByRole("button").click();
+    // Right away: the head's snap and the swing's check are both running.
+    const names = await swing.evaluate((el) => el.getAnimations({ subtree: true }).map((a) => (a as CSSAnimation).animationName || "waapi"));
+    expect(names).toContain("nhi-snap");
+    expect(names).toContain("waapi");
+    // ...and well inside a second they are over (the bubble's pop and the check included).
+    await expect.poll(() => swing.evaluate((el) => el.getAnimations({ subtree: true }).length), { timeout: 2_000 }).toBe(0);
+  });
+
+  test("reduced motion: the act is its end pose and her line, and nothing moves", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page, "night");
+    const swing = page.locator("#tree [data-swing]");
+    await swing.scrollIntoViewIfNeeded();
+    await swing.getByRole("button").click();
+    await expect(nhiFace(page)).toHaveAttribute("data-nhi", "huh");
+    await expect(swing.locator("[data-says]")).toHaveText("Hả?");
+    // The end pose, at once: the tilt is there with no animation to get there.
+    expect(await headTilt(page)).toBe(-13);
+    expect(await swing.evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
+  });
+
+  test("the theme turning is a double take, and then it is evening (or morning)", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page, "day");
+    const swing = page.locator("#tree [data-swing]");
+    await swing.scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const seen: string[] = [];
+      (window as unknown as { nhiFaces: string[] }).nhiFaces = seen;
+      const face = document.querySelector("#tree [data-swing] svg[data-nhi]")!;
+      seen.push(face.getAttribute("data-nhi")!);
+      new MutationObserver(() => {
+        const now = document.querySelector("#tree [data-swing] svg[data-nhi]")!.getAttribute("data-nhi")!;
+        if (seen.at(-1) !== now) seen.push(now);
+      }).observe(document.querySelector("#tree [data-swing]")!, { subtree: true, attributes: true, attributeFilter: ["data-nhi"] });
+    });
+    await page.evaluate(() => (document.documentElement.dataset.theme = "night"));
+    await expect(nhiFace(page)).toHaveAttribute("data-nhi", "huh");
+    await expect(nhiFace(page)).toHaveAttribute("data-nhi", "sleepy", { timeout: 4_000 });
+    const faces = await page.evaluate(() => (window as unknown as { nhiFaces: string[] }).nhiFaces);
+    expect(faces.slice(-2)).toEqual(["huh", "sleepy"]);
+  });
+
+  test("at the thunderclap in Watch it grow she startles, and the clap lands on the bolt", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize(WIDE);
+    await open(page, "day");
+    await page.evaluate(() => {
+      const times: Record<string, number> = {};
+      (window as unknown as { nhiTimes: Record<string, number> }).nhiTimes = times;
+      document.addEventListener("origin-story-beat", (event) => {
+        const weather = (event as CustomEvent<{ weather: string }>).detail.weather;
+        if (weather === "thunderstorm" && times.beat === undefined) times.beat = performance.now();
+      });
+      new MutationObserver(() => {
+        const face = document.querySelector("#tree [data-swing] svg[data-nhi]")!.getAttribute("data-nhi");
+        if (face === "huh" && times.beat !== undefined && times.huh === undefined) times.huh = performance.now();
+      }).observe(document.querySelector("#tree [data-swing]")!, { subtree: true, attributes: true, attributeFilter: ["data-nhi"] });
+    });
+    await toTree(page);
+    await watch(page).click();
+    await expect(page.locator("#tree")).toHaveAttribute("data-weather", "thunderstorm", { timeout: 20_000 });
+    await expect(nhiFace(page)).toHaveAttribute("data-nhi", "huh", { timeout: 3_000 });
+    const { beat, huh } = await page.evaluate(() => (window as unknown as { nhiTimes: Record<string, number> }).nhiTimes);
+    // The bolt strikes 47% into a 1.6s beat: about 750ms.
+    expect(huh - beat).toBeGreaterThan(600);
+    expect(huh - beat).toBeLessThan(1000);
+    await expect(nhiCaption(page)).toHaveText(`${journey.swing.name}, surprised`);
+    // The show over, she hugs it, and the act never lingers past it.
+    await expect(nhiFace(page)).toHaveAttribute("data-nhi", "hug", { timeout: 20_000 });
+  });
+
   test("tags link to rows that exist", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);

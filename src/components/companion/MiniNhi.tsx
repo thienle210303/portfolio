@@ -24,6 +24,20 @@ import type { NhiMood } from "@/types/portfolio";
  * mini-Thien's density and the blush is strokes, not a tint: ink standing in
  * for colours a palette with no hue to spend on decoration cannot reach for.
  *
+ * Round 24, her act (Thien: "Be Nhi character must have an act, Hả? and
+ * surprise like what you say? the head is slightly turn!"). `huh` is no longer
+ * a blank face: it is the double take. Her head (the hair, the face, the bow
+ * and everything on it) is a group that tilts about 13 degrees about her neck,
+ * so her near ear (on our right) comes up; the features inside slide a little
+ * to the left, which turns her three-quarters, the far eye and lens narrower;
+ * her brows go up, her eyes go wide with two shines, her mouth is a small
+ * open "o"; one mitten is cupped at her ear ("what did you say?") and two
+ * short strokes by her crown say she is startled. The tilt is the pose itself
+ * (an inline `transform`, so reduced motion shows it); `globals.css` ("Bé
+ * Nhi's Hả?") only animates the head getting there, with a small overshoot.
+ * `beat` re-keys the head so the same snap plays again when she startles
+ * while already surprised. The other four moods are untouched.
+ *
  * Purely presentational and `aria-hidden`: whoever shows her names her.
  */
 
@@ -39,8 +53,11 @@ export const NHI_SEAT_Y = 33;
 export const NHI_MOODS: readonly NhiMood[] = ["pout", "grin", "huh", "sleepy", "hug"];
 
 /** Her mood for one of the cats' beats beside mini-Thien: picked by the
- *  beat's own words, so it changes with every beat and holds still for one. */
-export function nhiMood(words: string): NhiMood {
+ *  beat's own words, so it changes with every beat and holds still for one.
+ *  Except that when the cats ask a question (the beat's `icon` is the
+ *  question mark: "Click me. I translate meows.") she does her act: "Hả?". */
+export function nhiMood(words: string, icon?: string | null): NhiMood {
+  if (icon === "question") return "huh";
   let h = 0;
   for (const ch of words) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return NHI_MOODS[h % NHI_MOODS.length];
@@ -50,7 +67,8 @@ type Pose = "stand" | "sit";
 
 /** A closed part (knocked out, then outlined; `wash` gets the hair's fill,
  *  `solid` is filled with ink) or an open stroke (backed by a wider knockout
- *  stroke, never filled). */
+ *  stroke, never filled). `head` parts ride in the head's group, so they tilt
+ *  with it (round 24); a layer keeps its parts' order, heads last. */
 type Part =
   | {
       readonly kind: "area";
@@ -58,15 +76,33 @@ type Part =
       readonly wash?: boolean;
       readonly solid?: boolean;
       readonly outline?: string;
+      readonly head?: boolean;
     }
   | { readonly kind: "line"; readonly d: string };
+
+/** Her act's pose, in one place. The head tilts counter-clockwise about her
+ *  neck (so the ear on our right rises to the cupped hand), the features slide
+ *  left to turn her three-quarters, and the far eye is the one on our left. */
+export const HUH_TILT = -13;
+const NECK = { x: 14, y: 20.4 } as const;
+const HUH_TURN = -1.3;
+/** The head group's style while she is surprised. */
+const HUH_STYLE = {
+  transform: `rotate(${HUH_TILT}deg)`,
+  transformOrigin: `${NECK.x}px ${NECK.y}px`,
+} as const;
 
 const HAIR_WASH = 0.72;
 
 const circle = (cx: number, cy: number, r: number) =>
   `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`;
-const oval = (cx: number, cy: number, rx: number, ry: number) =>
-  `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy} Z`;
+const oval = (cx: number, cy: number, rx: number, ry: number, turn = 0) => {
+  // `turn` leans the oval (degrees, clockwise): its two ends are the ends of
+  // its x axis, which the arcs' own rotation then leans with it.
+  const t = (turn * Math.PI) / 180;
+  const [dx, dy] = [rx * Math.cos(t), rx * Math.sin(t)].map((n) => +n.toFixed(3));
+  return `M ${cx - dx} ${cy - dy} A ${rx} ${ry} ${turn} 1 0 ${cx + dx} ${cy + dy} A ${rx} ${ry} ${turn} 1 0 ${cx - dx} ${cy - dy} Z`;
+};
 
 /** Round cheeks to a soft chin. The knockout is closed across the forehead so
  *  it fills the face; only the cheeks and chin are inked, the hair covers the
@@ -94,9 +130,9 @@ const COLLAR = "M 11.2 20.6 Q 11.8 22.8 14 21.6 Q 16.2 22.8 16.8 20.6";
 
 /** A bow on the right of her head: two loops and a knot. */
 const BOW: readonly Part[] = [
-  { kind: "area", d: "M 21 4.6 C 19.6 3, 18.4 3.4, 18.6 4.8 C 18.8 6.2, 20 6.4, 21 4.6 Z" },
-  { kind: "area", d: "M 21 4.6 C 22 2.6, 23.6 2.6, 23.6 4 C 23.6 5.4, 22.2 6, 21 4.6 Z" },
-  { kind: "area", d: circle(21, 4.6, 0.75) },
+  { kind: "area", head: true, d: "M 21 4.6 C 19.6 3, 18.4 3.4, 18.6 4.8 C 18.8 6.2, 20 6.4, 21 4.6 Z" },
+  { kind: "area", head: true, d: "M 21 4.6 C 22 2.6, 23.6 2.6, 23.6 4 C 23.6 5.4, 22.2 6, 21 4.6 Z" },
+  { kind: "area", head: true, d: circle(21, 4.6, 0.75) },
 ];
 
 /**
@@ -130,15 +166,32 @@ const STAND_BACK: readonly Part[] = [
   { kind: "area", d: CARDIGAN },
 ];
 
-const STAND_FRONT: readonly Part[] = [
-  // One arm carries the plush; the other waves.
-  { kind: "line", d: "M 19.4 22 C 21.4 21.2, 22.8 19.6, 23.4 17.8" },
-  { kind: "area", d: circle(23.6, 17, 1) },
-  ...plush(5.2, 29.4),
-  { kind: "line", d: "M 8.6 22 C 7.6 23.8, 7.2 25.8, 7.2 27.6" },
-  { kind: "area", d: circle(7.2, 28.4, 1) },
-  ...BOW,
+/**
+ * Her right arm (on our right) in the act: up from the shoulder to a mitten
+ * cupped at her ear, a fine line across it for the curled fingers. Whichever
+ * pose she is in, this replaces the arm that waved or held the rope.
+ */
+const EAR_HAND: readonly Part[] = [
+  { kind: "line", d: "M 19.2 22 C 21.8 22.2, 23.8 20.2, 24 16.2" },
+  { kind: "area", d: oval(24.2, 14.4, 1.15, 1.6, -18) },
+  { kind: "line", d: "M 23.6 13.5 Q 24.9 14.4 23.9 15.5" },
 ];
+
+/** Standing, one arm carries the plush; the other waves, or cups her ear. */
+function standFront(huh: boolean): readonly Part[] {
+  return [
+    ...(huh
+      ? EAR_HAND
+      : ([
+          { kind: "line", d: "M 19.4 22 C 21.4 21.2, 22.8 19.6, 23.4 17.8" },
+          { kind: "area", d: circle(23.6, 17, 1) },
+        ] as const)),
+    ...plush(5.2, 29.4),
+    { kind: "line", d: "M 8.6 22 C 7.6 23.8, 7.2 25.8, 7.2 27.6" },
+    { kind: "area", d: circle(7.2, 28.4, 1) },
+    ...BOW,
+  ];
+}
 
 const SIT_BACK: readonly Part[] = [
   // Shins dangling over the seat's edge.
@@ -149,20 +202,27 @@ const SIT_BACK: readonly Part[] = [
   { kind: "area", d: CARDIGAN },
 ];
 
-const SIT_FRONT: readonly Part[] = [
-  // Both hands on the ropes (on the swing they hang at x 1 and 27).
-  { kind: "line", d: "M 9 22 C 6.4 21.6, 3.6 20.8, 1.8 19.4" },
-  { kind: "line", d: "M 19 22 C 21.6 21.6, 24.4 20.8, 26.2 19.4" },
-  { kind: "area", d: circle(1.4, 19, 1) },
-  { kind: "area", d: circle(26.6, 19, 1) },
-  // The plush rides on her lap.
-  ...plush(14, 28.4),
-  ...BOW,
-];
+/** Sitting, both hands on the ropes (on the swing they hang at x 1 and 27);
+ *  in the act the right one lets go and cups her ear. */
+function sitFront(huh: boolean): readonly Part[] {
+  return [
+    { kind: "line", d: "M 9 22 C 6.4 21.6, 3.6 20.8, 1.8 19.4" },
+    ...(huh
+      ? EAR_HAND
+      : ([
+          { kind: "line", d: "M 19 22 C 21.6 21.6, 24.4 20.8, 26.2 19.4" },
+          { kind: "area", d: circle(26.6, 19, 1) },
+        ] as const)),
+    { kind: "area", d: circle(1.4, 19, 1) },
+    // The plush rides on her lap.
+    ...plush(14, 28.4),
+    ...BOW,
+  ];
+}
 
 const HEAD: readonly Part[] = [
-  { kind: "area", d: FACE, outline: FACE_LINE },
-  { kind: "area", d: HAIR, wash: true },
+  { kind: "area", head: true, d: FACE, outline: FACE_LINE },
+  { kind: "area", head: true, d: HAIR, wash: true },
 ];
 
 const EYE_Y = 13.2;
@@ -174,22 +234,35 @@ interface Inks {
   readonly fine: Record<string, unknown>;
 }
 
-/** One layer: every part's knockout, then every part's ink. */
-function Layer({ parts, inks }: { readonly parts: readonly Part[]; readonly inks: Inks }) {
+/** The head's group: the same tilt on every piece of her head, whichever layer
+ *  it is drawn in, and a key that replays the snap (`MiniNhi`'s `beat`). */
+type HeadGroup = (children: ReactNode, slot: string) => ReactNode;
+
+/** One layer: every part's knockout, then every part's ink. The parts of the
+ *  head are gathered in a group of their own in each of the two passes, after
+ *  the body's, so the drawing order is exactly what it was before the head
+ *  could tilt. */
+function Layer({ parts, inks, head }: { readonly parts: readonly Part[]; readonly inks: Inks; readonly head: HeadGroup }) {
+  const body = parts.filter((part) => !(part.kind === "area" && part.head));
+  const top = parts.filter((part) => part.kind === "area" && part.head);
+  const knock = (part: Part, i: number) => (
+    <path key={`k${i}`} {...inks.knock} fill={part.kind === "area" ? "var(--ground)" : "none"} d={part.d} />
+  );
+  const ink = (part: Part, i: number) => {
+    const fill =
+      part.kind === "area" && part.wash
+        ? { fill: "currentColor", fillOpacity: HAIR_WASH }
+        : part.kind === "area" && part.solid
+          ? { fill: "currentColor" }
+          : {};
+    return <path key={`i${i}`} {...inks.ink} {...fill} d={part.kind === "area" ? (part.outline ?? part.d) : part.d} />;
+  };
   return (
     <>
-      {parts.map((part, i) => (
-        <path key={`k${i}`} {...inks.knock} fill={part.kind === "area" ? "var(--ground)" : "none"} d={part.d} />
-      ))}
-      {parts.map((part, i) => {
-        const fill =
-          part.kind === "area" && part.wash
-            ? { fill: "currentColor", fillOpacity: HAIR_WASH }
-            : part.kind === "area" && part.solid
-              ? { fill: "currentColor" }
-              : {};
-        return <path key={`i${i}`} {...inks.ink} {...fill} d={part.kind === "area" ? (part.outline ?? part.d) : part.d} />;
-      })}
+      {body.map(knock)}
+      {top.length > 0 && head(top.map(knock), "knock")}
+      {body.map(ink)}
+      {top.length > 0 && head(top.map(ink), "ink")}
     </>
   );
 }
@@ -205,17 +278,69 @@ function Float({ inks, children }: { readonly inks: Inks; readonly children: (p:
   );
 }
 
-/** Big eyes: a dark oval with a catch-light, and a lash at the outer corner. */
-function OpenEyes({ inks }: { readonly inks: Inks }) {
+/**
+ * The act's eyes and lenses, turned three-quarters: the far one (on our left)
+ * is narrower and nearer the nose, the near one a touch wider. Both are wide
+ * open: a dark oval taller than the other moods', a big catch-light and a
+ * small one.
+ */
+const HUH_EYES = [
+  { x: 11, rx: 1.0, lens: 2.4 },
+  { x: 18.1, rx: 1.35, lens: 3.1 },
+] as const;
+const HUH_EYE_RY = 1.85;
+
+/** The brows, up: two small arcs over the lenses, the near one higher. */
+function Brows({ inks }: { readonly inks: Inks }) {
   return (
     <>
-      {EYES.map((x, i) => (
+      <path {...inks.ink} d={`M ${HUH_EYES[0].x - 1.5} ${EYE_Y - 3.9} Q ${HUH_EYES[0].x} ${EYE_Y - 5.2} ${HUH_EYES[0].x + 1.4} ${EYE_Y - 4}`} />
+      <path {...inks.ink} d={`M ${HUH_EYES[1].x - 1.5} ${EYE_Y - 4.1} Q ${HUH_EYES[1].x} ${EYE_Y - 5.5} ${HUH_EYES[1].x + 1.7} ${EYE_Y - 3.9}`} />
+    </>
+  );
+}
+
+/** Wide eyes with a shine (no lashes: they are open too wide for them). */
+function SurprisedEyes({ inks }: { readonly inks: Inks }) {
+  return (
+    <>
+      {HUH_EYES.map(({ x, rx }) => (
         <g key={x}>
-          <ellipse {...inks.ink} fill="currentColor" cx={x} cy={EYE_Y} rx={1.15} ry={1.5} />
-          <circle fill="var(--ground)" cx={x - 0.4} cy={EYE_Y - 0.55} r={0.45} />
-          <path {...inks.fine} d={i === 0 ? `M ${x - 1.2} ${EYE_Y - 0.9} L ${x - 2} ${EYE_Y - 1.5}` : `M ${x + 1.2} ${EYE_Y - 0.9} L ${x + 2} ${EYE_Y - 1.5}`} />
+          <ellipse {...inks.ink} fill="currentColor" cx={x} cy={EYE_Y} rx={rx} ry={HUH_EYE_RY} />
+          <circle fill="var(--ground)" cx={x - 0.35} cy={EYE_Y - 0.75} r={0.52} />
+          <circle fill="var(--ground)" cx={x + 0.4} cy={EYE_Y + 0.75} r={0.25} />
         </g>
       ))}
+    </>
+  );
+}
+
+/**
+ * What the act throws off her head, in the body's frame (it does not tilt):
+ * the question mark she has always had, and two short manga strokes by her
+ * crown that say she is startled. The strokes pop in a beat after the snap.
+ */
+function Startle({ inks }: { readonly inks: Inks }) {
+  return (
+    <>
+      <Float inks={inks}>
+        {(p) => (
+          <>
+            <path {...p} d="M 24.4 -1.4 Q 24.4 -3.6 26.2 -3.4 Q 27.9 -3 27 -1.2 Q 26.2 -0.3 26 1" />
+            <circle {...p} cx={26} cy={2.8} r={0.4} />
+          </>
+        )}
+      </Float>
+      <g data-nhi-burst="">
+        <Float inks={inks}>
+          {(p) => (
+            <>
+              <path {...p} d="M 4.3 1.9 L 2.5 -0.3" />
+              <path {...p} d="M 7.2 -0.4 L 6.4 -2.8" />
+            </>
+          )}
+        </Float>
+      </g>
     </>
   );
 }
@@ -255,19 +380,13 @@ function Mood({ mood, inks }: { readonly mood: NhiMood; readonly inks: Inks }) {
         </>
       );
     case "huh":
-      // Big blank eyes, a small "o", and the question mark.
+      // "Hả?": brows up, wide eyes, a small open "o". What floats over her
+      // head (the "?", the strokes) is `Startle`, outside the tilting head.
       return (
         <>
-          <OpenEyes inks={inks} />
-          <circle {...ink} cx={14} cy={17.6} r={0.55} />
-          <Float inks={inks}>
-            {(p) => (
-              <>
-                <path {...p} d="M 24.4 -1.4 Q 24.4 -3.6 26.2 -3.4 Q 27.9 -3 27 -1.2 Q 26.2 -0.3 26 1" />
-                <circle {...p} cx={26} cy={2.8} r={0.4} />
-              </>
-            )}
-          </Float>
+          <Brows inks={inks} />
+          <SurprisedEyes inks={inks} />
+          <ellipse {...ink} fill="currentColor" fillOpacity={HAIR_WASH} cx={13.9} cy={17.7} rx={0.62} ry={0.85} />
         </>
       );
     case "sleepy":
@@ -305,14 +424,15 @@ function Mood({ mood, inks }: { readonly mood: NhiMood; readonly inks: Inks }) {
   }
 }
 
-/** The glasses: big round ovals, as hers are, over her eyes. */
-function Glasses({ inks }: { readonly inks: Inks }) {
-  const [l, r] = EYES;
+/** The glasses: big round ovals, as hers are, over her eyes. Turned, the far
+ *  lens is narrower than the near one. */
+function Glasses({ inks, turned }: { readonly inks: Inks; readonly turned: boolean }) {
+  const [l, r] = turned ? [HUH_EYES[0], HUH_EYES[1]] : [{ x: EYES[0], lens: 3 }, { x: EYES[1], lens: 3 }];
   return (
     <>
-      <ellipse {...inks.ink} cx={l} cy={EYE_Y} rx={3} ry={2.5} />
-      <ellipse {...inks.ink} cx={r} cy={EYE_Y} rx={3} ry={2.5} />
-      <path {...inks.ink} d={`M ${l + 3} ${EYE_Y - 0.3} Q 14 ${EYE_Y - 1.1} ${r - 3} ${EYE_Y - 0.3}`} />
+      <ellipse {...inks.ink} cx={l.x} cy={EYE_Y} rx={l.lens} ry={2.5} />
+      <ellipse {...inks.ink} cx={r.x} cy={EYE_Y} rx={r.lens} ry={2.5} />
+      <path {...inks.ink} d={`M ${l.x + l.lens} ${EYE_Y - 0.3} Q 14 ${EYE_Y - 1.1} ${r.x - r.lens} ${EYE_Y - 0.3}`} />
     </>
   );
 }
@@ -321,11 +441,15 @@ export function MiniNhi({
   mood,
   pose = "stand",
   scale = 1,
+  beat = 0,
 }: {
   readonly mood: NhiMood;
   readonly pose?: Pose;
   /** Drawn larger on the swing; the line stays the same weight on screen. */
   readonly scale?: number;
+  /** Replays her act's snap: whoever shows her bumps it each time she
+   *  startles, so a second "Hả?" while she is already surprised still plays. */
+  readonly beat?: number;
 }) {
   const h = pose === "sit" ? NHI_SIT_H : NHI_H;
   const weight = scale > 1 ? 2 : 1.4;
@@ -343,6 +467,13 @@ export function MiniNhi({
     fine: { ...ink, strokeWidth: weight * 0.55 },
   };
   const sit = pose === "sit";
+  const huh = mood === "huh";
+  // Every piece of her head goes through here, so they tilt together.
+  const head: HeadGroup = (children, slot) => (
+    <g key={`${slot}${beat}`} data-nhi-head="" style={huh ? HUH_STYLE : undefined}>
+      {children}
+    </g>
+  );
   return (
     <svg
       data-nhi={mood}
@@ -353,25 +484,34 @@ export function MiniNhi({
       focusable="false"
       style={{ overflow: "visible" }}
     >
-      <Layer parts={[...(sit ? SIT_BACK : STAND_BACK), ...HEAD]} inks={inks} />
-      {/* The hair's shine, in the ground's colour over the wash. */}
-      <path {...inks.fine} stroke="var(--ground)" d="M 7.4 7 Q 9.6 3.8 12.8 3.2" />
-      <path {...inks.fine} stroke="var(--ground)" d="M 15.6 3.2 Q 17 3.4 18 4" />
+      <Layer parts={[...(sit ? SIT_BACK : STAND_BACK), ...HEAD]} inks={inks} head={head} />
       <path {...ink} d={COLLAR} />
       {[24.2, 27.2, 30.2].map((y) => (
         <circle key={y} fill="currentColor" cx={14} cy={y} r={0.5} />
       ))}
-      {/* Blush, as manga draws it: three short strokes on each cheek. */}
-      {[8.8, 19.2].map((x) => (
-        <path
-          key={x}
-          {...inks.fine}
-          d={[-1, 0, 1].map((k) => `M ${x + k - 0.3} 17.3 L ${x + k + 0.3} 16.3`).join(" ")}
-        />
-      ))}
-      <Glasses inks={inks} />
-      <Mood mood={mood} inks={inks} />
-      <Layer parts={sit ? SIT_FRONT : STAND_FRONT} inks={inks} />
+      {head(
+        <>
+          {/* The hair's shine, in the ground's colour over the wash. */}
+          <path {...inks.fine} stroke="var(--ground)" d="M 7.4 7 Q 9.6 3.8 12.8 3.2" />
+          <path {...inks.fine} stroke="var(--ground)" d="M 15.6 3.2 Q 17 3.4 18 4" />
+          {/* The face's features: turned three-quarters in the act. */}
+          <g data-nhi-face="" transform={huh ? `translate(${HUH_TURN} 0.2)` : undefined}>
+            {/* Blush, as manga draws it: three short strokes on each cheek. */}
+            {[8.8, 19.2].map((x) => (
+              <path
+                key={x}
+                {...inks.fine}
+                d={[-1, 0, 1].map((k) => `M ${x + k - 0.3} 17.3 L ${x + k + 0.3} 16.3`).join(" ")}
+              />
+            ))}
+            <Glasses inks={inks} turned={huh} />
+            <Mood mood={mood} inks={inks} />
+          </g>
+        </>,
+        "face",
+      )}
+      {huh ? <Startle inks={inks} /> : null}
+      <Layer parts={sit ? sitFront(huh) : standFront(huh)} inks={inks} head={head} />
       {sit ? <PlushEyes x={14} y={28.4} /> : <PlushEyes x={5.2} y={29.4} />}
     </svg>
   );
