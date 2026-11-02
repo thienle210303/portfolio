@@ -121,6 +121,28 @@ export function openingOf(index: number, per: 1 | 2, pages: number): number {
   return per === 2 ? i - (i % 2) : i;
 }
 
+/** The viewer stands this many page widths from the book, at any size, so a
+ *  turn keeps its shape on a phone and on a spread. */
+export const DEPTH = 4;
+
+/**
+ * The perspective for pages `width` × `height` px, and the room a turning
+ * leaf needs round the opening so nothing of it is clipped: upright over the
+ * spine, its near edge stands `depth − width` from the viewer and looks
+ * taller by `width / (depth − width)`; on a spread its free edge reaches a
+ * little past the fore-edge just after it lifts. On one page a leaf turned
+ * past upright swings out over the margin, where the window's edge clips it
+ * anyway, so sideways it needs only the `gutter` to that edge. Equal on every
+ * side (one outline offset fits it), with a few px for the rounding.
+ */
+export function turnRoom(width: number, height: number, spread: boolean, gutter: number): { readonly depth: number; readonly room: number } {
+  const depth = DEPTH * Math.max(width, 1);
+  const up = (height / 2) * (width / (depth - width));
+  const k = 1 / DEPTH;
+  const side = spread ? width * (1 / Math.sqrt(1 - k * k) - 1) : Math.min(width * 1.1, Math.max(gutter, 0));
+  return { depth: Math.round(depth), room: Math.ceil(Math.max(up, side, 0)) + 12 };
+}
+
 /** The leaves stacked either side of the opening: read on the left, still to
  *  come on the right (a leaf is two pages). */
 export function stackLeaves(at: number, per: 1 | 2, pages: number): { readonly read: number; readonly left: number } {

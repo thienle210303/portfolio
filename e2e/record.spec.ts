@@ -31,6 +31,9 @@ const track = (page: Page) => page.locator("#record .diary-track");
 const where = (page: Page) => page.locator("#record [data-diary-page]");
 const slot = (page: Page, key: string) => page.locator(`#record .diary-slot[data-page="${key}"]`);
 const frame = (page: Page) => page.locator("#record [data-diary]");
+/** The book's block: the pages' window in both modes. (With the leaves the
+ *  track itself is padded with the room a turning leaf needs.) */
+const book = (page: Page) => page.locator("#record .diary-book");
 
 /** The book is live and its leaves are at rest: no turn in the air. */
 async function still(page: Page) {
@@ -63,7 +66,7 @@ async function settledLeft(page: Page): Promise<number> {
 async function inWindow(page: Page, selector: string): Promise<boolean> {
   return page.evaluate((sel) => {
     const el = document.querySelector(sel)!;
-    const box = document.querySelector("#record .diary-track")!.getBoundingClientRect();
+    const box = document.querySelector("#record .diary-book")!.getBoundingClientRect();
     const r = el.getBoundingClientRect();
     return r.left >= box.left - 2 && r.right <= box.right + 2;
   }, selector);
@@ -130,7 +133,7 @@ test.describe("the Diary", () => {
     await open(page);
     await expect(where(page)).toHaveText(`p. 1 of ${PAGES.length}`);
     const one = await slot(page, "summary").boundingBox();
-    const win = await track(page).boundingBox();
+    const win = await book(page).boundingBox();
     expect(one!.width).toBeCloseTo(win!.width, 0);
     expect(await onShow(page)).toEqual(["summary"]);
   });
@@ -158,6 +161,68 @@ test.describe("the Diary", () => {
       await page.getByRole("group", { name: record.tabsLabel }).getByRole("button", { name: /^Work/ }).click();
       expect(await settledLeft(page)).toBe(0);
       await expect(where(page)).toHaveText(new RegExp(`^pp?\\. 1`));
+    }
+  });
+
+  test("binding the book shifts nothing: the page's load layout shift stays under 0.01", async ({ browser }) => {
+    // Round 24's first leaves let the track stop being a scroll container at
+    // hydration, and Chrome scored the whole book as a layout shift of 1.0,
+    // far off screen. The track stays one (`overflow: hidden`), padded with
+    // the room a turning leaf needs.
+    for (const size of [WIDE, PHONE]) {
+      for (const path of ["/", "/#journey-entry-schaeffler"]) {
+        const context = await browser.newContext({ viewport: size, reducedMotion: "no-preference" });
+        const page = await context.newPage();
+        await page.addInitScript(() => {
+          const w = window as unknown as { __shift: number };
+          w.__shift = 0;
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) {
+              if (!entry.hadRecentInput) w.__shift += entry.value;
+            }
+          }).observe({ type: "layout-shift", buffered: true });
+        });
+        await page.goto(path);
+        await expect(frame(page)).toHaveAttribute("data-mode", "leaf");
+        await page.waitForTimeout(3000);
+        const shift = await page.evaluate(() => (window as unknown as { __shift: number }).__shift);
+        expect(shift, `${size.width} ${path}: layout shift on load`).toBeLessThan(0.01);
+        // The leaves' track is still a scroll container, held at 0.
+        expect(await track(page).evaluate((el) => [getComputedStyle(el).overflow, el.scrollLeft, el.scrollTop])).toEqual(["hidden", 0, 0]);
+        await context.close();
+      }
+    }
+  });
+
+  test("a turning leaf has room: nothing of it is clipped by the book, and the track never scrolls", async ({ page }) => {
+    for (const size of [WIDE, PHONE]) {
+      await page.setViewportSize(size);
+      await open(page);
+      await book(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
+      await page.getByRole("button", { name: "Next page" }).evaluate((el) => (el as HTMLButtonElement).click());
+      // Sample the turn: every face stays inside the track's padding box.
+      let samples = 0;
+      for (let i = 0; i < 12; i += 1) {
+        const fits = await page.evaluate(() => {
+          const track = document.querySelector<HTMLElement>("#record .diary-track")!;
+          const room = track.getBoundingClientRect();
+          const faces = [...track.querySelectorAll<HTMLElement>("[data-face]")].map((el) => el.getBoundingClientRect());
+          return {
+            faces: faces.length,
+            out: faces.filter((r) => r.top < room.top - 1 || r.bottom > room.bottom + 1 || (r.left < room.left - 1 && room.left > 0) || r.right > room.right + 1).length,
+            scrolled: track.scrollLeft + track.scrollTop,
+          };
+        });
+        if (fits.faces > 0) samples += 1;
+        expect(fits.out, `${size.width}: a face reached past the room`).toBe(0);
+        expect(fits.scrolled, `${size.width}: the track scrolled`).toBe(0);
+        await page.waitForTimeout(50);
+      }
+      expect(samples, `${size.width}: no face was sampled in the air`).toBeGreaterThan(3);
+      await still(page);
+      // The room is round the pages, not in them: the book is as tall as a page.
+      const pageBox = (await track(page).locator(":scope > .diary-slot:not([hidden])").first().boundingBox())!;
+      expect(Math.abs(pageBox.height - (await book(page).boundingBox())!.height)).toBeLessThanOrEqual(1);
     }
   });
 
@@ -232,7 +297,7 @@ test.describe("the Diary", () => {
       };
       const page1 = size === WIDE ? `pp. 1–2 of ${PAGES.length}` : `p. 1 of ${PAGES.length}`;
       const page2 = size === WIDE ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`;
-      const width = (await track(page).boundingBox())!.width / (size === WIDE ? 2 : 1);
+      const width = (await book(page).boundingBox())!.width / (size === WIDE ? 2 : 1);
 
       await drag(width * 0.25);
       // The leaf follows the hand.
@@ -254,9 +319,9 @@ test.describe("the Diary", () => {
     for (const size of [WIDE, PHONE]) {
       await page.setViewportSize(size);
       await open(page);
-      const view = await track(page).evaluate((el) => el.clientWidth);
-      await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
-      const box = (await track(page).boundingBox())!;
+      const view = await book(page).evaluate((el) => el.clientWidth);
+      await book(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
+      const box = (await book(page).boundingBox())!;
       await page.mouse.move(box.x + box.width / 2, Math.max(box.y, 0) + 300);
       const before = await page.evaluate(() => window.scrollY);
       await page.mouse.wheel(90, 0);
@@ -275,8 +340,8 @@ test.describe("the Diary", () => {
     const context = await browser.newContext({ viewport: PHONE, hasTouch: true });
     const page = await context.newPage();
     await open(page);
-    await track(page).evaluate((el) => el.scrollIntoView({ block: "center" }));
-    const box = (await track(page).boundingBox())!;
+    await book(page).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    const box = (await book(page).boundingBox())!;
     const cdp = await context.newCDPSession(page);
     const swipe = async (dx: number, dy: number) => {
       const x0 = box.x + box.width * 0.75;

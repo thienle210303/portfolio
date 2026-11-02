@@ -2998,6 +2998,13 @@
   .diary-slot {
     transform: none !important;
   }
+  .diary-track {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .diary-book::after {
+    display: none !important;
+  }
   .diary-track,
   .diary-slot,
   .diary-slot[data-hidden] {
@@ -3666,15 +3673,23 @@ html[data-menu-open] [data-companion] {
   /* `src/lib/diary-turn.ts`); here they get their hinge, a hidden back, */
   /* their light, and the shadow they throw on the page under them.     */
   /* ------------------------------------------------------------------ */
+  /* Its own formatting context, so the leaf track's negative margin (its
+     room, below) stays inside the book instead of collapsing through it and
+     pulling the book up the page. */
   .diary-book {
+    display: flow-root;
     isolation: isolate;
   }
   /* The leaves' bottom edges, under the block (over the boards). */
-  .diary-track {
-    box-shadow:
-      0 1px 0 var(--diary-edge),
-      0 2px 0 var(--surface),
-      0 3px 0 var(--diary-edge);
+  .diary-book::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 3px;
+    pointer-events: none;
+    background: linear-gradient(var(--diary-edge) 0 1px, var(--surface) 1px 2px, var(--diary-edge) 2px 3px);
   }
   .diary-cover {
     position: absolute;
@@ -3792,21 +3807,34 @@ html[data-menu-open] [data-companion] {
     /* Down the page is still scrolling; sideways is the leaf's. */
     touch-action: pan-y;
   }
+  /* The track stays a scroll container (`overflow: hidden`): a box that
+     stops being one at hydration is a layout shift of the whole book, even
+     far off screen (round 24 measured CLS 1.0). A turning leaf reaches out of
+     the opening in perspective, so the track is padded with that reach
+     (`--room`, from `turnRoom` in `diary-turn.ts`) and pulled back by as much
+     margin: the pages do not move, and nothing of a leaf is clipped. The
+     padded box takes no hits; the pages on show do. Its scroll offsets are
+     held at 0 (`DiaryBook`). */
   .diary-frame[data-mode="leaf"] .diary-track {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(var(--page-h, 0px), auto);
-    overflow: visible;
+    overflow: hidden;
+    padding: var(--room, 0px);
+    margin: calc(-1 * var(--room, 0px));
     scroll-snap-type: none;
-    perspective: 1700px;
+    perspective: var(--depth, 2400px);
+    pointer-events: none;
   }
+  /* The ring goes round the pages, not round the room. */
   .diary-frame[data-mode="leaf"] .diary-track:focus-visible {
-    outline-offset: 4px;
+    outline-offset: calc(4px - var(--room, 0px));
   }
   .diary-frame[data-mode="leaf"] .diary-slot {
     grid-area: 1 / 1;
     z-index: 1;
     transform-origin: 0 50%;
+    pointer-events: auto;
   }
   .diary-frame[data-mode="leaf"] .diary-slot[hidden] {
     z-index: 0;
@@ -3840,9 +3868,9 @@ html[data-menu-open] [data-companion] {
   .diary-frame[data-mode="leaf"] .diary-sheet[data-at] {
     display: block;
     position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 100%;
+    top: var(--room, 0px);
+    bottom: var(--room, 0px);
+    width: calc(100% - 2 * var(--room, 0px));
     background-color: var(--surface);
     background-image: repeating-linear-gradient(
       transparent 0 31px,
@@ -3851,11 +3879,11 @@ html[data-menu-open] [data-companion] {
     background-position: 0 2.5rem;
   }
   .diary-frame[data-mode="leaf"] .diary-sheet[data-at="right"] {
-    left: 0;
+    left: var(--room, 0px);
     transform-origin: 0 50%;
   }
   .diary-frame[data-mode="leaf"] .diary-sheet[data-at="left"] {
-    right: 100%;
+    right: calc(100% - var(--room, 0px));
     transform-origin: 100% 50%;
   }
 
@@ -3864,18 +3892,18 @@ html[data-menu-open] [data-companion] {
   .diary-frame[data-mode="leaf"] .diary-shade[data-on] {
     display: block;
     position: absolute;
-    top: 0;
-    bottom: 0;
+    top: var(--room, 0px);
+    bottom: var(--room, 0px);
     z-index: 5;
-    width: 100%;
+    width: calc(100% - 2 * var(--room, 0px));
     overflow: hidden;
     pointer-events: none;
   }
   .diary-frame[data-mode="leaf"] .diary-shade[data-on="right"] {
-    left: 0;
+    left: var(--room, 0px);
   }
   .diary-frame[data-mode="leaf"] .diary-shade[data-on="left"] {
-    right: 100%;
+    right: calc(100% - var(--room, 0px));
   }
   /* Its leading edge is soft: in perspective the leaf's edge stands a little
      further out than the band's, and must not leave a sliver of light. */
@@ -3931,7 +3959,6 @@ html[data-menu-open] [data-companion] {
   @media (width >= 80rem) {
     .diary-frame[data-mode="leaf"] .diary-track {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      perspective: 2600px;
     }
     .diary-frame[data-mode="leaf"] .diary-slot[data-side="left"] {
       grid-area: 1 / 1;
@@ -3945,7 +3972,7 @@ html[data-menu-open] [data-companion] {
     }
     .diary-frame[data-mode="leaf"] .diary-sheet[data-at],
     .diary-frame[data-mode="leaf"] .diary-shade[data-on] {
-      width: 50%;
+      width: calc(50% - var(--room, 0px));
     }
     .diary-frame[data-mode="leaf"] :is(.diary-sheet[data-at="right"], .diary-shade[data-on="right"]) {
       left: 50%;

@@ -234,7 +234,8 @@ test.describe("career tree", () => {
       "following the same card again must land its page at the 80px scroll margin",
     );
     const inBook = await page.evaluate((id) => {
-      const box = document.querySelector("#record .diary-track")!.getBoundingClientRect();
+      // The book's block: with the leaves, the track is padded with room.
+      const box = document.querySelector("#record .diary-book")!.getBoundingClientRect();
       const r = document.getElementById(`journey-entry-${id}`)!.getBoundingClientRect();
       return r.left >= box.left - 2 && r.right <= box.right + 2;
     }, PANEL_ENTRY);

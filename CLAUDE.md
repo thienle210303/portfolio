@@ -175,7 +175,16 @@ riffles a few leaves. Pages not on show are `hidden="until-found"`, never
 `inert` (Chrome's find skips inert text, so `beforematch` would never fire);
 only the pages under a turn in the air are inert. A hash on load, `hashchange`
 and `beforematch` open the book at the page. The numbers (angles, shadows,
-drag, riffle) are `src/lib/diary-turn.ts`. The object: cloth boards in
+drag, riffle, perspective and room) are `src/lib/diary-turn.ts`. **The leaves'
+`.diary-track` stays a scroll container** (`overflow: hidden`): a box that
+stops being one at hydration is a layout shift of the whole book, even far off
+screen (the first leaves scored CLS 1.0). It is padded with the room a turning
+leaf needs (`turnRoom`, as `--room`) and pulled back by as much negative
+margin, so the pages do not move and no leaf is clipped; `.diary-book` is a
+`flow-root` so that margin cannot collapse through it, the padded track takes
+no pointer events (the pages on show do), its scroll offsets are held at 0, and
+`measure()` leaves the padding out of `--page-h`. `record.spec.ts` fails above
+0.01 load CLS at 1440 and 390. The object: cloth boards in
 `--bark-outer`, leaves stacked either side that move as you read, the paper
 curving into the gutter, paper grain, running heads (the chapter's years) and
 folios in the outer corners, a ribbon in `--twine` (not `--mark`: at 390

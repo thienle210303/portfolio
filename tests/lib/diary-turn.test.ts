@@ -16,6 +16,8 @@ import {
   stackLeaves,
   TURN_MS,
   turnMs,
+  turnRoom,
+  DEPTH,
 } from "@/lib/diary-turn";
 
 describe("a turning leaf's faces", () => {
@@ -123,6 +125,39 @@ describe("a riffle", () => {
     expect(leafZ(0.2, 0, 4)).toBeGreaterThan(leafZ(0.2, 1, 4));
     expect(leafZ(0.8, 3, 4)).toBeGreaterThan(leafZ(0.8, 2, 4));
     expect(leafZ(0.8, 0, 4)).toBeGreaterThan(leafZ(0.2, 0, 4));
+  });
+});
+
+describe("the room a turning leaf needs", () => {
+  it("stands the viewer four page widths away, at any size", () => {
+    expect(turnRoom(600, 900, true, 60).depth).toBe(DEPTH * 600);
+    expect(turnRoom(350, 1400, false, 20).depth).toBe(DEPTH * 350);
+  });
+
+  it("covers the leaf standing upright over the spine, taller in perspective", () => {
+    for (const [width, height, spread] of [[636, 924, true], [350, 1405, false], [960, 1050, false]] as const) {
+      const { depth, room } = turnRoom(width, height, spread, 16);
+      // Upright, its near edge is `depth − width` from the viewer.
+      const reach = (height / 2) * (depth / (depth - width)) - height / 2;
+      expect(room, `${width}×${height}`).toBeGreaterThanOrEqual(reach);
+      expect(room, `${width}×${height}`).toBeLessThan(reach + 20);
+    }
+  });
+
+  it("covers a spread's free edge reaching past the fore-edge, and on one page the margin to the window's edge", () => {
+    // Sample a spread's leaf: no point projects further out than the room.
+    const width = 636;
+    const { depth, room } = turnRoom(width, 924, true, 60);
+    let far = 0;
+    for (let a = 0; a <= 180; a += 1) {
+      const t = (a * Math.PI) / 180;
+      far = Math.max(far, Math.abs(width * Math.cos(t)) * (depth / (depth - width * Math.sin(t))) - width);
+    }
+    expect(room).toBeGreaterThan(far);
+    // One page, a short page and a wide margin: the margin decides.
+    expect(turnRoom(600, 120, false, 300).room).toBe(312);
+    // A margin wider than the leaf's own swing is never asked for.
+    expect(turnRoom(300, 120, false, 2000).room).toBe(Math.ceil(300 * 1.1) + 12);
   });
 });
 

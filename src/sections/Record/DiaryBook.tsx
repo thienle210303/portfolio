@@ -28,6 +28,7 @@ import {
   stackLeaves,
   TURN_MS,
   turnMs,
+  turnRoom,
   type TurnDir,
 } from "@/lib/diary-turn";
 import type { ContentsChapter, DiaryPageKind } from "@/lib/record";
@@ -215,8 +216,10 @@ export function DiaryBook({
     const n = leaves().length;
     return openingOf(n - 1, perNow(), n);
   };
+  /** A page's width: the book's, or half of it on a spread. (Not the
+   *  track's, which is padded with the room a turning leaf needs.) */
   const pageWidth = () => {
-    const w = trackRef.current?.clientWidth ?? 0;
+    const w = trackRef.current?.parentElement?.clientWidth ?? 0;
     return spreadRef.current ? w / 2 : w;
   };
 
@@ -240,16 +243,26 @@ export function DiaryBook({
   };
 
   /** Every page as tall as the tallest, as a real book's are: measured with
-   *  the hidden pages laid out for the moment it takes to read them. */
+   *  the hidden pages laid out for the moment it takes to read them. Then the
+   *  perspective and the room a turning leaf needs, from the page's size. */
   const measure = () => {
     const track = trackRef.current;
-    if (!track || modeRef.current !== "leaf" || flight.current) return;
+    const book = track?.parentElement;
+    if (!track || !book || modeRef.current !== "leaf" || flight.current) return;
     track.style.setProperty("--page-h", "0px");
     const hidden = Array.from(track.querySelectorAll<HTMLElement>(":scope > .diary-slot[hidden]"));
     for (const slot of hidden) slot.removeAttribute("hidden");
-    const height = track.getBoundingClientRect().height;
+    // The track is padded with the room (and pulled back by as much margin),
+    // so the pages' height is its box less that padding.
+    const style = getComputedStyle(track);
+    const height = track.getBoundingClientRect().height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     for (const slot of hidden) slot.setAttribute("hidden", "until-found");
+    const page = book.getBoundingClientRect();
+    const { depth, room } = turnRoom(pageWidth(), height, spreadRef.current, page.left);
     track.style.setProperty("--page-h", `${Math.ceil(height)}px`);
+    track.style.setProperty("--depth", `${depth}px`);
+    track.style.setProperty("--room", `${room}px`);
+    track.scrollTo?.(0, 0);
   };
 
   /* ---------------------------------------------------------------- */
@@ -543,6 +556,14 @@ export function DiaryBook({
     if (!track) return;
     let frame = 0;
     const onScroll = () => {
+      // The leaves never scroll: the track stays a scroll container only so
+      // binding the book moves nothing on the page (a box that stops being
+      // one is a layout shift), but focus, find, `scrollIntoView` or a leaf
+      // in the air could still scroll it. Put it straight back.
+      if (modeRef.current === "leaf") {
+        if (track.scrollLeft !== 0 || track.scrollTop !== 0) track.scrollTo(0, 0);
+        return;
+      }
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => readRef.current());
     };
@@ -627,7 +648,7 @@ export function DiaryBook({
       // Back to the track (reduced motion asked for mid-visit): every page
       // shown, scrolled to the one that was open.
       show(null);
-      track.style.removeProperty("--page-h");
+      for (const name of ["--page-h", "--depth", "--room"]) track.style.removeProperty(name);
       const slot = leaves()[opening];
       track.scrollTo?.({ left: slot?.offsetLeft ?? 0, behavior: "instant" });
       read();
