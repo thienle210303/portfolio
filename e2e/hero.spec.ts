@@ -679,6 +679,48 @@ test.describe("hero", () => {
     });
   }
 
+  // Round 24: the field is a paddy. Text over the rice fails AA contrast, so
+  // neither caption may sit on it; and the buffalo stands in it, in the strip
+  // the drawing leaves bare for her (tests/lib/scenery.test.ts).
+  for (const width of [320, 390, 768, 1024, 1280, 1440]) {
+    for (const theme of ["day", "night"] as const) {
+      test(`the paddy keeps off both captions and holds the buffalo at ${width}, by ${theme}`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await open(page, theme);
+        const m = await page.evaluate(() => {
+          const box = (el: Element) => el.getBoundingClientRect();
+          const ink = (el: Element) => {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return range.getBoundingClientRect();
+          };
+          const shown = (sel: string) => [...document.querySelectorAll(`#about ${sel}`)].filter((el) => el.checkVisibility());
+          const paddy = shown('[data-scenery="paddy"], [data-scenery="paddy-phone"]').map(box);
+          const water = shown('[data-scenery="paddy-water"], [data-scenery="paddy-phone-water"]').map(box);
+          const captions = [
+            ink(document.querySelector("#about [data-moon-off-duty] > span:last-child")!),
+            ...shown('[data-scenery="hero"] > div p').map(ink),
+          ];
+          const buffalo = shown('[data-scenery^="buffalo-"]').map(box);
+          const near = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          return {
+            paddy: paddy.length,
+            water: water.length,
+            buffalo: buffalo.length,
+            onCaptions: paddy.flatMap((p) => captions.filter((c) => near(p, c)).map((c) => `${Math.round(c.left)},${Math.round(c.top)}`)),
+            inField: buffalo.every((b) => paddy.some((p) => b.left >= p.left && b.right <= p.right && b.top >= p.top && b.bottom <= p.bottom)),
+          };
+        });
+        expect(m.paddy).toBe(1);
+        expect(m.water).toBe(1);
+        expect(m.buffalo).toBe(1);
+        expect(m.onCaptions).toEqual([]);
+        expect(m.inField).toBe(true);
+      });
+    }
+  }
+
   test("the toggle swaps the scene in place", async ({ page }) => {
     await open(page);
     const moon = page.locator("#about [data-moon-off-duty]");

@@ -704,6 +704,19 @@
     pointer-events: none;
   }
 
+  /* Round 24, builder D: the paddy (the hero's field, `Scenery.tsx`). Its
+     drawings are at one unit a pixel; a box narrower than a drawing shows the
+     part round the buffalo (`--paddy-at` places the drawing in the box,
+     `--paddy-size` sizes it), and both ends of the box fade into the sky
+     rather than stopping at a hard edge. The gradient is mask alpha only. */
+  .paddy {
+    mask-image: var(--art), linear-gradient(to right, transparent, #000 var(--paddy-fade, 48px), #000 calc(100% - var(--paddy-fade, 48px)), transparent);
+    mask-position: var(--paddy-at, 0 0), 0 0;
+    mask-size: var(--paddy-size, 100% 100%), 100% 100%;
+    mask-repeat: no-repeat;
+    mask-composite: intersect;
+  }
+
   /* A shipping tag's cut corners. Only ever on a tag's paper, never on a
      focusable element. A focusable inside the paper keeps its ring (2px +
      3px offset) only if it clears every edge by 5px and sits below the

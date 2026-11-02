@@ -75,10 +75,19 @@ are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
 vignettes, Moon in her võng, the Hội An lantern, lit at night) take their file
 from `--art-sky` / `--art-vignette` / `--art-offduty` /
 `--art-journey-vignette` / `--art-record-vignette` / `--art-lantern`, so the
-theme swaps them in CSS with no script. The hero's buffalo is two masks painted
-by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, behind the rice) and
-sleeps at night (`buffalo-sleep`, in front of it), shown with `.day-only` /
-`.night-only`. The chapter tags' drawings are masks too: rice, a Venus
+theme swaps them in CSS with no script. The hero's field is a paddy (round
+24): flooded plots, dykes curving away, transplanted clumps in perspective rows
+on their reflections, a hamlet's trees on the far edge and ripe ears hanging on
+the near bank. It is two masks, `paddy` (the rice and its banks, `text-accent`)
+over `paddy-water` (`--scene-water`), a wide board from 1024 and
+`paddy-phone` / `paddy-phone-water` below, each at one unit a pixel in a box
+whose ends fade into the sky (`.paddy` in globals.css). The buffalo is two
+masks painted by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, over
+the water and under the rice, with `paddy-wake`, the mud she turns, in her own
+box half a box on) and sleeps at night (`buffalo-sleep`, in front of it all),
+shown with `.day-only` / `.night-only`. She stands in a strip the drawing
+leaves bare (`PADDY.*.clear` in the script, tested), so moving her in
+`Scenery.tsx` means moving the strip too. The chapter tags' drawings are masks too: rice, a Venus
 flytrap (Taylors grows it wild), an open book (USC), a laptop. The Diary's tree slice and its charts are
 not files: the slice's rings are computed from content (`src/lib/record.ts`) and a
 page's before/after bars and tally marks from the entry's `diary.figure`, both

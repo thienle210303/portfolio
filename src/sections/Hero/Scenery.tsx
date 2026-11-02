@@ -5,8 +5,8 @@
  * the sky stand in a centred 1440 frame (`50% ± n px`) and keep the board's
  * relation to the words at any width. From 1024 to 1279 they take the %
  * positions; below 1024 the ground is the phone board's (NatHeroPhone):
- * Moon at the left in her võng, the buffalo in a short rice patch about the
- * middle (`50%`-based), the stool and its caption at the right (`right-4`).
+ * Moon at the left in her võng, the buffalo in the paddy between them about
+ * the middle (`50%`-based), the stool and its caption at the right (`right-4`).
  *
  * The clothesline shows from 1024, at most 1920 wide and centred; its top is
  * `--line-top` below the section's padding, the same offset the chapter tags'
@@ -30,8 +30,28 @@ import type { CSSProperties } from "react";
 import { companions, hero } from "@/content/portfolio";
 import { Drawing } from "@/components/scenery/Drawing";
 
+// From 1024 the buffalo stands where the paddy's drawing leaves her a bare
+// strip: x 327 of it (see PADDY below), so 263px into its box from 1024 to
+// 1279, where the box starts 64 units into the drawing.
 const BUFFALO =
-  "absolute bottom-[30px] left-[calc(50%-46px)] h-[50px] w-[120px] text-[color:var(--scene-buffalo)] max-[359px]:h-[38px] max-[359px]:w-[91px] lg:bottom-[30px] lg:left-[60%] lg:h-[80px] lg:w-[192px] xl:left-[calc(50%+185px)]";
+  "absolute bottom-[30px] left-[calc(50%-46px)] h-[50px] w-[120px] text-[color:var(--scene-buffalo)] max-[359px]:h-[38px] max-[359px]:w-[91px] lg:bottom-[30px] lg:left-[calc(max(29%,11.1%+230px)+423px)] lg:h-[80px] lg:w-[192px] xl:left-[calc(50%+185px)]";
+
+// The mud she turns behind the plough: her own box, moved half its width on,
+// so it follows the share at every size she is drawn at.
+const WAKE = `${BUFFALO} translate-x-1/2`;
+
+// The paddy (round 24). Below 1024 the phone board, 840 × 150 at one unit a
+// pixel, its x 420 on the buffalo's middle (50% + 14px), standing 24px up so
+// the two captions sit under the field, not on it: text over the rice fails
+// AA contrast. Under 360 she shrinks to 0.76 and the board with her, about
+// her feet. From 1024 the wide board, 750 × 190, starts 4px past the stool's
+// caption (whose left edge is `max(29%, 11.1% + 230px)`) and shows from x 64
+// to the window's edge; from 1280 it is whole, at frame x 578 to 1328, clear
+// of the pine's trunk. Both ends fade (`.paddy` in globals.css).
+const PADDY_PHONE =
+  "paddy absolute right-24 bottom-6 left-24 h-[150px] [--paddy-fade:24px] [--paddy-at:calc(50%_+_14px)_0] [--paddy-size:840px_150px] lg:hidden max-[359px]:bottom-[25.5px] max-[359px]:h-[114px] max-[359px]:[--paddy-at:50%_0] max-[359px]:[--paddy-size:auto_100%]";
+const PADDY_WIDE =
+  "paddy absolute bottom-0 hidden h-[190px] [--paddy-size:750px_190px] lg:block lg:left-[calc(max(29%,11.1%+230px)+160px)] lg:w-[min(100%-max(29%,11.1%+230px)-160px,686px)] lg:[--paddy-at:-64px_0] xl:left-[calc(50%-142px)] xl:w-[750px] xl:[--paddy-at:0_0]";
 
 export default function Scenery() {
   return (
@@ -101,33 +121,29 @@ export default function Scenery() {
         name="pine"
         className="absolute top-[calc(var(--section-y)+var(--line-top)-49px)] bottom-0 left-[calc(var(--tr)-96px)] hidden w-[180px] text-accent [mask-position:top] [mask-size:100%_auto] lg:block"
       />
-      <Drawing
-        name="ripples"
-        className="absolute bottom-[10px] left-[calc(50%-160px)] h-[30px] w-[660px] text-[color:var(--scene-water)] max-xl:hidden"
-      />
       {/* Below 1024 the sky's low band again (seeds by day, fireflies by
           night) just above the ground; the top of the sky is behind the tags. */}
       <span
         className="scene-art absolute inset-x-0 bottom-[90px] h-[260px] bg-[position:right_bottom_-40px] bg-[size:1440px_auto] lg:hidden"
         style={{ "--art": "var(--art-sky)" } as CSSProperties}
       />
-      {/* Round 23: she ploughs by day, before the rice so the stalks draw
-          over her. Below 1024 she stands between Moon and the stool and
-          shrinks under 360 so the three do not touch. */}
+      {/* Round 24: the paddy's water first (the flooded plots, the
+          clumps' reflections, light on the water), then the rice over it. */}
+      <Drawing name="paddy-phone-water" className={`${PADDY_PHONE} text-[color:var(--scene-water)]`} />
+      <Drawing name="paddy-water" className={`${PADDY_WIDE} text-[color:var(--scene-water)]`} />
+      {/* Round 23: she ploughs by day, in the plot nothing is planted in yet,
+          the mud turning behind the plough. Below 1024 she stands between
+          Moon and the stool and shrinks under 360 so the three do not touch. */}
+      <Drawing name="paddy-wake" className={`day-only [display:var(--show-day)]! ${WAKE}`} />
       <Drawing
         name="buffalo-plow"
         className={`day-only [display:var(--show-day)]! ${BUFFALO}`}
       />
-      {/* Below 1024 a short patch of the field (its middle, cropped) round
-          the buffalo, standing 24px up so the two captions sit under the
-          stalks, not on them: text over the stalks fails AA contrast. */}
-      <Drawing
-        name="rice-field"
-        className="absolute bottom-6 left-[calc(50%+14px-min(85px,19%))] h-[110px] w-[min(170px,38%)] text-accent [mask-size:auto_100%] lg:bottom-0 lg:left-[45%] lg:h-[160px] lg:w-[655px] lg:[mask-size:contain] xl:left-[calc(50%-145px)]"
-      />
+      <Drawing name="paddy-phone" className={`${PADDY_PHONE} text-accent`} />
+      <Drawing name="paddy" className={`${PADDY_WIDE} text-accent`} />
 
-      {/* At night she lies down, in front of the stalks so the dusk sky does
-          not swallow her. */}
+      {/* At night she lies down in the water, in front of the rice so the
+          dusk sky does not swallow her. */}
       <Drawing
         name="buffalo-sleep"
         className={`night-only [display:var(--show-night)]! ${BUFFALO}`}
