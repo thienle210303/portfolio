@@ -125,6 +125,20 @@ describe("Hero", () => {
     expect(vignette?.style.getPropertyValue("--art")).toBe("var(--art-vignette)");
   });
 
+  it("the paddy: water under her, rice over her by day, and her at night over both", () => {
+    const { container } = renderHero();
+    const order = [...container.querySelectorAll('[data-scenery="hero"] > [data-scenery]')].map((e) => e.getAttribute("data-scenery"));
+    const at = (name: string) => order.indexOf(name);
+    for (const water of ["paddy-water", "paddy-phone-water"]) expect(at(water)).toBeLessThan(at("buffalo-plow"));
+    for (const rice of ["paddy", "paddy-phone"]) {
+      expect(at(rice)).toBeGreaterThan(at("buffalo-plow"));
+      expect(at(rice)).toBeLessThan(at("buffalo-sleep"));
+    }
+    // The mud turning behind the plough is there only while she ploughs.
+    expect(container.querySelector('[data-scenery="paddy-wake"]')).toHaveClass("day-only");
+    expect(at("paddy-wake")).toBeLessThan(at("buffalo-plow"));
+  });
+
   it("shows the morning by day and the evening at night", () => {
     const { about } = renderHero();
     // The buffalo's two drawings are `.day-only` / `.night-only` too; the captions are the ones with words.

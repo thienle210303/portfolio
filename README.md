@@ -90,8 +90,8 @@ CSS variable (the raw names would collide with Tailwind colours):
 |---|---|
 | `--twine` | the clothesline, the tags' strings and holes |
 | `--gold` | the star on my field tag |
-| `--scene-water` | the ripples under the rice |
-| `--scene-buffalo` | the buffalo |
+| `--scene-water` | the paddy's water and the clumps' reflections |
+| `--scene-buffalo` | the buffalo, and the mud she turns |
 | `--art-sky` | the hero's sky file (day: sun, night: moon) |
 | `--art-vignette` | the vignette file (day: the phin, night: the lẩu) |
 | `--scene-bark` | the Journey's oak and its branch (day: ink, night: a silhouette) |
