@@ -344,7 +344,7 @@ export const careerEntries = [
         "Onboarded merchants from 2 to 25 a month.",
       ],
       figure: { kind: "before-after", caption: "One catalog scraper's runtime", before: { label: "17 hours", value: 1020 }, after: { label: "3 minutes", value: 3 } },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "Calling the API instead of crawling the pages found data the crawl never reached.",
     },
   },
@@ -388,7 +388,7 @@ export const careerEntries = [
         "Speech QA that verifies each transcript and regenerates what it hears wrong.",
       ],
       figure: { kind: "count", caption: "Issues resolved", total: 50 },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "ElevenLabs says each word, Google's speech recognition listens back, and a miss gets regenerated.",
     },
   },
@@ -428,7 +428,7 @@ export const careerEntries = [
         "A Jira collector for live production debugging, and automated Zebra label printing.",
       ],
       figure: { kind: "before-after", caption: "Production throughput", before: { label: "Paper setup sheets", value: 100 }, after: { label: "+96% with my Java", value: 196 } },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "I fuzzy-matched 1M+ legacy records with the Damerau–Levenshtein algorithm, a name with two surnames in it.",
     },
   },
@@ -473,7 +473,7 @@ export const careerEntries = [
         "Sellers and products crawled breadth-first as a graph, by rating, review volume and product count.",
       ],
       figure: { kind: "before-after", caption: "Scraper runtime", before: { label: "Element by element", value: 100 }, after: { label: "−95% in one script", value: 5 } },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "The scrapers mimicked human interaction patterns to avoid detection, and ran unattended for months.",
     },
   },
@@ -508,7 +508,7 @@ export const careerEntries = [
         "Open lab hours for the introductory programming courses.",
       ],
       figure: { kind: "count", caption: "Each dot is ten students", total: 200, per: 10 },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "Explaining a data structure to someone who isn't a CS major is the fastest way to find out whether I understand it.",
     },
   },
@@ -537,7 +537,7 @@ export const careerEntries = [
         "Started in chemical engineering, then switched.",
       ],
       figure: { kind: "drawing", caption: "Graduated May 2025", name: "diary-cap" },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "The cybersecurity minor changed how I read systems: I started looking for what a system assumes about the people using it.",
     },
   },
@@ -596,7 +596,7 @@ export const careerEntries = [
         "Python/Flask and React behind it, with APIs.",
       ],
       figure: { kind: "count", caption: "A team of three", total: 3 },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "MentorHub was built during the hackathon itself, by a team of three that I led.",
     },
   },
@@ -639,7 +639,7 @@ export const careerEntries = [
         "Python/Flask and React, with Redux and SQL.",
       ],
       figure: { kind: "drawing", caption: "2nd place", name: "diary-podium" },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "At the Alpharetta hackathon in 2023, my team was Atlanta Community Food Bank Team 4.",
     },
   },
@@ -675,7 +675,7 @@ export const careerEntries = [
     learned: undefined,
     technologies: ["PyTorch", "Transformers", "DistilBERT", "GPT-2", "Fine-tuning"],
     diary: {
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "A DistilBERT fine-tuned on a 50K IMDB review dataset reached 92% accuracy.",
     },
   },
@@ -709,7 +709,7 @@ export const careerEntries = [
     learned: undefined,
     technologies: [],
     diary: {
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "ACM@USC, the chapter whose website I looked after, also ran the CockyHacks where MentorHub won Best Design.",
     },
   },
@@ -764,7 +764,7 @@ export const careerEntries = [
       "Reading a language and speaking it are different skills, and only one of them can be practised alone.",
     technologies: [],
     diary: {
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "I landed in December 2018, at fifteen, and was in an American classroom three weeks later.",
     },
   },
@@ -797,7 +797,7 @@ export const careerEntries = [
       "Service is a system under load, and the kitchen teaches you where a process actually breaks faster than any diagram.",
     technologies: [],
     diary: {
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "I worked both sides of the family restaurant: the line, and the floor.",
     },
   },
@@ -841,7 +841,7 @@ export const careerEntries = [
         "Investing, and personal finance.",
       ],
       figure: { kind: "drawing", caption: "Plants, an aquarium, stocks and money", name: "diary-selftaught" },
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "It never stopped. I still do some of it.",
     },
   },
@@ -863,7 +863,7 @@ export const careerEntries = [
       "No chemical equation seemed more interesting than a linear equation.",
     technologies: [],
     diary: {
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "No chemical equation seemed more interesting than a linear equation.",
     },
   },
@@ -884,7 +884,7 @@ export const careerEntries = [
     learned: "The recommendation was worth more than the plan.",
     technologies: [],
     diary: {
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "My friends told me to try computer science, and the recommendation was worth more than the plan.",
     },
   },
@@ -910,7 +910,7 @@ export const careerEntries = [
       "Teaching people who did not choose this subject is the fastest way to find out which parts of it you only think you understand.",
     technologies: ["JavaScript", "HTML/CSS", "Python"],
     diary: {
-      // DRAFT 2026-11-01 — awaiting Thien's approval
+      // APPROVED 2026-11-01 by Thien
       funFact: "Teaching people who did not choose this subject shows me which parts I only think I understand.",
     },
   },

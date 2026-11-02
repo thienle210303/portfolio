@@ -118,7 +118,9 @@ diary: {
 - Every figure in a bullet, the highlight, or a chart's labels and caption must
   also be in the entry's own `impact`, `context` or `headline`
   (`tests/lib/record.test.ts`). A fun fact may use anything the entry says
-  about itself; draft it, mark it, and list it for the owner to approve.
+  about itself; draft it, mark it, and list it for the owner to approve. Once
+  approved, the mark becomes `// APPROVED <date> by Thien` (the test accepts
+  either; the round 23 sixteen were approved on 2026-11-01).
 - `figure` is one of three: `before-after` (two bars; `value` is only the
   bar's length, the label carries the figure), `count` (dots when `per` is set
   or there are twelve or fewer, otherwise tally gates of five), or `drawing`
