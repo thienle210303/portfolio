@@ -664,6 +664,54 @@ const banhTet = `<rect x="-70" y="-22" width="120" height="44" rx="20" fill="#5E
   + `<ellipse cx="70" cy="0" rx="11" ry="12" fill="#E3C46A"/><ellipse cx="70" cy="0" rx="5" ry="5.5" fill="#C98B7A"/>`;
 const paperClip = `<path d="M10 70V16a7 7 0 0 1 14 0v58a10 10 0 0 1-20 0V22" fill="none" stroke="#8C949A" stroke-width="2.6" stroke-linecap="round"/>`;
 
+// ---- The SENT stamp's wear (round 24) ----
+// A one-colour mask for the rubber stamp inked on the postcard: opaque
+// everywhere except pinholes and a few dropouts. The holes crowd the rim (where
+// a worn stamp loses its ink first) and a few patches (uneven pressure), and
+// are sparse across the middle so the words stay whole. The page lays it over
+// the stamp's own box at 100% 100%, so the speck size follows the stamp. One
+// even-odd path: a hole is a small polygon wound inside the sheet, and none
+// overlaps another (a second hole on the first would fill it again).
+const STAMP_WEAR_BOX = [200, 124];
+function stampWear() {
+  const [W, H] = STAMP_WEAR_BOX, r = rng(2401);
+  const patches = Array.from({ length: 4 }, () => ({ x: r() * W, y: r() * H, rad: 16 + r() * 14 }));
+  const holes = [];
+  let d = `M0 0H${W}V${H}H0Z`;
+  const fits = (x, y, rad) => holes.every((h) => Math.hypot(h.x - x, h.y - y) > h.rad + rad + 0.8);
+  const hole = (x, y, rad, sides = 4) => {
+    // An irregular little polygon, written as relative steps to keep the file small.
+    const pts = Array.from({ length: sides }, (_, k) => {
+      const a = ((k + r() * 0.5) / sides) * Math.PI * 2, rr = rad * (0.65 + r() * 0.7);
+      return [x + Math.cos(a) * rr, y + Math.sin(a) * rr];
+    });
+    let out = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let k = 1; k < sides; k++) out += `l${f(pts[k][0] - pts[k - 1][0])} ${f(pts[k][1] - pts[k - 1][1])}`;
+    return `${out}Z`;
+  };
+  // pinholes, thickest at the rim and in the pressure patches
+  for (let i = 0; i < 3200 && holes.length < 340; i++) {
+    const x = r() * W, y = r() * H;
+    const rim = Math.exp(-Math.min(x, W - x, y, H - y) / 8);
+    const patch = Math.max(0, ...patches.map((p) => 1 - Math.hypot(x - p.x, y - p.y) / p.rad));
+    if (r() > 0.012 + 0.5 * rim + 0.32 * patch) continue;
+    const rad = 0.45 + r() * (0.7 + 1.5 * rim);
+    if (!fits(x, y, rad)) continue;
+    holes.push({ x, y, rad });
+    d += hole(x, y, rad);
+  }
+  // a few larger dropouts, only on the rim, where the ink skipped
+  for (let i = 0; i < 400 && holes.length < 352; i++) {
+    const side = Math.floor(r() * 4), t = r();
+    const [x, y] = [[t * W, 2.5], [t * W, H - 2.5], [2.5, t * H], [W - 2.5, t * H]][side];
+    const rad = 2.4 + r() * 2.6;
+    if (!fits(x, y, rad)) continue;
+    holes.push({ x, y, rad });
+    d += hole(x, y, rad, 5);
+  }
+  return `<path fill="${K}" fill-rule="evenodd" d="${d}"/>`;
+}
+
 /** Contact's files. Their names are listed in tests/lib/scenery.test.ts. */
 function contactDrawings() {
   return {
@@ -676,6 +724,9 @@ function contactDrawings() {
     bia: svg("-42 -76 84 82", bia),
     "banh-tet": svg("-72 -24 164 48", banhTet),
     "paper-clip": svg("0 0 34 86", paperClip),
+    // `none`: the page stretches it over the stamp's box, whatever its shape, so
+    // the sheet must reach every edge instead of being letterboxed.
+    "stamp-wear": svg(`0 0 ${STAMP_WEAR_BOX[0]} ${STAMP_WEAR_BOX[1]}`, stampWear()).replace("<svg ", `<svg preserveAspectRatio="none" `),
   };
 }
 

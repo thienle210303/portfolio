@@ -19,7 +19,26 @@ reference: [README.md](README.md).
   `RESEND_API_KEY` / `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set
   (read at build time, see `.env.example`) or a send fails, it says so in
   first person and offers my address with a copy button. That is intentional,
-  not a bug. A send is confirmed by a "SENT" stamp inked on the form.
+  not a bug. A send is confirmed by a "SENT" rubber-stamp impression
+  (`SentStamp.tsx`; round 24): in the picture's empty sky, left of the sun and
+  clear of the pines and the heading, where the postcard's two sides stand side
+  by side, and on the address side under the confirmation line where they
+  stack. It is never over a word, a field or a control, it is `aria-hidden`
+  (the status line carries the meaning), and its worn ink is a mask
+  (`stamp-wear`) that only CSS uses. Email or phone is one requirement, said
+  before they try: one `*`, one bracket and one note ("One is enough, both is
+  fine.") under the pair, and a miss is still one error about the pair.
+  **The thank-you.** When `CONTACT_REPLY_FROM` is also set (optional, off by
+  default: an address on a domain verified in Resend; the shared
+  `onboarding@resend.dev` sender can only mail my own inbox, so leave it unset
+  until the site has a domain), a visitor who left an email gets a short static
+  thank-you from `Thien Le <that address>` after my own copy has sent,
+  replying to my inbox. It never repeats anything the visitor typed, not even
+  their name (the form would otherwise be a relay for any text to any
+  address), a failed thank-you never fails the lead (it is logged), a
+  phone-only lead gets nothing (no SMS: it is not free), and the page adds "A
+  thank-you is on its way" only when the response says `thanked`. Unlike the
+  three variables above it is read at request time, by `/api/contact` alone.
 - Targets: **WCAG 2.2 AA** and Lighthouse 90+/95+/95+/95+. These are design
   constraints, not afterthoughts — they're why there's no motion library, no
   icon font, and why sections render on the server by default.

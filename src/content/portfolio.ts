@@ -1726,6 +1726,11 @@ export const contactCopy = {
   formHeading: "Leave a way to reach you.",
   formNote: "No message needed. I'll write first.",
   fields: { name: "Your name", email: "Email", phone: "or phone" },
+  /** Under the email and phone lines, said before they try (round 24): the
+   *  pair is one requirement, and the page marks it once with a `*`. The
+   *  group's name is for a screen reader; the note is what it describes. */
+  pairGroup: "A way to reach you",
+  pairNote: "One is enough, both is fine.",
   send: "Send the postcard",
   /** Under the button when sending works (round 23). */
   sendNote: "Goes straight to my inbox.",
@@ -1735,6 +1740,18 @@ export const contactCopy = {
   success: "Stamped and sent. It's in my inbox, and I'll write first.",
   /** Inked into the stamp. */
   stamp: "Sent",
+  /** Round 24: added under the line above when a thank-you email has been
+   *  handed to the mail service (only with `CONTACT_REPLY_FROM` set and an
+   *  email given; never for a phone-only lead). */
+  thanked: "A thank-you is on its way to your inbox.",
+  /** The thank-you email itself. Static on purpose: it never repeats anything
+   *  the visitor typed, not even their name, so the form cannot be used to
+   *  send a stranger text of the sender's choosing. */
+  thanks: {
+    subject: "Thanks for the postcard",
+    body: "Thanks for the postcard. It reached me, and I'll write first.",
+    signoff: "Thien",
+  },
   /** Said when the server can't send (no key) and when a send fails. */
   offline: "I can't send this from here, so nothing has left your browser. Write to me directly:",
   failed: "That didn't go through, and the fault is on my side. Nothing was sent; write to me directly:",

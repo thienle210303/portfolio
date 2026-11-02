@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { contactCopy, profile } from "../src/content/portfolio";
 
 /**
@@ -11,6 +12,10 @@ import { contactCopy, profile } from "../src/content/portfolio";
  * The posting tests mock the route with `page.route` and skip on a build
  * without the env; the "cannot send" test runs on either (directly, or through
  * a mocked 503).
+ *
+ * Round 24: the SENT stamp lands on empty paper (the picture's sky where the
+ * postcard's sides stand side by side, the address side under the confirmation
+ * where they stack), and email-or-phone is said before they try.
  */
 
 const PAIR_ERROR = "Add an email or a phone number so I can reach you.";
@@ -27,6 +32,16 @@ const card = (page: Page) => page.locator('#contact aside[aria-label="Thien Le â
 const postcard = (page: Page) => page.locator("#contact [data-postcard]");
 const field = (page: Page, label: RegExp) => postcard(page).getByLabel(label);
 const send = (page: Page) => postcard(page).getByRole("button", { name: contactCopy.send });
+/** The stamp's two copies are both in the DOM (the picture's and the address
+ *  side's); CSS shows exactly one, by the postcard's own width. */
+const stamp = (page: Page) => postcard(page).locator("[data-sent-stamp]:visible");
+
+async function sendAnEmailLead(page: Page) {
+  await field(page, /^Your name/).fill("Jamie Reviewer");
+  await field(page, /^Email/).fill("jamie@example.com");
+  await send(page).click();
+  await expect(postcard(page).getByRole("status")).toContainText(contactCopy.success);
+}
 
 /** The build's delivery mode, which the form declares. */
 async function postsToApi(page: Page): Promise<boolean> {
@@ -159,7 +174,7 @@ test("email-only lead posts and shows success", async ({ page }) => {
   await send(page).click();
 
   await expect(postcard(page).getByRole("status")).toHaveText(contactCopy.success);
-  await expect(postcard(page).locator("[data-sent-stamp]")).toContainText(contactCopy.stamp);
+  await expect(stamp(page)).toContainText(contactCopy.stamp);
   expect(bodies).toEqual([{ name: "Jamie Reviewer", email: "jamie@example.com", phone: "", website: "" }]);
   await expect(field(page, /^Your name/)).toHaveValue("");
 });
@@ -177,6 +192,22 @@ test("phone-only lead posts", async ({ page }) => {
   expect(bodies).toEqual([{ name: "Jamie Reviewer", email: "", phone: "+1 (864) 555-0100", website: "" }]);
 });
 
+test("email or phone is said before they try: one marker, one note, neither line required alone", async ({ page }) => {
+  onlyAt(page, WIDTHS);
+  await open(page);
+  const pair = postcard(page).getByRole("group", { name: contactCopy.pairGroup });
+  await expect(pair).toBeVisible();
+  await expect(pair.getByText(contactCopy.pairNote)).toBeVisible();
+  await expect(pair).toHaveAccessibleDescription(contactCopy.pairNote);
+  expect(((await pair.textContent()) ?? "").match(/\*/g)).toHaveLength(1);
+  for (const label of [/^Email/, /^or phone/]) {
+    await expect(field(page, label)).not.toHaveAttribute("required", "");
+    await expect(field(page, label)).not.toHaveAttribute("aria-invalid", "true");
+  }
+  // Nothing to fix yet, and nothing is said about the pair as an error.
+  await expect(postcard(page).getByText(PAIR_ERROR)).toHaveCount(0);
+});
+
 test("neither shows the paired error", async ({ page }) => {
   onlyAt(page, WIDTHS);
   await open(page);
@@ -185,6 +216,7 @@ test("neither shows the paired error", async ({ page }) => {
   await send(page).click();
 
   await expect(postcard(page).getByText(PAIR_ERROR)).toHaveCount(1);
+  await expect(postcard(page).getByText(contactCopy.pairNote)).toHaveCount(1);
   for (const label of [/^Email/, /^or phone/]) {
     await expect(field(page, label)).toHaveAttribute("aria-invalid", "true");
     await expect(field(page, label)).toHaveAccessibleDescription(PAIR_ERROR);
@@ -407,4 +439,182 @@ test("the night lanterns are lit and the day's silk is not fetched at night", as
   expect(fetched.some((u) => u.endsWith("/scenery/lanterns-night.svg"))).toBe(true);
   expect(fetched.some((u) => u.endsWith("/scenery/lanterns-day.svg"))).toBe(false);
   await context.close();
+});
+
+/* -------------------------------------------------------------------------- */
+/* Round 24: the SENT stamp on empty paper                                     */
+/* -------------------------------------------------------------------------- */
+
+const ALL_WIDTHS = [320, 375, 390, 768, 1024, 1440];
+
+test("the SENT stamp lands on empty paper, in view, over no word, field or control", async ({ page }) => {
+  onlyAt(page, ALL_WIDTHS);
+  // Where the paper lies, not mid-entrance, and with the scroll settled at once.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page);
+  test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
+  await mockApi(page, 200, { ok: true, thanked: true });
+  await sendAnEmailLead(page);
+  await expect(stamp(page)).toHaveCount(1);
+  await expect(stamp(page)).toHaveAttribute("aria-hidden", "true");
+  await expect(stamp(page)).toContainText(contactCopy.stamp);
+  await expect(stamp(page)).toContainText("TAYLORS SC");
+
+  const found = await stamp(page).evaluate((el) => {
+    const mine = el.getBoundingClientRect();
+    const hits: string[] = [];
+    const overlaps = (a: DOMRect, b: DOMRect, slack = 1) =>
+      a.left < b.right - slack && a.right > b.left + slack && a.top < b.bottom - slack && a.bottom > b.top + slack;
+    const paper = el.closest("[data-postcard]")!;
+    // Every word, field and control on the postcard, and its two drawn stamps.
+    const things = paper.querySelectorAll<HTMLElement>(
+      "h3, p, label, input, button, a, [data-scenery='flag-stamp'], [data-scenery='postmark'], [data-scenery='postmark'] + span",
+    );
+    for (const thing of things) {
+      if (el.contains(thing) || thing.id === "lead-website") continue;
+      const box = thing.getBoundingClientRect();
+      if (box.width === 0 || box.height === 0) continue;
+      if (overlaps(mine, box)) hits.push(`${thing.tagName.toLowerCase()} ${(thing.textContent ?? thing.getAttribute("data-scenery") ?? "").trim().slice(0, 30)}`);
+    }
+    return { hits, where: (el as HTMLElement).dataset.sentStamp, rect: [mine.left, mine.top, mine.right, mine.bottom].map(Math.round) };
+  });
+  expect(found.hits, `the stamp ${JSON.stringify(found.rect)} sits over: ${found.hits.join(", ")}`).toEqual([]);
+  // In view, whole, once the scroll that brings it there has settled.
+  await expect
+    .poll(
+      () =>
+        stamp(page).evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          // A pixel of slack: a stamp scrolled "to the nearest edge" ends on it.
+          return r.top >= -1 && r.bottom <= window.innerHeight + 1 && r.left >= -1 && r.right <= window.innerWidth + 1;
+        }),
+      { message: "the stamp is wholly in view", timeout: 5_000 },
+    )
+    .toBe(true);
+  // Side by side it is on the picture; stacked, on the address side's paper.
+  expect(found.where).toBe((page.viewportSize()?.width ?? 0) >= 768 ? "board" : "slot");
+});
+
+test("on the picture the stamp keeps to the empty sky: left of the sun, above the pines, under the heading", async ({ page }) => {
+  onlyAt(page, [768, 1024, 1440]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page);
+  test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
+  await mockApi(page, 200, { ok: true });
+  await sendAnEmailLead(page);
+  await expect(stamp(page)).toHaveAttribute("data-sent-stamp", "board");
+
+  // In the drawing's own 340 x 440 units, from layout sizes (not the turned
+  // screen boxes), so the postcard's slight tilt does not blur the answer.
+  const sky = await stamp(page).evaluate((node) => {
+    const el = node as HTMLElement;
+    const box = el.offsetParent as HTMLElement;
+    const scale = 340 / box.offsetWidth;
+    const w = el.offsetWidth, h = el.offsetHeight, a = (5 * Math.PI) / 180;
+    // The stamp's own turn of 5 degrees: the corners of its box, about its centre.
+    const cx = el.offsetLeft + w / 2, cy = el.offsetTop + h / 2;
+    const spanX = (w * Math.cos(a) + h * Math.sin(a)) / 2, spanY = (w * Math.sin(a) + h * Math.cos(a)) / 2;
+    const heading = box.closest(".postcard-sky")!.querySelector("p")!;
+    const headingBottom = heading.offsetTop + heading.offsetHeight - box.offsetTop;
+    return {
+      left: (cx - spanX) * scale,
+      right: (cx + spanX) * scale,
+      top: cy - spanY,
+      bottom: (cy + spanY) * scale,
+      topAboveHeadingPx: cy - spanY - headingBottom,
+      boxWidth: box.offsetWidth,
+    };
+  });
+  // The sun's ring starts at x 216 and the pines' tips are at y 150.
+  expect(sky.left, "inside the picture").toBeGreaterThanOrEqual(0);
+  expect(sky.right, "clear of the sun").toBeLessThanOrEqual(212);
+  expect(sky.bottom, "clear of the pines").toBeLessThanOrEqual(146);
+  expect(sky.topAboveHeadingPx, "clear of the heading (px)").toBeGreaterThanOrEqual(4);
+  expect(sky.boxWidth).toBeGreaterThan(200);
+});
+
+test("the stamp is bigger and easier to see than round 23's: at least the size of its words", async ({ page }) => {
+  onlyAt(page, [390, 1440]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page);
+  test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
+  await mockApi(page, 200, { ok: true });
+  await sendAnEmailLead(page);
+  const box = await stamp(page).boundingBox();
+  // Round 23's was ~135 x 65. This one is a double-ruled plate with SENT in heavy caps.
+  expect(box!.width).toBeGreaterThan(150);
+  expect(box!.height).toBeGreaterThan(85);
+  const sizes = await stamp(page).evaluate((el) => ({
+    word: getComputedStyle(el.querySelector(".sent-stamp__word")!).fontWeight,
+    wordPx: parseFloat(getComputedStyle(el.querySelector(".sent-stamp__word")!).fontSize),
+    smallPx: parseFloat(getComputedStyle(el.querySelector(".sent-stamp__place")!).fontSize),
+    rule: getComputedStyle(el).borderTopStyle,
+    masked: getComputedStyle(el).maskImage,
+  }));
+  expect(Number(sizes.word)).toBeGreaterThanOrEqual(800);
+  expect(sizes.wordPx).toBeGreaterThan(30);
+  expect(sizes.smallPx, "the small lines stay legible").toBeGreaterThanOrEqual(8);
+  expect(sizes.rule).toBe("solid");
+  expect(sizes.masked).toContain("/scenery/stamp-wear.svg");
+});
+
+test("it lands like a stamp where motion is welcome, and is simply there under reduced motion", async ({ page }) => {
+  onlyAt(page, [1440]);
+  for (const motion of ["no-preference", "reduce"] as const) {
+    await page.emulateMedia({ reducedMotion: motion });
+    await open(page);
+    test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
+    await page.unroute("**/api/contact").catch(() => {});
+    await mockApi(page, 200, { ok: true });
+    await sendAnEmailLead(page);
+    const now = await stamp(page).evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { name: cs.animationName, opacity: cs.opacity, scale: cs.scale };
+    });
+    if (motion === "reduce") expect(now, "already there").toMatchObject({ name: "none", opacity: "1", scale: "none" });
+    else expect(now.name).toBe("sent-stamp-press");
+    // And once it has landed, it is whole and settled either way.
+    await expect.poll(() => stamp(page).evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+  }
+});
+
+test("a thank-you line appears only when a thank-you went, and phone-only gets none", async ({ page }) => {
+  onlyAt(page, [390, 1440]);
+  await open(page);
+  test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
+  await mockApi(page, 200, { ok: true, thanked: true });
+  await sendAnEmailLead(page);
+  await expect(postcard(page).getByRole("status")).toContainText(contactCopy.thanked);
+
+  await page.unroute("**/api/contact");
+  await mockApi(page, 200, { ok: true, thanked: false });
+  await field(page, /^Your name/).fill("Jamie Reviewer");
+  await field(page, /^or phone/).fill("+1 (864) 555-0100");
+  await send(page).click();
+  await expect(postcard(page).getByRole("status")).toContainText(contactCopy.success);
+  await expect(postcard(page).getByRole("status")).not.toContainText(contactCopy.thanked);
+});
+
+test("the stamped postcard has zero WCAG violations, by day and by night", async ({ page }) => {
+  onlyAt(page, [1440]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page);
+  test.skip(!(await postsToApi(page)), "this build has no Resend env, so the form never posts");
+  await mockApi(page, 200, { ok: true, thanked: true });
+  await sendAnEmailLead(page);
+  await page.waitForTimeout(500);
+  for (const theme of ["day", "night"] as const) {
+    if ((await page.locator("html").getAttribute("data-theme")) !== theme) {
+      await page.getByRole("button", { name: `Switch to ${theme} theme` }).click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    }
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .include("#contact [data-postcard]")
+      .analyze();
+    expect(
+      results.violations.map((v) => `[${v.id}] ${v.help}: ${v.nodes.map((n) => n.target.join(" ")).join("; ")}`),
+      theme,
+    ).toEqual([]);
+  }
 });
