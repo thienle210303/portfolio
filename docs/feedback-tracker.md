@@ -2343,15 +2343,17 @@ Five asks from Thien after testing round 23's preview, designed in `docs/superpo
 | When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
 |---|---|---|---|---|---|---|
 | Before (round 23, last row) | 204,163 B | 204,163 B | 28,879 B | 117,868 B | 0 | 1639 |
-| After | 210,856 B | 210,856 B | 32,411 B | 117,868 B | 0 | 1718 |
+| After | 211,076 B | 211,076 B | 32,411 B | 117,868 B | 0 | 1718 |
 
-- **JS at load +6,693 B** (on the wire). About 4.1 KB of it is `DiaryBook`'s turning code; the rest is mostly Bé Nhi's drawing and act, plus the postcard's `SentStamp`. The Ask's redesign stays behind its dynamic import.
+- **JS at load +6,913 B** (on the wire). About 4.3 KB of it is `DiaryBook`'s turning code; the rest is mostly Bé Nhi's drawing and act, plus the postcard's `SentStamp`. The Ask's redesign stays behind its dynamic import.
 - **CSS +3,532 B.** The paddy, the stamp, the Ask's paper and the book's object.
 - **DOM +79 nodes.** The book's stacks, sheets and shades, and the paddy's two drawings.
-- LCP 1108 ms (the sky's art), TBT 50 ms.
+- LCP 1096 ms (the sky's art), TBT 54 ms.
 
 **Caught by this row, then fixed.** The first build measured CLS 1.0. When the Diary switched from its scroll track to turning leaves at hydration, Chrome reported a full-viewport shift: in leaf mode the track stopped being a scroll container (`overflow: visible`; `clip` measured 0.88). The track now stays `overflow: hidden`, with equal padding and a negative margin as room for the turning leaf. CLS is 0 at 1440 and 390, and an e2e in `record.spec.ts` fails above 0.01.
 
-**Verification.** `pnpm verify` passes: 1,036 unit tests, contrast, and the build.
+**Seen in the walkthrough, then fixed.** Mid-turn the leaf swelled past the book's boards and over Contact: 138–144px at 1440 and 1024, and 203–226px at 390, with the window at the book's top or foot. The perspective now follows the reader: its origin sits on whichever cover edge is on screen and is recomputed every frame (`camera()` in `diary-turn.ts`). It is deep enough that no on-screen edge grows past a 12px lip, so the overshoot is now 0px at all three widths. An e2e samples turns and a riffle with the window at the book's top, middle and foot, and fails above 16px. Trade-off: on a screen tall enough to show the whole book, the turn reads flatter.
 
-Full e2e on the production build: 895 passed, 0 failed. Before the CLS fix, a run had 892 passed and 1 failed: round 23's walking cat over Contact's lede at 1280. In isolation it failed 2 of 12 runs, so it is still a flake in the cats' pathing, not a regression from this round.
+**Verification.** `pnpm verify` passes: 1,040 unit tests, contrast, and the build.
+
+Full e2e on the final production build: 895 passed, 0 failed. Before the CLS fix, a run had 892 passed and 1 failed: round 23's walking cat over Contact's lede at 1280. In isolation it failed 2 of 12 runs, so it is still a flake in the cats' pathing, not a regression from this round.
