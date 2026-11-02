@@ -2345,7 +2345,7 @@ Five asks from Thien after testing round 23's preview, designed in `docs/superpo
 | Before (round 23, last row) | 204,163 B | 204,163 B | 28,879 B | 117,868 B | 0 | 1639 |
 | After | 210,856 B | 210,856 B | 32,411 B | 117,868 B | 0 | 1718 |
 
-- **JS at load +6,693 B.** About 4 KB gzipped is `DiaryBook`'s turning code; the rest is mostly Bé Nhi's drawing and act, plus the postcard's `SentStamp`. The Ask's redesign stays behind its dynamic import.
+- **JS at load +6,693 B** (on the wire). About 4.1 KB of it is `DiaryBook`'s turning code; the rest is mostly Bé Nhi's drawing and act, plus the postcard's `SentStamp`. The Ask's redesign stays behind its dynamic import.
 - **CSS +3,532 B.** The paddy, the stamp, the Ask's paper and the book's object.
 - **DOM +79 nodes.** The book's stacks, sheets and shades, and the paddy's two drawings.
 - LCP 1108 ms (the sky's art), TBT 50 ms.
