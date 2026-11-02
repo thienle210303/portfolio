@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { answer, SUGGESTED_QUESTIONS, type Answer, type Citation } from "@/lib/answers";
 import { CodeBlock } from "@/components/ui/CodeBlock";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -14,6 +13,7 @@ import {
   describeLiveAnswerLiteral,
   liveAnswerLiteral,
 } from "./answer-code";
+import { figureRuns } from "./answer-figures";
 import {
   SCORING_EXCERPT,
   SCORING_EXCERPT_FILENAME,
@@ -33,9 +33,25 @@ import {
  *
  * Round 21 lays it out as the postcard board's strip, two halves on one
  * sheet of paper: on the left, the heading `AskLoader` hands down and the
- * thread, each turn a "you asked / I said" pair with the answer's source; on
- * the right, the question line, a round Ask and "or try" questions as small
- * paper tags. Below 1024px the halves stack in that order.
+ * thread; on the right, the question line, a round Ask and "or try"
+ * questions as small paper tags. Below 1024px the halves stack in that order.
+ *
+ * ## Paper, exchanged (round 24)
+ *
+ * The thread is my notepad (what I write on it sits on ruled lines) and each
+ * turn is paper passing across it.
+ * Your question arrives as a ticket stub in the compose side's own tint,
+ * numbered by its place in the thread, your words in the hand of the tags.
+ * My answer is written back under it: each sourced passage a clipping taped
+ * in at a slight tilt, its source inked under it ("FROM …") and "More on this
+ * in …" a tab on the clipping's edge; measured values in the passage
+ * (`17 hours → 3 minutes`, `3M+`) are found by `./answer-figures.ts`, never
+ * marked up in the content, and set in `--accent` mono. A live model's answer
+ * is typed, not clipped, because it is composed prose. A decline stays plain.
+ * Thinking is ink: three dots blotting in turn, and a still "writing…" under
+ * reduced motion. Prose and Code are two index tabs on the answer's edge, and
+ * the code view turns the answer over. Paper settles in as it arrives (CSS,
+ * `.ask-*` in globals.css), never under reduced motion.
  *
  * ## Two engines, one thread
  *
@@ -238,51 +254,84 @@ function recentHistory(turns: readonly Turn[]): Array<{ question: string; answer
  */
 function ProseAnswers({ results }: { readonly results: readonly Answer[] }) {
   return (
-    <ol role="list" aria-label="Sourced answers" className="flex flex-col gap-3">
-      {results.map((result) => (
-        <li key={result.text}>
-          <p className="text-[15px] leading-[1.45] text-fg">{result.text}</p>
-          <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-[13px] text-fg-muted">
-              From <span>{result.source}</span>
-            </span>
-            {result.sectionId !== undefined && result.sectionLabel !== undefined ? (
-              <a
-                href={`#${result.sectionId}`}
-                className="font-mono text-[11.5px] text-accent underline underline-offset-4 hover:decoration-2"
-              >
-                More on this in {result.sectionLabel} &rarr;
-              </a>
-            ) : null}
+    <ol role="list" aria-label="Sourced answers" className="ask-clips flex flex-col">
+      {results.map((result, index) => (
+        <li
+          key={result.text}
+          className="ask-clip relative min-w-0 bg-ground px-3.5 pt-4 pb-3 sm:px-4"
+          style={{ "--i": index } as CSSProperties}
+        >
+          <span aria-hidden="true" className="ask-tape" />
+          <p className="text-[15px] leading-[1.5] text-fg">
+            <Figures text={result.text} />
           </p>
+          <p className="mt-2 font-mono text-[12px] leading-[1.45] text-fg-muted">
+            <span className="ask-ink">From</span> <span>{result.source}</span>
+          </p>
+          {result.sectionId !== undefined && result.sectionLabel !== undefined ? (
+            <SectionTab sectionId={result.sectionId} sectionLabel={result.sectionLabel} />
+          ) : null}
         </li>
       ))}
     </ol>
   );
 }
 
-/** The composed reading for a grounded live answer: the model's prose, then
- *  exactly the passages it was allowed to use — the same shape a static
- *  answer's source line carries, just gathered under one paragraph instead
- *  of quoting each passage verbatim. */
+/**
+ * "More on this in …" as an index tab on the edge of the paper it belongs to.
+ * The paper tab is 26px to the eye on a 44px target; the arrow is drawn, not
+ * read, so the link's name is the sentence alone.
+ */
+function SectionTab({ sectionId, sectionLabel }: { readonly sectionId: string; readonly sectionLabel: string }) {
+  return (
+    <a href={`#${sectionId}`} className="ask-clip-tab">
+      <span className="ask-clip-tab-paper">
+        More on this in {sectionLabel}
+        <span aria-hidden="true"> &rarr;</span>
+      </span>
+    </a>
+  );
+}
+
+/** A passage with its measured values found and set in `--accent` mono
+ *  (`./answer-figures.ts`). The words are the passage exactly. */
+function Figures({ text }: { readonly text: string }) {
+  return (
+    <>
+      {figureRuns(text).map((run, index) =>
+        run.figure ? (
+          <span key={index} className="ask-figure">
+            {run.text}
+          </span>
+        ) : (
+          run.text
+        ),
+      )}
+    </>
+  );
+}
+
+/** The composed reading for a grounded live answer: the model's prose, typed
+ *  rather than clipped because it is composed, then exactly the passages it
+ *  was allowed to use, each with its source line and its tab, just as a
+ *  clipping carries them. */
 function LiveProseAnswer({ text, citations }: { readonly text: string; readonly citations: readonly Citation[] }) {
   return (
-    <div>
-      <p className="text-[15px] leading-[1.45] text-fg">{text}</p>
+    <div className="ask-typed">
+      <p className="font-mono text-[14px] leading-[1.6] text-fg sm:text-[14.5px]">
+        <Figures text={text} />
+      </p>
       {citations.length > 0 ? (
         <div className="mt-4">
           <p className="eyebrow">Grounded in</p>
-          <ul role="list" aria-label="Grounded in" className="prose-measure mt-2 flex flex-col gap-2">
+          <ul role="list" aria-label="Grounded in" className="mt-2 flex flex-col gap-1">
             {citations.map((citation) => (
-              <li key={citation.text} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="text-[length:var(--step--1)] text-fg-muted">{citation.source}</span>
+              <li key={citation.text} className="flex flex-wrap items-center gap-x-3">
+                <span className="py-1 font-mono text-[12px] leading-[1.45] text-fg-muted">
+                  <span className="ask-ink">From</span> {citation.source}
+                </span>
                 {citation.sectionId !== undefined && citation.sectionLabel !== undefined ? (
-                  <a
-                    href={`#${citation.sectionId}`}
-                    className="font-mono text-[length:var(--step--1)] text-accent underline-offset-4 hover:underline"
-                  >
-                    More on this in {citation.sectionLabel} &rarr;
-                  </a>
+                  <SectionTab sectionId={citation.sectionId} sectionLabel={citation.sectionLabel} />
                 ) : null}
               </li>
             ))}
@@ -294,7 +343,8 @@ function LiveProseAnswer({ text, citations }: { readonly text: string; readonly 
 }
 
 /** A component rather than an inline element so the literal is only built
- *  when this tab is the one being rendered. */
+ *  when this tab is the one being rendered. `.ask-back`: the answer turned
+ *  over, for the data (globals.css). */
 function CodeAnswer({
   question,
   results,
@@ -305,7 +355,7 @@ function CodeAnswer({
   readonly filename: string;
 }) {
   return (
-    <div>
+    <div className="ask-back">
       <p className="eyebrow">This answer, as data</p>
       <p className="prose-measure mt-2 text-[length:var(--step--1)] leading-relaxed text-fg-muted">
         The exact sentences from the Prose tab, written out as the TypeScript object they already
@@ -336,7 +386,7 @@ function LiveCodeAnswer({
   readonly filename: string;
 }) {
   return (
-    <div>
+    <div className="ask-back">
       <p className="eyebrow">This answer, as data</p>
       <p className="prose-measure mt-2 text-[length:var(--step--1)] leading-relaxed text-fg-muted">
         What the live model returned and what it was grounded in, written out as the TypeScript
@@ -400,8 +450,62 @@ function HowThisAnswers({ id, liveModeConfigured }: { readonly id: string; reado
 /* One turn                                                                    */
 /* -------------------------------------------------------------------------- */
 
-/** "you asked" / "I said": the mono labels down the left of every turn. */
-const TURN_LABEL = "font-mono text-[12px] text-fg-muted";
+/** "I said": the mono label over every answer, annotation in `--accent`. A
+ *  paragraph of its own, so the words are exactly "I said". */
+function Said({ children }: { readonly children?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2.5">
+      <p className="font-mono text-[12px] text-accent">I said</p>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Your question as a ticket stub: a perforated stub on the left numbered by
+ * the turn's place in the thread (the same count as `answer-N.ts`), your
+ * words in the hand of the tags. It sits to the right, on the side it was
+ * handed over from, in the compose side's tint. The number is the stub's, not
+ * news: it is hidden from assistive tech, which hears "you asked" and the
+ * question.
+ */
+function QuestionSlip({ number, children }: { readonly number?: number; readonly children: ReactNode }) {
+  return (
+    <div className="flex justify-end">
+      <div className="ask-slip-lift max-w-[min(100%,26rem)]">
+        <p className="ask-slip flex min-w-0 bg-ground">
+          <span aria-hidden="true" className="ask-slip-stub font-mono text-[11px] leading-[1.15] text-fg-muted">
+            No.
+            <br />
+            {number === undefined ? "––" : String(number).padStart(2, "0")}
+          </span>
+          <span className="flex min-w-0 flex-col py-2 pr-4 pl-3">
+            <span className="font-mono text-[11px] tracking-(--tracking-caps) text-fg-muted uppercase">you asked</span>
+            {children}
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Thinking is ink: three dots blotting in turn after "writing", and under
+ *  reduced motion a still "writing…" (the dots stop where they stand). */
+function Writing() {
+  return (
+    <p className="ask-lined font-serif text-[17px] text-fg-muted italic">
+      writing
+      <span aria-hidden="true" className="ask-ink-dots">
+        <span />
+        <span />
+        <span />
+      </span>
+    </p>
+  );
+}
+
+/** A plain line on the notepad: the decline, a failure, nothing found. */
+const PLAIN = "ask-lined text-[15px] text-fg-muted";
 
 function TurnItem({
   turn,
@@ -416,26 +520,34 @@ function TurnItem({
   const filename = answerFilename(turnNumber);
 
   return (
-    <li className="min-w-0 border-t border-dashed border-rule pt-4 first:border-t-0 first:pt-0">
-      <p className="flex flex-wrap items-baseline gap-x-2">
-        <span className={TURN_LABEL}>you asked</span>
-        <span className="text-[15px] font-semibold text-fg">{turn.question}</span>
-      </p>
-      <p className={`${TURN_LABEL} mt-2.5 text-accent`}>I said</p>
+    <li className="ask-turn min-w-0">
+      <QuestionSlip number={turnNumber}>
+        <span className="font-serif text-[17px] leading-snug text-fg italic">{turn.question}</span>
+      </QuestionSlip>
 
-      <div className="mt-1 min-w-0">
+      <div className="mt-2 min-w-0">
         {turn.answer.kind === "pending" ? (
-          <p className="flex items-center gap-2 text-[15px] text-fg-muted">
-            <Loader2 aria-hidden="true" focusable="false" size={16} className="animate-spin motion-reduce:animate-none" />
-            Asking the live model&hellip;
-          </p>
+          <>
+            <Said />
+            <div className="mt-1">
+              <Writing />
+            </div>
+          </>
         ) : turn.answer.kind === "failed" ? (
-          <p className="text-[15px] leading-[1.45] text-fg-muted">{turn.answer.message}</p>
+          <>
+            <Said />
+            <p className={`${PLAIN} mt-1`}>{turn.answer.message}</p>
+          </>
         ) : turn.answer.kind === "static" ? (
           turn.answer.results.length === 0 ? (
-            <p className="text-[15px] leading-[1.45] text-fg-muted">{NOTHING_FOUND}</p>
+            <>
+              <Said />
+              <p className={`${PLAIN} mt-1`}>{NOTHING_FOUND}</p>
+            </>
           ) : (
             <Tabs
+              variant="index"
+              lead={<Said />}
               label="Answer view"
               idPrefix={idPrefix}
               tabs={[
@@ -451,42 +563,43 @@ function TurnItem({
             />
           )
         ) : !turn.answer.grounded ? (
-          <div>
-            <p className="mb-2">
-              <span className="eyebrow">Declined — nothing to ground it in</span>
-            </p>
-            <p className="text-[15px] leading-[1.45] text-fg-muted">{turn.answer.text}</p>
-          </div>
+          <>
+            <Said>
+              <span className="font-mono text-[12px] text-fg-muted">declined: nothing to ground it in</span>
+            </Said>
+            <p className={`${PLAIN} mt-1`}>{turn.answer.text}</p>
+          </>
         ) : (
-          <div>
-            <p className="mb-2">
-              <span className="eyebrow text-accent">Live model</span>
-            </p>
-            <Tabs
-              label="Answer view"
-              idPrefix={idPrefix}
-              tabs={[
-                {
-                  id: "prose",
-                  label: "Prose",
-                  panel: <LiveProseAnswer text={turn.answer.text} citations={turn.answer.citations} />,
-                },
-                {
-                  id: "code",
-                  label: "Code",
-                  panel: (
-                    <LiveCodeAnswer
-                      question={turn.question}
-                      grounded={turn.answer.grounded}
-                      text={turn.answer.text}
-                      citations={turn.answer.citations}
-                      filename={filename}
-                    />
-                  ),
-                },
-              ]}
-            />
-          </div>
+          <Tabs
+            variant="index"
+            lead={
+              <Said>
+                <span className="ask-ink font-mono text-accent">Live model</span>
+              </Said>
+            }
+            label="Answer view"
+            idPrefix={idPrefix}
+            tabs={[
+              {
+                id: "prose",
+                label: "Prose",
+                panel: <LiveProseAnswer text={turn.answer.text} citations={turn.answer.citations} />,
+              },
+              {
+                id: "code",
+                label: "Code",
+                panel: (
+                  <LiveCodeAnswer
+                    question={turn.question}
+                    grounded={turn.answer.grounded}
+                    text={turn.answer.text}
+                    citations={turn.answer.citations}
+                    filename={filename}
+                  />
+                ),
+              },
+            ]}
+          />
         )}
       </div>
     </li>
@@ -801,18 +914,24 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
         ) : null}
 
         {/*
-          The scroll window. A fixed 17rem (20rem from 1024) from the start, the
+          The scroll window. A fixed 17rem (23rem from 1024) from the start, the
           resting promise included, so the strip is one size before and after
           the first question (round 22: it grew by about 170px on the first,
           which read as a glitch) and never grows the page however many
           questions are asked (round 12: "if I click multiple buttons it just
           keeps stacking up on the page"). A new turn lands at the window's
-          top.
+          top. Round 24 raised 20rem to 23rem: a taped clipping takes more room
+          than a bare paragraph did, and from 1024 the compose half beside the
+          thread had the room to spare.
 
           `role="log"` announces new turns politely without repeating the
           old ones. `tabIndex={0}` only once there is something to scroll,
           which gives the region its own tab stop without trapping focus;
           the field's `aria-controls` points here.
+
+          Round 24: the window is my notepad; what I write on it sits on ruled
+          lines (`.ask-lined`). It reaches 8px past the column either side so
+          a tilted clipping, its tape and its tab are never cut by the edge.
         */}
         <div
           ref={logRef}
@@ -821,19 +940,25 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
           aria-label="Conversation thread"
           aria-live="polite"
           tabIndex={turns.length > 0 ? 0 : undefined}
-          className="relative mt-2 h-[17rem] min-w-0 overflow-y-auto overscroll-contain lg:h-[20rem]"
+          className="relative -mx-2 mt-2 h-[17rem] min-w-0 overflow-y-auto overscroll-contain px-2 lg:h-[23rem]"
         >
+          {/* Idle, the window must hold everything without scrolling (it is
+              not a tab stop until there is a turn): at 320 the promise steps
+              down a size to fit. */}
           {turns.length === 0 ? (
-            <div>
-              <p className="flex flex-wrap items-baseline gap-x-2">
-                <span className={TURN_LABEL}>you asked</span>
-                <span className="text-[15px] text-fg-muted">{IDLE_HINT}</span>
-              </p>
-              <p className={`${TURN_LABEL} mt-2.5 text-accent`}>I said</p>
-              <p className="mt-1 text-[15px] leading-[1.45] text-fg">{liveModeConfigured ? PROMISE_LIVE : PROMISE}</p>
+            <div className="pt-1 min-[22.5rem]:pt-2">
+              <QuestionSlip>
+                <span className="font-serif text-[17px] leading-snug text-fg-muted italic">{IDLE_HINT}</span>
+              </QuestionSlip>
+              <div className="mt-1 min-[22.5rem]:mt-2">
+                <Said />
+                <p className="ask-lined mt-0.5 font-serif text-[16px] leading-[1.625rem] text-fg italic min-[22.5rem]:mt-1 min-[22.5rem]:text-[17px] min-[22.5rem]:leading-7">
+                  {liveModeConfigured ? PROMISE_LIVE : PROMISE}
+                </p>
+              </div>
             </div>
           ) : (
-            <ol role="list" aria-label="Conversation" className="flex flex-col gap-4">
+            <ol role="list" aria-label="Conversation" className="flex flex-col gap-6 pt-2 pb-4">
               {turns.map((turn, index) => (
                 <TurnItem key={turn.id} turn={turn} turnNumber={index + 1} viewId={viewId} />
               ))}
@@ -890,7 +1015,7 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-serif text-[14px] text-fg-muted italic">or try</span>
-          <ul role="list" aria-label="Try asking" className="contents">
+          <ul role="list" aria-label="Try asking" className="ask-try contents">
             {SUGGESTED_QUESTIONS.map((question) => (
               <li key={question}>
                 {/* The paper is a span inside the button: a clipped

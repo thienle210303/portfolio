@@ -411,6 +411,73 @@ test.describe("ask this site", () => {
 });
 
 /* -------------------------------------------------------------------------- */
+/* The answers, on paper (round 24)                                            */
+/* -------------------------------------------------------------------------- */
+
+test.describe("the answers, on paper", () => {
+  test("a question arrives as a numbered slip and the answer as taped clippings, figures in accent mono", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await openChat(page);
+
+    await page.getByRole("button", { name: "What have you measured?" }).click();
+    const turn = lastTurn(page);
+    await expect(turn.locator(".ask-slip")).toContainText("What have you measured?");
+    await expect(turn.locator(".ask-slip-stub")).toHaveText(/No\.\s*01/);
+
+    const clipping = turn.locator(".ask-clip", { hasText: "17 hours → 3 minutes" });
+    await expect(clipping.locator(".ask-tape")).toHaveCount(1);
+    const figure = clipping.locator(".ask-figure");
+    await expect(figure).toHaveText("17 hours → 3 minutes");
+    // `--accent`, in Courier Prime: measured on the page, not assumed.
+    const { color, accent, family } = await figure.evaluate((el) => {
+      const probe = document.createElement("span");
+      probe.style.color = "var(--accent)";
+      el.parentElement!.appendChild(probe);
+      const accent = getComputedStyle(probe).color;
+      probe.remove();
+      return { color: getComputedStyle(el).color, accent, family: getComputedStyle(el).fontFamily };
+    });
+    expect(color).toBe(accent);
+    expect(family.toLowerCase()).toContain("courier");
+  });
+
+  test("the tab on a clipping's edge is a 44px target and leads to its section", async ({ page }) => {
+    await openChat(page);
+
+    await page.getByRole("button", { name: "What do you do at DoorDash?" }).dispatchEvent("click");
+    const tab = lastTurn(page).getByRole("link", { name: /More on this in/ }).first();
+    await expect(tab).toBeVisible();
+    const box = await tab.boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // The arrow is drawn, not read: the name is the sentence alone.
+    await expect(tab).toHaveAccessibleName(/^More on this in \w+$/);
+  });
+
+  test("paper settles in where motion is welcome, and is simply there under reduced motion", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    const paperAnimations = () =>
+      page.evaluate(
+        () =>
+          document
+            .querySelector("#ask")!
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation instanceof CSSAnimation && animation.animationName.startsWith("ask-"))
+            .length,
+      );
+
+    await openChat(page);
+    await page.getByRole("button", { name: "What have you measured?" }).click();
+    expect(await paperAnimations(), "no paper landed").toBeGreaterThan(0);
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openChat(page);
+    await page.getByRole("button", { name: "What have you measured?" }).click();
+    await expect(lastTurn(page).locator(".ask-clip").first()).toBeVisible();
+    expect(await paperAnimations(), "paper moved under reduced motion").toBe(0);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
 /* Ask, in Contact (round 18)                                                  */
 /* -------------------------------------------------------------------------- */
 
