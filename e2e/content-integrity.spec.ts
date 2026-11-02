@@ -28,18 +28,11 @@ test.beforeEach(async ({ page }) => {
  * actionability wait ("is this element done animating and stable") against
  * genuinely-animating neighbours made the naive version time out on mobile.
  *
- * The Journey's timeline opens one row at a time, so clicking its rows would
- * only ever leave the last one open. Its rows are forced open with a test-only
- * stylesheet instead (the same override the print stylesheet applies), and
- * their triggers are left alone. */
+ * (Until round 23 the Record's rows opened one at a time and were forced
+ * open with a test-only stylesheet; the Diary has no rows, so nothing is.) */
 async function expandAllDisclosures(page: Page): Promise<void> {
   // Hydrated, so a click on a trigger is handled rather than lost.
-  await expect(page.locator("#record [data-timeline]")).toHaveAttribute("data-live", "");
-  await page.addStyleTag({
-    content:
-      '[data-timeline] [role="region"] { grid-template-rows: 1fr !important; } ' +
-      '[data-timeline] [role="region"] > div { visibility: visible !important; transition: none !important; }',
-  });
+  await expect(page.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
   await page.evaluate(async () => {
     const isVisible = (el: HTMLElement) => el.offsetParent !== null;
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
@@ -47,7 +40,7 @@ async function expandAllDisclosures(page: Page): Promise<void> {
     while (guard < 200) {
       const buttons = Array.from(
         document.querySelectorAll<HTMLElement>('#main button[aria-expanded="false"]'),
-      ).filter((button) => isVisible(button) && !button.id.startsWith("record-row-"));
+      ).filter(isVisible);
       if (buttons.length === 0) break;
       buttons[0].click();
       await nextFrame();
@@ -68,28 +61,6 @@ test("no [NEEDS INPUT marker is rendered with the mobile menu open", async ({ pa
   await expect(page.getByRole("navigation", { name: "Mobile" })).toBeVisible();
   const bodyText = await page.locator("body").innerText();
   expect(bodyText).not.toContain("[NEEDS INPUT");
-});
-
-test("every displayed metric has a visible, non-empty source string", async ({ page }) => {
-  await expandAllDisclosures(page);
-
-  // Case studies render inside the Journey's timeline rows (and, for the
-  // entries that are not branches, after the timeline). Only visible tables
-  // are "displayed metrics" — a hidden one cannot show a source at all.
-  const tables = page.locator("#record table:visible");
-  const tableCount = await tables.count();
-  expect(tableCount, "content fixture assumption failed: no case study has a metrics table").toBeGreaterThan(0);
-
-  for (let t = 0; t < tableCount; t++) {
-    const rows = tables.nth(t).locator("tbody tr");
-    const rowCount = await rows.count();
-    for (let r = 0; r < rowCount; r++) {
-      const source = rows.nth(r).locator("td").last();
-      await expect(source, `table ${t + 1}, row ${r + 1} must show a visible source`).toBeVisible();
-      const text = ((await source.textContent()) ?? "").trim();
-      expect(text.length, `table ${t + 1}, row ${r + 1} source must not be empty`).toBeGreaterThan(0);
-    }
-  }
 });
 
 test('no external link is missing rel="noopener noreferrer"', async ({ page }) => {

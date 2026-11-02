@@ -61,12 +61,12 @@ async function scrollIntoViewAndSettle(page: Page, selector: string): Promise<vo
 }
 
 /**
- * Wait for the Journey's timeline to have hydrated before a full-page audit,
- * so the audit sees the rows React owns rather than the server render's
- * `:target` fallback. A timeline that never goes live fails here, by name.
+ * Wait for the Diary to have hydrated before a full-page audit, so the audit
+ * sees the book React owns (its tabs, corners and counter) rather than the
+ * server render. A book that never goes live fails here, by name.
  */
 async function timelineLive(page: Page): Promise<void> {
-  await expect(page.locator("#record [data-timeline]")).toHaveAttribute("data-live", "");
+  await expect(page.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
 }
 
 test.describe("full-page audit", () => {
@@ -97,7 +97,7 @@ test.describe("interactive states", () => {
     await auditHasNoViolations(page);
   });
 
-  test("zero WCAG violations with a case-study disclosure expanded", async ({ page }) => {
+  test("zero WCAG violations with a Diary page turned to and an award open", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -113,15 +113,12 @@ test.describe("interactive states", () => {
     // that race rather than depending on where the trigger below happens to
     // sit relative to it.
     await scrollIntoViewAndSettle(page, "#record-heading");
-    // Every case study sits in its entry's row on the Record (round 21 phase
-    // 5): open the capstone's row first.
-    await page.locator("#record-row-capstone-trigger").click();
-    const trigger = page
-      .locator("#journey-entry-capstone")
-      .getByRole("button", { name: /Read the full case study/ })
-      .first();
+    // The Diary (round 23): turn to the page of an entry that has an award, and
+    // open the award, so the audit sees a page, its figure and its dialog.
+    await page.locator('#diary-contents a[href="#journey-entry-code-to-give"]').click();
+    const trigger = page.locator("#journey-entry-code-to-give").getByRole("button", { name: "See the award" });
     await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(page.locator("dialog#award-code-to-give")).toBeVisible();
     // Let the companions finish moving before the audit. The scroll above
     // sends the pair on a multi-second walk back to the reading band, and
     // during that transit the follower can pass through the lead's toggle
@@ -179,10 +176,17 @@ test.describe("interactive states", () => {
     // wait. Each drop is a 0.9s fade-and-swing, and a paper caught at half
     // opacity is a momentary contrast failure to axe, so the running
     // animations are finished first: what is audited is the show's state,
-    // not a frame of its motion.
+    // not a frame of its motion. The weather's rain and snow loop for as long
+    // as their beat lasts (round 23) and cannot be finished; they are
+    // aria-hidden and carry no text, so they are left running.
     await expect(page.locator("#tree [data-hanging-tags] li[data-grown]")).not.toHaveCount(0, { timeout: 10_000 });
     await expect(page.locator("[data-grow-caption]")).toBeVisible();
-    await page.evaluate(() => document.getAnimations().forEach((animation) => animation.finish()));
+    await page.evaluate(() =>
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity)
+        .forEach((animation) => animation.finish()),
+    );
     await auditHasNoViolations(page, "#tree");
   });
 

@@ -2,8 +2,7 @@
  * The lead form's shared limits, patterns and messages, read by both the form
  * and `src/app/api/contact/schema.ts`. Deliberately zod-free: the form is a
  * client component, and zod here would ship in the initial bundle. The
- * server's zod schema is the final check. Everything here except
- * `openMailClient` is a pure function.
+ * server's zod schema is the final check. Everything here is pure.
  */
 
 export const NAME_MAX = 100;
@@ -33,19 +32,4 @@ export interface Lead {
 
 export function leadSubject(name: string): string {
   return `Portfolio lead — ${name.trim()}`;
-}
-
-/** RFC 6068 percent-encoding (not `+` for spaces). Body mirrors the API's email. */
-export function buildLeadMailto(lead: Lead, toEmail: string): string {
-  const lines = [`Name: ${lead.name.trim()}`];
-  if (lead.email?.trim()) lines.push(`Email: ${lead.email.trim()}`);
-  if (lead.phone?.trim()) lines.push(`Phone: ${lead.phone.trim()}`);
-  const body = lines.join("\n");
-  return `mailto:${toEmail}?subject=${encodeURIComponent(leadSubject(lead.name))}&body=${encodeURIComponent(body)}`;
-}
-
-/** Hands a `mailto:` href to the browser. The only impure export here, kept
- *  apart so a test can observe the href without a real navigation. */
-export function openMailClient(href: string): void {
-  window.location.href = href;
 }

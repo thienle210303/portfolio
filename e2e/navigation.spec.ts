@@ -84,6 +84,49 @@ test.describe("mobile nav", () => {
   });
 });
 
+/*
+ * Round 23: the paper strip. No bar, no numbers; the current section carries an
+ * ink swash (drawn on by its link's `aria-current`); every target is 44px; the
+ * stamp is there from 640px and the strip's sun or moon at every width.
+ */
+test.describe("the header's paper strip", () => {
+  test("the links are labels only, the current one is drawn under, every target is 44px", async ({ page }) => {
+    test.skip(viewportWidth(page) < DESKTOP_MIN_WIDTH, "desktop-only nav");
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    await expect(nav.getByRole("link")).toHaveText(navItems.map((item) => item.label));
+    await nav.getByRole("link", { name: navItems[1].label, exact: true }).click();
+    const current = nav.locator("a[aria-current='true']");
+    await expect(current).toHaveCount(1);
+    // The swash is revealed by clip-path; wait out its 0.5s draw.
+    await expect(current.locator(".nav-swash")).toHaveCSS("clip-path", "inset(0px)");
+    await expect(nav.locator("a:not([aria-current]) .nav-swash").first()).not.toHaveCSS("clip-path", "inset(0px)");
+    for (const link of await nav.getByRole("link").all()) {
+      expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("the theme switch is a 44px drawing with no box, and flips the theme", async ({ page }) => {
+    const toggle = page.getByRole("button", { name: /Switch to (night|day) theme/ });
+    const box = (await toggle.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    await expect(toggle).toHaveCSS("border-top-width", "0px");
+    const before = await page.evaluate(() => document.documentElement.dataset.theme);
+    await toggle.click();
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).not.toBe(before);
+  });
+
+  test("the stamp is a link to Contact from 640px, and is not on a phone", async ({ page }) => {
+    const stamp = page.getByRole("link", { name: "Let’s talk" });
+    if (viewportWidth(page) >= 640) {
+      await expect(stamp).toBeVisible();
+      expect((await stamp.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    } else {
+      await expect(stamp).toBeHidden();
+    }
+  });
+});
+
 test("skip link is the first focusable element and moves focus to #main", async ({ page }) => {
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Skip to main content" });

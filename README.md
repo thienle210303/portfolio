@@ -7,10 +7,10 @@ The site is a single narrative page in four sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
 that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — a live oak
 with five measured tags hanging from it and Bé Nhi on a rope swing (press her
-and her mood changes), which grows, tags and all, on "Watch it grow"; the **Record** — a notebook spread: a tree slice with my five
-best pressed around it, every entry by year in rows that open one at a time
-(with the case studies inside the rows of the roles that produced them), and my
-certificates as stamps; and **Contact**: a
+and her mood changes), which grows, tags and all, on "Watch it grow"; the **Diary** — a book you swipe left and right: a tree slice with my five
+best pressed around it, a contents, a page for each thing I did (a highlighted
+figure, a few bullets, a small chart and a fun fact), 2018 – 2020 as one
+chapter, and my certificates as stamps; and **Contact**: a
 business card with every way to reach him (copy the email, save a vCard) beside a
 postcard that is a short lead form (a name, plus an email or phone), above a chat that
 answers only from what's written for the site: by default his words as
@@ -247,10 +247,12 @@ recipe.
 Where two entries share a `YYYY-MM`, append a disambiguating suffix to `sortKey`
 (`"2025-05-a"`, `"2025-05-b"`) — sorting is reverse-lexicographic on the string.
 
-### Adding a project / case study
+### Adding a project (case study data)
 
-Append to `projects` in `src/content/portfolio.ts`. Every case study follows the
-same narrative arc, and the fields are named for it:
+Append to `projects` in `src/content/portfolio.ts`. A project is not drawn on the
+page (round 23: the Diary has no case studies); the chat answers from it and
+`/resume` lists it, and its `work-<id>` anchor lands on its entry's Diary page.
+A project's fields follow one narrative arc, and are named for it:
 
 **Problem** (`problem`, `whyItMattered`, `assumption`) → **Constraint**
 (`constraints`, `responsibility`) → **Decision** (`decisions`, `pathsExplored`,
@@ -260,7 +262,7 @@ same narrative arc, and the fields are named for it:
 - `careerEntryId` must match an existing entry in `careerEntries`; the
   organisation and date range are read from it.
 - `metrics` entries require a `source` field naming where the figure came from.
-  The provenance is rendered next to the number. Do not add a metric you cannot
+  The provenance is rendered next to the number on `/resume`. Do not add a metric you cannot
   source.
 - `workflow` (before/after diagram) is optional — include it only when the real
   before-state is known.
@@ -290,17 +292,18 @@ booking link — so there is always a way to reach him without the form.
 
 The form has two honest modes and picks one **on the server** at build time.
 
-**Unconfigured (default).** A note under **Send** says it opens your email app,
-and pressing it opens a `mailto:` addressed to `profile.email` with the subject
-`Portfolio lead — <name>` and the name, email and phone in the body. Nothing is
-sent without an explicit visitor action, and a success message is never shown
-for a send that did not happen.
+**Unconfigured (default).** A note under **Send** says sending isn't switched
+on in this build, and pressing it (after the fields validate) answers in first
+person with `profile.email` as text and a copy button. The visitor's mail app
+is never opened, and a success message is never shown for a send that did not
+happen.
 
 **Configured.** Set all three variables below and the form POSTs to
 `/api/contact`, which re-validates with its Zod schema (built from the limits and patterns the
 form also checks) and sends one email via
 Resend (`replyTo` is the visitor's email when they gave one). If the route
-answers `not-configured`, the form falls back to the email app.
+answers `not-configured`, or a send fails, the form shows the same honest
+message and my address. A send that works inks a "SENT" stamp on the postcard.
 
 ```bash
 cp .env.example .env.local
@@ -357,13 +360,13 @@ an empty config file only overrides detection that is already correct.
    | Variable | Environments | Notes |
    |---|---|---|
    | `NEXT_PUBLIC_SITE_URL` | Production, optional | overrides the site's address; without it production uses the project's production domain (`thienle.vercel.app`, or a custom domain once connected) |
-   | `RESEND_API_KEY` | Production (+ Preview to test it) | omit and the form falls back to `mailto:` |
+   | `RESEND_API_KEY` | Production (+ Preview to test it) | omit and the form shows my address to copy instead. Read at build time: redeploy after adding it |
    | `CONTACT_TO_EMAIL` | same as above | |
    | `CONTACT_FROM_EMAIL` | same as above | must be on a domain verified in Resend |
 
    The three contact variables are all-or-nothing: with any one missing the
    route returns `503 { reason: "not-configured" }` and the UI switches to the
-   email-app flow. That is a working site, not a broken one — so it is safe to
+   "cannot send, here is my address" form. That is a working site, not a broken one — so it is safe to
    deploy before Resend is set up.
 3. **Name the address.** For the free one, add `thienle.vercel.app` under
    Project → Settings → Domains. For a domain you own, add it there and point

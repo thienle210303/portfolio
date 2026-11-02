@@ -1,121 +1,111 @@
 /**
- * The whole record (round 21 phase 5, board NatRecordFinal): a notebook
- * spread between the Journey and Contact.
+ * The Diary (the section's id is `record` still: the chat cites `#record`, and
+ * the cats' tour and the nav visit it). Round 23 bound the Record as a book you
+ * swipe left and right.
  *
- * - The left page, "Pressed, waiting to dry.": a pressed lotus taped beside
- *   the title, the tree slice whose rings link to their years, the five
- *   featured entries taped around it (`RecordPressed`), and the desk's cà phê
- *   sữa đá by day, chè at night.
- * - The right page, "Everything I've done, by year.": every entry by start
- *   year with filters (`RecordFilters` around `RecordYears`, which owns the
- *   `journey-entry-<id>` and `work-<projectId>` fragments), then the
- *   certificates as stamps (`Stamps`).
+ * - Page 1, the left page, "Pressed, waiting to dry." (`SummaryPage`): the
+ *   lead, the tree slice whose rings go to their chapter, and the five
+ *   featured entries taped around it, each going to its page.
+ * - Page 2, the contents (drawn by the island, `DiaryBook`, because its page
+ *   numbers follow the tab): chapters newest first, then 2018 – 2020, each
+ *   entry with dotted leaders and its page, then the certificates.
+ * - Then each chapter's pages: an entry with something to show has a page to
+ *   itself (`EntryPage`); the ones with little to say share, up to three
+ *   (`SharedPage`). No case studies: the owner found them boring.
+ * - Last, the certificates as stamps (`CertificatesPage`).
  *
- * From 1280 the two pages lie side by side and the notebook is wider than the
- * content column (up to 1300px, the board's); below, they stack. Both pages
- * are paper (`bg-surface`), so the night paper scope gives them dark ink.
- * Side by side, the stamps are pasted at the foot of the left page, which
- * holds their room (`xl:pb-60`): left where they are in the reading order,
- * the left page was half empty ruled paper beside a long right one. And the
- * slice and its cards stay in view while you read down the right page (round
- * 22): open DoorDash's row and the right page grows by some 2,000px, which
- * used to be bare paper on the left; now the rings, each a link to its year,
- * come with you as an index.
- * A server component; the filters are the only client island it adds.
+ * The pages are a scroll-snap track, so the book works with JavaScript off;
+ * `DiaryBook` is the one client island and adds the index tabs, the
+ * dog-eared corners and "p. 3 of 14". A server component otherwise.
+ *
+ * Every id the Journey's tags, the rings, the pressed cards and old bookmarks
+ * name is a real element on its page: `journey-entry-<id>`, `work-<projectId>`,
+ * `#work` (DoorDash), `#record-<year>` and `#diary` (`src/sections/CareerTree/anchors.ts`).
  */
-import type { CSSProperties } from "react";
-import { Drawing } from "@/components/scenery/Drawing";
+import type { ReactNode } from "react";
 import { Section } from "@/components/ui/Section";
-import { record } from "@/content/portfolio";
-import { kindCounts, recordYearId, recordYears } from "@/lib/record";
-import { RECORD_LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
-import RecordPressed from "./RecordPressed";
-import { RecordFilters, type FilterOption } from "./RecordFilters";
-import RecordYears from "./RecordYears";
-import Stamps from "./Stamps";
+import { careerEntries, record } from "@/content/portfolio";
+import {
+  contentsChapters,
+  diaryChapters,
+  diaryPageId,
+  diaryPages,
+  KIND_WORD,
+  kindCounts,
+  pageKinds,
+  type DiaryPage,
+} from "@/lib/record";
+import { RECORD_ALIAS_IDS } from "@/sections/CareerTree/anchors";
+import type { CareerEntry } from "@/types/portfolio";
+import { CERTIFICATES_PAGE_ID } from "./CertificatesPage";
+import CertificatesPage from "./CertificatesPage";
+import { DiaryBook, type BookPage, type BookTab, type BookWords } from "./DiaryBook";
+import EntryPage, { SharedPage } from "./EntryPage";
+import SummaryPage, { HEADING_ID } from "./SummaryPage";
 
-const HEADING_ID = "record-heading";
+const ENTRIES: readonly CareerEntry[] = careerEntries;
 const COUNTS = kindCounts();
-const YEARS = recordYears().map((y) => y.year);
-const FILTERS: readonly FilterOption[] = [
+const CHAPTERS = diaryChapters();
+const PAGES = diaryPages();
+
+const TABS: readonly BookTab[] = [
   { id: "all", label: "All", count: COUNTS.all },
   { id: "work", label: "Work", count: COUNTS.work },
   { id: "learning", label: "Study", count: COUNTS.learning },
   { id: "milestone", label: "Milestones", count: COUNTS.milestone },
 ];
 
+const WORDS: BookWords = {
+  book: record.bookLabel,
+  tabs: record.tabsLabel,
+  contents: record.contents.heading,
+  contentsNote: record.contents.note,
+  certificates: record.certificates,
+  previous: "Previous page",
+  next: "Next page",
+  kindWords: KIND_WORD,
+};
+
+function drawPage(page: DiaryPage): { readonly node: ReactNode; readonly id: string } {
+  const chapter = page.opens ? CHAPTERS.find((c) => c.id === page.opens) : undefined;
+  const years = chapter?.years;
+  switch (page.kind) {
+    case "summary":
+      return { node: <SummaryPage />, id: "diary-summary" };
+    case "contents":
+      return { node: null, id: "diary-contents" };
+    case "certificates":
+      return { node: <CertificatesPage />, id: CERTIFICATES_PAGE_ID };
+    case "entry": {
+      const entry = ENTRIES.find((e) => e.id === page.entryIds[0])!;
+      return { node: <EntryPage entry={entry} years={years} />, id: diaryPageId(page) };
+    }
+    case "shared": {
+      const entries = page.entryIds.map((id) => ENTRIES.find((e) => e.id === id)!);
+      const home = CHAPTERS.find((c) => c.entries.some((e) => e.id === page.entryIds[0]));
+      return {
+        node: <SharedPage pageId={diaryPageId(page)} entries={entries} years={years} label={`Also in ${home?.label ?? ""}`} />,
+        id: diaryPageId(page),
+      };
+    }
+  }
+}
+
 export default function Record() {
+  const pages: BookPage[] = PAGES.map((page) => ({
+    key: page.key,
+    kind: page.kind,
+    kinds: pageKinds(page),
+    ...drawPage(page),
+  }));
   return (
     <Section id="record" labelledBy={HEADING_ID} tone="base" className="relative overflow-x-clip">
-      {/* Retired ids that land here (see `RECORD_LEGACY_SECTION_IDS`): real,
-          zero-size elements, so the landing works with JavaScript off. */}
-      {RECORD_LEGACY_SECTION_IDS.map((id) => (
+      {/* `#diary`, the section's new name, beside `#record`: a real,
+          zero-size element, so it lands with JavaScript off. */}
+      {RECORD_ALIAS_IDS.map((id) => (
         <span key={id} id={id} aria-hidden="true" className="sr-only scroll-mt-20" />
       ))}
-
-      <div data-notebook="" className="record-notebook relative grid paper-lift xl:grid-cols-2">
-        <div className="record-page record-page-left relative flex flex-col bg-surface px-5 pt-8 pb-6 sm:px-10 sm:pt-10 xl:pb-60">
-          <div aria-hidden="true" className="no-print pointer-events-none absolute top-1 right-2 w-[5.5rem] sm:right-6 sm:w-[8.5rem]">
-            <Drawing name="pressed-lotus" className="aspect-[136/170] w-full" />
-            <span className="record-tape absolute top-[16%] left-[48%] w-[44%] rotate-[-14deg]" />
-          </div>
-          <h2
-            id={HEADING_ID}
-            className="pr-20 font-display text-[length:var(--step-4)] font-semibold leading-[1.05] tracking-(--tracking-display-lg) text-fg sm:pr-32"
-          >
-            {record.pressed.heading}
-          </h2>
-          <p className="mt-2 pr-16 font-serif text-[length:var(--step-1)] italic leading-snug text-fg-muted sm:pr-32">
-            {record.pressed.lead}
-          </p>
-          {/* Side by side, the board rides down its page while a long row is
-              read on the other (`RecordPressed` is sticky inside this). */}
-          <div className="xl:flex-1">
-            <RecordPressed />
-          </div>
-          <div aria-hidden="true" className="no-print mt-auto flex items-end gap-2 pt-8">
-            <span
-              className="scene-art block h-[3.4rem] w-[1.9rem]"
-              style={{ "--art": "var(--art-record-vignette)" } as CSSProperties}
-            />
-            <span className="pb-1 font-serif text-[length:var(--step--1)] italic text-fg-muted">
-              <span className="day-only">{record.vignette.morning}</span>
-              <span className="night-only">{record.vignette.evening}</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="record-page record-page-right relative bg-surface px-5 pt-8 pb-8 sm:px-10 sm:pt-10 xl:static">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-            <h3 className="font-display text-[length:var(--step-2)] font-semibold leading-tight text-fg">
-              {record.byYear.heading}
-            </h3>
-            <span className="font-mono text-[length:var(--step--1)] text-fg-muted">{COUNTS.all} entries</span>
-          </div>
-          {/* The years as links (round 22): the slice's rings go to the same
-              places, but a ring can be 4px wide, under WCAG 2.5.8's 24px.
-              These are 44px tall. A filter that hides a year gives way to
-              All when one is followed (`RecordFilters`). */}
-          <nav aria-label="Jump to a year" className="mt-1">
-            <ul role="list" className="-ml-1.5 flex flex-wrap font-mono text-[length:var(--step--1)]">
-              {YEARS.map((year) => (
-                <li key={year}>
-                  <a
-                    href={`#${recordYearId(year)}`}
-                    className="inline-flex min-h-11 items-center px-1.5 text-fg-muted underline-offset-4 transition-colors duration-150 hover:text-accent hover:underline"
-                  >
-                    {year}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <RecordFilters options={FILTERS} label="Show entries of one kind">
-            <RecordYears />
-          </RecordFilters>
-          <Stamps className="mt-10 xl:absolute xl:bottom-10 xl:left-10 xl:mt-0 xl:w-[calc(50%-5rem)]" />
-        </div>
-      </div>
+      <DiaryBook pages={pages} chapters={contentsChapters()} tabs={TABS} words={WORDS} />
     </Section>
   );
 }

@@ -14,10 +14,12 @@ reference: [README.md](README.md).
 - No database, no CMS, no component library. Every component under
   `src/components` and `src/sections` is bespoke — don't reach for a
   dependency to replace one without discussing it first.
-- The postcard's lead form (name plus an email or phone, no message)
-  falls back from Resend to a `mailto:` flow whenever `RESEND_API_KEY` /
-  `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set (see
-  `.env.example`). That fallback is intentional, not a bug.
+- The postcard's lead form (name plus an email or phone, no message) sends
+  through Resend and nothing else; it never opens the visitor's mail app. When
+  `RESEND_API_KEY` / `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set
+  (read at build time, see `.env.example`) or a send fails, it says so in
+  first person and offers my address with a copy button. That is intentional,
+  not a bug. A send is confirmed by a "SENT" stamp inked on the form.
 - Targets: **WCAG 2.2 AA** and Lighthouse 90+/95+/95+/95+. These are design
   constraints, not afterthoughts — they're why there's no motion library, no
   icon font, and why sections render on the server by default.
@@ -63,22 +65,57 @@ hero's clothesline in Round 21's hero phase). It is in git history. There is sti
 
 ### The scenery
 
-The hero's, the Journey's, Contact's and the Record's drawings are generated SVG files under `public/scenery/`, written
+The hero's, the Journey's, Contact's and the Diary's drawings are generated SVG files under `public/scenery/`, written
 by `scripts/draw-scenery.mjs` (`pnpm draw:scenery`), and
 `tests/lib/scenery.test.ts` fails until the committed files match a fresh
 draw — so change a drawing in the script, never by hand. One-colour drawings
 are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
 `--scene-bark`, `--scene-moss`, `text-accent`); the theme-dependent pieces
-(the sky, the phin/lẩu, bánh mì/trà đá and cà phê sữa đá/chè vignettes, the Hội
-An lantern, lit at night) take their file from `--art-sky` / `--art-vignette` /
+(the sky, the phin & cơm tấm/lẩu & bia, bánh mì/trà đá and cà phê sữa đá/chè
+vignettes, Moon in her võng, the Hội An lantern, lit at night) take their file
+from `--art-sky` / `--art-vignette` / `--art-offduty` /
 `--art-journey-vignette` / `--art-record-vignette` / `--art-lantern`, so the
-theme swaps them in CSS with no script. The Record's tree slice is not a file:
-its rings are computed from content (`src/lib/record.ts`) and drawn inline. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
+theme swaps them in CSS with no script. The hero's buffalo is two masks painted
+by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, behind the rice) and
+sleeps at night (`buffalo-sleep`, in front of it), shown with `.day-only` /
+`.night-only`. The chapter tags' drawings are masks too: rice, a Venus
+flytrap (Taylors grows it wild), an open book (USC), a laptop. The Diary's tree slice and its charts are
+not files: the slice's rings are computed from content (`src/lib/record.ts`) and a
+page's before/after bars and tally marks from the entry's `diary.figure`, both
+drawn inline. Its stamps (`stamp-bank`, `-card`, `-code`, `-cart`: a bank's
+columns, a card with a key, code brackets round a gear, a cart) and three page
+figures (`diary-selftaught`, `diary-cap`, `diary-podium`) are ink masks like the rest. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
 below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
 and a stretched `oak-bough` (with `-leaves`) per tag. `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library; the two figures, mini-Thien and Bé Nhi, are fixed inline SVG in
-`src/components/companion/` because their poses and faces are state. `data-moon-off-duty` (the sleeping cat in `Scenery.tsx`) is a stable
-hook for Phase 7; keep it, once.
+`src/components/companion/` because their poses and faces are state. `data-moon-off-duty` (Moon lying in her võng, hung between two bamboo stakes,
+in `Scenery.tsx`) is a stable hook for Phase 7; keep it, once. The drawing
+inside it carries `data-moon-art`, which is what the cats visit and sit beside
+(it is an art span, not an inline `<svg>`).
+
+### The header and the cats' layer (round 23)
+
+The header is not a bar. `SiteHeader` is transparent, borderless and
+`pointer-events-none`; three bits of paper sit on the sky: the TL tag, a torn
+strip held by washi tape (the nav, no numbers, and the theme switch — a drawn
+sun by day, crescent by night, no box) and a postage stamp for "Let's talk"
+(paper and ink, never `--control` or `--mark`; hidden under 640px). Below 1024
+the strip holds a "Menu" tag (punched hole) and the sun/moon, and the menu is a
+notebook page. The current section gets an ink swash drawn on by its link's
+`aria-current`. The drawings (`nav-torn`, `nav-swash`, `nav-sun`, `nav-moon`)
+are in `draw-scenery.mjs` like the rest. **The strip's wrapper must carry no
+transform or filter** — the phone menu's panel is `position: fixed` inside it —
+so tilt, shadow and torn edge live on its aria-hidden layers. `--header-h` is
+still 3.5rem.
+
+The cats are above everything: the companion layer is `z-55`, over the header
+(`z-50`). Only the skip link (60), native `<dialog>`s (top layer) and the open
+phone menu are above it (`SiteNav` stamps `data-menu-open` on `<html>`, which
+drops the layer to 40). A cat walking over a link or button is drawn on top and
+marked `data-cat-under`, which gives it `pointer-events: none` so the press
+reaches the control (round 21 cut the cat out behind the control instead — that
+was the "hidden by UI"). Cats still keep out of the header's band when they
+settle.
 
 ## Changing what the site says
 
@@ -92,13 +129,23 @@ is as tall as its content), the Journey (`#tree`: a live oak whose limb
 carries the highlight tags, the DoorDash one a ticket with a 2026 stub,
 Bé Nhi (my girlfriend) on a rope swing, and "Watch it grow", which grows the
 oak itself; below 1280 it is one tree: the crown's trunk runs on past the tags
-and her swing to its roots, each on a bough of its own), the Record (`#record`, round 21 phase 5: a
-notebook spread; the left page, "Pressed, waiting to dry.", holds a tree slice
-whose rings link to their years and the five `featured` entries taped around
-it; the right page lists every career entry by start year with All / Work /
-Study / Milestones filters, as one-open rows that hold the impact lines and the
-case studies, then the certificates as stamps that open the real certificate
-in a native `<dialog>`; the pages stack below 1280) and Contact
+and her swing to its roots, each on a bough of its own), the Diary (`#record`, the Record until
+round 23; `#diary` lands beside it: a book you swipe left and right. The pages
+are a horizontal scroll-snap track, one to a view below 1280 and a spread of
+two from there, so it works with JavaScript off; `DiaryBook.tsx` is the one
+client island and adds the index tabs, the dog-eared corners, ← and → and "p. 3
+of 14". Page 1 is "Pressed, waiting to dry.", the lead, a tree slice whose
+rings link to their chapter and the five `featured` entries taped around it;
+page 2 the contents, each entry a link to its page with dotted leaders and its
+number; then each chapter's pages, newest first, 2018 – 2020 last as one
+chapter; then the certificates as stamps that open the real certificate in a
+native `<dialog>`. An entry with `diary.bullets` has a page of its own (its
+kind and dates, a sentence or two, the oak's highlight in `--accent`, two to
+four bullets, a small chart drawn from `diary.figure`, a fun fact on a sticky
+note); the ones with little to say share a page, three at most. The tabs
+(All / Work / Study / Milestones) re-bind the book to one kind and recount the
+pages. There are no case studies on the page: `projects` stays in the content
+layer for the chat and `/resume`) and Contact
 (`#contact`, round 21's postcard: my business card beside a postcard whose
 address side is the lead form, always visible, and the chat at `#ask` as a
 strip below both).
@@ -109,21 +156,26 @@ tour visits the same four).
 The retired ids — `#journey`, `#work`, `#skills`, `#workshop`, `#worlds`, every
 `journey-entry-<id>` and every `work-<projectId>` — are all still in the
 server-rendered HTML and land with JavaScript off (`e2e/legacy-anchors.spec.ts`):
-`#journey`, `#skills` and `#workshop` on the Journey; `#work` (the case studies)
-and every `journey-entry-<id>` / `work-<projectId>` on the Record's rows;
+`#journey`, `#skills` and `#workshop` on the Journey; `#work` (DoorDash's page, where
+the case studies mostly were), `#diary`, `#record-<year>` and every
+`journey-entry-<id>` / `work-<projectId>` on the Diary's pages (a real, zero-height
+element at the top of its page; see `Anchor` in `EntryPage.tsx`);
 `#worlds` on About via `src/sections/Hero/anchors.ts`. Nothing on the page links
 to most of them; they exist for inbound links the site does not control, so
 "unreferenced" is not a reason to delete one.
 
-There is no résumé section on the page — it is a route, `/resume`, that reads
-the same content. Do not reintroduce it as a section: it was almost entirely a
-second rendering of the timeline and the case studies.
+There is no résumé section on the page, and no HTML résumé any more (round 23).
+The business card's Résumé chip is a link to `profile.resumePdf`; from 640px
+with JavaScript it opens the PDF in a native `<dialog>` (`ResumeLink.tsx`, the
+iframe's `src` set only on first open), below that the PDF itself. `/resume`
+is the same PDF full page (back to the site, Download) so inbound links still
+land. Do not reintroduce the résumé as a section or an HTML page.
 
 Copy rules (first person, surface vs depth, headlines) live in
 [docs/voice.md](docs/voice.md).
 
 Everything factual lives in `src/content/portfolio.ts`; components read from
-it and never restate a fact. One career entry feeds the Journey, the Record, the
+it and never restate a fact. One career entry feeds the Journey, the Diary, the
 résumé and the chat at once. Practical recipes — adding a
 metric, adding a role, attaching a case study — are in
 [docs/editing.md](docs/editing.md).
@@ -151,21 +203,40 @@ nowhere the eval can see.
 There is one tree: the oak. Round 22 retired the drawn tree (`DrawnTree`, the
 scroll box it grew in, `TreeBox`, and the origin-story player, `OriginStory`):
 it was a second tree under the oak, in a scroll box of its own, and it repeated
-the Record's rows. They are in git history; do not bring a second tree back.
+the Diary's pages. They are in git history; do not bring a second tree back.
 
 - **Watch it grow grows the oak.** `GrowOak.tsx` stamps `data-growing` on
   `#tree`: the oak opens out from its trunk's foot, each tag drops on its
   `data-year`, the lantern comes last (globals.css, "Watch it grow"), and a
   caption under the button reads each beat of `growBeats()`
-  (`src/lib/origin-story.ts`: the flight, a season per year, the shoot). The
-  cats narrate it through the same `origin-story` / `origin-story-beat` events
-  they always have. It never starts under reduced motion or with JS off: the
+  (`src/lib/origin-story.ts`: the flight, a season per year, the shoot), each
+  1.6s long. The cats narrate it through the same `origin-story` /
+  `origin-story-beat` events they always have (round 23 adds `weather` to the
+  beat's detail). It never starts under reduced motion or with JS off: the
   grown oak is the end state.
-- **The Record's rows own the fragments.** Each entry's row
-  (`src/sections/Record/RecordYears.tsx`) carries `journey-entry-<id>` and its
-  case studies' `work-<projectId>`; the tags link there. One row is open at a
-  time; a fragment opens its row, and with JavaScript off `:target` does. The
-  chat cites `#record` for entries, case studies and the degree.
+- **The show has weather (round 23).** Every `GrowBeat` carries a `weather`
+  computed by `weatherFor` from the season, never typed per year: `plane` for the
+  flight, `rain` (schooling), `sun` (plain work), `snow` (an empty year), `flood`
+  (rain with a milestone), `thunderstorm` (any other storm year), `hurricane`
+  (the one year with the most milestones; the earlier wins a tie) and a `ufo`
+  for the shoot. `GrowOak` stamps `data-weather` (and `--beat-ms`) on `#tree`;
+  `Weather.tsx` holds every piece, `aria-hidden`, and globals.css ("Watch it
+  grow, with weather") shows and animates them in CSS alone. Plane, saucer,
+  clouds, leaves, bolt, rain and snow are masks in `draw-scenery.mjs`; light is
+  `--surface`, silhouettes `--fg`, water `--scene-water`; never `--mark` or the
+  flag's gold. In the real content every working year also has a milestone, so
+  the thunderstorm opens in sun. A lịch bloc beside the button tears off a page
+  per year. `finish()` removes every weather attribute, whether the show ran out
+  or was skipped.
+- **The Diary's pages own the fragments.** An entry with a page of its own is
+  `journey-entry-<id>` itself (`src/sections/Record/EntryPage.tsx`); one on a
+  shared page is a block on it. The case studies' `work-<projectId>` ids are
+  zero-height spans on the page of the entry they were built in; the tags link
+  there. A fragment is a scroll in the book's own track, which the browser does
+  with JavaScript off (the left page's targets carry a `scroll-margin` over to the
+  right page, or a two-page window would tie between two snap points: see
+  `--turn` in globals.css). The chat cites `#record` for entries and the
+  degree, and "More on this in Diary".
 - **Bé Nhi swings from the oak (round 22, her own request: "dumb dumb cute
   cute easy mood changing").** `NhiSwing.tsx` hangs her from the left limb
   between the lantern and the trunk (below 1280, from a bough under the last

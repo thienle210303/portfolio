@@ -4,8 +4,11 @@ import {
   caseStudyAnchorId,
   journeyEntryAnchorId,
   LEGACY_SECTION_IDS,
+  RECORD_ALIAS_IDS,
   RECORD_LEGACY_SECTION_IDS,
+  RECORD_WORK_ENTRY_ID,
 } from "../src/sections/CareerTree/anchors";
+import { recordYearId, recordYears } from "../src/lib/record";
 import { ABOUT_LEGACY_SECTION_IDS } from "../src/sections/Hero/anchors";
 
 /**
@@ -85,6 +88,10 @@ const RESTING_TOLERANCE = 2;
 const ALL_LEGACY_IDS = [
   ...LEGACY_SECTION_IDS,
   ...RECORD_LEGACY_SECTION_IDS,
+  // Round 23: the Record is the Diary (`#diary`), and every year is still a
+  // fragment (`#record-2019`: the rings' targets), though 2018 – 2020 is one page.
+  ...RECORD_ALIAS_IDS,
+  ...recordYears().map((y) => recordYearId(y.year)),
   ...ABOUT_LEGACY_SECTION_IDS,
   ...careerEntries.map((entry) => journeyEntryAnchorId(entry.id)),
   // Round 18's brief names these alongside the rest. The id is `work-<projectId>`
@@ -122,6 +129,21 @@ function expectSettledAtRestingTop(top: number, message: string) {
   expect(top, message).toBeLessThanOrEqual(RESTING_TOP + RESTING_TOLERANCE);
 }
 
+/** Is the whole of `selector` inside the book's window, sideways? A fragment
+ *  that lands vertically but leaves the book on another page is a miss. */
+function inBook(page: Page, selector: string): Promise<boolean> {
+  return page.evaluate((sel) => {
+    const box = document.querySelector("#record .diary-track")!.getBoundingClientRect();
+    const r = document.querySelector(sel)!.getBoundingClientRect();
+    return r.left >= box.left - 2 && r.right <= box.right + 2;
+  }, selector);
+}
+
+/** How far along the book is (the track's scrollLeft). */
+function bookLeft(page: Page): Promise<number> {
+  return page.evaluate(() => Math.round(document.querySelector("#record .diary-track")!.scrollLeft));
+}
+
 /** How far down the document the browser is. Read with `page.evaluate`, which
  *  works in a `javaScriptEnabled: false` context — Playwright's own evaluation
  *  is not the page's scripting (checked, not assumed). */
@@ -156,6 +178,8 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(ALL_LEGACY_IDS.length).toBe(
       LEGACY_SECTION_IDS.length +
         RECORD_LEGACY_SECTION_IDS.length +
+        RECORD_ALIAS_IDS.length +
+        recordYears().length +
         ABOUT_LEGACY_SECTION_IDS.length +
         careerEntries.length +
         projects.length,
@@ -211,6 +235,7 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     const landings = [
       ...LEGACY_SECTION_IDS.map((id) => [id, "tree"] as const),
       ...RECORD_LEGACY_SECTION_IDS.map((id) => [id, "record"] as const),
+      ...RECORD_ALIAS_IDS.map((id) => [id, "record"] as const),
     ];
     let checked = 0;
     for (const [id, section] of landings) {
@@ -230,6 +255,13 @@ test.describe("retired URLs, with JavaScript disabled", () => {
       // And the section really is what the reader is now looking at.
       await expect.soft(page.locator(`#${section} #${id}`), `/#${id} is not inside #${section}`).toHaveCount(1);
       await expect.soft(page.locator(`#${section}`), `/#${id} left #${section} off screen`).toBeInViewport();
+      // `#work` is on DoorDash's page, and the book shows it.
+      if ((RECORD_LEGACY_SECTION_IDS as readonly string[]).includes(id)) {
+        await expect
+          .soft(page.locator(`#${journeyEntryAnchorId(RECORD_WORK_ENTRY_ID)} #${id}`), `/#${id} is not on DoorDash's page`)
+          .toHaveCount(1);
+        expect.soft(await inBook(page, `#${id}`), `/#${id} left the book on another page`).toBe(true);
+      }
       expect.soft(await scrollY(page), `/#${id} did not scroll at all`).toBeGreaterThan(0);
       checked += 1;
     }
@@ -253,13 +285,13 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(await scrollY(page), "#worlds scrolled away from About").toBeLessThan(RESTING_TOP);
   });
 
-  test("per-entry fragments land on their own Record row, each at a different place in the document", async ({
+  test("per-entry fragments land on their own page of the book, each at a different place along it", async ({
     page,
   }) => {
-    // Three drawn entries, oldest first. One would prove the mechanism; three
-    // prove the fragments are not all resolving to the same element — which is
-    // the failure a single case cannot see, and the one a derived-then-rendered
-    // id list could plausibly produce.
+    // Three entries, oldest first: a block on a shared page, an entry with a
+    // page of its own, and the newest. One would prove the mechanism; three
+    // prove the fragments are not all resolving to the same element, which is
+    // the failure a single case cannot see.
     const probes = ["eastside-high", "usc-ta", "doordash"] as const;
     for (const entry of probes) {
       expect(
@@ -271,31 +303,43 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     const offsets: number[] = [];
     for (const entry of probes) {
       const fragment = journeyEntryAnchorId(entry);
-      // A fresh document per probe, the way an inbound link arrives. A
-      // same-document hop would un-target the previous row, whose `:target`
-      // opening (globals.css) then collapses above the new landing.
+      // A fresh document per probe, the way an inbound link arrives.
       await page.goto("about:blank");
       await page.goto(`/#${fragment}`);
       const row = page.locator(`#${fragment}`);
       await expect(row).toHaveCount(1);
-      // The fragment is the row itself, not a span beside it.
+      // The fragment is the entry's own page or its block, not a span beside it.
       await expect(row).toHaveAttribute("data-tree-branch", entry);
       expectSettledAtRestingTop(
         await restingTop(row),
         `/#${fragment} must settle at the ${RESTING_TOP}px scroll margin`,
       );
-      await expect(row).toBeInViewport();
-      offsets.push(await scrollY(page));
+      expect(await inBook(page, `#${fragment}`), `/#${fragment} left the book on another page`).toBe(true);
+      offsets.push(await bookLeft(page));
     }
 
-    // Strictly decreasing: the Record lists the newest year first, so an older
-    // entry's fragment must land below a newer one's. Equal offsets would mean
-    // two fragments resolved to the same element.
+    // The book lists the newest chapter first, so an older entry's page is
+    // further along. Equal offsets would mean two fragments resolved to one page.
     expect(
       offsets,
-      `the three fragments landed at ${offsets.join(", ")} — they must be three distinct places, newest highest`,
+      `the three fragments landed at ${offsets.join(", ")} along the book: they must be three distinct places, newest first`,
     ).toEqual([...offsets].toSorted((a, b) => b - a));
     expect(new Set(offsets).size, "two fragments landed in the same place").toBe(probes.length);
+  });
+
+  test("every year is still a fragment, and 2018, 2019 and 2020 land on the same page", async ({ page }) => {
+    const landed: Record<number, string> = {};
+    for (const { year } of recordYears()) {
+      await page.goto("about:blank");
+      await page.goto(`/#${recordYearId(year)}`);
+      const anchor = page.locator(`#${recordYearId(year)}`);
+      await expect(anchor).toHaveCount(1);
+      expectSettledAtRestingTop(await restingTop(anchor), `/#record-${year} must settle at the ${RESTING_TOP}px scroll margin`);
+      expect(await inBook(page, `#${recordYearId(year)}`), `/#record-${year} left the book on another page`).toBe(true);
+      landed[year] = await anchor.evaluate((el) => el.closest("article")!.id);
+    }
+    expect(new Set([landed[2018], landed[2019], landed[2020]]).size, "2018 – 2020 is one chapter").toBe(1);
+    expect(new Set(Object.values(landed)).size, "one chapter per year from 2021, and the early one").toBe(6);
   });
 
   test("an entry the drawing leaves out lands on its Record row too", async ({ page }) => {
@@ -313,24 +357,22 @@ test.describe("retired URLs, with JavaScript disabled", () => {
       await restingTop(line),
       `/#${fragment} must settle at the ${RESTING_TOP}px scroll margin`,
     );
+    expect(await inBook(page, `#${fragment}`), `/#${fragment} left the book on another page`).toBe(true);
   });
 
-  test("a case study's fragment opens its row and lands on it", async ({ page }) => {
-    // The row opens for its target from CSS alone (`:target` in globals.css),
-    // so a case study inside a closed row is still something a scriptless
-    // reader lands on and can read.
+  test("a case study's fragment lands on its entry's page, where no case study is drawn any more", async ({ page }) => {
+    // The case studies are gone from the page (round 23: "case study make it
+    // bored"), but every `work-<projectId>` is still a real, zero-height
+    // element on the page of the entry it was built in, so an old link lands
+    // the book on that page, with JavaScript off.
     const study = projects.find((project) => project.id === "dd-scraper-platform");
     expect(study, "dd-scraper-platform is no longer a project, so this checks nothing").toBeDefined();
     await page.goto(`/#${caseStudyAnchorId("dd-scraper-platform")}`);
-    const article = page.locator(`#${caseStudyAnchorId("dd-scraper-platform")}`);
-    await expect(article).toBeVisible();
-    // Only a stability wait: the article's own scroll margin is not this
-    // spec's 80px, so the landing is asserted as "on screen" instead.
-    await restingTop(article);
-    await expect(article).toBeInViewport();
-    await expect(page.locator("#journey-entry-doordash [role=region] > div").first()).toHaveCSS(
-      "visibility",
-      "visible",
-    );
+    const anchor = page.locator(`#${caseStudyAnchorId("dd-scraper-platform")}`);
+    await expect(anchor).toHaveCount(1);
+    expectSettledAtRestingTop(await restingTop(anchor), "a case study's anchor must settle at the scroll margin");
+    await expect(page.locator(`#journey-entry-${study!.careerEntryId} #${caseStudyAnchorId("dd-scraper-platform")}`)).toHaveCount(1);
+    expect(await inBook(page, `#${caseStudyAnchorId("dd-scraper-platform")}`), "the book is on another page").toBe(true);
+    await expect(page.locator("#record article[id^='work-']")).toHaveCount(0);
   });
 });

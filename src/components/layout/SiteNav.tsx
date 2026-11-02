@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
@@ -27,29 +26,14 @@ function goTo(target: HTMLElement): void {
   target.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
 }
 
-/** Shared underline element for the active-state indicator. Always in the
- * DOM at a fixed size; only its opacity (and now its own horizontal scale)
- * changes, so it never shifts layout and never relies on colour alone
- * (paired with `aria-current`).
- *
- * The `scale-x` addition (Workstream 3, P3) is what turns the flip into a
- * draw: `origin-left` plus `scale-x-0 -> scale-x-100` makes the underline
- * grow out from the label's own reading start rather than simply appearing,
- * using `--ease-ink` — the one deliberate exception to "hover moves keep the
- * browser default timing" (see that token's comment in globals.css), because
- * this specifically reads as a line being drawn rather than a colour
- * changing. Opacity stays in the mix too: a link whose section is merely
- * hovered, not active, never gets the indicator regardless of scale. */
-function ActiveIndicator({ active }: { active: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "pointer-events-none absolute inset-x-0 -bottom-px h-px origin-left bg-accent transition-[opacity,transform] duration-(--dur-quick) ease-(--ease-ink)",
-        active ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"
-      )}
-    />
-  );
+/** The ink swash under the current section (round 23). Always in the DOM at
+ * its full size; the stylesheet draws it on from the left when its link gains
+ * `aria-current` and wipes it off when it loses it (instantly under reduced
+ * motion), so it never shifts layout and never carries the state alone: the
+ * link says `aria-current` too. The drawing is `nav-swash.svg`, painted in
+ * the paper's `--accent`. */
+function Swash() {
+  return <span aria-hidden="true" className="nav-swash" />;
 }
 
 /** "01" for the first stop: the nav is the page's table of contents. */
@@ -84,6 +68,9 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
     body.style.top = `-${scrollY}px`;
     body.style.left = "0";
     body.style.width = "100%";
+
+    // The cats float above the header, but never above the open menu.
+    document.documentElement.setAttribute("data-menu-open", "");
 
     const panel = panelRef.current;
     panel?.querySelector<HTMLElement>("a")?.focus();
@@ -130,6 +117,7 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
     desktopQuery.addEventListener("change", onDesktopChange);
 
     return () => {
+      document.documentElement.removeAttribute("data-menu-open");
       document.removeEventListener("keydown", onKeyDown);
       desktopQuery.removeEventListener("change", onDesktopChange);
       body.style.position = previousStyle.position;
@@ -210,7 +198,7 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
   return (
     <>
       <nav aria-label="Primary" className="hidden lg:block">
-        <ul className="flex items-center gap-6">
+        <ul className="flex items-center gap-0.5">
           {navItems.map((item) => {
             const isActive = item.sectionId === activeId;
             return (
@@ -220,18 +208,12 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
                   aria-current={isActive ? "true" : undefined}
                   onClick={handleNavLinkClick(item.sectionId)}
                   className={cn(
-                    "relative inline-flex min-h-11 items-center py-2 text-[length:var(--step--1)] transition-colors duration-150",
+                    "nav-link relative inline-flex min-h-11 items-center px-3 font-display text-[length:var(--step-0)] font-semibold transition-colors duration-150",
                     isActive ? "text-fg" : "text-fg-muted hover:text-fg"
                   )}
                 >
-                  {/* The chapter number is drawn, not text: the link says only its label. */}
-                  <span
-                    aria-hidden="true"
-                    data-stop={stopNumber(navItems.indexOf(item))}
-                    className="mr-1.5 font-mono text-[11px] text-fg-muted before:content-[attr(data-stop)]"
-                  />
                   {item.label}
-                  <ActiveIndicator active={isActive} />
+                  <Swash />
                 </a>
               </li>
             );
@@ -239,6 +221,8 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
         </ul>
       </nav>
 
+      {/* A paper tag with a punched hole, like the TL tag; the word is the
+          label, `aria-label` says what pressing it does. No box. */}
       <button
         ref={toggleRef}
         type="button"
@@ -246,20 +230,21 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
         aria-controls={MOBILE_PANEL_ID}
         aria-label={open ? "Close menu" : "Open menu"}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-11 w-11 items-center justify-center border border-rule text-fg active:translate-y-px lg:hidden"
+        className="nav-menu-tag inline-flex min-h-11 min-w-11 items-center gap-2 px-2.5 font-display text-[length:var(--step-0)] font-semibold text-fg active:translate-y-px lg:hidden"
       >
-        {open ? (
-          <X aria-hidden="true" focusable="false" size={20} />
-        ) : (
-          <Menu aria-hidden="true" focusable="false" size={20} />
-        )}
+        <span aria-hidden="true" className="nav-hole" />
+        <span aria-hidden="true">{open ? "Close" : "Menu"}</span>
       </button>
 
       {open ? (
+        <>
+        {/* The notebook page's torn top edge: paper, flipped, hung from the foot
+            of the header. */}
+        <span aria-hidden="true" className="nav-notebook-edge bg-surface lg:hidden" />
         <div
           id={MOBILE_PANEL_ID}
           ref={panelRef}
-          className="fixed inset-x-0 top-[var(--header-h)] bottom-0 z-40 overflow-y-auto sky-fill bg-[position:0_calc(-1*var(--header-h))] lg:hidden"
+          className="nav-notebook pointer-events-auto fixed inset-x-0 top-[calc(var(--header-h)+9px)] bottom-0 z-40 overflow-y-auto bg-surface lg:hidden"
         >
           {/* The menu is a trail map (round 22): the four pages are stops on a
               dashed path, the one you are on filled in and marked "you are
@@ -271,7 +256,8 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
             aria-label="Mobile"
             className="shell relative isolate min-h-full overflow-hidden py-8"
             style={{
-              paddingLeft: "max(var(--gutter), env(safe-area-inset-left))",
+              // Left of the gutter is the notebook's margin, where the holes are.
+              paddingLeft: "max(calc(var(--gutter) + 1.75rem), env(safe-area-inset-left))",
               paddingRight: "max(var(--gutter), env(safe-area-inset-right))",
               paddingBottom: "calc(2rem + env(safe-area-inset-bottom))",
             }}
@@ -332,6 +318,7 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
             />
           </nav>
         </div>
+        </>
       ) : null}
     </>
   );

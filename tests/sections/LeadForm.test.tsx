@@ -1,16 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LeadForm from "@/sections/Contact/LeadForm";
 import { contactCopy, profile } from "@/content/portfolio";
-import { buildLeadMailto, openMailClient } from "@/lib/contact";
-
-// jsdom cannot follow a `mailto:` navigation, so the one impure helper is
-// replaced; everything else in the module is real.
-vi.mock("@/lib/contact", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/contact")>()),
-  openMailClient: vi.fn(),
-}));
 
 const PAIR_ERROR = "Add an email or a phone number so I can reach you.";
 
@@ -31,7 +23,6 @@ const emailField = () => screen.getByLabelText(/^Email/);
 const phoneField = () => screen.getByLabelText(/^or phone/);
 const send = () => screen.getByRole("button", { name: contactCopy.send });
 
-beforeEach(() => vi.mocked(openMailClient).mockClear());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("the lead form", () => {
@@ -114,32 +105,54 @@ describe("the lead form", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(contactCopy.success);
   });
 
-  it("opens the mail app instead of posting when delivery is not configured", async () => {
+  it("never opens the mail app: unconfigured, it says so and offers my address to copy", async () => {
     const spy = stubFetch(200, { ok: true });
+    const navigate = vi.fn();
+    vi.stubGlobal("open", navigate);
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={false} />);
-    expect(send()).toHaveAccessibleDescription(/opens your email app/i);
+    const { container } = render(<LeadForm emailDeliveryConfigured={false} />);
+    expect(send()).toHaveAccessibleDescription(contactCopy.sendOffNote);
     await user.type(nameField(), "Jamie");
     await user.type(phoneField(), "864 555 0100");
     await user.click(send());
 
     expect(spy).not.toHaveBeenCalled();
-    expect(openMailClient).toHaveBeenCalledWith(buildLeadMailto({ name: "Jamie", phone: "864 555 0100" }, profile.email));
-    expect(screen.getByRole("status")).toHaveTextContent(/email app/i);
-    expect(screen.getByRole("status")).not.toHaveTextContent(contactCopy.success);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent(contactCopy.offline);
+    expect(container.querySelector("p[role=status]")).toHaveTextContent("");
+    expect(container.querySelector("[data-reach]")).toHaveTextContent(profile.email);
+    expect(screen.getByRole("button", { name: contactCopy.copyAddress })).toBeInTheDocument();
+    expect(container.querySelector("a[href^='mailto:']")).toBeNull();
+    expect(container.querySelector("[data-sent-stamp]")).toBeNull();
   });
 
-  it("falls back to the mail app when the server says it is not configured", async () => {
+  it("when the server says it cannot send, the same honest way out", async () => {
     stubFetch(503, { ok: false, reason: "not-configured" });
     const user = userEvent.setup();
-    render(<LeadForm emailDeliveryConfigured={true} />);
+    const { container } = render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
-    expect(openMailClient).toHaveBeenCalledWith(
-      buildLeadMailto({ name: "Jamie", email: "jamie@example.com" }, profile.email),
-    );
-    expect(await screen.findByRole("status")).toHaveTextContent(/email app/i);
+    expect(await screen.findByRole("alert")).toHaveTextContent(contactCopy.offline);
+    expect(container.querySelector("[data-reach]")).toHaveTextContent(profile.email);
+    expect(container.querySelector("[data-sent-stamp]")).toBeNull();
+    expect(emailField()).toHaveValue("jamie@example.com");
+  });
+
+  it("stamps the postcard when it sends, and the line says it is in my inbox", async () => {
+    stubFetch(200, { ok: true });
+    const user = userEvent.setup();
+    const { container } = render(<LeadForm emailDeliveryConfigured={true} />);
+    expect(send()).toHaveAccessibleDescription(contactCopy.sendNote);
+    expect(container.querySelector("[data-sent-stamp]")).toBeNull();
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+    await screen.findByText(contactCopy.success);
+    const stamp = container.querySelector("[data-sent-stamp]");
+    expect(stamp).toHaveTextContent(contactCopy.stamp);
+    expect(stamp).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector("[data-reach]")).toBeNull();
   });
 
   it("puts the server's field errors on the fields", async () => {
@@ -156,12 +169,25 @@ describe("the lead form", () => {
   it("says so on the card when the send fails, and never claims success", async () => {
     stubFetch(502, { ok: false, reason: "send-failed" });
     const user = userEvent.setup();
+    const { container } = render(<LeadForm emailDeliveryConfigured={true} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+    expect(await screen.findByRole("alert")).toHaveTextContent(contactCopy.failed);
+    expect(container.querySelector("p[role=status]")).toHaveTextContent("");
+    expect(screen.getByText(profile.email)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: contactCopy.copyAddress })).toBeInTheDocument();
+  });
+
+  it("tells a flooder to wait, and still offers my address", async () => {
+    stubFetch(429, { ok: false, reason: "rate-limited" });
+    const user = userEvent.setup();
     render(<LeadForm emailDeliveryConfigured={true} />);
     await user.type(nameField(), "Jamie");
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
-    expect(await screen.findByRole("alert")).toHaveTextContent(/went wrong/i);
-    expect(screen.getByRole("status")).toHaveTextContent("");
+    expect(await screen.findByRole("alert")).toHaveTextContent(contactCopy.rateLimited);
+    expect(screen.getByRole("button", { name: contactCopy.copyAddress })).toBeInTheDocument();
   });
 
   it("is the postcard itself: no Back, and Escape does nothing to it", async () => {

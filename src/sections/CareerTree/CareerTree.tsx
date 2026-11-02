@@ -32,6 +32,7 @@ import { LEGACY_SECTION_IDS } from "./anchors";
 import GrowOak from "./GrowOak";
 import HangingTags from "./HangingTags";
 import OakScenery, { OakCrown } from "./OakScenery";
+import Weather from "./Weather";
 
 const HEADING_ID = "tree-heading";
 
@@ -71,6 +72,8 @@ export default function CareerTree() {
       ))}
 
       <OakScenery />
+      {/* "Watch it grow"'s weather, shown only while it plays. */}
+      <Weather />
 
       {/* Static at every width: from 1280 the tags, the button and the
           vignette are placed against the section, in the board's frame. */}

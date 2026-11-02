@@ -286,9 +286,53 @@ export interface CareerEntry {
   /** One of the five pressed on the Record's left page. An editorial call,
    *  never computed (spec §5); `tests/lib/record.test.ts` holds it to five. */
   readonly featured?: true;
-  /** The award's own image, opened from the entry's Record row. */
+  /** The award's own image, opened from the entry's Diary page. */
   readonly award?: RecordImage;
+  /** What the entry's Diary page adds to the facts above (round 23). Not
+   *  indexed by the chat. */
+  readonly diary?: DiaryNotes;
 }
+
+/**
+ * The Diary's own notes on an entry. An entry with `bullets` has a page to
+ * itself; one without shares a page with the others in its chapter that have
+ * little to say (`diaryPages()` in `src/lib/record.ts`).
+ *
+ * Every figure in `bullets`, `highlight` and the figure's labels must also be
+ * in the entry's own `impact`, `context` or `headline`
+ * (`tests/lib/record.test.ts`), the rule `highlights` already follows.
+ */
+export interface DiaryNotes {
+  /** The page's one or two sentences, when the entry's `context` is not them. */
+  readonly blurb?: string;
+  /** Two to four short lines of what happened. */
+  readonly bullets?: readonly string[];
+  /** One highlighted figure, for an entry the oak does not hang a tag for
+   *  (the oak's own `highlights` entry wins when there is one). */
+  readonly highlight?: { readonly value: string; readonly label: string };
+  /** A small chart of the work, drawn from this data. */
+  readonly figure?: DiaryFigure;
+  /** A line for the sticky note. Drafted from facts already in the content
+   *  layer; each is marked as a draft until the owner approves it. */
+  readonly funFact?: string;
+}
+
+/** A drawing under `public/scenery/` that a Diary page can hold. */
+export type DiaryDrawingName = "diary-selftaught" | "diary-cap" | "diary-podium";
+
+export type DiaryFigure =
+  /** Two bars. `value` is only the bar's relative length; the label is what
+   *  the reader reads, and carries the figure. */
+  | {
+      readonly kind: "before-after";
+      readonly caption: string;
+      readonly before: { readonly label: string; readonly value: number };
+      readonly after: { readonly label: string; readonly value: number };
+    }
+  /** Marks for a count: dots (`per` set, or twelve or fewer), else tally
+   *  gates of five. */
+  | { readonly kind: "count"; readonly caption: string; readonly total: number; readonly per?: number }
+  | { readonly kind: "drawing"; readonly caption: string; readonly name: DiaryDrawingName };
 
 /** A certificate or award image under `public/media/certificates/`, shown in a
  *  dialog only when asked for. `width`/`height` are the file's own. */
@@ -329,12 +373,14 @@ export interface Certification {
   /** The platform it was issued through, when not the issuer itself. */
   readonly via?: string;
   readonly date: Maybe<string>;
-  /** A postage stamp on the Record. Only a certificate with an image has one. */
+  /** A postage stamp on the Diary. Only a certificate with an image has one. */
   readonly stamp?: {
     /** The issuer's short name, set large on the stamp. */
     readonly short: string;
-    /** A line drawing from `public/scenery/` (`stamp-<drawing>.svg`). */
-    readonly drawing: "pine" | "fern" | "rice" | "palmetto";
+    /** A line drawing of what the certificate was about, from
+     *  `public/scenery/` (`stamp-<drawing>.svg`): a bank's columns, a card
+     *  with a key, code brackets and a gear, a shopping cart. */
+    readonly drawing: "bank" | "card" | "code" | "cart";
     readonly image: RecordImage;
   };
 }
@@ -378,11 +424,19 @@ export interface Highlight {
   readonly projectId?: string;
 }
 
-/** The Record's authored lines (`record` in the content layer). Not indexed. */
+/** The Diary's authored lines (`record` in the content layer: the section's
+ *  id is `record` still). Not indexed. */
 export interface RecordCopy {
+  /** The section's visible name. */
+  readonly name: string;
   readonly pressed: { readonly heading: string; readonly lead: string; readonly slice: string };
-  readonly byYear: { readonly heading: string; readonly empty: string };
+  readonly contents: { readonly heading: string; readonly note: string };
   readonly certificates: string;
+  /** The sticky note's label. */
+  readonly funFactLabel: string;
+  /** The book's accessible name, and the index tabs'. */
+  readonly bookLabel: string;
+  readonly tabsLabel: string;
   readonly vignette: { readonly morning: string; readonly evening: string };
 }
 

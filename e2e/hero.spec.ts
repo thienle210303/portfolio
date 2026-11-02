@@ -664,6 +664,14 @@ test.describe("hero", () => {
       await open(page, theme);
       const art = await sky(page).evaluate((el) => getComputedStyle(el).backgroundImage);
       expect(art).toContain(theme === "day" ? "sky-day.svg" : "sky-night.svg");
+      // Round 23: the buffalo ploughs by day and sleeps at night, Moon's võng
+      // and the stool's meal swap with her, by the theme's art variables.
+      const painted = (selector: string, property: "mask-image" | "background-image") =>
+        page.locator(selector).first().evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), property);
+      await expect(page.locator('#about [data-scenery="buffalo-plow"]')).toBeVisible({ visible: theme === "day" });
+      await expect(page.locator('#about [data-scenery="buffalo-sleep"]')).toBeVisible({ visible: theme === "night" });
+      expect(await painted("#about [data-moon-art]", "background-image")).toContain(theme === "day" ? "offduty-day.svg" : "offduty-night.svg");
+      expect(await painted('#about [data-scenery="vignette"]', "background-image")).toContain(theme === "day" ? "morning.svg" : "evening.svg");
       const [shown, gone] =
         theme === "day" ? [hero.vignette.morning, hero.vignette.evening] : [hero.vignette.evening, hero.vignette.morning];
       await expect(page.locator("#about").getByText(shown)).toBeVisible();
@@ -710,20 +718,22 @@ test.describe("hero", () => {
     );
   });
 
-  test("the header sits on the sky", async ({ page }) => {
+  test("the header is no bar: paper on the sky, nothing painted of its own", async ({ page }) => {
     await open(page);
-    // The sky is a fixed layer under body (round 21 phase 8: iOS ignores
-    // `background-attachment: fixed`); the header paints the same gradient.
-    const [header, sky] = await page.evaluate(() =>
+    // Round 23. The sky is a fixed layer under body (round 21 phase 8: iOS
+    // ignores `background-attachment: fixed`); the header is transparent over
+    // it and borderless, and its paper (the strip, the stamp) is opaque.
+    const [header, strip] = await page.evaluate(() =>
       [
         getComputedStyle(document.querySelector("header[data-site-header]")!),
-        getComputedStyle(document.body, "::before"),
-      ].map((s) => ({ image: s.backgroundImage, size: s.backgroundSize, position: s.position })),
+        getComputedStyle(document.querySelector(".nav-paper")!),
+      ].map((s) => ({ image: s.backgroundImage, color: s.backgroundColor, border: s.borderBottomWidth })),
     );
-    expect(header.image).toBe(sky.image);
-    expect(header.image).not.toBe("none");
-    expect(header.size).toBe(sky.size);
-    expect(sky.position).toBe("fixed");
+    expect(header.image).toBe("none");
+    expect(header.color).toBe("rgba(0, 0, 0, 0)");
+    expect(header.border).toBe("0px");
+    expect(strip.color).not.toBe("rgba(0, 0, 0, 0)");
+    expect(await page.evaluate(() => getComputedStyle(document.body, "::before").position)).toBe("fixed");
   });
 });
 

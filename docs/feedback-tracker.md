@@ -2299,3 +2299,32 @@ As configured on Vercel: `BOOKING_URL` is set (the hero's second action is "Book
 | Desktop | 100 | 100 | 100 | 100 | 0.6 s | 0 ms | 0 |
 
 **Seen while checking, then fixed.** Asked "What did you build at DoorDash?", the chat's local answer led with Schaeffler's low-code build and the chess bot. Two causes: the stemmer only folds plurals, so "built" never met "build", and the rare exact "build" in three other passages took the top slots; and only a case study's problem statement carried its employer's name, so DoorDash's evidence could not be reached by naming DoorDash. Fixed by folding "built" onto "build" (`IRREGULAR` in `answers.ts`), the employer on every case-study passage, and career rows indexed before case studies (equal scores keep corpus order; the impact line "Built an agent-driven onboarding workflow…" had tied a problem statement and lost on order). A tie-break on passage length was tried first and dropped: recall@1 fell from 67.7% to 54.8%. The live query is now an eval case, the first not written by the aliases' author: missed → rank 1; the set goes 67.7 / 90.3 / 93.5 / 0.781 → 71.0 / 93.5 / 96.8 / 0.812 (recall@1/3/5, MRR), refusals 4/4; of the other 30, one case moved ("how many retailers has he integrated", rank 4 → 5). `pnpm verify` (929 tests) and the full e2e (860) pass.
+
+## Round 23: polish (2026-11-01)
+
+Thirteen asks from Thien, designed in `docs/superpowers/specs/2026-11-01-round-23-polish.md` and built by five parallel builders on branch `round-23/polish`:
+- **A (asks 1–4):** a buffalo that ploughs by day and sleeps at night; Moon in a võng; cà phê phin & cơm tấm, lẩu & bia; a Venus flytrap for Taylors and an open book for USC.
+- **B (5):** weather over the oak plus a lịch bloc in "Watch it grow".
+- **C (6–9):** the Record became the Diary, a book you swipe, with certificate drawings and a 2018 – 2020 chapter.
+- **D (10–11):** the résumé is a PDF dialog, and the postcard never opens a mail app.
+- **E (12–13):** the paper-strip header, and the cats above it.
+
+**Perf row** (`pnpm perf`, production build on `:3300`, 0 skipped responses). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (round 22, last row) | 205,579 B | 205,579 B | 24,132 B | 117,868 B | 0 | 2355 |
+| After | 204,163 B | 204,163 B | 28,879 B | 117,868 B | 0 | 1639 |
+
+- **JS at load −1,416 B.** The case studies, `TimelineAccordion` and `RecordFilters` left the bundle, and the Diary's island (`DiaryBook.tsx`, about +1.4 KB) came in.
+- **CSS +4,747 B.** The weather, the header strip, the book and the résumé dialog.
+- **DOM −716 nodes.** No case studies rendered.
+- LCP 1072 ms (the sky's art), TBT 24 ms.
+
+**Verification.** `pnpm verify` passes: 961 unit tests, contrast 66 pairings with the lowest at 4.52:1, and the build.
+
+Full e2e on the production build: 857 passed and 1 failed. The failure is "they keep off … Contact's lede" at 1280: a walking cat crossed the lede during the six-viewport parallel run. It passes 4/4 in isolation and in a parallel run of the whole companion spec (65/65), so it is load timing; it is noted here rather than hidden.
+
+Against the dev server, two JS-off Diary fragment landings also settled 16–27px low under the same load. They pass on the production build and 3/3 in isolation.
+
+`npx impeccable detect` at 1440 and 390 finds only the recorded exceptions: tag backs, nested notebook paper, and ruled lines.

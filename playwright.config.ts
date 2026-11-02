@@ -35,13 +35,17 @@ const VIEWPORTS = [
 const PINNED_CHROMIUM = "/opt/pw-browsers/chromium";
 const CHROMIUM_EXECUTABLE = existsSync(PINNED_CHROMIUM) ? PINNED_CHROMIUM : undefined;
 
+/** `E2E_PORT` lets several checkouts (git worktrees) run the suite at once,
+ *  each against its own dev server; unset, it is the usual 3000. */
+const PORT = Number(process.env.E2E_PORT ?? 3000);
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",
     launchOptions: {
       executablePath: CHROMIUM_EXECUTABLE,
@@ -55,8 +59,8 @@ export default defineConfig({
     },
   })),
   webServer: {
-    command: "pnpm dev",
-    port: 3000,
+    command: `pnpm dev --port ${PORT}`,
+    port: PORT,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
