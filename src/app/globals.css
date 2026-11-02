@@ -2581,7 +2581,9 @@
 /* value, so the room is never short (slack < one step, inside 4px of each  */
 /* breakpoint; 0 elsewhere). Re-measure if the chat's idle copy or          */
 /* suggestions change. Live mode is assumed no taller (its resting line is  */
-/* shorter), not measured. e2e/ask.spec.ts fails at five widths if the      */
+/* shorter), not measured. Round 24 re-measured it (the window is 23rem     */
+/* from 1024, was 20rem: +48px there; below 1024 nothing moved).            */
+/* e2e/ask.spec.ts fails at five widths if the                              */
 /* footer moves by more than 2px across the load, and fails between 400 and */
 /* 639px if the room is short of the chat or more                           */
 /* than 200px taller than it.                                               */
@@ -2623,12 +2625,289 @@
   }
   @media (width >= 1024px) {
     :root {
-      --ask-room: 470px;
+      --ask-room: 518px;
     }
   }
   html[data-motion] [data-ask-slot],
   html[data-motion] [data-ask-chat] {
     min-height: var(--ask-room);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Round 24, builder B: the Ask answers, on paper (`AskThisSite.tsx`).        */
+/*                                                                            */
+/* The thread is my notepad and each turn is paper exchanged on it: your      */
+/* question a ticket stub, my answer clippings taped in under "I said", each  */
+/* with its source inked on and a tab to its section. Colours are aliases     */
+/* only: the stub and the clippings are `bg-ground` (the compose side's tint: */
+/* lichen by day, lantern-raised paper at night), the tabs `--surface`, the   */
+/* ruling `--rule-color`, the ink `--fg-muted`, the figures `--accent`; every */
+/* text pairing is one docs/contrast.md already measures. Tape and shadows    */
+/* are fixed rgba, like the board's. Motion is entrance only and never a     */
+/* fade (paper moves, or the typed sheet is unclipped), so text is never      */
+/* half-transparent while it lands; under reduced motion it is simply there.  */
+/* -------------------------------------------------------------------------- */
+@layer components {
+  /* What I write on the notepad sits on ruled lines: one rule under every
+     line of the paragraph (`1lh`), so the writing is always on its lines
+     wherever the paragraph lands in the thread. */
+  .ask-lined {
+    line-height: 1.75rem;
+    background-image: linear-gradient(
+      transparent calc(1lh - 1px),
+      color-mix(in srgb, var(--rule-color) 75%, transparent) 0
+    );
+    background-size: 100% 1lh;
+  }
+
+  /* Your question: a ticket stub, handed over from the compose side. The
+     stub is perforated (a dashed tear line) and notched where the tear meets
+     the edges; the shadow is on the wrapper, because a mask clips its own. */
+  .ask-slip-lift {
+    filter: drop-shadow(0 1px 1px rgb(30 40 35 / 0.14)) drop-shadow(0 4px 6px rgb(30 40 35 / 0.1));
+    rotate: 1deg;
+  }
+  .ask-slip {
+    --stub: 2.5rem;
+    mask:
+      radial-gradient(circle 5px at var(--stub) 0, #0000 95%, #000) top / 100% 51% no-repeat,
+      radial-gradient(circle 5px at var(--stub) 100%, #0000 95%, #000) bottom / 100% 51% no-repeat;
+  }
+  .ask-slip-stub {
+    flex: none;
+    display: grid;
+    place-content: center;
+    width: var(--stub);
+    text-align: center;
+    border-right: 1.5px dashed color-mix(in srgb, var(--fg-muted) 50%, transparent);
+  }
+
+  /* My answer's clippings, taped in at a slight tilt, alternating. */
+  .ask-clip {
+    margin: 1rem 0.75rem 0.5rem 0;
+    box-shadow:
+      0 1px 1px rgb(30 40 35 / 0.1),
+      0 5px 10px -5px rgb(30 40 35 / 0.32);
+    rotate: -0.5deg;
+  }
+  .ask-clip:nth-child(even) {
+    margin-inline: 0.75rem 0;
+    rotate: 0.45deg;
+  }
+  /* Room under a clipping for the tab that hangs from it. */
+  .ask-clip:has(> .ask-clip-tab) {
+    margin-bottom: 1.85rem;
+  }
+  .ask-clips > .ask-clip:first-child {
+    margin-top: 0.85rem;
+  }
+
+  /* Washi tape across the top edge, its ends torn in a zigzag. */
+  .ask-tape {
+    position: absolute;
+    top: -0.6rem;
+    left: 1.25rem;
+    width: 3.6rem;
+    height: 1.1rem;
+    background: var(--tape, rgb(205 190 150 / 0.6));
+    rotate: -4deg;
+    mask:
+      conic-gradient(from 45deg at left, #0000, #000 1deg 89deg, #0000 90deg) left / 51% 5px repeat-y,
+      conic-gradient(from -135deg at right, #0000, #000 1deg 89deg, #0000 90deg) right / 51% 5px repeat-y;
+    pointer-events: none;
+  }
+  .ask-clip:nth-child(even) .ask-tape {
+    left: auto;
+    right: 1.5rem;
+    rotate: 3.5deg;
+  }
+
+  /* The source, inked on: a small rubber-stamped FROM. */
+  .ask-ink {
+    display: inline-block;
+    margin-right: 0.2rem;
+    padding: 0.1rem 0.3rem 0.05rem;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    rotate: -3deg;
+  }
+
+  /* A measured value in the passage. */
+  .ask-figure {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* "More on this in …": an index tab hanging from the clipping's foot, a
+     different paper showing from under it. 26px to the eye, 44px to press. */
+  .ask-clip-tab {
+    position: absolute;
+    top: 100%;
+    right: 1rem;
+    display: inline-flex;
+    align-items: flex-start;
+    min-height: 2.75rem;
+    max-width: calc(100% - 2rem);
+  }
+  .ask-clip-tab-paper {
+    padding: 0.3rem 0.55rem 0.25rem;
+    border: 1px solid var(--rule-color);
+    border-top: 0;
+    border-radius: 0 0 3px 3px;
+    background: var(--surface);
+    box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .ask-clip-tab:hover .ask-clip-tab-paper {
+    text-decoration-thickness: 2px;
+  }
+  /* A live model's answer is typed on a sheet of its own, not clipped: it is
+     composed, so it has no single source to cut it from. */
+  .ask-typed {
+    padding: 0.7rem 0.8rem 0.8rem;
+    border: 1px solid var(--rule-color);
+    background: var(--surface);
+    box-shadow:
+      0 1px 1px rgb(30 40 35 / 0.08),
+      0 6px 12px -8px rgb(30 40 35 / 0.3);
+  }
+  @media (width >= 40rem) {
+    .ask-typed {
+      padding: 0.8rem 1rem 0.9rem;
+    }
+  }
+  /* In a live answer's "Grounded in" list the tab sits in the line. */
+  .ask-typed .ask-clip-tab {
+    position: static;
+    align-items: center;
+  }
+  .ask-typed .ask-clip-tab-paper {
+    border-top: 1px solid var(--rule-color);
+    border-radius: 3px;
+  }
+
+  /* Thinking: three ink dots after "writing". */
+  .ask-ink-dots {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 4px;
+  }
+  .ask-ink-dots > span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* The "or try" tags hang a little askew, like the slips they become. */
+  .ask-try > li:nth-child(odd) .ask-tag {
+    rotate: -1.2deg;
+  }
+  .ask-try > li:nth-child(even) .ask-tag {
+    rotate: 0.9deg;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  /* Paper lands: the slip slides in from the compose side and settles, the
+     clippings drop and straighten one after another, the code view turns
+     the answer over, and the ink dots blot in turn. */
+  .ask-slip-lift {
+    animation: ask-hand-over 460ms var(--ease-ink) both;
+  }
+  .ask-clip {
+    --settle: -2.5deg;
+    animation: ask-settle 520ms var(--ease-ink) both;
+    animation-delay: calc(140ms + var(--i, 0) * 110ms);
+  }
+  .ask-clip:nth-child(even) {
+    --settle: 2.5deg;
+  }
+  .ask-back {
+    transform-origin: 0 50%;
+    animation: ask-turn-over 420ms var(--ease-ink) both;
+  }
+  /* The typed sheet feeds up out of the machine, top line first. */
+  .ask-typed {
+    animation: ask-feed 700ms var(--ease-ink) both;
+  }
+  .ask-ink-dots > span {
+    animation: ask-blot 1.2s ease-out infinite both;
+  }
+  .ask-ink-dots > span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .ask-ink-dots > span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  .ask-tag {
+    transition:
+      color 200ms,
+      rotate 200ms var(--ease-ink),
+      translate 200ms var(--ease-ink);
+  }
+  .ask-try button:hover .ask-tag {
+    rotate: 0deg;
+    translate: 0 -1px;
+  }
+
+  @keyframes ask-hand-over {
+    from {
+      translate: 2.75rem 0.35rem;
+      rotate: 5deg;
+    }
+  }
+  @keyframes ask-settle {
+    from {
+      translate: 0 -0.7rem;
+      rotate: var(--settle);
+      scale: 1.03;
+    }
+  }
+  @keyframes ask-turn-over {
+    from {
+      transform: perspective(60rem) rotateY(-70deg);
+    }
+  }
+  @keyframes ask-feed {
+    from {
+      clip-path: inset(-1rem -1rem 100% -1rem);
+      translate: 0 0.5rem;
+    }
+    to {
+      clip-path: inset(-1rem);
+    }
+  }
+  @keyframes ask-blot {
+    0% {
+      opacity: 0;
+      scale: 0.3;
+    }
+    25% {
+      opacity: 1;
+      scale: 1.25;
+    }
+    40%,
+    75% {
+      opacity: 1;
+      scale: 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 1;
+    }
   }
 }
 

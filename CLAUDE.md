@@ -289,6 +289,28 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   vocabularies overlap 17 of 38 ways), and nothing is drawn below the ground
   line.
 
+### The Ask (round 24)
+
+The chat at `#ask` is paper exchanged on my notepad, not chat UI. Your question
+is a ticket stub in the compose side's tint (`No. 01`, the turn's place, hidden
+from assistive tech); a static answer's passages are clippings taped in under
+"I said", each with its source inked on ("FROM …") and "More on this in …" as
+a tab off its edge (a 44px target); a live model's answer is typed on a sheet
+of its own, because it is composed, never clipped; a decline stays a plain
+line. Measured values (`17 hours → 3 minutes`, `3M+`) are found by
+`figureRuns` in `src/sections/Contact/answer-figures.ts`, never marked up in
+the content, and set in `--accent` mono; dates, ordinals and number words stay
+prose. Thinking is three ink dots, a still "writing…" under reduced motion.
+Prose / Code are `Tabs`' `index` variant. Paper lands without fading (it
+moves, or the typed sheet is unclipped line by line), so text is never
+half-transparent when axe audits it, and it does not move at all under
+reduced motion. Every colour is an alias and every text pairing is
+one `docs/contrast.md` already measures. The window is still one fixed height
+(17rem, 23rem from 1024, so a clipping and a half show on a desktop) and
+`--ask-room` is re-measured to match; `role="log"`, the conversation list,
+the thread cache, the focus rules and the dynamic import are unchanged. Idle, the window holds the promise without
+scrolling down to 320 (it is no tab stop until there is a turn).
+
 ### `src/lib/` never imports from `src/sections/`
 
 Through round 17 `src/lib/worlds.ts` imported an anchor helper from a section's

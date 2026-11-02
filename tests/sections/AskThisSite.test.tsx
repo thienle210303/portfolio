@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AskThisSite, { clearThreadCache } from "@/sections/Contact/AskThisSite";
 import { answer } from "@/lib/answers";
+import { figureRuns } from "@/sections/Contact/answer-figures";
 
 /**
  * The scrolling thread + "Clear conversation" control (round 12, WP-K).
@@ -58,6 +59,13 @@ function questionField() {
   return screen.getByRole("textbox", { name: "Your question" });
 }
 
+/** A passage on its clipping, by its whole text: since round 24 its measured
+ *  values are spans of their own, so the paragraph's own text nodes alone
+ *  (what `getByText` matches) are not the passage. */
+function passage(container: HTMLElement, text: string): HTMLElement {
+  return within(container).getByText((_, element) => element?.tagName === "P" && element.textContent === text);
+}
+
 let scrollToSpy: ReturnType<typeof vi.fn>;
 let matchMediaMatches = false;
 
@@ -95,7 +103,7 @@ describe("AskThisSite -- scrolling thread window", () => {
     expect(region).not.toHaveAttribute("tabindex");
     // Round 22: the same height idle and in use, so the first question
     // does not grow the strip.
-    expect(region).toHaveClass("h-[17rem]", "lg:h-[20rem]");
+    expect(region).toHaveClass("h-[17rem]", "lg:h-[23rem]");
   });
 
   it("becomes a keyboard-reachable, bounded scroll region once a turn exists", async () => {
@@ -106,7 +114,7 @@ describe("AskThisSite -- scrolling thread window", () => {
 
     const region = conversationRegion();
     expect(region).toHaveAttribute("tabindex", "0");
-    expect(region).toHaveClass("h-[17rem]", "lg:h-[20rem]");
+    expect(region).toHaveClass("h-[17rem]", "lg:h-[23rem]");
     expect(region).toHaveClass("overflow-y-auto");
 
     // Still the same list, same accessible name, that every other ask.spec
@@ -299,7 +307,7 @@ describe("thread persistence across unmount -- live mode in flight", () => {
     await user.type(screen.getByRole("textbox"), "What did Thien build at DoorDash?");
     await user.keyboard("{Enter}");
 
-    expect(await screen.findByText(/Asking the live model/)).toBeInTheDocument();
+    expect(await screen.findByText(/writing/)).toBeInTheDocument();
 
     // An unmount: the chat that asked the question -- and is waiting on its
     // response -- goes away before the network call returns.
@@ -320,7 +328,7 @@ describe("thread persistence across unmount -- live mode in flight", () => {
     render(<AskThisSite liveModeConfigured={true} />);
 
     expect(screen.getByText("He built the Dasher-facing tools at DoorDash.")).toBeInTheDocument();
-    expect(screen.queryByText(/Asking the live model/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/writing/)).not.toBeInTheDocument();
   });
 });
 
@@ -342,7 +350,7 @@ describe("AskThisSite -- a sectioned passage links to its section", () => {
     await user.click(screen.getByRole("button", { name: question }));
 
     const answers = await screen.findByRole("list", { name: "Sourced answers" });
-    const item = within(answers).getByText(expected.text).closest("li");
+    const item = passage(answers, expected.text).closest("li");
     expect(item).not.toBeNull();
     const link = within(item as HTMLElement).getByRole("link", { name: /More on this in/ });
     expect(link).toHaveAttribute("href", `#${expected.sectionId}`);
@@ -374,8 +382,8 @@ describe("AskThisSite -- a passage whose subject is rendered nowhere has no sect
     await user.keyboard("{Enter}");
 
     const answers = await screen.findByRole("list", { name: "Sourced answers" });
-    expect(within(answers).getByText(sectionless[0].text)).toBeInTheDocument();
-    const item = within(answers).getByText(sectionless[0].text).closest("li");
+    expect(passage(answers, sectionless[0].text)).toBeInTheDocument();
+    const item = passage(answers, sectionless[0].text).closest("li");
     expect(item).not.toBeNull();
     expect(within(item as HTMLElement).queryByRole("link")).toBeNull();
     expect(within(item as HTMLElement).getByText(sectionless[0].source)).toBeInTheDocument();
@@ -411,5 +419,160 @@ describe("AskThisSite -- what it says about its answers", () => {
         "I haven’t written anything here that answers that, so I’d rather say so than guess.",
       ),
     ).toBeVisible();
+  });
+});
+
+/**
+ * Round 24: each turn is paper exchanged on the notepad. What jsdom can pin is
+ * the markup the paper carries and the words it says; the look itself is
+ * checked in a browser (e2e/ask.spec.ts and the round's screenshots).
+ */
+describe("figureRuns -- measured values are found, not authored", () => {
+  function figures(text: string): string[] {
+    return figureRuns(text)
+      .filter((run) => run.figure)
+      .map((run) => run.text);
+  }
+
+  it("finds magnitudes, pluses, percentages and time units", () => {
+    expect(
+      figures(
+        "3M+ records at USC; 20+ live retailer integrations and 30+ scrapers in a week at DoorDash; Damerau–Levenshtein matching over 1M+ records at Schaeffler.",
+      ),
+    ).toEqual(["3M+", "20+", "30+", "1M+"]);
+    expect(figures("Uptime held at 99.9% while failures fell from 3.9% to zero.")).toEqual(["99.9%", "3.9%"]);
+    expect(figures("Time to a feasibility answer: Days of manual investigation → Under 1 hour, end to end.")).toEqual([
+      "1 hour",
+    ]);
+  });
+
+  it("reads a before and after as one measurement", () => {
+    expect(figures("Legacy scraper runtime: 17 hours → 3 minutes.")).toEqual(["17 hours → 3 minutes"]);
+    expect(figures("runtime 17 hours to 3 minutes, coverage 654 to 1,529 products")).toEqual([
+      "17 hours to 3 minutes",
+      "654 to 1,529",
+    ]);
+    expect(figures("onboarded merchants went from 2 to 25 a month.")).toEqual(["2 to 25"]);
+    expect(figures("17h → 3m")).toEqual(["17h → 3m"]);
+  });
+
+  it("leaves dates, ordinals, number words and glued digits as prose", () => {
+    expect(figures("I moved in December 2018, at fifteen, with my family.")).toEqual([]);
+    expect(figures("Every year from 2021 to 2025, and the 1990s before me.")).toEqual([]);
+    expect(figures("2nd Place, with a team of three, on Next.js v16 and H2O.")).toEqual([]);
+  });
+
+  it("cuts the passage without losing a character", () => {
+    for (const question of ["What have you measured?", "What do you do at DoorDash?", "scraper", "awards"]) {
+      for (const result of answer(question)) {
+        expect(figureRuns(result.text).map((run) => run.text).join("")).toBe(result.text);
+      }
+    }
+  });
+});
+
+describe("AskThisSite -- paper, exchanged (round 24)", () => {
+  it("hands the question over as a numbered slip, its number for the eye only", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<AskThisSite liveModeConfigured={false} />);
+    await user.click(screen.getByRole("button", { name: "What do you do at DoorDash?" }));
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
+
+    const turns = within(conversationRegion()).getByRole("list", { name: "Conversation" });
+    const second = within(turns)
+      .getAllByRole("listitem")
+      .filter((el) => el.parentElement === turns)[1] as HTMLElement;
+    expect(within(second).getByText("you asked")).toBeInTheDocument();
+    expect(within(second).getByText("What have you measured?")).toBeInTheDocument();
+    // The stub's number is the turn's place in the thread, hidden from
+    // assistive tech (it hears "you asked" and the question).
+    const stub = second.querySelector(".ask-slip-stub");
+    expect(stub).toHaveTextContent("No.02");
+    expect(stub).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("sets the measured values of a clipping in accent mono, the passage's words unchanged", async () => {
+    const question = "What have you measured?";
+    const measured = answer(question).find((result) => result.text.includes("17 hours → 3 minutes"));
+    expect(measured, "the probe no longer retrieves the scraper benchmark").toBeDefined();
+
+    const user = userEvent.setup({ delay: null });
+    render(<AskThisSite liveModeConfigured={false} />);
+    await user.click(screen.getByRole("button", { name: question }));
+
+    const answers = await screen.findByRole("list", { name: "Sourced answers" });
+    const text = passage(answers, measured!.text);
+    const figure = text.querySelector(".ask-figure");
+    expect(figure).toHaveTextContent("17 hours → 3 minutes");
+    // The source is inked on under it, and its section is a tab off the edge.
+    const clipping = text.closest("li") as HTMLElement;
+    expect(within(clipping).getByText(measured!.source)).toBeInTheDocument();
+    expect(within(clipping).getByRole("link", { name: `More on this in ${measured!.sectionLabel}` })).toHaveAttribute(
+      "href",
+      `#${measured!.sectionId}`,
+    );
+  });
+
+  it("keeps Prose and Code as two tabs under \"I said\", the label outside the tablist", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<AskThisSite liveModeConfigured={false} />);
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
+
+    const tablist = screen.getByRole("tablist", { name: "Answer view" });
+    expect(within(tablist).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Prose", "Code"]);
+    expect(within(tablist).queryByText("I said")).toBeNull();
+    expect(within(conversationRegion()).getByText("I said")).toBeInTheDocument();
+  });
+
+  it("thinks in ink while a live answer is on its way, never a spinner", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+    const user = userEvent.setup({ delay: null });
+    const { container } = render(<AskThisSite liveModeConfigured={true} />);
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
+
+    const writing = await screen.findByText("writing");
+    expect(writing.querySelectorAll(".ask-ink-dots > span")).toHaveLength(3);
+    expect(writing.querySelector(".ask-ink-dots")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector(".animate-spin")).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it("types a live model's answer rather than clipping it, labelled and grounded", async () => {
+    const [citation] = answer("What have you measured?");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        json: () =>
+          Promise.resolve({
+            ok: true,
+            grounded: true,
+            text: "I took a scraper from 17 hours to 3 minutes.",
+            citations: [citation],
+          }),
+      }),
+    );
+    const user = userEvent.setup({ delay: null });
+    render(<AskThisSite liveModeConfigured={true} />);
+    await user.click(screen.getByRole("button", { name: "What have you measured?" }));
+
+    const typed = await screen.findByText((_, element) =>
+      element?.tagName === "P" && element.textContent === "I took a scraper from 17 hours to 3 minutes.",
+    );
+    expect(typed.closest(".ask-typed")).not.toBeNull();
+    expect(typed.closest(".ask-clip")).toBeNull();
+    expect(typed.querySelector(".ask-figure")).toHaveTextContent("17 hours to 3 minutes");
+    expect(screen.getByText("Live model")).toBeInTheDocument();
+    const grounded = screen.getByRole("list", { name: "Grounded in" });
+    expect(within(grounded).getByText(citation.source, { exact: false })).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("writes the promise on ruled lines under a blank slip while nothing is asked", () => {
+    render(<AskThisSite liveModeConfigured={false} />);
+    const region = conversationRegion();
+    expect(within(region).getByText("No question asked yet.").closest(".ask-slip")).not.toBeNull();
+    expect(within(region).getByText(/^Pick a question or ask your own\./)).toHaveClass("ask-lined");
+    // "I said" stays its own words: the cats' parking test reads it.
+    expect(within(region).getByText("I said")).toBeInTheDocument();
   });
 });
