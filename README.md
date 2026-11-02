@@ -7,7 +7,7 @@ The site is a single narrative page in four sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
 that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — a live oak
 with five measured tags hanging from it and Bé Nhi on a rope swing (press her
-and her mood changes), which grows, tags and all, on "Watch it grow"; the **Diary** — a book you swipe left and right: a tree slice with my five
+and her mood changes), which grows, tags and all, on "Watch it grow"; the **Diary** — a cloth-bound book whose pages turn (drag a corner, swipe, or riffle from the contents): a tree slice with my five
 best pressed around it, a contents, a page for each thing I did (a highlighted
 figure, a few bullets, a small chart and a fun fact), 2018 – 2020 as one
 chapter, and my certificates as stamps; and **Contact**: a

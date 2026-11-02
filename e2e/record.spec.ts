@@ -3,8 +3,11 @@ import AxeBuilder from "@axe-core/playwright";
 import { careerEntries, certifications, record } from "../src/content/portfolio";
 import { diaryPages, kindCounts, recordYears } from "../src/lib/record";
 
-// Round 23: the Diary, a book you swipe left and right. Each test pins its own
-// viewport and runs once (in the chromium-1440 project), as journey.spec does.
+// The Diary: a book whose pages turn (round 24; round 23 swiped them). With
+// JavaScript and motion welcome the pages are leaves (`data-mode="leaf"`); with
+// JavaScript off, and under reduced motion, they are the scroll-snap track they
+// were. Each test pins its own viewport and runs once (in the chromium-1440
+// project), as journey.spec does.
 
 const WIDE = { width: 1440, height: 1000 };
 const PHONE = { width: 390, height: 844 };
@@ -27,6 +30,20 @@ async function open(page: Page, theme: "day" | "night" = "day", hash = "") {
 const track = (page: Page) => page.locator("#record .diary-track");
 const where = (page: Page) => page.locator("#record [data-diary-page]");
 const slot = (page: Page, key: string) => page.locator(`#record .diary-slot[data-page="${key}"]`);
+const frame = (page: Page) => page.locator("#record [data-diary]");
+
+/** The book is live and its leaves are at rest: no turn in the air. */
+async function still(page: Page) {
+  await expect(frame(page)).toHaveAttribute("data-live", "");
+  await expect(frame(page)).not.toHaveAttribute("data-flight");
+}
+
+/** The pages on show (not hidden until found), by key. */
+function onShow(page: Page): Promise<string[]> {
+  return track(page)
+    .locator(":scope > .diary-slot:not([data-hidden]):not([hidden])")
+    .evaluateAll((els) => els.map((el) => el.getAttribute("data-page") ?? "blank"));
+}
 
 /** The track's scrollLeft once it has stopped moving (a snap or a smooth turn). */
 async function settledLeft(page: Page): Promise<number> {
@@ -115,12 +132,15 @@ test.describe("the Diary", () => {
     const one = await slot(page, "summary").boundingBox();
     const win = await track(page).boundingBox();
     expect(one!.width).toBeCloseTo(win!.width, 0);
+    expect(await onShow(page)).toEqual(["summary"]);
   });
 
-  test("native scroll is the swipe: it snaps to a page, and the counter follows", async ({ page }) => {
+  test("under reduced motion the book is the track: native scroll is the swipe, it snaps, and the counter follows", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     for (const size of [WIDE, PHONE]) {
       await page.setViewportSize(size);
       await open(page);
+      await expect(frame(page)).toHaveAttribute("data-mode", "track");
       const view = await track(page).evaluate((el) => el.clientWidth);
       await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
       const box = (await track(page).boundingBox())!;
@@ -132,7 +152,151 @@ test.describe("the Diary", () => {
       await page.mouse.wheel(view * 0.7, 0);
       await expect.poll(() => settledLeft(page), { message: `${size.width}: a long swipe turns a page` }).toBe(view);
       await expect(where(page)).toHaveText(size.width >= 1280 ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`);
+      // Every page is there to scroll to: none hidden until found.
+      expect(await track(page).locator(":scope > .diary-slot[hidden]").count()).toBe(0);
+      // A tab re-binds the book from its first page, at once.
+      await page.getByRole("group", { name: record.tabsLabel }).getByRole("button", { name: /^Work/ }).click();
+      expect(await settledLeft(page)).toBe(0);
+      await expect(where(page)).toHaveText(new RegExp(`^pp?\\. 1`));
     }
+  });
+
+  test("with JavaScript the pages turn: the right page lifts over the spine in 3D, its back the next left page", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page);
+    await expect(frame(page)).toHaveAttribute("data-mode", "leaf");
+    expect(await onShow(page)).toEqual(["summary", "contents"]);
+    // The others are hidden until found: out of the tab order and the
+    // accessibility tree, but there for the browser's find.
+    const hidden = await track(page).locator(":scope > .diary-slot[hidden]").evaluateAll((els) => els.map((el) => el.getAttribute("hidden")));
+    expect(hidden.length).toBe(PAGES.length - 2);
+    expect(new Set(hidden)).toEqual(new Set(["until-found"]));
+    // A spread: the two pages side by side, not scrolled.
+    expect(await track(page).evaluate((el) => getComputedStyle(el).display)).toBe("grid");
+
+    await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.getByRole("button", { name: "Next page" }).click();
+    // In the air: the contents (the right page) turns about its left edge,
+    // the spine, and the page after it comes with it as its back.
+    await expect(frame(page)).toHaveAttribute("data-flight", "");
+    const leaf = await page.evaluate(() => {
+      const face = (key: string) => document.querySelector<HTMLElement>(`#record .diary-slot[data-page="${key}"]`)!;
+      const pose = (el: HTMLElement) => ({
+        face: el.hasAttribute("data-face"),
+        transform: el.style.transform,
+        origin: getComputedStyle(el).transformOrigin.split(" ")[0],
+        back: getComputedStyle(el).backfaceVisibility,
+        inert: el.inert,
+      });
+      const shades = [...document.querySelectorAll<HTMLElement>("#record .diary-shade[data-on]")].map((el) => el.dataset.on);
+      return { start: pose(face("contents")), arrive: pose(face(document.querySelector("#record .diary-slot[data-page^='entry-']")!.getAttribute("data-page")!)), shades };
+    });
+    expect(leaf.start.face).toBe(true);
+    expect(leaf.start.transform).toMatch(/^rotateY\(-?[\d.]+deg\)$/);
+    expect(leaf.start.origin).toBe("0px");
+    expect(leaf.start.back).toBe("hidden");
+    expect(leaf.arrive.face).toBe(true);
+    expect(leaf.arrive.back).toBe("hidden");
+    expect(parseFloat(leaf.arrive.origin)).toBeGreaterThan(100);
+    // The pages under a turn cannot be pressed mid-air.
+    expect(leaf.start.inert).toBe(true);
+    // The shadow falls on the page under each side.
+    expect(leaf.shades.toSorted()).toEqual(["left", "right"]);
+
+    await still(page);
+    await expect(where(page)).toHaveText(`pp. 3–4 of ${PAGES.length}`);
+    expect(await onShow(page)).toEqual([PAGES[2].key, PAGES[3].key]);
+    // Landed: every pose put back.
+    expect(await page.locator("#record [data-face], #record [data-under]").count()).toBe(0);
+    expect(await slot(page, "contents").evaluate((el) => [el.style.transform, el.getAttribute("hidden")])).toEqual(["", "until-found"]);
+  });
+
+  test("a corner is a handle: a short drag falls back, past halfway it turns", async ({ page }) => {
+    for (const size of [WIDE, PHONE]) {
+      await page.setViewportSize(size);
+      await open(page);
+      await track(page).evaluate((el) => el.scrollIntoView({ block: "end" }));
+      const next = page.getByRole("button", { name: "Next page" });
+      const box = (await next.boundingBox())!;
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      const drag = async (distance: number) => {
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        for (let i = 1; i <= 10; i += 1) {
+          await page.mouse.move(x - (distance * i) / 10, y - 4 * i);
+          await page.waitForTimeout(30);
+        }
+        // Held still before letting go, so it is a drag, not a flick.
+        await page.waitForTimeout(150);
+      };
+      const page1 = size === WIDE ? `pp. 1–2 of ${PAGES.length}` : `p. 1 of ${PAGES.length}`;
+      const page2 = size === WIDE ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`;
+      const width = (await track(page).boundingBox())!.width / (size === WIDE ? 2 : 1);
+
+      await drag(width * 0.25);
+      // The leaf follows the hand.
+      await expect(frame(page)).toHaveAttribute("data-flight", "");
+      const angle = await slot(page, size === WIDE ? "contents" : "summary").evaluate((el) => parseFloat(el.style.transform.replace(/[^\d.-]/g, "")));
+      expect(angle, `${size.width}: the leaf lifted`).toBeLessThan(-20);
+      await page.mouse.up();
+      await still(page);
+      await expect(where(page), `${size.width}: a short drag falls back`).toHaveText(page1);
+
+      await drag(size === WIDE ? width * 1.3 : width * 0.7);
+      await page.mouse.up();
+      await still(page);
+      await expect(where(page), `${size.width}: past halfway it turns`).toHaveText(page2);
+    }
+  });
+
+  test("a trackpad's sideways swipe turns the leaf: a short one falls back, a long one turns", async ({ page }) => {
+    for (const size of [WIDE, PHONE]) {
+      await page.setViewportSize(size);
+      await open(page);
+      const view = await track(page).evaluate((el) => el.clientWidth);
+      await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
+      const box = (await track(page).boundingBox())!;
+      await page.mouse.move(box.x + box.width / 2, Math.max(box.y, 0) + 300);
+      const before = await page.evaluate(() => window.scrollY);
+      await page.mouse.wheel(90, 0);
+      await page.waitForTimeout(700);
+      await still(page);
+      await expect(where(page), `${size.width}: a short swipe goes back`).toHaveText(size.width >= 1280 ? `pp. 1–2 of ${PAGES.length}` : `p. 1 of ${PAGES.length}`);
+      await page.mouse.wheel(view * 0.7, 0);
+      await page.waitForTimeout(400);
+      await still(page);
+      await expect(where(page), `${size.width}: a long swipe turns a page`).toHaveText(size.width >= 1280 ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`);
+      expect(await page.evaluate(() => window.scrollY), "a sideways swipe does not scroll the page").toBe(before);
+    }
+  });
+
+  test("a finger swipes the page over; a finger going down the page scrolls it", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: PHONE, hasTouch: true });
+    const page = await context.newPage();
+    await open(page);
+    await track(page).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    const box = (await track(page).boundingBox())!;
+    const cdp = await context.newCDPSession(page);
+    const swipe = async (dx: number, dy: number) => {
+      const x0 = box.x + box.width * 0.75;
+      const y0 = Math.min(Math.max(box.y, 0) + 400, PHONE.height - 200);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: x0, y: y0 }] });
+      for (let i = 1; i <= 12; i += 1) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x0 + (dx * i) / 12, y: y0 + (dy * i) / 12 }] });
+        await page.waitForTimeout(16);
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    await swipe(-box.width * 0.6, 0);
+    await still(page);
+    await expect(where(page)).toHaveText(`p. 2 of ${PAGES.length}`);
+    // Down the page: no turn.
+    await swipe(0, -240);
+    await page.waitForTimeout(400);
+    await still(page);
+    await expect(where(page)).toHaveText(`p. 2 of ${PAGES.length}`);
+    await context.close();
   });
 
   test("the dog-eared corners turn the page; the first has no page before it, the last none after", async ({ page }) => {
@@ -143,15 +307,15 @@ test.describe("the Diary", () => {
     await expect(prev).toHaveAttribute("aria-disabled", "true");
     expect(await next.boundingBox().then((b) => Math.min(b!.width, b!.height))).toBeGreaterThanOrEqual(44);
     await next.click();
-    expect(await settledLeft(page)).toBeGreaterThan(0);
+    await still(page);
     await expect(where(page)).toHaveText(`pp. 3–4 of ${PAGES.length}`);
     await expect(prev).not.toHaveAttribute("aria-disabled", "true");
     await prev.click();
-    expect(await settledLeft(page)).toBe(0);
-    for (let i = 0; i < PAGES.length / 2; i += 1) {
-      await next.click({ force: true });
-      await settledLeft(page);
-    }
+    await still(page);
+    await expect(where(page)).toHaveText(`pp. 1–2 of ${PAGES.length}`);
+    // Pressed again before a leaf lands, it follows; never past the end.
+    for (let i = 0; i < PAGES.length / 2 + 2; i += 1) await next.click({ force: true });
+    await still(page);
     await expect(next).toHaveAttribute("aria-disabled", "true");
     await expect(where(page)).toHaveText(`pp. ${PAGES.length - 1}–${PAGES.length} of ${PAGES.length}`);
   });
@@ -182,8 +346,8 @@ test.describe("the Diary", () => {
       await page.setViewportSize(size);
       await open(page);
       if (size === PHONE) {
-        await track(page).evaluate((el) => el.scrollBy({ left: el.clientWidth, behavior: "instant" }));
-        await settledLeft(page);
+        await page.getByRole("button", { name: "Next page" }).click();
+        await still(page);
       }
       const line = page.locator('#diary-contents a[href="#journey-entry-schaeffler"]');
       await line.scrollIntoViewIfNeeded();
@@ -197,18 +361,52 @@ test.describe("the Diary", () => {
     }
   });
 
-  test("Tab into a link on a page out of the window brings its whole spread into view", async ({ page }) => {
+  test("Tab stays on the pages on show; a page out of the window is not in the tab order", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);
     await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
     for (const entry of ["wordification", "code-to-give"]) {
       const link = page.locator(`#journey-entry-${entry} a[href^="http"], #journey-entry-${entry} button`).first();
       await link.focus();
-      await settledLeft(page);
-      expect(await inWindow(page, `#journey-entry-${entry}`), `${entry}: focus left the book on another page`).toBe(true);
-      await track(page).evaluate((el) => el.scrollTo({ left: 0, behavior: "instant" }));
-      await settledLeft(page);
+      await expect(link, `${entry}: a page not on show took focus`).not.toBeFocused();
     }
+    // Tab from the book goes through the spread's links, then the corners.
+    await track(page).focus();
+    const visited: string[] = [];
+    for (let i = 0; i < 60; i += 1) {
+      await page.keyboard.press("Tab");
+      const at = await page.evaluate(() => {
+        const el = document.activeElement!;
+        return { page: el.closest(".diary-slot")?.getAttribute("data-page") ?? null, corner: el.classList.contains("diary-corner") };
+      });
+      if (at.corner) break;
+      if (at.page) visited.push(at.page);
+    }
+    expect(visited.length).toBeGreaterThan(0);
+    expect(new Set(visited)).toEqual(new Set(["summary", "contents"]));
+  });
+
+  test("the browser's find and a fragment open the book where they land", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page);
+    // A fragment to a page not on show: the browser reveals it (beforematch),
+    // the book opens there, and the page comes to rest at the header offset.
+    await page.evaluate(() => {
+      window.location.hash = "journey-entry-usc-ta";
+    });
+    await still(page);
+    expect(await inWindow(page, "#journey-entry-usc-ta")).toBe(true);
+    expect(Math.abs((await restingTop(page, "#journey-entry-usc-ta")) - ROW_TOP)).toBeLessThanOrEqual(2);
+    const number = PAGES.findIndex((p) => p.entryIds.includes("usc-ta")) + 1;
+    await expect(where(page)).toContainText(String(number));
+    // Find in page fires `beforematch` on the hidden page that matched.
+    await page.locator('#record .diary-slot[data-page="certificates"]').evaluate((el) => el.dispatchEvent(new Event("beforematch", { bubbles: true })));
+    await expect(where(page)).toHaveText(`pp. ${PAGES.length - 1}–${PAGES.length} of ${PAGES.length}`);
+    expect(await onShow(page)).toContain("certificates");
+    // Back goes back to the page before.
+    await page.goBack();
+    await still(page);
+    expect(await inWindow(page, "#journey-entry-usc-ta")).toBe(true);
   });
 
   test("the contents list the certificates last, and the link goes to them", async ({ page }) => {
@@ -393,9 +591,11 @@ test.describe("the Diary", () => {
 
     const stamps = page.locator("#record button[commandfor^='certificate-'][command='show-modal']");
     await expect(stamps).toHaveCount(STAMPED.length);
+    await page.locator('#diary-contents a[href="#diary-certificates"]').click();
+    await still(page);
     const stamp = stamps.first();
     await stamp.focus();
-    await settledLeft(page);
+    await expect(stamp).toBeFocused();
     await page.keyboard.press("Enter");
     const dialog = page.locator(`dialog#certificate-${STAMPED[0].id}`);
     await expect(dialog).toBeVisible();
@@ -467,16 +667,86 @@ test.describe("the Diary", () => {
     expect(await track(page).evaluate((el) => Math.round(el.scrollLeft))).toBeGreaterThan(0);
   });
 
-  test("a page turn is a scroll-driven tilt only where it is allowed", async ({ page }) => {
+  test("with JavaScript off the track tilts its pages as they scroll; with JavaScript the leaves turn instead", async ({ browser, page }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: WIDE, reducedMotion: "no-preference" });
+    const plain = await context.newPage();
+    await plain.goto("/#record");
+    const supported = await plain.evaluate(() => CSS.supports("animation-timeline: view()"));
+    test.skip(!supported, "no scroll-driven animations in this browser");
+    const names = await plain.locator("#record .diary-slot > .diary-page").first().evaluate((el) => getComputedStyle(el).animationName);
+    expect(names).toContain("diary-in");
+    // Flat when it is fully in view.
+    expect(await plain.locator("#record #diary-summary").evaluate((el) => getComputedStyle(el).transform)).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
+    await context.close();
+
     await page.setViewportSize(WIDE);
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
-    const supported = await page.evaluate(() => CSS.supports("animation-timeline: view()"));
-    test.skip(!supported, "no scroll-driven animations in this browser");
-    const names = await page.locator("#record .diary-slot > .diary-page").first().evaluate((el) => getComputedStyle(el).animationName);
-    expect(names).toContain("diary-in");
-    // Flat when it is fully in view.
-    expect(await page.locator("#record #diary-summary").evaluate((el) => getComputedStyle(el).transform)).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
+    await expect(frame(page)).toHaveAttribute("data-mode", "leaf");
+    expect(await page.locator("#record .diary-slot > .diary-page").first().evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+  });
+
+  test("the book is an object: boards, page stacks that move as I read, running heads and folios in the outer corners", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page);
+    await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
+    const box = () => page.locator("#record .diary-book").boundingBox().then((b) => b!);
+    let book = await box();
+    const cover = (await page.locator("#record .diary-cover").boundingBox())!;
+    expect(cover.x).toBeLessThan(book.x);
+    expect(cover.x + cover.width).toBeGreaterThan(book.x + book.width);
+    expect(cover.y).toBeLessThan(book.y);
+    const stacks = async () => ({
+      read: (await page.locator("#record .diary-stack-read").boundingBox())!.width,
+      left: (await page.locator("#record .diary-stack-left").boundingBox())!.width,
+    });
+    const first = await stacks();
+    await page.getByRole("button", { name: "Next page" }).click();
+    await still(page);
+    await page.getByRole("button", { name: "Next page" }).click();
+    await still(page);
+    await page.waitForTimeout(500);
+    const later = await stacks();
+    expect(later.read, "the read side thickens").toBeGreaterThan(first.read);
+    expect(later.left, "the side to come thins").toBeLessThan(first.left);
+    // The ribbon hangs out of the foot, from the spine.
+    book = await box();
+    const ribbon = (await page.locator("#record .diary-ribbon").boundingBox())!;
+    expect(ribbon.y + ribbon.height).toBeGreaterThan(book.y + book.height + 20);
+    expect(Math.abs(ribbon.x - (book.x + book.width / 2))).toBeLessThan(24);
+    // Running heads: the chapter's years, in the outer top corner.
+    const [left, right] = await onShow(page);
+    for (const [key, side] of [[left, "left"], [right, "right"]] as const) {
+      const s = (await slot(page, key).boundingBox())!;
+      const head = slot(page, key).locator(".diary-head");
+      await expect(head).toHaveText(/^(\d{4}( – \d{4})?|Certificates.*)$/);
+      const h = (await head.boundingBox())!;
+      const folio = (await slot(page, key).locator(".diary-folio").boundingBox())!;
+      expect(h.y - s.y).toBeLessThan(30);
+      expect(folio.y + folio.height).toBeGreaterThan(s.y + s.height - 40);
+      if (side === "left") {
+        expect(h.x - s.x, `${key}: head in the outer corner`).toBeLessThan(s.width / 3);
+        expect(folio.x - s.x).toBeLessThan(s.width / 3);
+      } else {
+        expect(s.x + s.width - (h.x + h.width), `${key}: head in the outer corner`).toBeLessThan(s.width / 3);
+        expect(s.x + s.width - (folio.x + folio.width)).toBeLessThan(s.width / 3);
+      }
+    }
+    await expect(slot(page, "summary").locator(".diary-head")).toHaveCount(0);
+  });
+
+  test("a far jump riffles: several leaves flick over, then the book lies open at the page", async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await open(page);
+    await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
+    const target = PAGES.findIndex((p) => p.entryIds.includes("eastside-high"));
+    await page.locator('#diary-contents a[href="#journey-entry-eastside-high"]').click();
+    // Mid-riffle: blank leaves in the air between the real pages.
+    await expect.poll(() => page.locator("#record .diary-sheet[data-face]").count()).toBeGreaterThan(1);
+    await still(page);
+    await expect(page).toHaveURL(/#journey-entry-eastside-high$/);
+    expect(await onShow(page)).toContain(PAGES[target].key);
+    expect(await page.locator("#record .diary-sheet[data-at]").count(), "every blank leaf put away").toBe(0);
   });
 
   for (const theme of ["day", "night"] as const) {

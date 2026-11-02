@@ -1366,6 +1366,49 @@ function recordFiles() {
 }
 // ---- end Record drawings ----
 
+// ---- The Diary as a book (round 24) ----
+// The book's own materials, as one-colour masks the page paints with aliases:
+// the paper's grain (a tile of fibre and speckle, so a page reads as paper and
+// not as a flat fill), the cover's cloth (a basket weave, tiled over the
+// boards) and the ribbon's tail, hanging out of the book's foot with a twist
+// and a swallowtail cut. The grain is noise, so it is drawn by the SVG's own
+// turbulence with stitched edges, which tiles without a seam and is the same
+// on every draw.
+function diaryGrain() {
+  // Speckle: the top of a fine noise. Fibre: a stretched noise, faint.
+  const fx = `<filter id="g" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">`
+    + `<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch" result="s"/>`
+    + `<feColorMatrix in="s" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 7 0 0 0 -4.1" result="sa"/>`
+    + `<feTurbulence type="fractalNoise" baseFrequency="0.012 0.42" numOctaves="2" seed="3" stitchTiles="stitch" result="f"/>`
+    + `<feColorMatrix in="f" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -1.05" result="fa"/>`
+    + `<feComposite in="sa" in2="fa" operator="arithmetic" k2="1" k3="0.5"/></filter>`;
+  return svg("0 0 180 180", `<defs>${fx}</defs><rect width="180" height="180" fill="${K}" filter="url(#g)"/>`);
+}
+function diaryCloth() {
+  // Basket weave: each thread passes over two and under two.
+  const over = `<path d="M0 1.5H3M3 4.5H6"/>`;
+  const under = `<path d="M4.5 0V3M1.5 3V6" stroke-opacity="0.55"/>`;
+  return svg("0 0 6 6", `<g fill="none" stroke="${K}" stroke-width="1.1" stroke-linecap="butt">${over}${under}</g>`);
+}
+function diaryRibbon() {
+  // Out of the book's foot, a turn of the cloth, and a swallowtail.
+  const edge = (s) => `M${f(1 + s)} 0C${f(1.6 + s)} 30 ${f(5.4 + s)} 52 ${f(4.2 + s)} 82C${f(3.6 + s)} 98 ${f(2 + s)} 108 ${f(2.6 + s)} 120`;
+  const left = edge(0);
+  const body = `${left}L${f(8.4)} ${f(113)}L${f(14.2)} 122`
+    + `C${f(13.6)} 108 ${f(15.4)} 98 ${f(16)} 82C${f(17.2)} 52 ${f(13.4)} 30 ${f(12.8)} 0Z`;
+  // The fold where it turns, a little darker in the cloth.
+  const fold = `<path d="M4.6 54C8 58 11.6 58 15 54" fill="none" stroke="${K}" stroke-width="0.8" stroke-opacity="0.35"/>`;
+  return svg("0 0 18 124", `<path d="${body}" fill="${K}"/>${fold}`);
+}
+function diaryFiles() {
+  return {
+    "diary-grain": diaryGrain(),
+    "diary-cloth": diaryCloth(),
+    "diary-ribbon": diaryRibbon(),
+  };
+}
+// ---- end Diary book drawings ----
+
 // ---- Weather drawings (round 23) ----
 // "Watch it grow" plays a different weather over the oak for each year
 // (src/lib/origin-story.ts, `weatherFor`); these are the shapes CSS cannot make
@@ -1544,6 +1587,7 @@ export function drawScenery() {
     ...contactDrawings(),
     ...journeyFiles(),
     ...recordFiles(),
+    ...diaryFiles(),
     ...weatherFiles(),
   };
 }

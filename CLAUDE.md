@@ -112,7 +112,10 @@ not files: the slice's rings are computed from content (`src/lib/record.ts`) and
 page's before/after bars and tally marks from the entry's `diary.figure`, both
 drawn inline. Its stamps (`stamp-bank`, `-card`, `-code`, `-cart`: a bank's
 columns, a card with a key, code brackets round a gear, a cart) and three page
-figures (`diary-selftaught`, `diary-cap`, `diary-podium`) are ink masks like the rest. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
+figures (`diary-selftaught`, `diary-cap`, `diary-podium`) are ink masks like the rest,
+and so are the book's materials (round 24): `diary-grain` (the paper's fibre and
+speckle, an SVG turbulence with stitched edges), `diary-cloth` (the boards'
+weave) and `diary-ribbon` (its tail out of the foot). The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
 below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
 and a stretched `oak-bough` (with `-leaves`) per tag. `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library; the two figures, mini-Thien and Bé Nhi, are fixed inline SVG in
@@ -158,11 +161,26 @@ carries the highlight tags, the DoorDash one a ticket with a 2026 stub,
 Bé Nhi (my girlfriend) on a rope swing, and "Watch it grow", which grows the
 oak itself; below 1280 it is one tree: the crown's trunk runs on past the tags
 and her swing to its roots, each on a bough of its own), the Diary (`#record`, the Record until
-round 23; `#diary` lands beside it: a book you swipe left and right. The pages
-are a horizontal scroll-snap track, one to a view below 1280 and a spread of
-two from there, so it works with JavaScript off; `DiaryBook.tsx` is the one
-client island and adds the index tabs, the dog-eared corners, ← and → and "p. 3
-of 14". Page 1 is "Pressed, waiting to dry.", the lead, a tree slice whose
+round 23; `#diary` lands beside it: a book whose pages turn (round 24). With
+JavaScript off, and under reduced motion, the pages are a horizontal
+scroll-snap track, one to a view below 1280 and a spread of two from there;
+`DiaryBook.tsx` is the one client island and adds the index tabs, the
+dog-eared corners, ← and → and "p. 3 of 14", and where motion is welcome binds
+the same pages into leaves (`data-mode="leaf"`): the right page turns over the
+spine in 3D, its back the next left page, with a shadow sweeping the page under
+it and light across its curl (below 1280 one page turns about its bound edge);
+a corner drags, a finger or a trackpad swipes, past halfway it turns and short
+of it falls back; a far jump (a contents line, a ring, a tab, Home, End)
+riffles a few leaves. Pages not on show are `hidden="until-found"`, never
+`inert` (Chrome's find skips inert text, so `beforematch` would never fire);
+only the pages under a turn in the air are inert. A hash on load, `hashchange`
+and `beforematch` open the book at the page. The numbers (angles, shadows,
+drag, riffle) are `src/lib/diary-turn.ts`. The object: cloth boards in
+`--bark-outer`, leaves stacked either side that move as you read, the paper
+curving into the gutter, paper grain, running heads (the chapter's years) and
+folios in the outer corners, a ribbon in `--twine` (not `--mark`: at 390
+Contact's red stamp shares its screen). Print lays every page out in flow.
+Page 1 is "Pressed, waiting to dry.", the lead, a tree slice whose
 rings link to their chapter and the five `featured` entries taped around it;
 page 2 the contents, each entry a link to its page with dotted leaders and its
 number; then each chapter's pages, newest first, 2018 – 2020 last as one
@@ -263,8 +281,12 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   there. A fragment is a scroll in the book's own track, which the browser does
   with JavaScript off (the left page's targets carry a `scroll-margin` over to the
   right page, or a two-page window would tie between two snap points: see
-  `--turn` in globals.css). The chat cites `#record` for entries and the
-  degree, and "More on this in Diary".
+  `--turn` in globals.css). With the leaves (round 24) the book opens at the
+  fragment's page: a link in the book turns or riffles there while the window
+  glides to it, a link from outside (a tag, the chat) opens it at once, and a
+  typed or revealed fragment (`hashchange`, `beforematch`) lands like any
+  other. The chat cites `#record` for entries and the degree, and "More on
+  this in Diary".
 - **Bé Nhi swings from the oak (round 22, her own request: "dumb dumb cute
   cute easy mood changing").** `NhiSwing.tsx` hangs her from the left limb
   between the lantern and the trunk (below 1280, from a bough under the last
