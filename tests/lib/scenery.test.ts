@@ -45,6 +45,7 @@ const VIEWBOXES: Record<string, string> = {
   bia: "-42 -76 84 82",
   "banh-tet": "-72 -24 164 48",
   "paper-clip": "0 0 34 86",
+  "stamp-wear": "0 0 200 124",
   // Journey
   oak: "0 120 1440 780",
   "oak-leaves": "0 120 1440 780",
@@ -81,7 +82,7 @@ const VIEWBOXES: Record<string, string> = {
   rain: "0 0 200 200",
   snow: "0 0 240 240",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "paddy", "paddy-water", "paddy-phone", "paddy-phone-water", "paddy-wake", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
+const INK = ["bamboo", "bamboo-phone", "pine", "paddy", "paddy-water", "paddy-phone", "paddy-phone-water", "paddy-wake", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", "stamp-wear", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
 
 const files = drawScenery();
 
@@ -151,6 +152,28 @@ describe("the hero's scenery", () => {
       expect(statSync(`${DIR}/${stem}.svg`).size, stem).toBeLessThanOrEqual(40 * 1024);
     }
     expect(gzipSync(readFileSync(`${DIR}/oak-leaves.svg`)).length).toBeLessThanOrEqual(32 * 1024);
+  });
+});
+
+describe("the postcard's stamp wear (round 24)", () => {
+  // The holes of one even-odd path: each is a polygon written `M x y l ...Z`.
+  const [, d] = files["stamp-wear"].match(/ d="([^"]+)"/)!;
+  const holes = [...d.matchAll(/Z?M([\d.]+) ([\d.]+)/g)].slice(1).map((m) => ({ x: +m[1], y: +m[2] }));
+
+  it("is one sheet that reaches every edge, stretched over the stamp's box", () => {
+    expect(files["stamp-wear"]).toContain('preserveAspectRatio="none"');
+    expect(files["stamp-wear"]).toContain('fill-rule="evenodd"');
+    expect(d.startsWith("M0 0H200V124H0Z")).toBe(true);
+  });
+
+  it("wears at the rim and leaves the middle, where the words are, mostly whole", () => {
+    const [W, H] = [200, 124];
+    const inCore = (h: { x: number; y: number }) => h.x > 45 && h.x < 155 && h.y > 28 && h.y < 96;
+    const inRim = (h: { x: number; y: number }) => Math.min(h.x, W - h.x, h.y, H - h.y) < 8;
+    const coreDensity = holes.filter(inCore).length / (110 * 68);
+    const rimDensity = holes.filter(inRim).length / (W * H - 184 * 108);
+    expect(holes.length).toBeGreaterThan(150);
+    expect(rimDensity).toBeGreaterThan(coreDensity * 3);
   });
 });
 

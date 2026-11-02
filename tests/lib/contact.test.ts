@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { leadSchema } from "@/app/api/contact/schema";
-import { NAME_MAX, PHONE_MAX } from "@/lib/contact";
+import { NAME_MAX, PHONE_MAX, thankYouFrom, thankYouMessage } from "@/lib/contact";
+import { contactCopy } from "@/content/portfolio";
 
 describe("leadSchema", () => {
   it("accepts email only", () => {
@@ -54,5 +55,26 @@ describe("leadSchema", () => {
     const ok = leadSchema.safeParse({ name: "  Jo  ", email: " j@example.com " });
     expect(ok.data).toMatchObject({ name: "Jo", email: "j@example.com" });
     expect(leadSchema.safeParse({ name: "x".repeat(NAME_MAX + 1), email: "j@example.com" }).success).toBe(false);
+  });
+});
+
+describe("the thank-you email", () => {
+  it("is signed in my name from whatever address is configured", () => {
+    expect(thankYouFrom("hello@mydomain.test")).toBe("Thien Le <hello@mydomain.test>");
+    expect(thankYouFrom("  hello@mydomain.test ")).toBe("Thien Le <hello@mydomain.test>");
+    expect(thankYouFrom("Someone <hello@mydomain.test>")).toBe("Thien Le <hello@mydomain.test>");
+  });
+
+  it("is short, in my voice, and gives my site's address in both the text and the HTML", () => {
+    const { subject, text, html } = thankYouMessage("https://example.test");
+    expect(subject).toBe(contactCopy.thanks.subject);
+    expect(text).toBe(`${contactCopy.thanks.body}\n\n${contactCopy.thanks.signoff}\nhttps://example.test\n`);
+    expect(html).toContain('<a href="https://example.test">example.test</a>');
+    expect(text.split(/\s+/).length).toBeLessThan(30);
+    expect(`${subject} ${text}`).not.toMatch(/\b(he|his|him)\b/i);
+  });
+
+  it("takes no visitor input, so it cannot repeat any", () => {
+    expect(thankYouMessage.length).toBe(1);
   });
 });

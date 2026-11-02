@@ -3659,54 +3659,161 @@ body:has(.resume-dialog[open]) {
   overflow: hidden;
 }
 
-/* "The postcard is stamped" (`LeadForm.tsx`): SENT and the date, inked in the
-   annotation colour (red stays the page's single mark) over the form's
-   right-hand corner. Its end state is simply "there, a little turned"; it
-   thumps down only where motion is welcome. */
-.sent-stamp {
+/* ---------------------------------------------------------------------------
+   Round 24, builder A: the postcard's SENT stamp, a rubber stamp's impression
+   (`SentStamp.tsx`, `Postcard.tsx`, `LeadForm.tsx`).
+   --------------------------------------------------------------------------- */
+
+/* The picture side. The panel is a size container, so its scene box can be
+   exactly the drawing's 340 x 440 whatever the panel is: bottom-aligned and
+   contained where the postcard's two sides stand side by side, top-aligned and
+   as wide as the panel where they stack (the old `bg-contain bg-bottom` and
+   `bg-cover bg-top`). Against that box the stamp sits in the drawing's empty
+   sky, left of the sun, above the pines and clear of the heading, at every
+   width. The box is itself an inline-size container: the stamp is sized in its
+   units. */
+.postcard-sky {
+  container-type: size;
+}
+.postcard-scene {
   position: absolute;
-  bottom: 4.75rem;
-  right: 0.25rem;
-  z-index: 1;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: 100cqw;
+  aspect-ratio: 340 / 440;
+  container-type: inline-size;
+}
+@container postcard (width >= 32rem) {
+  .postcard-scene {
+    top: auto;
+    bottom: 0;
+    width: min(100cqw, calc(100cqh * 340 / 440));
+  }
+}
+
+/* The impression: a double rule round TAYLORS SC, SENT and the day, in the
+   annotation ink (`--accent`; red stays the page's single mark, and this
+   screen already has the sun's and the flag's), a few degrees off square. Its
+   size is its font-size: everything inside is in em. The ink wears at the edges
+   through `stamp-wear.svg` (pinholes and dropouts, thickest at the rim, sparse
+   across the words), so the text keeps the pairing `pnpm contrast` measures. */
+.sent-stamp {
+  position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.3rem 0.9rem 0.35rem;
-  border: 3px double var(--accent);
-  border-radius: 4px;
+  width: 15.5em;
+  padding: 0.62em 0.6em 0.6em;
+  border: 0.26em solid currentColor;
+  border-radius: 0.55em;
   color: var(--accent);
   font-family: var(--font-mono), monospace;
+  font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
-  transform: rotate(-9deg);
+  rotate: -5deg;
+  mask: url(/scenery/stamp-wear.svg) no-repeat center / 100% 100%;
   pointer-events: none;
 }
+.sent-stamp::before {
+  content: "";
+  position: absolute;
+  inset: 0.18em;
+  border: 0.09em solid currentColor;
+  border-radius: 0.3em;
+}
+.sent-stamp > * {
+  position: relative;
+  display: block;
+  text-align: center;
+}
+.sent-stamp__place {
+  width: 100%;
+  padding: 0 0 0.28em 0.2em;
+  border-bottom: 0.09em solid currentColor;
+  font-size: 0.9em;
+  letter-spacing: 0.2em;
+}
 .sent-stamp__word {
-  font-size: 1.75rem;
-  letter-spacing: 0.18em;
-  padding-left: 0.18em;
+  padding: 0.12em 0 0.02em 0.09em;
+  font-family: var(--font-display), sans-serif;
+  font-size: 3.75em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 0.92;
 }
 .sent-stamp__date {
-  margin-top: 0.3rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  width: 100%;
+  padding: 0.3em 0 0 0.05em;
+  border-top: 0.09em solid currentColor;
+  font-size: 1em;
+  letter-spacing: 0.05em;
 }
+
+/* Where the postcard's sides stand side by side it lands on the picture, in the
+   scene box, sized in the box's own units (the stamp is 54% of the drawing's
+   width) and placed on the sky left of the sun. Where they stack there is no
+   empty sky big enough, so it lands on the address side's own paper, just under
+   the confirmation line, and the other copy is not displayed. */
+.sent-stamp--board {
+  display: none;
+  position: absolute;
+  top: 5.5%;
+  /* Centred in the empty sky: between the heading (77px of the panel, and a
+     12px margin) and the pines' tips (150 of the drawing's 440 units, less a
+     10px margin), however tall the form beside it makes the panel. The panel
+     is the size container (`100cqh`), the scene box the inline one (`cqw`; the
+     box is 129.41cqw tall), and 4.09em is half the stamp's height. The line
+     above is for a browser without container units. */
+  top: calc((79px - 100cqh + 173.53cqw) / 2 - 4.09em);
+  left: 3.5%;
+  z-index: 1;
+  font-size: calc(54cqw / 15.5);
+}
+.sent-stamp--slot {
+  flex-shrink: 0;
+  margin: 1rem 0.75rem 0.5rem auto;
+  font-size: 11.5px;
+}
+@container postcard (width >= 32rem) {
+  .sent-stamp--board {
+    display: flex;
+  }
+  .sent-stamp--slot {
+    display: none;
+  }
+}
+
+/* It lands like a stamp: it comes down large, squashes flat on the paper, and
+   springs back while the ink settles, once. Reduced motion shows it already
+   there. */
 @media (prefers-reduced-motion: no-preference) {
   .sent-stamp {
-    animation: sent-stamp-thump 420ms var(--ease-ink) both;
+    animation: sent-stamp-press 620ms var(--ease-ink) both;
   }
-  @keyframes sent-stamp-thump {
+  @keyframes sent-stamp-press {
     0% {
       opacity: 0;
-      transform: rotate(-22deg) scale(2.1);
+      scale: 1.55;
+      filter: blur(2.5px);
+      animation-timing-function: cubic-bezier(0.55, 0.05, 0.95, 0.45);
     }
-    55% {
+    32% {
       opacity: 1;
-      transform: rotate(-7deg) scale(0.94);
+      scale: 0.96 0.9;
+      filter: blur(1px);
+      animation-timing-function: var(--ease-ink);
+    }
+    58% {
+      scale: 1.015 1.04;
+      filter: blur(0.4px);
     }
     100% {
       opacity: 1;
-      transform: rotate(-9deg) scale(1);
+      scale: 1;
+      filter: blur(0);
     }
   }
 }

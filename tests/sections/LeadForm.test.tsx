@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LeadForm from "@/sections/Contact/LeadForm";
+import { BoardStamp, PostcardStamps, stampDate } from "@/sections/Contact/SentStamp";
 import { contactCopy, profile } from "@/content/portfolio";
 
 const PAIR_ERROR = "Add an email or a phone number so I can reach you.";
@@ -36,6 +37,19 @@ describe("the lead form", () => {
     expect(container.querySelector("textarea")).toBeNull();
   });
 
+  it("says before they try that email or phone is one requirement, marked once", () => {
+    render(<LeadForm emailDeliveryConfigured={true} />);
+    const pair = screen.getByRole("group", { name: contactCopy.pairGroup });
+    expect(within(pair).getByLabelText(/^Email/)).toBeInTheDocument();
+    expect(within(pair).getByLabelText(/^or phone/)).toBeInTheDocument();
+    // One marker and one note for the two lines, not a marker on each.
+    expect(pair).toHaveAccessibleDescription(contactCopy.pairNote);
+    expect(pair.textContent?.match(/\*/g)).toHaveLength(1);
+    // Neither line is required on its own: only the name is.
+    expect(emailField()).not.toBeRequired();
+    expect(phoneField()).not.toBeRequired();
+  });
+
   it("shows the paired error once, on both fields, and sends nothing when neither is given", async () => {
     const spy = stubFetch(200, { ok: true });
     const user = userEvent.setup();
@@ -49,6 +63,8 @@ describe("the lead form", () => {
     expect(emailField()).toHaveAccessibleDescription(PAIR_ERROR);
     expect(emailField()).toHaveFocus();
     expect(spy).not.toHaveBeenCalled();
+    // The note that was there before they tried is still there, once.
+    expect(screen.getAllByText(contactCopy.pairNote)).toHaveLength(1);
   });
 
   it("rejects a malformed phone on its own", async () => {
@@ -153,6 +169,96 @@ describe("the lead form", () => {
     expect(stamp).toHaveTextContent(contactCopy.stamp);
     expect(stamp).toHaveAttribute("aria-hidden", "true");
     expect(container.querySelector("[data-reach]")).toBeNull();
+  });
+
+  it("inks TAYLORS SC, SENT and the visitor's own date, and says none of it twice to a screen reader", async () => {
+    stubFetch(200, { ok: true });
+    const user = userEvent.setup();
+    const { container } = render(<LeadForm emailDeliveryConfigured={true} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+    await screen.findByText(contactCopy.success);
+    const stamp = container.querySelector("[data-sent-stamp]") as HTMLElement;
+    expect(stamp.querySelector(".sent-stamp__place")).toHaveTextContent("TAYLORS SC");
+    expect(stamp.querySelector(".sent-stamp__word")).toHaveTextContent(contactCopy.stamp);
+    expect(stamp.querySelector(".sent-stamp__date")?.textContent).toBe(stampDate());
+    // Nothing of the stamp is in the accessibility tree: the status line is the confirmation.
+    expect(stamp.closest("[aria-hidden=true]")).toBe(stamp);
+    expect(screen.getByRole("status")).toHaveTextContent(contactCopy.success);
+  });
+
+  it("puts the same stamp on the picture side, and takes it off again with the next send", async () => {
+    stubFetch(200, { ok: true });
+    const user = userEvent.setup();
+    render(
+      <PostcardStamps>
+        <LeadForm emailDeliveryConfigured={true} />
+        <BoardStamp />
+      </PostcardStamps>,
+    );
+    expect(document.querySelector('[data-sent-stamp="board"]')).toBeNull();
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+    await screen.findByText(contactCopy.success);
+    const board = document.querySelector('[data-sent-stamp="board"]');
+    expect(board).toHaveAttribute("aria-hidden", "true");
+    expect(board).toHaveTextContent(contactCopy.stamp);
+    expect(board?.querySelector(".sent-stamp__date")?.textContent).toBe(stampDate());
+    // The address side has its own copy for where the sides stack; CSS shows one.
+    expect(document.querySelectorAll("[data-sent-stamp]")).toHaveLength(2);
+
+    // A new send that is not (yet) a success un-stamps both.
+    await user.click(send());
+    expect(document.querySelector("[data-sent-stamp]")).toBeNull();
+  });
+
+  it("is not stamped when the send fails", async () => {
+    stubFetch(502, { ok: false, reason: "send-failed" });
+    const user = userEvent.setup();
+    render(
+      <PostcardStamps>
+        <LeadForm emailDeliveryConfigured={true} />
+        <BoardStamp />
+      </PostcardStamps>,
+    );
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+    await screen.findByRole("alert");
+    expect(document.querySelector("[data-sent-stamp]")).toBeNull();
+  });
+
+  it("adds the thank-you line only when the server says a thank-you went", async () => {
+    stubFetch(200, { ok: true, thanked: true });
+    const user = userEvent.setup();
+    const { unmount } = render(<LeadForm emailDeliveryConfigured={true} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+    await screen.findByText(contactCopy.success);
+    expect(screen.getByRole("status")).toHaveTextContent(contactCopy.thanked);
+    unmount();
+
+    stubFetch(200, { ok: true, thanked: false });
+    render(<LeadForm emailDeliveryConfigured={true} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    await user.click(send());
+    await screen.findByText(contactCopy.success);
+    expect(screen.getByRole("status")).not.toHaveTextContent(contactCopy.thanked);
+  });
+
+  it("says nothing of a thank-you when the server's answer has no `thanked` at all", async () => {
+    stubFetch(200, { ok: true });
+    const user = userEvent.setup();
+    render(<LeadForm emailDeliveryConfigured={true} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(phoneField(), "+1 (864) 555-0100");
+    await user.click(send());
+    await screen.findByText(contactCopy.success);
+    expect(screen.getByRole("status")).not.toHaveTextContent(contactCopy.thanked);
   });
 
   it("puts the server's field errors on the fields", async () => {

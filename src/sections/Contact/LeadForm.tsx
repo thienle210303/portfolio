@@ -14,6 +14,7 @@ import {
 import { contactCopy, profile } from "@/content/portfolio";
 import VisuallyHidden from "@/components/ui/VisuallyHidden";
 import CopyButton from "@/components/ui/CopyButton";
+import { SentImpression, stampDate, useSetStamp } from "./SentStamp";
 
 /**
  * The postcard's address side: a name and an email or phone, written on
@@ -24,10 +25,14 @@ import CopyButton from "@/components/ui/CopyButton";
  * the final check, and its field errors land on the same fields.
  *
  * "Sent" can only come from a real `fetch` answering `{ ok: true }`, and it
- * is stamped on the postcard (round 23). Nothing here ever opens the
- * visitor's mail app: when this build cannot send (no Resend env, or the
- * server says `not-configured`) or a send fails, the form says so in my voice
- * and offers my address with a copy button.
+ * is stamped on the postcard (round 23; round 24 inks it on empty paper, see
+ * `SentStamp`). Nothing here ever opens the visitor's mail app: when this build
+ * cannot send (no Resend env, or the server says `not-configured`) or a send
+ * fails, the form says so in my voice and offers my address with a copy button.
+ *
+ * Email or phone is one requirement, said before they try (round 24): the two
+ * lines share a bracket and one `*` and one note under them, and a miss is one
+ * error about the pair.
  */
 
 type FieldName = "name" | "email" | "phone";
@@ -38,6 +43,8 @@ type Status = "idle" | "success" | "offline" | "failed" | "rate-limited" | { err
  *  a client file never imports a route module. */
 interface ApiPayload {
   ok: boolean;
+  /** A thank-you email went to the visitor (only with `CONTACT_REPLY_FROM` set). */
+  thanked?: boolean;
   reason?: "invalid" | "not-configured" | "rate-limited" | "send-failed";
   fieldErrors?: FieldErrors;
 }
@@ -79,21 +86,6 @@ function ErrorLine({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-/** The postmark's answer: "SENT" and today's date, inked on the form as it
- *  lands (globals.css, "The postcard is stamped"). Decorative: the status line
- *  carries the meaning. */
-function SentStamp() {
-  const [today] = useState(() =>
-    new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase(),
-  );
-  return (
-    <div aria-hidden="true" data-sent-stamp="" className="sent-stamp">
-      <span className="sent-stamp__word">{contactCopy.stamp}</span>
-      <span className="sent-stamp__date">{today}</span>
-    </div>
-  );
-}
-
 interface LeadFormProps {
   emailDeliveryConfigured: boolean;
 }
@@ -103,6 +95,10 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<Status>("idle");
   const [submitting, setSubmitting] = useState(false);
+  // The date inked on the stamp, and whether a thank-you email is on its way.
+  const [sentOn, setSentOn] = useState<string | null>(null);
+  const [thanked, setThanked] = useState(false);
+  const setPictureStamp = useSetStamp();
   const refs = { name: useRef<HTMLInputElement>(null), email: useRef<HTMLInputElement>(null), phone: useRef<HTMLInputElement>(null) };
   const statusRef = useRef<HTMLParagraphElement>(null);
 
@@ -110,6 +106,13 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
   useEffect(() => {
     if (status === "success") statusRef.current?.focus();
   }, [status]);
+
+  // The picture side's stamp comes and goes with the confirmation line.
+  const stampedOn = status === "success" ? sentOn : null;
+  useEffect(() => {
+    setPictureStamp(stampedOn);
+    return () => setPictureStamp(null);
+  }, [stampedOn, setPictureStamp]);
 
   // "Neither email nor phone" is one error about the pair: shown once, under
   // both fields, and described on both.
@@ -137,6 +140,9 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
 
     setSubmitting(true);
     setStatus("idle");
+    // The stamp's wear is a file only the stamp uses; fetch it while the send
+    // is in flight so the stamp lands whole instead of waiting on it.
+    new Image().src = "/scenery/stamp-wear.svg";
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -147,6 +153,8 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
 
       if (response.ok && payload?.ok === true) {
         setValues({ name: "", email: "", phone: "", website: "" });
+        setSentOn(stampDate());
+        setThanked(payload.thanked === true);
         setStatus("success");
         // The companion cheers on this; nothing here knows a cat is watching.
         window.dispatchEvent(new CustomEvent("portfolio:contact-sent"));
@@ -224,11 +232,27 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
         {input("name", contactCopy.fields.name, { type: "text", autoComplete: "name", maxLength: NAME_MAX })}
         {/* Side by side on a wide form, or whenever the postcard itself is
             landscape (its address side is narrow, as on the board). */}
-        <div className="grid gap-3 @min-[20rem]:grid-cols-2 @min-[20rem]:gap-4 @min-[32rem]/postcard:grid-cols-2 @min-[32rem]/postcard:gap-4">
-          {input("email", contactCopy.fields.email, { type: "email", autoComplete: "email", maxLength: EMAIL_MAX })}
-          {input("phone", contactCopy.fields.phone, { type: "tel", autoComplete: "tel", maxLength: PHONE_MAX })}
+        <div
+          role="group"
+          aria-label={contactCopy.pairGroup}
+          aria-describedby="lead-pair-note"
+          className="flex flex-col gap-1.5"
+        >
+          <div className="grid gap-3 @min-[20rem]:grid-cols-2 @min-[20rem]:gap-4 @min-[32rem]/postcard:grid-cols-2 @min-[32rem]/postcard:gap-4">
+            {input("email", contactCopy.fields.email, { type: "email", autoComplete: "email", maxLength: EMAIL_MAX })}
+            {input("phone", contactCopy.fields.phone, { type: "tel", autoComplete: "tel", maxLength: PHONE_MAX })}
+          </div>
+          {/* One bracket under both lines, one marker, one note: it is one
+              requirement, and one is enough. */}
+          <p
+            id="lead-pair-note"
+            className="font-serif text-[length:var(--step--1)] leading-snug text-fg-muted italic before:mb-1 before:block before:h-[5px] before:border-[1.5px] before:border-t-0 before:border-fg-muted before:content-['']"
+          >
+            <span aria-hidden="true" className="not-italic text-fg">* </span>
+            {contactCopy.pairNote}
+          </p>
+          {pairError ? <ErrorLine id="lead-pair-error">{pairError}</ErrorLine> : null}
         </div>
-        {pairError ? <ErrorLine id="lead-pair-error">{pairError}</ErrorLine> : null}
       </div>
 
       <div className="mt-auto pt-6">
@@ -277,7 +301,10 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
           {info ? (
             <>
               <CircleCheck aria-hidden="true" focusable="false" className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{info}</span>
+              <span>
+                {info}
+                {thanked ? <span data-thanked="" className="mt-1 block">{contactCopy.thanked}</span> : null}
+              </span>
             </>
           ) : null}
         </p>
@@ -298,7 +325,10 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
         ) : null}
       </div>
 
-      {status === "success" ? <SentStamp /> : null}
+      {/* Where the postcard's sides stack, the stamp lands here, on the address
+          side's own paper under the confirmation (CSS shows exactly one of this
+          and the picture side's copy). */}
+      {stampedOn ? <SentImpression date={stampedOn} where="slot" /> : null}
     </form>
   );
 }

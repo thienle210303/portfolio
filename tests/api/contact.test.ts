@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { contactCopy } from "@/content/portfolio";
 
 const send = vi.fn();
 vi.mock("resend", () => ({
@@ -30,6 +31,8 @@ describe("/api/contact", () => {
     vi.stubEnv("RESEND_API_KEY", "key");
     vi.stubEnv("CONTACT_TO_EMAIL", "to@example.com");
     vi.stubEnv("CONTACT_FROM_EMAIL", "from@example.com");
+    // The thank-you is off unless a test turns it on.
+    vi.stubEnv("CONTACT_REPLY_FROM", "");
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -39,7 +42,7 @@ describe("/api/contact", () => {
   it("ok sends one email with replyTo when email present", async () => {
     const res = await POST(post({ name: "Jo", email: "j@example.com", phone: "5550109999" }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
+    expect(await res.json()).toEqual({ ok: true, thanked: false });
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][0]).toMatchObject({
       to: "to@example.com",
@@ -83,7 +86,7 @@ describe("/api/contact", () => {
 
   it("honeypot returns ok and sends nothing", async () => {
     const res = await POST(post({ name: "Bot", website: "http://spam" }));
-    expect(await res.json()).toEqual({ ok: true });
+    expect(await res.json()).toEqual({ ok: true, thanked: false });
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -109,6 +112,94 @@ describe("/api/contact", () => {
     const res = await POST(post({ name: "Jo", email: "j@example.com" }));
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ ok: false, reason: "send-failed" });
+  });
+
+  describe("the thank-you (CONTACT_REPLY_FROM)", () => {
+    const VISITOR = { name: "Zebulon Quux", email: "zq@example.org", phone: "+1 864 555 0142" };
+
+    it("is sent to a visitor who gave an email, from my verified address, replying to my inbox", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
+      const res = await POST(post(VISITOR));
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, thanked: true });
+      expect(send).toHaveBeenCalledTimes(2);
+      // My own copy goes first, exactly as before.
+      expect(send.mock.calls[0][0]).toMatchObject({ to: "to@example.com", from: "from@example.com" });
+      expect(send.mock.calls[1][0]).toMatchObject({
+        from: "Thien Le <hello@mydomain.test>",
+        to: VISITOR.email,
+        replyTo: "to@example.com",
+        subject: contactCopy.thanks.subject,
+      });
+      expect(send.mock.calls[1][0].text).toContain(contactCopy.thanks.body);
+      expect(send.mock.calls[1][0].html).toContain(contactCopy.thanks.body);
+    });
+
+    it("keeps a pasted display name from nesting", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "Someone Else <hello@mydomain.test>");
+      await POST(post(VISITOR));
+      expect(send.mock.calls[1][0].from).toBe("Thien Le <hello@mydomain.test>");
+    });
+
+    it("never repeats anything the visitor typed, not even their name", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
+      await POST(post(VISITOR));
+      const { to, ...message } = send.mock.calls[1][0];
+      expect(to).toBe(VISITOR.email);
+      const written = JSON.stringify(message).toLowerCase();
+      for (const typed of [VISITOR.name, "Zebulon", "Quux", VISITOR.email, "zq@", VISITOR.phone, "555 0142"]) {
+        expect(written, typed).not.toContain(typed.toLowerCase());
+      }
+    });
+
+    it("is not sent when CONTACT_REPLY_FROM is unset", async () => {
+      const res = await POST(post(VISITOR));
+      expect(await res.json()).toEqual({ ok: true, thanked: false });
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    it("is not sent to a phone-only lead: there is no SMS", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
+      const res = await POST(post({ name: VISITOR.name, phone: VISITOR.phone }));
+      expect(await res.json()).toEqual({ ok: true, thanked: false });
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    it("is not sent when my own copy failed", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
+      send.mockResolvedValue({ error: { name: "x", message: "y" } });
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const res = await POST(post(VISITOR));
+      expect(res.status).toBe(502);
+      expect(await res.json()).toEqual({ ok: false, reason: "send-failed" });
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    it("is not sent for a honeypot hit", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
+      await POST(post({ ...VISITOR, website: "http://spam" }));
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    it("a rejected thank-you never fails the lead, and is logged", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
+      send.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: { name: "validation_error", message: "domain not verified" } });
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      const res = await POST(post(VISITOR));
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, thanked: false });
+      expect(log).toHaveBeenCalledTimes(1);
+    });
+
+    it("a thank-you that throws never fails the lead either", async () => {
+      vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
+      send.mockResolvedValueOnce({ error: null }).mockRejectedValueOnce(new Error("network"));
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      const res = await POST(post(VISITOR));
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, thanked: false });
+      expect(log).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("rate-limited after 5 in production", async () => {

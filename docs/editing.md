@@ -180,10 +180,17 @@ The postcard's lead form (a name, plus an email or phone) posts to
 RESEND_API_KEY, CONTACT_TO_EMAIL, CONTACT_FROM_EMAIL
 ```
 
-With any of them missing, it falls back to opening the visitor's own mail app
-with a message to `profile.email` under the subject `Portfolio lead — <name>`,
-carrying the name, email and phone. That fallback is deliberate — it means the site
-never claims to have sent something it did not. See `.env.example`.
+With any of them missing (or a send failing) the form says so in first person
+and shows `profile.email` with a copy button; it never opens the visitor's mail
+app and never claims to have sent something it did not. A send that works inks
+the "SENT" stamp (its words are `contactCopy.stamp` and the postmark's place).
+See `.env.example`.
+
+An optional fourth variable, `CONTACT_REPLY_FROM` (an address on a domain
+verified in Resend), turns on a short thank-you email to a visitor who left an
+email address. Its words are `contactCopy.thanks`; it takes nothing the
+visitor typed, so there is nothing to edit per visitor. Phone-only leads get no
+thank-you (no SMS).
 
 ## The hero's tags and field tag
 
