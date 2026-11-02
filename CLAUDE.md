@@ -184,7 +184,14 @@ margin, so the pages do not move and no leaf is clipped; `.diary-book` is a
 `flow-root` so that margin cannot collapse through it, the padded track takes
 no pointer events (the pages on show do), its scroll offsets are held at 0, and
 `measure()` leaves the padding out of `--page-h`. `record.spec.ts` fails above
-0.01 load CLS at 1440 and 390. The object: cloth boards in
+0.01 load CLS at 1440 and 390. A leaf in perspective looks taller the further
+it is from the eye's line, and these pages are tall, so while a leaf turns the
+track's own `perspective` and `perspective-origin` follow the reader
+(`camera`): the eye stands on the book's top or foot when only that edge is on
+screen, and far enough back that no edge on screen grows past the boards' lip
+(12px), so the room top and foot is only that lip; `record.spec.ts` fails a
+leaf more than 16px past the cover with the window at the book's top, middle
+or foot, or in a riffle. The object: cloth boards in
 `--bark-outer`, leaves stacked either side that move as you read, the paper
 curving into the gutter, paper grain, running heads (the chapter's years) and
 folios in the outer corners, a ribbon in `--twine` (not `--mark`: at 390

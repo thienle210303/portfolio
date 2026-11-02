@@ -50,6 +50,8 @@ function onShow(page: Page): Promise<string[]> {
 
 /** The track's scrollLeft once it has stopped moving (a snap or a smooth turn). */
 async function settledLeft(page: Page): Promise<number> {
+  // With the leaves, a turn or a riffle in the air has not settled either.
+  await expect(frame(page)).not.toHaveAttribute("data-flight");
   const read = () => track(page).evaluate((el) => Math.round(el.scrollLeft));
   let previous = await read();
   let stable = 0;
@@ -194,32 +196,72 @@ test.describe("the Diary", () => {
     }
   });
 
-  test("a turning leaf has room: nothing of it is clipped by the book, and the track never scrolls", async ({ page }) => {
-    for (const size of [WIDE, PHONE]) {
-      await page.setViewportSize(size);
-      await open(page);
-      await book(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
-      await page.getByRole("button", { name: "Next page" }).evaluate((el) => (el as HTMLButtonElement).click());
-      // Sample the turn: every face stays inside the track's padding box.
-      let samples = 0;
-      for (let i = 0; i < 12; i += 1) {
-        const fits = await page.evaluate(() => {
-          const track = document.querySelector<HTMLElement>("#record .diary-track")!;
-          const room = track.getBoundingClientRect();
-          const faces = [...track.querySelectorAll<HTMLElement>("[data-face]")].map((el) => el.getBoundingClientRect());
-          return {
-            faces: faces.length,
-            out: faces.filter((r) => r.top < room.top - 1 || r.bottom > room.bottom + 1 || (r.left < room.left - 1 && room.left > 0) || r.right > room.right + 1).length,
-            scrolled: track.scrollLeft + track.scrollTop,
-          };
-        });
-        if (fits.faces > 0) samples += 1;
-        expect(fits.out, `${size.width}: a face reached past the room`).toBe(0);
-        expect(fits.scrolled, `${size.width}: the track scrolled`).toBe(0);
-        await page.waitForTimeout(50);
+  test("a turning leaf never shows past the boards: the window at the book's top, middle or foot, and a riffle", async ({ page }) => {
+    // Round 24's first leaves turned about the track's middle, and on pages
+    // this tall the perspective threw a leaf's far end 140px (226 on a phone)
+    // past the cover, over Contact. The eye now stands where the reader is
+    // (`camera` in diary-turn.ts): no edge on screen grows past the lip.
+    const LIP = 16;
+    /** How far any face, as far as the window shows it, goes past the cover's
+     *  top or foot (counted only where that edge is on screen). */
+    const past = () =>
+      page.evaluate(() => {
+        const cover = document.querySelector("#record .diary-cover")!.getBoundingClientRect();
+        const track = document.querySelector<HTMLElement>("#record .diary-track")!;
+        const vh = window.innerHeight;
+        let worst = 0;
+        let faces = 0;
+        for (const el of track.querySelectorAll("[data-face]")) {
+          const r = el.getBoundingClientRect();
+          const top = Math.max(r.top, 0);
+          const bottom = Math.min(r.bottom, vh);
+          if (bottom <= top) continue;
+          faces += 1;
+          if (cover.top >= 0) worst = Math.max(worst, cover.top - top);
+          if (cover.bottom <= vh) worst = Math.max(worst, bottom - cover.bottom);
+        }
+        return { worst, faces, scrolled: track.scrollLeft + track.scrollTop };
+      });
+    const watch = async (label: string) => {
+      let seen = 0;
+      for (let i = 0; i < 36; i += 1) {
+        const at = await past();
+        if (at.faces > 0) seen += 1;
+        expect(at.worst, `${label}: a leaf showed ${Math.round(at.worst)}px past the boards`).toBeLessThanOrEqual(LIP);
+        expect(at.scrolled, `${label}: the track scrolled`).toBe(0);
+        await page.waitForTimeout(25);
       }
-      expect(samples, `${size.width}: no face was sampled in the air`).toBeGreaterThan(3);
+      expect(seen, `${label}: no leaf was sampled in the air`).toBeGreaterThan(3);
       await still(page);
+    };
+    for (const size of [WIDE, { width: 1024, height: 768 }, PHONE]) {
+      await page.setViewportSize(size);
+      for (const where of ["top", "middle", "foot"] as const) {
+        await open(page);
+        await book(page).evaluate((el, w) => {
+          const r = el.getBoundingClientRect();
+          const vh = window.innerHeight;
+          const by = w === "top" ? r.top - vh * 0.25 : w === "foot" ? r.bottom - vh * 0.7 : (r.top + r.bottom) / 2 - vh / 2;
+          window.scrollBy({ top: by, behavior: "instant" });
+        }, where);
+        if (where === "foot") {
+          await page.locator("#record .diary-corner-next").evaluate((el) => (el as HTMLButtonElement).click());
+        } else {
+          await track(page).evaluate((el) => el.focus({ preventScroll: true }));
+          await page.keyboard.press("ArrowRight");
+        }
+        await watch(`${size.width} ${where}`);
+      }
+      // A riffle from the contents, the window gliding to the page meanwhile.
+      await open(page);
+      if (size.width < 1280) {
+        await page.getByRole("button", { name: "Next page" }).click();
+        await still(page);
+      }
+      const line = page.locator('#diary-contents a[href="#journey-entry-eastside-high"]');
+      await line.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await line.evaluate((el) => (el as HTMLAnchorElement).click());
+      await watch(`${size.width} riffle`);
       // The room is round the pages, not in them: the book is as tall as a page.
       const pageBox = (await track(page).locator(":scope > .diary-slot:not([hidden])").first().boundingBox())!;
       expect(Math.abs(pageBox.height - (await book(page).boundingBox())!.height)).toBeLessThanOrEqual(1);

@@ -26,6 +26,7 @@ import {
   riffleLeaves,
   shadeOn,
   stackLeaves,
+  camera,
   TURN_MS,
   turnMs,
   turnRoom,
@@ -99,6 +100,8 @@ interface Flight {
   /** Where it ends: turned (true) or fallen back (false). */
   goal: boolean;
   quick: boolean;
+  /** The eye last set for it (`camera`), to write only what changes. */
+  eye: string;
   then?: () => void;
 }
 
@@ -258,7 +261,7 @@ export function DiaryBook({
     const height = track.getBoundingClientRect().height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     for (const slot of hidden) slot.setAttribute("hidden", "until-found");
     const page = book.getBoundingClientRect();
-    const { depth, room } = turnRoom(pageWidth(), height, spreadRef.current, page.left);
+    const { depth, room } = turnRoom(pageWidth(), spreadRef.current, page.left);
     track.style.setProperty("--page-h", `${Math.ceil(height)}px`);
     track.style.setProperty("--depth", `${depth}px`);
     track.style.setProperty("--room", `${room}px`);
@@ -341,14 +344,33 @@ export function DiaryBook({
       dragging: false,
       goal: true,
       quick: false,
+      eye: "",
     };
     flight.current = f;
     paint(f);
     return f;
   };
 
+  /** Put the eye where the reader is, every frame (the window may be gliding
+   *  to a page): on the book's top or foot when only that edge is on screen,
+   *  and far enough back that no edge on screen grows past the boards' lip.
+   *  Set on the track's own `perspective`, which nothing inherits. */
+  const aim = (f: Flight) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const box = track.getBoundingClientRect();
+    const room = parseFloat(getComputedStyle(track).paddingTop) || 0;
+    const eye = camera(box.top + room, box.bottom - room, window.innerHeight, pageWidth());
+    const key = `${Math.round(eye.depth)}|${(eye.y - box.top).toFixed(1)}`;
+    if (key === f.eye) return;
+    f.eye = key;
+    track.style.perspective = `${Math.round(eye.depth)}px`;
+    track.style.perspectiveOrigin = `50% ${(eye.y - box.top).toFixed(1)}px`;
+  };
+
   /** Pose every face, its light, and the shadows, for the flight's progress. */
   const paint = (f: Flight) => {
+    aim(f);
     const n = f.leaves.length;
     f.leaves.forEach((leaf, k) => {
       const p = f.p[k] ?? 0;
@@ -415,6 +437,10 @@ export function DiaryBook({
       delete el.dataset.on;
     }
     frameRef.current?.removeAttribute("data-flight");
+    if (trackRef.current) {
+      trackRef.current.style.perspective = "";
+      trackRef.current.style.perspectiveOrigin = "";
+    }
     flight.current = null;
     const next = f.goal ? f.to : f.from;
     flushSync(() => setAt(next));

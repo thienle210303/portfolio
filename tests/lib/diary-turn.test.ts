@@ -17,7 +17,9 @@ import {
   TURN_MS,
   turnMs,
   turnRoom,
+  camera,
   DEPTH,
+  LIP,
 } from "@/lib/diary-turn";
 
 describe("a turning leaf's faces", () => {
@@ -128,36 +130,79 @@ describe("a riffle", () => {
   });
 });
 
-describe("the room a turning leaf needs", () => {
-  it("stands the viewer four page widths away, at any size", () => {
-    expect(turnRoom(600, 900, true, 60).depth).toBe(DEPTH * 600);
-    expect(turnRoom(350, 1400, false, 20).depth).toBe(DEPTH * 350);
+describe("the eye a turn is seen from", () => {
+  /** How far an edge at `edge` grows past itself, the leaf upright (its free
+   *  edge a page width nearer the eye). */
+  const growth = (edge: number, eye: { y: number; depth: number }, width: number) =>
+    Math.abs(edge - eye.y) * (width / (eye.depth - width));
+
+  it("stands on the book's foot when only the foot is on screen, and its top when only the top is", () => {
+    // A tall page on a phone, the reader at its foot (by the corner).
+    const foot = camera(-900, 500, 844, 350);
+    expect(foot.y).toBe(500);
+    expect(foot.depth).toBe(DEPTH * 350);
+    const top = camera(300, 1700, 844, 350);
+    expect(top.y).toBe(300);
+    expect(top.depth).toBe(DEPTH * 350);
   });
 
-  it("covers the leaf standing upright over the spine, taller in perspective", () => {
-    for (const [width, height, spread] of [[636, 924, true], [350, 1405, false], [960, 1050, false]] as const) {
-      const { depth, room } = turnRoom(width, height, spread, 16);
-      // Upright, its near edge is `depth − width` from the viewer.
-      const reach = (height / 2) * (depth / (depth - width)) - height / 2;
-      expect(room, `${width}×${height}`).toBeGreaterThanOrEqual(reach);
-      expect(room, `${width}×${height}`).toBeLessThan(reach + 20);
+  it("stands in the window's middle when neither edge is on screen", () => {
+    const eye = camera(-400, 1400, 844, 350);
+    expect(eye.y).toBe(422);
+    expect(eye.depth).toBe(DEPTH * 350);
+    // Clamped to the page.
+    expect(camera(-2000, -10, 844, 350).y).toBe(-10);
+  });
+
+  it("keeps every edge on screen within the boards' lip, whatever the window shows", () => {
+    for (const width of [350, 636, 960]) {
+      for (const [top, foot, view] of [
+        [80, 1004, 1000], // a spread, all of it on screen
+        [40, 980, 1000],
+        [-300, 624, 900], // its foot on screen
+        [120, 1525, 844], // a phone page, its top on screen
+        [-600, 805, 844], // its foot on screen
+        [-200, 2000, 844], // neither
+      ] as const) {
+        const eye = camera(top, foot, view, width);
+        for (const edge of [top, foot]) {
+          if (edge < 0 || edge > view) continue;
+          expect(growth(edge, eye, width), `${width}: ${top}–${foot} in ${view}`).toBeLessThanOrEqual(LIP + 1e-6);
+        }
+        expect(eye.depth).toBeGreaterThanOrEqual(DEPTH * width);
+      }
     }
   });
 
-  it("covers a spread's free edge reaching past the fore-edge, and on one page the margin to the window's edge", () => {
-    // Sample a spread's leaf: no point projects further out than the room.
+  it("with the whole book on screen, stands back far enough for both edges", () => {
+    const eye = camera(80, 1004, 1010, 636);
+    expect(eye.y).toBe(542);
+    expect(growth(80, eye, 636)).toBeCloseTo(LIP, 6);
+    expect(growth(1004, eye, 636)).toBeCloseTo(LIP, 6);
+  });
+});
+
+describe("the room a turning leaf needs", () => {
+  it("is the lip top and foot, at the eye's nearest", () => {
+    expect(turnRoom(600, true, 60).depth).toBe(DEPTH * 600);
+    expect(turnRoom(350, false, 20).depth).toBe(DEPTH * 350);
+    expect(turnRoom(350, false, 0).room).toBe(LIP + 4);
+  });
+
+  it("covers a spread's free edge reaching past the fore-edge", () => {
     const width = 636;
-    const { depth, room } = turnRoom(width, 924, true, 60);
+    const { depth, room } = turnRoom(width, true, 60);
     let far = 0;
     for (let a = 0; a <= 180; a += 1) {
       const t = (a * Math.PI) / 180;
       far = Math.max(far, Math.abs(width * Math.cos(t)) * (depth / (depth - width * Math.sin(t))) - width);
     }
     expect(room).toBeGreaterThan(far);
-    // One page, a short page and a wide margin: the margin decides.
-    expect(turnRoom(600, 120, false, 300).room).toBe(312);
-    // A margin wider than the leaf's own swing is never asked for.
-    expect(turnRoom(300, 120, false, 2000).room).toBe(Math.ceil(300 * 1.1) + 12);
+  });
+
+  it("on one page, reaches over the margin to the window's edge, never past the leaf's own swing", () => {
+    expect(turnRoom(600, false, 300).room).toBe(304);
+    expect(turnRoom(300, false, 2000).room).toBe(Math.ceil(300 * 1.1) + 4);
   });
 });
 

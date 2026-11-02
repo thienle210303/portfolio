@@ -3812,9 +3812,12 @@ html[data-menu-open] [data-companion] {
      far off screen (round 24 measured CLS 1.0). A turning leaf reaches out of
      the opening in perspective, so the track is padded with that reach
      (`--room`, from `turnRoom` in `diary-turn.ts`) and pulled back by as much
-     margin: the pages do not move, and nothing of a leaf is clipped. The
-     padded box takes no hits; the pages on show do. Its scroll offsets are
-     held at 0 (`DiaryBook`). */
+     margin: the pages do not move, and nothing of a leaf on screen is
+     clipped. Top and foot it is only the boards' lip: while a leaf turns,
+     `DiaryBook` puts the eye (the track's own `perspective` and
+     `perspective-origin`) where the reader is, so no edge on screen grows past
+     the lip (`camera`). The padded box takes no hits; the pages on show do.
+     Its scroll offsets are held at 0 (`DiaryBook`). */
   .diary-frame[data-mode="leaf"] .diary-track {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

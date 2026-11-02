@@ -121,26 +121,50 @@ export function openingOf(index: number, per: 1 | 2, pages: number): number {
   return per === 2 ? i - (i % 2) : i;
 }
 
-/** The viewer stands this many page widths from the book, at any size, so a
- *  turn keeps its shape on a phone and on a spread. */
+/** The viewer stands at least this many page widths from the book, at any
+ *  size, so a turn keeps its shape on a phone and on a spread. */
 export const DEPTH = 4;
 
+/** How far a turning leaf may show past the book's top or foot: the boards'
+ *  lip, no more. */
+export const LIP = 12;
+
 /**
- * The perspective for pages `width` × `height` px, and the room a turning
- * leaf needs round the opening so nothing of it is clipped: upright over the
- * spine, its near edge stands `depth − width` from the viewer and looks
- * taller by `width / (depth − width)`; on a spread its free edge reaches a
- * little past the fore-edge just after it lifts. On one page a leaf turned
- * past upright swings out over the margin, where the window's edge clips it
- * anyway, so sideways it needs only the `gutter` to that edge. Equal on every
- * side (one outline offset fits it), with a few px for the rounding.
+ * Where the reader's eye is for a turn, and how far away. Upright over the
+ * spine a leaf's free edge is a page width nearer the eye, so in perspective
+ * it looks taller, by `width / (depth − width)` of its distance from the eye's
+ * line (`y`). Put the eye where the reader is looking: on the book's top or
+ * foot if only one of them is on screen (that edge then does not grow at
+ * all, and the other grows off screen), half way between them if both are,
+ * and the window's middle if neither is. Then stand back far enough that an
+ * edge on screen grows by `lip` at most. `top`, `foot` and `y` are in window
+ * px; `view` is the window's height.
  */
-export function turnRoom(width: number, height: number, spread: boolean, gutter: number): { readonly depth: number; readonly room: number } {
+export function camera(top: number, foot: number, view: number, width: number, lip = LIP): { readonly y: number; readonly depth: number } {
+  const sees = (edge: number) => edge >= 0 && edge <= view;
+  const t = sees(top);
+  const f = sees(foot);
+  const y = t && f ? (top + foot) / 2 : t ? top : f ? foot : Math.min(Math.max(view / 2, top), foot);
+  const reach = Math.max(t ? Math.abs(y - top) : 0, f ? Math.abs(foot - y) : 0);
+  const w = Math.max(width, 1);
+  return { y, depth: Math.max(DEPTH * w, w * (1 + reach / Math.max(lip, 1))) };
+}
+
+/**
+ * The room a turning leaf needs round the opening so nothing of it on screen
+ * is clipped. Top and foot: the lip (`camera` keeps an edge on screen inside
+ * it; an edge off screen may grow past it, unseen). Sideways: on a spread the
+ * free edge reaches a little past the fore-edge just after it lifts (at the
+ * nearest the eye ever stands); on one page a leaf turned past upright swings
+ * out over the margin, where the window's edge clips it anyway, so it needs
+ * only the `gutter` to that edge. Equal on every side (one outline offset fits
+ * it), with a few px for the rounding.
+ */
+export function turnRoom(width: number, spread: boolean, gutter: number): { readonly depth: number; readonly room: number } {
   const depth = DEPTH * Math.max(width, 1);
-  const up = (height / 2) * (width / (depth - width));
   const k = 1 / DEPTH;
   const side = spread ? width * (1 / Math.sqrt(1 - k * k) - 1) : Math.min(width * 1.1, Math.max(gutter, 0));
-  return { depth: Math.round(depth), room: Math.ceil(Math.max(up, side, 0)) + 12 };
+  return { depth: Math.round(depth), room: Math.ceil(Math.max(LIP, side, 0)) + 4 };
 }
 
 /** The leaves stacked either side of the opening: read on the left, still to
