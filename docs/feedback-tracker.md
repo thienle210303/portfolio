@@ -2328,3 +2328,30 @@ Full e2e on the production build: 857 passed and 1 failed. The failure is "they 
 Against the dev server, two JS-off Diary fragment landings also settled 16–27px low under the same load. They pass on the production build and 3/3 in isolation.
 
 `npx impeccable detect` at 1440 and 390 finds only the recorded exceptions: tag backs, nested notebook paper, and ruled lines.
+
+## Round 24: polish (2026-11-01)
+
+Five asks from Thien after testing round 23's preview, designed in `docs/superpowers/specs/2026-11-01-round-24-polish.md` and built by five parallel builders on branch `round-24/polish`:
+- **A (1):** the postcard's SENT stamp moved onto the picture's empty sky as a worn rubber stamp. The email-or-phone rule is said up front. A thank-you email to the visitor is built but off until `CONTACT_REPLY_FROM`, an address on a domain verified in Resend, is set. There is no SMS: it isn't free.
+- **B (2):** the Ask's answers are on paper: a question slip, taped clippings stamped FROM, and measured values in ink.
+- **C (3):** Bé Nhi's act, "Hả?": a tilted, three-quarter head and a hand cupped to her ear, startled by a press that wakes her, the theme turning and the thunderclap.
+- **D (4):** the hero's field is a flooded paddy, with dykes, transplanted clumps in perspective rows and ripe ears on the near bank.
+- **E (5):** the Diary is a cloth-bound book whose pages turn in 3D, and the scroll track remains as the fallback with JavaScript off and under reduced motion.
+
+**Perf row** (`pnpm perf`, production build on `:3300`, 0 skipped responses). Before is the previous row.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (round 23, last row) | 204,163 B | 204,163 B | 28,879 B | 117,868 B | 0 | 1639 |
+| After | 210,856 B | 210,856 B | 32,411 B | 117,868 B | 0 | 1718 |
+
+- **JS at load +6,693 B.** About 4 KB gzipped is `DiaryBook`'s turning code; the rest is mostly Bé Nhi's drawing and act, plus the postcard's `SentStamp`. The Ask's redesign stays behind its dynamic import.
+- **CSS +3,532 B.** The paddy, the stamp, the Ask's paper and the book's object.
+- **DOM +79 nodes.** The book's stacks, sheets and shades, and the paddy's two drawings.
+- LCP 1108 ms (the sky's art), TBT 50 ms.
+
+**Caught by this row, then fixed.** The first build measured CLS 1.0. When the Diary switched from its scroll track to turning leaves at hydration, Chrome reported a full-viewport shift: in leaf mode the track stopped being a scroll container (`overflow: visible`; `clip` measured 0.88). The track now stays `overflow: hidden`, with equal padding and a negative margin as room for the turning leaf. CLS is 0 at 1440 and 390, and an e2e in `record.spec.ts` fails above 0.01.
+
+**Verification.** `pnpm verify` passes: 1,036 unit tests, contrast, and the build.
+
+Full e2e on the production build: 895 passed, 0 failed. Before the CLS fix, a run had 892 passed and 1 failed: round 23's walking cat over Contact's lede at 1280. In isolation it failed 2 of 12 runs, so it is still a flake in the cats' pathing, not a regression from this round.
