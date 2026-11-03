@@ -1,36 +1,65 @@
 import { readFileSync } from "node:fs";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import Record from "@/sections/Record/Record";
-import RecordYears from "@/sections/Record/RecordYears";
-import { caseStudyAnchorId, journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
+import {
+  caseStudyAnchorId,
+  journeyEntryAnchorId,
+  RECORD_ALIAS_IDS,
+  RECORD_LEGACY_SECTION_IDS,
+  RECORD_WORK_ENTRY_ID,
+} from "@/sections/CareerTree/anchors";
 import { careerEntries, certifications, projects, record } from "@/content/portfolio";
 import { buildDocuments } from "@/lib/answer-corpus";
 import { careerIndexable, education, projectsIndexable } from "@/lib/answer-sources";
-import { buildSlice, entryTitle, featuredEntries, kindCounts, recordYears } from "@/lib/record";
+import { buildSlice, diaryChapters, diaryPages, entryTitle, featuredEntries, kindCounts } from "@/lib/record";
 import type { CareerEntry } from "@/types/portfolio";
 
 const ENTRIES: readonly CareerEntry[] = careerEntries;
+const PAGES = diaryPages();
 
-describe("the Record section", () => {
-  it("is labelled by its left page's heading, and says the board's words", () => {
+describe("the Diary section", () => {
+  it("is labelled by its first page's heading, which says its name and the board's words", () => {
     render(<Record />);
     const section = document.getElementById("record")!;
     expect(section.getAttribute("aria-labelledby")).toBe("record-heading");
-    expect(document.getElementById("record-heading")?.textContent).toBe(record.pressed.heading);
+    const heading = document.getElementById("record-heading")!;
+    expect(heading.tagName).toBe("H2");
+    expect(heading.textContent).toContain(record.name);
+    expect(heading.textContent).toContain(record.pressed.heading);
     expect(section.textContent).toContain(record.pressed.lead);
-    expect(section.textContent).toContain(record.byYear.heading);
+    expect(section.textContent).toContain(record.contents.heading);
     expect(section.textContent).toContain(record.certificates);
     expect(section.textContent).toContain("A tree slice: 2018 at the heart, 2025 at the bark.");
   });
 
-  it("keeps #work, the case studies' retired id, resolvable here", () => {
+  it("is a focusable, named region holding one slot per page", () => {
     render(<Record />);
-    const target = document.getElementById("work");
-    expect(document.getElementById("record")).toContainElement(target);
-    expect(target).toHaveAttribute("aria-hidden", "true");
-    expect(target?.className).toMatch(/\bscroll-mt-20\b/);
-    expect(document.querySelectorAll('[id="work"]')).toHaveLength(1);
+    const book = screen.getByRole("region", { name: record.bookLabel });
+    expect(book).toHaveAttribute("tabindex", "0");
+    expect(book.querySelectorAll(":scope > .diary-slot")).toHaveLength(PAGES.length + (PAGES.length % 2));
+    // Every page is an article with a name, apart from the contents the island draws (also one).
+    const articles = book.querySelectorAll("article");
+    expect(articles).toHaveLength(PAGES.length);
+    for (const article of articles) expect(article.getAttribute("aria-labelledby"), article.id).toBeTruthy();
+  });
+
+  it("keeps #diary beside #record, and #work on DoorDash's page, each once and zero-size", () => {
+    render(<Record />);
+    for (const id of RECORD_ALIAS_IDS) {
+      const alias = document.getElementById(id);
+      expect(document.getElementById("record"), id).toContainElement(alias);
+      expect(alias).toHaveAttribute("aria-hidden", "true");
+      expect(alias?.className).toMatch(/\bscroll-mt-20\b/);
+      expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
+    }
+    for (const id of RECORD_LEGACY_SECTION_IDS) {
+      const target = document.getElementById(id);
+      expect(document.getElementById(journeyEntryAnchorId(RECORD_WORK_ENTRY_ID)), id).toContainElement(target);
+      expect(target).toHaveAttribute("aria-hidden", "true");
+      expect(target?.className).toMatch(/\bh-0\b/);
+      expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
+    }
   });
 
   it("never writes an id into the document twice", () => {
@@ -40,21 +69,26 @@ describe("the Record section", () => {
     expect([...seen].filter(([, n]) => n > 1).map(([id]) => id)).toEqual([]);
   });
 
-  it("renders every case study, inside its entry's row", () => {
+  it("renders no case study: only a zero-size anchor per project, on its entry's page", () => {
     render(<Record />);
+    expect(document.querySelectorAll("#record [id^='case-study-']")).toHaveLength(0);
     for (const project of projects) {
-      const article = document.getElementById(caseStudyAnchorId(project.id));
-      expect(article?.closest("[data-tree-branch]")?.getAttribute("data-tree-branch"), project.id).toBe(
-        project.careerEntryId,
-      );
+      const anchor = document.getElementById(caseStudyAnchorId(project.id));
+      expect(anchor, project.id).not.toBeNull();
+      expect(anchor).toHaveAttribute("aria-hidden", "true");
+      expect(anchor?.textContent).toBe("");
+      expect(anchor?.closest("[data-tree-branch]")?.getAttribute("data-tree-branch"), project.id).toBe(project.careerEntryId);
+    }
+    for (const retired of ["Problem", "Approach", "Lesson", "What I learned"]) {
+      expect(screen.queryByRole("heading", { name: new RegExp(`^${retired}$`) })).toBeNull();
     }
   });
 
   it("the pages are paper, so the night paper scope applies", () => {
     render(<Record />);
-    const pages = document.querySelectorAll(".record-page");
-    expect(pages).toHaveLength(2);
-    for (const page of pages) expect(page.className).toContain("bg-surface");
+    for (const slot of document.querySelectorAll(".diary-slot")) expect(slot.className).toContain("bg-surface");
+    for (const page of document.querySelectorAll(".diary-page")) expect(page.className).toContain("bg-surface");
+    expect(document.querySelector(".diary-book")?.className).toContain("bg-surface");
   });
 
   it("the morning by day and the evening at night, and the lotus, are decoration", () => {
@@ -63,13 +97,116 @@ describe("the Record section", () => {
     expect(section.querySelector(".day-only")?.textContent).toBe(record.vignette.morning);
     expect(section.querySelector(".night-only")?.textContent).toBe(record.vignette.evening);
     for (const el of section.querySelectorAll("[data-scenery], .day-only, .night-only")) {
-      expect(el.closest('[aria-hidden="true"]'), el.className).not.toBeNull();
+      if (el.closest(".diary-page")?.id === "diary-summary" || el.closest("article[id^='journey-entry-']") || el.closest("#diary-certificates")) {
+        expect(el.closest('[aria-hidden="true"]'), el.className).not.toBeNull();
+      }
     }
   });
 });
 
-describe("the left page", () => {
-  it("has one ring per year, each a named link to its year", () => {
+describe("the pages", () => {
+  it("are the summary, the contents, each chapter's, and the certificates, in that order", () => {
+    expect(PAGES[0].kind).toBe("summary");
+    expect(PAGES[1].kind).toBe("contents");
+    expect(PAGES.at(-1)!.kind).toBe("certificates");
+    expect(PAGES.slice(2, -1).every((p) => p.kind === "entry" || p.kind === "shared")).toBe(true);
+  });
+
+  it("hold every entry exactly once, as the page or a block on it", () => {
+    render(<Record />);
+    expect(PAGES.flatMap((p) => p.entryIds).toSorted()).toEqual(ENTRIES.map((e) => e.id).toSorted());
+    for (const entry of ENTRIES) {
+      const id = journeyEntryAnchorId(entry.id);
+      expect(document.querySelectorAll(`[id="${id}"]`), id).toHaveLength(1);
+      const el = document.getElementById(id)!;
+      expect(document.getElementById("record"), id).toContainElement(el);
+      expect(el.getAttribute("data-tree-branch"), id).toBe(entry.id);
+      expect(el.getAttribute("data-kind"), id).toBe(entry.type);
+      expect(el.className, id).toMatch(/\bscroll-mt-20\b/);
+    }
+  });
+
+  it("give an entry with bullets a page of its own, and put the rest together, three at most", () => {
+    for (const page of PAGES) {
+      if (page.kind === "entry") expect(ENTRIES.find((e) => e.id === page.entryIds[0])?.diary?.bullets?.length).toBeGreaterThan(0);
+      if (page.kind === "shared") {
+        expect(page.entryIds.length).toBeLessThanOrEqual(3);
+        for (const id of page.entryIds) expect(ENTRIES.find((e) => e.id === id)?.diary?.bullets).toBeUndefined();
+      }
+    }
+  });
+
+  it("an entry's page says kind and dates, role, organisation, bullets, figure and fun fact", () => {
+    render(<Record />);
+    for (const entry of ENTRIES.filter((e) => e.diary?.bullets)) {
+      const page = document.getElementById(journeyEntryAnchorId(entry.id))!;
+      expect(page.tagName).toBe("ARTICLE");
+      expect(within(page).getByRole("heading", { level: 3 }).textContent).toBe(entryTitle(entry));
+      expect(page.textContent).toContain(entry.organization);
+      expect(page.textContent).toContain(entry.dateRange);
+      for (const bullet of entry.diary!.bullets!) expect(page.textContent, entry.id).toContain(bullet);
+      if (entry.diary?.figure) expect(page.querySelector("figure"), entry.id).not.toBeNull();
+      if (entry.diary?.funFact) expect(within(page).getByLabelText(record.funFactLabel).textContent).toContain(entry.diary.funFact);
+      if (entry.award) expect(page.querySelector(`button[commandfor="award-${entry.id}"]`), entry.id).not.toBeNull();
+      if (entry.link) expect(page.querySelector(`a[href="${entry.link.href}"]`), entry.id).not.toBeNull();
+      if (entry.recording) expect(within(page).getByRole("button", { name: `Play the screen recording of ${entry.role}` })).toBeTruthy();
+    }
+  });
+
+  it("the oak's highlight is the page's one accent figure", () => {
+    render(<Record />);
+    const page = document.getElementById("journey-entry-doordash")!;
+    expect(page.textContent).toContain("17h → 3m");
+    expect(page.querySelector(".text-accent")?.textContent).toBe("17h → 3m");
+  });
+});
+
+describe("the early chapter", () => {
+  it("is one chapter, 2018 – 2020, with a ring per year and a fragment per year", () => {
+    const early = diaryChapters().at(-1)!;
+    expect(early.label).toBe("2018 – 2020");
+    expect(early.years).toEqual([2018, 2019, 2020]);
+    expect(diaryChapters().map((c) => c.label)).toEqual(["2025", "2024", "2023", "2022", "2021", "2018 – 2020"]);
+    expect(buildSlice().rings.map((r) => r.year)).toEqual([2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]);
+    render(<Record />);
+    for (const year of early.years) expect(document.getElementById(`record-${year}`), String(year)).not.toBeNull();
+  });
+
+  it("tells school and the kitchen together, then what I taught myself", () => {
+    const early = PAGES.filter((p) => p.entryIds.some((id) => ["eastside-high", "fu-of-kyoto", "self-taught-gap"].includes(id)));
+    expect(early.map((p) => p.entryIds)).toEqual([["eastside-high", "fu-of-kyoto"], ["self-taught-gap"]]);
+  });
+
+  it("names what I taught myself", () => {
+    const entry = ENTRIES.find((e) => e.id === "self-taught-gap")!;
+    const said = `${entry.context} ${entry.diary?.bullets?.join(" ")}`.toLowerCase();
+    for (const word of ["plants", "aquarium", "stock", "invest", "finance"]) expect(said, word).toContain(word);
+  });
+});
+
+describe("the contents", () => {
+  it("lists every entry once, newest chapter first, each a link to its page with its page number", () => {
+    render(<Record />);
+    const contents = document.getElementById("diary-contents")!;
+    const links = [...contents.querySelectorAll<HTMLAnchorElement>("a")];
+    const entryLinks = links.filter((a) => a.getAttribute("href")!.startsWith("#journey-entry-"));
+    expect(entryLinks.map((a) => a.getAttribute("href")).toSorted()).toEqual(ENTRIES.map((e) => `#${journeyEntryAnchorId(e.id)}`).toSorted());
+    for (const a of entryLinks) {
+      const entry = ENTRIES.find((e) => `#${journeyEntryAnchorId(e.id)}` === a.getAttribute("href"))!;
+      const page = PAGES.findIndex((p) => p.entryIds.includes(entry.id)) + 1;
+      expect(a.textContent).toContain(entryTitle(entry));
+      expect(a.textContent?.trim().endsWith(`page ${page}`), entry.id).toBe(true);
+      expect(document.getElementById(a.getAttribute("href")!.slice(1))).not.toBeNull();
+    }
+    const last = links.at(-1)!;
+    expect(last.textContent).toContain(record.certificates);
+    expect(last.getAttribute("href")).toBe("#diary-certificates");
+    expect(last.textContent?.trim().endsWith(`page ${PAGES.length}`)).toBe(true);
+  });
+});
+
+describe("the summary page", () => {
+  it("has one ring per year, each a named link to its chapter", () => {
     render(<Record />);
     const rings = [...document.querySelectorAll<SVGAElement>("a.record-ring")];
     const years = buildSlice().rings;
@@ -82,75 +219,94 @@ describe("the left page", () => {
     }
   });
 
-  it("presses the five featured entries, each a link to its row", () => {
+  it("presses the five featured entries, each a link to its page", () => {
     render(<Record />);
     const list = screen.getByRole("list", { name: "Pressed: my best ones" });
     const links = within(list).getAllByRole("link");
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(
-      featuredEntries().map((e) => `#${journeyEntryAnchorId(e.id)}`),
-    );
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(featuredEntries().map((e) => `#${journeyEntryAnchorId(e.id)}`));
     featuredEntries().forEach((e, i) => expect(links[i].textContent).toContain(entryTitle(e)));
   });
 
   it("explains the dots in words", () => {
     render(<Record />);
-    const legend = screen.getByRole("list", { name: "What the dots mean" });
-    expect(legend.textContent).toBe("WorkStudyMilestone");
+    expect(screen.getByRole("list", { name: "What the dots mean" }).textContent).toBe("WorkStudyMilestone");
   });
 });
 
-describe("the right page", () => {
-  it("lists every entry once, by start year, newest first, featured in bold", () => {
-    const { container } = render(<RecordYears />);
-    const years = [...container.querySelectorAll<HTMLElement>("[data-record-year]")].map((el) => Number(el.dataset.recordYear));
-    expect(years).toEqual(recordYears().map((y) => y.year));
-    const rows = [...container.querySelectorAll<HTMLElement>("[data-tree-branch]")];
-    expect(rows.map((r) => r.dataset.treeBranch).toSorted()).toEqual(ENTRIES.map((e) => e.id).toSorted());
-    for (const row of rows) {
-      const entry = ENTRIES.find((e) => e.id === row.dataset.treeBranch)!;
-      expect(row.closest("[data-record-year]")?.getAttribute("data-record-year")).toBe(entry.sortKey.slice(0, 4));
-      expect(row.dataset.kind).toBe(entry.type);
-      const bold = row.querySelector("button .font-semibold");
-      expect(Boolean(bold), entry.id).toBe(Boolean(entry.featured));
-    }
-    expect(container.textContent).toContain(record.byYear.empty);
-  });
-
-  it("offers All, Work, Study and Milestones with counts from content", () => {
+describe("the index tabs", () => {
+  it("offer All, Work, Study and Milestones with counts from content, and re-bind the book", () => {
     render(<Record />);
-    const group = screen.getByRole("group", { name: "Show entries of one kind" });
-    const buttons = within(group).getAllByRole("button");
+    const group = screen.getByRole("group", { name: record.tabsLabel });
+    const tabs = within(group).getAllByRole("button");
     const c = kindCounts();
-    expect(buttons.map((b) => b.textContent)).toEqual([`All${c.all}`, `Work${c.work}`, `Study${c.learning}`, `Milestones${c.milestone}`]);
-    expect(buttons.map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false"]);
-    fireEvent.click(buttons[1]);
-    expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
-    expect(document.querySelector("[data-record-list]")).toHaveAttribute("data-filter", "work");
+    expect(tabs.map((b) => b.textContent)).toEqual([`All${c.all}`, `Work${c.work}`, `Study${c.learning}`, `Milestones${c.milestone}`]);
+    expect(tabs.map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false", "false"]);
+    const track = screen.getByRole("region", { name: record.bookLabel });
+    const visible = () => track.querySelectorAll(":scope > .diary-slot:not([data-hidden]):not(.diary-slot-blank)");
+    expect(visible()).toHaveLength(PAGES.length);
+
+    fireEvent.click(tabs[1]);
+    expect(tabs[1]).toHaveAttribute("aria-pressed", "true");
+    expect(track).toHaveAttribute("data-filter", "work");
+    const workPages = PAGES.filter((p) => p.entryIds.length === 0 || p.entryIds.some((id) => ENTRIES.find((e) => e.id === id)?.type === "work"));
+    expect(visible()).toHaveLength(workPages.length);
+    // The page numbers are counted again, in the folios and the contents.
+    expect([...visible()].map((s) => s.querySelector(".diary-folio")?.textContent)).toEqual(workPages.map((_, i) => String(i + 1)));
+    const lines = document.getElementById("diary-contents")!.querySelectorAll("a[href^='#journey-entry-']");
+    expect(lines).toHaveLength(c.work);
+    // The hidden pages are still in the document, for a fragment to find.
+    expect(document.getElementById("journey-entry-deans-list")).not.toBeNull();
+    expect(screen.getByText(`Work: ${c.work} entries, ${workPages.length} pages.`)).toBeInTheDocument();
   });
 
-  it("the stylesheet hides other kinds and emptied years under a filter", () => {
+  it("a link to a page a tab has hidden clears the tab first", () => {
+    render(<Record />);
+    fireEvent.click(screen.getByRole("button", { name: /^Work/ }));
+    expect(screen.getByRole("region", { name: record.bookLabel })).toHaveAttribute("data-filter", "work");
+    const card = document.querySelector<HTMLAnchorElement>('a[href="#journey-entry-cockyhacks"]')!;
+    fireEvent.click(card);
+    expect(screen.getByRole("region", { name: record.bookLabel })).toHaveAttribute("data-filter", "all");
+    expect(screen.getByRole("button", { name: /^All/ })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("the stylesheet hides other kinds' entries on a shared page, and a spread snaps on each left page", () => {
     const css = readFileSync("src/app/globals.css", "utf8");
     for (const kind of ["work", "learning", "milestone"]) {
-      expect(css).toContain(`[data-record-list][data-filter="${kind}"] [data-kind]:not([data-kind="${kind}"])`);
-      expect(css).toContain(`[data-record-list][data-filter="${kind}"] [data-record-year]:not(:has([data-kind="${kind}"]))`);
+      expect(css).toContain(`.diary-track[data-filter="${kind}"] .diary-entry:not([data-kind="${kind}"])`);
     }
+    expect(css).toContain('.diary-slot[data-side="left"]');
+    expect(css).toContain("scroll-snap-type: x mandatory");
+  });
+});
+
+describe("the page controls", () => {
+  it("are real buttons with labels, and the page counter is polite live text", () => {
+    render(<Record />);
+    expect(screen.getByRole("button", { name: "Previous page" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next page" })).toBeInTheDocument();
+    const where = document.querySelector("[data-diary-page]")!;
+    expect(where.getAttribute("aria-live")).toBe("polite");
+    expect(where.textContent).toBe(`p. 1 of ${PAGES.length}`);
   });
 });
 
 describe("the certificates", () => {
-  it("are a stamp each for every certificate with an image, and AT&T has none", () => {
+  it("are a stamp each for every certificate with an image, each drawn for what it was, and AT&T has none", () => {
     render(<Record />);
     const stamped = certifications.filter((c) => "stamp" in c);
     const buttons = [...document.querySelectorAll<HTMLButtonElement>("button[commandfor^='certificate-'][command='show-modal']")];
     expect(buttons).toHaveLength(stamped.length);
     expect(document.getElementById("record")!.textContent).not.toContain("AT&T");
+    expect(stamped.map((c) => c.stamp!.drawing)).toEqual(["bank", "card", "code", "cart"]);
     for (const button of buttons) {
-      expect(button.getAttribute("command")).toBe("show-modal");
       expect(button).toHaveAttribute("aria-haspopup", "dialog");
       const dialog = document.getElementById(button.getAttribute("commandfor")!);
       expect(dialog?.tagName).toBe("DIALOG");
       expect(dialog?.querySelector("button[command='close']")).not.toBeNull();
     }
+    stamped.forEach((c, i) => {
+      expect(buttons[i].querySelector(`[data-scenery="stamp-${c.stamp!.drawing}"]`), c.id).not.toBeNull();
+    });
   });
 
   it("load nothing until pressed: no image is in the page until a dialog opens", () => {
@@ -165,9 +321,11 @@ describe("the certificates", () => {
 /**
  * The guarantee `Document.sectionId` in `src/lib/answer-corpus.ts` makes: the
  * named section renders the subject the sentence belongs to. The career
- * entries, case studies and the degree are cited on the Record since round 21
- * phase 5. Both halves are needed: every subject `#record` is cited for is in
- * `#record`, and every document citing `#record` belongs to one of them.
+ * entries and the degree are cited on the Diary; the case studies are not
+ * rendered any more (round 23), so a project's subject is the entry it was
+ * built in, whose page is where its citation lands. Both halves are needed:
+ * every subject `#record` is cited for is in `#record`, and every document
+ * citing `#record` belongs to one of them.
  */
 describe("the subjects #record is cited for", () => {
   function recordText(): string {
@@ -175,13 +333,18 @@ describe("the subjects #record is cited for", () => {
     if (!(section instanceof HTMLElement)) throw new Error("no #record section");
     return (section.textContent ?? "").replace(/\s+/g, " ");
   }
+  const entryOf = (project: { readonly id: string }) =>
+    ENTRIES.find((e) => e.id === projects.find((p) => p.id === project.id)?.careerEntryId);
   function subjectNeedles(): readonly { readonly subject: string; readonly needle: string }[] {
     return [
       ...careerIndexable.flatMap((entry) => [
         { subject: entry.id, needle: entry.role.replace(" — ", ", ") },
         { subject: entry.id, needle: entry.organization },
       ]),
-      ...projectsIndexable.map((project) => ({ subject: project.id, needle: project.title })),
+      ...projectsIndexable.flatMap((project) => {
+        const entry = entryOf(project);
+        return entry ? [{ subject: project.id, needle: entryTitle(entry) }] : [];
+      }),
       ...education.map((school) => ({ subject: school.id, needle: school.institution })),
     ];
   }
@@ -192,14 +355,13 @@ describe("the subjects #record is cited for", () => {
     expect(recordText().match(/\b(he|his|him|himself)\b/gi) ?? []).toEqual([]);
   });
 
-  it("renders every subject it is cited for", () => {
+  it("renders every subject it is cited for, and every project is built in an entry it renders", () => {
     render(<Record />);
     const text = recordText();
+    for (const project of projectsIndexable) expect(entryOf(project), project.id).toBeDefined();
     const needles = subjectNeedles();
     expect(needles.length).toBeGreaterThan(0);
-    const missing = needles
-      .filter(({ needle }) => !text.includes(needle.replace(/\s+/g, " ")))
-      .map(({ subject, needle }) => `${subject}: ${needle}`);
+    const missing = needles.filter(({ needle }) => !text.includes(needle.replace(/\s+/g, " "))).map(({ subject, needle }) => `${subject}: ${needle}`);
     expect(missing).toEqual([]);
   });
 
@@ -213,120 +375,21 @@ describe("the subjects #record is cited for", () => {
     expect(cited.length).toBeGreaterThan(0);
     const unaccounted = cited.filter((doc) => !needles.some((n) => doc.label.includes(n))).map((d) => d.text.slice(0, 60));
     expect(unaccounted).toEqual([]);
+    for (const doc of cited) expect(doc.sectionLabel).toBe(record.name);
   });
-});
 
-describe("per-entry fragments", () => {
-  it("gives every career entry exactly one element, a row on the Record", () => {
-    render(<Record />);
-    const section = document.getElementById("record")!;
+  it("does not index the diary block", () => {
+    const texts = buildDocuments().map((d) => d.text);
     for (const entry of ENTRIES) {
-      const id = journeyEntryAnchorId(entry.id);
-      expect(document.querySelectorAll(`[id="${id}"]`), id).toHaveLength(1);
-      const el = document.getElementById(id);
-      expect(section, id).toContainElement(el);
-      expect(el?.getAttribute("data-tree-branch"), id).toBe(entry.id);
-      expect(el?.className, id).toMatch(/\bscroll-mt-20\b/);
-    }
-  });
-});
-
-describe("the rows", () => {
-  function rows(): HTMLElement[] {
-    const { container } = render(<RecordYears />);
-    return [...container.querySelectorAll<HTMLElement>("[data-tree-branch]")];
-  }
-  const trigger = (row: HTMLElement) => row.querySelector<HTMLButtonElement>("button[aria-expanded]");
-  const openIds = (list: readonly HTMLElement[]) =>
-    list.filter((row) => trigger(row)?.getAttribute("aria-expanded") === "true").map((row) => row.dataset.treeBranch);
-  const setHash = (hash: string) => window.history.replaceState(null, "", hash || "/");
-
-  afterEach(() => {
-    setHash("");
-    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
-
-  it("shows the kind in words, the title and organisation, and nothing open", () => {
-    const list = rows();
-    expect(list).toHaveLength(ENTRIES.length);
-    expect(openIds(list)).toEqual([]);
-    for (const row of list) {
-      const entry = ENTRIES.find((e) => e.id === row.dataset.treeBranch)!;
-      const name = trigger(row)?.textContent ?? "";
-      expect(name, entry.id).toContain(entryTitle(entry));
-      expect(name, entry.id).toContain(entry.organization);
-      expect(name, entry.id).toMatch(/^(Work|Study|Milestone): /);
-    }
-  });
-
-  it("keeps impact (or context), chips, dates, links, recordings, awards and case studies inside the row", () => {
-    let studies = 0;
-    for (const row of rows()) {
-      const entry = ENTRIES.find((e) => e.id === row.dataset.treeBranch)!;
-      const panel = row.querySelector(`#record-row-${entry.id}-panel`)!;
-      const text = panel.textContent ?? "";
-      for (const line of entry.impact.length > 0 ? entry.impact : [entry.context]) expect(text, entry.id).toContain(line);
-      expect(text, entry.id).toContain(entry.dateRange);
-      for (const t of entry.technologies) expect(text, entry.id).toContain(t);
-      if (entry.link) expect(panel.querySelector(`a[href="${entry.link.href}"]`), entry.id).not.toBeNull();
-      if (entry.recording) expect(within(panel as HTMLElement).getByRole("button", { name: `Play the screen recording of ${entry.role}` })).toBeTruthy();
-      if (entry.award) expect(panel.querySelector(`button[commandfor="award-${entry.id}"]`), entry.id).not.toBeNull();
-      for (const study of row.querySelectorAll("article")) {
-        expect(panel.contains(study)).toBe(true);
-        studies += 1;
+      const diary = entry.diary;
+      if (!diary) continue;
+      // A line the entry already says elsewhere (a fun fact drawn from its
+      // `learned`) is in the corpus because of that field, not the diary.
+      const said = [entry.context, entry.learned ?? "", ...entry.impact, ...entry.built, ...entry.responsibilities].join(" ");
+      for (const line of [diary.funFact, diary.blurb].filter((x): x is string => Boolean(x))) {
+        if (said.includes(line)) continue;
+        expect(texts.some((t) => t.includes(line)), `${entry.id}: ${line}`).toBe(false);
       }
     }
-    expect(studies).toBe(projects.length);
-  });
-
-  it("opens one row at a time", () => {
-    const list = rows();
-    const [first, second] = list.map((row) => trigger(row)!);
-    fireEvent.click(first);
-    expect(openIds(list)).toEqual([list[0].dataset.treeBranch]);
-    fireEvent.click(second);
-    expect(openIds(list)).toEqual([list[1].dataset.treeBranch]);
-    fireEvent.click(second);
-    expect(openIds(list)).toEqual([]);
-  });
-
-  function watchLandings() {
-    const scrolled = vi.fn();
-    (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView = scrolled;
-    let queue: FrameRequestCallback[] = [];
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => queue.push(callback));
-    vi.stubGlobal("cancelAnimationFrame", () => {});
-    const frame = () => {
-      const due = queue;
-      queue = [];
-      for (const callback of due) callback(0);
-    };
-    return { scrolled, frame };
-  }
-
-  it("opens the row a fragment names, or the row around the element it names, and lands on it", async () => {
-    const { scrolled, frame } = watchLandings();
-    setHash("#work-dd-scraper-platform");
-    const list = rows();
-    await act(async () => {});
-    expect(openIds(list)).toEqual(["doordash"]);
-    act(frame);
-    expect(scrolled.mock.contexts[0]).toBe(document.getElementById("work-dd-scraper-platform"));
-
-    await act(async () => {
-      setHash(`#${journeyEntryAnchorId("magellan")}`);
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    });
-    expect(openIds(list)).toEqual(["magellan"]);
-  });
-
-  it("hands the no-script :target opening to React once mounted", async () => {
-    const { container } = render(<RecordYears />);
-    await act(async () => {});
-    expect(container.querySelector("[data-timeline]")).toHaveAttribute("data-live", "");
-    const css = readFileSync("src/app/globals.css", "utf8");
-    expect(css).toContain("[data-timeline]:not([data-live]) [data-tree-branch]:is(:target, :has(:target))");
   });
 });

@@ -78,13 +78,9 @@ for (const size of SIZES) {
 
     test("body text is 15–16px", async ({ page }) => {
       // A paragraph rendered at --step-0: the first visible `#record p`
-      // whose computed font-size equals a `var(--step-0)` probe's. That is a
-      // case study's prose (CaseStudy.tsx PROSE_CLASS), inside a Record row
-      // since round 21 phase 5, so the DoorDash row is opened first. The hero
-      // has no body text at --step-0; its paragraph is the lead (below).
-      await page.locator("#record-row-doordash-trigger").click();
-      await page.locator("#work-dd-scraper-platform").getByRole("button", { name: /Read the full case study/ }).click();
-      await page.waitForTimeout(300);
+      // whose computed font-size equals a `var(--step-0)` probe's. That is an
+      // entry page's description (EntryPage.tsx), in the Diary since round 23.
+      // The hero has no body text at --step-0; its paragraph is the lead (below).
       const size = await page.locator("#record").evaluate((tree) => {
         const probe = document.createElement("div");
         probe.style.fontSize = "var(--step-0)";
@@ -178,9 +174,17 @@ for (const size of SIZES) {
       await page.getByRole("button", { name: /Open menu/ }).click();
       const panel = page.locator("#" + (await page.getByRole("button", { name: /Close menu/ }).getAttribute("aria-controls")));
       await expect(panel).toBeVisible();
+      // The paper starts at the header's foot with its torn edge (round 23,
+      // `.nav-notebook-edge`, 10px), and the page runs on under that edge
+      // with no gap between them.
       const panelTop = await panel.evaluate((el) => el.getBoundingClientRect().top);
       const headerBottom = await page.locator("header").first().evaluate((el) => el.getBoundingClientRect().bottom);
-      expect(Math.abs(panelTop - headerBottom)).toBeLessThanOrEqual(TOL);
+      const edge = await page.locator(".nav-notebook-edge").evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom };
+      });
+      expect(Math.abs(edge.top - headerBottom)).toBeLessThanOrEqual(TOL);
+      expect(panelTop).toBeLessThanOrEqual(edge.bottom + TOL);
     });
 
     test("nav anchor lands below the header", async ({ page }) => {

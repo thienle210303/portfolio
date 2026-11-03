@@ -49,19 +49,16 @@ const DOT_FILL = {
  * phone, the slice sits centred and the cards follow two to a row, without
  * strings.
  *
- * Each ring is a link to its year on the right page: a plain fragment, so it
- * works with JavaScript off. The rings are painted outermost first, so each
- * annulus is its own hit area. Each card links to its entry's row.
- *
- * From 1280, with the pages side by side, the board is sticky 96px under the
- * viewport's top (clear of the header), inside a wrapper that ends above the
- * desk vignette, so it never slides over the cup. It is at most about 560px
- * tall there, so it fits a 720px-tall laptop screen whole.
+ * Each ring is a link to its year's chapter in the book (`#record-<year>`): a
+ * plain fragment, so it works with JavaScript off. The rings are painted
+ * outermost first, so each annulus is its own hit area. Each card links to
+ * its entry's page. (It was sticky beside a long list until round 23; the
+ * book has no long list.)
  */
 export default function RecordPressed() {
   const caption = record.pressed.slice.replace("{first}", String(YEARS[0])).replace("{last}", String(YEARS.at(-1)));
   return (
-    <div className="@container mt-5 xl:sticky xl:top-24">
+    <div className="@container mt-5">
       <div data-pressed="" className="relative mx-auto max-w-[42rem] @min-[33rem]:aspect-[612/590]">
         <p
           className={cn("max-w-[20rem] text-[length:var(--step--1)] leading-snug text-fg-muted @min-[33rem]:max-w-none", PLACE)}

@@ -1170,8 +1170,8 @@ test.describe("companion", () => {
     };
 
     await page.evaluate(() => {
-      const tree = document.querySelector("#record [data-timeline]");
-      if (!tree) throw new Error("the page has no timeline");
+      const tree = document.querySelector("#record [data-diary]");
+      if (!tree) throw new Error("the page has no Diary");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
     });
@@ -1290,8 +1290,8 @@ test.describe("companion", () => {
      * a cat two departures about one run in seven.
      */
     await page.evaluate(() => {
-      const tree = document.querySelector("#record [data-timeline]");
-      if (!tree) throw new Error("the page has no timeline");
+      const tree = document.querySelector("#record [data-diary]");
+      if (!tree) throw new Error("the page has no Diary");
       const box = tree.getBoundingClientRect();
       window.scrollTo({ top: window.scrollY + box.top + 200, behavior: "instant" as ScrollBehavior });
       const button = document.querySelector('[aria-controls="companion-actions"]');
@@ -2204,10 +2204,12 @@ test.describe("companion", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    // The two ways a cat becomes invisible without ever leaving the DOM. The
-    // header is `sticky top-0 z-50` over a companion layer at `z-40`, and it is
-    // opaque; `overflow-x: clip` on the document means a cat past an edge does
-    // not even produce a scrollbar to hint at where it went.
+    // The two ways a cat becomes invisible without ever leaving the DOM. Before
+    // round 23 the header was `sticky top-0 z-50` and opaque over a companion
+    // layer at `z-40` (the layer is above it now, see the layer test below, but
+    // the band is still kept clear); `overflow-x: clip` on the document means a
+    // cat past an edge does not even produce a scrollbar to hint at where it
+    // went.
     //
     // Deliberately every svg the companion paints, not just the animals: the
     // corner furniture is line work on the same fixed layer and is subject to
@@ -2247,6 +2249,50 @@ test.describe("companion", () => {
     await expect
       .poll(hidden, { timeout: 10_000, message: "a resize left a cat outside the viewport" })
       .toEqual([]);
+  });
+
+  /*
+   * Round 23, ask 12: the cats are first priority and always on top. The layer
+   * is above the header (and so above every section); only the skip link, native
+   * dialogs and the open phone menu are above it, and none of them is hidden
+   * *by* it. The layer takes no pointer events of its own, so a nav item under
+   * it still answers a click.
+   */
+  test("the layer is above the header, below the open menu, and lets clicks through to the nav", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await companionAwake(page);
+    const stack = () =>
+      page.evaluate(() => {
+        const z = (selector: string) => Number(getComputedStyle(document.querySelector(selector)!).zIndex);
+        // With the layer made hit-testable, what is on top of the header's paper?
+        const style = document.createElement("style");
+        style.textContent = "[data-companion]{pointer-events:auto !important}";
+        document.head.append(style);
+        const paper = document.querySelector(".nav-strip")!.getBoundingClientRect();
+        const top = document.elementsFromPoint(paper.left + paper.width / 2, paper.top + 20)[0];
+        const overHeader = top === document.querySelector("[data-companion]");
+        style.remove();
+        return { layer: z("[data-companion]"), header: z("header"), skip: 60, overHeader };
+      });
+    const closed = await stack();
+    expect(closed.layer).toBeGreaterThan(closed.header);
+    expect(closed.layer).toBeLessThan(closed.skip);
+    expect(closed.overHeader).toBe(true);
+
+    if (viewportWidth(page) >= 1024) {
+      // A click on a nav item goes to the nav item, cat or no cat above it.
+      await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Contact", exact: true }).click();
+      await expect(page.locator("#contact")).toBeInViewport();
+    } else {
+      await page.getByRole("button", { name: "Open menu" }).click();
+      await expect(page.getByRole("navigation", { name: "Mobile" })).toBeVisible();
+      const open = await stack();
+      expect(open.layer).toBeLessThan(open.header);
+      expect(open.overHeader).toBe(false);
+      await page.keyboard.press("Escape");
+      expect((await stack()).layer).toBeGreaterThan(closed.header);
+    }
   });
 
   test("naps where it stops when left alone, and does not remember doing it", async ({ page }) => {
@@ -3876,7 +3922,7 @@ test.describe("cats (round 21)", () => {
     // Two cats still: Moon in the corner button, Mi on her visit.
     await expect(page.locator("[data-companion] svg[data-cat]")).toHaveCount(2);
     const [cat, drawing] = await page.evaluate(() =>
-      ["[data-cat-visit] svg", "[data-moon-off-duty] svg"].map((s) => {
+      ["[data-cat-visit] svg", "[data-moon-off-duty] [data-moon-art]"].map((s) => {
         const r = document.querySelector(s)!.getBoundingClientRect();
         return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
       }),
@@ -3908,8 +3954,17 @@ test.describe("cats (round 21)", () => {
         const toggle = document.querySelector('[aria-controls="companion-actions"]')!.getBoundingClientRect();
         const hit = (r: DOMRect) =>
           r.width > 0 && r.left < toggle.right && r.right > toggle.left && r.top < toggle.bottom && r.bottom > toggle.top;
+        // A focused region the size of a page (the Diary's book, round 23)
+        // cannot be avoided by a corner toggle, and a corner of it under the
+        // cats leaves it far from hidden (WCAG 2.4.11 asks only that focus is
+        // not entirely obscured), so only things smaller than a quarter of
+        // the screen are held to "nothing of it under the cats".
+        const small = (el: Element) => {
+          const r = el.getBoundingClientRect();
+          return r.width * r.height < (window.innerWidth * window.innerHeight) / 4;
+        };
         const candidates = only
-          ? [document.activeElement!].filter((el) => el !== document.body)
+          ? [document.activeElement!].filter((el) => el !== document.body && small(el))
           : Array.from(
               document.querySelectorAll("#about a[href], #about button, #about [tabindex]:not([tabindex='-1'])"),
             );
@@ -4081,12 +4136,12 @@ test.describe("cats (round 21)", () => {
     { width: 390, height: 844, selector: PRESSABLE, record: false, night: false },
     // Night: the lẩu and the moon move words, and the cats' corners with them.
     { width: 390, height: 844, selector: PRESSABLE, record: false, night: true },
-    // The Record's cards, rows and stamps (list items) as well, where the
+    // The Diary's cards, contents lines and stamps (list items) as well, where the
     // review saw cats resting on them.
     { width: 414, height: 896, selector: `${PRESSABLE}, #record li`, record: true, night: false },
     { width: 1280, height: 800, selector: `${PRESSABLE}, #record li`, record: true, night: false },
   ]) {
-    const what = size.record ? "the Record's cards, rows or stamps" : "a link or a button";
+    const what = size.record ? "the Diary's cards, contents or stamps" : "a link or a button";
     test(`a cat never covers ${what}, walking or stopped, at ${size.width}${size.night ? " at night" : ""}`, async ({ browser }) => {
       test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
       test.setTimeout(600_000);

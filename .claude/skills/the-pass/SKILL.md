@@ -68,7 +68,7 @@ Record each as a narrow exception with a reason; never "fix" it.
 | Hallmark 48/7a `#000`/`#fff` in `@media print` and in `mask-image` | A print reset and mask alpha, not painted colour |
 | Hallmark 48 literals in `icon.tsx` / `opengraph-image.tsx` | Rendered to images; CSS aliases don't exist there |
 | Hallmark 20 (no Hallmark stamp in CSS) | This is not a Hallmark build |
-| Impeccable `nested-cards` on `.record-page` | A notebook page holding taped-in entries; the depth is the object |
+| Impeccable `nested-cards` on `.diary-page` | A diary page holding taped-in entries and sticky notes; the depth is the object |
 
 Exceptions: `npx impeccable ignores add-value <rule> <value> --file <path>
 --reason "<why>"` for Impeccable; for Hallmark, list the gate here.

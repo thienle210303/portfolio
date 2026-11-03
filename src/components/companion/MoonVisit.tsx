@@ -47,7 +47,7 @@ export function MoonVisit({ onVisit }: { readonly onVisit: (visiting: boolean) =
     const place = () => {
       frame = 0;
       const box = host.getBoundingClientRect();
-      const art = host.querySelector("svg")?.getBoundingClientRect() ?? box;
+      const art = host.querySelector("[data-moon-art]")?.getBoundingClientRect() ?? box;
       // Left of the sleeper where the page leaves room, else right of the
       // drawing and its caption; level with the sleeper's bottom either way.
       const left = art.left >= CAT_W + 12;

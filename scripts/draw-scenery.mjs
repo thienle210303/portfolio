@@ -89,15 +89,155 @@ function ripples(x, y, w, n, color, seed) {
   }
   return `<g fill="none" stroke="${color}" stroke-width="1" stroke-linecap="round">${s}</g>`;
 }
-// Con trâu: a water buffalo, grazing, head low.
-function buffalo(x, y, sc, fill) {
-  return `<g transform="translate(${x} ${y}) scale(${sc})" fill="${fill}">`
-    + `<path d="M18 30C26 10 70 6 104 12C124 16 136 26 136 44C136 58 126 64 112 64L40 64C26 64 16 54 18 30Z"/>`
-    + `<path d="M30 60l-4 34h9l5-30M58 62l-1 32h9l2-31M100 62l2 32h9l1-33M120 58l5 34h9l-4-38"/>`
-    + `<path d="M136 34C146 40 150 56 146 70" fill="none" stroke="${fill}" stroke-width="3" stroke-linecap="round"/>`
-    + `<path d="M24 28C10 30 0 44 -4 58C-6 66 0 72 8 70C16 68 22 56 30 46Z"/>`
-    + `<path d="M14 30C2 18 -14 16 -26 22C-12 22 -2 28 4 36ZM22 26C26 12 40 6 54 8C42 12 34 20 30 30Z"/>`
+// ---- Con trâu (round 23) ----
+// Two one-colour masks painted by --scene-buffalo, both in a 250 × 104 box with
+// the ground at y 94 and the animal facing left. The body is a wash (group
+// opacity, so overlaps never darken) with its line over it, and the horns are
+// solid: they are what a water buffalo is recognised by, so they are the
+// darkest thing in the drawing. By day she is working, yoked to a plough with
+// the furrow turning behind her; at night she lies down, chin on the bank.
+const BUF_BOX = "0 0 250 104";
+const buffaloLine = (d, w = 1.5) => `<path d="${d}" stroke-width="${w}"/>`;
+// The crescent: from the poll it sweeps back over the neck and hooks up at the tip.
+// A horn is a thick crescent: out of the top of the skull it sweeps back and up
+// in a wide C and the tip curls in. Ridges are lines near the base, in the
+// body's own value so they stay quiet. The far horn shows its arc behind.
+const buffaloHorn = (x, y, s = 1) => {
+  const horn = `<path d="M0 4C14 14 40 12 54 -6C58 -12 58 -20 54 -26C52 -16 46 -8 38 -3C26 2 12 0 4 -8Q-4 -3 0 4Z" stroke-width="1" stroke-linejoin="round"/>`;
+  // a few ridges near the base, a gap cut through the solid by a lighter stroke is not possible
+  // in one colour, so none: the crescent stays clean.
+  return `<g transform="translate(${x} ${y}) rotate(-16) scale(${s})" fill="${K}" stroke="${K}"><g transform="translate(-6 -10)" opacity="0.5">${horn}</g>${horn}</g>`;
+};
+function buffaloPlow() {
+  const body = `<g fill="${K}" opacity="0.72">`
+    // a heavy barrel, a slight hump, a straight back to the hip, and a short deep head with a square muzzle
+    + `<path d="M92 33C80 34 70 38 62 42C56 42 46 44 38 48C33 50 30 54 30 60L30 70C30 75 34 77 40 76C48 75 54 72 58 68C66 68 74 70 82 70C90 71 100 72 112 72C130 74 150 72 164 68C172 66 177 60 177 52C177 44 168 38 152 36C130 34 108 31 92 33Z"/>`
+    // four straight legs, hooves splayed (two nearer, two behind)
+    + `<path d="M80 64L81 86L77 93L95 93L91 86L92 64Z"/>`
+    + `<path d="M100 66L101 86L98 93L112 93L110 86L111 66Z"/>`
+    + `<path d="M132 66L133 86L130 93L144 93L142 86L143 66Z"/>`
+    + `<path d="M150 62L151 86L147 93L165 93L161 86L165 62Z"/>`
+    // the ear, level out to the side just under the horn
+    + `<path d="M58 46C68 40 80 44 84 50C74 54 64 52 58 50Z"/></g>`;
+  const ink = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
+    + buffaloLine("M92 33C108 31 130 34 152 36C168 38 177 44 177 52C177 60 172 66 164 68", 1.7)
+    + buffaloLine("M164 68C150 72 130 74 112 72C100 72 90 71 82 70C74 70 66 68 58 68C54 72 48 75 40 76C34 77 30 75 30 70L30 60C30 54 33 50 38 48C46 44 56 42 62 42C70 38 80 34 92 33", 1.7)
+    // legs: straight sides, and the near pair set off from the far pair
+    + buffaloLine("M80 66L81 86L77 93M92 66L91 86L95 93")
+    + buffaloLine("M150 64L151 86L147 93M164 64L161 86L165 93")
+    + buffaloLine("M100 72L101 86L98 93M111 72L110 86L112 93", 1.1)
+    + buffaloLine("M132 72L133 86L130 93M143 72L142 86L144 93", 1.1)
+    // shoulder, the bony hip, two ribs
+    + buffaloLine("M96 40C102 48 102 58 96 66", 1)
+    + buffaloLine("M152 40C144 48 144 56 150 62", 1)
+    + buffaloLine("M118 50C122 56 122 64 118 71M132 50C136 56 136 64 132 72", 0.8)
+    // ear, eye, nostril and mouth
+    + buffaloLine("M58 46C68 40 80 44 84 50C74 54 64 52 58 50Z", 1.1)
+    + `<circle cx="45" cy="55" r="1.8" fill="${K}" stroke="none"/>`
+    + `<circle cx="34" cy="65" r="1.6" fill="${K}" stroke="none"/>`
+    + buffaloLine("M31 72Q36 74 41 73", 1.1)
+    // the thin tail and its tuft
+    + buffaloLine("M177 48C185 52 188 62 185 74", 1.7)
+    + `</g>`
+    + `<path d="M184 72C180 80 182 88 186 87C190 86 190 78 186 72Z" fill="${K}"/>`
+    + `<path d="M77 90h18v3h-18ZM98 90h14v3h-14ZM130 90h14v3h-14ZM147 90h18v3h-18Z" fill="${K}"/>`;
+  // The yoke sits on the shoulders with its two pegs and a cord under the neck;
+  // the trace runs back under the belly to the plough she drags.
+  const yoke = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
+    + `<path d="M102 36L120 33" stroke-width="4.6"/>`
+    + `<path d="M105 38L104 62M118 34L120 60" stroke-width="1.9"/>`
+    + `<path d="M104 62Q112 68 120 60" stroke-width="1.5"/>`
+    + `<path d="M120 60C146 82 174 82 204 76" stroke-width="1.2"/>`
+    // the plough: beam, handle, share, and the soil it turns
+    + `<path d="M204 76C210 82 214 88 215 93" stroke-width="2.6"/>`
+    + `<path d="M215 93C222 84 228 68 232 52" stroke-width="2.4"/>`
+    + `<path d="M227 52h13" stroke-width="2.4"/>`
+    + `<path d="M203 94h17l-2 -5Z" fill="${K}" stroke-width="1"/>`
+    + `<path d="M222 93q7 -5 14 0t14 0M226 98q7 -4 14 0t10 0" stroke-width="1.1"/>`
+    // mud about her feet
+    + `<path d="M62 97h14M104 98h18M150 97h16M180 98h12" stroke-width="1"/>`
     + `</g>`;
+  return body + ink + buffaloHorn(56, 41, 0.85) + yoke;
+}
+function buffaloSleep() {
+  const body = `<g fill="${K}" opacity="0.8">`
+    + `<path d="M98 54C114 46 140 48 160 52C178 55 192 66 194 78C195 88 190 92 180 93L92 93C84 93 80 88 80 80C80 68 86 60 98 54Z"/>`
+    // the same short, deep head, resting level on the bank
+    + `<path d="M88 58C74 58 60 62 50 67C42 70 40 74 40 80L40 88C40 93 44 94 50 94C62 94 76 92 86 86Z"/>`
+    + `<path d="M70 66C78 60 90 62 96 68C86 72 76 72 70 70Z"/></g>`;
+  const ink = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">`
+    + buffaloLine("M98 54C114 46 140 48 160 52C178 55 192 66 194 78C195 88 190 92 180 93", 1.7)
+    + buffaloLine("M88 58C74 58 60 62 50 67C42 70 40 74 40 80L40 88C40 93 44 94 50 94C62 94 76 92 86 86", 1.7)
+    + buffaloLine("M92 93C84 93 80 88 80 80", 1.2)
+    // the fore-leg folded under the chin, the haunch and hock behind
+    + buffaloLine("M86 86C76 84 64 86 54 90", 1.3)
+    + buffaloLine("M150 58C140 68 142 84 156 91", 1.1)
+    + buffaloLine("M164 60C172 68 172 82 164 90", 0.9)
+    // the closed eye, a nostril, the ear
+    + buffaloLine("M60 76q5 4 10 0", 1.7)
+    + `<circle cx="45" cy="82" r="1.6" fill="${K}" stroke="none"/>`
+    + buffaloLine("M70 66C78 60 90 62 96 68C86 72 76 72 70 70Z", 1.1)
+    // the tail curled on the bank
+    + buffaloLine("M194 74C204 78 206 88 198 93", 1.8)
+    + `</g>`
+    + `<path d="M199 92C192 89 188 93 186 93C190 96 197 96 199 92Z" fill="${K}"/>`;
+  const zs = `<g fill="none" stroke="${K}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">`
+    + `<path d="M20 56h12l-12 13h12"/><path d="M38 30h16l-16 18h16"/></g>`;
+  const mud = `<path d="M56 97h16M110 98h22M160 97h20" fill="none" stroke="${K}" stroke-width="1" stroke-linecap="round"/>`;
+  return body + ink + buffaloHorn(80, 61, 0.9) + zs + mud;
+}
+
+// ---- Moon in a võng (round 23) ----
+// Moon, the blue cat, in a Vietnamese hammock slung between two bamboo
+// stakes: her head on the rim, a paw and the tail hanging over. By day her
+// eyes are half open; at night they are shut and she snores. Art, not ink: the
+// cat is a colour (the blue cat), and the page swaps the file by theme
+// (`--art-offduty`), like the vignettes.
+const VONG_BOX = "0 0 150 84";
+function moonVong(night) {
+  const C = night
+    ? { fur: "#8FA3B3", shade: "#6B8092", line: "#1C2A30", ear: "#C99AA0", cord: "#A9A07F", band: "#D8CFB4", stripe: "#6C9C95", bam: "#4C6A55", bamLine: "#9DBE8E", iris: "#E4D48A", ground: "#5C7A74", z: "#E8EEDF" }
+    : { fur: "#8CA0B0", shade: "#6F8393", line: "#2E3A44", ear: "#D9A7A7", cord: "#A88A52", band: "#F0E7CE", stripe: "#4F8C86", bam: "#B4C8A8", bamLine: "#3F5E35", iris: "#D8C468", ground: "#8FA39C", z: "#5B6B7E" };
+  const q = (a, c, b, t) => (1 - t) * (1 - t) * a + 2 * t * (1 - t) * c + t * t * b;
+  const topY = (t) => q(26, 84, 26, t), botY = (t) => q(30, 98, 30, t), xAt = (t) => 14 + 122 * t;
+  // two bamboo stakes, each with a few nodes and a short leaf
+  const stake = (x, dir) => `<path d="M${x - 3} 80L${x - 2.6} 14L${x + 3.4} 12L${x + 3} 80Z" fill="${C.bam}" stroke="${C.bamLine}" stroke-width="1.1" stroke-linejoin="round"/>`
+    + [30, 50, 68].map((y) => `<path d="M${x - 3.6} ${y}Q${x} ${y - 2} ${x + 3.8} ${y}" fill="none" stroke="${C.bamLine}" stroke-width="1.5" stroke-linecap="round"/>`).join("")
+    + `<path d="M${x + 0.2} 13Q${x + dir * 8} 4 ${x + dir * 16} 8Q${x + dir * 8} 12 ${x + 0.2} 13Z" fill="${C.bam}" stroke="${C.bamLine}" stroke-width="0.9" stroke-linejoin="round"/>`;
+  // the mesh across the band, both ways, then its edges and the coloured stripe
+  let mesh = "";
+  for (let i = 0; i < 20; i++) {
+    const t = i / 20, u = Math.min(1, t + 0.05);
+    mesh += `M${f(xAt(t))} ${f(topY(t))}L${f(xAt(u))} ${f(botY(u))}M${f(xAt(u))} ${f(topY(u))}L${f(xAt(t))} ${f(botY(t))}`;
+  }
+  const band = `<path d="M14 26Q75 84 136 26L136 30Q75 98 14 30Z" fill="${C.band}"/>`
+    + `<path d="M14 28Q75 91 136 28" fill="none" stroke="${C.stripe}" stroke-width="2.2"/>`
+    + `<path d="${mesh}" fill="none" stroke="${C.cord}" stroke-width="0.6" stroke-opacity="0.85"/>`
+    + `<path d="M14 26Q75 84 136 26M14 30Q75 98 136 30" fill="none" stroke="${C.cord}" stroke-width="1.3" stroke-linecap="round"/>`
+    // the lashing where each end is tied to its stake
+    + `<path d="M10.5 24h9M10.5 27h9M10.5 30h9M130.5 24h9M130.5 27h9M130.5 30h9" stroke="${C.cord}" stroke-width="1.4" stroke-linecap="round"/>`;
+  const fur = `fill="${C.fur}" stroke="${C.line}" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"`;
+  // her body, behind the band: only the back of it shows above the rim
+  const body = `<clipPath id="vongTop"><path d="M0 0H150V28L136 28Q75 91 14 28Z"/></clipPath><g clip-path="url(#vongTop)">`
+    + `<path d="M38 48C40 36 56 30 74 31C92 32 106 38 108 52L108 70L38 70Z" ${fur}/>`
+    + `<path d="M60 34C74 32 92 34 102 40" fill="none" stroke="${C.shade}" stroke-width="1" stroke-linecap="round"/>`
+    + `<path d="M92 40C100 44 102 54 98 62" fill="none" stroke="${C.shade}" stroke-width="1" stroke-linecap="round"/></g>`;
+  // her head on the rim, left; ears, then the face
+  const eyes = night
+    ? `<path d="M27.4 35q3 3.2 6 0M36 35q3 3.2 6 0" fill="none" stroke="${C.line}" stroke-width="1.4" stroke-linecap="round"/>`
+    : `<path d="M27.4 35h6q-3 4.2 -6 0ZM36 35h6q-3 4.2 -6 0Z" fill="${C.iris}" stroke="${C.line}" stroke-width="1" stroke-linejoin="round"/><path d="M30.4 35.4v2.6M39 35.4v2.6" stroke="${C.line}" stroke-width="1.1" stroke-linecap="round"/>`;
+  const head = `<path d="M22 38L23 23L32 29ZM44 38L45 23L36 29Z" ${fur}/>`
+    + `<path d="M24.6 32L25 27.5L28.6 30ZM42.4 32L42 27.5L38.4 30Z" fill="${C.ear}" stroke="none"/>`
+    + `<ellipse cx="34.5" cy="36" rx="13.5" ry="10" ${fur}/>`
+    + eyes
+    + `<path d="M33 40.4l1.5 1.4l1.5 -1.4Z" fill="${C.ear}" stroke="${C.line}" stroke-width="0.8" stroke-linejoin="round"/>`
+    + `<path d="M34.5 41.8q-1.4 2 -3.4 1.6M34.5 41.8q1.4 2 3.4 1.6M26 40l-9 -1.4M26 42.2l-8 2M43 40l9 -1.4M43 42.2l8 2" fill="none" stroke="${C.line}" stroke-width="0.7" stroke-linecap="round"/>`;
+  // a forepaw hanging over the front of the band, and the tail down the right
+  const paw = `<path d="M48 49C47 56 47 62 48.5 66C50 69.500 54 69.500 55.500 66C57 62 56.500 56 56 50Z" ${fur}/><path d="M51 67.500v-3M54 67.500v-3" stroke="${C.line}" stroke-width="0.7" stroke-linecap="round"/>`;
+  const tail = `<path d="M104 44C116 46 122 54 120 66" fill="none" stroke="${C.line}" stroke-width="5.8" stroke-linecap="round"/><path d="M104 44C116 46 122 54 120 66" fill="none" stroke="${C.fur}" stroke-width="3.8" stroke-linecap="round"/>`;
+  const ground = `<path d="M2 81h24M44 82h66M118 81h30" fill="none" stroke="${C.ground}" stroke-width="1.2" stroke-linecap="round"/>`;
+  const zz = night ? `<g fill="none" stroke="${C.z}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M56 18h8l-8 9h8"/><path d="M69 6h11l-11 12h11"/></g>` : "";
+  return ground + stake(12, 1) + stake(138, -1) + body + head + band + paw + tail + zz;
 }
 // The poles run on below the board's ground (y 900): the hero is top-anchored
 // to the clothesline and can be taller than the board, so the element clips
@@ -243,6 +383,79 @@ const clothespin = `<rect x="0.4" y="0.4" width="8" height="22" rx="2" fill="#C4
 // The DoorDash tag's laptop.
 const laptop = (color) => `<g fill="none" stroke="${color}" stroke-width="1.2"><rect x="44" y="30" width="62" height="40" rx="3"/><path d="M34 76H116M58 44h14M58 54h26M90 44l6 5-6 5"/></g>`;
 
+// Round 23: the Taylors tag is a Venus flytrap (it grows wild only in the
+// Carolinas) and the USC tag an open book. Line work like the tags beside them.
+// One trap, hinged at (0, 0) and pointing along -y: two lobes, each a half-oval
+// whose free rim carries the teeth. Open, the lobes part like a mouth; shut,
+// they lie together and the teeth lock along the seam. A wash gives each lobe
+// body, the rim and its teeth are the line.
+function flytrapTrap(x, y, angle, len, open, color) {
+  const w = len * 0.36;
+  const P = (side) => [[0, 0], [side * w * 1.3, -len * 0.08], [side * w * 1.3, -len * 0.92], [0, -len]];
+  const at = (pts, t) => {
+    const u = 1 - t;
+    return [0, 1].map((i) => u * u * u * pts[0][i] + 3 * u * u * t * pts[1][i] + 3 * u * t * t * pts[2][i] + t * t * t * pts[3][i]);
+  };
+  const lobe = (side, spread) => {
+    const pts = P(side);
+    const rim = `M0 0C${f(pts[1][0])} ${f(pts[1][1])} ${f(pts[2][0])} ${f(pts[2][1])} 0 ${f(-len)}`;
+    let teeth = "";
+    for (let k = 1; k <= 9; k++) {
+      const [bx, by] = at(pts, k / 10);
+      // out along the rim's normal, leaning to the tip
+      teeth += `M${f(bx)} ${f(by)}l${f(side * 2.7)} ${f(-1.4)}`;
+    }
+    return `<g transform="rotate(${side * spread})"><path d="${rim}Z" fill="${color}" fill-opacity="0.14" stroke="none"/><path d="${rim}" stroke-width="1.1"/><path d="${teeth}" stroke-width="0.8"/>`
+      // the veins on the lobe, running out from the midrib
+      + `<path d="M0 ${f(-len * 0.25)}Q${f(side * w * 0.5)} ${f(-len * 0.28)} ${f(side * w * 0.8)} ${f(-len * 0.42)}M0 ${f(-len * 0.5)}Q${f(side * w * 0.5)} ${f(-len * 0.53)} ${f(side * w * 0.85)} ${f(-len * 0.66)}" stroke-width="0.5"/></g>`;
+  };
+  const spread = open ? 34 : 3;
+  let g = lobe(-1, spread) + lobe(1, spread);
+  // the midrib, and the trigger hairs standing up inside an open trap
+  g += `<path d="M0 0L0 ${f(-len * 0.9)}" stroke-width="0.9"/>`;
+  if (open) g += `<path d="M${f(-len * 0.18)} ${f(-len * 0.5)}l-1.2 -3M${f(len * 0.18)} ${f(-len * 0.45)}l1.2 -3M0 ${f(-len * 0.62)}v-3" stroke-width="0.7"/>`;
+  return `<g transform="translate(${x} ${y}) rotate(${angle})">${g}</g>`;
+}
+function flytrap(color) {
+  // Each leaf: a winged stalk from the rosette's heart to its trap's hinge.
+  const heart = [75, 86];
+  const leaf = (hx, hy, angle, len, open, bow) => {
+    const mx = (heart[0] + hx) / 2 + bow, my = (heart[1] + hy) / 2;
+    const stalk = `<path d="M${heart[0] - 2} ${heart[1]}Q${f(mx - 2.5)} ${f(my)} ${hx - 1.5} ${hy}M${heart[0] + 2} ${heart[1]}Q${f(mx + 2.5)} ${f(my)} ${hx + 1.5} ${hy}"/>`;
+    return stalk + flytrapTrap(hx, hy, angle, len, open, color);
+  };
+  let s = leaf(40, 58, -36, 30, true, -6) + leaf(112, 58, 30, 27, false, 6) + leaf(56, 70, -62, 18, false, -2) + leaf(95, 70, 58, 17, true, 2);
+  // the flower stalk, thin and tall, and its cluster of small white flowers
+  s += `<path d="M75 86C74 60 77 36 75 22" stroke-width="0.9"/>`;
+  for (const [fx, fy] of [[75, 10], [67, 15], [83, 15], [71, 21], [79, 21]]) {
+    s += `<circle cx="${fx}" cy="${fy}" r="3.2" stroke-width="0.8"/><circle cx="${fx}" cy="${fy}" r="0.9" fill="${color}" stroke="none"/>`;
+  }
+  s += `<path d="M75 22L71 21M75 22L79 21M75 22L67 15M75 22L83 15M75 22L75 10" stroke-width="0.6"/>`;
+  return `<g fill="none" stroke="${color}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">${s}</g>`;
+}
+function openBook(color) {
+  let s = "";
+  // the cover, wider than the pages, and the spine's dip
+  s += `<path d="M14 66C40 60 62 64 75 74C88 64 110 60 136 66L136 72C110 66 88 70 75 80C62 70 40 66 14 72Z"/>`;
+  s += `<path d="M14 66v6M136 66v6" stroke-width="1.2"/>`;
+  // pages: each side is a stack, its top edge fanned over the one below
+  for (let k = 0; k < 5; k++) {
+    const dy = k * 1.9;
+    s += `<path d="M75 ${f(70 - dy)}C62 ${f(58 - dy)} 38 ${f(56 - dy)} 20 ${f(60 - dy)}M75 ${f(70 - dy)}C88 ${f(58 - dy)} 112 ${f(56 - dy)} 130 ${f(60 - dy)}" stroke-width="${k === 0 ? 1.2 : 0.8}"/>`;
+  }
+  // the two open pages, fanned up from the gutter, and lines of text on them
+  s += `<path d="M75 60C62 46 38 42 20 46L20 56M75 60C88 46 112 42 130 46L130 56" stroke-width="1.1"/>`;
+  s += `<path d="M75 60L75 30" stroke-width="0.9"/>`;
+  s += `<path d="M75 30C62 18 40 16 24 22L22 46M75 30C88 18 110 16 126 22L128 46" stroke-width="1.1"/>`;
+  for (let k = 0; k < 4; k++) {
+    const y = 26 + k * 5.4;
+    s += `<path d="M30 ${f(y + 1)}C42 ${f(y - 2)} 56 ${f(y + 1)} 69 ${f(y + 7)}M81 ${f(y + 7)}C94 ${f(y + 1)} 108 ${f(y - 2)} 120 ${f(y + 1)}" stroke-width="0.6"/>`;
+  }
+  // the ribbon: out of the gutter, over the foot of the page, ends cut in a V
+  s += `<path d="M78 42C80 54 82 70 80 82L84 78L88 83C87 72 85 58 82 42Z" stroke-width="1"/>`;
+  return `<g fill="none" stroke="${color}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">${s}</g>`;
+}
+
 // Nón lá: a conical straw hat, hung by its chin strap.
 function nonLa(x, y, sc) {
   let straw = "";
@@ -270,6 +483,45 @@ const STILL = {
     + `<path d="M-34 -24h-6M34 -24h6" stroke="#6E777C" stroke-width="3" stroke-linecap="round"/><rect x="-22" y="-2" width="44" height="8" rx="2" fill="#3B433E"/><path d="M-14 6l-3 6M14 6l3 6" stroke="#3B433E" stroke-width="2"/>`
     + `<ellipse cx="0" cy="-2" rx="16" ry="2.4" fill="#FF8A3D" opacity="0.9"/></g>`,
 };
+
+// Round 23: the hero's two stools hold a meal now, so the seat is a long
+// low one (a plastic bench stool) with room for a drink and a plate side by side.
+const STOOL_BOX = "406 774 128 110";
+function stoolLong(x, y, col) {
+  return `<g transform="translate(${x} ${y})">`
+    + `<path d="M-50 0h100l-3 9h-94Z" fill="${col}"/><path d="M-42 9l-6 30h8l4 -22h72l4 22h8l-6 -30Z" fill="${col}"/>`
+    + `<path d="M-34 17h68" stroke="rgba(0,0,0,0.18)" stroke-width="3"/><path d="M-48 1h96" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/></g>`;
+}
+const scaled = (x, y, sc, body) => `<g transform="translate(${x} ${y}) scale(${sc})">${body}</g>`;
+// Cơm tấm: broken rice, a grilled pork chop, a fried egg, and cucumber and tomato.
+function comTam(x, y) {
+  const r = rng(23);
+  let grains = "";
+  for (let i = 0; i < 14; i++) {
+    const gx = 0 + r() * 20, gy = -4 - r() * 11;
+    grains += `M${f(gx)} ${f(gy)}l${f(1.6 + r())} ${f((r() - 0.5) * 1.4)}`;
+  }
+  const slice = (cx, cy, rim, flesh, edge) => `<ellipse cx="${cx}" cy="${cy}" rx="5" ry="2.4" fill="${rim}" stroke="${edge}" stroke-width="0.8"/><ellipse cx="${cx}" cy="${cy}" rx="3" ry="1.3" fill="${flesh}"/>`;
+  return `<g transform="translate(${x} ${y})">`
+    + `<path d="M-9 2.5h18l-2 3h-14Z" fill="#E7E1D3" stroke="#8C949A" stroke-width="0.8"/>`
+    + `<ellipse cx="0" cy="-1" rx="25" ry="6.5" fill="#F7F3EA" stroke="#8C949A" stroke-width="1"/><ellipse cx="0" cy="-1.6" rx="19" ry="4.2" fill="#EFEAE0"/>`
+    + slice(-15, -8, "#8DB36A", "#D6E6BA", "#4F7A3A") + slice(-8, -11, "#8DB36A", "#D6E6BA", "#4F7A3A")
+    + slice(20, -9, "#E0584A", "#F4B1A6", "#A02F25") + slice(14, -12, "#E0584A", "#F4B1A6", "#A02F25")
+    + `<path d="M-8 -3C-7 -17 4 -20 10 -19C17 -17 20 -9 19 -3Z" fill="#FFFDF6" stroke="#A9A190" stroke-width="0.9"/>`
+    + `<path d="${grains}" fill="none" stroke="#C9C2AE" stroke-width="0.8" stroke-linecap="round"/>`
+    + `<g transform="translate(-14 0)"><path d="M-9 -1C-11 -6 -6 -9 -1 -7C4 -9 8 -5 6 -1C4 2 -2 3 -6 2C-8 2 -9 1 -9 -1Z" fill="#FFFDF4" stroke="#C9C2B0" stroke-width="0.9"/><circle cx="-1" cy="-4" r="3.2" fill="#F0B429" stroke="#C98A12" stroke-width="0.6"/></g>`
+    + `<g transform="translate(8 0) rotate(-8)"><rect x="-11" y="-5" width="22" height="10" rx="3.5" fill="#9A5A2E" stroke="#5E3318" stroke-width="1"/><path d="M-6 -4.5l2 9M0 -5l2 10M6 -4.5l2 9" stroke="#4A2812" stroke-width="1.2" stroke-linecap="round"/><path d="M-11 -1h-3" stroke="#E8DCC2" stroke-width="2.6" stroke-linecap="round"/></g>`
+    + `</g>`;
+}
+// Bia: a bottle with its label, and a glass of it over ice, foam on top.
+function biaPair(x, y) {
+  const bottle = `<path d="M-6 0v-24q0 -5 2.5 -8v-12h7v12q2.5 3 2.5 8v24Z" fill="#7A4A1F" stroke="#3A2410" stroke-width="1"/><rect x="-6" y="-22" width="12" height="11" fill="#F3E9C9"/><path d="M-6 -17h12" stroke="#C8352B" stroke-width="1.5"/><rect x="-3.5" y="-47" width="7" height="3" rx="1" fill="#E1A93A"/><path d="M-3 -40v14" stroke="#F0C27A" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/>`;
+  const glass = `<g transform="translate(17 0)"><path d="M-8 0L-10 -27H10L8 0Z" fill="#E8B04A" fill-opacity="0.92" stroke="#F3E3B5" stroke-width="1"/>`
+    + `<path d="M-10.5 -27h21v-3c-4 -4 -8 1 -11 -2c-3 3 -7 -2 -10 2Z" fill="#FFFFFF"/>`
+    + `<g fill="#EAF6F8" fill-opacity="0.85" stroke="#9FC9D2" stroke-width="0.7"><rect x="-6" y="-24" width="6" height="6" rx="1" transform="rotate(14 -3 -21)"/><rect x="1" y="-20" width="6" height="6" rx="1" transform="rotate(-12 4 -17)"/><rect x="-5" y="-13" width="5.5" height="5.5" rx="1" transform="rotate(-8 -2 -10)"/></g>`
+    + `<path d="M-6 -4L-7 -10" stroke="#FFF1C9" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/></g>`;
+  return `<g transform="translate(${x} ${y})">${bottle}${glass}</g>`;
+}
 
 /**
  * Sky coordinates the hero's words cover at 1440 (the sky is drawn at 1440 and
@@ -641,21 +893,254 @@ const RECORD_STILL = {
     + `<path d="M-11 -44h22l-2 44h-18Z" fill="#F4EFE6" fill-opacity="0.4" stroke="#F3E3B5" stroke-width="1"/><path d="M-10.6 -12h21.2l-.6 12h-20Z" fill="#7FA36F"/><path d="M-10.8 -24h21.6l-.6 12h-20.4Z" fill="#E3C46A"/><path d="M-11 -36h22l-.4 12h-21.2Z" fill="#F3EEE2"/>`
     + `<path d="M4 -58L-2 -20" stroke="#B9AE95" stroke-width="2.4" stroke-linecap="round"/></g>`,
 };
+// Round 23: the Diary. Each certificate's stamp is a drawing of what it was
+// about, never the issuer's logo (a bank's columns, a card with a key, code
+// brackets and a gear, a cart), and three small pictures for the pages that
+// have no number to chart (what I taught myself, the degree, a podium).
+// Plain line work in one colour, like the rest of the ink files.
+const line = (body, sw = 1.2) =>
+  `<g fill="none" stroke="${K}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</g>`;
+function gear(cx, cy, teeth, R, r, hole) {
+  let d = "";
+  for (let i = 0; i < teeth; i++) {
+    const a = (i * 2 * Math.PI) / teeth;
+    for (const [da, rad] of [[-0.3, r], [-0.17, R], [0.17, R], [0.3, r]]) {
+      d += (d ? "L" : "M") + f(cx + Math.cos(a + da) * rad) + " " + f(cy + Math.sin(a + da) * rad);
+    }
+  }
+  return `<path d="${d}Z"/><circle cx="${cx}" cy="${cy}" r="${hole}"/>`;
+}
+const STAMP_ART = {
+  // JPMorgan: a bank's façade, pediment over four columns on steps.
+  bank: () =>
+    line(
+      `<path d="M20 13L46 3L72 13Z"/><circle cx="46" cy="9.5" r="1.7"/><path d="M22 16.5H70"/>`
+        + [27, 39, 51, 63].map((x) => `<rect x="${x - 3}" y="19" width="6" height="12"/>`).join("")
+        + `<path d="M18 33.5H74M14 37H78"/>`,
+    ),
+  // Visa: a card with a stripe and digits, and the key to its token.
+  card: () =>
+    line(
+      `<rect x="5" y="6" width="52" height="30" rx="4"/><path d="M12 28h8M24 28h8M36 28h8"/>`
+        + `<circle cx="68" cy="27" r="6"/><circle cx="68" cy="27" r="2"/><path d="M74 27H88M81 27v5M86 27v4"/>`,
+    )
+    + `<rect x="5" y="12" width="52" height="6" fill="${K}"/>`,
+  // HKUST: code in its brackets around a gear.
+  code: () => line(`<path d="M30 8L14 20L30 32M62 8L78 20L62 32"/>${gear(46, 20, 8, 9.5, 7, 3)}`),
+  // Walmart: a shopping cart.
+  cart: () =>
+    line(
+      `<path d="M5 6H12L21 28H62"/><path d="M15 12H74L68 25H21Z"/><path d="M17.5 18.5H71"/>`
+        + [28, 41, 54, 66].map((x) => `<path d="M${x} 12V25"/>`).join("")
+        + `<circle cx="30" cy="33.5" r="3"/><circle cx="58" cy="33.5" r="3"/>`,
+    ),
+};
+const DIARY_ART = {
+  // Plants, a planted aquarium, trading, and money with a sprout on it.
+  selftaught: () => {
+    const plant = `<g transform="translate(33 36)">`
+      + line(`<path d="M-12 8H12L9 28H-9Z"/><path d="M-14 8H14"/>`) + fern(0, 8, 36, -98, 3, K, 9) + fern(0, 8, 26, -58, 5, K, 8) + `</g>`;
+    const tank = `<g transform="translate(97 36)">`
+      + line(
+        `<path d="M-22 -14H22V26H-22Z"/><path d="M-22 -6q5.5 -3 11 0t11 0t11 0t11 0"/>`
+          + [-18, -12, -6, 0, 6, 12, 18].map((x) => `<circle cx="${x}" cy="22.5" r="1"/>`).join("")
+          + `<path d="M-14 23q-5 -11 1 -22M-9 23q4 -10 -1 -16"/><path d="M-13 12q-5 -2 -6 -6M-12 6q5 -1 6 -5"/>`
+          + `<ellipse cx="5" cy="10" rx="7" ry="4"/><path d="M-2 10L-8 5V15Z"/><circle cx="9" cy="9" r="0.9"/>`
+          + `<circle cx="14" cy="1" r="1.3"/><circle cx="16" cy="-4" r="1"/>`,
+      )
+      + `</g>`;
+    const candles = `<g transform="translate(33 106)">`
+      + line(
+        `<path d="M-22 -26V26H24"/>`
+          + `<rect x="-14" y="-4" width="4" height="12"/><path d="M-12 -10V14"/>`
+          + `<rect x="-4" y="-14" width="4" height="14"/><path d="M-2 -20V4"/>`
+          + `<rect x="6" y="-18" width="4" height="12"/><path d="M8 -24V-2"/>`,
+      )
+      + `<path d="M-18 14L-6 2L6 -10L20 -22" fill="none" stroke="${K}" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2 3"/></g>`;
+    const coin = (y) => `<path d="M-14 ${y}v4a14 4.5 0 0 0 28 0v-4"/><ellipse cx="0" cy="${y}" rx="14" ry="4.5"/>`;
+    const money = `<g transform="translate(97 106)">`
+      + line(coin(20) + coin(13) + coin(6) + `<path d="M0 1V-14M0 -8q-8 -2 -10 -10q8 0 10 10M0 -13q8 -2 10 -10q-8 0 -10 10"/>`)
+      + `</g>`;
+    return plant + tank + candles + money;
+  },
+  // A mortarboard with its tassel.
+  cap: () =>
+    line(
+      `<path d="M60 14L108 33L60 52L12 33Z"/><path d="M32 43V58Q60 72 88 58V43"/><circle cx="60" cy="33" r="2"/>`
+        + `<path d="M60 33L100 36V58"/><path d="M100 58L97 68H103Z"/>`,
+    ),
+  // Second place: the lower step with its medal, the winner's with a cup.
+  podium: () =>
+    line(
+      `<path d="M10 44H50V72H10Z"/><path d="M50 30H90V72H50Z"/><path d="M90 52H130V72H90Z"/><path d="M4 72H136"/>`
+        + `<path d="M24 12L30 24L36 12"/><circle cx="30" cy="31" r="6"/><circle cx="30" cy="31" r="2.5"/>`
+        + `<path d="M62 12H78V20Q78 28 70 28Q62 28 62 20Z"/><path d="M62 14Q55 14 56 20Q57 24 62 23M78 14Q85 14 84 20Q83 24 78 23"/>`,
+    ),
+};
 function recordFiles() {
-  // The stamps' drawings are the board's `stampArt(92, 40)`; the palmetto (not
-  // on the board, which had three stamps) is the hero's, scaled into the box.
-  const W = 92, H = 40, STAMP_BOX = `0 0 ${W} ${H}`;
+  const STAMP_BOX = "0 0 92 40";
   return {
     "pressed-lotus": svg("40 10 136 170", pressedLotus(100, 80, 0.9)),
     "record-morning": svg("134 760 36 66", RECORD_STILL.suaDa(150, 822)),
     "record-evening": svg("134 760 36 66", RECORD_STILL.che(150, 822)),
-    "stamp-rice": svg(STAMP_BOX, rice(W / 2 - 22, H, 3, 22, 9, K, H * 0.55, H * 0.3)),
-    "stamp-pine": svg(STAMP_BOX, pine(W / 2, H, H * 0.95, K)),
-    "stamp-fern": svg(STAMP_BOX, fern(W / 2 + 8, H + 2, H * 0.95, -98, 17, K, 12)),
-    "stamp-palmetto": svg(STAMP_BOX, `<g transform="translate(12.5 0) scale(0.45)">${palmetto(75, 88, 48, K)}</g>`),
+    "stamp-bank": svg(STAMP_BOX, STAMP_ART.bank()),
+    "stamp-card": svg(STAMP_BOX, STAMP_ART.card()),
+    "stamp-code": svg(STAMP_BOX, STAMP_ART.code()),
+    "stamp-cart": svg(STAMP_BOX, STAMP_ART.cart()),
+    "diary-selftaught": svg("0 0 130 142", DIARY_ART.selftaught()),
+    "diary-cap": svg("0 0 120 80", DIARY_ART.cap()),
+    "diary-podium": svg("0 0 140 80", DIARY_ART.podium()),
   };
 }
 // ---- end Record drawings ----
+
+// ---- Weather drawings (round 23) ----
+// "Watch it grow" plays a different weather over the oak for each year
+// (src/lib/origin-story.ts, `weatherFor`); these are the shapes CSS cannot make
+// out of gradients. All one-colour masks, painted by an alias. A hole (a
+// window, a light, a midrib) is an evenodd subpath, so the sky shows through.
+function weatherFiles() {
+  const circle = (cx, cy, r) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0Z`;
+  // An airliner, nose right: fuselage with a row of windows, two swept wings,
+  // a fin and an engine.
+  let windows = "";
+  for (let x = 96; x <= 156; x += 10) windows += circle(x, 31, 2.4);
+  const plane = `<path fill-rule="evenodd" fill="${K}" d="M6 30C6 24 30 22 70 22L140 22C160 22 176 28 176 32C176 37 160 42 140 42L40 42C18 42 6 38 6 30Z${windows}"/>`
+    + `<path fill="${K}" d="M12 26L4 4h18l26 20Z"/>`
+    + `<path fill="${K}" d="M96 38L64 62h20l44-24Z"/>`
+    + `<path fill="${K}" d="M100 24L78 8h14l32 16Z"/>`
+    + `<ellipse fill="${K}" cx="94" cy="49" rx="9" ry="4"/>`;
+  // A flying saucer: a glass dome with a little pilot, a disc with a row of
+  // lights, three legs.
+  let lights = "";
+  for (const x of [24, 44, 65, 86, 106]) lights += circle(x, 46, 3.2);
+  const ufo = `<path fill-rule="evenodd" fill="${K}" d="M38 34C38 6 92 6 92 34ZM46 34C46 14 84 14 84 34Z"/>`
+    + `<path fill="${K}" d="${circle(65, 26, 5.4)}M60 32c0-3 10-3 10 0Z"/><path fill="none" stroke="${K}" stroke-width="1.6" stroke-linecap="round" d="M62 21l-3-5M68 21l3-5"/>`
+    + `<path fill-rule="evenodd" fill="${K}" d="M4 44C4 34 30 32 65 32C100 32 126 34 126 44C126 54 100 58 65 58C30 58 4 54 4 44Z${lights}"/>`
+    + `<path fill="none" stroke="${K}" stroke-width="3" stroke-linecap="round" d="M40 56l-6 12M90 56l6 12M65 58v10"/>`;
+  // An oak leaf: four rounded lobes a side, a stem, the midrib a hole.
+  const lobes = [[50, 18], [38, 21], [26, 18], [14, 11]];
+  let outline = "M22 63V56";
+  for (const [y, w] of lobes) outline += `Q${22 + w * 0.6} ${y + 8} ${22 + w} ${y}Q${22 + w * 0.6} ${y - 7} 25 ${y - 6}`;
+  outline += "L22 2";
+  for (const [y, w] of [...lobes].reverse()) outline += `L19 ${y - 6}Q${22 - w * 0.6} ${y - 7} ${22 - w} ${y}Q${22 - w * 0.6} ${y + 8} 22 ${y + 6}`;
+  const leaf = `<path fill-rule="evenodd" fill="${K}" d="${outline}ZM21.2 12h1.6v42h-1.6Z"/>`;
+  // A cloud, drawn as a hand would: the outline of heaped puffs on a flat base,
+  // traced twice with a wobble (a line, and a wash inside it), and a few curls
+  // inside. Two files, so the page can paint a pale wash and a firmer line.
+  const puffs = [[34, 70, 20], [62, 52, 26], [102, 40, 32], [146, 50, 26], [178, 64, 22], [196, 76, 13]];
+  const BASE = 90, C0 = [110, 72];
+  const trace = (seed, wobble) => {
+    const cr = rng(seed);
+    const pts = [];
+    for (let a = 0; a < 360; a += 4) {
+      const dx = Math.cos((a * Math.PI) / 180), dy = Math.sin((a * Math.PI) / 180);
+      let far = 0;
+      for (const [cx, cy, r] of puffs) {
+        const b = dx * (cx - C0[0]) + dy * (cy - C0[1]);
+        const c = (cx - C0[0]) ** 2 + (cy - C0[1]) ** 2 - r * r;
+        const disc = b * b - c;
+        if (disc >= 0) far = Math.max(far, b + Math.sqrt(disc));
+      }
+      if (far === 0) continue;
+      pts.push([f(C0[0] + dx * far + (cr() - 0.5) * wobble), f(Math.min(BASE, C0[1] + dy * far) + (cr() - 0.5) * wobble)]);
+    }
+    return "M" + pts.map((q) => q.join(" ")).join("L") + "Z";
+  };
+  const curls = puffs.slice(0, 4).map(([cx, cy, r]) => `M${f(cx - r * 0.45)} ${f(cy + r * 0.35)}A${f(r * 0.6)} ${f(r * 0.6)} 0 0 1 ${f(cx + r * 0.15)} ${f(cy + r * 0.05)}`).join("");
+  const cloud = `<path fill="${K}" d="${trace(41, 0.4)}"/>`;
+  const cloudLine = `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="2.2" d="${trace(41, 0.4)}"/><path stroke-width="1.1" d="${trace(77, 2.2)}"/><path stroke-width="1.2" d="${curls}"/></g>`;
+  const bolt = `<path fill="${K}" d="M26 2L6 58H20L10 118L40 40H25L38 2Z"/>`;
+  // Two seamless tiles the CSS scrolls down a mask: slanted rain streaks and
+  // snowflakes (dots, and now and then a six-armed flake). Seeded, so the draw
+  // is deterministic. Nothing touches a tile's edge, so it wraps cleanly.
+  const rr = rng(23);
+  let streaks = "";
+  for (let i = 0; i < 34; i++) {
+    const x = 14 + rr() * 172, y = 12 + rr() * 150, len = 12 + rr() * 14;
+    streaks += `M${f(x)} ${f(y)}l${f(-len * 0.22)} ${f(len)}`;
+  }
+  const rain = `<path fill="none" stroke="${K}" stroke-width="1.6" stroke-linecap="round" d="${streaks}"/>`;
+  const sr = rng(7);
+  let dots = "", stars = "";
+  for (let i = 0; i < 30; i++) dots += circle(f(12 + sr() * 216), f(12 + sr() * 216), f(1.4 + sr() * 1.9));
+  for (let i = 0; i < 6; i++) {
+    const x = 20 + sr() * 200, y = 20 + sr() * 200;
+    for (const a of [0, 60, 120]) {
+      const dx = Math.cos((a * Math.PI) / 180) * 5.5, dy = Math.sin((a * Math.PI) / 180) * 5.5;
+      stars += `M${f(x - dx)} ${f(y - dy)}L${f(x + dx)} ${f(y + dy)}`;
+    }
+  }
+  const snow = `<path fill="${K}" d="${dots}"/><path fill="none" stroke="${K}" stroke-width="1.1" stroke-linecap="round" d="${stars}"/>`;
+  return {
+    rain: svg("0 0 200 200", rain),
+    snow: svg("0 0 240 240", snow),
+    plane: svg("0 0 180 64", plane),
+    ufo: svg("0 0 130 70", ufo),
+    leaf: svg("0 0 44 64", leaf),
+    cloud: svg("0 0 220 100", cloud),
+    "cloud-line": svg("0 0 220 100", cloudLine),
+    bolt: svg("0 0 44 120", bolt),
+  };
+}
+// ---- end Weather drawings ----
+
+// ---- Header drawings (round 23, builder E) ----
+// The paper strip's torn lower edge (a tile, so the strip can be any width),
+// the ink swash drawn under the current section, and the sun and crescent moon
+// that are the theme switch. All one-colour masks painted by an alias.
+function navTorn() {
+  // Black above a ragged line 3-9px down a 240px tile; the line starts and ends
+  // at the same height so the tile repeats without a seam.
+  const r = rng(23), W = 240, H = 10, pts = [];
+  for (let x = 0; x <= W; x += 5) pts.push([x, 5.4 + (r() - 0.5) * 5 + Math.sin(x / 19) * 1.4]);
+  pts[pts.length - 1][1] = pts[0][1];
+  let d = `M0 0H${W}V${f(pts[pts.length - 1][1])}`;
+  for (let i = pts.length - 2; i >= 0; i--) d += `L${f(pts[i][0])} ${f(pts[i][1])}`;
+  return svg(`0 0 ${W} ${H}`, `<path d="${d}Z" fill="${K}"/>`);
+}
+function navSwash() {
+  // One brush stroke, heavier at the start and dry at the tail, stretched to
+  // the label's width (the page sizes it to the label with a mask).
+  return svg(
+    "0 0 120 12",
+    `<path d="M3 7.6C16 4.4 34 3.2 56 4.2C80 5.2 100 3.4 117 4.6C109 5.8 98 6.6 84 6.8C64 7.2 40 8.8 24 9.4C14 9.7 7 9.3 3 7.6Z" fill="${K}"/>`
+      + `<path d="M30 10.6C48 10 70 10.4 92 8.8" fill="none" stroke="${K}" stroke-width="0.9" stroke-linecap="round" stroke-dasharray="14 5 6 4"/>`,
+  );
+}
+function navSun() {
+  // A sun as one would draw it in the margin: a lopsided disc, eight rays that
+  // are not the same length.
+  const r = rng(5);
+  let rays = "";
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 + (r() - 0.5) * 0.18, r0 = 11.5 + r(), r1 = r0 + 4.2 + r() * 3.4;
+    const bend = (r() - 0.5) * 1.6;
+    rays += `<path d="M${f(20 + Math.cos(a) * r0)} ${f(20 + Math.sin(a) * r0)}Q${f(20 + Math.cos(a) * (r0 + r1) / 2 - Math.sin(a) * bend)} ${f(20 + Math.sin(a) * (r0 + r1) / 2 + Math.cos(a) * bend)} ${f(20 + Math.cos(a) * r1)} ${f(20 + Math.sin(a) * r1)}"/>`;
+  }
+  return svg(
+    "0 0 40 40",
+    `<g fill="none" stroke="${K}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">`
+      + `<path d="M20 12.4C24.4 12.2 28 15.6 27.8 20.2C27.6 24.6 24.2 27.8 19.8 27.6C15.4 27.4 12.2 24 12.4 19.6C12.6 15.6 16 12.6 20.4 12.5"/>${rays}</g>`,
+  );
+}
+function navMoon() {
+  // A crescent with a small star above its horn.
+  return svg(
+    "0 0 40 40",
+    `<path d="M26.6 7.2C17.4 8 11 15.2 11.6 23.6C12.2 31.4 18.8 36.8 26.4 36C30.2 35.6 33.4 33.8 35.6 31.2C25.8 32.4 18.6 25.6 19.6 17.4C20 13.2 22.6 9.6 26.6 7.2Z" fill="${K}"/>`
+      + `<path d="M31.5 8.5v6M28.5 11.5h6" fill="none" stroke="${K}" stroke-width="2" stroke-linecap="round"/>`,
+  );
+}
+function navFiles() {
+  return {
+    "nav-torn": navTorn(),
+    "nav-swash": navSwash(),
+    "nav-sun": navSun(),
+    "nav-moon": navMoon(),
+  };
+}
+// ---- end Header drawings ----
 
 /** @returns {Record<string, string>} file stem → SVG text */
 export function drawScenery() {
@@ -666,19 +1151,24 @@ export function drawScenery() {
     pine: svg(`1260 80 180 ${PINE_FOOT - 80}`, `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g><path d="M1356 900V${PINE_FOOT}" fill="none" stroke="${K}" stroke-width="4.32"/>`),
     "rice-field": svg("565 740 655 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
     ripples: svg("560 860 660 30", ripples(560, 872, 640, 3, K, 3)),
-    buffalo: svg("905 790 150 80", buffalo(930, 790, 0.78, K)),
+    "buffalo-plow": svg(BUF_BOX, buffaloPlow()),
+    "buffalo-sleep": svg(BUF_BOX, buffaloSleep()),
+    "offduty-day": svg(VONG_BOX, moonVong(false)),
+    "offduty-night": svg(VONG_BOX, moonVong(true)),
     "tag-rice": svg("0 0 150 88", rice(52, 84, 3, 20, 4, K, 44, 26)),
-    "tag-pine": svg("0 0 150 88", pine(75, 84, 76, K)),
-    "tag-palmetto": svg("0 0 150 88", palmetto(75, 84, 48, K)),
+    "tag-flytrap": svg("0 0 150 88", flytrap(K)),
+    "tag-book": svg("0 0 150 88", openBook(K)),
     "tag-laptop": svg("0 0 150 88", laptop(K)),
     "non-la": svg("44 370 120 130", `<path d="M80 372Q96 380 102 396" fill="none" stroke="#8b7b5e" stroke-width="1.2"/>${nonLa(104, 444, 0.9)}`),
     "sky-day": svg("0 0 1440 900", skyLayer(false, [880, 120], 1)),
     "sky-night": svg("0 0 1440 900", skyLayer(true, [880, 120], 1)),
-    morning: svg("420 770 100 114", stool(470, 840, "#C8352B") + STILL.phin(470, 838)),
-    evening: svg("420 770 100 114", stool(470, 840, "#2E6DB4") + STILL.lau(470, 838)),
+    morning: svg(STOOL_BOX, stoolLong(470, 840, "#C8352B") + scaled(440, 838, 1.1, STILL.phin(0, 0)) + scaled(493, 838, 1.1, comTam(0, 0))),
+    evening: svg(STOOL_BOX, stoolLong(470, 840, "#2E6DB4") + scaled(446, 838, 0.95, STILL.lau(0, 0)) + scaled(490, 838, 1.1, biaPair(0, 0))),
+    ...navFiles(),
     ...contactDrawings(),
     ...journeyFiles(),
     ...recordFiles(),
+    ...weatherFiles(),
   };
 }
 

@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import CareerTree from "@/sections/CareerTree/CareerTree";
 import { buildTickets } from "@/lib/highlights";
 import { growBeats } from "@/lib/origin-story";
+import { BEAT_MS, HOLD_MS } from "@/sections/CareerTree/GrowOak";
 import { journey, origin } from "@/content/portfolio";
 
 /**
@@ -177,9 +178,8 @@ describe("what the Journey draws", () => {
  * they always have. Driven on fake timers, the show's own clock.
  */
 describe("Watch it grow", () => {
-  const BEAT_MS = 850;
   const beats = growBeats();
-  const total = beats.length * BEAT_MS + 1200;
+  const total = beats.length * BEAT_MS + HOLD_MS;
   let reduce = false;
   let events: string[] = [];
   const onStory = (event: Event) => events.push(String((event as CustomEvent).detail));
@@ -262,7 +262,41 @@ describe("Watch it grow", () => {
     press();
     act(() => vi.advanceTimersByTime(total));
     document.removeEventListener("origin-story-beat", onBeat);
-    expect(told).toEqual(beats.map(({ kind, year, storm }) => ({ kind, year, storm })));
+    expect(told).toEqual(beats.map(({ kind, year, storm, weather }) => ({ kind, year, storm, weather })));
+  });
+
+  it("stamps each beat's weather on the section, shows the lịch's year, and takes it all off at the end", () => {
+    render(<CareerTree />);
+    press();
+    beats.forEach((beat, i) => {
+      act(() => vi.advanceTimersByTime(i === 0 ? 0 : BEAT_MS));
+      expect(section(), beat.caption).toHaveAttribute("data-weather", beat.weather);
+    });
+    expect(section().style.getPropertyValue("--beat-ms")).toBe(`${BEAT_MS}ms`);
+    const lich = section().querySelector("[data-lich]")!;
+    expect(lich).toHaveAttribute("aria-hidden", "true");
+    expect(lich.textContent).toContain(String(beats.findLast((b) => b.year !== null)!.year));
+    act(() => vi.advanceTimersByTime(total));
+    expect(section()).not.toHaveAttribute("data-weather");
+    expect(section().style.getPropertyValue("--beat-ms")).toBe("");
+    expect(section().querySelector("[data-lich]")).toBeNull();
+  });
+
+  it("clears the weather and the lịch on Skip too", () => {
+    render(<CareerTree />);
+    press();
+    act(() => vi.advanceTimersByTime(BEAT_MS * 3));
+    expect(section()).toHaveAttribute("data-weather");
+    press();
+    expect(section()).not.toHaveAttribute("data-weather");
+    expect(section().querySelector("[data-lich]")).toBeNull();
+  });
+
+  it("keeps the weather out of the accessibility tree: the layer and the lịch are aria-hidden", () => {
+    render(<CareerTree />);
+    expect(section().querySelector("[data-weather-layer]")).toHaveAttribute("aria-hidden", "true");
+    expect(section().querySelectorAll("[data-ufo]").length).toBeGreaterThan(0);
+    for (const ufo of section().querySelectorAll("[data-ufo]")) expect(ufo).toHaveAttribute("aria-hidden", "true");
   });
 
   it("ends at once on Skip or Escape, and tells the cats once", () => {

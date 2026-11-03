@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import type { CSSProperties } from "react";
 
 /**
  * Day/night switch.
@@ -53,14 +53,17 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="inline-flex h-11 w-11 items-center justify-center border border-rule text-fg transition-colors duration-150 hover:border-accent hover:text-accent active:translate-y-px"
+      className="nav-theme inline-flex h-11 w-11 items-center justify-center text-fg transition-colors duration-150 hover:text-accent active:translate-y-px"
     >
+      {/* Round 23: no box, and the drawing is the state. By day it is the sun in
+          the margin, at night the crescent; the name still says what pressing
+          it does. Both are masks painted in the paper's ink. */}
       <span className="theme-day-only">
-        <Moon aria-hidden="true" focusable="false" size={17} />
+        <span aria-hidden="true" className="nav-glyph scene-ink" style={{ "--art": "url(/scenery/nav-sun.svg)" } as CSSProperties} />
         <span className="sr-only">Switch to night theme</span>
       </span>
       <span className="theme-night-only">
-        <Sun aria-hidden="true" focusable="false" size={17} />
+        <span aria-hidden="true" className="nav-glyph scene-ink" style={{ "--art": "url(/scenery/nav-moon.svg)" } as CSSProperties} />
         <span className="sr-only">Switch to day theme</span>
       </span>
     </button>

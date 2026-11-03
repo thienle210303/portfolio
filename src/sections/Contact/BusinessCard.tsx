@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { profile, socialLinks } from "@/content/portfolio";
 import { Drawing } from "@/components/scenery/Drawing";
 import CopyButton from "@/components/ui/CopyButton";
 import ExternalLink from "@/components/ui/ExternalLink";
 import VisuallyHidden from "@/components/ui/VisuallyHidden";
+import ResumeLink from "./ResumeLink";
 
 /**
  * My business card, paper-clipped and slightly turned (round 21's postcard
  * board): name, title and my seal, where I live, the quote on a moss rule,
- * then every way to reach me with its icon, and Résumé / Save contact (and
+ * then every way to reach me with its icon, and Résumé (the PDF, in a dialog) / Save contact (and
  * Book a call, when `BOOKING_URL` is valid) as outlined chips. The faint
  * "TL" monogram bleeds off the bottom right. A server component: only the
  * copy button is a client island. The lead form is the postcard beside it
@@ -154,12 +154,12 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
           </ul>
 
           <ul role="list" className="mt-auto flex flex-wrap gap-2 pt-6">
-            {/* next/link: the trip to /resume and back keeps the chat's
-                thread (see `threadCache` in AskThisSite.tsx). */}
+            {/* A link to the PDF that, from 640px with JavaScript, opens it
+                in a dialog on this page (round 23). */}
             <li>
-              <Link href="/resume" className={CHIP}>
+              <ResumeLink className={CHIP}>
                 <Chip icon="doc">Résumé</Chip>
-              </Link>
+              </ResumeLink>
             </li>
             <li>
               <a href="/contact.vcf" download className={CHIP}>

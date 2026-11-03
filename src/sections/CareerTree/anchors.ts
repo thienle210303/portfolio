@@ -1,5 +1,5 @@
 /**
- * Every id the Journey and the Record own that is not a section id, and that something
+ * Every id the Journey and the Diary own that is not a section id, and that something
  * outside this directory might name: the per-entry fragments, the retired
  * section ids, and the case-study ids at the bottom of the file. They live here,
  * next to the section that renders them, because a jump link that disagrees with
@@ -12,23 +12,28 @@
  *
  * ## State of the guarantee
  *
- * Every entry's fragment is its row on the Record's year list
- * (`src/sections/Record/RecordYears.tsx`), one element per career entry, the
- * demoted nine included (round 21 phase 5 moved the rows there from the
- * Journey's timeline and its credentials line). Round 18's pinned stage carried
- * them as zero-size spans inside its acts; round 20 put them back on real
- * content.
+ * Every entry's fragment is its page of the Diary, or its block on a shared
+ * page (`src/sections/Record/EntryPage.tsx`), one element per career entry, the
+ * demoted nine included. (Round 21 phase 5 moved them from the Journey's
+ * timeline to the Record's rows; round 23 bound the Record as a book, so they
+ * are pages now.) Round 18's pinned stage carried them as zero-size spans
+ * inside its acts; round 20 put them back on real content.
+ *
+ * The case studies' `work-<projectId>` ids, `#work`, `#diary` and `#record-<year>`
+ * are real elements with no height at the top of the page they belong to
+ * (`Anchor` in `EntryPage.tsx`): as wide as the page, so the browser brings the
+ * whole page into view rather than the edge it sits on.
  *
  * Both halves of that are asserted, because neither is worth much alone:
  * `tests/sections/Record.test.tsx` requires an element for every
  * `careerEntries` entry after rendering the section, and
  * `e2e/legacy-anchors.spec.ts` requires the ids to be in the server-rendered
- * HTML and to land a real browser on the Record with JavaScript disabled —
- * which is the case a jsdom test cannot reach.
+ * HTML and to land a real browser on the right page of the book with
+ * JavaScript disabled, which is the case a jsdom test cannot reach.
  *
  * They exist first for links the site does not control: old bookmarks, a
  * shared résumé PDF, a search result. Round 20 links to them in-page too: the
- * hanging tags and the drawing's branch labels each point at a row.
+ * hanging tags and the pressed cards each point at a page.
  *
  * ## Why `journey-entry-…` and not `journey-…-role`
  *
@@ -60,13 +65,26 @@
 export const LEGACY_SECTION_IDS = ["journey", "skills", "workshop"] as const;
 
 /**
- * Retired section ids the Record answers (round 21 phase 5). `#work` named
- * Selected Work, the case studies; they render inside the Record's rows now,
- * so the id went with them. `#journey`, `#skills` and `#workshop` stay on the
- * Journey: the section of that name, and the nearest honest answer for the two
- * that have no successor. Same contract as `LEGACY_SECTION_IDS`.
+ * Retired section ids the Diary answers (round 21 phase 5, round 23). `#work`
+ * named Selected Work, the case studies; they are gone from the page, so the
+ * id lands on DoorDash's page (`RECORD_WORK_ENTRY_ID`), where the case studies
+ * mostly were. `#journey`, `#skills` and `#workshop` stay on the Journey: the
+ * section of that name, and the nearest honest answer for the two that have
+ * no successor. Same contract as `LEGACY_SECTION_IDS`, except that the span
+ * sits on that page rather than at the section's top.
  */
 export const RECORD_LEGACY_SECTION_IDS = ["work"] as const;
+
+/** The career entry whose page `#work` lands on. */
+export const RECORD_WORK_ENTRY_ID = "doordash";
+
+/**
+ * Other names for the Record section itself (round 23): the section was
+ * renamed the Diary, and `#diary` lands at its top, beside `#record`, which
+ * stays (the chat cites it and the cats' tour visits it). Rendered as
+ * zero-size spans at the section's top.
+ */
+export const RECORD_ALIAS_IDS = ["diary"] as const;
 
 /** Anchor id for one career entry's fragment; see the note above for which
  *  element carries it and what is asserted about that. */
@@ -81,27 +99,23 @@ export function journeyEntryAnchorId(entryId: string): string {
 /*
  * The two identifiers a case-study article and anything linking at it have to
  * agree on. They moved here from `SelectedWork/anchors.ts` in round 18 along
- * with `CaseStudy.tsx` itself, and the case studies render inside the
- * Record's rows since round 21 phase 5; the section they used to live in,
- * and its `anchors.ts`, are deleted.
+ * with `CaseStudy.tsx` itself, which round 23 deleted: the case studies are
+ * not on the page any more, and each id is a zero-height anchor on the page of
+ * the entry the project was built in.
  *
  * Derived from `project.id`, never authored: a project added to or removed
  * from `projects` renumbers everything without anyone editing a list.
  */
 
 /**
- * Anchor id for a case study's `<article>`.
+ * Anchor id for a project's retired case study: a zero-height anchor on the page
+ * of the entry it was built in.
  *
- * Deliberately not `case-study-${id}`: `Disclosure` already derives
- * `case-study-${id}-trigger` and `case-study-${id}-panel` from that string
- * inside every case study, and two id namespaces one suffix apart is how a
- * duplicate id gets shipped.
+ * Deliberately not `case-study-${id}`, which `Disclosure` once derived
+ * `-trigger` and `-panel` ids from inside every case study: two id namespaces
+ * one suffix apart is how a duplicate id gets shipped, and the id is what old
+ * links name, so it stays.
  */
 export function caseStudyAnchorId(projectId: string): string {
   return `work-${projectId}`;
-}
-
-/** Two-digit index numeral, e.g. `03`. */
-export function caseStudyNumeral(index: number): string {
-  return String(index + 1).padStart(2, "0");
 }

@@ -11,7 +11,7 @@
  * not a drawing: a new entry re-cuts the slice without anyone re-drawing it.
  * Coordinates are the board's (a 1440×900 frame).
  */
-import { careerEntries } from "@/content/portfolio";
+import { careerEntries, highlights } from "@/content/portfolio";
 import type { CareerEntry, CareerEntryType } from "@/types/portfolio";
 
 const ENTRIES: readonly CareerEntry[] = careerEntries;
@@ -184,4 +184,184 @@ export function recordYearId(year: number): string {
  *  between an award and its project read as a comma ("Best Design, MentorHub"). */
 export function entryTitle(entry: CareerEntry): string {
   return entry.role.replace(" — ", ", ");
+}
+
+/* -------------------------------------------------------------------------- */
+/* The Diary's pages (round 23)                                                */
+/* -------------------------------------------------------------------------- */
+
+/** Years before this fold into one chapter: 2018, 2019 and 2020 are a school,
+ *  a kitchen and a lot of learning that overlapped, not three separate years. */
+export const CHAPTER_FROM_YEAR = 2021;
+/** Shared pages hold at most this many entries. */
+export const SHARED_PAGE_MAX = 3;
+
+export interface DiaryChapter {
+  /** `2025` … `2021`, or `2018-2020`. */
+  readonly id: string;
+  /** What the contents say: `2025`, or `2018 – 2020`. */
+  readonly label: string;
+  /** The years it holds; each is still a ring on the slice and a fragment. */
+  readonly years: readonly number[];
+  /** In the order the book tells them. */
+  readonly entries: readonly CareerEntry[];
+}
+
+/** Newest chapter first. Entries within a chapter newest first, except the
+ *  early one, which reads as a story: school, then the kitchen, then what I
+ *  taught myself. */
+export function diaryChapters(entries: readonly CareerEntry[] = ENTRIES): readonly DiaryChapter[] {
+  const years = recordYears(entries);
+  const chapters: DiaryChapter[] = [];
+  const early = years.filter((y) => y.year < CHAPTER_FROM_YEAR);
+  for (const y of years.filter((y) => y.year >= CHAPTER_FROM_YEAR)) {
+    chapters.push({ id: String(y.year), label: String(y.year), years: [y.year], entries: y.entries });
+  }
+  if (early.length > 0) {
+    const first = early.at(-1)!.year;
+    const last = early[0].year;
+    chapters.push({
+      id: `${first}-${last}`,
+      label: `${first} – ${last}`,
+      years: early.map((y) => y.year).toReversed(),
+      entries: early.flatMap((y) => y.entries).toReversed(),
+    });
+  }
+  return chapters;
+}
+
+export type DiaryPageKind = "summary" | "contents" | "entry" | "shared" | "certificates";
+
+export interface DiaryPage {
+  /** Unique; the id of the page's `<article>` is derived from it. */
+  readonly key: string;
+  readonly kind: DiaryPageKind;
+  /** The entries on it, in order. Empty for the three fixed pages. */
+  readonly entryIds: readonly string[];
+  /** The chapter it opens, when it is a chapter's first page. */
+  readonly opens?: string;
+}
+
+/** An entry has a page to itself when it has bullets to put on one. */
+export function hasOwnPage(entry: CareerEntry): boolean {
+  return (entry.diary?.bullets?.length ?? 0) > 0;
+}
+
+/** The pages inside one chapter. Entries with little to say share pages, up to
+ *  `SHARED_PAGE_MAX` each, in the order they come: after the chapter's own
+ *  pages, except the early chapter, which tells its story in order and puts
+ *  them where its first small entry falls. */
+export function chapterPages(chapter: DiaryChapter): readonly DiaryPage[] {
+  const own: DiaryPage[] = [];
+  const groups: CareerEntry[][] = [];
+  const order: { readonly kind: "own" | "shared"; readonly index: number }[] = [];
+  for (const entry of chapter.entries) {
+    if (hasOwnPage(entry)) {
+      order.push({ kind: "own", index: own.length });
+      own.push({ key: `entry-${entry.id}`, kind: "entry", entryIds: [entry.id] });
+    } else {
+      let group = groups.at(-1);
+      if (!group || group.length >= SHARED_PAGE_MAX) {
+        group = [];
+        groups.push(group);
+        order.push({ kind: "shared", index: groups.length - 1 });
+      }
+      group.push(entry);
+    }
+  }
+  const shared: DiaryPage[] = groups.map((group) => ({
+    key: `shared-${group[0].id}`,
+    kind: "shared",
+    entryIds: group.map((e) => e.id),
+  }));
+  const pages =
+    chapter.years.length > 1
+      ? order.map((o) => (o.kind === "own" ? own[o.index] : shared[o.index]))
+      : [...own, ...shared];
+  return pages.map((page, i) => (i === 0 ? { ...page, opens: chapter.id } : page));
+}
+
+/** Every page of the book, in order: the summary, the contents, each chapter's
+ *  pages (newest chapter first), and the certificates. */
+export function diaryPages(entries: readonly CareerEntry[] = ENTRIES): readonly DiaryPage[] {
+  return [
+    { key: "summary", kind: "summary", entryIds: [] },
+    { key: "contents", kind: "contents", entryIds: [] },
+    ...diaryChapters(entries).flatMap(chapterPages),
+    { key: "certificates", kind: "certificates", entryIds: [] },
+  ];
+}
+
+/** The page an entry is on. */
+export function pageOfEntry(entryId: string, pages: readonly DiaryPage[] = diaryPages()): DiaryPage | undefined {
+  return pages.find((p) => p.entryIds.includes(entryId));
+}
+
+/** The DOM id of a page's `<article>`. An entry with a page to itself gives
+ *  its own fragment (`journey-entry-<id>`), so a link to it lands on the page;
+ *  a shared page gets one of its own and each entry a block inside it. */
+export function diaryPageId(page: DiaryPage): string {
+  if (page.kind === "entry") return `journey-entry-${page.entryIds[0]}`;
+  return `diary-page-${page.key}`;
+}
+
+/** Which kinds of entry a page holds; the fixed pages hold none and always
+ *  show. */
+export function pageKinds(page: DiaryPage, entries: readonly CareerEntry[] = ENTRIES): readonly CareerEntryType[] {
+  const kinds = new Set<CareerEntryType>();
+  for (const id of page.entryIds) {
+    const entry = entries.find((e) => e.id === id);
+    if (entry) kinds.add(entry.type);
+  }
+  return [...kinds];
+}
+
+/** The figure a page puts in the accent colour: the oak's own highlight for
+ *  the entry when it hangs one, else the entry's `diary.highlight`. */
+export function entryHighlight(
+  entry: CareerEntry,
+): { readonly value: string; readonly label: string; readonly measure?: string } | undefined {
+  const tag = highlights.find((h) => h.entryId === entry.id);
+  if (tag) {
+    return { value: tag.value, label: tag.label, ...("measure" in tag ? { measure: tag.measure } : {}) };
+  }
+  return entry.diary?.highlight;
+}
+
+/** The sentence or two under an entry's title. */
+export function entryBlurb(entry: CareerEntry): string {
+  return entry.diary?.blurb ?? entry.context;
+}
+
+/** The contents' lines, chapter by chapter, with the page each is on. */
+export interface ContentsChapter {
+  readonly id: string;
+  readonly label: string;
+  readonly lines: readonly {
+    readonly entryId: string;
+    readonly title: string;
+    readonly organization: string;
+    readonly type: CareerEntryType;
+    readonly pageKey: string;
+  }[];
+}
+
+export function contentsChapters(entries: readonly CareerEntry[] = ENTRIES): readonly ContentsChapter[] {
+  const pages = diaryPages(entries);
+  return diaryChapters(entries).map((chapter) => ({
+    id: chapter.id,
+    label: chapter.label,
+    lines: chapterPages(chapter).flatMap((page) =>
+      page.entryIds.map((id) => {
+        const entry = entries.find((e) => e.id === id)!;
+        return {
+          entryId: id,
+          title: entryTitle(entry),
+          organization: entry.organization,
+          type: entry.type,
+          pageKey: pageOfEntry(id, pages)!.key,
+        };
+      }),
+    ),
+  }));
 }

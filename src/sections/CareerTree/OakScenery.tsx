@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { Drawing } from "@/components/scenery/Drawing";
 import { cn } from "@/lib/cn";
+import { Ufo } from "./Weather";
 
 const art = (name: string) => ({ "--art": `var(${name})` }) as CSSProperties;
 
@@ -51,6 +52,9 @@ export default function OakScenery() {
         className="scene-art absolute top-[510px] left-[calc(var(--fx)+104px)] hidden h-[122px] w-[96px] xl:block"
         style={art("--art-lantern")}
       />
+      {/* The last beat's cameo hovers over the lantern (the lantern's centre is
+          board x 152; the saucer is 130 wide). */}
+      <Ufo className="wx-ufo-board top-[400px] left-[calc(var(--fx)+87px)] h-[70px] w-[130px]" />
       <Drawing
         name="journey-rice"
         className="absolute top-[776px] left-[calc(var(--fx)+236px)] hidden h-[124px] w-[320px] text-accent xl:block"
@@ -81,6 +85,8 @@ export function OakCrown({ className }: { readonly className?: string }) {
           the edge; there it hangs from the long limb, where that limb crosses
           board y 510. */}
       <span data-grow-late="" className="scene-art absolute top-[75%] left-[7.2%] max-sm:left-[25.8%] aspect-[96/122] w-[6.7%]" style={art("--art-lantern")} />
+      {/* The same cameo, over the lantern as it hangs here. */}
+      <Ufo className="wx-ufo-crown top-[52%] left-[6.05%] aspect-[130/70] w-[9.03%] max-sm:left-[24.65%]" />
     </div>
   );
 }

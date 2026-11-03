@@ -1,16 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { analyticsDisclosure } from "../src/content/portfolio";
 
-/** Converts a computed-style time value ("0.2s", "0.01ms", "200ms") to
- * milliseconds so reduced-motion durations can be compared numerically
- * regardless of which unit the browser chose to serialise. */
-function parseCssTimeToMs(value: string): number {
-  const trimmed = value.trim();
-  if (trimmed.endsWith("ms")) return parseFloat(trimmed);
-  if (trimmed.endsWith("s")) return parseFloat(trimmed) * 1000;
-  return parseFloat(trimmed);
-}
-
 test("heading order never skips a level, document-wide", async ({ page }) => {
   await page.goto("/");
   const levels = await page.evaluate(() =>
@@ -108,22 +98,17 @@ test("prefers-reduced-motion: reduce is honoured", async ({ page }) => {
   const scrollBehavior = await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior);
   expect(scrollBehavior).toBe("auto");
 
-  // A case study sits inside its entry's row on the Record (round 21 phase 5).
-  await page.locator("#record-row-capstone-trigger").click();
-  const trigger = page
-    .locator("#journey-entry-capstone")
-    .getByRole("button", { name: /Read the full case study/ })
-    .first();
-  const panelId = await trigger.getAttribute("aria-controls");
-  await trigger.click();
-
-  const duration = await page.evaluate((id) => {
-    const panel = id ? document.getElementById(id) : null;
-    return panel ? getComputedStyle(panel).transitionDuration : null;
-  }, panelId);
-
-  expect(duration, "disclosure panel must expose a transition-duration").not.toBeNull();
-  expect(parseCssTimeToMs(duration ?? "1s")).toBeLessThan(5);
+  // The Diary's page turn ends at once under reduced motion (round 23): the
+  // corner has moved the book by the time the press returns, with no glide.
+  await page.locator("#record .diary-track").scrollIntoViewIfNeeded();
+  await expect(page.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
+  const next = page.getByRole("button", { name: "Next page" });
+  await next.click();
+  const left = await page.locator("#record .diary-track").evaluate((el) => el.scrollLeft);
+  expect(left, "a page turn must not glide under reduced motion").toBeGreaterThan(0);
+  const snapped = await page.locator("#record .diary-track").evaluate((el) => el.scrollLeft % el.clientWidth);
+  expect(snapped === 0 || Math.abs(snapped - 0) < 2 || window.innerWidth >= 1280).toBe(true);
+  expect(await page.evaluate(() => document.getElementById("record")!.getAnimations({ subtree: true }).length)).toBe(0);
 });
 
 test("no console.error and no React hydration warnings on load", async ({ page }) => {

@@ -20,8 +20,9 @@ out — not in production.
 
 ## Change a metric
 
-Metrics are the numbers shown large in the accent colour at the top of each case study.
-Find the project in `projects` and edit its `metrics` array:
+Metrics are the before/after figures of a project (a case study the page no
+longer draws: round 23's Diary has none). Find the project in `projects` and
+edit its `metrics` array:
 
 ```ts
 metrics: [
@@ -37,27 +38,22 @@ metrics: [
 (Every value above is a placeholder, deliberately shaped so nobody mistakes it
 for one of the site's real figures.)
 
-That one object drives **four** places at once, which is why there is nowhere
-else to update:
+That one object drives **two** places, which is why there is nowhere else to
+update:
 
-- the big figure in the case-study summary (`MetricHighlights`)
-- the full before/after table inside the case study (`MetricTable`)
 - the project's line on `/resume`
 - the answers behind "Ask this site"
 
-Three things worth knowing:
+A figure that should be on the Diary is an entry's own `diary` notes (below),
+drawn from the entry's `impact`, not from a project's metrics.
+
+Two things worth knowing:
 
 - **`source` is not optional, by design.** The site's whole claim is that every
   figure names where it came from. TypeScript will refuse a metric without one.
-- **Only the first three show as headline figures.** The rest still appear in
-  the table. Put the most persuasive ones first.
-- **`after` does not have to be a number.** "Under 1 hour, end to end" works;
-  the figure just renders smaller as the string gets longer, so it stays on one
-  or two lines.
+- **`after` does not have to be a number.** "Under 1 hour, end to end" works.
 
-To remove metrics entirely from a project, delete the `metrics` key. The
-summary falls back to showing the first three `proof` sentences instead, so the
-case study never ends up with no evidence in it.
+To remove metrics entirely from a project, delete the `metrics` key.
 
 ## Add a role, a project or a milestone
 
@@ -66,8 +62,9 @@ Add an entry to `careerEntries`. One entry feeds all of:
 - the **Journey** (`#tree`, `src/sections/CareerTree/`) — a tag on the oak
   only if one of its `highlights` is picked (see "The Journey's tags" below); its
   start year is a beat of "Watch it grow" either way
-- the **Record** (`#record`, `src/sections/Record/`) — a dot and a wider ring on
-  the tree slice, and a row under its start year (every entry, demoted or not)
+- the **Diary** (`#record`, `src/sections/Record/`) — a dot and a wider ring on
+  the tree slice, a line in the contents, and a page (or a block on a shared
+  page) in the book (every entry, demoted or not)
 - the **résumé** at `/resume` — its Experience list shows `type: "work"`
   entries only
 - "Ask this site"
@@ -84,27 +81,62 @@ Then one thing the entry cannot decide for itself:
   these months inclusively, so a guessed month can invent an overlap — say so
   in a comment beside it.
 
-The fields its Record row shows when it opens (`sortKey` decides its year):
+The fields the rest of the site reads (`sortKey` decides its Diary chapter):
 
 ```ts
-technologies: ["Python", "Playwright"],  // listed in its row
-impact: ["One sentence of what changed."],  // shown verbatim in its row
-headline: "Result in 12 words or fewer.",  // the first line of the open row
+technologies: ["Python", "Playwright"],  // counted by the cats, listed on /resume
+impact: ["One sentence of what changed."],  // the chat answers from it; diary figures draw on it
+headline: "Result in 12 words or fewer.",  // the hero's tags, the oak's tickets
 ```
 
 ### Write a headline
 
-Every entry outside `DEMOTED_ENTRY_IDS` needs a `headline`: the first line
-of its open Record row. Keep it to 12 words or fewer, phrased as a result, with every
-figure taken from the same entry's own `impact`, `context` or `built`. It is
-never indexed for the chat. `tests/lib/voice.test.ts` fails on a missing or
-over-long headline, a figure the entry doesn't contain, or an indexed headline.
-Rules and examples: [docs/voice.md](voice.md).
+Every entry outside `DEMOTED_ENTRY_IDS` needs a `headline`: the Journey's
+one-line result, also used on the hero's tags. Keep it to 12 words or fewer,
+phrased as a result, with every figure taken from the same entry's own
+`impact`, `context` or `built`. It is never indexed for the chat.
+`tests/lib/voice.test.ts` fails on a missing or over-long headline, a figure
+the entry doesn't contain, or an indexed headline. Rules and examples:
+[docs/voice.md](voice.md).
 
-To attach a case study to a role, set the project's `careerEntryId` to that
-entry's `id`. The case study then renders inside that role's row on the
-Record, and the role supplies the employer and dates shown under the
-case-study title, so the two can never drift apart.
+### Give an entry a Diary page
+
+An entry with nothing under `diary` shares a page with the others in its
+chapter that have little to say (three at most). Give it `diary.bullets` (two
+to four short lines) and it has a page of its own:
+
+```ts
+diary: {
+  bullets: ["Short line.", "Another short line."],
+  highlight: { value: "3.8", label: "GPA" },  // only when the oak hangs no tag for it
+  figure: { kind: "before-after", caption: "…", before: { label: "17 hours", value: 1020 }, after: { label: "3 minutes", value: 3 } },
+  // DRAFT 2026-11-01 — awaiting Thien's approval
+  funFact: "One sentence, from facts this entry already holds.",
+},
+```
+
+- Every figure in a bullet, the highlight, or a chart's labels and caption must
+  also be in the entry's own `impact`, `context` or `headline`
+  (`tests/lib/record.test.ts`). A fun fact may use anything the entry says
+  about itself; draft it, mark it, and list it for the owner to approve. Once
+  approved, the mark becomes `// APPROVED <date> by Thien` (the test accepts
+  either; the round 23 sixteen were approved on 2026-11-01).
+- `figure` is one of three: `before-after` (two bars; `value` is only the
+  bar's length, the label carries the figure), `count` (dots when `per` is set
+  or there are twelve or fewer, otherwise tally gates of five), or `drawing`
+  (a committed ink drawing from `public/scenery/`, `diary-*`).
+- The highlight is the oak's own (`highlights`) when it hangs a tag for the
+  entry, else `diary.highlight`.
+- `diary.blurb` replaces the entry's `context` as the page's one or two
+  sentences. None of `diary` is indexed by the chat.
+- 2018, 2019 and 2020 are one chapter (`2018 – 2020`), told in order; every
+  other year is a chapter of its own, newest first. Each year is still a ring
+  on the slice and a fragment (`#record-2019`).
+
+Case studies are not on the page. A project's `careerEntryId` still names the
+entry it was built in: the chat answers from it, `/resume` lists it, and its
+`work-<projectId>` id is a zero-height anchor on that entry's page, so an old
+link still lands.
 
 ## Where the résumé lives
 
@@ -129,7 +161,7 @@ the page. `Ctrl/Cmd+P` on `/resume` produces a clean copy to replace it with.
 
 The Journey draws one tree, the oak, and only the tags you pick hang on it
 (below). Round 22 retired the drawn career tree that used to grow in a box
-under it: every entry's row on the Record already said what it did.
+under it: every entry's page in the Diary already said what it did.
 
 Its rules still live in `src/lib/knowledge-tree.ts`, tested by
 `tests/lib/knowledge-tree.test.ts`, for the day a drawing of entries comes
@@ -165,7 +197,7 @@ Each line lives in one place. `buildChapters()` and `buildFieldTag()` in
 | USC tag: year, place | `usc-degree`'s `sortKey`, `organization` (three or more words shorten to initials) |
 | DoorDash tag: year, place | `doordash`'s `sortKey`, `organization` |
 | My line on the back of a tag | `hero.chapterLines`, except Taylors: `eastside-high`'s `headline` |
-| "Read this part" | the tag's career entry row on the Record (Kiên Giang: the Journey itself) |
+| "Read this part" | the tag's career entry page in the Diary (Kiên Giang: the Journey itself) |
 | The hint under the line | `hero.hint` |
 | The hint's first sentence (from 1024 only, where the line runs from bamboo to pine) | `hero.hintLine` |
 | Field tag rows | Name `profile.name`; Native to `origin.from`; Transplanted `origin.to`; Companions `hero.fieldTag.companionsLead` plus every `companions` name; the rest `hero.fieldTag` |
@@ -209,21 +241,26 @@ order; `buildTickets()` in `src/lib/highlights.ts` assembles them and
 - After changing a drawing, run `pnpm draw:scenery` and commit
   `public/scenery/`.
 
-## The Record
+## The Diary
 
-The notebook is `src/sections/Record/`; its numbers and the tree slice are
-computed in `src/lib/record.ts`, so a new entry re-cuts the slice by itself.
+The book is `src/sections/Record/`; its numbers, pages and the tree slice are
+computed in `src/lib/record.ts`, so a new entry re-cuts the slice, the contents
+and the page numbers by itself.
 
 | On the page | Where it comes from |
 |---|---|
 | A ring per year, its width | every start year from the first to the last; `4.5 + 3.6 ×` the entries that started that year (`sortKey`) |
 | A dot per entry, its colour and shape | the entry's `type` (`--kind-*`: work a circle, study a square, milestone a diamond) |
 | The five taped cards | `featured: true` on the entry, an editorial call (`tests/lib/record.test.ts` holds the five). Newest year first; a sixth needs a slot in `CARD_SLOTS` |
-| A row's title | the entry's `role`, with " — " read as ", " |
-| A row's body | `headline`, `impact` (or `context` with none), `technologies`, type and `dateRange`, `link`, `recording`, `award`, and every project whose `careerEntryId` is the entry |
-| The filters' counts | the entries' `type`s |
-| A stamp | a `certifications` entry with a `stamp` (`short`, `drawing`, `image`). One without (AT&T) gets no stamp, and stays on `/resume` |
-| An award button in a row | the entry's `award` image |
+| The chapters | the start years: one per year from 2021 (`CHAPTER_FROM_YEAR`), 2018 – 2020 as one |
+| A page of its own, or a shared page | `diary.bullets` on the entry; the rest share, three to a page (`SHARED_PAGE_MAX`), after the chapter's own pages (the early chapter keeps its order) |
+| A page's title | the entry's `role`, with " — " read as ", " |
+| A page's sentences, figure, bullets, chart, sticky note | `diary.blurb` or `context`; `highlights` or `diary.highlight`; `diary.bullets`, `diary.figure`, `diary.funFact` |
+| The tabs' counts | the entries' `type`s |
+| The contents | every entry, with the page it is on (the tab recounts them) |
+| A stamp | a `certifications` entry with a `stamp` (`short`, `drawing`, `image`). `drawing` is `bank`, `card`, `code` or `cart`; one without a stamp (AT&T) gets none, and stays on `/resume` |
+| An award button on a page | the entry's `award` image |
+| A recording | the entry's `recording` (loaded only when pressed) |
 | The page's words | `record` (not indexed by the chat) |
 
 Certificate and award images live in `public/media/certificates/`, at most

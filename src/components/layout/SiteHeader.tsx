@@ -7,13 +7,18 @@ import ThemeToggle from "./ThemeToggle";
  * Server Component shell. The only genuinely interactive pieces — active-
  * section tracking, the mobile menu (open state, focus trap, Escape, scroll
  * lock) and the theme switch — live in client islands. The logo and the
- * "Let's talk" CTA are plain anchors: they need no state, so they stay on
+ * "Let's talk" stamp are plain anchors: they need no state, so they stay on
  * the server and keep working with JavaScript disabled.
  *
- * The header is painted on the sky (`sky-fill`), so it shows exactly the
- * pixels behind it and never takes a section's tone, even when a `contrast`
- * section scrolls under it — it is fixed chrome, not page content, and it
- * stays opaque rather than translucent per the "no glassmorphism" rule.
+ * Round 23: there is no bar. The header is transparent, and three bits of
+ * paper sit on the sky — my TL tag, a torn strip held up by washi tape that
+ * carries the nav and the sun or moon, and a postage stamp for "Let's talk".
+ * Each is opaque paper (`bg-surface`) so what scrolls behind them never
+ * shows through, and the header itself takes no pointer events, so the gaps
+ * between the paper pass clicks to the page. The strip's wrapper must not
+ * carry a transform or a filter: the phone menu's panel is `position: fixed`
+ * inside it, and either would make the strip, not the window, its box. The
+ * paper's tilt and shadow live on its own aria-hidden layers instead.
  */
 /** One fact per stop on the menu's trail, computed from the content, never
  *  restating a page's prose. Computed here, on the server, so the client
@@ -29,10 +34,10 @@ export default function SiteHeader() {
   return (
     <header
       data-site-header
-      className="no-print sticky top-0 z-50 h-[var(--header-h)] border-b border-rule sky-fill text-fg"
+      className="no-print pointer-events-none sticky top-0 z-50 h-[var(--header-h)] text-fg"
     >
       <div
-        className="shell flex h-full items-center justify-between gap-4"
+        className="shell flex h-full items-start justify-between gap-4"
         style={{
           paddingLeft: "max(var(--gutter), env(safe-area-inset-left))",
           paddingRight: "max(var(--gutter), env(safe-area-inset-right))",
@@ -44,7 +49,7 @@ export default function SiteHeader() {
         <a
           href="#about"
           aria-label={`${profile.name} — back to top`}
-          className="group inline-flex min-h-11 min-w-11 items-center"
+          className="group pointer-events-auto inline-flex min-h-11 min-w-11 items-center self-center"
         >
           <span className="stamp-lift">
             <span data-paper="" className="brand-tag inline-flex h-8 -rotate-3 items-center pr-3 pl-[21px] font-display text-[length:var(--step-0)] font-semibold tracking-[0.04em] text-fg transition-transform duration-300 ease-(--ease-ink) group-hover:rotate-0">
@@ -53,21 +58,33 @@ export default function SiteHeader() {
           </span>
         </a>
 
-        <div className="flex items-center gap-2 lg:gap-4">
-          <SiteNav facts={STOP_FACTS} />
-          <ThemeToggle />
-          {/* An outline, not a fill: the header shares every screen with the
-              rest of the page, including Contact, whose send button is the one
-              primary control (round 18, spec §4). This is the same recipe
-              as `Button`'s `secondary` variant — rule-coloured border, accent
-              only on hover — written by hand because the header does not
-              render through `Button`. `active:translate-y-px` is the
-              mechanical press every boxed clickable on the site gets. */}
+        <div className="flex items-start gap-3 lg:gap-5">
+          {/* The strip. `data-paper` scopes the ink to the paper, as on the
+              Record's pages; the paper itself is the two aria-hidden layers
+              (shadow, then the torn sheet) and the tape. */}
+          <div data-paper="" className="nav-strip pointer-events-auto relative mt-1.5 flex h-[3.125rem] items-start pr-1 pb-1.5 pl-1.5">
+            <span aria-hidden="true" className="nav-paper-shadow">
+              <span className="nav-paper bg-surface" />
+            </span>
+            <span aria-hidden="true" className="nav-tape nav-tape-l" />
+            <span aria-hidden="true" className="nav-tape nav-tape-r" />
+            <SiteNav facts={STOP_FACTS} />
+            <ThemeToggle />
+          </div>
+
+          {/* A postage stamp, not a button: it shares every screen with the
+              page, including Contact, whose send button is the one primary
+              control (round 18, spec §4), so it is paper and ink and never
+              `--control`. Hidden under 640px, where the menu has Contact. */}
           <a
             href="#contact"
-            className="inline-flex min-h-11 items-center whitespace-nowrap border border-[color:var(--rule-color)] bg-transparent px-4 text-[length:var(--step--1)] font-medium tracking-[0.01em] text-[color:var(--fg)] transition-colors duration-150 hover:border-[color:var(--accent)] hover:text-[color:var(--accent)] active:translate-y-px"
+            className="group nav-stamp stamp-lift pointer-events-auto mt-1.5 hidden h-11 rotate-2 items-center whitespace-nowrap text-fg transition-transform duration-150 hover:-translate-y-px active:translate-y-px sm:inline-flex"
           >
-            Let&rsquo;s talk
+            <span data-paper="" className="nav-stamp-paper bg-surface">
+              <span className="nav-stamp-face border border-rule font-display text-[length:var(--step--1)] font-semibold tracking-[0.01em] text-fg transition-colors duration-150 group-hover:text-accent">
+                Let&rsquo;s talk
+              </span>
+            </span>
           </a>
         </div>
       </div>

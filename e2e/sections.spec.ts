@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { careerEntries, projects } from "../src/content/portfolio";
+import { careerEntries } from "../src/content/portfolio";
 import { buildDrawnTree } from "../src/lib/knowledge-tree";
 
 // Matches the `lg:` breakpoint (1024px) from which the Journey's drawing
@@ -94,39 +94,10 @@ test.describe("hero", () => {
   });
 });
 
-// Selected Work was deleted in round 18; its case studies render inside the
-// rows of the roles that produced them, on the Record since round 21 phase 5.
-// The capstone's row is opened first.
-test.describe("case studies", () => {
-  test("a case-study disclosure expands and collapses; collapsed content is not reachable by Tab", async ({
-    page,
-  }) => {
-    await page.locator("#record-row-capstone-trigger").click();
-    const work = page.locator("#journey-entry-capstone");
-    const trigger = work.getByRole("button", { name: /Read the full case study/ }).first();
-    const panelId = await trigger.getAttribute("aria-controls");
-
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
-    await expect(work.getByRole("heading", { name: "Problem", level: 4 }).first()).toBeVisible();
-
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await expect(work.getByRole("heading", { name: "Problem", level: 4 }).first()).toBeHidden();
-
-    await trigger.focus();
-    await page.keyboard.press("Tab");
-    const stillInsidePanel = await page.evaluate((id) => {
-      const panel = id ? document.getElementById(id) : null;
-      return panel ? panel.contains(document.activeElement) : false;
-    }, panelId);
-    expect(stillInsidePanel, "Tab from the collapsed trigger must not land inside its panel").toBe(false);
-  });
-});
+// Selected Work was deleted in round 18, and the case studies that moved to the Record's
+// rows went with them in round 23 (the Diary has no case study).
 
 test.describe("screen recordings", () => {
-  const recorded = projects.filter((project) => project.recording);
-
   test("a full scroll, Journey included, requests nothing from /media/", async ({ page }) => {
     const media: string[] = [];
     page.on("request", (request) => {
@@ -147,34 +118,8 @@ test.describe("screen recordings", () => {
     expect(media, "nothing under /media/ may load until a visitor asks").toEqual([]);
   });
 
-  test("pressing play on a closed case study requests one mp4 and one poster", async ({ page }) => {
-    expect(recorded.length, "no project carries a recording").toBeGreaterThan(0);
-    const project = recorded[0];
-    const media: string[] = [];
-    page.on("request", (request) => {
-      if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
-    });
-
-    await page.locator(`#record-row-${project.careerEntryId}-trigger`).click();
-    const article = page.locator(`#work-${project.id}`);
-    const trigger = article.getByRole("button", { name: /Read the full case study/ });
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await expect(article.locator("video")).toHaveCount(0);
-    expect(media, "nothing loads before the press").toEqual([]);
-
-    await article.getByRole("button", { name: "Play the screen recording" }).click();
-    const video = article.locator("video");
-    await expect(video).toHaveCount(1);
-    await expect(trigger, "the press does not open the disclosure").toHaveAttribute("aria-expanded", "false");
-    await expect(video).toHaveAttribute("aria-label", `${project.title} \u2014 screen recording`);
-    await expect.poll(() => media.filter((url) => url.endsWith(".mp4")).length).toBe(1);
-    await page.waitForLoadState("networkidle");
-
-    expect(media.filter((url) => url.endsWith(".mp4"))).toEqual([`/media/${project.recording}.mp4`]);
-    expect(media.filter((url) => url.endsWith(".jpg"))).toEqual([`/media/${project.recording}.jpg`]);
-  });
-  // Food Route and MentorHub have no case study: each button sits in its row
-  // on the Record. Any recording added later is picked up from content.
+  // Food Route and MentorHub each have a recording on their page of the Diary.
+  // Any recording added later is picked up from content.
   const recordedEntries = careerEntries.filter((entry) => entry.recording);
 
   test("the entries' recordings are found in content", () => {
@@ -188,7 +133,8 @@ test.describe("screen recordings", () => {
         if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
       });
 
-      await page.locator(`#record-row-${entry.id}-trigger`).click();
+      // Turn to the page from the contents, as a reader would.
+      await page.locator(`#diary-contents a[href="#journey-entry-${entry.id}"]`).click();
       const button = page.getByRole("button", { name: `Play the screen recording of ${entry.role}` });
       // Not `li:has(button)`: the press replaces the button with the video.
       const line = page.locator(`#journey-entry-${entry.id}`);
@@ -211,30 +157,22 @@ test.describe("screen recordings", () => {
 });
 
 /**
- * The Journey (`#tree`) and the Record's rows. Round 21 opens the Journey with
- * the oak — the hanging tags and the drawing (>=1024px only). The timeline's
- * one-open rows moved to the Record in phase 5: one row per career entry, at
- * every width, owning the `journey-entry-<id>` and `work-<projectId>` ids, so
- * every deep link (a tag, a branch label) lands on a Record row.
+ * The Journey (`#tree`) and the Diary's pages. Round 21 opens the Journey with
+ * the oak: the hanging tags and the drawing (>=1024px only). The Record's
+ * one-open rows (phase 5) became the Diary's pages in round 23: one page, or a
+ * block on a shared page, per career entry, at every width, owning the
+ * `journey-entry-<id>` and `work-<projectId>` ids, so every deep link (a tag, a
+ * branch label) lands on a page of the book.
  */
 test.describe("career tree", () => {
-  /** The entry the row tests open: the role with the most case studies, so the
-   *  open row has real focusable content inside it. */
+  /** The entry the tag tests use. */
   const PANEL_ENTRY = "doordash";
-  const PANEL_STUDIES = projects.filter((project) => project.careerEntryId === PANEL_ENTRY).length;
-  if (PANEL_STUDIES === 0) {
-    throw new Error(`content fixture assumption failed: no case study belongs to "${PANEL_ENTRY}"`);
-  }
-  /** The entries the Journey once drew, oldest first: each has a Record row. */
+  /** The entries the Journey once drew, oldest first: each has a page. */
   const DRAWN = buildDrawnTree();
   const panelEntry = careerEntries.find((entry) => entry.id === PANEL_ENTRY);
   if (!panelEntry) throw new Error(`"${PANEL_ENTRY}" is no longer a career entry`);
 
   const row = (page: Page, entryId: string) => page.locator(`#record #journey-entry-${entryId}`);
-  const rowTrigger = (page: Page, entryId: string) =>
-    page.locator(`#record #record-row-${entryId}-trigger`);
-  const rowPanel = (page: Page, entryId: string) =>
-    page.locator(`#record #record-row-${entryId}-panel`);
 
   test("the section renders and still answers #journey", async ({ page }) => {
     await expect(page.locator("#tree")).toBeVisible();
@@ -249,153 +187,53 @@ test.describe("career tree", () => {
     await expect(page.locator("[data-act]")).toHaveCount(0);
     // A margin rail (`Section`'s `.rail`) is sticky at lg wherever a section
     // has one (the Journey has none since round 21); everything else inside
-    // #tree must scroll.
+    // #tree must scroll. The one exception is the weather's window (round 23,
+    // `Weather.tsx`): aria-hidden sky, shown only while "Watch it grow" plays,
+    // sticky so the weather stays on screen down a phone's tall section. It
+    // holds no content, so it is no stage.
     const sticky = await page.locator("#tree").evaluate((tree) =>
       Array.from(tree.querySelectorAll("*"))
         .filter((element) => !element.closest(".rail"))
+        .filter((element) => !element.closest("[data-weather-layer]"))
         .filter((element) => getComputedStyle(element).position === "sticky")
         .map((element) => element.outerHTML.slice(0, 80)),
     );
     expect(sticky, "something inside #tree is position: sticky").toEqual([]);
   });
 
-  test("one tree, and the Record's rows at every width", async ({ page }) => {
+  test("one tree, and the Diary's pages at every width", async ({ page }) => {
     // Round 22 retired the drawn tree and its box: the oak is the only tree.
     await expect(page.locator("#tree [data-tree-box], #tree [data-origin-host]")).toHaveCount(0);
-    await expect(page.locator("#record [data-timeline] [data-tree-branch]")).toHaveCount(careerEntries.length);
-    await expect(row(page, DRAWN[0].id)).toBeVisible();
+    await expect(page.locator("#record [data-tree-branch]")).toHaveCount(careerEntries.length);
+    await expect(row(page, DRAWN[0].id)).toBeAttached();
   });
 
-  test("Record rows: kind, title and organisation at rest, nothing open", async ({ page }) => {
-    for (const entry of careerEntries) {
-      const trigger = rowTrigger(page, entry.id);
-      await expect(trigger, entry.id).toHaveAttribute("aria-expanded", "false");
-      await expect(trigger, entry.id).toContainText(entry.role.replace(" — ", ", "));
-      await expect(trigger, entry.id).toContainText(entry.organization);
-    }
-  });
-
-  test("one row open at a time", async ({ page }) => {
-    const [, second, third, fourth] = DRAWN;
-    await rowTrigger(page, second.id).scrollIntoViewIfNeeded();
-    await rowTrigger(page, second.id).click();
-    await expect(rowTrigger(page, second.id)).toHaveAttribute("aria-expanded", "true");
-
-    await rowTrigger(page, third.id).click();
-    await expect(rowTrigger(page, third.id)).toHaveAttribute("aria-expanded", "true");
-    await expect(rowTrigger(page, second.id)).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator('#record [data-timeline] button[aria-expanded="true"][id^="record-row-"]')).toHaveCount(1);
-
-    // The keyboard does the same, and focus stays on the row that was pressed.
-    await rowTrigger(page, fourth.id).focus();
-    await page.keyboard.press("Enter");
-    await expect(rowTrigger(page, fourth.id)).toHaveAttribute("aria-expanded", "true");
-    await expect(rowTrigger(page, third.id)).toHaveAttribute("aria-expanded", "false");
-    await expect(rowTrigger(page, fourth.id)).toBeFocused();
-    await page.keyboard.press("Space");
-    await expect(rowTrigger(page, fourth.id)).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator('#record [data-timeline] button[aria-expanded="true"][id^="record-row-"]')).toHaveCount(0);
-  });
-
-  test("opened row shows the impact verbatim, chips and case studies", async ({ page }) => {
-    const trigger = rowTrigger(page, PANEL_ENTRY);
-    await trigger.scrollIntoViewIfNeeded();
-    const panel = rowPanel(page, PANEL_ENTRY);
-    const chips = panel.locator('[aria-label^="Technologies"]');
-    await expect(chips).toBeHidden();
-
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
-    expect(panelEntry.impact.length, "the entry authors no impact line").toBeGreaterThan(0);
-    for (const line of panelEntry.impact) await expect(panel.getByText(line, { exact: true })).toBeVisible();
-    await expect(chips).toBeVisible();
-    await expect(chips.locator(":scope > li > span:first-child")).toHaveText([...panelEntry.technologies]);
-    const articles = panel.locator('article[id^="work-"]');
-    await expect(articles).toHaveCount(PANEL_STUDIES);
-    await expect(articles.first()).toBeVisible();
-  });
-
-  test("a closed row's case studies stay out of the tab order", async ({ page }) => {
-    const trigger = rowTrigger(page, PANEL_ENTRY);
-    await trigger.scrollIntoViewIfNeeded();
-    const inner = rowPanel(page, PANEL_ENTRY).getByRole("button", {
-      name: /Read the full case study/,
-      includeHidden: true,
-    });
-    await expect(inner).toHaveCount(PANEL_STUDIES);
-    await expect(inner.first()).toBeHidden();
-
-    await trigger.click();
-    await expect(inner.first()).toBeVisible();
-    await trigger.click();
-    await expect(inner.first()).toBeHidden();
-
-    await trigger.focus();
-    await page.keyboard.press("Tab");
-    const landedInPanel = await page.evaluate(
-      (id) => document.getElementById(id)?.contains(document.activeElement) ?? false,
-      `record-row-${PANEL_ENTRY}-panel`,
-    );
-    expect(landedInPanel, "Tab from a closed row must not reach inside it").toBe(false);
-  });
-
-  test("legacy anchors land on rows", async ({ page }) => {
-    // Two cold loads plus stability polls; the budget follows the work.
-    test.slow();
-    const study = projects.find((project) => project.id === "dd-scraper-platform");
-    expect(study?.careerEntryId, "dd-scraper-platform no longer belongs to doordash").toBe(PANEL_ENTRY);
-
-    // A real cold load each time, not a same-document hash hop.
-    await page.goto("about:blank");
-    await page.goto(`/#journey-entry-${PANEL_ENTRY}`);
-    await page.waitForLoadState("networkidle");
-    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
-    expectSettledAtScrollMargin(
-      await restingTop(row(page, PANEL_ENTRY)),
-      "a cold load must settle the entry's row at its 80px scroll margin",
-    );
-
-    await page.goto("about:blank");
-    await page.goto("/#work-dd-scraper-platform");
-    await page.waitForLoadState("networkidle");
-    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
-    const article = page.locator("#work-dd-scraper-platform");
-    await expect(article).toBeVisible();
-    // Only a stability wait: the article sits under its row's own header, so
-    // its offset is not the 80px margin — what matters is that it settled on
-    // screen.
-    await restingTop(article);
-    await expect(article).toBeInViewport();
-  });
-
-  test("a hanging tag jumps to its row", async ({ page }) => {
-    // A row above the target is open first: opening the target closes it, and
-    // the target must still end up where the reader was sent.
-    await rowTrigger(page, DRAWN[0].id).scrollIntoViewIfNeeded();
-    await rowTrigger(page, DRAWN[0].id).click();
-    await expect(rowTrigger(page, DRAWN[0].id)).toHaveAttribute("aria-expanded", "true");
-
+  test("a hanging tag lands on its page, and again after the book has turned away", async ({ page }) => {
     const card = page.locator(`#tree a[href="#journey-entry-${PANEL_ENTRY}"]`).first();
     await card.scrollIntoViewIfNeeded();
     await card.click();
-    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
-    await expect(rowTrigger(page, DRAWN[0].id)).toHaveAttribute("aria-expanded", "false");
     expectSettledAtScrollMargin(
       await restingTop(row(page, PANEL_ENTRY)),
-      "the hanging tag must land its row at the 80px scroll margin",
+      "the hanging tag must land its page at the 80px scroll margin",
     );
 
-    // Close the row and follow the same tag again: the URL already holds the
-    // fragment, so no hashchange fires, and the row must still reopen.
-    await rowTrigger(page, PANEL_ENTRY).click();
-    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "false");
+    // Turn the book to another page, go back up to the tag, and follow it again:
+    // the URL already holds the fragment, so no hashchange fires, and the book
+    // must still come back to the page.
+    await page.getByRole("button", { name: "Next page" }).click();
+    await page.waitForTimeout(800);
     await card.scrollIntoViewIfNeeded();
     await card.click();
-    await expect(rowTrigger(page, PANEL_ENTRY)).toHaveAttribute("aria-expanded", "true");
     expectSettledAtScrollMargin(
       await restingTop(row(page, PANEL_ENTRY)),
-      "following the same card again must land its row at the 80px scroll margin",
+      "following the same card again must land its page at the 80px scroll margin",
     );
+    const inBook = await page.evaluate((id) => {
+      const box = document.querySelector("#record .diary-track")!.getBoundingClientRect();
+      const r = document.getElementById(`journey-entry-${id}`)!.getBoundingClientRect();
+      return r.left >= box.left - 2 && r.right <= box.right + 2;
+    }, PANEL_ENTRY);
+    expect(inBook, "the book is on another page").toBe(true);
   });
 });
 

@@ -11,7 +11,7 @@ describe("hero chapters", () => {
     expect(chapters.map((c) => c.id)).toEqual(["origin", "eastside-high", "usc-degree", "doordash"]);
     expect(chapters.map((c) => c.year)).toEqual(["2003", "Dec 2018", "2021", "2025"]);
     expect(chapters.map((c) => c.place)).toEqual(["Kiên Giang", "Taylors", "USC", "DoorDash"]);
-    expect(chapters.map((c) => c.drawing)).toEqual(["tag-rice", "tag-pine", "tag-palmetto", "tag-laptop"]);
+    expect(chapters.map((c) => c.drawing)).toEqual(["tag-rice", "tag-flytrap", "tag-book", "tag-laptop"]);
     expect(chapters.map((c) => c.entryId)).toEqual([null, "eastside-high", "usc-degree", "doordash"]);
   });
 

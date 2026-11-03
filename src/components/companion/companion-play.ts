@@ -494,7 +494,7 @@ const APPROACH_MAX = 4200;
  * How much of a drawing standing at `y` falls below `edge`.
  *
  * This is the whole of the hiding trick. Nothing on the page paints over the
- * companion layer — it is `fixed` at `z-40` above every section — so a cat
+ * companion layer — it is `fixed` at `z-55`, above every section and the header — so a cat
  * cannot get behind a panel by being underneath it in paint order. It gets
  * behind it by not being drawn there: the caller clips each animal to the band
  * above the edge, and this is the height of the cut.

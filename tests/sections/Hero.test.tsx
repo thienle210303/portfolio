@@ -106,17 +106,30 @@ describe("Hero", () => {
     expect(scene?.querySelector("button, a, [tabindex]")).toBeNull();
   });
 
-  it("Moon sleeps in the rice", () => {
+  it("Moon lies in her võng", () => {
     const { container } = renderHero();
     const moon = container.querySelectorAll("[data-moon-off-duty]");
     expect(moon).toHaveLength(1);
     expect(moon[0]).toHaveTextContent("Moon, off duty");
+    // The cats visit the drawing, which the theme swaps by `--art-offduty`.
+    const art = moon[0].querySelectorAll("[data-moon-art]");
+    expect(art).toHaveLength(1);
+    expect((art[0] as HTMLElement).style.getPropertyValue("--art")).toBe("var(--art-offduty)");
+  });
+
+  it("the buffalo ploughs by day and sleeps at night; the stool's meal follows the theme", () => {
+    const { container } = renderHero();
+    expect(container.querySelector('[data-scenery="buffalo-plow"]')).toHaveClass("day-only");
+    expect(container.querySelector('[data-scenery="buffalo-sleep"]')).toHaveClass("night-only");
+    const vignette = container.querySelector<HTMLElement>('[data-scenery="vignette"]');
+    expect(vignette?.style.getPropertyValue("--art")).toBe("var(--art-vignette)");
   });
 
   it("shows the morning by day and the evening at night", () => {
     const { about } = renderHero();
-    const day = about.querySelectorAll(".day-only");
-    const night = about.querySelectorAll(".night-only");
+    // The buffalo's two drawings are `.day-only` / `.night-only` too; the captions are the ones with words.
+    const day = [...about.querySelectorAll(".day-only")].filter((e) => e.textContent);
+    const night = [...about.querySelectorAll(".night-only")].filter((e) => e.textContent);
     expect(day).toHaveLength(1);
     expect(night).toHaveLength(1);
     expect(day[0]).toHaveTextContent(hero.vignette.morning);

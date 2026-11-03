@@ -12,40 +12,30 @@ test.beforeEach(async ({ page }) => {
 
 test.describe("reduced motion", () => {
   /*
-   * A Journey timeline row's disclosure under reduced motion, at every width.
-   * DoorDash is chosen because its panel holds its case studies, whose
-   * "Read the full case study" triggers are focusable — Tab correctly skips
-   * prose-only panels, so reachability needs a panel where landing inside is
-   * actually possible.
+   * The Diary under reduced motion, at every width (round 23: it was the
+   * Record's one-open rows until then). A page still turns, at once, from the
+   * keyboard once the book has focus, and the corners still work.
    */
-  test("a disclosure still opens, closes, and stays keyboard-reachable", async ({ page }) => {
+  test("a page still turns, and the book stays keyboard-reachable", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.locator("#record .diary-track").scrollIntoViewIfNeeded();
+    await expect(page.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
 
-    const trigger = page.locator("#record-row-doordash-trigger");
-    await expect(trigger, "expected the DoorDash branch's disclosure trigger").toHaveCount(1);
-    const panelId = await trigger.getAttribute("aria-controls");
-    expect(panelId, "Disclosure trigger must expose aria-controls").toBeTruthy();
-    await expect(
-      page
-        .locator(`#${panelId}`)
-        .getByRole("button", { name: /Read the full case study/, includeHidden: true }),
-      "the panel must hold something focusable, or Tab has nowhere to land",
-    ).not.toHaveCount(0);
+    const book = page.getByRole("region", { name: /My diary/ });
+    await expect(book, "the book is a named region").toHaveCount(1);
+    await book.focus();
+    await expect(book).toBeFocused();
+    const left = () => book.evaluate((el) => Math.round(el.scrollLeft));
+    expect(await left()).toBe(0);
 
-    await trigger.scrollIntoViewIfNeeded();
-    await trigger.focus();
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("ArrowRight");
+    expect(await left(), "→ turns a page at once under reduced motion").toBeGreaterThan(0);
+    await page.keyboard.press("ArrowLeft");
+    expect(await left()).toBe(0);
 
-    await page.keyboard.press("Tab");
-    const landedInPanel = await page.evaluate((id) => {
-      const panel = id ? document.getElementById(id) : null;
-      return panel ? panel.contains(document.activeElement) : false;
-    }, panelId);
-    expect(landedInPanel, "Tab from an open trigger must reach its panel under reduced motion").toBe(true);
-
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator(`#${panelId}`)).toBeHidden();
+    await page.getByRole("button", { name: "Next page" }).click();
+    expect(await left(), "the corner turns a page at once under reduced motion").toBeGreaterThan(0);
+    await page.getByRole("button", { name: "Previous page" }).click();
+    expect(await left()).toBe(0);
   });
 });

@@ -11,7 +11,7 @@ the sources win; the house taste and the tools' division of labour are in
   objects from my life carry the content (clothesline tags, a live oak, a
   notebook spread, a postcard, stamps).
 - Shape: one narrative page in four sections — About `#about`, Journey
-  `#tree`, Record `#record`, Contact `#contact`. Order and content:
+  `#tree`, Diary `#record`, Contact `#contact`. Order and content:
   [CLAUDE.md § Changing what the site says](CLAUDE.md#changing-what-the-site-says).
 - Theme: custom. Two axes that stay independent — **theme** (`day` | `night`,
   the visitor's) and **tone** (`base` | `deep` | `contrast`, per `<Section>`).
