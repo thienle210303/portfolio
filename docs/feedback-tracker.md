@@ -2357,3 +2357,15 @@ Five asks from Thien after testing round 23's preview, designed in `docs/superpo
 **Verification.** `pnpm verify` passes: 1,040 unit tests, contrast, and the build.
 
 Full e2e on the final production build: 895 passed, 0 failed. Before the CLS fix, a run had 892 passed and 1 failed: round 23's walking cat over Contact's lede at 1280. In isolation it failed 2 of 12 runs, so it is still a flake in the cats' pathing, not a regression from this round.
+
+### Follow-up 2026-11-02: the phone's corner curl
+
+Thien, on his phone: "if we have so much limit then diary just want page! 2 page make it ugly". Below 1280 a hinge turn squashed the page into the left half beside the next one, so mid-turn the phone looked like a spread. He picked a corner curl, like Apple Books: the page stays flat on the spine side of a diagonal fold, its blank back is folded over it, and the next page shows only in the wedge under the curl (`curl` in `diary-turn.ts`). The spread at 1280 and up keeps its 3D turn; JS off and reduced motion keep the track.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (round 24 row above) | 211,076 B | 211,076 B | 32,411 B | 117,868 B | 0 | 1718 |
+| After | 212,099 B | 212,099 B | 32,580 B | 117,868 B | 0 | 1718 |
+
+- **JS at load +1,023 B** (on the wire): the curl's geometry and its painter in `DiaryBook`. 0 skipped responses. LCP 1108 ms, TBT 49 ms.
+- `pnpm verify` passes: 1,051 unit tests. Full e2e on the production build: 896 passed, 0 failed (one more than before: a 390 test that holds a drag mid-curl and checks the fold is diagonal, the page full width, and no `rotateY`).
