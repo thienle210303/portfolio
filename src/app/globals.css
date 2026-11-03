@@ -2997,6 +2997,7 @@
   }
   .diary-slot {
     transform: none !important;
+    clip-path: none !important;
   }
   .diary-track {
     padding: 0 !important;
@@ -3983,6 +3984,62 @@ html[data-menu-open] [data-companion] {
     .diary-frame[data-mode="leaf"] :is(.diary-sheet[data-at="left"], .diary-shade[data-on="left"]) {
       right: 50%;
     }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Follow-up 2026-11-02: one page curls from its corner.              */
+  /*                                                                    */
+  /* Below 1280 the book shows one page, and a hinge turn squashed it   */
+  /* into the left half beside the next page: a spread, for a moment.   */
+  /* So one page curls, flat, inside its own box (`curl` in             */
+  /* `diary-turn.ts`; `DiaryBook` writes the numbers): the page lies    */
+  /* flat on the spine side of a diagonal fold (its `clip-path`), its   */
+  /* blank back (a sheet, `data-at="flap"`) is the same page reflected  */
+  /* across the fold and clipped to the part that lifted, and the next  */
+  /* page shows in the wedge it has left. Light runs along the curl by  */
+  /* the fold and shadow toward the flap's free edge; the flap throws a */
+  /* faint shadow on the page beside it, and the fold a soft one on the */
+  /* next page. `--fa` is the gradient's angle across the fold, `--f0`  */
+  /* where the fold falls on it, `--fw` the flap's depth, `--lift` how  */
+  /* far it has lifted.                                                 */
+  /* ------------------------------------------------------------------ */
+  .diary-frame[data-mode="leaf"] .diary-sheet[data-at="flap"] {
+    left: var(--room, 0px);
+    transform-origin: 0 0;
+    background-image: none;
+    box-shadow: 0 0 16px rgb(30 40 35 / 0.3);
+    will-change: transform, clip-path;
+  }
+  .diary-sheet[data-at="flap"]::before {
+    display: none;
+  }
+  .diary-frame[data-mode="leaf"] .diary-sheet[data-at="flap"] > .diary-glint {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(
+      var(--fa, 90deg),
+      rgb(30 40 35 / 0.16) var(--f0, 0px),
+      rgb(255 255 255 / 0.34) calc(var(--f0, 0px) + 6px),
+      rgb(255 255 255 / 0.1) calc(var(--f0, 0px) + 0.2 * var(--fw, 100px)),
+      rgb(30 40 35 / 0) calc(var(--f0, 0px) + 0.45 * var(--fw, 100px)),
+      rgb(30 40 35 / 0.2) calc(var(--f0, 0px) + var(--fw, 100px))
+    );
+  }
+  .diary-frame[data-mode="leaf"] .diary-shade[data-on="curl"] {
+    left: var(--room, 0px);
+    opacity: var(--lift, 0);
+    background: linear-gradient(
+      var(--fa, 90deg),
+      rgb(30 40 35 / 0.55) var(--f0, 0px),
+      rgb(30 40 35 / 0.18) calc(var(--f0, 0px) + 10px + 14px * var(--lift, 0)),
+      rgb(30 40 35 / 0) calc(var(--f0, 0px) + 24px + 56px * var(--lift, 0))
+    );
+  }
+  .diary-shade[data-on="curl"] > span {
+    display: none;
   }
 
   .record-tape {

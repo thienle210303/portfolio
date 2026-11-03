@@ -240,3 +240,35 @@ with JavaScript turn pages instead of sliding them:
 
 Update CLAUDE.md's Diary description (it says "a book you swipe left and
 right") to the new truth.
+
+## Follow-up 2026-11-02: the phone's corner curl
+
+Thien, on his phone: "on the phone! if we have so much limit then diary just
+want page! 2 page make it ugly". Below 1280 the book shows one page, but the
+turn rotated it about its bound edge: mid-turn the page squashed into the left
+half with a straight edge while the next page showed beside it, so for a moment
+the phone looked like a two-page spread.
+
+His decision, a corner curl like Apple Books, picked over "flip in place" and
+"keep the hinge turn with the next page shadowed": "the page peels back from
+the corner you pull, showing its blank paper back, and the next page shows only
+in the wedge under the curl. No straight seam down the middle, so it reads as
+one page turning."
+
+Built: wherever one page shows in leaf mode, a turn is a 2D curl inside the
+page box (`curl` in `src/lib/diary-turn.ts`, unit-tested). The pulled corner
+is on the fore-edge at the foot of what is on screen (the dog-ear when the foot
+is visible) or at the hand's height; it travels across twice the page width,
+rising as it goes, and the fold is the perpendicular bisector of where it was
+and where it is, so the fold leans across the page through the turn and
+straightens only as it leaves through the spine. The page stays flat on the
+spine side (`clip-path`), its blank back (a sheet with the page's paper and
+grain, no text) is reflected across the fold and clipped to the page, with
+light along the curl, shadow toward its free edge and a faint shadow beside
+it, and the next page shows only in the wedge, with a soft shadow along the
+fold. Back turns run the curl from 1 to 0 with the page before on top; a
+riffle curls its leaves one after another; a drag's corner follows the hand,
+and on one page a release completes past half a page width of pull (a flick
+always does). The spread (from 1280) keeps its 3D hinge turn unchanged; JS off
+and reduced motion keep the scroll-snap track. One page's turning room shrinks
+to the boards' lip.

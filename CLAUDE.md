@@ -166,16 +166,28 @@ JavaScript off, and under reduced motion, the pages are a horizontal
 scroll-snap track, one to a view below 1280 and a spread of two from there;
 `DiaryBook.tsx` is the one client island and adds the index tabs, the
 dog-eared corners, ← and → and "p. 3 of 14", and where motion is welcome binds
-the same pages into leaves (`data-mode="leaf"`): the right page turns over the
-spine in 3D, its back the next left page, with a shadow sweeping the page under
-it and light across its curl (below 1280 one page turns about its bound edge);
-a corner drags, a finger or a trackpad swipes, past halfway it turns and short
-of it falls back; a far jump (a contents line, a ring, a tab, Home, End)
-riffles a few leaves. Pages not on show are `hidden="until-found"`, never
+the same pages into leaves (`data-mode="leaf"`): on a spread the right page
+turns over the spine in 3D, its back the next left page, with a shadow sweeping
+the page under it and light across its curl. **Where one page shows (below
+1280) it curls from its corner instead** (2026-11-02, my call, like Apple
+Books: a hinge turn squashed the page beside the next one, so mid-turn the
+phone looked like a two-page spread). The curl is 2D and stays inside the page
+box (`curl`): the corner, at the foot of what is on screen or at the hand's
+height, is pulled across, the fold is the perpendicular bisector of where it
+was and where it is, diagonal through the turn and straight only as it leaves
+through the spine; the page lies flat on the spine side (a `clip-path`), its
+blank back (a sheet, `data-flap`, the page's paper and grain, no text) is
+reflected over the fold and clipped to the page, light runs along the curl and
+shadow toward the flap's edge, and the next page shows only in the wedge under
+it; a back turn uncurls the page before over this one. A corner drags, a
+finger or a trackpad swipes (the curl's corner follows the hand), past halfway
+it turns and short of it falls back; a far jump (a contents line, a ring, a
+tab, Home, End) riffles a few leaves, on one page as quick curls one after
+another. Pages not on show are `hidden="until-found"`, never
 `inert` (Chrome's find skips inert text, so `beforematch` would never fire);
 only the pages under a turn in the air are inert. A hash on load, `hashchange`
 and `beforematch` open the book at the page. The numbers (angles, shadows,
-drag, riffle, perspective and room) are `src/lib/diary-turn.ts`. **The leaves'
+drag, riffle, perspective, room and the curl) are `src/lib/diary-turn.ts`. **The leaves'
 `.diary-track` stays a scroll container** (`overflow: hidden`): a box that
 stops being one at hydration is a layout shift of the whole book, even far off
 screen (the first leaves scored CLS 1.0). It is padded with the room a turning
@@ -185,13 +197,15 @@ margin, so the pages do not move and no leaf is clipped; `.diary-book` is a
 no pointer events (the pages on show do), its scroll offsets are held at 0, and
 `measure()` leaves the padding out of `--page-h`. `record.spec.ts` fails above
 0.01 load CLS at 1440 and 390. A leaf in perspective looks taller the further
-it is from the eye's line, and these pages are tall, so while a leaf turns the
-track's own `perspective` and `perspective-origin` follow the reader
+it is from the eye's line, and these pages are tall, so while a spread's leaf
+turns the track's own `perspective` and `perspective-origin` follow the reader
 (`camera`): the eye stands on the book's top or foot when only that edge is on
 screen, and far enough back that no edge on screen grows past the boards' lip
-(12px), so the room top and foot is only that lip; `record.spec.ts` fails a
-leaf more than 16px past the cover with the window at the book's top, middle
-or foot, or in a riffle. The object: cloth boards in
+(12px), so the room top and foot is only that lip (one page's curl needs no
+eye and no room past the lip); `record.spec.ts` fails a leaf more than 16px
+past the cover with the window at the book's top, middle or foot, or in a
+riffle, and at 390 fails a turn whose page is narrower than the book, turns in
+3D, has no flap, or folds straight down the page mid-turn. The object: cloth boards in
 `--bark-outer`, leaves stacked either side that move as you read, the paper
 curving into the gutter, paper grain, running heads (the chapter's years) and
 folios in the outer corners, a ribbon in `--twine` (not `--mark`: at 390

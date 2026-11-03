@@ -342,10 +342,17 @@ test.describe("the Diary", () => {
       const width = (await book(page).boundingBox())!.width / (size === WIDE ? 2 : 1);
 
       await drag(width * 0.25);
-      // The leaf follows the hand.
+      // The leaf follows the hand: on a spread it lifts about the spine; one
+      // page curls, clipped along the fold, its back folded over it.
       await expect(frame(page)).toHaveAttribute("data-flight", "");
-      const angle = await slot(page, size === WIDE ? "contents" : "summary").evaluate((el) => parseFloat(el.style.transform.replace(/[^\d.-]/g, "")));
-      expect(angle, `${size.width}: the leaf lifted`).toBeLessThan(-20);
+      if (size === WIDE) {
+        const angle = await slot(page, "contents").evaluate((el) => parseFloat(el.style.transform.replace(/[^\d.-]/g, "")));
+        expect(angle, `${size.width}: the leaf lifted`).toBeLessThan(-20);
+      } else {
+        const front = await slot(page, "summary").evaluate((el) => [el.style.clipPath.slice(0, 8), el.style.transform]);
+        expect(front, `${size.width}: the page curled`).toEqual(["polygon(", ""]);
+        await expect(page.locator("#record .diary-sheet[data-flap]")).toHaveCount(1);
+      }
       await page.mouse.up();
       await still(page);
       await expect(where(page), `${size.width}: a short drag falls back`).toHaveText(page1);
@@ -355,6 +362,123 @@ test.describe("the Diary", () => {
       await still(page);
       await expect(where(page), `${size.width}: past halfway it turns`).toHaveText(page2);
     }
+  });
+
+  test("one page curls from its corner: full width, its blank back folded over a diagonal fold, nothing turned in 3D", async ({ page }) => {
+    // 2026-11-02, the owner on his phone: a hinge turn squashed the page into
+    // the left half beside the next one, so mid-turn the phone looked like a
+    // two-page spread. One page now curls (`curl` in diary-turn.ts).
+    await page.setViewportSize(PHONE);
+    await open(page);
+    await expect(frame(page)).toHaveAttribute("data-mode", "leaf");
+    /** The turn in the air, as the page draws it: the turning page's box and
+     *  styles, the flap's reflection (its computed `matrix`) and clip. */
+    const read = () =>
+      page.evaluate(() => {
+        const track = document.querySelector<HTMLElement>("#record .diary-track")!;
+        const front = track.querySelector<HTMLElement>(":scope > .diary-slot[data-face]");
+        const flap = track.querySelector<HTMLElement>(":scope > .diary-sheet[data-flap]");
+        if (!front || !flap) return null;
+        const r = front.getBoundingClientRect();
+        const m = (getComputedStyle(flap).transform.match(/^matrix\((.+)\)$/)?.[1] ?? "").split(",").map(Number);
+        const clip = [...flap.style.clipPath.matchAll(/(-?[\d.]+)px (-?[\d.]+)px/g)].map((x) => [Number(x[1]), Number(x[2])] as const);
+        return {
+          width: r.width,
+          height: r.height,
+          top: r.top,
+          view: window.innerHeight,
+          book: document.querySelector("#record .diary-book")!.getBoundingClientRect().width,
+          inline: [...track.querySelectorAll<HTMLElement>(":scope > *")].map((el) => el.style.transform).join(" "),
+          computed: getComputedStyle(front).transform,
+          clip: front.style.clipPath,
+          m,
+          flap: clip,
+        };
+      });
+    type Sample = NonNullable<Awaited<ReturnType<typeof read>>>;
+    /** The fold (the reflection's fixed line): where it crosses the top and
+     *  the foot of the part of the page on screen, in page px. */
+    const fold = (s: Sample) => {
+      const [a, b, , d, e] = s.m;
+      const nx = Math.sqrt(Math.max(1 - a, 0) / 2);
+      const ny = Math.sign(-b || 1) * Math.sqrt(Math.max(1 - d, 0) / 2);
+      const k = e / (2 * nx);
+      const x = (y: number) => (k - y * ny) / nx;
+      const top = Math.max(-s.top, 0);
+      const foot = Math.min(s.view - s.top, s.height);
+      return { top: x(top), foot: x(foot), visible: foot - top };
+    };
+    /** How much of the flap shows (its clip's area, px²). */
+    const shows = (s: Sample) =>
+      Math.abs(s.flap.reduce((sum, [x, y], i) => sum + x * s.flap[(i + 1) % s.flap.length][1] - s.flap[(i + 1) % s.flap.length][0] * y, 0)) / 2;
+    const check = (s: Sample, label: string) => {
+      // The page keeps its whole width: nothing squashed, nothing rotated.
+      expect(Math.abs(s.width - s.book), `${label}: the page spans the book`).toBeLessThanOrEqual(1);
+      expect(s.inline, `${label}: a turn in 3D`).not.toMatch(/rotate/);
+      expect(s.computed).toBe("none");
+      expect(s.clip).toMatch(/^polygon\(/);
+      // A flap: the page's back, reflected over the fold, inside the page.
+      expect(s.m.length, `${label}: the flap is reflected`).toBe(6);
+      if (shows(s) === 0) return;
+      const [a, b, c, d, e, f] = s.m;
+      for (const [x, y] of s.flap) {
+        const [u, v] = [a * x + c * y + e, b * x + d * y + f];
+        expect(u, `${label}: the flap past the page`).toBeGreaterThanOrEqual(-1);
+        expect(u).toBeLessThanOrEqual(s.width + 1);
+        expect(v).toBeGreaterThanOrEqual(-1);
+        expect(v).toBeLessThanOrEqual(s.height + 1);
+      }
+    };
+
+    // A hand drags the corner most of the way across and holds it there.
+    await book(page).evaluate((el) => el.scrollIntoView({ block: "end" }));
+    const corner = (await page.getByRole("button", { name: "Next page" }).boundingBox())!;
+    const x0 = corner.x + corner.width / 2;
+    const y0 = corner.y + corner.height / 2;
+    await page.mouse.move(x0, y0);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i += 1) {
+      await page.mouse.move(x0 - (PHONE.width * 0.8 * i) / 12, y0);
+      await page.waitForTimeout(25);
+    }
+    await page.waitForTimeout(150);
+    const held = await read();
+    expect(held, "a curl in the air").not.toBeNull();
+    check(held!, "held");
+    expect(shows(held!), "the flap shows").toBeGreaterThan(5000);
+    // Dragged straight across, the fold still leans: where it crosses the top
+    // and the foot of what is on screen differs by a clear margin.
+    const f = fold(held!);
+    expect(f.top - f.foot, "the fold is diagonal").toBeGreaterThan(Math.max(60, 0.15 * f.visible));
+    await page.mouse.up();
+    await still(page);
+    await expect(where(page)).toHaveText(`p. 2 of ${PAGES.length}`);
+
+    // Pressed: sample the curl as it goes, forward and back.
+    for (const name of ["Next page", "Previous page"]) {
+      await page.getByRole("button", { name }).click();
+      let seen = 0;
+      for (let i = 0; i < 40; i += 1) {
+        const s = await read();
+        if (s) {
+          check(s, name);
+          const g = fold(s);
+          // Diagonal until it leaves through the spine.
+          if (shows(s) > 0 && g.foot > 0.1 * s.width && g.foot < s.width) {
+            seen += 1;
+            expect(g.top - g.foot, `${name}: the fold is diagonal`).toBeGreaterThan(Math.max(60, 0.15 * g.visible));
+          }
+        }
+        await page.waitForTimeout(15);
+      }
+      expect(seen, `${name}: no curl was sampled mid-turn`).toBeGreaterThan(0);
+      await still(page);
+    }
+    await expect(where(page)).toHaveText(`p. 2 of ${PAGES.length}`);
+    // Landed: no clip, no flap, no shade.
+    expect(await page.locator("#record [data-flap], #record .diary-sheet[data-at], #record .diary-shade[data-on]").count()).toBe(0);
+    const posed = await track(page).locator(":scope > [style]").evaluateAll((els) => els.map((el) => el.getAttribute("style")).filter(Boolean));
+    expect(posed, "every pose put back").toEqual([]);
   });
 
   test("a trackpad's sideways swipe turns the leaf: a short one falls back, a long one turns", async ({ page }) => {

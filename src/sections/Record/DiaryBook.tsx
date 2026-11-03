@@ -15,6 +15,10 @@ import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 import {
   completes,
+  curl,
+  curlAnchor,
+  curlProgress,
+  curlZ,
   dragProgress,
   easeOut,
   faceAngles,
@@ -30,6 +34,7 @@ import {
   TURN_MS,
   turnMs,
   turnRoom,
+  type Pt,
   type TurnDir,
 } from "@/lib/diary-turn";
 import type { ContentsChapter, DiaryPageKind } from "@/lib/record";
@@ -102,8 +107,18 @@ interface Flight {
   quick: boolean;
   /** The eye last set for it (`camera`), to write only what changes. */
   eye: string;
+  /** One page: it curls from its corner instead (`curl`). */
+  readonly curls: boolean;
+  /** The height a hand pulls the corner from (page px), and how far it has
+   *  lifted it; else the foot of what is on screen, as the curl has it. */
+  grip?: number;
+  rise: number;
   then?: () => void;
 }
+
+/** A polygon (page px) as a CSS `clip-path`; nothing, if it has no area. */
+const polygon = (pts: readonly Pt[]) =>
+  `polygon(${pts.length > 2 ? pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join() : "0 0,0 0,0 0"})`;
 
 /** The element a fragment (`#id`, as written in an href or the URL) names. */
 function byHash(hash: string): HTMLElement | null {
@@ -125,14 +140,21 @@ function byHash(hash: string): HTMLElement | null {
  * there: native scrolling is the swipe and every fragment lands on its page.
  *
  * With JavaScript, the same pages are stacked into one opening (`data-mode=
- * "leaf"`) and turn. The right page lifts at its fore-edge and turns over the
- * spine in 3D, its back the next left page, with a shadow sweeping the page
- * under it and light running across its curl; back turns the other way; below
- * 1280 one page turns about its bound edge. The dog-eared corners are handles
- * (drag one and the leaf follows; past halfway it turns, short of it it falls
- * back), touch swipes and trackpad swipes do the same, and ← → still turn
- * when the book has focus. A jump of more than a turn (a contents line, a
- * ring, a tab, Home, End) riffles: a few leaves flick over fast.
+ * "leaf"`) and turn. On a spread the right page lifts at its fore-edge and
+ * turns over the spine in 3D, its back the next left page, with a shadow
+ * sweeping the page under it and light running across its curl; back turns
+ * the other way. Below 1280, where the book shows one page, a hinge turn
+ * would squash it beside the next page into a spread for a moment, so it
+ * curls from its corner instead, in 2D and inside its own box (`curl` in
+ * `src/lib/diary-turn.ts`): the page stays flat on the spine side of a
+ * diagonal fold, its blank back is folded over it (a sheet reflected across
+ * the fold), and the next page shows only in the wedge it has left. A back
+ * turn uncurls the page before over this one. The dog-eared corners are
+ * handles (drag one and the leaf, or the curl's corner, follows; past halfway
+ * it turns, short of it it falls back), touch swipes and trackpad swipes do
+ * the same, and ← → still turn when the book has focus. A jump of more than a
+ * turn (a contents line, a ring, a tab, Home, End) riffles: a few leaves flick
+ * over fast, or on one page curl away one after another.
  *
  * Pages not on show are `hidden="until-found"`, which takes them out of the
  * tab order and the accessibility tree; the browser's find (and a fragment)
@@ -260,8 +282,7 @@ export function DiaryBook({
     const style = getComputedStyle(track);
     const height = track.getBoundingClientRect().height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     for (const slot of hidden) slot.setAttribute("hidden", "until-found");
-    const page = book.getBoundingClientRect();
-    const { depth, room } = turnRoom(pageWidth(), spreadRef.current, page.left);
+    const { depth, room } = turnRoom(pageWidth(), spreadRef.current);
     track.style.setProperty("--page-h", `${Math.ceil(height)}px`);
     track.style.setProperty("--depth", `${depth}px`);
     track.style.setProperty("--room", `${room}px`);
@@ -281,16 +302,18 @@ export function DiaryBook({
     const from = atRef.current;
     const sheets = Array.from(track.querySelectorAll<HTMLElement>(":scope > .diary-sheet"));
     let used = 0;
-    const startSide = dir === 1 ? "right" : "left";
-    const arriveSide = dir === 1 ? "left" : "right";
-    const sheet = (side: "left" | "right") => {
+    // On one page a leaf is the page and its back, a flap folded over it.
+    const curls = perNow() === 1;
+    const startSide = dir === 1 ? "right" : curls ? "flap" : "left";
+    const arriveSide = dir === -1 ? "right" : curls ? "flap" : "left";
+    const sheet = (side: string) => {
       const el = sheets[used++];
       el.dataset.at = side;
       return el;
     };
     // The real pages: on a spread, the page leaving (its back the page
     // arriving) and the pages under them; on one page, the page itself and
-    // the page under it, and a blank back.
+    // the page under it, and its blank back.
     let realStart: HTMLElement | undefined;
     let realArrive: HTMLElement | undefined;
     let underStart: HTMLElement | undefined;
@@ -319,12 +342,12 @@ export function DiaryBook({
       underStart ? shadeEls[0] : null,
       underArrive ? shadeEls[1] : null,
     ];
-    if (shades[0]) shades[0].dataset.on = startSide;
-    if (shades[1]) shades[1].dataset.on = arriveSide;
+    if (shades[0]) shades[0].dataset.on = curls ? "curl" : startSide;
+    if (shades[1]) shades[1].dataset.on = curls ? "curl" : arriveSide;
 
     const faces = list.flatMap((l) => [l.start, l.arrive]);
     const unders = [underStart, underArrive].filter((x): x is HTMLElement => !!x);
-    for (const el of faces) el.setAttribute("data-face", "");
+    for (const el of faces) el.setAttribute(el.dataset.at === "flap" ? "data-flap" : "data-face", "");
     for (const el of unders) el.setAttribute("data-under", "");
     // Focus never goes down with a page: it waits on the book.
     const active = document.activeElement;
@@ -345,6 +368,8 @@ export function DiaryBook({
       goal: true,
       quick: false,
       eye: "",
+      curls,
+      rise: 0,
     };
     flight.current = f;
     paint(f);
@@ -370,6 +395,7 @@ export function DiaryBook({
 
   /** Pose every face, its light, and the shadows, for the flight's progress. */
   const paint = (f: Flight) => {
+    if (f.curls) return curlAll(f);
     aim(f);
     const n = f.leaves.length;
     f.leaves.forEach((leaf, k) => {
@@ -393,6 +419,45 @@ export function DiaryBook({
       glint.style.setProperty("--dim", light.dim.toFixed(3));
       glint.style.setProperty("--gl", light.glint.toFixed(3));
       glint.style.setProperty("--gx", `${(light.at * 100).toFixed(1)}%`);
+    }
+  };
+  /** One page: each leaf's flat part, its back folded over it, and the
+   *  shadow on the page under them all. A clock's curl pulls the corner at
+   *  the foot of what is on screen, so the reader sees a curl, not an edge;
+   *  a hand's, at the hand's height. */
+  const curlAll = (f: Flight) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const box = track.getBoundingClientRect();
+    const room = parseFloat(track.style.getPropertyValue("--room")) || 0;
+    const w = box.width - 2 * room;
+    const h = box.height - 2 * room;
+    const anchor = f.grip ?? curlAnchor(box.top + room, h, window.innerHeight);
+    const n = f.leaves.length;
+    const under = f.shades[0] ?? f.shades[1];
+    for (let k = 0; k < n; k += 1) {
+      const p = f.p[k] ?? 0;
+      const g = curl(f.dir === 1 ? p : 1 - p, w, h, anchor, f.rise);
+      const { start, arrive } = f.leaves[k];
+      const [front, back] = f.dir === 1 ? [start, arrive] : [arrive, start];
+      const z = curlZ(k, n, f.dir);
+      front.style.zIndex = String(z);
+      front.style.clipPath = polygon(g.flat);
+      back.style.zIndex = String(z + 1);
+      back.style.clipPath = polygon(g.flap);
+      back.style.transform = `matrix(${g.matrix.map((v) => v.toFixed(5)).join()})`;
+      const lit = [back];
+      // The page under the stack takes the shadow of the leaf lying on it.
+      if (under && k === (f.dir === 1 ? n - 1 : 0)) {
+        under.style.clipPath = polygon(g.peeled);
+        lit.push(under);
+      }
+      for (const el of lit) {
+        el.style.setProperty("--fa", `${g.angle.toFixed(2)}deg`);
+        el.style.setProperty("--f0", `${g.fold.toFixed(1)}px`);
+        el.style.setProperty("--fw", `${g.depth.toFixed(1)}px`);
+        el.style.setProperty("--lift", g.lift.toFixed(3));
+      }
     }
   };
   const shade = (el: HTMLElement | null, s: { edge: number; width: number; alpha: number }) => {
@@ -424,16 +489,18 @@ export function DiaryBook({
   const land = (f: Flight) => {
     cancelAnimationFrame(f.raf);
     if (flight.current !== f) return;
+    // (No page, sheet or shade has a style of its own: every inline style
+    // on them is the turn's.)
     for (const el of f.touched) {
-      el.style.transform = "";
-      el.style.zIndex = "";
+      el.removeAttribute("style");
       el.removeAttribute("data-face");
+      el.removeAttribute("data-flap");
       el.removeAttribute("data-under");
       if (el.classList.contains("diary-sheet")) delete el.dataset.at;
     }
     for (const el of f.shades) {
       if (!el) continue;
-      el.style.opacity = "";
+      el.removeAttribute("style");
       delete el.dataset.on;
     }
     frameRef.current?.removeAttribute("data-flight");
@@ -819,23 +886,39 @@ export function DiaryBook({
   /* Hands: corners, swipes, trackpads, keys                           */
   /* ---------------------------------------------------------------- */
 
-  /** Start following a hand: a leaf lifted, ready to follow it. */
-  const lift = (dir: TurnDir): Flight | null => {
+  /** Start following a hand at height `y` (window px): a leaf lifted, ready
+   *  to follow it. */
+  const lift = (dir: TurnDir, y: number): Flight | null => {
     if (flight.current) return null;
     const to = atRef.current + dir * perNow();
     if (to < 0 || to > lastOpening()) return null;
+    const track = trackRef.current;
+    const top = (track?.getBoundingClientRect().top ?? 0) + (parseFloat(track?.style.getPropertyValue("--room") ?? "") || 0);
     const f = begin(dir, to, 1);
-    if (f) f.dragging = true;
+    if (!f) return null;
+    f.dragging = true;
+    f.grip = y - top;
     return f;
   };
-  /** Let go: past halfway, or flicked, it turns; short of it, it falls back. */
+  /** A hand `travel` px along: the leaf follows it. */
+  const follow = (f: Flight, travel: number) => {
+    f.p = [(f.curls ? curlProgress : dragProgress)(travel, pageWidth())];
+    paint(f);
+  };
+  /** Let go: past halfway, or flicked, it turns; short of it, it falls back.
+   *  A corner the hand lifted higher than the curl would sinks back onto it. */
   const release = (f: Flight, velocity: number, cancelled = false) => {
     const p0 = f.p[0] ?? 0;
+    const rise = f.rise;
     f.dragging = false;
-    f.goal = !cancelled && completes(p0, velocity, !spreadRef.current);
+    f.goal = !cancelled && completes(p0, velocity, f.curls);
     const goal = f.goal ? 1 : 0;
     const ms = Math.max(180, Math.abs(goal - p0) * TURN_MS * 0.9);
-    fly(f, ms, (elapsed) => [p0 + (goal - p0) * easeOut(elapsed / ms)]);
+    fly(f, ms, (elapsed) => {
+      const t = easeOut(elapsed / ms);
+      f.rise = rise * (1 - t);
+      return [p0 + (goal - p0) * t];
+    });
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -868,7 +951,7 @@ export function DiaryBook({
       }
       const dir: TurnDir = d.dir || (dx < 0 ? 1 : -1);
       // A forward turn pulls the page to the left; a back turn, to the right.
-      const f = -dir * dx > 0 ? lift(dir) : null;
+      const f = -dir * dx > 0 ? lift(dir, d.y) : null;
       if (!f) {
         drag.current = null;
         return;
@@ -877,8 +960,8 @@ export function DiaryBook({
       d.f = f;
       event.currentTarget.setPointerCapture?.(event.pointerId);
     }
-    d.f.p = [dragProgress(-(d.dir || 1) * dx, pageWidth())];
-    paint(d.f);
+    d.f.rise = Math.max(-dy, 0);
+    follow(d.f, -(d.dir || 1) * dx);
     d.trail.push([event.timeStamp, event.clientX]);
     if (d.trail.length > 6) d.trail.shift();
   };
@@ -927,20 +1010,19 @@ export function DiaryBook({
         event.preventDefault();
         if (flight.current || performance.now() < quietUntil) return;
         const dir: TurnDir = dx > 0 ? 1 : -1;
-        const f = lift(dir);
+        const f = lift(dir, event.clientY);
         if (!f) return;
         swipe = { f, dir, travel: 0, timer: 0 };
       }
       event.preventDefault();
       swipe.travel += swipe.dir * dx;
-      swipe.f.p = [dragProgress(swipe.travel, pageWidth())];
-      paint(swipe.f);
+      follow(swipe.f, swipe.travel);
       window.clearTimeout(swipe.timer);
       swipe.timer = window.setTimeout(letGo, 160);
     };
     book.addEventListener("wheel", onWheel, { passive: false });
     return () => book.removeEventListener("wheel", onWheel);
-    // `lift`, `release`, `paint` and `pageWidth` read refs only.
+    // `lift`, `release` and `follow` read refs only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
