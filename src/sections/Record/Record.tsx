@@ -1,7 +1,7 @@
 /**
  * The Diary (the section's id is `record` still: the chat cites `#record`, and
  * the cats' tour and the nav visit it). Round 23 bound the Record as a book you
- * swipe left and right.
+ * swiped; round 24 made its pages turn.
  *
  * - Page 1, the left page, "Pressed, waiting to dry." (`SummaryPage`): the
  *   lead, the tree slice whose rings go to their chapter, and the five
@@ -14,9 +14,12 @@
  *   (`SharedPage`). No case studies: the owner found them boring.
  * - Last, the certificates as stamps (`CertificatesPage`).
  *
- * The pages are a scroll-snap track, so the book works with JavaScript off;
- * `DiaryBook` is the one client island and adds the index tabs, the
- * dog-eared corners and "p. 3 of 14". A server component otherwise.
+ * The pages are a scroll-snap track, so the book works with JavaScript off
+ * and under reduced motion; with JavaScript `DiaryBook`, the one client
+ * island, binds them into a book whose pages turn (round 24), and adds the
+ * index tabs, the dog-eared corners and "p. 3 of 14". Each page carries its
+ * running head (the chapter's years) and its folio. A server component
+ * otherwise.
  *
  * Every id the Journey's tags, the rings, the pressed cards and old bookmarks
  * name is a real element on its page: `journey-entry-<id>`, `work-<projectId>`,
@@ -91,11 +94,20 @@ function drawPage(page: DiaryPage): { readonly node: ReactNode; readonly id: str
   }
 }
 
+/** The running head: the chapter's years, or what the page is. The summary
+ *  and the contents have none, as a book's front matter has none. */
+function runningHead(page: DiaryPage): string | undefined {
+  if (page.kind === "certificates") return record.certificates;
+  const first = page.entryIds[0];
+  return first ? CHAPTERS.find((c) => c.entries.some((e) => e.id === first))?.label : undefined;
+}
+
 export default function Record() {
   const pages: BookPage[] = PAGES.map((page) => ({
     key: page.key,
     kind: page.kind,
     kinds: pageKinds(page),
+    head: runningHead(page),
     ...drawPage(page),
   }));
   return (

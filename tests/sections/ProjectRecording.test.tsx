@@ -167,7 +167,10 @@ describe("a recording on a Diary page", () => {
     expect(container.innerHTML).not.toContain("/media/");
     for (const entry of recordedEntries) {
       const description = "recordingDescription" in entry ? (entry.recordingDescription ?? "") : "";
-      const button = screen.getByRole("button", { name: `Play the screen recording of ${entry.role}` });
+      // With motion welcome the book's pages turn (round 24): a page not on
+      // show is in the document, hidden until found, until a reader turns to it.
+      const button = screen.getByRole("button", { name: `Play the screen recording of ${entry.role}`, hidden: true });
+      expect(button.closest(".diary-slot")?.getAttribute("hidden")).toBe("until-found");
       const row = button.closest("[data-tree-branch]");
       expect(row?.getAttribute("data-tree-branch")).toBe(entry.id);
       expect(screen.getByText(description).id).toBe(`${entry.id}-recording`);

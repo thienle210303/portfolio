@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { gzipSync } from "node:zlib";
-import { SKY_CLEAR, drawScenery, journeySpots } from "../../scripts/draw-scenery.mjs";
+import { PADDY, SKY_CLEAR, drawScenery, journeySpots } from "../../scripts/draw-scenery.mjs";
 
 const DIR = "public/scenery";
 
@@ -10,8 +10,13 @@ const VIEWBOXES: Record<string, string> = {
   "bamboo-phone": "316 456 70 868",
   clothespin: "0 0 8.8 22.8",
   pine: "1260 80 180 1264",
-  "rice-field": "565 740 655 160",
-  ripples: "560 860 660 30",
+  // The paddy (round 24): one unit a pixel, the wide board from 1024, the
+  // phone's below; the wake is in the buffalo's units, half a box on.
+  paddy: "0 0 750 190",
+  "paddy-water": "0 0 750 190",
+  "paddy-phone": "0 0 840 150",
+  "paddy-phone-water": "0 0 840 150",
+  "paddy-wake": "125 0 250 104",
   "buffalo-plow": "0 0 250 104",
   "buffalo-sleep": "0 0 250 104",
   "offduty-day": "0 0 150 84",
@@ -40,6 +45,7 @@ const VIEWBOXES: Record<string, string> = {
   bia: "-42 -76 84 82",
   "banh-tet": "-72 -24 164 48",
   "paper-clip": "0 0 34 86",
+  "stamp-wear": "0 0 200 124",
   // Journey
   oak: "0 120 1440 780",
   "oak-leaves": "0 120 1440 780",
@@ -66,6 +72,10 @@ const VIEWBOXES: Record<string, string> = {
   "diary-selftaught": "0 0 130 142",
   "diary-cap": "0 0 120 80",
   "diary-podium": "0 0 140 80",
+  // The Diary as a book (round 24)
+  "diary-grain": "0 0 180 180",
+  "diary-cloth": "0 0 6 6",
+  "diary-ribbon": "0 0 18 124",
   // Weather (round 23)
   plane: "0 0 180 64",
   ufo: "0 0 130 70",
@@ -76,7 +86,7 @@ const VIEWBOXES: Record<string, string> = {
   rain: "0 0 200 200",
   snow: "0 0 240 240",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "rice-field", "ripples", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
+const INK = ["bamboo", "bamboo-phone", "pine", "paddy", "paddy-water", "paddy-phone", "paddy-phone-water", "paddy-wake", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", "stamp-wear", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", "diary-grain", "diary-cloth", "diary-ribbon", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
 
 const files = drawScenery();
 
@@ -114,6 +124,20 @@ describe("the hero's scenery", () => {
     }
   });
 
+  it("nothing is planted where the buffalo stands, on either paddy", () => {
+    // She is drawn over the field at less than full ink, so a clump behind
+    // her would show through her. Each clump's path starts at its base.
+    for (const [stem, board] of [["paddy", PADDY.wide], ["paddy-phone", PADDY.phone]] as const) {
+      const plants = [...files[stem].matchAll(/<path d="([^"]*)" stroke-width="0?\.85"\/>|<path d="([^"]*)" stroke-width="1\.15"\/>/g)];
+      const bases = plants.flatMap((m) => [...(m[1] ?? m[2]).matchAll(/M(-?\d*\.?\d+) ?(-?\d*\.?\d+)/g)].map((b) => [+b[1], +b[2]]));
+      expect(bases.length, stem).toBeGreaterThan(100);
+      for (const [x, y] of bases) {
+        const inside = board.clear.some(([x0, y0, x1, y1]) => x > x0 && x < x1 && y > y0 && y < y1);
+        expect(inside, `${stem}: a clump at ${x},${y}`).toBe(false);
+      }
+    }
+  });
+
   it("the draw is deterministic", () => {
     expect(drawScenery()).toEqual(files);
   });
@@ -132,6 +156,28 @@ describe("the hero's scenery", () => {
       expect(statSync(`${DIR}/${stem}.svg`).size, stem).toBeLessThanOrEqual(40 * 1024);
     }
     expect(gzipSync(readFileSync(`${DIR}/oak-leaves.svg`)).length).toBeLessThanOrEqual(32 * 1024);
+  });
+});
+
+describe("the postcard's stamp wear (round 24)", () => {
+  // The holes of one even-odd path: each is a polygon written `M x y l ...Z`.
+  const [, d] = files["stamp-wear"].match(/ d="([^"]+)"/)!;
+  const holes = [...d.matchAll(/Z?M([\d.]+) ([\d.]+)/g)].slice(1).map((m) => ({ x: +m[1], y: +m[2] }));
+
+  it("is one sheet that reaches every edge, stretched over the stamp's box", () => {
+    expect(files["stamp-wear"]).toContain('preserveAspectRatio="none"');
+    expect(files["stamp-wear"]).toContain('fill-rule="evenodd"');
+    expect(d.startsWith("M0 0H200V124H0Z")).toBe(true);
+  });
+
+  it("wears at the rim and leaves the middle, where the words are, mostly whole", () => {
+    const [W, H] = [200, 124];
+    const inCore = (h: { x: number; y: number }) => h.x > 45 && h.x < 155 && h.y > 28 && h.y < 96;
+    const inRim = (h: { x: number; y: number }) => Math.min(h.x, W - h.x, h.y, H - h.y) < 8;
+    const coreDensity = holes.filter(inCore).length / (110 * 68);
+    const rimDensity = holes.filter(inRim).length / (W * H - 184 * 108);
+    expect(holes.length).toBeGreaterThan(150);
+    expect(rimDensity).toBeGreaterThan(coreDensity * 3);
   });
 });
 

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { Resend } from "resend";
 import { z } from "zod";
-import { leadSubject } from "@/lib/contact";
+import { SITE_URL } from "@/content/portfolio";
+import { leadSubject, thankYouFrom, thankYouMessage } from "@/lib/contact";
 // Built from the limits and patterns the form also checks; this is the final check.
 import { leadSchema } from "./schema";
 
@@ -23,6 +24,13 @@ import { leadSchema } from "./schema";
  *    Nothing else is ever returned, and nothing throws past this module —
  *    nodejs runtime errors are caught and turned into a generic
  *    "send-failed" response rather than a 500.
+ *  - Round 24: once my own copy has sent, and only when `CONTACT_REPLY_FROM`
+ *    (an address on a domain verified in Resend) is set and the visitor gave
+ *    an email, they get a short thank-you through the same client, replying to
+ *    my inbox. It is static: it never repeats anything the visitor typed, not
+ *    even their name. A thank-you that fails never fails the lead (it is
+ *    logged), and the response says whether one went (`thanked`). A phone-only
+ *    lead gets nothing: there is no SMS.
  */
 
 export const runtime = "nodejs";
@@ -54,7 +62,7 @@ function collectFieldErrors(issues: readonly z.core.$ZodIssue[]): FieldErrors {
  * a route module.
  */
 type ContactApiResponse =
-  | { ok: true }
+  | { ok: true; thanked: boolean }
   | { ok: false; reason: "invalid"; fieldErrors: FieldErrors }
   | { ok: false; reason: "not-configured" }
   | { ok: false; reason: "rate-limited" }
@@ -109,6 +117,42 @@ function getClientIp(request: NextRequest): string {
 }
 
 /* -------------------------------------------------------------------------- */
+/* The thank-you                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Sends the visitor a short thank-you, when one is due: `CONTACT_REPLY_FROM`
+ * is set (an address on a domain verified in Resend) and they gave an email.
+ * Resolves `true` only when the mail service accepted it. It never throws and
+ * its failure is only logged, because the lead has already reached me.
+ */
+async function thank(
+  resend: Resend,
+  replyFrom: string | undefined,
+  visitorEmail: string | undefined,
+  myInbox: string,
+): Promise<boolean> {
+  const from = replyFrom?.trim();
+  if (!from || !visitorEmail) return false;
+  try {
+    const { error } = await resend.emails.send({
+      from: thankYouFrom(from),
+      to: visitorEmail,
+      replyTo: myInbox,
+      ...thankYouMessage(SITE_URL),
+    });
+    if (error) {
+      console.error("[contact] Resend rejected the thank-you:", error.name, error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[contact] Unexpected error while thanking:", err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* Handler                                                                     */
 /* -------------------------------------------------------------------------- */
 
@@ -134,7 +178,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
   // submission is automated. Respond exactly as a genuine success would,
   // and send nothing.
   if (asString(body.website) !== "") {
-    return respond({ ok: true }, 200);
+    return respond({ ok: true, thanked: false }, 200);
   }
 
   // Re-checked independently of `page.tsx`'s own boolean — read directly
@@ -187,7 +231,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
       return respond({ ok: false, reason: "send-failed" }, 502);
     }
 
-    return respond({ ok: true }, 200);
+    // My copy is out; only now does a thank-you go, and what happens to it
+    // can no longer change the answer to the lead.
+    const thanked = await thank(resend, process.env.CONTACT_REPLY_FROM, email, toEmail);
+    return respond({ ok: true, thanked }, 200);
   } catch (err) {
     console.error("[contact] Unexpected error while sending:", err instanceof Error ? err.message : err);
     return respond({ ok: false, reason: "send-failed" }, 502);

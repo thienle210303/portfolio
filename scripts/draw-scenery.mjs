@@ -187,6 +187,327 @@ function buffaloSleep() {
   return body + ink + buffaloHorn(80, 61, 0.9) + zs + mud;
 }
 
+// ---- Ruộng lúa: the hero's paddy (round 24) ----
+// A Vietnamese paddy, not a meadow: flooded plots split by earthen dykes (bờ
+// ruộng) that curve gently away, transplanted clumps (bụi lúa) in rows that
+// close up and converge with distance, each standing in the water on its own
+// broken reflection, and on the near bank a few ripe stalks whose ears (bông
+// lúa) hang heavy. One perspective for the whole board: depth z is 1 at the
+// near bank, a row sits at yH + span / z and a column at vpx + (x - vpx) / z,
+// so the clumps shrink, the rows close up and the columns meet at the
+// vanishing point. Two masks per board: the rice and its banks (painted like
+// the hero's other plants) and the water. The plot the buffalo walks in is
+// bare (she is ploughing it), and nothing is planted behind her, since she is
+// drawn over the field at less than full ink. `paddy-wake` is the mud she
+// turns, drawn in her own box so it follows the plough at every size.
+export const PADDY = {
+  // From 1024: one unit a pixel, the buffalo's 192 × 80 box at x 327, y 80.
+  wide: {
+    W: 750, H: 190, yH: 8, yN: 176, vpx: 420, seed: 24,
+    h0: 17, dx: 44, fine: 9, tick: 4.2,
+    dykes: [
+      { z: 1.62, amp: 0.035, period: 620, ph: 0.6, tilt: 0.05, th: 0.05 },
+      { z: 2.5, amp: 0.04, period: 540, ph: 2.1, tilt: -0.04, th: 0.05 },
+      { z: 3.8, amp: 0.045, period: 480, ph: 4.2, tilt: 0.03, th: 0.055 },
+      { z: 5.8, amp: 0.05, period: 420, ph: 1.2, tilt: -0.03, th: 0.06 },
+    ],
+    zFar: 9.5,
+    // rows of clumps in each plot, near to far
+    rows: [3, 2, 2, 2, 1],
+    lateral: [{ xw: 300, w: 9 }, { xw: 780, w: 9 }, { xw: -260, w: 9 }],
+    // plots of still water, nothing planted yet: [plot, from, to] across the field
+    bare: [[0, 300, 780], [2, -260, 300], [3, 780, 2000]],
+    clear: [[336, 88, 398, 162], [398, 100, 482, 162], [482, 112, 528, 162]],
+    bank: { amp: 2.2, period: 520, ph: 1, grass: 22 },
+    stalks: [
+      { x: 152, h: 92, lean: 10, dir: 1, ear: 31 },
+      { x: 178, h: 116, lean: 18, dir: 1, ear: 36 },
+      { x: 206, h: 102, lean: 24, dir: 1, ear: 33 },
+      { x: 238, h: 84, lean: 20, dir: 1, ear: 29 },
+      { x: 632, h: 98, lean: -12, dir: -1, ear: 33 },
+      { x: 662, h: 114, lean: -18, dir: -1, ear: 35 },
+      { x: 694, h: 88, lean: -10, dir: -1, ear: 30 },
+    ],
+    grain: 1,
+    // the hamlet's trees on the far edge, and its palms: [x, height, lean]
+    trees: 6, palms: [[96, 21, -2], [118, 16, 3], [508, 19, 2], [612, 23, -3], [636, 17, 2]],
+  },
+  // Below 1024: the buffalo's 120 × 50 box at x 360, y 94, so her feet are in
+  // the water just above the bank (the board stands 24px up, clear of the
+  // captions). Under 360 the page shrinks the board with her.
+  phone: {
+    W: 840, H: 150, yH: 4, yN: 145, vpx: 430, seed: 25,
+    h0: 13, dx: 30, fine: 7, tick: 3.6,
+    dykes: [
+      { z: 1.7, amp: 0.035, period: 520, ph: 0.9, tilt: 0.05, th: 0.06 },
+      { z: 2.8, amp: 0.04, period: 460, ph: 2.6, tilt: -0.04, th: 0.06 },
+      { z: 4.4, amp: 0.05, period: 400, ph: 4.4, tilt: 0.03, th: 0.065 },
+    ],
+    zFar: 7.5,
+    rows: [2, 2, 2, 1],
+    lateral: [{ xw: 330, w: 7 }, { xw: 600, w: 7 }, { xw: 30, w: 7 }, { xw: 880, w: 7 }],
+    bare: [[0, 330, 600], [1, 880, 2000], [2, 30, 330]],
+    clear: [[366, 98, 404, 147], [404, 106, 456, 147], [456, 112, 482, 147]],
+    bank: { amp: 1.4, period: 420, ph: 0.4, grass: 18 },
+    stalks: [
+      { x: 322, h: 70, lean: 8, dir: 1, ear: 25 },
+      { x: 340, h: 84, lean: 12, dir: 1, ear: 27 },
+      { x: 355, h: 62, lean: 8, dir: 1, ear: 22 },
+      { x: 520, h: 66, lean: -8, dir: -1, ear: 24 },
+      { x: 538, h: 80, lean: -12, dir: -1, ear: 26 },
+      { x: 196, h: 64, lean: 8, dir: 1, ear: 23 },
+      { x: 214, h: 76, lean: 12, dir: 1, ear: 25 },
+      { x: 664, h: 74, lean: -10, dir: -1, ear: 25 },
+      { x: 684, h: 60, lean: -6, dir: -1, ear: 22 },
+    ],
+    grain: 0.9,
+    trees: 5, palms: [[150, 16, -2], [262, 18, 2], [282, 13, -1], [560, 17, -2], [700, 15, 2], [716, 19, -2]],
+  },
+};
+const pts = (a) => a.map(([x, y], i) => `${i ? "L" : "M"}${f(x)} ${f(y)}`).join("");
+/** Shorter path data, same shapes: no space before a minus sign, no leading zero. */
+const tidy = (text) => text.replace(/ d="([^"]*)"/g, (_, d) => ` d="${d.replace(/ -/g, "-").replace(/(^|[^\d.])0\./g, "$1.")}"`);
+/** A transplanted clump: blades fanning up from one point, the outer ones bending out. */
+function paddyClump(x, y, h, r) {
+  const n = h > 15 ? 6 : 5;
+  let d = `M${f(x)} ${f(y)}`, back = "";
+  for (let k = 0; k < n; k++) {
+    const a = (-1 + (2 * k) / (n - 1)) * 0.6 + (r() - 0.5) * 0.18;
+    const L = h * (1 - 0.32 * Math.abs(a)) * (0.86 + r() * 0.28);
+    const tx = f(Math.sin(a) * L * 1.25), ty = f(-Math.cos(a) * L);
+    d += `${back}q${f(Math.sin(a) * L * 0.2)} ${f(-L * 0.78)} ${tx} ${ty}`;
+    back = `m${-tx} ${-ty}`;
+  }
+  return d;
+}
+/** Smaller and further off: three or four straight blades. */
+function paddySprig(x, y, h, r) {
+  const n = h > 7 ? 4 : 3;
+  let d = `M${f(x)} ${f(y)}`, back = "";
+  for (let k = 0; k < n; k++) {
+    const a = (-1 + (2 * k) / (n - 1)) * 0.5 + (r() - 0.5) * 0.14;
+    const tx = f(Math.sin(a) * h * 1.1), ty = f(-Math.cos(a) * h * (1 - 0.25 * Math.abs(a)));
+    d += `${back}l${tx} ${ty}`;
+    back = `m${-tx} ${-ty}`;
+  }
+  return d;
+}
+/** A clump's reflection: the waterline it stands in, and its blades mirrored and broken. */
+function paddyReflection(x, y, h, near) {
+  const w = h * 0.34, L = h * 0.62;
+  let d = `M${f(x - w)} ${f(y + 0.5)}h${f(2 * w)}`;
+  const seg = (a, t0, t1) => {
+    const sx = Math.sin(a) * 1.2, cy = Math.cos(a);
+    d += `M${f(x + sx * L * t0)} ${f(y + 1 + cy * L * t0)}l${f(sx * L * (t1 - t0))} ${f(cy * L * (t1 - t0))}`;
+  };
+  if (near) { seg(0, 0.16, 0.46); seg(0, 0.6, 0.82); seg(-0.45, 0.2, 0.55); seg(0.45, 0.2, 0.55); }
+  else seg(0, 0.2, 0.62);
+  return d;
+}
+/** A leaf off a stalk: long and narrow, arching out and drooping at the tip. */
+function riceLeaf(x, y, side, len, w) {
+  const p = [[x, y], [x + side * len * 0.06, y - len * 0.62], [x + side * len * 0.34, y - len * 0.98], [x + side * len * 0.64, y - len * 0.8]];
+  const n = [[x + side * w, y], [p[1][0] + side * w, p[1][1] + w * 0.4], [p[2][0] + side * w * 0.3, p[2][1] + w], p[3]];
+  return `M${f(p[0][0])} ${f(p[0][1])}C${f(p[1][0])} ${f(p[1][1])} ${f(p[2][0])} ${f(p[2][1])} ${f(p[3][0])} ${f(p[3][1])}`
+    + `C${f(n[2][0])} ${f(n[2][1])} ${f(n[1][0])} ${f(n[1][1])} ${f(n[0][0])} ${f(n[0][1])}Z`;
+}
+/**
+ * A ripe stalk on the near bank: the stem, two leaves and a flag leaf, and the
+ * ear arching over and hanging heavy, its grains along the rachis and two
+ * branches beside it. Grains are short round-capped strokes, so the whole crop
+ * of them is one path.
+ */
+function ripeStalk(s, y, r, g) {
+  const top = [s.x + s.lean, y - s.h];
+  let stem = `M${f(s.x)} ${f(y)}Q${f(s.x + s.lean * 0.1)} ${f(y - s.h * 0.55)} ${f(top[0])} ${f(top[1])}`;
+  let leaves = riceLeaf(s.x, y - 2, -s.dir, s.h * (0.5 + r() * 0.2), 2.2 * g)
+    + riceLeaf(s.x + s.lean * 0.05, y - s.h * 0.22, s.dir, s.h * (0.45 + r() * 0.2), 2 * g);
+  // the flag leaf, up the stem and leaning away from the ear
+  const fl = [s.x + s.lean * 0.45, y - s.h * 0.6];
+  leaves += `M${f(fl[0])} ${f(fl[1])}q${f(-s.dir * 4 * g)} ${f(-s.h * 0.22)} ${f(-s.dir * 10 * g)} ${f(-s.h * 0.36)}q${f(s.dir * 2 * g)} ${f(s.h * 0.2)} ${f(s.dir * 12 * g)} ${f(s.h * 0.36)}Z`;
+  const L = s.ear, dir = s.dir;
+  const rachis = [top, [top[0] + dir * L * 0.06, top[1] - L * 0.2], [top[0] + dir * L * 0.4, top[1] - L * 0.22], [top[0] + dir * L * 0.52, top[1] + L * 0.72]];
+  stem += `M${f(top[0])} ${f(top[1])}C${rachis.slice(1).map(([a, b]) => `${f(a)} ${f(b)}`).join(" ")}`;
+  let grains = "";
+  // A grain each `gap` along the curve, alternate sides, each pointing on
+  // down the rachis and a little out, smaller toward the tip.
+  const grainsOn = (p, t0, gap, off, size) => {
+    let prev = cubic(p, t0), acc = gap * 0.6, k = 0;
+    for (let i = 1; i <= 48; i++) {
+      const t = t0 + ((1 - t0) * i) / 48, q = cubic(p, t);
+      acc += Math.hypot(q[0] - prev[0], q[1] - prev[1]);
+      prev = q;
+      if (acc < gap) continue;
+      acc = 0;
+      const [dx, dy] = cubicD(p, t), len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+      const side = k++ % 2 ? 1 : -1, gl = size * (1 - 0.4 * ((t - t0) / (1 - t0)));
+      const ang = Math.atan2(uy, ux) + side * 0.5;
+      grains += `M${f(q[0] - uy * off * side)} ${f(q[1] + ux * off * side)}l${f(Math.cos(ang) * gl)} ${f(Math.sin(ang) * gl)}`;
+    }
+  };
+  grainsOn(rachis, 0.4, 1.8 * g, 1.2 * g, 1.7 * g);
+  // a branch off the top of the arch, hanging inside the rachis
+  const [bx, by] = cubic(rachis, 0.5), end = cubic(rachis, 1);
+  const branch = [[bx, by], [bx + dir * L * 0.08, by + L * 0.1], [end[0] - dir * L * 0.08, by + (end[1] - by) * 0.4], [end[0] - dir * L * 0.14, by + (end[1] - by) * 0.8]];
+  stem += `M${f(bx)} ${f(by)}C${branch.slice(1).map(([a, c]) => `${f(a)} ${f(c)}`).join(" ")}`;
+  grainsOn(branch, 0.3, 2 * g, 1.1 * g, 1.5 * g);
+  return { stem, leaves, grains };
+}
+/**
+ * The far edge of the fields: a line of trees round a hamlet, bush by bush,
+ * with gaps, and here and there a coconut palm over them. Washed, since it is
+ * far off; it also keeps the board from ending in a ruled line.
+ */
+function farTrees(c, yAt, r) {
+  let bush = "", palm = "";
+  for (let x = -8; x < c.W + 8;) {
+    if (r() < 0.22) { x += 10 + r() * 26; continue; }
+    const y = yAt(x) + 0.6, n = 2 + Math.floor(r() * 4);
+    let d = `M${f(x)} ${f(y)}`, px = x;
+    for (let i = 0; i < n; i++) {
+      const w = 5 + r() * 7, h = 3 + r() * c.trees;
+      d += `q${f(w * 0.1)} ${f(-h * 1.3)} ${f(w / 2)} ${f(-h)}t${f(w / 2)} ${f(h)}`;
+      px += w;
+    }
+    bush += `${d}Z`;
+    x = px + 2 + r() * 8;
+  }
+  for (const [x, h, lean] of c.palms) {
+    const y = yAt(x) + 0.5, tx = x + lean, ty = y - h;
+    palm += `M${f(x)} ${f(y)}q${f(lean * 0.2)} ${f(-h * 0.6)} ${f(lean)} ${f(-h)}`;
+    for (const [dx, dy] of [[-7, 3], [-5, 5], [-2, 6], [3, 5], [6, 4], [8, 1], [-8, 0]]) {
+      palm += `M${f(tx)} ${f(ty)}q${f(dx * 0.5)} ${f(-2.4)} ${f(dx)} ${f(dy)}`;
+    }
+  }
+  return `<g opacity="0.42"><path d="${bush}" fill="${K}"/><path d="${palm}" fill="none" stroke="${K}" stroke-width="0.9" stroke-linecap="round"/></g>`;
+}
+function paddyBoard(c) {
+  const r = rng(c.seed), span = c.yN - c.yH;
+  const Y = (z) => c.yH + span / z;
+  const X = (xw, z) => c.vpx + (xw - c.vpx) / z;
+  const XW = (x, z) => c.vpx + (x - c.vpx) * z;
+  const dykeZ = (d, x) => d.z * (1 + d.amp * Math.sin((x / d.period) * 2 * Math.PI + d.ph) + (d.tilt * (x - c.W / 2)) / c.W);
+  const bankY = (x) => c.yN + c.bank.amp * Math.sin((x / c.bank.period) * 2 * Math.PI + c.bank.ph);
+  const xs = []; for (let x = -12; x <= c.W + 12; x += 21) xs.push(x);
+  if (xs[xs.length - 1] < c.W + 12) xs.push(c.W + 12);
+  // The near bank's waterline counts as a dyke at depth 1 with no band.
+  const near = { z: 1, amp: 0, period: 1, ph: 0, tilt: 0, th: 0 };
+  const far = { z: c.zFar, amp: 0.02, period: 700, ph: 0.3, tilt: 0, th: 0 };
+  const lines = [near, ...c.dykes, far];
+  const hits = (x0, y0, x1, y1) => c.clear.some(([a, b, cc, d]) => x0 < cc && a < x1 && y0 < d && b < y1);
+
+  // Water: one wash over every plot, from the far edge to the near bank.
+  const water = { wash: pts([...xs.map((x) => [x, Y(dykeZ(far, x))]), ...xs.slice().reverse().map((x) => [x, bankY(x)])]) + "Z", lines: "", reflect: "", ticks: "" };
+  const rice = { banks: "", edges: "", clumps: "", sprigs: "", ticks: "", grass: "" };
+
+  // The dykes: a band of bank (its fill is washed) and the line where it meets the water.
+  for (const d of c.dykes) {
+    const lo = xs.map((x) => [x, Y(dykeZ(d, x))]), hi = xs.map((x) => [x, Y(dykeZ(d, x) * (1 + d.th))]);
+    rice.banks += pts([...lo, ...hi.reverse()]) + "Z";
+    rice.edges += `<path d="${pts(lo)}" stroke-width="${f(Math.max(0.6, 1.5 / Math.sqrt(d.z)))}"/>`;
+  }
+  // Dykes running away from me, narrowing to the vanishing point.
+  for (const l of c.lateral) {
+    const zs = []; for (let z = 1; z <= c.zFar * 1.001; z *= 1.16) zs.push(z);
+    const a = zs.map((z) => [X(l.xw - l.w / 2, z), Y(z)]), b = zs.map((z) => [X(l.xw + l.w / 2, z), Y(z)]);
+    rice.banks += pts([...a, ...b.reverse()]) + "Z";
+    rice.edges += `<path d="${pts(zs.map((z) => [X(l.xw - l.w / 2, z), Y(z)]))}" stroke-width="0.7"/>`;
+  }
+  // The near bank, with grass along its top.
+  rice.banks += pts([...xs.map((x) => [x, bankY(x)]), [c.W + 12, c.H + 2], [-12, c.H + 2]]) + "Z";
+  rice.edges += `<path d="${pts(xs.map((x) => [x, bankY(x)]))}" stroke-width="1.3"/>`;
+  for (let x = 4 + r() * 6; x < c.W - 2; x += c.bank.grass * (0.7 + r() * 0.6)) {
+    const y = bankY(x) + 1 + r() * 3, h = 3 + r() * 4;
+    rice.grass += `M${f(x - h * 0.5)} ${f(y - h * 0.8)}l${f(h * 0.5)} ${f(h * 0.8)}l${f(h * 0.4)} ${f(-h)}`;
+  }
+
+  // The rice, plot by plot, near to far.
+  for (let p = 0; p < lines.length - 1; p++) {
+    const a = lines[p], b = lines[p + 1];
+    const bare = c.bare.filter(([bp]) => bp === p);
+    const isBare = (xw) => bare.some(([, lo, hi]) => xw > lo && xw < hi);
+    const n = c.rows[p];
+    for (let k = 0; k < n; k++) {
+      const u = 0.16 + (0.68 * (k + 0.5)) / n;
+      const rowZ = (x) => { const za = dykeZ(a, x) * (1 + a.th), zb = dykeZ(b, x); return za + (zb - za) * u; };
+      const zc = rowZ(c.W / 2), h = c.h0 / zc;
+      if (h < c.tick) {
+        // Too far to tell one clump from the next: a row of ticks, one per
+        // column, broken where a plot lies bare.
+        const per = c.dx / zc, th = h * 0.95, cuts = bare.map(([, lo, hi]) => [X(lo, zc), X(hi, zc)]);
+        let from = -12;
+        for (const [x0, x1] of [...cuts.sort((m, q) => m[0] - q[0]), [c.W + 12, c.W + 12]]) {
+          if (x0 > from + 4) {
+            const seg = xs.filter((x) => x > from && x < x0);
+            const row = [[from, 0], ...seg.map((x) => [x, 0]), [Math.min(x0, c.W + 12), 0]].map(([x]) => [x, Y(rowZ(x)) - th / 2]);
+            const off = (((from - X(0, zc)) % per) + per) % per;
+            const dash = `stroke-dasharray="0.9 ${f(per - 0.9)}" stroke-dashoffset="${f(off)}"`;
+            rice.ticks += `<path d="${pts(row)}" stroke-width="${f(th)}" ${dash}/>`;
+            water.ticks += `<path d="${pts(row.map(([x, y]) => [x, y + th * 1.05]))}" stroke-width="${f(th * 0.5)}" ${dash}/>`;
+          }
+          from = Math.max(from, x1);
+        }
+        continue;
+      }
+      const xwL = XW(-10, zc), xwR = XW(c.W + 10, zc);
+      for (let j = Math.ceil(xwL / c.dx); j * c.dx <= xwR; j++) {
+        const xw = j * c.dx + (r() - 0.5) * c.dx * 0.16, hh = h * (0.85 + r() * 0.3), jit = (r() - 0.5) * 0.5;
+        if (isBare(xw) || c.lateral.some((l) => Math.abs(xw - l.xw) < l.w * 1.2)) continue;
+        const x = X(xw, zc), y = Y(rowZ(x)) + jit;
+        if (x < -6 || x > c.W + 6 || hits(x - hh * 0.6, y - hh, x + hh * 0.6, y + 2)) continue;
+        if (hh >= c.fine) rice.clumps += paddyClump(x, y, hh, r);
+        else rice.sprigs += paddySprig(x, y, hh, r);
+        water.reflect += paddyReflection(x, y, hh, hh >= c.fine);
+      }
+    }
+    // Light on the water: on still water most of all.
+    for (let i = 0; i < (p === 0 ? 18 : 9); i++) {
+      const u = 0.1 + r() * 0.8, x = r() * c.W, zr = dykeZ(a, x) * (1 + a.th) + (dykeZ(b, x) - dykeZ(a, x) * (1 + a.th)) * u;
+      const y = Y(zr), len = (10 + r() * 26) / zr;
+      if (hits(x - 2, y - 2, x + len + 2, y + 2)) continue;
+      water.lines += `M${f(x)} ${f(y)}h${f(len)}`;
+    }
+  }
+
+  // Ripe stalks on the near bank.
+  const ears = { stem: "", leaves: "", grains: "" };
+  for (const s of c.stalks) {
+    const e = ripeStalk(s, bankY(s.x) + 2, r, c.grain);
+    ears.stem += e.stem; ears.leaves += e.leaves; ears.grains += e.grains;
+  }
+
+  return {
+    rice: tidy(`<g fill="${K}" opacity="0.26"><path d="${rice.banks}"/></g>`
+      + farTrees(c, (x) => Y(dykeZ(far, x)), rng(c.seed + 100))
+      + `<g fill="none" stroke="${K}" stroke-linecap="round" stroke-linejoin="round">${rice.edges}`
+      + `<path d="${rice.grass}" stroke-width="0.8"/>`
+      + `<path d="${rice.clumps}" stroke-width="1.15"/><path d="${rice.sprigs}" stroke-width="0.85"/>`
+      + `<g stroke-linecap="butt" opacity="0.75">${rice.ticks}</g>`
+      + `<path d="${ears.stem}" stroke-width="1.25"/>`
+      + `<path d="${ears.grains}" stroke-width="${f(1.7 * c.grain)}"/></g>`
+      + `<path d="${ears.leaves}" fill="${K}"/>`),
+    water: tidy(`<path d="${water.wash}" fill="${K}" opacity="0.32"/>`
+      + `<g fill="none" stroke="${K}" stroke-linecap="round"><path d="${water.lines}" stroke-width="1"/>`
+      + `<path d="${water.reflect}" stroke-width="0.9"/><g stroke-linecap="butt" opacity="0.8">${water.ticks}</g></g>`),
+  };
+}
+/** The mud she turns behind the plough, in the buffalo's own coordinates, running on past her box. */
+function paddyWake() {
+  const r = rng(26); let ridges = "", rings = "";
+  // turned mud ridges, trailing off behind the share
+  for (let i = 0; i < 4; i++) {
+    const y = 95 + i * 2.6, x0 = 222 + i * 4, len = 120 - i * 22;
+    let d = `M${f(x0)} ${f(y)}`;
+    for (let x = 0; x < len; x += 12) d += `q3 ${f(-1.4 - r() * 0.8)} 6 0t6 0`;
+    ridges += `<path d="${d}" opacity="${f(0.95 - i * 0.18)}"/>`;
+  }
+  // ripples spreading from the share, flattened by the eye's low angle
+  for (const [rx, o] of [[10, 0.9], [19, 0.6], [29, 0.35]]) {
+    rings += `<path d="M${f(220 - rx)} ${f(96)}a${rx} ${f(rx * 0.22)} 0 0 0 ${2 * rx} 0" opacity="${o}"/>`;
+  }
+  return `<g fill="none" stroke="${K}" stroke-width="1" stroke-linecap="round">${ridges}${rings}</g>`;
+}
+
 // ---- Moon in a võng (round 23) ----
 // Moon, the blue cat, in a Vietnamese hammock slung between two bamboo
 // stakes: her head on the rim, a paw and the tail hanging over. By day her
@@ -664,6 +985,54 @@ const banhTet = `<rect x="-70" y="-22" width="120" height="44" rx="20" fill="#5E
   + `<ellipse cx="70" cy="0" rx="11" ry="12" fill="#E3C46A"/><ellipse cx="70" cy="0" rx="5" ry="5.5" fill="#C98B7A"/>`;
 const paperClip = `<path d="M10 70V16a7 7 0 0 1 14 0v58a10 10 0 0 1-20 0V22" fill="none" stroke="#8C949A" stroke-width="2.6" stroke-linecap="round"/>`;
 
+// ---- The SENT stamp's wear (round 24) ----
+// A one-colour mask for the rubber stamp inked on the postcard: opaque
+// everywhere except pinholes and a few dropouts. The holes crowd the rim (where
+// a worn stamp loses its ink first) and a few patches (uneven pressure), and
+// are sparse across the middle so the words stay whole. The page lays it over
+// the stamp's own box at 100% 100%, so the speck size follows the stamp. One
+// even-odd path: a hole is a small polygon wound inside the sheet, and none
+// overlaps another (a second hole on the first would fill it again).
+const STAMP_WEAR_BOX = [200, 124];
+function stampWear() {
+  const [W, H] = STAMP_WEAR_BOX, r = rng(2401);
+  const patches = Array.from({ length: 4 }, () => ({ x: r() * W, y: r() * H, rad: 16 + r() * 14 }));
+  const holes = [];
+  let d = `M0 0H${W}V${H}H0Z`;
+  const fits = (x, y, rad) => holes.every((h) => Math.hypot(h.x - x, h.y - y) > h.rad + rad + 0.8);
+  const hole = (x, y, rad, sides = 4) => {
+    // An irregular little polygon, written as relative steps to keep the file small.
+    const pts = Array.from({ length: sides }, (_, k) => {
+      const a = ((k + r() * 0.5) / sides) * Math.PI * 2, rr = rad * (0.65 + r() * 0.7);
+      return [x + Math.cos(a) * rr, y + Math.sin(a) * rr];
+    });
+    let out = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let k = 1; k < sides; k++) out += `l${f(pts[k][0] - pts[k - 1][0])} ${f(pts[k][1] - pts[k - 1][1])}`;
+    return `${out}Z`;
+  };
+  // pinholes, thickest at the rim and in the pressure patches
+  for (let i = 0; i < 3200 && holes.length < 340; i++) {
+    const x = r() * W, y = r() * H;
+    const rim = Math.exp(-Math.min(x, W - x, y, H - y) / 8);
+    const patch = Math.max(0, ...patches.map((p) => 1 - Math.hypot(x - p.x, y - p.y) / p.rad));
+    if (r() > 0.012 + 0.5 * rim + 0.32 * patch) continue;
+    const rad = 0.45 + r() * (0.7 + 1.5 * rim);
+    if (!fits(x, y, rad)) continue;
+    holes.push({ x, y, rad });
+    d += hole(x, y, rad);
+  }
+  // a few larger dropouts, only on the rim, where the ink skipped
+  for (let i = 0; i < 400 && holes.length < 352; i++) {
+    const side = Math.floor(r() * 4), t = r();
+    const [x, y] = [[t * W, 2.5], [t * W, H - 2.5], [2.5, t * H], [W - 2.5, t * H]][side];
+    const rad = 2.4 + r() * 2.6;
+    if (!fits(x, y, rad)) continue;
+    holes.push({ x, y, rad });
+    d += hole(x, y, rad, 5);
+  }
+  return `<path fill="${K}" fill-rule="evenodd" d="${d}"/>`;
+}
+
 /** Contact's files. Their names are listed in tests/lib/scenery.test.ts. */
 function contactDrawings() {
   return {
@@ -676,6 +1045,9 @@ function contactDrawings() {
     bia: svg("-42 -76 84 82", bia),
     "banh-tet": svg("-72 -24 164 48", banhTet),
     "paper-clip": svg("0 0 34 86", paperClip),
+    // `none`: the page stretches it over the stamp's box, whatever its shape, so
+    // the sheet must reach every edge instead of being letterboxed.
+    "stamp-wear": svg(`0 0 ${STAMP_WEAR_BOX[0]} ${STAMP_WEAR_BOX[1]}`, stampWear()).replace("<svg ", `<svg preserveAspectRatio="none" `),
   };
 }
 
@@ -994,6 +1366,49 @@ function recordFiles() {
 }
 // ---- end Record drawings ----
 
+// ---- The Diary as a book (round 24) ----
+// The book's own materials, as one-colour masks the page paints with aliases:
+// the paper's grain (a tile of fibre and speckle, so a page reads as paper and
+// not as a flat fill), the cover's cloth (a basket weave, tiled over the
+// boards) and the ribbon's tail, hanging out of the book's foot with a twist
+// and a swallowtail cut. The grain is noise, so it is drawn by the SVG's own
+// turbulence with stitched edges, which tiles without a seam and is the same
+// on every draw.
+function diaryGrain() {
+  // Speckle: the top of a fine noise. Fibre: a stretched noise, faint.
+  const fx = `<filter id="g" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">`
+    + `<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch" result="s"/>`
+    + `<feColorMatrix in="s" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 7 0 0 0 -4.1" result="sa"/>`
+    + `<feTurbulence type="fractalNoise" baseFrequency="0.012 0.42" numOctaves="2" seed="3" stitchTiles="stitch" result="f"/>`
+    + `<feColorMatrix in="f" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -1.05" result="fa"/>`
+    + `<feComposite in="sa" in2="fa" operator="arithmetic" k2="1" k3="0.5"/></filter>`;
+  return svg("0 0 180 180", `<defs>${fx}</defs><rect width="180" height="180" fill="${K}" filter="url(#g)"/>`);
+}
+function diaryCloth() {
+  // Basket weave: each thread passes over two and under two.
+  const over = `<path d="M0 1.5H3M3 4.5H6"/>`;
+  const under = `<path d="M4.5 0V3M1.5 3V6" stroke-opacity="0.55"/>`;
+  return svg("0 0 6 6", `<g fill="none" stroke="${K}" stroke-width="1.1" stroke-linecap="butt">${over}${under}</g>`);
+}
+function diaryRibbon() {
+  // Out of the book's foot, a turn of the cloth, and a swallowtail.
+  const edge = (s) => `M${f(1 + s)} 0C${f(1.6 + s)} 30 ${f(5.4 + s)} 52 ${f(4.2 + s)} 82C${f(3.6 + s)} 98 ${f(2 + s)} 108 ${f(2.6 + s)} 120`;
+  const left = edge(0);
+  const body = `${left}L${f(8.4)} ${f(113)}L${f(14.2)} 122`
+    + `C${f(13.6)} 108 ${f(15.4)} 98 ${f(16)} 82C${f(17.2)} 52 ${f(13.4)} 30 ${f(12.8)} 0Z`;
+  // The fold where it turns, a little darker in the cloth.
+  const fold = `<path d="M4.6 54C8 58 11.6 58 15 54" fill="none" stroke="${K}" stroke-width="0.8" stroke-opacity="0.35"/>`;
+  return svg("0 0 18 124", `<path d="${body}" fill="${K}"/>${fold}`);
+}
+function diaryFiles() {
+  return {
+    "diary-grain": diaryGrain(),
+    "diary-cloth": diaryCloth(),
+    "diary-ribbon": diaryRibbon(),
+  };
+}
+// ---- end Diary book drawings ----
+
 // ---- Weather drawings (round 23) ----
 // "Watch it grow" plays a different weather over the oak for each year
 // (src/lib/origin-story.ts, `weatherFor`); these are the shapes CSS cannot make
@@ -1144,13 +1559,17 @@ function navFiles() {
 
 /** @returns {Record<string, string>} file stem → SVG text */
 export function drawScenery() {
+  const paddy = paddyBoard(PADDY.wide), paddyPhone = paddyBoard(PADDY.phone);
   return {
     bamboo: svg(`0 110 140 ${BAMBOO_FOOT - 110}`, bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
     "bamboo-phone": svg(`316 456 70 ${PHONE_BAMBOO_FOOT - 456}`, phoneBamboo(K, `fill="${K}" fill-opacity="0.18"`)),
     clothespin: svg("0 0 8.8 22.8", clothespin),
     pine: svg(`1260 80 180 ${PINE_FOOT - 80}`, `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g><path d="M1356 900V${PINE_FOOT}" fill="none" stroke="${K}" stroke-width="4.32"/>`),
-    "rice-field": svg("565 740 655 160", rice(640, 890, 15, 34, 11, K, 70, 70)),
-    ripples: svg("560 860 660 30", ripples(560, 872, 640, 3, K, 3)),
+    paddy: svg(`0 0 ${PADDY.wide.W} ${PADDY.wide.H}`, paddy.rice),
+    "paddy-water": svg(`0 0 ${PADDY.wide.W} ${PADDY.wide.H}`, paddy.water),
+    "paddy-phone": svg(`0 0 ${PADDY.phone.W} ${PADDY.phone.H}`, paddyPhone.rice),
+    "paddy-phone-water": svg(`0 0 ${PADDY.phone.W} ${PADDY.phone.H}`, paddyPhone.water),
+    "paddy-wake": svg("125 0 250 104", paddyWake()),
     "buffalo-plow": svg(BUF_BOX, buffaloPlow()),
     "buffalo-sleep": svg(BUF_BOX, buffaloSleep()),
     "offduty-day": svg(VONG_BOX, moonVong(false)),
@@ -1168,6 +1587,7 @@ export function drawScenery() {
     ...contactDrawings(),
     ...journeyFiles(),
     ...recordFiles(),
+    ...diaryFiles(),
     ...weatherFiles(),
   };
 }

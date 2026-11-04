@@ -135,6 +135,29 @@ describe("Tabs", () => {
     expect(tabTwo).toHaveClass("border-b-2");
   });
 
+  it("the index variant (round 24, the chat's Prose / Code) keeps the same tabs, with its lead beside the tablist, not in it", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tabs label="Example tabs" tabs={TAB_ITEMS} idPrefix="ix" variant="index" lead={<p>I said</p>} />,
+    );
+
+    const tablist = screen.getByRole("tablist", { name: "Example tabs" });
+    // The lead is a label for the row, not a tab: outside the tablist.
+    expect(screen.getByText("I said")).toBeInTheDocument();
+    expect(within(tablist).queryByText("I said")).toBeNull();
+    expect(within(tablist).getAllByRole("tab")).toHaveLength(3);
+
+    // Same selection and panel contract as the line variant.
+    await user.click(screen.getByRole("tab", { name: "Two" }));
+    expect(screen.getByRole("tab", { name: "Two" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Panel two content")).toBeInTheDocument();
+    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
+
+    // Never colour alone: the selected tab's paper is set bold, the others not.
+    expect(within(screen.getByRole("tab", { name: "Two" })).getByText("Two")).toHaveClass("font-bold");
+    expect(within(screen.getByRole("tab", { name: "One" })).getByText("One")).not.toHaveClass("font-bold");
+  });
+
   it("renders nothing for an empty tabs array rather than throwing", () => {
     const { container } = render(<Tabs label="Empty" tabs={[]} idPrefix="empty" />);
     expect(container).toBeEmptyDOMElement();

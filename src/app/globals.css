@@ -704,6 +704,19 @@
     pointer-events: none;
   }
 
+  /* Round 24, builder D: the paddy (the hero's field, `Scenery.tsx`). Its
+     drawings are at one unit a pixel; a box narrower than a drawing shows the
+     part round the buffalo (`--paddy-at` places the drawing in the box,
+     `--paddy-size` sizes it), and both ends of the box fade into the sky
+     rather than stopping at a hard edge. The gradient is mask alpha only. */
+  .paddy {
+    mask-image: var(--art), linear-gradient(to right, transparent, #000 var(--paddy-fade, 48px), #000 calc(100% - var(--paddy-fade, 48px)), transparent);
+    mask-position: var(--paddy-at, 0 0), 0 0;
+    mask-size: var(--paddy-size, 100% 100%), 100% 100%;
+    mask-repeat: no-repeat;
+    mask-composite: intersect;
+  }
+
   /* A shipping tag's cut corners. Only ever on a tag's paper, never on a
      focusable element. A focusable inside the paper keeps its ring (2px +
      3px offset) only if it clears every edge by 5px and sits below the
@@ -934,6 +947,52 @@
       left: calc(var(--fx) + 206px);
       margin: 0;
       padding-bottom: 0;
+    }
+  }
+
+  /* Round 24, builder C: Bé Nhi's Hả? (MiniNhi.tsx, NhiSwing.tsx). Her head
+     tilts 13 degrees about her neck and turns three-quarters; that pose is an
+     inline transform, so what is below only plays the head getting there: a
+     short snap that overshoots the tilt and settles (about 300ms), then the
+     two startle strokes pop in over it. The same drawing walks beside the cats,
+     so this is keyed on her face, not on the swing. `backwards`, not `both`:
+     the inline pose is the end state, so a finished snap leaves no animation
+     in effect. Reduced motion declares no animation at all and shows the end
+     pose. */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-nhi="huh"] [data-nhi-head] {
+      animation: nhi-snap 320ms ease-out backwards;
+    }
+    [data-nhi="huh"] [data-nhi-burst] {
+      transform-box: fill-box;
+      transform-origin: 70% 100%;
+      animation: nhi-burst 280ms ease-out 120ms backwards;
+    }
+    @keyframes nhi-snap {
+      0% {
+        transform: rotate(0deg);
+      }
+      55% {
+        transform: rotate(-17.5deg);
+        animation-timing-function: ease-in-out;
+      }
+      100% {
+        transform: rotate(-13deg);
+      }
+    }
+    @keyframes nhi-burst {
+      0% {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+      60% {
+        opacity: 1;
+        transform: scale(1.25);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
   }
 
@@ -2522,7 +2581,9 @@
 /* value, so the room is never short (slack < one step, inside 4px of each  */
 /* breakpoint; 0 elsewhere). Re-measure if the chat's idle copy or          */
 /* suggestions change. Live mode is assumed no taller (its resting line is  */
-/* shorter), not measured. e2e/ask.spec.ts fails at five widths if the      */
+/* shorter), not measured. Round 24 re-measured it (the window is 23rem     */
+/* from 1024, was 20rem: +48px there; below 1024 nothing moved).            */
+/* e2e/ask.spec.ts fails at five widths if the                              */
 /* footer moves by more than 2px across the load, and fails between 400 and */
 /* 639px if the room is short of the chat or more                           */
 /* than 200px taller than it.                                               */
@@ -2564,12 +2625,289 @@
   }
   @media (width >= 1024px) {
     :root {
-      --ask-room: 470px;
+      --ask-room: 518px;
     }
   }
   html[data-motion] [data-ask-slot],
   html[data-motion] [data-ask-chat] {
     min-height: var(--ask-room);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Round 24, builder B: the Ask answers, on paper (`AskThisSite.tsx`).        */
+/*                                                                            */
+/* The thread is my notepad and each turn is paper exchanged on it: your      */
+/* question a ticket stub, my answer clippings taped in under "I said", each  */
+/* with its source inked on and a tab to its section. Colours are aliases     */
+/* only: the stub and the clippings are `bg-ground` (the compose side's tint: */
+/* lichen by day, lantern-raised paper at night), the tabs `--surface`, the   */
+/* ruling `--rule-color`, the ink `--fg-muted`, the figures `--accent`; every */
+/* text pairing is one docs/contrast.md already measures. Tape and shadows    */
+/* are fixed rgba, like the board's. Motion is entrance only and never a     */
+/* fade (paper moves, or the typed sheet is unclipped), so text is never      */
+/* half-transparent while it lands; under reduced motion it is simply there.  */
+/* -------------------------------------------------------------------------- */
+@layer components {
+  /* What I write on the notepad sits on ruled lines: one rule under every
+     line of the paragraph (`1lh`), so the writing is always on its lines
+     wherever the paragraph lands in the thread. */
+  .ask-lined {
+    line-height: 1.75rem;
+    background-image: linear-gradient(
+      transparent calc(1lh - 1px),
+      color-mix(in srgb, var(--rule-color) 75%, transparent) 0
+    );
+    background-size: 100% 1lh;
+  }
+
+  /* Your question: a ticket stub, handed over from the compose side. The
+     stub is perforated (a dashed tear line) and notched where the tear meets
+     the edges; the shadow is on the wrapper, because a mask clips its own. */
+  .ask-slip-lift {
+    filter: drop-shadow(0 1px 1px rgb(30 40 35 / 0.14)) drop-shadow(0 4px 6px rgb(30 40 35 / 0.1));
+    rotate: 1deg;
+  }
+  .ask-slip {
+    --stub: 2.5rem;
+    mask:
+      radial-gradient(circle 5px at var(--stub) 0, #0000 95%, #000) top / 100% 51% no-repeat,
+      radial-gradient(circle 5px at var(--stub) 100%, #0000 95%, #000) bottom / 100% 51% no-repeat;
+  }
+  .ask-slip-stub {
+    flex: none;
+    display: grid;
+    place-content: center;
+    width: var(--stub);
+    text-align: center;
+    border-right: 1.5px dashed color-mix(in srgb, var(--fg-muted) 50%, transparent);
+  }
+
+  /* My answer's clippings, taped in at a slight tilt, alternating. */
+  .ask-clip {
+    margin: 1rem 0.75rem 0.5rem 0;
+    box-shadow:
+      0 1px 1px rgb(30 40 35 / 0.1),
+      0 5px 10px -5px rgb(30 40 35 / 0.32);
+    rotate: -0.5deg;
+  }
+  .ask-clip:nth-child(even) {
+    margin-inline: 0.75rem 0;
+    rotate: 0.45deg;
+  }
+  /* Room under a clipping for the tab that hangs from it. */
+  .ask-clip:has(> .ask-clip-tab) {
+    margin-bottom: 1.85rem;
+  }
+  .ask-clips > .ask-clip:first-child {
+    margin-top: 0.85rem;
+  }
+
+  /* Washi tape across the top edge, its ends torn in a zigzag. */
+  .ask-tape {
+    position: absolute;
+    top: -0.6rem;
+    left: 1.25rem;
+    width: 3.6rem;
+    height: 1.1rem;
+    background: var(--tape, rgb(205 190 150 / 0.6));
+    rotate: -4deg;
+    mask:
+      conic-gradient(from 45deg at left, #0000, #000 1deg 89deg, #0000 90deg) left / 51% 5px repeat-y,
+      conic-gradient(from -135deg at right, #0000, #000 1deg 89deg, #0000 90deg) right / 51% 5px repeat-y;
+    pointer-events: none;
+  }
+  .ask-clip:nth-child(even) .ask-tape {
+    left: auto;
+    right: 1.5rem;
+    rotate: 3.5deg;
+  }
+
+  /* The source, inked on: a small rubber-stamped FROM. */
+  .ask-ink {
+    display: inline-block;
+    margin-right: 0.2rem;
+    padding: 0.1rem 0.3rem 0.05rem;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    rotate: -3deg;
+  }
+
+  /* A measured value in the passage. */
+  .ask-figure {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* "More on this in …": an index tab hanging from the clipping's foot, a
+     different paper showing from under it. 26px to the eye, 44px to press. */
+  .ask-clip-tab {
+    position: absolute;
+    top: 100%;
+    right: 1rem;
+    display: inline-flex;
+    align-items: flex-start;
+    min-height: 2.75rem;
+    max-width: calc(100% - 2rem);
+  }
+  .ask-clip-tab-paper {
+    padding: 0.3rem 0.55rem 0.25rem;
+    border: 1px solid var(--rule-color);
+    border-top: 0;
+    border-radius: 0 0 3px 3px;
+    background: var(--surface);
+    box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .ask-clip-tab:hover .ask-clip-tab-paper {
+    text-decoration-thickness: 2px;
+  }
+  /* A live model's answer is typed on a sheet of its own, not clipped: it is
+     composed, so it has no single source to cut it from. */
+  .ask-typed {
+    padding: 0.7rem 0.8rem 0.8rem;
+    border: 1px solid var(--rule-color);
+    background: var(--surface);
+    box-shadow:
+      0 1px 1px rgb(30 40 35 / 0.08),
+      0 6px 12px -8px rgb(30 40 35 / 0.3);
+  }
+  @media (width >= 40rem) {
+    .ask-typed {
+      padding: 0.8rem 1rem 0.9rem;
+    }
+  }
+  /* In a live answer's "Grounded in" list the tab sits in the line. */
+  .ask-typed .ask-clip-tab {
+    position: static;
+    align-items: center;
+  }
+  .ask-typed .ask-clip-tab-paper {
+    border-top: 1px solid var(--rule-color);
+    border-radius: 3px;
+  }
+
+  /* Thinking: three ink dots after "writing". */
+  .ask-ink-dots {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 4px;
+  }
+  .ask-ink-dots > span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* The "or try" tags hang a little askew, like the slips they become. */
+  .ask-try > li:nth-child(odd) .ask-tag {
+    rotate: -1.2deg;
+  }
+  .ask-try > li:nth-child(even) .ask-tag {
+    rotate: 0.9deg;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  /* Paper lands: the slip slides in from the compose side and settles, the
+     clippings drop and straighten one after another, the code view turns
+     the answer over, and the ink dots blot in turn. */
+  .ask-slip-lift {
+    animation: ask-hand-over 460ms var(--ease-ink) both;
+  }
+  .ask-clip {
+    --settle: -2.5deg;
+    animation: ask-settle 520ms var(--ease-ink) both;
+    animation-delay: calc(140ms + var(--i, 0) * 110ms);
+  }
+  .ask-clip:nth-child(even) {
+    --settle: 2.5deg;
+  }
+  .ask-back {
+    transform-origin: 0 50%;
+    animation: ask-turn-over 420ms var(--ease-ink) both;
+  }
+  /* The typed sheet feeds up out of the machine, top line first. */
+  .ask-typed {
+    animation: ask-feed 700ms var(--ease-ink) both;
+  }
+  .ask-ink-dots > span {
+    animation: ask-blot 1.2s ease-out infinite both;
+  }
+  .ask-ink-dots > span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .ask-ink-dots > span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  .ask-tag {
+    transition:
+      color 200ms,
+      rotate 200ms var(--ease-ink),
+      translate 200ms var(--ease-ink);
+  }
+  .ask-try button:hover .ask-tag {
+    rotate: 0deg;
+    translate: 0 -1px;
+  }
+
+  @keyframes ask-hand-over {
+    from {
+      translate: 2.75rem 0.35rem;
+      rotate: 5deg;
+    }
+  }
+  @keyframes ask-settle {
+    from {
+      translate: 0 -0.7rem;
+      rotate: var(--settle);
+      scale: 1.03;
+    }
+  }
+  @keyframes ask-turn-over {
+    from {
+      transform: perspective(60rem) rotateY(-70deg);
+    }
+  }
+  @keyframes ask-feed {
+    from {
+      clip-path: inset(-1rem -1rem 100% -1rem);
+      translate: 0 0.5rem;
+    }
+    to {
+      clip-path: inset(-1rem);
+    }
+  }
+  @keyframes ask-blot {
+    0% {
+      opacity: 0;
+      scale: 0.3;
+    }
+    25% {
+      opacity: 1;
+      scale: 1.25;
+    }
+    40%,
+    75% {
+      opacity: 1;
+      scale: 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 1;
+    }
   }
 }
 
@@ -2640,7 +2978,32 @@
   .diary-corner,
   .diary-where,
   .diary-folio,
-  .diary-slot-blank {
+  .diary-slot-blank,
+  .diary-head,
+  .diary-cover,
+  .diary-stack,
+  .diary-ribbon,
+  .diary-sheet,
+  .diary-shade,
+  .diary-glint,
+  .diary-slot::before,
+  .diary-slot::after {
+    display: none !important;
+  }
+  /* Round 24: a page the book had closed on (`hidden="until-found"`) or was
+     turning still prints, flat. */
+  .diary-slot[hidden] {
+    content-visibility: visible !important;
+  }
+  .diary-slot {
+    transform: none !important;
+    clip-path: none !important;
+  }
+  .diary-track {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .diary-book::after {
     display: none !important;
   }
   .diary-track,
@@ -3007,19 +3370,26 @@ html[data-menu-open] [data-companion] {
   }
 
   /* ------------------------------------------------------------------ */
-  /* The Diary (round 23): a book you swipe left and right.              */
+  /* The Diary (round 23; its pages turn since round 24, below).         */
   /*                                                                    */
-  /* The pages are a horizontal scroll-snap track: one page to a view    */
-  /* below 1280, a spread of two from there (a snap point on each left   */
-  /* page). It works with JavaScript off; `DiaryBook.tsx` adds the tabs,  */
-  /* the dog-eared corners and "p. 3 of 14". `data-hidden` is a tab      */
-  /* hiding a kind's page, which stays in the document so a fragment can  */
-  /* find it. From 1280 the book is wider than the content column, up to  */
-  /* 1300px (the board's) and 16px inside the viewport, with the index    */
-  /* tabs sticking out of its fore-edge on the right.                    */
+  /* Without JavaScript, and under reduced motion, the pages are a       */
+  /* horizontal scroll-snap track: one page to a view below 1280, a      */
+  /* spread of two from there (a snap point on each left page).          */
+  /* `DiaryBook.tsx` adds the tabs, the dog-eared corners and "p. 3 of    */
+  /* 14", and where motion is welcome turns the pages instead            */
+  /* (`data-mode="leaf"`, round 24). `data-hidden` is a tab hiding a      */
+  /* kind's page, which stays in the document so a fragment can find it. */
+  /* From 1280 the book is wider than the content column, up to 1320px   */
+  /* and 32px inside the viewport (its boards show round it), with the    */
+  /* index tabs sticking out of its fore-edge on the right.               */
   /* ------------------------------------------------------------------ */
   .diary-frame {
     position: relative;
+    /* How far the cloth boards show round the block, the edge of a leaf,
+       and a leaf's thickness in the stacks either side. */
+    --board: 0.5rem;
+    --leaf-w: 0.75px;
+    --diary-edge: color-mix(in srgb, var(--fg) 24%, var(--surface));
   }
   .diary-tabs {
     position: relative;
@@ -3085,16 +3455,48 @@ html[data-menu-open] [data-companion] {
       color-mix(in srgb, var(--rule-color) 55%, transparent) 31px 32px
     );
   }
-  .diary-folio {
+  /* The folio sits in the page's outer corner, just inside the dog-ear; the
+     running head across the top, in the same corner. */
+  .diary-folio,
+  .diary-head {
     position: absolute;
-    right: 0;
-    bottom: 1rem;
-    left: 0;
+    z-index: 1;
     pointer-events: none;
-    text-align: center;
     font-family: var(--font-mono);
     font-size: var(--step--2);
     color: var(--fg-muted);
+  }
+  .diary-folio {
+    bottom: 0.95rem;
+  }
+  .diary-slot[data-side="left"] > .diary-folio {
+    left: 3.5rem;
+  }
+  .diary-slot[data-side="right"] > .diary-folio {
+    right: 3.5rem;
+  }
+  .diary-head {
+    top: 0.8rem;
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+  .diary-slot[data-side="left"] > .diary-head {
+    left: 1.25rem;
+  }
+  .diary-slot[data-side="right"] > .diary-head {
+    right: 1.25rem;
+  }
+  @media (width >= 40rem) {
+    .diary-frame {
+      --board: 0.875rem;
+      --leaf-w: 1.25px;
+    }
+    .diary-slot[data-side="left"] > .diary-head {
+      left: 2.5rem;
+    }
+    .diary-slot[data-side="right"] > .diary-head {
+      right: 2.5rem;
+    }
   }
   .diary-leader {
     flex: 1 1 1rem;
@@ -3103,7 +3505,7 @@ html[data-menu-open] [data-companion] {
     transform: translateY(-0.3em);
   }
   .diary-where {
-    margin-top: 0.75rem;
+    margin-top: calc(var(--board) + 0.75rem);
     text-align: center;
     font-family: var(--font-mono);
     font-size: var(--step--1);
@@ -3180,8 +3582,8 @@ html[data-menu-open] [data-companion] {
       display: flex;
       flex-wrap: wrap;
       align-items: flex-start;
-      width: min(1344px, 100vw - 2rem);
-      margin-inline: calc((100% - min(1344px, 100vw - 2rem)) / 2);
+      width: min(1320px, 100vw - 4rem);
+      margin-inline: calc((100% - min(1320px, 100vw - 4rem)) / 2);
     }
     .diary-book {
       order: 1;
@@ -3190,15 +3592,18 @@ html[data-menu-open] [data-companion] {
     }
     .diary-tabs {
       order: 2;
-      flex: 0 0 2.75rem;
+      flex: 0 0 3.25rem;
       flex-direction: column;
       flex-wrap: nowrap;
-      margin: 4rem 0 0 -0.5rem;
+      margin: 4rem 0 0 -0.25rem;
       padding: 0;
     }
+    /* Under the right page, by its folio: the ribbon hangs from the spine. */
     .diary-where {
       order: 3;
       flex: 0 0 100%;
+      padding-inline-end: calc(3.25rem - 0.25rem + 3.5rem);
+      text-align: right;
     }
     .diary-tab {
       writing-mode: vertical-rl;
@@ -3234,7 +3639,7 @@ html[data-menu-open] [data-companion] {
        page that is out of the window). (The width is the page's, near enough: it
        only has to beat the tie.) */
     .diary-slot {
-      --turn: calc((min(1344px, 100vw - 2rem) - 2.25rem) / 2);
+      --turn: calc((min(1320px, 100vw - 4rem) - 3rem) / 2);
     }
     .diary-slot[data-side="left"] :is(.diary-page, .diary-entry, .diary-anchor, a, button, [tabindex]) {
       scroll-margin-inline-end: var(--turn);
@@ -3246,6 +3651,395 @@ html[data-menu-open] [data-companion] {
       display: block;
       box-shadow: inset 26px 0 30px -24px rgb(30 40 35 / 0.25);
     }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Round 24, builder E: the Diary, a real book.                       */
+  /*                                                                    */
+  /* The object, in every mode: cloth boards round the block, the       */
+  /* leaves stacked on its fore-edges (read on the left, still to come  */
+  /* on the right, `--leaves` from `DiaryBook`) and along its foot, the  */
+  /* paper curving into the gutter, paper grain, running heads, and a   */
+  /* ribbon out of the foot. Paper, ink and shadow come from the        */
+  /* aliases; the boards are the bark's brown in both themes, like the  */
+  /* slice; the ribbon is the clotheslines' twine (not `--mark`: below  */
+  /* the book, Contact's red stamp shares the screen with it).          */
+  /*                                                                    */
+  /* With JavaScript and motion welcome (`data-mode="leaf"`) the slots  */
+  /* stop scrolling and stack into one opening: a grid of one page, or  */
+  /* two from 1280, every page the tallest's height (`--page-h`). Pages */
+  /* not on show are `hidden="until-found"` (content-visibility:        */
+  /* hidden): they paint no paper and take no hits. A turn poses its    */
+  /* faces inline (`rotateY` about the spine, `z-index`, see            */
+  /* `src/lib/diary-turn.ts`); here they get their hinge, a hidden back, */
+  /* their light, and the shadow they throw on the page under them.     */
+  /* ------------------------------------------------------------------ */
+  /* Its own formatting context, so the leaf track's negative margin (its
+     room, below) stays inside the book instead of collapsing through it and
+     pulling the book up the page. */
+  .diary-book {
+    display: flow-root;
+    isolation: isolate;
+  }
+  /* The leaves' bottom edges, under the block (over the boards). */
+  .diary-book::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 3px;
+    pointer-events: none;
+    background: linear-gradient(var(--diary-edge) 0 1px, var(--surface) 1px 2px, var(--diary-edge) 2px 3px);
+  }
+  .diary-cover {
+    position: absolute;
+    inset: calc(-1 * var(--board)) calc(-1 * var(--board) - 0.125rem);
+    z-index: -1;
+    border-radius: 0.375rem 0.625rem 0.625rem 0.375rem;
+    background: var(--bark-outer);
+    box-shadow: var(--paper-shadow);
+    pointer-events: none;
+  }
+  /* The cloth: a basket weave in the wood's own lines, and the board's bevel. */
+  .diary-cover::before,
+  .diary-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  .diary-cover::before {
+    background: var(--wood-line);
+    opacity: 0.32;
+    mask: url(/scenery/diary-cloth.svg) repeat 0 0 / 6px 6px;
+  }
+  .diary-cover::after {
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--wood-early) 40%, transparent),
+      inset 0 -2px 4px rgb(30 40 35 / 0.35);
+  }
+  .diary-stack {
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.125rem;
+    z-index: -1;
+    width: calc(1px + var(--leaves, 0) * var(--leaf-w));
+    pointer-events: none;
+    background: repeating-linear-gradient(to right, var(--surface) 0 1px, var(--diary-edge) 1px 1.5px);
+    transition: width 450ms var(--ease-ink);
+  }
+  .diary-stack-read {
+    right: 100%;
+    border-radius: 2px 0 0 2px;
+  }
+  .diary-stack-left {
+    left: 100%;
+    border-radius: 0 2px 2px 0;
+  }
+  /* The ribbon comes out of the foot by the bound edge (on a spread, the
+     spine), over the board, and swings when a leaf lands. */
+  .diary-ribbon {
+    position: absolute;
+    top: calc(100% - 0.25rem);
+    left: 1.25rem;
+    width: 1.125rem;
+    height: 5.25rem;
+    pointer-events: none;
+    background: var(--twine);
+    mask: url(/scenery/diary-ribbon.svg) no-repeat 0 0 / 100% 100%;
+    transform-origin: 50% 0;
+  }
+  @media (width >= 80rem) {
+    .diary-cover {
+      border-radius: 0.625rem;
+    }
+    .diary-ribbon {
+      left: calc(50% + 0.375rem);
+    }
+  }
+
+  /* Paper: a page's grain, and its curve into the gutter (a crease at the
+     spine, the bulge beside it catching the light, then flat). On one page
+     the spine is on the left; on a spread, the left page's is on its right. */
+  :is(.diary-slot, .diary-sheet)::before,
+  :is(.diary-slot, .diary-sheet)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+  :is(.diary-slot, .diary-sheet)::after {
+    background: var(--fg);
+    opacity: 0.07;
+    mask: url(/scenery/diary-grain.svg) repeat 0 0 / 180px 180px;
+  }
+  :is(.diary-slot, .diary-sheet)::before {
+    --gutter: to right;
+    background: linear-gradient(
+      var(--gutter),
+      rgb(30 40 35 / 0.2),
+      rgb(30 40 35 / 0.05) 1.25%,
+      rgb(255 255 255 / 0.2) 2.75%,
+      rgb(255 255 255 / 0) 7%
+    );
+  }
+  .diary-slot-blank::after {
+    opacity: 0.04;
+  }
+  .diary-sheet[data-at="left"]::before {
+    --gutter: to left;
+  }
+  @media (width >= 80rem) {
+    .diary-slot[data-side="left"]::before {
+      --gutter: to left;
+    }
+  }
+
+  .diary-sheet,
+  .diary-shade,
+  .diary-glint {
+    display: none;
+  }
+
+  /* The pages turn. */
+  .diary-frame[data-mode="leaf"] .diary-book {
+    /* Down the page is still scrolling; sideways is the leaf's. */
+    touch-action: pan-y;
+  }
+  /* The track stays a scroll container (`overflow: hidden`): a box that
+     stops being one at hydration is a layout shift of the whole book, even
+     far off screen (round 24 measured CLS 1.0). A turning leaf reaches out of
+     the opening in perspective, so the track is padded with that reach
+     (`--room`, from `turnRoom` in `diary-turn.ts`) and pulled back by as much
+     margin: the pages do not move, and nothing of a leaf on screen is
+     clipped. Top and foot it is only the boards' lip: while a leaf turns,
+     `DiaryBook` puts the eye (the track's own `perspective` and
+     `perspective-origin`) where the reader is, so no edge on screen grows past
+     the lip (`camera`). The padded box takes no hits; the pages on show do.
+     Its scroll offsets are held at 0 (`DiaryBook`). */
+  .diary-frame[data-mode="leaf"] .diary-track {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(var(--page-h, 0px), auto);
+    overflow: hidden;
+    padding: var(--room, 0px);
+    margin: calc(-1 * var(--room, 0px));
+    scroll-snap-type: none;
+    perspective: var(--depth, 2400px);
+    pointer-events: none;
+  }
+  /* The ring goes round the pages, not round the room. */
+  .diary-frame[data-mode="leaf"] .diary-track:focus-visible {
+    outline-offset: calc(4px - var(--room, 0px));
+  }
+  .diary-frame[data-mode="leaf"] .diary-slot {
+    grid-area: 1 / 1;
+    z-index: 1;
+    transform-origin: 0 50%;
+    pointer-events: auto;
+  }
+  .diary-frame[data-mode="leaf"] .diary-slot[hidden] {
+    z-index: 0;
+    background: none;
+    pointer-events: none;
+  }
+  /* The leaves turn, so the pages no longer tilt as the track scrolls. */
+  .diary-frame[data-mode="leaf"] .diary-slot > .diary-page {
+    animation: none;
+  }
+  .diary-frame[data-mode="leaf"] [data-face] {
+    backface-visibility: hidden;
+    will-change: transform;
+  }
+  .diary-frame[data-mode="leaf"] .diary-corner {
+    touch-action: none;
+    cursor: grab;
+  }
+  .diary-frame[data-flight] {
+    user-select: none;
+  }
+  .diary-frame[data-flight] .diary-corner {
+    cursor: grabbing;
+  }
+  /* The dog-ear is the leaf's own corner: it goes up with it. */
+  .diary-frame[data-flight] .diary-corner > span {
+    opacity: 0;
+  }
+
+  /* A blank leaf for a riffle, or a page's back on one page: ruled paper. */
+  .diary-frame[data-mode="leaf"] .diary-sheet[data-at] {
+    display: block;
+    position: absolute;
+    top: var(--room, 0px);
+    bottom: var(--room, 0px);
+    width: calc(100% - 2 * var(--room, 0px));
+    background-color: var(--surface);
+    background-image: repeating-linear-gradient(
+      transparent 0 31px,
+      color-mix(in srgb, var(--rule-color) 45%, transparent) 31px 32px
+    );
+    background-position: 0 2.5rem;
+  }
+  .diary-frame[data-mode="leaf"] .diary-sheet[data-at="right"] {
+    left: var(--room, 0px);
+    transform-origin: 0 50%;
+  }
+  .diary-frame[data-mode="leaf"] .diary-sheet[data-at="left"] {
+    right: calc(100% - var(--room, 0px));
+    transform-origin: 100% 50%;
+  }
+
+  /* The shadow a leaf throws on the page under it: a band from its free
+     edge out toward the fore-edge, moved and stretched by transform. */
+  .diary-frame[data-mode="leaf"] .diary-shade[data-on] {
+    display: block;
+    position: absolute;
+    top: var(--room, 0px);
+    bottom: var(--room, 0px);
+    z-index: 5;
+    width: calc(100% - 2 * var(--room, 0px));
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .diary-frame[data-mode="leaf"] .diary-shade[data-on="right"] {
+    left: var(--room, 0px);
+  }
+  .diary-frame[data-mode="leaf"] .diary-shade[data-on="left"] {
+    right: calc(100% - var(--room, 0px));
+  }
+  /* Its leading edge is soft: in perspective the leaf's edge stands a little
+     further out than the band's, and must not leave a sliver of light. */
+  .diary-shade > span {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to right,
+      rgb(30 40 35 / 0.4),
+      rgb(30 40 35) 7%,
+      rgb(30 40 35 / 0.35) 38%,
+      rgb(30 40 35 / 0)
+    );
+    transform-origin: 0 50%;
+    will-change: transform;
+  }
+  .diary-shade[data-on="left"] > span {
+    background: linear-gradient(
+      to left,
+      rgb(30 40 35 / 0.4),
+      rgb(30 40 35) 7%,
+      rgb(30 40 35 / 0.35) 38%,
+      rgb(30 40 35 / 0)
+    );
+    transform-origin: 100% 50%;
+  }
+
+  /* The light on a turning face: it dims toward the spine as it turns away,
+     and a band of light runs across the curl (`--dim`, `--gl`, `--gx` from
+     `faceLight`). */
+  .diary-glint {
+    --from-spine: to right;
+  }
+  .diary-sheet[data-at="left"] > .diary-glint {
+    --from-spine: to left;
+  }
+  .diary-frame[data-mode="leaf"] [data-face] > .diary-glint {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        var(--from-spine),
+        rgb(255 255 255 / 0) calc(var(--gx, 60%) - 18%),
+        rgb(255 255 255 / var(--gl, 0)) var(--gx, 60%),
+        rgb(255 255 255 / 0) calc(var(--gx, 60%) + 18%)
+      ),
+      linear-gradient(var(--from-spine), rgb(30 40 35 / var(--dim, 0)), rgb(30 40 35 / 0) 75%);
+  }
+
+  @media (width >= 80rem) {
+    .diary-frame[data-mode="leaf"] .diary-track {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .diary-frame[data-mode="leaf"] .diary-slot[data-side="left"] {
+      grid-area: 1 / 1;
+      transform-origin: 100% 50%;
+    }
+    .diary-frame[data-mode="leaf"] .diary-slot[data-side="right"] {
+      grid-area: 1 / 2;
+    }
+    .diary-slot[data-side="left"] > .diary-glint {
+      --from-spine: to left;
+    }
+    .diary-frame[data-mode="leaf"] .diary-sheet[data-at],
+    .diary-frame[data-mode="leaf"] .diary-shade[data-on] {
+      width: calc(50% - var(--room, 0px));
+    }
+    .diary-frame[data-mode="leaf"] :is(.diary-sheet[data-at="right"], .diary-shade[data-on="right"]) {
+      left: 50%;
+    }
+    .diary-frame[data-mode="leaf"] :is(.diary-sheet[data-at="left"], .diary-shade[data-on="left"]) {
+      right: 50%;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Follow-up 2026-11-02: one page curls from its corner.              */
+  /*                                                                    */
+  /* Below 1280 the book shows one page, and a hinge turn squashed it   */
+  /* into the left half beside the next page: a spread, for a moment.   */
+  /* So one page curls, flat, inside its own box (`curl` in             */
+  /* `diary-turn.ts`; `DiaryBook` writes the numbers): the page lies    */
+  /* flat on the spine side of a diagonal fold (its `clip-path`), its   */
+  /* blank back (a sheet, `data-at="flap"`) is the same page reflected  */
+  /* across the fold and clipped to the part that lifted, and the next  */
+  /* page shows in the wedge it has left. Light runs along the curl by  */
+  /* the fold and shadow toward the flap's free edge; the flap throws a */
+  /* faint shadow on the page beside it, and the fold a soft one on the */
+  /* next page. `--fa` is the gradient's angle across the fold, `--f0`  */
+  /* where the fold falls on it, `--fw` the flap's depth, `--lift` how  */
+  /* far it has lifted.                                                 */
+  /* ------------------------------------------------------------------ */
+  .diary-frame[data-mode="leaf"] .diary-sheet[data-at="flap"] {
+    left: var(--room, 0px);
+    transform-origin: 0 0;
+    background-image: none;
+    box-shadow: 0 0 16px rgb(30 40 35 / 0.3);
+    will-change: transform, clip-path;
+  }
+  .diary-sheet[data-at="flap"]::before {
+    display: none;
+  }
+  .diary-frame[data-mode="leaf"] .diary-sheet[data-at="flap"] > .diary-glint {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(
+      var(--fa, 90deg),
+      rgb(30 40 35 / 0.16) var(--f0, 0px),
+      rgb(255 255 255 / 0.34) calc(var(--f0, 0px) + 6px),
+      rgb(255 255 255 / 0.1) calc(var(--f0, 0px) + 0.2 * var(--fw, 100px)),
+      rgb(30 40 35 / 0) calc(var(--f0, 0px) + 0.45 * var(--fw, 100px)),
+      rgb(30 40 35 / 0.2) calc(var(--f0, 0px) + var(--fw, 100px))
+    );
+  }
+  .diary-frame[data-mode="leaf"] .diary-shade[data-on="curl"] {
+    left: var(--room, 0px);
+    opacity: var(--lift, 0);
+    background: linear-gradient(
+      var(--fa, 90deg),
+      rgb(30 40 35 / 0.55) var(--f0, 0px),
+      rgb(30 40 35 / 0.18) calc(var(--f0, 0px) + 10px + 14px * var(--lift, 0)),
+      rgb(30 40 35 / 0) calc(var(--f0, 0px) + 24px + 56px * var(--lift, 0))
+    );
+  }
+  .diary-shade[data-on="curl"] > span {
+    display: none;
   }
 
   .record-tape {
@@ -3321,54 +4115,161 @@ body:has(.resume-dialog[open]) {
   overflow: hidden;
 }
 
-/* "The postcard is stamped" (`LeadForm.tsx`): SENT and the date, inked in the
-   annotation colour (red stays the page's single mark) over the form's
-   right-hand corner. Its end state is simply "there, a little turned"; it
-   thumps down only where motion is welcome. */
-.sent-stamp {
+/* ---------------------------------------------------------------------------
+   Round 24, builder A: the postcard's SENT stamp, a rubber stamp's impression
+   (`SentStamp.tsx`, `Postcard.tsx`, `LeadForm.tsx`).
+   --------------------------------------------------------------------------- */
+
+/* The picture side. The panel is a size container, so its scene box can be
+   exactly the drawing's 340 x 440 whatever the panel is: bottom-aligned and
+   contained where the postcard's two sides stand side by side, top-aligned and
+   as wide as the panel where they stack (the old `bg-contain bg-bottom` and
+   `bg-cover bg-top`). Against that box the stamp sits in the drawing's empty
+   sky, left of the sun, above the pines and clear of the heading, at every
+   width. The box is itself an inline-size container: the stamp is sized in its
+   units. */
+.postcard-sky {
+  container-type: size;
+}
+.postcard-scene {
   position: absolute;
-  bottom: 4.75rem;
-  right: 0.25rem;
-  z-index: 1;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: 100cqw;
+  aspect-ratio: 340 / 440;
+  container-type: inline-size;
+}
+@container postcard (width >= 32rem) {
+  .postcard-scene {
+    top: auto;
+    bottom: 0;
+    width: min(100cqw, calc(100cqh * 340 / 440));
+  }
+}
+
+/* The impression: a double rule round TAYLORS SC, SENT and the day, in the
+   annotation ink (`--accent`; red stays the page's single mark, and this
+   screen already has the sun's and the flag's), a few degrees off square. Its
+   size is its font-size: everything inside is in em. The ink wears at the edges
+   through `stamp-wear.svg` (pinholes and dropouts, thickest at the rim, sparse
+   across the words), so the text keeps the pairing `pnpm contrast` measures. */
+.sent-stamp {
+  position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.3rem 0.9rem 0.35rem;
-  border: 3px double var(--accent);
-  border-radius: 4px;
+  width: 15.5em;
+  padding: 0.62em 0.6em 0.6em;
+  border: 0.26em solid currentColor;
+  border-radius: 0.55em;
   color: var(--accent);
   font-family: var(--font-mono), monospace;
+  font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
-  transform: rotate(-9deg);
+  rotate: -5deg;
+  mask: url(/scenery/stamp-wear.svg) no-repeat center / 100% 100%;
   pointer-events: none;
 }
+.sent-stamp::before {
+  content: "";
+  position: absolute;
+  inset: 0.18em;
+  border: 0.09em solid currentColor;
+  border-radius: 0.3em;
+}
+.sent-stamp > * {
+  position: relative;
+  display: block;
+  text-align: center;
+}
+.sent-stamp__place {
+  width: 100%;
+  padding: 0 0 0.28em 0.2em;
+  border-bottom: 0.09em solid currentColor;
+  font-size: 0.9em;
+  letter-spacing: 0.2em;
+}
 .sent-stamp__word {
-  font-size: 1.75rem;
-  letter-spacing: 0.18em;
-  padding-left: 0.18em;
+  padding: 0.12em 0 0.02em 0.09em;
+  font-family: var(--font-display), sans-serif;
+  font-size: 3.75em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 0.92;
 }
 .sent-stamp__date {
-  margin-top: 0.3rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  width: 100%;
+  padding: 0.3em 0 0 0.05em;
+  border-top: 0.09em solid currentColor;
+  font-size: 1em;
+  letter-spacing: 0.05em;
 }
+
+/* Where the postcard's sides stand side by side it lands on the picture, in the
+   scene box, sized in the box's own units (the stamp is 54% of the drawing's
+   width) and placed on the sky left of the sun. Where they stack there is no
+   empty sky big enough, so it lands on the address side's own paper, just under
+   the confirmation line, and the other copy is not displayed. */
+.sent-stamp--board {
+  display: none;
+  position: absolute;
+  top: 5.5%;
+  /* Centred in the empty sky: between the heading (77px of the panel, and a
+     12px margin) and the pines' tips (150 of the drawing's 440 units, less a
+     10px margin), however tall the form beside it makes the panel. The panel
+     is the size container (`100cqh`), the scene box the inline one (`cqw`; the
+     box is 129.41cqw tall), and 4.09em is half the stamp's height. The line
+     above is for a browser without container units. */
+  top: calc((79px - 100cqh + 173.53cqw) / 2 - 4.09em);
+  left: 3.5%;
+  z-index: 1;
+  font-size: calc(54cqw / 15.5);
+}
+.sent-stamp--slot {
+  flex-shrink: 0;
+  margin: 1rem 0.75rem 0.5rem auto;
+  font-size: 11.5px;
+}
+@container postcard (width >= 32rem) {
+  .sent-stamp--board {
+    display: flex;
+  }
+  .sent-stamp--slot {
+    display: none;
+  }
+}
+
+/* It lands like a stamp: it comes down large, squashes flat on the paper, and
+   springs back while the ink settles, once. Reduced motion shows it already
+   there. */
 @media (prefers-reduced-motion: no-preference) {
   .sent-stamp {
-    animation: sent-stamp-thump 420ms var(--ease-ink) both;
+    animation: sent-stamp-press 620ms var(--ease-ink) both;
   }
-  @keyframes sent-stamp-thump {
+  @keyframes sent-stamp-press {
     0% {
       opacity: 0;
-      transform: rotate(-22deg) scale(2.1);
+      scale: 1.55;
+      filter: blur(2.5px);
+      animation-timing-function: cubic-bezier(0.55, 0.05, 0.95, 0.45);
     }
-    55% {
+    32% {
       opacity: 1;
-      transform: rotate(-7deg) scale(0.94);
+      scale: 0.96 0.9;
+      filter: blur(1px);
+      animation-timing-function: var(--ease-ink);
+    }
+    58% {
+      scale: 1.015 1.04;
+      filter: blur(0.4px);
     }
     100% {
       opacity: 1;
-      transform: rotate(-9deg) scale(1);
+      scale: 1;
+      filter: blur(0);
     }
   }
 }

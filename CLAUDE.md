@@ -19,7 +19,26 @@ reference: [README.md](README.md).
   `RESEND_API_KEY` / `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set
   (read at build time, see `.env.example`) or a send fails, it says so in
   first person and offers my address with a copy button. That is intentional,
-  not a bug. A send is confirmed by a "SENT" stamp inked on the form.
+  not a bug. A send is confirmed by a "SENT" rubber-stamp impression
+  (`SentStamp.tsx`; round 24): in the picture's empty sky, left of the sun and
+  clear of the pines and the heading, where the postcard's two sides stand side
+  by side, and on the address side under the confirmation line where they
+  stack. It is never over a word, a field or a control, it is `aria-hidden`
+  (the status line carries the meaning), and its worn ink is a mask
+  (`stamp-wear`) that only CSS uses. Email or phone is one requirement, said
+  before they try: one `*`, one bracket and one note ("One is enough, both is
+  fine.") under the pair, and a miss is still one error about the pair.
+  **The thank-you.** When `CONTACT_REPLY_FROM` is also set (optional, off by
+  default: an address on a domain verified in Resend; the shared
+  `onboarding@resend.dev` sender can only mail my own inbox, so leave it unset
+  until the site has a domain), a visitor who left an email gets a short static
+  thank-you from `Thien Le <that address>` after my own copy has sent,
+  replying to my inbox. It never repeats anything the visitor typed, not even
+  their name (the form would otherwise be a relay for any text to any
+  address), a failed thank-you never fails the lead (it is logged), a
+  phone-only lead gets nothing (no SMS: it is not free), and the page adds "A
+  thank-you is on its way" only when the response says `thanked`. Unlike the
+  three variables above it is read at request time, by `/api/contact` alone.
 - Targets: **WCAG 2.2 AA** and Lighthouse 90+/95+/95+/95+. These are design
   constraints, not afterthoughts — they're why there's no motion library, no
   icon font, and why sections render on the server by default.
@@ -75,16 +94,28 @@ are masks painted by an alias (`--twine`, `--scene-water`, `--scene-buffalo`,
 vignettes, Moon in her võng, the Hội An lantern, lit at night) take their file
 from `--art-sky` / `--art-vignette` / `--art-offduty` /
 `--art-journey-vignette` / `--art-record-vignette` / `--art-lantern`, so the
-theme swaps them in CSS with no script. The hero's buffalo is two masks painted
-by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, behind the rice) and
-sleeps at night (`buffalo-sleep`, in front of it), shown with `.day-only` /
-`.night-only`. The chapter tags' drawings are masks too: rice, a Venus
+theme swaps them in CSS with no script. The hero's field is a paddy (round
+24): flooded plots, dykes curving away, transplanted clumps in perspective rows
+on their reflections, a hamlet's trees on the far edge and ripe ears hanging on
+the near bank. It is two masks, `paddy` (the rice and its banks, `text-accent`)
+over `paddy-water` (`--scene-water`), a wide board from 1024 and
+`paddy-phone` / `paddy-phone-water` below, each at one unit a pixel in a box
+whose ends fade into the sky (`.paddy` in globals.css). The buffalo is two
+masks painted by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, over
+the water and under the rice, with `paddy-wake`, the mud she turns, in her own
+box half a box on) and sleeps at night (`buffalo-sleep`, in front of it all),
+shown with `.day-only` / `.night-only`. She stands in a strip the drawing
+leaves bare (`PADDY.*.clear` in the script, tested), so moving her in
+`Scenery.tsx` means moving the strip too. The chapter tags' drawings are masks too: rice, a Venus
 flytrap (Taylors grows it wild), an open book (USC), a laptop. The Diary's tree slice and its charts are
 not files: the slice's rings are computed from content (`src/lib/record.ts`) and a
 page's before/after bars and tally marks from the entry's `diary.figure`, both
 drawn inline. Its stamps (`stamp-bank`, `-card`, `-code`, `-cart`: a bank's
 columns, a card with a key, code brackets round a gear, a cart) and three page
-figures (`diary-selftaught`, `diary-cap`, `diary-podium`) are ink masks like the rest. The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
+figures (`diary-selftaught`, `diary-cap`, `diary-podium`) are ink masks like the rest,
+and so are the book's materials (round 24): `diary-grain` (the paper's fibre and
+speckle, an SVG turbulence with stitched edges), `diary-cloth` (the boards'
+weave) and `diary-ribbon` (its tail out of the foot). The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
 below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
 and a stretched `oak-bough` (with `-leaves`) per tag. `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library; the two figures, mini-Thien and Bé Nhi, are fixed inline SVG in
@@ -130,11 +161,56 @@ carries the highlight tags, the DoorDash one a ticket with a 2026 stub,
 Bé Nhi (my girlfriend) on a rope swing, and "Watch it grow", which grows the
 oak itself; below 1280 it is one tree: the crown's trunk runs on past the tags
 and her swing to its roots, each on a bough of its own), the Diary (`#record`, the Record until
-round 23; `#diary` lands beside it: a book you swipe left and right. The pages
-are a horizontal scroll-snap track, one to a view below 1280 and a spread of
-two from there, so it works with JavaScript off; `DiaryBook.tsx` is the one
-client island and adds the index tabs, the dog-eared corners, ← and → and "p. 3
-of 14". Page 1 is "Pressed, waiting to dry.", the lead, a tree slice whose
+round 23; `#diary` lands beside it: a book whose pages turn (round 24). With
+JavaScript off, and under reduced motion, the pages are a horizontal
+scroll-snap track, one to a view below 1280 and a spread of two from there;
+`DiaryBook.tsx` is the one client island and adds the index tabs, the
+dog-eared corners, ← and → and "p. 3 of 14", and where motion is welcome binds
+the same pages into leaves (`data-mode="leaf"`): on a spread the right page
+turns over the spine in 3D, its back the next left page, with a shadow sweeping
+the page under it and light across its curl. **Where one page shows (below
+1280) it curls from its corner instead** (2026-11-02, my call, like Apple
+Books: a hinge turn squashed the page beside the next one, so mid-turn the
+phone looked like a two-page spread). The curl is 2D and stays inside the page
+box (`curl`): the corner, at the foot of what is on screen or at the hand's
+height, is pulled across, the fold is the perpendicular bisector of where it
+was and where it is, diagonal through the turn and straight only as it leaves
+through the spine; the page lies flat on the spine side (a `clip-path`), its
+blank back (a sheet, `data-flap`, the page's paper and grain, no text) is
+reflected over the fold and clipped to the page, light runs along the curl and
+shadow toward the flap's edge, and the next page shows only in the wedge under
+it; a back turn uncurls the page before over this one. A corner drags, a
+finger or a trackpad swipes (the curl's corner follows the hand), past halfway
+it turns and short of it falls back; a far jump (a contents line, a ring, a
+tab, Home, End) riffles a few leaves, on one page as quick curls one after
+another. Pages not on show are `hidden="until-found"`, never
+`inert` (Chrome's find skips inert text, so `beforematch` would never fire);
+only the pages under a turn in the air are inert. A hash on load, `hashchange`
+and `beforematch` open the book at the page. The numbers (angles, shadows,
+drag, riffle, perspective, room and the curl) are `src/lib/diary-turn.ts`. **The leaves'
+`.diary-track` stays a scroll container** (`overflow: hidden`): a box that
+stops being one at hydration is a layout shift of the whole book, even far off
+screen (the first leaves scored CLS 1.0). It is padded with the room a turning
+leaf needs (`turnRoom`, as `--room`) and pulled back by as much negative
+margin, so the pages do not move and no leaf is clipped; `.diary-book` is a
+`flow-root` so that margin cannot collapse through it, the padded track takes
+no pointer events (the pages on show do), its scroll offsets are held at 0, and
+`measure()` leaves the padding out of `--page-h`. `record.spec.ts` fails above
+0.01 load CLS at 1440 and 390. A leaf in perspective looks taller the further
+it is from the eye's line, and these pages are tall, so while a spread's leaf
+turns the track's own `perspective` and `perspective-origin` follow the reader
+(`camera`): the eye stands on the book's top or foot when only that edge is on
+screen, and far enough back that no edge on screen grows past the boards' lip
+(12px), so the room top and foot is only that lip (one page's curl needs no
+eye and no room past the lip); `record.spec.ts` fails a leaf more than 16px
+past the cover with the window at the book's top, middle or foot, or in a
+riffle, and at 390 fails a turn whose page is narrower than the book, turns in
+3D, has no flap, or folds straight down the page mid-turn. The object: cloth boards in
+`--bark-outer`, leaves stacked either side that move as you read, the paper
+curving into the gutter, paper grain, running heads (the chapter's years) and
+folios in the outer corners, a ribbon in `--twine` (not `--mark`: at 390
+Contact's red stamp shares its screen). Print lays every page out in flow.
+Page 1 is "Pressed, waiting to dry.", the lead, a tree slice whose
 rings link to their chapter and the five `featured` entries taped around it;
 page 2 the contents, each entry a link to its page with dotted leaders and its
 number; then each chapter's pages, newest first, 2018 – 2020 last as one
@@ -235,8 +311,12 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   there. A fragment is a scroll in the book's own track, which the browser does
   with JavaScript off (the left page's targets carry a `scroll-margin` over to the
   right page, or a two-page window would tie between two snap points: see
-  `--turn` in globals.css). The chat cites `#record` for entries and the
-  degree, and "More on this in Diary".
+  `--turn` in globals.css). With the leaves (round 24) the book opens at the
+  fragment's page: a link in the book turns or riffles there while the window
+  glides to it, a link from outside (a tag, the chat) opens it at once, and a
+  typed or revealed fragment (`hashchange`, `beforematch`) lands like any
+  other. The chat cites `#record` for entries and the degree, and "More on
+  this in Diary".
 - **Bé Nhi swings from the oak (round 22, her own request: "dumb dumb cute
   cute easy mood changing").** `NhiSwing.tsx` hangs her from the left limb
   between the lantern and the trunk (below 1280, from a bough under the last
@@ -250,6 +330,27 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   loves Miffy, so she carries a bunny plush in a little dress; it is a bunny
   of her own, never Miffy (no X mouth, no name): Miffy's design belongs to
   its owners, who enforce it.
+- **Her act is "Hả?" (round 24, Thien: "Be Nhi character must have an act,
+  Hả? and surprise like what you say? the head is slightly turn!").** Her
+  `huh` mood is the double take, "what did you say?", captioned "surprised".
+  In `MiniNhi.tsx` her head (hair, face, bow, features) is a group tilted 13°
+  about her neck, the features slid 1.3 units left to turn her three-quarters
+  (the far lens and eye narrower), brows up, eyes wide with shines, a small
+  open "o", her right mitten cupped at her ear in place of the rope or the
+  wave, two startle strokes by her crown and the "?". The tilt is an inline
+  style, so it is the pose under reduced motion; `globals.css` ("Round 24,
+  builder C: Bé Nhi's Hả?") only animates the head's 320ms snap and its
+  overshoot, in her drawing, so the cats' scenes get it too. On the swing
+  `NhiSwing.tsx` adds the beat: the swing checks short (a running sway is
+  cut off, it recoils and settles), the bubble pops, and `beat` re-keys the
+  head so a second startle replays the snap. She startles for real
+  reasons: a press that wakes her from sleepy (always), the theme turning
+  (then she settles into sleepy or a grin), and the thunderclap in "Watch it
+  grow" (a beat whose weather is a thunderstorm or a hurricane, at `CLAP_AT`
+  of the beat, when `wx-bolt` strikes, only for the first beat of a run of
+  the same weather). Other moods and triggers are unchanged. The head
+  must stay one group tilted by one style: split it and the hair, the face
+  and the bow come apart.
 - **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
   (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)
   are still tested but no longer rendered; `careerYearSpan`,
@@ -258,6 +359,28 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   inferred by matching skill names against technology strings (the two
   vocabularies overlap 17 of 38 ways), and nothing is drawn below the ground
   line.
+
+### The Ask (round 24)
+
+The chat at `#ask` is paper exchanged on my notepad, not chat UI. Your question
+is a ticket stub in the compose side's tint (`No. 01`, the turn's place, hidden
+from assistive tech); a static answer's passages are clippings taped in under
+"I said", each with its source inked on ("FROM …") and "More on this in …" as
+a tab off its edge (a 44px target); a live model's answer is typed on a sheet
+of its own, because it is composed, never clipped; a decline stays a plain
+line. Measured values (`17 hours → 3 minutes`, `3M+`) are found by
+`figureRuns` in `src/sections/Contact/answer-figures.ts`, never marked up in
+the content, and set in `--accent` mono; dates, ordinals and number words stay
+prose. Thinking is three ink dots, a still "writing…" under reduced motion.
+Prose / Code are `Tabs`' `index` variant. Paper lands without fading (it
+moves, or the typed sheet is unclipped line by line), so text is never
+half-transparent when axe audits it, and it does not move at all under
+reduced motion. Every colour is an alias and every text pairing is
+one `docs/contrast.md` already measures. The window is still one fixed height
+(17rem, 23rem from 1024, so a clipping and a half show on a desktop) and
+`--ask-room` is re-measured to match; `role="log"`, the conversation list,
+the thread cache, the focus rules and the dynamic import are unchanged. Idle, the window holds the promise without
+scrolling down to 320 (it is no tab stop until there is a turn).
 
 ### `src/lib/` never imports from `src/sections/`
 

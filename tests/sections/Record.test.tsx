@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import Record from "@/sections/Record/Record";
 import {
   caseStudyAnchorId,
@@ -287,6 +287,96 @@ describe("the page controls", () => {
     const where = document.querySelector("[data-diary-page]")!;
     expect(where.getAttribute("aria-live")).toBe("polite");
     expect(where.textContent).toBe(`p. 1 of ${PAGES.length}`);
+  });
+});
+
+/** A browser that welcomes motion (or asks for less), one page to a view. */
+function stubMotion(reduce: boolean, wide = false) {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("prefers-reduced-motion") ? reduce : wide,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })),
+  );
+}
+
+describe("the book, where motion is welcome (round 24)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    window.history.replaceState(null, "", "/");
+  });
+
+  const slots = () => [...document.querySelectorAll<HTMLElement>("#record .diary-track > .diary-slot")];
+  const onShow = () => slots().filter((s) => !s.hasAttribute("hidden")).map((s) => s.dataset.page);
+
+  it("binds the pages into leaves: the opening on show, the rest hidden until found", () => {
+    stubMotion(false);
+    render(<Record />);
+    expect(document.querySelector("[data-diary]")).toHaveAttribute("data-mode", "leaf");
+    expect(onShow()).toEqual(["summary"]);
+    const hidden = slots().filter((s) => s.hasAttribute("hidden"));
+    expect(hidden).toHaveLength(PAGES.length - 1);
+    // Until found, not plain hidden: the browser's find still searches them.
+    for (const slot of hidden) expect(slot.getAttribute("hidden")).toBe("until-found");
+    // Not inert at rest, or find would skip them too.
+    for (const slot of slots()) expect(slot.inert).toBeFalsy();
+  });
+
+  it("opens two pages at a time on a spread", () => {
+    stubMotion(false, true);
+    render(<Record />);
+    expect(onShow()).toEqual(["summary", "contents"]);
+    expect(document.querySelector("[data-diary-page]")?.textContent).toBe(`pp. 1–2 of ${PAGES.length}`);
+  });
+
+  it("stays the scroll track under reduced motion, every page shown", () => {
+    stubMotion(true);
+    render(<Record />);
+    expect(document.querySelector("[data-diary]")).toHaveAttribute("data-mode", "track");
+    expect(slots().filter((s) => s.hasAttribute("hidden"))).toHaveLength(0);
+  });
+
+  it("opens where the browser's find lands (beforematch), at once", () => {
+    stubMotion(false, true);
+    render(<Record />);
+    const certificates = slots().find((s) => s.dataset.page === "certificates")!;
+    act(() => {
+      certificates.dispatchEvent(new Event("beforematch", { bubbles: true }));
+    });
+    expect(onShow()).toEqual([PAGES.at(-2)!.key, "certificates"]);
+    expect(document.querySelector("[data-diary-page]")?.textContent).toBe(`pp. ${PAGES.length - 1}–${PAGES.length} of ${PAGES.length}`);
+  });
+
+  it("a link from outside the book opens it at the page at once, and lands on it", () => {
+    stubMotion(false);
+    render(
+      <>
+        <a href="#journey-entry-schaeffler">a tag on the oak</a>
+        <Record />
+      </>,
+    );
+    fireEvent.click(screen.getByText("a tag on the oak"));
+    const page = PAGES.findIndex((p) => p.entryIds.includes("schaeffler"));
+    expect(onShow()).toEqual([PAGES[page].key]);
+    expect(window.location.hash).toBe("#journey-entry-schaeffler");
+  });
+
+  it("gives each chapter page its running head, and the front matter none", () => {
+    stubMotion(false);
+    render(<Record />);
+    const head = (key: string) => slots().find((s) => s.dataset.page === key)?.querySelector(".diary-head")?.textContent ?? null;
+    expect(head("summary")).toBeNull();
+    expect(head("contents")).toBeNull();
+    expect(head("certificates")).toBe(record.certificates);
+    const chapters = diaryChapters();
+    for (const page of PAGES.filter((p) => p.entryIds.length > 0)) {
+      const chapter = chapters.find((c) => c.entries.some((e) => e.id === page.entryIds[0]))!;
+      expect(head(page.key), page.key).toBe(chapter.label);
+    }
+    for (const el of document.querySelectorAll(".diary-head")) expect(el).toHaveAttribute("aria-hidden", "true");
   });
 });
 

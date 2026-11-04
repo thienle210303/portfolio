@@ -7,7 +7,7 @@ The site is a single narrative page in four sections: **About** — the
 hero, my headline and two actions under a clothesline of four chapter tags
 that turn over to my line about each, with my field tag (and its LinkedIn QR) at its end, over a drawn morning or evening scene; the **Journey** — a live oak
 with five measured tags hanging from it and Bé Nhi on a rope swing (press her
-and her mood changes), which grows, tags and all, on "Watch it grow"; the **Diary** — a book you swipe left and right: a tree slice with my five
+and her mood changes), which grows, tags and all, on "Watch it grow"; the **Diary** — a cloth-bound book whose pages turn (drag a corner, swipe, or riffle from the contents): a tree slice with my five
 best pressed around it, a contents, a page for each thing I did (a highlighted
 figure, a few bullets, a small chart and a fun fact), 2018 – 2020 as one
 chapter, and my certificates as stamps; and **Contact**: a
@@ -90,8 +90,8 @@ CSS variable (the raw names would collide with Tailwind colours):
 |---|---|
 | `--twine` | the clothesline, the tags' strings and holes |
 | `--gold` | the star on my field tag |
-| `--scene-water` | the ripples under the rice |
-| `--scene-buffalo` | the buffalo |
+| `--scene-water` | the paddy's water and the clumps' reflections |
+| `--scene-buffalo` | the buffalo, and the mud she turns |
 | `--art-sky` | the hero's sky file (day: sun, night: moon) |
 | `--art-vignette` | the vignette file (day: the phin, night: the lẩu) |
 | `--scene-bark` | the Journey's oak and its branch (day: ink, night: a silhouette) |
@@ -303,7 +303,8 @@ happen.
 form also checks) and sends one email via
 Resend (`replyTo` is the visitor's email when they gave one). If the route
 answers `not-configured`, or a send fails, the form shows the same honest
-message and my address. A send that works inks a "SENT" stamp on the postcard.
+message and my address. A send that works inks a "SENT" stamp on empty paper
+(the picture's sky, or under the confirmation line on a narrow postcard).
 
 ```bash
 cp .env.example .env.local
@@ -314,8 +315,9 @@ cp .env.example .env.local
 | `RESEND_API_KEY` | yes | Resend API key |
 | `CONTACT_TO_EMAIL` | yes | Where leads are delivered |
 | `CONTACT_FROM_EMAIL` | yes | Verified sender on your Resend domain |
+| `CONTACT_REPLY_FROM` | no | An address on a domain verified in Resend (the free plan covers one). When set, a visitor who left an email also gets a short thank-you from it, replying to `CONTACT_TO_EMAIL`. Leave it unset until you have a domain: Resend's shared `onboarding@resend.dev` sender can only mail your own inbox. Never repeats anything the visitor typed; phone-only leads get nothing. |
 
-All three are **server-only**. Never prefix them with `NEXT_PUBLIC_` — that would
+All of them are **server-only**. Never prefix them with `NEXT_PUBLIC_` — that would
 publish your API key to every visitor. Only a single boolean
 (`emailDeliveryConfigured`) crosses to the client.
 
@@ -363,6 +365,7 @@ an empty config file only overrides detection that is already correct.
    | `RESEND_API_KEY` | Production (+ Preview to test it) | omit and the form shows my address to copy instead. Read at build time: redeploy after adding it |
    | `CONTACT_TO_EMAIL` | same as above | |
    | `CONTACT_FROM_EMAIL` | same as above | must be on a domain verified in Resend |
+   | `CONTACT_REPLY_FROM` | Production, optional | a domain-verified address for the visitor's thank-you email; leave it out until the site has a domain (see above) |
 
    The three contact variables are all-or-nothing: with any one missing the
    route returns `503 { reason: "not-configured" }` and the UI switches to the
