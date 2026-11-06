@@ -47,6 +47,7 @@ copy, and record what changed below.
 ## round-25-responsive — the middle bands
 
 Review page: [round-25-responsive/v1/index.html](round-25-responsive/v1/index.html)
+(published, private: https://claude.ai/artifact/5WXE5X1oL6jC4UXrRLJswG)
 Audit: [round-25-responsive/audit.md](round-25-responsive/audit.md)
 
 | Version | Date | What it is |
