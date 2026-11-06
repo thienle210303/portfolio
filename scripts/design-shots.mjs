@@ -140,7 +140,7 @@ const SHOT = { animations: "disabled", caret: "hide" };
 
 /**
  * A section is shot whole, taller than the window, and two fixed things do not
- * survive that: the header would be drawn once, wherever the window happened
+ * survive that: the site header (not a section's own <header>) would be drawn once, wherever the window happened
  * to be, and the sky (`body::before`, one window tall) would stop in a straight
  * line partway down. So for whole-element shots the header is hidden (`fold`
  * is the shot that shows it, and the cats at rest on a touch screen, who
@@ -150,7 +150,7 @@ const SHOT = { animations: "disabled", caret: "hide" };
  * window holds the whole of it.
  */
 const WHOLE_ELEMENT = `
-  header, [data-companion] { visibility: hidden !important; }
+  body > header, header.sticky, [data-companion] { visibility: hidden !important; }
   :root body { position: relative; }
   :root body::before {
     position: absolute !important;
