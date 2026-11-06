@@ -26,8 +26,10 @@ reference: [README.md](README.md).
   stack. It is never over a word, a field or a control, it is `aria-hidden`
   (the status line carries the meaning), and its worn ink is a mask
   (`stamp-wear`) that only CSS uses. Email or phone is one requirement, said
-  before they try: one `*`, one bracket and one note ("One is enough, both is
-  fine.") under the pair, and a miss is still one error about the pair.
+  before they try: one `*`, one bracket down the pair's side and one note ("One is enough, both
+  is fine.") under it, and a miss is still one error about the pair. The two
+  fields are two whole lines, each the form's full width, at every width
+  (round 25: side by side they were 100–150px each).
   **The thank-you.** When `CONTACT_REPLY_FROM` is also set (optional, off by
   default: an address on a domain verified in Resend; the shared
   `onboarding@resend.dev` sender can only mail my own inbox, so leave it unset
@@ -99,8 +101,13 @@ theme swaps them in CSS with no script. The hero's field is a paddy (round
 on their reflections, a hamlet's trees on the far edge and ripe ears hanging on
 the near bank. It is two masks, `paddy` (the rice and its banks, `text-accent`)
 over `paddy-water` (`--scene-water`), a wide board from 1024 and
-`paddy-phone` / `paddy-phone-water` below, each at one unit a pixel in a box
-whose ends fade into the sky (`.paddy` in globals.css). The buffalo is two
+`paddy-phone` / `paddy-phone-water` below, each at one unit a pixel in a box whose ends fade into the sky (`.paddy` in globals.css); under 375 the
+phone's paddy scales with the buffalo. The bamboo is tiles, so a pole can be
+any height and still stand in the ground (round 25): `bamboo-top` / `-top-b`,
+`bamboo-stem` (repeats), `bamboo-sprig` / `-sprig-b` and `bamboo-tuft` at its
+foot; `bank-grass` runs along the section's foot from 1024. **A support never
+floats or ends in mid-air**: a line is strung between two things that stand in
+the ground (Thien, 2026-11-05). The buffalo is two
 masks painted by `--scene-buffalo`: she ploughs by day (`buffalo-plow`, over
 the water and under the rice, with `paddy-wake`, the mud she turns, in her own
 box half a box on) and sleeps at night (`buffalo-sleep`, in front of it all),
@@ -117,7 +124,9 @@ and so are the book's materials (round 24): `diary-grain` (the paper's fibre and
 speckle, an SVG turbulence with stitched edges), `diary-cloth` (the boards'
 weave) and `diary-ribbon` (its tail out of the foot). The Journey's oak is three masks (`oak`, `oak-leaves`, `oak-moss`);
 below 1280 it continues as `oak-trunk` (with `-leaves` and `-moss`), `oak-roots`
-and a stretched `oak-bough` (with `-leaves`) per tag. `oak-leaves` is the one file over 40 KB raw (capped by its gzip size). Nothing is drawn at runtime and there is no drawing
+and a stretched `oak-bough` (with `-leaves`) per tag, and from 640 to 1279 its
+crown is `oak-crown` (with `-leaves` and `-moss`), drawn so the title sits
+beside it. `oak-leaves` and `oak-crown-leaves` are the two files over 40 KB raw (each capped by its gzip size). Nothing is drawn at runtime and there is no drawing
 library; the two figures, mini-Thien and Bé Nhi, are fixed inline SVG in
 `src/components/companion/` because their poses and faces are state. `data-moon-off-duty` (Moon lying in her võng, hung between two bamboo stakes,
 in `Scenery.tsx`) is a stable hook for Phase 7; keep it, once. The drawing
@@ -132,7 +141,9 @@ strip held by washi tape (the nav, no numbers, and the theme switch — a drawn
 sun by day, crescent by night, no box) and a postage stamp for "Let's talk"
 (paper and ink, never `--control` or `--mark`; hidden under 640px). Below 1024
 the strip holds a "Menu" tag (punched hole) and the sun/moon, and the menu is a
-notebook page. The current section gets an ink swash drawn on by its link's
+notebook page that ends with Résumé and, under 640 where the stamp is hidden,
+"Let's talk" (round 25). The TL tag and the stamp link to `/#about` and
+`/#contact`, so they work on `/resume`. The current section gets an ink swash drawn on by its link's
 `aria-current`. The drawings (`nav-torn`, `nav-swash`, `nav-sun`, `nav-moon`)
 are in `draw-scenery.mjs` like the rest. **The strip's wrapper must carry no
 transform or filter** — the phone menu's panel is `position: fixed` inside it —
@@ -152,24 +163,33 @@ settle.
 
 The page is four sections, in this order: About (`#about` — the hero: my headline and two actions under a
 clothesline of four chapter tags that turn over to my line about each, my
-field tag with the LinkedIn QR at the line's end (below 1024 the line hangs
-down the page from a bamboo pole, the tags either side, my field tag at its
-foot), the morning/evening scenery
+field tag with the LinkedIn QR at the line's end (below 1024 the line is
+strung between two supports that stand in the paddy at the page's edges and
+crosses between them: three passes between two bamboo poles on a phone, two
+between a bamboo and a pine on a tablet, the tags on strings of different
+lengths, my field tag on the last pass; round 25. One set of tags serves every
+width, and the strings come from the line's own curve, `src/sections/Hero/line.ts`,
+not from numbers fitted per width), the morning/evening scenery
 drawn by `pnpm draw:scenery` behind; no rail, no height floor: it
 is as tall as its content), the Journey (`#tree`: a live oak whose limb
 carries the highlight tags, the DoorDash one a ticket with a 2026 stub,
 Bé Nhi (my girlfriend) on a rope swing, and "Watch it grow", which grows the
 oak itself; below 1280 it is one tree: the crown's trunk runs on past the tags
-and her swing to its roots, each on a bough of its own), the Diary (`#record`, the Record until
+and her swing to its roots, each on a bough of its own; from 640 the boughs
+leave the trunk in pairs and the title sits beside the crown. From 1280 the
+board is laid out in board units, 1/1440 of its own width, so it fits its
+window and grows to 1680; "Watch it grow" sits under my line at every width;
+round 25), the Diary (`#record`, the Record until
 round 23; `#diary` lands beside it: a book whose pages turn (round 24). With
 JavaScript off, and under reduced motion, the pages are a horizontal
-scroll-snap track, one to a view below 1280 and a spread of two from there;
+scroll-snap track, one to a view below 1024 and a spread of two from
+there (round 25; it was 1280);
 `DiaryBook.tsx` is the one client island and adds the index tabs, the
 dog-eared corners, ← and → and "p. 3 of 14", and where motion is welcome binds
 the same pages into leaves (`data-mode="leaf"`): on a spread the right page
 turns over the spine in 3D, its back the next left page, with a shadow sweeping
 the page under it and light across its curl. **Where one page shows (below
-1280) it curls from its corner instead** (2026-11-02, my call, like Apple
+1024) it curls from its corner instead** (2026-11-02, my call, like Apple
 Books: a hinge turn squashed the page beside the next one, so mid-turn the
 phone looked like a two-page spread). The curl is 2D and stays inside the page
 box (`curl`): the corner, at the foot of what is on screen or at the hand's
@@ -196,7 +216,13 @@ margin, so the pages do not move and no leaf is clipped; `.diary-book` is a
 `flow-root` so that margin cannot collapse through it, the padded track takes
 no pointer events (the pages on show do), its scroll offsets are held at 0, and
 `measure()` leaves the padding out of `--page-h`. `record.spec.ts` fails above
-0.01 load CLS at 1440 and 390. A leaf in perspective looks taller the further
+0.01 load CLS at 1440, 1024 and 390. **Where one page shows, a page is as tall
+as what is on it** (round 25): its floor is `min(29rem, 100svh - 9rem)`,
+`--page-h` is now the cap and the spread's shared height, a turn flies at the
+height the book had and the book then eases to the page that landed. The
+reduced-motion track keeps the tallest height (CSS cannot size each snap page
+on its own across browsers). Page 1 picks its arrangement from its own width
+(strings from 496px), and the tabs' counts drop out before the row wraps. A leaf in perspective looks taller the further
 it is from the eye's line, and these pages are tall, so while a spread's leaf
 turns the track's own `perspective` and `perspective-origin` follow the reader
 (`camera`): the eye stands on the book's top or foot when only that edge is on
@@ -245,7 +271,9 @@ The business card's Résumé chip is a link to `profile.resumePdf`; from 640px
 with JavaScript it opens the PDF in a native `<dialog>` (`ResumeLink.tsx`, the
 iframe's `src` set only on first open), below that the PDF itself. `/resume`
 is the same PDF full page (back to the site, Download) so inbound links still
-land. Do not reintroduce the résumé as a section or an HTML page.
+land; under 640 it shows page one as a picture with Open and Download instead
+of a frame a phone cannot scroll (`pnpm resume:preview` regenerates the
+picture; a test fails when the PDF changes without it). Do not reintroduce the résumé as a section or an HTML page.
 
 Copy rules (first person, surface vs depth, headlines) live in
 [docs/voice.md](docs/voice.md).
@@ -319,8 +347,8 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   this in Diary".
 - **Bé Nhi swings from the oak (round 22, her own request: "dumb dumb cute
   cute easy mood changing").** `NhiSwing.tsx` hangs her from the left limb
-  between the lantern and the trunk (below 1280, from a bough under the last
-  tag); a press gives her a new mood and a push, and she also changes on her
+  between the lantern and the trunk (from 640 to 1279 on the last right-hand bough, beside the
+  fifth tag; on a phone from a bough under the last tag); a press gives her a new mood and a push, and she also changes on her
   own when she comes back into view, at nightfall and dawn, and while the oak
   grows. Her name, lines and captions are `journey.swing` in the content file;
   her drawing is `src/components/companion/MiniNhi.tsx`, inline line work like
@@ -376,9 +404,14 @@ Prose / Code are `Tabs`' `index` variant. Paper lands without fading (it
 moves, or the typed sheet is unclipped line by line), so text is never
 half-transparent when axe audits it, and it does not move at all under
 reduced motion. Every colour is an alias and every text pairing is
-one `docs/contrast.md` already measures. The window is still one fixed height
-(17rem, 23rem from 1024, so a clipping and a half show on a desktop) and
-`--ask-room` is re-measured to match; `role="log"`, the conversation list,
+one `docs/contrast.md` already measures. **The notepad is short until there is something in it** (round 25, my call:
+it reverses round 24's one fixed height). Idle it is as tall as its promise;
+the first question opens it to its window (`min(26rem, 60svh)` on a phone,
+23rem from 1024; 200ms, instant under reduced motion) and it stays that
+height. `--ask-room` is gone: the server renders the idle notepad
+(`AskPlaceholder.tsx`, from the same pieces the chat uses, `ask-sheet.tsx`) and
+`AskLoader` shows it until the chunk lands, so nothing shifts. A question
+already asked leaves the suggestions; `role="log"`, the conversation list,
 the thread cache, the focus rules and the dynamic import are unchanged. Idle, the window holds the promise without
 scrolling down to 320 (it is no tab stop until there is a turn).
 
@@ -422,7 +455,9 @@ Run `pnpm verify` (typecheck → lint → contrast → test → build). For UI c
 also run `pnpm dev` and check the change in a real browser **in both themes**,
 then run `pnpm test:e2e` (Playwright + axe-core) — it audits both themes and
 all three tones, and checks keyboard nav, focus restoration, reduced motion,
-and horizontal overflow at 320–1440px.
+horizontal overflow at 320–1440px (seven projects: 320, 375, 390, 768, 1024,
+1280, 1440) and, in `clipping.spec.ts`, that no visible text is cut off at
+the nine widths from 320 to 1920.
 
 For any UI change, also run `pnpm build && pnpm shots <label>` and look at the
 contact sheet in `design/.shots/<label>/index.html` (nine widths, day and
