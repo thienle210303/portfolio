@@ -55,13 +55,19 @@ export default function Weather() {
 
 /**
  * The last beat's cameo: a saucer that glides in over the lantern, beams it,
- * and zips off. The wrapper is sized by the caller (`className`), everything
- * inside is a share of it, so the same drawing sits on the board (1440 wide)
- * and on the crown below 1280.
+ * and zips off. The wrapper is sized by globals.css (the board's frame from
+ * 1280, where `board` says; a share of the crown below it), everything inside
+ * is a share of it, so the same drawing sits on both.
  */
-export function Ufo({ className }: { readonly className?: string }) {
+export function Ufo({ className, board }: { readonly className?: string; readonly board?: CSSProperties }) {
   return (
-    <span aria-hidden="true" data-ufo="" className={cn("wx-ufo-wrap pointer-events-none absolute", className)}>
+    <span
+      aria-hidden="true"
+      data-ufo=""
+      {...(board ? { "data-board": "" } : {})}
+      style={board}
+      className={cn("wx-ufo-wrap pointer-events-none absolute", className)}
+    >
       <span className="wx-glow" />
       <span className="wx-beam" />
       <span className="wx-ufo" style={ink("ufo")} />

@@ -123,16 +123,18 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
     section.style.setProperty("--grow-ms", `${total}ms`);
     section.style.setProperty("--beat-ms", `${BEAT_MS}ms`);
     section.setAttribute("data-growing", "");
-    // From 1280 the button is under the oak, at the board's foot; below, it
-    // is above it, under the heading.
+    // The button is under my line at every width (round 25). From 1280 the
+    // whole oak is one board, so bring as much of it on screen as will fit;
+    // below, the oak starts under the words, so start at the section's top.
     if (window.matchMedia(BAND.desktop).matches) {
       // Line the board's foot up with the bottom of the screen, but stop
       // while the heading still clears the header: the header has been
       // see-through paper since round 23, so a heading under it shows through
       // the TL tag. The button's row (the caption and the lịch) always stays
-      // on screen. On a screen too short for both, the heading and its lead
-      // go up past the top edge whole, so the oak fills the screen and nothing
-      // sits half under the paper.
+      // on screen: it is just under the heading now, so this only matters on
+      // a screen too short for the words themselves, where the heading and
+      // its lead go up past the top edge whole and nothing sits half under
+      // the paper.
       const rect = (selector: string) => section.querySelector(selector)?.getBoundingClientRect();
       const header = document.querySelector("[data-site-header]")?.getBoundingClientRect().bottom ?? 0;
       const foot = section.getBoundingClientRect().bottom - window.innerHeight;
@@ -184,7 +186,9 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
         className={cn(
           "bg-surface px-3 py-1.5 font-mono text-[length:var(--step--2)] text-fg",
           caption
-            ? "paper-lift absolute top-full left-0 z-10 mt-14 w-max max-w-[min(30rem,calc(100vw-2*var(--gutter)))] xl:top-1/2 xl:left-full xl:mt-0 xl:ml-28 xl:-translate-y-1/2"
+            ? // From 640 to 1279 it stops short of the lantern, which hangs
+              // 8.5rem left of the stage's middle at this height.
+              "paper-lift absolute top-full left-0 z-10 mt-14 w-max max-w-[min(30rem,calc(100vw-2*var(--gutter)))] sm:max-xl:max-w-[calc(50vw-var(--gutter)-9.25rem)] xl:top-1/2 xl:left-full xl:mt-0 xl:ml-28 xl:-translate-y-1/2"
             : "sr-only",
         )}
       >
