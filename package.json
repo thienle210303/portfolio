@@ -14,13 +14,16 @@
     "contrast": "node scripts/contrast.mjs",
     "draw:scenery": "node scripts/draw-scenery.mjs",
     "draw:cats": "node scripts/draw-cats.mjs",
+    "design:tokens": "node scripts/design-tokens.mjs",
+    "resume:preview": "node scripts/resume-preview.mjs",
     "perf": "node scripts/perf.mjs",
     "lag": "node scripts/lag.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "verify": "pnpm typecheck && pnpm lint && pnpm contrast && pnpm test && pnpm build",
-    "screenshots": "node scripts/screenshots.mjs"
+    "shots": "node scripts/design-shots.mjs",
+    "screenshots": "node scripts/design-shots.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

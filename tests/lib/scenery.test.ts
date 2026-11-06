@@ -1,15 +1,26 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { gzipSync } from "node:zlib";
-import { PADDY, SKY_CLEAR, drawScenery, journeySpots } from "../../scripts/draw-scenery.mjs";
+import { GRASS, PADDY, POLE, SKY_CLEAR, crownSpots, drawScenery, journeySpots } from "../../scripts/draw-scenery.mjs";
 
 const DIR = "public/scenery";
 
 const VIEWBOXES: Record<string, string> = {
   bamboo: "0 110 140 1234",
-  "bamboo-phone": "316 456 70 868",
-  clothespin: "0 0 8.8 22.8",
-  pine: "1260 80 180 1264",
+  // The yard's pole (round 25): a crown (two of them, so the phone's two
+  // poles are not twins), a stem that tiles, sprigs for its nodes and a tuft
+  // at its foot. The pole's centre is x 0 in every one.
+  "bamboo-top": "-84 -236 98 209",
+  "bamboo-top-b": "-84 -236 98 209",
+  "bamboo-stem": "-12 -243 24 216",
+  "bamboo-sprig": "-40 -12 42 40",
+  "bamboo-sprig-b": "-40 -12 42 40",
+  "bamboo-tuft": "-36 -30 72 34",
+  // The ground past the paddy's ends, from 1024: a strip that tiles.
+  "bank-grass": "0 0 420 30",
+  // The pine's bare trunk runs on to y 2600, so it reaches the ground from
+  // 640 to 1023 however tall the section is.
+  pine: "1260 80 180 2520",
   // The paddy (round 24): one unit a pixel, the wide board from 1024, the
   // phone's below; the wake is in the buffalo's units, half a box on.
   paddy: "0 0 750 190",
@@ -50,6 +61,10 @@ const VIEWBOXES: Record<string, string> = {
   oak: "0 120 1440 780",
   "oak-leaves": "0 120 1440 780",
   "oak-moss": "0 120 1440 780",
+  // The crown from 640 to 1279 (round 25): the board's frame, cut at y 680.
+  "oak-crown": "0 120 1440 560",
+  "oak-crown-leaves": "0 120 1440 560",
+  "oak-crown-moss": "0 120 1440 560",
   "oak-trunk": "0 0 240 2400",
   "oak-trunk-leaves": "0 0 240 2400",
   "oak-trunk-moss": "0 0 240 2400",
@@ -86,7 +101,7 @@ const VIEWBOXES: Record<string, string> = {
   rain: "0 0 200 200",
   snow: "0 0 240 240",
 };
-const INK = ["bamboo", "bamboo-phone", "pine", "paddy", "paddy-water", "paddy-phone", "paddy-phone-water", "paddy-wake", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", "stamp-wear", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", "diary-grain", "diary-cloth", "diary-ribbon", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
+const INK = ["bamboo", "bamboo-top", "bamboo-top-b", "bamboo-stem", "bamboo-sprig", "bamboo-sprig-b", "bamboo-tuft", "bank-grass", "pine", "paddy", "paddy-water", "paddy-phone", "paddy-phone-water", "paddy-wake", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-crown", "oak-crown-leaves", "oak-crown-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", "stamp-wear", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", "diary-grain", "diary-cloth", "diary-ribbon", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
 
 const files = drawScenery();
 
@@ -150,12 +165,65 @@ describe("the hero's scenery", () => {
 
   it("no file is over 40 KB, except the oak's leaves", () => {
     // The oak's 2,093 leaves are ~181 KB raw and ~29 KB gzipped; they are
-    // served compressed, so that file is capped by its gzip size instead.
+    // served compressed, so that file is capped by its gzip size instead. So
+    // is the 640-to-1279 crown's (round 25): 1,350 leaves, ~117 KB raw and
+    // ~19 KB gzipped. A page loads one of the two, never both.
+    const LEAVES: Record<string, number> = { "oak-leaves": 32 * 1024, "oak-crown-leaves": 22 * 1024 };
     for (const stem of Object.keys(files)) {
-      if (stem === "oak-leaves") continue;
+      if (stem in LEAVES) continue;
       expect(statSync(`${DIR}/${stem}.svg`).size, stem).toBeLessThanOrEqual(40 * 1024);
     }
-    expect(gzipSync(readFileSync(`${DIR}/oak-leaves.svg`)).length).toBeLessThanOrEqual(32 * 1024);
+    for (const [stem, cap] of Object.entries(LEAVES)) {
+      expect(gzipSync(readFileSync(`${DIR}/${stem}.svg`)).length, stem).toBeLessThanOrEqual(cap);
+    }
+  });
+});
+
+describe("the yard's bamboo (round 25)", () => {
+  // A pole has to reach the ground at any section height, so its stem is a
+  // tile. It only tiles if it is dead straight, one width, and cut where a
+  // culm is nothing but its two edges: mid-internode.
+  const box = (stem: string) => files[stem].match(/viewBox="([^"]+)"/)![1].split(" ").map(Number);
+  const edges = (stem: string) => [...files[stem].matchAll(/<path d="M(-?[\d.]+) (-?[\d.]+)Q(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+)M/g)].map((m) => m.slice(1).map(Number));
+
+  it("the stem is a whole number of internodes, cut mid-internode", () => {
+    const [x, y, w, h] = box("bamboo-stem");
+    expect(h).toBe(POLE.tile * POLE.step);
+    expect(y).toBe(-POLE.tile * POLE.step - POLE.step / 2);
+    expect(x).toBe(-w / 2);
+    // Every internode's left edge is the same curve, one step apart.
+    const culm = edges("bamboo-stem");
+    expect(culm).toHaveLength(POLE.tile + 1);
+    culm.forEach(([x0, y0, cx, , x1], i) => {
+      expect([x0, cx, x1]).toEqual([culm[0][0], culm[0][2], culm[0][4]]);
+      expect(y0).toBeCloseTo(-i * POLE.step, 6);
+    });
+    // The tile's top and bottom edges fall mid-internode, not on a node.
+    for (const cut of [y, y + h]) expect(Math.abs(cut % POLE.step)).toBe(POLE.step / 2);
+  });
+
+  it("the crowns end where the stem's tile begins, at the same width", () => {
+    for (const crown of ["bamboo-top", "bamboo-top-b"]) {
+      const [, y, , h] = box(crown);
+      expect(y + h, crown).toBe(-POLE.step / 2);
+      expect(edges(crown)[0].slice(0, 1), crown).toEqual(edges("bamboo-stem")[0].slice(0, 1));
+    }
+    expect(files["bamboo-top"]).not.toBe(files["bamboo-top-b"]);
+  });
+
+  it("the pine's trunk runs on far below its branches", () => {
+    const [, y, , h] = box("pine");
+    expect(y + h).toBeGreaterThanOrEqual(2400);
+    expect(files.pine).toContain(`V${y + h}`);
+  });
+
+  it("the bank grass tiles: nothing is drawn across its ends", () => {
+    const xs = [...files["bank-grass"].matchAll(/<path d="M(-?[\d.]+) [\d.]+(?:Q(-?[\d.]+) [\d.]+ (-?[\d.]+) [\d.]+|h([\d.]+))"/g)].flatMap((m) =>
+      m[4] ? [+m[1], +m[1] + +m[4]] : [+m[1], +m[2], +m[3]],
+    );
+    expect(xs.length).toBeGreaterThan(40);
+    expect(Math.min(...xs)).toBeGreaterThan(1);
+    expect(Math.max(...xs)).toBeLessThan(GRASS.W - 1);
   });
 });
 
@@ -190,6 +258,58 @@ describe("the Journey's scenery", () => {
       expect(s.ly).toBeGreaterThan(290);
       expect(s.ly).toBeLessThan(520);
     }
+  });
+
+  /* The crown drawn for 640 to 1279 (round 25), where the title stands
+     top-left beside it and the trunk is in the middle of the stage. */
+  describe("the crown from 640 to 1279", () => {
+    const leaves = [...files["oak-crown-leaves"].matchAll(/cx="(-?[\d.]+)" cy="(-?[\d.]+)"/g)].map((m) => [+m[1], +m[2]]);
+    const { box, foot, lantern } = crownSpots();
+    const [x0, y0, w, h] = box;
+
+    it("is not cut by its box: no leaf is at its left edge or over its top", () => {
+      expect(leaves.length).toBeGreaterThan(1000);
+      // A leaf is 4.2 units long; the board's own crown runs off this edge.
+      for (const [x, y] of leaves) {
+        expect(x, `a leaf at ${x},${y}`).toBeGreaterThanOrEqual(x0 + 8);
+        expect(y, `a leaf at ${x},${y}`).toBeGreaterThanOrEqual(y0 + 8);
+      }
+    });
+
+    it("leaves the corner the title stands in clear", () => {
+      // Left of the trunk the only limb is the lantern's, low: globals.css
+      // pulls the crown up beside the words by 23.54% of its width, which is
+      // where that limb's sprigs start. Nothing else grows left of the trunk.
+      const top = y0 + 0.2354 * w;
+      const corner = leaves.filter(([x, y]) => x < foot[0] - 50 && y < top - 2);
+      expect(corner, JSON.stringify(corner.slice(0, 3))).toEqual([]);
+      expect(leaves.some(([x]) => x < foot[0] - 50), "the lantern's limb has leaves").toBe(true);
+      // ...and beside the corner the canopy stands up, within a tenth of the box of its top.
+      const beside = leaves.filter(([x]) => x > foot[0] && x < foot[0] + 600);
+      expect(Math.min(...beside.map(([, y]) => y))).toBeLessThan(y0 + 0.1 * h);
+    });
+
+    it("joins the trunk below it where the board's crown does, and hangs the lantern at the board's x", () => {
+      expect(foot).toEqual([307, 640]);
+      expect(y0 + h).toBeGreaterThan(foot[1]);
+      expect(lantern[0]).toBe(152);
+      // The page hangs it at 76.7% of the box's height and 7.2% of its width
+      // (globals.css, `[data-crown-lantern]`): the lantern's file starts 48
+      // units left of its string and 10 above where the string leaves the limb.
+      expect(((lantern[1] - 10 - y0) / h) * 100).toBeCloseTo(76.7, 1);
+      expect(((lantern[0] - 48 - x0) / w) * 100).toBeCloseTo(7.2, 1);
+    });
+  });
+
+  it("the trunk below 1280 is one piece: its straight run laps over its leaning one", () => {
+    const tops = [...files["oak-trunk"].matchAll(/<path fill="#000" d="M([^"]+)Z"\/>/g)].map((m) =>
+      Math.min(...m[1].split("L").map((p) => Number(p.split(" ")[1]))),
+    );
+    // Two tapers: the leaning one from the top, the straight one from under 640.
+    expect(tops).toHaveLength(2);
+    expect(Math.min(...tops)).toBeLessThan(1);
+    expect(Math.max(...tops)).toBeGreaterThan(600);
+    expect(Math.max(...tops)).toBeLessThan(640);
   });
 
   it("the lantern is lit only at night", () => {

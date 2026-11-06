@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { navItems } from "../src/content/portfolio";
+import { navItems, profile } from "../src/content/portfolio";
 
 // Matches SiteNav.tsx's own `lg:` breakpoint (1024px) — below it the
 // desktop <nav aria-label="Primary"> is CSS-hidden and the hamburger drives
@@ -81,6 +81,81 @@ test.describe("mobile nav", () => {
       await expect(panel).toBeHidden();
       await expect(page.locator(`#${item.sectionId}`)).toBeInViewport();
     }
+  });
+
+  // Round 25: the notebook page ends with the two things the header has no
+  // room for on a phone, instead of 400px of blank lined paper.
+  test("the page ends with Let's talk and my résumé: paper and ink, 44px targets", async ({ page }) => {
+    const toggle = page.getByRole("button", { name: TOGGLE_NAME });
+    await toggle.click();
+    const panel = page.getByRole("navigation", { name: "Mobile" });
+    await expect(panel).toBeVisible();
+    const end = panel.locator("[data-menu-end]");
+    const talk = end.getByRole("link", { name: "Let’s talk" });
+    const resume = end.getByRole("link", { name: "Résumé", exact: true });
+
+    await expect(resume).toBeVisible();
+    await expect(resume).toHaveAttribute("href", profile.resumePdf!);
+    expect((await resume.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    // They come after the four stops, in the page and in the tab order.
+    const lastStop = panel.getByRole("link", { name: navItems[navItems.length - 1].label, exact: true });
+    expect((await resume.boundingBox())!.y).toBeGreaterThanOrEqual((await lastStop.boundingBox())!.y + 40);
+
+    if (viewportWidth(page) < 640) {
+      // The header's stamp is hidden on a phone, so the menu carries it.
+      await expect(talk).toBeVisible();
+      await expect(talk).toHaveAttribute("href", "/#contact");
+      const box = (await talk.boundingBox())!;
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      // Both fit on the page without scrolling it, at the smallest phone too
+      // (320 x 568, where they sit one over the other).
+      for (const link of [talk, resume]) await expect(link).toBeInViewport({ ratio: 1 });
+    } else {
+      // From 640 the header shows its own stamp; the menu does not repeat it.
+      await expect(talk).toBeHidden();
+      await expect(page.locator("header").getByRole("link", { name: "Let’s talk" })).toHaveCount(1);
+    }
+
+    // Paper and ink: neither is a control fill or the page's red.
+    const fills = await end.evaluate((el) => {
+      const probe = (name: string) => {
+        const span = document.createElement("span");
+        span.style.color = `var(${name})`;
+        el.appendChild(span);
+        const value = getComputedStyle(span).color;
+        span.remove();
+        return value;
+      };
+      const banned = [probe("--control"), probe("--mark")];
+      return Array.from(el.querySelectorAll<HTMLElement>("a, a *"))
+        .flatMap((node) => [getComputedStyle(node).backgroundColor, getComputedStyle(node).color])
+        .filter((colour) => banned.includes(colour));
+    });
+    expect(fills).toEqual([]);
+  });
+
+  test("Let's talk in the menu closes it and lands on Contact; the focus trap takes in the new links", async ({ page }) => {
+    const toggle = page.getByRole("button", { name: TOGGLE_NAME });
+    await toggle.click();
+    const panel = page.getByRole("navigation", { name: "Mobile" });
+    const end = panel.locator("[data-menu-end]");
+
+    // The last link on the page is the last stop of the trap: Tab from it
+    // wraps to the toggle, Shift+Tab from the toggle comes back to it.
+    const resume = end.getByRole("link", { name: "Résumé", exact: true });
+    await resume.focus();
+    await page.keyboard.press("Tab");
+    await expect(toggle).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(resume).toBeFocused();
+
+    test.skip(viewportWidth(page) >= 640, "the menu's Let's talk is the phone's; from 640 the header has the stamp");
+    await end.getByRole("link", { name: "Let’s talk" }).click();
+    await expect(panel).toBeHidden();
+    await expect(page.locator("#contact")).toBeInViewport();
+    await expect(page).toHaveURL(/#contact$/);
   });
 });
 

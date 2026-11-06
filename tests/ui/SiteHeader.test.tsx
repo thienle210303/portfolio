@@ -8,7 +8,7 @@ describe("SiteHeader", () => {
     // button is the one primary control there (round 18, spec §4).
     const { container } = render(<SiteHeader />);
     const cta = screen.getByRole("link", { name: "Let’s talk" });
-    expect(cta).toHaveAttribute("href", "#contact");
+    expect(cta).toHaveAttribute("href", "/#contact");
     const html = container.querySelector("header")!.innerHTML;
     expect(html).not.toMatch(/bg-control|var\(--control\)|--mark|bg-mark/);
     expect(cta.className).toMatch(/(^|\s)nav-stamp(\s|$)/);

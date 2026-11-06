@@ -15,10 +15,17 @@ const TICKETS = buildTickets();
  * `scripts/draw-scenery.mjs` worked out once (`tests/sections/HangingTags.test.tsx`
  * holds them to it). The ticket's hole is centred, so it hangs 13px right of
  * the board's ticket, whose hole and string disagree.
+ *
+ * They are board units, not pixels (round 25): the board is 1440 units wide
+ * whatever its width on screen, so at 1280 a tag is 11% narrower and at 1920
+ * a sixth wider, while the paper's own measures (its hole 18px down, its
+ * padding, its type) stay as they are. The second tag turns the same way as
+ * the ticket beside it (it turned toward it, and their corners met: 7 units
+ * between them is 6px at 1280, less than two papers swinging together close).
  */
 export const TAG_SPOTS = [
   { left: 415, top: 467, string: 26.3, tilt: -2.5, width: 210 },
-  { left: 632, top: 426, string: 58, tilt: 1.5, width: 176 },
+  { left: 632, top: 426, string: 58, tilt: -1.5, width: 176 },
   { left: 832, top: 440, string: 114.5, tilt: -1, width: 176 },
   { left: 1032, top: 372, string: 70, tilt: 2, width: 176 },
   { left: 1232, top: 387, string: 101.9, tilt: -1.5, width: 176 },
@@ -90,34 +97,32 @@ const notch = "absolute size-3.5 rounded-full bg-(--hole)";
  * joined at a perforation: the 2025 result links to its row, the 2026 stub to
  * the case study it came from (owner, 2026-10-20), which renders in that row.
  *
- * From 1280 each tag stands where the board hangs it, in a 1440 frame whose
- * left edge is the section's `--fx`; the strings are drawn in globals.css
- * (`[data-hanging-tags]`). Below 1280 it is one tree (round 22): the crown's
- * own trunk carries on down past the tags to its roots, and each tag hangs
- * by a string from a leafy bough of its own. The trunk stands at the right
- * edge on a phone, the tags in one column; from 640 it stands in the middle
- * and the tags take turns either side. globals.css lays that out.
+ * From 1280 each tag stands where the board hangs it, in a frame of 1440
+ * board units whose left edge is the section's `--fx`; the strings are drawn
+ * in globals.css (`[data-hanging-tags]`). Below 1280 it is one tree (round
+ * 22): the crown's own trunk carries on down past the tags to its roots, and
+ * each tag hangs by a string from a leafy bough of its own. The trunk stands
+ * near the right edge on a phone, the tags in one column; from 640 it stands
+ * in the middle and the boughs leave it in pairs, a tag each side (round 25).
+ * globals.css lays all of it out: nothing here places a tag.
  *
  * Bé Nhi's swing (`NhiSwing`) hangs here too, so below 1280 the trunk runs
- * on past her to its roots.
+ * on past her to its roots; from 640 hers is the last bough on the right,
+ * beside the fifth tag.
  *
  * `data-year` is the year the tag drops in when "Watch it grow" plays
  * (`GrowOak.tsx`): its first half's, so the DoorDash ticket comes with 2025.
  */
 export default function HangingTags({ className }: { readonly className?: string }) {
   return (
-    <div data-hanging-tags="" className={cn("relative xl:static", className)}>
+    <div data-hanging-tags="" className={className}>
       <div aria-hidden="true" data-trunk="" className="no-print pointer-events-none absolute xl:hidden">
         <Drawing name="oak-trunk-moss" className={cn(TRUNK, "text-[color:var(--scene-moss)]")} />
         <Drawing name="oak-trunk" className={cn(TRUNK, "text-[color:var(--scene-bark)]")} />
         <Drawing name="oak-trunk-leaves" className={cn(TRUNK, "text-accent")} />
         <Drawing name="oak-roots" className="absolute inset-x-0 bottom-0 aspect-[240/156] text-[color:var(--scene-bark)]" />
       </div>
-      <ul
-        role="list"
-        aria-label={journey.tagsLabel}
-        className="relative flex flex-col gap-y-10 pt-[26px] xl:static xl:block xl:p-0"
-      >
+      <ul role="list" aria-label={journey.tagsLabel}>
         {TICKETS.map((ticket, i) => {
           const spot = TAG_SPOTS[i];
           const [first, stub] = ticket.halves;
@@ -125,14 +130,15 @@ export default function HangingTags({ className }: { readonly className?: string
             <li
               key={ticket.entryId}
               data-year={first.year}
-              className="relative xl:absolute xl:top-(--y) xl:left-[calc(var(--fx)+var(--x))] xl:w-(--w)"
               style={
                 {
-                  "--x": `${spot.left}px`,
-                  "--y": `${spot.top}px`,
-                  "--string": `${spot.string}px`,
+                  // Board units, and the share of the string that grows with
+                  // the board: the rest of it is the 18px down to the hole.
+                  "--x": spot.left,
+                  "--y": spot.top,
+                  "--w": spot.width,
+                  "--drop": Math.round((spot.string - 18) * 10) / 10,
                   "--tilt": `${spot.tilt}deg`,
-                  "--w": `${spot.width}px`,
                 } as CSSProperties
               }
             >
@@ -140,7 +146,7 @@ export default function HangingTags({ className }: { readonly className?: string
                 <Drawing name="oak-bough" className="absolute inset-0 text-[color:var(--scene-bark)] [mask-size:100%_100%]" />
                 <Drawing name="oak-bough-leaves" className="absolute inset-0 text-accent [mask-size:100%_100%]" />
               </span>
-              <div className="origin-[50%_18px] rotate-(--tilt)">
+              <div className="origin-[50%_18px]">
                 {stub ? (
                   <>
                     <a href={ticket.href} className="block">

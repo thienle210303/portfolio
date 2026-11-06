@@ -97,6 +97,27 @@ describe("HangingTags", () => {
     });
   });
 
+  it("gives each tag its spot in board units, never pixels, and places nothing itself", () => {
+    render(<HangingTags />);
+    const spots = journeySpots();
+    const items = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] li")];
+    items.forEach((li, i) => {
+      const value = (name: string) => li.style.getPropertyValue(name);
+      expect(value("--x")).toBe(String(TAG_SPOTS[i].left));
+      expect(value("--y")).toBe(String(TAG_SPOTS[i].top));
+      expect(value("--w")).toBe(String(TAG_SPOTS[i].width));
+      // The string's share that grows with the board: the limb down to the
+      // tag's top. The 18px on down to the hole is the paper's own.
+      expect(Number(value("--drop"))).toBeCloseTo(spots[i].top - spots[i].ly, 1);
+      expect(value("--tilt")).toBe(`${TAG_SPOTS[i].tilt}deg`);
+      // globals.css lays the tags out per band; a utility here would beat it.
+      expect(li.className).toBe("");
+    });
+    for (const el of [document.querySelector("[data-hanging-tags]")!, document.querySelector("[data-hanging-tags] ul")!]) {
+      expect(el.className).toBe("");
+    }
+  });
+
   it("the branch is decoration", () => {
     render(<HangingTags />);
     const art = document.querySelectorAll("[data-hanging-tags] [data-scenery]");

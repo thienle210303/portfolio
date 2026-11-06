@@ -124,7 +124,7 @@ interface ToolkitPanelProps {
 const ITEM_CLASS =
   "flex min-h-11 items-center justify-between gap-3 px-3 text-left text-[length:var(--step--1)] text-fg hover:text-accent";
 const LABEL_CLASS =
-  "px-3 pb-2 pt-3 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-fg-subtle";
+  "px-3 pb-2 pt-3 font-mono text-[length:var(--step--2)] uppercase tracking-[0.16em] text-fg-subtle";
 
 export function ToolkitPanel({
   canPlay,
@@ -193,7 +193,7 @@ export function ToolkitPanel({
             {refused === "tour" ? (
               <span
                 aria-hidden="true"
-                className="shrink-0 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-fg-subtle"
+                className="shrink-0 font-mono text-[length:var(--step--2)] uppercase tracking-[0.12em] text-fg-subtle"
               >
                 No room
               </span>
@@ -214,7 +214,7 @@ export function ToolkitPanel({
               {refused === scene.kind ? (
                 <span
                   aria-hidden="true"
-                  className="shrink-0 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-fg-subtle"
+                  className="shrink-0 font-mono text-[length:var(--step--2)] uppercase tracking-[0.12em] text-fg-subtle"
                 >
                   No room
                 </span>
@@ -251,7 +251,7 @@ export function ToolkitPanel({
         <button
           type="button"
           onClick={onSendToBed}
-          className="flex min-h-11 items-center px-3 text-left font-mono text-[0.62rem] uppercase tracking-[0.14em] text-fg-subtle hover:text-fg"
+          className="flex min-h-11 items-center px-3 text-left font-mono text-[length:var(--step--2)] uppercase tracking-[0.14em] text-fg-subtle hover:text-fg"
         >
           Send the cats to bed
         </button>

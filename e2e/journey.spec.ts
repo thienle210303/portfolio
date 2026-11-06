@@ -55,6 +55,83 @@ const boxes = (l: Locator) =>
 const overlap = (a: Box, b: Box) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
+type Point = readonly [number, number];
+/** Do two convex quads meet? (Separating axes: a tag's paper is its box turned about its hole.) */
+function quadsMeet(a: readonly Point[], b: readonly Point[]) {
+  for (const quad of [a, b]) {
+    for (let i = 0; i < quad.length; i++) {
+      const [x1, y1] = quad[i];
+      const [x2, y2] = quad[(i + 1) % quad.length];
+      const axis = [y2 - y1, x1 - x2] as const;
+      const span = (points: readonly Point[]) => points.map(([x, y]) => x * axis[0] + y * axis[1]);
+      const [sa, sb] = [span(a), span(b)];
+      if (Math.max(...sa) <= Math.min(...sb) || Math.max(...sb) <= Math.min(...sa)) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The Journey's pieces where they stand, in page coordinates (round 25). The
+ * tags' scroll-driven drop is switched off first, so a paper is measured where
+ * it hangs, not part-way down its string. `bark` is the trunk's own width (34
+ * of the 240 units its box is wide) below 1280, where the trunk is an element;
+ * `quads` are the papers' corners, each box turned about its hole (50%, 18px).
+ */
+async function stage(page: Page) {
+  await page.addStyleTag({ content: "[data-hanging-tags] li > div { animation: none !important; }" });
+  return page.evaluate(() => {
+    const box = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y + window.scrollY, width: r.width, height: r.height };
+    };
+    const one = (selector: string) => box(document.querySelector(selector)!);
+    const shown = (selector: string) => {
+      const el = [...document.querySelectorAll(selector)].find((node) => node.getBoundingClientRect().width > 0);
+      return el ? box(el) : null;
+    };
+    const trunk = shown("#tree [data-trunk]");
+    const lis = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] li")];
+    const caption = document.querySelector<HTMLElement>("#tree [data-swing] > p[aria-hidden='true']")!;
+    const captionRect = caption.getBoundingClientRect();
+    return {
+      tree: one("#tree"),
+      head: one("[data-journey-head]"),
+      lead: one("#tree h2 + p"),
+      button: one("#tree [data-grow] button"),
+      items: lis.map(box),
+      papers: lis.map((li) => box(li.querySelector(":scope > div")!)),
+      quads: lis.map((li) => {
+        const paper = li.querySelector<HTMLElement>(":scope > div")!;
+        const turn = (parseFloat(getComputedStyle(paper).rotate) || 0) * (Math.PI / 180);
+        const r = box(li);
+        const [cx, cy] = [r.x + r.width / 2, r.y + 18];
+        return [
+          [r.x, r.y],
+          [r.x + r.width, r.y],
+          [r.x + r.width, r.y + r.height],
+          [r.x, r.y + r.height],
+        ].map(([x, y]) => [
+          cx + (x - cx) * Math.cos(turn) - (y - cy) * Math.sin(turn),
+          cy + (x - cx) * Math.sin(turn) + (y - cy) * Math.cos(turn),
+        ]) as unknown as readonly (readonly [number, number])[];
+      }),
+      bark: trunk && { ...trunk, x: trunk.x + trunk.width / 2 - (trunk.width * 34) / 480, width: (trunk.width * 34) / 240 },
+      crown: shown("#tree [data-crown]"),
+      oak: shown("#tree [data-oak]"),
+      lantern: shown("#tree span[data-grow-late]"),
+      ride: one("#tree [data-swing] [data-ride]"),
+      rope: shown("#tree [data-swing] [data-rope='left']"),
+      caption: box(caption),
+      captionText: caption.textContent ?? "",
+      captionClipped:
+        captionRect.left < 0 || captionRect.right > window.innerWidth || caption.scrollWidth > caption.clientWidth + 1,
+      vignette: one("[data-journey-vignette]"),
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  });
+}
+
 /** The element's offset from the viewport's top once it has stopped moving. */
 async function restingTop(element: Locator): Promise<number> {
   const read = () => element.evaluate((node) => Math.round(node.getBoundingClientRect().top));
@@ -158,29 +235,161 @@ test.describe("the Journey", () => {
     }
   });
 
-  test("below 1280 the tags hang from the branch", async ({ page }) => {
-    // A phone: one column down the right edge.
-    await page.setViewportSize(PHONE);
-    await open(page);
-    let all = await boxes(items(page));
-    for (const b of all) expect(Math.abs(b.x + b.width - (all[0].x + all[0].width))).toBeLessThanOrEqual(2);
-    for (let i = 1; i < all.length; i++) expect(all[i].y).toBeGreaterThan(all[i - 1].y + all[i - 1].height);
+  /* Round 25: the board is laid out in board units (1/1440 of its own width),
+     so it fits its window from 1280 and stops growing at 1680px. Until then it
+     was fixed pixels for 1440, and at 1280 the lantern was cut in half at the
+     left edge and the swing's caption read "…hi, in love". */
+  for (const viewport of [BOARD_MIN, { width: 1366, height: 768 }, WIDE, { width: 1920, height: 1080 }]) {
+    test(`the whole board is inside its window at ${viewport.width}: lantern, swing, caption, every tag`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await open(page);
+      const g = await stage(page);
+      const pieces: Record<string, Box> = { lantern: g.lantern!, ride: g.ride, caption: g.caption, vignette: g.vignette };
+      g.papers.forEach((paper, i) => (pieces[`tag ${i}`] = paper));
+      for (const [name, b] of Object.entries(pieces)) {
+        expect(b.width, `${name} is drawn`).toBeGreaterThan(20);
+        expect(b.x, `${name} starts on screen`).toBeGreaterThanOrEqual(0);
+        expect(b.x + b.width, `${name} ends on screen`).toBeLessThanOrEqual(viewport.width);
+        expect(b.y, `${name} starts inside #tree`).toBeGreaterThanOrEqual(g.tree.y);
+        expect(b.y + b.height, `${name} ends inside #tree`).toBeLessThanOrEqual(g.tree.y + g.tree.height);
+      }
+      // The caption is whole: nothing clips it, and it is not ellipsised.
+      expect(g.captionText).toMatch(new RegExp(`^${journey.swing.name}, \\S`));
+      expect(g.captionClipped, "the caption's own box holds its words").toBe(false);
+      // No two tags touch: as list items, and as the papers hang, each turned about its hole.
+      for (let i = 0; i < g.items.length; i++)
+        for (let j = i + 1; j < g.items.length; j++) {
+          expect(overlap(g.items[i], g.items[j]), `${i} and ${j}`).toBe(false);
+          expect(quadsMeet(g.quads[i], g.quads[j]), `papers ${i} and ${j}`).toBe(false);
+        }
+      // None is over the trunk: the bark runs from board x 276 to 335 under the fork.
+      const unit = g.oak!.width / 1440;
+      for (const paper of g.papers) expect(paper.x, "a tag on the trunk").toBeGreaterThan(g.oak!.x + 335 * unit);
+      // The swing hangs between the lantern and the trunk: her left rope is past the
+      // lantern's box and her seat stops short of the bark.
+      expect(g.rope!.x, "the rope is right of the lantern").toBeGreaterThanOrEqual(g.lantern!.x + g.lantern!.width);
+      expect(g.ride.x + g.ride.width, "the seat is left of the trunk").toBeLessThanOrEqual(g.oak!.x + 276 * unit);
+      // The board is as wide as the window up to 1680px, centred past that.
+      const board = Math.min(viewport.width, 1680);
+      expect(Math.abs(g.oak!.width - board), "the board's width").toBeLessThanOrEqual(1);
+      expect(Math.abs(g.oak!.x - (viewport.width - board) / 2), "the board is centred").toBeLessThanOrEqual(1);
+      // A tag narrows with the board: 176 units.
+      expect(Math.abs(g.items[1].width - 176 * unit)).toBeLessThanOrEqual(1);
+      expect(g.scrollWidth).toBeLessThanOrEqual(viewport.width);
+    });
+  }
 
-    // From 640: either side of a branch down the middle, taking turns.
-    await page.setViewportSize(TABLET);
-    await page.waitForTimeout(200);
-    all = await boxes(items(page));
-    const mid = await page.locator("[data-hanging-tags]").evaluate((el) => {
-      const r = el.getBoundingClientRect();
-      return r.x + r.width / 2;
-    });
-    all.forEach((b, i) => {
-      if (i % 2 === 0) expect(b.x + b.width, `tag ${i} hangs left`).toBeLessThanOrEqual(mid - 40);
-      else expect(b.x, `tag ${i} hangs right`).toBeGreaterThanOrEqual(mid + 40);
-      if (i >= 2) expect(b.y, `tag ${i} below the one above it`).toBeGreaterThan(all[i - 2].y + all[i - 2].height);
-      if (i >= 1) expect(b.y, `tag ${i} after tag ${i - 1}`).toBeGreaterThan(all[i - 1].y);
-    });
+  test("no text is clipped inside a tag on the narrowest board, 1280", async ({ page }) => {
+    await page.setViewportSize(BOARD_MIN);
+    await open(page);
+    const papers = page.locator("[data-hanging-tags] .tag-cut, [data-hanging-tags] [data-stub]");
+    expect(await papers.count()).toBe(6);
+    for (const paper of await papers.all()) {
+      const m = await paper.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        // Every run of words is inside its paper, sideways (the paper is tilted a degree or two).
+        const out = [...el.querySelectorAll("span")]
+          .filter((span) => span.children.length === 0 && span.textContent?.trim() && !span.closest(".sr-only, [aria-hidden='true']"))
+          .map((span) => ({ text: span.textContent, r: span.getBoundingClientRect() }))
+          .filter(({ r }) => r.left < box.left + 4 || r.right > box.right - 4)
+          .map(({ text }) => text);
+        return { sh: el.scrollHeight, ch: el.clientHeight, sw: el.scrollWidth, cw: el.clientWidth, out };
+      });
+      expect(m.sh).toBeLessThanOrEqual(m.ch + 1);
+      expect(m.sw).toBeLessThanOrEqual(m.cw + 1);
+      expect(m.out, "words outside their tag").toEqual([]);
+    }
   });
+
+  test("on a phone the tags hang in one column from a trunk that stands in from the edge", async ({ page }) => {
+    for (const viewport of [SMALL, { width: 375, height: 667 }, PHONE]) {
+      await page.setViewportSize(viewport);
+      await open(page);
+      const g = await stage(page);
+      const all = g.items;
+      for (const b of all) expect(Math.abs(b.x + b.width - (all[0].x + all[0].width))).toBeLessThanOrEqual(2);
+      for (let i = 1; i < all.length; i++) expect(all[i].y).toBeGreaterThan(all[i - 1].y + all[i - 1].height);
+      // Round 25: the bark stood hard against the screen's edge, its right-hand twigs and roots
+      // cut off. Its centre line is 36px into the stage now, so the bark ends over 32px in.
+      expect(g.bark!.x + g.bark!.width, `the bark's right edge at ${viewport.width}`).toBeLessThanOrEqual(viewport.width - 32);
+      // ...and a tag, tilted, keeps 8px from it (it was 4 to 8px at 320).
+      for (const paper of g.papers) {
+        expect(g.bark!.x - (paper.x + paper.width), `a tag's gap to the trunk at ${viewport.width}`).toBeGreaterThanOrEqual(8);
+      }
+      expect(g.scrollWidth).toBeLessThanOrEqual(viewport.width);
+    }
+  });
+
+  /* Round 25: from 640 to 1279 the boughs leave the trunk in pairs (it was the
+     phone's zigzag, stretched: 236px tags, 2,100px tall at 1024). */
+  for (const viewport of [{ width: 640, height: 900 }, { width: 768, height: 1024 }, TABLET, { width: 1279, height: 800 }]) {
+    test(`from 640 the boughs leave the trunk in pairs, a tag each side, at ${viewport.width}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await open(page);
+      const g = await stage(page);
+      const all = g.items;
+      const mid = g.bark!.x + g.bark!.width / 2;
+      expect(Math.abs(mid - viewport.width / 2), "the trunk runs down the middle").toBeLessThanOrEqual(2);
+      all.forEach((b, i) => {
+        if (i % 2 === 0) expect(b.x + b.width, `tag ${i} hangs left`).toBeLessThanOrEqual(mid - 30);
+        else expect(b.x, `tag ${i} hangs right`).toBeGreaterThanOrEqual(mid + 30);
+        // A pair hangs level, and each row is under the one above it.
+        if (i % 2 === 1) expect(Math.abs(b.y - all[i - 1].y), `tags ${i - 1} and ${i} hang level`).toBeLessThanOrEqual(1);
+        if (i >= 2) {
+          const above = [all[i - 2 - (i % 2)], all[i - 1 - (i % 2)]];
+          expect(b.y, `tag ${i} below the row above it`).toBeGreaterThan(Math.max(...above.map((a) => a.y + a.height)));
+        }
+      });
+      // DoorDash | Wordification, Schaeffler | USC research, USC teaching | Bé Nhi.
+      expect(Math.abs(g.ride.y - all[4].y), "her swing hangs level with the fifth tag").toBeLessThanOrEqual(1);
+      expect(g.ride.x, "on the right").toBeGreaterThanOrEqual(mid + 30);
+      // Up to 340px wide (236px until round 25), and as wide as its column below that.
+      for (const b of all) {
+        expect(b.width).toBeLessThanOrEqual(340.5);
+        expect(b.width).toBeGreaterThanOrEqual(Math.min(339.5, (viewport.width - 2 * 80) / 2 - 60));
+      }
+      // No two tags touch and none touches the trunk's bark, tilted as they hang
+      // (the DoorDash stub overlapped it by 5 to 8px at 768).
+      const papers = [...g.papers, g.ride];
+      for (let i = 0; i < papers.length; i++)
+        for (let j = i + 1; j < papers.length; j++) expect(overlap(papers[i], papers[j]), `${i} and ${j}`).toBe(false);
+      for (const [i, paper] of g.papers.entries()) {
+        const gap = i % 2 === 0 ? g.bark!.x - (paper.x + paper.width) : paper.x - (g.bark!.x + g.bark!.width);
+        expect(gap, `tag ${i}'s gap to the trunk`).toBeGreaterThanOrEqual(12);
+      }
+      // The words stand top-left beside the crown, not above a band of bare sky:
+      // the crown starts above the button, and to the words' right.
+      expect(g.head.x + g.head.width, "the words keep to the left half").toBeLessThanOrEqual(mid);
+      expect(g.crown!.y, "the crown comes up beside the words").toBeLessThan(g.lead.y);
+      expect(g.crown!.y, "and not over the top of the section").toBeGreaterThanOrEqual(g.tree.y);
+      // The lantern is whole and on screen, under the words; the caption is whole.
+      expect(g.lantern!.x).toBeGreaterThanOrEqual(0);
+      expect(g.lantern!.y, "the lantern hangs under the button").toBeGreaterThanOrEqual(g.button.y + g.button.height);
+      expect(g.captionClipped).toBe(false);
+      expect(g.caption.x + g.caption.width).toBeLessThanOrEqual(viewport.width);
+      // The still life stands at the foot, on the left, inside the section.
+      expect(g.vignette.y + g.vignette.height).toBeLessThanOrEqual(g.tree.y + g.tree.height);
+      expect(g.vignette.x + g.vignette.width).toBeLessThan(mid - 100);
+      for (const paper of g.papers) expect(overlap(g.vignette, paper), "the still life under a tag").toBe(false);
+      // About 1,450px at 1024: two thirds of what it was.
+      expect(g.tree.height, "the section's height").toBeLessThanOrEqual(1560);
+      expect(g.scrollWidth).toBeLessThanOrEqual(viewport.width);
+    });
+  }
+
+  for (const viewport of [SMALL, PHONE, { width: 768, height: 1024 }, TABLET, BOARD_MIN, WIDE, { width: 1920, height: 1080 }]) {
+    test(`Watch it grow is under my line at ${viewport.width}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await open(page);
+      const g = await stage(page);
+      // Straight under it, on its left edge, and nothing between them.
+      expect(g.button.y, "under the line").toBeGreaterThanOrEqual(g.lead.y + g.lead.height);
+      expect(g.button.y - (g.lead.y + g.lead.height), "close under it").toBeLessThanOrEqual(32);
+      expect(Math.abs(g.button.x - g.lead.x), "on the words' left edge").toBeLessThanOrEqual(1);
+      // Above every tag: it is never on the trunk's foot again.
+      for (const b of g.items) expect(g.button.y + g.button.height).toBeLessThan(b.y);
+    });
+  }
 
   test("no tag clips its text at 320", async ({ page }) => {
     await page.setViewportSize(SMALL);
@@ -470,7 +679,8 @@ test.describe("the Journey", () => {
         a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
       for (const li of await items(page).all()) expect(overlaps(ride, (await li.boundingBox())!)).toBe(false);
       if (viewport.width >= 1280) {
-        // Between the lantern and the trunk, above Watch it grow.
+        // Between the lantern and the trunk, clear of Watch it grow (under my
+        // line since round 25; it used to sit below her, on the trunk's foot).
         const lantern = (await page.locator("#tree [data-scenery] [data-grow-late]").boundingBox())!;
         expect(ride.x).toBeGreaterThanOrEqual(lantern.x + lantern.width);
         expect(overlaps(ride, (await watch(page).boundingBox())!)).toBe(false);

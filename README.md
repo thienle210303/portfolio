@@ -158,7 +158,7 @@ pnpm dev            # http://localhost:3000
 | `pnpm test:watch` | Vitest in watch mode |
 | `pnpm test:e2e` | Playwright browser + responsive tests |
 | `pnpm verify` | typecheck → lint → contrast → test → build, in order |
-| `pnpm screenshots` | Captures every section at 320/390/1440 into a tmp dir |
+| `pnpm shots [label]` | Review sheets: every section at nine widths (320–1920), day and night, plus key states, into `design/.shots/<label>/`. `pnpm shots --diff a b` compares two captures. See [design/README.md](design/README.md) |
 | `pnpm perf` | Measures a running production build: JS/CSS/font bytes, LCP, TBT, CLS, DOM nodes |
 
 `pnpm test:e2e` starts its own dev server. If you already have one running on
@@ -445,7 +445,7 @@ visitor sets it, by seeding `localStorage` before the document runs so the
 inline theme script is the thing under test — plus the `deep` and `contrast`
 tones, which are where a contrast regression is likeliest to hide.
 
-Run everything the way CI would:
+Run the whole gate (it runs locally; the GitHub workflow is manual only):
 
 ```bash
 pnpm verify

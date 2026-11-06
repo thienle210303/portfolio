@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AskLoader from "@/sections/Contact/AskLoader";
+import AskPlaceholder from "@/sections/Contact/AskPlaceholder";
+import { IDLE_HINT, PROMISE, PROMISE_LIVE, SHEET } from "@/sections/Contact/ask-sheet";
 
 /**
  * `AskLoader` is the half of the chat that ships with Contact: a placeholder,
@@ -161,14 +163,14 @@ describe("AskLoader when the chunk cannot be fetched", () => {
   });
 });
 
-describe("AskLoader holds the chat's room before it arrives", () => {
-  it("marks the waiting and loading states as the reserved slot, and the chat is not inside one", async () => {
+describe("AskLoader holds the chat's place before it arrives", () => {
+  it("marks the waiting and loading states as the slot, and the chat is not inside one", async () => {
     vi.stubGlobal("IntersectionObserver", FakeObserver);
     const { container } = render(<AskLoader liveModeConfigured={false} />);
     const slot = container.querySelector("[data-ask-slot]");
     expect(slot).not.toBeNull();
-    // A `min-h-*` utility sits in a later cascade layer than the stylesheet's
-    // reserved height and would silently replace it.
+    // The slot is as tall as what is drawn in it; a `min-h-*` would be a
+    // hand-measured room again.
     expect(slot?.className ?? "").not.toMatch(/min-h-/);
 
     act(() => FakeObserver.instances[0].reveal());
@@ -178,21 +180,96 @@ describe("AskLoader holds the chat's room before it arrives", () => {
     expect(container.querySelector("[data-ask-slot]")).toBeNull();
   });
 
-  it("gives the slot and the chat's root the same height, only when JavaScript runs", () => {
-    // jsdom applies no stylesheet, so the rule is read as text. The gate is
-    // `html[data-motion]`, stamped by layout.tsx's pre-paint script. One
-    // rule for both, so the two can never disagree about the height.
-    const css = readFileSync("src/app/globals.css", "utf8");
-    expect(css).toMatch(
-      /html\[data-motion\] \[data-ask-slot\],\s*html\[data-motion\] \[data-ask-chat\] \{\s*min-height: var\(--ask-room\);/,
+  it("shows the placeholder it is handed while it waits and while it loads, and announces the load out of flow", async () => {
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    const { container } = render(
+      <AskLoader liveModeConfigured={false} placeholder={<div data-testid="held">the idle notepad</div>} />,
     );
+    const slot = container.querySelector("[data-ask-slot]") as HTMLElement;
+    expect(within(slot).getByTestId("held")).toBeInTheDocument();
+    expect(slot).not.toHaveAttribute("aria-busy");
+
+    act(() => FakeObserver.instances[0].reveal());
+    // Still there while the chunk is in flight, so the slot keeps its height;
+    // "Loading" is said to assistive tech from a box that takes no room.
+    expect(within(slot).getByTestId("held")).toBeInTheDocument();
+    expect(slot).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status")).toHaveClass("sr-only");
+
+    await waitFor(() => expect(screen.getByTestId("chat")).toBeInTheDocument());
+    expect(screen.queryByTestId("held")).not.toBeInTheDocument();
+  });
+});
+
+describe("AskPlaceholder, the idle notepad that holds the chat's place", () => {
+  const suggestions = ["What do you do at DoorDash?", "What have you measured?"];
+
+  it("draws the idle notepad the chat will draw: the same sheet, the promise, the question line and the suggestions", () => {
+    // Round 25: built from the chat's own pieces (`ask-sheet.tsx`), so it is
+    // the chat's height at every width without a measured number.
+    // e2e/ask.spec.ts compares the two in a browser.
+    const { container } = render(<AskPlaceholder liveModeConfigured={false} suggestions={suggestions} />);
+    const sheet = container.firstElementChild as HTMLElement;
+    expect(sheet.className).toBe(SHEET);
+    expect(sheet).toHaveAttribute("data-ask-sheet", "idle");
+    expect(sheet).toHaveTextContent(IDLE_HINT);
+    expect(sheet).toHaveTextContent(PROMISE);
+    expect(sheet).toHaveTextContent("Your question");
+    for (const question of suggestions) expect(sheet).toHaveTextContent(question);
+    expect(sheet.querySelector(".ask-window")).not.toBeNull();
+    // Idle: the window is not open, so it has no fixed height.
+    expect(sheet.querySelector(".ask-window")).not.toHaveAttribute("data-open");
   });
 
-  it("keeps the chat's root free of a min-h utility that would override the room", () => {
+  it("writes the live promise when a model will answer", () => {
+    const { container } = render(<AskPlaceholder liveModeConfigured={true} suggestions={suggestions} />);
+    expect(container).toHaveTextContent(PROMISE_LIVE);
+    expect(container).toHaveTextContent("Live mode");
+  });
+
+  it("is paper, not controls: nothing in it can be pressed, typed in or tabbed to", () => {
+    const { container } = render(
+      <AskPlaceholder liveModeConfigured={false} heading={<h3>Ask me</h3>} suggestions={suggestions} />,
+    );
+    expect(container.querySelectorAll("a, button, input, textarea, select, [tabindex]")).toHaveLength(0);
+    // Everything but the heading is inert and hidden from assistive tech.
+    const shells = Array.from(container.querySelectorAll<HTMLElement>("[data-ask-shell]"));
+    expect(shells.length).toBeGreaterThanOrEqual(3);
+    for (const shell of shells) {
+      expect(shell).toHaveAttribute("aria-hidden", "true");
+      expect(shell).toHaveAttribute("inert");
+    }
+    expect(screen.getByRole("heading", { name: "Ask me" }).closest("[data-ask-shell]")).toBeNull();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("is a Server Component that imports only the sheet", () => {
+    // No "use client", no engine: it costs the page's JavaScript nothing.
+    const source = readFileSync("src/sections/Contact/AskPlaceholder.tsx", "utf8");
+    expect(source).not.toMatch(/^\s*["']use client["']/m);
+    const imports = [...source.matchAll(/^\s*import\s[^;]*?from\s+["']([^"']+)["']/gm)].map((match) => match[1]);
+    expect(imports.sort()).toEqual(["./ask-sheet", "react"]);
+  });
+
+  it("is not shown where JavaScript is off, and the chat's window has one height once it is open", () => {
+    // jsdom applies no stylesheet, so the rules are read as text. The gate is
+    // `html[data-motion]`, stamped by layout.tsx's pre-paint script.
+    const css = readFileSync("src/app/globals.css", "utf8");
+    // Unlayered: the shell's own `flex` is a utility and would outrank a
+    // layered `display: none`.
+    expect(css).toMatch(/\n\}\nhtml:not\(\[data-motion\]\) \[data-ask-sheet="idle"\] \{\s*display: block;\s*\}\nhtml:not\(\[data-motion\]\) \[data-ask-shell\] \{\s*display: none;/);
+    expect(css).toMatch(/\.ask-window\[data-open\] \{\s*height: var\(--ask-window\);\s*overflow-y: auto;/);
+    // The hand-measured room is gone, and must not come back as a rule.
+    expect(css).not.toMatch(/min-height: var\(--ask-room\)/);
+  });
+
+  it("keeps the chat's root on the shared sheet, free of a min-h utility", () => {
     const source = readFileSync("src/sections/Contact/AskThisSite.tsx", "utf8");
-    const root = source.match(/<div data-ask-chat="" className="([^"]*)"/);
-    expect(root, "the chat's root lost its data-ask-chat attribute").not.toBeNull();
-    expect(root?.[1]).not.toMatch(/min-h-/);
+    expect(source, "the chat's root lost its data-ask-chat attribute").toMatch(
+      /<div data-ask-chat="" className=\{SHEET\}>/,
+    );
+    expect(SHEET).not.toMatch(/min-h-/);
   });
 });
 
@@ -210,5 +287,14 @@ describe("AskLoader's lazy boundary", () => {
     expect(staticImports).not.toContain("@/lib/answers");
     expect(staticImports.every((specifier) => specifier === "react")).toBe(true);
     expect(source).toMatch(/import\("\.\/AskThisSite"\)/);
+  });
+
+  it("leaves the sheet the chat and its placeholder share importing nothing but React's types", () => {
+    // `ask-sheet.tsx` is rendered on the server (the placeholder) and rides in
+    // the chat's chunk; it must never be a way for the engine to reach either.
+    const source = readFileSync("src/sections/Contact/ask-sheet.tsx", "utf8");
+    const imports = [...source.matchAll(/^\s*import\s([^;]*?)from\s+["']([^"']+)["']/gm)];
+    expect(imports.map((match) => match[2])).toEqual(["react"]);
+    expect(imports[0][1].trim()).toMatch(/^type\s/);
   });
 });

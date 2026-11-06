@@ -8,9 +8,15 @@ import { diaryPages, kindCounts, recordYears } from "../src/lib/record";
 // JavaScript off, and under reduced motion, they are the scroll-snap track they
 // were. Each test pins its own viewport and runs once (in the chromium-1440
 // project), as journey.spec does.
+//
+// Round 25: the spread starts at 1024 (it waited for 1280), and where the book
+// shows one page (below 1024) a page is as tall as what is on it.
 
 const WIDE = { width: 1440, height: 1000 };
+const LAPTOP = { width: 1024, height: 768 };
 const PHONE = { width: 390, height: 844 };
+/** From here the book is a spread of two pages. */
+const SPREAD_FROM = 1024;
 const ROW_TOP = 80;
 const STAMPED = certifications.filter((c) => "stamp" in c);
 const PAGES = diaryPages();
@@ -35,10 +41,39 @@ const frame = (page: Page) => page.locator("#record [data-diary]");
  *  track itself is padded with the room a turning leaf needs.) */
 const book = (page: Page) => page.locator("#record .diary-book");
 
-/** The book is live and its leaves are at rest: no turn in the air. */
+/** The book is live and its leaves are at rest: no turn in the air, and (one
+ *  page) the book has taken the height of the page it landed on. */
 async function still(page: Page) {
   await expect(frame(page)).toHaveAttribute("data-live", "");
   await expect(frame(page)).not.toHaveAttribute("data-flight");
+  await expect(track(page)).not.toHaveAttribute("data-held");
+}
+
+/** The one page on show, as the book lays it out: how tall the book is, how
+ *  much blank paper lies under the page's last line (above the 64px foot the
+ *  folio and the corners keep), and how far the corners are from that line. */
+function onePage(page: Page) {
+  return page.evaluate(() => {
+    const box = document.querySelector("#record .diary-book")!.getBoundingClientRect();
+    const slot = document.querySelector<HTMLElement>("#record .diary-track > .diary-slot:not([hidden]):not([data-hidden])")!;
+    const sheet = slot.querySelector<HTMLElement>(".diary-page")!;
+    const flow = [...sheet.children].filter((c) => getComputedStyle(c).position !== "absolute" && c.getBoundingClientRect().height > 0);
+    const last = Math.max(...flow.map((c) => c.getBoundingClientRect().bottom));
+    const corner = document.querySelector("#record .diary-corner-next")!.getBoundingClientRect();
+    const folio = slot.querySelector(".diary-folio")!.getBoundingClientRect();
+    return {
+      key: slot.dataset.page ?? "",
+      top: box.top,
+      foot: box.bottom,
+      height: box.height,
+      slot: slot.getBoundingClientRect().height,
+      blank: box.bottom - parseFloat(getComputedStyle(sheet).paddingBottom) - last,
+      toCorner: corner.top - last,
+      cornerY: corner.top,
+      folio: box.bottom - folio.bottom,
+      scrollY: window.scrollY,
+    };
+  });
 }
 
 /** The pages on show (not hidden until found), by key. */
@@ -119,17 +154,29 @@ test.describe("the Diary", () => {
     expect(outline).not.toBe("none");
   });
 
-  test("a spread at 1440, a page at 390: the counter says which, in polite live text", async ({ page }) => {
-    await page.setViewportSize(WIDE);
-    await open(page);
-    await expect(where(page)).toHaveText(`pp. 1–2 of ${PAGES.length}`);
-    await expect(where(page)).toHaveAttribute("aria-live", "polite");
-    expect(await where(page).evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/courier|mono/i);
-    // Two pages fill the window side by side.
-    const [a, b] = await Promise.all(["summary", "contents"].map((k) => slot(page, k).boundingBox()));
-    expect(a!.width).toBeCloseTo(b!.width, 0);
-    expect(Math.abs(a!.y - b!.y)).toBeLessThanOrEqual(1);
-    expect(b!.x).toBeGreaterThan(a!.x + a!.width - 2);
+  test("a spread at 1440 and at 1024, a page at 390: the counter says which, in polite live text", async ({ page }) => {
+    for (const size of [WIDE, LAPTOP]) {
+      await page.setViewportSize(size);
+      await open(page);
+      await expect(where(page)).toHaveText(`pp. 1–2 of ${PAGES.length}`);
+      await expect(where(page)).toHaveAttribute("aria-live", "polite");
+      expect(await where(page).evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/courier|mono/i);
+      // Two pages fill the window side by side, and only those two show.
+      const [a, b] = await Promise.all(["summary", "contents"].map((k) => slot(page, k).boundingBox()));
+      expect(a!.width, `${size.width}`).toBeCloseTo(b!.width, 0);
+      expect(Math.abs(a!.y - b!.y)).toBeLessThanOrEqual(1);
+      expect(b!.x).toBeGreaterThan(a!.x + a!.width - 2);
+      expect(await onShow(page)).toEqual(["summary", "contents"]);
+      // Round 25: two ~450px pages fit at 1024, in a book wider than the
+      // content column and 32px inside the window.
+      const win = (await book(page).boundingBox())!;
+      expect(a!.width, `${size.width}: a page is a readable measure`).toBeGreaterThanOrEqual(440);
+      expect(win.x, `${size.width}: the book is inside the window`).toBeGreaterThanOrEqual(16);
+      expect(win.x + win.width).toBeLessThanOrEqual(size.width - 16);
+    }
+    // At 1024 the tabs run along the top of the book; from 1280 down its fore-edge.
+    const tab = (await page.getByRole("group", { name: record.tabsLabel }).getByRole("button").nth(1).boundingBox())!;
+    expect(tab.y + tab.height, "1024: the tabs sit on the book's top").toBeLessThanOrEqual((await book(page).boundingBox())!.y + 2);
 
     await page.setViewportSize(PHONE);
     await open(page);
@@ -156,7 +203,7 @@ test.describe("the Diary", () => {
       expect(await settledLeft(page), `${size.width}: a short swipe goes back`).toBe(0);
       await page.mouse.wheel(view * 0.7, 0);
       await expect.poll(() => settledLeft(page), { message: `${size.width}: a long swipe turns a page` }).toBe(view);
-      await expect(where(page)).toHaveText(size.width >= 1280 ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`);
+      await expect(where(page)).toHaveText(size.width >= SPREAD_FROM ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`);
       // Every page is there to scroll to: none hidden until found.
       expect(await track(page).locator(":scope > .diary-slot[hidden]").count()).toBe(0);
       // A tab re-binds the book from its first page, at once.
@@ -170,9 +217,13 @@ test.describe("the Diary", () => {
     // Round 24's first leaves let the track stop being a scroll container at
     // hydration, and Chrome scored the whole book as a layout shift of 1.0,
     // far off screen. The track stays one (`overflow: hidden`), padded with
-    // the room a turning leaf needs.
-    for (const size of [WIDE, PHONE]) {
-      for (const path of ["/", "/#journey-entry-schaeffler"]) {
+    // the room a turning leaf needs. Round 25: one page takes its own height
+    // when the book is bound, which is a shift of everything under it unless
+    // its foot stays under the fold (`holdHeight`): a fragment to a short page
+    // (the 2022 switch is the shortest) is the case that would show it.
+    test.setTimeout(120_000);
+    for (const size of [WIDE, LAPTOP, PHONE]) {
+      for (const path of ["/", "/#journey-entry-schaeffler", "/#journey-entry-cs-switch"]) {
         const context = await browser.newContext({ viewport: size, reducedMotion: "no-preference" });
         const page = await context.newPage();
         await page.addInitScript(() => {
@@ -194,6 +245,264 @@ test.describe("the Diary", () => {
         await context.close();
       }
     }
+    // A link to Contact: the book is above the window when it is bound, and
+    // must not shrink over the reader's head. It keeps the tallest page's
+    // height until its first turn. (Measured on the book: on this load
+    // Contact has a shift of its own, its postcard, before the book is bound.
+    // And only when the browser had gone to the fragment first; bound first,
+    // far below the fold, the book has nothing to hold.)
+    const context = await browser.newContext({ viewport: PHONE, reducedMotion: "no-preference" });
+    const page = await context.newPage();
+    await page.goto("/#contact");
+    await expect(frame(page)).toHaveAttribute("data-mode", "leaf");
+    await expect(page.locator("#contact")).toBeInViewport();
+    const bound = await track(page).evaluate((el) => ({
+      book: el.parentElement!.getBoundingClientRect().height,
+      tallest: parseFloat(el.style.getPropertyValue("--page-h")),
+      hold: parseFloat(el.style.getPropertyValue("--page-hold")),
+    }));
+    if (bound.hold > 0) expect(bound.book, "the book shrank over the reader's head").toBeGreaterThanOrEqual(Math.min(bound.tallest, bound.hold) - 1);
+    // The first turn lets it go: back on page 1, the page is its own height.
+    for (const corner of ["next", "prev"]) {
+      await page.locator(`#record .diary-corner-${corner}`).evaluate((el) => (el as HTMLButtonElement).click());
+      await still(page);
+    }
+    expect(await track(page).evaluate((el) => el.style.getPropertyValue("--page-hold"))).toBe("0px");
+    expect((await book(page).boundingBox())!.height, "page 1 at its own height").toBeLessThan(bound.tallest - 100);
+    await context.close();
+  });
+
+  test("one page is as tall as what is on it: no page ends in blank paper, and its corners are within a screen of its last line", async ({ page }) => {
+    // Round 25. Every page took the tallest page's height (1405px at 390), so
+    // page 3 had ~580px of blank paper above its sticky note, page 1 ended in
+    // 300px of it, and the corners sat 400 to 700px under the content.
+    test.setTimeout(90_000);
+    await page.setViewportSize(PHONE);
+    await open(page);
+    const heights: number[] = [];
+    for (let i = 0; i < PAGES.length; i += 1) {
+      await still(page);
+      await expect(where(page)).toHaveText(`p. ${i + 1} of ${PAGES.length}`);
+      const at = await onePage(page);
+      heights.push(Math.round(at.height));
+      expect(Math.abs(at.slot - at.height), `${at.key}: the page fills the book`).toBeLessThanOrEqual(1);
+      expect(at.blank, `${at.key}: ${Math.round(at.blank)}px of blank paper under its last line`).toBeLessThanOrEqual(120);
+      // (A sticky note is tilted: its box reaches a few px into the foot.)
+      expect(at.toCorner, `${at.key}: the corners are under the content`).toBeGreaterThanOrEqual(-8);
+      expect(at.toCorner, `${at.key}: the corners are within a screen of the last line`).toBeLessThanOrEqual(PHONE.height);
+      expect(at.folio, `${at.key}: the folio follows the page's foot`).toBeLessThanOrEqual(40);
+      if (i < PAGES.length - 1) await page.locator("#record .diary-corner-next").evaluate((el) => (el as HTMLButtonElement).click());
+    }
+    // Their own heights, not one: and never a stub (the floor), never more
+    // than the tallest page (the contents, as it was).
+    expect(new Set(heights).size, `heights: ${heights.join()}`).toBeGreaterThan(8);
+    expect(Math.min(...heights)).toBeGreaterThanOrEqual(400);
+    expect(Math.max(...heights)).toBe(heights[1]);
+
+    // A spread keeps one height: every opening as tall as the first.
+    await page.setViewportSize(LAPTOP);
+    await open(page);
+    const first = (await book(page).boundingBox())!.height;
+    for (let i = 0; i < 3; i += 1) {
+      await page.getByRole("button", { name: "Next page" }).click();
+      await still(page);
+      expect(Math.abs((await book(page).boundingBox())!.height - first), "1024: a spread's pages share a height").toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("a turn is flown at the height the book had, and the book takes the landed page's height after: the window follows its foot", async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    await open(page);
+    const next = page.locator("#record .diary-corner-next");
+    const prev = page.locator("#record .diary-corner-prev");
+    const press = (corner: typeof next) => corner.evaluate((el) => (el as HTMLButtonElement).click());
+    /** The book's height on every frame sampled while the leaf is in the air. */
+    const inFlight = async () => {
+      const seen: number[] = [];
+      for (let i = 0; i < 60; i += 1) {
+        const at = await page.evaluate(() => ({
+          flight: document.querySelector("#record [data-diary]")!.hasAttribute("data-flight"),
+          height: document.querySelector("#record .diary-book")!.getBoundingClientRect().height,
+          // Nothing of a page shows under the book's foot, in the track's room.
+          spill: Math.max(
+            ...[...document.querySelectorAll<HTMLElement>("#record .diary-track > .diary-slot:not([hidden])")].map((el) => {
+              const clip = getComputedStyle(el).clipPath;
+              return clip === "none" ? el.getBoundingClientRect().bottom - document.querySelector("#record .diary-book")!.getBoundingClientRect().bottom : 0;
+            }),
+          ),
+        }));
+        if (!at.flight) break;
+        seen.push(at.height);
+        expect(at.spill, "a page showed under the book's foot mid-turn").toBeLessThanOrEqual(1);
+        await page.waitForTimeout(20);
+      }
+      return seen;
+    };
+
+    // To the contents (the tallest page), read to its foot.
+    await press(next);
+    await still(page);
+    await book(page).evaluate((el) => window.scrollBy({ top: el.getBoundingClientRect().bottom - window.innerHeight + 60, behavior: "instant" }));
+    const tall = await onePage(page);
+    expect(tall.top, "the reader is far down a tall page").toBeLessThan(-300);
+
+    // Forward, onto a shorter page: flown at the tall page's height.
+    await press(next);
+    const forward = await inFlight();
+    expect(forward.length, "no frame was sampled in the air").toBeGreaterThan(3);
+    for (const h of forward) expect(Math.abs(h - tall.height), "the book changed height mid-turn").toBeLessThanOrEqual(1);
+    await still(page);
+    const short = await onePage(page);
+    expect(short.height, "the book took the shorter page's height").toBeLessThan(tall.height - 300);
+    expect(short.blank).toBeLessThanOrEqual(120);
+    // The corner stayed under the thumb: the window followed the foot up.
+    expect(Math.abs(short.cornerY - tall.cornerY), "the foot moved on screen").toBeLessThanOrEqual(2);
+    expect(Math.round(tall.scrollY - short.scrollY)).toBe(Math.round(tall.height - short.height));
+
+    // Back, onto the taller page: flown at the short page's height, then the
+    // book grows down from where it stands; nothing the reader sees moves.
+    await press(prev);
+    const back = await inFlight();
+    expect(back.length).toBeGreaterThan(3);
+    for (const h of back) expect(Math.abs(h - short.height), "the book changed height mid-turn").toBeLessThanOrEqual(1);
+    await still(page);
+    const again = await onePage(page);
+    expect(Math.abs(again.height - tall.height)).toBeLessThanOrEqual(1);
+    expect(again.scrollY, "growing scrolled the window").toBe(short.scrollY);
+    expect(Math.abs(again.top - short.top)).toBeLessThanOrEqual(1);
+
+    // With the page's top on screen, a shrinking book only brings its foot up.
+    await press(next);
+    await still(page);
+    await book(page).evaluate((el) => window.scrollBy({ top: el.getBoundingClientRect().top - 80, behavior: "instant" }));
+    const before = await onePage(page);
+    await press(next);
+    await still(page);
+    const after = await onePage(page);
+    expect(after.height).toBeLessThan(before.height - 50);
+    expect(after.scrollY, "the window moved though the page's top was in view").toBe(before.scrollY);
+    expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(1);
+    // Landed and settled: nothing of the hold is left on the track.
+    expect(await track(page).evaluate((el) => [el.style.height, el.style.getPropertyValue("--held"), el.hasAttribute("data-held")])).toEqual(["", "", false]);
+  });
+
+  test("the tabs stay on one row from 320: the counts leave the row first, and stay in each tab's name", async ({ page }) => {
+    // Round 25: at 375 and 320 "Milestones 9" wrapped onto the book's top board.
+    for (const width of [320, 360, 375, 390, 430, 768, 1024]) {
+      await page.setViewportSize({ width, height: 800 });
+      await open(page);
+      const group = page.getByRole("group", { name: record.tabsLabel });
+      const tabs = await group.getByRole("button").evaluateAll((els) =>
+        els.map((el) => {
+          const r = el.getBoundingClientRect();
+          const count = el.querySelector(".diary-tab-count")!.getBoundingClientRect();
+          return { bottom: r.bottom, right: r.right, least: Math.min(r.width, r.height), count: count.width };
+        }),
+      );
+      const win = (await book(page).boundingBox())!;
+      const bottoms = tabs.map((t) => t.bottom);
+      // (The pressed tab stands 4px proud of the row.)
+      expect(Math.max(...bottoms) - Math.min(...bottoms), `${width}: the tabs wrapped`).toBeLessThanOrEqual(5);
+      expect(Math.max(...tabs.map((t) => t.right)), `${width}: the row is wider than the book`).toBeLessThanOrEqual(win.x + win.width + 1);
+      for (const t of tabs) expect(t.least, `${width}: a tab under 44px`).toBeGreaterThanOrEqual(44);
+      // The counts show wherever they fit (from 390, as on the board).
+      for (const t of tabs) {
+        if (width >= 390) expect(t.count, `${width}: a count is missing`).toBeGreaterThan(4);
+        else expect(t.count, `${width}: a count still takes room`).toBeLessThanOrEqual(1);
+      }
+      // Seen or not, each count is in its tab's name.
+      await expect(group.getByRole("button")).toHaveText([`All${COUNTS.all}`, `Work${COUNTS.work}`, `Study${COUNTS.learning}`, `Milestones${COUNTS.milestone}`]);
+      await expect(group.getByRole("button", { name: new RegExp(`^Milestones\\s*${COUNTS.milestone}$`) })).toHaveCount(1);
+    }
+  });
+
+  test("page 1 arranges itself by its own width: strings to the cards at 768, 1280, 1440 and 1920, stacked at 390 and 1024, one card a row at 320", async ({ page }) => {
+    test.setTimeout(90_000);
+    // Round 25: at 1280 the left page fell to the phone's arrangement, between
+    // 1024 and 1440 which both drew the strings.
+    const layout = () =>
+      page.evaluate(() => {
+        const frame = document.querySelector<HTMLElement>("#diary-summary [data-pressed]")!;
+        const box = frame.getBoundingClientRect();
+        const strings = frame.querySelector<SVGElement>(":scope > svg[aria-hidden='true']")!;
+        const cards = [...frame.querySelectorAll<HTMLElement>(".record-card")].map((el) => {
+          const r = el.getBoundingClientRect();
+          // (`offsetTop` and `offsetWidth`: where it is laid out, before its tilt.)
+          return { placed: getComputedStyle(el).position === "absolute", x: (r.left - box.left) / box.width, y: (r.top - box.top) / box.height, top: el.offsetTop, width: el.offsetWidth };
+        });
+        return { strings: getComputedStyle(strings).display !== "none", cards, page: frame.parentElement!.getBoundingClientRect().width };
+      });
+    const seen = new Map<number, Awaited<ReturnType<typeof layout>>>();
+    for (const [width, strings] of [[320, false], [390, false], [768, true], [1024, false], [1280, true], [1440, true], [1920, true]] as const) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page);
+      const at = await layout();
+      seen.set(width, at);
+      expect(at.strings, `${width}: a ${Math.round(at.page)}px page`).toBe(strings);
+      expect(at.cards.every((c) => c.placed === strings), `${width}: the cards are ${strings ? "placed on the board" : "in flow"}`).toBe(true);
+      // It is the page's width that decides, never the window's.
+      expect(at.page >= 496, `${width}: a ${Math.round(at.page)}px page`).toBe(strings);
+    }
+    // 1280 and 1440 are one design at two sizes: every card in the same place on the board.
+    const [a, b] = [seen.get(1280)!, seen.get(1440)!];
+    a.cards.forEach((card, i) => {
+      expect(Math.abs(card.x - b.cards[i].x), `card ${i + 1} across`).toBeLessThan(0.01);
+      expect(Math.abs(card.y - b.cards[i].y), `card ${i + 1} down`).toBeLessThan(0.01);
+    });
+    // Stacked, the cards go two to a row; at 320 (120px each, a word a line), one.
+    const rows = (width: number) => new Set(seen.get(width)!.cards.map((c) => c.top)).size;
+    expect(rows(390)).toBe(3);
+    expect(rows(1024)).toBe(3);
+    expect(rows(320)).toBe(seen.get(320)!.cards.length);
+    for (const card of seen.get(320)!.cards) expect(card.width, "320: a taped note").toBeGreaterThanOrEqual(180);
+  });
+
+  test("a contents line is a 44px target wherever a finger can reach it, and a hyphenated title never breaks in its word", async ({ browser, page }) => {
+    test.setTimeout(120_000);
+    const lines = (p: Page) => p.locator("#diary-contents a").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
+    for (const size of [{ width: 320, height: 568 }, PHONE, { width: 768, height: 1024 }]) {
+      await page.setViewportSize(size);
+      await open(page);
+      await page.locator("#record .diary-corner-next").evaluate((el) => (el as HTMLButtonElement).click());
+      await still(page);
+      const heights = await lines(page);
+      expect(heights.length).toBe(COUNTS.all + 1);
+      expect(Math.min(...heights), `${size.width}: a contents line`).toBeGreaterThanOrEqual(44);
+    }
+    // From 1024, on anything with a touch screen (it was 28px for everyone).
+    for (const size of [LAPTOP, WIDE]) {
+      const context = await browser.newContext({ viewport: size, hasTouch: true });
+      const touch = await context.newPage();
+      await touch.goto("/");
+      await expect(touch.locator("#record [data-diary]")).toHaveAttribute("data-live", "");
+      expect(await touch.evaluate(() => matchMedia("(any-pointer: coarse)").matches), "the context has no touch screen").toBe(true);
+      expect(Math.min(...(await lines(touch))), `${size.width}, touch: a contents line`).toBeGreaterThanOrEqual(44);
+      await context.close();
+    }
+    // With a mouse alone the spread keeps the tighter list, so the contents
+    // are not 300px taller than every other page of a spread that shares one
+    // height. (WCAG 2.2's target size is 24px.)
+    await page.setViewportSize(WIDE);
+    await open(page);
+    expect(await page.evaluate(() => matchMedia("(any-pointer: coarse)").matches)).toBe(false);
+    expect(Math.min(...(await lines(page)))).toBeGreaterThanOrEqual(28);
+
+    // "Software Engineer Co-op" broke as "Co-" / "op" at 768 and 1024.
+    for (const size of [{ width: 320, height: 568 }, PHONE, { width: 768, height: 1024 }, LAPTOP, { width: 1280, height: 800 }]) {
+      await page.setViewportSize(size);
+      await open(page);
+      const words = await page.locator("#record span", { hasText: /^Co-op$/ }).evaluateAll((els) =>
+        els.map((el) => ({ nowrap: getComputedStyle(el).whiteSpace, lines: new Set([...el.getClientRects()].map((r) => Math.round(r.top))).size })),
+      );
+      // On the pressed card, in the contents and on the entry's own page.
+      expect(words.length, `${size.width}`).toBe(3);
+      for (const word of words) {
+        expect(word.nowrap).toBe("nowrap");
+        expect(word.lines, `${size.width}: "Co-op" is on two lines`).toBeLessThanOrEqual(1);
+      }
+      // The words themselves are as written.
+      await expect(page.locator("#journey-entry-schaeffler-title")).toHaveText("Software Engineer Co-op");
+    }
   });
 
   test("a turning leaf never shows past the boards: the window at the book's top, middle or foot, and a riffle", async ({ page }) => {
@@ -201,6 +510,7 @@ test.describe("the Diary", () => {
     // this tall the perspective threw a leaf's far end 140px (226 on a phone)
     // past the cover, over Contact. The eye now stands where the reader is
     // (`camera` in diary-turn.ts): no edge on screen grows past the lip.
+    test.setTimeout(90_000);
     const LIP = 16;
     /** How far any face, as far as the window shows it, goes past the cover's
      *  top or foot (counted only where that edge is on screen). */
@@ -234,7 +544,7 @@ test.describe("the Diary", () => {
       expect(seen, `${label}: no leaf was sampled in the air`).toBeGreaterThan(3);
       await still(page);
     };
-    for (const size of [WIDE, { width: 1024, height: 768 }, PHONE]) {
+    for (const size of [WIDE, LAPTOP, PHONE]) {
       await page.setViewportSize(size);
       for (const where of ["top", "middle", "foot"] as const) {
         await open(page);
@@ -254,7 +564,7 @@ test.describe("the Diary", () => {
       }
       // A riffle from the contents, the window gliding to the page meanwhile.
       await open(page);
-      if (size.width < 1280) {
+      if (size.width < SPREAD_FROM) {
         await page.getByRole("button", { name: "Next page" }).click();
         await still(page);
       }
@@ -269,7 +579,12 @@ test.describe("the Diary", () => {
   });
 
   test("with JavaScript the pages turn: the right page lifts over the spine in 3D, its back the next left page", async ({ page }) => {
-    await page.setViewportSize(WIDE);
+    // At 1440, and from 1024 (round 25: the spread, and its leaf, start there).
+    for (const size of [WIDE, LAPTOP]) await leafTurn(page, size);
+  });
+
+  async function leafTurn(page: Page, size: { width: number; height: number }) {
+    await page.setViewportSize(size);
     await open(page);
     await expect(frame(page)).toHaveAttribute("data-mode", "leaf");
     expect(await onShow(page)).toEqual(["summary", "contents"]);
@@ -316,7 +631,7 @@ test.describe("the Diary", () => {
     // Landed: every pose put back.
     expect(await page.locator("#record [data-face], #record [data-under]").count()).toBe(0);
     expect(await slot(page, "contents").evaluate((el) => [el.style.transform, el.getAttribute("hidden")])).toEqual(["", "until-found"]);
-  });
+  }
 
   test("a corner is a handle: a short drag falls back, past halfway it turns", async ({ page }) => {
     for (const size of [WIDE, PHONE]) {
@@ -380,14 +695,18 @@ test.describe("the Diary", () => {
         const flap = track.querySelector<HTMLElement>(":scope > .diary-sheet[data-flap]");
         if (!front || !flap) return null;
         const r = front.getBoundingClientRect();
+        // The page as the book shows it: a turn is flown at the height the
+        // book had (round 25), so a taller page coming back over a shorter
+        // one is cut to the book's box, and that box is what curls.
+        const box = document.querySelector("#record .diary-book")!.getBoundingClientRect();
         const m = (getComputedStyle(flap).transform.match(/^matrix\((.+)\)$/)?.[1] ?? "").split(",").map(Number);
         const clip = [...flap.style.clipPath.matchAll(/(-?[\d.]+)px (-?[\d.]+)px/g)].map((x) => [Number(x[1]), Number(x[2])] as const);
         return {
           width: r.width,
-          height: r.height,
-          top: r.top,
+          height: box.height,
+          top: box.top,
           view: window.innerHeight,
-          book: document.querySelector("#record .diary-book")!.getBoundingClientRect().width,
+          book: box.width,
           inline: [...track.querySelectorAll<HTMLElement>(":scope > *")].map((el) => el.style.transform).join(" "),
           computed: getComputedStyle(front).transform,
           clip: front.style.clipPath,
@@ -493,11 +812,11 @@ test.describe("the Diary", () => {
       await page.mouse.wheel(90, 0);
       await page.waitForTimeout(700);
       await still(page);
-      await expect(where(page), `${size.width}: a short swipe goes back`).toHaveText(size.width >= 1280 ? `pp. 1–2 of ${PAGES.length}` : `p. 1 of ${PAGES.length}`);
+      await expect(where(page), `${size.width}: a short swipe goes back`).toHaveText(size.width >= SPREAD_FROM ? `pp. 1–2 of ${PAGES.length}` : `p. 1 of ${PAGES.length}`);
       await page.mouse.wheel(view * 0.7, 0);
       await page.waitForTimeout(400);
       await still(page);
-      await expect(where(page), `${size.width}: a long swipe turns a page`).toHaveText(size.width >= 1280 ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`);
+      await expect(where(page), `${size.width}: a long swipe turns a page`).toHaveText(size.width >= SPREAD_FROM ? `pp. 3–4 of ${PAGES.length}` : `p. 2 of ${PAGES.length}`);
       expect(await page.evaluate(() => window.scrollY), "a sideways swipe does not scroll the page").toBe(before);
     }
   });

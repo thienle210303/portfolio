@@ -564,7 +564,10 @@ function moonVong(night) {
 // to the clothesline and can be taller than the board, so the element clips
 // whatever it does not need. The bamboo's extra nodes keep the 74px rhythm.
 const BAMBOO_FOOT = 900 + 74 * 6;
-const PINE_FOOT = 1344;
+// Round 25: the pine's bare trunk runs on a long way, so from 640 to 1023,
+// where it stands in the ground at the yard's right edge, it reaches the
+// paddy however tall the section is.
+const PINE_FOOT = 2600;
 /**
  * A bamboo culm, drawn as one would by hand (round 22: the two straight lines
  * per segment read as generated). Each internode is a washed body that tapers
@@ -574,13 +577,13 @@ const PINE_FOOT = 1344;
  * last node is, `step` the node rhythm, `w0`/`w1` its width at foot and top.
  * Returns the outline and the wash apart, so the caller can wash it.
  */
-function culm({ cx, top, foot, step, w0, w1, lean, seed }) {
+function culm({ cx, top, foot, step, w0, w1, lean, seed, wobble = 0.5 }) {
   const r = rng(seed);
   const n = Math.round((foot - top) / step);
   let wash = "", ink = "", fine = "";
   const at = (y) => {
     const t = (foot - y) / (foot - top);
-    return { x: cx + lean * t + Math.sin(t * 5.1) * 0.5, w: w0 + (w1 - w0) * t };
+    return { x: cx + lean * t + Math.sin(t * 5.1) * wobble, w: w0 + (w1 - w0) * t };
   };
   for (let i = 0; i < n; i++) {
     const y0 = foot - i * step, y1 = y0 - step + 3;
@@ -671,36 +674,102 @@ function bamboo(color, leafFill) {
     sprays.push(bambooSpray(p.x + dir * p.w / 2, y, dir, 14 + r() * 18, n, 34 + r() * 22, r));
   }
   // Lower down, a twig now and then, never two alike.
-  for (const [dir, y, n] of [[1, 436, 2], [-1, 590, 3], [1, 742, 2]]) {
+  // Round 25: the twig at y 436 goes left too. To the right it hung into the
+  // hint's first words wherever the pole stands 20px from the text (1024).
+  for (const [dir, y, n] of [[-1, 436, 2], [-1, 590, 3], [1, 742, 2]]) {
     const p = c.at(y);
     sprays.push(bambooSpray(p.x + dir * p.w / 2, y, dir, 8 + r() * 8, n, 22 + r() * 10, r));
   }
   return bambooShoot(c, color) + bambooPole(color, leafFill, c, sprays);
 }
-// The phone's bamboo (the board's NatHeroPhone pole), standing at the right
-// edge where the line turns down the page. Its foot runs on like the hero's
-// pole; the element clips it. Six extra nodes keep the 54px rhythm and leave
-// the top where the board drew it. The stem stays at x 366–378 at its top,
-// where the line ties on; its leaves go left, into the page.
-const PHONE_BAMBOO_FOOT = 1000 + 54 * 6;
-function phoneBamboo(color, leafFill) {
-  const c = culm({ cx: 372.6, top: 474, foot: PHONE_BAMBOO_FOOT, step: 54, w0: 13.5, w1: 11, lean: -0.6, seed: 23 });
-  const r = rng(31), sprays = [];
-  // The crown, into the page; one short sprig on the right, at the edge.
-  const crown = [[-1, 4, 5], [-1, 26, 4], [1, 14, 2], [-1, 60, 4], [-1, 98, 3]];
-  for (const [dir, dy, n] of crown) {
-    const y = c.tip + dy, p = c.at(y);
-    sprays.push(bambooSpray(p.x + dir * p.w / 2, y, dir, dir > 0 ? 3 : 8 + r() * 12, n, dir > 0 ? 11 : 22 + r() * 14, r));
-  }
-  // Down the pole, a short sprig every few nodes, tucked behind the tags.
-  for (const y of [690, 852]) {
-    const p = c.at(y);
-    sprays.push(bambooSpray(p.x - p.w / 2, y, -1, 6 + r() * 5, 2 + Math.floor(r() * 2), 16 + r() * 8, r));
-  }
-  return bambooShoot(c, color) + bambooPole(color, leafFill, c, sprays);
+// ---- The yard's bamboo (round 25) ----
+// Below 1024 the clothesline is strung between two things that stand in the
+// ground, however tall the section is, so the pole is not one drawing but
+// three: a crown, a length of stem that tiles down to the ground, and a tuft
+// of grass at its foot. The stem is dead straight and one width (no lean, no
+// wobble), and each piece is cut mid-internode, where a culm is only its two
+// edges and a highlight, so the joins do not show. Sprigs come off its nodes
+// where the page puts them. Everything is drawn with its leaves to the left;
+// the left-hand pole is the mirror of it.
+export const POLE = {
+  step: 54, w: 12, tile: 4, crown: 4,
+  // viewBoxes: x, y, width, height. The pole's centre is x 0 in all of them.
+  crownBox: [-84, -236, 98, 209],
+  stemBox: [-12, -4 * 54 - 27, 24, 4 * 54],
+  sprigBox: [-40, -12, 42, 40],
+  tuftBox: [-36, -30, 72, 34],
+};
+const poleCulm = (n, seed) => culm({ cx: 0, top: -n * POLE.step, foot: 0, step: POLE.step, w0: POLE.w, w1: POLE.w, lean: 0, seed, wobble: 0 });
+/** `tile` internodes, from the middle of one to the middle of the next. */
+function poleStem() {
+  return bambooPole(K, `fill="${K}"`, poleCulm(POLE.tile + 1, 37), []);
 }
-// The wooden clothespin each chapter tag hangs by on the phone.
-const clothespin = `<rect x="0.4" y="0.4" width="8" height="22" rx="2" fill="#C4AE85" stroke="#A08B62" stroke-width="0.8"/>`;
+/** The top `crown` internodes, the shoot and the leaves; `sprays` as the hero's. */
+function poleCrown(seed, sprays) {
+  const c = poleCulm(POLE.crown, seed);
+  const r = rng(seed + 8), out = [];
+  for (const [dir, dy, n] of sprays) {
+    const y = c.tip + dy, p = c.at(y);
+    out.push(bambooSpray(p.x + dir * p.w / 2, y, dir, dir > 0 ? 3 : 8 + r() * 12, n, dir > 0 ? 11 : 22 + r() * 14, r));
+  }
+  return bambooShoot(c, K) + bambooPole(K, `fill="${K}" fill-opacity="0.18"`, c, out);
+}
+/** A sprig off a node at 0,0, to the left. */
+function poleSprig(seed, len, count, L) {
+  const s = bambooSpray(0, 0, -1, len, count, L, rng(seed));
+  return `<g fill="none" stroke="${K}" stroke-width="1.3" stroke-linecap="round">${s.twig}</g>`
+    + `<g fill="${K}" fill-opacity="0.18" stroke="${K}" stroke-width="0.9" stroke-linejoin="round">${s.blades}</g>`
+    + `<g fill="none" stroke="${K}" stroke-width="0.5" stroke-linecap="round">${s.ribs}</g>`;
+}
+/** Grass round the foot of a pole that stands at 0,0, and the ground it stands in. */
+function poleTuft() {
+  const r = rng(53);
+  let blades = "", fine = "";
+  for (let i = 0; i < 15; i++) {
+    const side = i % 2 ? 1 : -1;
+    const x = side * (2 + r() * 24), h = 9 + r() * 20 * (1 - Math.abs(x) / 34), lean = side * (2 + r() * 9);
+    blades += `<path d="M${f(x)} 0Q${f(x + lean * 0.2)} ${f(-h * 0.62)} ${f(x + lean)} ${f(-h)}"/>`;
+  }
+  for (let i = 0; i < 7; i++) {
+    const x = -30 + i * 9.6 + r() * 4;
+    fine += `<path d="M${f(x)} ${f(1.6 + r() * 1.6)}h${f(3 + r() * 5)}"/>`;
+  }
+  return `<path d="M-9 0Q0 -3.4 9 0Z" fill="${K}" fill-opacity="0.18" stroke="none"/>`
+    + `<g fill="none" stroke="${K}" stroke-width="1.1" stroke-linecap="round">${blades}</g>`
+    + `<g fill="none" stroke="${K}" stroke-width="0.7" stroke-linecap="round">${fine}</g>`;
+}
+// From 1024 the paddy is one board in the middle of a wider window, so the
+// ground carries on from its ends to the window's edges as a strip of bank
+// grass that tiles: the bamboo and the pine stand in it, and at 1920 the
+// section's foot is not bare. Nothing crosses the tile's edges.
+export const GRASS = { W: 420, H: 30 };
+function bankGrass() {
+  const r = rng(71), ground = GRASS.H - 2;
+  let blades = "", fine = "";
+  for (let x = 10; x < GRASS.W - 14; x += 14 + r() * 30) {
+    const n = 2 + Math.floor(r() * 4), h0 = 6 + r() * 14;
+    for (let i = 0; i < n; i++) {
+      const bx = x + (i - n / 2) * 2.2, h = h0 * (0.55 + r() * 0.6), lean = (r() - 0.5) * 9;
+      blades += `<path d="M${f(bx)} ${ground}Q${f(bx + lean * 0.2)} ${f(ground - h * 0.62)} ${f(bx + lean)} ${f(ground - h)}"/>`;
+    }
+  }
+  for (let x = 6; x < GRASS.W - 20; x += 18 + r() * 26) fine += `<path d="M${f(x)} ${f(ground + 0.4 + r())}h${f(5 + r() * 10)}"/>`;
+  return `<g fill="none" stroke="${K}" stroke-width="1" stroke-linecap="round">${blades}</g>`
+    + `<g fill="none" stroke="${K}" stroke-width="0.7" stroke-linecap="round">${fine}</g>`;
+}
+function poleFiles() {
+  const box = (b) => b.join(" ");
+  return {
+    "bank-grass": svg(`0 0 ${GRASS.W} ${GRASS.H}`, bankGrass()),
+    "bamboo-top": svg(box(POLE.crownBox), poleCrown(23, [[-1, 4, 5], [-1, 26, 4], [1, 14, 2], [-1, 60, 4], [-1, 98, 3]])),
+    "bamboo-top-b": svg(box(POLE.crownBox), poleCrown(41, [[-1, 6, 4], [1, 20, 2], [-1, 38, 5], [-1, 84, 3], [-1, 118, 2]])),
+    "bamboo-stem": svg(box(POLE.stemBox), poleStem()),
+    "bamboo-sprig": svg(box(POLE.sprigBox), poleSprig(61, 9, 3, 20)),
+    "bamboo-sprig-b": svg(box(POLE.sprigBox), poleSprig(67, 6, 2, 17)),
+    "bamboo-tuft": svg(box(POLE.tuftBox), poleTuft()),
+  };
+}
+// ---- end The yard's bamboo ----
 // The DoorDash tag's laptop.
 const laptop = (color) => `<g fill="none" stroke="${color}" stroke-width="1.2"><rect x="44" y="30" width="62" height="40" rx="3"/><path d="M34 76H116M58 44h14M58 54h26M90 44l6 5-6 5"/></g>`;
 
@@ -1083,7 +1152,7 @@ function twigs(x, y, ang, len, w, depth, r, out) {
     const n = r() > 0.4 ? 2 : 3;
     for (let i = 0; i < n; i++) twigs(ex, ey, ang + (r() - 0.5) * 1.3, len * (0.6 + r() * 0.15), w * 0.62, depth - 1, r, out);
   } else {
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < (out.per ?? 7); i++) {
       const lx = ex + (r() - 0.5) * 16, ly = ey + (r() - 0.5) * 12;
       out.leaves += `<ellipse cx="${f(lx)}" cy="${f(ly)}" rx="4.2" ry="1.9" transform="rotate(${f(r() * 180)} ${f(lx)} ${f(ly)})"/>`;
     }
@@ -1101,7 +1170,7 @@ function moss(x, y, len, r) {
 }
 /** The board's `oak()` with its three layers apart: the same draws in the same order. */
 function oakLayers(limbs, seed, cfg, color) {
-  const r = rng(seed), out = { lines: "", leaves: "" };
+  const r = rng(seed), out = { lines: "", leaves: "", per: cfg.per };
   let body = "", mossS = "";
   for (const L of limbs) {
     body += taper(L.p, L.w0, L.w1, color);
@@ -1110,7 +1179,7 @@ function oakLayers(limbs, seed, cfg, color) {
       const t = 0.25 + (0.75 * (i + r() * 0.6)) / (L.twigs ?? 7);
       const [x, y] = cubic(L.p, Math.min(t, 1)), [dx, dy] = cubicD(L.p, Math.min(t, 1));
       const base = Math.atan2(dy, dx);
-      const side = r() > 0.3 ? -1 : 1; // mostly upward
+      const side = L.up ? 1 : r() > 0.3 ? -1 : 1; // mostly upward (`up`: every one, on a limb that runs left)
       const ang = base + side * (0.5 + r() * 0.7);
       const w = (L.w0 + (L.w1 - L.w0) * t) * 0.35;
       twigs(x, y, ang, cfg.twig * (0.7 + r() * 0.5), Math.max(w, 1.4), 2, r, out);
@@ -1146,10 +1215,12 @@ const OAK_LIMBS = [
 // the top) and still meet its roots, a file of their own masked at the
 // stage's foot. Each tag hangs from a bough of its own, stretched from the
 // trunk to the tag's string (`preserveAspectRatio="none"`): its tip is at
-// (2, 11), where the string ties on.
+// (2, 11), where the string ties on. The straight run laps 8 units over the
+// leaning one (round 25): butted end to end, the two showed a hairline across
+// the trunk where they met.
 const NARROW_TRUNK_TOP = f(46.5 * (900 / 1440));
 const OAK_TRUNK = [
-  { p: [[120, 2400], [120, 1800], [120, 1200], [120, 640]], w0: 34, w1: 34, twigs: 9, moss: 5 },
+  { p: [[120, 2400], [120, 1800], [120, 1200], [120, 632]], w0: 34, w1: 34, twigs: 9, moss: 5 },
   { p: [[120, 640], [120, 420], [100, 265], [120, 0]], w0: 34, w1: NARROW_TRUNK_TOP, twigs: 4, moss: 2 },
 ];
 const OAK_ROOTS = [
@@ -1159,10 +1230,45 @@ const OAK_ROOTS = [
   { p: [[104, 118], [92, 138], [74, 148], [52, 153]], w0: 13, w1: 2, twigs: 0 },
   { p: [[138, 120], [150, 140], [170, 149], [190, 154]], w0: 13, w1: 2, twigs: 0 },
 ];
+// Round 25: from 640 to 1279 the title stands top-left beside the crown and the
+// boughs leave the trunk in pairs, so that band has a crown of its own. It is
+// the board's oak (same trunk, same long limb, same fork at x 307) without
+// the limb that climbed up and left, where the title is now: an upright limb
+// stands in for it, and the lantern's limb leaves the trunk lower and stops
+// short of the box's left edge, so no sprig is cut by it. Its box runs to
+// board y 680; the trunk below still joins at y 640 (x 307), as it does under
+// the board's crown. Five leaves a sprig, not seven: it is drawn at two
+// thirds of the board's size.
+const CROWN_LANTERN_LIMB = { p: [[302, 622], [236, 584], [158, 566], [84, 532]], w0: 24, w1: 5, twigs: 5, moss: 2, up: true };
+const OAK_CROWN = [
+  OAK_LIMBS[0],
+  CROWN_LANTERN_LIMB,
+  { p: [[304, 566], [298, 480], [326, 376], [366, 250]], w0: 24, w1: 5, moss: 1 },
+  { p: [[312, 562], [356, 468], [420, 396], [486, 316]], w0: 22, w1: 5 },
+  OAK_LIMBS[4],
+  { ...OAK_LIMBS[5], twigs: 5 },
+  OAK_LIMBS[6],
+  { ...OAK_LIMBS[7], twigs: 3 },
+  OAK_LIMBS[8],
+];
 const OAK_BOUGH = [{ p: [[200, 30], [140, 8], [60, 2], [2, 11]], w0: 13, w1: 2, twigs: 4 }];
 const stretched = (viewBox, body) => svg(viewBox, body).replace("<svg ", '<svg preserveAspectRatio="none" ');
 const yAt = (L, x) => { let lo = 0, hi = 1; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (cubic(L.p, m)[0] < x) lo = m; else hi = m; } return cubic(L.p, lo)[1]; };
 const TAG_XS = [520, 720, 920, 1120, 1320], TAG_DROPS = [8, 40, 96, 52, 84];
+
+const CROWN_SEED = 73, CROWN_BOX = "0 120 1440 560";
+
+/**
+ * The 640 to 1279 crown, for the page and the tests: its box, the trunk's foot
+ * (where the trunk below joins it, as under the board's crown), and where the
+ * lantern's string leaves its limb, at the board's x 152.
+ */
+export function crownSpots() {
+  const limb = CROWN_LANTERN_LIMB.p;
+  let lo = 0, hi = 1;
+  for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (cubic(limb, m)[0] > 152) lo = m; else hi = m; }
+  return { box: [0, 120, 1440, 560], foot: [307, 640], lantern: [152, f(cubic(limb, lo)[1])] };
+}
 
 /** Where the board hangs each tag: `ly` is the limb's y above the tag's x, `top` the tag's top. */
 export function journeySpots() {
@@ -1199,11 +1305,15 @@ function journeyFiles() {
   const trunk = oakLayers(OAK_TRUNK, 13, { twig: 30 }, K);
   const roots = oakLayers(OAK_ROOTS, 17, { twig: 0 }, K);
   const bough = oakLayers(OAK_BOUGH, 23, { twig: 15 }, K);
+  const crown = oakLayers(OAK_CROWN, CROWN_SEED, { twig: 46, per: 5 }, K);
   const OAK_BOX = "0 120 1440 780", TRUNK_BOX = "0 0 240 2400", BOUGH_BOX = "0 -30 200 70", LANTERN_BOX = "104 510 96 122", STILL_BOX = "1196 780 92 90";
   return {
     oak: svg(OAK_BOX, oak.bark),
     "oak-leaves": svg(OAK_BOX, oak.leaves),
     "oak-moss": svg(OAK_BOX, oak.moss),
+    "oak-crown": svg(CROWN_BOX, crown.bark),
+    "oak-crown-leaves": svg(CROWN_BOX, crown.leaves),
+    "oak-crown-moss": svg(CROWN_BOX, crown.moss),
     "oak-trunk": svg(TRUNK_BOX, trunk.bark),
     "oak-trunk-leaves": svg(TRUNK_BOX, trunk.leaves),
     "oak-trunk-moss": svg(TRUNK_BOX, trunk.moss),
@@ -1562,8 +1672,7 @@ export function drawScenery() {
   const paddy = paddyBoard(PADDY.wide), paddyPhone = paddyBoard(PADDY.phone);
   return {
     bamboo: svg(`0 110 140 ${BAMBOO_FOOT - 110}`, bamboo(K, `fill="${K}" fill-opacity="0.18"`)),
-    "bamboo-phone": svg(`316 456 70 ${PHONE_BAMBOO_FOOT - 456}`, phoneBamboo(K, `fill="${K}" fill-opacity="0.18"`)),
-    clothespin: svg("0 0 8.8 22.8", clothespin),
+    ...poleFiles(),
     pine: svg(`1260 80 180 ${PINE_FOOT - 80}`, `<g transform="translate(1356 900) scale(2.7)">${pine(0, 0, 300, K)}</g><path d="M1356 900V${PINE_FOOT}" fill="none" stroke="${K}" stroke-width="4.32"/>`),
     paddy: svg(`0 0 ${PADDY.wide.W} ${PADDY.wide.H}`, paddy.rice),
     "paddy-water": svg(`0 0 ${PADDY.wide.W} ${PADDY.wide.H}`, paddy.water),

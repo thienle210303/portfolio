@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,768" />
+    <title>About — phone and tablet (under 1024)</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Revised 2026-11-05 after Thien's review: "a bamboo flying in the middle
+       * of the page and cut off makes no sense". The rule this board draws:
+       *
+       *   A line is strung between two things that stand in the ground.
+       *
+       * Desktop already does it (bamboo left, pine right, both rooted). Below
+       * 1024 the two supports now stand at the page's edges, feet in the
+       * paddy, and the line crosses between them as many times as the width
+       * needs: three passes on a phone, two on a tablet. Tags hang from a
+       * sagging line on strings of different lengths, so nothing sits on a
+       * ruler, but the order, the margins and the ground are fixed.
+       */
+      .about {
+        padding-top: 4.5rem;
+        padding-bottom: 0;
+      }
+      .say {
+        position: relative;
+        display: grid;
+        gap: 14px;
+        container-type: inline-size;
+      }
+      .say .display {
+        font-size: min(var(--step-5), 13cqw);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        align-items: center;
+      }
+      /* The real drawings (public/scenery), as ink. */
+      .ink {
+        display: block;
+        opacity: 0.72;
+      }
+      html[data-theme="night"] .ink {
+        filter: invert(1);
+      }
+      /* Ink on paper stays dark at night: the paper is still light. */
+      html[data-theme="night"] .tag .ink {
+        filter: none;
+      }
+      .yard {
+        position: relative;
+        margin-inline: calc(-1 * var(--gutter));
+        height: var(--h);
+        overflow: clip;
+      }
+      .lines {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+      }
+      .lines path {
+        fill: none;
+        stroke: var(--twine);
+        stroke-width: 1.6;
+      }
+      .lines circle {
+        fill: var(--twine);
+      }
+      .pole {
+        position: absolute;
+        top: 0;
+        height: var(--pole);
+        width: auto;
+        z-index: 1;
+      }
+      .pole.left {
+        left: var(--pl);
+        transform: scaleX(-1);
+      }
+      .pole.right {
+        right: var(--pr);
+      }
+      .hat {
+        position: absolute;
+        z-index: 3;
+        width: 54px;
+        left: var(--hat-x);
+        top: var(--hat-y);
+      }
+      /* A hung thing swings from where its string meets the line. */
+      .hang {
+        position: absolute;
+        z-index: 3;
+        left: var(--x);
+        top: var(--y);
+        width: var(--w, 150px);
+        transform-origin: 50% calc(-1 * var(--s));
+        rotate: var(--tilt, 0deg);
+      }
+      .hang > .string {
+        left: 50%;
+        top: calc(-1 * var(--s));
+        height: calc(var(--s) + 20px);
+        z-index: 1;
+      }
+      .hang .tag {
+        z-index: 2;
+      }
+      .tag .ink {
+        width: 100%;
+        margin-top: 8px;
+      }
+      .fieldtag {
+        position: relative;
+        padding: 46px 18px 18px;
+        z-index: 2;
+      }
+      .fieldtag dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 6px 12px;
+        margin: 12px 0;
+        padding-block: 12px;
+        border-block: 1px dashed var(--fg);
+      }
+      .fieldtag dt {
+        color: var(--fg-muted);
+      }
+      .fieldtag dd {
+        margin: 0;
+      }
+      .fieldtag .hole {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        width: 22px;
+        height: 22px;
+        translate: -50% 0;
+        border-radius: 50%;
+        background: var(--hole, var(--ground));
+        box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--twine) 30%, var(--surface)), inset 0 0 0 6.5px var(--twine);
+      }
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .qr {
+        width: 72px;
+        height: 72px;
+        background: repeating-conic-gradient(var(--fg) 0 25%, transparent 0 50%) 0 0 / 12px 12px;
+      }
+      .stampmark {
+        border: 2px solid var(--mark);
+        color: var(--mark);
+        padding: 6px 10px;
+        rotate: -4deg;
+        font: 700 12px var(--font-mono);
+        letter-spacing: 0.08em;
+      }
+      .ground {
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 150px;
+        z-index: 0;
+      }
+      .ground .paddy {
+        position: absolute;
+        bottom: 0;
+        height: 100%;
+        object-fit: cover;
+        object-position: bottom;
+      }
+      .ground .vig {
+        position: absolute;
+        bottom: 6px;
+        z-index: 4;
+      }
+
+      /* ---- Phone: three passes between two bamboo poles ---- */
+      .yard {
+        --h: 1300px;
+        --pole: 1240px;
+        --pl: -6px;
+        --pr: -6px;
+        --hat-x: 2px;
+        --hat-y: 2px;
+        margin-top: 18px;
+      }
+      .t1 { --x: 34px; --y: 86px; --s: 20px; --tilt: -2deg; }
+      .t2 { --x: 206px; --y: 124px; --s: 34px; --tilt: 2.5deg; }
+      .t3 { --x: 34px; --y: 420px; --s: 30px; --tilt: -2.5deg; }
+      .t4 { --x: 206px; --y: 386px; --s: 16px; --tilt: 2deg; }
+      .ft { --x: 30px; --y: 690px; --s: 18px; --w: 330px; --tilt: 1deg; }
+      .ground .paddy { left: 0; width: 100%; }
+      .ground .moon { left: 40px; width: 110px; }
+      .ground .phin { right: 40px; width: 84px; }
+      .tablet,
+      .pole.pine {
+        display: none;
+      }
+
+      /* ---- Tablet: two passes, bamboo to pine; the headline under the line ---- */
+      @media (width >= 40rem) {
+        .phone {
+          display: none;
+        }
+        .tablet,
+        .pole.pine {
+          display: block;
+        }
+        .say.tablet {
+          display: grid;
+        }
+        .pole.right.bamboo {
+          display: none;
+        }
+        .about > .say {
+          display: none;
+        }
+        .yard {
+          --h: 1010px;
+          --pole: 990px;
+          --pl: 10px;
+          --pr: -52px;
+          --hat-x: 20px;
+          --hat-y: 8px;
+          margin-top: -8px;
+        }
+        .t1 { --x: 60px; --y: 83px; --s: 18px; --tilt: -2deg; }
+        .t2 { --x: 232px; --y: 118px; --s: 30px; --tilt: 2deg; }
+        .t3 { --x: 404px; --y: 106px; --s: 12px; --tilt: -1.5deg; }
+        .t4 { --x: 576px; --y: 109px; --s: 26px; --tilt: 2.5deg; }
+        .ft { --x: 398px; --y: 398px; --s: 20px; --w: 330px; --tilt: 1.5deg; }
+        .yard .say {
+          position: absolute;
+          z-index: 3;
+          left: 76px;
+          top: 392px;
+          width: 300px;
+        }
+        .ground .paddy { left: auto; right: 24px; width: 470px; height: 120px; object-fit: fill; }
+        .ground .moon { left: 64px; width: 120px; }
+        .ground .phin { left: 214px; right: auto; width: 90px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hdr">
+      <span>TL</span>
+      <span class="nav"><span>○ Menu</span><span>☼</span></span>
+      <span class="stamp">Let's talk</span>
+    </div>
+
+    <section class="section shell about">
+      <!-- Phone: the words first, then the yard. -->
+      <div class="say">
+        <h1 class="display">Just a curious kid, and this is my youth.</h1>
+        <p class="lead">
+          I write software for retail data at DoorDash. Before that I was a chef in my family's
+          restaurant. Come in, I'll show you around.
+        </p>
+        <div class="actions">
+          <span class="btn">See what I've built</span>
+          <span class="btn quiet">Send me a postcard</span>
+        </div>
+        <p class="aside">Press a tag and I'll tell you that part.</p>
+        <span class="pin" style="top: 0; right: 0">1</span>
+      </div>
+
+      <div class="yard">
+        <img class="ink pole left" src="../../../../public/scenery/bamboo-phone.svg" alt="" />
+        <img class="ink pole right bamboo" src="../../../../public/scenery/bamboo-phone.svg" alt="" />
+        <img class="ink pole right pine" src="../../../../public/scenery/pine.svg" alt="" />
+        <img class="hat" src="../../../../public/scenery/non-la.svg" alt="" />
+
+        <svg class="lines phone" viewBox="0 0 390 1300" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M14 34 Q195 104 376 84" />
+          <path d="M376 330 Q195 420 14 372" />
+          <path d="M14 640 Q195 690 376 660" />
+          <circle cx="14" cy="34" r="3" /><circle cx="376" cy="84" r="3" />
+          <circle cx="376" cy="330" r="3" /><circle cx="14" cy="372" r="3" />
+          <circle cx="14" cy="640" r="3" /><circle cx="376" cy="660" r="3" />
+        </svg>
+        <svg class="lines tablet" viewBox="0 0 768 1010" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M26 40 Q384 130 742 70" />
+          <path d="M742 360 Q384 410 26 345" />
+          <circle cx="26" cy="40" r="3" /><circle cx="742" cy="70" r="3" />
+          <circle cx="742" cy="360" r="3" /><circle cx="26" cy="345" r="3" />
+        </svg>
+
+        <span class="pin" style="top: 8px; left: 50%">2</span>
+
+        <div class="hang t1">
+          <i class="string"></i>
+          <div class="tag">
+            <p class="label">2003</p>
+            <p class="heading">Kiên Giang</p>
+            <img class="ink" src="../../../../public/scenery/tag-rice.svg" alt="" />
+          </div>
+        </div>
+        <div class="hang t2">
+          <i class="string"></i>
+          <div class="tag">
+            <p class="label">Dec 2018</p>
+            <p class="heading">Taylors</p>
+            <img class="ink" src="../../../../public/scenery/tag-flytrap.svg" alt="" />
+          </div>
+        </div>
+        <div class="hang t3">
+          <i class="string"></i>
+          <div class="tag">
+            <p class="label">2021</p>
+            <p class="heading">USC</p>
+            <img class="ink" src="../../../../public/scenery/tag-book.svg" alt="" />
+          </div>
+        </div>
+        <div class="hang t4">
+          <i class="string"></i>
+          <div class="tag">
+            <p class="label">2025</p>
+            <p class="heading">DoorDash</p>
+            <img class="ink" src="../../../../public/scenery/tag-laptop.svg" alt="" />
+          </div>
+        </div>
+
+        <!-- Tablet: the words under the line, beside the field tag. -->
+        <div class="say tablet">
+          <p class="aside">Press a tag and I'll tell you that part.</p>
+          <h1 class="display">Just a curious kid, and this is my youth.</h1>
+          <p class="lead">
+            I write software for retail data at DoorDash. Before that I was a chef in my family's
+            restaurant. Come in, I'll show you around.
+          </p>
+          <div class="actions">
+            <span class="btn">See what I've built</span>
+            <span class="btn quiet">Send me a postcard</span>
+          </div>
+        </div>
+
+        <div class="hang ft">
+          <i class="string"></i>
+          <span class="pin" style="top: -10px; right: 14px">3</span>
+          <div class="paper bg-surface fieldtag data">
+            <i class="hole"></i>
+            <div style="display: flex; justify-content: space-between">
+              <strong>Field tag No. 001</strong><strong>That's me</strong>
+            </div>
+            <dl>
+              <dt>Name</dt>
+              <dd>Thien Le</dd>
+              <dt>Native to</dt>
+              <dd>Kiên Giang, Việt Nam ★</dd>
+              <dt>Transplanted</dt>
+              <dd>Taylors, South Carolina</dd>
+              <dt>Habitat</dt>
+              <dd>DoorDash, retail data</dd>
+              <dt>Formerly</dt>
+              <dd>Chef, family kitchen</dd>
+              <dt>Companions</dt>
+              <dd>Two cats, Moon and Mi</dd>
+            </dl>
+            <p><strong>Status &nbsp; Still growing</strong></p>
+            <div class="foot">
+              <div>
+                <div class="qr"></div>
+                My LinkedIn
+              </div>
+              <span class="stampmark">PRACTICE MAKES AI.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ground">
+          <img class="ink paddy phone" src="../../../../public/scenery/paddy-phone.svg" alt="" />
+          <img class="ink paddy tablet" src="../../../../public/scenery/paddy.svg" alt="" />
+          <img class="vig moon" src="../../../../public/scenery/offduty-day.svg" alt="" />
+          <img class="vig phin" src="../../../../public/scenery/morning.svg" alt="" />
+          <span class="pin" style="bottom: 96px; left: 50%">4</span>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

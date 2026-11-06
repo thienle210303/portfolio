@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { cn } from "@/lib/cn";
-import { navItems } from "@/content/portfolio";
+import { navItems, profile } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { glide } from "@/lib/glide";
+import { BAND } from "@/lib/breakpoints";
 
 // Built once at module scope so the array identity never changes across
 // renders — useActiveSection re-subscribes its observer whenever the
@@ -12,6 +13,9 @@ import { glide } from "@/lib/glide";
 const SECTION_IDS = navItems.map((item) => item.sectionId);
 
 const MOBILE_PANEL_ID = "mobile-nav-panel";
+
+/** Where "Let's talk" goes: the header's stamp and the menu's point at it. */
+const TALK_SECTION_ID = "contact";
 
 function prefersReducedMotion(): boolean {
   return (
@@ -110,7 +114,7 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
     // resize or orientation change), the toggle and panel both disappear
     // via `lg:hidden` — close the menu too, so the scroll lock above
     // doesn't get stranded on with no visible control left to release it.
-    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const desktopQuery = window.matchMedia(BAND.laptop);
     function onDesktopChange(event: MediaQueryListEvent) {
       if (event.matches) setOpen(false);
     }
@@ -290,7 +294,7 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
                         <span className={cn("size-2.5 rounded-full bg-accent", isActive ? "opacity-100" : "opacity-0")} />
                       </span>
                       <span className="min-w-0">
-                        <span aria-hidden="true" className="block font-mono text-[11.5px] text-fg-muted">
+                        <span aria-hidden="true" className="block font-mono text-[12px] text-fg-muted">
                           {stopNumber(index)}
                           {isActive ? <span className="text-accent"> &middot; you are here</span> : null}
                         </span>
@@ -311,6 +315,45 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
                 );
               })}
             </ol>
+            {/* The page ends with the two things the header has no room for on
+                a phone (round 25): "Let's talk", the header's own postage
+                stamp (hidden under 640, so it is here; from 640 the header
+                shows it and this one steps aside), and my résumé, a slip
+                taped to the page. Paper and ink, never `--control` or
+                `--mark`; each a 44px target; both inside the panel, so the
+                menu's focus trap and Escape cover them. */}
+            <ul role="list" data-menu-end="" className="relative mt-5 flex flex-wrap items-center gap-x-5 gap-y-2.5 pl-10">
+              <li className="sm:hidden">
+                <a
+                  href={`/#${TALK_SECTION_ID}`}
+                  onClick={(event) => handleNavLinkClick(TALK_SECTION_ID)(event)}
+                  className="group nav-stamp stamp-lift inline-flex h-11 -rotate-2 items-center whitespace-nowrap text-fg active:translate-y-px"
+                >
+                  <span className="nav-stamp-paper bg-ground">
+                    <span className="nav-stamp-face border border-rule font-display text-[length:var(--step--1)] font-semibold tracking-[0.01em] text-fg transition-colors duration-150 group-hover:text-accent">
+                      Let&rsquo;s talk
+                    </span>
+                  </span>
+                </a>
+              </li>
+              {profile.resumePdf ? (
+                <li>
+                  <a
+                    href={profile.resumePdf}
+                    onClick={() => setOpen(false)}
+                    className="group relative inline-flex min-h-11 items-center active:translate-y-px"
+                  >
+                    <span className="relative inline-flex h-9 rotate-1 items-baseline gap-2 bg-ground px-3.5 pt-[9px] shadow-(--shadow-pinned) font-display text-[length:var(--step--1)] font-semibold text-fg transition-colors duration-150 group-hover:text-accent">
+                      <span aria-hidden="true" className="nav-tape nav-tape-l" />
+                      Résumé
+                      <span aria-hidden="true" className="font-mono text-[12px] font-normal text-fg-muted">
+                        PDF
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              ) : null}
+            </ul>
             <span
               aria-hidden="true"
               data-monogram="TL"

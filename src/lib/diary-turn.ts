@@ -322,6 +322,52 @@ export function turnRoom(width: number, spread: boolean): { readonly depth: numb
   return { depth: Math.round(depth), room: Math.ceil(Math.max(LIP, side)) + 4 };
 }
 
+/* ------------------------------------------------------------------ */
+/* One page: as tall as what is on it (round 25)                       */
+/*                                                                     */
+/* Where the book shows one page, a page is its own height (never      */
+/* under a floor of about a screen), so a turn can land on a page      */
+/* taller or shorter than the one it left. While the leaf is in the    */
+/* air the book keeps the height it had, both pages laid out under it  */
+/* at the taller's; once it has landed the book eases to the new       */
+/* page's height.                                                      */
+/* ------------------------------------------------------------------ */
+
+/** How long the book takes to ease to a landed page's height. */
+export const SETTLE_MS = 280;
+
+/** What stays under the fold when a just-bound book takes its first page's
+ *  height: the dog-eared corners (44px) and a hair, so nothing on screen moves. */
+export const HOLD_LIP = 48;
+
+/**
+ * The least a just-bound book of one page may stand, so that taking its first
+ * page's own height moves nothing on screen (a layout shift on load): its foot
+ * stays `lip` under the fold. `top` is the page's top in window px, `view` the
+ * window's height. Nothing, when the book is far below the fold (the usual
+ * load); the whole distance, when it is above the window, so it does not
+ * shrink over the reader's head either. `DiaryBook` drops it at the first
+ * turn.
+ */
+export function holdHeight(top: number, view: number, lip = HOLD_LIP): number {
+  return Math.max(Math.ceil(view + lip - top), 0);
+}
+
+/**
+ * How far the window goes with the book as it changes height by `grow` px
+ * after a turn (px down the document; negative is up). The pages hang from
+ * the book's top, so a book growing moves nothing the reader is looking at:
+ * its foot goes on down. A book shrinking with its top on screen (at or under
+ * the header's line, `header` px down the window) only brings its foot up.
+ * But a reader further down a tall page would be left looking at whatever
+ * follows the book, so the window follows the foot up, and stops when the
+ * page's top reaches the header's line. `top` is the page's top in window px.
+ */
+export function settleScroll(top: number, grow: number, header: number): number {
+  if (grow >= 0 || top >= header) return 0;
+  return Math.max(grow, top - header);
+}
+
 /** The leaves stacked either side of the opening: read on the left, still to
  *  come on the right (a leaf is two pages). */
 export function stackLeaves(at: number, per: 1 | 2, pages: number): { readonly read: number; readonly left: number } {

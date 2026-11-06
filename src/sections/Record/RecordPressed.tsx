@@ -16,6 +16,7 @@ import {
 } from "@/lib/record";
 import { journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
 import { KindDot } from "./KindDot";
+import { noBreak } from "./noBreak";
 
 const SLICE = buildSlice();
 const FEATURED = featuredEntries();
@@ -30,8 +31,8 @@ const pctX = (x: number) => `${(((x - PAGE_FRAME.x) / PAGE_FRAME.width) * 100).t
 const pctY = (y: number) => `${(((y - PAGE_FRAME.y) / PAGE_FRAME.height) * 100).toFixed(2)}%`;
 const pctW = (w: number) => `${((w / PAGE_FRAME.width) * 100).toFixed(2)}%`;
 
-/** Placed in the frame from 528px of page width; in flow below. */
-const PLACE = "@min-[33rem]:absolute @min-[33rem]:left-(--l) @min-[33rem]:top-(--t) @min-[33rem]:w-(--w)";
+/** Placed in the frame from 496px of page width; in flow below. */
+const PLACE = "@min-[31rem]:absolute @min-[31rem]:left-(--l) @min-[31rem]:top-(--t) @min-[31rem]:w-(--w)";
 
 const DOT_FILL = {
   work: "fill-(--kind-work)",
@@ -43,11 +44,15 @@ const DOT_FILL = {
  * The left page under its heading: the tree slice, its legend, and the five
  * pressed highlights, each tied to its dot by a string.
  *
- * From 528px of page width (a container query) this is the board: a frame in
- * board coordinates whose pieces are placed by percentage, so the strings
- * (one SVG in the same coordinates) always meet their cards. Narrower, on a
- * phone, the slice sits centred and the cards follow two to a row, without
- * strings.
+ * From 496px of page width (a container query on the page's own width, never
+ * the window's) this is the board: a frame in board coordinates whose pieces
+ * are placed by percentage, so the strings (one SVG in the same coordinates)
+ * always meet their cards. Round 25 brought it down from 528px: at 1280 the
+ * spread's left page is 502px inside its margins and fell to the phone's
+ * arrangement, between 1024 and 1440 which both had the strings. Narrower (a
+ * phone, and a spread's 400px page at 1024) the slice sits centred and the
+ * cards follow two to a row, without strings; under 272px (a 320px phone),
+ * one to a row, stepped left and right, so a title is not a word a line.
  *
  * Each ring is a link to its year's chapter in the book (`#record-<year>`): a
  * plain fragment, so it works with JavaScript off. The rings are painted
@@ -59,32 +64,31 @@ export default function RecordPressed() {
   const caption = record.pressed.slice.replace("{first}", String(YEARS[0])).replace("{last}", String(YEARS.at(-1)));
   return (
     <div className="@container mt-5">
-      <div data-pressed="" className="relative mx-auto max-w-[42rem] @min-[33rem]:aspect-[612/590]">
-        <p
-          className={cn("max-w-[20rem] text-[length:var(--step--1)] leading-snug text-fg-muted @min-[33rem]:max-w-none", PLACE)}
-          style={{ "--l": pctX(112), "--t": pctY(196), "--w": pctW(290) } as CSSProperties}
-        >
-          {caption}
-        </p>
-        <ul
-          role="list"
-          aria-label="What the dots mean"
-          className={cn("mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[length:var(--step--2)] text-fg @min-[33rem]:mt-0", PLACE)}
-          style={{ "--l": pctX(112), "--t": pctY(262) } as CSSProperties}
-        >
-          {KINDS.map((kind) => (
-            <li key={kind} className="inline-flex items-center gap-1.5">
-              <KindDot kind={kind} />
-              {KIND_WORD[kind]}
-            </li>
-          ))}
-        </ul>
+      <div data-pressed="" className="relative mx-auto max-w-[42rem] @min-[31rem]:aspect-[612/590]">
+        {/* The caption and its legend are one block: the legend follows a
+            caption that takes three lines (it does on a 500px page) instead
+            of sitting on it. */}
+        <div className={PLACE} style={{ "--l": pctX(112), "--t": pctY(196), "--w": pctW(290) } as CSSProperties}>
+          <p className="max-w-[20rem] text-[length:var(--step--1)] leading-snug text-fg-muted @min-[31rem]:max-w-none">{caption}</p>
+          <ul
+            role="list"
+            aria-label="What the dots mean"
+            className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[length:var(--step--2)] text-fg"
+          >
+            {KINDS.map((kind) => (
+              <li key={kind} className="inline-flex items-center gap-1.5">
+                <KindDot kind={kind} />
+                {KIND_WORD[kind]}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <svg
           role="group"
           aria-label={`A tree slice, one ring per year from ${YEARS[0]} to ${YEARS.at(-1)}`}
           viewBox={`${BOX.x} ${BOX.y} ${BOX.size} ${BOX.size}`}
-          className={cn("record-slice mx-auto mt-4 block aspect-square w-[min(100%,15rem)] @min-[33rem]:mt-0", PLACE)}
+          className={cn("record-slice mx-auto mt-4 block aspect-square w-[min(100%,15rem)] @min-[31rem]:mt-0", PLACE)}
           style={{ "--l": pctX(BOX.x), "--t": pctY(BOX.y), "--w": pctW(BOX.size) } as CSSProperties}
         >
           <circle cx={SLICE_CENTRE.x} cy={SLICE_CENTRE.y} r={SLICE.radius + 7} className="fill-(--bark-outer)" />
@@ -124,7 +128,7 @@ export default function RecordPressed() {
         <svg
           aria-hidden="true"
           viewBox={`${PAGE_FRAME.x} ${PAGE_FRAME.y} ${PAGE_FRAME.width} ${PAGE_FRAME.height}`}
-          className="pointer-events-none absolute inset-0 hidden size-full @min-[33rem]:block"
+          className="pointer-events-none absolute inset-0 hidden size-full @min-[31rem]:block"
         >
           {SLICE.strings.map((s) => (
             <path key={s.entryId} d={s.d} fill="none" strokeWidth={1.2} className="stroke-(--twine)" />
@@ -134,14 +138,21 @@ export default function RecordPressed() {
         <ul
           role="list"
           aria-label="Pressed: my best ones"
-          className="mt-8 grid grid-cols-2 gap-x-3 gap-y-7 @min-[33rem]:contents"
+          className="mt-8 grid grid-cols-2 gap-x-3 gap-y-7 @max-[17rem]:grid-cols-1 @min-[31rem]:contents"
         >
           {FEATURED.map((entry, i) => {
             const slot = CARD_SLOTS[i];
             return (
               <li
                 key={entry.id}
-                className={cn("record-card relative min-w-0 rotate-(--rot) @max-[33rem]:odd:last:col-span-2 @max-[33rem]:odd:last:w-[calc(50%-0.375rem)] @max-[33rem]:odd:last:justify-self-center", PLACE)}
+                className={cn(
+                  "record-card relative min-w-0 rotate-(--rot)",
+                  // Two to a row: the odd one out sits in the middle.
+                  "@min-[17rem]:@max-[31rem]:odd:last:col-span-2 @min-[17rem]:@max-[31rem]:odd:last:w-[calc(50%-0.375rem)] @min-[17rem]:@max-[31rem]:odd:last:justify-self-center",
+                  // One to a row: stepped left and right, like notes taped in by hand.
+                  "@max-[17rem]:w-[82%] @max-[17rem]:even:justify-self-end",
+                  PLACE,
+                )}
                 style={
                   {
                     "--rot": `${slot.rot}deg`,
@@ -162,7 +173,7 @@ export default function RecordPressed() {
                       <span>{startYear(entry)}</span>
                     </span>
                     <span className="mt-1 block font-display text-[length:var(--step-0)] font-semibold leading-tight text-fg group-hover:underline">
-                      {entryTitle(entry)}
+                      {noBreak(entryTitle(entry))}
                     </span>
                     <span className="mt-1 block text-[length:var(--step--1)] leading-snug text-fg-muted">
                       {entry.organization}

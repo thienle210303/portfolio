@@ -146,7 +146,7 @@ export function TourHud({
         "border border-rule bg-surface p-3 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.45)]",
       )}
     >
-      <p className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-fg-subtle">
+      <p className="font-mono text-[length:var(--step--2)] uppercase tracking-[0.16em] text-fg-subtle">
         {`Stop ${stopIndex + 1} of ${totalStops} — ${label}`}
       </p>
 

@@ -285,88 +285,322 @@ test.describe("hero", () => {
     expect(Math.abs(field.y - tags[0].top)).toBeLessThanOrEqual(40);
   });
 
-  for (const viewport of [{ width: 320, height: 568 }, PHONE, { width: 600, height: 960 }, { width: 768, height: 1024 }, { width: 1023, height: 768 }]) {
-    test(`layout at ${viewport.width}: text, then the tags down the line, then my field tag`, async ({ page }) => {
+  // Round 25, below 1024: a line is strung between two things that stand in
+  // the ground. `yard` measures what that means: the passes as drawn, where
+  // each hung thing's string starts and ends, the poles, the ground band.
+  const yard = (page: Page) =>
+    page.evaluate(() => {
+      const rect = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top + scrollY, bottom: r.bottom + scrollY, width: r.width, height: r.height };
+      };
+      const shown = (sel: string) => [...document.querySelectorAll<HTMLElement>(`#about ${sel}`)].filter((el) => el.checkVisibility());
+      // The passes, top to bottom: each as its ends and a way to ask the
+      // drawn curve for its height at a page x.
+      const passes = shown("[data-yard-pass]")
+        .map((svg) => {
+          const path = svg.querySelector<SVGPathElement>("path")!;
+          const ctm = path.getScreenCTM()!;
+          const total = path.getTotalLength();
+          const at = (length: number) => path.getPointAtLength(length).matrixTransform(ctm);
+          // x is monotonic along the curve, so bisect on length for a page x.
+          const yAt = (x: number) => {
+            let lo = 0;
+            let hi = total;
+            for (let i = 0; i < 40; i++) {
+              const mid = (lo + hi) / 2;
+              if (at(mid).x < x) lo = mid;
+              else hi = mid;
+            }
+            return at(lo).y + scrollY;
+          };
+          const [a, b] = [at(0), at(total)];
+          return { yAt, left: { x: a.x, y: a.y + scrollY }, right: { x: b.x, y: b.y + scrollY } };
+        })
+        .sort((p, q) => p.left.y - q.left.y);
+      // A hung thing, with its tilt lifted: the tilt turns it about the top of
+      // its string, so that point does not move.
+      const hung = (el: HTMLElement) => {
+        const rotate = el.style.rotate;
+        el.style.rotate = "none";
+        const box = rect(el);
+        const paper = rect(el.querySelector(".tag-cut")!);
+        el.style.rotate = rotate;
+        const x = box.left + box.width / 2;
+        const string = parseFloat(getComputedStyle(el, "::after").height);
+        return {
+          box,
+          paper,
+          x,
+          // How far the top of the string is from each pass's line at its x.
+          gaps: passes.map((p) => Math.round((box.top - p.yAt(x)) * 10) / 10),
+          // The string runs from the line into the hole in the paper (its
+          // ring is 26px across, 5px down the paper).
+          reach: box.top + string - paper.top,
+          length: paper.top - box.top,
+        };
+      };
+      const tags = shown('[data-hero-step="line"] > li').map(hung);
+      const fieldHolder = document.querySelector<HTMLElement>('#about [data-yard="field"]')!;
+      const about = rect(document.querySelector("#about")!);
+      const ground = parseFloat(getComputedStyle(document.querySelector("#about")!).paddingBottom);
+      const ink = (el: Element) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const r = range.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top + scrollY, bottom: r.bottom + scrollY, width: r.width, height: r.height };
+      };
+      return {
+        width: innerWidth,
+        about,
+        // The ground band: the section's bottom padding, where the paddy is.
+        ground: { top: about.bottom - ground, bottom: about.bottom },
+        paddy: shown('[data-scenery="paddy-phone"]').map(rect)[0],
+        passes: passes.map((p) => ({ left: p.left, right: p.right })),
+        tags,
+        field: hung(fieldHolder),
+        poles: shown("[data-yard-pole]").map((el) => ({ kind: el.dataset.yardPole!, ...rect(el) })),
+        tufts: shown("[data-yard-tuft]").map(rect),
+        hat: shown('[data-scenery="yard"] [data-scenery="non-la"]').map(rect),
+        fronts: shown('button[id$="-front"]').map(rect),
+        h1: ink(document.querySelector("#about h1")!),
+        intro: ink(document.querySelector('#about [data-hero-step="intro"]')!),
+        actions: rect(document.querySelector('#about [data-hero-step="meta-actions"]')!),
+        hint: ink(document.querySelector('#about [data-yard="hint"]')!),
+        // The order things come in the DOM, which is the order they are read in.
+        order: [...document.querySelectorAll<HTMLElement>("#about :is(h1, [data-hero-step='intro'], [data-hero-step='meta-actions'], [data-yard='hint'], button[id$='-front'], [data-hero-step='field-tag'])")].map(
+          (el) => el.getAttribute("data-yard") ?? el.getAttribute("data-hero-step") ?? (el.tagName === "H1" ? "h1" : el.innerText.replace(/\s+/g, " ").trim()),
+        ),
+      };
+    });
+  type YardShape = Awaited<ReturnType<typeof yard>>;
+
+  /** What holds at every width below 1024, whatever the band's arrangement. */
+  function expectYard(m: YardShape, passOf: readonly number[]) {
+    // DOM order is reading order: my words, the hint, 2003 → 2025, my field tag.
+    expect(m.order.map((o) => o.replace(/^.*?(Kiên Giang|Taylors|USC|DoorDash)$/, "$1"))).toEqual([
+      "h1",
+      "intro",
+      "meta-actions",
+      "hint",
+      ...PLACES,
+      "field-tag",
+    ]);
+    expect(m.tags).toHaveLength(4);
+    // Every string starts on its pass's line (within 2px) and ends in the
+    // hole of its paper; no two strings on a pass are the same length.
+    [...m.tags, m.field].forEach((t, i) => {
+      expect(Math.abs(t.gaps[passOf[i]]), `string ${i} meets pass ${passOf[i] + 1} (gaps ${t.gaps.join(", ")})`).toBeLessThanOrEqual(2);
+      expect(t.reach, `string ${i} reaches the hole`).toBeGreaterThanOrEqual(5);
+      expect(t.reach, `string ${i} stops in the hole`).toBeLessThanOrEqual(31);
+      expect(t.length, `string ${i} is a string`).toBeGreaterThanOrEqual(10);
+    });
+    for (const pass of new Set(passOf.slice(0, 4))) {
+      const lengths = m.tags.filter((_, i) => passOf[i] === pass).map((t) => t.length);
+      expect(new Set(lengths).size, `strings on pass ${pass + 1}: ${lengths.join(", ")}`).toBe(lengths.length);
+    }
+    // Each pass is tied to a pole at both ends and sags between them: its
+    // middle hangs below the straight line from knot to knot.
+    expect(m.poles).toHaveLength(2);
+    const [leftPole, rightPole] = [...m.poles].sort((a, b) => a.left - b.left);
+    for (const [i, pass] of m.passes.entries()) {
+      expect(pass.left.x, `pass ${i + 1} starts on the left pole`).toBeGreaterThanOrEqual(leftPole.left);
+      expect(pass.left.x, `pass ${i + 1} starts on the left pole`).toBeLessThanOrEqual(leftPole.right);
+      expect(pass.right.x, `pass ${i + 1} ends on the right pole`).toBeGreaterThanOrEqual(rightPole.left);
+      expect(pass.right.x, `pass ${i + 1} ends on the right pole`).toBeLessThanOrEqual(rightPole.right);
+      expect(pass.left.y, `the left pole rises above pass ${i + 1}`).toBeGreaterThan(leftPole.top);
+      expect(pass.right.y, `the right pole rises above pass ${i + 1}`).toBeGreaterThan(rightPole.top);
+      // It is not level, and each pass ties on lower than the one before.
+      expect(Math.abs(pass.right.y - pass.left.y), `pass ${i + 1} slopes`).toBeGreaterThanOrEqual(10);
+      if (i > 0) expect(Math.min(pass.left.y, pass.right.y)).toBeGreaterThan(Math.max(m.passes[i - 1].left.y, m.passes[i - 1].right.y));
+    }
+    // Both poles stand in the ground: their feet are inside the ground band,
+    // in the paddy's own height, below my field tag and everything else that
+    // hangs; neither ends in mid-air, and a tuft of grass covers each foot.
+    for (const pole of m.poles) {
+      expect(pole.bottom, `${pole.kind} pole's foot is in the ground band`).toBeGreaterThan(m.ground.top);
+      expect(pole.bottom, `${pole.kind} pole's foot is in the ground band`).toBeLessThanOrEqual(m.ground.bottom);
+      expect(pole.bottom, `${pole.kind} pole's foot is in the paddy's height`).toBeGreaterThan(m.paddy.top);
+      expect(pole.bottom, `${pole.kind} pole ends below my field tag`).toBeGreaterThan(m.field.paper.bottom);
+      expect(pole.bottom, `${pole.kind} pole ends below my words`).toBeGreaterThan(m.actions.bottom);
+    }
+    expect(m.tufts).toHaveLength(2);
+    for (const tuft of m.tufts) {
+      const pole = m.poles.find((p) => p.left < tuft.right && tuft.left < p.right)!;
+      expect(pole, "each tuft is at a pole's foot").toBeTruthy();
+      expect(tuft.top).toBeLessThan(pole.bottom);
+      expect(tuft.bottom).toBeGreaterThanOrEqual(pole.bottom);
+    }
+    // The hat hangs by the first knot and the window does not crop it.
+    expect(m.hat).toHaveLength(1);
+    expect(m.hat[0].left).toBeGreaterThanOrEqual(0);
+    expect(Math.abs(m.hat[0].top - m.passes[0].left.y)).toBeLessThanOrEqual(12);
+    for (const f of m.fronts) {
+      expect(f.width).toBeGreaterThanOrEqual(44);
+      expect(f.height).toBeGreaterThanOrEqual(44);
+    }
+    // No paper lies on another (boxes with the tilt lifted).
+    const papers = [...m.tags.map((t) => t.paper), m.field.paper];
+    for (let i = 0; i < papers.length; i++) {
+      for (let j = i + 1; j < papers.length; j++) {
+        const [a, b] = [papers[i], papers[j]];
+        const overlap = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        expect(overlap, `paper ${i} and paper ${j}`).toBe(false);
+      }
+    }
+  }
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 375, height: 667 }, PHONE, { width: 430, height: 932 }, { width: 600, height: 960 }]) {
+    test(`layout at ${viewport.width}: my words, the hint, then three passes between two bamboo poles`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.emulateMedia({ reducedMotion: "reduce" });
       await open(page);
-      const m = await page.evaluate(() => {
-        const rect = (el: Element) => el.getBoundingClientRect().toJSON() as DOMRect;
-        const line = document.querySelector('#about [data-scenery="phone-line"] [data-line]')!;
-        const lis = [...document.querySelectorAll<HTMLElement>('#about [data-hero-step="line"] > li')];
-        const tags = lis.map((li) => {
-          // The tilt turns each tag about its string's end; measure with it lifted.
-          const rotate = li.style.rotate;
-          li.style.rotate = "none";
-          const r = rect(li);
-          li.style.rotate = rotate;
-          const s = getComputedStyle(li, "::before");
-          return {
-            box: r,
-            // Left-hand tags tie on at their right; right-hand ones at their left.
-            ends: { right: r.right - parseFloat(s.right), left: r.left + parseFloat(s.left) },
-            y: r.top + parseFloat(s.top),
-            peg: getComputedStyle(li, "::after").backgroundImage,
-          };
-        });
-        const field = document.querySelector('#about [data-hero-step="field-tag"]')!.parentElement!.parentElement!;
-        return {
-          shown: line.checkVisibility(),
-          line: rect(line),
-          tags,
-          fronts: [...document.querySelectorAll('#about button[id$="-front"]')].map(rect),
-          h1: rect(document.querySelector("#about h1")!),
-          actions: rect(document.querySelector('#about [data-hero-step="meta-actions"]')!),
-          hint: rect(document.querySelector('#about [data-hero-step="line"] + p')!),
-          field: rect(field),
-          fieldPaper: rect(field.firstElementChild!),
-        };
-      });
-      expect(m.shown).toBe(true);
-      const x = m.line.left + m.line.width / 2;
-      expect(m.h1.bottom).toBeLessThan(m.actions.top);
-      expect(m.actions.bottom).toBeLessThan(m.line.top);
-      expect(m.tags).toHaveLength(4);
-      m.tags.forEach((t, i) => {
-        const left = i % 2 === 0;
-        // Alternating sides, each clear of the line.
-        if (left) expect(t.box.right, `tag ${i}`).toBeLessThan(x);
-        else expect(t.box.left, `tag ${i}`).toBeGreaterThan(x);
-        const end = left ? t.ends.right : t.ends.left;
-        expect(Math.abs(end - x), `tag ${i}'s string`).toBeLessThanOrEqual(3);
-        expect(t.y, `tag ${i}'s string`).toBeGreaterThanOrEqual(m.line.top);
-        expect(t.y, `tag ${i}'s string`).toBeLessThanOrEqual(m.line.bottom);
-        expect(t.peg, `tag ${i}'s clothespin`).toContain("clothespin.svg");
-        if (i > 0) expect(t.box.top, `tag ${i} hangs below tag ${i - 1}`).toBeGreaterThan(m.tags[i - 1].box.top);
-        if (i > 1) expect(t.box.top, `tag ${i} clears tag ${i - 2}`).toBeGreaterThan(m.tags[i - 2].box.bottom);
-      });
-      for (const f of m.fronts) {
-        expect(f.width).toBeGreaterThanOrEqual(44);
-        expect(f.height).toBeGreaterThanOrEqual(44);
+      const m = await yard(page);
+      // Pass 1 carries 2003 and 2018, pass 2 2021 and 2025, pass 3 my field tag.
+      expect(m.passes).toHaveLength(3);
+      expectYard(m, [0, 0, 1, 1, 2]);
+      expect(m.poles.map((p) => p.kind).sort()).toEqual(["left", "right"]);
+      // Each pass slopes the other way to the one before it.
+      const slopes = m.passes.map((p) => Math.sign(p.right.y - p.left.y));
+      expect(slopes).toEqual([1, -1, 1]);
+      // Words first, then the hint directly above the tags.
+      expect(m.h1.bottom).toBeLessThan(m.intro.top);
+      expect(m.intro.bottom).toBeLessThan(m.actions.top);
+      expect(m.actions.bottom).toBeLessThan(m.hint.top);
+      const firstTagTop = Math.min(m.tags[0].paper.top, m.tags[1].paper.top);
+      expect(m.hint.bottom).toBeLessThan(m.passes[0].left.y);
+      expect(firstTagTop - m.hint.bottom, "the hint is directly above the tags").toBeLessThanOrEqual(150);
+      // The poles start below the hint, at the page's edges, and the margins
+      // are fixed: the words on the gutter, the papers inside the poles.
+      const gutter = m.h1.left;
+      for (const pole of m.poles) expect(pole.top).toBeGreaterThan(m.hint.bottom - 1);
+      expect(m.passes[0].left.x).toBeLessThan(gutter);
+      expect(m.passes[0].right.x).toBeGreaterThan(m.width - gutter);
+      expect(Math.abs(m.passes[0].left.x - (m.width - m.passes[0].right.x)), "the poles stand the same distance in").toBeLessThanOrEqual(1);
+      for (const t of [...m.tags, m.field]) {
+        expect(t.paper.left).toBeGreaterThan(m.passes[0].left.x + 5);
+        expect(t.paper.right).toBeLessThan(m.passes[0].right.x - 5);
       }
-      // The hint sits beside the last tag, left of the line, under the third.
-      const [, , third, last] = m.tags.map((t) => t.box);
-      expect(m.hint.right).toBeLessThan(x);
-      expect(m.hint.top).toBeGreaterThan(third.bottom);
-      expect(m.hint.bottom).toBeLessThanOrEqual(last.bottom + 1);
-      // My field tag hangs from the line's foot, centred under it, below the last tag.
-      expect(m.fieldPaper.top).toBeGreaterThan(last.bottom);
-      expect(Math.abs(m.field.top - m.line.bottom)).toBeLessThanOrEqual(3);
-      expect(Math.abs(m.field.left + m.field.width / 2 - x)).toBeLessThanOrEqual(3);
+      // Two tags a pass, left then right, each row under the one before.
+      const mid = m.width / 2;
+      m.tags.forEach((t, i) => {
+        if (i % 2 === 0) expect(t.paper.right, `tag ${i}`).toBeLessThan(mid);
+        else expect(t.paper.left, `tag ${i}`).toBeGreaterThan(mid);
+        if (i > 1) expect(t.paper.top, `tag ${i} hangs below tag ${i - 2}`).toBeGreaterThan(m.tags[i - 2].paper.bottom);
+      });
+      // Each pass's line clears the row above it, and my field tag hangs
+      // from the middle of the third, under everything.
+      expect(m.passes[1].right.y).toBeGreaterThan(m.tags[1].paper.bottom - 1);
+      expect(m.passes[2].left.y).toBeGreaterThan(m.tags[2].paper.bottom - 1);
+      expect(Math.abs(m.field.x - mid)).toBeLessThanOrEqual(2);
+      expect(m.field.paper.top).toBeGreaterThan(Math.max(m.tags[2].paper.bottom, m.tags[3].paper.bottom));
+      // The ground is one band at the foot: my field tag ends above the paddy.
+      expect(m.field.paper.bottom).toBeLessThanOrEqual(m.paddy.top + 12);
     });
   }
 
-  for (const viewport of [{ width: 360, height: 740 }, PHONE, { width: 460, height: 900 }, { width: 768, height: 1024 }]) {
-    test(`below 1024 the line's scenery clears the words and the actions at ${viewport.width}`, async ({ page }) => {
+  test("at 375 and up the two actions share a row; at 320 they wrap", async ({ page }) => {
+    for (const [width, rows] of [[320, 2], [375, 1], [390, 1], [430, 1]] as const) {
+      await page.setViewportSize({ width, height: 800 });
+      await open(page);
+      const tops = await page.locator('#about [data-hero-step="meta-actions"] > a').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+      expect(new Set(tops).size, `${width}: ${tops.join(", ")}`).toBe(rows);
+    }
+  });
+
+  test("at 320 my field tag keeps label and value side by side, and My LinkedIn is one line", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await open(page);
+    const m = await fieldTag(page).evaluate((tag) => {
+      const lines = (el: Element) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size;
+      };
+      const dts = [...tag.querySelectorAll("dl dt")];
+      return {
+        beside: dts.every((dt) => dt.getBoundingClientRect().right <= dt.nextElementSibling!.getBoundingClientRect().left + 1),
+        sameRow: dts.every((dt) => Math.abs(dt.getBoundingClientRect().top - dt.nextElementSibling!.getBoundingClientRect().top) <= 4),
+        link: lines(tag.querySelector("a span")!),
+        size: parseFloat(getComputedStyle(tag).fontSize),
+        height: tag.parentElement!.getBoundingClientRect().height,
+      };
+    });
+    expect(m.beside).toBe(true);
+    expect(m.sameRow).toBe(true);
+    expect(m.link).toBe(1);
+    // Nothing read as text is under 12px (design/system/README.md §2).
+    expect(m.size).toBeGreaterThanOrEqual(12);
+    // It was 620px tall with its rows stacked.
+    expect(m.height).toBeLessThanOrEqual(500);
+  });
+
+  for (const viewport of [{ width: 640, height: 900 }, { width: 768, height: 1024 }, { width: 1023, height: 1366 }]) {
+    test(`layout at ${viewport.width}: the tags on the first pass, my words under the second beside my field tag`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await open(page);
+      const m = await yard(page);
+      expect(m.passes).toHaveLength(2);
+      expectYard(m, [0, 0, 0, 0, 1]);
+      // Bamboo at the left, the pine at the right.
+      const [leftPole, rightPole] = [...m.poles].sort((a, b) => a.left - b.left);
+      expect([leftPole.kind, rightPole.kind]).toEqual(["left", "pine"]);
+      // Pass 1 carries all four across, left to right, above everything else.
+      m.tags.forEach((t, i) => {
+        if (i > 0) expect(t.paper.left, `tag ${i}`).toBeGreaterThan(m.tags[i - 1].paper.right);
+        expect(t.paper.bottom, `tag ${i} is above the second pass`).toBeLessThan(Math.min(m.passes[1].left.y, m.passes[1].right.y) + 1);
+        expect(t.paper.left).toBeGreaterThan(m.passes[0].left.x);
+        expect(t.paper.right).toBeLessThan(m.passes[0].right.x);
+      });
+      // Pass 2 comes back lower with my field tag on the right; the hint, the
+      // headline, my paragraph and the actions sit under it on the left.
+      expect(m.field.x).toBeGreaterThan(m.width / 2);
+      expect(m.field.paper.right).toBeLessThanOrEqual(m.passes[1].right.x);
+      for (const [name, words] of [["hint", m.hint], ["h1", m.h1], ["intro", m.intro], ["actions", m.actions]] as const) {
+        expect(words.right, `${name} is left of my field tag`).toBeLessThan(m.field.paper.left);
+        expect(words.top, `${name} is under the second pass`).toBeGreaterThan(Math.max(m.passes[1].left.y, m.passes[1].right.y));
+        expect(words.left, `${name} clears the bamboo and its sprigs`).toBeGreaterThan(m.passes[0].left.x + 56);
+      }
+      expect(m.hint.bottom).toBeLessThan(m.h1.top);
+      expect(m.h1.bottom).toBeLessThan(m.intro.top);
+      expect(m.intro.bottom).toBeLessThan(m.actions.top);
+      // My field tag's top is about level with the hint: one row, two sides.
+      expect(Math.abs(m.field.paper.top - m.hint.top)).toBeLessThanOrEqual(40);
+      // The ground: neither side runs into the paddy's band.
+      expect(m.actions.bottom).toBeLessThan(m.ground.top + 1);
+      // About one iPad screen, down from ~1700.
+      if (viewport.width === 768) expect(m.about.height).toBeLessThanOrEqual(1080);
+    });
+  }
+
+  test("a tablet-wide window too short for both puts my words first, on the same yard", async ({ page }) => {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page);
+    const m = await yard(page);
+    expect(m.passes).toHaveLength(2);
+    expectYard(m, [0, 0, 0, 0, 1]);
+    expect(m.actions.bottom).toBeLessThan(m.hint.top);
+    expect(m.hint.bottom).toBeLessThan(m.passes[0].left.y);
+    for (const pole of m.poles) expect(pole.top).toBeGreaterThan(m.hint.bottom - 1);
+  });
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 360, height: 740 }, PHONE, { width: 460, height: 900 }, { width: 640, height: 900 }, { width: 768, height: 1024 }, { width: 1023, height: 1366 }, { width: 844, height: 390 }]) {
+    test(`below 1024 the yard's scenery clears the words and the actions at ${viewport.width}×${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.emulateMedia({ reducedMotion: "reduce" });
       await open(page);
       const hits = await page.evaluate(() => {
         const words = [
           ...document.querySelectorAll<HTMLElement>("#about [data-hero-identity] :is(h1, p, a, button)"),
-          document.querySelector<HTMLElement>('#about [data-hero-step="line"] + p')!,
+          document.querySelector<HTMLElement>('#about [data-yard="hint"]')!,
         ];
-        const pieces = [...document.querySelectorAll<HTMLElement>('#about [data-scenery="phone-line"] > :not([data-line])')];
+        // The drawings themselves (a pole's box is mostly air), the lines and
+        // the hat. The pine's box is its whole crown's width.
+        const pieces = [...document.querySelectorAll<HTMLElement>('#about [data-scenery="yard"] :is([data-scenery], svg)')].filter((el) =>
+          el.checkVisibility(),
+        );
         const out: string[] = [];
         for (const w of words) {
           // The ink, not the block: the h1 and the intro are full-width boxes.
@@ -376,13 +610,13 @@ test.describe("hero", () => {
           for (const p of pieces) {
             const b = p.getBoundingClientRect();
             if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) {
-              out.push(`${w.tagName}:${w.innerText.slice(0, 20)} × ${p.getAttribute("data-scenery") ?? p.tagName}`);
+              out.push(`${w.tagName}:${w.innerText.slice(0, 20)} × ${p.getAttribute("data-scenery") ?? `pass ${p.getAttribute("data-yard-pass")}`}`);
             }
           }
         }
         return { out, pieces: pieces.length };
       });
-      expect(hits.pieces).toBe(3);
+      expect(hits.pieces).toBeGreaterThanOrEqual(8);
       expect(hits.out).toEqual([]);
     });
   }
@@ -499,7 +733,7 @@ test.describe("hero", () => {
         const box = (sel: string) => document.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
         const shown = (sel: string) => document.querySelector<HTMLElement>(sel)!.checkVisibility();
         const words = [...document.querySelectorAll<HTMLElement>("#about [data-hero-identity] :is(h1, p, a, button)")];
-        const hint = document.querySelector<HTMLElement>('#about [data-hero-step="line"] + p')!;
+        const hint = document.querySelector<HTMLElement>('#about [data-yard="hint"]')!;
         const svg = document.querySelector('#about [data-scenery="hero"] svg')!.getBoundingClientRect();
         return {
           bamboo: shown('#about [data-scenery="bamboo"]'),
@@ -533,14 +767,97 @@ test.describe("hero", () => {
         });
         const tag = document.querySelector('#about [data-hero-step="field-tag"]')!.parentElement!.getBoundingClientRect();
         const pine = document.querySelector<HTMLElement>('#about [data-scenery="pine"]')!.getBoundingClientRect();
-        // The pine's trunk is 96px into its 180px box (Scenery.tsx).
-        return { lines, tagRight: tag.right, trunk: pine.left + 96 };
+        // The pine's trunk is 96 units into its 180-unit box, at whatever size
+        // the window leaves it (Scenery.tsx, `--pw`).
+        return { lines, tagRight: tag.right, trunk: pine.left + (pine.width * 96) / 180 };
       });
       expect(m.lines.length).toBeGreaterThanOrEqual(4);
       for (const n of m.lines) expect(n, "each place is one line").toBe(1);
       expect(m.trunk).toBeGreaterThanOrEqual(m.tagRight);
     });
   }
+
+  // Round 25: from 1024 the composition is the board's, with its edges put
+  // right. My field tag ends on the shell's right edge, which is the header
+  // stamp's; the window crops neither the pine nor the nón lá; and at 1024
+  // the hint does not start in the bamboo's leaves.
+  for (const width of [1024, 1152, 1280, 1440, 1920]) {
+    test(`at ${width} my field tag ends on the shell's edge and the window crops neither the pine nor the hat`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await open(page);
+      const m = await page.evaluate(() => {
+        const box = (sel: string) => document.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
+        const shell = document.querySelector<HTMLElement>("#about > .shell")!;
+        const pad = parseFloat(getComputedStyle(shell).paddingRight);
+        // The paper with its tilt lifted: the tilt swings its foot, not its top corner.
+        const paper = document.querySelector<HTMLElement>('#about [data-hero-step="field-tag"]')!.parentElement!;
+        const rotate = paper.style.rotate;
+        paper.style.rotate = "none";
+        const field = paper.getBoundingClientRect();
+        paper.style.rotate = rotate;
+        const tags = [...document.querySelectorAll<HTMLElement>('#about [data-hero-step="line"] > li')].map((li) => li.getBoundingClientRect().width);
+        return {
+          window: document.documentElement.clientWidth,
+          shellRight: shell.getBoundingClientRect().right - pad,
+          // "Let's talk" is the header's last link to #contact, after the nav's.
+          stampRight: [...document.querySelectorAll("header[data-site-header] a[href$='#contact']")].at(-1)!.getBoundingClientRect().right,
+          fieldRight: field.right,
+          fieldWidth: field.width,
+          tagWidth: Math.min(...tags),
+          pine: box('#about [data-scenery="hero"] > [data-scenery="pine"]'),
+          hat: box('#about [data-scenery="hero"] > [data-scenery="non-la"]'),
+        };
+      });
+      expect(Math.abs(m.fieldRight - m.shellRight), "my field tag's right edge is the shell's").toBeLessThanOrEqual(1);
+      expect(Math.abs(m.fieldRight - m.stampRight), "and the header stamp's").toBeLessThanOrEqual(8);
+      expect(m.pine.right, "the pine is whole").toBeLessThanOrEqual(m.window + 0.5);
+      expect(m.pine.width).toBeGreaterThanOrEqual(70);
+      expect(m.hat.left, "the nón lá is whole").toBeGreaterThanOrEqual(0);
+      // From 1024 to 1279 my field tag is clamp(320px, 33vw, 380px) wide, so
+      // the four tags get more room than the 122px they had at 1024.
+      const want = width >= 1280 ? 380 : Math.min(380, Math.max(320, width * 0.33));
+      expect(Math.abs(m.fieldWidth - want)).toBeLessThanOrEqual(1);
+      expect(m.tagWidth).toBeGreaterThanOrEqual(width >= 1280 ? 151 : 128);
+    });
+  }
+
+  test("at 1024 the hint does not start in the bamboo's leaves", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page);
+    // The bamboo is one mask; ask the drawing where it has ink to the right of
+    // its stem (x 80 of its 140) at the hint's height.
+    const leaves = await page.evaluate(async () => {
+      const bamboo = document.querySelector<HTMLElement>('#about [data-scenery="bamboo"]')!;
+      const box = bamboo.getBoundingClientRect();
+      const hint = document.querySelector<HTMLElement>('#about [data-yard="hint"]')!;
+      const range = document.createRange();
+      range.selectNodeContents(hint);
+      const ink = range.getBoundingClientRect();
+      const svg = await (await fetch("/scenery/bamboo.svg")).text();
+      const image = new Image();
+      image.src = `data:image/svg+xml;base64,${btoa(svg)}`;
+      await image.decode();
+      // The mask is drawn at the box's width, from its top, at the viewBox's shape.
+      const [, , vw, vh] = /viewBox="([^"]+)"/.exec(svg)![1].split(" ").map(Number);
+      const scale = box.width / vw;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.ceil(box.width);
+      canvas.height = Math.ceil(ink.bottom - box.top) + 4;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(image, 0, 0, box.width, vh * scale);
+      const from = Math.max(0, Math.floor(ink.left - box.left));
+      const top = Math.max(0, Math.floor(ink.top - box.top) - 2);
+      const width = canvas.width - from;
+      if (width <= 0) return { inked: 0, from, scale };
+      const data = ctx.getImageData(from, top, width, canvas.height - top).data;
+      let inked = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 40) inked += 1;
+      return { inked, from, scale };
+    });
+    expect(leaves.inked, `bamboo ink over the hint's box (from x ${leaves.from})`).toBe(0);
+  });
 
   for (const width of [320, 360, 390, 414, 600, 768, 844, 1023, 1024, 1366, 1439, 1440, 1920]) {
     test(`the nón lá hangs wherever the bamboo shows, at ${width}`, async ({ page }) => {
@@ -549,7 +866,7 @@ test.describe("hero", () => {
       const m = await page.evaluate(() => {
         const shown = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)].some((el) => el.checkVisibility());
         return {
-          bamboo: shown('#about [data-scenery="bamboo"], #about [data-scenery="bamboo-phone"]'),
+          bamboo: shown('#about [data-scenery="bamboo"], #about [data-scenery="bamboo-top"]'),
           hat: shown('#about [data-scenery="non-la"]'),
         };
       });

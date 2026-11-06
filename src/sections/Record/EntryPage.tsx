@@ -8,6 +8,7 @@ import ProjectRecording from "@/sections/CareerTree/ProjectRecording";
 import DiaryFigure from "./DiaryFigure";
 import { ImageDialog } from "./ImageDialog";
 import { KindDot } from "./KindDot";
+import { noBreak } from "./noBreak";
 
 /**
  * A real element, with no height, that a fragment can land on, so a bookmark
@@ -145,7 +146,7 @@ export default function EntryPage({
       <header>
         <Eyebrow entry={entry} />
         <h3 id={`${id}-title`} className="mt-2 font-display text-[length:var(--step-3)] leading-[1.08] font-semibold tracking-(--tracking-display) text-fg">
-          {entryTitle(entry)}
+          {noBreak(entryTitle(entry))}
         </h3>
         <p className="mt-1 text-[length:var(--step-0)] text-fg-muted">{entry.organization}</p>
       </header>
@@ -172,7 +173,10 @@ export default function EntryPage({
         {diary?.figure ? <DiaryFigure figure={diary.figure} /> : null}
       </div>
       <EntryThings entry={entry} />
-      {diary?.funFact ? <FunFact className="mt-auto self-end">{diary.funFact}</FunFact> : null}
+      {/* On a spread the note sits at the foot of the page (the pages share
+          the tallest one's height); where one page shows it follows the
+          content, and the folio and the corners follow it (round 25). */}
+      {diary?.funFact ? <FunFact className="self-end lg:mt-auto">{diary.funFact}</FunFact> : null}
     </article>
   );
 }
@@ -196,7 +200,7 @@ export function EntryBlock({ entry }: { readonly entry: CareerEntry }) {
       <LegacyAnchors entry={entry} />
       <Eyebrow entry={entry} />
       <h4 id={`${id}-title`} className="mt-1.5 font-display text-[length:var(--step-1)] leading-tight font-semibold text-fg">
-        {entryTitle(entry)}
+        {noBreak(entryTitle(entry))}
       </h4>
       <p className="text-[length:var(--step--1)] text-fg-muted">{entry.organization}</p>
       <p className="mt-2 max-w-[34rem] text-[length:var(--step-0)] leading-relaxed text-fg">{lines.join(" ")}</p>

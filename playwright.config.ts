@@ -3,7 +3,8 @@ import { existsSync } from "node:fs";
 import { defineConfig } from "@playwright/test";
 
 /**
- * SPEC §3 (responsive contract) must be verified at these six widths.
+ * SPEC §3 (responsive contract) must be verified at these seven widths
+ * (430 and 1920 are pinned inside clipping.spec.ts).
  * Heights are representative device heights per breakpoint — not
  * load-bearing, specs may scroll — only `width` is the actual contract.
  */
@@ -13,6 +14,7 @@ const VIEWPORTS = [
   { width: 390, height: 844 }, // large phone
   { width: 768, height: 1024 }, // tablet portrait
   { width: 1024, height: 768 }, // tablet landscape / small laptop
+  { width: 1280, height: 800 }, // the first desktop width (round 25): where the Journey's board begins
   { width: 1440, height: 900 }, // desktop
 ] as const;
 

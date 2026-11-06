@@ -112,6 +112,16 @@
   --tracking-display-sm: -0.01em; /* step-1 headings, small figures */
   --tracking-caps: 0.08em; /* uppercase mono labels, tabs */
   --tracking-caps-lg: 0.12em; /* rail dt */
+
+  /* Shape and elevation (round 25; design/system/README.md §4). Paper is
+     square-cut and lies on something: three radii, and a shadow says how far
+     off the surface a thing is. `--paper-shadow` (the card and the postcard
+     lying on the ground) is theme-dependent and stays with Contact. */
+  --radius-paper: 2px; /* tags, cards, sheets, fields */
+  --radius-tab: 6px; /* index tabs */
+  --radius-board: 0.625rem; /* the Diary's cloth boards */
+  --shadow-pinned: 0 2px 3px -1px rgb(30 40 35 / 0.2); /* taped or pinned flat */
+  --shadow-lift: 0 18px 40px -24px rgb(0 0 0 / 0.45); /* paper picked up */
 }
 
 /*
@@ -210,6 +220,14 @@
        reason about the space actually left on screen, so the two cannot drift. */
     --header-h: 3.5rem;
     --rule: 1px;
+
+    /* Layers (round 25; design/system/README.md §5). Inside one object a
+       component stacks with 0–10 and nothing higher; these four are the
+       page's. Dialogs are the browser's top layer and need no number. */
+    --z-cats-under-menu: 40; /* the companion layer while the phone menu is open */
+    --z-header: 50;
+    --z-cats: 55; /* over everything, the header included */
+    --z-skip: 60;
   }
 
   /* ---------------------------------------------------------------------- */
@@ -732,160 +750,318 @@
     --cut: 36px;
   }
 
-  /* Below 1024 the hero's chapter tags hang off the line down the middle
-     (Hero.tsx draws it, 18px from each tag): a short string from the line to
-     a clothespin 18px in from the tag's near corner. Each tag tilts about the
-     point where its string meets the line, so the tilt never parts them. */
+  /* The hero's yard (round 25). One grid (`.hero-yard`, Hero.tsx) holds my
+     words, the hint, the four chapter tags and my field tag, in that order in
+     the DOM at every width; each band lays them out its own way.
+
+     The rule the yard draws: a line is strung between two things that stand
+     in the ground. Nothing floats, nothing is cut off in mid-page. Hung
+     things look hung (a sagging line, strings of different lengths, a tilt
+     about the point where the string meets the line), but the reading order,
+     the margins and the ground band are fixed.
+
+     Below 1024 the grid runs pole to pole (`--reach` into each gutter), every
+     hung thing sits in the middle of its columns, and `--y` is where the line
+     passes that middle, worked out from the line's one description
+     (src/sections/Hero/line.ts) and never fitted per width. The lines, the
+     poles and the hat (Yard.tsx) are absolutely placed in the grid rows they
+     belong to, so each pass starts at the top of the row it carries. The
+     poles reach down past the grid into the section's bottom padding
+     (`--ground`), where the ground is drawn, and stand `--stand` above the
+     section's foot. */
+  .hero-yard {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+  }
+  .hero-yard :is(li, [data-yard="field"]) {
+    --hole: 12px;
+    position: relative;
+    transform-origin: top;
+    rotate: var(--tilt, 0deg);
+  }
+  /* The string, from the line down to the hole in the paper. */
+  .hero-yard :is(li, [data-yard="field"])::after {
+    content: "";
+    position: absolute;
+    z-index: 10;
+    top: 0;
+    left: 50%;
+    width: 1.3px;
+    height: calc(var(--string) + var(--hole));
+    translate: -50% 0;
+    background: var(--twine);
+    pointer-events: none;
+  }
   @media (width < 64rem) {
-    [data-hero-step="line"] > li {
-      transform-origin: calc(100% + 18px) 4px;
+    .hero-yard {
+      --stand: 22px;
+      margin-inline: calc(-1 * var(--reach)) calc(-1 * var(--reach-end, var(--reach)));
     }
-    [data-hero-step="line"] > li:nth-child(even) {
-      transform-origin: -18px 4px;
+    .hero-yard > [data-hero-step="line"] {
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-column: 1 / -1;
     }
-    [data-hero-step="line"] > li::before,
-    [data-hero-step="line"] > li::after {
-      content: "";
+    .hero-yard :is(li, [data-yard="field"]) {
+      justify-self: center;
+      margin-top: var(--y);
+      padding-top: var(--string);
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft], [data-yard-pass], [data-scenery="non-la"]) {
       position: absolute;
-      pointer-events: none;
+      z-index: -1;
+      grid-column: 1 / -1;
     }
-    [data-hero-step="line"] > li::before {
-      top: 4px;
-      right: -18px;
-      width: 36px;
-      height: 20px;
-      background: linear-gradient(
-        to bottom right,
-        transparent calc(50% - 0.65px),
-        var(--twine) 0 calc(50% + 0.65px),
-        transparent 0
-      );
+    .hero-yard [data-yard-pass] {
+      top: 0;
+      left: 0;
+      width: 100%;
     }
-    [data-hero-step="line"] > li:nth-child(even)::before {
-      right: auto;
-      left: -18px;
-      background: linear-gradient(
-        to top right,
-        transparent calc(50% - 0.65px),
-        var(--twine) 0 calc(50% + 0.65px),
-        transparent 0
-      );
+    .hero-yard [data-yard-pole] {
+      bottom: calc(var(--stand) - var(--ground));
     }
-    [data-hero-step="line"] > li::after {
-      z-index: 10;
-      top: 12px;
-      right: 14px;
-      width: 8px;
-      height: 22px;
-      background: url(/scenery/clothespin.svg) center / 100% 100% no-repeat;
+    .hero-yard [data-yard-tuft] {
+      bottom: calc(var(--stand) - var(--ground) - 4px * var(--k));
     }
-    [data-hero-step="line"] > li:nth-child(even)::after {
-      right: auto;
-      left: 14px;
+  }
+  /* Phone: my words, the hint, then the yard. Two columns between two bamboo
+     poles 14px in from the window; the line crosses three times. */
+  @media (width < 40rem) {
+    .hero-yard {
+      --reach: 6px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .hero-yard > :is([data-yard="words"], [data-yard="hint"]) {
+      grid-column: 1 / -1;
+      margin-inline: var(--reach);
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-row: 1;
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-row: 2;
+      margin-block: 1.25rem 0.5rem;
+    }
+    .hero-yard > [data-hero-step="line"] {
+      grid-row: 3 / span 2;
+      grid-template-rows: subgrid;
+    }
+    .hero-yard li {
+      width: min(100% - 24px, 164px);
+    }
+    .hero-yard > [data-yard="field"] {
+      grid-row: 5;
+      grid-column: 1 / -1;
+      width: min(100% - 28px - (100cqw - 320px) * 0.16, 380px);
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft]) {
+      grid-row: 3 / 6;
+    }
+    .hero-yard [data-yard-pass="1"] {
+      grid-row: 3;
+    }
+    .hero-yard [data-yard-pass="2"] {
+      grid-row: 4;
+    }
+    .hero-yard [data-yard-pass="3"] {
+      grid-row: 5;
+    }
+    .hero-yard [data-scenery="non-la"] {
+      grid-row: 3;
+      top: calc(var(--tie-l) - 3px);
+      left: -11px;
+      width: 56px;
+      height: 61px;
+    }
+  }
+  /* Tablet: bamboo at the left, the pine at the right. Twenty columns: pass 1
+     carries the four tags, five columns each; pass 2 comes back lower with my
+     field tag in the last nine, and my words sit under it in the first
+     eleven, clear of the bamboo's sprigs. */
+  @media (width >= 40rem) and (width < 64rem) {
+    .hero-yard {
+      --reach: 12px;
+      --reach-end: 0px;
+      --words-in: 62px;
+      grid-template-columns: repeat(20, minmax(0, 1fr));
+      grid-template-rows: auto auto 1fr;
+    }
+    .hero-yard > [data-hero-step="line"] {
+      grid-row: 1;
+    }
+    .hero-yard li {
+      grid-column: span 5;
+      width: min(100% - 20px, 160px);
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-row: 2;
+      grid-column: 1 / span 11;
+      margin: var(--hint-y) 1.25rem 0 var(--words-in);
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-row: 3;
+      grid-column: 1 / span 11;
+      margin: 0.75rem 1.25rem 0 var(--words-in);
+      container-type: inline-size;
+    }
+    .hero-yard > [data-yard="field"] {
+      grid-row: 2 / span 2;
+      grid-column: 12 / span 9;
+      align-self: start;
+      width: min(100% - 8px, 380px);
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft]) {
+      grid-row: 1 / 4;
+    }
+    .hero-yard [data-yard-pass="1"] {
+      grid-row: 1;
+    }
+    .hero-yard [data-yard-pass="2"] {
+      grid-row: 2;
+    }
+    .hero-yard [data-scenery="non-la"] {
+      grid-row: 1;
+      top: calc(var(--tie-l-sm) - 4px);
+      left: -19px;
+      width: 67px;
+      height: 72px;
+    }
+    /* The sun or moon stands over the first pass's sag, right of its middle
+       (Scenery.tsx's sky reads this; its disc is at 880, 120 of 1440). */
+    [data-scenery="hero"] {
+      --sky-at: right -330px top -66px;
+    }
+  }
+  /* A tablet-wide window too short to show the tags and my words at once (a
+     phone on its side): my words and the hint first, as on a phone, then the
+     same yard, so the headline and the primary action still make the first
+     screen. Only the rows change; the line and what hangs on it do not. */
+  @media (width >= 40rem) and (width < 64rem) and (height < 40rem) {
+    .hero-yard {
+      grid-template-rows: auto auto auto auto;
+    }
+    .hero-yard > :is([data-yard="words"], [data-yard="hint"]) {
+      grid-column: 1 / -1;
+      margin-inline: var(--reach) 0;
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-row: 1;
+      margin-top: 0;
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-row: 2;
+      margin-block: 1.25rem 0.5rem;
+    }
+    .hero-yard > [data-hero-step="line"],
+    .hero-yard [data-yard-pass="1"],
+    .hero-yard [data-scenery="non-la"] {
+      grid-row: 3;
+    }
+    .hero-yard > [data-yard="field"],
+    .hero-yard [data-yard-pass="2"] {
+      grid-row: 4;
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft]) {
+      grid-row: 3 / 5;
+    }
+    [data-scenery="hero"] {
+      --sky-at: right -520px top -80px;
+    }
+  }
+  /* From 1024 the composition is the board's: the tags in a row on the
+     scenery's own line, the hint and my words under them, my field tag at
+     the line's right end, its right edge on the shell's (the header stamp's
+     edge). The line is drawn across the whole section (Scenery.tsx:
+     `M76 14Q703 126 1330 0` in a box 1440 units wide and 140px tall, at most
+     1920px wide and centred), so each string's length is worked out from
+     that curve: `--x` is the hung thing's middle in the section, `--t` how
+     far along the line that is (a length over a length, which CSS only gives
+     as the tangent of their angle), and the parabola at `--t` is its drop.
+     Nothing is fitted per width, so the strings meet the line whatever the
+     copy or the window does. The section is the container `cqw` measures. */
+  @media (width >= 64rem) {
+    .hero-yard {
+      --field-w: clamp(320px, 33cqw, 380px);
+      --tag-gap: 12px;
+      --col-gap: 1.5rem;
+      --shell: min(100cqw - 2 * var(--gutter), 1120px);
+      --shell-x: calc((100cqw - var(--shell)) / 2);
+      --tag-w: min(152px, (var(--shell) - var(--field-w) - var(--col-gap) - 3 * var(--tag-gap)) / 4);
+      --lw: min(100cqw, 1920px);
+      --line-x: calc((100cqw - var(--lw)) / 2 + var(--lw) * 0.052778);
+      --line-span: calc(var(--lw) * 0.870833);
+      grid-template-columns: minmax(0, 1fr) var(--field-w);
+      grid-template-rows: auto auto 1fr;
+      gap: 1rem var(--col-gap);
+    }
+    .hero-yard > [data-hero-step="line"] {
+      grid-area: 1 / 1;
+      display: flex;
+      gap: var(--tag-gap);
+      margin-top: var(--line-top);
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-area: 2 / 1;
+      margin-top: 60px;
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-area: 3 / 1;
+    }
+    .hero-yard > [data-yard="field"] {
+      grid-area: 1 / 2 / span 3;
+      margin-top: var(--line-top);
+      --x: calc(var(--shell-x) + var(--shell) - var(--field-w) / 2);
+    }
+    .hero-yard li {
+      flex: none;
+      width: var(--tag-w);
+      --x: calc(var(--shell-x) + var(--i) * (var(--tag-w) + var(--tag-gap)) + var(--tag-w) / 2);
+    }
+    .hero-yard :is(li, [data-yard="field"]) {
+      --t: tan(atan2(calc(var(--x) - var(--line-x)), var(--line-span)));
+      padding-top: var(--string);
+      translate: 0 calc(14px - 14px * var(--t) + 238px * var(--t) * (1 - var(--t)));
+    }
+  }
+  @media (width >= 80rem) {
+    .hero-yard {
+      --tag-gap: 28px;
+      --col-gap: 3rem;
     }
   }
 
-  /* Journey (round 21): the strings the Journey's tags hang by
-     (HangingTags.tsx), each behind its paper so it seems to run into the hole.
-     From 1280 it climbs `--string` from the hole to the oak's limb. */
+  /* ---------------------------------------------------------------------- */
+  /* Journey (round 25): one oak, three compositions                         */
+  /*                                                                        */
+  /* CareerTree.tsx, OakScenery.tsx, HangingTags.tsx and NhiSwing.tsx carry  */
+  /* no placement of their own: everything that says where a piece stands   */
+  /* is here, per band. (A Tailwind utility would win over this layer, so    */
+  /* none of those elements has one for position, size or margin.)           */
+  /*   from 80rem   the board: every piece in board units                    */
+  /*   from 40rem   the title beside the crown, boughs in pairs              */
+  /*   below 40rem  one column of tags down a trunk near the right edge      */
+  /* ---------------------------------------------------------------------- */
+
+  /* The strings the tags hang by (HangingTags.tsx), each behind its paper so
+     it seems to run into the hole, 18px down the tag. The paper turns about
+     that hole; below 1280 it turns half as far, so no corner swings into the
+     trunk beside it. */
   [data-hanging-tags] li::after {
     content: "";
     position: absolute;
     z-index: -1;
     pointer-events: none;
-  }
-  [data-hanging-tags] li::after {
     left: calc(50% - 0.65px);
     width: 1.3px;
     background: var(--twine);
   }
-  @media (width >= 80rem) {
-    [data-hanging-tags] li::after {
-      top: calc(18px - var(--string));
-      height: var(--string);
-    }
+  [data-hanging-tags] li > div {
+    rotate: var(--tilt);
   }
-
-  /* Journey (round 22): below 1280 one tree. The crown is `--crown-w` wide
-     (at least 900px; a % here resolves where it is used, against the stage)
-     and placed so the foot of its trunk (board x 307 at its cut, 21.319% of
-     its width; 78.681% mirrored) stands on the trunk's centre line. The
-     trunk is 240/900 of the crown's width, so its drawn top (29.1 of 240)
-     is exactly the crown's trunk where it is cut, and it rises 26px, past
-     the 24px gap, into the crown. On a phone the centre line is 20px in from
-     the right edge and both are mirrored; from 640 it is the middle. Each
-     tag hangs by a string from the tip of its bough, which runs from the
-     tag's middle into the trunk: the bough's tip is 11/70 down its box, 24px
-     above the tag, where the string starts. */
   @media (width < 80rem) {
-    [data-journey-stage] {
-      --crown-w: max(56.25rem, 100%);
-    }
-    [data-crown] {
-      width: var(--crown-w);
-      margin-left: calc(100% - 20px - var(--crown-w) * 0.78681);
-      transform: scaleX(-1);
-    }
-    [data-hanging-tags] [data-trunk] {
-      top: -26px;
-      bottom: 0;
-      right: calc(20px - var(--crown-w) * 0.13333);
-      width: calc(var(--crown-w) * 0.26667);
-      transform: scaleX(-1);
-    }
-    [data-hanging-tags] li {
-      width: min(100% - 44px, 240px);
-      margin-left: auto;
-      margin-right: 44px;
-    }
-    [data-hanging-tags] [data-bough] {
-      top: -61px;
-      left: 50%;
-      right: -26px;
-      height: 63px;
-    }
-    [data-hanging-tags] li::after {
-      top: -24px;
-      height: 42px;
-    }
-  }
-  @media (40rem <= width < 80rem) {
-    /* Round 22: at the stage's own width the crown was a squashed cap on a
-       thin, tall trunk (a utility pole). Wider than the stage, it runs off
-       both edges, the canopy fills out, and the trunk, sized from the crown,
-       thickens with it. */
-    [data-journey-stage] {
-      --crown-w: max(56.25rem, 128%);
-    }
-    [data-crown] {
-      margin-left: calc(50% - var(--crown-w) * 0.21319);
-      transform: none;
-    }
-    [data-hanging-tags] [data-trunk] {
-      right: auto;
-      left: calc(50% - var(--crown-w) * 0.13333);
-      transform: none;
-    }
-    [data-hanging-tags] li {
-      width: min(50% - 44px, 236px);
-    }
-    [data-hanging-tags] li:nth-child(odd) {
-      margin-right: calc(50% + 44px);
-    }
-    [data-hanging-tags] li:nth-child(even) {
-      margin-left: calc(50% + 44px);
-      margin-right: 0;
-    }
-    [data-hanging-tags] li + li {
-      margin-top: -80px;
-    }
-    [data-hanging-tags] li:nth-child(odd) [data-bough] {
-      right: -46px;
-    }
-    [data-hanging-tags] li:nth-child(even) [data-bough] {
-      left: -46px;
-      right: 50%;
-      transform: scaleX(-1);
+    [data-hanging-tags] li > div {
+      rotate: calc(var(--tilt) * 0.5);
     }
   }
   @media print {
@@ -894,14 +1070,314 @@
     }
   }
 
+  /* The sky behind the Journey (OakScenery.tsx): the hero's file without its
+     sun. Below 1280 it is pinned like the hero's phone sky, its disc (masked
+     out) 40px in from the right edge. */
+  #tree [data-scenery="journey"],
+  #tree [data-journey-sky] {
+    height: 900px;
+  }
+  #tree [data-journey-sky] {
+    background-size: 1440px auto;
+    background-position: right -520px top -80px;
+    mask-image: radial-gradient(circle at calc(100% - 40px) 40px, transparent 160px, black 176px);
+  }
+
+  /* The still life: after the tree on a phone, at its foot from 640, on the
+     board from 1280. */
+  [data-journey-vignette] {
+    margin-top: 2rem;
+  }
+  [data-journey-vignette] > span {
+    width: 92px;
+    height: 90px;
+    margin-left: 0.625rem;
+  }
+
+  /* ---- Journey, from 1280: the board ----
+     The board is NatJourney's 1440×900 frame, and it is as wide as the window
+     allows: the section is a size container, and one board unit, `--u`, is
+     1/1440 of the board's width, which is the section's own up to 1680px (the
+     sky and the ground carry on past it). Every position and every drawing's
+     size is a number of units; type and the paper's own measures stay as they
+     are, so a tag narrows with the board (11% at 1280) and its words wrap.
+     `--fx` is the frame's left edge. `--by` is its top: 0 while the left
+     limb's leaves (board y 250) clear the words above them, which are set in
+     rem and do not shrink with the board, and otherwise what they need.
+     `--u` holds a container unit, so it only means this inside `#tree`:
+     never use it on the section itself. */
+  @media (width >= 80rem) {
+    #tree {
+      container-type: inline-size;
+      --u: calc(min(100cqw, 1680px) / 1440);
+      --fx: calc(50cqw - 720 * var(--u));
+      --by: max(0px, 15.5rem - 250 * var(--u));
+    }
+    [data-journey-stage] {
+      min-height: calc(var(--by) + 900 * var(--u) - var(--section-y));
+      padding-top: 2rem;
+    }
+    /* A piece of the board: `--x --y --w --h` are its box in board units. */
+    #tree [data-board] {
+      position: absolute;
+      left: calc(var(--fx) + var(--x) * var(--u));
+      top: calc(var(--by) + var(--y) * var(--u));
+      width: calc(var(--w) * var(--u));
+      height: calc(var(--h) * var(--u));
+    }
+    #tree [data-scenery="journey"],
+    #tree [data-journey-sky] {
+      height: calc(var(--by) + 900 * var(--u));
+    }
+    /* One tile, starting 300 units into the frame, so its sun would sit at
+       the board's x 1180; the mask takes that disc out. */
+    #tree [data-journey-sky] {
+      background-size: calc(1440 * var(--u)) auto;
+      background-position: calc(var(--fx) + 300 * var(--u)) 0;
+      mask-image: radial-gradient(
+        circle at calc(var(--fx) + 1180 * var(--u)) calc(120 * var(--u)),
+        transparent calc(160 * var(--u)),
+        black calc(176 * var(--u))
+      );
+    }
+    /* Each tag where the board hangs it; its string climbs from the hole to
+       the limb, `--drop` units and the 18px down to the hole. */
+    [data-hanging-tags] li {
+      position: absolute;
+      left: calc(var(--fx) + var(--x) * var(--u));
+      top: calc(var(--by) + var(--y) * var(--u));
+      width: calc(var(--w) * var(--u));
+      --string: calc(var(--drop) * var(--u) + 18px);
+    }
+    [data-hanging-tags] li::after {
+      top: calc(18px - var(--string));
+      height: var(--string);
+    }
+    [data-journey-vignette] {
+      position: absolute;
+      left: calc(var(--fx) + 1186 * var(--u));
+      top: calc(var(--by) + 780 * var(--u));
+      margin-top: 0;
+    }
+    [data-journey-vignette] > span {
+      width: calc(92 * var(--u));
+      height: calc(90 * var(--u));
+      margin-left: calc(10 * var(--u));
+    }
+  }
+
+  /* ---- Journey, below 1280: one tree (round 22) ----
+     The crown is `--crown-w` wide and placed so the foot of its trunk (board
+     x 307 where the trunk below joins it, 21.319% of its width; 78.681%
+     mirrored) stands on the trunk's centre line. The trunk's box is 240/900
+     of the crown's width, so its drawn top (29.1 of 240) is exactly the
+     crown's trunk at board y 640, and it rises 26px, past the 24px gap, into
+     the crown. Each tag hangs by a string from the tip of its bough, which
+     runs from the tag's middle into the trunk: the bough's tip is 11/70 down
+     its box, 24px above the tag, where the string starts. */
+  @media (width < 80rem) {
+    [data-crown] {
+      width: var(--crown-w);
+    }
+    [data-crown-lantern] {
+      aspect-ratio: 96 / 122;
+      width: 6.667%;
+    }
+    .wx-ufo-crown {
+      aspect-ratio: 130 / 70;
+      width: 9.03%;
+    }
+    [data-hanging-tags] {
+      position: relative;
+      margin-top: 1.5rem;
+    }
+    [data-hanging-tags] ul,
+    [data-hanging-tags] li {
+      position: relative;
+    }
+    [data-hanging-tags] [data-trunk] {
+      bottom: 0;
+      width: calc(var(--crown-w) * 0.26667);
+    }
+    [data-hanging-tags] [data-bough] {
+      top: -61px;
+      height: 63px;
+    }
+    [data-hanging-tags] li::after {
+      top: -24px;
+      height: 42px;
+    }
+  }
+
+  /* ---- Journey, below 640: a phone ----
+     The board's oak, at least 900px wide so the tree is never a twig, and
+     mirrored: its trunk's centre line is 36px in from the stage's right edge
+     (round 25: at 20px the trunk stood hard against the screen's edge and its
+     right-hand twigs and roots were cut off), the long limb runs left across
+     the top, and the board's lantern limb runs off the right edge, so the
+     lantern hangs from the long limb, where that limb crosses board y 510.
+     The tags hang in one column, 72px in: the bark is 17px either side of the
+     line, which leaves a tag 19px of air, and never less than 8px once it has
+     turned. */
+  @media (width < 40rem) {
+    [data-journey-stage] {
+      --crown-w: max(56.25rem, 100%);
+      --trunk-x: 36px;
+    }
+    [data-crown] {
+      aspect-ratio: 1440 / 520;
+      margin-top: 1.5rem;
+      margin-left: calc(100% - var(--trunk-x) - var(--crown-w) * 0.78681);
+      transform: scaleX(-1);
+    }
+    [data-crown] > [data-scenery="oak"] {
+      --art: url(/scenery/oak.svg);
+    }
+    [data-crown] > [data-scenery="oak-leaves"] {
+      --art: url(/scenery/oak-leaves.svg);
+    }
+    [data-crown] > [data-scenery="oak-moss"] {
+      --art: url(/scenery/oak-moss.svg);
+    }
+    [data-crown-lantern] {
+      top: 75%;
+      left: 25.8%;
+    }
+    .wx-ufo-crown {
+      top: 52%;
+      left: 24.65%;
+    }
+    [data-hanging-tags] [data-trunk] {
+      top: -26px;
+      right: calc(var(--trunk-x) - var(--crown-w) * 0.13333);
+      transform: scaleX(-1);
+    }
+    [data-hanging-tags] ul {
+      display: flex;
+      flex-direction: column;
+      row-gap: 2.5rem;
+      padding-top: 26px;
+    }
+    [data-hanging-tags] li {
+      width: min(100% - 4.5rem, 240px);
+      margin-left: auto;
+      margin-right: 4.5rem;
+    }
+    [data-hanging-tags] li [data-bough] {
+      left: 50%;
+      right: calc(var(--trunk-x) - 4.5rem);
+    }
+  }
+
+  /* ---- Journey, 640 to 1279: the title beside the crown, boughs in pairs
+     (round 25) ----
+     The crown here is a drawing of its own (`oak-crown`: the same oak without
+     the limb that climbed up and left), so the title, my line and "Watch it
+     grow" stand in that corner, in the stage's left 46%. It is 60rem wide
+     whatever the stage's width (its long limb runs off the right edge), and it
+     is pulled up beside the words by as much as its lantern limb allows: that
+     limb's sprigs start 23.54% of the crown's width down, and they stay 24px
+     under the button however tall the words are. Its box ends at board y 680,
+     40 units under where the trunk joins.
+     Below it the trunk runs down the middle. The tags are a two-column grid
+     either side of it, a pair to a row, each as wide as its column up to
+     340px and hard against the trunk's side: `--trunk-air` of clear sky, then
+     the bark (`--trunk-w`). Bé Nhi's swing takes the last cell on the right
+     (the list is a subgrid of the same rows, so her row is as tall as the
+     taller of her and the fifth tag). The still life stands at the foot, on
+     the left. */
+  @media (40rem <= width < 80rem) {
+    [data-journey-stage] {
+      position: relative;
+      --crown-w: 60rem;
+      --trunk-w: calc(var(--crown-w) * 0.03778);
+      --trunk-air: clamp(1.25rem, 4vw, 2.75rem);
+      --trunk-side: calc(var(--trunk-w) / 2 + var(--trunk-air));
+    }
+    [data-journey-head] {
+      position: relative;
+      z-index: 1;
+      max-width: 46%;
+    }
+    [data-crown] {
+      aspect-ratio: 1440 / 560;
+      margin-top: calc(1.5rem - var(--crown-w) * 0.2354);
+      margin-left: calc(50% - var(--crown-w) * 0.21319);
+    }
+    [data-crown] > [data-scenery="oak"] {
+      --art: url(/scenery/oak-crown.svg);
+    }
+    [data-crown] > [data-scenery="oak-leaves"] {
+      --art: url(/scenery/oak-crown-leaves.svg);
+    }
+    [data-crown] > [data-scenery="oak-moss"] {
+      --art: url(/scenery/oak-crown-moss.svg);
+    }
+    /* Its string leaves the lantern limb at board (152, 559.5): `crownSpots()`
+       in scripts/draw-scenery.mjs. */
+    [data-crown-lantern] {
+      top: 76.7%;
+      left: 7.2%;
+    }
+    .wx-ufo-crown {
+      top: 57.05%;
+      left: 6.04%;
+    }
+    [data-hanging-tags] {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(3, auto);
+      align-items: start;
+      column-gap: calc(2 * var(--trunk-side));
+      row-gap: 4rem;
+      /* The first boughs clear the lantern's tassel; the roots spread under
+         the last row, and the still life (104px tall) stands beside them
+         clear of the fifth tag. */
+      padding-top: 3.5rem;
+      padding-bottom: 7.5rem;
+    }
+    [data-hanging-tags] ul {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-row: 1 / -1;
+      grid-template-columns: subgrid;
+      grid-template-rows: subgrid;
+      align-items: start;
+    }
+    [data-hanging-tags] [data-trunk] {
+      top: calc(-26px - var(--crown-w) * 0.02778);
+      left: calc(50% - var(--crown-w) * 0.13333);
+    }
+    [data-hanging-tags] li {
+      width: min(100%, 21.25rem);
+    }
+    [data-hanging-tags] li:nth-child(odd) {
+      justify-self: end;
+    }
+    [data-hanging-tags] li:nth-child(odd) [data-bough] {
+      left: 50%;
+      right: calc(-1 * var(--trunk-side));
+    }
+    [data-hanging-tags] li:nth-child(even) [data-bough] {
+      left: calc(-1 * var(--trunk-side));
+      right: 50%;
+      transform: scaleX(-1);
+    }
+    [data-journey-vignette] {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      margin-top: 0;
+    }
+  }
+
   /* Bé Nhi's swing (round 22, NhiSwing.tsx). `--tie-l`/`--tie-r` are where
      each rope is tied, above the ride's top; `--tie` is what it swings
-     about; `--seat` is the seat's top. From 1280 the ropes are tied round the
-     oak's left limb at board x 212 and 264, where it is at y 542 and 564;
-     below 1280 the swing hangs from a bough of its own off the trunk, its tip
-     over the left rope (over the right rope, mirrored, from 640), the ropes
-     tied where the bough's curve passes over them, and the roots below her
-     feet. */
+     about; `--seat` is the seat's top. She is the same size at every width;
+     only where she hangs changes.
+     On a phone the swing hangs from a bough of its own off the trunk under
+     the last tag, its tip over the left rope, the ropes tied where the
+     bough's curve passes over them, and the roots below her feet. */
   [data-swing] {
     position: relative;
     --seat: 130px;
@@ -913,38 +1389,52 @@
     margin-top: 72px;
     padding-bottom: 120px;
     margin-left: auto;
-    margin-right: 120px;
+    margin-right: 136px;
   }
   [data-swing] [data-bough] {
     top: -61px;
     left: 0;
-    right: -146px;
+    right: -100px;
     height: 63px;
   }
+  /* From 640 hers is the last bough on the right: it leaves the trunk like
+     the tags' and its tip is over her right rope, which hangs where a tag's
+     string would, under the middle of a tag's width. Her box starts at her
+     column's edge and is padded out to there (a % of the column), so the
+     bough can be measured from that edge. */
   @media (40rem <= width < 80rem) {
     [data-swing] {
-      --tie-l: -25px;
+      --tie-l: -29px;
       --tie-r: -24px;
-      --tie: -25px;
-      margin-top: 24px;
-      margin-left: calc(50% + 100px);
-      margin-right: 0;
+      --tie: -26px;
+      grid-column: 2;
+      grid-row: 3;
+      margin: 0;
+      padding: 0 0 0 calc(min(50%, 10.625rem) - 58px);
     }
     [data-swing] [data-bough] {
-      left: -102px;
+      left: calc(-1 * var(--trunk-side));
       right: 0;
       transform: scaleX(-1);
     }
   }
+  /* From 1280 the ropes are tied round the oak's left limb, between the
+     lantern and the trunk. Her seat is 64px whatever the board's width, so it
+     is placed from the trunk: its right end 3px short of the bark, which is
+     at board x 273 at the seat's height (at 1440 that is the board's own
+     spot, 206 units in). The limb falls 0.423 a unit there (y 542 at x 212),
+     so the ropes, 6px and 58px into the seat, are tied where it passes over
+     them: 27.8 units under the swing's top (board y 540), less 25.8px and
+     3.8px. */
   @media (width >= 80rem) {
     [data-swing] {
       --seat: 150px;
-      --tie-l: 2px;
-      --tie-r: 24px;
-      --tie: 13px;
+      --tie-l: calc(27.8 * var(--u) - 25.8px);
+      --tie-r: calc(27.8 * var(--u) - 3.8px);
+      --tie: calc(27.8 * var(--u) - 14.8px);
       position: absolute;
-      top: 540px;
-      left: calc(var(--fx) + 206px);
+      top: calc(var(--by) + 540 * var(--u));
+      left: calc(var(--fx) + 273 * var(--u) - 67px);
       margin: 0;
       padding-bottom: 0;
     }
@@ -1077,7 +1567,7 @@
     gap: 2rem;
   }
 
-  @media (min-width: 1024px) {
+  @media (width >= 64rem) {
     .rail-layout {
       grid-template-columns: 10rem minmax(0, 1fr);
       gap: 3rem;
@@ -1498,7 +1988,7 @@
   /* layout, and a moved paper takes no room from its neighbours (no CLS).   */
   /* Each runs on the paper's view timeline as it comes into the window, so */
   /* scrolling back plays it backwards; the hero's line, on screen at load  */
-  /* from 1024, sways on the load clock instead. A view timeline belongs to */
+  /* from 640, sways on the load clock instead. A view timeline belongs to  */
   /* the nearest scroll container, which is why the hero and Contact clip   */
   /* (`overflow: clip`) rather than hide their overflow.                    */
   /*                                                                        */
@@ -1584,9 +2074,10 @@
   }
 
   @media screen and (prefers-reduced-motion: no-preference) {
-    /* From 1024 the line is on screen at load: each tag sways once, left to
-       right, while the line settles. */
-    @media (width >= 64rem) {
+    /* From 640 the tags' line is on screen at load (round 25: on a tablet it
+       is the top of the hero too): each tag sways once, left to right, while
+       the line settles. */
+    @media (width >= 40rem) {
       html[data-motion] [data-hero-step="line"] > li {
         animation: tag-sway 1100ms ease-in-out both;
         animation-delay: calc(140ms + var(--sway-i, 0) * 90ms);
@@ -1603,8 +2094,8 @@
     }
 
     @supports (animation-timeline: view()) {
-      /* Below 1024 the line hangs down the page: each tag sways as it comes up. */
-      @media (width < 64rem) {
+      /* On a phone the yard is below my words: each tag sways as it comes up. */
+      @media (width < 40rem) {
         [data-hero-step="line"] > li {
           animation: tag-sway linear both;
           animation-timeline: view();
@@ -1622,12 +2113,15 @@
          tilts about its middle on the track's own view timeline (the nearest
          scroll container), in over its entry and out over its exit, so a page
          fully in view is flat. Transforms only; reduced motion, print and a
-         browser without scroll-driven animations get flat pages. */
+         browser without scroll-driven animations get flat pages. No fill
+         (round 25): a page still out of the book lay tilted in wait, and a
+         fragment to it landed 16 to 27px low, because the browser placed the
+         window by the tilted page's box before the track had scrolled to it. */
       @media (prefers-reduced-motion: no-preference) {
         .diary-slot > .diary-page {
           animation:
-            diary-in linear both,
-            diary-out linear both;
+            diary-in linear,
+            diary-out linear;
           animation-timeline: view(inline), view(inline);
           animation-range:
             entry 0% entry 100%,
@@ -1749,7 +2243,7 @@
     position: fixed;
     top: 0.75rem;
     left: 0.75rem;
-    z-index: 60;
+    z-index: var(--z-skip);
     width: auto;
     height: auto;
     padding: 0.5rem 1rem;
@@ -2172,15 +2666,18 @@
       animation: wx-spin 14s linear infinite;
     }
     /* Where the sky's pieces sit: below the heading, the lead, the button, the
-       lịch and the caption, which fill the top of the section's screen (about
-       430px below 1280, 215px from it). No weather shape covers a word; rain
-       and snow fall behind the text instead, as they do the tags. */
+       lịch and the caption, which fill the top of the section's screen: about
+       430px below 1280, where the caption hangs under the button, and 17rem
+       from it, where the caption is beside the button (round 25 put the
+       button under my line there too: the lịch ends 16rem down). No weather
+       shape covers a word; rain and snow fall behind the text instead, as
+       they do the tags. */
     .wx-window {
       --wx-sky: 430px;
     }
     @media (width >= 80rem) {
       .wx-window {
-        --wx-sky: 215px;
+        --wx-sky: 17rem;
       }
     }
     .wx-dark {
@@ -2316,6 +2813,13 @@
       background: var(--fg);
       mask: var(--art) no-repeat center / contain;
       animation: wx-cross var(--beat-ms, 1600ms) linear both;
+    }
+    /* From 1280 the caption runs beside the button, so the plane flies under
+       that row, not through it. */
+    @media (width >= 80rem) {
+      .wx-plane {
+        top: var(--wx-sky);
+      }
     }
 
     /* ---- the weathers ---- */
@@ -2566,72 +3070,54 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* Ask, in Contact — the room the chat takes, held before it arrives          */
+/* Ask, in Contact — its place held before it arrives, and its window         */
 /* -------------------------------------------------------------------------- */
 /* `AskLoader` imports the chat as `#ask` nears the viewport. Unreserved, the  */
-/* swap from an empty placeholder to the chat pushed the footer down by       */
-/* ~570-960px under a reader already looking at it (End key, a jump to the    */
-/* bottom). So `--ask-room` is the min-height of BOTH the loader's pre-chat */
-/* states (`data-ask-slot`) and the chat's own root (`data-ask-chat`). It is */
-/* a step per width range: since round 22 the thread is a fixed-height      */
-/* window from the start, so the idle chat changes height only where the    */
-/* suggestions re-wrap. Each step is the idle chat's natural height,        */
-/* measured every 4px from 320 to 1920 (static mode, 1rem = 16px, this rule */
-/* switched off), and starts at the first width measured at the lower       */
-/* value, so the room is never short (slack < one step, inside 4px of each  */
-/* breakpoint; 0 elsewhere). Re-measure if the chat's idle copy or          */
-/* suggestions change. Live mode is assumed no taller (its resting line is  */
-/* shorter), not measured. Round 24 re-measured it (the window is 23rem     */
-/* from 1024, was 20rem: +48px there; below 1024 nothing moved).            */
-/* e2e/ask.spec.ts fails at five widths if the                              */
-/* footer moves by more than 2px across the load, and fails between 400 and */
-/* 639px if the room is short of the chat or more                           */
-/* than 200px taller than it.                                               */
+/* swap from an empty placeholder to the chat pushed the footer down under a  */
+/* reader already looking at it (End key, a jump to the bottom). Through      */
+/* round 24 the room was `--ask-room`, a min-height measured by hand at six   */
+/* width ranges, on both the loader's pre-chat states and the chat's root.    */
+/* Round 25 has no number here at all: Contact draws the idle notepad on the  */
+/* server (`AskPlaceholder`) from the pieces the chat uses (`ask-sheet.tsx`), */
+/* so the two are the same height at every width because they are the same   */
+/* boxes. e2e/ask.spec.ts fails if the footer moves by more than 2px across   */
+/* the load, and walks the widths from 320 to 1920 comparing the two.         */
 /*                                                                            */
-/* Gated on `html[data-motion]`, which the pre-paint script in layout.tsx     */
-/* stamps unconditionally, i.e. "JavaScript runs": with it off the chat never */
-/* comes, and a tall hole around one <noscript> line would be all that was    */
-/* left. Neither element may carry a `min-h-*` utility: the utilities layer   */
-/* would win over this one.                                                   */
+/* The placeholder's notepad is not live (`data-ask-shell`: inert, hidden     */
+/* from assistive tech). With JavaScript off the chat never comes, so the     */
+/* shell is not shown and one <noscript> line stands under the heading (the   */
+/* two rules after this layer; unlayered, because the shell's own `flex` is a */
+/* utility and would outrank a layered `display`). `html[data-motion]` is     */
+/* stamped unconditionally by the pre-paint script in layout.tsx, i.e.        */
+/* "JavaScript runs".                                                         */
+/*                                                                            */
+/* The window (round 25, my call; it reverses round 22's "one fixed height"): */
+/* idle, the notepad is as tall as the promise written on it. With a turn in  */
+/* it (`data-open`) it is one fixed height and scrolls inside itself: most of */
+/* a phone's screen below 1024 (so a clipping shows whole, with its tab), and */
+/* 23rem from 1024, where the compose side stands beside it. Neither the      */
+/* placeholder nor the chat's root may carry a `min-h-*` utility.             */
 /* -------------------------------------------------------------------------- */
 @layer components {
-  :root {
-    --ask-room: 789px;
+  .ask-window {
+    --ask-window: min(26rem, 60svh);
   }
-  @media (width >= 344px) {
-    :root {
-      --ask-room: 764px;
+  @media (width >= 64rem) {
+    .ask-window {
+      --ask-window: 23rem;
     }
   }
-  @media (width >= 356px) {
-    :root {
-      --ask-room: 742px;
-    }
+  .ask-window[data-open] {
+    height: var(--ask-window);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
-  @media (width >= 436px) {
-    :root {
-      --ask-room: 724px;
-    }
-  }
-  @media (width >= 480px) {
-    :root {
-      --ask-room: 676px;
-    }
-  }
-  @media (width >= 548px) {
-    :root {
-      --ask-room: 628px;
-    }
-  }
-  @media (width >= 1024px) {
-    :root {
-      --ask-room: 518px;
-    }
-  }
-  html[data-motion] [data-ask-slot],
-  html[data-motion] [data-ask-chat] {
-    min-height: var(--ask-room);
-  }
+}
+html:not([data-motion]) [data-ask-sheet="idle"] {
+  display: block;
+}
+html:not([data-motion]) [data-ask-shell] {
+  display: none;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2730,10 +3216,10 @@
     padding: 0.1rem 0.3rem 0.05rem;
     border: 1px solid currentColor;
     border-radius: 2px;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     rotate: -3deg;
   }
@@ -2821,6 +3307,19 @@
 }
 
 @media screen and (prefers-reduced-motion: no-preference) {
+  /* The first question opens the notepad: the window unfolds from the idle
+     height `AskThisSite` measured (`--ask-from`) to its fixed one. A window
+     that mounts already open (a thread kept across a route change) has no
+     `--ask-from`, so it starts where it ends and does not move. */
+  .ask-window[data-open] {
+    animation: ask-unfold var(--dur-reveal) var(--ease-ink) both;
+  }
+  @keyframes ask-unfold {
+    from {
+      height: var(--ask-from, var(--ask-window));
+    }
+  }
+
   /* Paper lands: the slip slides in from the compose side and settles, the
      clippings drop and straighten one after another, the code view turns
      the answer over, and the ink dots blot in turn. */
@@ -3343,7 +3842,7 @@ html[data-menu-open] header[data-site-header] {
 }
 /* The cats float above the header; the open menu is the one thing above them. */
 html[data-menu-open] [data-companion] {
-  z-index: 40;
+  z-index: var(--z-cats-under-menu);
 }
 /* A cat over a control draws on top of it and lets the press through. */
 [data-companion] [data-cat-under] {
@@ -3373,15 +3872,16 @@ html[data-menu-open] [data-companion] {
   /* The Diary (round 23; its pages turn since round 24, below).         */
   /*                                                                    */
   /* Without JavaScript, and under reduced motion, the pages are a       */
-  /* horizontal scroll-snap track: one page to a view below 1280, a      */
-  /* spread of two from there (a snap point on each left page).          */
+  /* horizontal scroll-snap track: one page to a view below 1024, a      */
+  /* spread of two from there (a snap point on each left page; round 25: */
+  /* it waited for 1280, and two ~450px pages fit at 1024).              */
   /* `DiaryBook.tsx` adds the tabs, the dog-eared corners and "p. 3 of    */
   /* 14", and where motion is welcome turns the pages instead            */
   /* (`data-mode="leaf"`, round 24). `data-hidden` is a tab hiding a      */
   /* kind's page, which stays in the document so a fragment can find it. */
-  /* From 1280 the book is wider than the content column, up to 1320px   */
-  /* and 32px inside the viewport (its boards show round it), with the    */
-  /* index tabs sticking out of its fore-edge on the right.               */
+  /* From 1024 the book is wider than the content column, up to 1320px   */
+  /* and 32px inside the viewport (its boards show round it); from 1280  */
+  /* the index tabs stick out of its fore-edge on the right.              */
   /* ------------------------------------------------------------------ */
   .diary-frame {
     position: relative;
@@ -3390,6 +3890,12 @@ html[data-menu-open] [data-companion] {
     --board: 0.5rem;
     --leaf-w: 0.75px;
     --diary-edge: color-mix(in srgb, var(--fg) 24%, var(--surface));
+    /* Where the book shows one page, the least a page stands, so a page with
+       one short entry on it is still a page and not a stub: 464px, or what
+       fits a short screen under the header with the page count below. (A
+       whole screen left the five shortest pages 200 to 345px of blank paper
+       on a phone; at this they end in 110px at most.) */
+    --diary-floor: min(29rem, 100svh - 9rem);
   }
   .diary-tabs {
     position: relative;
@@ -3401,6 +3907,8 @@ html[data-menu-open] [data-companion] {
     padding-inline: 0.25rem;
   }
   .diary-tab {
+    gap: 0.375rem;
+    padding-inline: 0.75rem;
     border-radius: 6px 6px 0 0;
     border-bottom-color: transparent;
   }
@@ -3408,6 +3916,40 @@ html[data-menu-open] [data-companion] {
     padding-top: 0.25rem;
     transform: translateY(-4px);
     min-height: calc(2.75rem + 4px);
+  }
+  @media (width < 40rem) {
+    .diary-tabs {
+      gap: 0.25rem;
+    }
+    .diary-tab {
+      gap: 0.25rem;
+      padding-inline: 0.5rem;
+    }
+  }
+  /* The row decides by its own width (round 25): before "Milestones 9" would
+     wrap onto the book's top board (it did at 375 and 320), the counts leave
+     the row, still in each tab's name for a screen reader; narrower still,
+     the tabs close up. (From 1280 the tabs are a column down the fore-edge,
+     52px wide, and keep their counts.) */
+  @media (width < 80rem) {
+    .diary-tabs {
+      container: diary-tabs / inline-size;
+    }
+    @container diary-tabs (width < 21rem) {
+      .diary-tab-count {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+    @container diary-tabs (width < 18.75rem) {
+      .diary-tab {
+        padding-inline: 0.3125rem;
+      }
+    }
   }
   .diary-track {
     position: relative;
@@ -3504,6 +4046,30 @@ html[data-menu-open] [data-companion] {
     border-bottom: 1px dotted var(--rule-color);
     transform: translateY(-0.3em);
   }
+  /* A contents line is a link the whole line wide, and 44px tall wherever a
+     finger can reach it: at every width below 1024, and from there on any
+     device with a touch screen (round 25; from 1024 it was 28px for
+     everyone, small on a touch laptop). With a mouse or a trackpad alone the
+     spread keeps the 28px line: 23 lines at 44px make the contents 300px
+     taller than any other page (1228px against 865 at 1440), and a spread's
+     pages share one height, so every page would end in that much blank
+     paper. Its chapter's years sit on its first line. */
+  .diary-line {
+    min-height: 2.75rem;
+    padding-block: 0.375rem;
+  }
+  .diary-line-head {
+    padding-top: 0.375rem;
+  }
+  @media (width >= 64rem) and (not (any-pointer: coarse)) {
+    .diary-line {
+      min-height: 1.75rem;
+      padding-block: 0.125rem;
+    }
+    .diary-line-head {
+      padding-top: 0.25rem;
+    }
+  }
   .diary-where {
     margin-top: calc(var(--board) + 0.75rem);
     text-align: center;
@@ -3576,47 +4142,17 @@ html[data-menu-open] [data-companion] {
     outline-offset: -3px;
   }
 
-  @media (width >= 80rem) {
-    /* A spread: two pages to a view, and the tabs sticking out on the right. */
+  @media (width >= 64rem) {
+    /* A spread: two pages to a view (round 25: from 1024, where two ~450px
+       pages fit; the tabs stay along the top until 1280). */
     .diary-frame {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
       width: min(1320px, 100vw - 4rem);
       margin-inline: calc((100% - min(1320px, 100vw - 4rem)) / 2);
     }
-    .diary-book {
-      order: 1;
-      flex: 1 1 0;
-      min-width: 0;
-    }
-    .diary-tabs {
-      order: 2;
-      flex: 0 0 3.25rem;
-      flex-direction: column;
-      flex-wrap: nowrap;
-      margin: 4rem 0 0 -0.25rem;
-      padding: 0;
-    }
     /* Under the right page, by its folio: the ribbon hangs from the spine. */
     .diary-where {
-      order: 3;
-      flex: 0 0 100%;
-      padding-inline-end: calc(3.25rem - 0.25rem + 3.5rem);
+      padding-inline-end: 3.5rem;
       text-align: right;
-    }
-    .diary-tab {
-      writing-mode: vertical-rl;
-      min-height: 5.5rem;
-      border-radius: 0 6px 6px 0;
-      border-bottom-color: var(--rule-color);
-      border-left-color: transparent;
-      padding: 0.75rem 0;
-    }
-    .diary-tab[aria-pressed="true"] {
-      padding-top: 0.75rem;
-      transform: translateX(4px);
-      border-left-color: var(--fg);
     }
     .diary-slot {
       flex-basis: 50%;
@@ -3639,7 +4175,7 @@ html[data-menu-open] [data-companion] {
        page that is out of the window). (The width is the page's, near enough: it
        only has to beat the tie.) */
     .diary-slot {
-      --turn: calc((min(1320px, 100vw - 4rem) - 3rem) / 2);
+      --turn: calc(min(1320px, 100vw - 4rem) / 2);
     }
     .diary-slot[data-side="left"] :is(.diary-page, .diary-entry, .diary-anchor, a, button, [tabindex]) {
       scroll-margin-inline-end: var(--turn);
@@ -3650,6 +4186,48 @@ html[data-menu-open] [data-companion] {
     .diary-slot-blank {
       display: block;
       box-shadow: inset 26px 0 30px -24px rgb(30 40 35 / 0.25);
+    }
+  }
+  @media (width >= 80rem) {
+    /* The index tabs stick out of the fore-edge, down the right. */
+    .diary-frame {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .diary-book {
+      order: 1;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .diary-tabs {
+      order: 2;
+      flex: 0 0 3.25rem;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      margin: 4rem 0 0 -0.25rem;
+      padding: 0;
+    }
+    .diary-where {
+      order: 3;
+      flex: 0 0 100%;
+      padding-inline-end: calc(3.25rem - 0.25rem + 3.5rem);
+    }
+    .diary-tab {
+      writing-mode: vertical-rl;
+      min-height: 5.5rem;
+      border-radius: 0 6px 6px 0;
+      border-bottom-color: var(--rule-color);
+      border-left-color: transparent;
+      padding: 0.75rem 0;
+    }
+    .diary-tab[aria-pressed="true"] {
+      padding-top: 0.75rem;
+      transform: translateX(4px);
+      border-left-color: var(--fg);
+    }
+    .diary-slot {
+      --turn: calc((min(1320px, 100vw - 4rem) - 3rem) / 2);
     }
   }
 
@@ -3666,8 +4244,9 @@ html[data-menu-open] [data-companion] {
   /* the book, Contact's red stamp shares the screen with it).          */
   /*                                                                    */
   /* With JavaScript and motion welcome (`data-mode="leaf"`) the slots  */
-  /* stop scrolling and stack into one opening: a grid of one page, or  */
-  /* two from 1280, every page the tallest's height (`--page-h`). Pages */
+  /* stop scrolling and stack into one opening: a grid of one page, as  */
+  /* tall as what is on it, or two from 1024 (round 25; 1280 before),   */
+  /* both the tallest page's height (`--page-h`). Pages                 */
   /* not on show are `hidden="until-found"` (content-visibility:        */
   /* hidden): they paint no paper and take no hits. A turn poses its    */
   /* faces inline (`rotateY` about the spine, `z-index`, see            */
@@ -3750,7 +4329,7 @@ html[data-menu-open] [data-companion] {
     mask: url(/scenery/diary-ribbon.svg) no-repeat 0 0 / 100% 100%;
     transform-origin: 50% 0;
   }
-  @media (width >= 80rem) {
+  @media (width >= 64rem) {
     .diary-cover {
       border-radius: 0.625rem;
     }
@@ -3791,7 +4370,7 @@ html[data-menu-open] [data-companion] {
   .diary-sheet[data-at="left"]::before {
     --gutter: to left;
   }
-  @media (width >= 80rem) {
+  @media (width >= 64rem) {
     .diary-slot[data-side="left"]::before {
       --gutter: to left;
     }
@@ -3960,7 +4539,42 @@ html[data-menu-open] [data-companion] {
       linear-gradient(var(--from-spine), rgb(30 40 35 / var(--dim, 0)), rgb(30 40 35 / 0) 75%);
   }
 
-  @media (width >= 80rem) {
+  /* One page (below 1024) is as tall as what is on it (round 25; every page
+     took the tallest one's height, and on a phone a short page ended in 300
+     to 580px of blank paper, its corners a screen and more below its last
+     line). The pages on show share the one grid cell, and a page hidden until
+     found has no size of its own, so the row is the page at rest, and never
+     under the floor (`--diary-floor`, about a screen, and never more than
+     the tallest page, `--page-h`). A turn lays the page it leaves and the
+     page it lands on in that cell together, at the taller's height, with the
+     book's own box held at the height it had (`DiaryBook` writes the track's
+     `height`); the book takes the new page's height once the leaf has
+     landed. `--page-hold`: a book only just bound stands at least this tall
+     until its first turn, so that leaving the track's height (the tallest
+     page's) for its first page's moved nothing on screen (`holdHeight`). A
+     spread keeps one shared height. */
+  @media (width < 64rem) {
+    .diary-frame[data-mode="leaf"] .diary-track {
+      grid-template-rows: minmax(min(var(--page-h, 0px), max(var(--diary-floor), var(--page-hold, 0px))), auto);
+    }
+    /* A page fills the book and is never shorter than what is on it: while
+       the book's box is held under a taller page (a turn in the air, or the
+       book easing open to it), the page keeps its own foot, and its folio
+       there, instead of being squeezed into the box with its folio across
+       its text. */
+    .diary-frame[data-mode="leaf"] .diary-slot {
+      align-self: start;
+      min-height: 100%;
+    }
+    /* And it is cut to the box (`--held`, the pages' height in it), or its
+       last 16px would show in the track's room under the book's foot. (A
+       curling page's own clip, written inline, replaces this one.) */
+    .diary-track[data-held] > .diary-slot {
+      clip-path: inset(0 0 calc(100% - var(--held)) 0);
+    }
+  }
+
+  @media (width >= 64rem) {
     .diary-frame[data-mode="leaf"] .diary-track {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -3989,7 +4603,7 @@ html[data-menu-open] [data-companion] {
   /* ------------------------------------------------------------------ */
   /* Follow-up 2026-11-02: one page curls from its corner.              */
   /*                                                                    */
-  /* Below 1280 the book shows one page, and a hinge turn squashed it   */
+  /* Below 1024 the book shows one page, and a hinge turn squashed it   */
   /* into the left half beside the next page: a spread, for a moment.   */
   /* So one page curls, flat, inside its own box (`curl` in             */
   /* `diary-turn.ts`; `DiaryBook` writes the numbers): the page lies    */
@@ -4121,15 +4735,23 @@ body:has(.resume-dialog[open]) {
    --------------------------------------------------------------------------- */
 
 /* The picture side. The panel is a size container, so its scene box can be
-   exactly the drawing's 340 x 440 whatever the panel is: bottom-aligned and
-   contained where the postcard's two sides stand side by side, top-aligned and
-   as wide as the panel where they stack (the old `bg-contain bg-bottom` and
-   `bg-cover bg-top`). Against that box the stamp sits in the drawing's empty
-   sky, left of the sun, above the pines and clear of the heading, at every
-   width. The box is itself an inline-size container: the stamp is sized in its
-   units. */
+   exactly the drawing's 340 x 440 whatever the panel is. Three arrangements,
+   by the postcard's own width (round 25):
+   - under 30rem, stacked: the panel is the top of the drawing, as wide as the
+     card and cut at 312 of its 440 units, just under the heron's feet (the old
+     `bg-cover bg-top`, but in proportion, so every phone sees the same cut);
+   - 30rem to 40rem, still stacked: a landscape band, the whole drawing
+     standing at its right on the bottom edge and "Greetings from" in the sky
+     beside it (a laptop's column, a small tablet: as wide as the card, the
+     drawing would be all sky);
+   - from 40rem, side by side: bottom-aligned and contained in the panel (the
+     old `bg-contain bg-bottom`).
+   Against that box the stamp sits in the drawing's empty sky, left of the sun,
+   above the pines and clear of the heading. The box is itself an inline-size
+   container: the stamp is sized in its units. */
 .postcard-sky {
   container-type: size;
+  aspect-ratio: 340 / 312;
 }
 .postcard-scene {
   position: absolute;
@@ -4140,11 +4762,28 @@ body:has(.resume-dialog[open]) {
   aspect-ratio: 340 / 440;
   container-type: inline-size;
 }
-@container postcard (width >= 32rem) {
+@container postcard (width >= 30rem) {
+  .postcard-sky {
+    aspect-ratio: auto;
+    height: 17.5rem;
+  }
   .postcard-scene {
     top: auto;
     bottom: 0;
+    left: auto;
+    right: 7%;
+    translate: none;
     width: min(100cqw, calc(100cqh * 340 / 440));
+  }
+}
+@container postcard (width >= 40rem) {
+  .postcard-sky {
+    height: auto;
+  }
+  .postcard-scene {
+    left: 50%;
+    right: auto;
+    translate: -50% 0;
   }
 }
 
@@ -4230,10 +4869,12 @@ body:has(.resume-dialog[open]) {
 }
 .sent-stamp--slot {
   flex-shrink: 0;
-  margin: 1rem 0.75rem 0.5rem auto;
+  /* 1.5rem above: the stamp is turned 5 degrees and a laptop's stacked
+     postcard 1.2 the same way, so its corner rises toward the line over it. */
+  margin: 1.5rem 0.75rem 0.5rem auto;
   font-size: 11.5px;
 }
-@container postcard (width >= 32rem) {
+@container postcard (width >= 40rem) {
   .sent-stamp--board {
     display: flex;
   }

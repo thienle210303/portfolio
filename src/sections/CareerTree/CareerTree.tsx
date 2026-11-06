@@ -11,11 +11,18 @@
  * studies moved to the Record in round 21 phase 5 (spec §4): the tags still
  * link to `#journey-entry-<id>`, which is a Record row now.
  *
- * From 1280 the stage is the board: its pieces stand in a 1440×900 frame whose
- * left edge is `--fx`, centred, or pulled left so the last tag (board right
- * 1408) stays 16px inside the viewport. Below 1280 the crown runs across the
- * top and the tags hang in one column from a branch at the right edge. One
- * DOM for both; CSS only.
+ * Round 25 lays it out in three compositions, one DOM, CSS only (globals.css,
+ * "Journey"):
+ *  - from 1280 the stage is the board: its pieces stand in a 1440×900 frame
+ *    measured in board units (`--u`, 1/1440 of the board's own width; the
+ *    section is the size container), so the board is as wide as the window
+ *    from 1280 and stops growing at 1680px. `--fx` is the frame's left edge
+ *    and `--by` its top;
+ *  - from 640 the title stands top-left beside the crown, the trunk runs down
+ *    the middle and the boughs leave it in pairs, a tag each side;
+ *  - below 640 the crown runs across the top and the tags hang in one column
+ *    from a trunk near the right edge.
+ * "Watch it grow" is under my line at every width.
  *
  * This file is the Server Component boundary and the only thing in the
  * directory that knows it is a section. It carries the compatibility anchors
@@ -45,7 +52,7 @@ export default function CareerTree() {
       id="tree"
       labelledBy={HEADING_ID}
       tone="base"
-      className="relative isolate overflow-x-clip [--fx:min(50%-720px,100%-1424px)]"
+      className="relative isolate overflow-x-clip"
     >
       {/* Retired section ids, kept resolvable. The nav used to point at
           `#journey`, `#work`, `#skills` and `#workshop`; all four are in
@@ -75,35 +82,29 @@ export default function CareerTree() {
       {/* "Watch it grow"'s weather, shown only while it plays. */}
       <Weather />
 
-      {/* Static at every width: from 1280 the tags, the button and the
-          vignette are placed against the section, in the board's frame. */}
-      <div data-journey-stage="" className="xl:min-h-[calc(900px-var(--section-y))] xl:pt-8">
-        <SectionHeading
-          id={HEADING_ID}
-          size="chapter"
-          lead={<span className="font-serif italic">{journey.lead}</span>}
-        >
-          {journey.heading}
-        </SectionHeading>
-        {/* Before the oak below 1280, where its growth starts; from 1280 the
-            board puts it under the trunk. */}
-        <GrowOak
-          label={journey.watch}
-          skipLabel={journey.skip}
-          beats={BEATS}
-          className="mt-6 xl:absolute xl:top-[790px] xl:left-[max(var(--fx)+40px,var(--gutter))] xl:mt-0"
-        />
-        <OakCrown className="mt-6" />
-        <HangingTags className="mt-6 xl:mt-0" />
-        {/* The board's still life (1196, 780) and its caption (1186, 870). */}
-        <div
-          aria-hidden="true"
-          className="no-print mt-8 w-fit xl:absolute xl:top-[780px] xl:left-[calc(var(--fx)+1186px)] xl:mt-0"
-        >
-          <span
-            className="scene-art ml-2.5 block h-[90px] w-[92px]"
-            style={{ "--art": "var(--art-journey-vignette)" } as CSSProperties}
-          />
+      {/* Static from 1280: there the tags and the vignette are placed against
+          the section, in the board's frame (globals.css, "Journey"). */}
+      <div data-journey-stage="">
+        {/* The words: over the board from 1280, beside the crown from 640,
+            above it on a phone. */}
+        <div data-journey-head="">
+          <SectionHeading
+            id={HEADING_ID}
+            size="chapter"
+            lead={<span className="font-serif italic">{journey.lead}</span>}
+          >
+            {journey.heading}
+          </SectionHeading>
+          {/* Under my line at every width (round 25): on the trunk's foot it
+              read as part of the drawing. */}
+          <GrowOak label={journey.watch} skipLabel={journey.skip} beats={BEATS} className="mt-6" />
+        </div>
+        <OakCrown />
+        <HangingTags />
+        {/* The board's still life (1196, 780) and its caption (1186, 870);
+            below 1280 it stands at the foot of the tree, on the left. */}
+        <div aria-hidden="true" data-journey-vignette="" className="no-print w-fit">
+          <span className="scene-art block" style={{ "--art": "var(--art-journey-vignette)" } as CSSProperties} />
           <div className="font-serif text-[length:var(--step--1)] leading-none italic text-fg-muted">
             <p className="day-only">{journey.vignette.morning}</p>
             <p className="night-only">{journey.vignette.evening}</p>

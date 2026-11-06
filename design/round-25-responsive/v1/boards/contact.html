@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="768,1024,390" />
+    <title>Contact — the form pair, the card on a tablet, the postcard on a laptop</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      .contact {
+        padding-top: 4.5rem;
+        display: grid;
+        gap: 32px;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: start;
+      }
+      .top .art {
+        width: 46%;
+        height: 110px;
+      }
+      /* Postcard and card: one column until the laptop. */
+      .pair {
+        display: grid;
+        gap: 32px;
+        align-items: start;
+      }
+      @media (width >= 64rem) {
+        .pair {
+          grid-template-columns: minmax(0, 1fr) 21rem;
+        }
+      }
+
+      /* The postcard decides by its own width, and later than it does today:
+         side by side from 40rem (640px), not 32rem. */
+      .postcard {
+        container: postcard / inline-size;
+        --tilt: -0.6deg;
+      }
+      .sides {
+        display: grid;
+      }
+      .picture {
+        min-height: 240px;
+        margin: 14px;
+        display: grid;
+        align-content: start;
+        gap: 4px;
+        padding: 16px;
+        background: color-mix(in srgb, var(--accent) 7%, transparent);
+        border: 1.5px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+      }
+      .address {
+        position: relative;
+        padding: 22px;
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+      @container postcard (width >= 40rem) {
+        .sides {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+        .picture {
+          order: 2;
+          min-height: 420px;
+        }
+        .address {
+          border-right: 1px solid var(--rule-color);
+        }
+      }
+      .postage {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      .postage .art {
+        width: 64px;
+        height: 64px;
+      }
+      /* Email, or phone: two whole lines, one bracket down the side. */
+      .either {
+        display: grid;
+        gap: 12px;
+        padding-left: 14px;
+        border-left: 1.5px solid var(--fg);
+        position: relative;
+      }
+      .either::before,
+      .either::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 8px;
+        border-top: 1.5px solid var(--fg);
+      }
+      .either::before {
+        top: 0;
+      }
+      .either::after {
+        bottom: 0;
+      }
+      .line {
+        display: grid;
+        gap: 2px;
+      }
+      .line b {
+        display: block;
+        border-bottom: 1.5px solid var(--fg);
+        min-height: 40px;
+        font: 400 var(--step-0) / 40px var(--font-sans);
+        color: var(--fg-muted);
+      }
+
+      /* The business card decides by its own width too: landscape from 36rem. */
+      .card {
+        container: card / inline-size;
+        --tilt: 0.8deg;
+      }
+      .card-in {
+        position: relative;
+        margin: 10px;
+        padding: 20px;
+        border: 1px solid var(--rule-color);
+        display: grid;
+        gap: 18px;
+      }
+      .who {
+        position: relative;
+        display: grid;
+        gap: 6px;
+        align-content: start;
+      }
+      .quote {
+        border-left: 2px solid var(--fg);
+        padding-left: 12px;
+      }
+      .reach {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .reach .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 44px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        border: 1px solid var(--rule-color);
+        border-radius: 999px;
+        padding: 0 16px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 15px;
+      }
+      .seal {
+        position: absolute;
+        top: -4px;
+        right: 0;
+        background: var(--mark);
+        color: var(--fg-inverse);
+        padding: 8px;
+        font: italic 500 15px/1.05 var(--font-serif);
+        rotate: 4deg;
+      }
+      @container card (width >= 36rem) {
+        .card-in {
+          grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+          gap: 28px;
+        }
+        .reach {
+          border-left: 1px solid var(--rule-color);
+          padding-left: 28px;
+        }
+      }
+
+      .side {
+        display: grid;
+        gap: 28px;
+      }
+      .vignette {
+        height: 90px;
+        width: 200px;
+        justify-self: end;
+      }
+
+      /* The Ask: short until there is something in it. */
+      .ask {
+        display: grid;
+        box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.2);
+      }
+      .ask > * {
+        padding: 22px;
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+      .ask .compose {
+        background: color-mix(in srgb, var(--fg) 6%, var(--surface));
+        color: var(--fg);
+      }
+      @media (width >= 64rem) {
+        .ask {
+          grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        }
+      }
+      .stub {
+        justify-self: end;
+        display: flex;
+        gap: 12px;
+        padding: 8px 14px;
+        background: color-mix(in srgb, var(--fg) 6%, var(--surface));
+      }
+      .askrow {
+        display: flex;
+        gap: 12px;
+        align-items: end;
+      }
+      .askrow .line {
+        flex: 1;
+      }
+      .try {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .try span {
+        background: var(--surface);
+        padding: 0 14px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hdr">
+      <span>TL</span>
+      <span class="nav">
+        <span class="narrow">○ Menu</span>
+        <span class="wide">About</span><span class="wide">Journey</span><span class="wide">Diary</span
+        ><span class="wide">Contact</span><span>☼</span>
+      </span>
+      <span class="stamp">Let's talk</span>
+    </div>
+
+    <section class="section shell contact">
+      <div class="top">
+        <div>
+          <p class="aside">Xin chào,</p>
+          <h2 class="display">say hi.</h2>
+          <p class="aside">One postcard, two lines, and the next move is mine.</p>
+        </div>
+        <div class="art">lanterns · hoa mai</div>
+      </div>
+
+      <div class="pair">
+        <div class="paper bg-surface postcard">
+          <div class="sides">
+            <div class="picture">
+              <p class="aside">Greetings from</p>
+              <p class="page-title" style="font-family: var(--font-display)">Taylors, SC</p>
+              <p class="art" style="margin-top: 24px; border: 0; background: none">
+                sky · sun · pines · crane · rice (and the SENT stamp, left of the sun)
+              </p>
+              <span class="pin" style="top: 24px; right: 24px">3</span>
+            </div>
+            <div class="address">
+              <div class="postage">
+                <div class="art dark" style="border-radius: 50%">postmark</div>
+                <div class="art">stamp</div>
+              </div>
+              <div>
+                <p class="aside">Leave a way to reach you.</p>
+                <p class="muted">No message needed. I'll write first.</p>
+              </div>
+              <label class="line"><span class="data">Your name *</span><b></b></label>
+              <div class="either">
+                <span class="pin" style="top: -12px; right: 0">1</span>
+                <label class="line"><span class="data">Email *</span><b>you@example.com</b></label>
+                <label class="line"><span class="data">or phone *</span><b>(864) 555 0100</b></label>
+              </div>
+              <p class="aside" style="font-size: var(--step-0)">* One is enough, both is fine.</p>
+              <div><span class="btn">Send the postcard</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="side">
+        <div class="paper bg-surface card">
+          <div class="card-in">
+            <span class="pin" style="top: -12px; left: 12px">2</span>
+            <div class="who">
+              <span class="seal">Thiện<br />Lê</span>
+              <h3 class="page-title">Thien Le</h3>
+              <p class="label">Software Engineer</p>
+              <p class="muted">⌖ Taylors, South Carolina</p>
+              <p class="aside quote">Unsolved is not the same as unsolvable.</p>
+            </div>
+            <div class="reach data">
+              <div class="row"><span>✉ thienle210303@gmail.com</span><span class="chip">⧉</span></div>
+              <div class="row"><span>‹› github.com/thienle210303</span></div>
+              <div class="row"><span>in/thienle210303</span></div>
+              <div class="chips" style="font-family: var(--font-sans)">
+                <span class="chip">Résumé</span><span class="chip">Save contact</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="art vignette">bánh tét and hoa mai, for Tết</div>
+        </div>
+      </div>
+
+      <div class="paper flat bg-surface ask">
+        <div>
+          <span class="pin" style="top: -12px; right: 12px">4</span>
+          <p><strong class="heading">Ask me</strong> &nbsp;<span class="aside">I answer from what I've written here.</span></p>
+          <div class="stub">
+            <span class="label">No.<br />--</span>
+            <span><span class="label">You asked</span><br /><span class="aside">No question asked yet.</span></span>
+          </div>
+          <p class="label">I said</p>
+          <p class="aside">
+            Pick a question or ask your own. Every answer is something I've written here, as written
+            or a few lines of it joined into one, with where it came from. If I haven't written it
+            down, I'll say so.
+          </p>
+          <p class="label" style="margin-top: 8px">How this answers ⌄</p>
+        </div>
+        <div class="compose">
+          <div class="askrow">
+            <label class="line"><span class="data">Your question</span><b>Ask about my work</b></label>
+            <span class="chip" style="border-radius: 2px; font-weight: 600">Ask</span>
+          </div>
+          <p class="aside" style="font-size: var(--step-0)">or try</p>
+          <div class="try">
+            <span>○ What do you do at DoorDash?</span><span>○ Are you from Việt Nam?</span
+            ><span>○ What have you measured?</span><span>○ What are your cats called?</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
