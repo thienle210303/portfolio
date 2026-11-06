@@ -3,7 +3,13 @@ import { cn } from "@/lib/cn";
 
 export const INK_DRAWINGS = [
   "bamboo",
-  "bamboo-phone",
+  "bamboo-top",
+  "bamboo-top-b",
+  "bamboo-stem",
+  "bamboo-sprig",
+  "bamboo-sprig-b",
+  "bamboo-tuft",
+  "bank-grass",
   "pine",
   "paddy",
   "paddy-water",

@@ -167,6 +167,51 @@ describe("Hero", () => {
     }
   });
 
+  it("reads in one order at every width: my words, the hint, 2003 to 2025, my field tag", () => {
+    // Round 25: one grid, one set of tags; each band only lays them out.
+    const { about } = renderHero();
+    const yard = about.querySelector(".hero-yard")!;
+    const read = [...yard.children]
+      .filter((el) => el.getAttribute("aria-hidden") !== "true")
+      .map((el) => el.getAttribute("data-yard") ?? el.getAttribute("data-hero-step"));
+    expect(read).toEqual(["words", "hint", "line", "field"]);
+    expect(yard.querySelector('[data-yard="hint"]')).toHaveTextContent(hero.hint);
+    const tags = [...yard.querySelectorAll('[data-hero-step="line"] > li')];
+    expect(tags).toHaveLength(4);
+    expect(tags.map((li) => li.querySelector("button")?.textContent?.match(/Kiên Giang|Taylors|USC|DoorDash/)?.[0])).toEqual([
+      "Kiên Giang",
+      "Taylors",
+      "USC",
+      "DoorDash",
+    ]);
+    expect(yard.querySelector('[data-yard="field"] [data-hero-step="field-tag"]')).not.toBeNull();
+  });
+
+  it("gives every hung thing its place on the line from the line's one description", () => {
+    const { about } = renderHero();
+    const hung = [...about.querySelectorAll<HTMLElement>('.hero-yard li, .hero-yard [data-yard="field"]')];
+    expect(hung).toHaveLength(5);
+    for (const el of hung) {
+      for (const name of ["--y-phone", "--string-phone", "--y-tablet", "--string-tablet"]) {
+        expect(el.style.getPropertyValue(name), name).toMatch(/^\d+(\.\d)?px$/);
+      }
+    }
+  });
+
+  it("the yard: three passes for a phone, two for a tablet, between poles with a tuft at each foot", () => {
+    const { about } = renderHero();
+    const yard = about.querySelector<HTMLElement>('[data-scenery="yard"]')!;
+    expect(yard).toHaveAttribute("aria-hidden", "true");
+    expect(yard.querySelector("button, a, [tabindex]")).toBeNull();
+    expect(yard.querySelectorAll("svg[data-yard-pass]")).toHaveLength(5);
+    for (const svg of yard.querySelectorAll("svg")) expect(svg).toHaveAttribute("aria-hidden", "true");
+    expect([...yard.querySelectorAll("[data-yard-pole]")].map((el) => el.getAttribute("data-yard-pole"))).toEqual(["left", "right", "pine"]);
+    expect(yard.querySelectorAll("[data-yard-tuft]")).toHaveLength(3);
+    expect(yard.querySelectorAll('[data-scenery="bamboo-stem"]')).toHaveLength(2);
+    // The hat hangs here below 1024 and on the scenery's bamboo from there.
+    expect(about.querySelectorAll('[data-scenery="non-la"]')).toHaveLength(2);
+  });
+
   it("the terminal is gone", () => {
     const { container } = renderHero();
     expect(screen.queryByRole("tablist")).toBeNull();
