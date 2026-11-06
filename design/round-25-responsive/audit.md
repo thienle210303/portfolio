@@ -43,7 +43,7 @@ tallest one.
 |---|---|---|---|---|
 | 16 | Type | all | Text under 12px: 9px postmark, ~10px companion labels (`0.62rem` ×7), 11 / 11.5px in Ask, the menu and the card. | Source |
 | 17 | Hero | 320 | The hint is three lines in ~100px; the field tag stacks label over value and is ~620px tall; "My LinkedIn" breaks. | Seen: `about-320` |
-| 18 | Hero | 320 – 1023 | The bamboo pole ends in mid-air above the field tag while the string carries on. | Seen: `about-390/768` |
+| 18 | Hero | 320 – 1023 | The bamboo pole starts and ends in mid-air, cut off above the field tag, while the line drops straight down the page. **Raised to the top of the hero's list by Thien, 2026-11-05** ("flying in the middle of the page and cut off… ugly"); the About board is redrawn around it. | Seen: `about-390/768` |
 | 19 | Hero | 1024, 1280 | The pine is half off the right edge; at 1024 the nón lá is clipped at the left and the hint starts inside the bamboo leaves. | Seen: `fold-1024/1280` |
 | 20 | Hero | 1024 | Four ~125px tags beside a 385px field tag; the field tag out-shouts the headline. | Seen: `about-1024` |
 | 21 | Hero | 1920 | The paddy spans ~820 – 1565 and fades; the bottom corners are bare. | Seen: `fold-1920` |
