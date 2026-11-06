@@ -68,3 +68,7 @@ next-env.d.ts
 # tracker cites them as untracked; ~34 MB of PNGs would bloat every clone).
 /reports/
 /.impeccable/critique/
+
+# Review sheets from `pnpm shots` (design/README.md): regenerated on demand,
+# never a committed baseline.
+/design/.shots/

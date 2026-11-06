@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Pass, outdoors — system specimen</title>
+    <!-- Rendered from tokens.css (generated from globals.css). The rules are in README.md. -->
+    <link rel="stylesheet" href="../round-25-responsive/v1/boards/board.css" />
+    <script src="../round-25-responsive/v1/boards/board.js"></script>
+    <style>
+      main {
+        display: grid;
+        gap: 48px;
+        padding-block: 48px 96px;
+      }
+      section {
+        display: grid;
+        gap: 18px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+      }
+      .sw {
+        width: 132px;
+        display: grid;
+        gap: 6px;
+      }
+      .sw i {
+        display: block;
+        height: 56px;
+        border: 1px solid var(--rule-color);
+      }
+      .bands {
+        display: grid;
+        grid-template-columns: 640fr 384fr 256fr 640fr;
+        min-height: 64px;
+      }
+      .bands div {
+        border: 1px solid var(--rule-color);
+        border-left-width: 0;
+        padding: 8px 10px;
+      }
+      .bands div:first-child {
+        border-left-width: 1px;
+      }
+      .roles {
+        display: grid;
+        grid-template-columns: 9rem minmax(0, 1fr);
+        gap: 14px 20px;
+        align-items: baseline;
+      }
+      .space i {
+        display: block;
+        height: 20px;
+        background: var(--accent);
+      }
+      .space span {
+        display: grid;
+        gap: 4px;
+        justify-items: start;
+      }
+      .shape .paper {
+        width: 150px;
+        height: 96px;
+        display: grid;
+        place-items: center;
+      }
+      .layers {
+        display: grid;
+        gap: 4px;
+        max-width: 34rem;
+      }
+      .layers div {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border: 1px solid var(--rule-color);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header style="display: grid; gap: 10px">
+        <p class="label">design/system</p>
+        <h1 class="chapter">The responsive system</h1>
+        <p class="aside">
+          Rendered from the site's own tokens.
+          <a href="?theme=day">Day</a> · <a href="?theme=night">Night</a> ·
+          <a href="README.md">The rules</a> · <a href="states.html">Component states</a>
+        </p>
+      </header>
+
+      <section>
+        <p class="label">Bands and breakpoints</p>
+        <div class="bands data">
+          <div><strong>Phone</strong><br />under 640</div>
+          <div><strong>Tablet</strong><br />40rem</div>
+          <div><strong>Laptop</strong><br />64rem</div>
+          <div><strong>Desktop</strong><br />80rem · content stops at 1440</div>
+        </div>
+        <p class="muted">Checked at 320, 375, 390, 430 · 768 · 1024 · 1280, 1440, 1920.</p>
+      </section>
+
+      <section>
+        <p class="label">Colour roles (aliases only)</p>
+        <div class="row data" style="align-items: flex-start">
+          <span class="sw"><i style="background: var(--ground)"></i>--ground</span>
+          <span class="sw"><i style="background: var(--surface)"></i>--surface</span>
+          <span class="sw"><i style="background: var(--fg)"></i>--fg</span>
+          <span class="sw"><i style="background: var(--fg-muted)"></i>--fg-muted</span>
+          <span class="sw"><i style="background: var(--accent)"></i>--accent · links, values</span>
+          <span class="sw"><i style="background: var(--control)"></i>--control · one per screen</span>
+          <span class="sw"><i style="background: var(--mark)"></i>--mark · the single mark</span>
+          <span class="sw"><i style="background: var(--rule-color)"></i>--rule</span>
+          <span class="sw"><i style="background: var(--twine)"></i>--twine</span>
+        </div>
+      </section>
+
+      <section>
+        <p class="label">Type roles</p>
+        <div class="roles">
+          <span class="data muted">Display · step-5</span>
+          <span class="display">Just a curious kid.</span>
+          <span class="data muted">Chapter · step-chapter</span>
+          <span class="chapter" style="font-family: var(--font-display); line-height: 1.05">The work, as it grew.</span>
+          <span class="data muted">Page title · step-4</span>
+          <span class="page-title" style="font-family: var(--font-display)">Pressed, waiting to dry.</span>
+          <span class="data muted">Heading · step-2</span>
+          <span class="heading" style="font-family: var(--font-display)">Software Engineer</span>
+          <span class="data muted">Lead · step-1</span>
+          <span class="lead">I write software for retail data at DoorDash.</span>
+          <span class="data muted">Body · step-0</span>
+          <span>Coverage 654 to 1,529 products, and failures 3.9% to zero.</span>
+          <span class="data muted">Aside · serif italic</span>
+          <span class="aside">Press a tag and I'll tell you that part.</span>
+          <span class="data muted">Data · step--1 mono</span>
+          <span class="data">3.9% → 0% error · Mar 2025 – now</span>
+          <span class="data muted">Label · step--2 caps</span>
+          <span class="label">Field tag No. 001 · 12px floor</span>
+        </div>
+      </section>
+
+      <section>
+        <p class="label">Spacing (4px base; the steps in use)</p>
+        <div class="row space data">
+          <span><i style="width: 2px"></i>0.5</span><span><i style="width: 4px"></i>1</span
+          ><span><i style="width: 6px"></i>1.5</span><span><i style="width: 8px"></i>2</span
+          ><span><i style="width: 12px"></i>3</span><span><i style="width: 16px"></i>4</span
+          ><span><i style="width: 20px"></i>5</span><span><i style="width: 24px"></i>6</span
+          ><span><i style="width: 32px"></i>8</span><span><i style="width: 40px"></i>10</span
+          ><span><i style="width: 64px"></i>16</span><span><i style="width: 80px"></i>20</span>
+        </div>
+        <p class="muted">Inside an object 8 / 12 / 16 · between objects 24 / 32 / 40 · edges are <span class="data">--gutter</span> only.</p>
+      </section>
+
+      <section class="shape">
+        <p class="label">Shape and elevation</p>
+        <div class="row data">
+          <div class="paper flat">pinned · 2px</div>
+          <div class="paper">lying · 2px</div>
+          <div class="paper" style="box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.45); --tilt: -2deg">lifted</div>
+          <div class="paper flat" style="border-radius: 6px 6px 0 0">tab · 6px</div>
+          <div class="paper flat" style="border-radius: 0.625rem; background: var(--color-bark-outer); color: var(--color-paper)">board · 10px</div>
+          <div class="tag" style="width: 150px">tag</div>
+        </div>
+      </section>
+
+      <section>
+        <p class="label">Layers</p>
+        <div class="layers data">
+          <div><span>Dialogs</span><span>top layer</span></div>
+          <div><span>Skip link</span><span>60</span></div>
+          <div><span>Cats</span><span>55</span></div>
+          <div><span>Header</span><span>50</span></div>
+          <div><span>Cats, menu open</span><span>40</span></div>
+          <div><span>Content (inside one object)</span><span>0 – 10</span></div>
+          <div><span>Scenery</span><span>−1</span></div>
+        </div>
+      </section>
+
+      <section>
+        <p class="label">Controls (44px targets)</p>
+        <div class="row">
+          <span class="btn">See what I've built</span>
+          <span class="btn quiet">Send me a postcard</span>
+          <span class="btn" style="outline: 2px solid var(--ring-color); outline-offset: 3px">Focus-visible</span>
+          <span class="btn" style="opacity: 0.55">Sending…</span>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

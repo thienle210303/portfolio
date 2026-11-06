@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="768,1024" />
+    <title>Journey — tablet and laptop (640–1279)</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /* 640–1279: one tree, but its boughs leave the trunk in pairs. */
+      .journey {
+        padding-top: 4.5rem;
+      }
+      .head {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        gap: 12px;
+        max-width: 46%;
+      }
+      .crown {
+        position: absolute;
+        top: 3.5rem;
+        right: 0;
+        width: 50%;
+        height: 330px;
+      }
+      .tree {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
+        column-gap: clamp(20px, 4vw, 44px);
+        row-gap: 28px;
+        margin-top: 150px;
+      }
+      .trunk {
+        grid-column: 2;
+        grid-row: 1 / span 4;
+        min-height: 100%;
+      }
+      .bough {
+        position: relative;
+        align-self: start;
+        max-width: 340px;
+        width: 100%;
+      }
+      .bough.left {
+        grid-column: 1;
+        justify-self: end;
+      }
+      .bough.right {
+        grid-column: 3;
+        justify-self: start;
+      }
+      /* the bough itself: a stroke from the trunk over the tag's hole */
+      .bough::before {
+        content: "";
+        position: absolute;
+        top: -10px;
+        height: 5px;
+        width: calc(50% + clamp(20px, 4vw, 44px));
+        background: var(--fg);
+        border-radius: 3px;
+      }
+      .bough.left::before {
+        right: calc(-1 * clamp(20px, 4vw, 44px));
+      }
+      .bough.right::before {
+        left: calc(-1 * clamp(20px, 4vw, 44px));
+      }
+      .bough .tag {
+        padding-inline: 18px;
+      }
+      .figure {
+        font: 700 var(--step-4) / 1 var(--font-display);
+        letter-spacing: var(--tracking-display-lg);
+      }
+      .who {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 8px;
+        font-weight: 600;
+      }
+      .stub {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1.5px dashed var(--rule-color);
+      }
+      .swing {
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        padding-top: 20px;
+      }
+      .swing .art {
+        width: 96px;
+        height: 150px;
+      }
+      .roots {
+        grid-column: 1 / -1;
+        height: 90px;
+        margin-inline: 22%;
+      }
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin-top: 12px;
+      }
+      .foot .art {
+        width: 120px;
+        height: 80px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hdr">
+      <span>TL</span>
+      <span class="nav">
+        <span class="narrow">○ Menu</span>
+        <span class="wide">About</span><span class="wide">Journey</span><span class="wide">Diary</span
+        ><span class="wide">Contact</span><span>☼</span>
+      </span>
+      <span class="stamp">Let's talk</span>
+    </div>
+
+    <section class="section shell journey">
+      <div class="art dark crown">oak crown (oak, oak-leaves, oak-moss) · lantern</div>
+      <div class="head">
+        <h2 class="chapter">The work, as it grew.</h2>
+        <p class="aside">Planted in 2018 and still growing. Each tag holds a number I measured.</p>
+        <div><span class="btn">Watch it grow</span></div>
+        <span class="pin" style="top: -8px; right: -30px">1</span>
+      </div>
+
+      <div class="tree">
+        <div class="art dark trunk">trunk</div>
+        <span class="pin" style="top: -14px; left: calc(50% - 12px)">2</span>
+
+        <div class="bough left" style="--tilt: -1deg">
+          <div class="tag">
+            <div class="who"><span>DoorDash</span><span class="label">2025</span></div>
+            <p class="figure">17h → 3m</p>
+            <p class="data accent">3.9% → 0% error</p>
+            <p>Reverse engineering scraper</p>
+            <div class="stub">
+              <div class="who" style="margin: 0">
+                <span class="figure" style="font-size: var(--step-3)">2 → 25</span
+                ><span class="label">2026</span>
+              </div>
+              <p class="data accent">onboarded merchants/month</p>
+              <p>An agent-driven workflow that adapts to every merchant</p>
+            </div>
+          </div>
+        </div>
+        <div class="bough right" style="--tilt: 1deg">
+          <div class="tag">
+            <p class="figure">99.9%</p>
+            <div class="who"><span>Wordification</span><span class="label">2024</span></div>
+            <p class="muted">Speech QA pipeline, validated audio accuracy.</p>
+          </div>
+        </div>
+
+        <div class="bough left" style="--tilt: 1deg">
+          <div class="tag">
+            <p class="figure">96%</p>
+            <div class="who"><span>Schaeffler</span><span class="label">2024</span></div>
+            <p class="muted">Throughput lift from custom Java in low-code.</p>
+          </div>
+        </div>
+        <div class="bough right" style="--tilt: -1deg">
+          <div class="tag">
+            <p class="figure">3M+</p>
+            <div class="who"><span>USC research</span><span class="label">2022</span></div>
+            <p class="muted">Amazon and Kroger records, unattended for months.</p>
+          </div>
+        </div>
+
+        <div class="bough left" style="--tilt: -1deg">
+          <div class="tag">
+            <p class="figure">200+</p>
+            <div class="who"><span>USC teaching</span><span class="label">2023</span></div>
+            <p class="muted">Students helped in open lab.</p>
+          </div>
+        </div>
+        <div class="bough right swing">
+          <div class="art">Bé Nhi on her swing</div>
+          <p class="aside" style="font-size: var(--step-0)">Bé Nhi, pouting</p>
+          <span class="pin" style="top: 0; right: 10%">3</span>
+        </div>
+
+        <div class="art dark roots">oak-roots</div>
+      </div>
+
+      <div class="foot">
+        <div class="art">bánh mì on the way</div>
+        <span class="pin" style="position: static">4</span>
+      </div>
+    </section>
+  </body>
+</html>

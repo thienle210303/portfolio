@@ -54,9 +54,18 @@ Story belongs to motion; text never retells it. No motion library. Under
 WCAG 2.2 AA; Lighthouse 90+/95+/95+/95+; no horizontal overflow 320–1440px;
 both themes and all three tones pass `pnpm test:e2e`.
 
-## Approved boards
-[`design/round-21-outdoors/`](design/round-21-outdoors/) — refine by copying
-to `vN+1`, never in place.
+## Responsive system
+Bands and the three breakpoints, type roles, spacing, shape, elevation, layers
+and interaction rules: [`design/system/README.md`](design/system/README.md).
+
+## Boards
+Every significant UI change is drawn first, desktop and phone, and approved
+before code: [`design/README.md`](design/README.md).
+[`design/round-21-outdoors/`](design/round-21-outdoors/) are the original
+boards, [`design/round-25-responsive/`](design/round-25-responsive/) the tablet
+and laptop bands. Refine by copying to `vN+1`, never in place.
 
 ## Exports
-None. The tokens stay in `globals.css`.
+One, generated: `design/system/tokens.css` mirrors the tokens for the boards
+(`pnpm design:tokens`; a test fails when it is stale). The tokens stay in
+`globals.css`, and the site imports nothing from `design/`.

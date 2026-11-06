@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="768" />
+    <title>Hero — tablet (640–1023)</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /* Tablet: the desktop's line, across. The phone's hanging pole stays under 40rem. */
+      .hero {
+        padding-top: 4.5rem;
+      }
+      .line {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 26px 34px 0 46px;
+      }
+      .line::before {
+        /* the twine, pole to pine, with a little sag */
+        content: "";
+        position: absolute;
+        inset: 6px 0 auto 0;
+        height: 26px;
+        border-bottom: 1.5px solid var(--twine);
+        border-radius: 0 0 50% 50% / 0 0 100% 100%;
+      }
+      .line .tag {
+        min-height: 190px;
+      }
+      .line .tag:nth-child(odd) {
+        --tilt: -2.5deg;
+        margin-top: 14px;
+      }
+      .line .tag:nth-child(even) {
+        --tilt: 2deg;
+        margin-top: 22px;
+      }
+      .tag .art {
+        height: 64px;
+        margin-top: 10px;
+      }
+      .pole,
+      .pine {
+        position: absolute;
+        top: 3.2rem;
+        width: 34px;
+      }
+      .pole {
+        left: 4px;
+        height: 620px;
+      }
+      .pine {
+        right: 0;
+        height: 620px;
+      }
+      .line {
+        z-index: 3;
+      }
+      .below {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 46%);
+        gap: 20px;
+        align-items: start;
+        margin-top: 20px;
+        padding-inline: 46px 34px;
+      }
+      .say {
+        display: grid;
+        gap: 16px;
+        padding-top: 28px;
+        container-type: inline-size;
+      }
+      .say .display {
+        /* as built: the headline never outgrows its column */
+        font-size: min(var(--step-5), 13cqw);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        align-items: center;
+      }
+      .field {
+        all: unset;
+      }
+      .fieldtag {
+        position: relative;
+        padding: 46px 20px 20px;
+        --tilt: 1.5deg;
+        margin-top: 40px;
+      }
+      .fieldtag .string {
+        /* up behind the last tag to the line itself */
+        left: 50%;
+        top: -292px;
+        height: 314px;
+      }
+      .fieldtag dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 6px 14px;
+        margin: 12px 0;
+        padding-block: 12px;
+        border-block: 1px dashed var(--fg);
+      }
+      .fieldtag dt {
+        color: var(--fg-muted);
+      }
+      .fieldtag dd {
+        margin: 0;
+      }
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .stampmark {
+        border: 2px solid var(--mark);
+        color: var(--mark);
+        padding: 6px 10px;
+        rotate: -4deg;
+        font: 700 13px var(--font-mono);
+        letter-spacing: 0.08em;
+      }
+      .ground {
+        display: grid;
+        grid-template-columns: 150px 150px 1fr;
+        gap: 16px;
+        align-items: end;
+        margin-top: 28px;
+      }
+      .ground .art {
+        height: 84px;
+      }
+      .ground .paddy {
+        height: 150px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hdr">
+      <span>TL</span>
+      <span class="nav"><span>○ Menu</span><span>☼</span></span>
+      <span class="stamp">Let's talk</span>
+    </div>
+
+    <section class="section shell hero">
+      <div class="art dark pole">bamboo</div>
+      <div class="art pine">pine</div>
+
+      <span class="pin" style="top: 5.2rem; left: 50%">1</span>
+      <div class="line">
+        <div class="tag">
+          <p class="label">2003</p>
+          <p class="heading">Kiên Giang</p>
+          <div class="art">tag-rice</div>
+        </div>
+        <div class="tag">
+          <p class="label">Dec 2018</p>
+          <p class="heading">Taylors</p>
+          <div class="art">tag-flytrap</div>
+        </div>
+        <div class="tag">
+          <p class="label">2021</p>
+          <p class="heading">USC</p>
+          <div class="art">tag-book</div>
+        </div>
+        <div class="tag">
+          <p class="label">2025</p>
+          <p class="heading">DoorDash</p>
+          <div class="art">tag-laptop</div>
+        </div>
+      </div>
+
+      <div class="below">
+        <div class="say">
+          <p class="aside">Press a tag and I'll tell you that part.</p>
+          <h1 class="display">Just a curious kid, and this is my youth.</h1>
+          <p class="lead">
+            I write software for retail data at DoorDash. Before that I was a chef in my family's
+            restaurant. Come in, I'll show you around.
+          </p>
+          <div class="actions">
+            <span class="btn">See what I've built</span>
+            <span class="btn quiet">Send me a postcard</span>
+          </div>
+          <span class="pin" style="top: 0; right: 0">2</span>
+        </div>
+
+        <div class="paper bg-surface fieldtag data">
+          <span class="string"></span>
+          <span class="pin" style="top: -12px; right: 12px">3</span>
+          <div style="display: flex; justify-content: space-between">
+            <strong>Field tag No. 001</strong><strong>That's me</strong>
+          </div>
+          <dl>
+            <dt>Name</dt>
+            <dd>Thien Le</dd>
+            <dt>Native to</dt>
+            <dd>Kiên Giang, Việt Nam ★</dd>
+            <dt>Transplanted</dt>
+            <dd>Taylors, South Carolina</dd>
+            <dt>Habitat</dt>
+            <dd>DoorDash, retail data</dd>
+            <dt>Formerly</dt>
+            <dd>Chef, family kitchen</dd>
+            <dt>Companions</dt>
+            <dd>Two cats, Moon and Mi</dd>
+          </dl>
+          <p><strong>Status &nbsp; Still growing</strong></p>
+          <div class="foot">
+            <div class="art dark" style="width: 76px; height: 76px">QR</div>
+            <span class="stampmark">PRACTICE MAKES AI.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ground">
+        <div class="art">Moon, off duty</div>
+        <div class="art">phin &amp; cơm tấm</div>
+        <div class="art paddy">paddy (wide board) · buffalo</div>
+        <span class="pin" style="bottom: 150px; right: 40px">4</span>
+      </div>
+    </section>
+  </body>
+</html>

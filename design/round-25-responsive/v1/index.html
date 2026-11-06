@@ -1,0 +1,657 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="claude:viewport-fit-sides" content="cover" />
+<title>Round 25 Boards</title>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Courier+Prime:wght@400;700&family=Newsreader:ital,opsz,wght@1,6..72,400&display=swap"
+/>
+<style>
+  /* Layout: one reading column for the words; comparison strips break out to
+     the full width and scroll on their own. The site's own palette and faces. */
+  :root {
+    --bg: #e4e8e0;
+    --paper: #fbfbf8;
+    --ink: #1d2321;
+    --muted: #56605a;
+    --moss: #46603a;
+    --rule: #c9d0c8;
+    --pin: #2a5d6b;
+    --mark: #c8102e;
+    --sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --mono: "Courier Prime", ui-monospace, Menlo, monospace;
+    --serif: "Newsreader", Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #142024;
+      --paper: #1e2c30;
+      --ink: #e6ece7;
+      --muted: #a9b6ae;
+      --moss: #86aa76;
+      --rule: #3a4844;
+      --pin: #7fb3c0;
+      --mark: #ff7a85;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #142024;
+    --paper: #1e2c30;
+    --ink: #e6ece7;
+    --muted: #a9b6ae;
+    --moss: #86aa76;
+    --rule: #3a4844;
+    --pin: #7fb3c0;
+    --mark: #ff7a85;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.55 var(--sans);
+    padding-block: 40px 80px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main {
+    max-width: 1180px;
+    margin-inline: auto;
+    display: grid;
+    gap: 56px;
+  }
+  .col {
+    max-width: 68ch;
+    display: grid;
+    gap: 14px;
+  }
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    line-height: 1.08;
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+  h1 {
+    font-size: clamp(2.2rem, 1.5rem + 3vw, 3.6rem);
+  }
+  h2 {
+    font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.2rem);
+  }
+  h3 {
+    font-size: 1.15rem;
+    letter-spacing: 0;
+  }
+  p,
+  ul,
+  ol {
+    margin: 0;
+  }
+  ul,
+  ol {
+    padding-left: 1.2em;
+    display: grid;
+    gap: 6px;
+  }
+  a {
+    color: var(--moss);
+  }
+  a:focus-visible {
+    outline: 2px solid var(--moss);
+    outline-offset: 3px;
+  }
+  .label {
+    font: 700 12px/1.3 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .aside {
+    font: italic 400 1.1rem/1.45 var(--serif);
+    color: var(--muted);
+  }
+  .status {
+    display: inline-block;
+    justify-self: start;
+    border: 1.5px solid var(--mark);
+    color: var(--mark);
+    padding: 6px 10px;
+    font: 700 12px/1.2 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    rotate: -1.5deg;
+  }
+  section {
+    display: grid;
+    gap: 22px;
+  }
+  section + section {
+    border-top: 1px solid var(--rule);
+    padding-top: 40px;
+  }
+  .scroll {
+    overflow-x: auto;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  th,
+  td {
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 14px 10px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font: 700 12px/1.3 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  td:first-child {
+    white-space: nowrap;
+  }
+  .p0 {
+    color: var(--mark);
+    font-weight: 700;
+  }
+  code {
+    font: 400 0.92em var(--mono);
+  }
+  /* A comparison strip: frames at their own widths, one row, scrolls alone. */
+  .strip {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding: 4px 2px 14px;
+  }
+  figure {
+    margin: 0;
+    flex: none;
+    display: grid;
+    gap: 8px;
+  }
+  figure a {
+    display: block;
+    max-height: 620px;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  figure img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+  figure.w390 {
+    width: 215px;
+  }
+  figure.w768 {
+    width: 330px;
+  }
+  figure.w1024 {
+    width: 400px;
+  }
+  figure.w1440 {
+    width: 460px;
+  }
+  figcaption {
+    font: 400 12.5px/1.35 var(--mono);
+    color: var(--muted);
+  }
+  figcaption b {
+    color: var(--ink);
+  }
+  figure.new a {
+    border: 2px solid var(--pin);
+  }
+  figure.new figcaption b {
+    color: var(--pin);
+  }
+  .pins {
+    list-style: none;
+    padding: 0;
+    counter-reset: pin;
+    max-width: 78ch;
+  }
+  .pins li {
+    counter-increment: pin;
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .pins li::before {
+    content: counter(pin);
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--pin);
+    color: var(--bg);
+    font: 700 12px/1 var(--mono);
+    margin-top: 1px;
+  }
+  .ask {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 22px;
+    display: grid;
+    gap: 16px;
+    max-width: 82ch;
+  }
+  .ask ol {
+    gap: 14px;
+  }
+  .ask strong {
+    display: block;
+  }
+  .two {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 24px 40px;
+  }
+</style>
+
+<main>
+  <header class="col">
+    <p class="label">Portfolio · design/round-25-responsive/v1</p>
+    <h1>Round 25 boards</h1>
+    <p class="aside">
+      An audit of every section at nine widths, the responsive system written down, and boards for
+      the two bands that were never designed: tablet and laptop.
+    </p>
+    <span class="status">Awaiting your review · no site code changed</span>
+    <p>
+      Phones and 1440 are in good shape and stay as they are. The work is in between, plus one real
+      crop at 1280 and a form that is cramped almost everywhere. Blue-ringed frames are proposals;
+      everything else is the site as built today. Click any frame for full size.
+    </p>
+  </header>
+
+  <section>
+    <div class="col">
+      <p class="label">Audit</p>
+      <h2>What is wrong, in order</h2>
+      <p>
+        36 findings in <code>design/round-25-responsive/audit.md</code>, each with its cause. These
+        are the ones that shaped the boards.
+      </p>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Where</th>
+            <th>Widths</th>
+            <th>What</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="p0">P0</td>
+            <td>Journey</td>
+            <td>1280 – ~1400</td>
+            <td>The board is wider than the window. The lantern is cut in half, the swing's caption reads "…hi, in love".</td>
+          </tr>
+          <tr>
+            <td class="p0">P0</td>
+            <td>Header on /resume</td>
+            <td>all</td>
+            <td>The TL tag and "Let's talk" link to bare <code>#about</code> / <code>#contact</code> and do nothing there.</td>
+          </tr>
+          <tr>
+            <td>P1</td>
+            <td>Contact form</td>
+            <td>390 – 1920</td>
+            <td>Email and phone sit side by side at 100 – 150px each. A typed address does not fit, even at 1920.</td>
+          </tr>
+          <tr>
+            <td>P1</td>
+            <td>Diary</td>
+            <td>all, worst on phones</td>
+            <td>Every page is as tall as the tallest. Page 3 on a phone has ~580px of blank paper before its sticky note.</td>
+          </tr>
+          <tr>
+            <td>P1</td>
+            <td>Journey</td>
+            <td>640 – 1279</td>
+            <td>The phone zigzag, stretched: 45% of the width empty at 1024, and 2.7 screens tall.</td>
+          </tr>
+          <tr>
+            <td>P1</td>
+            <td>Hero</td>
+            <td>640 – 1023</td>
+            <td>Under the headline, a 360px phone column adrift in the middle; 1700px tall.</td>
+          </tr>
+          <tr>
+            <td>P1</td>
+            <td>Contact</td>
+            <td>1024 – 1279</td>
+            <td>Postcard and card squeezed side by side; the form column is ~220px.</td>
+          </tr>
+          <tr>
+            <td>P1</td>
+            <td>Diary</td>
+            <td>1024 – 1279</td>
+            <td>One 920px page with an ~800px text measure, where two 450px pages fit.</td>
+          </tr>
+          <tr>
+            <td>P1</td>
+            <td>Ask</td>
+            <td>390; 1024+</td>
+            <td>On a phone the window shows ~130px of answer. On desktop the strip is as big as the form and mostly empty.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="strip">
+      <figure class="w1440">
+        <a href="previews/built/tree-1280.jpg"><img src="previews/built/tree-1280.jpg" alt="Journey at 1280: the lantern and the swing caption are cut off at the left edge" /></a>
+        <figcaption><b>Journey, 1280.</b> Lantern and caption cropped at the left.</figcaption>
+      </figure>
+      <figure class="w390">
+        <a href="previews/built/state-diary-next-390.jpg"><img src="previews/built/state-diary-next-390.jpg" alt="Diary page 3 at 390: a long run of blank paper between the chart and the sticky note" /></a>
+        <figcaption><b>Diary p. 3, 390.</b> Blank paper to match the tallest page.</figcaption>
+      </figure>
+      <figure class="w1024">
+        <a href="previews/built/contact-1024.jpg"><img src="previews/built/contact-1024.jpg" alt="Contact at 1024: a narrow form column with two short fields side by side" /></a>
+        <figcaption><b>Contact, 1024.</b> Two ~100px fields; a 220px form column.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">System</p>
+      <h2>The responsive system, written down</h2>
+      <p>
+        Colour, type steps and motion were already tokens. Breakpoints, type roles, spacing, shape,
+        elevation and layers were not, so each section grew its own. The full text is
+        <code>design/system/README.md</code>; the rules that change code are these.
+      </p>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Band</th>
+            <th>Width</th>
+            <th>Checked at</th>
+            <th>Composition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Phone</td>
+            <td>under 640</td>
+            <td>320, 375, 390, 430</td>
+            <td>One column. The line hangs down a bamboo pole; one Diary page; the postcard's sides stack.</td>
+          </tr>
+          <tr>
+            <td>Tablet</td>
+            <td>640 – 1023</td>
+            <td>768</td>
+            <td>Still touch and the Menu tag, but two columns wherever an object has two sides.</td>
+          </tr>
+          <tr>
+            <td>Laptop</td>
+            <td>1024 – 1279</td>
+            <td>1024</td>
+            <td>The desktop header and the horizontal line; objects at their compact size; the Diary opens to a spread.</td>
+          </tr>
+          <tr>
+            <td>Desktop</td>
+            <td>1280 and up</td>
+            <td>1280, 1440, 1920</td>
+            <td>The boards. Content stops growing at 1440; sky and ground carry on.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two">
+      <ul>
+        <li><strong>Three breakpoints, in rem, everywhere:</strong> 40, 64, 80. Today there are about 13 values in three unit styles.</li>
+        <li><strong>An object sizes to its own box.</strong> The postcard, the card, the form pair and the Diary page switch on container width, not the window.</li>
+        <li><strong>Nine type roles,</strong> each one step of the existing scale. The 23 ad hoc pixel sizes map onto them.</li>
+      </ul>
+      <ul>
+        <li><strong>12px floor.</strong> Today 9, 10, 10.5, 11 and 11.5px exist.</li>
+        <li><strong>Named shape, elevation and layers:</strong> three radii, three paper shadows, four z-layers, from the 14 / 16 / 10 values in use.</li>
+        <li><strong>One capture command,</strong> <code>pnpm shots</code>: nine widths, both themes, key states, with a before/after diff.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">Board 1</p>
+      <h2>Hero: the line goes across from 640</h2>
+      <p>Phone and desktop stay. The tablet gets the desktop's idea at its own size.</p>
+    </div>
+    <ol class="pins">
+      <li>The clothesline runs across with all four tags on it, as it does on a desktop, instead of hanging down a pole in a 360px column.</li>
+      <li>The headline, lede and both actions sit beside the field tag, so the first screen of an iPad holds the whole hero (about 900px tall, from 1700).</li>
+      <li>The field tag hangs lower from the same line on a longer string, behind the last tag.</li>
+      <li>The paddy is the wide board from 640, not the phone's strip.</li>
+    </ol>
+    <div class="strip">
+      <figure class="w390">
+        <a href="previews/built/about-390.jpg"><img src="previews/built/about-390.jpg" alt="Hero at 390 as built" /></a>
+        <figcaption><b>390, stays.</b></figcaption>
+      </figure>
+      <figure class="w768">
+        <a href="previews/built/about-768.jpg"><img src="previews/built/about-768.jpg" alt="Hero at 768 as built: a narrow column under a wide headline" /></a>
+        <figcaption><b>768, as built.</b></figcaption>
+      </figure>
+      <figure class="w768 new">
+        <a href="previews/hero-768.png"><img src="previews/hero-768.png" alt="Hero at 768 proposed: four tags across, headline beside the field tag" /></a>
+        <figcaption><b>768, proposed.</b></figcaption>
+      </figure>
+      <figure class="w1024">
+        <a href="previews/built/about-1024.jpg"><img src="previews/built/about-1024.jpg" alt="Hero at 1024 as built" /></a>
+        <figcaption><b>1024, stays</b> with small fixes: the field tag narrows to 320 – 380px, the pine and nón lá come inside the edge.</figcaption>
+      </figure>
+      <figure class="w1440">
+        <a href="previews/built/about-1440.jpg"><img src="previews/built/about-1440.jpg" alt="Hero at 1440 as built" /></a>
+        <figcaption><b>1440, stays.</b></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">Board 2</p>
+      <h2>Journey: boughs in pairs, and a board that fits its window</h2>
+      <p>The same oak and the same six tags. Two changes, one per problem.</p>
+    </div>
+    <ol class="pins">
+      <li>From 640 to 1279 the title, subtitle and "Watch it grow" sit beside the crown instead of above 230 – 330px of bare sky.</li>
+      <li>Boughs leave the trunk in pairs, a tag each side at up to 340px (from 236px). The section is about 1400px tall at 1024, from 2100.</li>
+      <li>Bé Nhi's swing takes the last right-hand bough, level with the last tag.</li>
+      <li>From 1280 the board is laid out in board units (1/1440 of its own width) instead of fixed pixels, so it fits at 1280 and grows to about 1680 at 1920. Type stays in rem. "Watch it grow" moves under the subtitle at every width.</li>
+    </ol>
+    <div class="strip">
+      <figure class="w768">
+        <a href="previews/built/tree-768.jpg"><img src="previews/built/tree-768.jpg" alt="Journey at 768 as built" /></a>
+        <figcaption><b>768, as built.</b></figcaption>
+      </figure>
+      <figure class="w768 new">
+        <a href="previews/journey-768.png"><img src="previews/journey-768.png" alt="Journey at 768 proposed: tags in pairs either side of the trunk" /></a>
+        <figcaption><b>768, proposed.</b></figcaption>
+      </figure>
+      <figure class="w1024">
+        <a href="previews/built/tree-1024.jpg"><img src="previews/built/tree-1024.jpg" alt="Journey at 1024 as built: a narrow zigzag with empty sides" /></a>
+        <figcaption><b>1024, as built.</b></figcaption>
+      </figure>
+      <figure class="w1024 new">
+        <a href="previews/journey-1024.png"><img src="previews/journey-1024.png" alt="Journey at 1024 proposed" /></a>
+        <figcaption><b>1024, proposed.</b></figcaption>
+      </figure>
+      <figure class="w1440">
+        <a href="previews/built/tree-1440.jpg"><img src="previews/built/tree-1440.jpg" alt="Journey at 1440 as built" /></a>
+        <figcaption><b>1440, stays.</b> At 1280 and 1920 this same board, scaled to fit.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">Board 3</p>
+      <h2>Diary: a page as tall as what is on it, and the spread from 1024</h2>
+    </div>
+    <ol class="pins">
+      <li>Where one page shows (under 1024), the page is as tall as its own content, with a floor of about one screen. The book changes height after a turn lands.</li>
+      <li>The sticky note follows the content and the arrows follow the note, so they are never 400 – 700px below what you were reading.</li>
+      <li>At 320 and 375 the tab counts drop out before "Milestones 9" wraps onto the board.</li>
+      <li>The two-page spread starts at 1024 (two ~450px pages) instead of 1280.</li>
+      <li>Page 1 picks its arrangement from the page's own width, so 1280 stops showing the phone arrangement on the left page. Contents rows are 44px tall.</li>
+    </ol>
+    <div class="strip">
+      <figure class="w390">
+        <a href="previews/built/state-diary-next-390.jpg"><img src="previews/built/state-diary-next-390.jpg" alt="Diary page 3 at 390 as built" /></a>
+        <figcaption><b>390, p. 3, as built.</b> 1538px.</figcaption>
+      </figure>
+      <figure class="w390 new">
+        <a href="previews/diary-390.png"><img src="previews/diary-390.png" alt="Diary page 3 at 390 proposed: the page ends after its sticky note" /></a>
+        <figcaption><b>390, p. 3, proposed.</b></figcaption>
+      </figure>
+      <figure class="w1024">
+        <a href="previews/built/record-1024.jpg"><img src="previews/built/record-1024.jpg" alt="Diary at 1024 as built: one wide page" /></a>
+        <figcaption><b>1024, as built.</b> One page.</figcaption>
+      </figure>
+      <figure class="w1024 new">
+        <a href="previews/diary-1024.png"><img src="previews/diary-1024.png" alt="Diary at 1024 proposed: a two-page spread" /></a>
+        <figcaption><b>1024, proposed.</b> The spread.</figcaption>
+      </figure>
+      <figure class="w1440">
+        <a href="previews/built/record-1440.jpg"><img src="previews/built/record-1440.jpg" alt="Diary at 1440 as built" /></a>
+        <figcaption><b>1440, stays.</b></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">Board 4</p>
+      <h2>Contact: two whole lines for email or phone, and a card that turns</h2>
+    </div>
+    <ol class="pins">
+      <li>Email and phone are two full-width lines tied by one bracket down the side, at every width. One star, one note, as now.</li>
+      <li>The business card turns landscape when it has 36rem to itself (a tablet), and stays portrait beside the postcard.</li>
+      <li>The postcard's sides sit side by side only from 40rem of its own width (today 32rem). On a laptop that makes it picture over address, with a 520px form, beside the card.</li>
+      <li>The Ask is as tall as its promise until the first question, then opens to its fixed window. On a phone that window is up to 60% of the screen instead of 17rem.</li>
+    </ol>
+    <div class="strip">
+      <figure class="w390 new">
+        <a href="previews/contact-390.png"><img src="previews/contact-390.png" alt="Contact at 390 proposed" /></a>
+        <figcaption><b>390, proposed.</b> Only the field pair and the Ask change.</figcaption>
+      </figure>
+      <figure class="w768">
+        <a href="previews/built/contact-768.jpg"><img src="previews/built/contact-768.jpg" alt="Contact at 768 as built" /></a>
+        <figcaption><b>768, as built.</b></figcaption>
+      </figure>
+      <figure class="w768 new">
+        <a href="previews/contact-768.png"><img src="previews/contact-768.png" alt="Contact at 768 proposed: a landscape business card" /></a>
+        <figcaption><b>768, proposed.</b></figcaption>
+      </figure>
+      <figure class="w1024">
+        <a href="previews/built/contact-1024.jpg"><img src="previews/built/contact-1024.jpg" alt="Contact at 1024 as built" /></a>
+        <figcaption><b>1024, as built.</b></figcaption>
+      </figure>
+      <figure class="w1024 new">
+        <a href="previews/contact-1024.png"><img src="previews/contact-1024.png" alt="Contact at 1024 proposed: postcard stacked beside the card" /></a>
+        <figcaption><b>1024, proposed.</b></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">No board needed</p>
+      <h2>Smaller fixes</h2>
+    </div>
+    <div class="two">
+      <ul>
+        <li>The header's TL tag and stamp link to <code>/#about</code> and <code>/#contact</code>, so they work on /resume.</li>
+        <li>The phone menu's page ends with "Let's talk" and Résumé instead of 400px of blank lines (the stamp is hidden under 640).</li>
+        <li>/resume on a phone shows the first page as a picture with Open and Download, not an iframe.</li>
+        <li>Phones: the Journey's trunk comes 16px in from the right edge; the bamboo pole stands in a tuft of grass instead of ending in the air.</li>
+      </ul>
+      <ul>
+        <li>All text to the 12px floor; section titles through one role.</li>
+        <li>The postmark's lettering fits its ring. A question already asked leaves the suggestions.</li>
+        <li>Tests: an e2e project at 1280, 430 and 1920 in the overflow spec, and a check for clipped content (today's overflow check skips anything under a clipping ancestor, which is how the 1280 crop passes).</li>
+        <li>Dead code out: <code>FilterGroup</code>, <code>--code-scrim</code>, the unused rail and eyebrow paths.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">Your call</p>
+      <h2>Seven decisions before any code</h2>
+      <p>Each has my recommendation first. A plain "go with your picks" is a complete answer.</p>
+    </div>
+    <div class="ask">
+      <ol>
+        <li>
+          <strong>Ask: short until the first question?</strong>
+          Round 24 fixed the window at one height. Recommended: yes, it opens on the first question. The alternative keeps the fixed height and only rebalances the two sides.
+        </li>
+        <li>
+          <strong>Diary: may the book change height between pages on a phone?</strong>
+          Recommended: yes, with a one-screen floor. The alternative keeps one height and I only trim the tallest page.
+        </li>
+        <li>
+          <strong>Diary: spread from 1024?</strong>
+          Recommended: yes. It means the 3D leaf turn runs on laptops too, and <code>record.spec.ts</code> moves with it.
+        </li>
+        <li>
+          <strong>Journey: a board that scales from 1280?</strong>
+          Recommended: yes. Tags get about 11% narrower at 1280 (text wraps a little more) and the board reaches about 1680 at 1920.
+        </li>
+        <li>
+          <strong>Contact on a laptop: postcard stacked beside the card?</strong>
+          Recommended: yes, as drawn. The alternative carries the tablet arrangement (wide postcard, landscape card under it) up to 1279.
+        </li>
+        <li>
+          <strong>Cats on touch.</strong>
+          They rest on entry text at 390 and 430 but never on a control. Recommended: leave them. The alternative is cats that peek over the bottom edge until tapped.
+        </li>
+        <li>
+          <strong>The oak at night under 1024.</strong>
+          The trunk nearly disappears into the sky. It is meant to be a silhouette. Recommended: leave it unless it bothers you.
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <p class="label">After approval</p>
+      <h2>How it lands</h2>
+      <ol>
+        <li><strong>Foundations with no visual change:</strong> the tokens, three breakpoints, type roles. Proven by <code>pnpm shots --diff</code> against today's capture.</li>
+        <li><strong>The fixes that need no new layout:</strong> the /resume links, the field pair, the 12px floor.</li>
+        <li><strong>The middle bands,</strong> one section per commit, each compared with its board at nine widths in both themes.</li>
+        <li><strong>Tests and docs:</strong> the new e2e widths, the clipped-content check, and "boards before code" in CLAUDE.md.</li>
+      </ol>
+      <p class="aside">
+        Not checked: real devices, Safari and Firefox. Everything here is Chromium emulation.
+      </p>
+    </div>
+  </section>
+</main>

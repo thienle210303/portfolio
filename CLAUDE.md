@@ -392,6 +392,30 @@ that way: when a library function needs something a section owns, the thing
 moves into `lib/`. No lint rule or test fences this boundary, so grep for
 `@/sections` under `src/lib/` before adding an import.
 
+## Design before code
+
+Standing rules (round 25, Thien's). The workflow and the workspace are in
+[design/README.md](design/README.md); the responsive system (four bands, three
+breakpoints in rem, type roles, spacing, shape, layers) is
+[design/system/README.md](design/system/README.md).
+
+1. **Design before code.** A significant UI feature or redesign starts with
+   desktop and phone boards in `design/round-NN-…/vN/boards/`, and Thien
+   approves them before anything under `src/` changes.
+2. **Mobile is not a smaller desktop.** Each band gets its own composition.
+3. **One system.** Reuse the type roles, the spacing steps, the aliases and
+   the existing components; an object sizes to its own box (a container
+   query), not to the window.
+4. **Visual validation is mandatory.** UI work is not done until
+   `pnpm shots` has been run and the screenshots looked at, at the nine widths
+   and in both themes.
+5. **No premature implementation.** Layout and interaction are settled on the
+   boards.
+6. **No unnecessary rewrites.** Small, reusable, incremental.
+7. **Keep the boards current.** If the build differs, the board is copied to
+   `vN+1` and redrawn; a changed rule changes `design/system/README.md`.
+8. **Think about the whole page,** not the one component.
+
 ## Before calling anything done
 
 Run `pnpm verify` (typecheck → lint → contrast → test → build). For UI changes,
@@ -399,6 +423,11 @@ also run `pnpm dev` and check the change in a real browser **in both themes**,
 then run `pnpm test:e2e` (Playwright + axe-core) — it audits both themes and
 all three tones, and checks keyboard nav, focus restoration, reduced motion,
 and horizontal overflow at 320–1440px.
+
+For any UI change, also run `pnpm build && pnpm shots <label>` and look at the
+contact sheet in `design/.shots/<label>/index.html` (nine widths, day and
+night, key states) against the board; `pnpm shots --diff <before> <after>`
+for a change meant to move nothing.
 
 Also run `pnpm perf` against a production build for any change that could add
 JavaScript, and record the row in
