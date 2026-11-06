@@ -325,7 +325,7 @@ export function RestingBox({ occupied, onWake, containerRef, wakeRef }: RestingB
             to say it had to go, because an opaque cat asleep on an opaque tray
             is a cat-shaped hole in the tray. */}
         {/* Its own paper, so the label reads the same over whatever scrolls behind the fixed box. */}
-        <span className="bg-surface px-1 pt-1 font-mono text-[0.62rem] uppercase tracking-[0.14em]">Wake</span>
+        <span className="bg-surface px-1 pt-1 font-mono text-[length:var(--step--2)] uppercase tracking-[0.14em]">Wake</span>
       </button>
     </div>
   );

@@ -5424,7 +5424,7 @@ export function Companion({ facts }: CompanionProps) {
                 paragraph still holds the meow and nothing else. Ink is
                 `currentColor`, so `text-fg` above is the whole of its colour. */}
             {duetBeat.icon ? <CatGlyph name={duetBeat.icon} /> : null}
-            <p className="whitespace-nowrap font-mono text-[0.62rem] uppercase tracking-[0.1em] text-fg-subtle">
+            <p className="whitespace-nowrap font-mono text-[length:var(--step--2)] uppercase tracking-[0.1em] text-fg-subtle">
               {duetBeat.meow}
             </p>
           </div>
@@ -5453,7 +5453,7 @@ export function Companion({ facts }: CompanionProps) {
             aria-hidden="true"
             className="pointer-events-none absolute left-0 top-0 w-max max-w-[16rem] border border-rule bg-surface px-2 py-1"
           >
-            <p className="text-[0.68rem] italic leading-snug text-fg-muted">
+            <p className="text-[length:var(--step--2)] italic leading-snug text-fg-muted">
               {duetBeat.sub}
               {duetBeat.hintMore ? <span className="text-fg-subtle"> …more?</span> : null}
             </p>
