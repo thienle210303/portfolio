@@ -7,21 +7,14 @@ import { cn } from "@/lib/cn";
 import type { Chapter, ChapterId } from "@/lib/hero";
 
 /**
- * How far below the clothesline's top (Scenery.tsx) each tag's string meets
- * the curve. The line stretches with the section, so the sag under a tag
- * depends on the width: nearly flat across 1024–1279 (one value each), and
- * linear in the section's width (`cqw`) from 1280. Past 1920 the line stops
- * growing and stays centred, like the content, so the width is capped there.
- * Fitted against the curve: every string meets it within 2px at any width.
- * Hero.tsx does the same for the field tag.
+ * Each tag tilts a little about the point where its string meets the line,
+ * the opposite way to its neighbour. Where that point is, and how long the
+ * string is, come from the line's one description (line.ts) below 1024 and
+ * from the scenery's curve from there (`.hero-yard` in globals.css); nothing
+ * here is fitted to a width. Hero.tsx works the first out on the server and
+ * hands each tag its custom properties (`hang`) and the class that reads
+ * them (`hung`), so none of that arithmetic ships to the browser.
  */
-const DROPS = ["28.8px", "52.4px", "64.8px", "65.5px"];
-const DROPS_XL = [
-  "calc(31.9px + (min(100cqw, 1920px) - 1280px) * 0.0345)",
-  "calc(55.7px + (min(100cqw, 1920px) - 1280px) * 0.0115)",
-  "66.2px",
-  "63.4px",
-];
 const TILTS = ["-3deg", "2deg", "-1.5deg", "2.5deg"];
 
 const PAPER = "min-h-[190px] flex-1 px-3.5 pt-8 pb-3";
@@ -34,8 +27,10 @@ const PAPER = "min-h-[190px] flex-1 px-3.5 pt-8 pb-3";
  */
 export default function ChapterTags({
   chapters,
+  hung,
 }: {
-  readonly chapters: readonly (Chapter & { readonly href: string })[];
+  readonly chapters: readonly (Chapter & { readonly href: string; readonly hang: Readonly<Record<string, string>> })[];
+  readonly hung: string;
 }) {
   const [open, setOpen] = useState<ChapterId | null>(null);
   const base = useId();
@@ -56,26 +51,20 @@ export default function ChapterTags({
   }
 
   return (
-    <ul role="list" data-hero-step="line" className="flex flex-col lg:flex-row lg:gap-3 xl:gap-[38px]">
-      {chapters.map(({ id, year, place, line, drawing, href }, i) => {
+    <ul role="list" data-hero-step="line">
+      {chapters.map(({ id, year, place, line, drawing, href, hang }, i) => {
         const isOpen = open === id;
         const backId = `${base}-${id}-back`;
         return (
           <li
             key={id}
-            style={{ "--drop": DROPS[i], "--drop-xl": DROPS_XL[i], "--tilt": TILTS[i] } as CSSProperties}
+            // Its place on the line, its string and its tilt; `--i` is its
+            // place in the row from 1024 (`.hero-yard` in globals.css).
+            style={{ ...hang, "--tilt": TILTS[i], "--i": i } as CSSProperties}
             onKeyDown={(e) => {
               if (e.key === "Escape" && isOpen) turn(null);
             }}
-            className={cn(
-              "relative rotate-(--tilt) pt-3.5 lg:max-w-[152px] lg:min-w-0 lg:flex-1 lg:origin-top lg:translate-y-(--drop) xl:translate-y-(--drop-xl)",
-              // Below 1024 the tags hang down the line, left, right, left, right,
-              // 18px either side of it, each overlapping the one before; their
-              // strings and clothespins are globals.css's.
-              "max-lg:w-[min(160px,calc(50%-18px))] max-lg:odd:mr-[calc(50%+18px)] max-lg:odd:ml-auto max-lg:even:ml-[calc(50%+18px)] max-lg:not-first:-mt-19",
-              // At 1024+ the tag's own string, from the clothesline down to the hole.
-              "lg:after:absolute lg:after:top-0 lg:after:left-1/2 lg:after:z-10 lg:after:h-6.5 lg:after:w-[1.3px] lg:after:-translate-x-1/2 lg:after:bg-(--twine)",
-            )}
+            className={hung}
           >
             <div className="perspective-distant">
               <div

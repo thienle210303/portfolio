@@ -9,8 +9,9 @@ const HREFS = ["#tree", "#journey-entry-eastside-high", "#journey-entry-usc-degr
 const NAMES = [/2003\s+Kiên Giang/, /Dec 2018\s+Taylors/, /2021\s+USC/, /2025\s+DoorDash/];
 
 function setup() {
-  const chapters = buildChapters().map((c, i) => ({ ...c, href: HREFS[i] }));
-  const view = render(<ChapterTags chapters={chapters} />);
+  // `hang` and `hung` are the tag's place on the line, which Hero.tsx works out.
+  const chapters = buildChapters().map((c, i) => ({ ...c, href: HREFS[i], hang: { "--y-phone": `${60 + i}px` } }));
+  const view = render(<ChapterTags chapters={chapters} hung="hung" />);
   const items = Array.from(view.container.querySelectorAll<HTMLElement>("li"));
   const tag = (i: number) => {
     const li = items[i];

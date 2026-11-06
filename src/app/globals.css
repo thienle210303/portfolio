@@ -750,56 +750,284 @@
     --cut: 36px;
   }
 
-  /* Below 1024 the hero's chapter tags hang off the line down the middle
-     (Hero.tsx draws it, 18px from each tag): a short string from the line to
-     a clothespin 18px in from the tag's near corner. Each tag tilts about the
-     point where its string meets the line, so the tilt never parts them. */
+  /* The hero's yard (round 25). One grid (`.hero-yard`, Hero.tsx) holds my
+     words, the hint, the four chapter tags and my field tag, in that order in
+     the DOM at every width; each band lays them out its own way.
+
+     The rule the yard draws: a line is strung between two things that stand
+     in the ground. Nothing floats, nothing is cut off in mid-page. Hung
+     things look hung (a sagging line, strings of different lengths, a tilt
+     about the point where the string meets the line), but the reading order,
+     the margins and the ground band are fixed.
+
+     Below 1024 the grid runs pole to pole (`--reach` into each gutter), every
+     hung thing sits in the middle of its columns, and `--y` is where the line
+     passes that middle, worked out from the line's one description
+     (src/sections/Hero/line.ts) and never fitted per width. The lines, the
+     poles and the hat (Yard.tsx) are absolutely placed in the grid rows they
+     belong to, so each pass starts at the top of the row it carries. The
+     poles reach down past the grid into the section's bottom padding
+     (`--ground`), where the ground is drawn, and stand `--stand` above the
+     section's foot. */
+  .hero-yard {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+  }
+  .hero-yard :is(li, [data-yard="field"]) {
+    --hole: 12px;
+    position: relative;
+    transform-origin: top;
+    rotate: var(--tilt, 0deg);
+  }
+  /* The string, from the line down to the hole in the paper. */
+  .hero-yard :is(li, [data-yard="field"])::after {
+    content: "";
+    position: absolute;
+    z-index: 10;
+    top: 0;
+    left: 50%;
+    width: 1.3px;
+    height: calc(var(--string) + var(--hole));
+    translate: -50% 0;
+    background: var(--twine);
+    pointer-events: none;
+  }
   @media (width < 64rem) {
-    [data-hero-step="line"] > li {
-      transform-origin: calc(100% + 18px) 4px;
+    .hero-yard {
+      --stand: 22px;
+      margin-inline: calc(-1 * var(--reach)) calc(-1 * var(--reach-end, var(--reach)));
     }
-    [data-hero-step="line"] > li:nth-child(even) {
-      transform-origin: -18px 4px;
+    .hero-yard > [data-hero-step="line"] {
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-column: 1 / -1;
     }
-    [data-hero-step="line"] > li::before,
-    [data-hero-step="line"] > li::after {
-      content: "";
+    .hero-yard :is(li, [data-yard="field"]) {
+      justify-self: center;
+      margin-top: var(--y);
+      padding-top: var(--string);
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft], [data-yard-pass], [data-scenery="non-la"]) {
       position: absolute;
-      pointer-events: none;
+      z-index: -1;
+      grid-column: 1 / -1;
     }
-    [data-hero-step="line"] > li::before {
-      top: 4px;
-      right: -18px;
-      width: 36px;
-      height: 20px;
-      background: linear-gradient(
-        to bottom right,
-        transparent calc(50% - 0.65px),
-        var(--twine) 0 calc(50% + 0.65px),
-        transparent 0
-      );
+    .hero-yard [data-yard-pass] {
+      top: 0;
+      left: 0;
+      width: 100%;
     }
-    [data-hero-step="line"] > li:nth-child(even)::before {
-      right: auto;
-      left: -18px;
-      background: linear-gradient(
-        to top right,
-        transparent calc(50% - 0.65px),
-        var(--twine) 0 calc(50% + 0.65px),
-        transparent 0
-      );
+    .hero-yard [data-yard-pole] {
+      bottom: calc(var(--stand) - var(--ground));
     }
-    [data-hero-step="line"] > li::after {
-      z-index: 10;
-      top: 12px;
-      right: 14px;
-      width: 8px;
-      height: 22px;
-      background: url(/scenery/clothespin.svg) center / 100% 100% no-repeat;
+    .hero-yard [data-yard-tuft] {
+      bottom: calc(var(--stand) - var(--ground) - 4px * var(--k));
     }
-    [data-hero-step="line"] > li:nth-child(even)::after {
-      right: auto;
-      left: 14px;
+  }
+  /* Phone: my words, the hint, then the yard. Two columns between two bamboo
+     poles 14px in from the window; the line crosses three times. */
+  @media (width < 40rem) {
+    .hero-yard {
+      --reach: 6px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .hero-yard > :is([data-yard="words"], [data-yard="hint"]) {
+      grid-column: 1 / -1;
+      margin-inline: var(--reach);
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-row: 1;
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-row: 2;
+      margin-block: 1.25rem 0.5rem;
+    }
+    .hero-yard > [data-hero-step="line"] {
+      grid-row: 3 / span 2;
+      grid-template-rows: subgrid;
+    }
+    .hero-yard li {
+      width: min(100% - 24px, 164px);
+    }
+    .hero-yard > [data-yard="field"] {
+      grid-row: 5;
+      grid-column: 1 / -1;
+      width: min(100% - 28px - (100cqw - 320px) * 0.16, 380px);
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft]) {
+      grid-row: 3 / 6;
+    }
+    .hero-yard [data-yard-pass="1"] {
+      grid-row: 3;
+    }
+    .hero-yard [data-yard-pass="2"] {
+      grid-row: 4;
+    }
+    .hero-yard [data-yard-pass="3"] {
+      grid-row: 5;
+    }
+    .hero-yard [data-scenery="non-la"] {
+      grid-row: 3;
+      top: calc(var(--tie-l) - 3px);
+      left: -11px;
+      width: 56px;
+      height: 61px;
+    }
+  }
+  /* Tablet: bamboo at the left, the pine at the right. Twenty columns: pass 1
+     carries the four tags, five columns each; pass 2 comes back lower with my
+     field tag in the last nine, and my words sit under it in the first
+     eleven, clear of the bamboo's sprigs. */
+  @media (width >= 40rem) and (width < 64rem) {
+    .hero-yard {
+      --reach: 12px;
+      --reach-end: 0px;
+      --words-in: 62px;
+      grid-template-columns: repeat(20, minmax(0, 1fr));
+      grid-template-rows: auto auto 1fr;
+    }
+    .hero-yard > [data-hero-step="line"] {
+      grid-row: 1;
+    }
+    .hero-yard li {
+      grid-column: span 5;
+      width: min(100% - 20px, 160px);
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-row: 2;
+      grid-column: 1 / span 11;
+      margin: var(--hint-y) 1.25rem 0 var(--words-in);
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-row: 3;
+      grid-column: 1 / span 11;
+      margin: 0.75rem 1.25rem 0 var(--words-in);
+      container-type: inline-size;
+    }
+    .hero-yard > [data-yard="field"] {
+      grid-row: 2 / span 2;
+      grid-column: 12 / span 9;
+      align-self: start;
+      width: min(100% - 8px, 380px);
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft]) {
+      grid-row: 1 / 4;
+    }
+    .hero-yard [data-yard-pass="1"] {
+      grid-row: 1;
+    }
+    .hero-yard [data-yard-pass="2"] {
+      grid-row: 2;
+    }
+    .hero-yard [data-scenery="non-la"] {
+      grid-row: 1;
+      top: calc(var(--tie-l-sm) - 4px);
+      left: -19px;
+      width: 67px;
+      height: 72px;
+    }
+    /* The sun or moon stands over the first pass's sag, right of its middle
+       (Scenery.tsx's sky reads this; its disc is at 880, 120 of 1440). */
+    [data-scenery="hero"] {
+      --sky-at: right -330px top -66px;
+    }
+  }
+  /* A tablet-wide window too short to show the tags and my words at once (a
+     phone on its side): my words and the hint first, as on a phone, then the
+     same yard, so the headline and the primary action still make the first
+     screen. Only the rows change; the line and what hangs on it do not. */
+  @media (width >= 40rem) and (width < 64rem) and (height < 40rem) {
+    .hero-yard {
+      grid-template-rows: auto auto auto auto;
+    }
+    .hero-yard > :is([data-yard="words"], [data-yard="hint"]) {
+      grid-column: 1 / -1;
+      margin-inline: var(--reach) 0;
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-row: 1;
+      margin-top: 0;
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-row: 2;
+      margin-block: 1.25rem 0.5rem;
+    }
+    .hero-yard > [data-hero-step="line"],
+    .hero-yard [data-yard-pass="1"],
+    .hero-yard [data-scenery="non-la"] {
+      grid-row: 3;
+    }
+    .hero-yard > [data-yard="field"],
+    .hero-yard [data-yard-pass="2"] {
+      grid-row: 4;
+    }
+    .hero-yard :is([data-yard-pole], [data-yard-tuft]) {
+      grid-row: 3 / 5;
+    }
+    [data-scenery="hero"] {
+      --sky-at: right -520px top -80px;
+    }
+  }
+  /* From 1024 the composition is the board's: the tags in a row on the
+     scenery's own line, the hint and my words under them, my field tag at
+     the line's right end, its right edge on the shell's (the header stamp's
+     edge). The line is drawn across the whole section (Scenery.tsx:
+     `M76 14Q703 126 1330 0` in a box 1440 units wide and 140px tall, at most
+     1920px wide and centred), so each string's length is worked out from
+     that curve: `--x` is the hung thing's middle in the section, `--t` how
+     far along the line that is (a length over a length, which CSS only gives
+     as the tangent of their angle), and the parabola at `--t` is its drop.
+     Nothing is fitted per width, so the strings meet the line whatever the
+     copy or the window does. The section is the container `cqw` measures. */
+  @media (width >= 64rem) {
+    .hero-yard {
+      --field-w: clamp(320px, 33cqw, 380px);
+      --tag-gap: 12px;
+      --col-gap: 1.5rem;
+      --shell: min(100cqw - 2 * var(--gutter), 1120px);
+      --shell-x: calc((100cqw - var(--shell)) / 2);
+      --tag-w: min(152px, (var(--shell) - var(--field-w) - var(--col-gap) - 3 * var(--tag-gap)) / 4);
+      --lw: min(100cqw, 1920px);
+      --line-x: calc((100cqw - var(--lw)) / 2 + var(--lw) * 0.052778);
+      --line-span: calc(var(--lw) * 0.870833);
+      grid-template-columns: minmax(0, 1fr) var(--field-w);
+      grid-template-rows: auto auto 1fr;
+      gap: 1rem var(--col-gap);
+    }
+    .hero-yard > [data-hero-step="line"] {
+      grid-area: 1 / 1;
+      display: flex;
+      gap: var(--tag-gap);
+      margin-top: var(--line-top);
+    }
+    .hero-yard > [data-yard="hint"] {
+      grid-area: 2 / 1;
+      margin-top: 60px;
+    }
+    .hero-yard > [data-yard="words"] {
+      grid-area: 3 / 1;
+    }
+    .hero-yard > [data-yard="field"] {
+      grid-area: 1 / 2 / span 3;
+      margin-top: var(--line-top);
+      --x: calc(var(--shell-x) + var(--shell) - var(--field-w) / 2);
+    }
+    .hero-yard li {
+      flex: none;
+      width: var(--tag-w);
+      --x: calc(var(--shell-x) + var(--i) * (var(--tag-w) + var(--tag-gap)) + var(--tag-w) / 2);
+    }
+    .hero-yard :is(li, [data-yard="field"]) {
+      --t: tan(atan2(calc(var(--x) - var(--line-x)), var(--line-span)));
+      padding-top: var(--string);
+      translate: 0 calc(14px - 14px * var(--t) + 238px * var(--t) * (1 - var(--t)));
+    }
+  }
+  @media (width >= 80rem) {
+    .hero-yard {
+      --tag-gap: 28px;
+      --col-gap: 3rem;
     }
   }
 
@@ -1516,7 +1744,7 @@
   /* layout, and a moved paper takes no room from its neighbours (no CLS).   */
   /* Each runs on the paper's view timeline as it comes into the window, so */
   /* scrolling back plays it backwards; the hero's line, on screen at load  */
-  /* from 1024, sways on the load clock instead. A view timeline belongs to */
+  /* from 640, sways on the load clock instead. A view timeline belongs to  */
   /* the nearest scroll container, which is why the hero and Contact clip   */
   /* (`overflow: clip`) rather than hide their overflow.                    */
   /*                                                                        */
@@ -1602,9 +1830,10 @@
   }
 
   @media screen and (prefers-reduced-motion: no-preference) {
-    /* From 1024 the line is on screen at load: each tag sways once, left to
-       right, while the line settles. */
-    @media (width >= 64rem) {
+    /* From 640 the tags' line is on screen at load (round 25: on a tablet it
+       is the top of the hero too): each tag sways once, left to right, while
+       the line settles. */
+    @media (width >= 40rem) {
       html[data-motion] [data-hero-step="line"] > li {
         animation: tag-sway 1100ms ease-in-out both;
         animation-delay: calc(140ms + var(--sway-i, 0) * 90ms);
@@ -1621,8 +1850,8 @@
     }
 
     @supports (animation-timeline: view()) {
-      /* Below 1024 the line hangs down the page: each tag sways as it comes up. */
-      @media (width < 64rem) {
+      /* On a phone the yard is below my words: each tag sways as it comes up. */
+      @media (width < 40rem) {
         [data-hero-step="line"] > li {
           animation: tag-sway linear both;
           animation-timeline: view();
