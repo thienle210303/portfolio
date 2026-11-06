@@ -7,8 +7,8 @@ themselves stay in [`src/app/globals.css`](../../src/app/globals.css);
 not repeated here: see [DESIGN.md](../../DESIGN.md) and
 [docs/contrast.md](../../docs/contrast.md).
 
-Each rule is marked **built** (true of the site today) or **round 25** (agreed
-on the boards, lands in Stage B). [`index.html`](index.html) renders the
+Rules marked **round 25** were agreed on the boards and are built as of
+2026-11-06, except where a line says **not yet**. [`index.html`](index.html) renders the
 specimen in both themes; [`states.html`](states.html) is the component-state
 catalogue.
 
@@ -19,17 +19,14 @@ board shows all four.
 
 | Band | Width | Breakpoint | Verified at | Composition |
 |---|---|---|---|---|
-| Phone | under 640 | — | 320, 375, 390, 430 | One column. The clothesline hangs down a bamboo pole, one Diary page, the postcard's sides stack. |
-| Tablet | 640 – 1023 | `sm` 40rem | 768 | Still touch, still the menu tag, but two columns where an object has two sides. |
-| Laptop | 1024 – 1279 | `lg` 64rem | 1024 | The desktop header and the horizontal clothesline; objects at their compact size. |
-| Desktop | 1280 and up | `xl` 80rem | 1280, 1440, 1920 | The boards: the oak as one board, the Diary as a spread. Content stops growing at 1440; the sky and ground carry on. |
+| Phone | under 640 | — | 320, 375, 390, 430 | One column. The line crosses three times between two bamboo poles that stand in the paddy, one Diary page as tall as its content, the postcard's sides stack. |
+| Tablet | 640 – 1023 | `sm` 40rem | 768 | Still touch, still the menu tag, but two columns where an object has two sides: the headline beside the field tag, boughs in pairs, a landscape card. |
+| Laptop | 1024 – 1279 | `lg` 64rem | 1024 | The desktop header and the horizontal clothesline; objects at their compact size; the Diary opens to a spread; the postcard is picture over address beside the card. |
+| Desktop | 1280 and up | `xl` 80rem | 1280, 1440, 1920 | The boards: the oak as one board in board units (1/1440 of its own width, to 1680), the Diary's tabs down its side. Content otherwise stops growing at 1440; the sky and ground carry on. |
 
 - **Three layout breakpoints, in rem, everywhere** (round 25): `40rem`,
-  `64rem`, `80rem`. CSS, Tailwind prefixes and JavaScript `matchMedia` use the
-  same three; no `px` media queries, no `md`.
-- **Content fixes are not breakpoints.** A narrow-phone fix (today 339, 359,
-  380px and 22.5rem) is first tried as fluid sizing or a container query on the
-  object. Any that remain are listed in §8 with the copy they protect.
+  `64rem`, `80rem`. CSS, Tailwind prefixes and JavaScript `matchMedia` (`BAND` in `src/lib/breakpoints.ts`) use the same three; no `px` media queries, no `md`.
+- **Content fixes are not breakpoints.** A narrow-phone fix is first tried as fluid sizing or a container query on the object. The few that remain are listed in §8.
 - **An object sizes to its own box.** The postcard already switches on a
   container query (`@container postcard`); new two-sided objects do the same
   rather than asking the viewport.
@@ -56,10 +53,8 @@ steps `--step--2 … --step-5` and `--step-chapter`; a role names one step.
 | Data | mono 400 | `--step--1` (13 → 14px) | — | Dates, values, sources |
 | Label | mono 700 caps | `--step--2` (12 → 13px) | `caps` | Eyebrows, tabs, tag years, rail labels |
 
-- **Floor: 12px** (round 25). Nothing read as text is smaller. Today 9, 10,
-  10.5, 11 and 11.5px exist (`0.62rem` seven times); they move to Label.
-- **One role per element** (round 25). The 23 ad hoc `text-[…px]` sizes in TSX
-  map to the nearest role. The one exception is **object type**: lettering that
+- **Floor: 12px** (round 25). Nothing read as text is smaller. Built: the cats' labels, the Ask, the card and the menu came up to it. What is still smaller is lettering inside a drawing (§8).
+- **One role per element** (round 25). An element's size is a role's step. **Not yet** everywhere: 17 ad hoc `text-[…px]` sizes remain in TSX (from 23), all 12px or more; they move to roles as their components are next touched. The one exception is **object type**: lettering that
   is part of a drawing (a postmark, a stamp's value) scales with its object in
   `em` or `cqw`, never the viewport, and is `aria-hidden` when it is texture.
 - Headings balance (`text-wrap: balance`), paragraphs are `pretty` (built).
@@ -74,15 +69,14 @@ ones a new layout reaches for:
 - **Inside an object:** 8 / 12 / 16. **Between objects:** 24 / 32 / 40.
   **Between sections:** `--section-y` on each side (built: 24 → 32px each).
 - **Edges:** `--gutter` and nothing else. No section sets its own side padding.
-- Arbitrary pixel gaps (`[18px]`, `[26px]`, `[15px]`, `[13px]`, `[22px]`) snap
-  to the scale (round 25) unless they place a drawn thing against another
+- Arbitrary pixel gaps (`[18px]`, `[26px]`, `[15px]`, `[13px]`, `[22px]`) snap to the scale as their components are touched (**not yet** swept) unless they place a drawn thing against another
   drawn thing (a string's drop, a tag's hole); those are measurements and stay
   beside the drawing they belong to.
 
 ## 4. Shape and elevation
 
 Paper is square-cut and lies on something, so radius is small and shadow says
-how far off the surface a thing is. Round 25 names what is in use:
+how far off the surface a thing is. Round 25 names what is in use. The tokens are in `globals.css` (`rounded-paper`, `rounded-tab`, `rounded-board`, `shadow-pinned`, `shadow-lift`); new work uses them, and existing values have **not yet** been swapped for them wholesale:
 
 | Token | Value | For |
 |---|---|---|
@@ -108,8 +102,7 @@ Shadows are neutral (`rgb(30 40 35 / …)` by day, black by night), never tinted
 | Skip link | 60 | |
 | Dialogs | top layer | Native `<dialog>`: résumé, certificates |
 
-Round 25 names 40 / 50 / 55 / 60 as tokens; a new component never picks a
-number above 10.
+These four are tokens (`--z-cats-under-menu`, `--z-header`, `--z-cats`, `--z-skip`) and the header, the cats' layer and the skip link read them; a new component never picks a number above 10.
 
 ## 6. Interaction
 
@@ -138,5 +131,18 @@ number above 10.
 
 ## 8. Named exceptions
 
-Filled in as Stage B lands: each remaining content fix, the copy it protects,
-and the test that fails without it.
+What deliberately sits outside the rules above, and why.
+
+| Where | What | Why |
+|---|---|---|
+| `Hero/Scenery.tsx` | `max-[1440px]:` on four scenery pieces | Art drawn for the 1440 board that steps aside below it; a drawing's own measure, not a layout breakpoint |
+| `Hero/Scenery.tsx` | `max-[359px]:` on one piece | The phone paddy's framing on the narrowest phones |
+| Postmark, SENT stamp, the cats' snoring z's | lettering at 9 – 11.5px | Object type: part of a drawing, `aria-hidden`, scaled with its object; the words are said beside it |
+| `.rail` in `globals.css` | 0.7rem / 0.62rem | An unused path: no section passes a rail. It comes up to the floor if a rail returns |
+| Diary contents rows | 28px tall with a mouse alone | 44px below 1024 and on any touch device. At 44px everywhere the contents page would be 300px taller than every other spread page |
+| Diary, reduced-motion track on a phone | pages share the tallest height | CSS cannot size each scroll-snap page on its own across browsers |
+
+Tests that hold the system: `e2e/clipping.spec.ts` (no visible text cut off at
+the nine widths, both themes), `e2e/responsive.spec.ts` (no sideways scroll,
+44px targets), `tests/lib/design-tokens.test.ts` (the boards' token mirror),
+`tests/lib/scenery.test.ts` (the drawings), and each section's own spec.
