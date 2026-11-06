@@ -4242,7 +4242,10 @@ test.describe("cats (round 21)", () => {
     });
   }
 
-  test("while the oak grows they sit just above Watch it grow, not in the top-left corner", async ({ page }) => {
+  // Round 25: the button sits under my line at every width, so the watchers
+  // sit beside it, level with its foot (in the gutter to its left, or right of
+  // its caption), not above it on my words.
+  test("while the oak grows they sit just beside Watch it grow, not in the top-left corner", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(60_000);
     await page.goto("/");
@@ -4260,14 +4263,15 @@ test.describe("cats (round 21)", () => {
               const r = svg.getBoundingClientRect();
               return (
                 svg.getAttribute("data-cat-pose") !== "walk" &&
-                r.bottom <= button.top &&
-                r.bottom > button.top - 80 &&
-                r.left > button.left - 60 &&
-                r.right < button.right + 160
+                (r.right <= button.left + 2 || r.left >= button.right - 2) &&
+                r.left > button.left - 220 &&
+                r.right < button.right + 760 &&
+                r.bottom <= button.bottom + 6 &&
+                r.bottom > button.bottom - 48
               );
             });
           }),
-        { timeout: 9_000, intervals: [250], message: "the watchers never settled above the button" },
+        { timeout: 15_000, intervals: [250], message: "the watchers never settled beside the button" },
       )
       .toBe(true);
   });

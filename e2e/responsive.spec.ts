@@ -146,7 +146,7 @@ for (const width of [320, 390, 414, 768]) {
     await page.reload();
     await page.waitForLoadState("networkidle");
     const selectors = [
-      "header a[href='#about']",
+      "header a[aria-label$='back to top']",
       "#record button[aria-pressed]",
       "#contact a[href^='mailto:']",
       "#contact a[href*='github.com']",

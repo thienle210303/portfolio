@@ -2349,18 +2349,32 @@ export function Companion({ facts }: CompanionProps) {
     }
 
     /**
-     * Where they sit to watch the tree grow: side by side just above the
-     * "Watch it grow" button (round 22, `GrowOak.tsx`), which is where the
-     * show was asked for and where its caption runs, 32px clear of it (a
-     * control keeps `TOGGLE_CLEARANCE` round it). Off screen, they fall back
-     * to the section's own stop.
+     * Where they sit to watch the tree grow: side by side beside the "Watch it
+     * grow" button (`GrowOak.tsx`), feet level with its foot, where the show
+     * was asked for and where its caption runs. Through round 24 they sat
+     * above the button; round 25 put the button under my line at every width,
+     * so above it is now my words. The open ground is to its left, in the
+     * gutter, where the window has one that wide; failing that, to the right
+     * of the row (the button, its lịch and the caption). 32px clear of the
+     * control (`TOGGLE_CLEARANCE`). Off screen, or with no room on either
+     * side, they fall back to the section's own stop.
      */
     function watchSpots(): Spots | null {
-      const button = document.querySelector("[data-grow] button")?.getBoundingClientRect();
-      const top = button ? button.top - 32 - CAT_H : 0;
-      if (!button || top < safeTop() || button.bottom > viewport().height) return tourStopSpots("tree");
-      const anchor = { x: button.left, y: top };
-      return restSpots(anchor, { x: anchor.x + CAT_W + FOLLOW_GAP, y: anchor.y });
+      const grow = document.querySelector("[data-grow]");
+      const button = grow?.querySelector("button")?.getBoundingClientRect();
+      if (!button) return tourStopSpots("tree");
+      const top = button.bottom - CAT_H;
+      if (top < safeTop() || button.bottom > viewport().height) return tourStopSpots("tree");
+      const pair = 2 * CAT_W + FOLLOW_GAP;
+      const rowEnd = Math.max(
+        button.right,
+        ...["[data-lich]", "[data-grow-caption]"].map((part) => grow?.querySelector(part)?.getBoundingClientRect().right ?? 0),
+      );
+      const left = button.left - 32 - pair;
+      const right = rowEnd + 32;
+      const x = left >= 0 ? left : right + pair <= viewport().width ? right : null;
+      if (x === null) return tourStopSpots("tree");
+      return restSpots({ x, y: top }, { x: x + CAT_W + FOLLOW_GAP, y: top });
     }
 
     /**
