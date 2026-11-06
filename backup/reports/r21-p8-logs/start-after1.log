@@ -1,0 +1,10 @@
+
+> portfolio@0.1.0 start D:\Project\portfolio\.claude\worktrees\r21-motion
+> next start
+
+▲ Next.js 16.3.1
+- Local:         http://localhost:3242
+- Network:       http://192.168.1.90:3242
+✓ Ready in 229ms
+✓ Running next.config.ts took 49ms
+ ELIFECYCLE  Command failed with exit code 1.

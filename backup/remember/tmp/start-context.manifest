@@ -1,0 +1,11 @@
+VERSION=2
+SRC=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1/identity.md
+SRC=D:\Project\portfolio/.remember/core-memories.md
+SRC=D:\Project\portfolio/.remember/today-2026-10-16.md
+SRC=D:\Project\portfolio/.remember/now.md
+SRC=D:\Project\portfolio/.remember/recent.md
+SRC=D:\Project\portfolio/.remember/archive.md
+SRC=D:\Project\portfolio/.remember
+SRC=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.43.1/config.json
+SRC=/c/Users/thien/.remember/config.json
+SRC=D:\Project\portfolio/.remember/config.json

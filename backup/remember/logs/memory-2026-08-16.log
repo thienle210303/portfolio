@@ -1,0 +1,7 @@
+23:34:23 [hook] session-start: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.20.0 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:34:48 [hook] session-start: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.20.0 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:35:00 [hook] post-tool: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.20.0 PYTHON=python REMEMBER_DIR=D:\Project\portfolio/.remember
+23:35:05 [hook] post-tool: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.20.0 PYTHON=python REMEMBER_DIR=D:\Project\portfolio/.remember
+23:35:08 [hook] post-tool: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.20.0 PYTHON=python REMEMBER_DIR=D:\Project\portfolio/.remember
+23:57:12 [hook] session-start: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.20.0 REMEMBER_DIR=D:\Project\portfolio/.remember
+23:57:54 [hook] session-start: PROJECT_DIR=D:\Project\portfolio PIPELINE_DIR=C:/Users/thien/.claude/plugins/cache/claude-plugins-official/remember/0.20.0 REMEMBER_DIR=D:\Project\portfolio/.remember

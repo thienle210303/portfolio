@@ -1,0 +1,10 @@
+
+> portfolio@0.1.0 start D:\Project\portfolio\.claude\worktrees\cat-stagger
+> next start
+
+▲ Next.js 16.3.1
+- Local:         http://localhost:3194
+- Network:       http://192.168.1.90:3194
+✓ Ready in 253ms
+✓ Running next.config.ts took 63ms
+ ELIFECYCLE  Command failed with exit code 1.

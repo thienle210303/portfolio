@@ -1,0 +1,10 @@
+
+> portfolio@0.1.0 start D:\Project\portfolio\.claude\worktrees\cat-avoid
+> next start
+
+▲ Next.js 16.3.1
+- Local:         http://localhost:3191
+- Network:       http://192.168.1.90:3191
+✓ Ready in 251ms
+✓ Running next.config.ts took 62ms
+ ELIFECYCLE  Command failed with exit code 1.

@@ -1,0 +1,13 @@
+
+> portfolio@0.1.0 test D:\Project\portfolio
+> vitest run
+
+
+ RUN  v4.1.10 D:/Project/portfolio
+
+
+ Test Files  37 passed (37)
+      Tests  687 passed (687)
+   Start at  20:18:29
+   Duration  15.98s (transform 4.77s, setup 17.88s, import 11.08s, tests 33.81s, environment 80.18s)
+

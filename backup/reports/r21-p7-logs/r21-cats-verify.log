@@ -1,0 +1,77 @@
+
+> portfolio@0.1.0 verify D:\Project\portfolio\.claude\worktrees\r21-cats
+> pnpm typecheck && pnpm lint && pnpm contrast && pnpm test && pnpm build
+
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+
+> portfolio@0.1.0 typecheck D:\Project\portfolio\.claude\worktrees\r21-cats
+> next typegen && tsc --noEmit
+
+Generating route types...
+✓ Types generated successfully
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+
+> portfolio@0.1.0 lint D:\Project\portfolio\.claude\worktrees\r21-cats
+> eslint
+
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+
+> portfolio@0.1.0 contrast D:\Project\portfolio\.claude\worktrees\r21-cats
+> node scripts/contrast.mjs
+
+✓ 62 pairings, all >= AA. Lowest 4.52:1 (Day, the single mark, deep sections). Wrote docs/contrast.md
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+
+> portfolio@0.1.0 test D:\Project\portfolio\.claude\worktrees\r21-cats
+> vitest run
+
+
+ RUN  v4.1.10 D:/Project/portfolio/.claude/worktrees/r21-cats
+
+
+ Test Files  60 passed (60)
+      Tests  932 passed (932)
+   Start at  15:27:45
+   Duration  18.47s (transform 3.72s, setup 22.59s, import 11.95s, tests 35.25s, environment 101.03s)
+
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+ WARN  Unsupported engine: wanted: {"node":">=22.12.0"} (current: {"node":"v20.20.2","pnpm":"10.33.0"})
+
+> portfolio@0.1.0 build D:\Project\portfolio\.claude\worktrees\r21-cats
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+✓ Running next.config.ts took 33ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 883ms
+  Running TypeScript ...
+  Finished TypeScript in 2.5s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/11) ...
+  Generating static pages using 11 workers (2/11) 
+  Generating static pages using 11 workers (5/11) 
+  Generating static pages using 11 workers (8/11) 
+✓ Generating static pages using 11 workers (11/11) in 669ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/ask
+├ ƒ /api/contact
+├ ○ /contact.vcf
+├ ○ /icon
+├ ○ /opengraph-image
+├ ○ /resume
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -1,0 +1,99 @@
+
+
+| JS | JS at load | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| 193.5 KB | 164.4 KB | 20.6 KB | 115.1 KB | 2308 ms | 320 ms | 0 | 2741 |
+
+Responses with no sizes(): 0 — nothing was dropped from the totals above.
+content-length cross-check: JS 0.0 KB, CSS 0.0 KB, fonts 115.1 KB (34 response(s) declared none, so this is a floor).
+LCP element: SPAN#.scene-art absolute inset-x-0 t
+{
+  "bytes": {
+    "script": 198194,
+    "stylesheet": 21052,
+    "font": 117868,
+    "other": 185831
+  },
+  "loadScriptBytes": 168396,
+  "headerBytes": {
+    "script": 0,
+    "stylesheet": 0,
+    "font": 117868,
+    "other": 6744
+  },
+  "skipped": 0,
+  "noContentLength": 34,
+  "fcp": 2120,
+  "load": 3320,
+  "lcp": 2308,
+  "lcpEl": "SPAN#.scene-art absolute inset-x-0 t",
+  "tbt": 320,
+  "cls": 0,
+  "domNodes": 2741
+}
+
+
+| JS | JS at load | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| 193.5 KB | 164.4 KB | 20.6 KB | 115.1 KB | 2324 ms | 321 ms | 0 | 2741 |
+
+Responses with no sizes(): 0 — nothing was dropped from the totals above.
+content-length cross-check: JS 0.0 KB, CSS 0.0 KB, fonts 115.1 KB (34 response(s) declared none, so this is a floor).
+LCP element: SPAN#.scene-art absolute inset-x-0 t
+{
+  "bytes": {
+    "script": 198194,
+    "stylesheet": 21052,
+    "font": 117868,
+    "other": 185831
+  },
+  "loadScriptBytes": 168396,
+  "headerBytes": {
+    "script": 0,
+    "stylesheet": 0,
+    "font": 117868,
+    "other": 6744
+  },
+  "skipped": 0,
+  "noContentLength": 34,
+  "fcp": 2156,
+  "load": 3346,
+  "lcp": 2324,
+  "lcpEl": "SPAN#.scene-art absolute inset-x-0 t",
+  "tbt": 321,
+  "cls": 0,
+  "domNodes": 2741
+}
+
+
+| JS | JS at load | CSS | Fonts | LCP | TBT | CLS | DOM nodes |
+|---|---|---|---|---|---|---|---|
+| 193.5 KB | 164.4 KB | 20.6 KB | 115.1 KB | 2664 ms | 180 ms | 0 | 2741 |
+
+Responses with no sizes(): 0 — nothing was dropped from the totals above.
+content-length cross-check: JS 0.0 KB, CSS 0.0 KB, fonts 115.1 KB (34 response(s) declared none, so this is a floor).
+LCP element: SPAN#.scene-art absolute inset-x-0 t
+{
+  "bytes": {
+    "script": 198194,
+    "stylesheet": 21052,
+    "font": 117868,
+    "other": 185831
+  },
+  "loadScriptBytes": 168396,
+  "headerBytes": {
+    "script": 0,
+    "stylesheet": 0,
+    "font": 117868,
+    "other": 6744
+  },
+  "skipped": 0,
+  "noContentLength": 34,
+  "fcp": 2116,
+  "load": 3348,
+  "lcp": 2664,
+  "lcpEl": "SPAN#.scene-art absolute inset-x-0 t",
+  "tbt": 180,
+  "cls": 0,
+  "domNodes": 2741
+}

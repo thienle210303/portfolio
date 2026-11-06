@@ -1,0 +1,126 @@
+
+Running 120 tests using 2 workers
+
+  -    2 [chromium-320] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -    1 [chromium-320] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -    4 [chromium-320] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -    3 [chromium-320] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -    5 [chromium-320] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -    7 [chromium-320] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -    8 [chromium-320] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -    6 [chromium-320] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -    9 [chromium-320] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   10 [chromium-320] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   12 [chromium-320] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   11 [chromium-320] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   13 [chromium-320] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   14 [chromium-320] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   16 [chromium-320] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   15 [chromium-320] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   17 [chromium-320] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   18 [chromium-320] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   20 [chromium-320] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   19 [chromium-320] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   21 [chromium-375] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   22 [chromium-375] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   23 [chromium-375] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   24 [chromium-375] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   25 [chromium-375] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   26 [chromium-375] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   28 [chromium-375] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   27 [chromium-375] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   29 [chromium-375] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   30 [chromium-375] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   32 [chromium-375] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   31 [chromium-375] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   34 [chromium-375] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   33 [chromium-375] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   36 [chromium-375] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   35 [chromium-375] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   37 [chromium-375] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   38 [chromium-375] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   40 [chromium-375] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   39 [chromium-375] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   41 [chromium-390] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   42 [chromium-390] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   44 [chromium-390] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   43 [chromium-390] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   45 [chromium-390] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   46 [chromium-390] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   48 [chromium-390] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   47 [chromium-390] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   49 [chromium-390] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   51 [chromium-390] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   52 [chromium-390] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   50 [chromium-390] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   53 [chromium-390] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   55 [chromium-390] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   56 [chromium-390] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   54 [chromium-390] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   57 [chromium-390] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   59 [chromium-390] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   60 [chromium-390] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   58 [chromium-390] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   61 [chromium-768] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   63 [chromium-768] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   64 [chromium-768] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   62 [chromium-768] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   65 [chromium-768] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   66 [chromium-768] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   68 [chromium-768] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   67 [chromium-768] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   69 [chromium-768] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   70 [chromium-768] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   72 [chromium-768] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   71 [chromium-768] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   73 [chromium-768] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   75 [chromium-768] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   76 [chromium-768] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   74 [chromium-768] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   77 [chromium-768] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   78 [chromium-768] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   80 [chromium-768] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   79 [chromium-768] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   81 [chromium-1024] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   82 [chromium-1024] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   84 [chromium-1024] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   83 [chromium-1024] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   85 [chromium-1024] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   86 [chromium-1024] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   88 [chromium-1024] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   87 [chromium-1024] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   89 [chromium-1024] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   90 [chromium-1024] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   92 [chromium-1024] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   91 [chromium-1024] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   93 [chromium-1024] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   95 [chromium-1024] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  -   96 [chromium-1024] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   94 [chromium-1024] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -   97 [chromium-1024] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active
+  -   98 [chromium-1024] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once
+  -  100 [chromium-1024] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting
+  -   99 [chromium-1024] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact
+  ok 102 [chromium-1440] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once (50.3s)
+  ok 103 [chromium-1440] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact (14.0s)
+  ok 101 [chromium-1440] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active (1.1m)
+  ok 105 [chromium-1440] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active (1.1m)
+  ok 104 [chromium-1440] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting (1.5m)
+  ok 107 [chromium-1440] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact (14.8s)
+  ok 106 [chromium-1440] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once (48.8s)
+  ok 109 [chromium-1440] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active (1.1m)
+  ok 108 [chromium-1440] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting (1.6m)
+  ok 111 [chromium-1440] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact (15.0s)
+  ok 110 [chromium-1440] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once (48.6s)
+  ok 113 [chromium-1440] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active (1.1m)
+  ok 112 [chromium-1440] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting (1.5m)
+  ok 115 [chromium-1440] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact (15.1s)
+  ok 114 [chromium-1440] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once (49.4s)
+  ok 117 [chromium-1440] › e2e\companion.spec.ts:1115:7 › companion › explorers use both halves of the page while the reader is active (1.1m)
+  ok 116 [chromium-1440] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting (1.6m)
+  ok 119 [chromium-1440] › e2e\companion.spec.ts:3264:7 › companion › the other route reaches every stop too, ending on Contact (15.1s)
+  ok 118 [chromium-1440] › e2e\companion.spec.ts:1256:7 › companion › each explorer leaves its stop on its own clock, not both at once (49.0s)
+  ok 120 [chromium-1440] › e2e\companion.spec.ts:3978:7 › cats (round 21) › they keep off the Wordification tag's year, Contact's lede and the postcard's greeting (1.5m)
+
+  100 skipped
+  20 passed (10.8m)

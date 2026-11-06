@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 D:/Project/portfolio
+
+
+ Test Files  20 passed (20)
+      Tests  460 passed (460)
+   Start at  08:48:29
+   Duration  61.29s (transform 9.73s, setup 28.46s, import 13.89s, tests 1.68s, environment 582.13s)
+

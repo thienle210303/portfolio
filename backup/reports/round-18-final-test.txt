@@ -1,0 +1,13 @@
+
+> portfolio@0.1.0 test D:\Project\portfolio\.claude\worktrees\round-18-plan-a
+> vitest run
+
+
+ RUN  v4.1.11 D:/Project/portfolio/.claude/worktrees/round-18-plan-a
+
+
+ Test Files  35 passed (35)
+      Tests  631 passed (631)
+   Start at  04:58:32
+   Duration  26.23s (transform 4.15s, setup 27.30s, import 27.11s, tests 48.81s, environment 117.58s)
+

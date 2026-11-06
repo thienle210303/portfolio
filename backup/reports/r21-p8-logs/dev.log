@@ -1,0 +1,514 @@
+▲ Next.js 16.3.1 (Turbopack)
+- Local:         http://localhost:3241
+- Network:       http://192.168.1.90:3241
+✓ Ready in 504ms
+✓ Running next.config.ts took 34ms
+
+ GET / 200 in 3.0s (next.js: 2.4s, application-code: 615ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+ GET / 200 in 377ms (next.js: 8ms, application-code: 369ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 385ms (next.js: 2ms, application-code: 382ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 337ms (next.js: 2ms, application-code: 335ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 327ms (next.js: 4ms, application-code: 323ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 301ms (next.js: 3ms, application-code: 299ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 406ms (next.js: 9ms, application-code: 398ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 714ms (next.js: 7ms, application-code: 707ms)
+ GET / 200 in 714ms (next.js: 11ms, application-code: 703ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 449ms (next.js: 3ms, application-code: 447ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 510ms (next.js: 2ms, application-code: 507ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 770ms (next.js: 4ms, application-code: 766ms)
+ GET / 200 in 469ms (next.js: 4ms, application-code: 465ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 478ms (next.js: 3ms, application-code: 475ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 906ms (next.js: 4ms, application-code: 902ms)
+ GET / 200 in 584ms (next.js: 7ms, application-code: 577ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 407ms (next.js: 3ms, application-code: 405ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 381ms (next.js: 2ms, application-code: 379ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 359ms (next.js: 1.9ms, application-code: 357ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 411ms (next.js: 2.0ms, application-code: 409ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 550ms (next.js: 14ms, application-code: 536ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 433ms (next.js: 4ms, application-code: 429ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 458ms (next.js: 3ms, application-code: 455ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 355ms (next.js: 2ms, application-code: 353ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 528ms (next.js: 3ms, application-code: 525ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 444ms (next.js: 3ms, application-code: 441ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 423ms (next.js: 3ms, application-code: 420ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 991ms (next.js: 3ms, application-code: 988ms)
+ GET / 200 in 630ms (next.js: 3ms, application-code: 627ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 473ms (next.js: 1.9ms, application-code: 471ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 499ms (next.js: 2ms, application-code: 497ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 339ms (next.js: 3ms, application-code: 336ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 428ms (next.js: 3ms, application-code: 425ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 439ms (next.js: 2ms, application-code: 437ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 408ms (next.js: 8ms, application-code: 400ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 345ms (next.js: 1.8ms, application-code: 343ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 366ms (next.js: 2ms, application-code: 364ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 341ms (next.js: 1.7ms, application-code: 339ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 353ms (next.js: 3ms, application-code: 350ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 328ms (next.js: 1.9ms, application-code: 326ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 368ms (next.js: 6ms, application-code: 362ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SegmentViewNode type="page" pagePath="page.tsx">
+      <SegmentTrieNode>
+      <Home>
+        <section>
+        <section>
+        <section>
+        <Contact>
+          <Section>
+            <section id="contact" aria-labelledby="contact-he..." data-ink-root="" className="hairline-t...">
+              ...
+                <div className="relative">
+                  <header>
+                  <div className="mt-10 grid...">
+                    <div>
+                    <div className="min-w-0">
+                      <Postcard>
+                        <div data-postcard="" className="no-print @...">
+                          ...
+                            <LeadForm emailDeliveryConfigured={false}>
+                              <form noValidate={true} onSubmit={function handleSubmit} aria-labelledby="lead-heading" ...>
+                                <h3>
+                                <p>
+                                <div className="mt-4 flex ...">
+                                  <div className="flex flex-...">
+                                    <label>
+                                    <input
+                                      ref={{current:null}}
+                                      id="lead-name"
+                                      name="name"
+                                      required={true}
+                                      type="text"
+                                      autoComplete="name"
+                                      maxLength={100}
+                                      value=""
+                                      onChange={function onChange}
+                                      aria-invalid={undefined}
+                                      aria-describedby={undefined}
+                                      className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transp..."
+-                                     style={{caret-color:"transparent"}}
+                                    >
+                                  <div className="grid gap-3...">
+                                    <div className="flex flex-...">
+                                      <label>
+                                      <input
+                                        ref={{current:null}}
+                                        id="lead-email"
+                                        name="email"
+                                        required={false}
+                                        type="email"
+                                        autoComplete="email"
+                                        maxLength={200}
+                                        value=""
+                                        onChange={function onChange}
+                                        aria-invalid={undefined}
+                                        aria-describedby={undefined}
+                                        className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-tran..."
+-                                       style={{caret-color:"transparent"}}
+                                      >
+                                    <div className="flex flex-...">
+                                      <label>
+                                      <input
+                                        ref={{current:null}}
+                                        id="lead-phone"
+                                        name="phone"
+                                        required={false}
+                                        type="tel"
+                                        autoComplete="tel"
+                                        maxLength={21}
+                                        value=""
+                                        onChange={function onChange}
+                                        aria-invalid={undefined}
+                                        aria-describedby={undefined}
+                                        className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-tran..."
+-                                       style={{caret-color:"transparent"}}
+                                      >
+                                <div>
+                                <div style={{position:"...", ...}} aria-hidden="true">
+                                  <label>
+                                  <input
+                                    id="lead-website"
+                                    name="website"
+                                    type="text"
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                    aria-hidden="true"
+                                    value=""
+                                    onChange={function onChange}
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                ...
+                      ...
+                  ...
+    ...
+ 
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 351ms (next.js: 2ms, application-code: 349ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 333ms (next.js: 1.8ms, application-code: 331ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 329ms (next.js: 2ms, application-code: 326ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 374ms (next.js: 2ms, application-code: 371ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 341ms (next.js: 1.8ms, application-code: 339ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 327ms (next.js: 2.0ms, application-code: 325ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 318ms (next.js: 1.9ms, application-code: 316ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 337ms (next.js: 3ms, application-code: 335ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SegmentViewNode type="page" pagePath="page.tsx">
+      <SegmentTrieNode>
+      <Home>
+        <section>
+        <section>
+        <section>
+        <Contact>
+          <Section>
+            <section id="contact" aria-labelledby="contact-he..." data-ink-root="" className="hairline-t...">
+              ...
+                <div className="relative">
+                  <header>
+                  <div className="mt-10 grid...">
+                    <div>
+                    <div className="min-w-0">
+                      <Postcard>
+                        <div data-postcard="" className="no-print @...">
+                          ...
+                            <LeadForm emailDeliveryConfigured={false}>
+                              <form noValidate={true} onSubmit={function handleSubmit} aria-labelledby="lead-heading" ...>
+                                <h3>
+                                <p>
+                                <div className="mt-4 flex ...">
+                                  <div className="flex flex-...">
+                                    <label>
+                                    <input
+                                      ref={{current:null}}
+                                      id="lead-name"
+                                      name="name"
+                                      required={true}
+                                      type="text"
+                                      autoComplete="name"
+                                      maxLength={100}
+                                      value=""
+                                      onChange={function onChange}
+                                      aria-invalid={undefined}
+                                      aria-describedby={undefined}
+                                      className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transp..."
+-                                     style={{caret-color:"transparent"}}
+                                    >
+                                  <div className="grid gap-3...">
+                                    <div className="flex flex-...">
+                                      <label>
+                                      <input
+                                        ref={{current:null}}
+                                        id="lead-email"
+                                        name="email"
+                                        required={false}
+                                        type="email"
+                                        autoComplete="email"
+                                        maxLength={200}
+                                        value=""
+                                        onChange={function onChange}
+                                        aria-invalid={undefined}
+                                        aria-describedby={undefined}
+                                        className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-tran..."
+-                                       style={{caret-color:"transparent"}}
+                                      >
+                                    <div className="flex flex-...">
+                                      <label>
+                                      <input
+                                        ref={{current:null}}
+                                        id="lead-phone"
+                                        name="phone"
+                                        required={false}
+                                        type="tel"
+                                        autoComplete="tel"
+                                        maxLength={21}
+                                        value=""
+                                        onChange={function onChange}
+                                        aria-invalid={undefined}
+                                        aria-describedby={undefined}
+                                        className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-tran..."
+-                                       style={{caret-color:"transparent"}}
+                                      >
+                                <div>
+                                <div style={{position:"...", ...}} aria-hidden="true">
+                                  <label>
+                                  <input
+                                    id="lead-website"
+                                    name="website"
+                                    type="text"
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                    aria-hidden="true"
+                                    value=""
+                                    onChange={function onChange}
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                ...
+                      ...
+                  ...
+    ...
+ 
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 317ms (next.js: 1.9ms, application-code: 315ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 328ms (next.js: 1.8ms, application-code: 327ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 349ms (next.js: 1.8ms, application-code: 347ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 308ms (next.js: 1.7ms, application-code: 307ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 330ms (next.js: 1.8ms, application-code: 329ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 335ms (next.js: 2ms, application-code: 333ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 316ms (next.js: 1.8ms, application-code: 315ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 342ms (next.js: 3ms, application-code: 339ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 353ms (next.js: 8ms, application-code: 345ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <SegmentViewNode type="page" pagePath="page.tsx">
+      <SegmentTrieNode>
+      <Home>
+        <section>
+        <section>
+        <section>
+        <Contact>
+          <Section>
+            <section id="contact" aria-labelledby="contact-he..." data-ink-root="" className="hairline-t...">
+              ...
+                <div className="relative">
+                  <header>
+                  <div className="mt-10 grid...">
+                    <div>
+                    <div className="min-w-0">
+                      <Postcard>
+                        <div data-postcard="" className="no-print @...">
+                          ...
+                            <LeadForm emailDeliveryConfigured={false}>
+                              <form noValidate={true} onSubmit={function handleSubmit} aria-labelledby="lead-heading" ...>
+                                <h3>
+                                <p>
+                                <div className="mt-4 flex ...">
+                                  <div className="flex flex-...">
+                                    <label>
+                                    <input
+                                      ref={{current:null}}
+                                      id="lead-name"
+                                      name="name"
+                                      required={true}
+                                      type="text"
+                                      autoComplete="name"
+                                      maxLength={100}
+                                      value=""
+                                      onChange={function onChange}
+                                      aria-invalid={undefined}
+                                      aria-describedby={undefined}
+                                      className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transp..."
+-                                     style={{caret-color:"transparent"}}
+                                    >
+                                  <div className="grid gap-3...">
+                                    <div className="flex flex-...">
+                                      <label>
+                                      <input
+                                        ref={{current:null}}
+                                        id="lead-email"
+                                        name="email"
+                                        required={false}
+                                        type="email"
+                                        autoComplete="email"
+                                        maxLength={200}
+                                        value=""
+                                        onChange={function onChange}
+                                        aria-invalid={undefined}
+                                        aria-describedby={undefined}
+                                        className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-tran..."
+-                                       style={{caret-color:"transparent"}}
+                                      >
+                                    <div className="flex flex-...">
+                                      <label>
+                                      <input
+                                        ref={{current:null}}
+                                        id="lead-phone"
+                                        name="phone"
+                                        required={false}
+                                        type="tel"
+                                        autoComplete="tel"
+                                        maxLength={21}
+                                        value=""
+                                        onChange={function onChange}
+                                        aria-invalid={undefined}
+                                        aria-describedby={undefined}
+                                        className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-tran..."
+-                                       style={{caret-color:"transparent"}}
+                                      >
+                                <div>
+                                <div style={{position:"...", ...}} aria-hidden="true">
+                                  <label>
+                                  <input
+                                    id="lead-website"
+                                    name="website"
+                                    type="text"
+                                    tabIndex={-1}
+                                    autoComplete="off"
+                                    aria-hidden="true"
+                                    value=""
+                                    onChange={function onChange}
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                ...
+                      ...
+                  ...
+    ...
+ 
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 323ms (next.js: 2ms, application-code: 321ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 315ms (next.js: 7ms, application-code: 308ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 351ms (next.js: 1.8ms, application-code: 349ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 331ms (next.js: 1.8ms, application-code: 329ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 318ms (next.js: 2ms, application-code: 316ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 331ms (next.js: 1.7ms, application-code: 329ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 328ms (next.js: 1.8ms, application-code: 327ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 681ms (next.js: 3ms, application-code: 678ms)
+ GET / 200 in 419ms (next.js: 4ms, application-code: 414ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 750ms (next.js: 3ms, application-code: 747ms)
+ GET / 200 in 432ms (next.js: 5ms, application-code: 428ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 376ms (next.js: 3ms, application-code: 374ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 671ms (next.js: 2ms, application-code: 669ms)
+ GET / 200 in 424ms (next.js: 4ms, application-code: 420ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 321ms (next.js: 1.9ms, application-code: 319ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 381ms (next.js: 2ms, application-code: 379ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 739ms (next.js: 2.0ms, application-code: 737ms)
+ GET / 200 in 443ms (next.js: 4ms, application-code: 439ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 341ms (next.js: 2ms, application-code: 338ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 341ms (next.js: 2ms, application-code: 339ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 626ms (next.js: 2ms, application-code: 624ms)
+ GET / 200 in 383ms (next.js: 4ms, application-code: 380ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 368ms (next.js: 2ms, application-code: 366ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 409ms (next.js: 2ms, application-code: 407ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 263ms (next.js: 1.9ms, application-code: 261ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 336ms (next.js: 1.9ms, application-code: 334ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 421ms (next.js: 2ms, application-code: 419ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 367ms (next.js: 3ms, application-code: 364ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 367ms (next.js: 3ms, application-code: 364ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 304ms (next.js: 1.9ms, application-code: 302ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 312ms (next.js: 1.9ms, application-code: 311ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 764ms (next.js: 1.9ms, application-code: 762ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 414ms (next.js: 4ms, application-code: 410ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 422ms (next.js: 3ms, application-code: 419ms)
+(node:27408) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 drain listeners added to [Gzip]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET / 200 in 339ms (next.js: 3ms, application-code: 336ms)
+[?25h

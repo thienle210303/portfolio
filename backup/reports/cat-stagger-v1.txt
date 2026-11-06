@@ -1,0 +1,63 @@
+
+Running 30 tests using 2 workers
+
+  ok  2 [chromium-1440] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once (44.5s)
+  ok  1 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (58.8s)
+  ok  4 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.1s)
+  ok  3 [chromium-1440] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still (25.3s)
+  ok  5 [chromium-1440] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner (1.3s)
+  ok  6 [chromium-1440] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it (23.8s)
+  ok  7 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (58.6s)
+  ok  8 [chromium-1440] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once (44.6s)
+  ok 10 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.3s)
+  ok 11 [chromium-1440] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner (1.3s)
+  ok  9 [chromium-1440] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still (25.6s)
+  ok 12 [chromium-1440] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it (23.8s)
+  ok 13 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.1s)
+  ok 14 [chromium-1440] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once (44.3s)
+  ok 16 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (9.7s)
+  ok 17 [chromium-1440] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner (1.4s)
+  ok 15 [chromium-1440] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still (25.4s)
+  ok 18 [chromium-1440] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it (23.6s)
+  ok 20 [chromium-1440] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once (44.7s)
+  x  19 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (59.2s)
+  ok 22 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.8s)
+  ok 23 [chromium-1440] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner (1.3s)
+  ok 21 [chromium-1440] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still (24.0s)
+  ok 24 [chromium-1440] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it (22.7s)
+  ok 26 [chromium-1440] › e2e\companion.spec.ts:1139:7 › companion › each explorer leaves its stop on its own clock, not both at once (44.3s)
+  ok 25 [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active (58.9s)
+  ok 28 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.2s)
+  ok 29 [chromium-1440] › e2e\companion.spec.ts:1773:7 › companion › an old stored 'off' preference becomes a nap, not an empty corner (1.4s)
+  ok 27 [chromium-1440] › e2e\companion.spec.ts:1260:7 › companion › explorers nap when the reader stops, and the page goes still (23.9s)
+  ok 30 [chromium-1440] › e2e\companion.spec.ts:2055:7 › companion › naps where it stops when left alone, and does not remember doing it (22.6s)
+
+
+  1) [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active 
+
+    Error: an explorer stopped with its head on something readable
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "tabby at 863,2574: head on button \"07Technology3 plaques\"",
+    + ]
+
+      1134 |       `too few distinct stops were looked at for the head check to mean anything: ${JSON.stringify(stopsRead)}`,
+      1135 |     ).toBeGreaterThanOrEqual(3);
+    > 1136 |     expect([...heads], "an explorer stopped with its head on something readable").toEqual([]);
+           |                                                                                   ^
+      1137 |   });
+      1138 |
+      1139 |   test("each explorer leaves its stop on its own clock, not both at once", async ({ page }) => {
+        at D:\Project\portfolio\.claude\worktrees\cat-stagger\e2e\companion.spec.ts:1136:83
+
+    Error Context: test-results\companion-companion-explor-3d16f--while-the-reader-is-active-chromium-1440-repeat3\error-context.md
+
+  1 failed
+    [chromium-1440] › e2e\companion.spec.ts:1013:7 › companion › explorers use both halves of the page while the reader is active 
+  29 passed (7.0m)

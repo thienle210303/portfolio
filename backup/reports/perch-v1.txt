@@ -1,0 +1,21 @@
+
+Running 16 tests using 2 workers
+
+  ok  1 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (6.7s)
+  ok  2 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.6s)
+  ok  4 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (5.5s)
+  ok  3 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.7s)
+  ok  5 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (8.1s)
+  ok  6 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (7.6s)
+  ok  8 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (7.2s)
+  ok  7 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.7s)
+  ok 10 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (6.8s)
+  ok  9 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (11.5s)
+  ok 11 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.6s)
+  ok 12 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (11.1s)
+  ok 13 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.4s)
+  ok 14 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (8.2s)
+  ok 16 [chromium-1440] › e2e\companion.spec.ts:1511:7 › companion › an animation that ends over resting explorers moves them off the text it brings (5.2s)
+  ok 15 [chromium-1440] › e2e\companion.spec.ts:1361:7 › companion › a layout shift with no scroll still moves resting explorers off the text it brings (10.9s)
+
+  16 passed (1.4m)

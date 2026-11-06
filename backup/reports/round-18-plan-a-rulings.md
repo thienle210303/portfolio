@@ -1,0 +1,185 @@
+# Round 18 Plan A — every ruling made on Thien's behalf
+
+Condensed from the SDD ledger, in the order made (ledger order, not number order). Each: the decision's first sentence, and what it costs if wrong. Full text: the ledger, until the workspace is deleted.
+
+- **Ruling 1:** `chess-minmax` is authored with `careerEntryId: "usc-cheme"`, which maps to the `wrong-major` act (Aug 2021 – 2022) — but the project is November 2023 to January 2024, so the globe and the stage would both file it two years early.
+  - *Cost if wrong:* four coursework projects appear in the 2022–2025 act rather than a more specific one; a content-layer edit, no code change.
+- **Ruling 2:** Task 11's steps build `Stage.tsx` (step 7) before `CredentialsStrip.tsx` (step 9) that it imports from.
+  - *Cost if wrong:* none — it is a strict reordering of two steps inside one task, with no change to either deliverable.
+- **Ruling 3:** Task 7 deletes the Workshop section and its render but does not remove `nav-workshop` from `navItems`, so the nav would carry a link to a section that no longer renders until Task 12.
+  - *Cost if wrong:* none; Task 12 asserts the final four-item nav either way, so this only closes an intermediate broken state.
+- **Ruling 4:** Task 8's third test is named for standing alone and asserts an overlap.
+  - *Cost if wrong:* a misleading test name; no behaviour change.
+- **Ruling 5:** `DrawnTree`'s `throughAct` prop does not say how a branch learns which act it belongs to.
+  - *Cost if wrong:* `DrawnTree` gains an import from `lib/`, which is the correct direction and already how the rest of the section reads content.
+- **Ruling 17:** the re-review found `src/lib/origin-story.ts:97-98`'s `kindFor` docblock still says "real content puts a milestone in every active year" — the identical false-comment defect the fix just corrected eleven lines above it, missed because it was outside the fix diff.
+  - *Cost if wrong:* one false comment survives to the final review, which has it in its triage list.
+- **Ruling 29:** the implementer's own flag that it "widened the metric to make it pass" is the single most serious self-reported item in the run, and it is exactly what [[eval-fixtures-must-target- the-real-branch]] and [[evidence-before-claims]] warn about.
+  - *Cost if wrong:* one eval case measures something slightly wider than it did, in a corpus Task 13 rebuilds and re-measures anyway.
+- **Ruling 30:** README.md and docs/editing.md still describe the deleted arrays and the Workshop, and
+  - *Cost if wrong:* (no cost line recorded)
+- **Ruling 38:** the reviewer observes that `#about` now renders two near-synonymous self-introductions — `profile.intro` ("Software engineer on retail data…") immediately above `profile.positioning` ("I write software for retail data at DoorDash.
+  - *Cost if wrong:* the About section says nearly the same thing twice until Plan B, which a browser check will make obvious.
+- **Ruling 40:** `concurrentGroups()` is deleted rather than fixed.
+  - *Cost if wrong:* Task 11 wants a global grouping and has to compute it from `concurrentWith`.
+- **Ruling 41:** the four unauthored months are now three answered and one pending — the owner supplied them on 2026-10-01.
+  - *Cost if wrong:* one end month is a season out, in an entry whose overlap direction is now correct either way.
+- **Ruling 42:** `usc-degree` overlaps all eight 2021–2025 entries, which is containment, not concurrency — `concurrentWith("usc-degree")` returning eight ids would have Task 11 drawing the degree as a sibling of every role inside it.
+  - *Cost if wrong:* Task 11 draws the degree beside the roles it contains, which a browser check at Task 14 would catch.
+- **Ruling 47 CONFIRMED:** no exemption for actless projects.
+  - *Cost if wrong:* (no cost line recorded)
+- **Ruling 48:** my plan puts the stage's test at `tests/ui/Stage.test.tsx`, and Task 10's comment now forward-references that exact path.
+  - *Cost if wrong:* one comment edit outside Task 11's brief.
+- **Ruling 50:** `opacity: 0.6` on an inactive act title fails AA in day (4.48:1 over `--color-paper`, 4.36:1 over `--color-paper-deep`, against a 4.5 floor — `--step-1` at 19.2–22.4px regular is not large text).
+  - *Cost if wrong:* one character.
+- **Ruling 51:** the globe's Career plaque prints "20 branches" from `buildCareerTree().length` while the Journey's rail says "11 drawn · 9 as credentials" and the drawing has eleven limbs — a visitor reads both on one page, and `tests/lib/worlds.test.ts` rebuilds the same expression so no test can notice.
+  - *Cost if wrong:* (no cost line recorded)
+- **Ruling 47:** the implementer asked whether a project plaque whose project has no act should be exempt from the new "every project plaque has a link" test, since `worlds.ts` deliberately omits the link in that case.
+  - *Cost if wrong:* a future project deliberately kept out of the act map fails this test and needs an explicit, commented exemption at that point — which is the right place to decide it, with a reason.
+- **Ruling 46:** the vacuity hole I asked about is real and the reviewer traced a live path to it: `src/lib/worlds.ts:193` spreads `{}` whenever `actForProject` yields nothing, so a broken `ENTRY_ACTS` mapping, a renamed project id, or a career entry dropping out of the map silently removes the link — and the test's `if (!plaque.link) continue;` then makes it pass having asserted nothing.
+  - *Cost if wrong:* three lines of test and one more demonstration run.
+- **Ruling 45:** PLAN DEFECT I spotted while reading the report, and sent to the reviewer to confirm rather than fixing on my own reading.
+  - *Cost if wrong:* the plan ships a test that reads like a guarantee and is not one, which is worse than no test, because the next person trusts it.
+- **Ruling 43:** the implementer flagged that `self-taught-gap.context` says "Nobody set him a problem for two and a half years" while its `dateRange` now says "2019 — Present", and chose to leave it as owner-voice copy.
+  - *Cost if wrong:* one content sentence, reversible in a line.
+- **Ruling 44:** rounds 1 and 2 of Task 8 get ONE re-review covering both, dispatched after round 2 — and unlike Task 7, I am recording that choice before rather than after.
+  - *Cost if wrong:* a defect introduced in round 1 and preserved through round 2 gets one review pass instead of two — mitigated because the arc diff (d05fef2..HEAD) contains every line of both.
+- **Ruling 37:** "where did he go to school" still ranks 3, with two honest "school"-containing documents above the gold degree record.
+  - *Cost if wrong:* one eval case sits at rank 3 while a human would call its rank-1 answer acceptable.
+- **Ruling 36:** of the three options offered, two are rejected and the third needs a guard rail.
+  - *Cost if wrong:* a narrow ranking change lands in Task 7 instead of Task 13, in a corpus Task 13 re-measures anyway.
+- **Ruling 34:** Ruling 32 was wrong, and the implementer's measurement is what shows it.
+  - *Cost if wrong:* Plan A adds one rendered element that Plan B's layout rework will restyle anyway, instead of Plan A shipping a chat that is measurably worse for six tasks.
+- **Ruling 35:** the implementer exceeded its instruction by moving a second floor, having been told not to touch the other thresholds.
+  - *Cost if wrong:* nothing; round 2 reverts both moves.
+- **Ruling 31:** finding (c) stands as illegitimate and the snippet comes out.
+  - *Cost if wrong:* one documented threshold sits two thousandths low for six tasks.
+- **Ruling 32:** finding (b) — `profile.positioning` is indexed but rendered nowhere in the page body, so the answer card's "Read it in About →" sends a visitor to a section that does not contain the sentence, and the suite cannot catch it because `LINKABLE_SECTIONS` only checks the id exists.
+  - *Cost if wrong:* one fewer document in a corpus Task 13 rebuilds anyway, against a link that lies to the visitor.
+- **Ruling 33:** CLAUDE.md is a live hazard INSIDE this plan, not after it — it currently states four things that are false, and it is the file every later task reads before touching content, so a later task could "restore" exactly what Task 7 deliberately removed.
+  - *Cost if wrong:* Task 7 does documentation work
+- **Ruling 28:** a vitest run that collected no tests and was then re-run green is recorded rather than waved past.
+  - *Cost if wrong:* one task's evidence rests on a re-run rather than a first run.
+- **Ruling 26:** the chess `tagline` survived fix round 1 still claiming the project is "the only thing in this record with no class, no client and no résumé line behind it" — the same uniqueness claim the round removed from `whyItMattered`, shortened rather than cut.
+  - *Cost if wrong:* the best project in the record loses one good line from its tagline and keeps it, marked, one field down.
+- **Ruling 27:** the re-review found the drafted marker named chess's `problem`, `whyItMattered` and `nextQuestion` but not its `tagline` — so the marker was certifying the unsourced tagline as sourced.
+  - *Cost if wrong:* a reader trusts an unmarked sentence because the ones beside it are marked.
+- **Ruling 25:** after trimming, the implementer reports three of the four recovered projects read thin, toy-storefront thinnest, and asks whether all four should render.
+  - *Cost if wrong:* one sparse entry on a branch, deletable in one line.
+- **Ruling 23:** `toy-storefront` claims it is "the first retail thing he built" and "his earliest full-stack build, and the only one that happens to rhyme with what he does now".
+  - *Cost if wrong:* the case study loses a nice line it was not entitled to.
+- **Ruling 24:** the structural cause is mine and worth recording.
+  - *Cost if wrong:* four thin case studies on the page until that round, against four fabricated ones today.
+- **Ruling 21:** Ruling 14's problem recurs on the four recovered projects, and it needs a sharper rule than "mark it as drafted".
+  - *Cost if wrong:* the four case studies read thinner than they could, which is the correct direction to err on a site whose whole claim is that it does not invent.
+- **Ruling 22:** the chat corpus is sensitive enough that adding four projects' prose moved recall@5 below its threshold and made an unrelated query match a new document.
+  - *Cost if wrong:* a retrieval regression hides behind a green suite until Task 13 measures it.
+- **Ruling 20:** the implementer notes `dd-scraper-platform.technologies` still lacks the eight technologies Task 5 added to `doordash.technologies`, and left it alone.
+  - *Cost if wrong:* the case study under-states its own stack, while the entry above it states it correctly.
+- **Ruling 18:** PLAN DEFECT, found by the implementer.
+  - *Cost if wrong:* the case studies' prose is rewritten against a résumé the owner supplied — reversible content edits, and the alternative is shipping a page that argues with itself.
+- **Ruling 19:** `src/content/ai-experiments.ts` carries the same stale 2M and 18+ figures.
+  - *Cost if wrong:* Task 7 finds a stale figure in a surviving string and fixes it one task later than it could have.
+- **Ruling 14:** the reviewer flagged that several strings in the new entries are editorial claims about the owner rather than facts he supplied — `usc-honors-ta.responsibilities`' "written feedback" wording, the five `learned` sentences, and `cs-switch.context`'s line about an "origin story about childhood computers".
+  - *Cost if wrong:* five sentences in his voice that he did not write reach a published page — which is exactly the defect this round exists to remove, so the marking and the surfacing are not optional.
+- **Ruling 15:** `usc-degree` still says "Four years of computer science" from August 2021 while the new `usc-cheme` says the first year was chemical engineering from August 2021.
+  - *Cost if wrong:* one content sentence and one sortKey.
+- **Ruling 16:** the brief's own new test uses `entry!.impact`, which violates the plan's stated "no non-null assertions added to make a type fit" constraint.
+  - *Cost if wrong:* none.
+- **Ruling 12:** `answer-expansion.ts`'s teaching synonyms are keyed to `usc-ta` and the new `usc-honors-ta` entry gets none, so a query about the honors section may not retrieve it.
+  - *Cost if wrong:* one retrieval query under-performs between now and Task 13, in a corpus that is about to be rebuilt anyway.
+- **Ruling 13:** the implementer notes the origin-story player's roots and first canopy leaf now both land in 2018, and says it is "moot if Task 11 replaces that player".
+  - *Cost if wrong:* (no cost line recorded)
+- **Ruling 11:** the haiku implementer took 62 tool calls and ~20 minutes for two one-field edits — far more turns than the work needed, which is the cheap-model failure mode the SDD skill warns about (turn count, not token price, drives real cost).
+  - *Cost if wrong:* slightly higher per-token spend on the remaining tasks, against a large wall-clock saving.
+- **Ruling 7:** the reviewer's Important finding is against MY OWN plan text — the brief mandated the literal `where: "The arrival pin — Taylors, South Carolina, …"`.
+  - *Cost if wrong:* none — it is strictly less duplication.
+- **Ruling 8:** the Taylors coordinates were the one value in this round not from a source document, and the brief carried a VERIFY marker.
+  - *Cost if wrong:* a pin a kilometre out on a globe drawn at a few hundred pixels — invisible — but the site's claim is that its facts have sources, so an unsourced coordinate is the kind of thing this round exists to remove.
+- **Ruling 9:** `src/sections/CareerTree/OriginStory.tsx:190` builds its flight caption as `${countryOf(origin.from)} → ${origin.to}`, which since Task 1 reads "Việt Nam → Taylors, South Carolina" — a country on one end, a town on the other — and its doc comment still says the player names "the country".
+  - *Cost if wrong:* a longer caption in the origin-story player; the alternative (both ends as countries) would throw away the town the whole round just authored.
+- **Ruling 10:** the reviewer rated the two stale "country centroid, because no city is authored" comments Minor.
+  - *Cost if wrong:* two comment edits.
+- **Ruling 6:** the crossing's great-circle midpoint moves with `origin.to`.
+  - *Cost if wrong:* a drawn jellyfish sits in Arctic rather than Pacific water — a decoration, carrying no fact either way.
+- **Ruling 52:** Task 13's brief names `tests/ui/Stage.test.tsx` three times, but Ruling 48 placed that file at `tests/sections/Stage.test.tsx` (repo convention: `tests/ui/` is for shared primitives, `tests/sections/` for section components) and Task 11 created it there.
+  - *Cost if wrong:* none — it is the same file under the name it actually has.
+- **Ruling 53:** DELIVERABLE A — the LCP/TBT regression is NOT a regression, and the reviewer closed it with a mechanism argument I had not thought of.
+  - *Cost if wrong:* a real LCP regression hides behind a noise verdict — mitigated by the two follow-ups below, both of which would expose it.
+- **Ruling 54:** the perf row is honest but under-labelled, and two cheap corrections go into fix round 2. (a) It omits the per-build `LCP element` line, against this file's own convention (line 1062 names `P.mt-6.max-w-[56ch]`) — if the selector differs between builds the delta is an artefact and the question closes for free, and the three runs already printed it. (b) The row is titled "The pinned stage" while measuring a viewport a…
+  - *Cost if wrong:* one perf row carries a vaguer title than it could for two tasks.
+- **Ruling 55:** DELIVERABLE B — the stylesheet-coverage test is NOT vacuous and does fail for its stated reason.
+  - *Cost if wrong:* two lines of test.
+- **Ruling 56:** `cross-link.tsx`'s UNTOUCHED header still carries three false statements — it points at the deleted `Timeline.tsx`, says "its roots still link to the skill groups in `#skills`" (the roots are `RootLabels`, mounted only by the unmounted `KnowledgeTree.tsx`), and says "its branch panels still link to the case studies in `#work`" (no `caseStudyAnchorId` or `#work` link survives in `DrawnTree.tsx`), plus two stale counts…
+  - *Cost if wrong:* one comment block edited in Task 11 instead of Task 14.
+- **Ruling 57:** `Stage.tsx:153-180`'s `measure()` forces synchronous layout — `getBoundingClientRect()` on the camera plus one per 11 branches plus `offsetHeight` — on mount and again on the `live` flip, and does it BELOW 1280px where the two CSS variables it writes are never read and the drawing it measures is `display: none`.
+  - *Cost if wrong:* one guard in an effect.
+- **Ruling 58:** fix round 2 goes to a FRESH implementer on OPUS rather than resuming the original on sonnet.
+  - *Cost if wrong:* one task's fix round costs opus tokens where sonnet might have sufficed.
+- **Ruling 59:** I verified disclosure (2) myself rather than spending a review seat on it, because a stray formatter across 26 files is the one thing in this round that could have silently mangled the tree.
+  - *Cost if wrong:* a stray formatting hunk reaches the final review, which reads the whole branch diff anyway.
+- **Ruling 60:** premise 3 was mine and it was WRONG, and the implementer's deviation is the right call pending the re-review's check of it.
+  - *Cost if wrong:* an e2e spec reaches a state where it clicks its way to a subject that a real visitor cannot reach the same way.
+- **Ruling 61:** round 1's report IS internally inconsistent, and the damage is contained.
+  - *Cost if wrong:* a task report carries a stale number the final review reads with a correction beside it.
+- **Ruling 62:** fix round 3 is kept DELIBERATELY TIGHT — the one Important finding this round caused, plus the one Minor in a file this round edited.
+  - *Cost if wrong:* Task 14 carries five cleanup items instead of Task 11 carrying them, and a red e2e spec sits on the branch through Tasks 12 and 13 — visible, named, and blocking nothing they run.
+- **Ruling 63:** the empty `LCP element` cells stay empty and the obligation moves to Task 14.
+  - *Cost if wrong:* the LCP question stays open one more task, in a row that already says so.
+- **Ruling 64:** Task 12's Step 3 ("re-root the tree on the crossing" in `RootLabels.tsx`) is SKIPPED, and the reason is now fully established rather than suspected.
+  - *Cost if wrong:* three unrendered components survive Plan A as named dead code rather than being decided now.
+- **Ruling 65:** Task 12's COMMIT MESSAGE is false as drafted and must be corrected in the same task.
+  - *Cost if wrong:* one commit message sentence.
+- **Ruling 66:** deleting SelectedWork and Skills makes `src/sections/CareerTree/cross-link.tsx` ENTIRELY caller-less, and the implementer must be told not to "fix" that by deleting it.
+  - *Cost if wrong:* one file with no callers survives Task 12, named in the ledger, for one task.
+- **Ruling 67:** MY PRE-FLIGHT WAS WRONG.
+  - *Cost if wrong:* (no cost line recorded)
+- **Ruling 68:** the skills-citation defect is FIXED NOW by dropping the link, and the permanent home goes to Task 13.
+  - *Cost if wrong:* skills answers carry no section link for one task, which is honest but less useful than a correct one.
+- **Ruling 69:** the "journey" exception is NOT the re-introduced hole I feared, and I am recording the check so nobody re-opens it.
+  - *Cost if wrong:* one hand-maintained string in an otherwise derived allow-list.
+- **Ruling 70:** PROMOTED a Minor to a required fix item, because it is the guard that would have caught MY error.
+  - *Cost if wrong:* one e2e spec of maintenance, against the error class that has now bitten this plan twice.
+- **Ruling 71:** THE SWEEP I PROMOTED CONTAINED THE DEFECT I PROMOTED IT AGAINST, and the implementer's own numbers are the proof.
+  - *Cost if wrong:* the sweep keeps a passing assertion that proves less than it claims, in the one spec whose entire job is to not be a decoration.
+- **Ruling 72:** the pairing invariant stays and gets a positive pin beside it.
+  - *Cost if wrong:* two layers pinned instead of four, in a feature whose data layer is pinned hardest.
+- **Ruling 73:** Task 13 must rewrite `src/sections/CareerTree/anchors.ts:44-54` in the same commit as its Step 3, and I am recording this as a ruling rather than a note because the comment NAMES THE TASK THAT FALSIFIES IT: it currently says "since round 18 nothing renders these ids ...
+  - *Cost if wrong:* one comment block.
+- **Ruling 74:** THE STALE LINE CITATION WAS MINE TO CATCH AND I DID NOT.
+  - *Cost if wrong:* three dispatches told an implementer "one known-red spec, not yours" when ten were red, which is the kind of wrong baseline that gets a real regression dismissed as inherited.
+- **Ruling 75:** the implementer's test-file placement OVERRIDES my correction, pending the review's confirmation.
+  - *Cost if wrong:* one test file's worth of relocation.
+- **Ruling 76:** FINDING A IS 38 DOCUMENTS WIDE, NOT 6, AND THE RESPONSE WAS A CONTRACT REWRITE — sent to the review as the crux rather than ruled by me.
+  - *Cost if wrong:* one review seat, against my ruling a 38-document content question on a reading of a report.
+- **Ruling 75 CONFIRMED:** my test-file correction was wrong and the implementer's placement was right.
+  - *Cost if wrong:* (no cost line recorded)
+- **Ruling 77:** THE CONTRACT REWRITE STANDS AS HONEST, and the completion is a fourth option nobody had weighed.
+  - *Cost if wrong:* two strings, reversible in a line.
+- **Ruling 78:** Task 14 gets the CENSUS WARNING, not a count, because the count is systematically unreliable.
+  - *Cost if wrong:* Task 14 budgets for more than it finds.
+- **Ruling 79:** IT REJECTED BOTH OF MY SUGGESTED WORDINGS AND ITS REASONS BEAT MINE.
+  - *Cost if wrong:* one string literal in one file.
+- **Ruling 80:** the dead `KnowledgeTree`/`RootLabels`/`TreeFigure` cluster is RETIRED in Task 14, reversing Ruling 64's "Thien's question" hold — because Thien listed it by name among Task 14's obligations in this session's resume instruction, which is the owner's answer to the question Ruling 64 parked.
+  - *Cost if wrong:* one `git revert` restores the cluster.
+- **Ruling 81:** stale e2e tests in `e2e/sections.spec.ts` are DELETED when their subject no longer exists (view toggle, timeline filter, root labels, branch->timeline cross-link, ink reveal through `[data-tree-figure]`), and REWRITTEN only where the behaviour survives in a new form on the four-section page.
+  - *Cost if wrong:* a deleted test whose subject did survive, recoverable from git.
+- **Ruling 82:** Task 14's e2e budget for legacy-anchors.spec.ts follows the re-reviewer's recommendation — gate ONLY the served-HTML test (request fixture, viewport-independent bytes) with the visible-skip convention of `ask.spec.ts:50` to `chromium-1440`, and collapse the four adjacent section-id landing tests into one looped test with `expect.soft` per id.
+  - *Cost if wrong:* one test's per-viewport repetition dropped, of bytes that cannot differ.
+- **Ruling 83 (REVISED):** my acceptance of the known-red pair as pre-existing was wrong — I compared against a commit inside the branch.
+  - *Cost if wrong:* none shipped; caught at final review.
+- **Ruling 84:** axe mid-fade fixed in the PRODUCT (no transition on the first live frame) and the spec hardened — the product fix also removes a deep-link finished-then-fade flash.
+  - *Cost if wrong:* a data attribute and one CSS condition.
+- **Ruling 87:** `Tag.tsx` (zero consumers by importer, attribute and class) — recommend delete, but it is a component deletion nobody named, so it goes to Thien with the merge options rather than into an unreviewed commit.
+  - *Cost if wrong:* one dead file survives a round.
+
+- **Ruling 39 (provisional → SUPERSEDED):** kept INCLUSIVE month boundaries for concurrency — exclusive would not fix the `usc-degree` chain collapse, and Schaeffler ending 2024-08 against a role starting August 2024 genuinely overlapped; the defect was in the data and aggregation.
+  - *Cost if wrong:* entries sharing only a boundary month are drawn as concurrent.
+- **Ruling 49 (provisional → CONFIRMED):** the 17.6 KB initial-JS regression from Task 11 was caused by my own correction 2 and was avoidable: the drawing is server-rendered into the Stage as slots with `data-through` + static CSS. Fixed in Task 11 round 2; final perf 198.5 KB vs 200.7 KB control.
+  - *Cost if wrong:* none outstanding — measured.
+- **Ruling 85:** the VISIBLE Journey lead "Open any branch to read what it involved." (`CareerTree.tsx:137`) is false with JS off, and its comment (`:130-134`) claims it is "true in every mode" — surfaced to Thien as a pre-merge fix instead of a forbidden second fix wave.
+  - *Cost if wrong:* the false line ships if merged without reading the options.
+- **Ruling 86:** the same lead's "One trunk, one branch per role" (since 1c727ce) is false — Eastside High, USC chem-eng, the self-taught gap and the CS switch are branches but not roles; ACM Webmaster is a role but a credential. Same route as 85.
+  - *Cost if wrong:* as 85.
+
+_89 ruling entries (85 extracted + 4 appended by hand). Rulings 47 and 75 each appear twice: made, then confirmed or revised._

@@ -1,0 +1,6 @@
+
+> portfolio@0.1.0 typecheck D:\Project\portfolio
+> next typegen && tsc --noEmit
+
+Generating route types...
+✓ Types generated successfully

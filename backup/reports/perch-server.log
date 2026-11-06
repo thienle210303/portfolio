@@ -1,0 +1,10 @@
+
+> portfolio@0.1.0 start D:\Project\portfolio\.claude\worktrees\perch-margin
+> next start
+
+▲ Next.js 16.3.1
+- Local:         http://localhost:3196
+- Network:       http://192.168.1.90:3196
+✓ Ready in 262ms
+✓ Running next.config.ts took 41ms
+ ELIFECYCLE  Command failed with exit code 1.

@@ -1,0 +1,36 @@
+
+Running 30 tests using 2 workers
+
+  -   1 [chromium-320] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   2 [chromium-320] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   4 [chromium-320] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   3 [chromium-320] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   6 [chromium-375] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   5 [chromium-320] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   7 [chromium-375] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   8 [chromium-375] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -   9 [chromium-375] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  10 [chromium-375] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  11 [chromium-390] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  12 [chromium-390] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  14 [chromium-390] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  13 [chromium-390] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  15 [chromium-390] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  16 [chromium-768] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  18 [chromium-768] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  17 [chromium-768] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  19 [chromium-768] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  20 [chromium-768] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  21 [chromium-1024] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  22 [chromium-1024] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  23 [chromium-1024] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  24 [chromium-1024] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  -  26 [chromium-1024] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not
+  ok 25 [chromium-1440] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not (11.2s)
+  ok 27 [chromium-1440] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not (10.8s)
+  ok 28 [chromium-1440] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not (11.2s)
+  ok 29 [chromium-1440] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not (11.2s)
+  ok 30 [chromium-1440] › e2e\companion.spec.ts:1745:7 › companion › never rests on the globe stage, loaded or not (10.9s)
+
+  25 skipped
+  5 passed (54.3s)
