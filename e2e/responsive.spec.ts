@@ -146,7 +146,8 @@ for (const width of [320, 390, 414, 768]) {
     await page.reload();
     await page.waitForLoadState("networkidle");
     const selectors = [
-      "header a[aria-label$='back to top']",
+      // The TL tag (the nav's own About link shares its href and is hidden here).
+      "header a[href='/#about'][aria-label]",
       "#record button[aria-pressed]",
       "#contact a[href^='mailto:']",
       "#contact a[href*='github.com']",

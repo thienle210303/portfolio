@@ -180,9 +180,17 @@ test.describe("the résumé route", () => {
     await page.waitForLoadState("networkidle");
     await page.emulateMedia({ media: "print" });
 
-    // Round 23: the route is the PDF in a viewer, so the PDF frame is what prints.
+    // Round 23: the route is the PDF in a viewer, so the PDF frame is what
+    // prints. Round 25: under 40rem there is no frame, and page one's picture
+    // prints instead (its Open and Download are for the screen only).
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.locator("main iframe")).toHaveAttribute("src", "/thien-le-resume.pdf");
+    if ((page.viewportSize()?.width ?? 0) >= 640) {
+      await expect(page.locator("main iframe")).toHaveAttribute("src", "/thien-le-resume.pdf");
+    } else {
+      await expect(page.locator("main iframe")).toHaveCount(0);
+      await expect(page.locator("main [data-resume-preview] img")).toBeVisible();
+      await expect(page.getByRole("link", { name: "Open the PDF", exact: true })).toBeHidden();
+    }
 
     // The back link and the download button are for the screen only.
     await expect(page.getByRole("link", { name: /Back to the site/ })).toBeHidden();

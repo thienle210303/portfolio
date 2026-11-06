@@ -2838,72 +2838,54 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* Ask, in Contact — the room the chat takes, held before it arrives          */
+/* Ask, in Contact — its place held before it arrives, and its window         */
 /* -------------------------------------------------------------------------- */
 /* `AskLoader` imports the chat as `#ask` nears the viewport. Unreserved, the  */
-/* swap from an empty placeholder to the chat pushed the footer down by       */
-/* ~570-960px under a reader already looking at it (End key, a jump to the    */
-/* bottom). So `--ask-room` is the min-height of BOTH the loader's pre-chat */
-/* states (`data-ask-slot`) and the chat's own root (`data-ask-chat`). It is */
-/* a step per width range: since round 22 the thread is a fixed-height      */
-/* window from the start, so the idle chat changes height only where the    */
-/* suggestions re-wrap. Each step is the idle chat's natural height,        */
-/* measured every 4px from 320 to 1920 (static mode, 1rem = 16px, this rule */
-/* switched off), and starts at the first width measured at the lower       */
-/* value, so the room is never short (slack < one step, inside 4px of each  */
-/* breakpoint; 0 elsewhere). Re-measure if the chat's idle copy or          */
-/* suggestions change. Live mode is assumed no taller (its resting line is  */
-/* shorter), not measured. Round 24 re-measured it (the window is 23rem     */
-/* from 1024, was 20rem: +48px there; below 1024 nothing moved).            */
-/* e2e/ask.spec.ts fails at five widths if the                              */
-/* footer moves by more than 2px across the load, and fails between 400 and */
-/* 639px if the room is short of the chat or more                           */
-/* than 200px taller than it.                                               */
+/* swap from an empty placeholder to the chat pushed the footer down under a  */
+/* reader already looking at it (End key, a jump to the bottom). Through      */
+/* round 24 the room was `--ask-room`, a min-height measured by hand at six   */
+/* width ranges, on both the loader's pre-chat states and the chat's root.    */
+/* Round 25 has no number here at all: Contact draws the idle notepad on the  */
+/* server (`AskPlaceholder`) from the pieces the chat uses (`ask-sheet.tsx`), */
+/* so the two are the same height at every width because they are the same   */
+/* boxes. e2e/ask.spec.ts fails if the footer moves by more than 2px across   */
+/* the load, and walks the widths from 320 to 1920 comparing the two.         */
 /*                                                                            */
-/* Gated on `html[data-motion]`, which the pre-paint script in layout.tsx     */
-/* stamps unconditionally, i.e. "JavaScript runs": with it off the chat never */
-/* comes, and a tall hole around one <noscript> line would be all that was    */
-/* left. Neither element may carry a `min-h-*` utility: the utilities layer   */
-/* would win over this one.                                                   */
+/* The placeholder's notepad is not live (`data-ask-shell`: inert, hidden     */
+/* from assistive tech). With JavaScript off the chat never comes, so the     */
+/* shell is not shown and one <noscript> line stands under the heading (the   */
+/* two rules after this layer; unlayered, because the shell's own `flex` is a */
+/* utility and would outrank a layered `display`). `html[data-motion]` is     */
+/* stamped unconditionally by the pre-paint script in layout.tsx, i.e.        */
+/* "JavaScript runs".                                                         */
+/*                                                                            */
+/* The window (round 25, my call; it reverses round 22's "one fixed height"): */
+/* idle, the notepad is as tall as the promise written on it. With a turn in  */
+/* it (`data-open`) it is one fixed height and scrolls inside itself: most of */
+/* a phone's screen below 1024 (so a clipping shows whole, with its tab), and */
+/* 23rem from 1024, where the compose side stands beside it. Neither the      */
+/* placeholder nor the chat's root may carry a `min-h-*` utility.             */
 /* -------------------------------------------------------------------------- */
 @layer components {
-  :root {
-    --ask-room: 789px;
-  }
-  @media (width >= 344px) {
-    :root {
-      --ask-room: 764px;
-    }
-  }
-  @media (width >= 356px) {
-    :root {
-      --ask-room: 742px;
-    }
-  }
-  @media (width >= 436px) {
-    :root {
-      --ask-room: 724px;
-    }
-  }
-  @media (width >= 480px) {
-    :root {
-      --ask-room: 676px;
-    }
-  }
-  @media (width >= 548px) {
-    :root {
-      --ask-room: 628px;
-    }
+  .ask-window {
+    --ask-window: min(26rem, 60svh);
   }
   @media (width >= 64rem) {
-    :root {
-      --ask-room: 518px;
+    .ask-window {
+      --ask-window: 23rem;
     }
   }
-  html[data-motion] [data-ask-slot],
-  html[data-motion] [data-ask-chat] {
-    min-height: var(--ask-room);
+  .ask-window[data-open] {
+    height: var(--ask-window);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
+}
+html:not([data-motion]) [data-ask-sheet="idle"] {
+  display: block;
+}
+html:not([data-motion]) [data-ask-shell] {
+  display: none;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -3002,10 +2984,10 @@
     padding: 0.1rem 0.3rem 0.05rem;
     border: 1px solid currentColor;
     border-radius: 2px;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     rotate: -3deg;
   }
@@ -3093,6 +3075,19 @@
 }
 
 @media screen and (prefers-reduced-motion: no-preference) {
+  /* The first question opens the notepad: the window unfolds from the idle
+     height `AskThisSite` measured (`--ask-from`) to its fixed one. A window
+     that mounts already open (a thread kept across a route change) has no
+     `--ask-from`, so it starts where it ends and does not move. */
+  .ask-window[data-open] {
+    animation: ask-unfold var(--dur-reveal) var(--ease-ink) both;
+  }
+  @keyframes ask-unfold {
+    from {
+      height: var(--ask-from, var(--ask-window));
+    }
+  }
+
   /* Paper lands: the slip slides in from the compose side and settles, the
      clippings drop and straighten one after another, the code view turns
      the answer over, and the ink dots blot in turn. */
@@ -4393,15 +4388,23 @@ body:has(.resume-dialog[open]) {
    --------------------------------------------------------------------------- */
 
 /* The picture side. The panel is a size container, so its scene box can be
-   exactly the drawing's 340 x 440 whatever the panel is: bottom-aligned and
-   contained where the postcard's two sides stand side by side, top-aligned and
-   as wide as the panel where they stack (the old `bg-contain bg-bottom` and
-   `bg-cover bg-top`). Against that box the stamp sits in the drawing's empty
-   sky, left of the sun, above the pines and clear of the heading, at every
-   width. The box is itself an inline-size container: the stamp is sized in its
-   units. */
+   exactly the drawing's 340 x 440 whatever the panel is. Three arrangements,
+   by the postcard's own width (round 25):
+   - under 30rem, stacked: the panel is the top of the drawing, as wide as the
+     card and cut at 312 of its 440 units, just under the heron's feet (the old
+     `bg-cover bg-top`, but in proportion, so every phone sees the same cut);
+   - 30rem to 40rem, still stacked: a landscape band, the whole drawing
+     standing at its right on the bottom edge and "Greetings from" in the sky
+     beside it (a laptop's column, a small tablet: as wide as the card, the
+     drawing would be all sky);
+   - from 40rem, side by side: bottom-aligned and contained in the panel (the
+     old `bg-contain bg-bottom`).
+   Against that box the stamp sits in the drawing's empty sky, left of the sun,
+   above the pines and clear of the heading. The box is itself an inline-size
+   container: the stamp is sized in its units. */
 .postcard-sky {
   container-type: size;
+  aspect-ratio: 340 / 312;
 }
 .postcard-scene {
   position: absolute;
@@ -4412,11 +4415,28 @@ body:has(.resume-dialog[open]) {
   aspect-ratio: 340 / 440;
   container-type: inline-size;
 }
-@container postcard (width >= 32rem) {
+@container postcard (width >= 30rem) {
+  .postcard-sky {
+    aspect-ratio: auto;
+    height: 17.5rem;
+  }
   .postcard-scene {
     top: auto;
     bottom: 0;
+    left: auto;
+    right: 7%;
+    translate: none;
     width: min(100cqw, calc(100cqh * 340 / 440));
+  }
+}
+@container postcard (width >= 40rem) {
+  .postcard-sky {
+    height: auto;
+  }
+  .postcard-scene {
+    left: 50%;
+    right: auto;
+    translate: -50% 0;
   }
 }
 
@@ -4502,10 +4522,12 @@ body:has(.resume-dialog[open]) {
 }
 .sent-stamp--slot {
   flex-shrink: 0;
-  margin: 1rem 0.75rem 0.5rem auto;
+  /* 1.5rem above: the stamp is turned 5 degrees and a laptop's stacked
+     postcard 1.2 the same way, so its corner rises toward the line over it. */
+  margin: 1.5rem 0.75rem 0.5rem auto;
   font-size: 11.5px;
 }
-@container postcard (width >= 32rem) {
+@container postcard (width >= 40rem) {
   .sent-stamp--board {
     display: flex;
   }

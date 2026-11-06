@@ -145,15 +145,51 @@ test.describe("ask this site", () => {
     const count = await suggestions.count();
     expect(count).toBeGreaterThan(0);
 
+    // Round 25: a question already asked leaves the suggestions, so the next
+    // one to try is always the first that is left.
     for (let index = 0; index < count; index++) {
-      await suggestions.nth(index).click();
+      const question = (await suggestions.first().textContent()) ?? "";
+      await suggestions.first().click();
       const turn = lastTurn(page);
+      await expect(turn).toContainText(question);
       // Either real results or the honest "nothing here" line — never blank.
       const answered = await turn.getByRole("list", { name: "Sourced answers" }).getByRole("listitem").count();
       const declined = await turn.getByText(/I haven’t written anything here that answers that/).count();
       expect(answered + declined, `suggestion ${index} produced no response`).toBeGreaterThan(0);
       expect(answered, `suggestion ${index} is a dead control`).toBeGreaterThan(0);
+      await expect(suggestions).toHaveCount(count - index - 1);
     }
+  });
+
+  test("a question already asked leaves the suggestions, typed or tapped, and Clear brings them back", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await openChat(page);
+
+    const tryAsking = askBlock(page).getByRole("list", { name: "Try asking" });
+    const all = await tryAsking.getByRole("button").allTextContents();
+    expect(all.length).toBeGreaterThanOrEqual(3);
+
+    await page.getByRole("button", { name: all[0] }).click();
+    await expect(tryAsking.getByRole("button")).toHaveText(all.slice(1));
+    // The words are still on the page once: in the thread, as the question.
+    await expect(askBlock(page).getByText(all[0], { exact: true })).toHaveCount(1);
+
+    // Typing a suggestion's exact words is asking it too.
+    await questionField(page).fill(all[2]);
+    await page.keyboard.press("Enter");
+    await expect(tryAsking.getByRole("button")).toHaveText([all[1], ...all.slice(3)]);
+    // A question of my own takes nothing away.
+    await questionField(page).fill("scraper");
+    await page.keyboard.press("Enter");
+    await expect(tryAsking.getByRole("button")).toHaveText([all[1], ...all.slice(3)]);
+
+    // With every one asked, "or try" goes with them.
+    for (const question of [all[1], ...all.slice(3)]) await page.getByRole("button", { name: question }).click();
+    await expect(tryAsking).toHaveCount(0);
+    await expect(askBlock(page).getByText("or try")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Clear conversation" }).click();
+    await expect(tryAsking.getByRole("button")).toHaveText(all);
   });
 
   test("offers the same answer as a code artifact, one view at a time", async ({ page }) => {
@@ -230,6 +266,10 @@ test.describe("ask this site", () => {
 
     await page.getByRole("button", { name: "What do you do at DoorDash?" }).click();
     await expect(lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
+    // The window unfolds over 200ms: measure the page once it is open.
+    await expect
+      .poll(() => conversationLog(page).evaluate((el) => Math.round(el.getBoundingClientRect().height)))
+      .toBe(23 * 16);
 
     const pageHeightAfterOneTurn = await page.evaluate(() => document.documentElement.scrollHeight);
 
@@ -242,11 +282,14 @@ test.describe("ask this site", () => {
 
     const pageHeightAfterThreeTurns = await page.evaluate(() => document.documentElement.scrollHeight);
 
-    // Since round 22 the window is one size from the start and "Clear" is
-    // laid out (invisibly) before there is anything to clear, so the page
-    // does not grow on the first question either: a few px of rounding
-    // slack, nothing resembling a turn's worth of prose.
-    expect(Math.abs(pageHeightAfterOneTurn - pageHeightBeforeAnyTurn)).toBeLessThanOrEqual(4);
+    // Round 25 (it reverses round 22's "one size from the start"): idle, the
+    // notepad is as tall as its promise, and the first question opens it to
+    // its one fixed window, so the page grows once, by less than that window
+    // (23rem here). After that it never grows again, however many are asked.
+    const windowHeight = await conversationLog(page).evaluate((el) => el.getBoundingClientRect().height);
+    expect(windowHeight).toBeCloseTo(23 * 16, 0);
+    expect(pageHeightAfterOneTurn).toBeGreaterThan(pageHeightBeforeAnyTurn);
+    expect(pageHeightAfterOneTurn - pageHeightBeforeAnyTurn).toBeLessThan(windowHeight);
     expect(pageHeightAfterThreeTurns).toBeLessThanOrEqual(pageHeightAfterOneTurn + 4);
 
     // All three turns are still there, in order, inside the scrolling log —
@@ -529,9 +572,9 @@ test.describe("ask, in contact", () => {
     await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
   });
 
-  // The chat's room (`--ask-room` in globals.css) is reserved before it
-  // loads, so nothing after it moves when it lands. Measured where the
-  // breakpoints put different heights in force.
+  // The chat's place is held before it loads (round 25: by the idle notepad
+  // itself, see the walk below; through round 24 by `--ask-room`), so nothing
+  // after it moves when it lands.
   test("the chat landing does not move what follows it", async ({ page }) => {
     test.skip(viewportWidth(page) === 390, "covered by 375; five widths are enough");
     await page.goto("/");
@@ -555,31 +598,180 @@ test.describe("ask, in contact", () => {
     expect(Math.abs(after - before), `the footer moved ${after - before}px when the chat landed`).toBeLessThanOrEqual(2);
   });
 
-  // The other half of that room: not so tall that the landed chat sits over a
-  // blank gap. The matrix has no width between 390 and 768, where the idle
-  // chat shrinks from ~1006px to ~750px, so this walks that range itself.
-  test("the chat's room is never much taller than the chat, between the phone and tablet widths", async ({ page }) => {
+  // Why it does not move (round 25): the place is held by the idle notepad
+  // itself, drawn by `AskLoader` from the pieces the chat uses, not by a
+  // measured min-height. So the placeholder and the idle chat must be the
+  // same height at EVERY width, including the ones between this matrix's
+  // projects where a line of the promise or a suggestion re-wraps. This walks
+  // them: the placeholder first (it is in the server's HTML, laid out even
+  // far below the fold), then the chat.
+  test("the placeholder is exactly as tall as the idle chat, from 320 to 1920", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "walks its own widths; run once");
-    await openChat(page);
+    test.setTimeout(120_000);
+    const widths: number[] = [];
+    for (let width = 320; width <= 1920; width += width < 700 ? 12 : 60) widths.push(width);
 
-    const gaps: string[] = [];
-    for (let width = 400; width < 640; width += 8) {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(questionField(page)).toHaveCount(0);
+    const heightOf = (selector: string) =>
+      page.evaluate((sel) => {
+        const el = document.querySelector<HTMLElement>(sel);
+        if (!el) throw new Error(`${sel} is not on the page`);
+        // No min-height holds either up: the height is the content's.
+        return { height: el.getBoundingClientRect().height, minHeight: getComputedStyle(el).minHeight };
+      }, selector);
+
+    const placeholder: number[] = [];
+    for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
-      const { natural, reserved } = await page.evaluate(() => {
-        const chat = document.querySelector<HTMLElement>("[data-ask-chat]");
-        if (!chat) throw new Error("the chat has no root");
-        chat.style.minHeight = "0px";
-        const height = chat.getBoundingClientRect().height;
-        chat.style.minHeight = "";
-        return { natural: height, reserved: parseFloat(getComputedStyle(chat).minHeight) };
-      });
-      // Never short (the footer test above needs that), and never more
-      // than 200px of blank under the chat (330px before the 400px step).
-      if (reserved < natural - 1 || reserved - natural > 200) {
-        gaps.push(`${width}px: room ${reserved}px for a ${Math.round(natural)}px chat`);
+      // Still waiting: the chat must not have been asked for by the resize.
+      const slot = await heightOf("[data-ask-slot]");
+      expect(["0px", "auto"]).toContain(slot.minHeight);
+      placeholder.push(slot.height);
+    }
+
+    await page.setViewportSize({ width: DESKTOP_WIDTH, height: 900 });
+    await askBlock(page).scrollIntoViewIfNeeded();
+    await expect(questionField(page)).toBeVisible({ timeout: 15_000 });
+    const differences: string[] = [];
+    for (const [index, width] of widths.entries()) {
+      await page.setViewportSize({ width, height: 900 });
+      const chat = await heightOf("[data-ask-chat]");
+      expect(["0px", "auto"]).toContain(chat.minHeight);
+      if (Math.abs(chat.height - placeholder[index]) > 0.5) {
+        differences.push(`${width}px: placeholder ${placeholder[index]}px, chat ${chat.height}px`);
       }
     }
-    expect(gaps).toEqual([]);
+    expect(differences).toEqual([]);
+  });
+
+  test("the placeholder is paper, not controls, and is not shown with JavaScript off", async ({ page, browser }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const slot = page.locator("#ask [data-ask-slot]");
+    await expect(slot).toHaveCount(1);
+    // The idle notepad is drawn, with the promise and the suggestions...
+    await expect(slot.locator("[data-ask-shell]").first()).toBeVisible();
+    await expect(slot).toContainText("No question asked yet.");
+    await expect(slot).toContainText("What do you do at DoorDash?");
+    // ...and none of it can be found, focused or pressed.
+    await expect(slot.locator("a, button, input, [tabindex]")).toHaveCount(0);
+    await expect(page.getByRole("textbox", { name: "Your question" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "What do you do at DoorDash?" })).toHaveCount(0);
+    for (const shell of await slot.locator("[data-ask-shell]").all()) {
+      await expect(shell).toHaveAttribute("aria-hidden", "true");
+      await expect(shell).toHaveAttribute("inert", "");
+    }
+
+    // With JavaScript off the chat never comes: one line, and no blank paper.
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: DESKTOP_WIDTH, height: 900 } });
+    const plain = await context.newPage();
+    await plain.goto("/");
+    const ask = plain.locator("#ask");
+    await expect(ask.getByRole("heading", { name: "Ask me" })).toBeVisible();
+    // By CSS, not by text: Playwright's text engine skips <noscript>.
+    const line = ask.locator("noscript p");
+    await expect(line).toBeVisible();
+    await expect(line).toHaveText("The chat needs JavaScript.");
+    for (const shell of await ask.locator("[data-ask-shell]").all()) await expect(shell).toBeHidden();
+    expect((await ask.boundingBox())!.height).toBeLessThan(140);
+    await context.close();
+  });
+
+  // Round 25: short until there is something in it. Deliberately not
+  // viewport-gated: the window's height is the thing that varies with width.
+  test("the notepad is short while idle, opens to its one window on the first question, and stays that height", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openChat(page);
+    const log = conversationLog(page);
+    const measure = () =>
+      log.evaluate((el) => ({
+        height: el.getBoundingClientRect().height,
+        scrolls: el.scrollHeight > el.clientHeight + 1,
+        overflowY: getComputedStyle(el).overflowY,
+      }));
+
+    const { width, height } = page.viewportSize()!;
+    const rem = 16;
+    // 23rem from 1024; below it most of the screen, 26rem at most.
+    const windowHeight = width >= 1024 ? 23 * rem : Math.min(26 * rem, 0.6 * height);
+
+    const idle = await measure();
+    // As tall as the blank slip and the promise: nothing to scroll, nothing
+    // blank, and shorter than the window it will open to.
+    expect(idle.scrolls).toBe(false);
+    expect(idle.height).toBeLessThan(windowHeight);
+    const written = await log.evaluate((el) => {
+      const last = el.querySelector(".ask-lined")!.getBoundingClientRect();
+      return el.getBoundingClientRect().bottom - last.bottom;
+    });
+    expect(written, "blank paper under the promise").toBeLessThanOrEqual(2);
+
+    await page.getByRole("button", { name: "What do you do at DoorDash?" }).dispatchEvent("click");
+    await expect(lastTurn(page).getByRole("list", { name: "Sourced answers" }).getByRole("listitem").first()).toBeVisible();
+    const open = await measure();
+    expect(open.height).toBeCloseTo(windowHeight, 0);
+    expect(open.overflowY).toBe("auto");
+
+    await page.getByRole("button", { name: "What have you measured?" }).dispatchEvent("click");
+    await expect(conversation(page).locator(":scope > li")).toHaveCount(2);
+    expect((await measure()).height).toBeCloseTo(windowHeight, 0);
+
+    // Cleared, it is the idle notepad again.
+    await page.getByRole("button", { name: "Clear conversation" }).dispatchEvent("click");
+    await expect(conversation(page)).toHaveCount(0);
+    expect((await measure()).height).toBeCloseTo(idle.height, 0);
+  });
+
+  test("the first answer's clipping shows whole in the window, with its tab", async ({ page }) => {
+    // Round 24's 17rem window showed about 130px of an answer on a phone and
+    // cut "More on this in …" through its text.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openChat(page);
+    await page.getByRole("button", { name: "What do you do at DoorDash?" }).dispatchEvent("click");
+    const turn = lastTurn(page);
+    const clipping = turn.locator(".ask-clip").first();
+    await expect(clipping).toBeVisible();
+    const shown = await conversationLog(page).evaluate((log) => {
+      const view = log.getBoundingClientRect();
+      const clip = log.querySelector(".ask-clip")!;
+      const tab = clip.querySelector(".ask-clip-tab-paper");
+      const within = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return r.top >= view.top - 1 && r.bottom <= view.bottom + 1;
+      };
+      const first = clip.getBoundingClientRect();
+      return { clipping: within(clip), tab: tab ? within(tab) : null, answerShown: view.bottom - first.top };
+    });
+    // More of the answer than round 24's 130px, at every width...
+    expect(shown.answerShown).toBeGreaterThan(150);
+    // ...and on any screen at least an iPhone SE 2's height (667px), the whole
+    // first clipping and its tab. A 568px screen's window is 60% of it, 341px,
+    // which holds the slip, the tabs and most of the clipping, not all.
+    if (page.viewportSize()!.height >= 667) {
+      expect(shown.clipping, "the first clipping is cut by the window").toBe(true);
+      expect(shown.tab, "the clipping's tab is cut by the window").not.toBe(false);
+    }
+  });
+
+  test("the window unfolds from the idle height where motion is welcome", async ({ page }) => {
+    test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "behaviour is viewport-independent; run once");
+    await openChat(page);
+    const log = conversationLog(page);
+    const idle = await log.evaluate((el) => el.getBoundingClientRect().height);
+    await page.getByRole("button", { name: "What have you measured?" }).click();
+    const unfold = await log.evaluate((el) => {
+      const animation = el.getAnimations().find((a) => a instanceof CSSAnimation && a.animationName === "ask-unfold");
+      return {
+        from: (el as HTMLElement).style.getPropertyValue("--ask-from"),
+        duration: animation ? (animation.effect!.getComputedTiming().duration as number) : null,
+      };
+    });
+    expect(parseFloat(unfold.from)).toBeCloseTo(idle, 0);
+    expect(unfold.duration).toBe(200);
+    await expect.poll(() => log.evaluate((el) => el.getBoundingClientRect().height)).toBeCloseTo(23 * 16, 0);
   });
 
   // Deliberately not viewport-gated: this is the one property that is

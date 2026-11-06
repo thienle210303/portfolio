@@ -15,6 +15,7 @@
     "draw:scenery": "node scripts/draw-scenery.mjs",
     "draw:cats": "node scripts/draw-cats.mjs",
     "design:tokens": "node scripts/design-tokens.mjs",
+    "resume:preview": "node scripts/resume-preview.mjs",
     "perf": "node scripts/perf.mjs",
     "lag": "node scripts/lag.mjs",
     "test": "vitest run",

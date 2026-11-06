@@ -15,6 +15,31 @@ import {
 } from "./answer-code";
 import { figureRuns } from "./answer-figures";
 import {
+  ASK_BUTTON,
+  CLEAR,
+  COMPOSE_SIDE,
+  HOW_LABEL,
+  HOW_ROW,
+  IdleThread,
+  QUESTION_FIELD,
+  QUESTION_INPUT,
+  QUESTION_LABEL,
+  QUESTION_LABEL_TEXT,
+  QUESTION_PLACEHOLDER,
+  QUESTION_ROW,
+  QuestionSlip,
+  Said,
+  SHEET,
+  SheetTop,
+  THREAD_SIDE,
+  TRY_BUTTON,
+  TRY_LABEL,
+  TRY_LIST,
+  TRY_ROW,
+  TRY_TAG,
+  WINDOW,
+} from "./ask-sheet";
+import {
   SCORING_EXCERPT,
   SCORING_EXCERPT_FILENAME,
   SCORING_EXCERPT_SUMMARY,
@@ -89,9 +114,12 @@ import {
  * to be an ordinary flow element, so the *page* grew by one turn's height
  * every time a question landed. `role="log"` now wraps the conversation
  * (`<ol aria-label="Conversation">` nests inside it, not the other way
- * round) with a fixed `max-h-*` and `overflow-y-auto`: a real chat-window
- * feel, and one the page's own height no longer answers to. See the JSX
- * comment at the region itself for the exact height and why. A "Clear
+ * round) and, once there is a turn in it, has one fixed height and scrolls
+ * inside itself: a real chat-window feel, and one the page's own height no
+ * longer answers to. Idle it is only as tall as the promise written on it
+ * (round 25). See the JSX comment at the region itself for the heights and
+ * why, and `ask-sheet.tsx` for the layout this file shares with `AskLoader`,
+ * which is how the chat lands without moving the page. A "Clear
  * conversation" control (state only — nothing was ever persisted to begin
  * with) sits above it, visible only once there is something to clear, and
  * returns focus to the question field, the same "keep focus in hand"
@@ -125,16 +153,6 @@ import {
  */
 
 const NOTHING_FOUND = "I haven’t written anything here that answers that, so I’d rather say so than guess.";
-
-/** Shown before the first question — the thread's resting state, rather
- *  than a blank gap above the input. */
-const IDLE_HINT = "No question asked yet.";
-
-/** The thread's resting answer: what I promise about every answer. */
-const PROMISE =
-  "Pick a question or ask your own. Every answer is something I’ve written here, as written or a few lines of it joined into one, with where it came from. No model, nothing generated. If I haven’t written it down, I’ll say so.";
-const PROMISE_LIVE =
-  "Pick a question or ask your own. I find what I’ve written here the same way as always; a live model then writes the answer from exactly that, and says so.";
 
 const LIVE_UPSTREAM_FAILED =
   "The live model didn't answer that time — nothing was sent anywhere that shouldn't have been, it just failed to respond. Try again, or ask something else.";
@@ -411,7 +429,7 @@ function HowThisAnswers({ id, liveModeConfigured }: { readonly id: string; reado
   return (
     <Disclosure
       id={id}
-      summary={<span className="eyebrow">How this answers</span>}
+      summary={<span className="eyebrow">{HOW_LABEL}</span>}
       expandLabel="Show the ranking code"
       collapseLabel="Hide the ranking code"
     >
@@ -449,45 +467,6 @@ function HowThisAnswers({ id, liveModeConfigured }: { readonly id: string; reado
 /* -------------------------------------------------------------------------- */
 /* One turn                                                                    */
 /* -------------------------------------------------------------------------- */
-
-/** "I said": the mono label over every answer, annotation in `--accent`. A
- *  paragraph of its own, so the words are exactly "I said". */
-function Said({ children }: { readonly children?: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-2.5">
-      <p className="font-mono text-[12px] text-accent">I said</p>
-      {children}
-    </div>
-  );
-}
-
-/**
- * Your question as a ticket stub: a perforated stub on the left numbered by
- * the turn's place in the thread (the same count as `answer-N.ts`), your
- * words in the hand of the tags. It sits to the right, on the side it was
- * handed over from, in the compose side's tint. The number is the stub's, not
- * news: it is hidden from assistive tech, which hears "you asked" and the
- * question.
- */
-function QuestionSlip({ number, children }: { readonly number?: number; readonly children: ReactNode }) {
-  return (
-    <div className="flex justify-end">
-      <div className="ask-slip-lift max-w-[min(100%,26rem)]">
-        <p className="ask-slip flex min-w-0 bg-ground">
-          <span aria-hidden="true" className="ask-slip-stub font-mono text-[11px] leading-[1.15] text-fg-muted">
-            No.
-            <br />
-            {number === undefined ? "––" : String(number).padStart(2, "0")}
-          </span>
-          <span className="flex min-w-0 flex-col py-2 pr-4 pl-3">
-            <span className="font-mono text-[11px] tracking-(--tracking-caps) text-fg-muted uppercase">you asked</span>
-            {children}
-          </span>
-        </p>
-      </div>
-    </div>
-  );
-}
 
 /** Thinking is ink: three dots blotting in turn after "writing", and under
  *  reduced motion a still "writing…" (the dots stop where they stand). */
@@ -644,7 +623,7 @@ function TurnItem({
  * or reorder things. An effect body is a different story — it already runs
  * outside that model, on its own schedule, which is why the thread-mirroring
  * effect a little further down is allowed to assign into
- * `threadCache.turns` and `threadCache.lastAsked` directly. `updateTurn`,
+ * `threadCache.turns` directly. `updateTurn`,
  * below, is the case the linter actually blocks: a plain function invoked
  * from component-body event handlers, but one that also needs to keep
  * writing long after this component has unmounted, resolving `askLive`'s
@@ -654,9 +633,8 @@ function TurnItem({
  * `threadCache.turns` directly; only a write from component-body code is
  * funneled through it.
  */
-const threadCache: { turns: readonly Turn[]; lastAsked: string | null; nextId: number } = {
+const threadCache: { turns: readonly Turn[]; nextId: number } = {
   turns: [],
-  lastAsked: null,
   nextId: 0,
 };
 
@@ -691,7 +669,6 @@ function nextCachedTurnId(): string {
  *  conversation" control calls this; tests call it between cases. */
 export function clearThreadCache(): void {
   threadCache.turns = [];
-  threadCache.lastAsked = null;
   threadCache.nextId = 0;
 }
 
@@ -705,7 +682,9 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
 
   const [query, setQuery] = useState("");
   const [turns, setTurns] = useState<readonly Turn[]>(() => threadCache.turns);
-  const [lastAsked, setLastAsked] = useState<string | null>(() => threadCache.lastAsked);
+  /** The idle notepad's height, taken as the first question is asked: where
+   *  the window's unfolding starts from (`ask-unfold`, globals.css). */
+  const [unfoldFrom, setUnfoldFrom] = useState<number | null>(null);
 
   // Mirror every thread change into module scope, so the next mount starts
   // from where this one left off. Deliberately an effect rather than a write
@@ -713,8 +692,7 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
   // this way there is exactly one place that has to stay in sync.
   useEffect(() => {
     threadCache.turns = turns;
-    threadCache.lastAsked = lastAsked;
-  }, [turns, lastAsked]);
+  }, [turns]);
 
   const isBusy = turns.some((turn) => turn.answer.kind === "pending");
 
@@ -776,7 +754,7 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
   function handleClear() {
     clearThreadCache();
     setTurns([]);
-    setLastAsked(null);
+    setUnfoldFrom(null);
     // Nothing was persisted to begin with, so "clear" is just resetting this
     // component's own state — but focus still needs somewhere sensible to
     // land, and the question field is exactly where a visitor who just
@@ -855,7 +833,8 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
     if (trimmed === "" || isBusy) return;
 
     setQuery("");
-    setLastAsked(trimmed);
+    // The first question opens the notepad: remember how tall it was idle.
+    if (turns.length === 0) setUnfoldFrom(logRef.current?.offsetHeight ?? null);
 
     const id = nextCachedTurnId();
 
@@ -882,47 +861,50 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
     afterAsk();
   }
 
+  // A question already asked leaves the suggestions (round 25): offering it
+  // again read as if nothing had happened. Clearing the thread brings them back.
+  const asked = new Set(turns.map((turn) => turn.question));
+  const suggestions = SUGGESTED_QUESTIONS.filter((question) => !asked.has(question));
+  const open = turns.length > 0;
+
   return (
-    // `data-ask-chat`: globals.css gives this root the same min-height the
-    // loader's placeholder had, so the chat landing does not move the page.
-    // Below 1024 the halves stack and whatever room is left over goes to the
-    // compose half (`1fr`), never as a gap inside the thread.
-    <div data-ask-chat="" className="grid grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-none">
-      <div className="min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px] lg:border-r lg:border-dashed lg:border-rule">
-        <div className="flex items-start justify-between gap-x-3">
-          <div className="min-w-0 pt-2.5">{heading}</div>
-          {/* Always laid out, shown once there is a turn (round 22): it used
-              to arrive as a row of its own, and the thread jumped down by
-              44px on the first question. Until then it is invisible, inert
-              and hidden from assistive tech, so there is nothing to find. */}
-          <button
-            type="button"
-            onClick={handleClear}
-            inert={turns.length === 0}
-            aria-hidden={turns.length === 0 || undefined}
-            aria-label="Clear conversation"
-            className={cn(
-              "min-h-11 shrink-0 px-1 font-mono text-[12px] text-fg-muted transition-colors duration-200 hover:text-accent",
-              turns.length === 0 && "invisible",
-            )}
-          >
-            Clear
-          </button>
-        </div>
-        {liveModeConfigured ? (
-          <p className="font-mono text-[11.5px] tracking-[0.08em] text-accent">Live mode</p>
-        ) : null}
+    // The sheet is `ask-sheet.tsx`'s, the same boxes `AskLoader` holds this
+    // place with, so the chat landing does not move the page. `data-ask-chat`
+    // is what the e2e suite measures against that placeholder.
+    <div data-ask-chat="" className={SHEET}>
+      <div className={THREAD_SIDE}>
+        <SheetTop
+          heading={heading}
+          liveModeConfigured={liveModeConfigured}
+          clear={
+            // Always laid out, shown once there is a turn (round 22): it used
+            // to arrive as a row of its own, and the thread jumped down by
+            // 44px on the first question. Until then it is invisible, inert
+            // and hidden from assistive tech, so there is nothing to find.
+            <button
+              type="button"
+              onClick={handleClear}
+              inert={!open}
+              aria-hidden={!open || undefined}
+              aria-label="Clear conversation"
+              className={cn(CLEAR, "transition-colors duration-200 hover:text-accent", !open && "invisible")}
+            >
+              Clear
+            </button>
+          }
+        />
 
         {/*
-          The scroll window. A fixed 17rem (23rem from 1024) from the start, the
-          resting promise included, so the strip is one size before and after
-          the first question (round 22: it grew by about 170px on the first,
-          which read as a glitch) and never grows the page however many
-          questions are asked (round 12: "if I click multiple buttons it just
-          keeps stacking up on the page"). A new turn lands at the window's
-          top. Round 24 raised 20rem to 23rem: a taped clipping takes more room
-          than a bare paragraph did, and from 1024 the compose half beside the
-          thread had the room to spare.
+          The notepad's window (`.ask-window`, globals.css). Idle, it is as
+          tall as the promise written on it. The first question opens it to one
+          fixed height (most of a phone's screen, `min(26rem, 60svh)`; 23rem
+          from 1024), paper unfolding from the idle height in about 200ms, at
+          once under reduced motion; from then on it stays that height however
+          many questions are asked (round 12: "if I click multiple buttons it
+          just keeps stacking up on the page"), and a new turn lands at its
+          top. Round 25 (my call) reverses round 22's "one size before and
+          after the first question": idle, a fixed window was mostly blank
+          paper, and on a phone 17rem showed about 130px of an answer.
 
           `role="log"` announces new turns politely without repeating the
           old ones. `tabIndex={0}` only once there is something to scroll,
@@ -930,8 +912,7 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
           the field's `aria-controls` points here.
 
           Round 24: the window is my notepad; what I write on it sits on ruled
-          lines (`.ask-lined`). It reaches 8px past the column either side so
-          a tilted clipping, its tape and its tab are never cut by the edge.
+          lines (`.ask-lined`).
         */}
         <div
           ref={logRef}
@@ -939,50 +920,39 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
           role="log"
           aria-label="Conversation thread"
           aria-live="polite"
-          tabIndex={turns.length > 0 ? 0 : undefined}
-          className="relative -mx-2 mt-2 h-[17rem] min-w-0 overflow-y-auto overscroll-contain px-2 lg:h-[23rem]"
+          tabIndex={open ? 0 : undefined}
+          data-open={open ? "" : undefined}
+          style={unfoldFrom !== null ? ({ "--ask-from": `${unfoldFrom}px` } as CSSProperties) : undefined}
+          className={WINDOW}
         >
-          {/* Idle, the window must hold everything without scrolling (it is
-              not a tab stop until there is a turn): at 320 the promise steps
-              down a size to fit. */}
-          {turns.length === 0 ? (
-            <div className="pt-1 min-[22.5rem]:pt-2">
-              <QuestionSlip>
-                <span className="font-serif text-[17px] leading-snug text-fg-muted italic">{IDLE_HINT}</span>
-              </QuestionSlip>
-              <div className="mt-1 min-[22.5rem]:mt-2">
-                <Said />
-                <p className="ask-lined mt-0.5 font-serif text-[16px] leading-[1.625rem] text-fg italic min-[22.5rem]:mt-1 min-[22.5rem]:text-[17px] min-[22.5rem]:leading-7">
-                  {liveModeConfigured ? PROMISE_LIVE : PROMISE}
-                </p>
-              </div>
-            </div>
-          ) : (
+          {open ? (
             <ol role="list" aria-label="Conversation" className="flex flex-col gap-6 pt-2 pb-4">
               {turns.map((turn, index) => (
                 <TurnItem key={turn.id} turn={turn} turnNumber={index + 1} viewId={viewId} />
               ))}
             </ol>
+          ) : (
+            <IdleThread liveModeConfigured={liveModeConfigured} />
           )}
         </div>
 
-        <div className="mt-4">
+        <div className={HOW_ROW}>
           <HowThisAnswers id={`${viewId}-how-this-answers`} liveModeConfigured={liveModeConfigured} />
         </div>
       </div>
 
       {/* The question line, the round Ask, and "or try" questions as paper tags. */}
-      <div className="flex min-w-0 flex-col gap-3 bg-ground px-5 pt-[18px] pb-5 sm:px-[26px]">
+      <div className={COMPOSE_SIDE}>
         <form
-          className="flex items-end gap-3"
+          className={QUESTION_ROW}
           onSubmit={(event) => {
             event.preventDefault();
             ask(query);
           }}
         >
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <label htmlFor={fieldId} className="font-mono text-[12px] text-fg-muted">
-              Your question
+          <div className={QUESTION_FIELD}>
+            <label htmlFor={fieldId} className={QUESTION_LABEL}>
+              {QUESTION_LABEL_TEXT}
             </label>
             {/* Not `disabled` while a live request is in flight, on purpose:
                 a disabled input is auto-blurred by the browser, which would
@@ -995,51 +965,44 @@ export default function AskThisSite({ liveModeConfigured, heading }: Props) {
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={turns.length === 0 ? "Ask about my work" : "Ask a follow-up"}
+              placeholder={open ? "Ask a follow-up" : QUESTION_PLACEHOLDER}
               aria-controls={threadId}
-              className="min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 text-[16px] text-fg placeholder:text-fg-muted"
+              className={QUESTION_INPUT}
             />
           </div>
-          {/* Button's `secondary` recipe by hand, squared like the postcard's
-              Send: that is Contact's one primary control, and `--accent`
-              is for links, values and annotation, not a fill (round 22; a
-              moss pill read as a second primary beside it). */}
           <button
             type="submit"
             disabled={isBusy}
-            className="inline-flex h-11 shrink-0 items-center rounded-[3px] border border-rule bg-transparent px-[22px] text-[15px] font-semibold text-fg transition-colors duration-200 hover:border-accent hover:text-accent active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+            className={cn(
+              ASK_BUTTON,
+              "transition-colors duration-200 hover:border-accent hover:text-accent active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50",
+            )}
           >
             Ask
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-serif text-[14px] text-fg-muted italic">or try</span>
-          <ul role="list" aria-label="Try asking" className="ask-try contents">
-            {SUGGESTED_QUESTIONS.map((question) => (
-              <li key={question}>
-                {/* The paper is a span inside the button: a clipped
-                    element would clip its own focus ring. The button keeps
-                    a 44px target; the tag is 32px to the eye. */}
-                <button
-                  type="button"
-                  onClick={() => ask(question)}
-                  disabled={isBusy}
-                  className="group inline-flex min-h-11 items-center text-left disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span
-                    className={cn(
-                      "ask-tag inline-flex min-h-8 items-center py-1 pr-3 pl-[22px] text-[13.5px] text-fg transition-colors duration-200 group-hover:text-accent",
-                      lastAsked === question && "text-accent",
-                    )}
+        {suggestions.length > 0 ? (
+          <div className={TRY_ROW}>
+            <span className={TRY_LABEL}>or try</span>
+            <ul role="list" aria-label="Try asking" className={TRY_LIST}>
+              {suggestions.map((question) => (
+                <li key={question}>
+                  <button
+                    type="button"
+                    onClick={() => ask(question)}
+                    disabled={isBusy}
+                    className={cn(TRY_BUTTON, "disabled:cursor-not-allowed disabled:opacity-50")}
                   >
-                    {question}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                    <span className={cn(TRY_TAG, "transition-colors duration-200 group-hover:text-accent")}>
+                      {question}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   );

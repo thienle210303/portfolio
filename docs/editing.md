@@ -157,6 +157,11 @@ pointed to by `profile.resumePdf`. **It does not regenerate itself** — if you
 change a role or a metric, update the PDF too, or the download will contradict
 the page. `Ctrl/Cmd+P` on `/resume` produces a clean copy to replace it with.
 
+On a phone `/resume` shows page one as a picture instead of the PDF frame
+(round 25). After replacing `public/thien-le-resume.pdf`, run
+`pnpm resume:preview` on a Mac and commit the PNG and
+`src/app/resume/resume-preview.json` with it. `pnpm test` fails until you do.
+
 ## A note on the Journey's tree
 
 The Journey draws one tree, the oak, and only the tags you pick hang on it

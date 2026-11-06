@@ -31,8 +31,9 @@ import { SentImpression, stampDate, useSetStamp } from "./SentStamp";
  * fails, the form says so in my voice and offers my address with a copy button.
  *
  * Email or phone is one requirement, said before they try (round 24): the two
- * lines share a bracket and one `*` and one note under them, and a miss is one
- * error about the pair.
+ * lines, each the form's full width (round 25), share one bracket down their
+ * side, one `*` and one note under them, and a miss is one error about the
+ * pair.
  */
 
 type FieldName = "name" | "email" | "phone";
@@ -65,6 +66,11 @@ const HONEYPOT_STYLE: CSSProperties = { position: "absolute", left: "-10000px", 
 /** Written on a line, like an address. 16px keeps phones from zooming in. */
 const FIELD_CLASS =
   "min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 text-[16px] text-fg aria-invalid:border-mark";
+
+/** The bracket that ties the email and phone lines: a rule down their left
+ *  side with a short tick at its head and its foot, drawn by the box itself. */
+const PAIR_BRACKET =
+  "relative flex flex-col gap-3 border-l-[1.5px] border-fg-muted py-1 pl-3.5 before:absolute before:top-0 before:left-0 before:w-2 before:border-t-[1.5px] before:border-fg-muted before:content-[''] after:absolute after:bottom-0 after:left-0 after:w-2 after:border-t-[1.5px] after:border-fg-muted after:content-['']";
 
 /** Same messages as the server's schema; length caps are the inputs' `maxLength`. */
 function check(lead: Required<Lead>, emailMalformed: boolean): FieldErrors {
@@ -221,7 +227,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
       onSubmit={handleSubmit}
       aria-labelledby="lead-heading"
       data-delivery={emailDeliveryConfigured ? "api" : "off"}
-      className="@container relative flex h-full flex-col"
+      className="relative flex h-full flex-col"
     >
       <h3 id="lead-heading" className="font-serif text-[length:var(--step-1)] leading-tight italic text-fg">
         {contactCopy.formHeading}
@@ -230,23 +236,23 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
 
       <div className="mt-4 flex flex-col gap-3">
         {input("name", contactCopy.fields.name, { type: "text", autoComplete: "name", maxLength: NAME_MAX })}
-        {/* Side by side on a wide form, or whenever the postcard itself is
-            landscape (its address side is narrow, as on the board). */}
+        {/* Two whole lines at every width, one above the other (round 25: side
+            by side they were 100 to 150px each, too short for an address),
+            tied by one bracket down their left side. One bracket, one marker,
+            one note: it is one requirement, and one is enough. */}
         <div
           role="group"
           aria-label={contactCopy.pairGroup}
           aria-describedby="lead-pair-note"
           className="flex flex-col gap-1.5"
         >
-          <div className="grid gap-3 @min-[20rem]:grid-cols-2 @min-[20rem]:gap-4 @min-[32rem]/postcard:grid-cols-2 @min-[32rem]/postcard:gap-4">
+          <div data-pair-bracket="" className={PAIR_BRACKET}>
             {input("email", contactCopy.fields.email, { type: "email", autoComplete: "email", maxLength: EMAIL_MAX })}
             {input("phone", contactCopy.fields.phone, { type: "tel", autoComplete: "tel", maxLength: PHONE_MAX })}
           </div>
-          {/* One bracket under both lines, one marker, one note: it is one
-              requirement, and one is enough. */}
           <p
             id="lead-pair-note"
-            className="font-serif text-[length:var(--step--1)] leading-snug text-fg-muted italic before:mb-1 before:block before:h-[5px] before:border-[1.5px] before:border-t-0 before:border-fg-muted before:content-['']"
+            className="font-serif text-[length:var(--step--1)] leading-snug text-fg-muted italic"
           >
             <span aria-hidden="true" className="not-italic text-fg">* </span>
             {contactCopy.pairNote}
