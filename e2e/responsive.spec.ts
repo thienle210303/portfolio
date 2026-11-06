@@ -146,8 +146,10 @@ for (const width of [320, 390, 414, 768]) {
     await page.reload();
     await page.waitForLoadState("networkidle");
     const selectors = [
-      // The TL tag (the nav's own About link shares its href and is hidden here).
-      "header a[href='/#about'][aria-label]",
+      // The TL tag, by its name: since round 25's foundations it goes to
+      // `/#about`, as the nav's own About link does, so the href no longer
+      // tells them apart.
+      "header a[aria-label$='back to top']",
       "#record button[aria-pressed]",
       "#contact a[href^='mailto:']",
       "#contact a[href*='github.com']",

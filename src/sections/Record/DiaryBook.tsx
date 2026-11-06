@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { flushSync } from "react-dom";
+import { BAND } from "@/lib/breakpoints";
 import { cn } from "@/lib/cn";
 import {
   completes,
@@ -23,11 +24,15 @@ import {
   easeOut,
   faceAngles,
   faceLight,
+  HOLD_LIP,
+  holdHeight,
   leafProgress,
   leafZ,
   openingOf,
   RIFFLE_MAX,
   riffleLeaves,
+  SETTLE_MS,
+  settleScroll,
   shadeOn,
   stackLeaves,
   camera,
@@ -40,6 +45,7 @@ import {
 import type { ContentsChapter, DiaryPageKind } from "@/lib/record";
 import type { CareerEntryType } from "@/types/portfolio";
 import { KindDot } from "./KindDot";
+import { noBreak } from "./noBreak";
 
 export type FilterId = "all" | CareerEntryType;
 
@@ -75,7 +81,8 @@ export interface BookWords {
 
 const TAB_DOT: Record<FilterId, CareerEntryType | null> = { all: null, work: "work", learning: "learning", milestone: "milestone" };
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
-const SPREAD = "(min-width: 80rem)";
+/** Two pages to a view: from 1024 (round 25; it waited for 1280). */
+const SPREAD = BAND.laptop;
 /** Blank sheets a riffle flicks between the real pages it leaves and lands on. */
 const SHEETS = 2 * RIFFLE_MAX;
 
@@ -136,20 +143,23 @@ function byHash(hash: string): HTMLElement | null {
  * The Diary: a book whose pages turn (round 24; round 23 slid them).
  *
  * With JavaScript off, and under reduced motion, the pages are a horizontal
- * scroll-snap track, one page to a view below 1280px and a spread of two from
+ * scroll-snap track, one page to a view below 1024px and a spread of two from
  * there: native scrolling is the swipe and every fragment lands on its page.
  *
  * With JavaScript, the same pages are stacked into one opening (`data-mode=
  * "leaf"`) and turn. On a spread the right page lifts at its fore-edge and
  * turns over the spine in 3D, its back the next left page, with a shadow
  * sweeping the page under it and light running across its curl; back turns
- * the other way. Below 1280, where the book shows one page, a hinge turn
+ * the other way. Below 1024, where the book shows one page, a hinge turn
  * would squash it beside the next page into a spread for a moment, so it
  * curls from its corner instead, in 2D and inside its own box (`curl` in
  * `src/lib/diary-turn.ts`): the page stays flat on the spine side of a
  * diagonal fold, its blank back is folded over it (a sheet reflected across
  * the fold), and the next page shows only in the wedge it has left. A back
- * turn uncurls the page before over this one. The dog-eared corners are
+ * turn uncurls the page before over this one. One page is as tall as what is
+ * on it (round 25; a spread keeps the tallest page's height): a turn is flown
+ * at the height the book had, and the book eases to the new page's once the
+ * leaf has landed (`settle`). The dog-eared corners are
  * handles (drag one and the leaf, or the curl's corner, follows; past halfway
  * it turns, short of it it falls back), touch swipes and trackpad swipes do
  * the same, and ← → still turn when the book has focus. A jump of more than a
@@ -267,13 +277,16 @@ export function DiaryBook({
     show(new Set(ls.slice(atRef.current, atRef.current + perNow())));
   };
 
-  /** Every page as tall as the tallest, as a real book's are: measured with
-   *  the hidden pages laid out for the moment it takes to read them. Then the
-   *  perspective and the room a turning leaf needs, from the page's size. */
+  /** The tallest page's height (`--page-h`): a spread's pages are all that
+   *  tall, as a real book's are, and one page is never taller (it is as tall
+   *  as what is on it, see the stylesheet). Measured with the hidden pages
+   *  laid out for the moment it takes to read them. Then the perspective and
+   *  the room a turning leaf needs, from the page's size. */
   const measure = () => {
     const track = trackRef.current;
     const book = track?.parentElement;
     if (!track || !book || modeRef.current !== "leaf" || flight.current) return;
+    settling.current?.();
     track.style.setProperty("--page-h", "0px");
     const hidden = Array.from(track.querySelectorAll<HTMLElement>(":scope > .diary-slot[hidden]"));
     for (const slot of hidden) slot.removeAttribute("hidden");
@@ -290,6 +303,77 @@ export function DiaryBook({
   };
 
   /* ---------------------------------------------------------------- */
+  /* One page: as tall as what is on it                                */
+  /* ---------------------------------------------------------------- */
+
+  /** The book is easing to a landed page's height: call it to end that now. */
+  const settling = useRef<(() => void) | null>(null);
+
+  /** A just-bound book stands tall enough that taking its first page's
+   *  height moved nothing on screen (`--page-hold`). The reader has now done
+   *  something with it: let it go. */
+  const unhold = () => trackRef.current?.style.setProperty("--page-hold", "0px");
+
+  /** One page: hold the book's box at `height` px (the track's, its room
+   *  included) whatever page lies in it, or let it go (`null`). A page taller
+   *  than the box is cut to it (`--held`, in the stylesheet). */
+  const hold = (height: number | null) => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (height === null) {
+      track.style.height = "";
+      track.style.removeProperty("--held");
+      track.removeAttribute("data-held");
+      return;
+    }
+    const room = parseFloat(track.style.getPropertyValue("--room")) || 0;
+    track.style.height = `${height.toFixed(1)}px`;
+    track.style.setProperty("--held", `${(height - 2 * room).toFixed(1)}px`);
+    track.setAttribute("data-held", "");
+  };
+
+  /** One page, and a turn has just landed: the book's box is still as tall
+   *  as it was (`from`, the track's height). Ease it to the page now on show
+   *  (at once, if `now`), the window following its foot when the book would
+   *  otherwise shrink away from under the reader (`settleScroll`). */
+  const settle = (from: number, now: boolean) => {
+    const track = trackRef.current;
+    if (!track) return;
+    hold(null);
+    const box = track.getBoundingClientRect();
+    const grow = box.height - from;
+    if (Math.abs(grow) < 1) return;
+    const room = parseFloat(track.style.getPropertyValue("--room")) || 0;
+    const header = 5 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
+    const scroll = settleScroll(box.top + room, grow, header);
+    let scrolled = 0;
+    let frame = 0;
+    let t0 = -1;
+    const pose = (t: number) => {
+      const s = Math.round(scroll * t);
+      hold(t < 1 ? from + grow * t : null);
+      if (s !== scrolled) window.scrollBy({ top: s - scrolled, behavior: "instant" });
+      scrolled = s;
+    };
+    const end = () => {
+      cancelAnimationFrame(frame);
+      settling.current = null;
+      pose(1);
+    };
+    if (now) return end();
+    const step = (time: number) => {
+      if (t0 < 0) t0 = time;
+      const t = (time - t0) / SETTLE_MS;
+      if (t >= 1) return end();
+      pose(easeOut(t));
+      frame = requestAnimationFrame(step);
+    };
+    pose(0);
+    settling.current = end;
+    frame = requestAnimationFrame(step);
+  };
+
+  /* ---------------------------------------------------------------- */
   /* Turning                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -298,12 +382,21 @@ export function DiaryBook({
     const track = trackRef.current;
     const frame = frameRef.current;
     if (!track || !frame) return null;
+    settling.current?.();
     const ls = leaves();
     const from = atRef.current;
     const sheets = Array.from(track.querySelectorAll<HTMLElement>(":scope > .diary-sheet"));
     let used = 0;
     // On one page a leaf is the page and its back, a flap folded over it.
     const curls = perNow() === 1;
+    // And the book keeps the height it has while the leaf is in the air: the
+    // page it leaves stays as it lay, and the page it lands on, taller or
+    // shorter, is laid out under it (the turn's clips cut it to the book).
+    if (curls) {
+      const box = track.getBoundingClientRect().height;
+      unhold();
+      hold(box);
+    }
     const startSide = dir === 1 ? "right" : curls ? "flap" : "left";
     const arriveSide = dir === -1 ? "right" : curls ? "flap" : "left";
     const sheet = (side: string) => {
@@ -489,6 +582,7 @@ export function DiaryBook({
   const land = (f: Flight) => {
     cancelAnimationFrame(f.raf);
     if (flight.current !== f) return;
+    const held = f.curls ? (trackRef.current?.getBoundingClientRect().height ?? 0) : 0;
     // (No page, sheet or shade has a style of its own: every inline style
     // on them is the turn's.)
     for (const el of f.touched) {
@@ -513,6 +607,9 @@ export function DiaryBook({
     flushSync(() => setAt(next));
     atRef.current = next;
     rest();
+    // One page: now the book takes the height of the page it landed on; at
+    // once when a fragment is about to land on it, or another turn follows.
+    if (f.curls) settle(held, !f.goal || !!f.then || pending.current !== 0);
     if (!f.goal) return;
     // The ribbon swings as the leaf lands.
     ribbonRef.current?.animate?.(
@@ -533,10 +630,12 @@ export function DiaryBook({
   const finish = () => {
     pending.current = 0;
     const f = flight.current;
-    if (!f) return;
-    if (f.dragging) f.goal = false;
-    drag.current = null;
-    land(f);
+    if (f) {
+      if (f.dragging) f.goal = false;
+      drag.current = null;
+      land(f);
+    }
+    settling.current?.();
   };
 
   const launch = (dir: TurnDir, to: number, n: number, quick: boolean, then?: () => void) => {
@@ -556,6 +655,7 @@ export function DiaryBook({
     const from = atRef.current;
     if (to === from || !animate || modeRef.current !== "leaf") {
       if (to !== from) {
+        unhold();
         flushSync(() => setAt(to));
         atRef.current = to;
         rest();
@@ -588,6 +688,7 @@ export function DiaryBook({
   /** Re-bind the book to a kind, keeping the page that was open if it stays. */
   const rebind = (next: FilterId) => {
     const was = leaves()[atRef.current];
+    unhold();
     flushSync(() => {
       setFilter(next);
       setBound(next);
@@ -603,6 +704,7 @@ export function DiaryBook({
   const pick = (next: FilterId) => {
     if (modeRef.current !== "leaf" || atRef.current === 0) {
       finish();
+      unhold();
       setFilter(next);
       setBound(next);
       setAt(0);
@@ -700,8 +802,11 @@ export function DiaryBook({
             }
           });
         }
-        // The track's height is the tallest page's: the book keeps it.
+        // The track's height is the tallest page's: a spread keeps it. One
+        // page takes its own height instead, but only as far as moves
+        // nothing on screen (a layout shift on load): see `holdHeight`.
         track.style.setProperty("--page-h", `${track.offsetHeight}px`);
+        track.style.setProperty("--page-hold", `${nextSpread ? 0 : holdHeight(track.getBoundingClientRect().top, window.innerHeight, HOLD_LIP)}px`);
         const to = openingOf(Math.max(i, 0), nextSpread ? 2 : 1, ls.length);
         modeRef.current = "leaf";
         atRef.current = to;
@@ -741,7 +846,8 @@ export function DiaryBook({
       // Back to the track (reduced motion asked for mid-visit): every page
       // shown, scrolled to the one that was open.
       show(null);
-      for (const name of ["--page-h", "--depth", "--room"]) track.style.removeProperty(name);
+      hold(null);
+      for (const name of ["--page-h", "--page-hold", "--depth", "--room"]) track.style.removeProperty(name);
       const slot = leaves()[opening];
       track.scrollTo?.({ left: slot?.offsetLeft ?? 0, behavior: "instant" });
       read();
@@ -1078,13 +1184,15 @@ export function DiaryBook({
               aria-pressed={pressed}
               onClick={() => pick(tab.id)}
               className={cn(
-                "diary-tab inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 border border-rule px-3 font-mono text-[length:var(--step--1)] transition-colors duration-(--dur-quick) max-sm:gap-1 max-sm:px-2 max-sm:text-[length:var(--step--2)]",
+                "diary-tab inline-flex min-h-11 min-w-11 items-center justify-center border border-rule font-mono text-[length:var(--step--1)] transition-colors duration-(--dur-quick) max-sm:text-[length:var(--step--2)]",
                 pressed ? "border-fg bg-fg text-fg-inverse" : "bg-surface text-fg-muted hover:border-fg-muted hover:text-fg",
               )}
             >
               {dot ? <KindDot kind={dot} className={pressed ? "ring-1 ring-fg-inverse" : undefined} /> : null}
               {tab.label}
-              <span className={pressed ? "" : "text-fg-muted"}>{tab.count}</span>
+              {/* Leaves the row before the row would wrap (the stylesheet),
+                  and stays in the tab's name. */}
+              <span className={cn("diary-tab-count", !pressed && "text-fg-muted")}>{tab.count}</span>
             </button>
           );
         })}
@@ -1219,9 +1327,12 @@ function ContentsPage({
           const lines = chapter.lines.filter((l) => filter === "all" || l.type === filter);
           if (lines.length === 0) return null;
           return (
-            <section key={chapter.id} aria-label={chapter.label} className="grid gap-x-3 @min-[28rem]:grid-cols-[6rem_minmax(0,1fr)]">
-              {/* Wraps at its spaces: "2018 – 2020" is wider than the column. */}
-              <h4 aria-hidden="true" className="pt-1.5 font-mono text-[length:var(--step--1)] font-bold text-fg lg:pt-1">
+            <section key={chapter.id} aria-label={chapter.label} className="grid gap-x-3 @min-[32rem]:grid-cols-[6rem_minmax(0,1fr)]">
+              {/* Beside its lines from 512px of page (a container query: at
+                  1024 a spread's page is 480px, and the years go above, as on
+                  a phone). Wraps at its spaces: "2018 – 2020" is wider than
+                  the column. */}
+              <h4 aria-hidden="true" className="diary-line-head font-mono text-[length:var(--step--1)] font-bold text-fg">
                 {chapter.label}
               </h4>
               <ol role="list" className="m-0 list-none p-0">
@@ -1231,7 +1342,7 @@ function ContentsPage({
                       <KindDot kind={line.type} className="shrink-0" />
                       <span className="min-w-0">
                         <span className="sr-only">{words.kindWords[line.type]}: </span>
-                        <span className="text-fg">{line.title}</span>
+                        <span className="text-fg">{noBreak(line.title)}</span>
                         <span className="text-fg-muted">, {line.organization}</span>
                       </span>
                     </ContentsLine>
@@ -1241,7 +1352,7 @@ function ContentsPage({
             </section>
           );
         })}
-        <ol role="list" className="m-0 list-none p-0 @min-[28rem]:pl-[6.75rem]">
+        <ol role="list" className="m-0 list-none p-0 @min-[32rem]:pl-[6.75rem]">
           <li>
             <ContentsLine href={`#${certificatesId}`} page={numberOf.get("certificates")}>
               <span className="font-serif text-[length:var(--step-0)] italic text-fg">{words.certificates}</span>
@@ -1259,7 +1370,7 @@ function ContentsLine({ href, page, children }: { readonly href: string; readonl
   return (
     <a
       href={href}
-      className="group flex min-h-11 items-baseline gap-2 py-1.5 text-[length:var(--step--1)] leading-snug underline-offset-4 hover:text-accent lg:min-h-7 lg:py-0.5"
+      className="diary-line group flex items-baseline gap-2 text-[length:var(--step--1)] leading-snug underline-offset-4 hover:text-accent"
     >
       <span className="flex min-w-0 items-baseline gap-2.5">{children}</span>
       <span aria-hidden="true" className="diary-leader" />
