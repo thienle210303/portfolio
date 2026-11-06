@@ -25,7 +25,11 @@ import {
   curlZ,
   CURL_PAST,
   DEPTH,
+  HOLD_LIP,
+  holdHeight,
   LIP,
+  SETTLE_MS,
+  settleScroll,
   type Pt,
 } from "@/lib/diary-turn";
 
@@ -390,5 +394,41 @@ describe("one page curls from its corner", () => {
     expect(curlZ(3, 4, -1)).toBeGreaterThan(curlZ(2, 4, -1));
     // Each leaf's flap (one above it) stays under the leaf above.
     expect(curlZ(0, 4, 1)).toBeGreaterThan(curlZ(1, 4, 1) + 1);
+  });
+});
+
+describe("one page is as tall as what is on it", () => {
+  it("holds a just-bound book tall enough that its foot stays under the fold", () => {
+    // The usual load: the book is far below the window, and nothing holds it.
+    expect(holdHeight(5200, 844)).toBe(0);
+    // A fragment landed on a page: its top is at the header's line, and the
+    // page keeps its foot the corners' height under the fold.
+    expect(holdHeight(80, 844)).toBe(844 + HOLD_LIP - 80);
+    // The book is above the window: it holds the whole way, so it does not
+    // shrink over the reader's head.
+    expect(holdHeight(-1500, 844)).toBe(844 + HOLD_LIP + 1500);
+    expect(holdHeight(79.4, 844, 0)).toBe(765);
+  });
+
+  it("moves nothing on screen when the book grows, or shrinks with its top in view", () => {
+    // Growing: the pages hang from the top, the foot goes on down.
+    expect(settleScroll(-620, 300, 80)).toBe(0);
+    expect(settleScroll(80, 300, 80)).toBe(0);
+    // Shrinking with the page's top at or under the header's line.
+    expect(settleScroll(80, -300, 80)).toBe(0);
+    expect(settleScroll(240, -300, 80)).toBe(0);
+  });
+
+  it("follows the foot up when the book shrinks under a reader further down the page", () => {
+    // The foot keeps its place on screen: the window goes up by the shrink.
+    expect(settleScroll(-620, -559, 80)).toBe(-559);
+    // But never so far that the page's top comes below the header's line.
+    expect(settleScroll(-300, -700, 80)).toBe(-380);
+    expect(settleScroll(79, -700, 80)).toBe(-1);
+  });
+
+  it("eases to the new height in well under a turn", () => {
+    expect(SETTLE_MS).toBeGreaterThan(150);
+    expect(SETTLE_MS).toBeLessThan(TURN_MS / 2);
   });
 });

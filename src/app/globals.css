@@ -1640,12 +1640,15 @@
          tilts about its middle on the track's own view timeline (the nearest
          scroll container), in over its entry and out over its exit, so a page
          fully in view is flat. Transforms only; reduced motion, print and a
-         browser without scroll-driven animations get flat pages. */
+         browser without scroll-driven animations get flat pages. No fill
+         (round 25): a page still out of the book lay tilted in wait, and a
+         fragment to it landed 16 to 27px low, because the browser placed the
+         window by the tilted page's box before the track had scrolled to it. */
       @media (prefers-reduced-motion: no-preference) {
         .diary-slot > .diary-page {
           animation:
-            diary-in linear both,
-            diary-out linear both;
+            diary-in linear,
+            diary-out linear;
           animation-timeline: view(inline), view(inline);
           animation-range:
             entry 0% entry 100%,
@@ -3391,15 +3394,16 @@ html[data-menu-open] [data-companion] {
   /* The Diary (round 23; its pages turn since round 24, below).         */
   /*                                                                    */
   /* Without JavaScript, and under reduced motion, the pages are a       */
-  /* horizontal scroll-snap track: one page to a view below 1280, a      */
-  /* spread of two from there (a snap point on each left page).          */
+  /* horizontal scroll-snap track: one page to a view below 1024, a      */
+  /* spread of two from there (a snap point on each left page; round 25: */
+  /* it waited for 1280, and two ~450px pages fit at 1024).              */
   /* `DiaryBook.tsx` adds the tabs, the dog-eared corners and "p. 3 of    */
   /* 14", and where motion is welcome turns the pages instead            */
   /* (`data-mode="leaf"`, round 24). `data-hidden` is a tab hiding a      */
   /* kind's page, which stays in the document so a fragment can find it. */
-  /* From 1280 the book is wider than the content column, up to 1320px   */
-  /* and 32px inside the viewport (its boards show round it), with the    */
-  /* index tabs sticking out of its fore-edge on the right.               */
+  /* From 1024 the book is wider than the content column, up to 1320px   */
+  /* and 32px inside the viewport (its boards show round it); from 1280  */
+  /* the index tabs stick out of its fore-edge on the right.              */
   /* ------------------------------------------------------------------ */
   .diary-frame {
     position: relative;
@@ -3408,6 +3412,12 @@ html[data-menu-open] [data-companion] {
     --board: 0.5rem;
     --leaf-w: 0.75px;
     --diary-edge: color-mix(in srgb, var(--fg) 24%, var(--surface));
+    /* Where the book shows one page, the least a page stands, so a page with
+       one short entry on it is still a page and not a stub: 464px, or what
+       fits a short screen under the header with the page count below. (A
+       whole screen left the five shortest pages 200 to 345px of blank paper
+       on a phone; at this they end in 110px at most.) */
+    --diary-floor: min(29rem, 100svh - 9rem);
   }
   .diary-tabs {
     position: relative;
@@ -3419,6 +3429,8 @@ html[data-menu-open] [data-companion] {
     padding-inline: 0.25rem;
   }
   .diary-tab {
+    gap: 0.375rem;
+    padding-inline: 0.75rem;
     border-radius: 6px 6px 0 0;
     border-bottom-color: transparent;
   }
@@ -3426,6 +3438,40 @@ html[data-menu-open] [data-companion] {
     padding-top: 0.25rem;
     transform: translateY(-4px);
     min-height: calc(2.75rem + 4px);
+  }
+  @media (width < 40rem) {
+    .diary-tabs {
+      gap: 0.25rem;
+    }
+    .diary-tab {
+      gap: 0.25rem;
+      padding-inline: 0.5rem;
+    }
+  }
+  /* The row decides by its own width (round 25): before "Milestones 9" would
+     wrap onto the book's top board (it did at 375 and 320), the counts leave
+     the row, still in each tab's name for a screen reader; narrower still,
+     the tabs close up. (From 1280 the tabs are a column down the fore-edge,
+     52px wide, and keep their counts.) */
+  @media (width < 80rem) {
+    .diary-tabs {
+      container: diary-tabs / inline-size;
+    }
+    @container diary-tabs (width < 21rem) {
+      .diary-tab-count {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+    @container diary-tabs (width < 18.75rem) {
+      .diary-tab {
+        padding-inline: 0.3125rem;
+      }
+    }
   }
   .diary-track {
     position: relative;
@@ -3522,6 +3568,30 @@ html[data-menu-open] [data-companion] {
     border-bottom: 1px dotted var(--rule-color);
     transform: translateY(-0.3em);
   }
+  /* A contents line is a link the whole line wide, and 44px tall wherever a
+     finger can reach it: at every width below 1024, and from there on any
+     device with a touch screen (round 25; from 1024 it was 28px for
+     everyone, small on a touch laptop). With a mouse or a trackpad alone the
+     spread keeps the 28px line: 23 lines at 44px make the contents 300px
+     taller than any other page (1228px against 865 at 1440), and a spread's
+     pages share one height, so every page would end in that much blank
+     paper. Its chapter's years sit on its first line. */
+  .diary-line {
+    min-height: 2.75rem;
+    padding-block: 0.375rem;
+  }
+  .diary-line-head {
+    padding-top: 0.375rem;
+  }
+  @media (width >= 64rem) and (not (any-pointer: coarse)) {
+    .diary-line {
+      min-height: 1.75rem;
+      padding-block: 0.125rem;
+    }
+    .diary-line-head {
+      padding-top: 0.25rem;
+    }
+  }
   .diary-where {
     margin-top: calc(var(--board) + 0.75rem);
     text-align: center;
@@ -3594,47 +3664,17 @@ html[data-menu-open] [data-companion] {
     outline-offset: -3px;
   }
 
-  @media (width >= 80rem) {
-    /* A spread: two pages to a view, and the tabs sticking out on the right. */
+  @media (width >= 64rem) {
+    /* A spread: two pages to a view (round 25: from 1024, where two ~450px
+       pages fit; the tabs stay along the top until 1280). */
     .diary-frame {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
       width: min(1320px, 100vw - 4rem);
       margin-inline: calc((100% - min(1320px, 100vw - 4rem)) / 2);
     }
-    .diary-book {
-      order: 1;
-      flex: 1 1 0;
-      min-width: 0;
-    }
-    .diary-tabs {
-      order: 2;
-      flex: 0 0 3.25rem;
-      flex-direction: column;
-      flex-wrap: nowrap;
-      margin: 4rem 0 0 -0.25rem;
-      padding: 0;
-    }
     /* Under the right page, by its folio: the ribbon hangs from the spine. */
     .diary-where {
-      order: 3;
-      flex: 0 0 100%;
-      padding-inline-end: calc(3.25rem - 0.25rem + 3.5rem);
+      padding-inline-end: 3.5rem;
       text-align: right;
-    }
-    .diary-tab {
-      writing-mode: vertical-rl;
-      min-height: 5.5rem;
-      border-radius: 0 6px 6px 0;
-      border-bottom-color: var(--rule-color);
-      border-left-color: transparent;
-      padding: 0.75rem 0;
-    }
-    .diary-tab[aria-pressed="true"] {
-      padding-top: 0.75rem;
-      transform: translateX(4px);
-      border-left-color: var(--fg);
     }
     .diary-slot {
       flex-basis: 50%;
@@ -3657,7 +3697,7 @@ html[data-menu-open] [data-companion] {
        page that is out of the window). (The width is the page's, near enough: it
        only has to beat the tie.) */
     .diary-slot {
-      --turn: calc((min(1320px, 100vw - 4rem) - 3rem) / 2);
+      --turn: calc(min(1320px, 100vw - 4rem) / 2);
     }
     .diary-slot[data-side="left"] :is(.diary-page, .diary-entry, .diary-anchor, a, button, [tabindex]) {
       scroll-margin-inline-end: var(--turn);
@@ -3668,6 +3708,48 @@ html[data-menu-open] [data-companion] {
     .diary-slot-blank {
       display: block;
       box-shadow: inset 26px 0 30px -24px rgb(30 40 35 / 0.25);
+    }
+  }
+  @media (width >= 80rem) {
+    /* The index tabs stick out of the fore-edge, down the right. */
+    .diary-frame {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .diary-book {
+      order: 1;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .diary-tabs {
+      order: 2;
+      flex: 0 0 3.25rem;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      margin: 4rem 0 0 -0.25rem;
+      padding: 0;
+    }
+    .diary-where {
+      order: 3;
+      flex: 0 0 100%;
+      padding-inline-end: calc(3.25rem - 0.25rem + 3.5rem);
+    }
+    .diary-tab {
+      writing-mode: vertical-rl;
+      min-height: 5.5rem;
+      border-radius: 0 6px 6px 0;
+      border-bottom-color: var(--rule-color);
+      border-left-color: transparent;
+      padding: 0.75rem 0;
+    }
+    .diary-tab[aria-pressed="true"] {
+      padding-top: 0.75rem;
+      transform: translateX(4px);
+      border-left-color: var(--fg);
+    }
+    .diary-slot {
+      --turn: calc((min(1320px, 100vw - 4rem) - 3rem) / 2);
     }
   }
 
@@ -3684,8 +3766,9 @@ html[data-menu-open] [data-companion] {
   /* the book, Contact's red stamp shares the screen with it).          */
   /*                                                                    */
   /* With JavaScript and motion welcome (`data-mode="leaf"`) the slots  */
-  /* stop scrolling and stack into one opening: a grid of one page, or  */
-  /* two from 1280, every page the tallest's height (`--page-h`). Pages */
+  /* stop scrolling and stack into one opening: a grid of one page, as  */
+  /* tall as what is on it, or two from 1024 (round 25; 1280 before),   */
+  /* both the tallest page's height (`--page-h`). Pages                 */
   /* not on show are `hidden="until-found"` (content-visibility:        */
   /* hidden): they paint no paper and take no hits. A turn poses its    */
   /* faces inline (`rotateY` about the spine, `z-index`, see            */
@@ -3768,7 +3851,7 @@ html[data-menu-open] [data-companion] {
     mask: url(/scenery/diary-ribbon.svg) no-repeat 0 0 / 100% 100%;
     transform-origin: 50% 0;
   }
-  @media (width >= 80rem) {
+  @media (width >= 64rem) {
     .diary-cover {
       border-radius: 0.625rem;
     }
@@ -3809,7 +3892,7 @@ html[data-menu-open] [data-companion] {
   .diary-sheet[data-at="left"]::before {
     --gutter: to left;
   }
-  @media (width >= 80rem) {
+  @media (width >= 64rem) {
     .diary-slot[data-side="left"]::before {
       --gutter: to left;
     }
@@ -3978,7 +4061,42 @@ html[data-menu-open] [data-companion] {
       linear-gradient(var(--from-spine), rgb(30 40 35 / var(--dim, 0)), rgb(30 40 35 / 0) 75%);
   }
 
-  @media (width >= 80rem) {
+  /* One page (below 1024) is as tall as what is on it (round 25; every page
+     took the tallest one's height, and on a phone a short page ended in 300
+     to 580px of blank paper, its corners a screen and more below its last
+     line). The pages on show share the one grid cell, and a page hidden until
+     found has no size of its own, so the row is the page at rest, and never
+     under the floor (`--diary-floor`, about a screen, and never more than
+     the tallest page, `--page-h`). A turn lays the page it leaves and the
+     page it lands on in that cell together, at the taller's height, with the
+     book's own box held at the height it had (`DiaryBook` writes the track's
+     `height`); the book takes the new page's height once the leaf has
+     landed. `--page-hold`: a book only just bound stands at least this tall
+     until its first turn, so that leaving the track's height (the tallest
+     page's) for its first page's moved nothing on screen (`holdHeight`). A
+     spread keeps one shared height. */
+  @media (width < 64rem) {
+    .diary-frame[data-mode="leaf"] .diary-track {
+      grid-template-rows: minmax(min(var(--page-h, 0px), max(var(--diary-floor), var(--page-hold, 0px))), auto);
+    }
+    /* A page fills the book and is never shorter than what is on it: while
+       the book's box is held under a taller page (a turn in the air, or the
+       book easing open to it), the page keeps its own foot, and its folio
+       there, instead of being squeezed into the box with its folio across
+       its text. */
+    .diary-frame[data-mode="leaf"] .diary-slot {
+      align-self: start;
+      min-height: 100%;
+    }
+    /* And it is cut to the box (`--held`, the pages' height in it), or its
+       last 16px would show in the track's room under the book's foot. (A
+       curling page's own clip, written inline, replaces this one.) */
+    .diary-track[data-held] > .diary-slot {
+      clip-path: inset(0 0 calc(100% - var(--held)) 0);
+    }
+  }
+
+  @media (width >= 64rem) {
     .diary-frame[data-mode="leaf"] .diary-track {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -4007,7 +4125,7 @@ html[data-menu-open] [data-companion] {
   /* ------------------------------------------------------------------ */
   /* Follow-up 2026-11-02: one page curls from its corner.              */
   /*                                                                    */
-  /* Below 1280 the book shows one page, and a hinge turn squashed it   */
+  /* Below 1024 the book shows one page, and a hinge turn squashed it   */
   /* into the left half beside the next page: a spread, for a moment.   */
   /* So one page curls, flat, inside its own box (`curl` in             */
   /* `diary-turn.ts`; `DiaryBook` writes the numbers): the page lies    */
