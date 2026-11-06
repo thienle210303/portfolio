@@ -18,11 +18,11 @@ import { useCallback, useEffect, useRef, useState, type ComponentType, type Reac
  * visitor scrolling down normally finds the chat ready rather than watching a
  * loading line; a visitor who never scrolls this far never downloads it.
  *
- * Four states: waiting (out of view, nothing requested — a quiet placeholder,
+ * Four states: waiting (out of view, nothing requested — the placeholder,
  * deliberately not a `role="status"`, since nothing is in flight to announce),
- * `"loading"` (the chunk is in flight — a status line, `aria-busy` on its
- * wrapper), the chat itself once `Chat` is set, and a visible failure state
- * with a retry button. The failure path is not decorative: this is the site's
+ * `"loading"` (the chunk is in flight — the same placeholder, a status line
+ * for assistive tech, `aria-busy` on its wrapper), the chat itself once `Chat`
+ * is set, and a visible failure state with a retry button. The failure path is not decorative: this is the site's
  * only chat, so a chunk that never arrives has to say so out loud instead of
  * leaving the visitor staring at an inert loading line.
  *
@@ -31,10 +31,21 @@ import { useCallback, useEffect, useRef, useState, type ComponentType, type Reac
  * `heading` ("Ask me" and its note) is server-rendered by Contact and shown
  * in every state, so the strip reads the same before and after the chat lands.
  *
+ * ## Holding the chat's place (round 25)
+ *
+ * Unreserved, the swap from a placeholder to the chat pushed the footer down
+ * under a reader already looking at it (End key, a jump to the bottom).
+ * Through round 24 the room was `--ask-room`, a min-height measured by hand
+ * at six width ranges. Now Contact hands this file a `placeholder`: the idle
+ * notepad itself, drawn on the server by `AskPlaceholder` from the pieces the
+ * chat uses (`ask-sheet.tsx`). Shown while waiting and loading, it is exactly
+ * as tall as the idle chat that replaces it, at every width, with nothing
+ * measured. It arrives as rendered markup, so this file still imports nothing
+ * but React. Without a `placeholder` (a unit test, some other caller) the slot
+ * is the heading and, with JavaScript off, one line saying why.
+ *
  * Every state before the chat carries `data-ask-slot`, and the chat's root
- * carries `data-ask-chat`; globals.css gives both the same min-height
- * (`--ask-room`, at or above the idle chat's measured height), so the swap
- * does not move the footer under a reader who jumped to the bottom.
+ * carries `data-ask-chat`. Neither has a min-height.
  */
 type ChatComponent = ComponentType<{ readonly liveModeConfigured: boolean; readonly heading?: ReactNode }>;
 
@@ -46,12 +57,15 @@ interface Props {
    *  of the page load. */
   readonly liveModeConfigured: boolean;
   readonly heading?: ReactNode;
+  /** The idle notepad (`AskPlaceholder`), rendered on the server by Contact:
+   *  what holds the chat's place, at the chat's own height, until it lands. */
+  readonly placeholder?: ReactNode;
 }
 
-/** The pre-chat states sit where the chat's left half will. */
+/** The failure state, and the bare slot, sit where the chat's left half will. */
 const SLOT = "px-5 pt-[18px] pb-5 sm:px-[26px]";
 
-export function AskLoader({ liveModeConfigured, heading }: Props) {
+export function AskLoader({ liveModeConfigured, heading, placeholder }: Props) {
   const placeholderRef = useRef<HTMLDivElement | null>(null);
   const [Chat, setChat] = useState<ChatComponent | null>(null);
   const [loading, setLoading] = useState(false);
@@ -142,23 +156,24 @@ export function AskLoader({ liveModeConfigured, heading }: Props) {
     );
   }
 
-  if (loading) {
-    return (
-      <div data-ask-slot="" aria-busy="true" className={SLOT}>
-        {heading}
-        <p role="status" className="mt-3 text-[length:var(--step--1)] text-fg-muted">
+  // Waiting (the observer watches this element) or loading: the placeholder
+  // holds the chat's place. The status line is for assistive tech only, and
+  // out of flow, so announcing the load does not change the slot's height.
+  return (
+    <div ref={placeholderRef} data-ask-slot="" aria-busy={loading || undefined}>
+      {loading ? (
+        <p role="status" className="sr-only">
           Loading&hellip;
         </p>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={placeholderRef} data-ask-slot="" className={SLOT}>
-      {heading}
-      <noscript>
-        <p className="mt-3 text-[length:var(--step--1)] text-fg-muted">The chat needs JavaScript.</p>
-      </noscript>
+      ) : null}
+      {placeholder ?? (
+        <div className={SLOT}>
+          {heading}
+          <noscript>
+            <p className="mt-3 text-[length:var(--step--1)] text-fg-muted">The chat needs JavaScript.</p>
+          </noscript>
+        </div>
+      )}
     </div>
   );
 }

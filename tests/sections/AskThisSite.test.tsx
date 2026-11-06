@@ -97,13 +97,15 @@ afterEach(() => {
 });
 
 describe("AskThisSite -- scrolling thread window", () => {
-  it("is one fixed size from the start, but not a tab stop while idle -- nothing to scroll yet", () => {
+  it("is as tall as its promise while idle, and not a tab stop -- nothing to scroll yet", () => {
     render(<AskThisSite liveModeConfigured={false} />);
     const region = screen.getByRole("log", { name: "Conversation thread" });
     expect(region).not.toHaveAttribute("tabindex");
-    // Round 22: the same height idle and in use, so the first question
-    // does not grow the strip.
-    expect(region).toHaveClass("h-[17rem]", "lg:h-[23rem]");
+    // Round 25 (it reverses round 22's "one fixed height"): idle, the window
+    // is not open, so it has no fixed height and nothing to scroll.
+    expect(region).toHaveClass("ask-window");
+    expect(region).not.toHaveAttribute("data-open");
+    expect(region.className).not.toMatch(/(^|\s)(lg:)?h-\[/);
   });
 
   it("becomes a keyboard-reachable, bounded scroll region once a turn exists", async () => {
@@ -114,8 +116,10 @@ describe("AskThisSite -- scrolling thread window", () => {
 
     const region = conversationRegion();
     expect(region).toHaveAttribute("tabindex", "0");
-    expect(region).toHaveClass("h-[17rem]", "lg:h-[23rem]");
-    expect(region).toHaveClass("overflow-y-auto");
+    // Open: `.ask-window[data-open]` in globals.css gives it its one height
+    // and makes it scroll (tests/sections/AskLoader.test.tsx reads the rule).
+    expect(region).toHaveClass("ask-window");
+    expect(region).toHaveAttribute("data-open");
 
     // Still the same list, same accessible name, that every other ask.spec
     // locator (and the round-10 contract test) already depends on -- only

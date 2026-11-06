@@ -16,6 +16,17 @@ import ResumeLink from "./ResumeLink";
  * (before it, since round 22: the card sits right of the postcard from 1024
  * and under it below, turned the other way to match).
  *
+ * It decides its own shape (round 25), by the width of the column it is given
+ * (`@container/card`, on its wrapper in `Contact.tsx`), never the window's.
+ * Under 36rem it is the portrait card, 430px at most. From 36rem it lies
+ * landscape and fills the column: who I am on the left (name, title, seal,
+ * place, the quote), every way to reach me and the chips on the right, a rule
+ * between them. That is the tablet's card, full width under the postcard; the
+ * laptop's 21rem column and the board's keep the portrait one.
+ *
+ * My address is never cut short: it may break after the "@" where the column
+ * is narrower than the address (a 320px phone), and nowhere else.
+ *
  * `data-cat-hide` is a contract with src/components/companion: this panel is
  * opaque and has a clear band above its top edge, so the cats occasionally
  * duck behind it. It is the only element on the site that carries it, and the
@@ -72,12 +83,15 @@ function Chip({ icon, children }: { readonly icon: keyof typeof ICON; readonly c
 export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: string | null }) {
   const github = socialLinks.find((link) => link.platform === "GitHub");
   const linkedin = socialLinks.find((link) => link.platform === "LinkedIn");
+  const at = profile.email.indexOf("@");
+  const emailName = profile.email.slice(0, at);
+  const emailHost = profile.email.slice(at + 1);
 
   return (
     <aside
       aria-label={`${profile.name} — business card`}
       data-cat-hide
-      className="relative mx-auto w-full max-w-[430px] -rotate-1 lg:mx-0 lg:rotate-[2.5deg]"
+      className="relative mx-auto w-full max-w-[430px] -rotate-1 @min-[36rem]/card:max-w-none @min-[36rem]/card:rotate-[0.6deg] lg:mx-0 lg:rotate-[2.5deg]"
     >
       <div className="paper-lift relative isolate flex h-full flex-col overflow-hidden bg-surface p-3">
         {/* Drawn by `::before`, not as text: a watermark at 6% is not text
@@ -88,97 +102,108 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
           className="pointer-events-none absolute right-[22px] -bottom-[34px] -z-10 font-display text-[210px] leading-[0.8] font-semibold tracking-[-0.02em] text-fg opacity-[0.06] before:content-[attr(data-monogram)]"
         />
 
-        <div className="flex flex-1 flex-col border border-rule px-5 pt-6 pb-5 sm:pt-[26px] sm:pb-[22px] xl:px-7">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-display text-[30px] leading-none font-semibold tracking-[-0.02em] text-fg">
-                {profile.name}
+        <div className="flex flex-1 flex-col border border-rule px-5 pt-6 pb-5 @min-[36rem]/card:grid @min-[36rem]/card:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] @min-[36rem]/card:gap-x-6 @min-[36rem]/card:px-6 sm:pt-[26px] sm:pb-[22px] xl:px-7">
+          <div data-card-side="who" className="min-w-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-display text-[30px] leading-none font-semibold tracking-[-0.02em] text-fg">
+                  {profile.name}
+                </p>
+                <p className="mt-2 font-mono text-[12.5px] tracking-[0.16em] text-fg-muted uppercase">{profile.title}</p>
+              </div>
+              {/* My name as it is written at home, on a red seal. */}
+              <p className="flex h-[66px] w-[58px] shrink-0 -rotate-[4deg] flex-col items-center justify-center rounded-[4px] bg-mark font-serif text-[19px] leading-[1.05] text-fg-inverse italic shadow-[inset_0_0_0_3px_var(--mark),inset_0_0_0_4.5px_var(--fg-inverse)]">
+                <VisuallyHidden>My seal: </VisuallyHidden>
+                <span lang="vi" className="contents">
+                  <span>Thiện</span> <span>Lê</span>
+                </span>
               </p>
-              <p className="mt-2 font-mono text-[12.5px] tracking-[0.16em] text-fg-muted uppercase">{profile.title}</p>
             </div>
-            {/* My name as it is written at home, on a red seal. */}
-            <p className="flex h-[66px] w-[58px] shrink-0 -rotate-[4deg] flex-col items-center justify-center rounded-[4px] bg-mark font-serif text-[19px] leading-[1.05] text-fg-inverse italic shadow-[inset_0_0_0_3px_var(--mark),inset_0_0_0_4.5px_var(--fg-inverse)]">
-              <VisuallyHidden>My seal: </VisuallyHidden>
-              <span lang="vi" className="contents">
-                <span>Thiện</span> <span>Lê</span>
-              </span>
+
+            <p className="mt-3 flex items-center gap-1.5 text-[14px] text-fg-muted">
+              <Icon name="pin" className="size-[13px]" />
+              {profile.location}
+            </p>
+            {/* The chat corpus cites this line to Contact; keep it on the card. */}
+            <p className="mt-4 border-l-2 border-accent pl-3 [text-wrap:balance] font-serif text-[18px] leading-[1.35] text-fg italic">
+              {profile.philosophy}
             </p>
           </div>
 
-          <p className="mt-3 flex items-center gap-1.5 text-[14px] text-fg-muted">
-            <Icon name="pin" className="size-[13px]" />
-            {profile.location}
-          </p>
-          {/* The chat corpus cites this line to Contact; keep it on the card. */}
-          <p className="mt-4 border-l-2 border-accent pl-3 [text-wrap:balance] font-serif text-[18px] leading-[1.35] text-fg italic">
-            {profile.philosophy}
-          </p>
+          {/* Portrait: a rule across, under the quote. Landscape: the rule
+              stands between the two sides instead. */}
+          <div
+            data-card-side="reach"
+            className="flex min-w-0 flex-1 flex-col @min-[36rem]/card:border-l @min-[36rem]/card:border-rule @min-[36rem]/card:pl-6"
+          >
+            <div className="mt-5 mb-3.5 h-px bg-rule @min-[36rem]/card:hidden" />
 
-          <div className="mt-5 mb-3.5 h-px bg-rule" />
-
-          <ul role="list" className="relative flex flex-col gap-[3px] font-mono text-[13px] max-[339px]:text-[11.5px] leading-snug xl:text-[14.5px]">
-            <li className="flex items-center gap-2 xl:gap-2.5">
-              <Icon name="mail" className="size-4 text-accent" />
-              <a
-                href={`mailto:${profile.email}`}
-                className="ink-link-quiet min-w-0 flex-1 overflow-hidden py-1 max-lg:py-[13px] max-[339px]:py-[15px]! text-ellipsis whitespace-nowrap text-fg hover:text-accent"
-              >
-                {profile.email}
-              </a>
-              {/* 32px to the eye, 44px to the pointer (CopyButton's compact). */}
-              <CopyButton
-                value={profile.email}
-                label="Copy email address"
-                variant="compact"
-                className="shrink-0 rounded-full"
-              />
-            </li>
-            {github ? (
+            <ul role="list" className="relative flex flex-col gap-[3px] font-mono text-[length:var(--step--1)] leading-snug">
               <li className="flex items-center gap-2 xl:gap-2.5">
-                <Icon name="code" className="size-4 text-accent" />
-                <ExternalLink href={github.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] max-[339px]:py-[15px]! text-fg hover:text-accent">
-                  <VisuallyHidden>{github.platform}</VisuallyHidden>{" "}
-                  <span className="break-all">{github.href.replace(/^https:\/\//, "")}</span>
-                </ExternalLink>
+                <Icon name="mail" className="size-4 text-accent" />
+                <a
+                  href={`mailto:${profile.email}`}
+                  className="ink-link-quiet min-w-0 flex-1 py-1 max-lg:py-[13px] text-fg hover:text-accent"
+                >
+                  {/* One line wherever it fits; a break only after the "@". */}
+                  {emailName}@<wbr />
+                  {emailHost}
+                </a>
+                {/* 32px to the eye, 44px to the pointer (CopyButton's compact). */}
+                <CopyButton
+                  value={profile.email}
+                  label="Copy email address"
+                  variant="compact"
+                  className="shrink-0 rounded-full"
+                />
               </li>
-            ) : null}
-            {linkedin ? (
-              <li className="flex items-center gap-2 xl:gap-2.5">
-                <Icon name="linkedin" className="size-4 text-accent" />
-                <ExternalLink href={linkedin.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] max-[339px]:py-[15px]! text-fg hover:text-accent">
-                  <VisuallyHidden>{linkedin.platform}</VisuallyHidden>{" "}
-                  {linkedin.handle}
-                </ExternalLink>
-              </li>
-            ) : null}
-          </ul>
+              {github ? (
+                <li className="flex items-center gap-2 xl:gap-2.5">
+                  <Icon name="code" className="size-4 text-accent" />
+                  <ExternalLink href={github.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] text-fg hover:text-accent">
+                    <VisuallyHidden>{github.platform}</VisuallyHidden>{" "}
+                    <span className="break-all">{github.href.replace(/^https:\/\//, "")}</span>
+                  </ExternalLink>
+                </li>
+              ) : null}
+              {linkedin ? (
+                <li className="flex items-center gap-2 xl:gap-2.5">
+                  <Icon name="linkedin" className="size-4 text-accent" />
+                  <ExternalLink href={linkedin.href} className="ink-link-quiet min-w-0 py-1 max-lg:py-[13px] text-fg hover:text-accent">
+                    <VisuallyHidden>{linkedin.platform}</VisuallyHidden>{" "}
+                    {linkedin.handle}
+                  </ExternalLink>
+                </li>
+              ) : null}
+            </ul>
 
-          <ul role="list" className="mt-auto flex flex-wrap gap-2 pt-6">
-            {/* A link to the PDF that, from 640px with JavaScript, opens it
-                in a dialog on this page (round 23). */}
-            <li>
-              <ResumeLink className={CHIP}>
-                <Chip icon="doc">Résumé</Chip>
-              </ResumeLink>
-            </li>
-            <li>
-              <a href="/contact.vcf" download className={CHIP}>
-                <Chip icon="card">Save contact</Chip>
-              </a>
-            </li>
-            {bookingUrl ? (
+            <ul role="list" className="mt-auto flex flex-wrap gap-2 pt-6">
+              {/* A link to the PDF that, from 640px with JavaScript, opens it
+                  in a dialog on this page (round 23). */}
               <li>
-                <ExternalLink href={bookingUrl} className={CHIP}>
-                  <Chip icon="calendar">Book a call</Chip>
-                </ExternalLink>
+                <ResumeLink className={CHIP}>
+                  <Chip icon="doc">Résumé</Chip>
+                </ResumeLink>
               </li>
-            ) : null}
-          </ul>
+              <li>
+                <a href="/contact.vcf" download className={CHIP}>
+                  <Chip icon="card">Save contact</Chip>
+                </a>
+              </li>
+              {bookingUrl ? (
+                <li>
+                  <ExternalLink href={bookingUrl} className={CHIP}>
+                    <Chip icon="calendar">Book a call</Chip>
+                  </ExternalLink>
+                </li>
+              ) : null}
+            </ul>
+          </div>
         </div>
       </div>
       <Drawing
         name="paper-clip"
-        className="pointer-events-none absolute -top-[26px] left-[55%] h-[86px] w-[34px]"
+        className="pointer-events-none absolute -top-[26px] left-[55%] h-[86px] w-[34px] @min-[36rem]/card:left-[calc(50.6%-17px)]"
       />
     </aside>
   );
