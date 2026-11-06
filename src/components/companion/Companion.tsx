@@ -5241,7 +5241,7 @@ export function Companion({ facts }: CompanionProps) {
       // layer to 40 while it is set.
       // Clipped: a peeking pair (`pickCorner`) and a cat entering from the
       // edge must not widen the page.
-      className="no-print pointer-events-none fixed inset-0 z-55 overflow-clip"
+      className="no-print pointer-events-none fixed inset-0 z-(--z-cats) overflow-clip"
     >
       {/* The toy, under the cats in paint order so a paw lands on top of it.
           Decoration in the strictest sense: no accessible name, no pointer

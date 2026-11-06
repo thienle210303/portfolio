@@ -3,6 +3,7 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import { Download, ExternalLink as OpenIcon, X } from "lucide-react";
 import { profile } from "@/content/portfolio";
+import { BAND } from "@/lib/breakpoints";
 
 /**
  * The business card's Résumé chip (round 23). It is a plain link to the PDF:
@@ -21,7 +22,7 @@ import { profile } from "@/content/portfolio";
  */
 
 /** From this width the dialog opens; below it the link opens the PDF. */
-const DIALOG_QUERY = "(min-width: 640px)";
+const DIALOG_QUERY = BAND.tablet;
 
 const ACTION =
   "inline-flex min-h-11 items-center gap-2 border border-rule px-3.5 text-[14px] text-fg transition-colors duration-150 hover:border-fg-muted hover:text-accent";

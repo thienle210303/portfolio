@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { navItems } from "@/content/portfolio";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { glide } from "@/lib/glide";
+import { BAND } from "@/lib/breakpoints";
 
 // Built once at module scope so the array identity never changes across
 // renders — useActiveSection re-subscribes its observer whenever the
@@ -110,7 +111,7 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
     // resize or orientation change), the toggle and panel both disappear
     // via `lg:hidden` — close the menu too, so the scroll lock above
     // doesn't get stranded on with no visible control left to release it.
-    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const desktopQuery = window.matchMedia(BAND.laptop);
     function onDesktopChange(event: MediaQueryListEvent) {
       if (event.matches) setOpen(false);
     }

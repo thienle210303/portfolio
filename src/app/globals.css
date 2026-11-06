@@ -112,6 +112,16 @@
   --tracking-display-sm: -0.01em; /* step-1 headings, small figures */
   --tracking-caps: 0.08em; /* uppercase mono labels, tabs */
   --tracking-caps-lg: 0.12em; /* rail dt */
+
+  /* Shape and elevation (round 25; design/system/README.md §4). Paper is
+     square-cut and lies on something: three radii, and a shadow says how far
+     off the surface a thing is. `--paper-shadow` (the card and the postcard
+     lying on the ground) is theme-dependent and stays with Contact. */
+  --radius-paper: 2px; /* tags, cards, sheets, fields */
+  --radius-tab: 6px; /* index tabs */
+  --radius-board: 0.625rem; /* the Diary's cloth boards */
+  --shadow-pinned: 0 2px 3px -1px rgb(30 40 35 / 0.2); /* taped or pinned flat */
+  --shadow-lift: 0 18px 40px -24px rgb(0 0 0 / 0.45); /* paper picked up */
 }
 
 /*
@@ -210,6 +220,14 @@
        reason about the space actually left on screen, so the two cannot drift. */
     --header-h: 3.5rem;
     --rule: 1px;
+
+    /* Layers (round 25; design/system/README.md §5). Inside one object a
+       component stacks with 0–10 and nothing higher; these four are the
+       page's. Dialogs are the browser's top layer and need no number. */
+    --z-cats-under-menu: 40; /* the companion layer while the phone menu is open */
+    --z-header: 50;
+    --z-cats: 55; /* over everything, the header included */
+    --z-skip: 60;
   }
 
   /* ---------------------------------------------------------------------- */
@@ -1077,7 +1095,7 @@
     gap: 2rem;
   }
 
-  @media (min-width: 1024px) {
+  @media (width >= 64rem) {
     .rail-layout {
       grid-template-columns: 10rem minmax(0, 1fr);
       gap: 3rem;
@@ -1749,7 +1767,7 @@
     position: fixed;
     top: 0.75rem;
     left: 0.75rem;
-    z-index: 60;
+    z-index: var(--z-skip);
     width: auto;
     height: auto;
     padding: 0.5rem 1rem;
@@ -2623,7 +2641,7 @@
       --ask-room: 628px;
     }
   }
-  @media (width >= 1024px) {
+  @media (width >= 64rem) {
     :root {
       --ask-room: 518px;
     }
@@ -3343,7 +3361,7 @@ html[data-menu-open] header[data-site-header] {
 }
 /* The cats float above the header; the open menu is the one thing above them. */
 html[data-menu-open] [data-companion] {
-  z-index: 40;
+  z-index: var(--z-cats-under-menu);
 }
 /* A cat over a control draws on top of it and lets the press through. */
 [data-companion] [data-cat-under] {

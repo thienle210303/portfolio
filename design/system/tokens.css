@@ -60,6 +60,11 @@
   --tracking-display-sm: -0.01em;
   --tracking-caps: 0.08em;
   --tracking-caps-lg: 0.12em;
+  --radius-paper: 2px;
+  --radius-tab: 6px;
+  --radius-board: 0.625rem;
+  --shadow-pinned: 0 2px 3px -1px rgb(30 40 35 / 0.2);
+  --shadow-lift: 0 18px 40px -24px rgb(0 0 0 / 0.45);
 }
 
 /* Fonts: the faces src/app/layout.tsx loads through next/font. */
@@ -85,6 +90,10 @@
   --section-y: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
   --header-h: 3.5rem;
   --rule: 1px;
+  --z-cats-under-menu: 40;
+  --z-header: 50;
+  --z-cats: 55;
+  --z-skip: 60;
 }
 :root {
   color-scheme: light;

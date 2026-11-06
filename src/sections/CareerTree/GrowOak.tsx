@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { GrowBeat } from "@/lib/origin-story";
+import { BAND } from "@/lib/breakpoints";
 
 /**
  * "Watch it grow" (round 22): the Journey's one primary control, and the show
@@ -124,7 +125,7 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
     section.setAttribute("data-growing", "");
     // From 1280 the button is under the oak, at the board's foot; below, it
     // is above it, under the heading.
-    if (window.matchMedia("(width >= 80rem)").matches) {
+    if (window.matchMedia(BAND.desktop).matches) {
       // Line the board's foot up with the bottom of the screen, but stop
       // while the heading still clears the header: the header has been
       // see-through paper since round 23, so a heading under it shows through

@@ -4,6 +4,14 @@ import SiteNav from "./SiteNav";
 import ThemeToggle from "./ThemeToggle";
 
 /**
+ * The tag and the stamp point at the home page's sections from any route
+ * (round 25: a bare `#about` did nothing on /resume). A plain `<a>`, like the
+ * nav's own links: on the home page it is a same-document jump, and off it a
+ * normal navigation, with no client router and no JavaScript for either.
+ */
+const HOME = "/";
+
+/**
  * Server Component shell. The only genuinely interactive pieces — active-
  * section tracking, the mobile menu (open state, focus trap, Escape, scroll
  * lock) and the theme switch — live in client islands. The logo and the
@@ -34,7 +42,7 @@ export default function SiteHeader() {
   return (
     <header
       data-site-header
-      className="no-print pointer-events-none sticky top-0 z-50 h-[var(--header-h)] text-fg"
+      className="no-print pointer-events-none sticky top-0 z-(--z-header) h-[var(--header-h)] text-fg"
     >
       <div
         className="shell flex h-full items-start justify-between gap-4"
@@ -47,7 +55,7 @@ export default function SiteHeader() {
             clothesline tags; it swings level on hover. The drop shadow is on
             the wrapper: the tag's own clip-path would clip it. */}
         <a
-          href="#about"
+          href={`${HOME}#about`}
           aria-label={`${profile.name} — back to top`}
           className="group pointer-events-auto inline-flex min-h-11 min-w-11 items-center self-center"
         >
@@ -77,7 +85,7 @@ export default function SiteHeader() {
               control (round 18, spec §4), so it is paper and ink and never
               `--control`. Hidden under 640px, where the menu has Contact. */}
           <a
-            href="#contact"
+            href={`${HOME}#contact`}
             className="group nav-stamp stamp-lift pointer-events-auto mt-1.5 hidden h-11 rotate-2 items-center whitespace-nowrap text-fg transition-transform duration-150 hover:-translate-y-px active:translate-y-px sm:inline-flex"
           >
             <span data-paper="" className="nav-stamp-paper bg-surface">

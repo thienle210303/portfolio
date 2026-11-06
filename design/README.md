@@ -52,7 +52,7 @@ Audit: [round-25-responsive/audit.md](round-25-responsive/audit.md)
 
 | Version | Date | What it is |
 |---|---|---|
-| [v1](round-25-responsive/v1/) | 2026-11-05 | Audit at nine widths; boards for the hero (tablet), the Journey (tablet, laptop, and a board that scales from 1280), the Diary (a phone page at its own height, the spread from 1024) and Contact (the field pair, the card on a tablet, the postcard on a laptop). **Awaiting Thien's review.** Revised the same day after his first look: the About board is redrawn for phone and tablet (the line strung between two supports that stand in the ground; tags hung naturally, not on a ruler). |
+| [v1](round-25-responsive/v1/) | 2026-11-05 | Audit at nine widths; boards for the hero (tablet), the Journey (tablet, laptop, and a board that scales from 1280), the Diary (a phone page at its own height, the spread from 1024) and Contact (the field pair, the card on a tablet, the postcard on a laptop). **Approved by Thien, 2026-11-05** (the About direction explicitly; the other boards with the recommended option for each open decision). Revised the same day after his first look: the About board is redrawn for phone and tablet (the line strung between two supports that stand in the ground; tags hung naturally, not on a ruler). |
 
 Each version holds:
 

@@ -16,6 +16,7 @@
  * It shoots a running server: BASE_URL if set, else the production build on
  * :3300 (`pnpm build && pnpm start -p 3300`), else the dev server on :3000.
  * If neither is up it starts `pnpm start -p 3300` itself and stops it after.
+ * SHOTS_PORT picks another port (one per git worktree).
  *
  * Stills are taken with motion allowed (so the Diary binds its leaves, the way
  * most visitors see it) and Playwright's `animations: "disabled"`, which
@@ -70,22 +71,27 @@ async function isUp(url) {
 async function findServer() {
   const candidates = process.env.BASE_URL
     ? [process.env.BASE_URL]
-    : ["http://localhost:3300", "http://localhost:3000"];
+    : process.env.SHOTS_PORT
+      ? [`http://localhost:${process.env.SHOTS_PORT}`]
+      : ["http://localhost:3300", "http://localhost:3000"];
   for (const url of candidates) if (await isUp(url)) return { url, child: null };
   if (!existsSync(path.join(REPO_ROOT, ".next", "BUILD_ID"))) {
     throw new Error("No server on :3300 or :3000 and no build. Run `pnpm build` first.");
   }
-  const child = spawn("pnpm", ["start", "-p", "3300"], {
+  // SHOTS_PORT lets several checkouts (git worktrees) capture at once, each
+  // from its own build, the way E2E_PORT does for the e2e suite.
+  const port = process.env.SHOTS_PORT ?? "3300";
+  const child = spawn("pnpm", ["start", "-p", port], {
     cwd: REPO_ROOT,
     detached: true,
     stdio: ["ignore", "ignore", "inherit"],
   });
-  const url = "http://localhost:3300";
+  const url = `http://localhost:${port}`;
   for (let i = 0; i < 60; i += 1) {
     if (await isUp(url)) return { url, child };
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  throw new Error("`pnpm start -p 3300` did not come up within 30s");
+  throw new Error(`\`pnpm start -p ${port}\` did not come up within 30s`);
 }
 
 async function settle(page, ms = 250) {
@@ -137,12 +143,14 @@ const SHOT = { animations: "disabled", caret: "hide" };
  * survive that: the header would be drawn once, wherever the window happened
  * to be, and the sky (`body::before`, one window tall) would stop in a straight
  * line partway down. So for whole-element shots the header is hidden (`fold`
- * is the shot that shows it) and the sky is stretched over the document. The
+ * is the shot that shows it, and the cats at rest on a touch screen, who
+ * wander and would make every diff noisy) and the sky is stretched over the
+ * document. One thing still moves between captures: Bé Nhi's mood. The
  * gradient is therefore gentler here than on a real screen, where every
  * window holds the whole of it.
  */
 const WHOLE_ELEMENT = `
-  header { visibility: hidden !important; }
+  header, [data-companion] { visibility: hidden !important; }
   :root body { position: relative; }
   :root body::before {
     position: absolute !important;
