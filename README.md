@@ -445,7 +445,7 @@ visitor sets it, by seeding `localStorage` before the document runs so the
 inline theme script is the thing under test — plus the `deep` and `contrast`
 tones, which are where a contrast regression is likeliest to hide.
 
-Run everything the way CI would:
+Run the whole gate (it runs locally; the GitHub workflow is manual only):
 
 ```bash
 pnpm verify

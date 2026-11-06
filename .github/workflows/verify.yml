@@ -16,12 +16,21 @@
 # across six viewports, and one spec alone takes 12 minutes locally, so it
 # belongs in its own workflow with its own trigger rather than bolted onto
 # the gate every push has to clear.
+#
+# Manual only since 2026-11-06 (Thien's call). GitHub would not start the job
+# on any pull request or push ("account is locked due to a billing issue"), so
+# every PR carried a red check that said nothing about the code. The gate is
+# the same command run locally, as CLAUDE.md asks. To put it back on every PR
+# and every push to main, restore:
+#
+#   on:
+#     pull_request:
+#     push:
+#       branches: [main]
 name: verify
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 # A second push to the same branch makes the first run irrelevant.
 concurrency:
