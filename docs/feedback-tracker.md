@@ -2369,3 +2369,32 @@ Thien, on his phone: "if we have so much limit then diary just want page! 2 page
 
 - **JS at load +1,023 B** (on the wire): the curl's geometry and its painter in `DiaryBook`. 0 skipped responses. LCP 1108 ms, TBT 49 ms.
 - `pnpm verify` passes: 1,051 unit tests. Full e2e on the production build: 896 passed, 0 failed (one more than before: a 390 test that holds a drag mid-curl and checks the fold is diagonal, the page full width, and no `rotateY`).
+
+## Round 25: design before code (2026-11-05 to 2026-11-06)
+
+Thien asked for an audit, a redesign and a polish of the whole site, mobile first, and for a way of working that stops rework: **boards before code**, desktop and phone, approved before anything under `src/` changes, and no UI work done until rendered screenshots have been looked at. The standing rules are in CLAUDE.md § Design before code; the workspace is `design/`.
+
+**Stage A (no site code).** `pnpm shots` replaced the stale screenshot script: nine widths (320 to 1920), day and night, key states, a contact sheet, a before/after diff, previews of a round's boards. The audit (`design/round-25-responsive/audit.md`, 36 findings) found phones and 1440 in good shape; the problems were one real crop at 1280 (the Journey's board was laid out in fixed pixels for 1440, so the lantern was cut in half and the swing's caption read "…hi, in love"), the two middle bands (640 to 1279 were the phone layout stretched or the desktop squeezed), an email/phone pair at 100 to 150px each at almost every width, and Diary pages that were all as tall as the tallest. `design/system/README.md` wrote down what had only been habit: four bands, three breakpoints in rem, type roles, a 12px floor, spacing, shape, elevation, layers.
+
+**Thien's review.** Of the About section below 1024: "a bamboo flying in the middle of the page and cut off is making no sense and ugly… Don't make it too in the line, let make it a bit more natural design. We need alignment + spacing + structure of the page make more sense!" The board was redrawn round one rule, **a line is strung between two things that stand in the ground**, and he approved it, and the other boards with the recommended option on each open decision.
+
+**Stage B.** Foundations first, with no visual change (`pnpm shots --diff` against the capture taken before showed only the cats' positions and Bé Nhi's mood moving), then four builders in worktrees, one section each, merged in turn:
+
+- **About.** Below 1024 two supports stand at the page's edges with their feet in the paddy and the line crosses between them: three passes between two bamboo poles on a phone, two between a bamboo and a pine on a tablet (1,033px at 768, from 1,700). One set of tags for every width; the strings come from the line's curve (`Hero/line.ts`), so `DROPS`, `DROPS_XL`, `FIELD_DROP`, `PhoneLine`, `bamboo-phone` and `clothespin` are gone. The bamboo is tiles, so a pole is any height. From 1024 the field tag ends on the shell's edge and the pine and the nón lá are inside the window.
+- **Journey.** From 1280 the board is in board units (1/1440 of its own width, to 1680), so nothing is cropped at 1280 or 1366 and 1920 is no longer a 1440 board in the middle. From 640 the boughs leave the trunk in pairs with the title beside a new crown (`oak-crown`); 1,499px at 1024, from 2,100. "Watch it grow" sits under my line at every width, so the cats now watch from beside the button, not above it.
+- **Diary.** Where one page shows, a page is as tall as what is on it (at 390, at most 109px blank under the last line, from about 580). The spread starts at 1024. Page 1 picks its arrangement from its own width; the tabs' counts drop out before the row wraps at 320.
+- **Contact.** Email and phone are two whole lines tied by one bracket down the side. The card turns landscape when it has 36rem; the postcard's sides sit side by side from 40rem of its own width, so on a laptop it is picture over address beside the card. The Ask is short until the first question (`--ask-room` is gone: the server renders the idle notepad). The phone menu ends with "Let's talk" and Résumé; `/resume` on a phone shows page one as a picture.
+- Also: the header's TL tag and stamp work on `/resume`; the cats' labels came up to the 12px floor; `e2e/clipping.spec.ts` asks whether any visible text is cut off at the nine widths in both themes (the overflow spec skips everything under a clipping ancestor, which is how the 1280 crop passed); an e2e project at 1280.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (round 24 follow-up row above) | 212,099 B | 212,099 B | 32,580 B | 117,868 B | 0 | 1718 |
+| After | 212,926 B | 212,926 B | 36,732 B | 117,868 B | 0 | 1822 |
+
+- **JS at load +827 B** (on the wire): the Ask's placeholder pieces, the Diary's per-page height and `Hero/line.ts`. 0 skipped responses. LCP 1168 ms, TBT 78 ms. **CSS +4,152 B**: three new band compositions, the board units and the bamboo tiles.
+- Typecheck, lint (the one standing warning), contrast (66 pairings, lowest 4.52:1), 1,085 unit tests and the build pass. Full e2e at seven projects on the dev server: **1,122 passed, 0 failed** (2,462 skipped by design).
+- Looked at: the final capture at nine widths in both themes. `npx impeccable detect` at desktop and 390x844 reports only the two standing exceptions (the tags' back faces, the Diary page's taped entries). Hallmark's sloplint on the 35 changed files reports the standing gates (48, 7a, 20, 64, 67) and nothing this round needs to fix; `@keyframes ask-unfold` animates height on purpose, once, for 200ms.
+
+**Left as they are, on purpose.** The Diary's contents rows are 28px with a mouse alone (44px below 1024 and on touch: at 44px everywhere the contents page is 300px taller than every other spread page). The reduced-motion track on a phone keeps the tallest page's height. The cats rest where they rest on touch. The oak's trunk at night is a silhouette. The card is still shorter than the postcard from 1280. The system's radius, shadow and spacing tokens exist but existing values were not swept onto them; 17 ad hoc text sizes remain, all 12px or more.
+
+**Not covered.** Real devices, Safari and Firefox (the hero's strings use `tan(atan2())` and subgrid), e2e against a production build, the live-model Ask, a real send.
