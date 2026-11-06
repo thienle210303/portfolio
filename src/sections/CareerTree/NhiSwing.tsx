@@ -34,10 +34,12 @@ import type { JourneyCopy, NhiMood } from "@/types/portfolio";
  *    startles her: the second is old news.
  * Under reduced motion she shows the end pose and the line, and nothing moves.
  *
- * From 1280 the ropes are tied round the oak's left limb (board x 212 and
- * 264, where the limb is at y 542 and 564), between the lantern and the
- * trunk; below 1280 she hangs from a bough of her own under the last tag
- * (globals.css, "Bé Nhi's swing").
+ * From 1280 the ropes are tied round the oak's left limb, between the lantern
+ * and the trunk, in board units so she stays there at every board width
+ * (round 25); from 640 hers is the last bough on the right, beside the fifth
+ * tag; on a phone she hangs from a bough of her own under the last tag
+ * (globals.css, "Bé Nhi's swing"). She is the same size everywhere: only
+ * where she hangs changes.
  */
 
 const SCALE = 2;

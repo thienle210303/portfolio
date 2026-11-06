@@ -1083,7 +1083,7 @@ function twigs(x, y, ang, len, w, depth, r, out) {
     const n = r() > 0.4 ? 2 : 3;
     for (let i = 0; i < n; i++) twigs(ex, ey, ang + (r() - 0.5) * 1.3, len * (0.6 + r() * 0.15), w * 0.62, depth - 1, r, out);
   } else {
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < (out.per ?? 7); i++) {
       const lx = ex + (r() - 0.5) * 16, ly = ey + (r() - 0.5) * 12;
       out.leaves += `<ellipse cx="${f(lx)}" cy="${f(ly)}" rx="4.2" ry="1.9" transform="rotate(${f(r() * 180)} ${f(lx)} ${f(ly)})"/>`;
     }
@@ -1101,7 +1101,7 @@ function moss(x, y, len, r) {
 }
 /** The board's `oak()` with its three layers apart: the same draws in the same order. */
 function oakLayers(limbs, seed, cfg, color) {
-  const r = rng(seed), out = { lines: "", leaves: "" };
+  const r = rng(seed), out = { lines: "", leaves: "", per: cfg.per };
   let body = "", mossS = "";
   for (const L of limbs) {
     body += taper(L.p, L.w0, L.w1, color);
@@ -1110,7 +1110,7 @@ function oakLayers(limbs, seed, cfg, color) {
       const t = 0.25 + (0.75 * (i + r() * 0.6)) / (L.twigs ?? 7);
       const [x, y] = cubic(L.p, Math.min(t, 1)), [dx, dy] = cubicD(L.p, Math.min(t, 1));
       const base = Math.atan2(dy, dx);
-      const side = r() > 0.3 ? -1 : 1; // mostly upward
+      const side = L.up ? 1 : r() > 0.3 ? -1 : 1; // mostly upward (`up`: every one, on a limb that runs left)
       const ang = base + side * (0.5 + r() * 0.7);
       const w = (L.w0 + (L.w1 - L.w0) * t) * 0.35;
       twigs(x, y, ang, cfg.twig * (0.7 + r() * 0.5), Math.max(w, 1.4), 2, r, out);
@@ -1146,10 +1146,12 @@ const OAK_LIMBS = [
 // the top) and still meet its roots, a file of their own masked at the
 // stage's foot. Each tag hangs from a bough of its own, stretched from the
 // trunk to the tag's string (`preserveAspectRatio="none"`): its tip is at
-// (2, 11), where the string ties on.
+// (2, 11), where the string ties on. The straight run laps 8 units over the
+// leaning one (round 25): butted end to end, the two showed a hairline across
+// the trunk where they met.
 const NARROW_TRUNK_TOP = f(46.5 * (900 / 1440));
 const OAK_TRUNK = [
-  { p: [[120, 2400], [120, 1800], [120, 1200], [120, 640]], w0: 34, w1: 34, twigs: 9, moss: 5 },
+  { p: [[120, 2400], [120, 1800], [120, 1200], [120, 632]], w0: 34, w1: 34, twigs: 9, moss: 5 },
   { p: [[120, 640], [120, 420], [100, 265], [120, 0]], w0: 34, w1: NARROW_TRUNK_TOP, twigs: 4, moss: 2 },
 ];
 const OAK_ROOTS = [
@@ -1159,10 +1161,45 @@ const OAK_ROOTS = [
   { p: [[104, 118], [92, 138], [74, 148], [52, 153]], w0: 13, w1: 2, twigs: 0 },
   { p: [[138, 120], [150, 140], [170, 149], [190, 154]], w0: 13, w1: 2, twigs: 0 },
 ];
+// Round 25: from 640 to 1279 the title stands top-left beside the crown and the
+// boughs leave the trunk in pairs, so that band has a crown of its own. It is
+// the board's oak (same trunk, same long limb, same fork at x 307) without
+// the limb that climbed up and left, where the title is now: an upright limb
+// stands in for it, and the lantern's limb leaves the trunk lower and stops
+// short of the box's left edge, so no sprig is cut by it. Its box runs to
+// board y 680; the trunk below still joins at y 640 (x 307), as it does under
+// the board's crown. Five leaves a sprig, not seven: it is drawn at two
+// thirds of the board's size.
+const CROWN_LANTERN_LIMB = { p: [[302, 622], [236, 584], [158, 566], [84, 532]], w0: 24, w1: 5, twigs: 5, moss: 2, up: true };
+const OAK_CROWN = [
+  OAK_LIMBS[0],
+  CROWN_LANTERN_LIMB,
+  { p: [[304, 566], [298, 480], [326, 376], [366, 250]], w0: 24, w1: 5, moss: 1 },
+  { p: [[312, 562], [356, 468], [420, 396], [486, 316]], w0: 22, w1: 5 },
+  OAK_LIMBS[4],
+  { ...OAK_LIMBS[5], twigs: 5 },
+  OAK_LIMBS[6],
+  { ...OAK_LIMBS[7], twigs: 3 },
+  OAK_LIMBS[8],
+];
 const OAK_BOUGH = [{ p: [[200, 30], [140, 8], [60, 2], [2, 11]], w0: 13, w1: 2, twigs: 4 }];
 const stretched = (viewBox, body) => svg(viewBox, body).replace("<svg ", '<svg preserveAspectRatio="none" ');
 const yAt = (L, x) => { let lo = 0, hi = 1; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (cubic(L.p, m)[0] < x) lo = m; else hi = m; } return cubic(L.p, lo)[1]; };
 const TAG_XS = [520, 720, 920, 1120, 1320], TAG_DROPS = [8, 40, 96, 52, 84];
+
+const CROWN_SEED = 73, CROWN_BOX = "0 120 1440 560";
+
+/**
+ * The 640 to 1279 crown, for the page and the tests: its box, the trunk's foot
+ * (where the trunk below joins it, as under the board's crown), and where the
+ * lantern's string leaves its limb, at the board's x 152.
+ */
+export function crownSpots() {
+  const limb = CROWN_LANTERN_LIMB.p;
+  let lo = 0, hi = 1;
+  for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (cubic(limb, m)[0] > 152) lo = m; else hi = m; }
+  return { box: [0, 120, 1440, 560], foot: [307, 640], lantern: [152, f(cubic(limb, lo)[1])] };
+}
 
 /** Where the board hangs each tag: `ly` is the limb's y above the tag's x, `top` the tag's top. */
 export function journeySpots() {
@@ -1199,11 +1236,15 @@ function journeyFiles() {
   const trunk = oakLayers(OAK_TRUNK, 13, { twig: 30 }, K);
   const roots = oakLayers(OAK_ROOTS, 17, { twig: 0 }, K);
   const bough = oakLayers(OAK_BOUGH, 23, { twig: 15 }, K);
+  const crown = oakLayers(OAK_CROWN, CROWN_SEED, { twig: 46, per: 5 }, K);
   const OAK_BOX = "0 120 1440 780", TRUNK_BOX = "0 0 240 2400", BOUGH_BOX = "0 -30 200 70", LANTERN_BOX = "104 510 96 122", STILL_BOX = "1196 780 92 90";
   return {
     oak: svg(OAK_BOX, oak.bark),
     "oak-leaves": svg(OAK_BOX, oak.leaves),
     "oak-moss": svg(OAK_BOX, oak.moss),
+    "oak-crown": svg(CROWN_BOX, crown.bark),
+    "oak-crown-leaves": svg(CROWN_BOX, crown.leaves),
+    "oak-crown-moss": svg(CROWN_BOX, crown.moss),
     "oak-trunk": svg(TRUNK_BOX, trunk.bark),
     "oak-trunk-leaves": svg(TRUNK_BOX, trunk.leaves),
     "oak-trunk-moss": svg(TRUNK_BOX, trunk.moss),
