@@ -55,6 +55,15 @@
   --color-lantern-muted: #5a5f55;
   --color-lantern-rule: #d3ccb9;
 
+  /* Round 27: the oak's tags are manila, from pale manila to kraft, mixed
+     per tag (`[data-manila]`). Paper in both themes, so its inks are its own:
+     ink, a darker muted and a darker moss, measured on the kraft end, the
+     darker one (docs/contrast.md). */
+  --color-manila: #f1e6c9;
+  --color-kraft: #e2cfa3;
+  --color-kraft-muted: #4a4f45;
+  --color-kraft-moss: #3a5230;
+
   /* The scenery's own colours (never text, so not in docs/contrast.md). Gold
      is the field tag's star, not the flag's yellow. */
   --color-twine: #8b7b5e;
@@ -746,9 +755,6 @@
     --cut: 30px;
     clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%, 0 var(--cut));
   }
-  [data-hanging-tags] .tag-cut {
-    --cut: 36px;
-  }
 
   /* The hero's yard (round 25). One grid (`.hero-yard`, Hero.tsx) holds my
      words, the hint, the four chapter tags and my field tag, in that order in
@@ -1044,20 +1050,76 @@
   /* ---------------------------------------------------------------------- */
 
   /* The strings the tags hang by (HangingTags.tsx), each behind its paper so
-     it seems to run into the hole, 18px down the tag. The paper turns about
-     that hole; below 1280 it turns half as far, so no corner swings into the
-     trunk beside it. */
-  [data-hanging-tags] > ul > li::after {
+     it seems to run into its eyelet, 18px down the tag. Round 27: one string
+     or two (`data-strings`), at `--e1` and `--e2` of the tag's width; a tag
+     with one has both at the same place. The paper turns about its eyelets'
+     line; below 1280 it turns half as far, so no corner swings into the trunk
+     beside it. */
+  [data-hanging-tags] > ul > li::after,
+  [data-hanging-tags] > ul > li[data-strings="2"]::before {
     content: "";
     position: absolute;
     z-index: -1;
     pointer-events: none;
-    left: calc(50% - 0.65px);
+    left: calc(var(--e1) - 0.65px);
     width: 1.3px;
     background: var(--twine);
   }
+  [data-hanging-tags] > ul > li[data-strings="2"]::before {
+    left: calc(var(--e2) - 0.65px);
+  }
   [data-hanging-tags] > ul > li > div {
     rotate: var(--tilt);
+    transform-origin: 50% 18px;
+  }
+
+  /* Round 27: the oak's tags are manila (option A, Thien), from pale manila
+     to kraft per tag (`--kraft`), with a brass eyelet where each string ties
+     on and softer shoulders, shallower with two eyelets. The paper is light
+     in both themes, so its inks are its own (docs/contrast.md, "manila"). */
+  [data-manila] {
+    --fg: var(--color-ink);
+    --fg-muted: var(--color-kraft-muted);
+    --accent: var(--color-kraft-moss);
+    --rule-color: color-mix(in srgb, var(--color-kraft-muted) 45%, transparent);
+    --cut: 26px;
+    position: relative;
+    display: block;
+    padding: 2.5rem 1rem 1.25rem;
+    background: color-mix(in srgb, var(--color-kraft) var(--kraft, 50%), var(--color-manila));
+    color: var(--fg);
+    clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%, 0 var(--cut));
+  }
+  [data-manila][data-eyes="2"] {
+    --cut: 12px;
+  }
+  [data-manila][data-stub] {
+    clip-path: none;
+    padding: 0.875rem 1rem 1.5rem;
+  }
+  [data-eyelet] {
+    position: absolute;
+    top: 11.5px;
+    width: 13px;
+    height: 13px;
+    translate: -50% 0;
+    border-radius: 50%;
+    background: var(--hole);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--twine) 55%, var(--color-manila)),
+      0 0 0 4.5px color-mix(in srgb, var(--twine) 85%, black);
+  }
+  /* A year, as a small date stamp in the tag's ink, turned a little. */
+  [data-date] {
+    display: inline-block;
+    padding: 3px 5px 2px;
+    border: 1.5px solid currentColor;
+    border-radius: 3px;
+    color: var(--fg-muted);
+    font: 700 var(--step--2) / 1 var(--font-mono);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    rotate: var(--turn, -3deg);
   }
   @media (width < 80rem) {
     [data-hanging-tags] > ul > li > div {
@@ -1065,7 +1127,8 @@
     }
   }
   @media print {
-    [data-hanging-tags] > ul > li::after {
+    [data-hanging-tags] > ul > li::after,
+    [data-hanging-tags] > ul > li::before {
       display: none;
     }
   }
@@ -1111,8 +1174,7 @@
       container-type: inline-size;
       --u: calc(min(100cqw, 1680px) / 1440);
       --fx: calc(50cqw - 720 * var(--u));
-      /* Round 26: 360 units above the frame are the new growth's sky. */
-      --by: max(360 * var(--u), 15.5rem - 250 * var(--u));
+      --by: max(0px, 15.5rem - 250 * var(--u));
     }
     [data-journey-stage] {
       min-height: calc(var(--by) + 900 * var(--u) - var(--section-y));
@@ -1148,11 +1210,16 @@
       left: calc(var(--fx) + var(--x) * var(--u));
       top: calc(var(--by) + var(--y) * var(--u));
       width: calc(var(--w) * var(--u));
-      --string: calc(var(--drop) * var(--u) + 18px);
+      --s1: calc(var(--d1) * var(--u) + 18px);
+      --s2: calc(var(--d2) * var(--u) + 18px);
     }
     [data-hanging-tags] > ul > li::after {
-      top: calc(18px - var(--string));
-      height: var(--string);
+      top: calc(18px - var(--s1));
+      height: var(--s1);
+    }
+    [data-hanging-tags] > ul > li::before {
+      top: calc(18px - var(--s2));
+      height: var(--s2);
     }
     [data-journey-vignette] {
       position: absolute;
@@ -1204,7 +1271,8 @@
       top: -61px;
       height: 63px;
     }
-    [data-hanging-tags] > ul > li::after {
+    [data-hanging-tags] > ul > li::after,
+    [data-hanging-tags] > ul > li::before {
       top: -24px;
       height: 42px;
     }
@@ -1265,7 +1333,7 @@
       margin-right: 4.5rem;
     }
     [data-hanging-tags] > ul > li [data-bough] {
-      left: 50%;
+      left: var(--e1);
       right: calc(var(--trunk-x) - 4.5rem);
     }
   }
@@ -1357,12 +1425,12 @@
       justify-self: end;
     }
     [data-hanging-tags] > ul > li:nth-child(odd) [data-bough] {
-      left: 50%;
+      left: var(--e1);
       right: calc(-1 * var(--trunk-side));
     }
     [data-hanging-tags] > ul > li:nth-child(even) [data-bough] {
       left: calc(-1 * var(--trunk-side));
-      right: 50%;
+      right: calc(100% - var(--e2));
       transform: scaleX(-1);
     }
     [data-journey-vignette] {
@@ -1374,187 +1442,98 @@
   }
 
   /* ---------------------------------------------------------------------- */
-  /* Journey: new growth (round 26, NowShoot.tsx)                            */
+  /* Journey: the nursery (round 27, NowNursery.tsx)                         */
   /*                                                                        */
-  /* What I am doing now. From 1280 a young shoot (`oak-shoot`) grows on     */
-  /* from a limb's tip up into 360 board units of sky above the frame (the   */
-  /* frame's `--by` makes the room), and each item is a small tag of its own */
-  /* on a string from it, placed in board units like the highlights. Below   */
-  /* 1280 the four share one tag, hung from a green bough at the top of the  */
-  /* trunk like a highlight tag, before the DoorDash ticket. Its tags carry  */
-  /* no figure: nothing on them is measured yet, and the caption says so.    */
+  /* What I am doing now: four seedlings in a nursery crate at the oak's    */
+  /* foot, a marker on a stick beside each. One box, 480×210 in its own     */
+  /* units, and its markers placed in percentages of it (`--mx` the stick's */
+  /* x, `--my` its top from the box's foot), so it is the same at every     */
+  /* width: on the board from 1280 in board units between the rice and the  */
+  /* still life, under the tree below that. A marker stands on its stick    */
+  /* and grows upward from it.                                              */
   /* ---------------------------------------------------------------------- */
-  [data-now] ul {
+  [data-nursery] {
+    position: relative;
+    container-type: inline-size;
+    aspect-ratio: 480 / 210;
+    width: min(100%, 26rem);
+    margin-top: 2.5rem;
+    margin-left: auto;
+  }
+  [data-nursery] li {
+    position: absolute;
+    left: var(--mx);
+    bottom: var(--my);
+    width: clamp(5rem, 21cqw, 6.25rem);
+    translate: -50% 0;
+  }
+  [data-marker] {
     display: grid;
+    justify-items: start;
+    gap: 0.125rem;
+    padding: 0.4rem 0.35rem 0.45rem;
+    clip-path: none;
+    border-radius: var(--radius-paper);
+    box-shadow: var(--shadow-pinned);
+    rotate: var(--tilt);
+    transform-origin: 50% 100%;
   }
-  [data-now-title] {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    column-gap: 0.5rem;
+  [data-marker] [data-date] {
+    color: var(--accent);
+    font-size: 0.625rem;
+    padding: 2px 4px 1px;
+    margin-bottom: 0.2rem;
   }
-  /* 44px to press; its ring (2px + 3px offset) stays 5px clear of the
-     paper's edge, which the paper's clip would otherwise cut. */
-  [data-now-link] {
+  /* On the narrowest phones a long name breaks with a hyphen, never cut. */
+  [data-marker-name] {
+    hyphens: manual;
+    max-width: 100%;
+    font-weight: 600;
+    font-size: clamp(0.6875rem, 2.9cqw, 0.8125rem);
+    line-height: 1.2;
+  }
+  [data-marker-line] {
+    font-size: clamp(0.6875rem, 2.6cqw, 0.75rem);
+    line-height: 1.3;
+    color: var(--fg-muted);
+  }
+  /* 44px to press; its ring stays clear inside the marker. */
+  [data-marker-link] {
     display: inline-flex;
     align-items: center;
-    width: fit-content;
     min-height: 44px;
-    margin-block: -10px -4px;
+    margin-block: -14px -12px;
+    color: var(--accent);
+    font: 400 0.6875rem / 1 var(--font-mono);
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
-  /* Each item is paper (`data-paper`), so its ink is the paper's. */
-  [data-now-tag] {
-    color: var(--fg);
-  }
-  [data-now-hole] {
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 30px;
-    pointer-events: none;
-  }
-  @media (width < 80rem) {
-    [data-now] {
-      position: relative;
+  /* The narrowest phones: the crate takes the gutters too, so four markers
+     still stand apart. */
+  @media (width < 24rem) {
+    [data-nursery] {
+      width: calc(100% + 2 * var(--gutter));
+      margin-left: calc(-1 * var(--gutter));
+      margin-right: 0;
     }
-    [data-shoot],
-    [data-now] li [data-now-hole] {
-      display: none;
-    }
-    /* One tag: a highlight tag's paper, its hole and its string. */
-    [data-now-paper] {
-      position: relative;
-      padding: 3rem 18px 1.25rem;
-      background: var(--surface);
-      color: var(--fg);
-      clip-path: polygon(36px 0, calc(100% - 36px) 0, 100% 36px, 100% 100%, 0 100%, 0 36px);
-      rotate: -0.5deg;
-      transform-origin: 50% 18px;
-    }
-    [data-now]::after {
-      content: "";
-      position: absolute;
-      z-index: -1;
-      pointer-events: none;
-      left: calc(50% - 0.65px);
-      width: 1.3px;
-      top: -24px;
-      height: 42px;
-      background: var(--twine);
-    }
-    [data-now-bough] {
-      position: absolute;
-      top: -61px;
-      height: 63px;
-      left: 50%;
-    }
-    [data-now] ul {
-      margin-top: 0.875rem;
-      row-gap: 0.75rem;
-    }
-    [data-now] li + li > [data-now-tag] {
-      padding-top: 0.75rem;
-      border-top: 1.5px dashed var(--rule-color);
-    }
-  }
-  /* Below 1280 the caption is on the one tag's paper, so at night it takes
-     the paper's ink (from 1280 it is on the sky). Each item is paper itself
-     (`data-paper`), so its ink follows the site's paper rule at every width. */
-  @media (width < 80rem) {
-    :root[data-theme="night"] [data-now-head] {
-      --fg-muted: var(--color-lantern-muted);
-    }
-  }
-  @media (width < 80rem) and (prefers-color-scheme: dark) {
-    :root:not([data-theme="day"]) [data-now-head] {
-      --fg-muted: var(--color-lantern-muted);
-    }
-  }
-  @media (width < 40rem) {
-    [data-now] {
-      width: min(100% - 4.5rem, 20rem);
-      margin-left: auto;
-      margin-right: 4.5rem;
-      margin-top: 26px;
-    }
-    [data-now-bough] {
-      right: calc(var(--trunk-x) - 4.5rem);
-    }
-    [data-hanging-tags] > [data-now] + ul {
-      padding-top: 2.5rem;
+    [data-nursery] li {
+      width: 4.5rem;
     }
   }
   @media (40rem <= width < 80rem) {
-    [data-now] {
-      grid-column: 1;
-      grid-row: 1;
-      justify-self: end;
-      width: min(100%, 21.25rem);
-    }
-    [data-now-bough] {
-      right: calc(-1 * var(--trunk-side));
+    /* Under the tree, right of the still life (which stands bottom-left). */
+    [data-nursery] {
+      margin-top: 1.5rem;
+      margin-right: 0;
     }
   }
   @media (width >= 80rem) {
-    [data-now-bough],
-    [data-now-paper] > [data-now-hole] {
-      display: none;
-    }
-    [data-shoot] {
+    #tree [data-nursery] {
       position: absolute;
-      left: calc(var(--fx) + 740 * var(--u));
-      top: calc(var(--by) - 360 * var(--u));
-      width: calc(700 * var(--u));
-      height: calc(620 * var(--u));
-    }
-    /* The caption beside the shoot's foot, right-aligned to its stem, clear
-       of my words above it and the crown's sprigs below. */
-    [data-now-head] {
-      position: absolute;
-      left: calc(var(--fx) + 400 * var(--u));
-      width: calc(340 * var(--u));
-      top: calc(var(--by) + 40 * var(--u));
-      text-align: right;
-      line-height: 1.35;
-    }
-    [data-now] li {
-      position: absolute;
-      left: calc(var(--fx) + var(--x) * var(--u));
-      top: calc(var(--by) + var(--y) * var(--u));
-      width: calc(var(--w) * var(--u));
-      --string: calc(var(--drop) * var(--u) + 18px);
-    }
-    [data-now] li::after {
-      content: "";
-      position: absolute;
-      z-index: -1;
-      pointer-events: none;
-      left: calc(50% - 0.65px);
-      width: 1.3px;
-      top: calc(18px - var(--string));
-      height: var(--string);
-      background: var(--twine);
-    }
-    [data-now-tag] {
-      position: relative;
-      display: grid;
-      gap: 0.25rem;
-      padding: 2.375rem 0.75rem 0.875rem;
-      background: var(--surface);
-      color: var(--fg);
-      clip-path: polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%, 0 24px);
-      rotate: var(--tilt);
-      transform-origin: 50% 18px;
-    }
-    [data-now-title] {
-      flex-direction: column-reverse;
-      align-items: start;
-    }
-  }
-  @media print {
-    [data-now]::after,
-    [data-now] li::after {
-      display: none;
+      left: calc(var(--fx) + 680 * var(--u));
+      top: calc(var(--by) + 690 * var(--u));
+      width: calc(480 * var(--u));
+      margin: 0;
     }
   }
 
@@ -2517,27 +2496,18 @@
     #tree[data-growing] [data-grow-late] {
       animation: grow-in 1s var(--ease-ink) calc(var(--grow-ms, 0ms) - 2.2s) both;
     }
-    /* Round 26: the new growth is the show's last beat, "the shoot" (its
-       weather is the saucer). Until then it is out of sight; then its shoot
-       rises and its paper drops like a tag's. Nothing fades, so no text is
-       ever half-transparent, and no cloud of an earlier beat is behind it. */
-    #tree[data-growing]:not([data-weather="ufo"]) [data-now] {
+    /* Round 27: the nursery is the show's last beat, "the shoot" (its
+       weather is the saucer). Until then it is out of sight; then the
+       seedlings come up out of the crate and the markers drop onto their
+       sticks. Nothing fades, so no text is ever half-transparent. */
+    #tree[data-growing]:not([data-weather="ufo"]) [data-nursery] {
       visibility: hidden;
     }
-    #tree[data-growing][data-weather="ufo"] [data-shoot] {
-      animation: oak-rise 0.8s var(--ease-ink) both;
+    #tree[data-growing][data-weather="ufo"] [data-nursery] [data-scenery="nursery-sprouts"] {
+      animation: oak-rise 0.9s var(--ease-ink) both;
     }
-    /* One paper below 1280; from 1280 each tag (the paper there is only a
-       wrapper, and a transform on it would move every tag it holds). */
-    @media (width < 80rem) {
-      #tree[data-growing][data-weather="ufo"] [data-now-paper] {
-        animation: tag-drop 0.9s var(--ease-ink) 0.4s both;
-      }
-    }
-    @media (width >= 80rem) {
-      #tree[data-growing][data-weather="ufo"] [data-now-tag] {
-        animation: tag-drop 0.9s var(--ease-ink) 0.4s both;
-      }
+    #tree[data-growing][data-weather="ufo"] [data-marker] {
+      animation: tag-drop 0.9s var(--ease-ink) 0.4s both;
     }
     #tree[data-growing] [data-hanging-tags] > ul > li:not([data-grown]) {
       visibility: hidden;

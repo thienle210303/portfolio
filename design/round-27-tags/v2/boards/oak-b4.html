@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440" />
+    <title>Journey: manila tags, new growth as pots on a bamboo bench</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 27 (Thien, 2026-11-07): option A for every tag on the oak, the
+       * year as a small date stamp, one string or two at random, and nothing
+       * repeated exactly (width, tilt, string, paper, where the year sits).
+       * The variation is authored per tag, not random at runtime, so the page
+       * is the same for every visitor and on every load.
+       *
+       * The oak is drawn here as plain strokes for position only; the real
+       * drawing is unchanged.
+       */
+      body {
+        overflow-x: auto;
+      }
+      .stage {
+        position: relative;
+        width: 1440px;
+        height: 1030px;
+        margin: 0 auto;
+      }
+      .head {
+        position: absolute;
+        left: 160px;
+        top: 70px;
+        display: grid;
+        gap: 14px;
+        max-width: 620px;
+      }
+      svg.oak {
+        position: absolute;
+        inset: 0;
+        width: 1440px;
+        height: 1120px;
+        overflow: visible;
+      }
+      .bark {
+        fill: none;
+        stroke: var(--scene-bark);
+        stroke-linecap: round;
+      }
+      .shoot {
+        fill: none;
+        stroke: var(--scene-moss);
+        stroke-linecap: round;
+      }
+      .leaf {
+        fill: var(--scene-moss);
+      }
+      .twine {
+        stroke: var(--twine);
+        stroke-width: 1.3;
+      }
+
+      /* ---- Tag A: manila, a brass eyelet, softer shoulders ---- */
+      .t {
+        position: absolute;
+        /* Proposed tokens: --color-manila (#EADCB6) and --color-kraft (#DDC79A), aliased as --manila; checked by pnpm contrast. */
+        --paper: color-mix(in srgb, #ddc79a var(--kraft, 50%), #f1e6c9);
+        background: var(--paper);
+        color: var(--fg);
+        padding: 34px 14px 16px;
+        clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%, 0 var(--cut));
+        rotate: var(--tilt, 0deg);
+        transform-origin: 50% 14px;
+        --cut: 26px;
+      }
+      .t.two {
+        --cut: 12px;
+        transform-origin: 50% 0;
+      }
+      .eye {
+        position: absolute;
+        top: 9px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--hole, var(--ground));
+        box-shadow:
+          0 0 0 3px color-mix(in srgb, var(--twine) 70%, var(--surface)),
+          0 0 0 4px color-mix(in srgb, var(--twine) 90%, black 10%);
+        translate: -50% 0;
+      }
+      .fig {
+        font: 700 var(--step-4) / 1 var(--font-display);
+        letter-spacing: var(--tracking-display);
+      }
+      .fig.s {
+        font-size: var(--step-3);
+      }
+      .nm {
+        font-weight: 600;
+        font-size: var(--step--1);
+      }
+      .ln {
+        font-size: var(--step--1);
+        line-height: 1.4;
+        color: var(--fg-muted);
+      }
+      .ms {
+        font: 400 var(--step--2) / 1.4 var(--font-mono);
+        color: var(--accent);
+      }
+      /* The year: a date stamp in the tags' ink, never --mark. */
+      .date {
+        display: inline-block;
+        font: 700 11px / 1 var(--font-mono);
+        letter-spacing: 0.08em;
+        color: var(--fg-muted);
+        border: 1.5px solid currentColor;
+        border-radius: 3px;
+        padding: 3px 5px 2px;
+        rotate: var(--dr, -4deg);
+        white-space: nowrap;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .perf {
+        margin: 14px -14px 0;
+        border-top: 1.5px dashed color-mix(in srgb, var(--twine) 55%, transparent);
+        padding: 12px 14px 0;
+      }
+
+      /* ---- New growth, tighter: small tags, no figure, status as a stamp ---- */
+      .bud {
+        position: absolute;
+        width: 128px;
+        --kraft: 10%;
+        padding: 30px 11px 12px;
+        --cut: 18px;
+      }
+      .bud.two {
+        --cut: 9px;
+      }
+      .bud .nm {
+        font-size: var(--step--1);
+        margin-top: 6px;
+      }
+      .bud .ln {
+        font-size: 13px;
+        margin-top: 3px;
+      }
+      .bud .date {
+        font-size: 10px;
+        color: var(--accent);
+      }
+      .caption {
+        position: absolute;
+        font-family: var(--font-serif);
+        font-style: italic;
+        color: var(--fg-muted);
+        font-size: var(--step-0);
+        white-space: nowrap;
+      }
+      .caption b {
+        font: 700 var(--step--2) / 1 var(--font-mono);
+        letter-spacing: var(--tracking-caps);
+        font-style: normal;
+        text-transform: uppercase;
+        margin-right: 8px;
+      }
+      .shift { position: absolute; inset: -180px 0 0 0; }
+      .shift .foot { position: absolute; left: 680px; top: 930px; }
+
+      .foot { position: relative; }
+      .foot svg { position: absolute; inset: 0; overflow: visible; }
+      .wood { fill: color-mix(in srgb, var(--scene-bark) 55%, #b88a55); }
+      .grain { stroke: color-mix(in srgb, var(--scene-bark) 80%, transparent); stroke-width: 1.2; }
+      .bamboo { fill: color-mix(in srgb, #c9b27a 85%, var(--scene-bark)); }
+      .node { stroke: color-mix(in srgb, var(--scene-bark) 40%, #c9b27a); stroke-width: 1; }
+      .pot { fill: #b4643f; }
+      .rim { fill: #9c5233; }
+      .stick { fill: color-mix(in srgb, #a88a5c 80%, var(--scene-bark)); }
+      .sprout { stroke: var(--scene-moss); fill: none; }
+      .sprout-leaf { fill: var(--scene-moss); }
+      .ground { stroke: color-mix(in srgb, var(--scene-bark) 50%, transparent); stroke-width: 2; }
+      .mk {
+        position: absolute;
+        background: color-mix(in srgb, #ddc79a 20%, #f1e6c9);
+        color: var(--fg);
+        padding: 7px 8px 7px;
+        border-radius: 2px;
+        rotate: var(--tilt);
+        box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.25);
+      }
+      .mk .nm { margin-top: 5px; font-size: 13px; line-height: 1.2; }
+      .mk .ln { margin-top: 1px; line-height: 1.3; }
+      .mk .date { font-size: 10px; color: var(--accent); }
+      .note {
+        width: 1120px;
+        margin: 0 auto 60px;
+      }
+      .note li {
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="head">
+        <h2 class="chapter">The work, as it grew.</h2>
+        <p class="aside">Planted in 2018 and still growing. Each tag holds a number I measured.</p>
+        <div><span class="btn">Watch it grow</span></div>
+      </div>
+
+      <div class="shift"><svg class="oak" viewBox="0 0 1440 1120" aria-hidden="true"><g id="strings"></g>
+        <!-- The oak, for position: frame starts at y 200 (was 360 in round 26). -->
+        <path class="bark" stroke-width="60" d="M300 1196 C 280 1040, 322 880, 305 780" />
+        <path id="limb" class="bark" stroke-width="22" d="M312 798 C 460 690, 700 582, 1000 554" />
+        <path id="limb-end" class="bark" stroke-width="7" d="M985 555 C 1120 540, 1260 522, 1450 518" />
+        <path class="bark" stroke-width="16" d="M300 804 C 230 760, 140 742, 40 694" />
+        <path class="bark" stroke-width="12" d="M300 786 C 280 682, 222 602, 168 520" />
+        <path class="bark" stroke-width="7" d="M620 640 C 650 570, 700 512, 762 456" />
+      </svg>
+
+      <!-- Highlights: manila tags, one string or two, nothing repeated exactly -->
+      <div class="t two" style="left: 440px; top: 742px; width: 212px; --tilt: -1.5deg; --kraft: 80%">
+        <span class="eye" style="left: 12%"></span><span class="eye" style="left: 52%"></span>
+        <div class="row"><span class="nm">DoorDash</span><span class="date">2025</span></div>
+        <p class="fig" style="margin-top: 8px">17h → 3m</p>
+        <p class="ms" style="margin-top: 6px">3.9% → 0% error</p>
+        <p class="ln" style="margin-top: 4px">Scraper, rebuilt</p>
+        <div class="perf">
+          <div class="row"><p class="fig s">2 → 25</p><span class="date" style="--dr: 3deg">2026</span></div>
+          <p class="ms" style="margin-top: 6px">onboarded merchants/month</p>
+          <p class="ln" style="margin-top: 4px">Agent workflow</p>
+        </div>
+      </div>
+      <div class="t" style="left: 640px; top: 644px; width: 162px; --tilt: 2.5deg; --kraft: 25%">
+        <span class="eye" style="left: 50%"></span>
+        <p class="fig">99.9%</p>
+        <p class="nm" style="margin-top: 10px">Wordification</p>
+        <p class="ln" style="margin-top: 4px">Speech QA accuracy</p>
+        <span class="date" style="--dr: -6deg; margin-top: 10px">2024</span>
+      </div>
+      <div class="t two" style="left: 836px; top: 620px; width: 168px; --tilt: -0.5deg; --kraft: 95%">
+        <span class="eye" style="left: 20%"></span><span class="eye" style="left: 80%"></span>
+        <span class="date" style="--dr: 4deg">2024</span>
+        <p class="fig" style="margin-top: 10px">96%</p>
+        <p class="nm" style="margin-top: 10px">Schaeffler</p>
+        <p class="ln" style="margin-top: 4px">Throughput, custom Java</p>
+      </div>
+      <div class="t" style="left: 1046px; top: 634px; width: 148px; --tilt: -3deg; --kraft: 55%">
+        <span class="eye" style="left: 50%"></span>
+        <div class="row"><p class="fig s">3M+</p><span class="date" style="--dr: -2deg">2022</span></div>
+        <p class="nm" style="margin-top: 10px">USC research</p>
+        <p class="ln" style="margin-top: 4px">Records, unattended</p>
+      </div>
+      <div class="t two" style="left: 1254px; top: 580px; width: 142px; --tilt: 2deg; --kraft: 15%">
+        <span class="eye" style="left: 16%"></span><span class="eye" style="left: 86%"></span>
+        <p class="fig">200+</p>
+        <div class="row" style="margin-top: 10px"><span class="nm">USC teaching</span></div>
+        <p class="ln" style="margin-top: 4px">Students helped</p>
+        <span class="date" style="--dr: 5deg; margin-top: 10px">2023</span>
+      </div>
+
+      <div class="foot b4" style="width:500px;height:270px"><svg width="500" height="270" viewBox="0 0 500 270" aria-hidden="true"><rect x="6" y="228" width="488" height="7" class="bamboo"/><path d="M6 231H494" class="node"/><rect x="21" y="235" width="6" height="33" class="bamboo"/><rect x="473" y="235" width="6" height="33" class="bamboo"/><path d="M32 172h76l-6.0 56h-64z" class="pot"/><rect x="30" y="172" width="80" height="6" class="rim"/><path d="M159 182h62l-6.0 46h-50z" class="pot"/><rect x="157" y="182" width="66" height="6" class="rim"/><path d="M285 192h50l-6.0 36h-38z" class="pot"/><rect x="283" y="192" width="54" height="6" class="rim"/><path d="M411 200h38l-6.0 28h-26z" class="pot"/><rect x="409" y="200" width="42" height="6" class="rim"/><rect x="80" y="104" width="3" height="70" class="stick"/><rect x="200" y="114" width="3" height="70" class="stick"/><rect x="320" y="142" width="3" height="52" class="stick"/><rect x="440" y="150" width="3" height="52" class="stick"/><g class="sprout"><path d="M70.0 172V126" stroke-width="1.8"/><path d="M190.0 182V146" stroke-width="1.6"/><path d="M310.0 192V166" stroke-width="1.5"/><path d="M430.0 200V184" stroke-width="1.5"/></g><g class="sprout-leaf"><ellipse cx="62.8" cy="130" rx="9.0" ry="3.78" transform="rotate(-32 62.8 130)"/><ellipse cx="77.2" cy="127" rx="9.0" ry="3.78" transform="rotate(32 77.2 127)"/><ellipse cx="62.8" cy="146" rx="9.0" ry="3.78" transform="rotate(-32 62.8 146)"/><ellipse cx="77.2" cy="143" rx="9.0" ry="3.78" transform="rotate(32 77.2 143)"/><ellipse cx="183.6" cy="150" rx="8.0" ry="3.36" transform="rotate(-32 183.6 150)"/><ellipse cx="196.4" cy="147" rx="8.0" ry="3.36" transform="rotate(32 196.4 147)"/><ellipse cx="183.6" cy="166" rx="8.0" ry="3.36" transform="rotate(-32 183.6 166)"/><ellipse cx="196.4" cy="163" rx="8.0" ry="3.36" transform="rotate(32 196.4 163)"/><ellipse cx="305.2" cy="170" rx="6.0" ry="2.52" transform="rotate(-32 305.2 170)"/><ellipse cx="314.8" cy="167" rx="6.0" ry="2.52" transform="rotate(32 314.8 167)"/><ellipse cx="426.0" cy="188" rx="5.0" ry="2.1" transform="rotate(-32 426.0 188)"/><ellipse cx="434.0" cy="185" rx="5.0" ry="2.1" transform="rotate(32 434.0 185)"/></g><path d="M0 268H500" class="ground"/></svg><div class="mk" style="left:30px;top:36px;width:104px;--tilt:-4deg"><span class="date" style="--dr:2.0deg">day job</span><p class="nm">DoorDash</p><p class="ln" style="font-size:12px">Retail data</p></div><div class="mk" style="left:150px;top:30px;width:104px;--tilt:3deg"><span class="date" style="--dr:-1.5deg">mentoring</span><p class="nm">Wordification</p><p class="ln" style="font-size:12px">Mentoring UofSC</p><u class="ms" style="display:block;margin-top:2px">site ↗</u></div><div class="mk" style="left:270px;top:74px;width:104px;--tilt:-2deg"><span class="date" style="--dr:1.0deg">building</span><p class="nm">TradeCorp</p><p class="ln" style="font-size:12px">AI trading agents</p></div><div class="mk" style="left:390px;top:82px;width:104px;--tilt:5deg"><span class="date" style="--dr:-2.5deg">learning</span><p class="nm">3D printing</p><p class="ln" style="font-size:12px">First prints</p></div></div>
+      <span class="pin" style="left: 660px; top: 940px">3</span>
+      </div>
+      <span class="pin" style="left: 450px; top: 510px">1</span>
+      <span class="pin" style="left: 650px; top: 900px">2</span>
+    </div>
+
+    <ol class="note data muted">
+      <li>Tag A on every oak tag: manila paper (two proposed tokens, --color-manila and --color-kraft, mixed per tag), a brass eyelet, softer shoulders; two-string tags have two eyelets and small corner cuts. Lines cut to a few words; the full sentences stay on the Diary's pages and in the chat.</li>
+      <li>Nothing repeats exactly: width, tilt, string length, paper tone, figure size, where the year's date stamp sits, one string or two. Authored per tag.</li>
+      <li>New growth as pots on a bamboo bench at the oak's foot, between the rice and the still life: oldest nearest the trunk, pot and plant smaller the newer it is. A marker per item: the status stamped, the name, two or three words. No caption and no date. The sky band is gone: the oak is back where it was before round 26.</li>
+    </ol>
+
+    <script>
+      // Every string runs straight up from its eyelet to the limb above it.
+      for (const t of document.querySelectorAll(".t, .mk")) t.setAttribute("data-paper", "");
+      addEventListener("load", () => {
+        const svg = document.querySelector("svg.oak"), box = svg.getBoundingClientRect(), g = document.getElementById("strings");
+        const paths = ["limb", "limb-end"].map((id) => document.getElementById(id));
+        const yAt = (x, above) => {
+          let best = null;
+          for (const p of paths) {
+            const L = p.getTotalLength();
+            for (let l = 0; l <= L; l += 1) {
+              const pt = p.getPointAtLength(l);
+              if (Math.abs(pt.x - x) < 0.8 && pt.y < above && (best === null || pt.y > best)) best = pt.y;
+            }
+          }
+          return best;
+        };
+        for (const eye of document.querySelectorAll(".eye")) {
+          const r = eye.getBoundingClientRect(), x = r.left + r.width / 2 - box.left, y = r.top + r.height / 2 - box.top;
+          const top = yAt(x, y);
+          if (top === null) continue;
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          line.setAttribute("class", "twine");
+          line.setAttribute("d", `M${x} ${top}L${x} ${y}`);
+          g.appendChild(line);
+        }
+      });
+    </script>
+  </body>
+</html>

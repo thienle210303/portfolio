@@ -238,7 +238,7 @@ test.describe("hero", () => {
         PRIMARY,
         QUIET,
         ...PLACES.map((p) => `front:${p}`),
-        "4 new shoots",
+        "4 seedlings",
         "My LinkedIn (opens in a new tab)",
       ]);
     });
@@ -954,7 +954,7 @@ test.describe("hero", () => {
         }),
     );
   // Round 26: the field tag's status links to the new growth, before the QR.
-  const TAB_ORDER = [PRIMARY, QUIET, "tag", "tag", "tag", "tag", "4 new shoots", "My LinkedIn (opens in a new tab)"];
+  const TAB_ORDER = [PRIMARY, QUIET, "tag", "tag", "tag", "tag", "4 seedlings", "My LinkedIn (opens in a new tab)"];
 
   test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
     await open(page);

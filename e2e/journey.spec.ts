@@ -164,8 +164,6 @@ const focusHeading = (page: Page) =>
   });
 
 const TAB_ORDER = [
-  // Round 26: the new growth comes first in the trunk's block; its one link.
-  "https://wordification.scholastechnology.com",
   "#journey-entry-doordash",
   "#work-dd-feasibility-agent",
   "#journey-entry-wordification",
@@ -216,9 +214,7 @@ test.describe("the Journey", () => {
     const { width, top } = await page.evaluate(() => document.getElementById("tree")!.getBoundingClientRect());
     const all = await boxes(items(page));
     all.forEach((b, i) => {
-      // Round 26: the frame starts 360 units (360px at 1440) down the section,
-      // under the new growth's sky.
-      expect(Math.abs(b.y - top - 360 - SPOTS[i].top), `tag ${i} top`).toBeLessThanOrEqual(16);
+      expect(Math.abs(b.y - top - SPOTS[i].top), `tag ${i} top`).toBeLessThanOrEqual(16);
       expect(Math.abs(b.x - ((width - 1440) / 2 + SPOTS[i].left)), `tag ${i} left`).toBeLessThanOrEqual(16);
     });
     for (let i = 0; i < all.length; i++)
@@ -277,8 +273,8 @@ test.describe("the Journey", () => {
       const board = Math.min(viewport.width, 1680);
       expect(Math.abs(g.oak!.width - board), "the board's width").toBeLessThanOrEqual(1);
       expect(Math.abs(g.oak!.x - (viewport.width - board) / 2), "the board is centred").toBeLessThanOrEqual(1);
-      // A tag narrows with the board: 176 units.
-      expect(Math.abs(g.items[1].width - 176 * unit)).toBeLessThanOrEqual(1);
+      // A tag narrows with the board: its own width in units (round 27: no two alike).
+      expect(Math.abs(g.items[1].width - SPOTS[1].width * unit)).toBeLessThanOrEqual(1);
       expect(g.scrollWidth).toBeLessThanOrEqual(viewport.width);
     });
   }
@@ -286,7 +282,7 @@ test.describe("the Journey", () => {
   test("no text is clipped inside a tag on the narrowest board, 1280", async ({ page }) => {
     await page.setViewportSize(BOARD_MIN);
     await open(page);
-    const papers = page.locator("[data-hanging-tags] .tag-cut, [data-hanging-tags] [data-stub]");
+    const papers = page.locator("[data-hanging-tags] [data-manila]");
     expect(await papers.count()).toBe(6);
     for (const paper of await papers.all()) {
       const m = await paper.evaluate((el) => {
@@ -399,7 +395,7 @@ test.describe("the Journey", () => {
   test("no tag clips its text at 320", async ({ page }) => {
     await page.setViewportSize(SMALL);
     await open(page);
-    const papers = page.locator("[data-hanging-tags] .tag-cut, [data-hanging-tags] [data-stub]");
+    const papers = page.locator("[data-hanging-tags] [data-manila]");
     expect(await papers.count()).toBe(6);
     for (const paper of await papers.all()) {
       const m = await paper.evaluate((el) => ({

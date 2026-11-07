@@ -10,15 +10,10 @@ export function nowAsOfLabel(asOf: string = now.asOf): string {
   return `${month} ${match[1]}`;
 }
 
-/** The shoot's caption: "New growth · Nov 2026". */
-export function nowHeading(): string {
-  return `${now.heading} · ${nowAsOfLabel()}`;
-}
-
 /** The field tag's link under its status, counted from the list: "4 new shoots". */
 export function nowFieldTagLink(): string {
   return now.fieldTagLink.replace("{count}", String(now.items.length));
 }
 
-/** The shoot's fragment: the field tag links here, and so does the chat. */
+/** The nursery's fragment: the field tag links here. */
 export const NOW_ID = "now";

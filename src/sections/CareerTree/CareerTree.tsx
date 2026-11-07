@@ -38,6 +38,7 @@ import { growBeats } from "@/lib/origin-story";
 import { LEGACY_SECTION_IDS } from "./anchors";
 import GrowOak from "./GrowOak";
 import HangingTags from "./HangingTags";
+import NowNursery from "./NowNursery";
 import OakScenery, { OakCrown } from "./OakScenery";
 import Weather from "./Weather";
 
@@ -101,6 +102,10 @@ export default function CareerTree() {
         </div>
         <OakCrown />
         <HangingTags />
+        {/* What I am doing now (round 27): seedlings in a nursery crate at
+            the oak's foot; on the board between the rice and the still life,
+            below 1280 under the tree. */}
+        <NowNursery />
         {/* The board's still life (1196, 780) and its caption (1186, 870);
             below 1280 it stands at the foot of the tree, on the left. */}
         <div aria-hidden="true" data-journey-vignette="" className="no-print w-fit">

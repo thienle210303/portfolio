@@ -361,7 +361,7 @@ the Diary's pages. They are in git history; do not bring a second tree back.
 - **Her act is "Hả?" (round 24, Thien: "Be Nhi character must have an act,
   Hả? and surprise like what you say? the head is slightly turn!").** Her
   `huh` mood is the double take, "what did you say?", captioned "surprised".
-  In `MiniNhi.tsx` her head (hair, face, bow, features) is a group tilted 13°
+  In `MiniNhi.tsx` her head (hair, face, star hairclip, features) is a group tilted 13°
   about her neck, the features slid 1.3 units left to turn her three-quarters
   (the far lens and eye narrower), brows up, eyes wide with shines, a small
   open "o", her right mitten cupped at her ear in place of the rope or the
@@ -378,21 +378,31 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   of the beat, when `wx-bolt` strikes, only for the first beat of a run of
   the same weather). Other moods and triggers are unchanged. The head
   must stay one group tilted by one style: split it and the hair, the face
-  and the bow come apart.
-- **New growth: what I am doing now (round 26, Thien's pick: "Oak + hero
-  line").** `now` in the content file (update `asOf` when it changes) hangs
-  on the oak as `NowShoot.tsx` (`#now`). From 1280 a young shoot
-  (`oak-shoot`, painted by `--scene-moss`) grows on from the tip of the
-  upright limb (`OAK_LIMBS[6]`, tested) into 360 board units of sky the
-  frame's `--by` makes above it, a small tag per item on strings from
-  `shootSpots()`; below 1280 the items share one tag on a green bough at the
-  top of the trunk, before the DoorDash ticket. Its tags carry no figure
-  ("Nothing measured yet."), so the highlights' rule, a number on every tag,
-  stays theirs. The field tag's status links to it ("4 new shoots", counted),
-  the chat indexes each item citing `#tree`, and "Watch it grow" brings it in
-  after the lantern. The highlights' CSS and tests are scoped to
-  `[data-hanging-tags] > ul > li`, because the new growth is a list in the
-  same block.
+  and the star clip come apart. (Her bow became a star hairclip, Thien,
+  2026-11-07.)
+- **The oak's tags are manila (round 27, Thien's option A).** Pale manila to
+  kraft per tag (`--color-manila`, `--color-kraft`, and their own inks,
+  `--color-kraft-muted` and `--color-kraft-moss`, in `[data-manila]`: the
+  paper is light in both themes, docs/contrast.md "manila"), a brass eyelet
+  where each string ties on, softer shoulders. One string or two ("mixed 1
+  strings and 2 strings"): `journeySpots()` gives each tag its width and
+  eyelets, and each string's drop is from the limb above its own eyelet. The
+  year is a small date stamp (`[data-date]`) whose place varies, and nothing
+  repeats exactly (`TAG_LOOKS`: paper, stamp, figure size), authored, never
+  random. Labels are a few words, never sentences (Thien: "extremely brief");
+  the full story is the entry's Diary page and the chat.
+- **What I am doing now: a nursery crate (round 27, Thien's B2; round 26's
+  shoot is gone).** `now` in the content file (update `asOf` when it changes)
+  is four seedlings in a crate at the oak's foot (`NowNursery.tsx`, `#now`):
+  oldest nearest the trunk, each smaller than the last, a manila marker on a
+  stick beside each with its status stamped, its name and two or three
+  words. No caption, no date, no figure. Two masks, `nursery` (--twine) and
+  `nursery-sprouts` (--scene-moss), and `NURSERY` in the script places the
+  markers. On the board between the rice and the still life; below 1280
+  under the tree. The field tag's status links to it ("4 seedlings",
+  counted), the chat indexes each item citing `#tree`, and "Watch it grow"
+  brings it in on its last beat. The highlights' CSS and tests are scoped to
+  `[data-hanging-tags] > ul > li`.
 - **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
   (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)
   are still tested but no longer rendered; `careerYearSpan`,

@@ -459,24 +459,22 @@ export interface JourneyCopy {
 }
 
 /**
- * What I am doing now (round 26): the new shoot on the Journey's oak. Its tags
- * carry no figure, because nothing on them is measured yet (`note` says so);
- * the highlight tags' rule, a number on every tag, is theirs alone. Ordered
- * from the trunk out to the shoot's tip.
+ * What I am doing now (round 27): seedlings in a nursery crate at the oak's
+ * foot, a marker each. No figure on any: nothing there is measured yet, and a
+ * seedling says so. Ordered oldest first, nearest the trunk.
  */
 export interface NowItem {
   readonly id: string;
   readonly name: string;
-  /** One or two words in the tags' mono: "building", "day job". */
+  /** One or two words, stamped on the marker: "building", "day job". */
   readonly status: string;
+  /** Two or three words, never a sentence. */
   readonly line: string;
   readonly link?: { readonly href: string; readonly label: string };
 }
 export interface NowCopy {
-  readonly heading: string;
-  /** "YYYY-MM": when the list was last true. The label is computed from it. */
+  /** "YYYY-MM": when the list was last true (the chat's source line). */
   readonly asOf: string;
-  readonly note: string;
   /** The list's accessible name. */
   readonly label: string;
   /** The field tag's link under its status, `{count}` the number of items. */
