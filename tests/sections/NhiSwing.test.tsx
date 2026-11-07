@@ -53,7 +53,7 @@ describe("Bé Nhi's drawing", () => {
     it.each(["stand", "sit"] as const)("tilts her whole head about her neck, %s", (pose) => {
       const { container } = render(<MiniNhi mood="huh" pose={pose} />);
       const { heads } = pieces(container);
-      // Hair and face (knockout and ink), the face's features, and the bow.
+      // Hair and face (knockout and ink), the face's features, and the star clip.
       expect(heads.length).toBeGreaterThanOrEqual(4);
       for (const head of heads) {
         expect(head.style.transform).toBe(`rotate(${HUH_TILT}deg)`);
@@ -61,8 +61,8 @@ describe("Bé Nhi's drawing", () => {
       }
       expect(HUH_TILT).toBeLessThanOrEqual(-12);
       expect(HUH_TILT).toBeGreaterThanOrEqual(-15);
-      // The bow rides with the head: it is inside one of the groups.
-      expect(heads.some((head) => head.querySelector('path[d^="M 20.25 4.6"]'))).toBe(true);
+      // The star clip rides with the head: it is inside one of the groups.
+      expect(heads.some((head) => head.querySelector('path[d^="M 20.64 2.17"]'))).toBe(true);
     });
 
     it("turns her features three-quarters (a slide of one to one and a half units)", () => {
