@@ -10,7 +10,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const ENTRANCES = [
   "[data-hero-step='line'] > li",
-  "[data-hanging-tags] li > div",
+  "[data-hanging-tags] > ul > li > div",
   "[data-postcard]",
 ];
 const HEADINGS = ["#hero-heading", "#tree-heading", "#record-heading", "#contact-heading"];

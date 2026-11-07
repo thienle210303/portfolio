@@ -458,5 +458,31 @@ export interface JourneyCopy {
   };
 }
 
+/**
+ * What I am doing now (round 26): the new shoot on the Journey's oak. Its tags
+ * carry no figure, because nothing on them is measured yet (`note` says so);
+ * the highlight tags' rule, a number on every tag, is theirs alone. Ordered
+ * from the trunk out to the shoot's tip.
+ */
+export interface NowItem {
+  readonly id: string;
+  readonly name: string;
+  /** One or two words in the tags' mono: "building", "day job". */
+  readonly status: string;
+  readonly line: string;
+  readonly link?: { readonly href: string; readonly label: string };
+}
+export interface NowCopy {
+  readonly heading: string;
+  /** "YYYY-MM": when the list was last true. The label is computed from it. */
+  readonly asOf: string;
+  readonly note: string;
+  /** The list's accessible name. */
+  readonly label: string;
+  /** The field tag's link under its status, `{count}` the number of items. */
+  readonly fieldTagLink: string;
+  readonly items: readonly NowItem[];
+}
+
 /** Bé Nhi's faces (`MiniNhi.tsx`), each from a photo of her. */
 export type NhiMood = "pout" | "grin" | "huh" | "sleepy" | "hug";

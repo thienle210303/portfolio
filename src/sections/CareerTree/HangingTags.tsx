@@ -5,6 +5,7 @@ import { journey } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { buildTickets, type ResolvedHighlight } from "@/lib/highlights";
 import NhiSwing from "./NhiSwing";
+import NowShoot from "./NowShoot";
 
 const TICKETS = buildTickets();
 
@@ -122,6 +123,10 @@ export default function HangingTags({ className }: { readonly className?: string
         <Drawing name="oak-trunk-leaves" className={cn(TRUNK, "text-accent")} />
         <Drawing name="oak-roots" className="absolute inset-x-0 bottom-0 aspect-[240/156] text-[color:var(--scene-bark)]" />
       </div>
+      {/* What I am doing now (round 26): from 1280 on a shoot above the board,
+          below it the first tag down the trunk. Before the highlights, so the
+          trunk runs on past it. */}
+      <NowShoot />
       <ul role="list" aria-label={journey.tagsLabel}>
         {TICKETS.map((ticket, i) => {
           const spot = TAG_SPOTS[i];

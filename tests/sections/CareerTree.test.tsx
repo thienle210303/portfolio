@@ -223,7 +223,7 @@ describe("Watch it grow", () => {
 
   it("gives every tag the year it drops in on, its ticket's first", () => {
     render(<CareerTree />);
-    const tags = [...section().querySelectorAll("[data-hanging-tags] li")];
+    const tags = [...section().querySelectorAll("[data-hanging-tags] > ul > li")];
     expect(tags.map((tag) => tag.getAttribute("data-year"))).toEqual(buildTickets().map((t) => t.halves[0].year));
   });
 
@@ -234,7 +234,7 @@ describe("Watch it grow", () => {
     expect(screen.getByRole("button", { name: journey.skip })).toBeInTheDocument();
     expect(events).toEqual(["start"]);
 
-    const tags = [...section().querySelectorAll<HTMLElement>("[data-hanging-tags] li")];
+    const tags = [...section().querySelectorAll<HTMLElement>("[data-hanging-tags] > ul > li")];
     beats.slice(0, -1).forEach((beat, i) => {
       act(() => vi.advanceTimersByTime(i === 0 ? 0 : BEAT_MS));
       expect(caption().textContent).toBe(beat.caption);

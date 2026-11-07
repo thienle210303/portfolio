@@ -8,7 +8,7 @@ import {
   projectsIndexable,
   skillsIndexable,
 } from "@/lib/answer-sources";
-import { careerEntries, companions, journey, navItems, origin } from "@/content/portfolio";
+import { careerEntries, companions, journey, navItems, now, origin } from "@/content/portfolio";
 import { LEGACY_SECTION_IDS, RECORD_LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
 
 /**
@@ -56,6 +56,8 @@ const CORPUS = new Set<string>([
   `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
   // The cats: `companions`' fields, joined the same mechanical way.
   companionsText(),
+  // Round 26: what I am doing now, each item's fields joined the same way.
+  ...now.items.map((item) => `${item.name}, ${item.status}: ${item.line}`),
 ]);
 
 /** Sections an answer may link into: every section the nav lists, which is

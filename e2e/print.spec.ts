@@ -106,7 +106,7 @@ test("the Journey prints its tags, not its oak", async ({ page }) => {
   for (const el of await scenery.all()) {
     expect(await el.evaluate((node) => getComputedStyle(node.closest(".no-print") ?? node).display)).toBe("none");
   }
-  const tags = page.locator("[data-hanging-tags] li > div > a:first-child");
+  const tags = page.locator("[data-hanging-tags] > ul > li > div > a:first-child");
   await expect(tags).toHaveCount(5);
   for (const tag of await tags.all()) await expect(tag).toBeVisible();
 });

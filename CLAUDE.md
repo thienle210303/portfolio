@@ -379,6 +379,20 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   the same weather). Other moods and triggers are unchanged. The head
   must stay one group tilted by one style: split it and the hair, the face
   and the bow come apart.
+- **New growth: what I am doing now (round 26, Thien's pick: "Oak + hero
+  line").** `now` in the content file (update `asOf` when it changes) hangs
+  on the oak as `NowShoot.tsx` (`#now`). From 1280 a young shoot
+  (`oak-shoot`, painted by `--scene-moss`) grows on from the tip of the
+  upright limb (`OAK_LIMBS[6]`, tested) into 360 board units of sky the
+  frame's `--by` makes above it, a small tag per item on strings from
+  `shootSpots()`; below 1280 the items share one tag on a green bough at the
+  top of the trunk, before the DoorDash ticket. Its tags carry no figure
+  ("Nothing measured yet."), so the highlights' rule, a number on every tag,
+  stays theirs. The field tag's status links to it ("4 new shoots", counted),
+  the chat indexes each item citing `#tree`, and "Watch it grow" brings it in
+  after the lantern. The highlights' CSS and tests are scoped to
+  `[data-hanging-tags] > ul > li`, because the new growth is a list in the
+  same block.
 - **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
   (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)
   are still tested but no longer rendered; `careerYearSpan`,

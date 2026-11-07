@@ -71,6 +71,7 @@ const VIEWBOXES: Record<string, string> = {
   "oak-roots": "0 0 240 156",
   "oak-bough": "0 -30 200 70",
   "oak-bough-leaves": "0 -30 200 70",
+  "oak-shoot": "740 -360 700 620",
   "journey-rice": "236 776 320 124",
   "lantern-day": "104 510 96 122",
   "lantern-night": "104 510 96 122",
@@ -101,7 +102,7 @@ const VIEWBOXES: Record<string, string> = {
   rain: "0 0 200 200",
   snow: "0 0 240 240",
 };
-const INK = ["bamboo", "bamboo-top", "bamboo-top-b", "bamboo-stem", "bamboo-sprig", "bamboo-sprig-b", "bamboo-tuft", "bank-grass", "pine", "paddy", "paddy-water", "paddy-phone", "paddy-phone-water", "paddy-wake", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-crown", "oak-crown-leaves", "oak-crown-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", "stamp-wear", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", "diary-grain", "diary-cloth", "diary-ribbon", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
+const INK = ["bamboo", "bamboo-top", "bamboo-top-b", "bamboo-stem", "bamboo-sprig", "bamboo-sprig-b", "bamboo-tuft", "bank-grass", "pine", "paddy", "paddy-water", "paddy-phone", "paddy-phone-water", "paddy-wake", "buffalo-plow", "buffalo-sleep", "tag-rice", "tag-flytrap", "tag-book", "tag-laptop", "oak", "oak-leaves", "oak-moss", "oak-crown", "oak-crown-leaves", "oak-crown-moss", "oak-trunk", "oak-trunk-leaves", "oak-trunk-moss", "oak-roots", "oak-bough", "oak-bough-leaves", "oak-shoot", "journey-rice", /* Header */ "nav-torn", "nav-swash", "nav-sun", "nav-moon", /* Contact */ "postmark", "stamp-wear", /* Record */ "stamp-bank", "stamp-card", "stamp-code", "stamp-cart", "diary-selftaught", "diary-cap", "diary-podium", "diary-grain", "diary-cloth", "diary-ribbon", /* Weather */ "plane", "ufo", "leaf", "cloud", "cloud-line", "bolt", "rain", "snow"];
 
 const files = drawScenery();
 

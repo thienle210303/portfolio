@@ -36,6 +36,7 @@ change does to the other three sections before making it.
 | Path | What |
 |---|---|
 | [`system/`](system/) | The responsive system: [`README.md`](system/README.md) (the rules), `index.html` (specimen, both themes), `states.html` (component states, captured), `tokens.css` (generated from `globals.css` by `pnpm design:tokens`; never edited) |
+| [`round-26-now/`](round-26-now/) | New growth: what I'm doing now, on a shoot of the oak. Approved by Thien 2026-11-07 (recommended options); built the same day. The build moves the caption beside the shoot's foot and the oak down 360 units, not 300 |
 | [`round-25-responsive/`](round-25-responsive/) | The audit and the tablet and laptop boards |
 | [`round-21-outdoors/`](round-21-outdoors/) | The original day and night boards |
 | `.shots/` | Captures from `pnpm shots`, gitignored |

@@ -24,6 +24,7 @@ import type {
   JourneyCopy,
   RecordCopy,
   NavItem,
+  NowCopy,
   Origin,
   Profile,
   Project,
@@ -213,6 +214,29 @@ export const journey = {
     },
   },
 } satisfies JourneyCopy;
+
+/** What I am doing now (round 26): the new shoot on the oak (`NowShoot.tsx`),
+ *  linked from the field tag's status. Indexed by the chat, so "what are you
+ *  working on?" has an answer. Update `asOf` whenever the list changes. */
+export const now = {
+  heading: "New growth",
+  asOf: "2026-11",
+  note: "Nothing measured yet.",
+  label: "What I'm doing now",
+  fieldTagLink: "{count} new shoots",
+  items: [
+    { id: "doordash", name: "DoorDash", status: "day job", line: "Retail data, every weekday." },
+    {
+      id: "wordification",
+      name: "Wordification",
+      status: "mentoring",
+      line: "Back on it, guiding UofSC students who build on it in class.",
+      link: { href: "https://wordification.scholastechnology.com", label: "wordification" },
+    },
+    { id: "tradecorp", name: "TradeCorp", status: "building", line: "Stocent, an AI agent team that trades a paper account." },
+    { id: "3d-printing", name: "3D printing", status: "learning", line: "A small print shop, starting with my first failed prints." },
+  ],
+} satisfies NowCopy;
 
 /** The Diary's authored words (round 21, the NatRecordFinal board; named the
  *  Diary and bound as a book in round 23, its section id still `record`). Not

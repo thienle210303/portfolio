@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,768,1440" />
+    <title>Journey: new growth on the oak</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 26: what I'm doing now hangs on a new shoot of the oak.
+       * The oak, its five tags, Bé Nhi and the lantern are unchanged and drawn
+       * as labelled boxes. What is new: the shoot (a new mask, `oak-shoot`,
+       * painted by --scene-moss) and the small tags on it.
+       *
+       * The highlight tags each carry a number I measured. These carry none,
+       * because nothing on them is measured yet; that is what the caption says,
+       * and what keeps them from reading as a sixth highlight.
+       */
+      .journey {
+        padding-top: 4.5rem;
+      }
+      .head {
+        display: grid;
+        gap: 12px;
+        max-width: 36rem;
+        position: relative;
+        z-index: 2;
+      }
+
+      /* A bud: a small tag, no figure, its status in the tags' mono. */
+      .bud {
+        position: relative;
+        width: 100%;
+        padding: 40px 14px 14px;
+        display: grid;
+        gap: 4px;
+      }
+      .bud::before {
+        top: 10px;
+        width: 18px;
+        height: 18px;
+      }
+      .bud .name {
+        font-weight: 600;
+        font-size: var(--step-0);
+        line-height: 1.2;
+      }
+      .bud p {
+        font-size: var(--step--1);
+        line-height: 1.4;
+      }
+      .bud a {
+        color: var(--accent);
+        font-size: var(--step--1);
+        text-underline-offset: 3px;
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        margin-block: -10px -14px;
+      }
+      .shoot-head {
+        display: grid;
+        gap: 2px;
+      }
+      .shoot-head .aside {
+        font-size: var(--step-0);
+      }
+
+      /* ---------- Desktop (from 1024): four buds along a shoot ---------- */
+      .wide-only {
+        display: none;
+      }
+      @media (width >= 64rem) {
+        .wide-only {
+          display: block;
+        }
+        .narrow-only {
+          display: none !important;
+        }
+        .stage {
+          position: relative;
+          height: 950px;
+          margin-top: -6.5rem;
+        }
+        .oak {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 478px;
+          bottom: 0;
+        }
+        .shoot {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          overflow: visible;
+        }
+        .shoot path.twig {
+          fill: none;
+          stroke: var(--scene-moss);
+          stroke-width: 5;
+          stroke-linecap: round;
+        }
+        .shoot path.limb {
+          fill: none;
+          stroke: var(--scene-bark);
+          stroke-width: 14;
+          stroke-linecap: round;
+          opacity: 0.9;
+        }
+        .shoot .leaf {
+          fill: var(--scene-moss);
+        }
+        .buds {
+          position: absolute;
+          inset: 0;
+        }
+        .buds .hang {
+          position: absolute;
+          width: 148px;
+        }
+        .buds .hang .string {
+          left: 50%;
+          bottom: 100%;
+        }
+        .shoot-head.wide-only {
+          position: absolute;
+          left: 0;
+          top: 150px;
+        }
+      }
+
+      /* ---------- Below 1024: one tag on the crown's first bough ---------- */
+      @media (width < 64rem) {
+        .stage {
+          margin-top: 40px;
+        }
+        .crown {
+          height: 150px;
+        }
+        .row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 46px;
+          position: relative;
+        }
+        .row .trunk {
+          grid-column: 2;
+          background: var(--scene-bark);
+          border-radius: 6px 6px 0 0;
+          min-height: 100%;
+          margin-left: 12px;
+          width: 26px;
+        }
+        .row .bough-line {
+          position: absolute;
+          top: 6px;
+          right: 30px;
+          width: 54%;
+          height: 5px;
+          background: var(--scene-moss);
+          border-radius: 3px;
+          rotate: -4deg;
+          transform-origin: right;
+        }
+        .row .leaf {
+          position: absolute;
+          top: -10px;
+          width: 14px;
+          height: 8px;
+          border-radius: 0 100% 0 100%;
+          background: var(--scene-moss);
+        }
+        .one {
+          margin: 20px 18px 30px 0;
+          padding: 46px 18px 18px;
+          max-width: 26rem;
+          justify-self: end;
+          width: 100%;
+        }
+        .one ul {
+          list-style: none;
+          margin: 14px 0 0;
+          padding: 0;
+          display: grid;
+          gap: 14px;
+        }
+        .one li {
+          display: grid;
+          gap: 2px;
+          padding-top: 12px;
+          border-top: 1.5px dashed var(--rule-color);
+        }
+        .one li:first-child {
+          border-top: 0;
+          padding-top: 0;
+        }
+        .one .top {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          gap: 8px;
+        }
+        .rest {
+          height: 220px;
+        }
+        @media (width >= 40rem) {
+          /* 640–1279 keeps the title beside the crown; the shoot's tag goes on
+             the first bough, left of the trunk, before the DoorDash ticket. */
+          .one {
+            max-width: 24rem;
+          }
+        }
+      }
+      .note {
+        margin-top: 2rem;
+        max-width: 40rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hdr">
+      <span>TL</span>
+      <span class="nav">
+        <span class="narrow">○ Menu</span>
+        <span class="wide">About</span><span class="wide">Journey</span><span class="wide">Diary</span
+        ><span class="wide">Contact</span><span>☼</span>
+      </span>
+      <span class="stamp">Let's talk</span>
+    </div>
+
+    <section class="section shell journey" id="tree">
+      <div class="head">
+        <h2 class="chapter">The work, as it grew.</h2>
+        <p class="aside">Planted in 2018 and still growing. Each tag holds a number I measured.</p>
+        <div class="narrow-only"><span class="btn">Watch it grow</span></div>
+      </div>
+
+      <!-- Desktop: the oak as it is, and a new shoot off the end of its long limb -->
+      <div class="stage wide-only" id="now">
+        <div class="art dark oak">
+          the oak as built: crown, long limb, lantern, Bé Nhi's swing, five highlight tags, "Watch it grow" (unchanged)
+        </div>
+        <svg class="shoot" viewBox="0 0 1120 950" preserveAspectRatio="none" aria-hidden="true">
+          <!-- the new shoot: grows out of the crown and up into the sky beside the title -->
+          <path class="twig" d="M470 478 C 560 260, 800 110, 1110 80" />
+          <ellipse class="leaf" cx="520" cy="370" rx="11" ry="5" transform="rotate(-60 520 370)" />
+          <ellipse class="leaf" cx="640" cy="225" rx="11" ry="5" transform="rotate(30 640 225)" />
+          <ellipse class="leaf" cx="815" cy="140" rx="11" ry="5" transform="rotate(-20 815 140)" />
+          <ellipse class="leaf" cx="980" cy="98" rx="11" ry="5" transform="rotate(20 980 98)" />
+          <ellipse class="leaf" cx="1100" cy="74" rx="10" ry="5" transform="rotate(-10 1100 74)" />
+        </svg>
+        <div class="buds">
+          <!-- strings of different lengths, from points on the twig; outdated work first, newest at the tip -->
+          <div class="hang" style="left: calc(570 / 1120 * 100% - 74px); top: 334px">
+            <span class="string" style="height: 12px"></span>
+            <div class="tag bud" style="--tilt: -2deg">
+              <span class="label">day job</span>
+              <span class="name">DoorDash</span>
+              <p class="muted">Retail data, every weekday.</p>
+            </div>
+          </div>
+          <div class="hang" style="left: calc(735 / 1120 * 100% - 74px); top: 256px">
+            <span class="string" style="height: 64px"></span>
+            <div class="tag bud" style="--tilt: 1.5deg">
+              <span class="label">mentoring</span>
+              <span class="name">Wordification</span>
+              <p class="muted">Back on it, guiding UofSC students who build on it in class.</p>
+              <a href="#">wordification ↗</a>
+            </div>
+          </div>
+          <div class="hang" style="left: calc(895 / 1120 * 100% - 74px); top: 205px">
+            <span class="string" style="height: 82px"></span>
+            <div class="tag bud" style="--tilt: -1deg">
+              <span class="label">building</span>
+              <span class="name">TradeCorp</span>
+              <p class="muted">Stocent, an AI agent team that trades a paper account.</p>
+            </div>
+          </div>
+          <div class="hang" style="left: calc(1045 / 1120 * 100% - 74px); top: 158px">
+            <span class="string" style="height: 70px"></span>
+            <div class="tag bud" style="--tilt: 2deg">
+              <span class="label">learning</span>
+              <span class="name">3D printing</span>
+              <p class="muted">A small print shop, starting with my first failed prints.</p>
+            </div>
+          </div>
+          <span class="pin" style="left: calc(470 / 1120 * 100% - 12px); top: 452px">1</span>
+          <span class="pin" style="left: calc(570 / 1120 * 100% - 46px); top: 300px">2</span>
+        </div>
+        <div class="shoot-head wide-only">
+          <span class="label">New growth · Nov 2026</span>
+          <span class="aside">Nothing measured yet.</span>
+          <span class="pin" style="position: absolute; left: -34px; top: 0">3</span>
+        </div>
+      </div>
+
+      <!-- Below 1024: one tag on a green bough at the top of the trunk -->
+      <div class="stage narrow-only" id="now-narrow">
+        <div class="art dark crown">oak crown and lantern (unchanged)</div>
+        <div class="row">
+          <div class="trunk"></div>
+          <span class="bough-line"></span>
+          <span class="leaf" style="right: 120px"></span>
+          <span class="leaf" style="right: 200px; rotate: 90deg"></span>
+          <div class="tag one" style="grid-row: 1; grid-column: 1; --tilt: -1deg">
+            <div class="shoot-head">
+              <span class="label">New growth · Nov 2026</span>
+              <span class="aside">Nothing measured yet.</span>
+            </div>
+            <ul>
+              <li>
+                <div class="top"><span class="name" style="font-weight: 600">TradeCorp</span><span class="label">building</span></div>
+                <p class="muted data" style="font-family: var(--font-sans)">Stocent, an AI agent team that trades a paper account.</p>
+              </li>
+              <li>
+                <div class="top"><span style="font-weight: 600">3D printing</span><span class="label">learning</span></div>
+                <p class="muted" style="font-size: var(--step--1)">A small print shop, starting with my first failed prints.</p>
+              </li>
+              <li>
+                <div class="top"><span style="font-weight: 600">Wordification</span><span class="label">mentoring</span></div>
+                <p class="muted" style="font-size: var(--step--1)">Back on it, guiding UofSC students who build on it in class.</p>
+                <a class="accent" href="#" style="font-size: var(--step--1); min-height: 44px; display: inline-flex; align-items: center; margin-block: -8px -14px">wordification ↗</a>
+              </li>
+              <li>
+                <div class="top"><span style="font-weight: 600">DoorDash</span><span class="label">day job</span></div>
+                <p class="muted" style="font-size: var(--step--1)">Retail data, every weekday.</p>
+              </li>
+            </ul>
+            <span class="pin" style="top: -6px; right: -10px">4</span>
+          </div>
+        </div>
+        <div class="art dark rest">the DoorDash ticket, the other four tags, Bé Nhi, the roots (unchanged)</div>
+      </div>
+
+      <p class="note data muted">
+        1 The shoot: a new mask in draw-scenery.mjs (oak-shoot), painted by --scene-moss, out of the crown's top right and up into the sky beside the title; the oak moves down about 300px to make room.
+        2 Four small tags on strings of different lengths, none overlapping; no figure on any. ·
+        3 The caption says why: nothing measured yet. ·
+        4 Below 1024 the four share one tag on a green bough at the crown, above the DoorDash ticket.
+        “Watch it grow” draws the shoot last, after the lantern.
+      </p>
+    </section>
+  </body>
+</html>

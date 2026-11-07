@@ -3,12 +3,12 @@ import { render, within } from "@testing-library/react";
 import HangingTags, { TAG_SPOTS } from "@/sections/CareerTree/HangingTags";
 import { journeySpots } from "../../scripts/draw-scenery.mjs";
 
-const links = () => [...document.querySelectorAll<HTMLAnchorElement>("[data-hanging-tags] a")];
+const links = () => [...document.querySelectorAll<HTMLAnchorElement>("[data-hanging-tags] > ul a")];
 
 describe("HangingTags", () => {
   it("hangs five tags in board order, each a link to its row", () => {
     render(<HangingTags />);
-    const list = document.querySelector("[data-hanging-tags] ul") as HTMLElement;
+    const list = document.querySelector("[data-hanging-tags] > ul") as HTMLElement;
     expect(list).toHaveAttribute("aria-label", "What I measured");
     const items = within(list).getAllByRole("listitem");
     expect(items).toHaveLength(5);
@@ -23,7 +23,7 @@ describe("HangingTags", () => {
 
   it("DoorDash is one ticket with a 2026 stub that reads on in its case study", () => {
     render(<HangingTags />);
-    const ticket = document.querySelector("[data-hanging-tags] li") as HTMLElement;
+    const ticket = document.querySelector("[data-hanging-tags] > ul > li") as HTMLElement;
     const text = ticket.textContent ?? "";
     let at = 0;
     for (const part of [
@@ -79,7 +79,7 @@ describe("HangingTags", () => {
 
   it("no fixed heights, no nowrap below 1280", () => {
     render(<HangingTags />);
-    const root = document.querySelector("[data-hanging-tags] ul") as HTMLElement;
+    const root = document.querySelector("[data-hanging-tags] > ul") as HTMLElement;
     for (const el of [root, ...root.querySelectorAll("*")]) {
       if (el.hasAttribute("data-whole-word")) continue; // a hyphenated word, never wider than the tag
       const cls = typeof el.className === "string" ? el.className : "";
@@ -100,7 +100,7 @@ describe("HangingTags", () => {
   it("gives each tag its spot in board units, never pixels, and places nothing itself", () => {
     render(<HangingTags />);
     const spots = journeySpots();
-    const items = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] li")];
+    const items = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] > ul > li")];
     items.forEach((li, i) => {
       const value = (name: string) => li.style.getPropertyValue(name);
       expect(value("--x")).toBe(String(TAG_SPOTS[i].left));
@@ -113,7 +113,7 @@ describe("HangingTags", () => {
       // globals.css lays the tags out per band; a utility here would beat it.
       expect(li.className).toBe("");
     });
-    for (const el of [document.querySelector("[data-hanging-tags]")!, document.querySelector("[data-hanging-tags] ul")!]) {
+    for (const el of [document.querySelector("[data-hanging-tags]")!, document.querySelector("[data-hanging-tags] > ul")!]) {
       expect(el.className).toBe("");
     }
   });

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Round 26: New growth</title>
+    <link rel="stylesheet" href="boards/board.css" />
+    <script src="boards/board.js"></script>
+    <style>
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 48px var(--gutter) 96px;
+        display: grid;
+        gap: 48px;
+      }
+      .row {
+        display: grid;
+        gap: 20px;
+        align-items: start;
+      }
+      @media (width >= 64rem) {
+        .row {
+          grid-template-columns: 3fr 1fr;
+        }
+      }
+      figure {
+        margin: 0;
+        display: grid;
+        gap: 8px;
+      }
+      img {
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--rule-color);
+        background: var(--surface);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: var(--step--1);
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 8px;
+        border-top: 1px solid var(--rule-color);
+        vertical-align: top;
+      }
+      ol {
+        margin: 0;
+        padding-left: 1.2em;
+        display: grid;
+        gap: 10px;
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header style="display: grid; gap: 10px">
+        <p class="label">Round 26 · v1 · 2026-11-07 · waiting on Thien</p>
+        <h1 class="page-title">New growth: what I'm doing now</h1>
+        <p class="lead">
+          Four current things hang on a new shoot of the oak (#now). The hero gets one link to them, from the
+          field tag's Status row. Nothing else on the page moves.
+        </p>
+      </header>
+
+      <section style="display: grid; gap: 16px">
+        <h2 class="heading">The Journey</h2>
+        <div class="row">
+          <figure>
+            <img src="previews/journey-1440.png" alt="Board at 1440: a green shoot rising from the oak's crown into the sky beside the title, four small tags hanging from it" />
+            <figcaption class="data muted">Board, 1440. <a href="boards/journey.html">Open it</a> and resize.</figcaption>
+          </figure>
+          <figure>
+            <img src="previews/journey-390.png" alt="Board at 390: one tag on a green bough at the top of the trunk listing the four" />
+            <figcaption class="data muted">Board, 390 (one tag below 1024)</figcaption>
+          </figure>
+        </div>
+        <div class="row">
+          <figure>
+            <img src="../../round-25-responsive/v1/previews/built/tree-1440.jpg" alt="The oak as built at 1440" />
+            <figcaption class="data muted">As built, 1440</figcaption>
+          </figure>
+          <figure>
+            <img src="previews/journey-390-night.png" alt="Board at 390, night" />
+            <figcaption class="data muted">Board, 390, night</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section style="display: grid; gap: 16px">
+        <h2 class="heading">About</h2>
+        <div class="row">
+          <figure>
+            <img src="previews/hero-1440.png" alt="The field tag as built and with the new link under Still growing" />
+            <figcaption class="data muted">Field tag, as built and round 26. <a href="boards/hero.html">Open it</a>.</figcaption>
+          </figure>
+          <figure>
+            <img src="previews/hero-390-night.png" alt="Field tag at 390, night" />
+            <figcaption class="data muted">390, night</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section style="display: grid; gap: 16px">
+        <h2 class="heading">The copy (draft, in the content file once approved)</h2>
+        <table>
+          <thead>
+            <tr><th>Tag</th><th>Status</th><th>Line</th><th>Link</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>TradeCorp</td><td class="data">building</td><td>Stocent, an AI agent team that trades a paper account.</td><td>none until its public site is up</td></tr>
+            <tr><td>3D printing</td><td class="data">learning</td><td>A small print shop, starting with my first failed prints.</td><td>none</td></tr>
+            <tr><td>Wordification</td><td class="data">mentoring</td><td>Back on it, guiding UofSC students who build on it in class.</td><td>wordification.scholastechnology.com</td></tr>
+            <tr><td>DoorDash</td><td class="data">day job</td><td>Retail data, every weekday.</td><td>none (the ticket on the oak already covers it)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section style="display: grid; gap: 16px">
+        <h2 class="heading">Decisions that are Thien's</h2>
+        <ol>
+          <li><strong>The desktop oak moves down about 300px</strong> so the shoot has sky to grow into beside the title. The other way: the shoot grows off the long limb's far end, which keeps the oak where it is but crowds the USC tags.</li>
+          <li><strong>Each line above.</strong> In particular: is "a small print shop" true yet, and is it fine to say TradeCorp trades a paper account?</li>
+          <li><strong>Does the chat know about these?</strong> Recommended: yes. They're in the content file, so "what are you working on?" gets an answer.</li>
+          <li><strong>The shoot in "Watch it grow":</strong> drawn last, after the lantern, as a closing beat ("and now").</li>
+        </ol>
+      </section>
+    </main>
+  </body>
+</html>

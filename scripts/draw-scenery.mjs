@@ -1278,6 +1278,39 @@ export function journeySpots() {
   });
 }
 
+// Round 26: new growth. From 1280 a young shoot grows on from the tip of the
+// upright limb off the long one (OAK_LIMBS[6], which ends at (762, 236), 3
+// wide) and up into the sky beside the title, above the board's frame (board y
+// down to -360; the frame moves down to make that room). It is one mask,
+// painted by --scene-moss: green, not bark, because it is this year's wood.
+// What I am doing now hangs from it on four strings, at SHOOT_XS, each
+// SHOOT_DROPS under the shoot, from the trunk out to the tip.
+const OAK_SHOOT = { p: [[762, 236], [758, -90], [880, -250], [1420, -262]], w0: 3.2, w1: 1.4 };
+const SHOOT_BOX = [740, -360, 700, 620];
+const SHOOT_XS = [868, 1018, 1168, 1318], SHOOT_DROPS = [22, 40, 30, 52];
+function oakShoot() {
+  const r = rng(29);
+  let leaves = "";
+  // Young leaves in pairs, smaller toward the tip; none where a string ties on.
+  for (let i = 1; i <= 15; i++) {
+    const t = i / 16, [x, y] = cubic(OAK_SHOOT.p, t), [dx, dy] = cubicD(OAK_SHOOT.p, t);
+    if (SHOOT_XS.some((sx) => Math.abs(sx - x) < 16)) continue;
+    const a = Math.atan2(dy, dx), side = i % 2 ? 1 : -1, len = 13 - t * 6 + r() * 3;
+    const la = a + side * (0.9 + r() * 0.4), cx = x + Math.cos(la) * len * 0.55, cy = y + Math.sin(la) * len * 0.55;
+    leaves += `<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(len / 2)}" ry="${f(len / 5)}" transform="rotate(${f((la * 180) / Math.PI)} ${f(cx)} ${f(cy)})"/>`;
+  }
+  return taper(OAK_SHOOT.p, OAK_SHOOT.w0, OAK_SHOOT.w1, K) + `<g fill="${K}">${leaves}</g>`;
+}
+/** Where the four tags hang from the shoot: `ly` is the shoot's y over the tag's x, `top` the tag's top. */
+export function shootSpots() {
+  const L = OAK_SHOOT;
+  return SHOOT_XS.map((x, i) => {
+    const ly = yAt(L, x);
+    return { x, ly: f(ly), top: Math.round(ly + SHOOT_DROPS[i]) };
+  });
+}
+export const SHOOT = { box: SHOOT_BOX, root: OAK_SHOOT.p[0], limbTip: OAK_LIMBS[6].p[3] };
+
 // One Hội An silk lantern; lit at night.
 function hoiAn(x, y, col, sc, night) {
   const lit = night ? `<ellipse cx="0" cy="26" rx="46" ry="52" fill="url(#hoiGlow)"/>` : "";
@@ -1320,6 +1353,7 @@ function journeyFiles() {
     "oak-roots": svg("0 0 240 156", roots.bark),
     "oak-bough": stretched(BOUGH_BOX, bough.bark),
     "oak-bough-leaves": stretched(BOUGH_BOX, bough.leaves),
+    "oak-shoot": svg(SHOOT_BOX.join(" "), oakShoot()),
     "journey-rice": svg("236 776 320 124", rice(330, 896, 7, 22, 31, K, 26, 22)),
     "lantern-day": svg(LANTERN_BOX, `<path d="M152 512V546" stroke="#8b7b5e" stroke-width="1.2"/>` + hoiAn(152, 552, "#C8352B", 1, false)),
     "lantern-night": svg(LANTERN_BOX, HOI_DEFS("#C8352B") + `<path d="M152 512V546" stroke="#b3a27f" stroke-width="1.2"/>` + hoiAn(152, 552, "#C8352B", 1, true)),

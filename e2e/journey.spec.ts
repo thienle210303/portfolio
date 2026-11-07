@@ -29,8 +29,8 @@ async function toTree(page: Page) {
   await page.waitForTimeout(200);
 }
 
-const items = (page: Page) => page.locator("[data-hanging-tags] li");
-const tagLinks = (page: Page) => page.locator("[data-hanging-tags] a");
+const items = (page: Page) => page.locator("[data-hanging-tags] > ul > li");
+const tagLinks = (page: Page) => page.locator("[data-hanging-tags] > ul a");
 const watch = (page: Page) => page.locator("#tree").getByRole("button", { name: journey.watch });
 const lantern = (page: Page) => page.locator('#tree [data-scenery="journey"] span[style*="--art-lantern"]');
 const row = (page: Page, id: string) => page.locator(`#record #journey-entry-${id}`);
@@ -79,7 +79,7 @@ function quadsMeet(a: readonly Point[], b: readonly Point[]) {
  * `quads` are the papers' corners, each box turned about its hole (50%, 18px).
  */
 async function stage(page: Page) {
-  await page.addStyleTag({ content: "[data-hanging-tags] li > div { animation: none !important; }" });
+  await page.addStyleTag({ content: "[data-hanging-tags] > ul > li > div { animation: none !important; }" });
   return page.evaluate(() => {
     const box = (el: Element) => {
       const r = el.getBoundingClientRect();
@@ -91,7 +91,7 @@ async function stage(page: Page) {
       return el ? box(el) : null;
     };
     const trunk = shown("#tree [data-trunk]");
-    const lis = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] li")];
+    const lis = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] > ul > li")];
     const caption = document.querySelector<HTMLElement>("#tree [data-swing] > p[aria-hidden='true']")!;
     const captionRect = caption.getBoundingClientRect();
     return {
@@ -164,6 +164,8 @@ const focusHeading = (page: Page) =>
   });
 
 const TAB_ORDER = [
+  // Round 26: the new growth comes first in the trunk's block; its one link.
+  "https://wordification.scholastechnology.com",
   "#journey-entry-doordash",
   "#work-dd-feasibility-agent",
   "#journey-entry-wordification",
@@ -211,10 +213,12 @@ test.describe("the Journey", () => {
     await page.setViewportSize(WIDE);
     await open(page);
     await toTree(page);
-    const width = await page.evaluate(() => document.getElementById("tree")!.getBoundingClientRect().width);
+    const { width, top } = await page.evaluate(() => document.getElementById("tree")!.getBoundingClientRect());
     const all = await boxes(items(page));
     all.forEach((b, i) => {
-      expect(Math.abs(b.y - SPOTS[i].top), `tag ${i} top`).toBeLessThanOrEqual(16);
+      // Round 26: the frame starts 360 units (360px at 1440) down the section,
+      // under the new growth's sky.
+      expect(Math.abs(b.y - top - 360 - SPOTS[i].top), `tag ${i} top`).toBeLessThanOrEqual(16);
       expect(Math.abs(b.x - ((width - 1440) / 2 + SPOTS[i].left)), `tag ${i} left`).toBeLessThanOrEqual(16);
     });
     for (let i = 0; i < all.length; i++)
@@ -227,7 +231,7 @@ test.describe("the Journey", () => {
     await toTree(page);
     const all = await boxes(items(page));
     for (const b of all) expect(b.x + b.width).toBeLessThanOrEqual(1264.5);
-    const papers = await boxes(page.locator("[data-hanging-tags] li > div"));
+    const papers = await boxes(page.locator("[data-hanging-tags] > ul > li > div"));
     const button = (await boxes(watch(page)))[0];
     for (const p of papers) {
       expect(p.x + p.width, "a tilted tag stays on screen").toBeLessThanOrEqual(1280);
@@ -371,8 +375,9 @@ test.describe("the Journey", () => {
       expect(g.vignette.y + g.vignette.height).toBeLessThanOrEqual(g.tree.y + g.tree.height);
       expect(g.vignette.x + g.vignette.width).toBeLessThan(mid - 100);
       for (const paper of g.papers) expect(overlap(g.vignette, paper), "the still life under a tag").toBe(false);
-      // About 1,450px at 1024: two thirds of what it was.
-      expect(g.tree.height, "the section's height").toBeLessThanOrEqual(1560);
+      // About 1,450px at 1024 in round 25 (two thirds of what it was); round 26
+      // adds a row on top for the new growth's tag, about 2,000px.
+      expect(g.tree.height, "the section's height").toBeLessThanOrEqual(2080);
       expect(g.scrollWidth).toBeLessThanOrEqual(viewport.width);
     });
   }
