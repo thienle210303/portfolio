@@ -458,5 +458,29 @@ export interface JourneyCopy {
   };
 }
 
+/**
+ * What I am doing now (round 27): seedlings in a nursery crate at the oak's
+ * foot, a marker each. No figure on any: nothing there is measured yet, and a
+ * seedling says so. Ordered oldest first, nearest the trunk.
+ */
+export interface NowItem {
+  readonly id: string;
+  readonly name: string;
+  /** One or two words, stamped on the marker: "building", "day job". */
+  readonly status: string;
+  /** Two or three words, never a sentence. */
+  readonly line: string;
+  readonly link?: { readonly href: string; readonly label: string };
+}
+export interface NowCopy {
+  /** "YYYY-MM": when the list was last true (the chat's source line). */
+  readonly asOf: string;
+  /** The list's accessible name. */
+  readonly label: string;
+  /** The field tag's link under its status, `{count}` the number of items. */
+  readonly fieldTagLink: string;
+  readonly items: readonly NowItem[];
+}
+
 /** Bé Nhi's faces (`MiniNhi.tsx`), each from a photo of her. */
 export type NhiMood = "pout" | "grin" | "huh" | "sleepy" | "hug";

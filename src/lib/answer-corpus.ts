@@ -1,5 +1,6 @@
 import { sectionExpansions, subjectExpansions } from "@/content/answer-expansion";
-import { companions, origin } from "@/content/portfolio";
+import { companions, now, origin } from "@/content/portfolio";
+import { nowAsOfLabel } from "@/lib/now";
 import {
   careerIndexable,
   education,
@@ -503,6 +504,21 @@ export function buildDocuments(): Document[] {
   //  - *Leave them section-less.* What is shipped. A document that is retrieved,
   //    quoted and attributed with no "More on this in …" link is the one option that
   //    states exactly what is true.
+  // Round 26: what I am doing now, the new growth on the oak (#tree, where
+  // `NowShoot` renders each line as written). A mechanical join of the item's
+  // fields, like a metric's. Its label words are the item's own and two that
+  // only ever mean "now" ("now" itself is a stop word); generic ones ("work", "project") would cost
+  // precision everywhere and are left out (see CLAUDE.md, round 16).
+  for (const item of now.items) {
+    docs.push({
+      text: `${item.name}, ${item.status}: ${item.line}`,
+      source: `New growth, ${nowAsOfLabel()}`,
+      sectionId: "tree",
+      sectionLabel: "Journey",
+      label: label("now", undefined, "lately", "these days", item.name, item.status),
+    });
+  }
+
   for (const category of skillsIndexable) {
     docs.push({
       text: category.evidence,

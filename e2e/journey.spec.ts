@@ -29,8 +29,8 @@ async function toTree(page: Page) {
   await page.waitForTimeout(200);
 }
 
-const items = (page: Page) => page.locator("[data-hanging-tags] li");
-const tagLinks = (page: Page) => page.locator("[data-hanging-tags] a");
+const items = (page: Page) => page.locator("[data-hanging-tags] > ul > li");
+const tagLinks = (page: Page) => page.locator("[data-hanging-tags] > ul a");
 const watch = (page: Page) => page.locator("#tree").getByRole("button", { name: journey.watch });
 const lantern = (page: Page) => page.locator('#tree [data-scenery="journey"] span[style*="--art-lantern"]');
 const row = (page: Page, id: string) => page.locator(`#record #journey-entry-${id}`);
@@ -79,7 +79,7 @@ function quadsMeet(a: readonly Point[], b: readonly Point[]) {
  * `quads` are the papers' corners, each box turned about its hole (50%, 18px).
  */
 async function stage(page: Page) {
-  await page.addStyleTag({ content: "[data-hanging-tags] li > div { animation: none !important; }" });
+  await page.addStyleTag({ content: "[data-hanging-tags] > ul > li > div { animation: none !important; }" });
   return page.evaluate(() => {
     const box = (el: Element) => {
       const r = el.getBoundingClientRect();
@@ -91,7 +91,7 @@ async function stage(page: Page) {
       return el ? box(el) : null;
     };
     const trunk = shown("#tree [data-trunk]");
-    const lis = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] li")];
+    const lis = [...document.querySelectorAll<HTMLElement>("[data-hanging-tags] > ul > li")];
     const caption = document.querySelector<HTMLElement>("#tree [data-swing] > p[aria-hidden='true']")!;
     const captionRect = caption.getBoundingClientRect();
     return {
@@ -211,10 +211,10 @@ test.describe("the Journey", () => {
     await page.setViewportSize(WIDE);
     await open(page);
     await toTree(page);
-    const width = await page.evaluate(() => document.getElementById("tree")!.getBoundingClientRect().width);
+    const { width, top } = await page.evaluate(() => document.getElementById("tree")!.getBoundingClientRect());
     const all = await boxes(items(page));
     all.forEach((b, i) => {
-      expect(Math.abs(b.y - SPOTS[i].top), `tag ${i} top`).toBeLessThanOrEqual(16);
+      expect(Math.abs(b.y - top - SPOTS[i].top), `tag ${i} top`).toBeLessThanOrEqual(16);
       expect(Math.abs(b.x - ((width - 1440) / 2 + SPOTS[i].left)), `tag ${i} left`).toBeLessThanOrEqual(16);
     });
     for (let i = 0; i < all.length; i++)
@@ -227,7 +227,7 @@ test.describe("the Journey", () => {
     await toTree(page);
     const all = await boxes(items(page));
     for (const b of all) expect(b.x + b.width).toBeLessThanOrEqual(1264.5);
-    const papers = await boxes(page.locator("[data-hanging-tags] li > div"));
+    const papers = await boxes(page.locator("[data-hanging-tags] > ul > li > div"));
     const button = (await boxes(watch(page)))[0];
     for (const p of papers) {
       expect(p.x + p.width, "a tilted tag stays on screen").toBeLessThanOrEqual(1280);
@@ -273,8 +273,8 @@ test.describe("the Journey", () => {
       const board = Math.min(viewport.width, 1680);
       expect(Math.abs(g.oak!.width - board), "the board's width").toBeLessThanOrEqual(1);
       expect(Math.abs(g.oak!.x - (viewport.width - board) / 2), "the board is centred").toBeLessThanOrEqual(1);
-      // A tag narrows with the board: 176 units.
-      expect(Math.abs(g.items[1].width - 176 * unit)).toBeLessThanOrEqual(1);
+      // A tag narrows with the board: its own width in units (round 27: no two alike).
+      expect(Math.abs(g.items[1].width - SPOTS[1].width * unit)).toBeLessThanOrEqual(1);
       expect(g.scrollWidth).toBeLessThanOrEqual(viewport.width);
     });
   }
@@ -282,7 +282,7 @@ test.describe("the Journey", () => {
   test("no text is clipped inside a tag on the narrowest board, 1280", async ({ page }) => {
     await page.setViewportSize(BOARD_MIN);
     await open(page);
-    const papers = page.locator("[data-hanging-tags] .tag-cut, [data-hanging-tags] [data-stub]");
+    const papers = page.locator("[data-hanging-tags] [data-manila]");
     expect(await papers.count()).toBe(6);
     for (const paper of await papers.all()) {
       const m = await paper.evaluate((el) => {
@@ -371,8 +371,9 @@ test.describe("the Journey", () => {
       expect(g.vignette.y + g.vignette.height).toBeLessThanOrEqual(g.tree.y + g.tree.height);
       expect(g.vignette.x + g.vignette.width).toBeLessThan(mid - 100);
       for (const paper of g.papers) expect(overlap(g.vignette, paper), "the still life under a tag").toBe(false);
-      // About 1,450px at 1024: two thirds of what it was.
-      expect(g.tree.height, "the section's height").toBeLessThanOrEqual(1560);
+      // About 1,450px at 1024 in round 25 (two thirds of what it was); round 26
+      // adds a row on top for the new growth's tag, about 2,000px.
+      expect(g.tree.height, "the section's height").toBeLessThanOrEqual(2080);
       expect(g.scrollWidth).toBeLessThanOrEqual(viewport.width);
     });
   }
@@ -394,7 +395,7 @@ test.describe("the Journey", () => {
   test("no tag clips its text at 320", async ({ page }) => {
     await page.setViewportSize(SMALL);
     await open(page);
-    const papers = page.locator("[data-hanging-tags] .tag-cut, [data-hanging-tags] [data-stub]");
+    const papers = page.locator("[data-hanging-tags] [data-manila]");
     expect(await papers.count()).toBe(6);
     for (const paper of await papers.all()) {
       const m = await paper.evaluate((el) => ({

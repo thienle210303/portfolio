@@ -1254,7 +1254,7 @@ const OAK_CROWN = [
 const OAK_BOUGH = [{ p: [[200, 30], [140, 8], [60, 2], [2, 11]], w0: 13, w1: 2, twigs: 4 }];
 const stretched = (viewBox, body) => svg(viewBox, body).replace("<svg ", '<svg preserveAspectRatio="none" ');
 const yAt = (L, x) => { let lo = 0, hi = 1; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (cubic(L.p, m)[0] < x) lo = m; else hi = m; } return cubic(L.p, lo)[1]; };
-const TAG_XS = [520, 720, 920, 1120, 1320], TAG_DROPS = [8, 40, 96, 52, 84];
+const TAG_XS = [520, 720, 920, 1120, 1320], TAG_DROPS = [30, 40, 96, 52, 84];
 
 const CROWN_SEED = 73, CROWN_BOX = "0 120 1440 560";
 
@@ -1270,12 +1270,66 @@ export function crownSpots() {
   return { box: [0, 120, 1440, 560], foot: [307, 640], lantern: [152, f(cubic(limb, lo)[1])] };
 }
 
-/** Where the board hangs each tag: `ly` is the limb's y above the tag's x, `top` the tag's top. */
+// Round 27: each tag its own width, and one string or two (Thien: "mixed 1
+// strings and 2 strings"), at these fractions of its width. Nothing repeats.
+const TAG_WIDTHS = [212, 164, 182, 158, 170];
+const TAG_EYES = [[0.22, 0.7], [0.5], [0.2, 0.8], [0.5], [0.16, 0.84]];
+const limbY = (x) => yAt(x < 990 ? OAK_LIMBS[4] : OAK_LIMBS[5], x);
+
+/**
+ * Where the board hangs each tag: `ly` is the limb's y above the tag's middle,
+ * `top` the tag's top, `width` its width, and `eyes` its eyelets: each one's
+ * fraction of the width and the limb's y above it, where its string ties on.
+ */
 export function journeySpots() {
   return TAG_XS.map((x, i) => {
-    const ly = yAt(x < 990 ? OAK_LIMBS[4] : OAK_LIMBS[5], x);
-    return { x, ly: f(ly), top: Math.round(ly + TAG_DROPS[i]) };
+    const ly = limbY(x), w = TAG_WIDTHS[i];
+    const eyes = TAG_EYES[i].map((e) => ({ e, ly: f(limbY(x - w / 2 + e * w)) }));
+    return { x, ly: f(ly), top: Math.round(ly + TAG_DROPS[i]), width: w, eyes };
   });
+}
+
+// Round 27 (Thien's B2): what I am doing now is four seedlings in a nursery
+// crate at the oak's foot, oldest nearest the trunk and each smaller than the
+// last, a marker stick beside each. Two masks in one 480×210 box: the crate and
+// its sticks (`nursery`, painted by --twine) and the seedlings
+// (`nursery-sprouts`, --scene-moss). The markers are the page's own paper,
+// standing on the sticks' tops (NURSERY.plants[i].stick), so the page places
+// them from these numbers.
+export const NURSERY = {
+  box: [480, 210],
+  crate: { x: 16, top: 160, w: 448, h: 48 },
+  plants: [
+    { x: 62, h: 62, stick: 92 },
+    { x: 174, h: 50, stick: 96 },
+    { x: 286, h: 36, stick: 114 },
+    { x: 398, h: 20, stick: 124 },
+  ],
+};
+function nurseryFiles() {
+  const { box, crate, plants } = NURSERY;
+  const r = rng(41);
+  // The crate: three boards and two posts, gaps between the boards.
+  let wood = "";
+  const boards = 3, gap = 3, bh = (crate.h - gap * (boards - 1)) / boards;
+  for (let i = 0; i < boards; i++) wood += `<rect x="${crate.x}" y="${f(crate.top + i * (bh + gap))}" width="${crate.w}" height="${f(bh)}" rx="1.5"/>`;
+  for (const x of [crate.x, crate.x + crate.w - 9]) wood += `<rect x="${x}" y="${crate.top - 4}" width="9" height="${crate.h + 4}" rx="1.5"/>`;
+  // Each marker's stick, beside its seedling, from the marker's foot into the soil.
+  for (const p of plants) wood += `<rect x="${p.x + 11}" y="${p.stick - 12}" width="3.4" height="${crate.top + 8 - p.stick + 12}" rx="1"/>`;
+  // The seedlings: a stem, and pairs of leaves, fewer and smaller the younger.
+  let sprouts = "";
+  plants.forEach((p, i) => {
+    const top = crate.top - p.h, size = 10 - i * 1.4;
+    sprouts += `<path d="M${p.x} ${crate.top + 2}C${f(p.x - 2)} ${f(crate.top - p.h * 0.5)} ${f(p.x + 2)} ${f(top + 6)} ${p.x} ${top}" fill="none" stroke="${K}" stroke-width="${f(2.4 - i * 0.3)}" stroke-linecap="round"/>`;
+    const pairs = Math.max(1, Math.round(p.h / 18));
+    for (let k = 0; k < pairs; k++) {
+      const y = top + 4 + k * 15, s2 = size * (1 - k * 0.12), a = 26 + r() * 10;
+      sprouts += `<ellipse cx="${f(p.x - s2 * 0.85)}" cy="${f(y)}" rx="${f(s2)}" ry="${f(s2 * 0.42)}" transform="rotate(${f(-a)} ${f(p.x - s2 * 0.85)} ${f(y)})"/>`;
+      sprouts += `<ellipse cx="${f(p.x + s2 * 0.85)}" cy="${f(y - 3)}" rx="${f(s2)}" ry="${f(s2 * 0.42)}" transform="rotate(${f(a)} ${f(p.x + s2 * 0.85)} ${f(y - 3)})"/>`;
+    }
+  });
+  const vb = `0 0 ${box[0]} ${box[1]}`;
+  return { nursery: svg(vb, `<g fill="${K}">${wood}</g>`), "nursery-sprouts": svg(vb, `<g fill="${K}">${sprouts}</g>`) };
 }
 
 // One Hội An silk lantern; lit at night.
@@ -1695,6 +1749,7 @@ export function drawScenery() {
     ...navFiles(),
     ...contactDrawings(),
     ...journeyFiles(),
+    ...nurseryFiles(),
     ...recordFiles(),
     ...diaryFiles(),
     ...weatherFiles(),

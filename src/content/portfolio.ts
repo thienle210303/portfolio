@@ -24,6 +24,7 @@ import type {
   JourneyCopy,
   RecordCopy,
   NavItem,
+  NowCopy,
   Origin,
   Profile,
   Project,
@@ -213,6 +214,29 @@ export const journey = {
     },
   },
 } satisfies JourneyCopy;
+
+/** What I am doing now: seedlings in a nursery crate at the oak's foot
+ *  (round 27, B2; round 26 hung them on a shoot), linked from the field tag's
+ *  status. A few words each, no sentences (Thien). Indexed by the chat, so
+ *  "what are you doing lately?" has an answer; `asOf` dates it there. Update
+ *  `asOf` whenever the list changes. Oldest first: nearest the trunk. */
+export const now = {
+  asOf: "2026-11",
+  label: "What I'm doing now",
+  fieldTagLink: "{count} seedlings",
+  items: [
+    { id: "doordash", name: "DoorDash", status: "day job", line: "Retail data" },
+    {
+      id: "wordification",
+      name: "Wordification",
+      status: "mentoring",
+      line: "Mentoring UofSC",
+      link: { href: "https://wordification.scholastechnology.com", label: "site" },
+    },
+    { id: "tradecorp", name: "TradeCorp", status: "building", line: "AI trading agents" },
+    { id: "3d-printing", name: "3D printing", status: "learning", line: "First prints" },
+  ],
+} satisfies NowCopy;
 
 /** The Diary's authored words (round 21, the NatRecordFinal board; named the
  *  Diary and bound as a book in round 23, its section id still `record`). Not
@@ -1681,28 +1705,30 @@ export const achievements = [
 
 /** The tags that hang from the Journey's oak, in order. Each `entryId` names a
  *  career entry; every figure here must also appear in that entry's `headline`
- *  or `impact`. The two DoorDash halves hang as one ticket. */
+ *  or `impact`. The two DoorDash halves hang as one ticket. Round 27 (Thien:
+ *  "extremely brief, no full sentences"): a label is a few words; the full
+ *  story is the entry's Diary page and the chat. */
 export const highlights = [
   {
     entryId: "doordash",
     name: "DoorDash",
     value: "17h → 3m",
     measure: "3.9% → 0% error",
-    label: "Reverse engineering scraper",
+    label: "Scraper, rebuilt",
   },
   {
     entryId: "doordash",
     name: "DoorDash",
     value: "2 → 25",
     measure: "onboarded merchants/month",
-    label: "An agent-driven workflow that adapts to every merchant",
+    label: "Agent workflow",
     year: "2026",
     projectId: "dd-feasibility-agent",
   },
-  { entryId: "wordification", name: "Wordification", value: "99.9%", label: "Speech QA pipeline, validated audio accuracy." },
-  { entryId: "schaeffler", name: "Schaeffler", value: "96%", label: "Throughput lift from custom Java in low-code." },
-  { entryId: "usc-scraping", name: "USC research", value: "3M+", label: "Amazon and Kroger records, unattended for months." },
-  { entryId: "usc-ta", name: "USC teaching", value: "200+", label: "Students helped in open lab." },
+  { entryId: "wordification", name: "Wordification", value: "99.9%", label: "Speech QA accuracy" },
+  { entryId: "schaeffler", name: "Schaeffler", value: "96%", label: "Throughput, custom Java" },
+  { entryId: "usc-scraping", name: "USC research", value: "3M+", label: "Records, unattended" },
+  { entryId: "usc-ta", name: "USC teaching", value: "200+", label: "Students helped" },
 ] as const satisfies readonly Highlight[];
 
 /* -------------------------------------------------------------------------- */

@@ -215,7 +215,7 @@ test.describe("hero", () => {
       await page.getByRole("link", { name: PRIMARY }).focus();
       await page.keyboard.press("Shift+Tab");
       const seen: string[] = [];
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 8; i++) {
         await page.keyboard.press("Tab");
         const state = await page.evaluate(() => {
           const el = document.activeElement as HTMLElement;
@@ -238,6 +238,7 @@ test.describe("hero", () => {
         PRIMARY,
         QUIET,
         ...PLACES.map((p) => `front:${p}`),
+        "4 seedlings",
         "My LinkedIn (opens in a new tab)",
       ]);
     });
@@ -952,7 +953,8 @@ test.describe("hero", () => {
           };
         }),
     );
-  const TAB_ORDER = [PRIMARY, QUIET, "tag", "tag", "tag", "tag", "My LinkedIn (opens in a new tab)"];
+  // Round 26: the field tag's status links to the new growth, before the QR.
+  const TAB_ORDER = [PRIMARY, QUIET, "tag", "tag", "tag", "tag", "4 seedlings", "My LinkedIn (opens in a new tab)"];
 
   test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
     await open(page);
@@ -973,7 +975,8 @@ test.describe("hero", () => {
     const c = await controls(page);
     expect(c[0].left).toBeLessThan(c[1].left);
     for (let i = 3; i < 6; i++) expect(c[i].left).toBeGreaterThan(c[i - 1].left);
-    expect(c[6].left).toBeGreaterThan(Math.max(...c.slice(0, 6).map((x) => x.left)));
+    // The field tag's two (its status link, then the QR) are right of all of them.
+    for (const i of [6, 7]) expect(c[i].left).toBeGreaterThan(Math.max(...c.slice(0, 6).map((x) => x.left)));
   });
 
   for (const theme of ["day", "night"] as const) {

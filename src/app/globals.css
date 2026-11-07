@@ -55,6 +55,15 @@
   --color-lantern-muted: #5a5f55;
   --color-lantern-rule: #d3ccb9;
 
+  /* Round 27: the oak's tags are manila, from pale manila to kraft, mixed
+     per tag (`[data-manila]`). Paper in both themes, so its inks are its own:
+     ink, a darker muted and a darker moss, measured on the kraft end, the
+     darker one (docs/contrast.md). */
+  --color-manila: #f1e6c9;
+  --color-kraft: #e2cfa3;
+  --color-kraft-muted: #4a4f45;
+  --color-kraft-moss: #3a5230;
+
   /* The scenery's own colours (never text, so not in docs/contrast.md). Gold
      is the field tag's star, not the flag's yellow. */
   --color-twine: #8b7b5e;
@@ -746,9 +755,6 @@
     --cut: 30px;
     clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%, 0 var(--cut));
   }
-  [data-hanging-tags] .tag-cut {
-    --cut: 36px;
-  }
 
   /* The hero's yard (round 25). One grid (`.hero-yard`, Hero.tsx) holds my
      words, the hint, the four chapter tags and my field tag, in that order in
@@ -1044,28 +1050,85 @@
   /* ---------------------------------------------------------------------- */
 
   /* The strings the tags hang by (HangingTags.tsx), each behind its paper so
-     it seems to run into the hole, 18px down the tag. The paper turns about
-     that hole; below 1280 it turns half as far, so no corner swings into the
-     trunk beside it. */
-  [data-hanging-tags] li::after {
+     it seems to run into its eyelet, 18px down the tag. Round 27: one string
+     or two (`data-strings`), at `--e1` and `--e2` of the tag's width; a tag
+     with one has both at the same place. The paper turns about its eyelets'
+     line; below 1280 it turns half as far, so no corner swings into the trunk
+     beside it. */
+  [data-hanging-tags] > ul > li::after,
+  [data-hanging-tags] > ul > li[data-strings="2"]::before {
     content: "";
     position: absolute;
     z-index: -1;
     pointer-events: none;
-    left: calc(50% - 0.65px);
+    left: calc(var(--e1) - 0.65px);
     width: 1.3px;
     background: var(--twine);
   }
-  [data-hanging-tags] li > div {
+  [data-hanging-tags] > ul > li[data-strings="2"]::before {
+    left: calc(var(--e2) - 0.65px);
+  }
+  [data-hanging-tags] > ul > li > div {
     rotate: var(--tilt);
+    transform-origin: 50% 18px;
+  }
+
+  /* Round 27: the oak's tags are manila (option A, Thien), from pale manila
+     to kraft per tag (`--kraft`), with a brass eyelet where each string ties
+     on and softer shoulders, shallower with two eyelets. The paper is light
+     in both themes, so its inks are its own (docs/contrast.md, "manila"). */
+  [data-manila] {
+    --fg: var(--color-ink);
+    --fg-muted: var(--color-kraft-muted);
+    --accent: var(--color-kraft-moss);
+    --rule-color: color-mix(in srgb, var(--color-kraft-muted) 45%, transparent);
+    --cut: 26px;
+    position: relative;
+    display: block;
+    padding: 2.5rem 1rem 1.25rem;
+    background: color-mix(in srgb, var(--color-kraft) var(--kraft, 50%), var(--color-manila));
+    color: var(--fg);
+    clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%, 0 var(--cut));
+  }
+  [data-manila][data-eyes="2"] {
+    --cut: 12px;
+  }
+  [data-manila][data-stub] {
+    clip-path: none;
+    padding: 0.875rem 1rem 1.5rem;
+  }
+  [data-eyelet] {
+    position: absolute;
+    top: 11.5px;
+    width: 13px;
+    height: 13px;
+    translate: -50% 0;
+    border-radius: 50%;
+    background: var(--hole);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--twine) 55%, var(--color-manila)),
+      0 0 0 4.5px color-mix(in srgb, var(--twine) 85%, black);
+  }
+  /* A year, as a small date stamp in the tag's ink, turned a little. */
+  [data-date] {
+    display: inline-block;
+    padding: 3px 5px 2px;
+    border: 1.5px solid currentColor;
+    border-radius: 3px;
+    color: var(--fg-muted);
+    font: 700 var(--step--2) / 1 var(--font-mono);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    rotate: var(--turn, -3deg);
   }
   @media (width < 80rem) {
-    [data-hanging-tags] li > div {
+    [data-hanging-tags] > ul > li > div {
       rotate: calc(var(--tilt) * 0.5);
     }
   }
   @media print {
-    [data-hanging-tags] li::after {
+    [data-hanging-tags] > ul > li::after,
+    [data-hanging-tags] > ul > li::before {
       display: none;
     }
   }
@@ -1142,16 +1205,21 @@
     }
     /* Each tag where the board hangs it; its string climbs from the hole to
        the limb, `--drop` units and the 18px down to the hole. */
-    [data-hanging-tags] li {
+    [data-hanging-tags] > ul > li {
       position: absolute;
       left: calc(var(--fx) + var(--x) * var(--u));
       top: calc(var(--by) + var(--y) * var(--u));
       width: calc(var(--w) * var(--u));
-      --string: calc(var(--drop) * var(--u) + 18px);
+      --s1: calc(var(--d1) * var(--u) + 18px);
+      --s2: calc(var(--d2) * var(--u) + 18px);
     }
-    [data-hanging-tags] li::after {
-      top: calc(18px - var(--string));
-      height: var(--string);
+    [data-hanging-tags] > ul > li::after {
+      top: calc(18px - var(--s1));
+      height: var(--s1);
+    }
+    [data-hanging-tags] > ul > li::before {
+      top: calc(18px - var(--s2));
+      height: var(--s2);
     }
     [data-journey-vignette] {
       position: absolute;
@@ -1191,8 +1259,8 @@
       position: relative;
       margin-top: 1.5rem;
     }
-    [data-hanging-tags] ul,
-    [data-hanging-tags] li {
+    [data-hanging-tags] > ul,
+    [data-hanging-tags] > ul > li {
       position: relative;
     }
     [data-hanging-tags] [data-trunk] {
@@ -1203,7 +1271,8 @@
       top: -61px;
       height: 63px;
     }
-    [data-hanging-tags] li::after {
+    [data-hanging-tags] > ul > li::after,
+    [data-hanging-tags] > ul > li::before {
       top: -24px;
       height: 42px;
     }
@@ -1252,19 +1321,19 @@
       right: calc(var(--trunk-x) - var(--crown-w) * 0.13333);
       transform: scaleX(-1);
     }
-    [data-hanging-tags] ul {
+    [data-hanging-tags] > ul {
       display: flex;
       flex-direction: column;
       row-gap: 2.5rem;
       padding-top: 26px;
     }
-    [data-hanging-tags] li {
+    [data-hanging-tags] > ul > li {
       width: min(100% - 4.5rem, 240px);
       margin-left: auto;
       margin-right: 4.5rem;
     }
-    [data-hanging-tags] li [data-bough] {
-      left: 50%;
+    [data-hanging-tags] > ul > li [data-bough] {
+      left: var(--e1);
       right: calc(var(--trunk-x) - 4.5rem);
     }
   }
@@ -1326,7 +1395,8 @@
     [data-hanging-tags] {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-rows: repeat(3, auto);
+      /* Round 26: the first row is the new growth's tag (NowShoot.tsx). */
+      grid-template-rows: repeat(4, auto);
       align-items: start;
       column-gap: calc(2 * var(--trunk-side));
       row-gap: 4rem;
@@ -1336,10 +1406,10 @@
       padding-top: 3.5rem;
       padding-bottom: 7.5rem;
     }
-    [data-hanging-tags] ul {
+    [data-hanging-tags] > ul {
       display: grid;
       grid-column: 1 / -1;
-      grid-row: 1 / -1;
+      grid-row: 2 / -1;
       grid-template-columns: subgrid;
       grid-template-rows: subgrid;
       align-items: start;
@@ -1348,19 +1418,19 @@
       top: calc(-26px - var(--crown-w) * 0.02778);
       left: calc(50% - var(--crown-w) * 0.13333);
     }
-    [data-hanging-tags] li {
+    [data-hanging-tags] > ul > li {
       width: min(100%, 21.25rem);
     }
-    [data-hanging-tags] li:nth-child(odd) {
+    [data-hanging-tags] > ul > li:nth-child(odd) {
       justify-self: end;
     }
-    [data-hanging-tags] li:nth-child(odd) [data-bough] {
-      left: 50%;
+    [data-hanging-tags] > ul > li:nth-child(odd) [data-bough] {
+      left: var(--e1);
       right: calc(-1 * var(--trunk-side));
     }
-    [data-hanging-tags] li:nth-child(even) [data-bough] {
+    [data-hanging-tags] > ul > li:nth-child(even) [data-bough] {
       left: calc(-1 * var(--trunk-side));
-      right: 50%;
+      right: calc(100% - var(--e2));
       transform: scaleX(-1);
     }
     [data-journey-vignette] {
@@ -1368,6 +1438,102 @@
       bottom: 0;
       left: 0;
       margin-top: 0;
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Journey: the nursery (round 27, NowNursery.tsx)                         */
+  /*                                                                        */
+  /* What I am doing now: four seedlings in a nursery crate at the oak's    */
+  /* foot, a marker on a stick beside each. One box, 480×210 in its own     */
+  /* units, and its markers placed in percentages of it (`--mx` the stick's */
+  /* x, `--my` its top from the box's foot), so it is the same at every     */
+  /* width: on the board from 1280 in board units between the rice and the  */
+  /* still life, under the tree below that. A marker stands on its stick    */
+  /* and grows upward from it.                                              */
+  /* ---------------------------------------------------------------------- */
+  [data-nursery] {
+    position: relative;
+    container-type: inline-size;
+    aspect-ratio: 480 / 210;
+    width: min(100%, 26rem);
+    margin-top: 2.5rem;
+    margin-left: auto;
+  }
+  [data-nursery] li {
+    position: absolute;
+    left: var(--mx);
+    bottom: var(--my);
+    width: clamp(5rem, 21cqw, 6.25rem);
+    translate: -50% 0;
+  }
+  [data-marker] {
+    display: grid;
+    justify-items: start;
+    gap: 0.125rem;
+    padding: 0.4rem 0.35rem 0.45rem;
+    clip-path: none;
+    border-radius: var(--radius-paper);
+    box-shadow: var(--shadow-pinned);
+    rotate: var(--tilt);
+    transform-origin: 50% 100%;
+  }
+  [data-marker] [data-date] {
+    color: var(--accent);
+    font-size: 0.625rem;
+    padding: 2px 4px 1px;
+    margin-bottom: 0.2rem;
+  }
+  /* On the narrowest phones a long name breaks with a hyphen, never cut. */
+  [data-marker-name] {
+    hyphens: manual;
+    max-width: 100%;
+    font-weight: 600;
+    font-size: clamp(0.6875rem, 2.9cqw, 0.8125rem);
+    line-height: 1.2;
+  }
+  [data-marker-line] {
+    font-size: clamp(0.6875rem, 2.6cqw, 0.75rem);
+    line-height: 1.3;
+    color: var(--fg-muted);
+  }
+  /* 44px to press; its ring stays clear inside the marker. */
+  [data-marker-link] {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -14px -12px;
+    color: var(--accent);
+    font: 400 0.6875rem / 1 var(--font-mono);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  /* The narrowest phones: the crate takes the gutters too, so four markers
+     still stand apart. */
+  @media (width < 24rem) {
+    [data-nursery] {
+      width: calc(100% + 2 * var(--gutter));
+      margin-left: calc(-1 * var(--gutter));
+      margin-right: 0;
+    }
+    [data-nursery] li {
+      width: 4.5rem;
+    }
+  }
+  @media (40rem <= width < 80rem) {
+    /* Under the tree, right of the still life (which stands bottom-left). */
+    [data-nursery] {
+      margin-top: 1.5rem;
+      margin-right: 0;
+    }
+  }
+  @media (width >= 80rem) {
+    #tree [data-nursery] {
+      position: absolute;
+      left: calc(var(--fx) + 680 * var(--u));
+      top: calc(var(--by) + 690 * var(--u));
+      width: calc(480 * var(--u));
+      margin: 0;
     }
   }
 
@@ -1408,7 +1574,7 @@
       --tie-r: -24px;
       --tie: -26px;
       grid-column: 2;
-      grid-row: 3;
+      grid-row: 4;
       margin: 0;
       padding: 0 0 0 calc(min(50%, 10.625rem) - 58px);
     }
@@ -2104,7 +2270,7 @@
       }
       /* The paper turns about its hole (`origin-[50%_18px]`), so it drops
          along its string; the string itself stays on the limb. */
-      [data-hanging-tags] li > div {
+      [data-hanging-tags] > ul > li > div {
         animation: tag-drop linear both;
         animation-timeline: view();
         animation-range: entry 0% cover 40%;
@@ -2330,14 +2496,27 @@
     #tree[data-growing] [data-grow-late] {
       animation: grow-in 1s var(--ease-ink) calc(var(--grow-ms, 0ms) - 2.2s) both;
     }
-    #tree[data-growing] [data-hanging-tags] li:not([data-grown]) {
+    /* Round 27: the nursery is the show's last beat, "the shoot" (its
+       weather is the saucer). Until then it is out of sight; then the
+       seedlings come up out of the crate and the markers drop onto their
+       sticks. Nothing fades, so no text is ever half-transparent. */
+    #tree[data-growing]:not([data-weather="ufo"]) [data-nursery] {
       visibility: hidden;
     }
-    #tree[data-growing] [data-hanging-tags] li[data-grown] > div {
+    #tree[data-growing][data-weather="ufo"] [data-nursery] [data-scenery="nursery-sprouts"] {
+      animation: oak-rise 0.9s var(--ease-ink) both;
+    }
+    #tree[data-growing][data-weather="ufo"] [data-marker] {
+      animation: tag-drop 0.9s var(--ease-ink) 0.4s both;
+    }
+    #tree[data-growing] [data-hanging-tags] > ul > li:not([data-grown]) {
+      visibility: hidden;
+    }
+    #tree[data-growing] [data-hanging-tags] > ul > li[data-grown] > div {
       animation: tag-drop 0.9s var(--ease-ink) both;
     }
-    #tree[data-growing] [data-hanging-tags] li[data-grown] > [data-bough],
-    #tree[data-growing] [data-hanging-tags] li[data-grown]::after {
+    #tree[data-growing] [data-hanging-tags] > ul > li[data-grown] > [data-bough],
+    #tree[data-growing] [data-hanging-tags] > ul > li[data-grown]::after {
       animation: grow-in 0.5s var(--ease-ink) both;
     }
   }

@@ -31,6 +31,8 @@ export const INK_DRAWINGS = [
   "oak-roots",
   "oak-bough",
   "oak-bough-leaves",
+  "nursery",
+  "nursery-sprouts",
   "journey-rice",
   // Contact
   "postmark",

@@ -119,6 +119,13 @@ const PAIRINGS = [
   ["Night", "loud", "dusk-raised", "dusk-muted", "secondary text, raised panel"],
   ["Night", "loud", "dusk-raised", "dusk-moss", "links, rail labels, metrics, raised panel"],
   ["Night", "loud", "dusk-raised", "dusk-red", "the single mark, raised panel"],
+  // Round 27: the oak's manila tags, paper in both themes; the kraft end is
+  // the darker, so it is the one that can fail.
+  ...["manila", "kraft"].flatMap((bg) => [
+    ["Both", "manila", bg, "ink", `tag text, ${bg}`],
+    ["Both", "manila", bg, "kraft-muted", `tag secondary text, ${bg}`],
+    ["Both", "manila", bg, "kraft-moss", `tag measures and links, ${bg}`],
+  ]),
 ];
 
 const AA = 4.5;

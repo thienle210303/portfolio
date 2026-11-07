@@ -9,7 +9,7 @@ import {
   RECORD_LEGACY_SECTION_IDS,
   RECORD_WORK_ENTRY_ID,
 } from "@/sections/CareerTree/anchors";
-import { careerEntries, certifications, projects, record } from "@/content/portfolio";
+import { careerEntries, certifications, now, projects, record } from "@/content/portfolio";
 import { buildDocuments } from "@/lib/answer-corpus";
 import { careerIndexable, education, projectsIndexable } from "@/lib/answer-sources";
 import { buildSlice, diaryChapters, diaryPages, entryTitle, featuredEntries, kindCounts } from "@/lib/record";
@@ -455,9 +455,12 @@ describe("the subjects #record is cited for", () => {
     expect(missing).toEqual([]);
   });
 
-  it("cites #record only for subjects it renders, and #tree for nothing", () => {
+  it("cites #record only for subjects it renders, and #tree only for the new growth it renders", () => {
     const docs = buildDocuments();
-    expect(docs.filter((doc) => doc.sectionId === "tree")).toEqual([]);
+    // Round 26: the oak's new shoot (NowShoot.tsx) prints each of these lines.
+    expect(docs.filter((doc) => doc.sectionId === "tree").map((doc) => doc.text)).toEqual(
+      now.items.map((item) => `${item.name}, ${item.status}: ${item.line}`),
+    );
     const needles = careerIndexable
       .flatMap((e) => [e.role, e.organization])
       .concat(projectsIndexable.map((p) => p.title), education.map((s) => s.institution));

@@ -115,7 +115,7 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
   const start = () => {
     const section = document.getElementById("tree");
     if (!section || reducedMotion()) return;
-    const tags = [...section.querySelectorAll<HTMLElement>("[data-hanging-tags] li[data-year]")];
+    const tags = [...section.querySelectorAll<HTMLElement>("[data-hanging-tags] > ul > li[data-year]")];
     const total = beats.length * BEAT_MS + HOLD_MS;
 
     runningRef.current = true;

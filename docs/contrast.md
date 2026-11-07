@@ -96,6 +96,12 @@ Lowest pairing in the current palette: **4.52:1**
 | Night | loud | `#1e2c30` | `#a9b6ae` | secondary text, raised panel | 6.85:1 | AA |
 | Night | loud | `#1e2c30` | `#86aa76` | links, rail labels, metrics, raised panel | 5.50:1 | AA |
 | Night | loud | `#1e2c30` | `#ff7a85` | the single mark, raised panel | 5.74:1 | AA |
+| Both | manila | `#f1e6c9` | `#1d2321` | tag text, manila | 12.86:1 | AAA |
+| Both | manila | `#f1e6c9` | `#4a4f45` | tag secondary text, manila | 6.77:1 | AA |
+| Both | manila | `#f1e6c9` | `#3a5230` | tag measures and links, manila | 6.96:1 | AA |
+| Both | manila | `#e2cfa3` | `#1d2321` | tag text, kraft | 10.41:1 | AAA |
+| Both | manila | `#e2cfa3` | `#4a4f45` | tag secondary text, kraft | 5.48:1 | AA |
+| Both | manila | `#e2cfa3` | `#3a5230` | tag measures and links, kraft | 5.63:1 | AA |
 
 ## Known tight spots
 

@@ -7,7 +7,7 @@ import type { NhiMood } from "@/types/portfolio";
  * Her own brief, verbatim: "dumb dumb cute cute easy mood changing", and then
  * Thien's: "more cute, more beautiful". So she is drawn chibi: a head nearly
  * as big as the rest of her, big eyes behind big round glasses, long black
- * hair with curtain bangs, a shine and a bow, blush drawn as manga strokes,
+ * hair with curtain bangs, a shine and a star hairclip, blush drawn as manga strokes,
  * a collared cardigan, little round shoes and mitten hands, and her bunny
  * plush in its little dress (she loves Miffy; this is a bunny of her own, not
  * Miffy, whose design is someone else's and is never drawn here). Five faces, each from a photo of her (the mirror pout, the
@@ -17,7 +17,7 @@ import type { NhiMood } from "@/types/portfolio";
  *
  * Two passes per layer, like `MiniThien`: a knockout in `var(--ground)` under
  * every part, then the ink in `currentColor`. There are two layers, behind
- * (legs, cardigan, face, hair) and in front (arms, hands, bunny, bow), so what
+ * (legs, cardigan, face, hair) and in front (arms, hands, bunny, star clip), so what
  * is in front of her hair is not washed by it. Beside the cats the knockout
  * is their cut-out; on the oak's swing she is wrapped in `[data-paper]`, so
  * she is ink on paper in both themes, like the tags. The hair is washed at
@@ -26,8 +26,8 @@ import type { NhiMood } from "@/types/portfolio";
  *
  * Round 24, her act (Thien: "Be Nhi character must have an act, Hả? and
  * surprise like what you say? the head is slightly turn!"). `huh` is no longer
- * a blank face: it is the double take. Her head (the hair, the face, the bow
- * and everything on it) is a group that tilts about 13 degrees about her neck,
+ * a blank face: it is the double take. Her head (the hair, the face, the star
+ * clip and everything on it) is a group that tilts about 13 degrees about her neck,
  * so her near ear (on our right) comes up; the features inside slide a little
  * to the left, which turns her three-quarters, the far eye and lens narrower;
  * her brows go up, her eyes go wide with two shines, her mouth is a small
@@ -128,11 +128,14 @@ const CARDIGAN =
   "M 11 20.4 C 9 21, 8.4 23.6, 8.2 27 L 7.2 32.6 C 10 33.6, 18 33.6, 20.8 32.6 L 19.8 27 C 19.6 23.6, 19 21, 17 20.4 Z";
 const COLLAR = "M 11.2 20.6 Q 11.8 22.8 14 21.6 Q 16.2 22.8 16.8 20.6";
 
-/** A bow on the right of her head: two loops and a knot. */
-const BOW: readonly Part[] = [
-  { kind: "area", head: true, d: "M 21 4.6 C 19.6 3, 18.4 3.4, 18.6 4.8 C 18.8 6.2, 20 6.4, 21 4.6 Z" },
-  { kind: "area", head: true, d: "M 21 4.6 C 22 2.6, 23.6 2.6, 23.6 4 C 23.6 5.4, 22.2 6, 21 4.6 Z" },
-  { kind: "area", head: true, d: circle(21, 4.6, 0.75) },
+/** A star hairclip on the right of her head (Thien, 2026-11-07: it was a
+ *  bow), turned a little, as a clip sits. */
+const STAR_CLIP: readonly Part[] = [
+  {
+    kind: "area",
+    head: true,
+    d: "M 20.64 2.17 L 21.57 3.47 L 23.15 3.18 L 22.2 4.47 L 22.96 5.88 L 21.44 5.37 L 20.34 6.53 L 20.35 4.93 L 18.91 4.24 L 20.43 3.76 Z",
+  },
 ];
 
 /**
@@ -189,7 +192,7 @@ function standFront(huh: boolean): readonly Part[] {
     ...plush(5.2, 29.4),
     { kind: "line", d: "M 8.6 22 C 7.6 23.8, 7.2 25.8, 7.2 27.6" },
     { kind: "area", d: circle(7.2, 28.4, 1) },
-    ...BOW,
+    ...STAR_CLIP,
   ];
 }
 
@@ -216,7 +219,7 @@ function sitFront(huh: boolean): readonly Part[] {
     { kind: "area", d: circle(1.4, 19, 1) },
     // The plush rides on her lap.
     ...plush(14, 28.4),
-    ...BOW,
+    ...STAR_CLIP,
   ];
 }
 
