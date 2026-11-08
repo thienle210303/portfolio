@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440" />
+    <title>Hero: each chapter as the thing it was</title>
+    <link rel="stylesheet" href="board.css" />
+    <link rel="stylesheet" href="objects.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 28, hero at 1440 (the laptop band, 1024–1279, is the same
+       * composition with the objects at 0.85 of this size, as the tags are
+       * today).
+       *
+       * What changes:
+       *  1. The four chapter tags stop being four copies of one white tag.
+       *     Each chapter hangs as the object it was (objects.css).
+       *  2. They hang differently: two clothespinned to the line, two on a
+       *     string, so the line sags where the weight is and no two tops
+       *     line up.
+       *  3. The field tag drops from 380 to 330px wide and sits on its own
+       *     longer string, lower than the chapters: it is the last thing on
+       *     the line, not a second headline. The red stamp stays its one red.
+       *  4. The hint stays above the h1 (moving it under the actions put it
+       *     on the vignettes at 1440×900) and reads "Press anything on the
+       *     line", since not everything on it is a tag now. Copy change:
+       *     Thien's call.
+       *
+       * Unchanged: the h1 and lead, the two actions, the scenery, the flip
+       * to my line about each chapter, the line's two supports.
+       */
+      body { overflow-x: auto; }
+      .stage { position: relative; width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; }
+      .words { position: absolute; left: 160px; top: 404px; width: 690px; display: grid; gap: 16px; }
+      .words .actions { display: flex; gap: 12px; align-items: center; }
+      .words .hint { margin-bottom: -6px; }
+      .field { position: absolute; left: 910px; top: 236px; width: 350px; --tilt: 1.5deg; }
+      .field .tagbody { padding: 40px 18px 18px; font: 400 var(--step--1) / 1.55 var(--font-mono); }
+      .field dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; margin: 10px 0; }
+      .field dt { color: var(--fg-muted); }
+      .field dd { margin: 0; }
+      .field .foot { display: flex; justify-content: space-between; align-items: end; margin-top: 10px; }
+      .redstamp { border: 2px solid var(--mark); color: var(--mark); font: 700 12px/1.2 var(--font-mono); letter-spacing: 0.08em; padding: 6px 8px; rotate: -5deg; }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="hdr"><span>TL</span><span class="nav">About&nbsp; Journey&nbsp; Diary&nbsp; Contact&nbsp; ☀</span><span class="stamp">Let's talk</span></div>
+
+      <div class="art" style="position:absolute;left:20px;top:130px;width:110px;height:770px">bamboo pole<br />(unchanged)</div>
+      <div class="art" style="position:absolute;left:1290px;top:85px;width:130px;height:815px">pine<br />(unchanged)</div>
+      <div class="art" style="position:absolute;left:820px;top:120px;width:120px;height:120px;border-radius:50%">sun / moon</div>
+      <div class="art" style="position:absolute;left:580px;top:705px;width:745px;height:195px">paddy, buffalo (unchanged)</div>
+      <div class="art" style="position:absolute;left:160px;top:810px;width:210px;height:80px">Moon in her võng</div>
+      <div class="art" style="position:absolute;left:410px;top:770px;width:150px;height:120px">phin &amp; cơm tấm</div>
+
+      <svg class="line" width="1440" height="900" aria-hidden="true">
+        <path d="M75 140 Q 715 250 1355 128" />
+        <line x1="495" y1="187" x2="495" y2="240" />
+        <line x1="760" y1="191" x2="760" y2="226" />
+        <line x1="1085" y1="170" x2="1085" y2="246" />
+      </svg>
+
+      <!-- 1. Seed packet, clothespinned at the line (y≈165). -->
+      <div class="obj packet" style="left:170px;top:166px;width:160px;--tilt:-2.5deg">
+        <span class="pin-wood"></span>
+        <span class="yr">2003</span>
+        <h2>Kiên Giang</h2>
+        <div class="art" style="height:92px">rice (existing mask)</div>
+      </div>
+
+      <!-- 2. Boarding-pass stub on a short string: landscape, so it breaks the row of uprights. -->
+      <div class="obj stub" style="left:345px;top:236px;width:190px;--tilt:3deg">
+        <span class="eyelet" style="left:150px"></span>
+        <div class="row"><span class="yr">Dec 2018</span><span class="yr">→</span></div>
+        <h2 style="margin-top:6px">Taylors</h2>
+        <div class="rule"></div>
+        <div class="art" style="height:52px">flytrap (existing mask)</div>
+      </div>
+
+      <!-- 3. Library card, clothespinned at the deepest point of the sag. -->
+      <div class="obj card-lib" style="left:552px;top:192px;width:150px;--tilt:-1deg">
+        <span class="pin-wood"></span>
+        <h2>USC</h2>
+        <span class="yr">2021</span>
+        <div class="art" style="height:70px;margin-top:12px">open book (existing mask)</div>
+      </div>
+
+      <!-- 4. Receipt on a string: narrow and long, white. -->
+      <div class="obj receipt" style="left:700px;top:224px;width:124px;--tilt:2deg">
+        <span class="eyelet"></span>
+        <div class="yr">2025</div>
+        <div class="dots"></div>
+        <h2 style="font-family:var(--font-display)">DoorDash</h2>
+        <div class="dots"></div>
+        <div class="art" style="height:64px">laptop (existing mask)</div>
+      </div>
+
+      <!-- The field tag: smaller, on the longest string, last on the line. -->
+      <div class="field">
+        <div class="tag" style="padding:0;--hole:var(--ground)">
+          <div class="tagbody">
+            <div style="display:flex;justify-content:space-between"><b>Field tag No. 001</b><b>That's me</b></div>
+            <dl>
+              <dt>Name</dt><dd>Thien Le</dd>
+              <dt>Native to</dt><dd>Kiên Giang, Việt Nam</dd>
+              <dt>Transplanted</dt><dd>Taylors, South Carolina</dd>
+              <dt>Habitat</dt><dd>DoorDash, retail data</dd>
+              <dt>Formerly</dt><dd>Chef, family kitchen</dd>
+              <dt>Companions</dt><dd>Two cats, Moon and Mi</dd>
+              <dt>Status</dt><dd>Still growing · <span class="accent">4 seedlings ↓</span></dd>
+            </dl>
+            <div class="foot">
+              <div class="art dark" style="width:64px;height:64px">QR</div>
+              <span class="redstamp">PRACTICE MAKES AI.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="words">
+        <p class="aside hint">This line runs from a bamboo pole to a pine. Press anything on it and I'll tell you that part.</p>
+        <h1 class="display">Just a curious kid, and this is my youth.</h1>
+        <p class="lead" style="max-width:31rem">I write software for retail data at DoorDash. Before that I was a chef in my family's restaurant. Come in, I'll show you around.</p>
+        <div class="actions"><span class="btn">See what I've built</span><span class="btn quiet">Send me a postcard</span></div>
+      </div>
+
+      <span class="pin" style="left:150px;top:150px">1</span>
+      <span class="pin" style="left:505px;top:206px">2</span>
+      <span class="pin" style="left:905px;top:226px">3</span>
+      <span class="pin" style="left:136px;top:410px">4</span>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Round 28 as built</title>
+    <link rel="stylesheet" href="boards/board.css" />
+    <script src="boards/board.js"></script>
+    <style>
+      body { padding: 48px 0 96px; }
+      main { max-width: 1180px; margin: 0 auto; padding-inline: var(--gutter); display: grid; gap: 56px; }
+      section { display: grid; gap: 18px; }
+      .pair { display: grid; gap: 20px; grid-template-columns: 1fr; align-items: start; }
+      @media (width >= 64rem) { .pair { grid-template-columns: 1fr 1fr; } .pair.phone { grid-template-columns: repeat(3, 1fr); } }
+      figure { margin: 0; display: grid; gap: 6px; }
+      figure img { width: 100%; height: auto; border: 1px solid var(--rule-color); background: var(--surface); }
+      figcaption { font: 400 var(--step--1) var(--font-mono); color: var(--fg-muted); }
+      ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 72ch; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header style="display:grid;gap:10px">
+        <span class="label">Round 28 · v2 · 2026-11-07 · approved by Thien, built</span>
+        <h1 class="chapter">Finishing, as built.</h1>
+        <p class="lead" style="max-width:62ch">v1 is the boards Thien approved. v2 redraws them where the build moved, listed below. Audit: <a class="accent" href="../audit.md">audit.md</a>.</p>
+        <ul>
+          <li>The hint reads "Press a chapter and I'll tell you that part." v1's "Press anything on the line" wrapped to two lines at 1440.</li>
+          <li>From 1280 the Ask lies across the foot of the postcard and the card, with the bánh tét beside it. Under the card (v1), its words stacked it about 700px tall and left the postcard's foot bare. It lies flat, because a tilt changed its measured height.</li>
+          <li>The email and phone labels stay above their lines. Labels on the line shortened the lines below the form's full width, which round 25's rule forbids. Only the gaps are tighter.</li>
+          <li>The receipt is shorter and on a 12px string from 1024. At its board height it pushed Moon's hammock off a 1440×900 first screen.</li>
+          <li>The paper clip grips the card's left edge over the postcard, not the middle of the card.</li>
+        </ul>
+      </header>
+
+      <section>
+        <h2 class="page-title">A · The hero</h2>
+        <div class="pair">
+          <figure><img src="previews/hero-1440.png" alt="" /><figcaption>Board v2, 1440</figcaption></figure>
+          <figure><img src="built/fold-1440-day.jpg" alt="" /><figcaption>As built, 1440, day</figcaption></figure>
+        </div>
+        <div class="pair phone">
+          <figure><img src="previews/hero-phone-390.png" alt="" /><figcaption>Board v2, 390</figcaption></figure>
+          <figure><img src="built/about-390-day.jpg" alt="" /><figcaption>As built, 390, day</figcaption></figure>
+          <figure><img src="built/about-390-night.jpg" alt="" /><figcaption>As built, 390, night</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">B · Contact</h2>
+        <div class="pair">
+          <figure><img src="previews/contact-1440.png" alt="" /><figcaption>Board v2, 1440</figcaption></figure>
+          <figure><img src="built/contact-1440-day.jpg" alt="" /><figcaption>As built, 1440, day</figcaption></figure>
+        </div>
+        <div class="pair phone">
+          <figure><img src="previews/contact-phone-390.png" alt="" /><figcaption>Board v2, 390</figcaption></figure>
+          <figure><img src="built/contact-390-day.jpg" alt="" /><figcaption>As built, 390, day</figcaption></figure>
+          <figure><img src="built/contact-1440-night.jpg" alt="" /><figcaption>As built, 1440, night</figcaption></figure>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

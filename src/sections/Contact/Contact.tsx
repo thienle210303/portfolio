@@ -15,8 +15,8 @@ import Postcard from "./Postcard";
  *
  * "Xin chào," over "say hi.", a bowl of phở beside it by day and two beers
  * at night, a string of Hội An lanterns with hoa mai at its ends; then the
- * postcard, my card, the bánh tét (Tết lives here all year), and the chat as a
- * strip across the bottom. The lanterns hang across the top.
+ * postcard, my card, the bánh tét (Tết lives here all year), and the chat. The
+ * lanterns hang across the top.
  *
  * Three arrangements (round 25), and each object also decides its own shape
  * from its own width:
@@ -25,8 +25,10 @@ import Postcard from "./Postcard";
  *  - 1024 to 1279: the postcard beside a 21rem portrait card, the Tết under
  *    the card. The postcard's column is under 40rem for most of that range,
  *    so it stands picture over address with a full-width form.
- *  - from 1280: round 21's board mirrored, the postcard left and the card
- *    right, the Tết under the postcard.
+ *  - from 1280 (round 28): one desk. The postcard left; my card clipped to
+ *    its top right corner, 40px over it; under both, the chat as a notepad
+ *    sheet lying across the desk from the right, the Tết beside it. Below
+ *    1280 the chat is a strip under everything.
  *
  * The postcard comes first in the DOM and on the page, at every width, so the
  * one thing this section asks for is the first thing you reach (round 22, by
@@ -129,38 +131,46 @@ export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured
 
         {/* Three named places, so the Tết can sit under the card on a laptop
             and under the postcard on the board without being written twice. */}
-        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-y-8 [grid-template-areas:'postcard'_'card'_'tet'] lg:grid-cols-[minmax(0,1fr)_21rem] lg:grid-rows-[auto_1fr] lg:gap-x-[clamp(2.5rem,4.8vw,4.375rem)] lg:gap-y-5 lg:[grid-template-areas:'postcard_card'_'postcard_tet'] xl:grid-cols-[minmax(0,740fr)_minmax(20.5rem,430fr)] xl:grid-rows-[auto_auto] xl:gap-y-2 xl:[grid-template-areas:'postcard_card'_'tet_card']">
+        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-y-8 [grid-template-areas:'postcard'_'card'_'tet'_'ask'] lg:grid-cols-[minmax(0,1fr)_21rem] lg:grid-rows-[auto_1fr_auto] lg:gap-x-[clamp(2.5rem,4.8vw,4.375rem)] lg:gap-y-5 lg:[grid-template-areas:'postcard_card'_'postcard_tet'_'ask_ask'] xl:grid-cols-[minmax(0,740fr)_minmax(20.5rem,430fr)] xl:grid-rows-[auto_auto] xl:gap-x-0 xl:gap-y-7 xl:[grid-template-areas:'postcard_card'_'tet_tet']">
           <div className="min-w-0 [grid-area:postcard]">
             <Postcard emailDeliveryConfigured={emailDeliveryConfigured} />
           </div>
           {/* Not `.no-print`: the card is worth printing. A size container:
               the card lies landscape where this column gives it the room.
-              The top padding is the paper clip's, which stands above it. */}
-          <div className="@container/card min-w-0 pt-6 [grid-area:card] lg:pt-5">
+              The top padding is the paper clip's, which stands above it.
+              From 1280 (round 28) it is clipped to the postcard's corner,
+              40px over it and on top of it. */}
+          <div className="@container/card relative z-10 min-w-0 pt-6 [grid-area:card] lg:pt-5 xl:-ml-10">
             <BusinessCard bookingUrl={bookingUrl} />
           </div>
-          <div className="flex items-center justify-end gap-3 pr-1 [grid-area:tet] xl:pr-14">
+          <div className="flex items-center justify-end gap-3 pr-1 [grid-area:tet] xl:self-start xl:justify-self-start xl:pt-10 xl:pl-6">
             <p className="font-serif text-[14px] text-fg-muted italic">{contactCopy.tet}</p>
             <Drawing name="banh-tet" className="h-[34px] w-[115px] shrink-0" />
           </div>
-        </div>
 
-        {/* Screen-only: a printed page cannot ask anything. `scroll-mt-20`
-            clears the sticky header, the offset `Section` uses. */}
-        <div id="ask" className="paper-lift no-print mt-6 scroll-mt-20 overflow-hidden rounded-[4px] bg-surface">
-          {/* The idle notepad is drawn here, on the server, and holds the
-              chat's place until its chunk lands (see `AskPlaceholder`). */}
-          <AskLoader
-            liveModeConfigured={askLiveModeConfigured}
-            heading={<AskHeading />}
-            placeholder={
-              <AskPlaceholder
-                liveModeConfigured={askLiveModeConfigured}
-                heading={<AskHeading />}
-                suggestions={SUGGESTED_QUESTIONS}
-              />
-            }
-          />
+          {/* Screen-only: a printed page cannot ask anything. `scroll-mt-20`
+              clears the sticky header, the offset `Section` uses. Round 28:
+              from 1280 a sheet off my notepad lying across the desk under the
+              postcard and the card, the bánh tét beside it; below, the strip under everything. Its own width
+              lays it out (`@container/ask`, ask-sheet.tsx). */}
+          <div
+            id="ask"
+            className="@container/ask paper-lift no-print min-w-0 scroll-mt-20 overflow-hidden rounded-[4px] bg-surface [grid-area:ask] max-lg:-mt-2 lg:mt-1 xl:w-[min(100%,50rem)] xl:justify-self-end xl:[grid-area:tet]"
+          >
+            {/* The idle notepad is drawn here, on the server, and holds the
+                chat's place until its chunk lands (see `AskPlaceholder`). */}
+            <AskLoader
+              liveModeConfigured={askLiveModeConfigured}
+              heading={<AskHeading />}
+              placeholder={
+                <AskPlaceholder
+                  liveModeConfigured={askLiveModeConfigured}
+                  heading={<AskHeading />}
+                  suggestions={SUGGESTED_QUESTIONS}
+                />
+              }
+            />
+          </div>
         </div>
       </div>
     </Section>

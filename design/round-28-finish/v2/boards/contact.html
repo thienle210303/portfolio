@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440" />
+    <!-- v2, 2026-11-07: redrawn to the build. -->
+    <title>Contact: one desk, three papers</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 28, Contact from 1280. Today it is three objects that do not
+       * know about each other: the postcard, a card floating top right with
+       * ~400px of nothing under it, and the Ask as a full-width grey slab
+       * that outweighs the postcard. And the first screen has five reds
+       * (three lanterns, the postcard's sun ring, the seal) beside the flag.
+       *
+       * What changes:
+       *  1. One desk. The card is paperclipped to the postcard's top right
+       *     corner, overlapping it by 40px (the clip is already drawn), so
+       *     the two read as one thing sent together.
+       *  2. The Ask becomes a sheet torn off my notepad, lying across the
+       *     foot of the postcard and the card from the right (v2: v1 put it
+       *     under the card, where its words stacked it ~700px tall), the
+       *     bánh tét beside it on the left. No grey compose panel: the
+       *     question line and the suggestions are on the same sheet, a
+       *     dashed rule between. It still opens downward on a question.
+
+       *  3. The postcard's picture side gets its sky back: the empty red
+       *     ring (the sun) becomes the hero's own sun file, so red on this
+       *     screen is the flag stamp and my seal only.
+       *  4. The lanterns lose their red and green by day: lantern paper on
+       *     twine ribs, lit gold at night (unchanged). Recolouring is in
+       *     draw-scenery.mjs, not here.
+       *  5. The field pair: the bracket and its two lines close up (today
+       *     ~70px of blank above each line on a phone); one 44px line each.
+       *
+       * Unchanged: the copy, the form's rules (CLAUDE.md), the card's
+       * contents, the chat's behaviour, the bánh tét.
+       */
+      body { overflow-x: auto; }
+      .stage { position: relative; width: 1440px; height: 1160px; margin: 0 auto; }
+      .head { position: absolute; left: 160px; top: 32px; display: grid; gap: 6px; }
+      .postcard { position: absolute; left: 160px; top: 210px; width: 700px; height: 560px; --tilt: -0.8deg; display: grid; grid-template-columns: 1fr 1fr; }
+      .postcard .addr { padding: 30px 28px; display: grid; gap: 14px; align-content: start; border-right: 1px solid var(--rule-color); }
+      .postcard .pic { padding: 18px; display: grid; grid-template-rows: auto 1fr; gap: 8px; }
+      .pair { display: grid; gap: 4px; border-left: 1.5px solid var(--fg-muted); padding-left: 12px; }
+      .pair .field { min-height: 40px; }
+      .lbl { font: 400 13px var(--font-mono); color: var(--fg-muted); }
+      .card { position: absolute; left: 820px; top: 182px; width: 440px; padding: 30px 30px 24px; --tilt: 1.6deg; z-index: 3; display: grid; gap: 10px; }
+      .seal { position: absolute; right: 26px; top: 26px; width: 58px; height: 64px; background: var(--mark); color: var(--fg-inverse); font: italic 600 16px/1.1 var(--font-serif); display: grid; place-items: center; text-align: center; }
+      .clip { position: absolute; left: 812px; top: 160px; width: 22px; height: 70px; border: 2.5px solid var(--fg-muted); border-radius: 12px; z-index: 4; }
+      .ask { position: absolute; left: 480px; top: 805px; width: 800px; padding: 28px 26px 22px; --tilt: -1.2deg; display: grid; gap: 12px; z-index: 2;
+        background-image: repeating-linear-gradient(180deg, transparent 0 27px, color-mix(in srgb, var(--rule-color) 80%, transparent) 27px 28px); }
+      .ask::before { content: ""; position: absolute; inset: -6px 0 auto 0; height: 8px; background: radial-gradient(circle at 6px 0, transparent 4px, var(--surface) 4.5px) 0 0 / 12px 8px; }
+      .ask .q { display: flex; gap: 8px; align-items: end; }
+      .ask .q .field { flex: 1; }
+      .ask .try { display: flex; flex-wrap: wrap; gap: 6px; }
+      .ask .try span { font-size: 14px; padding: 8px 10px; box-shadow: var(--shadow-pinned); }
+      .lanterns { position: absolute; left: 640px; top: 0; width: 780px; height: 170px; }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="head">
+        <p class="aside">Xin chào,</p>
+        <h2 class="display">say hi.</h2>
+        <p class="aside">One postcard, two lines, and the next move is mine.</p>
+      </div>
+      <div class="art lanterns">lantern string: hoa mai at its ends, lanterns in lantern paper by day (no red, no green), lit at night</div>
+
+      <div class="postcard paper">
+        <div class="addr">
+          <div style="display:flex;justify-content:flex-end;gap:10px"><div class="art dark" style="width:70px;height:70px;border-radius:50%">postmark</div><div class="art" style="width:66px;height:80px;border-color:var(--mark);color:var(--mark)">flag stamp</div></div>
+          <p class="aside" style="color:var(--fg)">Leave a way to reach you.</p>
+          <p class="muted" style="font-size:14px;margin-top:-10px">No message needed. I'll write first.</p>
+          <div><span class="lbl">Your name *</span><span class="field"></span></div>
+          <div class="pair"><div><span class="lbl">Email</span><span class="field"></span></div><div><span class="lbl">or phone</span><span class="field"></span></div></div>
+          <p class="aside" style="font-size:14px;margin-top:-8px">* One is enough, both is fine.</p>
+          <div><span class="btn">Send the postcard</span></div>
+        </div>
+        <div class="pic">
+          <p class="aside" style="color:var(--fg)">Greetings from<br /><b class="page-title" style="font-family:var(--font-display);font-style:normal">Taylors, SC</b></p>
+          <div class="art">picture: pines, heron, rice; the sun is the hero's sky file, not a red ring</div>
+        </div>
+      </div>
+
+      <span class="clip"></span>
+      <aside class="card paper">
+        <span class="seal">Thiện<br />Lê</span>
+        <h3 class="page-title">Thien Le</h3>
+        <span class="label">Software engineer</span>
+        <span class="muted" style="font-size:14px">Taylors, South Carolina</span>
+        <p class="aside" style="border-left:2px solid var(--fg);padding-left:10px">Unsolved is not the same as unsolvable.</p>
+        <div class="data" style="display:grid;gap:6px;border-top:1px solid var(--rule-color);padding-top:10px">
+          <span>thienle210303@gmail.com ⧉</span><span>github.com/thienle210303</span><span>in/thienle210303</span>
+        </div>
+        <div style="display:flex;gap:8px"><span class="btn quiet" style="border:1px solid var(--rule-color)">Résumé</span><span class="btn quiet" style="border:1px solid var(--rule-color)">Save contact</span></div>
+      </aside>
+
+      <div id="ask" class="ask paper">
+        <div><b class="heading" style="font-size:var(--step-1)">Ask me</b> <span class="aside" style="font-size:15px">I answer from what I've written here.</span></div>
+        <div class="q"><span class="field"><span class="muted">Ask about my work</span></span><span class="btn quiet" style="border:1px solid var(--rule-color)">Ask</span></div>
+        <div class="try"><span class="paper">What do you do at DoorDash?</span><span class="paper">Are you from Việt Nam?</span><span class="paper">What have you measured?</span><span class="paper">What are your cats called?</span></div>
+        <span class="label" style="margin-top:4px">How this answers ⌄</span>
+      </div>
+
+      <div class="art" style="position:absolute;left:180px;top:830px;width:260px;height:56px">bánh tét and hoa mai, for Tết</div>
+
+      <span class="pin" style="left:800px;top:150px">1</span>
+      <span class="pin" style="left:466px;top:790px">2</span>
+      <span class="pin" style="left:830px;top:300px">3</span>
+      <span class="pin" style="left:630px;top:20px">4</span>
+      <span class="pin" style="left:150px;top:520px">5</span>
+    </div>
+  </body>
+</html>

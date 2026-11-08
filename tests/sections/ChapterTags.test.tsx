@@ -92,10 +92,28 @@ describe("ChapterTags", () => {
     for (const li of items) {
       for (const el of li.querySelectorAll<HTMLElement>("*")) {
         expect(el.style.height).toBe("");
+        // Only a drawing has a fixed height (round 28: each object sizes its
+        // own drawing); nothing that holds words does.
         const heights = (el.getAttribute("class") ?? "").split(/\s+/).filter((c) => /(^|:)h-\[/.test(c));
-        expect(heights.filter((c) => c !== "h-[88px]")).toEqual([]);
+        if (!el.hasAttribute("data-scenery")) expect(heights).toEqual([]);
       }
     }
+  });
+
+  it("hangs each chapter as its own object, two of them clothespinned", () => {
+    const { items } = setup();
+    expect(items.map((li) => li.querySelector("[data-chapter-paper]")!.getAttribute("data-chapter-paper"))).toEqual([
+      "packet",
+      "stub",
+      "card",
+      "receipt",
+    ]);
+    expect(items.map((li) => li.dataset.hang)).toEqual(["pin", "string", "pin", "string"]);
+    items.forEach((li) => {
+      const pinned = li.dataset.hang === "pin";
+      expect(Boolean(li.querySelector(':scope > [data-scenery="clothespin"]'))).toBe(pinned);
+      expect(Boolean(li.querySelector("[data-chapter-eyelet]"))).toBe(!pinned);
+    });
   });
 
   it("the drawing is decoration", () => {

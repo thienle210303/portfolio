@@ -17,11 +17,12 @@ import { BoardStamp, PostcardStamps } from "./SentStamp";
  *  - from 40rem the two sides stand side by side, the board mirrored (the
  *    address side left). The drawing is contained, never cropped: it sits on
  *    the bottom edge and the spare sky above it holds "Greetings from".
- *  - narrower, it is a postcard held upright: the picture over the address
- *    side, the form the full width of the card. Under 30rem the picture is the
- *    top of the drawing, cut just under the heron's feet; from 30rem (a laptop's
- *    column, a small tablet) it is a landscape band, the whole drawing standing
- *    at its right and "Greetings from" in the sky beside it.
+ *  - narrower, it is turned over (round 28): the address side first, the
+ *    form the full width of the card, and the picture under it as a
+ *    landscape band, the whole drawing standing at its right and "Greetings
+ *    from" in the sky beside it: 9rem tall under 30rem (a phone: the form is
+ *    the first thing you reach, not a picture of sky), 17.5rem from there (a
+ *    laptop's column, a small tablet).
  *
  * The postmark's words are HTML, not part of the drawing: an SVG used as an
  * image cannot load the site's fonts. They are set on two lines so they sit
@@ -62,7 +63,7 @@ export default function Postcard({ emailDeliveryConfigured }: { readonly emailDe
 
           <div
             data-postcard-side="picture"
-            className="postcard-sky relative order-first mb-4 overflow-hidden bg-ground @min-[40rem]:order-none @min-[40rem]:mb-0"
+            className="postcard-sky relative mt-4 overflow-hidden bg-ground @min-[40rem]:mt-0"
           >
             <div className="postcard-scene">
               <Drawing name="postcard-scene" className="absolute inset-0" />

@@ -26,12 +26,18 @@ export const PROMISE =
 export const PROMISE_LIVE =
   "Pick a question or ask your own. I find what I’ve written here the same way as always; a live model then writes the answer from exactly that, and says so.";
 
-/** The sheet. From 1024 the notepad and the compose side stand side by side,
- *  the notepad a little the wider (it holds sentences, the other side a line
- *  and four tags); below, they stack in that order. */
-export const SHEET = "grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]";
-export const THREAD_SIDE = "min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px] lg:border-r lg:border-dashed lg:border-rule";
-export const COMPOSE_SIDE = "flex min-w-0 flex-col gap-3 bg-ground px-5 pt-[18px] pb-5 sm:px-[26px]";
+/** The sheet. Where it is 44rem wide (the strip under the postcard, from
+ *  1024 to 1279) the notepad and the compose side stand side by side, the
+ *  notepad a little the wider (it holds sentences, the other side a line and
+ *  four tags); narrower (a phone, and from 1280, where it lies on the desk
+ *  under my card), they stack in that order. Its own width decides, not the
+ *  window's (`@container/ask` on `#ask`, Contact.tsx). Round 28: both sides
+ *  are the one sheet of paper, a dashed rule between them, never a grey panel. */
+export const SHEET = "grid @min-[44rem]/ask:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]";
+export const THREAD_SIDE =
+  "min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px] @min-[44rem]/ask:border-r @min-[44rem]/ask:border-dashed @min-[44rem]/ask:border-rule";
+export const COMPOSE_SIDE =
+  "flex min-w-0 flex-col gap-3 border-t border-dashed border-rule px-5 pt-[18px] pb-5 sm:px-[26px] @min-[44rem]/ask:border-t-0";
 
 /** The notepad's window. Idle it is as tall as what is written on it; with a
  *  turn in it (`data-open`) it is one fixed height (`.ask-window`, globals.css).

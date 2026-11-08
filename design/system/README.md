@@ -21,8 +21,8 @@ board shows all four.
 |---|---|---|---|---|
 | Phone | under 640 | — | 320, 375, 390, 430 | One column. The line crosses three times between two bamboo poles that stand in the paddy, one Diary page as tall as its content, the postcard's sides stack. |
 | Tablet | 640 – 1023 | `sm` 40rem | 768 | Still touch, still the menu tag, but two columns where an object has two sides: the headline beside the field tag, boughs in pairs, a landscape card. |
-| Laptop | 1024 – 1279 | `lg` 64rem | 1024 | The desktop header and the horizontal clothesline; objects at their compact size; the Diary opens to a spread; the postcard is picture over address beside the card. |
-| Desktop | 1280 and up | `xl` 80rem | 1280, 1440, 1920 | The boards: the oak as one board in board units (1/1440 of its own width, to 1680), the Diary's tabs down its side. Content otherwise stops growing at 1440; the sky and ground carry on. |
+| Laptop | 1024 – 1279 | `lg` 64rem | 1024 | The desktop header and the horizontal clothesline; objects at their compact size; the Diary opens to a spread; the postcard is address over picture beside the card (round 28: stacked, the form comes first). |
+| Desktop | 1280 and up | `xl` 80rem | 1280, 1440, 1920 | The boards: the oak as one board in board units (1/1440 of its own width, to 1680), the Diary's tabs down its side, Contact as one desk (round 28: the card clipped over the postcard's corner, the Ask a sheet across their foot). Content otherwise stops growing at 1440; the sky and ground carry on. |
 
 - **Three layout breakpoints, in rem, everywhere** (round 25): `40rem`,
   `64rem`, `80rem`. CSS, Tailwind prefixes and JavaScript `matchMedia` (`BAND` in `src/lib/breakpoints.ts`) use the same three; no `px` media queries, no `md`.

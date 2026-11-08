@@ -158,7 +158,7 @@ export const hero = {
   // Only from 1024, where the line runs from a bamboo pole to a pine; on a
   // phone it hangs down the page from the bamboo alone.
   hintLine: "This line runs from a bamboo pole to a pine.",
-  hint: "Press a tag and I'll tell you that part.",
+  hint: "Press a chapter and I'll tell you that part.",
   // Spoken after `profile.positioning`.
   invitation: "Come in, I'll show you around.",
   chapterLines: {

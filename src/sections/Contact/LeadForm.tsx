@@ -65,12 +65,12 @@ const HONEYPOT_STYLE: CSSProperties = { position: "absolute", left: "-10000px", 
 
 /** Written on a line, like an address. 16px keeps phones from zooming in. */
 const FIELD_CLASS =
-  "min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 text-[16px] text-fg aria-invalid:border-mark";
+  "min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 pt-3 pb-1 text-[16px] text-fg aria-invalid:border-mark";
 
 /** The bracket that ties the email and phone lines: a rule down their left
  *  side with a short tick at its head and its foot, drawn by the box itself. */
 const PAIR_BRACKET =
-  "relative flex flex-col gap-3 border-l-[1.5px] border-fg-muted py-1 pl-3.5 before:absolute before:top-0 before:left-0 before:w-2 before:border-t-[1.5px] before:border-fg-muted before:content-[''] after:absolute after:bottom-0 after:left-0 after:w-2 after:border-t-[1.5px] after:border-fg-muted after:content-['']";
+  "relative flex flex-col gap-1 border-l-[1.5px] border-fg-muted py-1 pl-3.5 before:absolute before:top-0 before:left-0 before:w-2 before:border-t-[1.5px] before:border-fg-muted before:content-[''] after:absolute after:bottom-0 after:left-0 after:w-2 after:border-t-[1.5px] after:border-fg-muted after:content-['']";
 
 /** Same messages as the server's schema; length caps are the inputs' `maxLength`. */
 function check(lead: Required<Lead>, emailMalformed: boolean): FieldErrors {
@@ -193,7 +193,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
   const error = typeof status === "object" ? status.error : fault;
 
   const input = (field: FieldName, label: string, props: { type: string; autoComplete: string; maxLength: number }) => (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-0.5">
       <label htmlFor={`lead-${field}`} className="font-mono text-[12.5px] text-fg-muted">
         {label}
         {field === "name" ? (
@@ -234,7 +234,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
       </h3>
       <p className="mt-1 text-[length:var(--step--1)] text-fg-muted">{contactCopy.formNote}</p>
 
-      <div className="mt-4 flex flex-col gap-3">
+      <div className="mt-4 flex flex-col gap-2">
         {input("name", contactCopy.fields.name, { type: "text", autoComplete: "name", maxLength: NAME_MAX })}
         {/* Two whole lines at every width, one above the other (round 25: side
             by side they were 100 to 150px each, too short for an address),

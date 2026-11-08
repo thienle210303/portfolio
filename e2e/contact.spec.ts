@@ -380,7 +380,11 @@ test("postcard beside the card from 1024, the chat strip under both; stacked bel
   if (side) {
     // Turned paper: allow the few pixels a 2.5° turn adds.
     // Round 22 mirrors the board: the postcard on the left, my card on the right.
-    expect(postBox.x + postBox.width).toBeLessThanOrEqual(cardBox.x + 8);
+    // Round 28: from 1280 the card is clipped over the postcard's corner, 40px
+    // over it (and up to 20px more where the two turns meet), on top of it.
+    const over = page.viewportSize()!.width >= 1280 ? 60 : 8;
+    expect(postBox.x + postBox.width).toBeLessThanOrEqual(cardBox.x + over);
+    if (over > 8) expect(postBox.x + postBox.width).toBeGreaterThan(cardBox.x + 24);
     expect(Math.abs(cardBox.y - postBox.y)).toBeLessThan(60);
   } else {
     expect(postBox.y + postBox.height).toBeLessThanOrEqual(cardBox.y + 8);
@@ -776,7 +780,7 @@ test("one bracket down the side ties the pair: one star, one note, and nothing t
   await expect(postcard(page).getByText(PAIR_ERROR)).toHaveCount(1);
 });
 
-test("the postcard stands side by side from 40rem of its own width, and picture over address below", async ({ page }) => {
+test("the postcard stands side by side from 40rem of its own width, and address over picture below", async ({ page }) => {
   onlyAt(page, ALL_WIDTHS);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await open(page);
@@ -788,7 +792,8 @@ test("the postcard stands side by side from 40rem of its own width, and picture 
     return {
       width: (el as HTMLElement).offsetWidth / rem,
       sideBySide: picture.left >= address.right - 4 && Math.abs(picture.top - address.top) < 40,
-      pictureOverAddress: picture.bottom <= address.top + 4,
+      // Round 28: stacked, it is turned over: the form first, the picture under it.
+      addressOverPicture: address.bottom <= picture.top + 4,
       form: form.width,
       picture: { width: picture.width, height: picture.height },
     };
@@ -797,12 +802,12 @@ test("the postcard stands side by side from 40rem of its own width, and picture 
   // The rule is the postcard's own width, whatever the window is.
   expect(shape.width >= 40, `a ${shape.width.toFixed(1)}rem postcard`).toBe(side);
   expect(shape.sideBySide).toBe(side);
-  expect(shape.pictureOverAddress).toBe(!side);
+  expect(shape.addressOverPicture).toBe(!side);
   // A laptop's stacked postcard has a form the width of the card (round 24's
   // column there was about 220px).
   if (widthOf(page) === 1024) expect(shape.form).toBeGreaterThan(440);
   if (side) expect(shape.form).toBeGreaterThan(250);
-  // Stacked, the picture is a band over the form, never taller than it is wide.
+  // Stacked, the picture is a band under the form, never taller than it is wide.
   if (!side) expect(shape.picture.height).toBeLessThanOrEqual(shape.picture.width);
 });
 

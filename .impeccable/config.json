@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          "design/round-28-finish/v1/boards/contact.html"
+        ],
+        "createdAt": "2026-11-07T21:23:56.468Z",
+        "reason": "Claude: the only tight leading on this board is the two-word seal (Thiện / Lê), object type set tight like the shipped card's seal; a sketch, not shipped"
+      }
+    ]
+  }
+}
