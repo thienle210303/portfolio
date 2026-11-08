@@ -215,7 +215,7 @@ describe("Watch it grow", () => {
     render(<CareerTree />);
     const button = within(section()).getByRole("button", { name: journey.watch });
     expect(
-      [/(^|\s)bg-control(\s|$)/, /(^|\s)bg-\[color:var\(--control\)\](\s|$)/].some((fill) => fill.test(button.className)),
+      [/(^|\s)bg-control(\s|$)/, /(^|\s)bg-\[color:var\(--control\)\](\s|$)/].some((fill) => fill.test(button.querySelector(".ticket-face")?.className ?? "")),
     ).toBe(true);
     expect(caption()).toHaveAttribute("aria-live", "polite");
     expect(caption().textContent).toBe("");

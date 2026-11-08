@@ -42,7 +42,7 @@ describe("Hero", () => {
     renderHero();
     const start = screen.getByRole("link", { name: "See what I've built" });
     expect(start).toHaveAttribute("href", "#tree");
-    expect(start.className).toMatch(CONTROL_FILL);
+    expect(start.querySelector(".ticket-face")?.className).toMatch(CONTROL_FILL);
     // No booking link: the quiet action names the postcard it lands on, not a call.
     expect(screen.getByRole("link", { name: "Send me a postcard" })).toHaveAttribute("href", "#contact");
     expect(screen.queryByText(/Book a call/)).toBeNull();

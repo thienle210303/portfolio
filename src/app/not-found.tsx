@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { TICKET_CLASSES, TicketFace } from "@/components/ui/Ticket";
 import { navItems } from "@/content/portfolio";
 
 /**
@@ -49,12 +49,8 @@ export default function NotFound() {
               </li>
             ))}
           </ul>
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center gap-2 self-start bg-control px-5 font-semibold text-fg-inverse transition-colors duration-200 hover:bg-accent"
-          >
-            <ArrowLeft aria-hidden="true" focusable="false" size={16} />
-            Back to the site
+          <Link href="/" className={`${TICKET_CLASSES} self-start font-semibold`}>
+            <TicketFace>Back to the site</TicketFace>
           </Link>
         </nav>
       </div>

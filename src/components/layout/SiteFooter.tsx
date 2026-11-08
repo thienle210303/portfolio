@@ -21,10 +21,15 @@ const COPYRIGHT_YEAR = 2026;
  * `tone-contrast` stays because the strip is now the page's last contrast
  * surface: the companion's `syncTone` repoints the cats' ink there, and the
  * tone's contrast pairings (scripts/contrast.mjs) stay exercised. Aliases only.
+ *
+ * Round 29: the strip is the bank the page stands on (`.ground-foot`,
+ * globals.css): its top edge is not ruled straight and the hero's bank grass
+ * stands along it. Both are drawn in CSS from existing pieces and are
+ * `aria-hidden` by nature (pseudo-elements with no text).
  */
 export default function SiteFooter() {
   return (
-    <footer className="tone-contrast bg-ground text-fg">
+    <footer className="ground-foot tone-contrast bg-ground text-fg">
       <div className="shell">
         {/* `tabular-nums`: the year sets in the default sans face, not the
             mono the rail's figures get — see the note on `.rail` in

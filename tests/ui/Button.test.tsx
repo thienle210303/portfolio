@@ -3,9 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { Button } from "@/components/ui/Button";
 
 describe("Button", () => {
-  it("primary fills with --control and labels with --fg-inverse", () => {
+  it("primary is a ticket: its face fills with --control and labels with --fg-inverse", () => {
     render(<Button>Go</Button>);
-    const cls = screen.getByRole("button", { name: "Go" }).className;
+    const button = screen.getByRole("button", { name: "Go" });
+    expect(button.className).toMatch(/(^|\s)ticket(\s|$)/);
+    const cls = button.querySelector(".ticket-face")?.className ?? "";
     expect(cls).toMatch(/(^|\s)bg-\[color:var\(--control\)\](\s|$)/);
     expect(cls).toMatch(/(^|\s)text-\[color:var\(--fg-inverse\)\](\s|$)/);
   });
@@ -20,6 +22,13 @@ describe("Button", () => {
     for (const name of ["Two", "Three"]) {
       expect(screen.getByRole("button", { name }).className).not.toMatch(/bg-(control|\[color:var\(--control\)\])/);
     }
+  });
+
+  it("keeps the ticket's stub out of the name and the text", () => {
+    render(<Button stub="play">Watch it grow</Button>);
+    const button = screen.getByRole("button", { name: "Watch it grow" });
+    expect(button.textContent).toBe("Watch it grow");
+    expect(button.querySelector(".ticket-stub")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("renders an <a> when href is passed", () => {

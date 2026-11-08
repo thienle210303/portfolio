@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440,390" />
+    <title>Controls: a ticket, a swash, two labels</title>
+    <link rel="stylesheet" href="craft.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 29, #1 and #2 of the audit. The one primary control per screen
+       * stops being a flat rectangle and becomes a printed ticket: two punched
+       * notches, a perforation, a stub with the arrow. Same --control fill,
+       * same 48px, same words. Hover tears the stub a little; press punches
+       * it 1px down. The quiet action beside it gets the nav's ink swash,
+       * drawn on under it on hover (it is the nav's own mark).
+       *
+       * The card's two pills become index labels (a dog-eared corner, twine
+       * edge) and the round copy button a small square stamp. No pill is left
+       * on the site.
+       *
+       * Unchanged: one --control per screen, the copy, 44px targets, the focus
+       * ring's colour and offset (drawn by the wrapper, since the ticket's
+       * mask would cut an outline).
+       */
+      main { display: grid; gap: 40px; padding-block: 48px 64px; }
+      .row { display: flex; flex-wrap: wrap; gap: 28px 40px; align-items: center; }
+      .spec { display: grid; gap: 10px; justify-items: start; }
+      .cap { font: 400 12px var(--font-mono); color: var(--fg-muted); }
+      .frame { position: relative; display: grid; gap: 18px; padding: 28px; border: 1px dashed var(--rule-color); }
+      .before .btn { min-height: 48px; }
+      .card { position: relative; padding: 26px 28px; display: grid; gap: 12px; max-width: 440px; --tilt: 1.4deg; }
+      @media (width < 40rem) {
+        .frame { padding: 18px 14px; }
+        .row { gap: 22px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header style="display:grid;gap:8px">
+        <span class="label">Round 29 · board 1 · controls</span>
+        <h1 class="page-title">The one button stops being a rectangle.</h1>
+      </header>
+
+      <section class="frame">
+        <span class="pin" style="left:-12px;top:-12px">1</span>
+        <span class="label">The hero's two actions</span>
+        <div class="row before">
+          <div class="spec"><span class="btn">See what I've built</span><span class="cap">today</span></div>
+          <div class="spec"><span class="btn quiet">Send me a postcard</span><span class="cap">today</span></div>
+        </div>
+        <div class="row">
+          <div class="spec">
+            <span class="ticket-hold"><span class="ticket">See what I've built<span class="stub"><i>→</i></span></span></span>
+            <span class="cap">rest</span>
+          </div>
+          <div class="spec">
+            <span class="ticket-hold"><span class="ticket is-hover">See what I've built<span class="stub"><i>→</i></span></span></span>
+            <span class="cap">hover: the stub starts to tear</span>
+          </div>
+          <div class="spec">
+            <span class="ticket-hold is-focus"><span class="ticket">See what I've built<span class="stub"><i>→</i></span></span></span>
+            <span class="cap">focus-visible: the ring holds the ticket</span>
+          </div>
+          <div class="spec">
+            <span class="ticket-hold"><span class="ticket is-pressed">See what I've built<span class="stub"><i>→</i></span></span></span>
+            <span class="cap">pressed: punched 1px</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="spec"><span class="swash-link">Send me a postcard</span><span class="cap">quiet action, rest</span></div>
+          <div class="spec"><span class="swash-link is-hover">Send me a postcard</span><span class="cap">hover / focus: the nav's swash draws on</span></div>
+        </div>
+      </section>
+
+      <section class="frame">
+        <span class="pin" style="left:-12px;top:-12px">2</span>
+        <span class="label">The same ticket wherever --control is</span>
+        <div class="row">
+          <div class="spec">
+            <span class="ticket-hold" style="--tilt:0.5deg"><span class="ticket">Watch it grow<span class="stub"><i>▸</i></span></span></span>
+            <span class="cap">the Journey (the stub says play)</span>
+          </div>
+          <div class="spec">
+            <span class="ticket-hold"><span class="ticket">Send the postcard<span class="stub"><i>✉</i></span></span></span>
+            <span class="cap">Contact</span>
+          </div>
+          <div class="spec">
+            <span class="ticket-hold"><span class="ticket is-disabled">Sending…<span class="stub"><i>✉</i></span></span></span>
+            <span class="cap">sending / disabled</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="frame">
+        <span class="pin" style="left:-12px;top:-12px">3</span>
+        <span class="label">The card's actions: labels, not pills</span>
+        <div class="paper card">
+          <h2 class="page-title">Thien Le</h2>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span class="data" style="flex:1">thienle210303@gmail.com</span>
+            <span class="stamp-btn" aria-label="Copy">⧉</span>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <span class="label-tab" style="--tilt:-1.5deg">▤ Résumé</span>
+            <span class="label-tab is-hover" style="--tilt:1deg">☷ Save contact</span>
+          </div>
+          <span class="cap">rest · hover (the label darkens a step; it does not move, it is stuck to the card)</span>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -90,6 +90,15 @@ how far off the surface a thing is. Round 25 names what is in use. The tokens ar
 
 Shadows are neutral (`rgb(30 40 35 / …)` by day, black by night), never tinted.
 
+**Round 29: no stock controls on paper.** The one `--control` per screen is a
+printed ticket (`Ticket.tsx`: notches by mask, a perforation, a stub with its
+glyph; the pressable holder is unmasked so the focus ring is whole). The quiet
+action beside it draws the nav's swash on hover (`.swash`). Actions on a card
+are index labels (`.card-label`), never pills; nothing pressable is
+`rounded-full` except the theme switch and dots. A cut paper (a clipped tag, a
+time card) casts its shadow with `drop-shadow` on an unclipped parent, since a
+clip-path cuts a box-shadow.
+
 ## 5. Layers
 
 | Layer | z | What |
@@ -114,6 +123,11 @@ These four are tokens (`--z-cats-under-menu`, `--z-header`, `--z-cats`, `--z-ski
 - **Touch:** phone and tablet are touch-first. Nothing pressable sits under
   the cats' resting box or within 8px of the screen edge; drags (the Diary's
   corner) have a button that does the same.
+- **Paper answers the hand** (round 29): paper that is a link or a button
+  lifts on hover and on focus-visible. Hanging paper swings toward level about
+  where it hangs (a springy `rotate`, the string goes with it); lying paper
+  rises 3px and levels; the shadow deepens. Reduced motion: the shadow alone.
+  Never a filter on the hero's chapters (it would flatten their flip).
 - **Motion:** `--dur-quick` 150ms (colour), `--dur-reveal` 200ms, `--dur-settle`
   500ms, `--dur-draw` 600ms, one curve `--ease-ink`. Every motion has a
   reduced-motion end state that says the same thing.

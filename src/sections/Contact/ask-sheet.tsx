@@ -32,12 +32,11 @@ export const PROMISE_LIVE =
  *  four tags); narrower (a phone, and from 1280, where it lies on the desk
  *  under my card), they stack in that order. Its own width decides, not the
  *  window's (`@container/ask` on `#ask`, Contact.tsx). Round 28: both sides
- *  are the one sheet of paper, a dashed rule between them, never a grey panel. */
+ *  are the one sheet of paper, never a grey panel. Round 29: they meet at a
+ *  fold in the sheet (`.ask-fold-*`, globals.css), not a dashed rule. */
 export const SHEET = "grid @min-[44rem]/ask:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]";
-export const THREAD_SIDE =
-  "min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px] @min-[44rem]/ask:border-r @min-[44rem]/ask:border-dashed @min-[44rem]/ask:border-rule";
-export const COMPOSE_SIDE =
-  "flex min-w-0 flex-col gap-3 border-t border-dashed border-rule px-5 pt-[18px] pb-5 sm:px-[26px] @min-[44rem]/ask:border-t-0";
+export const THREAD_SIDE = "ask-fold-side min-w-0 px-5 pt-[18px] pb-5 sm:px-[26px]";
+export const COMPOSE_SIDE = "ask-fold-top flex min-w-0 flex-col gap-3 px-5 pt-[18px] pb-5 sm:px-[26px]";
 
 /** The notepad's window. Idle it is as tall as what is written on it; with a
  *  turn in it (`data-open`) it is one fixed height (`.ask-window`, globals.css).
@@ -57,20 +56,19 @@ export const QUESTION_LABEL_TEXT = "Your question";
 export const QUESTION_INPUT =
   "min-h-11 w-full min-w-0 border-0 border-b-[1.5px] border-fg bg-transparent px-0.5 text-[16px] text-fg placeholder:text-fg-muted";
 export const QUESTION_PLACEHOLDER = "Ask about my work";
-/** Button's `secondary` recipe by hand, squared like the postcard's Send: that
- *  is Contact's one primary control, and `--accent` is for links, values and
- *  annotation, not a fill (round 22). */
+/** An ink stamp at the end of the question's line (round 29), never a fill:
+ *  the postcard's Send is Contact's one primary control, and `--accent` is for
+ *  links, values and annotation (round 22). */
 export const ASK_BUTTON =
-  "inline-flex h-11 shrink-0 items-center rounded-[3px] border border-rule bg-transparent px-[22px] text-[15px] font-semibold text-fg";
+  "ask-stamp inline-flex h-11 shrink-0 items-center rounded-[3px] border-2 border-fg bg-transparent px-4 font-mono text-[15px] font-bold text-fg";
 
-/** "or try", and the questions as paper tags. The paper is a span inside the
- *  button: a clipped element would clip its own focus ring. The button keeps a
- *  44px target; the tag is 32px to the eye. */
-export const TRY_ROW = "flex flex-wrap items-center gap-x-2 gap-y-1";
+/** "or try", and the questions jotted under it in my hand (round 29), one to a
+ *  ruled line, a dash before each. The button keeps a 44px target. */
+export const TRY_ROW = "flex flex-col items-stretch";
 export const TRY_LABEL = "font-serif text-[14px] text-fg-muted italic";
-export const TRY_LIST = "ask-try contents";
-export const TRY_BUTTON = "group inline-flex min-h-11 items-center text-left";
-export const TRY_TAG = "ask-tag inline-flex min-h-8 items-center py-1 pr-3 pl-[22px] text-[13.5px] text-fg";
+export const TRY_LIST = "ask-try flex flex-col";
+export const TRY_BUTTON = "group inline-flex min-h-11 w-full items-center text-left";
+export const TRY_TAG = "ask-jot font-serif text-[17px] leading-snug text-fg italic";
 
 /** "Clear", top right of the notepad: always laid out (round 22), so the
  *  heading beside it wraps the same before and after the first question. */

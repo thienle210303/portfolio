@@ -63,7 +63,7 @@ export default function HeroIdentity({ headingId, bookingUrl }: HeroIdentityProp
         className="mt-6.5 flex w-fit flex-wrap items-center gap-x-2.5 gap-y-2 sm:gap-x-4 lg:gap-x-5 lg:gap-y-4"
       >
         <Button href="#tree">See what I&apos;ve built</Button>
-        <Button href={bookingUrl ?? "#contact"} variant="quiet">
+        <Button href={bookingUrl ?? "#contact"} variant="quiet" className="swash">
           {bookingUrl ? "Book a call with me" : "Send me a postcard"}
         </Button>
       </div>

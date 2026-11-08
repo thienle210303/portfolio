@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { CircleAlert, CircleCheck, Loader2, TriangleAlert } from "lucide-react";
+import { TICKET_CLASSES, TicketFace } from "@/components/ui/Ticket";
 import {
   EMAIL_MAX,
   LEAD_ERRORS,
@@ -262,23 +263,25 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
       </div>
 
       <div className="mt-auto pt-6">
-        {/* Contact's one primary control and its only control fill; the keyline
-            recipe is `Button`'s primary, by hand so the fill is `bg-control`. */}
+        {/* Contact's one primary control and its only control fill: the
+            ticket (round 29, Ticket.tsx), its stub an envelope. */}
         <button
           type="submit"
           disabled={submitting}
           aria-busy={submitting || undefined}
           aria-describedby="lead-send-note"
-          className="relative inline-flex min-h-[46px] items-center justify-center rounded-[3px] border border-control bg-control px-[22px] text-[15px] font-semibold text-fg-inverse transition-colors duration-200 after:pointer-events-none after:absolute after:inset-[3px] after:rounded-[2px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-accent hover:bg-accent hover:after:opacity-40 active:translate-y-px disabled:opacity-60"
+          className={`${TICKET_CLASSES} text-[length:var(--step-0)] font-semibold disabled:pointer-events-none disabled:opacity-60`}
         >
-          {submitting ? (
-            <span className="inline-flex items-center gap-2">
-              <Loader2 aria-hidden="true" focusable="false" className="h-4 w-4 animate-spin" />
-              Sending…
-            </span>
-          ) : (
-            contactCopy.send
-          )}
+          <TicketFace stub="send">
+            {submitting ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 aria-hidden="true" focusable="false" className="h-4 w-4 animate-spin" />
+                Sending…
+              </span>
+            ) : (
+              contactCopy.send
+            )}
+          </TicketFace>
         </button>
         <p id="lead-send-note" className="mt-2 text-[length:var(--step--1)] text-fg-muted">
           {emailDeliveryConfigured ? contactCopy.sendNote : contactCopy.sendOffNote}
@@ -326,7 +329,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
           // The way out: my address as text (never a mailto: link) and a copy button.
           <p data-reach="" className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[length:var(--step--1)] text-fg">
             <span className="break-all">{profile.email}</span>
-            <CopyButton value={profile.email} label={contactCopy.copyAddress} variant="compact" className="shrink-0 rounded-full" />
+            <CopyButton value={profile.email} label={contactCopy.copyAddress} variant="compact" className="copy-stamp shrink-0" />
           </p>
         ) : null}
       </div>

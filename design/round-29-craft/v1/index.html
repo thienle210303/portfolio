@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Round 29 review</title>
+    <link rel="stylesheet" href="boards/board.css" />
+    <script src="boards/board.js"></script>
+    <style>
+      body { padding: 48px 0 96px; }
+      main { max-width: 1180px; margin: 0 auto; padding-inline: var(--gutter); display: grid; gap: 56px; }
+      section { display: grid; gap: 18px; }
+      .pair { display: grid; gap: 20px; grid-template-columns: 1fr; align-items: start; }
+      @media (width >= 64rem) { .pair { grid-template-columns: 1fr 1fr; } .pair.three { grid-template-columns: 2fr 2fr 1fr; } }
+      figure { margin: 0; display: grid; gap: 6px; }
+      figure img { width: 100%; height: auto; border: 1px solid var(--rule-color); background: var(--surface); }
+      figcaption { font: 400 var(--step--1) var(--font-mono); color: var(--fg-muted); }
+      ol, ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 72ch; }
+      .q { background: var(--surface); padding: 16px 20px; box-shadow: var(--shadow-pinned); max-width: 72ch; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header style="display:grid;gap:10px">
+        <span class="label">Round 29 · v1 · 2026-11-07 · waiting for Thien</span>
+        <h1 class="chapter">The furniture that is left.</h1>
+        <p class="lead" style="max-width:64ch">The objects are done (the brief's screenshot is this site's own oak). What still reads as a template is smaller: the controls are stock web UI, a few small parts repeat, and paper never answers the hand. Six fixes, no new drawings, no redesign. Audit: <a class="accent" href="../audit.md">audit.md</a>.</p>
+      </header>
+
+      <section>
+        <h2 class="page-title">1 · The one button becomes a ticket</h2>
+        <ol>
+          <li>"See what I've built", "Watch it grow" and "Send the postcard" become one printed ticket: punched notches, a perforation, a stub with the arrow (▸ for the show, ✉ for the postcard). Same --control fill, 48px, same words.</li>
+          <li>Hover tears the stub 4°; press punches it 1px. The focus ring is drawn by a wrapper, since the notch mask would cut an outline.</li>
+          <li>The quiet action beside it ("Send me a postcard") draws the nav's ink swash under itself on hover and focus.</li>
+        </ol>
+        <div class="pair">
+          <figure><img src="built/fold-1440.jpg" alt="" /><figcaption>As built, 1440</figcaption></figure>
+          <figure><img src="previews/controls-1440.png" alt="" /><figcaption>Board, 1440 (boards/controls.html)</figcaption></figure>
+        </div>
+        <div class="pair three">
+          <figure><img src="previews/controls-1440-night.png" alt="" /><figcaption>Board, night</figcaption></figure>
+          <figure><img src="built/contact-1440.jpg" alt="" /><figcaption>As built: the card's pills</figcaption></figure>
+          <figure><img src="previews/controls-390.png" alt="" /><figcaption>Board, 390</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">2 · The card's actions are labels, not pills</h2>
+        <ol><li>"Résumé" and "Save contact" become dog-eared index labels with a twine edge; the round copy button a small square stamp. The last `rounded-full` controls on the site go.</li></ol>
+      </section>
+
+      <section>
+        <h2 class="page-title">3 · The Ask is a notepad sheet, not a form on paper</h2>
+        <ol>
+          <li>The pad's glued head along the top, the sheet torn off along it.</li>
+          <li>Ruled lines and a margin rule in --rule (not red: one mark per screen).</li>
+          <li>The suggestions are jotted in my handwriting, one to a line, a dash before each; the wavy ink underline on hover and focus.</li>
+          <li>"Ask" is an ink stamp at the end of the question's line.</li>
+          <li>The columns meet at a fold, not a dashed rule. Behaviour, heights and the clippings unchanged.</li>
+        </ol>
+        <div class="pair three">
+          <figure><img src="built/contact-1440.jpg" alt="" /><figcaption>As built, 1440 (the Ask under the desk)</figcaption></figure>
+          <figure><img src="previews/ask-1440.png" alt="" /><figcaption>Board, 1440 (boards/ask.html)</figcaption></figure>
+          <figure><img src="previews/ask-390.png" alt="" /><figcaption>Board, 390</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">4 · Diary page 1: paper by kind, mount by place</h2>
+        <ol>
+          <li>Work is a time card (cut corners, punched head), Study an index card (head ruled twice), Milestone a ribbon's swallowtail. The shape repeats the kind dot, so colour is no longer the only carrier.</li>
+          <li>Mounts are authored per place, like the oak's TAG_LOOKS: tape, tape across a corner, the paper clip, photo corners.</li>
+          <li>Slice, strings, links, text and positions unchanged.</li>
+        </ol>
+        <div class="pair three">
+          <figure><img src="built/record-1440.jpg" alt="" /><figcaption>As built, 1440</figcaption></figure>
+          <figure><img src="previews/diary-notes-1440.png" alt="" /><figcaption>Board, 1440 (boards/diary-notes.html)</figcaption></figure>
+          <figure><img src="previews/diary-notes-390.png" alt="" /><figcaption>Board, 390</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">5 · Paper answers the hand</h2>
+        <ol>
+          <li>Hero chapters, oak tags, seedling markers and Diary notes lift on hover (where there is hover) and on focus-visible: 4px up, tilt eased toward level, a deeper drop-shadow, 200ms --ease-ink. Hanging paper swings once about its hole; the string never moves.</li>
+          <li>Press sets it back down before the flip or the jump.</li>
+          <li>Reduced motion: the shadow alone. Touch: no change. Translate and rotate only, so nothing reflows and CLS stays 0.</li>
+        </ol>
+        <div class="pair">
+          <figure><img src="previews/pickup-1440.png" alt="" /><figcaption>Board, 1440 (boards/pickup.html)</figcaption></figure>
+          <figure><img src="previews/pickup-1440-night.png" alt="" /><figcaption>Board, night</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">6 · The page ends on the ground</h2>
+        <ol>
+          <li>The footer becomes the bank: soil in --scene-bark with an unruled top edge, and the hero's own bank-grass standing on it in --scene-moss. Same line of text, nothing added.</li>
+          <li>A new text pairing (a proposed --soil-ink alias, both themes), added to `pnpm contrast`; it must clear 4.5:1.</li>
+        </ol>
+        <div class="pair three">
+          <figure><img src="built/footer-1440.jpg" alt="" /><figcaption>As built</figcaption></figure>
+          <figure><img src="previews/ground-1440.png" alt="" /><figcaption>Board, day (boards/ground.html)</figcaption></figure>
+          <figure><img src="previews/ground-1440-night.png" alt="" /><figcaption>Board, night</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">Decisions that are Thien's</h2>
+        <div class="q">
+          <ul>
+            <li><b>1, the ticket.</b> One ticket for every --control (recommended), or the hero's button alone.</li>
+            <li><b>1, the stub's glyphs.</b> → / ▸ / ✉ per action (recommended), or → everywhere.</li>
+            <li><b>4, Diary notes.</b> Shape by kind plus authored mounts (recommended), or mounts only and keep one paper.</li>
+            <li><b>5, the swing.</b> Lift and one swing for hanging paper (recommended), or lift only.</li>
+            <li><b>6, the footer.</b> The bank (recommended), or leave the footer as it is.</li>
+            <li>Anything you'd cut. Each of the six ships on its own.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -14,6 +14,7 @@ import {
   SLICE_CENTRE,
   startYear,
 } from "@/lib/record";
+import { Drawing } from "@/components/scenery/Drawing";
 import { journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
 import { KindDot } from "./KindDot";
 import { noBreak } from "./noBreak";
@@ -33,6 +34,14 @@ const pctW = (w: number) => `${((w / PAGE_FRAME.width) * 100).toFixed(2)}%`;
 
 /** Placed in the frame from 496px of page width; in flow below. */
 const PLACE = "@min-[31rem]:absolute @min-[31rem]:left-(--l) @min-[31rem]:top-(--t) @min-[31rem]:w-(--w)";
+
+/**
+ * How each pressed note is kept, by its place on the page (round 29): authored
+ * like the oak's TAG_LOOKS, never random, so no two neighbours are kept the
+ * same way. The paper's own shape says its kind (`data-kind`, globals.css):
+ * Work a time card, Study an index card, a Milestone a ribbon's swallowtail.
+ */
+const MOUNTS = ["tape", "clip", "corners", "tape-corner", "tape"] as const;
 
 const DOT_FILL = {
   work: "fill-(--kind-work)",
@@ -142,6 +151,7 @@ export default function RecordPressed() {
         >
           {FEATURED.map((entry, i) => {
             const slot = CARD_SLOTS[i];
+            const mount = MOUNTS[i % MOUNTS.length];
             return (
               <li
                 key={entry.id}
@@ -162,9 +172,17 @@ export default function RecordPressed() {
                   } as CSSProperties
                 }
               >
-                <a href={`#${journeyEntryAnchorId(entry.id)}`} className="group block">
-                  <span className="record-tape" aria-hidden="true" style={{ "--tape-rot": `${-slot.rot * 2}deg` } as CSSProperties} />
-                  <span className="block bg-surface px-3 pt-4 pb-3.5 paper-lift sm:px-3.5">
+                <a href={`#${journeyEntryAnchorId(entry.id)}`} className="group block" data-mount={mount}>
+                  {mount === "tape" ? (
+                    <span className="record-tape" aria-hidden="true" style={{ "--tape-rot": `${-slot.rot * 2}deg` } as CSSProperties} />
+                  ) : mount === "tape-corner" ? (
+                    <span className="record-tape record-tape-corner" aria-hidden="true" />
+                  ) : mount === "clip" ? (
+                    <Drawing name="paper-clip" className="record-clip" />
+                  ) : (
+                    <span className="record-corners" aria-hidden="true" />
+                  )}
+                  <span data-kind={entry.type} className="record-note block bg-surface px-3 pt-4 pb-3.5 sm:px-3.5">
                     <span className="flex flex-wrap items-center justify-between gap-x-2 font-mono text-[length:var(--step--2)] text-fg-muted">
                       <span className="inline-flex items-center gap-1.5">
                         <KindDot kind={entry.type} />

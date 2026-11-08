@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440,390" />
+    <title>The page ends on the ground</title>
+    <link rel="stylesheet" href="craft.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 29, #6. The walk starts in a paddy and ends at a desk; the last
+       * thing on the page is a flat dark web bar. It becomes the bank the
+       * whole page has been standing on:
+       *
+       *  1. Soil (--scene-bark, the oak's own bark alias), its top edge not
+       *     ruled straight.
+       *  2. bank-grass (already drawn, already used along the hero's foot)
+       *     standing on that edge, in --scene-moss.
+       *  3. The same line, in the data role. No new link, no new content.
+       *
+       * Its text pairing is new (fg-inverse on scene-bark, both themes): it is
+       * added to `pnpm contrast` and must clear 4.5:1 before it ships.
+       */
+      .end { padding: 120px 0 0; }
+      .muse { min-height: 160px; display: grid; place-items: end start; }
+    </style>
+  </head>
+  <body>
+    <div class="end">
+      <div class="shell muse"><span class="aside">…the bottom of Contact, the bánh tét on the desk</span></div>
+      <footer class="ground-foot">
+        <span class="pin" style="left:12px;top:-44px">2</span>
+        <span class="pin" style="left:12px;top:-6px">1</span>
+        <div class="shell" style="padding-inline:0"><span class="data">© 2026 Thien Le · Two cats reviewed this code. Both approved.</span></div>
+      </footer>
+    </div>
+  </body>
+</html>

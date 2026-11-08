@@ -1,0 +1,390 @@
+/*
+ * Round 29: the furniture that is left. Every treatment the boards propose,
+ * written once here so the boards share it and the build can port it whole.
+ * Aliases only (the boards' token mirror is ../../../system/tokens.css).
+ */
+@import url("board.css");
+
+:root {
+  --scenery: url("../../../../public/scenery/");
+}
+
+/* ── 1. The ticket: the one primary control ──────────────────────────────
+ * A printed ticket in --control: two punched notches at mid-height, a
+ * perforation, and a stub with the arrow. The mask makes the notches, so the
+ * focus ring cannot be an outline on the ticket (the mask would cut it): it is
+ * drawn by the wrapper (`.ticket-hold`), which carries the real <a>/<button>.
+ */
+.ticket-hold {
+  display: inline-block;
+  border-radius: 3px;
+  outline-offset: 3px;
+  rotate: var(--tilt, -0.6deg);
+}
+.ticket-hold:focus-visible,
+.ticket-hold.is-focus {
+  outline: 2px solid var(--ring-color);
+}
+.ticket {
+  --notch: 6px;
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  align-items: center;
+  min-height: 48px;
+  padding-left: 22px;
+  background: var(--control);
+  color: var(--fg-inverse);
+  font: 600 var(--step-0) / 1 var(--font-sans);
+  letter-spacing: -0.005em;
+  box-shadow:
+    inset 0 -2px 0 rgb(0 0 0 / 0.22),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+  transition: translate var(--dur-quick) var(--ease-ink);
+}
+.ticket .stub {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  width: 44px;
+  margin-left: 18px;
+  font: 400 18px / 1 var(--font-mono);
+  transform-origin: 0 0;
+  transition: rotate var(--dur-reveal) var(--ease-ink);
+}
+.ticket .stub::before {
+  /* the perforation */
+  content: "";
+  position: absolute;
+  inset: 7px auto 7px 0;
+  border-left: 1.5px dashed color-mix(in srgb, var(--fg-inverse) 45%, transparent);
+}
+.ticket .stub i {
+  font-style: normal;
+  transition: translate var(--dur-reveal) var(--ease-ink);
+}
+/* hover: the stub starts to tear off; the arrow leans the way it goes */
+.ticket-hold:hover .stub,
+.ticket.is-hover .stub {
+  rotate: 4deg;
+}
+.ticket-hold:hover .stub i,
+.ticket.is-hover .stub i {
+  translate: 3px 0;
+}
+/* pressed: punched */
+.ticket-hold:active .ticket,
+.ticket.is-pressed {
+  translate: 0 1px;
+  box-shadow: inset 0 2px 0 rgb(0 0 0 / 0.22);
+}
+.ticket.is-disabled {
+  background: color-mix(in srgb, var(--control) 45%, var(--surface));
+  color: color-mix(in srgb, var(--fg-inverse) 80%, var(--control));
+}
+.ticket.is-disabled .stub {
+  rotate: 0deg;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticket,
+  .ticket .stub,
+  .ticket .stub i {
+    transition: none;
+  }
+}
+
+/* ── 1b. The quiet action beside it: an ink swash, the nav's own mark ─── */
+.swash-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 6px;
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+.swash-link::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 6px;
+  height: 8px;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 12%22%3E%3Cpath d=%22M3 7.6C16 4.4 34 3.2 56 4.2C80 5.2 100 3.4 117 4.6C109 5.8 98 6.6 84 6.8C64 7.2 40 8.8 24 9.4C14 9.7 7 9.3 3 7.6Z%22 fill=%22%23000%22/%3E%3Cpath d=%22M30 10.6C48 10 70 10.4 92 8.8%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%220.9%22 stroke-linecap=%22round%22 stroke-dasharray=%2214 5 6 4%22/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 12%22%3E%3Cpath d=%22M3 7.6C16 4.4 34 3.2 56 4.2C80 5.2 100 3.4 117 4.6C109 5.8 98 6.6 84 6.8C64 7.2 40 8.8 24 9.4C14 9.7 7 9.3 3 7.6Z%22 fill=%22%23000%22/%3E%3Cpath d=%22M30 10.6C48 10 70 10.4 92 8.8%22 fill=%22none%22 stroke=%22%23000%22 stroke-width=%220.9%22 stroke-linecap=%22round%22 stroke-dasharray=%2214 5 6 4%22/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--dur-draw) var(--ease-ink);
+}
+.swash-link.is-hover::after,
+.swash-link:hover::after {
+  clip-path: inset(0 0 0 0);
+}
+
+/* ── 2. Index labels instead of pills (the card's actions) ─────────────── */
+.label-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px 0 12px;
+  background: color-mix(in srgb, var(--twine) 16%, var(--surface));
+  color: var(--fg);
+  font: 700 var(--step--2) / 1 var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+  box-shadow: inset 3px 0 0 var(--twine);
+  rotate: var(--tilt, 0deg);
+}
+.label-tab::after {
+  /* the dog-ear, folded */
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(225deg, transparent 50%, color-mix(in srgb, var(--twine) 45%, var(--surface)) 50%);
+}
+.label-tab.is-hover {
+  background: color-mix(in srgb, var(--twine) 26%, var(--surface));
+}
+.stamp-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--fg-muted);
+  border-radius: 2px;
+  color: var(--fg);
+  font: 400 15px / 1 var(--font-mono);
+  rotate: -3deg;
+}
+
+/* ── 3. The notepad sheet ──────────────────────────────────────────────── */
+.pad {
+  position: relative;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(90deg, transparent 39px, color-mix(in srgb, var(--rule-color) 100%, transparent) 39px 40px, transparent 40px),
+    repeating-linear-gradient(180deg, transparent 0 31px, color-mix(in srgb, var(--rule-color) 70%, transparent) 31px 32px);
+  background-position: 0 0, 0 56px;
+  color: var(--fg);
+  padding: 46px 28px 26px 56px;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 22px 40px rgb(30 40 35 / 0.18);
+  rotate: var(--tilt, -0.7deg);
+}
+.pad::before {
+  /* the glued head of the pad, with the sheet torn off along it */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 16px;
+  background: color-mix(in srgb, var(--twine) 55%, var(--surface));
+  -webkit-mask: radial-gradient(circle 3px at 6px 100%, #0000 96%, #000) 0 0 / 12px 100%;
+  mask: radial-gradient(circle 3px at 6px 100%, #0000 96%, #000) 0 0 / 12px 100%;
+}
+.pad .fold {
+  /* the crease where the sheet was folded, replacing the dashed rule */
+  width: 2px;
+  align-self: stretch;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.5));
+}
+.pad .jot {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-height: 32px;
+  color: var(--fg);
+  font: italic 400 var(--step-1) / 32px var(--font-serif);
+}
+.pad .jot::before {
+  content: "–";
+  color: var(--fg-muted);
+  font-style: normal;
+}
+.pad .jot.is-hover {
+  text-decoration: underline wavy color-mix(in srgb, var(--accent) 70%, transparent) 1px;
+  text-underline-offset: 6px;
+}
+.pad .line {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  min-height: 44px;
+  border-bottom: 1.5px solid var(--fg);
+}
+.ink-stamp {
+  display: inline-grid;
+  place-items: center;
+  min-width: 64px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 2px solid var(--fg);
+  border-radius: 3px;
+  color: var(--fg);
+  font: 700 var(--step--1) / 1 var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  rotate: -3deg;
+  margin-bottom: 4px;
+}
+
+/* ── 4. The Diary's page-1 notes: paper by kind, mount by place ────────
+ * The wrapper (.note) holds the mount and casts the shadow (drop-shadow, so
+ * it follows a cut edge); the paper inside (.sheet) carries the cut. A cut on
+ * the wrapper would also cut the tape and the clip.
+ */
+.note {
+  position: relative;
+  rotate: var(--tilt, 0deg);
+  filter: drop-shadow(0 1px 1px rgb(30 40 35 / 0.18)) drop-shadow(0 8px 10px rgb(30 40 35 / 0.14));
+}
+.note .sheet {
+  background: var(--surface);
+  color: var(--fg);
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+.note .meta {
+  display: flex;
+  justify-content: space-between;
+  font: 400 var(--step--2) var(--font-mono);
+  color: var(--fg-muted);
+}
+.note b {
+  font: 600 var(--step-0) / 1.2 var(--font-display);
+}
+.note span.where {
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+/* Work: a time card, its corners cut, punched at the head */
+.note.work .sheet {
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%, 0 9px);
+  padding-top: 28px;
+  background-image: radial-gradient(circle 4px at 50% 13px, var(--hole, var(--ground)) 96%, transparent);
+}
+/* Study: an index card, its head ruled twice */
+.note.study .sheet {
+  padding-top: 12px;
+  background-image: linear-gradient(180deg, transparent 36px, var(--accent) 36px 37px, transparent 37px 40px, var(--rule-color) 40px 41px, transparent 41px);
+  row-gap: 14px;
+}
+/* Milestone: a ribbon's swallowtail cut at the foot */
+.note.milestone .sheet {
+  padding-bottom: 32px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 16px), 0 100%);
+}
+/* mounts */
+.m-tape::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 70px;
+  height: 18px;
+  translate: -50% 0;
+  rotate: var(--tape, -4deg);
+  background: color-mix(in srgb, var(--twine) 38%, var(--surface));
+  opacity: 0.85;
+}
+.m-tape-corner::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: -16px;
+  width: 58px;
+  height: 17px;
+  rotate: 40deg;
+  background: color-mix(in srgb, var(--twine) 38%, var(--surface));
+  opacity: 0.85;
+}
+.m-clip::after {
+  content: "";
+  position: absolute;
+  top: -20px;
+  left: 22px;
+  width: 14px;
+  height: 38px;
+  background: var(--fg-muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 34 86%22%3E%3Cpath d=%22M10 70V16a7 7 0 0 1 14 0v58a10 10 0 0 1-20 0V22%22 fill=%22none%22 stroke=%22%238C949A%22 stroke-width=%222.6%22 stroke-linecap=%22round%22/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 34 86%22%3E%3Cpath d=%22M10 70V16a7 7 0 0 1 14 0v58a10 10 0 0 1-20 0V22%22 fill=%22none%22 stroke=%22%238C949A%22 stroke-width=%222.6%22 stroke-linecap=%22round%22/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.m-corners::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: 1;
+  pointer-events: none;
+  --c: color-mix(in srgb, var(--fg) 72%, var(--surface));
+  background:
+    linear-gradient(135deg, var(--c) 12px, transparent 12px),
+    linear-gradient(225deg, var(--c) 12px, transparent 12px),
+    linear-gradient(45deg, var(--c) 12px, transparent 12px),
+    linear-gradient(315deg, var(--c) 12px, transparent 12px);
+}
+
+/* ── 5. Paper answers the hand ─────────────────────────────────────────── */
+.liftable {
+  transition:
+    translate var(--dur-reveal) var(--ease-ink),
+    rotate var(--dur-reveal) var(--ease-ink),
+    filter var(--dur-reveal) var(--ease-ink);
+}
+/* drop-shadow, not box-shadow: it follows a cut edge (tags, time cards) */
+.liftable.is-lifted {
+  translate: 0 -4px;
+  rotate: calc(var(--tilt, 0deg) * 0.4);
+  filter: drop-shadow(0 2px 2px rgb(30 40 35 / 0.2)) drop-shadow(0 16px 14px rgb(30 40 35 / 0.24));
+}
+
+/* ── 6. The ground at the page's foot ──────────────────────────────────── */
+.ground-foot {
+  position: relative;
+  margin-top: 28px;
+  background: var(--scene-bark);
+  color: var(--fg-inverse);
+  padding: 22px var(--gutter) 26px;
+}
+.ground-foot::before {
+  /* the bank's grass, standing on the soil's edge */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 30px;
+  background: var(--scene-moss);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 420 30%22%3E%3Cg fill=%22none%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M4.5 28Q4.8 23.3 6.1 20.5%22/%3E%3Cpath d=%22M6.7 28Q6.1 23.7 3.6 21.1%22/%3E%3Cpath d=%22M8.9 28Q9.2 24.6 10.5 22.5%22/%3E%3Cpath d=%22M11.1 28Q11 24.3 10.5 22%22/%3E%3Cpath d=%22M13.3 28Q13.7 22.3 15.1 18.8%22/%3E%3Cpath d=%22M35.8 28Q36.6 18.5 39.9 12.8%22/%3E%3Cpath d=%22M38 28Q38.3 19 39.5 13.5%22/%3E%3Cpath d=%22M40.2 28Q40.6 18.4 42.3 12.6%22/%3E%3Cpath d=%22M42.4 28Q42.6 21.3 43.3 17.2%22/%3E%3Cpath d=%22M71.6 28Q71.9 25.3 73.2 23.6%22/%3E%3Cpath d=%22M73.8 28Q74.5 25.6 77.3 24.1%22/%3E%3Cpath d=%22M85.8 28Q85.7 24.4 85.2 22.2%22/%3E%3Cpath d=%22M88 28Q88.1 24.5 88.4 22.3%22/%3E%3Cpath d=%22M90.2 28Q90.1 24.4 90 22.2%22/%3E%3Cpath d=%22M117.5 28Q117.3 15.8 116.4 8.3%22/%3E%3Cpath d=%22M119.7 28Q119.7 16.2 119.5 9%22/%3E%3Cpath d=%22M121.9 28Q122.6 20.8 125.3 16.4%22/%3E%3Cpath d=%22M150.4 28Q150.2 22.2 149.6 18.6%22/%3E%3Cpath d=%22M152.6 28Q153.2 19.5 155.8 14.3%22/%3E%3Cpath d=%22M173.1 28Q173.5 24.1 175.2 21.8%22/%3E%3Cpath d=%22M175.3 28Q175.4 24.1 175.8 21.8%22/%3E%3Cpath d=%22M188.7 28Q188.9 23.7 189.5 21%22/%3E%3Cpath d=%22M190.9 28Q190.8 23.6 190.2 20.9%22/%3E%3Cpath d=%22M193.1 28Q192.7 22.7 191.3 19.5%22/%3E%3Cpath d=%22M195.3 28Q195 21 193.5 16.7%22/%3E%3Cpath d=%22M197.5 28Q198 20.9 200 16.5%22/%3E%3Cpath d=%22M219.4 28Q219.8 21.7 221.2 17.8%22/%3E%3Cpath d=%22M221.6 28Q222.1 22.8 224.2 19.7%22/%3E%3Cpath d=%22M223.8 28Q224.1 22.8 225.5 19.6%22/%3E%3Cpath d=%22M226 28Q226.9 23.1 230.3 20.2%22/%3E%3Cpath d=%22M228.2 28Q227.5 23.3 224.7 20.4%22/%3E%3Cpath d=%22M241.9 28Q241.7 24.1 241 21.7%22/%3E%3Cpath d=%22M244.1 28Q244.3 23.7 245 21%22/%3E%3Cpath d=%22M246.3 28Q246.8 20.4 248.9 15.8%22/%3E%3Cpath d=%22M248.5 28Q248.2 20.1 246.7 15.2%22/%3E%3Cpath d=%22M250.7 28Q250.1 22.4 247.8 19%22/%3E%3Cpath d=%22M275.1 28Q275.7 24.5 278.1 22.4%22/%3E%3Cpath d=%22M277.3 28Q278 23.1 280.8 20%22/%3E%3Cpath d=%22M279.5 28Q280.3 23.3 283.4 20.4%22/%3E%3Cpath d=%22M281.7 28Q281.4 23.6 280.4 21%22/%3E%3Cpath d=%22M283.9 28Q284.5 24.4 286.8 22.2%22/%3E%3Cpath d=%22M308.2 28Q308.7 21.3 310.8 17.2%22/%3E%3Cpath d=%22M310.4 28Q309.9 17.3 308.3 10.7%22/%3E%3Cpath d=%22M312.6 28Q312.9 18.7 314.1 13%22/%3E%3Cpath d=%22M314.8 28Q315 20.5 316 15.9%22/%3E%3Cpath d=%22M330 28Q329.3 19.1 326.4 13.7%22/%3E%3Cpath d=%22M332.2 28Q331.4 18.5 328.2 12.7%22/%3E%3Cpath d=%22M334.4 28Q334.5 19.3 335 13.9%22/%3E%3Cpath d=%22M368.9 28Q368.2 25.5 365.3 24%22/%3E%3Cpath d=%22M371.1 28Q371.7 24.1 374.1 21.8%22/%3E%3Cpath d=%22M373.3 28Q372.9 23.2 371.3 20.2%22/%3E%3Cpath d=%22M375.5 28Q375.4 23 375.1 20%22/%3E%3C/g%3E%3Cg fill=%22none%22 stroke=%22%23000%22 stroke-width=%220.7%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M6 29h5.4%22/%3E%3Cpath d=%22M27.5 29.1h13.9%22/%3E%3Cpath d=%22M53.3 29h5.3%22/%3E%3Cpath d=%22M88 29.3h12.2%22/%3E%3Cpath d=%22M123.1 28.5h5.5%22/%3E%3Cpath d=%22M154.4 28.8h10.2%22/%3E%3Cpath d=%22M193.9 29.3h10.4%22/%3E%3Cpath d=%22M235.2 29.2h14%22/%3E%3Cpath d=%22M268.3 28.4h10.3%22/%3E%3Cpath d=%22M288.3 29h7.8%22/%3E%3Cpath d=%22M323.8 29.1h11.9%22/%3E%3Cpath d=%22M360.3 29.2h14.1%22/%3E%3Cpath d=%22M379.2 28.7h9.1%22/%3E%3C/g%3E%3C/svg%3E") 0 100% / 420px 30px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 420 30%22%3E%3Cg fill=%22none%22 stroke=%22%23000%22 stroke-width=%221%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M4.5 28Q4.8 23.3 6.1 20.5%22/%3E%3Cpath d=%22M6.7 28Q6.1 23.7 3.6 21.1%22/%3E%3Cpath d=%22M8.9 28Q9.2 24.6 10.5 22.5%22/%3E%3Cpath d=%22M11.1 28Q11 24.3 10.5 22%22/%3E%3Cpath d=%22M13.3 28Q13.7 22.3 15.1 18.8%22/%3E%3Cpath d=%22M35.8 28Q36.6 18.5 39.9 12.8%22/%3E%3Cpath d=%22M38 28Q38.3 19 39.5 13.5%22/%3E%3Cpath d=%22M40.2 28Q40.6 18.4 42.3 12.6%22/%3E%3Cpath d=%22M42.4 28Q42.6 21.3 43.3 17.2%22/%3E%3Cpath d=%22M71.6 28Q71.9 25.3 73.2 23.6%22/%3E%3Cpath d=%22M73.8 28Q74.5 25.6 77.3 24.1%22/%3E%3Cpath d=%22M85.8 28Q85.7 24.4 85.2 22.2%22/%3E%3Cpath d=%22M88 28Q88.1 24.5 88.4 22.3%22/%3E%3Cpath d=%22M90.2 28Q90.1 24.4 90 22.2%22/%3E%3Cpath d=%22M117.5 28Q117.3 15.8 116.4 8.3%22/%3E%3Cpath d=%22M119.7 28Q119.7 16.2 119.5 9%22/%3E%3Cpath d=%22M121.9 28Q122.6 20.8 125.3 16.4%22/%3E%3Cpath d=%22M150.4 28Q150.2 22.2 149.6 18.6%22/%3E%3Cpath d=%22M152.6 28Q153.2 19.5 155.8 14.3%22/%3E%3Cpath d=%22M173.1 28Q173.5 24.1 175.2 21.8%22/%3E%3Cpath d=%22M175.3 28Q175.4 24.1 175.8 21.8%22/%3E%3Cpath d=%22M188.7 28Q188.9 23.7 189.5 21%22/%3E%3Cpath d=%22M190.9 28Q190.8 23.6 190.2 20.9%22/%3E%3Cpath d=%22M193.1 28Q192.7 22.7 191.3 19.5%22/%3E%3Cpath d=%22M195.3 28Q195 21 193.5 16.7%22/%3E%3Cpath d=%22M197.5 28Q198 20.9 200 16.5%22/%3E%3Cpath d=%22M219.4 28Q219.8 21.7 221.2 17.8%22/%3E%3Cpath d=%22M221.6 28Q222.1 22.8 224.2 19.7%22/%3E%3Cpath d=%22M223.8 28Q224.1 22.8 225.5 19.6%22/%3E%3Cpath d=%22M226 28Q226.9 23.1 230.3 20.2%22/%3E%3Cpath d=%22M228.2 28Q227.5 23.3 224.7 20.4%22/%3E%3Cpath d=%22M241.9 28Q241.7 24.1 241 21.7%22/%3E%3Cpath d=%22M244.1 28Q244.3 23.7 245 21%22/%3E%3Cpath d=%22M246.3 28Q246.8 20.4 248.9 15.8%22/%3E%3Cpath d=%22M248.5 28Q248.2 20.1 246.7 15.2%22/%3E%3Cpath d=%22M250.7 28Q250.1 22.4 247.8 19%22/%3E%3Cpath d=%22M275.1 28Q275.7 24.5 278.1 22.4%22/%3E%3Cpath d=%22M277.3 28Q278 23.1 280.8 20%22/%3E%3Cpath d=%22M279.5 28Q280.3 23.3 283.4 20.4%22/%3E%3Cpath d=%22M281.7 28Q281.4 23.6 280.4 21%22/%3E%3Cpath d=%22M283.9 28Q284.5 24.4 286.8 22.2%22/%3E%3Cpath d=%22M308.2 28Q308.7 21.3 310.8 17.2%22/%3E%3Cpath d=%22M310.4 28Q309.9 17.3 308.3 10.7%22/%3E%3Cpath d=%22M312.6 28Q312.9 18.7 314.1 13%22/%3E%3Cpath d=%22M314.8 28Q315 20.5 316 15.9%22/%3E%3Cpath d=%22M330 28Q329.3 19.1 326.4 13.7%22/%3E%3Cpath d=%22M332.2 28Q331.4 18.5 328.2 12.7%22/%3E%3Cpath d=%22M334.4 28Q334.5 19.3 335 13.9%22/%3E%3Cpath d=%22M368.9 28Q368.2 25.5 365.3 24%22/%3E%3Cpath d=%22M371.1 28Q371.7 24.1 374.1 21.8%22/%3E%3Cpath d=%22M373.3 28Q372.9 23.2 371.3 20.2%22/%3E%3Cpath d=%22M375.5 28Q375.4 23 375.1 20%22/%3E%3C/g%3E%3Cg fill=%22none%22 stroke=%22%23000%22 stroke-width=%220.7%22 stroke-linecap=%22round%22%3E%3Cpath d=%22M6 29h5.4%22/%3E%3Cpath d=%22M27.5 29.1h13.9%22/%3E%3Cpath d=%22M53.3 29h5.3%22/%3E%3Cpath d=%22M88 29.3h12.2%22/%3E%3Cpath d=%22M123.1 28.5h5.5%22/%3E%3Cpath d=%22M154.4 28.8h10.2%22/%3E%3Cpath d=%22M193.9 29.3h10.4%22/%3E%3Cpath d=%22M235.2 29.2h14%22/%3E%3Cpath d=%22M268.3 28.4h10.3%22/%3E%3Cpath d=%22M288.3 29h7.8%22/%3E%3Cpath d=%22M323.8 29.1h11.9%22/%3E%3Cpath d=%22M360.3 29.2h14.1%22/%3E%3Cpath d=%22M379.2 28.7h9.1%22/%3E%3C/g%3E%3C/svg%3E") 0 100% / 420px 30px repeat-x;
+}
+.ground-foot::after {
+  /* the soil's top edge is not ruled straight */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -4px;
+  height: 6px;
+  background: var(--scene-bark);
+  -webkit-mask: radial-gradient(ellipse 18px 4px at 50% 100%, #000 98%, #0000) 0 0 / 31px 6px repeat-x;
+  mask: radial-gradient(ellipse 18px 4px at 50% 100%, #000 98%, #0000) 0 0 / 31px 6px repeat-x;
+}
+/* At night the soil is near-black and --fg-inverse is ink: the line takes
+   the night's own light ink instead. Proposed alias: --soil-ink. */
+html[data-theme="night"] .ground-foot {
+  color: var(--fg-muted);
+}

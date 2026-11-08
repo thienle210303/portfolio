@@ -174,6 +174,7 @@ export default function GrowOak({ label, skipLabel, beats, className }: GrowOakP
     <div ref={rootRef} data-grow="" className={cn("no-print relative w-fit", className)}>
       <Button
         variant="primary"
+        stub="play"
         onClick={() => (runningRef.current ? finish() : start())}
         className="motion-reduce:hidden [html:not([data-motion])_&]:hidden"
       >
