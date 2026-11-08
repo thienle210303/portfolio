@@ -984,16 +984,20 @@ const heron = (x, y, s, stroke) => `<g transform="translate(${x} ${y}) scale(${s
 const LANTERN_COLS = ["#C8352B", "#E1A93A", "#C8352B", "#3F7A57", "#E1A93A", "#C8352B", "#3F7A57"];
 const LANTERN_X = [690, 790, 880, 980, 1080, 1180, 1290];
 const LANTERN_Y = [64, 92, 72, 98, 70, 94, 66];
+// Round 28: by day they are unlit paper (lantern cream on twine ribs), so the
+// screen's reds are the flag stamp and my seal only; at night they are lit.
+const DAY_PAPER = "#EDE7D8", DAY_RIB = "#B79C74";
 function lantern(night, twine, x, y, col, sc) {
   const glow = night ? `<ellipse cx="0" cy="26" rx="46" ry="52" fill="url(#lanternGlow)"/>` : "";
-  const body = night ? `url(#lit-${col.slice(1)})` : col;
+  const body = night ? `url(#lit-${col.slice(1)})` : DAY_PAPER;
+  const tassel = night ? col : twine;
   return `<g transform="translate(${x} ${y}) scale(${sc})">${glow}`
     + `<path d="M0 -40V-6" stroke="${twine}" stroke-width="1.2"/>`
     + `<rect x="-7" y="-6" width="14" height="6" rx="1.5" fill="#6B5640"/>`
-    + `<path d="M-15 0C-27 14 -27 38 -15 52H15C27 38 27 14 15 0Z" fill="${body}"${night ? "" : ` opacity="0.92"`}/>`
-    + `<path d="M-7 0C-12 16 -12 36 -7 52M7 0C12 16 12 36 7 52M0 0V52" stroke="rgba(60,30,20,0.28)" stroke-width="1" fill="none"/>`
+    + `<path d="M-15 0C-27 14 -27 38 -15 52H15C27 38 27 14 15 0Z" fill="${body}"${night ? "" : ` stroke="${DAY_RIB}" stroke-width="1.3"`}/>`
+    + `<path d="M-7 0C-12 16 -12 36 -7 52M7 0C12 16 12 36 7 52M0 0V52" stroke="${night ? "rgba(60,30,20,0.28)" : DAY_RIB}" stroke-width="1" fill="none"/>`
     + `<rect x="-7" y="52" width="14" height="5" rx="1.5" fill="#6B5640"/>`
-    + `<path d="M0 57V76M-2 76h4" stroke="${col}" stroke-width="1.6" stroke-linecap="round"/></g>`;
+    + `<path d="M0 57V76M-2 76h4" stroke="${tassel}" stroke-width="1.6" stroke-linecap="round"/></g>`;
 }
 // Hoa mai (yellow apricot blossom), for Tết.
 function hoaMai(x, y, sc, flip = 1) {
@@ -1020,7 +1024,9 @@ function lanternString(night) {
 // The postcard's picture of Taylors. It sits on paper, which keeps its day
 // colours at night (the paper scope in globals.css), so one file serves both.
 function postcardScene() {
-  return `<circle cx="250" cy="120" r="34" fill="none" stroke="#B3362B" stroke-width="1.4"/>`
+  // Round 28: the sun is the hero's morning sun (a pale gold disc in a halo),
+  // not an empty red ring; the flag stamp is the card's one red.
+  return `<circle cx="250" cy="120" r="58" fill="#F6E7B0" fill-opacity="0.35"/><circle cx="250" cy="120" r="34" fill="#F2DC93"/>`
     + `<path d="M0 300Q170 286 340 300" stroke="#1D2321" stroke-width="1" fill="none"/>`
     + pine(70, 300, 150, "#46603A") + pine(120, 300, 110, "#46603A")
     + palmetto(290, 300, 90, "#46603A")
@@ -1741,6 +1747,17 @@ export function drawScenery() {
     "tag-flytrap": svg("0 0 150 88", flytrap(K)),
     "tag-book": svg("0 0 150 88", openBook(K)),
     "tag-laptop": svg("0 0 150 88", laptop(K)),
+    // Round 28: the wooden clothespin that pins two chapters straight to the
+    // line: two legs in a lighter ink with a little grain, and the spring in
+    // full ink at y 17–22.5, which the page puts on the line, so the line
+    // seems to pass through the jaw. Painted by --twine.
+    clothespin: svg(
+      "0 0 16 50",
+      `<path d="M2 1.5Q2 0 3.5 0H7.4V50H4Q2.6 50 2.4 48.4Z" fill="${K}" fill-opacity="0.62"/>`
+        + `<path d="M8.6 0H12.5Q14 0 14 1.5L13.6 48.4Q13.4 50 12 50H8.6Z" fill="${K}" fill-opacity="0.5"/>`
+        + `<path d="M3.6 6.5V12M12.4 30V44" fill="none" stroke="${K}" stroke-opacity="0.35" stroke-width="0.8" stroke-linecap="round"/>`
+        + `<rect x="1" y="17" width="14" height="5.5" rx="1.6" fill="${K}"/>`
+    ),
     "non-la": svg("44 370 120 130", `<path d="M80 372Q96 380 102 396" fill="none" stroke="#8b7b5e" stroke-width="1.2"/>${nonLa(104, 444, 0.9)}`),
     "sky-day": svg("0 0 1440 900", skyLayer(false, [880, 120], 1)),
     "sky-night": svg("0 0 1440 900", skyLayer(true, [880, 120], 1)),

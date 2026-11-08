@@ -38,13 +38,13 @@ import { ABOUT_LEGACY_SECTION_IDS } from "./anchors";
 import ChapterTags from "./ChapterTags";
 import FieldTag from "./FieldTag";
 import HeroIdentity from "./HeroIdentity";
-import { HUNG, PHONE, TABLET, hangVars, lineFloor } from "./line";
+import { HUNG, PHONE, TABLET, WIDE, hangVars, lineFloor } from "./line";
 import Scenery from "./Scenery";
 import Yard from "./Yard";
 
 const HEADING_ID = "hero-heading";
 
-const FIELD_HANG = hangVars(PHONE.field, TABLET.field) as CSSProperties;
+const FIELD_HANG = hangVars(PHONE.field, TABLET.field, WIDE.field) as CSSProperties;
 
 /** On a tablet my words start under pass 2: its lowest point over their columns, and a line's breathing room. */
 const WORDS_TOP = { "--hint-y": `${Math.ceil(lineFloor(TABLET.passes[1], 0, 0.55)) + 14}px` } as CSSProperties;
@@ -54,7 +54,7 @@ export default function Hero({ bookingUrl }: { readonly bookingUrl: string | nul
     ...chapter,
     href: chapter.entryId ? `#${journeyEntryAnchorId(chapter.entryId)}` : "#tree",
     // Its place on the line below 1024, worked out here on the server.
-    hang: hangVars(PHONE.tags[i], TABLET.tags[i]),
+    hang: hangVars(PHONE.tags[i], TABLET.tags[i], WIDE.tags[i]),
   }));
 
   return (

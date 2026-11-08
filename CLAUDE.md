@@ -162,7 +162,11 @@ settle.
 ## Changing what the site says
 
 The page is four sections, in this order: About (`#about` — the hero: my headline and two actions under a
-clothesline of four chapter tags that turn over to my line about each, my
+clothesline of four chapters that turn over to my line about each, each
+hung as the thing it was (round 28: a rice seed packet, a boarding-pass stub, a
+library card, a receipt; two clothespinned to the line, two on strings; the
+`clothespin` mask is in `draw-scenery.mjs`, the papers are
+`[data-chapter-paper]` in globals.css), my
 field tag with the LinkedIn QR at the line's end (below 1024 the line is
 strung between two supports that stand in the paddy at the page's edges and
 crosses between them: three passes between two bamboo poles on a phone, two
@@ -249,8 +253,13 @@ note); the ones with little to say share a page, three at most. The tabs
 pages. There are no case studies on the page: `projects` stays in the content
 layer for the chat and `/resume`) and Contact
 (`#contact`, round 21's postcard: my business card beside a postcard whose
-address side is the lead form, always visible, and the chat at `#ask` as a
-strip below both).
+address side is the lead form, always visible, and the chat at `#ask`. From
+1280 it is one desk (round 28): the card clipped over the postcard's corner and
+the chat a notepad sheet lying across the foot of both, the bánh tét beside it;
+below 1280 the chat is a strip under everything. The chat's sheet lays itself
+out by its own width (`@container/ask`). Where the postcard stacks, the address
+side comes first and the picture is a band under the form. By day the lanterns
+are unlit paper, so the screen's reds are the flag stamp and my seal).
 `navItems` in `src/content/portfolio.ts` is the same four items in the same
 order; the nav doubles as the page's table of contents (and the cats' guided
 tour visits the same four).
@@ -448,6 +457,22 @@ acts), and nothing under `src/lib/` imports from `src/sections/` now. Keep it
 that way: when a library function needs something a section owns, the thing
 moves into `lib/`. No lint rule or test fences this boundary, so grep for
 `@/sections` under `src/lib/` before adding an import.
+
+## Search, sharing and what a stranger's browser gets
+
+`src/lib/seo.ts` holds the shared metadata: the snippet is `profile.positioning`
+(short enough to show whole), every page a person lands on (`/`, `/resume`)
+shares with the root's `opengraph-image`, and a page that sets its own
+`openGraph` spreads `OPEN_GRAPH_BASE` and names `SHARE_IMAGE` (a page's
+`openGraph` replaces the layout's whole). Production is indexed; a Vercel
+preview says noindex, its robots.txt disallows everything and its sitemap is
+empty (`INDEXABLE`). The sitemap lists `/` and `/resume`; robots keeps out of
+`/api/`. A missing page is `src/app/not-found.tsx`, in my voice, noindex and
+with no canonical. `next.config.ts` sends no `X-Powered-By` and a few headers
+(frame-ancestors self, nosniff, referrer policy, permissions policy); there is
+deliberately no script CSP (the theme script is inline). `e2e/seo.spec.ts`
+holds all of it. Nothing secret reaches the page: the server-only variables are
+read in Server Components and route handlers alone, and only booleans cross.
 
 ## Design before code
 

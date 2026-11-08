@@ -203,7 +203,7 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
       </div>
       <Drawing
         name="paper-clip"
-        className="pointer-events-none absolute -top-[26px] left-[55%] h-[86px] w-[34px] @min-[36rem]/card:left-[calc(50.6%-17px)]"
+        className="pointer-events-none absolute -top-[26px] left-[55%] h-[86px] w-[34px] @min-[36rem]/card:left-[calc(50.6%-17px)] xl:left-[-8px]!"
       />
     </aside>
   );

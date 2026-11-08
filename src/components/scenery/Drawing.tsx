@@ -22,6 +22,7 @@ export const INK_DRAWINGS = [
   "tag-flytrap",
   "tag-book",
   "tag-laptop",
+  "clothespin",
   "oak",
   "oak-leaves",
   "oak-moss",

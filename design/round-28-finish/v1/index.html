@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Round 28 review</title>
+    <link rel="stylesheet" href="boards/board.css" />
+    <script src="boards/board.js"></script>
+    <style>
+      body { padding: 48px 0 96px; }
+      main { max-width: 1180px; margin: 0 auto; padding-inline: var(--gutter); display: grid; gap: 56px; }
+      section { display: grid; gap: 18px; }
+      .pair { display: grid; gap: 20px; grid-template-columns: 1fr; align-items: start; }
+      @media (width >= 64rem) { .pair { grid-template-columns: 1fr 1fr; } .pair.phone { grid-template-columns: repeat(3, 1fr); } }
+      figure { margin: 0; display: grid; gap: 6px; }
+      figure img { width: 100%; height: auto; border: 1px solid var(--rule-color); background: var(--surface); }
+      figcaption { font: 400 var(--step--1) var(--font-mono); color: var(--fg-muted); }
+      ol, ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 72ch; }
+      .q { background: var(--surface); padding: 16px 20px; box-shadow: var(--shadow-pinned); max-width: 72ch; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header style="display:grid;gap:10px">
+        <span class="label">Round 28 · v1 · 2026-11-07 · waiting for Thien</span>
+        <h1 class="chapter">Finishing, not redesigning.</h1>
+        <p class="lead" style="max-width:62ch">The world holds. Two places still read as a template: the hero's four identical tags, and Contact's three objects that ignore each other. Audit: <a class="accent" href="../audit.md">audit.md</a>.</p>
+      </header>
+
+      <section>
+        <h2 class="page-title">A · The hero: each chapter as the thing it was</h2>
+        <ol>
+          <li>Kiên Giang is a rice seed packet, Taylors a boarding-pass stub, USC a library card, DoorDash a receipt. Their drawings are unchanged; the flip to my line about each stays.</li>
+          <li>Two are clothespinned to the line, two hang on a string, so the line sags where the weight is and no two tops line up. The packet, stub and card are in the oak's manila papers; the receipt is white.</li>
+          <li>The field tag goes from 380 to 350px and hangs lowest, on the longest string.</li>
+          <li>The hint stays above the h1 and says "Press anything on it", since not everything on the line is a tag now.</li>
+        </ol>
+        <div class="pair">
+          <figure><img src="built/fold-1440.jpg" alt="" /><figcaption>As built, 1440</figcaption></figure>
+          <figure><img src="previews/hero-1440.png" alt="" /><figcaption>Board, 1440 (boards/hero.html)</figcaption></figure>
+        </div>
+        <div class="pair phone">
+          <figure><img src="built/about-390.jpg" alt="" /><figcaption>As built, 390</figcaption></figure>
+          <figure><img src="previews/hero-phone-390.png" alt="" /><figcaption>Board, 390</figcaption></figure>
+          <figure><img src="previews/hero-phone-390-night.png" alt="" /><figcaption>Board, 390, night</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">B · Contact: one desk, three papers</h2>
+        <ol>
+          <li>The card is paperclipped to the postcard's corner, overlapping it by 40px: two things sent together.</li>
+          <li>The Ask becomes a notepad sheet under the card in the right column, with the question line and suggestions on the same sheet. No full-width strip and no grey panel. It still opens downward on the first question.</li>
+          <li>The postcard's empty red ring becomes the hero's own sun file.</li>
+          <li>The lanterns lose their red and green by day (lantern paper on twine ribs) and stay lit gold at night. With 3 and 4 together, the only reds on the screen are the flag stamp and my seal.</li>
+          <li>The email/phone pair closes up: one 44px line each.</li>
+          <li>On a phone the postcard turns over: the form comes first and the picture is a 120px strip under it.</li>
+        </ol>
+        <div class="pair">
+          <figure><img src="built/contact-1440.jpg" alt="" /><figcaption>As built, 1440</figcaption></figure>
+          <figure><img src="previews/contact-1440.png" alt="" /><figcaption>Board, 1440 (boards/contact.html)</figcaption></figure>
+        </div>
+        <div class="pair phone">
+          <figure><img src="built/contact-390.jpg" alt="" /><figcaption>As built, 390</figcaption></figure>
+          <figure><img src="previews/contact-phone-390.png" alt="" /><figcaption>Board, 390</figcaption></figure>
+          <figure><img src="previews/contact-1440-night.png" alt="" /><figcaption>Board, 1440, night</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="page-title">Decisions that are Thien's</h2>
+        <div class="q">
+          <ul>
+            <li><b>A, the four objects.</b> Seed packet, boarding stub, library card, receipt: yes, or other objects for any chapter?</li>
+            <li><b>A, the hint's copy.</b> "Press a tag" becomes "Press anything on the line".</li>
+            <li><b>B, the lanterns.</b> Recolour by day (recommended), cut to three, or keep them as they are and accept five reds.</li>
+            <li><b>B, the phone postcard.</b> Form first with a picture strip (recommended), or picture first as today.</li>
+            <li><b>"AI engineer".</b> The brief asks for it; the copy says retail data at DoorDash. Any change to the lead or the field tag is a claim, so it is yours to write. Nothing is drawn for it.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PHONE, TABLET, hangVars, lineFloor, lineY, passPath, type Yard } from "@/sections/Hero/line";
+import { PHONE, PINNED, TABLET, WIDE, hangVars, lineFloor, lineY, passPath, type Yard } from "@/sections/Hero/line";
+import { CHAPTER_OBJECTS } from "@/sections/Hero/ChapterTags";
 
 /**
  * Round 25: the clothesline below 1024 is described once (line.ts) and
@@ -66,25 +67,34 @@ describe("the clothesline's description", () => {
     expect(TABLET.field).toMatchObject({ pass: 1, t: (11 + 4.5) / 20 });
   });
 
-  it("gives no two neighbours on a pass the same string, and every string room to show", () => {
+  it("pins the clothespinned chapters to the line and gives every string room to show", () => {
+    // Round 28: two chapters are clothespinned (no string, the paper a few px
+    // under the line); the others hang on strings of their own lengths.
     for (const [name, yard] of YARDS) {
-      const all = [...yard.tags, yard.field];
-      for (const hang of all) expect(hang.string, name).toBeGreaterThanOrEqual(12);
+      yard.tags.forEach((hang, i) => {
+        if (CHAPTER_OBJECTS[i].pinned) expect(hang.string, `${name} ${i}`).toBe(PINNED);
+        else expect(hang.string, `${name} ${i}`).toBeGreaterThanOrEqual(12);
+      });
+      expect(yard.field.string, name).toBeGreaterThanOrEqual(12);
       yard.passes.forEach((_, pass) => {
-        const strings = yard.tags.filter((t) => t.pass === pass).map((t) => t.string);
+        const strings = yard.tags.filter((t, i) => t.pass === pass && !CHAPTER_OBJECTS[i].pinned).map((t) => t.string);
         expect(new Set(strings).size, `${name} pass ${pass + 1}: ${strings.join(", ")}`).toBe(strings.length);
       });
     }
+    WIDE.tags.forEach((s, i) => expect(s === PINNED).toBe(CHAPTER_OBJECTS[i].pinned));
+    // My field tag hangs lowest, on the longest string.
+    expect(WIDE.field).toBeGreaterThan(Math.max(...WIDE.tags));
   });
 
-  it("hands CSS each hung thing's place as pixels on both bands", () => {
-    expect(hangVars(PHONE.tags[1], TABLET.tags[1])).toEqual({
+  it("hands CSS each hung thing's place as pixels on every band", () => {
+    expect(hangVars(PHONE.tags[1], TABLET.tags[1], WIDE.tags[1])).toEqual({
+      "--string-lg": "20px",
       "--y-phone": `${Math.round(lineY(PHONE.passes[0], 0.75) * 10) / 10}px`,
       "--string-phone": "34px",
       "--y-tablet": `${Math.round(lineY(TABLET.passes[0], 0.375) * 10) / 10}px`,
       "--string-tablet": "30px",
     });
-    const field = hangVars(PHONE.field, TABLET.field);
+    const field = hangVars(PHONE.field, TABLET.field, WIDE.field);
     expect(field["--y-phone"]).toBe("60px");
     expect(Object.values(field).every((v) => /^\d+(\.\d)?px$/.test(v))).toBe(true);
   });

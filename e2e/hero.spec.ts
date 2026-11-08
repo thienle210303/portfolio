@@ -165,7 +165,7 @@ test.describe("hero", () => {
       await front(page, PLACES[i]).click();
       // Offsets are layout boxes, so the tilt and the turn do not skew them.
       const boxes = await back(page, i).evaluate((face) => {
-        const paper = face.querySelector<HTMLElement>(".tag-cut")!;
+        const paper = face.querySelector<HTMLElement>("[data-chapter-paper]")!;
         return [...face.querySelectorAll<HTMLElement>("button, a")].map((el) => ({
           name: el.innerText.trim().slice(0, 20),
           parent: el.offsetParent === paper,
@@ -184,8 +184,9 @@ test.describe("hero", () => {
         if (b.link) expect(b.tall, `${b.name}: a 44px target`).toBeGreaterThanOrEqual(44);
         expect(b.parent, b.name).toBe(true);
         expect(b.left, b.name).toBeGreaterThanOrEqual(0);
-        // Clear of the 30px corner cut at its own left edge (`.tag-cut`).
-        expect(b.top, `${b.name}: clear of the corner cut`).toBeGreaterThanOrEqual(30 - b.left);
+        // Round 28: the papers are square-cut, but clear of the eyelet or
+        // the clothespin's legs at the top (the first 24px).
+        expect(b.top, `${b.name}: clear of what holds the paper`).toBeGreaterThanOrEqual(24 - 5);
         expect(b.right, b.name).toBeLessThanOrEqual(b.width);
         expect(b.bottom, b.name).toBeLessThanOrEqual(b.height);
       }
@@ -325,7 +326,8 @@ test.describe("hero", () => {
         const rotate = el.style.rotate;
         el.style.rotate = "none";
         const box = rect(el);
-        const paper = rect(el.querySelector(".tag-cut")!);
+        const paper = rect(el.querySelector(":is([data-chapter-paper], .tag-cut)")!);
+        const pin = el.querySelector(':scope > [data-scenery="clothespin"]');
         el.style.rotate = rotate;
         const x = box.left + box.width / 2;
         const string = parseFloat(getComputedStyle(el, "::after").height);
@@ -339,6 +341,11 @@ test.describe("hero", () => {
           // ring is 26px across, 5px down the paper).
           reach: box.top + string - paper.top,
           length: paper.top - box.top,
+          // Round 28: a clothespinned chapter has no string; its clothespin's
+          // spring (15 – 20px down its 44px) sits on the line instead.
+          pinned: Boolean(pin),
+          spring: pin ? (() => { const r = rect(pin); return { top: r.top + 13, bottom: r.top + 22 }; })() : null,
+          lineAt: passes.map((p) => p.yAt(x)),
         };
       };
       const tags = shown('[data-hero-step="line"] > li').map(hung);
@@ -392,12 +399,21 @@ test.describe("hero", () => {
     // hole of its paper; no two strings on a pass are the same length.
     [...m.tags, m.field].forEach((t, i) => {
       expect(Math.abs(t.gaps[passOf[i]]), `string ${i} meets pass ${passOf[i] + 1} (gaps ${t.gaps.join(", ")})`).toBeLessThanOrEqual(2);
+      if (t.pinned) {
+        // The clothespin's spring is on the line, and its legs cover the
+        // few px between the line and the paper.
+        const y = t.lineAt[passOf[i]];
+        expect(t.spring!.top, `clothespin ${i} on pass ${passOf[i] + 1}`).toBeLessThanOrEqual(y + 1);
+        expect(t.spring!.bottom, `clothespin ${i} on pass ${passOf[i] + 1}`).toBeGreaterThanOrEqual(y - 1);
+        expect(t.length, `chapter ${i} hangs just under the line`).toBeLessThanOrEqual(10);
+        return;
+      }
       expect(t.reach, `string ${i} reaches the hole`).toBeGreaterThanOrEqual(5);
       expect(t.reach, `string ${i} stops in the hole`).toBeLessThanOrEqual(31);
       expect(t.length, `string ${i} is a string`).toBeGreaterThanOrEqual(10);
     });
     for (const pass of new Set(passOf.slice(0, 4))) {
-      const lengths = m.tags.filter((_, i) => passOf[i] === pass).map((t) => t.length);
+      const lengths = m.tags.filter((t, i) => passOf[i] === pass && !t.pinned).map((t) => t.length);
       expect(new Set(lengths).size, `strings on pass ${pass + 1}: ${lengths.join(", ")}`).toBe(lengths.length);
     }
     // Each pass is tied to a pole at both ends and sags between them: its
@@ -626,7 +642,7 @@ test.describe("hero", () => {
     await page.setViewportSize({ width: 320, height: 568 });
     await open(page);
     const clipped = (face: ReturnType<typeof back>) =>
-      face.locator(".tag-cut").evaluate((paper) => paper.scrollHeight - paper.clientHeight);
+      face.locator("[data-chapter-paper]").evaluate((paper) => paper.scrollHeight - paper.clientHeight);
     for (let i = 0; i < PLACES.length; i++) {
       expect(await clipped(fronts(page).nth(i)), `${PLACES[i]} front`).toBeLessThanOrEqual(1);
       await front(page, PLACES[i]).click();
@@ -815,9 +831,10 @@ test.describe("hero", () => {
       expect(m.pine.right, "the pine is whole").toBeLessThanOrEqual(m.window + 0.5);
       expect(m.pine.width).toBeGreaterThanOrEqual(70);
       expect(m.hat.left, "the nón lá is whole").toBeGreaterThanOrEqual(0);
-      // From 1024 to 1279 my field tag is clamp(320px, 33vw, 380px) wide, so
-      // the four tags get more room than the 122px they had at 1024.
-      const want = width >= 1280 ? 380 : Math.min(380, Math.max(320, width * 0.33));
+      // From 1024 to 1279 my field tag is clamp(300px, 31vw, 350px) wide
+      // (round 28: it hangs last on the line, not as a second headline), so
+      // the four chapters get more room than the 122px they had at 1024.
+      const want = width >= 1280 ? 350 : Math.min(350, Math.max(300, width * 0.31));
       expect(Math.abs(m.fieldWidth - want)).toBeLessThanOrEqual(1);
       expect(m.tagWidth).toBeGreaterThanOrEqual(width >= 1280 ? 151 : 128);
     });

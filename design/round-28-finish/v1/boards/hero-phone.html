@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390" />
+    <title>Hero on a phone: each chapter as the thing it was</title>
+    <link rel="stylesheet" href="board.css" />
+    <link rel="stylesheet" href="objects.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 28, hero under 640. Same line as round 25 (three passes
+       * between two bamboo poles that stand in the paddy), same order (my
+       * words first). What changes is what hangs on it: the four objects
+       * from the desktop board, two to a pass, and because they are
+       * different shapes each pass reads as two things, not a grid of two.
+       * The landscape stub lets pass 1 carry a tall and a wide thing; pass 2
+       * is the long receipt beside the short card.
+       *
+       * The yard is shorter than today's (~1240 → ~1120px): the stub and the
+       * card are shorter than a 190px tag.
+       */
+      body { overflow-x: auto; }
+      .stage { position: relative; width: 390px; height: 1500px; margin: 0 auto; overflow: hidden; }
+      .words { position: absolute; left: 20px; right: 20px; top: 24px; display: grid; gap: 18px; }
+      .words .actions { display: flex; gap: 6px; align-items: center; }
+      .obj h2 { font-size: 1.15rem; }
+      .field { position: absolute; left: 30px; top: 940px; width: 330px; --tilt: 1deg; }
+      .field .tagbody { padding: 40px 16px 16px; font: 400 13px / 1.55 var(--font-mono); }
+      .field dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 10px 0; }
+      .field dt { color: var(--fg-muted); }
+      .field dd { margin: 0; }
+      .field .foot { display: flex; justify-content: space-between; align-items: end; margin-top: 10px; }
+      .redstamp { border: 2px solid var(--mark); color: var(--mark); font: 700 12px/1.2 var(--font-mono); letter-spacing: 0.08em; padding: 6px 8px; rotate: -5deg; }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="words">
+        <h1 class="display">Just a curious kid, and this is my youth.</h1>
+        <p class="lead">I write software for retail data at DoorDash. Before that I was a chef in my family's restaurant. Come in, I'll show you around.</p>
+        <div class="actions"><span class="btn">See what I've built</span><span class="btn quiet">Send me a postcard</span></div>
+        <p class="aside">Press anything on the line and I'll tell you that part.</p>
+      </div>
+
+      <div class="art" style="position:absolute;left:4px;top:370px;width:16px;height:1130px;padding:0"></div>
+      <div class="art" style="position:absolute;right:4px;top:370px;width:16px;height:1130px;padding:0"></div>
+      <div class="art" style="position:absolute;left:0;right:0;top:1360px;height:140px">paddy, buffalo, vignettes (unchanged)</div>
+
+      <svg class="line" width="390" height="1500" aria-hidden="true">
+        <path d="M12 400 Q 195 470 378 410" />
+        <path d="M378 410 Q 195 700 12 690" style="opacity:.0" />
+        <path d="M12 690 Q 195 760 378 700" />
+        <path d="M12 920 Q 195 985 378 930" />
+        <line x1="290" y1="438" x2="290" y2="470" />
+        <line x1="270" y1="728" x2="270" y2="748" />
+        <line x1="195" y1="951" x2="195" y2="965" />
+      </svg>
+
+      <!-- Pass 1: packet pinned, stub on a string. -->
+      <div class="obj packet" style="left:32px;top:420px;width:140px;--tilt:-2deg">
+        <span class="pin-wood"></span>
+        <span class="yr">2003</span>
+        <h2>Kiên Giang</h2>
+        <div class="art" style="height:96px">rice</div>
+      </div>
+      <div class="obj stub" style="left:192px;top:468px;width:170px;--tilt:3deg">
+        <span class="eyelet" style="left:98px"></span>
+        <div class="row"><span class="yr">Dec 2018</span><span class="yr">→</span></div>
+        <h2 style="margin-top:6px">Taylors</h2>
+        <div class="rule"></div>
+        <div class="art" style="height:46px">flytrap</div>
+      </div>
+
+      <!-- Pass 2: card pinned, receipt on a string. -->
+      <div class="obj card-lib" style="left:40px;top:722px;width:140px;--tilt:-1.5deg">
+        <span class="pin-wood"></span>
+        <h2>USC</h2>
+        <span class="yr">2021</span>
+        <div class="art" style="height:70px;margin-top:10px">open book</div>
+      </div>
+      <div class="obj receipt" style="left:212px;top:746px;width:118px;--tilt:2.5deg">
+        <span class="eyelet"></span>
+        <div class="yr">2025</div>
+        <div class="dots"></div>
+        <h2 style="font-family:var(--font-display)">DoorDash</h2>
+        <div class="dots"></div>
+        <div class="art" style="height:56px">laptop</div>
+      </div>
+
+      <!-- Pass 3: my field tag alone. -->
+      <div class="field">
+        <div class="tag" style="padding:0">
+          <div class="tagbody">
+            <div style="display:flex;justify-content:space-between"><b>Field tag No. 001</b><b>That's me</b></div>
+            <dl>
+              <dt>Name</dt><dd>Thien Le</dd>
+              <dt>Native to</dt><dd>Kiên Giang, Việt Nam</dd>
+              <dt>Transplanted</dt><dd>Taylors, South Carolina</dd>
+              <dt>Habitat</dt><dd>DoorDash, retail data</dd>
+              <dt>Formerly</dt><dd>Chef, family kitchen</dd>
+              <dt>Companions</dt><dd>Two cats, Moon and Mi</dd>
+              <dt>Status</dt><dd>Still growing · <span class="accent">4 seedlings ↓</span></dd>
+            </dl>
+            <div class="foot">
+              <div class="art dark" style="width:60px;height:60px">QR</div>
+              <span class="redstamp">PRACTICE MAKES AI.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <span class="pin" style="left:20px;top:410px">1</span>
+      <span class="pin" style="left:300px;top:440px">2</span>
+      <span class="pin" style="left:20px;top:930px">3</span>
+    </div>
+  </body>
+</html>

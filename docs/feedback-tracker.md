@@ -2398,3 +2398,36 @@ Thien asked for an audit, a redesign and a polish of the whole site, mobile firs
 **Left as they are, on purpose.** The Diary's contents rows are 28px with a mouse alone (44px below 1024 and on touch: at 44px everywhere the contents page is 300px taller than every other spread page). The reduced-motion track on a phone keeps the tallest page's height. The cats rest where they rest on touch. The oak's trunk at night is a silhouette. The card is still shorter than the postcard from 1280. The system's radius, shadow and spacing tokens exist but existing values were not swept onto them; 17 ad hoc text sizes remain, all 12px or more.
 
 **Not covered.** Real devices, Safari and Firefox (the hero's strings use `tan(atan2())` and subgrid), e2e against a production build, the live-model Ask, a real send.
+
+## Round 28: finishing (2026-11-07)
+
+Thien asked for a premium redesign of the whole site. The audit (`design/round-28-finish/audit.md`) found the site's world strong and two places that still read as a template: the hero's four identical chapter tags, and a Contact section of three objects that ignored each other (and showed five reds besides the flag). Boards first (`design/round-28-finish/v1`). Thien replied "Build A and B", so the recommended option on each open decision was taken; the "AI engineer" positioning is copy and a claim, and is left to him.
+
+- **A, the hero.** Each chapter hangs as the thing it was: a rice seed packet, a boarding-pass stub, a library card and a receipt (`[data-chapter-paper]`). 2003 and 2021 are clothespinned to the line (a new `clothespin` mask); 2018 and 2025 hang from brass eyelets. The field tag is 350px, not 380px, on the longest string. The hint reads "Press a chapter…".
+- **B, Contact.** From 1280 it is one desk: my card is clipped over the postcard's corner, and the Ask is a notepad sheet across the foot of both, with the bánh tét beside it. The Ask's sheet lays itself out by its own width (`@container/ask`), and the compose side is the same paper behind a dashed rule, not a grey panel. Where the postcard stacks, the form comes first and the picture is a band under it. By day the lanterns are unlit paper and the postcard's sun is a gold disc, so the reds on screen are the flag stamp and my seal.
+- **Caught by tests, fixed.** Putting the field labels inline on their lines broke the round 25 rule that email and phone are each the form's full width; that change was reverted, and only the gaps are tighter. The receipt's height grew the line's row by 22px, which pushed Moon's hammock off a 1440×900 first screen, so the cats never visited it; the receipt and its string were shortened.
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (main, a80c7ae) | 213,164 B | 213,164 B | 37,484 B | 117,868 B | 0 | 1848 |
+| After | 213,460 B | 213,460 B | 38,261 B | 117,868 B | 0.0014 | 1843 |
+
+- **JS at load +296 B** (on the wire): the four fronts in `ChapterTags`. 0 skipped responses. LCP 1200 ms (main 1204). TBT moved between 75 and 112 ms across runs on both builds. **CSS +777 B**: the four papers. CLS 0.0014 at load (main: 0).
+- `pnpm verify` passes: 1,093 unit tests. The full e2e run on the dev server: 1,120 passed and 2 cat tests failed; one of them was the regression above. After the fix, the cat tests and the hero, contact, clipping and responsive suites pass (258).
+- Looked at: `pnpm shots r28-built` at nine widths in both themes.
+
+## Round 28 follow-up: ready for the public (2026-11-07)
+
+Thien: "add SEO + no secret in the page + optimize user/reader experience".
+
+- **Secrets.** I found none. I scanned the working tree, the whole git history and the built bundle (`.next/static` and `.next/server`) for Resend, OpenAI/Anthropic, AWS, GitHub, Slack and Google key formats, and for private keys, with no hits. No `.env` file was ever committed. No client component reads `process.env`. The browser gets only the `NEXT_PUBLIC_` site-URL variables. The public files hold only what the page already shows: the vCard has my email, city and links; the résumé PDF has no phone number and empty metadata.
+- **SEO.**
+  - The snippet is now my positioning line, 97 characters. It was over 200 and got cut mid-sentence.
+  - `/resume` shares with the site's picture; a page's own `openGraph` had dropped it.
+  - The sitemap lists `/resume`, and robots keeps out of `/api/`.
+  - Vercel previews are noindex, and their robots.txt disallows everything.
+  - Structured data gains `worksFor`, read from content.
+  - The pages gain theme-color (the sky's top stop, day and dusk) and an Apple touch icon.
+- **The 404.** It was Next's default: it sent both `noindex` and `index, follow` and had a canonical pointing at the home page. Now it is `not-found.tsx` in my voice ("Nothing hangs here."), with an empty tag taped to the page, the four sections as links and the way back. It is noindex with no canonical, and axe-clean in both themes at 1440 and 390.
+- **Headers.** No more `X-Powered-By`. Pages send frame-ancestors `'self'` (plus `X-Frame-Options`), nosniff, `strict-origin-when-cross-origin`, and a permissions policy that turns off camera, microphone, location, payment and USB. There is no script CSP, on purpose: the theme script is inline. Vercel adds HSTS.
+- **Tests.** `e2e/seo.spec.ts`.

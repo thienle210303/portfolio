@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Download, FileText } from "lucide-react";
-import { profile, resumeSummary } from "@/content/portfolio";
+import { profile } from "@/content/portfolio";
+import { OPEN_GRAPH_BASE, SHARE_IMAGE } from "@/lib/seo";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import ResumeFrame from "./ResumeFrame";
 import preview from "./resume-preview.json";
@@ -28,11 +29,22 @@ import preview from "./resume-preview.json";
  * there, so a phone never fetches the PDF for a frame it will not show.
  */
 
+// A page's `openGraph` replaces the layout's whole, so the shared parts and
+// the share image are named here too (src/lib/seo.ts); without them a shared
+// link to the résumé had no picture. The description is my positioning line,
+// short enough to show whole in a search result.
 export const metadata: Metadata = {
   title: "Résumé",
-  description: `${profile.name} — ${profile.title}. ${resumeSummary}`,
+  description: `Résumé of ${profile.name}, ${profile.title.toLowerCase()}. ${profile.positioning}`,
   alternates: { canonical: "/resume" },
-  openGraph: { url: "/resume", title: `${profile.name} — Résumé` },
+  openGraph: {
+    ...OPEN_GRAPH_BASE,
+    url: "/resume",
+    title: `${profile.name} — Résumé`,
+    description: `Résumé of ${profile.name}, ${profile.title.toLowerCase()}. ${profile.positioning}`,
+    images: [SHARE_IMAGE],
+  },
+  twitter: { card: "summary_large_image", images: [SHARE_IMAGE] },
 };
 
 /** The phone's two actions: 44px, squared like the rest of the site's paper. */

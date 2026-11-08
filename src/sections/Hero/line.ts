@@ -48,6 +48,23 @@ export interface Yard {
 }
 
 /**
+ * Round 28: 2003 and 2021 are clothespinned straight to the line (their
+ * "string" is the few px between the line and the paper's top, which the
+ * clothespin's legs cover); 2018 and 2025 hang on strings.
+ */
+export const PINNED = 6;
+
+/**
+ * From 1024 every string's drop is worked out from the scenery's curve
+ * (globals.css), but its length is its own: the two pinned chapters sit on
+ * the line, the stub and the receipt hang below it, and my field tag hangs
+ * lowest, on the longest string. The row is as tall as its tallest hung
+ * thing, string and all (the receipt), and the Moon vignette under my words
+ * must still make a 1440×900 screen, so keep the receipt's string short.
+ */
+export const WIDE = { tags: [PINNED, 20, PINNED, 12], field: 32 } as const;
+
+/**
  * Phone: two columns. Pass 1 runs down to the right and carries 2003 and
  * 2018; pass 2 comes back down to the left with 2021 and 2025; pass 3 carries
  * my field tag from its middle.
@@ -59,10 +76,10 @@ export const PHONE: Yard = {
     { left: 30, right: 50, sag: 20 },
   ],
   tags: [
-    { pass: 0, t: 0.25, string: 20 },
+    { pass: 0, t: 0.25, string: PINNED },
     { pass: 0, t: 0.75, string: 34 },
-    { pass: 1, t: 0.25, string: 30 },
-    { pass: 1, t: 0.75, string: 16 },
+    { pass: 1, t: 0.25, string: PINNED },
+    { pass: 1, t: 0.75, string: 24 },
   ],
   field: { pass: 2, t: 0.5, string: 18 },
 };
@@ -79,10 +96,10 @@ export const TABLET: Yard = {
     { left: 35, right: 50, sag: 29 },
   ],
   tags: [
-    { pass: 0, t: 0.125, string: 18 },
+    { pass: 0, t: 0.125, string: PINNED },
     { pass: 0, t: 0.375, string: 30 },
-    { pass: 0, t: 0.625, string: 12 },
-    { pass: 0, t: 0.875, string: 26 },
+    { pass: 0, t: 0.625, string: PINNED },
+    { pass: 0, t: 0.875, string: 22 },
   ],
   field: { pass: 1, t: 0.775, string: 20 },
 };
@@ -116,8 +133,9 @@ const px = (n: number) => `${Math.round(n * 10) / 10}px`;
  * below the top of its pass's row) and how long the string is, on a phone
  * and on a tablet. `phone` and `tablet` are its entries in PHONE and TABLET.
  */
-export function hangVars(phone: Hang, tablet: Hang): Record<string, string> {
+export function hangVars(phone: Hang, tablet: Hang, wide: number): Record<string, string> {
   return {
+    "--string-lg": px(wide),
     "--y-phone": px(lineY(PHONE.passes[phone.pass], phone.t)),
     "--string-phone": px(phone.string),
     "--y-tablet": px(lineY(TABLET.passes[tablet.pass], tablet.t)),
@@ -127,8 +145,8 @@ export function hangVars(phone: Hang, tablet: Hang): Record<string, string> {
 
 /**
  * How a hung thing reads them: `--y` and `--string` are the phone's below
- * 640 and the tablet's from there; from 1024 the string is the board's 14px
- * and globals.css works the drop out from the scenery's line itself.
+ * 640 and the tablet's from there; from 1024 the string is its own
+ * (`WIDE`) and globals.css works the drop out from the scenery's line itself.
  */
 export const HUNG =
-  "[--y:var(--y-phone)] [--string:var(--string-phone)] sm:[--y:var(--y-tablet)] sm:[--string:var(--string-tablet)] lg:[--string:14px]";
+  "[--y:var(--y-phone)] [--string:var(--string-phone)] sm:[--y:var(--y-tablet)] sm:[--string:var(--string-tablet)] lg:[--string:var(--string-lg)]";

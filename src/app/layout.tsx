@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Courier_Prime, Newsreader } from "next/font/google";
 import { cn } from "@/lib/cn";
 import { careerEntries, education, profile, socialLinks, SITE_URL } from "@/content/portfolio";
 import { buildCompanionFacts } from "@/lib/companion-facts";
+import { OPEN_GRAPH_BASE, ROBOTS, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
 import SkipLink from "@/components/layout/SkipLink";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -44,10 +45,10 @@ const newsreader = Newsreader({
   variable: "--font-serif",
 });
 
-const title = `${profile.name} — ${profile.title}`;
-// Drawn directly from the two content sentences the whole site hangs
-// from — nothing added, nothing paraphrased into a new claim.
-const description = `${profile.positioning} ${profile.focus}`;
+const title = SITE_TITLE;
+// My positioning line, as the page says it — nothing added, nothing
+// paraphrased into a new claim (src/lib/seo.ts).
+const description = SITE_DESCRIPTION;
 
 // Organisation names read from content rather than retyped, so neither
 // drifts out of sync with the résumé if either changes.
@@ -70,27 +71,16 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    type: "website",
+    ...OPEN_GRAPH_BASE,
     url: "/",
-    siteName: profile.name,
     title,
     description,
-    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
+  // Indexed in production only: a Vercel preview says noindex (src/lib/seo.ts).
+  robots: ROBOTS,
   authors: [{ name: profile.name, url: SITE_URL }],
   creator: profile.name,
   // Every entry is a real term from src/content/portfolio — the title,
@@ -106,6 +96,16 @@ export const metadata: Metadata = {
     "Web Scraping",
     ...(currentEmployer ? [currentEmployer] : []),
     ...(almaMater ? [almaMater] : []),
+  ],
+};
+
+// The browser's chrome takes the sky's top colour, so a phone's address bar
+// continues the page: the morning by day, the dusk by night (`--sky`'s top
+// stops in globals.css). Literals, because this is a meta tag, not CSS.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#dce6e2" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f3237" },
   ],
 };
 
@@ -125,6 +125,7 @@ const personJsonLd = {
   // Omitted entirely if `education` is ever empty, rather than emitting a
   // broken/empty alumniOf — matches the "omit, never invent" content rule.
   ...(almaMater ? { alumniOf: { "@type": "CollegeOrUniversity", name: almaMater } } : {}),
+  ...(currentEmployer ? { worksFor: { "@type": "Organization", name: currentEmployer } } : {}),
 };
 
 /**

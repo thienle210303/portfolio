@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390" />
+    <title>Contact on a phone: the form first</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 28, Contact under 640. Today the postcard stands picture over
+       * address, so the form starts ~420px into the section, after a picture
+       * of mostly sky; round 22's rule is that the form is the first thing
+       * you reach. Below 640 the postcard turns over: address side first,
+       * and the picture shrinks to a 120px strip under the form, like the
+       * front glimpsed at the card's foot.
+       * The field pair closes up (one 44px line each); the card and the
+       * notepad follow as today, the notepad without its grey compose panel.
+       * Three lanterns, not five, all lantern paper by day.
+       */
+      .stage { width: 390px; margin: 0 auto; padding: 0 20px 40px; display: grid; gap: 28px; position: relative; }
+      .head { display: grid; gap: 4px; padding-top: 70px; }
+      .postcard { padding: 22px 20px 0; display: grid; gap: 14px; --tilt: -0.6deg; overflow: hidden; }
+      .pair { display: grid; gap: 4px; border-left: 1.5px solid var(--fg-muted); padding-left: 12px; }
+      .lbl { font: 400 13px var(--font-mono); color: var(--fg-muted); }
+      .strip { margin: 8px -20px 0; height: 120px; border-top: 1px solid var(--rule-color); display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 14px 20px; align-items: center; }
+      .card { padding: 24px 22px 20px; display: grid; gap: 8px; --tilt: 1deg; position: relative; }
+      .seal { position: absolute; right: 18px; top: 18px; width: 52px; height: 58px; background: var(--mark); color: var(--fg-inverse); font: italic 600 15px/1.1 var(--font-serif); display: grid; place-items: center; text-align: center; }
+      .ask { padding: 24px 20px 20px; display: grid; gap: 12px; --tilt: -0.8deg;
+        background-image: repeating-linear-gradient(180deg, transparent 0 27px, color-mix(in srgb, var(--rule-color) 80%, transparent) 27px 28px); }
+      .ask .q { display: flex; gap: 8px; align-items: end; }
+      .ask .q .field { flex: 1; }
+      .ask .try { display: flex; flex-wrap: wrap; gap: 6px; }
+      .ask .try span { font-size: 14px; padding: 9px 10px; box-shadow: var(--shadow-pinned); }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="art" style="position:absolute;left:0;right:0;top:0;height:60px">three lanterns, hoa mai</div>
+      <div class="head">
+        <p class="aside">Xin chào,</p>
+        <h2 class="display">say hi.</h2>
+        <p class="aside">One postcard, two lines, and the next move is mine.</p>
+      </div>
+
+      <div class="postcard paper" style="position:relative">
+        <div style="display:flex;justify-content:flex-end;gap:8px"><div class="art dark" style="width:56px;height:56px;border-radius:50%">postmark</div><div class="art" style="width:52px;height:64px;border-color:var(--mark);color:var(--mark)">flag</div></div>
+        <p class="aside" style="color:var(--fg);margin-top:-30px">Leave a way to reach you.</p>
+        <p class="muted" style="font-size:14px;margin-top:-10px">No message needed. I'll write first.</p>
+        <div><span class="lbl">Your name *</span><span class="field"></span></div>
+        <div class="pair"><div><span class="lbl">Email</span><span class="field"></span></div><div><span class="lbl">or phone</span><span class="field"></span></div></div>
+        <p class="aside" style="font-size:14px;margin-top:-8px">* One is enough, both is fine.</p>
+        <div><span class="btn">Send the postcard</span></div>
+        <div class="strip"><p class="aside" style="color:var(--fg)">Greetings from<br /><b style="font-family:var(--font-display);font-style:normal;font-size:var(--step-2)">Taylors, SC</b></p><div class="art" style="height:90px">pines, heron, rice</div></div>
+        <span class="pin" style="left:-10px;top:150px">5</span>
+        <span class="pin" style="right:-10px;bottom:100px">6</span>
+      </div>
+
+      <aside class="card paper">
+        <span class="seal">Thiện<br />Lê</span>
+        <h3 class="page-title">Thien Le</h3>
+        <span class="label">Software engineer</span>
+        <p class="aside" style="border-left:2px solid var(--fg);padding-left:10px">Unsolved is not the same as unsolvable.</p>
+        <div class="data" style="display:grid;gap:6px;border-top:1px solid var(--rule-color);padding-top:10px"><span>thienle210303@gmail.com ⧉</span><span>github.com/thienle210303</span><span>in/thienle210303</span></div>
+      </aside>
+
+      <div class="ask paper" style="position:relative">
+        <div><b class="heading" style="font-size:var(--step-1)">Ask me</b><br /><span class="aside" style="font-size:15px">I answer from what I've written here.</span></div>
+        <div class="q"><span class="field"><span class="muted">Ask about my work</span></span><span class="btn quiet" style="border:1px solid var(--rule-color)">Ask</span></div>
+        <div class="try"><span class="paper">What do you do at DoorDash?</span><span class="paper">Are you from Việt Nam?</span><span class="paper">What have you measured?</span><span class="paper">What are your cats called?</span></div>
+        <span class="pin" style="left:-10px;top:10px">2</span>
+      </div>
+    </div>
+  </body>
+</html>
